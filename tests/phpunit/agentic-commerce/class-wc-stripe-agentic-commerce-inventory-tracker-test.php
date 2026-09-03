@@ -156,6 +156,67 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	}
 
 	// -------------------------------------------------------------------------
+	// schedule_pending_archive_flush
+	// -------------------------------------------------------------------------
+
+	/**
+	 * The flush schedules the archive action only when rows are pending.
+	 *
+	 * @param bool $has_pending     Whether an archive row is queued.
+	 * @param bool $expect_schedule Whether the archive action must be scheduled.
+	 * @dataProvider provide_pending_archive_flush_cases
+	 */
+	public function test_schedule_pending_archive_flush( bool $has_pending, bool $expect_schedule ): void {
+		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION );
+
+		if ( $has_pending ) {
+			update_option(
+				WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION,
+				[
+					123 => [
+						'id'           => '123',
+						'availability' => 'out_of_stock',
+					],
+				],
+				false
+			);
+		}
+
+		try {
+			WC_Stripe_Agentic_Commerce_Inventory_Tracker::schedule_pending_archive_flush();
+
+			$this->assertSame(
+				$expect_schedule,
+				as_has_scheduled_action( WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION )
+			);
+		} finally {
+			as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION );
+		}
+	}
+
+	/**
+	 * Data provider for `test_schedule_pending_archive_flush`.
+	 *
+	 * @return array
+	 */
+	public function provide_pending_archive_flush_cases(): array {
+		return [
+			'pending rows' => [
+				'has_pending'     => true,
+				'expect_schedule' => true,
+			],
+			'no rows'      => [
+				'has_pending'     => false,
+				'expect_schedule' => false,
+			],
+		];
+	}
+
+	// -------------------------------------------------------------------------
 	// maybe_track_product_archive
 	// -------------------------------------------------------------------------
 

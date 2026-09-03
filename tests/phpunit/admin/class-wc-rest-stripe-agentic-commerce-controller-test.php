@@ -93,6 +93,35 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		parent::tear_down();
 	}
 
+	/**
+	 * Create a published product the feed validator accepts.
+	 *
+	 * The validator requires a category, and a product saved without one only gets
+	 * whatever `default_product_cat` points at. That option stops resolving as soon as
+	 * another test class has run in the process: WP's tear_down_after_class() empties
+	 * the term tables and commits, while the option survives in wp_options. Assigning
+	 * a category here keeps these tests independent of that ordering.
+	 *
+	 * @return WC_Product_Simple
+	 */
+	private function create_feed_product(): WC_Product_Simple {
+		$category    = wp_insert_term( 'Feed Category', 'product_cat' );
+		$category_id = is_wp_error( $category ) ? (int) $category->get_error_data() : (int) $category['term_id'];
+
+		$product = new WC_Product_Simple();
+		$product->set_name( 'Test Product' );
+		$product->set_regular_price( '10.00' );
+		$product->set_status( 'publish' );
+
+		if ( $category_id > 0 ) {
+			$product->set_category_ids( [ $category_id ] );
+		}
+
+		$product->save();
+
+		return $product;
+	}
+
 	// -------------------------------------------------------------------------
 	// Authentication
 	// -------------------------------------------------------------------------
@@ -1025,11 +1054,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		update_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION, 'whsec_test' );
 
 		// Create a simple product so the walker finds at least one.
-		$product = new WC_Product_Simple();
-		$product->set_name( 'Test Product' );
-		$product->set_regular_price( '10.00' );
-		$product->set_status( 'publish' );
-		$product->save();
+		$product = $this->create_feed_product();
 
 		// Stub the Files API cURL upload (which bypasses pre_http_request).
 		$files_stub = function () {
@@ -1456,6 +1481,74 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Saving settings schedules a flush of archives queued while onboarding was
+	 * incomplete, but only once onboarding is complete.
+	 *
+	 * @param string $webhook_secret  The secret submitted with the toggle on.
+	 * @param bool   $expect_schedule Whether the archive action must be scheduled.
+	 * @dataProvider provide_archive_flush_on_settings_update_cases
+	 */
+	public function test_update_settings_schedules_pending_archive_flush( string $webhook_secret, bool $expect_schedule ): void {
+		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION );
+		update_option(
+			WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION,
+			[
+				123 => [
+					'id'           => '123',
+					'availability' => 'out_of_stock',
+				],
+			],
+			false
+		);
+
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_body(
+			wp_json_encode(
+				[
+					'is_enabled'     => true,
+					'webhook_secret' => $webhook_secret,
+				]
+			)
+		);
+		$request->set_header( 'content-type', 'application/json' );
+
+		try {
+			$response = rest_do_request( $request );
+
+			$this->assertEquals( 200, $response->get_status() );
+			$this->assertSame(
+				$expect_schedule,
+				as_has_scheduled_action( WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION )
+			);
+		} finally {
+			as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION );
+			delete_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION );
+		}
+	}
+
+	/**
+	 * Data provider for `test_update_settings_schedules_pending_archive_flush`.
+	 *
+	 * @return array
+	 */
+	public function provide_archive_flush_on_settings_update_cases(): array {
+		return [
+			'secret saved, onboarding complete' => [
+				'webhook_secret'  => 'whsec_abc123',
+				'expect_schedule' => true,
+			],
+			'empty secret, still incomplete'    => [
+				'webhook_secret'  => '',
+				'expect_schedule' => false,
+			],
+		];
+	}
+
+	/**
 	 * POST /settings does not overwrite the stored secret when the masked
 	 * placeholder is submitted (e.g. user saved without changing the field).
 	 */
@@ -1672,11 +1765,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		update_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION, 'whsec_test' );
 
 		// Create a simple product so the walker finds at least one.
-		$product = new WC_Product_Simple();
-		$product->set_name( 'Test Product' );
-		$product->set_regular_price( '10.00' );
-		$product->set_status( 'publish' );
-		$product->save();
+		$product = $this->create_feed_product();
 
 		// Stub the Files API cURL upload.
 		$files_stub = function () {
@@ -1757,11 +1846,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		// Onboarding must be complete for the sync to push (merchant toggle is set in set_up()).
 		update_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION, 'whsec_test' );
 
-		$product = new WC_Product_Simple();
-		$product->set_name( 'Test Product' );
-		$product->set_regular_price( '10.00' );
-		$product->set_status( 'publish' );
-		$product->save();
+		$product = $this->create_feed_product();
 
 		$files_stub = function () {
 			return [ 'id' => 'file_stub' ];

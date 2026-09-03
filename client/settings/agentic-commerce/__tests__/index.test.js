@@ -101,6 +101,8 @@ describe( 'AgenticCommerceSection', () => {
 				'https://dashboard.stripe.com/test/data-management/import-sets',
 			agentic_commerce_logs_url:
 				'/wp-admin/admin.php?page=wc-status&tab=logs',
+			agentic_commerce_excluded_products_url:
+				'http://example.test/wp-admin/edit.php?post_type=product&wc_stripe_agentic_sync_status=excluded',
 		};
 	} );
 
@@ -515,6 +517,69 @@ describe( 'AgenticCommerceSection', () => {
 		} );
 		expect(
 			screen.queryByText( /Setup instructions/i )
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'links to the excluded products view when the feature is enabled', async () => {
+		mockFetchByPath( EMPTY_RESPONSE, {
+			is_enabled: true,
+			webhook_secret: '',
+		} );
+
+		render( <AgenticCommerceSection /> );
+
+		await waitFor( () => {
+			expect(
+				screen.getByRole( 'link', {
+					name: /View excluded products/i,
+				} )
+			).toBeInTheDocument();
+		} );
+		expect(
+			screen.getByRole( 'link', { name: /View excluded products/i } )
+		).toHaveAttribute(
+			'href',
+			'http://example.test/wp-admin/edit.php?post_type=product&wc_stripe_agentic_sync_status=excluded'
+		);
+	} );
+
+	it( 'falls back to a relative excluded products URL without the backend param', async () => {
+		delete global.wc_stripe_settings_params
+			.agentic_commerce_excluded_products_url;
+		mockFetchByPath( EMPTY_RESPONSE, {
+			is_enabled: true,
+			webhook_secret: '',
+		} );
+
+		render( <AgenticCommerceSection /> );
+
+		await waitFor( () => {
+			expect(
+				screen.getByRole( 'link', {
+					name: /View excluded products/i,
+				} )
+			).toHaveAttribute(
+				'href',
+				'edit.php?post_type=product&wc_stripe_agentic_sync_status=excluded'
+			);
+		} );
+	} );
+
+	it( 'hides the excluded products link when the feature is disabled', async () => {
+		mockFetchByPath( EMPTY_RESPONSE, {
+			is_enabled: false,
+			webhook_secret: '',
+		} );
+
+		render( <AgenticCommerceSection /> );
+
+		await waitFor( () => {
+			expect(
+				screen.queryByLabelText( /Webhook secret/i )
+			).not.toBeInTheDocument();
+		} );
+		expect(
+			screen.queryByRole( 'link', { name: /View excluded products/i } )
 		).not.toBeInTheDocument();
 	} );
 
