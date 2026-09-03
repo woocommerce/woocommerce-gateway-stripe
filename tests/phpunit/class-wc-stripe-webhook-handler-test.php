@@ -3382,7 +3382,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				update_user_option( $user_id, '_stripe_customer_id', $existing_user_customer_id, false );
 			}
 			if ( $user_lock_held ) {
-				add_option( 'wc_stripe_user_customer_lock_' . $user_id, time(), '', false );
+				add_option( 'wc_stripe_user_customer_lock_' . $user_id, time() . ':other-request', '', false );
 			}
 		}
 
@@ -3526,6 +3526,80 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'integer'              => [ 123 ],
 			'empty string'         => [ '' ],
 		];
+	}
+
+	/**
+	 * A lock abandoned by a crashed request must not block the attachment forever.
+	 */
+	public function test_attach_customer_to_user_reclaims_an_abandoned_lock(): void {
+		$user_id     = self::factory()->user->create();
+		$lock_option = 'wc_stripe_user_customer_lock_' . $user_id;
+		add_option( $lock_option, ( time() - 2 * MINUTE_IN_SECONDS ) . ':crashed-request', '', false );
+
+		$this->invoke_attach_customer_to_user( $user_id, 'cus_reclaimed' );
+
+		$this->assertSame( 'cus_reclaimed', ( new WC_Stripe_Customer( $user_id ) )->get_id() );
+		$this->assertNull( $this->read_user_customer_lock( $lock_option ), 'The reclaimed lock must be released afterwards.' );
+	}
+
+	/**
+	 * Two requests can read the same expired lock. Only the one whose compare-and-swap lands
+	 * may write the customer, and the loser's release must leave the winner's lock in place.
+	 */
+	public function test_attach_customer_to_user_loses_a_contested_stale_lock_reclaim(): void {
+		global $wpdb;
+
+		$user_id     = self::factory()->user->create();
+		$lock_option = 'wc_stripe_user_customer_lock_' . $user_id;
+		$rival_owner = time() . ':rival-request';
+		add_option( $lock_option, ( time() - 2 * MINUTE_IN_SECONDS ) . ':crashed-request', '', false );
+
+		// The rival reclaims the stale lock after this request has read it but before its swap runs.
+		$rival_reclaims = static function ( $query ) use ( &$rival_reclaims, $wpdb, $lock_option, $rival_owner ) {
+			if ( is_string( $query ) && 0 === stripos( ltrim( $query ), 'UPDATE' ) && false !== strpos( $query, $lock_option ) ) {
+				remove_filter( 'query', $rival_reclaims );
+				$wpdb->update( $wpdb->options, [ 'option_value' => $rival_owner ], [ 'option_name' => $lock_option ] );
+			}
+			return $query;
+		};
+		add_filter( 'query', $rival_reclaims );
+
+		try {
+			$this->invoke_attach_customer_to_user( $user_id, 'cus_loser' );
+		} finally {
+			remove_filter( 'query', $rival_reclaims );
+		}
+
+		$this->assertSame( '', ( new WC_Stripe_Customer( $user_id ) )->get_id(), 'The loser of the reclaim must not write the customer.' );
+		$this->assertSame( $rival_owner, $this->read_user_customer_lock( $lock_option ), 'The loser must not release the rival\'s lock.' );
+
+		delete_option( $lock_option );
+	}
+
+	/**
+	 * Invokes the private user attachment routine on a real handler instance.
+	 *
+	 * @param int    $user_id     The WP user.
+	 * @param string $customer_id The Stripe customer ID to attach.
+	 */
+	private function invoke_attach_customer_to_user( int $user_id, string $customer_id ): void {
+		$method = new ReflectionMethod( WC_Stripe_Webhook_Handler::class, 'attach_customer_to_user' );
+		$method->setAccessible( true );
+		$method->invoke( $this->mock_webhook_handler, $user_id, $customer_id );
+	}
+
+	/**
+	 * Reads the lock row straight from the database; the options cache may hold a stale seed value.
+	 *
+	 * @param string $lock_option The lock option name.
+	 * @return string|null The stored owner value, or null when no lock row exists.
+	 */
+	private function read_user_customer_lock( string $lock_option ): ?string {
+		global $wpdb;
+
+		$value = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", $lock_option ) );
+
+		return is_string( $value ) ? $value : null;
 	}
 
 	/**
