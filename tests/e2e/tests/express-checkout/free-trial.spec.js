@@ -1,9 +1,17 @@
+import { randomUUID } from 'crypto';
 import { expect, test } from '@playwright/test';
+import config from 'config';
 import { api, payments, products } from '../../utils';
 import { setProductType } from '../../utils/wp-cli';
-import { assertLinkModalLoads } from './utils';
+import {
+	assertLinkModalLoads,
+	fillLinkPaymentDetails,
+	loginToLink,
+	openLinkPopup,
+	signUpForLink,
+} from './utils';
 
-const { clickAddToCartButton, emptyCart } = payments;
+const { clickAddToCartButton, emptyCart, waitForOrderReceivedPage } = payments;
 
 let virtualProductId;
 let physicalProductId;
@@ -112,6 +120,62 @@ test.describe( 'express checkout with free trial subscriptions', () => {
 			await addProductToCartById( page, physicalProductId );
 			await page.goto( '/checkout' );
 			await assertLinkModalLoads( page, true );
+		} );
+	} );
+
+	test.describe( 'completing the purchase with Link', () => {
+		// The returning-account test depends on the Link account the purchase
+		// test enrolls, so a failure must retry the whole group.
+		test.describe.configure( { mode: 'serial' } );
+
+		// A unique address per run: Link sandbox keeps accounts around, and an
+		// already-enrolled email would flip the signup flow into a login flow.
+		const linkEmail = `wc-stripe-link-e2e-${ randomUUID() }@example.com`;
+
+		test( 'completes a free trial purchase with a new Link account @blocks @express-checkout @subscriptions', async ( {
+			page,
+		} ) => {
+			test.setTimeout( 240 * 1000 );
+			await addProductToCartById( page, virtualProductId );
+			await page.goto( '/checkout' );
+
+			const popup = await openLinkPopup( page, true );
+			await signUpForLink(
+				popup,
+				linkEmail,
+				config.get( 'addresses.customer.billing.phone' )
+			);
+			await fillLinkPaymentDetails(
+				popup,
+				config.get( 'cards.basic' ),
+				config.get( 'addresses.customer.billing' )
+			);
+
+			await Promise.all( [
+				popup.waitForEvent( 'close', { timeout: 90 * 1000 } ),
+				popup.getByTestId( 'pay-button' ).click(),
+			] );
+
+			await waitForOrderReceivedPage( page );
+		} );
+
+		test( 'keeps the Continue button enabled for a returning Link account with a saved payment method @blocks @express-checkout @subscriptions', async ( {
+			page,
+		} ) => {
+			test.setTimeout( 240 * 1000 );
+			await addProductToCartById( page, virtualProductId );
+			await page.goto( '/checkout' );
+
+			const popup = await openLinkPopup( page, true );
+			await loginToLink( popup, linkEmail );
+
+			// The saved-payment-method sheet of a signed-in Link account with
+			// a 0-amount trial cart: the sheet must remain actionable, not
+			// show a dead disabled Continue button.
+			await expect( popup.getByText( /4242/ ).first() ).toBeVisible( {
+				timeout: 60 * 1000,
+			} );
+			await expect( popup.getByTestId( 'pay-button' ) ).toBeEnabled();
 		} );
 	} );
 } );
