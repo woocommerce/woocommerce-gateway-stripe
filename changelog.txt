@@ -38,6 +38,7 @@ xxxx-xx-xx - version 11.0.0
 * Fix - Ensure webhook status checks reset API key
 * Fix - Keep express checkout and the payment options rendering on the first block checkout load of a free-trial subscription cart
 * Fix - Prevent cart from being emptied after My Account registration when Stripe, WooPayments, and Jetpack are all active by scoping the logged-in cookie update to checkout context only
+* Fix - Honor subscription renewal payment locks while preserving retry attempts
 * Fix - Only sync the Agentic Commerce catalog, inventory, and archive feeds to Stripe after onboarding is complete (the feature is enabled and the webhook secret is saved)
 * Tweak - Disable the Agentic Commerce "Sync now" button until onboarding is complete, with a note explaining the remaining step
 
@@ -48,7 +49,6 @@ xxxx-xx-xx - version 11.0.0
 * Fix - Surface express checkout order failures instead of leaving the Apple Pay or Google Pay sheet open with no error
 * Fix - Prevent classic checkout from processing an empty payment method when custom required fields are present
 * Fix - Explain that payment details were not submitted, instead of reporting the selected payment method as invalid, when checkout is submitted without them
-* Fix - Honor subscription renewal payment locks while preserving retry attempts
 
 2026-08-17 - version 10.9.0
 * Fix - Re-enable Adaptive Pricing if it was automatically disabled after a Checkout Session amount mismatch
