@@ -438,20 +438,20 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			);
 
 		// Spy on lock/unlock only; the rest of the helper runs real.
-		$real_order_helper = WC_Stripe_Order_Helper::get_instance();
-		$order_helper_spy  = $this->getMockBuilder( WC_Stripe_Order_Helper::class )
+		$original_order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		$order_helper_spy = $this->getMockBuilder( WC_Stripe_Order_Helper::class )
 			->disableOriginalConstructor()
 			->onlyMethods( [ 'lock_order_payment', 'unlock_order_payment' ] )
 			->getMock();
 		$order_helper_spy->expects( $this->once() )
 			->method( 'lock_order_payment' )
-			->willReturnCallback( [ $real_order_helper, 'lock_order_payment' ] );
+			->willReturnCallback( [ $original_order_helper, 'lock_order_payment' ] );
 		$order_helper_spy->method( 'unlock_order_payment' )
-			->willReturnCallback( [ $real_order_helper, 'unlock_order_payment' ] );
+			->willReturnCallback( [ $original_order_helper, 'unlock_order_payment' ] );
 
 		$instance_property = new ReflectionProperty( WC_Stripe_Order_Helper::class, 'instance' );
 		$instance_property->setAccessible( true );
-		$original_instance = $real_order_helper;
 		$instance_property->setValue( null, $order_helper_spy );
 
 		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $payments_intents_api_endpoint, &$request_count ) {
@@ -499,7 +499,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, true, false );
 		} finally {
 			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
-			$instance_property->setValue( null, $original_instance );
+			$instance_property->setValue( null, $original_order_helper );
 		}
 
 		$renewal_order = wc_get_order( $renewal_order->get_id() );
