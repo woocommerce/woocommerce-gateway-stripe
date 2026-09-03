@@ -774,6 +774,97 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertSame( $expected_status, wc_get_order( $renewal_order->get_id() )->get_status() );
 	}
 
+	public function test_renewal_retry_reuses_idempotency_key_when_mandate_options_are_sent() {
+		$renewal_order    = WC_Helper_Order::create_order();
+		$request_count    = 0;
+		$idempotency_keys = [];
+		$start_dates      = [];
+
+		$renewal_order->set_payment_method( 'stripe' );
+		$renewal_order->save();
+
+		$this->set_gateway_retry_interval( 1 );
+
+		$this->wc_gateway_stripe->method( 'has_subscription' )->willReturn( true );
+		$this->wc_gateway_stripe
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => 'cus_123abc',
+					'source'         => 'pm_123abc',
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		// A subscription makes the request carry Indian mandate options, whose start date is the request time.
+		$mock_subscription = new WC_Subscription();
+		$mock_subscription->set_total( 20 );
+		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order = [ $mock_subscription ];
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( &$request_count, &$idempotency_keys, &$start_dates ) {
+			if ( 'https://api.stripe.com/v1/payment_intents' !== $url ) {
+				return $preempt;
+			}
+
+			++$request_count;
+			$idempotency_keys[] = $request_args['headers']['Idempotency-Key'] ?? null;
+			$start_dates[]      = $request_args['body']['payment_method_options']['card']['mandate_options']['start_date'] ?? null;
+
+			if ( 1 === $request_count ) {
+				return [
+					'headers'  => [],
+					'body'     => wp_json_encode(
+						[
+							'error' => [
+								'type'    => 'api_error',
+								'message' => 'Temporary Stripe API error.',
+							],
+						]
+					),
+					'response' => [
+						'code'    => 400,
+						'message' => 'Bad Request',
+					],
+					'cookies'  => [],
+					'filename' => null,
+				];
+			}
+
+			return [
+				'headers'  => [],
+				'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_success.json' ),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+
+		// The Subscriptions plugin registers this filter; the test process has no such plugin.
+		add_filter( 'wc_stripe_generate_create_intent_request', [ $this->wc_gateway_stripe, 'add_subscription_information_to_intent' ], 10, 4 );
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, true, false );
+		} finally {
+			remove_filter( 'wc_stripe_generate_create_intent_request', [ $this->wc_gateway_stripe, 'add_subscription_information_to_intent' ], 10 );
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order = null;
+		}
+
+		// The retry runs a second later; the start date must not follow the clock.
+		$this->assertSame( 2, $request_count );
+		$this->assertNotNull( $start_dates[0] );
+		$this->assertSame( $start_dates[0], $start_dates[1] );
+		$this->assertSame( $idempotency_keys[0], $idempotency_keys[1] );
+	}
+
 	public function provide_inconclusive_error_retry_outcomes(): array {
 		return [
 			'Stripe replays the stored error' => [ true, 7, OrderStatus::FAILED ],

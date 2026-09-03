@@ -12,6 +12,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 trait WC_Stripe_Subscriptions_Trait {
 
+	/**
+	 * Mandate start date shared by all attempts of one renewal, or 0 outside a renewal.
+	 *
+	 * Static: the request filter that adds mandate options may run on another gateway instance.
+	 *
+	 * @var int
+	 */
+	private static $subscription_renewal_mandate_start_date = 0;
+
 	use WC_Stripe_Subscriptions_Utilities_Trait;
 
 	/**
@@ -514,9 +523,14 @@ trait WC_Stripe_Subscriptions_Trait {
 		$our_lock    = (string) $order_helper->get_order_existing_payment_lock( $renewal_order );
 		$lock_expiry = (int) $our_lock;
 
+		// A retry can reuse its idempotency key only if it sends the same request; the mandate start date must not move.
+		self::$subscription_renewal_mandate_start_date = time();
+
 		try {
 			$this->process_subscription_payment_attempt( $amount, $renewal_order, $retry, $previous_error, $lock_expiry );
 		} finally {
+			self::$subscription_renewal_mandate_start_date = 0;
+
 			if ( (string) $order_helper->get_order_existing_payment_lock( $renewal_order ) === $our_lock ) {
 				$order_helper->unlock_order_payment( $renewal_order );
 			}
@@ -1322,7 +1336,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		$mandate_options['amount']          = $sub_amount;
 		$mandate_options['reference']       = $order->get_id();
-		$mandate_options['start_date']      = time();
+		$mandate_options['start_date']      = 0 < self::$subscription_renewal_mandate_start_date ? self::$subscription_renewal_mandate_start_date : time();
 		$mandate_options['supported_types'] = [ 'india' ];
 
 		return $mandate_options;
