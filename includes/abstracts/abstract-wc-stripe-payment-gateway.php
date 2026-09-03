@@ -971,7 +971,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( ! empty( $intent->charges->data ) ) {
 			$latest_charge = end( $intent->charges->data );
 		} elseif ( ! empty( $intent->latest_charge ) ) {
-			$latest_charge = $this->get_charge_object( $intent->latest_charge );
+			// Requests that expand latest_charge already carry the charge object.
+			$latest_charge = is_object( $intent->latest_charge )
+				? $intent->latest_charge
+				: $this->get_charge_object( $intent->latest_charge );
 		}
 
 		return $latest_charge;
@@ -2033,7 +2036,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			// TODO: Refactor and add mandate ID support for other payment methods, if necessary.
 			// The mandate ID is not available for the intent object, so we need to fetch the charge.
 			// Mandate ID is necessary for renewal payments for certain payment methods and Indian cards.
-			$charge = $this->get_latest_charge_from_intent( $intent );
+			// The intent id is kept when this lookup fails; the intent itself is already confirmed.
+			try {
+				$charge = $this->get_latest_charge_from_intent( $intent );
+			} catch ( WC_Stripe_Exception $charge_exception ) {
+				WC_Stripe_Logger::error( "Stripe: the mandate charge lookup for order {$order->get_id()} failed: " . $charge_exception->getMessage() );
+				$charge = null;
+			}
 
 			if ( isset( $charge->payment_method_details->card->mandate ) ) {
 				$order_helper->update_stripe_mandate_id( $order, $charge->payment_method_details->card->mandate );
@@ -2307,6 +2316,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'confirm'              => 'true',
 			'confirmation_method'  => 'automatic',
 			'capture_method'       => 'automatic',
+			// The charge is read twice after confirmation; expanding it saves both requests.
+			'expand'               => [ 'latest_charge' ],
 		];
 
 		if ( isset( $full_request['statement_descriptor_suffix'] ) ) {
