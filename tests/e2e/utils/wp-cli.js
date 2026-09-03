@@ -2,7 +2,23 @@ import { execSync } from 'child_process';
 import { NodeSSH } from 'node-ssh';
 
 /**
+ * Wrap a value in single quotes for safe interpolation into a shell command,
+ * escaping any embedded single quotes, so argument values can never be
+ * interpreted as shell syntax.
+ *
+ * @param {string|number} arg Value to escape.
+ * @return {string} The single-quoted, escaped value.
+ */
+const shellEscape = ( arg ) =>
+	"'" + String( arg ).replace( /'/g, "'\\''" ) + "'";
+
+/**
  * Run WP-CLI commands against the site under test.
+ *
+ * Each command is an array of WP-CLI arguments without the leading `wp`, e.g.
+ * `[ 'post', 'term', 'set', '123', 'product_type', 'subscription' ]`. Every
+ * argument is shell-escaped individually, so values can never be interpreted as
+ * shell syntax.
  *
  * Dispatches on the DOCKER env flag set by run-tests.sh. Docker runs reuse the
  * canonical cli() helper from tests/e2e/bin/common.sh — the exact same
@@ -15,13 +31,17 @@ import { NodeSSH } from 'node-ssh';
  * derives E2E_ROOT from `pwd`); this holds for every npm-invoked test run in CI
  * and locally.
  *
- * @param {Array.<string>} commands WP-CLI commands, each starting with `wp `.
+ * @param {Array.<Array.<string>>} commands WP-CLI commands, each an array of arguments.
  * @return {Promise<void>} Resolves when all commands have run.
  */
 export async function runWpCommands( commands ) {
+	const wpCommands = commands.map( ( args ) =>
+		[ 'wp', ...args ].map( shellEscape ).join( ' ' )
+	);
+
 	if ( process.env.DOCKER ) {
-		for ( const command of commands ) {
-			execSync( `. ./tests/e2e/bin/common.sh && cli ${ command }`, {
+		for ( const wpCommand of wpCommands ) {
+			execSync( `. ./tests/e2e/bin/common.sh && cli ${ wpCommand }`, {
 				shell: '/bin/bash',
 				stdio: 'pipe',
 			} );
@@ -29,9 +49,17 @@ export async function runWpCommands( commands ) {
 		return;
 	}
 
-	if ( ! process.env.SSH_HOST ) {
+	const missing = [
+		'SSH_HOST',
+		'SSH_USER',
+		'SSH_PASSWORD',
+		'SSH_PATH',
+	].filter( ( name ) => ! process.env[ name ] );
+	if ( missing.length ) {
 		throw new Error(
-			'Cannot run WP-CLI commands: set the SSH_* variables in tests/e2e/config/local.env for remote runs.'
+			`Cannot run WP-CLI commands remotely: set ${ missing.join(
+				', '
+			) } in tests/e2e/config/local.env.`
 		);
 	}
 
@@ -43,13 +71,13 @@ export async function runWpCommands( commands ) {
 	} );
 
 	try {
-		for ( const command of commands ) {
-			const result = await ssh.execCommand( command, {
+		for ( const wpCommand of wpCommands ) {
+			const result = await ssh.execCommand( wpCommand, {
 				cwd: process.env.SSH_PATH,
 			} );
 			if ( 0 !== result.code ) {
 				throw new Error(
-					`WP-CLI command failed: ${ command }\n${ result.stderr }`
+					`WP-CLI command failed: ${ wpCommand }\n${ result.stderr }`
 				);
 			}
 		}
@@ -72,6 +100,6 @@ export async function runWpCommands( commands ) {
  */
 export function setProductType( productId, type ) {
 	return runWpCommands( [
-		`wp post term set ${ productId } product_type ${ type }`,
+		[ 'post', 'term', 'set', String( productId ), 'product_type', type ],
 	] );
 }

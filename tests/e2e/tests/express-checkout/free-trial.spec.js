@@ -22,7 +22,14 @@ const createFreeTrialProduct = async ( { virtual } ) => {
 	const productId = await api.create.product(
 		products.freeTrialSubscriptionData( { virtual } )
 	);
-	await setProductType( productId, 'subscription' );
+	// Clean up the just-created product if the type flip fails, otherwise its
+	// ID never reaches afterAll and it leaks into the test site.
+	try {
+		await setProductType( productId, 'subscription' );
+	} catch ( error ) {
+		await api.deletePost.product( productId );
+		throw error;
+	}
 	return productId;
 };
 
