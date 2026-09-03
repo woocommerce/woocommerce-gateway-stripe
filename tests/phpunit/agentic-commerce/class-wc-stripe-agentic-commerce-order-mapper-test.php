@@ -307,6 +307,47 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that Order Attribution meta is written from the session's agent
+	 * details so the admin Origin column shows the originating agent.
+	 *
+	 * @return void
+	 */
+	public function test_order_attribution_meta_is_stored_for_agentic_session() {
+		$session = $this->build_checkout_session(
+			[
+				'payment_intent' => (object) [
+					'id'            => 'pi_test_attribution',
+					'agent_details' => (object) [
+						'network_business_profile' => 'ChatGPT',
+					],
+				],
+			]
+		);
+		$order   = $this->mapper->create_order_from_checkout_session( $session );
+
+		$this->assertEquals( 'referral', $order->get_meta( '_wc_order_attribution_source_type', true ) );
+		$this->assertEquals( 'ChatGPT', $order->get_meta( '_wc_order_attribution_utm_source', true ) );
+
+		$order->delete( true );
+	}
+
+	/**
+	 * Tests that no Order Attribution meta is written when the session carries
+	 * no agent details, leaving the Origin column untouched.
+	 *
+	 * @return void
+	 */
+	public function test_order_attribution_meta_is_not_stored_without_agent_details() {
+		$session = $this->build_checkout_session();
+		$order   = $this->mapper->create_order_from_checkout_session( $session );
+
+		$this->assertSame( '', $order->get_meta( '_wc_order_attribution_source_type', true ) );
+		$this->assertSame( '', $order->get_meta( '_wc_order_attribution_utm_source', true ) );
+
+		$order->delete( true );
+	}
+
+	/**
 	 * Test that the order status is set to processing.
 	 *
 	 * @return void
