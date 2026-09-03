@@ -2035,13 +2035,17 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function lock_order_payment( $order ) {
 		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::lock_order_payment()' );
 
-		// Subclasses may override this check; keep it in the chain.
 		if ( $this->is_order_payment_locked( $order ) ) {
+			// If the order is already locked, return true.
 			return true;
 		}
 
-		// The helper owns the lock row.
-		return WC_Stripe_Order_Helper::get_instance()->lock_order_payment( $order );
+		$new_lock = ( time() + 5 * MINUTE_IN_SECONDS );
+
+		$order->update_meta_data( '_stripe_lock_payment', $new_lock );
+		$order->save_meta_data();
+
+		return false;
 	}
 
 	/**
@@ -2057,7 +2061,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function unlock_order_payment( $order ) {
 		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::unlock_order_payment()' );
 
-		WC_Stripe_Order_Helper::get_instance()->unlock_order_payment( $order );
+		$order->delete_meta_data( '_stripe_lock_payment' );
+		$order->save_meta_data();
 	}
 
 	/**

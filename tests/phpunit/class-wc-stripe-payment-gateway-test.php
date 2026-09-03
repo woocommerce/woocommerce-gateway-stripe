@@ -57,7 +57,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertFalse( $intent );
 	}
 
-	public function test_deprecated_payment_lock_methods_delegate_to_order_helper() {
+	public function test_deprecated_payment_lock_still_blocks_the_helper_lock() {
 		$order        = WC_Helper_Order::create_order();
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
@@ -66,13 +66,16 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->setExpectedDeprecated( 'WC_Stripe_Payment_Gateway::get_order_existing_lock' );
 		$this->assertFalse( $this->gateway->lock_order_payment( $order ) );
 
-		$owned_lock = (string) $order_helper->get_order_existing_payment_lock( $order );
-		$this->assertTrue( $order_helper->is_order_payment_lock_owned( $order, $owned_lock ) );
+		// The deprecated method writes a bare timestamp; the helper must still honour it.
+		$this->assertMatchesRegularExpression( '/^[1-9][0-9]*$/', (string) $order_helper->get_order_existing_payment_lock( $order ) );
+		$this->assertTrue( $order_helper->lock_order_payment( wc_get_order( $order->get_id() ) ) );
 
 		$this->setExpectedDeprecated( 'WC_Stripe_Payment_Gateway::unlock_order_payment' );
 		$this->gateway->unlock_order_payment( $order );
 
 		$this->assertEmpty( $order_helper->get_order_existing_payment_lock( $order ) );
+		$this->assertFalse( $order_helper->lock_order_payment( wc_get_order( $order->get_id() ) ) );
+		$order_helper->unlock_order_payment( wc_get_order( $order->get_id() ) );
 	}
 
 	/**
