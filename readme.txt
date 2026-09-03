@@ -202,5 +202,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Ensure webhook status checks reset API key
 * Fix - Keep express checkout and the payment options rendering on the first block checkout load of a free-trial subscription cart
 * Fix - Honor subscription renewal payment locks while preserving retry attempts
+* Fix - Reuse the idempotency key when a subscription renewal retries after a retryable Stripe API error, detach the retry key filter after each attempt, and match renewal idempotency errors by type
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

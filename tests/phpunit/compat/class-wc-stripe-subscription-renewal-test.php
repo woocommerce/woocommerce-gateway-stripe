@@ -613,6 +613,469 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertEmpty( $order_helper->get_order_existing_payment_lock( wc_get_order( $renewal_order->get_id() ) ) );
 	}
 
+	public function test_renewal_removes_idempotency_key_filter_after_retry() {
+		$renewal_order    = WC_Helper_Order::create_order();
+		$request_count    = 0;
+		$idempotency_keys = [];
+
+		$renewal_order->set_payment_method( 'stripe' );
+		$renewal_order->save();
+
+		$this->set_gateway_retry_interval( 1 );
+
+		$this->wc_gateway_stripe
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => 'cus_123abc',
+					'source'         => 'src_123abc',
+					'source_object'  => (object) [
+						'type'   => WC_Stripe_Payment_Methods::CARD,
+						'status' => 'chargeable',
+					],
+					'payment_method' => null,
+				]
+			);
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( &$request_count, &$idempotency_keys ) {
+			if ( 'https://api.stripe.com/v1/payment_intents' !== $url ) {
+				return $preempt;
+			}
+
+			++$request_count;
+			$idempotency_keys[] = $request_args['headers']['Idempotency-Key'] ?? null;
+
+			if ( 1 === $request_count ) {
+				return [
+					'headers'  => [],
+					'body'     => wp_json_encode(
+						[
+							'error' => [
+								'type'    => 'idempotency_error',
+								'message' => 'Keys for idempotent requests can only be used with the same parameters they were first used with.',
+							],
+						]
+					),
+					'response' => [
+						'code'    => 400,
+						'message' => 'Bad Request',
+					],
+					'cookies'  => [],
+					'filename' => null,
+				];
+			}
+
+			return [
+				'headers'  => [],
+				'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_success.json' ),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, true, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+		}
+
+		$this->assertSame( 2, $request_count );
+		$this->assertSame( $renewal_order->get_id() . '-2-src_123abc', $idempotency_keys[1] );
+		$this->assertFalse( has_filter( 'wc_stripe_idempotency_key' ) );
+	}
+
+	/**
+	 * @dataProvider provide_inconclusive_error_retry_outcomes
+	 */
+	public function test_renewal_retry_after_inconclusive_error_reuses_idempotency_key( $stripe_replays_error, $expected_request_count, $expected_status ) {
+		$renewal_order    = WC_Helper_Order::create_order();
+		$request_count    = 0;
+		$idempotency_keys = [];
+
+		$renewal_order->set_payment_method( 'stripe' );
+		$renewal_order->save();
+
+		$this->set_gateway_retry_interval( 0 );
+
+		$this->wc_gateway_stripe
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => 'cus_123abc',
+					'source'         => 'src_123abc',
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( &$request_count, &$idempotency_keys, $stripe_replays_error ) {
+			if ( 'https://api.stripe.com/v1/payment_intents' !== $url ) {
+				return $preempt;
+			}
+
+			++$request_count;
+			$idempotency_keys[] = $request_args['headers']['Idempotency-Key'] ?? null;
+
+			if ( 1 === $request_count || $stripe_replays_error ) {
+				return [
+					'headers'  => [],
+					'body'     => wp_json_encode(
+						[
+							'error' => [
+								'type'    => 'api_error',
+								'message' => 'Temporary Stripe API error.',
+							],
+						]
+					),
+					'response' => [
+						'code'    => 400,
+						'message' => 'Bad Request',
+					],
+					'cookies'  => [],
+					'filename' => null,
+				];
+			}
+
+			return [
+				'headers'  => [],
+				'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_success.json' ),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, true, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+		}
+
+		// Every retry sends the first key, so Stripe cannot charge twice.
+		$this->assertSame( $expected_request_count, $request_count );
+		$this->assertNotEmpty( $idempotency_keys[0] );
+		$this->assertCount( 1, array_unique( $idempotency_keys ) );
+		$this->assertFalse( has_filter( 'wc_stripe_idempotency_key' ) );
+		$this->assertSame( $expected_status, wc_get_order( $renewal_order->get_id() )->get_status() );
+	}
+
+	public function test_renewal_retry_reuses_idempotency_key_when_mandate_options_are_sent() {
+		$renewal_order    = WC_Helper_Order::create_order();
+		$request_count    = 0;
+		$idempotency_keys = [];
+		$start_dates      = [];
+
+		$renewal_order->set_payment_method( 'stripe' );
+		$renewal_order->save();
+
+		$this->set_gateway_retry_interval( 1 );
+
+		$this->wc_gateway_stripe->method( 'has_subscription' )->willReturn( true );
+		$this->wc_gateway_stripe
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => 'cus_123abc',
+					'source'         => 'pm_123abc',
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		// A subscription makes the request carry Indian mandate options, whose start date is the request time.
+		$mock_subscription = new WC_Subscription();
+		$mock_subscription->set_total( 20 );
+		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order = [ $mock_subscription ];
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( &$request_count, &$idempotency_keys, &$start_dates ) {
+			if ( 'https://api.stripe.com/v1/payment_intents' !== $url ) {
+				return $preempt;
+			}
+
+			++$request_count;
+			$idempotency_keys[] = $request_args['headers']['Idempotency-Key'] ?? null;
+			$start_dates[]      = $request_args['body']['payment_method_options']['card']['mandate_options']['start_date'] ?? null;
+
+			if ( 1 === $request_count ) {
+				return [
+					'headers'  => [],
+					'body'     => wp_json_encode(
+						[
+							'error' => [
+								'type'    => 'api_error',
+								'message' => 'Temporary Stripe API error.',
+							],
+						]
+					),
+					'response' => [
+						'code'    => 400,
+						'message' => 'Bad Request',
+					],
+					'cookies'  => [],
+					'filename' => null,
+				];
+			}
+
+			return [
+				'headers'  => [],
+				'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_success.json' ),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+
+		// The Subscriptions plugin registers this filter; the test process has no such plugin.
+		add_filter( 'wc_stripe_generate_create_intent_request', [ $this->wc_gateway_stripe, 'add_subscription_information_to_intent' ], 10, 4 );
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, true, false );
+		} finally {
+			remove_filter( 'wc_stripe_generate_create_intent_request', [ $this->wc_gateway_stripe, 'add_subscription_information_to_intent' ], 10 );
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order = null;
+		}
+
+		// The retry runs a second later; the start date must not follow the clock.
+		$this->assertSame( 2, $request_count );
+		$this->assertNotNull( $start_dates[0] );
+		$this->assertSame( $start_dates[0], $start_dates[1] );
+		$this->assertSame( $idempotency_keys[0], $idempotency_keys[1] );
+	}
+
+	public function provide_inconclusive_error_retry_outcomes(): array {
+		return [
+			'Stripe replays the stored error' => [ true, 7, OrderStatus::FAILED ],
+			'the retried request succeeds'    => [ false, 2, OrderStatus::PROCESSING ],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_level3_rejections
+	 */
+	public function test_renewal_retry_reuses_the_key_of_the_level3_fallback_request( $level3_error, $expected_level3_flags, $expected_same_keys ) {
+		$renewal_order = WC_Helper_Order::create_order();
+		$requests      = [];
+		$base_country  = get_option( 'woocommerce_default_country' );
+
+		$renewal_order->set_payment_method( 'stripe' );
+		$renewal_order->save();
+
+		$this->set_gateway_retry_interval( 0 );
+		update_option( 'woocommerce_default_country', 'US:CA' );
+		delete_transient( 'wc_stripe_level3_not_allowed' );
+
+		$this->wc_gateway_stripe
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => 'cus_123abc',
+					'source'         => 'src_123abc',
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		// The first fallback request gets an inconclusive error; a later fallback request must reuse its key.
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( &$requests, $level3_error ) {
+			if ( 'https://api.stripe.com/v1/payment_intents' !== $url ) {
+				return $preempt;
+			}
+
+			$has_level3 = isset( $request_args['body']['level3'] );
+			$requests[] = [
+				'key'    => $request_args['headers']['Idempotency-Key'] ?? null,
+				'level3' => $has_level3,
+			];
+
+			$error = null;
+			if ( $has_level3 ) {
+				$error = $level3_error;
+			} elseif ( 1 === count( array_keys( wp_list_pluck( $requests, 'level3' ), false, true ) ) ) {
+				$error = [
+					'type'    => 'api_error',
+					'message' => 'Temporary Stripe API error.',
+				];
+			}
+
+			if ( null !== $error ) {
+				return [
+					'headers'  => [],
+					'body'     => wp_json_encode( [ 'error' => $error ] ),
+					'response' => [
+						'code'    => 400,
+						'message' => 'Bad Request',
+					],
+					'cookies'  => [],
+					'filename' => null,
+				];
+			}
+
+			return [
+				'headers'  => [],
+				'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_success.json' ),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, true, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			delete_transient( 'wc_stripe_level3_not_allowed' );
+			update_option( 'woocommerce_default_country', $base_country );
+		}
+
+		$keys = wp_list_pluck( $requests, 'key' );
+
+		$this->assertSame( $expected_level3_flags, wp_list_pluck( $requests, 'level3' ) );
+		$this->assertNotSame( $keys[0], $keys[1] );
+		foreach ( $expected_same_keys as list( $first, $second ) ) {
+			$this->assertSame( $keys[ $first ], $keys[ $second ] );
+		}
+		$this->assertSame( OrderStatus::PROCESSING, wc_get_order( $renewal_order->get_id() )->get_status() );
+	}
+
+	public function provide_level3_rejections(): array {
+		return [
+			'Level 3 not allowed, transient set'  => [
+				[
+					'type'    => 'invalid_request_error',
+					'code'    => 'parameter_unknown',
+					'param'   => 'level3',
+					'message' => 'Received unknown parameter: level3',
+				],
+				[ true, false, false ],
+				[ [ 1, 2 ] ],
+			],
+			'Level 3 data rejected, no transient' => [
+				[
+					'type'    => 'invalid_request_error',
+					'message' => 'The level3 line item amounts do not add up.',
+				],
+				[ true, false, true, false ],
+				[ [ 0, 2 ], [ 1, 3 ] ],
+			],
+		];
+	}
+
+	public function test_renewal_retry_with_default_source_uses_a_new_idempotency_key() {
+		$renewal_order    = WC_Helper_Order::create_order();
+		$request_count    = 0;
+		$idempotency_keys = [];
+		$sources          = [];
+
+		$renewal_order->set_payment_method( 'stripe' );
+		$renewal_order->save();
+
+		$this->set_gateway_retry_interval( 0 );
+
+		$this->wc_gateway_stripe
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => 'cus_123abc',
+					'source'         => 'src_123abc',
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( &$request_count, &$idempotency_keys, &$sources ) {
+			if ( 'https://api.stripe.com/v1/payment_intents' !== $url ) {
+				return $preempt;
+			}
+
+			++$request_count;
+			$idempotency_keys[] = $request_args['headers']['Idempotency-Key'] ?? null;
+			$sources[]          = $request_args['body']['source'] ?? '';
+
+			if ( 1 === $request_count ) {
+				return [
+					'headers'  => [],
+					'body'     => wp_json_encode(
+						[
+							'error' => [
+								'type'    => 'invalid_request_error',
+								'code'    => 'resource_missing',
+								'message' => 'No such source: src_123abc',
+							],
+						]
+					),
+					'response' => [
+						'code'    => 400,
+						'message' => 'Bad Request',
+					],
+					'cookies'  => [],
+					'filename' => null,
+				];
+			}
+
+			return [
+				'headers'  => [],
+				'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_success.json' ),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+		// Keep the Level 3 fallback out of the request count.
+		set_transient( 'wc_stripe_level3_not_allowed', true, MINUTE_IN_SECONDS );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, true, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			delete_transient( 'wc_stripe_level3_not_allowed' );
+		}
+
+		// The retry charges the default source, so it is a different request.
+		$this->assertSame( 2, $request_count );
+		$this->assertSame( [ 'src_123abc', '' ], $sources );
+		$this->assertNotSame( $idempotency_keys[0], $idempotency_keys[1] );
+		$this->assertSame( OrderStatus::PROCESSING, wc_get_order( $renewal_order->get_id() )->get_status() );
+	}
+
 	public function test_renewal_stops_retrying_when_payment_lock_expires() {
 		$renewal_order                 = WC_Helper_Order::create_order();
 		$payments_intents_api_endpoint = 'https://api.stripe.com/v1/payment_intents';
