@@ -205,5 +205,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Renew the subscription renewal payment lock before the charge and before the response is recorded, and only record a failed attempt while the lock is still owned
 * Dev - Delete expired payment lock owner rows in a daily scheduled sweep
 * Fix - Expand the charge when confirming a subscription renewal intent so the renewal does not request it again, and only treat Charge objects as charges when recording renewal results
+* Fix - Reuse the idempotency key when a subscription renewal retries after a retryable Stripe API error, detach the retry key filter after each attempt, and match renewal idempotency errors by type
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

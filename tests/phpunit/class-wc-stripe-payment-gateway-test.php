@@ -1459,6 +1459,14 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		];
 	}
 
+	public function test_is_retryable_error_without_type_returns_false() {
+		$this->assertFalse( $this->gateway->is_retryable_error( new \stdClass() ) );
+	}
+
+	public function test_change_idempotency_key_keeps_key_without_order_metadata() {
+		$this->assertSame( 'original-key', $this->gateway->change_idempotency_key( 'original-key', [] ) );
+	}
+
 	/**
 	 * Test that invalid_request_error with non-blocked error codes returns true
 	 *
