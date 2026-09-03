@@ -395,10 +395,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Proceed with current request using new login session (to ensure consistent nonce).
 	 *
+	 * Only applies during checkout after a customer has been created, to avoid a race condition
+	 * with WooPayments + Jetpack that causes the cart to be emptied on My Account registration.
+	 *
 	 * @param string $cookie New cookie value.
 	 */
 	public function set_cookie_on_current_request( $cookie ) {
-		$_COOKIE[ LOGGED_IN_COOKIE ] = $cookie;
+		if (
+			did_action( 'woocommerce_created_customer' ) > 0
+			&& is_checkout()
+		) {
+			$_COOKIE[ LOGGED_IN_COOKIE ] = $cookie;
+		}
 	}
 
 	/**
