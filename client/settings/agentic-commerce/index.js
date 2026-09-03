@@ -67,6 +67,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 	const [ isFeatureEnabled, setIsFeatureEnabled ] = useState( false );
 	const [ disableCheckout, setDisableCheckout ] = useState( false );
 	const [ webhookSecret, setWebhookSecret ] = useState( '' );
+	const [ savedWebhookSecret, setSavedWebhookSecret ] = useState( '' );
 	const [ isLoadingSettings, setIsLoadingSettings ] = useState( true );
 	const [ settingsNotice, setSettingsNotice ] = useState( null );
 
@@ -77,8 +78,12 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 
 	// The catalog sync only runs once onboarding is complete server-side
 	// (feature enabled + webhook secret saved), so mirror that in the UI.
+	// Gate on the saved secret, not the live field: a sync started before
+	// Save would fail against the persisted option.
 	const isOnboardingComplete =
-		isFeatureEnabled && webhookSecret.trim() !== '';
+		isFeatureEnabled && savedWebhookSecret.trim() !== '';
+	const hasUnsavedWebhookSecret =
+		webhookSecret.trim() !== '' && webhookSecret !== savedWebhookSecret;
 	const agenticCommerceUrl = isTestMode
 		? 'https://dashboard.stripe.com/test/agentic-commerce'
 		: 'https://dashboard.stripe.com/agentic-commerce';
@@ -92,6 +97,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			setIsFeatureEnabled( result.is_enabled );
 			setDisableCheckout( result.disable_checkout ?? false );
 			setWebhookSecret( result.webhook_secret ?? '' );
+			setSavedWebhookSecret( result.webhook_secret ?? '' );
 		} catch {
 			// Settings fetch failure is non-fatal; defaults remain.
 		} finally {
@@ -118,6 +124,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			setIsFeatureEnabled( result.is_enabled );
 			setDisableCheckout( result.disable_checkout ?? false );
 			setWebhookSecret( result.webhook_secret ?? '' );
+			setSavedWebhookSecret( result.webhook_secret ?? '' );
 			// No success notice: the global Save changes flow already shows a page-level toast.
 		} catch ( err ) {
 			setSettingsNotice( {
@@ -336,6 +343,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			{ isFeatureEnabled && (
 				<AgenticCommerceSyncStatus
 					isOnboardingComplete={ isOnboardingComplete }
+					hasUnsavedWebhookSecret={ hasUnsavedWebhookSecret }
 				/>
 			) }
 
