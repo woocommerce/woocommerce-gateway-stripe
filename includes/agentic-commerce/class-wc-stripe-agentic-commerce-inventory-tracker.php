@@ -341,6 +341,25 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	}
 
 	/**
+	 * Schedule an archive sync for rows that were queued while onboarding was incomplete.
+	 *
+	 * The archive action is scheduled only by delete events and is consumed when the
+	 * onboarding gate turns it away, so those rows would otherwise wait for the next
+	 * deletion. The full catalog sync cannot cover them: a deleted product is not in the feed.
+	 *
+	 * @return void
+	 */
+	public static function schedule_pending_archive_flush(): void {
+		if ( empty( get_option( self::PENDING_ARCHIVES_OPTION, [] ) ) ) {
+			return;
+		}
+
+		if ( function_exists( 'as_has_scheduled_action' ) && ! as_has_scheduled_action( self::ARCHIVE_SCHEDULED_ACTION ) ) {
+			as_schedule_single_action( time() + self::BATCH_DELAY_SECONDS, self::ARCHIVE_SCHEDULED_ACTION, [], 'wc-stripe' );
+		}
+	}
+
+	/**
 	 * Generate an inventory feed CSV from pending stock updates.
 	 *
 	 * Returns a finalized CSV feed containing only SKU ID and quantity columns,
@@ -563,7 +582,9 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 		}
 
 		// Same gate as the full catalog sync: no delta may push before the
-		// catalog itself is allowed to. Post-onboarding disables are handled
+		// catalog itself is allowed to. Pending rows are retained; the settings
+		// handler schedules a flush once onboarding completes, since a deleted
+		// product is not in the full feed. Post-onboarding disables are handled
 		// by the final checkout-disabled feed, not by archive deltas.
 		if ( ! WC_Stripe_Agentic_Commerce_Integration::is_onboarding_complete() ) {
 			WC_Stripe_Logger::info( 'Agentic Commerce: Archive sync skipped - onboarding incomplete' );
