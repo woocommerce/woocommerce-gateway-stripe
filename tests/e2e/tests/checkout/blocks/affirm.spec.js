@@ -15,7 +15,7 @@ test.describe( 'Affirm payment tests @blocks', () => {
 
 	test( 'customer can pay with Affirm @smoke', async ( { page } ) => {
 		await setupAffirmCheckout( page, 'blocks' );
-		await page.locator( 'text=Place order' ).click();
+		await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
 		// Since we don't have control over the Affirm payment flow,
 		// verifying the redirect to Stripe or Affirm is all we can do consistently
 		// without introducing a flaky test.

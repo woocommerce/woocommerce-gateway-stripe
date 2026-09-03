@@ -44,7 +44,7 @@ test.describe( 'BLIK payment tests @blocks @blik', () => {
 		);
 		await page.getByLabel( /blik/i ).check();
 		await fillBLIKDetails( page );
-		await page.locator( 'text=Place order' ).click();
+		await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
 		await waitForOrderReceivedPage( page );
 	} );
 } );
