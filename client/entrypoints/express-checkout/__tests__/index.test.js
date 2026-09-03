@@ -393,6 +393,9 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		const clickOptions = event.resolve.mock.calls[ 0 ][ 0 ];
 		expect( clickOptions.shippingAddressRequired ).toBe( needsShipping );
 		expect( 'shippingRates' in clickOptions ).toBe( needsShipping );
+		// Stripe requires a rate with the address prompt; with no zone
+		// default configured the pending placeholder stands in.
+		expect( clickOptions.shippingRates?.length > 0 ).toBe( needsShipping );
 	} );
 
 	it( 'rejects the click and relays the server message when the add is refused', async () => {

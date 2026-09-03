@@ -97,7 +97,20 @@ jQuery( function ( $ ) {
 			// Return a default shipping option when shipping is required but no rates are provided
 			const defaultShippingOption =
 				getExpressCheckoutData( 'checkout' )?.default_shipping_option;
-			return defaultShippingOption ? [ defaultShippingOption ] : [];
+			// Stripe requires a rate once an address is required; real rates
+			// replace this placeholder at shippingaddresschange.
+			return defaultShippingOption
+				? [ defaultShippingOption ]
+				: [
+						{
+							id: 'pending',
+							displayName: __(
+								'Pending',
+								'woocommerce-gateway-stripe'
+							),
+							amount: 0,
+						},
+				  ];
 		};
 		const allowedShippingCountries = getExpressCheckoutData(
 			'allowed_shipping_countries'
