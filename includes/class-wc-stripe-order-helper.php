@@ -1830,7 +1830,6 @@ class WC_Stripe_Order_Helper {
 		);
 
 		if ( 1 === $inserted ) {
-			$this->clear_order_payment_lock_owner_cache( $option_name );
 			return true;
 		}
 
@@ -1867,7 +1866,6 @@ class WC_Stripe_Order_Helper {
 		);
 
 		if ( 1 === $updated ) {
-			$this->clear_order_payment_lock_owner_cache( $option_name );
 			return true;
 		}
 
@@ -1924,7 +1922,6 @@ class WC_Stripe_Order_Helper {
 			return false;
 		}
 
-		$this->clear_order_payment_lock_owner_cache( $option_name );
 		return true;
 	}
 
@@ -1978,7 +1975,7 @@ class WC_Stripe_Order_Helper {
 
 		$option_name = $this->get_order_payment_lock_owner_option_name( $order );
 
-		$deleted = $wpdb->query(
+		$wpdb->query(
 			$wpdb->prepare(
 				'DELETE FROM %i WHERE option_name = %s AND CAST( option_value AS BINARY ) = CAST( %s AS BINARY )',
 				$wpdb->options,
@@ -1986,21 +1983,6 @@ class WC_Stripe_Order_Helper {
 				$expected_lock
 			)
 		);
-
-		if ( 1 === $deleted ) {
-			$this->clear_order_payment_lock_owner_cache( $option_name );
-		}
-	}
-
-	/**
-	 * Clears the options cache after a direct row write.
-	 *
-	 * @param string $option_name Option name that was written.
-	 * @return void
-	 */
-	private function clear_order_payment_lock_owner_cache( string $option_name ): void {
-		wp_cache_delete( $option_name, 'options' );
-		wp_cache_delete( 'notoptions', 'options' );
 	}
 
 	/**
