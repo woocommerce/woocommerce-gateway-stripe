@@ -551,6 +551,14 @@ trait WC_Stripe_Subscriptions_Trait {
 				return;
 			}
 
+			if ( $this->is_lock_expired( $lock_expiry ) ) {
+				$this->log_renewal_lock_expired( $renewal_order, true );
+				throw new WC_Stripe_Exception(
+					"Failed to process renewal for order $order_id. The payment lock has expired.",
+					__( 'Payment lock expired', 'woocommerce-gateway-stripe' )
+				);
+			}
+
 			// Get source from order
 			$prepared_source = $this->prepare_order_source( $renewal_order );
 			$source_object   = $prepared_source->source_object;
@@ -569,6 +577,14 @@ trait WC_Stripe_Subscriptions_Trait {
 					'amount'   => $amount,
 				]
 			);
+
+			if ( $this->is_lock_expired( $lock_expiry ) ) {
+				$this->log_renewal_lock_expired( $renewal_order, true );
+				throw new WC_Stripe_Exception(
+					"Failed to process renewal for order $order_id. The payment lock has expired.",
+					__( 'Payment lock expired', 'woocommerce-gateway-stripe' )
+				);
+			}
 
 			/*
 			 * If we're doing a retry and source is chargeable, we need to pass
@@ -602,7 +618,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				// would just create another blocked charge and inflate the block rate.
 				if ( $this->is_retryable_error( $response->error ) && false === $radar_reason ) {
 					// Stop retrying once the lock lapses; a concurrent renewal may hold its own lock by then.
-					$lock_expired = $lock_expiry > 0 && time() > $lock_expiry;
+					$lock_expired = $this->is_lock_expired( $lock_expiry );
 
 					if ( $retry && ! $lock_expired ) {
 						if ( 5 <= $this->retry_interval ) { // @phpstan-ignore-line (retry_interval is defined in classes using this class)
@@ -614,7 +630,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 						++$this->retry_interval;
 
-						$lock_expired = $lock_expiry > 0 && time() > $lock_expiry;
+						$lock_expired = $this->is_lock_expired( $lock_expiry );
 						if ( ! $lock_expired ) {
 							$this->process_subscription_payment_attempt( $amount, $renewal_order, true, $response->error, $lock_expiry );
 							return;
@@ -622,7 +638,7 @@ trait WC_Stripe_Subscriptions_Trait {
 					}
 
 					if ( $lock_expired ) {
-						WC_Stripe_Logger::error( "Stripe: abandoning renewal payment retries for order {$order_id} because the payment lock has expired." );
+						$this->log_renewal_lock_expired( $renewal_order, false );
 					}
 
 					$localized_message = sprintf(
@@ -845,6 +861,34 @@ trait WC_Stripe_Subscriptions_Trait {
 			 * This action is documented in includes/compat/trait-wc-stripe-subscriptions.php.
 			 */
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
+		}
+	}
+
+	/**
+	 * Helper method to check if the payment lock has expired.
+	 *
+	 * @param int $lock_expiry The lock expiry timestamp.
+	 * @return bool True if the lock has expired, false otherwise.
+	 * @phpstan-impure Code checks the current time.
+	 */
+	private function is_lock_expired( int $lock_expiry ): bool {
+		return $lock_expiry > 0 && time() > $lock_expiry;
+	}
+
+	/**
+	 * Helper method to log a renewal payment lock expiration.
+	 *
+	 * @param WC_Order $renewal_order  The renewal order.
+	 * @param bool     $add_order_note Whether to add an order note to the renewal order.
+	 * @return void
+	 */
+	private function log_renewal_lock_expired( WC_Order $renewal_order, bool $add_order_note ): void {
+		WC_Stripe_Logger::error(
+			"Stripe: abandoning renewal payment retries for order {$renewal_order->get_id()} because the payment lock has expired.",
+			[ 'order_id' => $renewal_order->get_id() ]
+		);
+		if ( $add_order_note ) {
+			$renewal_order->add_order_note( __( 'Stripe: abandoned renewal payment retries because the payment lock has expired.', 'woocommerce-gateway-stripe' ) );
 		}
 	}
 
