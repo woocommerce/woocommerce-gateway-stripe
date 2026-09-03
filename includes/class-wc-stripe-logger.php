@@ -44,17 +44,18 @@ class WC_Stripe_Logger {
 	 *
 	 * @since 9.7.0
 	 *
-	 * @param string $message Message to send to the log file.
-	 * @param array $context Additional context to add to the log.
+	 * @param string $message       Message to send to the log file.
+	 * @param array  $context       Additional context to add to the log.
+	 * @param bool   $log_backtrace Whether to log the backtrace. Default is true.
 	 *
 	 * @return void
 	 */
-	public static function emergency( $message, $context = [] ) {
+	public static function emergency( $message, $context = [], bool $log_backtrace = true ) {
 		if ( empty( self::$logger ) ) {
 			self::$logger = wc_get_logger();
 		}
 
-		self::$logger->emergency( $message, array_merge( self::LOG_CONTEXT, $context, [ 'backtrace' => true ] ) );
+		self::$logger->emergency( $message, array_merge( self::LOG_CONTEXT, $context, [ 'backtrace' => $log_backtrace ] ) );
 	}
 
 	/**
@@ -62,17 +63,18 @@ class WC_Stripe_Logger {
 	 *
 	 * @since 9.7.0
 	 *
-	 * @param string $message Message to send to the log file.
-	 * @param array $context Additional context to add to the log.
+	 * @param string $message       Message to send to the log file.
+	 * @param array  $context       Additional context to add to the log.
+	 * @param bool   $log_backtrace Whether to log the backtrace. Default is true.
 	 *
 	 * @return void
 	 */
-	public static function alert( $message, $context = [] ) {
+	public static function alert( $message, $context = [], bool $log_backtrace = true ) {
 		if ( empty( self::$logger ) ) {
 			self::$logger = wc_get_logger();
 		}
 
-		self::$logger->alert( $message, array_merge( self::LOG_CONTEXT, $context, [ 'backtrace' => true ] ) );
+		self::$logger->alert( $message, array_merge( self::LOG_CONTEXT, $context, [ 'backtrace' => $log_backtrace ] ) );
 	}
 
 	/**
@@ -80,17 +82,18 @@ class WC_Stripe_Logger {
 	 *
 	 * @since 9.7.0
 	 *
-	 * @param string $message Message to send to the log file.
-	 * @param array $context Additional context to add to the log.
+	 * @param string $message       Message to send to the log file.
+	 * @param array  $context       Additional context to add to the log.
+	 * @param bool   $log_backtrace Whether to log the backtrace. Default is true.
 	 *
 	 * @return void
 	 */
-	public static function critical( $message, $context = [] ) {
+	public static function critical( $message, $context = [], bool $log_backtrace = true ) {
 		if ( empty( self::$logger ) ) {
 			self::$logger = wc_get_logger();
 		}
 
-		self::$logger->critical( $message, array_merge( self::LOG_CONTEXT, $context, [ 'backtrace' => true ] ) );
+		self::$logger->critical( $message, array_merge( self::LOG_CONTEXT, $context, [ 'backtrace' => $log_backtrace ] ) );
 	}
 
 	/**
@@ -98,17 +101,18 @@ class WC_Stripe_Logger {
 	 *
 	 * @since 4.0.0
 	 *
-	 * @param string $message Message to send to the log file.
-	 * @param array $context Additional context to add to the log.
+	 * @param string $message       Message to send to the log file.
+	 * @param array  $context       Additional context to add to the log.
+	 * @param bool   $log_backtrace Whether to log the backtrace. Default is true.
 	 *
 	 * @return void
 	 */
-	public static function error( $message, $context = [] ) {
+	public static function error( $message, $context = [], bool $log_backtrace = true ) {
 		if ( empty( self::$logger ) ) {
 			self::$logger = wc_get_logger();
 		}
 
-		self::$logger->error( $message, array_merge( self::LOG_CONTEXT, $context, [ 'backtrace' => true ] ) );
+		self::$logger->error( $message, array_merge( self::LOG_CONTEXT, $context, [ 'backtrace' => $log_backtrace ] ) );
 	}
 
 	/**
@@ -116,12 +120,13 @@ class WC_Stripe_Logger {
 	 *
 	 * @since 9.7.0
 	 *
-	 * @param string $message Message to send to the log file.
-	 * @param array $context Additional context to add to the log.
+	 * @param string $message       Message to send to the log file.
+	 * @param array  $context       Additional context to add to the log.
+	 * @param bool   $log_backtrace Whether to log the backtrace. Default is true.
 	 *
 	 * @return void
 	 */
-	public static function warning( $message, $context = [] ) {
+	public static function warning( $message, $context = [], bool $log_backtrace = true ) {
 		if ( ! self::can_log( 'warning' ) ) {
 			return;
 		}
@@ -130,7 +135,7 @@ class WC_Stripe_Logger {
 			self::$logger = wc_get_logger();
 		}
 
-		self::$logger->warning( $message, array_merge( self::LOG_CONTEXT, $context, [ 'backtrace' => true ] ) );
+		self::$logger->warning( $message, array_merge( self::LOG_CONTEXT, $context, [ 'backtrace' => $log_backtrace ] ) );
 	}
 
 	/**
