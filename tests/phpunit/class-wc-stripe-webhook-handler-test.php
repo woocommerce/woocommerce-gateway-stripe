@@ -820,10 +820,141 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				10
 			);
 
-		$handler->process_payment_intent( $notification );
+		$this->assertTrue( $handler->process_payment_intent( $notification ), 'A re-queued event must report itself as deferred.' );
 
 		// The event must not have been applied while locked.
 		$this->assertTrue( wc_get_order( $order->get_id() )->has_status( OrderStatus::PENDING ) );
+	}
+
+	/**
+	 * On the live webhook pass, a payment_intent event that hits the payment lock is
+	 * re-queued and must hold wc_stripe_webhook_received for the retry, while an event
+	 * that is applied fires it as before.
+	 *
+	 * @param bool $locked       Whether another request holds the payment lock.
+	 * @param int  $action_count Expected number of wc_stripe_webhook_received invocations.
+	 * @dataProvider provide_immediate_payment_intent_action_cases
+	 */
+	public function test_immediate_payment_intent_holds_received_action_while_locked( bool $locked, int $action_count ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->update_meta_data( '_stripe_intent_id', self::MOCK_PAYMENT_INTENT['id'] );
+		$order->save();
+
+		$notification = (object) [
+			'type' => 'payment_intent.processing',
+			'data' => (object) [
+				'object' => (object) [
+					'id'     => self::MOCK_PAYMENT_INTENT['id'],
+					'object' => 'payment_intent',
+					'status' => WC_Stripe_Intent_Status::PROCESSING,
+				],
+			],
+		];
+
+		$order_helper = $this->createPartialMock(
+			WC_Stripe_Order_Helper::class,
+			[ 'lock_order_payment', 'unlock_order_payment' ]
+		);
+		$order_helper->method( 'lock_order_payment' )->willReturn( $locked );
+		WC_Stripe_Order_Helper::set_instance( $order_helper );
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'defer_webhook_processing' ] )
+			->getMock();
+		$handler->expects( $locked ? $this->once() : $this->never() )->method( 'defer_webhook_processing' );
+
+		$fired    = 0;
+		$listener = function () use ( &$fired ) {
+			++$fired;
+		};
+		add_action( 'wc_stripe_webhook_received', $listener );
+
+		try {
+			$handler->process_webhook( wp_json_encode( $notification ) );
+		} finally {
+			remove_action( 'wc_stripe_webhook_received', $listener );
+			WC_Stripe_Order_Helper::set_instance( null );
+		}
+
+		$this->assertSame( $action_count, $fired );
+	}
+
+	/**
+	 * Data provider for `test_immediate_payment_intent_holds_received_action_while_locked`.
+	 *
+	 * @return array
+	 */
+	public function provide_immediate_payment_intent_action_cases(): array {
+		return [
+			'applied'   => [
+				'locked'       => false,
+				'action_count' => 1,
+			],
+			're-queued' => [
+				'locked'       => true,
+				'action_count' => 0,
+			],
+		];
+	}
+
+	/**
+	 * A deferred retry fires wc_stripe_webhook_received only once the event was applied;
+	 * a retry that hits the lock again holds the action for the next attempt.
+	 *
+	 * @param bool $requeued     Whether the immediate handler re-queued the event again.
+	 * @param int  $action_count Expected number of wc_stripe_webhook_received invocations.
+	 * @dataProvider provide_deferred_retry_action_cases
+	 */
+	public function test_deferred_retry_fires_received_action_only_when_processed( bool $requeued, int $action_count ): void {
+		$order        = WC_Helper_Order::create_order();
+		$data         = [
+			'order_id'  => $order->get_id(),
+			'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.processing',
+			'data' => (object) [
+				'object' => (object) self::MOCK_PAYMENT_INTENT,
+			],
+		];
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'process_payment_intent' ] )
+			->getMock();
+		$handler->method( 'process_payment_intent' )->willReturn( $requeued );
+
+		$fired    = 0;
+		$listener = function () use ( &$fired ) {
+			++$fired;
+		};
+		add_action( 'wc_stripe_webhook_received', $listener );
+
+		try {
+			$handler->process_deferred_webhook( 'payment_intent.processing', $data, $notification );
+		} finally {
+			remove_action( 'wc_stripe_webhook_received', $listener );
+		}
+
+		$this->assertSame( $action_count, $fired );
+	}
+
+	/**
+	 * Data provider for `test_deferred_retry_fires_received_action_only_when_processed`.
+	 *
+	 * @return array
+	 */
+	public function provide_deferred_retry_action_cases(): array {
+		return [
+			'processed on retry' => [
+				'requeued'     => false,
+				'action_count' => 1,
+			],
+			'locked again'       => [
+				'requeued'     => true,
+				'action_count' => 0,
+			],
+		];
 	}
 
 	/**
@@ -906,6 +1037,67 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			->method( 'process_response' );
 
 		$handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+	}
+
+	/**
+	 * A pre-order settled by the webhook must keep the charge on the order, including an
+	 * uncaptured one, so a later capture or refund can find it.
+	 *
+	 * @param bool $captured Whether the charge is already captured.
+	 * @dataProvider provide_pre_order_charge_states
+	 */
+	public function test_deferred_payment_intent_succeeded_records_charge_on_pre_order( bool $captured ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+
+		$data         = [
+			'order_id'  => $order->get_id(),
+			'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [
+				'object' => (object) self::MOCK_PAYMENT_INTENT,
+			],
+		];
+		$charge       = (object) [
+			'id'       => 'ch_pre_order',
+			'captured' => $captured,
+		];
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods(
+				[
+					'get_intent_from_order',
+					'get_latest_charge_from_intent',
+					'process_response',
+					'is_unreleased_charged_upfront_pre_order',
+				]
+			)
+			->getMock();
+		$handler->method( 'get_intent_from_order' )->willReturn( (object) self::MOCK_PAYMENT_INTENT );
+		$handler->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
+		$handler->method( 'is_unreleased_charged_upfront_pre_order' )->willReturn( true );
+		$handler->expects( $this->never() )->method( 'process_response' );
+
+		$handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+
+		$order = wc_get_order( $order->get_id() );
+		$this->assertSame( 'ch_pre_order', $order->get_transaction_id() );
+		$this->assertSame( wc_bool_to_string( $captured ), WC_Stripe_Order_Helper::get_instance()->get_stripe_charge_captured( $order ) );
+	}
+
+	/**
+	 * Data provider for `test_deferred_payment_intent_succeeded_records_charge_on_pre_order`.
+	 *
+	 * @return array
+	 */
+	public function provide_pre_order_charge_states(): array {
+		return [
+			'captured'   => [ 'captured' => true ],
+			'uncaptured' => [ 'captured' => false ],
+		];
 	}
 
 	/**
