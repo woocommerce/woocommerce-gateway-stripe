@@ -341,9 +341,10 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		const { handlers, elementsList } = stubStripeButton();
 		loadEntrypoint();
 
-		const event = { resolve: jest.fn(), expressPaymentType: 'googlePay' };
+		const event = clickEvent();
 		await handlers.click( event );
 
+		expect( event.reject ).not.toHaveBeenCalled();
 		expect( event.resolve ).toHaveBeenCalledTimes( 1 );
 		expect( event.resolve.mock.calls[ 0 ][ 0 ].lineItems ).toEqual( [
 			{ name: 'Booking', amount: 3200 },

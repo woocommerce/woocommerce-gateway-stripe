@@ -108,9 +108,7 @@ test.describe( 'express checkout and variable products', () => {
 		// digits are the total in minor units, format-independent.
 		const expectSheetTotal = async ( popup, minorUnits ) => {
 			const payText = await popup.getByTestId( 'pay-button' ).innerText();
-			expect( payText.replace( /\D/g, '' ) ).toContain(
-				String( minorUnits )
-			);
+			expect( payText.replace( /\D/g, '' ) ).toBe( String( minorUnits ) );
 		};
 
 		await page.goto( '/product/hoodie' );
