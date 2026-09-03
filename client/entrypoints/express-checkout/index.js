@@ -365,10 +365,11 @@ jQuery( function ( $ ) {
 				cartSelectionKey = null;
 
 				// Stripe requires resolve()/reject() within 1s of the click, so
-				// the cart response gets a 700ms budget (leaving margin for the
-				// resolve work). The timer winning the race doesn't mean the
-				// request failed — it's still in flight, just too slow for
-				// this click's deadline.
+				// the cart request gets a 700ms budget - the margin also has
+				// to absorb main-thread scheduling between our resolve() and
+				// Stripe's frame receiving it. The timer winning the race
+				// doesn't mean the request failed — it's still in flight,
+				// just too slow for this click's deadline.
 				const addToCartPromise = wcStripeECE.addToCart( request );
 				const timeout = new Promise( ( resolve ) =>
 					setTimeout( () => {
@@ -394,6 +395,12 @@ jQuery( function ( $ ) {
 					// may not match, so reject and block retries until the
 					// pending add settles; its response primes the next attempt.
 					event.reject?.();
+					promptAfterWalletDismissal(
+						__(
+							'We could not prepare your payment in time. Please check your internet connection and try again.',
+							'woocommerce-gateway-stripe'
+						)
+					);
 					wcStripeECE.blockExpressCheckoutButton();
 					try {
 						// Waiting for the pending mutation keeps a retry from
