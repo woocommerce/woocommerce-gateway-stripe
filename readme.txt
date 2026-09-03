@@ -201,5 +201,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Ensure webhook status checks reset API key
 * Fix - Keep express checkout and the payment options rendering on the first block checkout load of a free-trial subscription cart
 * Fix - Honor subscription renewal payment locks while preserving retry attempts
+* Fix - Expand the charge when confirming a subscription renewal intent so the renewal does not request it again, and only treat Charge objects as charges when recording renewal results
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
