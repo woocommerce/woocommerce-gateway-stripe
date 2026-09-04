@@ -614,6 +614,11 @@ jQuery( function ( $ ) {
 			);
 
 			eceButton.on( 'confirm', async ( event ) => {
+				// The wallet has handed off; "your order is ready" would now
+				// mislead for however long the server takes to confirm.
+				if ( options.mountTarget ) {
+					wcStripeECE.setRetryModalProcessing();
+				}
 				if (
 					getExpressCheckoutData( 'is_product_page' ) &&
 					wcStripeECE.isAddToCartSuccessful === false
@@ -922,6 +927,10 @@ jQuery( function ( $ ) {
 		 * @param {string} url Order thank you page URL.
 		 */
 		completePayment: ( url ) => {
+			// The redirect takes a beat to land; drop the retry modal so the
+			// shopper sees the page's blocked/loading state instead of a stale
+			// "your order is ready" prompt. No-op when no modal is open.
+			wcStripeECE.closeRetryModal();
 			onCompletePaymentHandler( url );
 			window.location = url;
 		},
@@ -1107,6 +1116,33 @@ jQuery( function ( $ ) {
 				shippingRates: product.shippingOptions ?? [],
 				mountTarget: '#wc-stripe-ece-retry-modal-button',
 			} );
+		},
+
+		setRetryModalProcessing: () => {
+			const modal = $( wcStripeECE.retryModalSelector );
+			if ( ! modal.length ) {
+				return;
+			}
+			modal.find( '.wc-stripe-ece-retry-modal__spinner' ).show();
+			modal
+				.find( '#wc-stripe-ece-retry-modal-title' )
+				.text(
+					__(
+						'Processing your payment…',
+						'woocommerce-gateway-stripe'
+					)
+				);
+			modal.find( '.wc-stripe-ece-retry-modal__message' ).text( '' );
+			// Keep the element mounted — Stripe may still need its frame to
+			// finish the confirmation — but take it out of sight.
+			modal.find( '#wc-stripe-ece-retry-modal-button' ).css( {
+				visibility: 'hidden',
+				height: 0,
+				minHeight: 0,
+			} );
+			// Closing mid-confirmation would detach the active element, so
+			// take the escape hatch away until a terminal event restores it.
+			modal.find( '.wc-stripe-ece-retry-modal__close' ).hide();
 		},
 
 		setRetryModalError: ( message ) => {
