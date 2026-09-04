@@ -6,6 +6,8 @@ use Automattic\WooCommerce\Enums\OrderStatus;
  * Unit tests for the UPE payment gateway
  */
 class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
+	private const PAYMENT_METHOD_LOCK_OPTION_PREFIX = 'wc_stripe_payment_method_lock_';
+
 	/**
 	 * Asserts the exact persisted marker without exposing a production getter only for tests.
 	 *
@@ -233,6 +235,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	public function tear_down() {
 		delete_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME );
 		delete_option( self::ADAPTIVE_PRICING_AMOUNT_MISMATCH_OPTION );
+		delete_option( self::PAYMENT_METHOD_LOCK_OPTION_PREFIX . md5( 'pm_mock' ) );
 
 		if ( WC()->session ) {
 			$amount_mismatch_session_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Checkout_Session_Context::class, 'AMOUNT_MISMATCH_SESSION_KEY', 'string' );
@@ -3492,6 +3495,45 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertEquals( $customer_id, $order_helper->get_stripe_customer_id( $final_order ) );
 		$this->assertEquals( $payment_method_id, $order_helper->get_stripe_source_id( $final_order ) );
 		$this->assertMatchesRegularExpression( '/Charge ID: ch_mock/', $note->content );
+		$this->assertFalse( get_option( self::PAYMENT_METHOD_LOCK_OPTION_PREFIX . md5( $payment_method_id ), false ) );
+	}
+
+	/**
+	 * A different order using the same PaymentMethod must not update its address or create an intent
+	 * while the first order can still be confirmed with that address.
+	 */
+	public function test_process_payment_with_saved_method_rejects_concurrent_reuse() {
+		$token = $this->set_postvars_for_saved_payment_method();
+
+		$_POST['payment_method']           = 'stripe';
+		$_POST['wc-stripe-payment-method'] = 'pm_mock';
+
+		$order             = WC_Helper_Order::create_order();
+		$payment_method_id = $token->get_token();
+		$lock_option       = self::PAYMENT_METHOD_LOCK_OPTION_PREFIX . md5( $payment_method_id );
+		$existing_owner    = time() . ':other-order';
+
+		add_option( $lock_option, $existing_owner, '', false );
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->never() )
+			->method( 'create_and_confirm_payment_intent' );
+
+		$this->mock_gateway
+			->expects( $this->once() )
+			->method( 'get_stripe_customer_id' )
+			->willReturn( 'cus_mock' );
+
+		$this->mock_gateway
+			->expects( $this->never() )
+			->method( 'update_saved_payment_method' );
+
+		$response     = $this->mock_gateway->process_payment( $order->get_id() );
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		$this->assertSame( 'failure', $response['result'] );
+		$this->assertSame( $existing_owner, get_option( $lock_option ) );
+		$this->assertEmpty( $order_helper->get_order_existing_payment_lock( $order ) );
 	}
 
 	/**
