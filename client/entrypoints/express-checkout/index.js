@@ -40,6 +40,7 @@ import {
 	EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
 	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 	EXPRESS_PAYMENT_METHOD_SETTING_LINK,
+	EXPRESS_PAYMENT_TYPE_TO_SETTING,
 } from 'wcstripe/stripe-utils/constants';
 import {
 	transformCartDataForDisplayItems,
@@ -190,8 +191,8 @@ jQuery( function ( $ ) {
 		},
 
 		renderButton: ( eceButton, expressPaymentType, mountTarget ) => {
-			// UX-experiment path: mount into an arbitrary container (the retry
-			// modal) instead of the standard express-checkout element area.
+			// Retry-modal path: mount into the modal's own container instead
+			// of the standard express-checkout element area.
 			if ( mountTarget ) {
 				eceButton.mount( mountTarget );
 				return;
@@ -298,7 +299,11 @@ jQuery( function ( $ ) {
 			} );
 		},
 
-		createExpressCheckoutElement: ( expressPaymentType, options ) => {
+		createExpressCheckoutElement: (
+			expressPaymentType,
+			options,
+			mountTarget
+		) => {
 			// Only Store API refusals (code + message) carry a shopper-facing
 			// message; anything else gets the generic one.
 			const addToCartFailureMessage = ( error ) =>
@@ -553,7 +558,7 @@ jQuery( function ( $ ) {
 			wcStripeECE.renderButton(
 				eceButton,
 				expressPaymentType,
-				options.mountTarget
+				mountTarget
 			);
 
 			eceButton.on( 'click', async function ( event ) {
@@ -616,7 +621,7 @@ jQuery( function ( $ ) {
 			eceButton.on( 'confirm', async ( event ) => {
 				// The wallet has handed off; "your order is ready" would now
 				// mislead for however long the server takes to confirm.
-				if ( options.mountTarget ) {
+				if ( mountTarget ) {
 					wcStripeECE.setRetryModalProcessing();
 				}
 				if (
@@ -658,7 +663,7 @@ jQuery( function ( $ ) {
 				// dismissing it should hand the page back, not strand the
 				// shopper behind the modal backdrop. The main buttons stay
 				// primed for an instant retry.
-				if ( options.mountTarget ) {
+				if ( mountTarget ) {
 					wcStripeECE.closeRetryModal();
 				}
 			} );
@@ -1166,14 +1171,8 @@ jQuery( function ( $ ) {
 				return;
 			}
 
-			// The click event reports the wallet in snake_case; element
-			// creation uses the camelCase settings identifiers.
-			const settingType = {
-				apple_pay: EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
-				google_pay: EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
-				amazon_pay: EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
-				link: EXPRESS_PAYMENT_METHOD_SETTING_LINK,
-			}[ clickedExpressPaymentType ];
+			const settingType =
+				EXPRESS_PAYMENT_TYPE_TO_SETTING[ clickedExpressPaymentType ];
 
 			if ( ! settingType ) {
 				wcStripeECE.setRetryModalError(
@@ -1203,17 +1202,20 @@ jQuery( function ( $ ) {
 
 			const product = getExpressCheckoutData( 'product' );
 			wcStripeECE.retryModalElement =
-				wcStripeECE.createExpressCheckoutElement( settingType, {
-					total: product.total.amount,
-					currency: product.currency,
-					requestShipping: product.requestShipping ?? false,
-					requestPhone:
-						getExpressCheckoutData( 'checkout' )
-							?.needs_payer_phone ?? false,
-					displayItems: product.displayItems,
-					shippingRates: product.shippingOptions ?? [],
-					mountTarget: '#wc-stripe-ece-retry-modal-button',
-				} );
+				wcStripeECE.createExpressCheckoutElement(
+					settingType,
+					{
+						total: product.total.amount,
+						currency: product.currency,
+						requestShipping: product.requestShipping ?? false,
+						requestPhone:
+							getExpressCheckoutData( 'checkout' )
+								?.needs_payer_phone ?? false,
+						displayItems: product.displayItems,
+						shippingRates: product.shippingOptions ?? [],
+					},
+					'#wc-stripe-ece-retry-modal-button'
+				);
 		},
 
 		setRetryModalProcessing: () => {
