@@ -95,6 +95,14 @@ test.describe( 'express checkout with free trial subscriptions', () => {
 				await expect( await getLinkButton( page ) ).toHaveCount( 0 );
 			} );
 
+			test( 'loads Link on the classic cart page @express-checkout @subscriptions', async ( {
+				page,
+			} ) => {
+				await addSubscriptionToCart( page, variant.id() );
+				await page.goto( '/cart-shortcode' );
+				await assertLinkModalLoads( page );
+			} );
+
 			test( 'loads Link on the classic checkout page @express-checkout @subscriptions', async ( {
 				page,
 			} ) => {
@@ -216,13 +224,9 @@ test.describe( 'express checkout with free trial subscriptions', () => {
 			await waitForOrderReceivedPage( page );
 		} );
 
-		// A free-trial subscription cart returns no shipping rates for the
-		// initial cart (WC Subscriptions carries shipping on the recurring
-		// cart), so the express checkout address-change handler rejects every
-		// address: Link renders each saved address as "Unavailable for this
-		// purchase" and the sheet cannot continue. This test asserts the
-		// intended behavior and is expected to FAIL until that is fixed —
-		// when it starts passing, remove the test.fail() marker.
+		// Asserts the intended behavior; expected to fail until #5889 is
+		// fixed, so remove the test.fail() marker then.
+		// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/5889
 		test( 'accepts the saved shipping address on a free-trial cart @blocks @express-checkout @subscriptions', async ( {
 			page,
 		} ) => {
