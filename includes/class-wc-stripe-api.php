@@ -278,6 +278,10 @@ class WC_Stripe_API {
 		 */
 		$request = apply_filters( 'wc_stripe_request_body', $request, $api );
 
+		if ( str_starts_with( $api, 'payment_intents' ) ) {
+			$request = self::maybe_remove_application_fees_from_request( $request );
+		}
+
 		$masked_secret_key = self::get_masked_secret_key();
 
 		// Log the request after the filters have been applied.
@@ -829,5 +833,50 @@ class WC_Stripe_API {
 			return 'secret_key_not_configured';
 		}
 		return substr( $key, 0, 8 ) . '...' . substr( $key, -6 );
+	}
+
+	/**
+	 * Helper method to remove application fee fields from a request if the account is connected via OAuth.
+	 *
+	 * @param array $request The request array.
+	 * @return array The request array with the application fee fields removed.
+	 */
+	protected static function maybe_remove_application_fees_from_request( array $request ): array {
+		$wc_stripe = WC_Stripe::get_instance();
+
+		if ( ! isset( $wc_stripe->connect ) ) {
+			return $request;
+		}
+
+		$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
+
+		if ( ! $wc_stripe->connect->is_connected_via_oauth( $mode ) ) {
+			return $request;
+		}
+
+		$platform_fee_fields = [
+			'application_fee_amount',
+			'application_fee',
+		];
+
+		$removed_fields = [];
+		foreach ( $platform_fee_fields as $field ) {
+			if ( isset( $request[ $field ] ) ) {
+				unset( $request[ $field ] );
+				$removed_fields[] = $field;
+			}
+		}
+
+		if ( [] !== $removed_fields ) {
+			$error_message = sprintf(
+				/* translators: %s: A comma-separated list of field names, e.g. "application_fee_amount, application_fee" */
+				__( 'Removed invalid application fee fields from an update request for an OAuth-connected account, as these fees are not collected by the Stripe platform account used by the plugin. Removed fields: %s', 'woocommerce-gateway-stripe' ),
+				implode( ', ', $removed_fields ),
+			);
+
+			WC_Stripe_Logger::error( $error_message, [ 'removed_fields' => $removed_fields ] );
+		}
+
+		return $request;
 	}
 }

@@ -920,4 +920,290 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		);
 		$this->assertTrue( WC_Stripe_API_Outage_Status::is_in_outage() );
 	}
+
+	/**
+	 * Provides test cases for {@see test_request_strips_application_fees_only_for_oauth_payment_intent_requests()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_request_strips_application_fees_only_for_oauth_payment_intent_requests(): array {
+		return [
+			'payment intent create, Connect OAuth'     => [ 'payment_intents', 'connect', true ],
+			'payment intent update, Connect OAuth'     => [ 'payment_intents/pi_123', 'connect', true ],
+			'payment intent capture, Stripe App OAuth' => [ 'payment_intents/pi_123/capture', 'app', true ],
+			'payment intent, API keys connection'      => [ 'payment_intents', '', false ],
+			'payment intent, unknown connection type'  => [ 'payment_intents', 'something_else', false ],
+			'charges, Connect OAuth'                   => [ 'charges', 'connect', false ],
+			'setup intents, Connect OAuth'             => [ 'setup_intents', 'connect', false ],
+			'non-prefixed path containing the segment' => [ 'customers/cus_123/payment_intents', 'connect', false ],
+		];
+	}
+
+	/**
+	 * Application fee fields must only be dropped from payment intent requests, and only when the
+	 * current mode is connected via OAuth.
+	 *
+	 * @param string $api             The Stripe API path.
+	 * @param string $connection_type The stored connection type for the current (test) mode.
+	 * @param bool   $expect_removed  Whether the application fee fields should be removed.
+	 * @dataProvider provide_test_request_strips_application_fees_only_for_oauth_payment_intent_requests
+	 */
+	public function test_request_strips_application_fees_only_for_oauth_payment_intent_requests( string $api, string $connection_type, bool $expect_removed ): void {
+		$this->set_connection_settings(
+			[
+				'test_publishable_key' => 'pk_test_key_123',
+				'test_connection_type' => $connection_type,
+			]
+		);
+
+		$request = [
+			'amount'                 => 1000,
+			'currency'               => 'usd',
+			'application_fee_amount' => 100,
+			'application_fee'        => 50,
+			'metadata'               => [ 'order_id' => 1 ],
+		];
+
+		$sent_body = $this->capture_request_body( $request, $api );
+
+		$this->assertIsArray( $sent_body );
+		$this->assertSame( 1000, $sent_body['amount'] );
+		$this->assertSame( 'usd', $sent_body['currency'] );
+		$this->assertSame( [ 'order_id' => 1 ], $sent_body['metadata'] );
+
+		if ( $expect_removed ) {
+			$this->assertArrayNotHasKey( 'application_fee_amount', $sent_body );
+			$this->assertArrayNotHasKey( 'application_fee', $sent_body );
+		} else {
+			$this->assertSame( 100, $sent_body['application_fee_amount'] );
+			$this->assertSame( 50, $sent_body['application_fee'] );
+		}
+	}
+
+	/**
+	 * Provides test cases for {@see test_request_application_fee_removal_uses_current_mode_connection()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_request_application_fee_removal_uses_current_mode_connection(): array {
+		return [
+			'test mode, test connection is OAuth'           => [
+				[
+					'testmode'             => 'yes',
+					'test_publishable_key' => 'pk_test_key_123',
+					'test_connection_type' => 'connect',
+					'publishable_key'      => 'pk_live_key_123',
+					'connection_type'      => '',
+				],
+				true,
+			],
+			'test mode, only live connection is OAuth'      => [
+				[
+					'testmode'             => 'yes',
+					'test_publishable_key' => 'pk_test_key_123',
+					'test_connection_type' => '',
+					'publishable_key'      => 'pk_live_key_123',
+					'connection_type'      => 'connect',
+				],
+				false,
+			],
+			'live mode, live connection is OAuth'           => [
+				[
+					'testmode'             => 'no',
+					'test_publishable_key' => 'pk_test_key_123',
+					'test_connection_type' => '',
+					'publishable_key'      => 'pk_live_key_123',
+					'connection_type'      => 'connect',
+				],
+				true,
+			],
+			'live mode, only test connection is OAuth'      => [
+				[
+					'testmode'             => 'no',
+					'test_publishable_key' => 'pk_test_key_123',
+					'test_connection_type' => 'connect',
+					'publishable_key'      => 'pk_live_key_123',
+					'connection_type'      => '',
+				],
+				false,
+			],
+			'test mode, OAuth type stored but keys missing' => [
+				[
+					'testmode'             => 'yes',
+					'test_publishable_key' => '',
+					'test_connection_type' => 'connect',
+				],
+				false,
+			],
+			'live mode, OAuth type stored but keys missing' => [
+				[
+					'testmode'        => 'no',
+					'publishable_key' => '',
+					'connection_type' => 'connect',
+				],
+				false,
+			],
+		];
+	}
+
+	/**
+	 * Test that OAuth checks for fee removal use the current mode's connection type.
+	 *
+	 * @param array $settings       Stripe settings to apply before the request.
+	 * @param bool  $expect_removed Whether the application fee fields should be removed.
+	 * @dataProvider provide_test_request_application_fee_removal_uses_current_mode_connection
+	 */
+	public function test_request_application_fee_removal_uses_current_mode_connection( array $settings, bool $expect_removed ): void {
+		$this->set_connection_settings( $settings );
+
+		$sent_body = $this->capture_request_body(
+			[
+				'amount'                 => 1000,
+				'application_fee_amount' => 100,
+			],
+			'payment_intents/pi_123'
+		);
+
+		$this->assertIsArray( $sent_body );
+		$this->assertSame( 1000, $sent_body['amount'] );
+
+		if ( $expect_removed ) {
+			$this->assertArrayNotHasKey( 'application_fee_amount', $sent_body );
+		} else {
+			$this->assertSame( 100, $sent_body['application_fee_amount'] );
+		}
+	}
+
+	/**
+	 * Provides test cases for {@see test_request_logs_removed_application_fee_fields()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_request_logs_removed_application_fee_fields(): array {
+		return [
+			'both fee fields present, OAuth'     => [
+				[
+					'amount'                 => 1000,
+					'application_fee_amount' => 100,
+					'application_fee'        => 50,
+				],
+				'connect',
+				[ 'application_fee_amount', 'application_fee' ],
+			],
+			'only application_fee_amount, OAuth' => [
+				[
+					'amount'                 => 1000,
+					'application_fee_amount' => 100,
+				],
+				'connect',
+				[ 'application_fee_amount' ],
+			],
+			'only application_fee, OAuth'        => [
+				[
+					'amount'          => 1000,
+					'application_fee' => 50,
+				],
+				'app',
+				[ 'application_fee' ],
+			],
+			'no fee fields, OAuth'               => [
+				[ 'amount' => 1000 ],
+				'connect',
+				[],
+			],
+			'fee fields present, API keys'       => [
+				[
+					'amount'                 => 1000,
+					'application_fee_amount' => 100,
+					'application_fee'        => 50,
+				],
+				'',
+				[],
+			],
+		];
+	}
+
+	/**
+	 * Test that removal of application fee fields are logged.
+	 *
+	 * @param array    $request                The request body.
+	 * @param string   $connection_type        The stored connection type for the current (test) mode.
+	 * @param string[] $expected_removed_fields The fields expected to be logged as removed. Empty when no log is expected.
+	 * @dataProvider provide_test_request_logs_removed_application_fee_fields
+	 */
+	public function test_request_logs_removed_application_fee_fields( array $request, string $connection_type, array $expected_removed_fields ): void {
+		$this->set_connection_settings(
+			[
+				'test_publishable_key' => 'pk_test_key_123',
+				'test_connection_type' => $connection_type,
+			]
+		);
+
+		$initial_logger            = \WC_Stripe_Logger::$logger;
+		$mock_logger               = $this->createMock( \WC_Logger::class );
+		\WC_Stripe_Logger::$logger = $mock_logger;
+
+		if ( [] === $expected_removed_fields ) {
+			$mock_logger->expects( $this->never() )->method( 'error' );
+		} else {
+			$mock_logger->expects( $this->once() )
+				->method( 'error' )
+				->with(
+					$this->stringContains( 'Removed fields: ' . implode( ', ', $expected_removed_fields ) ),
+					$this->callback(
+						function ( $context ) use ( $expected_removed_fields ) {
+							$this->assertArrayHasKey( 'removed_fields', $context );
+							$this->assertSame( $expected_removed_fields, $context['removed_fields'] );
+							return true;
+						}
+					)
+				);
+		}
+
+		try {
+			$this->capture_request_body( $request, 'payment_intents' );
+		} finally {
+			\WC_Stripe_Logger::$logger = $initial_logger;
+		}
+	}
+
+	/**
+	 * Applies connection-related Stripe settings on top of the defaults from {@see set_up()}.
+	 *
+	 * @param array $settings Settings to merge into the main Stripe settings.
+	 */
+	private function set_connection_settings( array $settings ): void {
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		WC_Stripe_Helper::update_main_stripe_settings( array_merge( $stripe_settings, $settings ) );
+	}
+
+	/**
+	 * Sends a POST request through WC_Stripe_API::request() and returns the body that would have
+	 * been sent to Stripe, short-circuiting the HTTP call with a successful response.
+	 *
+	 * @param array  $request The request body.
+	 * @param string $api     The Stripe API path.
+	 * @return array|null The captured request body, or null if the HTTP layer was never reached.
+	 */
+	private function capture_request_body( array $request, string $api ): ?array {
+		$sent_body = null;
+
+		$capture_filter = function ( $return_value, $parsed_args, $url ) use ( &$sent_body, $api ) {
+			if ( WC_Stripe_API::ENDPOINT . $api !== $url ) {
+				return $return_value;
+			}
+
+			$sent_body = $parsed_args['body'];
+			return $this->mock_successful_response();
+		};
+		add_filter( 'pre_http_request', $capture_filter, 10, 3 );
+
+		try {
+			WC_Stripe_API::request( $request, $api, 'POST' );
+		} finally {
+			remove_filter( 'pre_http_request', $capture_filter, 10 );
+		}
+
+		return $sent_body;
+	}
 }
