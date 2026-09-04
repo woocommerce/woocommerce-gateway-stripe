@@ -33,7 +33,7 @@ class WC_Stripe_Agentic_Shipping_Calculator {
 	 * @param WC_Stripe_Agentic_Customize_Checkout_Event $event    The customization hook event.
 	 * @param string                                     $currency The three-letter currency code (e.g. "USD").
 	 * @return array The response array in Stripe's expected format, or [] when no rates apply.
-	 * @throws Exception When neither a shipping nor billing address is available.
+	 * @throws Exception When neither a shipping nor billing address is available, or a line item's product cannot be resolved.
 	 */
 	public function calculate( WC_Stripe_Agentic_Customize_Checkout_Event $event, string $currency ): array {
 		if ( ! wc_shipping_enabled() ) {
@@ -46,22 +46,11 @@ class WC_Stripe_Agentic_Shipping_Calculator {
 			$address = $event->get_billing_address();
 		}
 
-		// Populate contents with resolved products for content-dependent
-		// shipping methods (table rate, weight-based). See STRIPE-986.
-		$package = [
-			'contents'        => [],
-			'contents_cost'   => 0,
-			'applied_coupons' => [],
-			'user'            => [ 'ID' => get_current_user_id() ],
-			'destination'     => [
-				'country'  => $address->get_country() ?? '',
-				'state'    => $address->get_state() ?? '',
-				'postcode' => $address->get_postal_code() ?? '',
-				'city'     => $address->get_city() ?? '',
-				'address'  => '',
-			],
-			'cart_subtotal'   => 0,
-		];
+		$package = WC_Stripe_Agentic_Shipping_Package_Builder::build_package(
+			WC_Stripe_Agentic_Shipping_Package_Builder::build_contents_from_event( $event, $currency ),
+			$address,
+			get_current_user_id()
+		);
 
 		$shipping = WC()->shipping();
 

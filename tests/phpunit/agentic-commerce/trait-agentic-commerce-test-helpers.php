@@ -130,11 +130,11 @@ trait Trait_Agentic_Commerce_Test_Helpers {
 	/**
 	 * Creates a shipping zone for a country with a flat rate method.
 	 *
-	 * @param string $country Country code.
-	 * @param float  $cost    Flat rate cost.
+	 * @param string       $country Country code.
+	 * @param float|string $cost    Flat rate cost, or a cost expression (e.g. '2 * [qty]').
 	 * @return WC_Shipping_Zone The created zone (caller is responsible for cleanup).
 	 */
-	protected function create_shipping_zone_with_flat_rate( string $country, float $cost ): WC_Shipping_Zone {
+	protected function create_shipping_zone_with_flat_rate( string $country, $cost ): WC_Shipping_Zone {
 		$zone = new WC_Shipping_Zone();
 		$zone->set_zone_name( $country . ' Shipping' );
 		$zone->set_zone_order( 1 );
