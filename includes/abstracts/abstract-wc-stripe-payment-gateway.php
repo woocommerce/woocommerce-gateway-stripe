@@ -2819,7 +2819,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function update_saved_payment_method( $payment_method_id, $order ) {
 		$order = ! is_a( $order, 'WC_Order' ) ? wc_get_order( $order ) : $order;
 
-		if ( ! $order || ! $this->is_type_payment_method( $payment_method_id ) ) {
+		if ( ! $order instanceof WC_Order || ! $this->is_type_payment_method( $payment_method_id ) ) {
 			return;
 		}
 
