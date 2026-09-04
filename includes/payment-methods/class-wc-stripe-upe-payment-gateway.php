@@ -2400,24 +2400,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	private function is_order_associated_to_setup_intent( int $order_id, string $intent_id ): bool {
 		$order = wc_get_order( $order_id );
-		if ( ! $order ) {
+		if ( ! $order instanceof WC_Order ) {
 			return false;
 		}
 
-		$intent = $this->stripe_request( 'setup_intents/' . $intent_id . '?expand[]=payment_method.billing_details' );
-		if ( ! $intent ) {
-			return false;
-		}
+		$stored_intent_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_setup_intent_id( $order );
 
-		if ( ! isset( $intent->payment_method ) || ! isset( $intent->payment_method->billing_details ) ) {
-			return false;
-		}
-
-		if ( $order->get_billing_email() !== $intent->payment_method->billing_details->email ) {
-			return false;
-		}
-
-		return true;
+		// The persisted Stripe identifier binds the redirect to this order even when checkout details differ from the saved cardholder identity.
+		return is_string( $stored_intent_id ) && '' !== $stored_intent_id && $stored_intent_id === $intent_id;
 	}
 
 	/**

@@ -292,6 +292,48 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * @dataProvider provide_setup_intent_order_associations
+	 *
+	 * @param bool        $order_exists     Whether the order should exist.
+	 * @param string|null $stored_intent_id SetupIntent ID stored on the order.
+	 * @param string      $returned_intent_id SetupIntent ID supplied on redirect.
+	 * @param bool        $expected         Whether the redirect belongs to the order.
+	 */
+	public function test_is_order_associated_to_setup_intent( bool $order_exists, ?string $stored_intent_id, string $returned_intent_id, bool $expected ) {
+		$order_id = 999999999;
+		if ( $order_exists ) {
+			$order = WC_Helper_Order::create_order();
+			$order->set_billing_email( 'new-checkout-address@example.com' );
+			$order->save();
+			$order_id = $order->get_id();
+
+			if ( null !== $stored_intent_id ) {
+				WC_Stripe_Order_Helper::get_instance()->update_stripe_setup_intent_id( $order, $stored_intent_id );
+				$order->save();
+			}
+		}
+
+		$this->mock_gateway->expects( $this->never() )->method( 'stripe_request' );
+
+		$method = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'is_order_associated_to_setup_intent' );
+		$method->setAccessible( true );
+
+		$this->assertSame( $expected, $method->invoke( $this->mock_gateway, $order_id, $returned_intent_id ) );
+	}
+
+	/**
+	 * @return array[]
+	 */
+	public function provide_setup_intent_order_associations(): array {
+		return [
+			'matching stored intent with changed order email' => [ true, 'seti_matching', 'seti_matching', true ],
+			'different stored intent'                         => [ true, 'seti_stored', 'seti_returned', false ],
+			'missing stored intent'                           => [ true, null, 'seti_returned', false ],
+			'missing order'                                   => [ false, null, 'seti_returned', false ],
+		];
+	}
+
+	/**
 	 * Helper function to get amount, description, and metadata for Stripe requests.
 	 *
 	 * @param WC_Order $order Test WC Order.
