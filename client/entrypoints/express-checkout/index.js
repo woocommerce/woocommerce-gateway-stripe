@@ -192,8 +192,18 @@ jQuery( function ( $ ) {
 
 		renderButton: ( eceButton, expressPaymentType, mountTarget ) => {
 			// Retry-modal path: mount into the modal's own container instead
-			// of the standard express-checkout element area.
+			// of the standard express-checkout element area. If the button
+			// fails to load, the modal would say "your order is ready" with
+			// nothing to tap - surface an error state instead.
 			if ( mountTarget ) {
+				eceButton.on( 'loaderror', () => {
+					wcStripeECE.setRetryModalError(
+						__(
+							'This payment method failed to load. Please refresh the page and try again.',
+							'woocommerce-gateway-stripe'
+						)
+					);
+				} );
 				eceButton.mount( mountTarget );
 				return;
 			}
