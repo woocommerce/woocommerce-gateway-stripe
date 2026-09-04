@@ -1713,12 +1713,20 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		/**
 		 * Filter the return value of the WC_Payment_Gateway_CC::generate_create_intent_request.
 		 *
+		 * Platform-level fields such as `application_fee_amount` and `application_fee` should not
+		 * be set through this filter. On stores connected via the Stripe App OAuth flow they are
+		 * removed before the request is sent, because the fee would be collected by the plugin's
+		 * platform account rather than by the store. See
+		 * WC_Stripe_Helper::strip_platform_fee_fields().
+		 *
 		 * @since 3.1.0
 		 * @param array $request
 		 * @param WC_Order $order
 		 * @param object $source
 		 */
-		return apply_filters( 'wc_stripe_generate_create_intent_request', $request, $order, $prepared_source );
+		$request = apply_filters( 'wc_stripe_generate_create_intent_request', $request, $order, $prepared_source );
+
+		return WC_Stripe_Helper::strip_platform_fee_fields( $request );
 	}
 
 	/**
@@ -2259,6 +2267,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		 * @param object $source
 		 */
 		$request = apply_filters( 'wc_stripe_generate_create_intent_request', $request, $order, $prepared_source );
+
+		$request = WC_Stripe_Helper::strip_platform_fee_fields( $request );
 
 		if ( isset( $full_request['shipping'] ) ) {
 			$request['shipping'] = $full_request['shipping'];

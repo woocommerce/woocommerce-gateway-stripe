@@ -162,6 +162,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 11.0.0 - xxxx-xx-xx =
+* Fix - Ignore platform-level fee fields (application_fee_amount, application_fee) injected into intent requests by third-party code on stores connected via Stripe App OAuth
 * Add - Show a placement simulator on each Customize express checkouts tab that previews where the express checkout button would and wouldn't appear, with the reason
 * Tweak - Dim the button size hint on the Amazon Pay and Link customize tabs so it matches the Apple Pay/Google Pay tab
 * Update - Take already-synced products out of in-agent checkout when Agentic Commerce is disabled by pushing a final catalog feed, and stop the recurring product sync while it's off

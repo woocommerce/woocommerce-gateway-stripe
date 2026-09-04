@@ -1,6 +1,7 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 11.0.0
+* Fix - Ignore platform-level fee fields (application_fee_amount, application_fee) injected into intent requests by third-party code on stores connected via Stripe App OAuth
 * Add - Show a placement simulator on each Customize express checkouts tab that previews where the express checkout button would and wouldn't appear, with the reason
 * Tweak - Dim the button size hint on the Amazon Pay and Link customize tabs so it matches the Apple Pay/Google Pay tab
 * Add - Show the fuller sync-eligibility verdict in the Products list Agentic Commerce column and link the excluded-products view from the settings page

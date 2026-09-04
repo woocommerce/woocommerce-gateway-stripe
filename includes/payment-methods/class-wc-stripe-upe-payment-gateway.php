@@ -2089,6 +2089,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 					null // $prepared_source parameter is not necessary for adding mandate information.
 				);
 
+				$request = WC_Stripe_Helper::strip_platform_fee_fields( $request );
+
 				$intent = $this->stripe_request(
 					$endpoint,
 					$request,
