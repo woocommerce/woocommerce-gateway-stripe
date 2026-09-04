@@ -3600,7 +3600,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order             = WC_Helper_Order::create_order();
 		$payment_method_id = $token->get_token();
 		$lock_option       = $this->get_payment_method_lock_option_name( $payment_method_id );
-		$lock_ttl          = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_UPE_Payment_Gateway::class, 'PAYMENT_METHOD_LOCK_TTL', 'integer' );
+		$lock_ttl          = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_UPE_Payment_Gateway::class, 'PAYMENT_METHOD_LOCK_TTL', 'int' );
 		$stale_owner       = ( time() - $lock_ttl - 1 ) . ':abandoned-request';
 
 		add_option( $lock_option, $stale_owner, '', false );

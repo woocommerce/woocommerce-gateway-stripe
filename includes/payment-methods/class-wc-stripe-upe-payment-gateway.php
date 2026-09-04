@@ -1966,7 +1966,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
-		return 1 === $reclaimed ? $lock_owner : null;
+		if ( 1 !== $reclaimed ) {
+			return null;
+		}
+
+		// The UPDATE bypasses the options API, so a value cached earlier in this request would still name the stale owner.
+		wp_cache_delete( $option_name, 'options' );
+
+		return $lock_owner;
 	}
 
 	/**
