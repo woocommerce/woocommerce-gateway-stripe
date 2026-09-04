@@ -1892,15 +1892,22 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @param callable $run The code under test.
 	 * @return array[] One entry per request: [ 'url' => string, 'method' => string, 'body' => array ].
 	 */
-	private function capture_stripe_requests( callable $run ): array {
+	private function capture_stripe_requests( callable $run, string $payment_method_customer = 'cus_mock' ): array {
 		$requests = [];
-		$callback = function ( $preempt, $request_args, $url ) use ( &$requests ) {
-			$requests[] = [
+		$callback = function ( $preempt, $request_args, $url ) use ( &$requests, $payment_method_customer ) {
+			$requests[]    = [
 				'url'    => $url,
 				'method' => $request_args['method'],
 				'body'   => $request_args['body'],
 			];
-			return $this->build_response( [ 'id' => 'pm_mock' ] );
+			$response_body = 'GET' === $request_args['method']
+				? [
+					'id'       => 'pm_mock',
+					'customer' => $payment_method_customer,
+				]
+				: [ 'id' => 'pm_mock' ];
+
+			return $this->build_response( $response_body );
 		};
 
 		add_filter( 'pre_http_request', $callback, 10, 3 );
@@ -1926,6 +1933,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$order->set_billing_state( 'NY' );
 		$order->set_billing_postcode( '12345' );
 		$order->set_billing_country( 'US' );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_customer_id( $order, 'cus_mock' );
 		$order->save();
 
 		$requests = $this->capture_stripe_requests(
@@ -1934,9 +1942,11 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			}
 		);
 
-		$this->assertCount( 1, $requests );
+		$this->assertCount( 2, $requests );
 		$this->assertStringEndsWith( '/payment_methods/pm_123', $requests[0]['url'] );
-		$this->assertSame( 'POST', $requests[0]['method'] );
+		$this->assertSame( 'GET', $requests[0]['method'] );
+		$this->assertStringEndsWith( '/payment_methods/pm_123', $requests[1]['url'] );
+		$this->assertSame( 'POST', $requests[1]['method'] );
 		$this->assertSame(
 			[
 				'billing_details' => [
@@ -1950,8 +1960,28 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					],
 				],
 			],
-			$requests[0]['body']
+			$requests[1]['body']
 		);
+	}
+
+	/**
+	 * A PaymentMethod attached to another Stripe customer must not be changed.
+	 */
+	public function test_update_saved_payment_method_skips_customer_mismatch() {
+		$order = WC_Helper_Order::create_order();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_customer_id( $order, 'cus_order' );
+		$order->save();
+
+		$requests = $this->capture_stripe_requests(
+			function () use ( $order ) {
+				$this->gateway->update_saved_payment_method( 'pm_123', $order );
+			},
+			'cus_other'
+		);
+
+		$this->assertCount( 1, $requests );
+		$this->assertStringEndsWith( '/payment_methods/pm_123', $requests[0]['url'] );
+		$this->assertSame( 'GET', $requests[0]['method'] );
 	}
 
 	/**
