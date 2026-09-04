@@ -854,4 +854,38 @@ describe( 'Express Checkout order failures', () => {
 			onAbortPaymentHandler.mock.invocationCallOrder[ 0 ]
 		).toBeLessThan( event.paymentFailed.mock.invocationCallOrder[ 0 ] );
 	} );
+
+	it( 'closes the retry modal when the payment errors so the notice is readable', async () => {
+		const handlers = stubStripeButton();
+		loadEntrypoint();
+
+		// eslint-disable-next-line global-require
+		const jq = require( 'jquery' );
+		// eslint-disable-next-line global-require
+		const {
+			onConfirmHandler,
+		} = require( 'wcstripe/express-checkout/event-handler' );
+
+		jq( document.body ).trigger( 'updated_checkout' );
+
+		const event = { paymentFailed: jest.fn() };
+		await handlers.confirm( event );
+
+		// A timed-out click leaves the retry modal on screen; the error path
+		// must remove it, or the page notice renders behind its backdrop.
+		document.body.insertAdjacentHTML(
+			'beforeend',
+			'<div id="wc-stripe-ece-retry-modal"></div>'
+		);
+
+		const { abortPayment } = onConfirmHandler.mock.calls[ 0 ][ 0 ];
+		abortPayment( event, 'Order creation error' );
+
+		expect(
+			document.querySelector( '#wc-stripe-ece-retry-modal' )
+		).toBeNull();
+		expect(
+			document.querySelector( '.woocommerce-error' ).textContent
+		).toBe( 'Order creation error' );
+	} );
 } );

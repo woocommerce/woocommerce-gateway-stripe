@@ -934,6 +934,10 @@ jQuery( function ( $ ) {
 		 */
 		abortPayment: ( payment, message ) => {
 			onAbortPaymentHandler( payment, message );
+			// The error notice renders on the page, which the retry modal's
+			// backdrop would otherwise cover — hand the page back so the
+			// shopper can actually read it. No-op when no modal is open.
+			wcStripeECE.closeRetryModal();
 			displayExpressCheckoutNotice( message, 'error' );
 
 			// The wallet sheet only closes once the confirm event gets a terminal
