@@ -276,6 +276,7 @@ class WC_Stripe_Status {
 							'a'      => [
 								'href'   => [],
 								'target' => [],
+								'rel'    => [],
 							],
 							'strong' => [],
 							'br'     => [],
