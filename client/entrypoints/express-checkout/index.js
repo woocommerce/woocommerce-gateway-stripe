@@ -476,7 +476,7 @@ jQuery( function ( $ ) {
 			// rate if one is required and available.
 			// If no shipping rate is found we can't render the button so we just exit.
 			if ( options.requestShipping && ! options.shippingRates ) {
-				return;
+				return null;
 			}
 
 			const hasFreeTrial = getExpressCheckoutData( 'has_free_trial' );
@@ -499,7 +499,7 @@ jQuery( function ( $ ) {
 			} catch ( error ) {
 				// Stripe.js failed the origin assertion (fail closed): skip
 				// rendering the express checkout button instead of throwing.
-				return;
+				return null;
 			}
 
 			const elements = stripe.elements( {
@@ -674,6 +674,8 @@ jQuery( function ( $ ) {
 					wcStripeECE.getButtonSeparator().show();
 				}
 			} );
+
+			return { elements, eceButton };
 		},
 
 		/**
@@ -1036,6 +1038,11 @@ jQuery( function ( $ ) {
 		// The <dialog> node while the modal is open, else null.
 		retryModal: null,
 
+		// The { elements, eceButton } pair mounted inside the modal, so its
+		// group can be released on close instead of accumulating across
+		// repeated timeouts.
+		retryModalElement: null,
+
 		// While Stripe is confirming, the modal must not close: removing it
 		// would detach the active element's frame mid-payment.
 		isRetryModalProcessing: false,
@@ -1121,6 +1128,27 @@ jQuery( function ( $ ) {
 				document.getElementById( 'wc-stripe-ece-retry-modal' );
 			wcStripeECE.retryModal = null;
 			wcStripeECE.isRetryModalProcessing = false;
+
+			const created = wcStripeECE.retryModalElement;
+			wcStripeECE.retryModalElement = null;
+			if ( created ) {
+				const groups = wcStripeECE.expressCheckoutElements ?? [];
+				const index = groups.indexOf( created.elements );
+				if ( index !== -1 ) {
+					groups.splice( index, 1 );
+				}
+				// Terminal events settle asynchronously (paymentFailed()
+				// rejects an internal promise after this call stack), so give
+				// Stripe the current task before tearing the element down.
+				setTimeout( () => {
+					try {
+						created.eceButton.destroy();
+					} catch ( e ) {
+						// Already destroyed with its DOM subtree.
+					}
+				} );
+			}
+
 			if ( ! dialog ) {
 				return;
 			}
@@ -1174,17 +1202,18 @@ jQuery( function ( $ ) {
 			);
 
 			const product = getExpressCheckoutData( 'product' );
-			wcStripeECE.createExpressCheckoutElement( settingType, {
-				total: product.total.amount,
-				currency: product.currency,
-				requestShipping: product.requestShipping ?? false,
-				requestPhone:
-					getExpressCheckoutData( 'checkout' )?.needs_payer_phone ??
-					false,
-				displayItems: product.displayItems,
-				shippingRates: product.shippingOptions ?? [],
-				mountTarget: '#wc-stripe-ece-retry-modal-button',
-			} );
+			wcStripeECE.retryModalElement =
+				wcStripeECE.createExpressCheckoutElement( settingType, {
+					total: product.total.amount,
+					currency: product.currency,
+					requestShipping: product.requestShipping ?? false,
+					requestPhone:
+						getExpressCheckoutData( 'checkout' )
+							?.needs_payer_phone ?? false,
+					displayItems: product.displayItems,
+					shippingRates: product.shippingOptions ?? [],
+					mountTarget: '#wc-stripe-ece-retry-modal-button',
+				} );
 		},
 
 		setRetryModalProcessing: () => {
