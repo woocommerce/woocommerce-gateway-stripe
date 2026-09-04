@@ -6,8 +6,6 @@ use Automattic\WooCommerce\Enums\OrderStatus;
  * Unit tests for the UPE payment gateway
  */
 class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
-	private const PAYMENT_METHOD_LOCK_OPTION_PREFIX = 'wc_stripe_payment_method_lock_';
-
 	/**
 	 * Asserts the exact persisted marker without exposing a production getter only for tests.
 	 *
@@ -235,7 +233,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	public function tear_down() {
 		delete_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME );
 		delete_option( self::ADAPTIVE_PRICING_AMOUNT_MISMATCH_OPTION );
-		delete_option( self::PAYMENT_METHOD_LOCK_OPTION_PREFIX . md5( 'pm_mock' ) );
+		delete_option( $this->get_payment_method_lock_option_name( 'pm_mock' ) );
 
 		if ( WC()->session ) {
 			$amount_mismatch_session_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Checkout_Session_Context::class, 'AMOUNT_MISMATCH_SESSION_KEY', 'string' );
@@ -289,6 +287,17 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	private function array_to_object( $array ) {
 		return json_decode( wp_json_encode( $array ) );
+	}
+
+	/**
+	 * Returns the database option name used to lock a PaymentMethod.
+	 *
+	 * @param string $payment_method_id Stripe PaymentMethod identifier.
+	 * @return string
+	 */
+	private function get_payment_method_lock_option_name( string $payment_method_id ): string {
+		$prefix = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_UPE_Payment_Gateway::class, 'PAYMENT_METHOD_LOCK_OPTION_PREFIX', 'string' );
+		return $prefix . md5( $payment_method_id );
 	}
 
 	/**
@@ -3537,7 +3546,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertEquals( $customer_id, $order_helper->get_stripe_customer_id( $final_order ) );
 		$this->assertEquals( $payment_method_id, $order_helper->get_stripe_source_id( $final_order ) );
 		$this->assertMatchesRegularExpression( '/Charge ID: ch_mock/', $note->content );
-		$this->assertFalse( get_option( self::PAYMENT_METHOD_LOCK_OPTION_PREFIX . md5( $payment_method_id ), false ) );
+		$this->assertFalse( get_option( $this->get_payment_method_lock_option_name( $payment_method_id ), false ) );
 	}
 
 	/**
@@ -3552,7 +3561,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$order             = WC_Helper_Order::create_order();
 		$payment_method_id = $token->get_token();
-		$lock_option       = self::PAYMENT_METHOD_LOCK_OPTION_PREFIX . md5( $payment_method_id );
+		$lock_option       = $this->get_payment_method_lock_option_name( $payment_method_id );
 		$existing_owner    = time() . ':other-order';
 
 		add_option( $lock_option, $existing_owner, '', false );
