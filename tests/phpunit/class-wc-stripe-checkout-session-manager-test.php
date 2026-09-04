@@ -416,10 +416,12 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 
 		$this->assertArrayNotHasKey( 'saved_payment_method_options', $captured_creates[0] );
 		$this->assertArrayNotHasKey( 'customer', $captured_creates[0] );
+		$this->assertSame( 'always', $captured_creates[0]['customer_creation'], 'A guest session must ask Stripe to create a Customer at confirmation.' );
 		$this->assertFalse( $as_guest['save_payment_method_enabled'] );
 
 		$this->assertSame( [ 'payment_method_save' => 'enabled' ], $captured_creates[1]['saved_payment_method_options'] );
 		$this->assertSame( 'cus_login_transition', $captured_creates[1]['customer'] );
+		$this->assertArrayNotHasKey( 'customer_creation', $captured_creates[1], 'An attached customer must not also request customer creation.' );
 		$this->assertSame( 'cs_test_login_transition_2', $after_login['session_id'] );
 		$this->assertTrue( $after_login['save_payment_method_enabled'] );
 
@@ -436,8 +438,10 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 		$this->assertSame( 2, $create_count, 'The logout must trigger exactly one session recreation.' );
 		$this->assertCount( 2, $captured_creates );
 		$this->assertTrue( $while_logged_in['save_payment_method_enabled'] );
+		$this->assertArrayNotHasKey( 'customer_creation', $captured_creates[0] );
 		$this->assertArrayNotHasKey( 'saved_payment_method_options', $captured_creates[1] );
 		$this->assertArrayNotHasKey( 'customer', $captured_creates[1] );
+		$this->assertSame( 'always', $captured_creates[1]['customer_creation'] );
 		$this->assertSame( 'cs_test_logout_transition_2', $after_logout['session_id'] );
 		$this->assertFalse( $after_logout['save_payment_method_enabled'] );
 

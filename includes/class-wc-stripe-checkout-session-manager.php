@@ -104,6 +104,12 @@ class WC_Stripe_Checkout_Session_Manager {
 			}
 		}
 
+		// Billing details don't exist yet at page load, so let Stripe create the Customer at
+		// confirmation; the checkout.session.completed handler links it to the order/user.
+		if ( ! isset( $request['customer'] ) ) {
+			$request['customer_creation'] = 'always';
+		}
+
 		$checkout_session = WC_Stripe_API::request( $request, 'checkout/sessions' );
 		if ( ! empty( $checkout_session->error ) ) {
 			$message = empty( $checkout_session->error->message ) ? '(No error message returned from Stripe)' : $checkout_session->error->message;
