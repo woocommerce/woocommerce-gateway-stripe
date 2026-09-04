@@ -1920,7 +1920,12 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$order->set_billing_last_name( 'Else' );
 		$order->set_billing_email( 'someone.else@example.org' );
 		$order->set_billing_phone( '555-00000' );
+		$order->set_billing_address_1( 'WooAddress' );
 		$order->set_billing_address_2( 'Unit 4' );
+		$order->set_billing_city( 'WooCity' );
+		$order->set_billing_state( 'NY' );
+		$order->set_billing_postcode( '12345' );
+		$order->set_billing_country( 'US' );
 		$order->save();
 
 		$requests = $this->capture_stripe_requests(
@@ -1954,14 +1959,23 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function test_update_saved_payment_method_skips_the_stripe_write( string $payment_method_id, bool $clear_address ) {
 		$order = WC_Helper_Order::create_order();
+		$order->set_billing_address_1( 'WooAddress' );
+		$order->set_billing_address_2( 'Unit 4' );
+		$order->set_billing_city( 'WooCity' );
+		$order->set_billing_state( 'NY' );
+		$order->set_billing_postcode( '12345' );
+		$order->set_billing_country( 'US' );
+
 		if ( $clear_address ) {
 			$order->set_billing_address_1( '' );
+			$order->set_billing_address_2( '' );
 			$order->set_billing_city( '' );
 			$order->set_billing_state( '' );
 			$order->set_billing_postcode( '' );
 			$order->set_billing_country( '' );
-			$order->save();
 		}
+
+		$order->save();
 
 		$requests = $this->capture_stripe_requests(
 			function () use ( $payment_method_id, $order ) {
