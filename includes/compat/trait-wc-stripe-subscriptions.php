@@ -572,6 +572,11 @@ trait WC_Stripe_Subscriptions_Trait {
 				// Compute once here so the catch block can reuse the result without a second API call.
 				$radar_reason = $this->is_charge_blocked_by_radar( $response );
 
+				// Both failure notes below surface this link, so build it once.
+				$request_log_link = isset( $response->error->request_log_url )
+					? WC_Stripe_Helper::get_external_link( $response->error->request_log_url )
+					: '';
+
 				// We want to retry — unless Stripe Radar blocked the charge, in which case retrying
 				// would just create another blocked charge and inflate the block rate.
 				if ( $this->is_retryable_error( $response->error ) && false === $radar_reason ) {
@@ -590,10 +595,10 @@ trait WC_Stripe_Subscriptions_Trait {
 						return;
 					} else {
 						$localized_message = sprintf(
-							/* translators: 1) error message from Stripe; 2) request log URL */
+							/* translators: 1) error message from Stripe; 2) HTML link to the Stripe request log */
 							__( 'Sorry, we are unable to process the payment at this time. Reason: %1$s %2$s', 'woocommerce-gateway-stripe' ),
 							$response->error->message,
-							isset( $response->error->request_log_url ) ? '<a href="' . esc_url( $response->error->request_log_url ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $response->error->request_log_url ) . '</a>' : ''
+							$request_log_link
 						);
 						$renewal_order->add_order_note( $localized_message );
 						throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
@@ -609,8 +614,8 @@ trait WC_Stripe_Subscriptions_Trait {
 					$localized_message = WC_Stripe_Helper::get_localized_error_message_from_response( $response );
 				}
 
-				if ( isset( $response->error->request_log_url ) ) {
-					$localized_message .= ' <a href="' . esc_url( $response->error->request_log_url ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $response->error->request_log_url ) . '</a>';
+				if ( '' !== $request_log_link ) {
+					$localized_message .= ' ' . $request_log_link;
 				}
 
 				$renewal_order->add_order_note( $localized_message );
