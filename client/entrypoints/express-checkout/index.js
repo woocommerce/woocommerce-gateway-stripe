@@ -649,6 +649,13 @@ jQuery( function ( $ ) {
 
 			eceButton.on( 'cancel', () => {
 				onCancelHandler();
+				// A sheet opened from the retry modal has served its purpose;
+				// dismissing it should hand the page back, not strand the
+				// shopper behind the modal backdrop. The main buttons stay
+				// primed for an instant retry.
+				if ( options.mountTarget ) {
+					wcStripeECE.closeRetryModal();
+				}
 			} );
 
 			eceButton.on( 'ready', ( onReadyParams ) => {
