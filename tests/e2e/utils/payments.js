@@ -20,11 +20,15 @@ export async function clickAddToCartButton( page, label = 'Add to cart' ) {
 			// Skip the click when a previous slow add already landed, so a
 			// retry cannot add the item twice.
 			if ( ( await getCartItemsCount( page ) ) !== expectedCount ) {
-				// Substring match, not exact: block themes append the product
-				// name to the button's accessible name (e.g. aria-label
-				// 'Add to cart: "Beanie"').
+				// Match the accessible name (substring, since block themes
+				// append the product name, e.g. 'Add to cart: "Beanie"') OR the
+				// visible text: when a WCS plan is selected, the button's text
+				// becomes "Sign up" but the block product button's stale
+				// aria-label keeps the accessible name at "Add to cart: ...",
+				// so a role+name lookup alone cannot find it.
 				const addToCartButton = page
 					.getByRole( 'button', { name: label } )
+					.or( page.locator( 'button', { hasText: label } ) )
 					.first();
 				await expect( addToCartButton ).toBeEnabled();
 				await addToCartButton.click();
