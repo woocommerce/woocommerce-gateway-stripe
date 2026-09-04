@@ -2810,8 +2810,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Copies the order's billing address onto a saved payment method in Stripe.
 	 *
-	 * Only the address is written, since AVS reads it from the payment method. Name, email, and
-	 * phone identify the original cardholder and must not be overwritten by a later checkout.
+	 * Only the address is written, since the Stripe Address Validation Service needs those details.
+	 *  Name, email, and phone should not be overwritten during checkout.
 	 *
 	 * @param string       $payment_method_id The payment method to update.
 	 * @param WC_Order|int $order             Order object or id.
