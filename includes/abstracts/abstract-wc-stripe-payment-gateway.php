@@ -2810,13 +2810,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Copies the order's billing address onto a saved payment method in Stripe.
 	 *
-	 * Only the address is written. The saved method's name, email, and phone identify the person
-	 * who originally saved it and must survive later checkouts: a checkout running under the wrong
-	 * account (a shared login, a session mix-up at a caching layer) would otherwise overwrite the
-	 * cardholder's identity with someone else's, and Stripe's copy is what fraud reviews rely on.
-	 * The address is the exception because Stripe's AVS check reads it from the payment method,
-	 * so a shopper who moved would be declined on postal-code mismatch unless it is refreshed
-	 * before the charge.
+	 * Only the address is written, since AVS reads it from the payment method. Name, email, and
+	 * phone identify the original cardholder and must not be overwritten by a later checkout.
 	 *
 	 * @param string       $payment_method_id The payment method to update.
 	 * @param WC_Order|int $order             Order object or id.

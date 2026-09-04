@@ -1755,8 +1755,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				);
 			}
 
-			// The address has to be on the payment method before the intent is confirmed, since
-			// Stripe's AVS check reads it from there; a declined attempt therefore also writes it.
+			// Must happen before the intent is confirmed so AVS sees the current address.
 			if ( $is_using_saved_payment_method ) {
 				$this->update_saved_payment_method( $payment_method_id, $order );
 			}
