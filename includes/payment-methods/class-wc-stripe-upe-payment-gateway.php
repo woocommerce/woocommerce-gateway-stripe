@@ -1566,8 +1566,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			&& $wc_session
 			&& is_callable( [ $wc_session, 'set' ] )
 			&& ! $this->is_changing_payment_method_for_subscription()
-			// Core only sets this key on the checkout path; pay-for-order must not claim the
-			// session's cart, or it gets cleared after a payment for an unrelated order.
+			// Don't set the flag for the pay-for-order path.
 			&& ! did_action( 'woocommerce_before_pay_action' )
 			&& (string) ( $wc_session->get( 'order_awaiting_payment' ) ?? '' ) !== (string) $order_id
 		) {
