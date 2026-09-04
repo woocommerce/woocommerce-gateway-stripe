@@ -1025,7 +1025,7 @@ jQuery( function ( $ ) {
 			);
 		},
 
-		// ---- UX experiment: retry modal for a timed-out express click. ----
+		// ---- Retry modal for a timed-out express click. ----
 		// Wallet sheets only open from a genuine gesture on a Stripe-rendered
 		// button (ECE has no programmatic show()), so the modal's CTA must be
 		// a real express-checkout button mounted inside the modal, restricted
@@ -1033,46 +1033,108 @@ jQuery( function ( $ ) {
 		// handleProductPageECEButtonClick and resolves instantly off the
 		// primed cartSelectionKey.
 
-		retryModalSelector: '#wc-stripe-ece-retry-modal',
+		// The <dialog> node while the modal is open, else null.
+		retryModal: null,
+
+		// While Stripe is confirming, the modal must not close: removing it
+		// would detach the active element's frame mid-payment.
+		isRetryModalProcessing: false,
+
+		retryModalPart: ( className ) =>
+			wcStripeECE.retryModal?.querySelector( `.${ className }` ),
 
 		showRetryModal: () => {
-			$( wcStripeECE.retryModalSelector ).remove();
-			$( document.body ).append(
-				`<div id="wc-stripe-ece-retry-modal" class="wc-stripe-ece-retry-modal">
-					<div class="wc-stripe-ece-retry-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="wc-stripe-ece-retry-modal-title">
-						<button type="button" class="wc-stripe-ece-retry-modal__close" aria-label="${ __(
-							'Close',
-							'woocommerce-gateway-stripe'
-						) }">&times;</button>
-						<h2 id="wc-stripe-ece-retry-modal-title">${ __(
-							'Preparing your payment…',
-							'woocommerce-gateway-stripe'
-						) }</h2>
-						<p class="wc-stripe-ece-retry-modal__message">${ __(
-							'This is taking a little longer than usual. Hang tight while we get your order ready.',
-							'woocommerce-gateway-stripe'
-						) }</p>
-						<div class="wc-stripe-ece-retry-modal__spinner"></div>
-						<div id="wc-stripe-ece-retry-modal-button"></div>
-					</div>
-				</div>`
+			wcStripeECE.closeRetryModal();
+
+			const dialog = document.createElement( 'dialog' );
+			dialog.id = 'wc-stripe-ece-retry-modal';
+			dialog.className = 'wc-stripe-ece-retry-modal';
+			dialog.setAttribute(
+				'aria-labelledby',
+				'wc-stripe-ece-retry-modal-title'
 			);
-			$( wcStripeECE.retryModalSelector ).on(
-				'click',
-				'.wc-stripe-ece-retry-modal__close',
-				() => wcStripeECE.closeRetryModal()
+
+			const close = document.createElement( 'button' );
+			close.type = 'button';
+			close.className = 'wc-stripe-ece-retry-modal__close';
+			close.setAttribute(
+				'aria-label',
+				__( 'Close', 'woocommerce-gateway-stripe' )
 			);
+			close.textContent = '×';
+			close.addEventListener( 'click', () =>
+				wcStripeECE.closeRetryModal()
+			);
+
+			const title = document.createElement( 'h2' );
+			title.id = 'wc-stripe-ece-retry-modal-title';
+			title.className = 'wc-stripe-ece-retry-modal__title';
+			title.textContent = __(
+				'Preparing your payment…',
+				'woocommerce-gateway-stripe'
+			);
+
+			const message = document.createElement( 'p' );
+			message.className = 'wc-stripe-ece-retry-modal__message';
+			message.textContent = __(
+				'This is taking a little longer than usual. Hang tight while we get your order ready.',
+				'woocommerce-gateway-stripe'
+			);
+
+			const spinner = document.createElement( 'div' );
+			spinner.className = 'wc-stripe-ece-retry-modal__spinner';
+
+			const buttonHost = document.createElement( 'div' );
+			buttonHost.id = 'wc-stripe-ece-retry-modal-button';
+			buttonHost.className = 'wc-stripe-ece-retry-modal__button';
+
+			dialog.append( close, title, message, spinner, buttonHost );
+
+			// Esc closes via the dialog's native cancel event; block it only
+			// while a confirmation is in flight.
+			dialog.addEventListener( 'cancel', ( cancelEvent ) => {
+				if ( wcStripeECE.isRetryModalProcessing ) {
+					cancelEvent.preventDefault();
+					return;
+				}
+				wcStripeECE.retryModal = null;
+				dialog.remove();
+			} );
+
+			document.body.appendChild( dialog );
+			// showModal() puts the dialog in the top layer (above any theme
+			// z-index) with focus trapping; jsdom either lacks it or stubs it
+			// to throw, so fall back to the open attribute there.
+			try {
+				dialog.showModal();
+			} catch ( e ) {
+				dialog.setAttribute( 'open', '' );
+			}
+
+			wcStripeECE.retryModal = dialog;
+			wcStripeECE.isRetryModalProcessing = false;
 		},
 
 		closeRetryModal: () => {
-			$( wcStripeECE.retryModalSelector ).remove();
+			const dialog =
+				wcStripeECE.retryModal ??
+				document.getElementById( 'wc-stripe-ece-retry-modal' );
+			wcStripeECE.retryModal = null;
+			wcStripeECE.isRetryModalProcessing = false;
+			if ( ! dialog ) {
+				return;
+			}
+			// close() restores focus to the element focused before showModal().
+			if ( dialog.open && typeof dialog.close === 'function' ) {
+				dialog.close();
+			}
+			dialog.remove();
 		},
 
 		setRetryModalReady: ( clickedExpressPaymentType ) => {
-			const modal = $( wcStripeECE.retryModalSelector );
 			// The shopper closed the modal while waiting; the primed
 			// cartSelectionKey still makes the main button resolve instantly.
-			if ( ! modal.length ) {
+			if ( ! wcStripeECE.retryModal ) {
 				return;
 			}
 
@@ -1085,24 +1147,31 @@ jQuery( function ( $ ) {
 				link: EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 			}[ clickedExpressPaymentType ];
 
-			modal.find( '.wc-stripe-ece-retry-modal__spinner' ).hide();
-			modal
-				.find( '#wc-stripe-ece-retry-modal-title' )
-				.text(
-					__( 'Your order is ready', 'woocommerce-gateway-stripe' )
-				);
-			modal
-				.find( '.wc-stripe-ece-retry-modal__message' )
-				.text(
+			if ( ! settingType ) {
+				wcStripeECE.setRetryModalError(
 					__(
-						'Tap the button below to complete your purchase.',
+						'This payment method is unavailable. Please try again.',
 						'woocommerce-gateway-stripe'
 					)
 				);
-
-			if ( ! settingType ) {
 				return;
 			}
+
+			wcStripeECE.retryModalPart(
+				'wc-stripe-ece-retry-modal__spinner'
+			).style.display = 'none';
+			wcStripeECE.retryModalPart(
+				'wc-stripe-ece-retry-modal__title'
+			).textContent = __(
+				'Your order is ready',
+				'woocommerce-gateway-stripe'
+			);
+			wcStripeECE.retryModalPart(
+				'wc-stripe-ece-retry-modal__message'
+			).textContent = __(
+				'Tap the button below to complete your purchase.',
+				'woocommerce-gateway-stripe'
+			);
 
 			const product = getExpressCheckoutData( 'product' );
 			wcStripeECE.createExpressCheckoutElement( settingType, {
@@ -1119,44 +1188,56 @@ jQuery( function ( $ ) {
 		},
 
 		setRetryModalProcessing: () => {
-			const modal = $( wcStripeECE.retryModalSelector );
-			if ( ! modal.length ) {
+			if ( ! wcStripeECE.retryModal ) {
 				return;
 			}
-			modal.find( '.wc-stripe-ece-retry-modal__spinner' ).show();
-			modal
-				.find( '#wc-stripe-ece-retry-modal-title' )
-				.text(
-					__(
-						'Processing your payment…',
-						'woocommerce-gateway-stripe'
-					)
-				);
-			modal.find( '.wc-stripe-ece-retry-modal__message' ).text( '' );
+			wcStripeECE.isRetryModalProcessing = true;
+			wcStripeECE.retryModalPart(
+				'wc-stripe-ece-retry-modal__spinner'
+			).style.display = '';
+			wcStripeECE.retryModalPart(
+				'wc-stripe-ece-retry-modal__title'
+			).textContent = __(
+				'Processing your payment…',
+				'woocommerce-gateway-stripe'
+			);
+			wcStripeECE.retryModalPart(
+				'wc-stripe-ece-retry-modal__message'
+			).textContent = '';
 			// Keep the element mounted — Stripe may still need its frame to
-			// finish the confirmation — but take it out of sight.
-			modal.find( '#wc-stripe-ece-retry-modal-button' ).css( {
-				visibility: 'hidden',
-				height: 0,
-				minHeight: 0,
-			} );
-			// Closing mid-confirmation would detach the active element, so
-			// take the escape hatch away until a terminal event restores it.
-			modal.find( '.wc-stripe-ece-retry-modal__close' ).hide();
+			// finish the confirmation — but take it out of sight, and remove
+			// the close button so the shopper cannot detach it either.
+			const buttonHost = wcStripeECE.retryModalPart(
+				'wc-stripe-ece-retry-modal__button'
+			);
+			buttonHost.style.visibility = 'hidden';
+			buttonHost.style.height = '0';
+			buttonHost.style.minHeight = '0';
+			wcStripeECE.retryModalPart(
+				'wc-stripe-ece-retry-modal__close'
+			).style.display = 'none';
 		},
 
 		setRetryModalError: ( message ) => {
-			const modal = $( wcStripeECE.retryModalSelector );
-			if ( ! modal.length ) {
+			if ( ! wcStripeECE.retryModal ) {
 				return;
 			}
-			modal.find( '.wc-stripe-ece-retry-modal__spinner' ).hide();
-			modal
-				.find( '#wc-stripe-ece-retry-modal-title' )
-				.text(
-					__( 'Something went wrong', 'woocommerce-gateway-stripe' )
-				);
-			modal.find( '.wc-stripe-ece-retry-modal__message' ).text( message );
+			wcStripeECE.isRetryModalProcessing = false;
+			wcStripeECE.retryModalPart(
+				'wc-stripe-ece-retry-modal__spinner'
+			).style.display = 'none';
+			wcStripeECE.retryModalPart(
+				'wc-stripe-ece-retry-modal__close'
+			).style.display = '';
+			wcStripeECE.retryModalPart(
+				'wc-stripe-ece-retry-modal__title'
+			).textContent = __(
+				'Something went wrong',
+				'woocommerce-gateway-stripe'
+			);
+			wcStripeECE.retryModalPart(
+				'wc-stripe-ece-retry-modal__message'
+			).textContent = message;
 		},
 
 		blockExpressCheckoutButton: () => {
