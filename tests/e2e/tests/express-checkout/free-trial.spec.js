@@ -7,7 +7,6 @@ import {
 	fillLinkCardDetails,
 	fillLinkPaymentDetails,
 	fillLinkShippingAddress,
-	getLinkButton,
 	loginToLink,
 	openLinkPopup,
 	signUpForLink,
@@ -87,12 +86,18 @@ test.describe( 'express checkout with free trial subscriptions', () => {
 				page,
 			} ) => {
 				await page.goto( `?p=${ variant.id() }` );
-				// Wait for the APFS subscribe/one-time selector so the assertion
-				// isn't racing the page load.
+				// Wait for the APFS subscribe/one-time selector so the page has
+				// rendered.
 				await expect(
 					page.locator( '.wcsatt-options-prompt-label-subscription' )
 				).toBeVisible();
-				await expect( await getLinkButton( page ) ).toHaveCount( 0 );
+				// APFS suppresses express checkout server-side, so its wrapper is
+				// never rendered. Assert on the server-rendered wrapper rather
+				// than the async Link iframe, so this can't pass just because the
+				// iframe hasn't mounted yet.
+				await expect(
+					page.locator( '#wc-stripe-express-checkout-element' )
+				).toHaveCount( 0 );
 			} );
 
 			test( 'loads Link on the classic cart page @express-checkout @subscriptions', async ( {
