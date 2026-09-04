@@ -45,15 +45,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY, 'test' );
 		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY, 'live' );
 
-		$this->wc_gateway_stripe = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
-			->disableOriginalConstructor()
-			->onlyMethods( [ 'prepare_order_source', 'has_subscription' ] )
-			->getMock();
-
-		// Mocked in order to get metadata[payment_type] = recurring in the HTTP request.
-		$this->wc_gateway_stripe
-			->method( 'has_subscription' )
-			->willReturn( true );
+		$this->reset_gateway_mock();
 
 		$this->statement_descriptor = 'This is a statement descriptor.';
 
@@ -80,6 +72,25 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		WC_Stripe_Helper::delete_main_stripe_settings();
 
 		parent::tear_down();
+	}
+
+	/**
+	 * Helper method to reset the gateway mock in {@see wc_gateway_stripe}.
+	 *
+	 * @param array $additional_methods Additional methods to mock.
+	 */
+	protected function reset_gateway_mock( array $additional_methods = [] ): void {
+		$methods = array_merge( [ 'prepare_order_source', 'has_subscription' ], $additional_methods );
+
+		$this->wc_gateway_stripe = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
+			->disableOriginalConstructor()
+			->onlyMethods( $methods )
+			->getMock();
+
+		// Mocked in order to get metadata[payment_type] = recurring in the HTTP request.
+		$this->wc_gateway_stripe
+			->method( 'has_subscription' )
+			->willReturn( true );
 	}
 
 	/**
@@ -612,7 +623,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	 *
 	 * @dataProvider provide_payment_lock_expiry_before_charge_scenarios
 	 */
-	public function test_renewal_fails_without_charging_when_payment_lock_expires_before_the_charge( $lock_offset, $prepare_source_delay, $expected_prepare_source_calls ) {
+	public function test_renewal_fails_without_charging_when_payment_lock_expires_before_the_charge( $lock_expired_when_attempt_starts, $expected_prepare_source_calls ) {
 		$renewal_order                 = WC_Helper_Order::create_order();
 		$payments_intents_api_endpoint = 'https://api.stripe.com/v1/payment_intents';
 		$request_count                 = 0;
@@ -620,17 +631,26 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$renewal_order->set_payment_method( 'stripe' );
 		$renewal_order->save();
 
+		$this->reset_gateway_mock( [ 'is_order_payment_lock_expired' ] );
 		$this->set_gateway_retry_interval( 0 );
 
-		// Delaying prepare_order_source() lets the lock lapse between the check before it and the check after it.
+		$lock_expired = $lock_expired_when_attempt_starts;
+
+		$this->wc_gateway_stripe
+			->method( 'is_order_payment_lock_expired' )
+			->willReturnCallback(
+				function () use ( &$lock_expired ) {
+					return $lock_expired;
+				}
+			);
+
 		$this->wc_gateway_stripe
 			->expects( $this->exactly( $expected_prepare_source_calls ) )
 			->method( 'prepare_order_source' )
 			->willReturnCallback(
-				function () use ( $prepare_source_delay ) {
-					if ( $prepare_source_delay > 0 ) {
-						sleep( $prepare_source_delay );
-					}
+				function () use ( &$lock_expired ) {
+					// Update $lock_expired to mark the lock as expired for the next call.
+					$lock_expired = true;
 
 					return (object) [
 						'token_id'       => false,
@@ -644,7 +664,8 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 				}
 			);
 
-		$lock_expiry = (string) ( time() + $lock_offset );
+		// Note that is_order_payment_lock_expired() is mocked and ignores this value.
+		$lock_expiry = (string) ( time() + 5 * MINUTE_IN_SECONDS );
 
 		$order_helper_mock = $this->getMockBuilder( WC_Stripe_Order_Helper::class )
 			->disableOriginalConstructor()
@@ -720,7 +741,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		$this->assertInstanceOf( WC_Stripe_Exception::class, $thrown_exception );
 		$this->assertSame( "Failed to process renewal for order {$order_id}. The payment lock has expired.", $thrown_exception->getMessage() );
-		$this->assertSame( 'Payment lock expired', $thrown_exception->getLocalizedMessage() );
+		$this->assertSame( 'The payment lock has expired.', $thrown_exception->getLocalizedMessage() );
 
 		$this->verify_error_logged_once( $logged_errors, "abandoning renewal payment retries for order {$order_id} because the payment lock has expired", [ 'order_id' => $order_id ] );
 		$this->verify_expected_order_notes( $order_id, 'abandoned renewal payment retries because the payment lock has expired', 1 );
@@ -729,13 +750,11 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	public function provide_payment_lock_expiry_before_charge_scenarios() {
 		return [
 			'lock already expired when the attempt starts'  => [
-				-10,
-				0,
+				true,
 				0,
 			],
 			'lock expires while preparing the order source' => [
-				1,
-				2,
+				false,
 				1,
 			],
 		];
@@ -749,7 +768,17 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$renewal_order->set_payment_method( 'stripe' );
 		$renewal_order->save();
 
+		$this->reset_gateway_mock( [ 'is_order_payment_lock_expired' ] );
 		$this->set_gateway_retry_interval( 0 );
+
+		$lock_expired = false;
+		$this->wc_gateway_stripe
+			->method( 'is_order_payment_lock_expired' )
+			->willReturnCallback(
+				function () use ( &$lock_expired ) {
+					return $lock_expired;
+				}
+			);
 
 		$this->wc_gateway_stripe
 			->expects( $this->any() )
@@ -766,15 +795,15 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 				]
 			);
 
-		// Ensure the lock expires during the request, but not before.
-		$lock_expiring_during_request = (string) ( time() + 1 );
+		// Note that is_order_payment_lock_expired() is mocked and ignores this value.
+		$lock_expiry = (string) ( time() + 5 * MINUTE_IN_SECONDS );
 
 		$order_helper_mock = $this->getMockBuilder( WC_Stripe_Order_Helper::class )
 			->disableOriginalConstructor()
 			->onlyMethods( [ 'lock_order_payment', 'unlock_order_payment', 'get_order_existing_payment_lock' ] )
 			->getMock();
 		$order_helper_mock->method( 'lock_order_payment' )->willReturn( false );
-		$order_helper_mock->method( 'get_order_existing_payment_lock' )->willReturn( $lock_expiring_during_request );
+		$order_helper_mock->method( 'get_order_existing_payment_lock' )->willReturn( $lock_expiry );
 		$order_helper_mock->method( 'unlock_order_payment' );
 
 		$instance_property = new ReflectionProperty( WC_Stripe_Order_Helper::class, 'instance' );
@@ -795,15 +824,14 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		);
 		WC_Stripe_Logger::$logger = $logger;
 
-		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $payments_intents_api_endpoint, &$request_count ) {
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $payments_intents_api_endpoint, &$request_count, &$lock_expired ) {
 			if ( $payments_intents_api_endpoint !== $url ) {
 				return $preempt;
 			}
 
 			++$request_count;
-
-			// Sleep 2 seconds to make sure the lock will be expired afterwards.
-			sleep( 2 );
+			// Mark the lock as expired for the next call to is_order_payment_lock_expired().
+			$lock_expired = true;
 
 			return [
 				'headers'  => [],
@@ -854,9 +882,14 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$renewal_order->set_payment_method( 'stripe' );
 		$renewal_order->save();
 
-		// The lock expires during the 3-second backoff sleep.
-		$this->set_gateway_retry_interval( 3 );
-		$lock_expiring_during_sleep = (string) ( time() + 1 );
+		$this->reset_gateway_mock( [ 'is_order_payment_lock_expired' ] );
+		$this->set_gateway_retry_interval( 0 );
+
+		// Manually mark the lock as value for the first 3 calls to is_order_payment_lock_expired(),
+		// and then mark it as expired for the 4th call.
+		$this->wc_gateway_stripe
+			->method( 'is_order_payment_lock_expired' )
+			->willReturnOnConsecutiveCalls( false, false, false, true );
 
 		$this->wc_gateway_stripe
 			->expects( $this->any() )
@@ -873,12 +906,15 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 				]
 			);
 
+		// Note that is_order_payment_lock_expired() is mocked and ignores this value.
+		$lock_expiry = (string) ( time() + 5 * MINUTE_IN_SECONDS );
+
 		$order_helper_mock = $this->getMockBuilder( WC_Stripe_Order_Helper::class )
 			->disableOriginalConstructor()
 			->onlyMethods( [ 'lock_order_payment', 'unlock_order_payment', 'get_order_existing_payment_lock' ] )
 			->getMock();
 		$order_helper_mock->method( 'lock_order_payment' )->willReturn( false );
-		$order_helper_mock->method( 'get_order_existing_payment_lock' )->willReturn( $lock_expiring_during_sleep );
+		$order_helper_mock->method( 'get_order_existing_payment_lock' )->willReturn( $lock_expiry );
 		$order_helper_mock->method( 'unlock_order_payment' );
 
 		$instance_property = new ReflectionProperty( WC_Stripe_Order_Helper::class, 'instance' );
@@ -925,6 +961,36 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		$this->assertSame( 1, $request_count );
 		$this->assertSame( OrderStatus::FAILED, $renewal_order->get_status() );
+	}
+
+	/**
+	 * Tests for the the protected is_order_payment_lock_expired() method.
+	 *
+	 * @dataProvider provide_is_order_payment_lock_expired_scenarios
+	 *
+	 * @param ?int $seconds_until_expiry The number of seconds until the lock expires, or null to set expiry to 0.
+	 * @param bool $expect_expired       Whether the lock is expected to be expired.
+	 */
+	public function test_is_order_payment_lock_expired( ?int $seconds_until_expiry, bool $expect_expired ): void {
+		$method = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'is_order_payment_lock_expired' );
+		$method->setAccessible( true );
+
+		// null stands for "no expiry recorded", which the gateway represents as 0.
+		$lock_expiry = null === $seconds_until_expiry ? 0 : time() + $seconds_until_expiry;
+
+		$this->assertSame( $expect_expired, $method->invoke( $this->wc_gateway_stripe, $lock_expiry ) );
+	}
+
+	/**
+	 * Data provider for {@see test_is_order_payment_lock_expired()}.
+	 */
+	public function provide_is_order_payment_lock_expired_scenarios(): array {
+		return [
+			'no expiry recorded'           => [ null, false ],
+			'expired one second ago'       => [ -1, true ],
+			'expires two seconds from now' => [ 2, false ],
+			'expires in five minutes'      => [ 5 * MINUTE_IN_SECONDS, false ],
+		];
 	}
 
 	public function test_renewal_does_not_release_lock_held_by_another_process() {
