@@ -8,6 +8,7 @@
 class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 	private const SINGLE_INTENT_ENDPOINT_URL = '/wc/v3/wc_stripe/payment_intents/pi_test_9876543210';
 	private const ALL_INTENTS_ENDPOINT_URL   = '/wc/v3/wc_stripe/payment_intents';
+	private const SEARCH_INTENTS_ENDPOINT_URL   = '/wc/v3/wc_stripe/payment_intents/search';
 
 	/** Initialise REST API, make WC_Stripe_REST_Payment_Intents_Controller instance available for testing*/
 	public static function set_up_before_class() {
@@ -536,5 +537,29 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		);
 
 		$this->assertEquals( $expected_response_data, $response->data );
+	}
+
+	public static function provide_intent_search_malformed_param(): array {
+		return [
+			[ 'query', '' ],
+			[ 'page', '' ],
+		];
+	}
+
+	/**
+	 * Create an admin user and send requests containing wrong format args.
+	 *
+	 * @dataProvider provide_intent_search_malformed_param
+	 *
+	 * @param string $param_name
+	 * @param mixed $param_value
+	*/
+	public function test_intent_search_malformed_param( string $param_name, $param_value ) {
+		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
+
+		$response = $this->send_request( self::SEARCH_INTENTS_ENDPOINT_URL, [ $param_name => $param_value ] );
+
+		$this->assertSame( 400, $response->get_status() );
 	}
 }
