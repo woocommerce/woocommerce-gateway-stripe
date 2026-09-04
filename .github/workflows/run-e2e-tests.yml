@@ -23,7 +23,9 @@ on:
 jobs:
   e2e-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Match e2e-tests.yml: the default project needs ~18 minutes, so 20 left no
+    # headroom for slower themes/variants.
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       max-parallel: 10

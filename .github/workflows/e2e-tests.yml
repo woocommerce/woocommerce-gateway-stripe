@@ -26,7 +26,10 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # The default project already takes ~18 minutes on Storefront; 20 left no
+    # headroom and the purple variant hit the ceiling ("The operation was
+    # canceled") before Playwright could report results.
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       max-parallel: 10
