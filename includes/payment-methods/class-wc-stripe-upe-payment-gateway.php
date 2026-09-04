@@ -1572,8 +1572,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			&& (string) ( $wc_session->get( 'order_awaiting_payment' ) ?? '' ) !== (string) $order_id
 		) {
 			$wc_session->set( 'order_awaiting_payment', $order_id );
-			// Persist now, like core does: if the gateway request below hangs, the session is
-			// never saved at shutdown and a resubmit can create a duplicate order.
+			// Ensure the flag is saved rather than waiting until the end of the request.
 			if ( is_callable( [ $wc_session, 'save_data' ] ) ) {
 				$wc_session->save_data();
 			}
