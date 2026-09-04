@@ -189,7 +189,14 @@ jQuery( function ( $ ) {
 			wcStripeECE.getButtonSeparator().hide();
 		},
 
-		renderButton: ( eceButton, expressPaymentType ) => {
+		renderButton: ( eceButton, expressPaymentType, mountTarget ) => {
+			// UX-experiment path: mount into an arbitrary container (the retry
+			// modal) instead of the standard express-checkout element area.
+			if ( mountTarget ) {
+				eceButton.mount( mountTarget );
+				return;
+			}
+
 			if ( $( '#wc-stripe-express-checkout-element' ).length ) {
 				const containerName = `wc-stripe-express-checkout-element-${ expressPaymentType }`;
 				if ( ! $( `#${ containerName }` ).length ) {
@@ -392,15 +399,12 @@ jQuery( function ( $ ) {
 				}
 				if ( result === 'timeout' ) {
 					// Opening the sheet now would show a preview amount the cart
-					// may not match, so reject and block retries until the
-					// pending add settles; its response primes the next attempt.
+					// may not match, so reject the click and hand off to the
+					// retry modal: it holds the shopper with a loading state
+					// while the pending add settles, then offers a fresh wallet
+					// button primed with the settled cart data.
 					event.reject?.();
-					promptAfterWalletDismissal(
-						__(
-							'We could not prepare your payment in time. Please check your internet connection and try again.',
-							'woocommerce-gateway-stripe'
-						)
-					);
+					wcStripeECE.showRetryModal();
 					wcStripeECE.blockExpressCheckoutButton();
 					try {
 						// Waiting for the pending mutation keeps a retry from
@@ -420,6 +424,12 @@ jQuery( function ( $ ) {
 						] );
 						if ( response === 'abandoned' ) {
 							wcStripeECE.isAddToCartSuccessful = false;
+							wcStripeECE.setRetryModalError(
+								__(
+									'We could not prepare your payment. Please check your internet connection and try again.',
+									'woocommerce-gateway-stripe'
+								)
+							);
 						} else {
 							wcStripeECE.isAddToCartSuccessful =
 								response?.items_count > 0 ||
@@ -431,13 +441,20 @@ jQuery( function ( $ ) {
 								wcStripeECE.isAddToCartSuccessful
 							) {
 								cartSelectionKey = selectionKey;
+								wcStripeECE.setRetryModalReady(
+									event.expressPaymentType
+								);
+							} else {
+								wcStripeECE.setRetryModalError(
+									addToCartFailureMessage( response )
+								);
 							}
 						}
 					} catch ( error ) {
 						wcStripeECE.isAddToCartSuccessful = false;
 						// The click was already rejected at the deadline;
 						// still explain why a retry won't work.
-						promptAfterWalletDismissal(
+						wcStripeECE.setRetryModalError(
 							addToCartFailureMessage( error )
 						);
 					} finally {
@@ -533,7 +550,11 @@ jQuery( function ( $ ) {
 				},
 			} );
 
-			wcStripeECE.renderButton( eceButton, expressPaymentType );
+			wcStripeECE.renderButton(
+				eceButton,
+				expressPaymentType,
+				options.mountTarget
+			);
 
 			eceButton.on( 'click', async function ( event ) {
 				// If login is required for checkout, display redirect confirmation dialog.
@@ -982,6 +1003,113 @@ jQuery( function ( $ ) {
 			( wcStripeECE.expressCheckoutElements ?? [] ).forEach(
 				( elements ) => elements.update( { amount } )
 			);
+		},
+
+		// ---- UX experiment: retry modal for a timed-out express click. ----
+		// Wallet sheets only open from a genuine gesture on a Stripe-rendered
+		// button (ECE has no programmatic show()), so the modal's CTA must be
+		// a real express-checkout button mounted inside the modal, restricted
+		// to the wallet the shopper originally clicked. Its click re-enters
+		// handleProductPageECEButtonClick and resolves instantly off the
+		// primed cartSelectionKey.
+
+		retryModalSelector: '#wc-stripe-ece-retry-modal',
+
+		showRetryModal: () => {
+			$( wcStripeECE.retryModalSelector ).remove();
+			$( document.body ).append(
+				`<div id="wc-stripe-ece-retry-modal" class="wc-stripe-ece-retry-modal">
+					<div class="wc-stripe-ece-retry-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="wc-stripe-ece-retry-modal-title">
+						<button type="button" class="wc-stripe-ece-retry-modal__close" aria-label="${ __(
+							'Close',
+							'woocommerce-gateway-stripe'
+						) }">&times;</button>
+						<h2 id="wc-stripe-ece-retry-modal-title">${ __(
+							'Preparing your payment…',
+							'woocommerce-gateway-stripe'
+						) }</h2>
+						<p class="wc-stripe-ece-retry-modal__message">${ __(
+							'This is taking a little longer than usual. Hang tight while we get your order ready.',
+							'woocommerce-gateway-stripe'
+						) }</p>
+						<div class="wc-stripe-ece-retry-modal__spinner"></div>
+						<div id="wc-stripe-ece-retry-modal-button"></div>
+					</div>
+				</div>`
+			);
+			$( wcStripeECE.retryModalSelector ).on(
+				'click',
+				'.wc-stripe-ece-retry-modal__close',
+				() => wcStripeECE.closeRetryModal()
+			);
+		},
+
+		closeRetryModal: () => {
+			$( wcStripeECE.retryModalSelector ).remove();
+		},
+
+		setRetryModalReady: ( clickedExpressPaymentType ) => {
+			const modal = $( wcStripeECE.retryModalSelector );
+			// The shopper closed the modal while waiting; the primed
+			// cartSelectionKey still makes the main button resolve instantly.
+			if ( ! modal.length ) {
+				return;
+			}
+
+			// The click event reports the wallet in snake_case; element
+			// creation uses the camelCase settings identifiers.
+			const settingType = {
+				apple_pay: EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+				google_pay: EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+				amazon_pay: EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
+				link: EXPRESS_PAYMENT_METHOD_SETTING_LINK,
+			}[ clickedExpressPaymentType ];
+
+			modal.find( '.wc-stripe-ece-retry-modal__spinner' ).hide();
+			modal
+				.find( '#wc-stripe-ece-retry-modal-title' )
+				.text(
+					__( 'Your order is ready', 'woocommerce-gateway-stripe' )
+				);
+			modal
+				.find( '.wc-stripe-ece-retry-modal__message' )
+				.text(
+					__(
+						'Tap the button below to complete your purchase.',
+						'woocommerce-gateway-stripe'
+					)
+				);
+
+			if ( ! settingType ) {
+				return;
+			}
+
+			const product = getExpressCheckoutData( 'product' );
+			wcStripeECE.createExpressCheckoutElement( settingType, {
+				total: product.total.amount,
+				currency: product.currency,
+				requestShipping: product.requestShipping ?? false,
+				requestPhone:
+					getExpressCheckoutData( 'checkout' )?.needs_payer_phone ??
+					false,
+				displayItems: product.displayItems,
+				shippingRates: product.shippingOptions ?? [],
+				mountTarget: '#wc-stripe-ece-retry-modal-button',
+			} );
+		},
+
+		setRetryModalError: ( message ) => {
+			const modal = $( wcStripeECE.retryModalSelector );
+			if ( ! modal.length ) {
+				return;
+			}
+			modal.find( '.wc-stripe-ece-retry-modal__spinner' ).hide();
+			modal
+				.find( '#wc-stripe-ece-retry-modal-title' )
+				.text(
+					__( 'Something went wrong', 'woocommerce-gateway-stripe' )
+				);
+			modal.find( '.wc-stripe-ece-retry-modal__message' ).text( message );
 		},
 
 		blockExpressCheckoutButton: () => {
