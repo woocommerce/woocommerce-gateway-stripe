@@ -1086,6 +1086,105 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * A 3DS card payment must not be routed into the wallet/voucher client flow when the intent's
+	 * `payment_method_types` also lists wallet/voucher methods, as happens under Optimized Checkout
+	 * Suite where the intent lists every PMC-enabled method rather than the customer's selection.
+	 *
+	 * @param object|null $next_action               The intent's next_action.
+	 * @param string      $expected_redirect_pattern  Regex the response redirect must match.
+	 * @param bool        $expects_payment_method     Whether the response must expose `payment_method` for Blocks to save.
+	 *
+	 * @dataProvider provide_process_payment_deferred_intent_with_ocs_intent_types_uses_card_flow
+	 */
+	public function test_process_payment_deferred_intent_with_ocs_intent_types_uses_card_flow( $next_action, $expected_redirect_pattern, $expects_payment_method ) {
+		$customer_id = 'cus_mock';
+		$order       = WC_Helper_Order::create_order();
+		$order_id    = $order->get_id();
+
+		$mock_intent = (object) wp_parse_args(
+			[
+				'status'               => WC_Stripe_Intent_Status::REQUIRES_ACTION,
+				'data'                 => [
+					(object) [
+						'id'       => $order_id,
+						'captured' => 'yes',
+						'status'   => 'succeeded',
+					],
+				],
+				'payment_method'       => 'pm_mock',
+				// The OCS shape: every PMC-enabled method, not just the selected one.
+				'payment_method_types' => [
+					WC_Stripe_Payment_Methods::CARD,
+					WC_Stripe_Payment_Methods::LINK,
+					WC_Stripe_Payment_Methods::MULTIBANCO,
+					WC_Stripe_Payment_Methods::WECHAT_PAY,
+					WC_Stripe_Payment_Methods::CASHAPP_PAY,
+				],
+				'charges'              => (object) [
+					'total_count' => 0, // Intents requiring SCA verification respond with no charges.
+					'data'        => [],
+				],
+				'next_action'          => $next_action,
+			],
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
+		);
+
+		$_POST = [
+			'payment_method'           => 'stripe',
+			'wc-stripe-payment-method' => 'pm_mock',
+		];
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
+			->method( 'create_and_confirm_payment_intent' )
+			->willReturn( $mock_intent );
+
+		$this->mock_gateway
+			->expects( $this->once() )
+			->method( 'get_stripe_customer_id' )
+			->willReturn( $customer_id );
+
+		// We only use this when handling mandates.
+		$this->mock_gateway
+			->expects( $this->once() )
+			->method( 'get_latest_charge_from_intent' )
+			->willReturn( null );
+
+		$response = $this->mock_gateway->process_payment( $order_id );
+
+		$this->assertEquals( 'success', $response['result'] );
+		$this->assertMatchesRegularExpression( $expected_redirect_pattern, $response['redirect'] );
+		if ( $expects_payment_method ) {
+			$this->assertSame( 'pm_mock', $response['payment_method'] ?? null );
+		} else {
+			$this->assertArrayNotHasKey( 'payment_method', $response );
+		}
+	}
+
+	/**
+	 * Provider for `test_process_payment_deferred_intent_with_ocs_intent_types_uses_card_flow`.
+	 *
+	 * @return array
+	 */
+	public function provide_process_payment_deferred_intent_with_ocs_intent_types_uses_card_flow() {
+		return [
+			'sdk-handled 3DS challenge' => [
+				'next_action'               => (object) [ 'type' => 'use_stripe_sdk' ],
+				'expected_redirect_pattern' => '/^#wc-stripe-confirm-pi:/',
+				'expects_payment_method'    => true,
+			],
+			'hosted 3DS redirect'       => [
+				'next_action'               => (object) [
+					'type'            => 'redirect_to_url',
+					'redirect_to_url' => (object) [ 'url' => 'https://hooks.stripe.com/redirect/authenticate/src_mock' ],
+				],
+				'expected_redirect_pattern' => '#^https://hooks\.stripe\.com/redirect/authenticate/src_mock$#',
+				'expects_payment_method'    => false,
+			],
+		];
+	}
+
+	/**
 	 * Test Wallet checkout process_payment flow with deferred intent.
 	 *
 	 * @param string $payment_method Payment method to test.
@@ -1116,7 +1215,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					],
 				],
 				'payment_method'       => 'pm_mock',
-				'payment_method_types' => [ $payment_method ],
+				// The OCS shape: other PMC-enabled methods listed alongside the selected wallet
+				// must not route the payment away from the wallet flow.
+				'payment_method_types' => [
+					$payment_method,
+					WC_Stripe_Payment_Methods::CARD,
+					WC_Stripe_Payment_Methods::LINK,
+				],
 				'charges'              => (object) [
 					'total_count' => 0, // Intents requiring SCA verification respond with no charges.
 					'data'        => [],
@@ -6903,6 +7008,51 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertStringNotContainsString( '<div', $output );
 		$this->assertStringNotContainsString( '<p', $output );
 		$this->assertStringContainsString( 'Currency Conversion', $output );
+	}
+
+	/**
+	 * Test that set_cookie_on_current_request() does not set the cookie outside of checkout.
+	 *
+	 * @see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4875
+	 *
+	 * @param bool|null $checkout_constant Value for `WOOCOMMERCE_CHECKOUT`, or null to leave it undefined.
+	 * @param bool      $customer_created  Whether `woocommerce_created_customer` has fired on this request.
+	 * @param bool      $expects_cookie    Whether the logged-in cookie is expected to be swapped.
+	 *
+	 * @dataProvider provide_set_cookie_on_current_request_contexts
+	 */
+	public function test_set_cookie_on_current_request( bool $is_checkout, bool $customer_created, bool $expects_cookie ): void {
+		$is_checkout_return = $is_checkout ? '__return_true' : '__return_false';
+		add_filter( 'woocommerce_is_checkout', $is_checkout_return );
+
+		if ( $customer_created ) {
+			do_action( 'woocommerce_created_customer', 1, [], false );
+		}
+
+		$gateway = new WC_Stripe_UPE_Payment_Gateway();
+		$gateway->set_cookie_on_current_request( 'test_cookie_value' );
+
+		remove_filter( 'woocommerce_is_checkout', $is_checkout_return );
+
+		if ( $expects_cookie ) {
+			$this->assertSame( 'test_cookie_value', $_COOKIE[ LOGGED_IN_COOKIE ] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		} else {
+			$this->assertArrayNotHasKey( LOGGED_IN_COOKIE, $_COOKIE );
+		}
+	}
+
+	/**
+	 * Data provider for {@see test_set_cookie_on_current_request()}.
+	 *
+	 * @return array<string, array{0: bool|null, 1: bool, 2: bool}>
+	 */
+	public function provide_set_cookie_on_current_request_contexts() {
+		return [
+			'not in checkout, no customer created' => [ false, false, false ],
+			'not in checkout, customer registered' => [ false, true, false ],
+			'in checkout, no customer created'     => [ true, false, false ],
+			'in checkout, customer just created'   => [ true, true, true ],
+		];
 	}
 
 	/**
