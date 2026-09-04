@@ -878,7 +878,10 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		$this->log_renewal_lock_expired( $renewal_order, true );
 
-		throw new WC_Stripe_Exception( 'payment_lock_expired', __( 'The payment lock has expired.', 'woocommerce-gateway-stripe' ) );
+		throw new WC_Stripe_Exception(
+			"Failed to process renewal for order {$renewal_order->get_id()}. The payment lock has expired.",
+			__( 'The payment lock has expired.', 'woocommerce-gateway-stripe' )
+		);
 	}
 
 	/**
