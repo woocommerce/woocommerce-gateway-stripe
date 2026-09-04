@@ -590,10 +590,16 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$needs_response = in_array( $notification->data->object->status, [ 'needs_response', 'warning_needs_response' ], true );
 		if ( $needs_response ) {
+			// Guard against a non-string transaction URL.
+			$transaction_url = $this->get_transaction_url( $order );
+			if ( ! is_string( $transaction_url ) || empty( $transaction_url ) ) {
+				$transaction_url = 'https://dashboard.stripe.com/';
+			}
+
 			$message = sprintf(
 			/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
 				__( 'A dispute was created for this order. Response is needed. Please go to your %1$sStripe Dashboard%2$s to review this dispute.', 'woocommerce-gateway-stripe' ),
-				WC_Stripe_Helper::get_external_link_open_tag( $this->get_transaction_url( $order ), '', __( 'Stripe Dashboard', 'woocommerce-gateway-stripe' ) ),
+				WC_Stripe_Helper::get_external_link_open_tag( $transaction_url, '', __( 'Stripe Dashboard', 'woocommerce-gateway-stripe' ) ),
 				'</a>'
 			);
 		} else {
