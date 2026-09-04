@@ -39,6 +39,7 @@ xxxx-xx-xx - version 11.0.0
 * Fix - Ensure webhook status checks reset API key
 * Fix - Keep express checkout and the payment options rendering on the first block checkout load of a free-trial subscription cart
 * Fix - Prevent cart from being emptied after My Account registration when Stripe, WooPayments, and Jetpack are all active by scoping the logged-in cookie update to checkout context only
+* Fix - Honor subscription renewal payment locks while preserving retry attempts
 * Fix - Only sync the Agentic Commerce catalog, inventory, and archive feeds to Stripe after onboarding is complete (the feature is enabled and the webhook secret is saved)
 * Tweak - Disable the Agentic Commerce "Sync now" button until onboarding is complete, with a note explaining the remaining step
 
