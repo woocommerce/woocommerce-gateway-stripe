@@ -27,6 +27,41 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A paid status or the redirect-processed flag both count as settled.
+	 *
+	 * @param string $status             Order status.
+	 * @param bool   $redirect_processed Whether the redirect-processed flag is set.
+	 * @param bool   $expected           Expected result.
+	 * @dataProvider provide_order_payment_settled_cases
+	 */
+	public function test_is_order_payment_settled( string $status, bool $redirect_processed, bool $expected ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( $status );
+		$order->save();
+		if ( $redirect_processed ) {
+			$this->helper->update_stripe_upe_redirect_processed( $order, true );
+		}
+
+		$this->assertSame( $expected, $this->helper->is_order_payment_settled( $order ) );
+	}
+
+	/**
+	 * Data provider for `test_is_order_payment_settled`.
+	 *
+	 * @return array
+	 */
+	public function provide_order_payment_settled_cases(): array {
+		return [
+			'pending'                     => [ 'pending', false, false ],
+			'failed'                      => [ 'failed', false, false ],
+			'pending, redirect processed' => [ 'pending', true, true ],
+			'processing'                  => [ 'processing', false, true ],
+			'completed'                   => [ 'completed', false, true ],
+			'on-hold'                     => [ 'on-hold', false, true ],
+		];
+	}
+
+	/**
 	 * Tests for getters and setters.
 	 *
 	 * @return void
