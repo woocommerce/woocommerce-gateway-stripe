@@ -3,6 +3,7 @@ import {
 	transformPriceWithMinorUnits,
 	transformCartDataForDisplayItems,
 	transformCartDataForShippingRates,
+	transformCartTotalAmount,
 } from '../wc-to-stripe';
 
 global.wc_stripe_express_checkout_params = {};
@@ -312,6 +313,46 @@ describe( 'wc-to-stripe transformers', () => {
 					},
 				} )
 			).toStrictEqual( [] );
+		} );
+	} );
+
+	describe( 'transformCartTotalAmount', () => {
+		afterEach( () => {
+			delete global.wc_stripe_express_checkout_params.checkout
+				.currency_decimals;
+		} );
+
+		it.each( [
+			{
+				name: 'subtracts refunds from the string totals',
+				totals: {
+					total_price: '2000',
+					total_refund: '500',
+					currency_minor_unit: 2,
+				},
+				expected: 1500,
+			},
+			{
+				name: 'treats a missing refund as zero',
+				totals: { total_price: '2000', currency_minor_unit: 2 },
+				expected: 2000,
+			},
+			{
+				name: 'scales to Stripe minor units for zero-decimal currencies',
+				totals: {
+					total_price: '180',
+					total_refund: '0',
+					currency_minor_unit: 1,
+				},
+				currencyDecimals: 0,
+				expected: 18,
+			},
+		] )( '$name', ( { totals, currencyDecimals, expected } ) => {
+			if ( currencyDecimals !== undefined ) {
+				global.wc_stripe_express_checkout_params.checkout.currency_decimals =
+					currencyDecimals;
+			}
+			expect( transformCartTotalAmount( totals ) ).toBe( expected );
 		} );
 	} );
 

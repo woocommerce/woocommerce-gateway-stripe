@@ -16,3 +16,67 @@
 		min-width: 260px;
 	}
 }
+
+// Retry modal for a timed-out express-checkout click. A native <dialog>
+// shown with showModal() renders in the top layer, so no z-index is needed
+// to beat theme overlays, and the backdrop comes from ::backdrop.
+.wc-stripe-ece-retry-modal {
+	position: relative;
+	border: none;
+	background: #fff;
+	border-radius: 8px;
+	padding: 32px 28px 28px;
+	width: min( 420px, calc( 100vw - 32px ) );
+	text-align: center;
+	box-shadow: 0 8px 32px rgba( 0, 0, 0, 0.25 );
+
+	&::backdrop {
+		background: rgba( 0, 0, 0, 0.55 );
+	}
+
+	&__title {
+		margin: 0 0 8px;
+		font-size: 1.25em;
+	}
+
+	&__message {
+		margin: 0 0 20px;
+		color: #50575e;
+	}
+
+	&__close {
+		position: absolute;
+		top: 8px;
+		right: 12px;
+		border: none;
+		background: none;
+		font-size: 24px;
+		line-height: 1;
+		cursor: pointer;
+		color: #50575e;
+	}
+
+	&__spinner {
+		margin: 0 auto 8px;
+		width: 28px;
+		height: 28px;
+		border: 3px solid #dcdcde;
+		border-top-color: #2271b1;
+		border-radius: 50%;
+		animation: wc-stripe-ece-retry-spin 0.8s linear infinite;
+	}
+
+	&__button {
+		min-height: 44px;
+	}
+}
+
+@keyframes wc-stripe-ece-retry-spin {
+	from {
+		transform: rotate( 0deg );
+	}
+
+	to {
+		transform: rotate( 360deg );
+	}
+}
