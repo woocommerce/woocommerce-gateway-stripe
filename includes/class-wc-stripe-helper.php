@@ -36,6 +36,13 @@ class WC_Stripe_Helper {
 	public const OFFICIAL_PLUGIN_ID_KLARNA = 'klarna_payments';
 
 	/**
+	 * The Stripe.js SDK URL, pinned to a named major release.
+	 *
+	 * @var string
+	 */
+	protected const STRIPE_JS_URL = 'https://js.stripe.com/dahlia/stripe.js';
+
+	/**
 	 * List of legacy Stripe gateways.
 	 *
 	 * @var array
@@ -43,27 +50,103 @@ class WC_Stripe_Helper {
 	public static $stripe_legacy_gateways = [];
 
 	/**
+	 * Register the shared Stripe.js SDK script under the 'stripe' handle.
+	 *
+	 * Single registration point so the handle, URL, and loading flags can't
+	 * drift between the surfaces that need the SDK.
+	 *
+	 * @return void
+	 */
+	public static function register_stripe_js() {
+		wp_register_script( 'stripe', self::STRIPE_JS_URL, [], null, true );
+	}
+
+	/**
+	 * Validates a value against the expected Stripe object ID shape: `{prefix}_{token}`,
+	 * word characters only, at most 255 characters (Stripe's documented ceiling).
+	 *
+	 * @see https://docs.stripe.com/upgrades#what-changes-does-stripe-consider-to-be-backwards-compatible
+	 *
+	 * @param mixed             $id       The value to validate.
+	 * @param string|array|null $prefixes Allowed prefix or prefixes (e.g. 'cus' or [ 'pm', 'src', 'card' ]).
+	 *                                    When null, any lowercase-letter prefix is accepted.
+	 * @return bool True when the value is a syntactically valid Stripe identifier.
+	 */
+	public static function is_valid_stripe_id( $id, $prefixes = null ): bool {
+		// The whole identifier (prefix included) is bounded to Stripe's documented 255-character maximum.
+		if ( ! is_string( $id ) || '' === $id || strlen( $id ) > 255 ) {
+			return false;
+		}
+
+		if ( null === $prefixes ) {
+			$prefix_pattern = '[a-z]+';
+		} else {
+			// Drop empty prefixes: an empty allow-list (or an empty prefix string) must validate
+			// nothing, not match a bare "_token".
+			$prefixes = array_filter(
+				is_array( $prefixes ) ? $prefixes : [ $prefixes ],
+				static function ( $prefix ) {
+					return is_string( $prefix ) && '' !== $prefix;
+				}
+			);
+			if ( empty( $prefixes ) ) {
+				return false;
+			}
+			$prefix_pattern = '(' . implode(
+				'|',
+				array_map(
+					static function ( $prefix ) {
+						// Pass the '/' delimiter so a prefix containing it can't break out of the pattern.
+						return preg_quote( $prefix, '/' );
+					},
+					$prefixes
+				)
+			) . ')';
+		}
+
+		// Anchor with \A ... \z rather than ^ ... $: a bare $ also matches before a trailing newline,
+		// which would let a control character slip through. The length ceiling is enforced above.
+		return 1 === preg_match( "/\A{$prefix_pattern}_\w+\z/", $id );
+	}
+
+	/**
 	 * Get the main Stripe settings option.
+	 *
+	 * Delegates to the canonical accessor on WC_Stripe so there is a single
+	 * settings code path.
+	 *
+	 * @deprecated 10.9.0 Use WC_Stripe::get_instance()->get_settings() instead. The per-method
+	 *                    form has no replacement — those options were only used by the
+	 *                    pre-UPE legacy gateways.
 	 *
 	 * @param string $method (Optional) The payment method to get the settings from.
 	 * @return array $settings The Stripe settings.
 	 */
 	public static function get_stripe_settings( $method = null ) {
-		$settings = null === $method ? get_option( self::SETTINGS_OPTION, [] ) : get_option( 'woocommerce_stripe_' . $method . '_settings', [] );
-		if ( ! is_array( $settings ) ) {
-			$settings = [];
+		if ( null === $method ) {
+			return WC_Stripe::get_instance()->get_settings();
 		}
-		return $settings;
+
+		$settings = get_option( 'woocommerce_stripe_' . $method . '_settings', [] );
+
+		return is_array( $settings ) ? $settings : [];
 	}
 
 	/**
 	 * Update the main Stripe settings option.
 	 *
+	 * Delegates to the canonical accessor on WC_Stripe so there is a single
+	 * settings code path.
+	 *
+	 * @deprecated 10.9.0 Use WC_Stripe::get_instance()->update_settings() instead.
+	 *
 	 * @param $options array The Stripe settings.
 	 * @return void
 	 */
 	public static function update_main_stripe_settings( $options ) {
-		update_option( self::SETTINGS_OPTION, $options );
+		if ( is_array( $options ) ) {
+			WC_Stripe::get_instance()->update_settings( $options );
+		}
 	}
 
 	/**
@@ -1228,11 +1311,6 @@ class WC_Stripe_Helper {
 			return 'webhooks-disabled';
 		}
 
-		// If Adaptive Pricing was disabled due to an amount mismatch, keep Adaptive Pricing disabled.
-		if ( WC_Stripe_Checkout_Session_Context::was_amount_mismatch_detected() ) {
-			return 'amount-mismatch-detected';
-		}
-
 		// Adaptive Pricing requires automatic capture.
 		if ( 'yes' !== ( self::get_stripe_settings()['capture'] ?? 'yes' ) ) {
 			return 'manual-capture';
@@ -1289,6 +1367,12 @@ class WC_Stripe_Helper {
 
 		// False if adaptive pricing option is disabled.
 		if ( 'yes' !== self::get_settings( null, 'adaptive_pricing' ) ) {
+			return false;
+		}
+
+		// If this customer previously hit a Checkout Session amount mismatch,
+		// disable Adaptive Pricing for the session.
+		if ( WC_Stripe_Checkout_Session_Context::was_amount_mismatch_detected() ) {
 			return false;
 		}
 
@@ -2180,6 +2264,23 @@ class WC_Stripe_Helper {
 		} else {
 			return isset( $options['publishable_key'], $options['secret_key'] ) && trim( $options['publishable_key'] ) && trim( $options['secret_key'] );
 		}
+	}
+
+	/**
+	 * Returns the account-level gate values the Customize express checkouts settings pages localize
+	 * for their placement simulator. These gates apply to every express method (Apple Pay/Google Pay,
+	 * Amazon Pay, Link), so they live here rather than being duplicated across the three controllers.
+	 *
+	 * @return array{is_account_connected: bool, is_https: bool, is_test_mode: bool}
+	 */
+	public static function get_express_checkout_simulator_gate_params(): array {
+		return [
+			'is_account_connected' => self::is_connected(),
+			// is_ssl() would report the admin request's scheme, not the storefront's; the configured
+			// site URLs are what the storefront gate will effectively see.
+			'is_https'             => wp_is_using_https(),
+			'is_test_mode'         => WC_Stripe_Mode::is_test(),
+		];
 	}
 
 	/**

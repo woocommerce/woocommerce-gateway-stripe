@@ -55,16 +55,17 @@ export const useExpressCheckout = ( {
 	}, [] );
 
 	const abortPayment = useCallback(
-		( onConfirmEvent, message, isOrderError = false ) => {
-			if ( ! isOrderError ) {
-				onConfirmEvent.paymentFailed( { reason: 'fail' } );
-			}
-
+		( onConfirmEvent, message ) => {
 			// If we have a multiline message using newlines, replace them with <br>.
 			const formattedMessage = message.replace( /\n/g, '<br>' );
 			setExpressPaymentError( formattedMessage );
 
 			onAbortPaymentHandler( onConfirmEvent, message );
+
+			// The wallet sheet only closes once the confirm event gets a terminal
+			// result, so order errors must fail it too. A late call rejects an
+			// internal Stripe promise asynchronously, after the message is shown.
+			onConfirmEvent.paymentFailed( { reason: 'fail' } );
 		},
 		[ setExpressPaymentError ]
 	);
