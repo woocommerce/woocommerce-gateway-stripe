@@ -606,7 +606,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				// would just create another blocked charge and inflate the block rate.
 				if ( $this->is_retryable_error( $response->error ) && false === $radar_reason ) {
 					// Stop retrying once the lock lapses; a concurrent renewal may hold its own lock by then.
-					$lock_expired = $this->is_lock_expired( $lock_expiry );
+					$lock_expired = $this->is_order_payment_lock_expired( $lock_expiry );
 
 					if ( $retry && ! $lock_expired ) {
 						if ( 5 <= $this->retry_interval ) { // @phpstan-ignore-line (retry_interval is defined in classes using this class)
@@ -618,7 +618,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 						++$this->retry_interval;
 
-						$lock_expired = $this->is_lock_expired( $lock_expiry );
+						$lock_expired = $this->is_order_payment_lock_expired( $lock_expiry );
 						if ( ! $lock_expired ) {
 							$this->process_subscription_payment_attempt( $amount, $renewal_order, true, $response->error, $lock_expiry );
 							return;
@@ -859,7 +859,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return bool True if the lock has expired, false otherwise.
 	 * @phpstan-impure Code checks the current time.
 	 */
-	private function is_lock_expired( int $lock_expiry ): bool {
+	protected function is_order_payment_lock_expired( int $lock_expiry ): bool {
 		return $lock_expiry > 0 && time() > $lock_expiry;
 	}
 
@@ -872,7 +872,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @throws WC_Stripe_Exception If the payment lock has expired.
 	 */
 	private function log_and_throw_if_lock_expired( int $lock_expiry, WC_Order $renewal_order ): void {
-		if ( ! $this->is_lock_expired( $lock_expiry ) ) {
+		if ( ! $this->is_order_payment_lock_expired( $lock_expiry ) ) {
 			return;
 		}
 
