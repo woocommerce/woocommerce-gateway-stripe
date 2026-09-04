@@ -169,12 +169,12 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Render classic-checkout card fields when a host optimizer defers render-blocking JavaScript (e.g. SiteGround Speed Optimizer)
 * Fix - Load a single instance of Stripe.js per page
 * Fix - Hide the Apple Pay and Google Pay express buttons on pages unchecked in their own locations setting, instead of following other wallets' locations
+* Fix - Honor subscription renewal payment locks while preserving retry attempts
 * Update - Fetch express checkout AJAX nonces on demand instead of embedding them in every page
 
 **Other Fixes and Updates**
 
 * Fix - Hide country-restricted payment methods (e.g. iDEAL) from Optimized Checkout when the billing country can't use them
-* Fix - Honor subscription renewal payment locks while preserving retry attempts
 * Fix - Attach a Stripe customer to guest Adaptive Pricing checkouts, linking it to the order and any account created at checkout
 * Fix - Stop sending Level 3 data when paying with a non-card payment method through express checkout (e.g. Amazon Pay), which Stripe rejects and can disable Level 3 data for card payments
 * Fix - Record the charge-captured state for asynchronously confirmed payments (e.g. ACH) so refunds from wp-admin and the Stripe Dashboard behave correctly
