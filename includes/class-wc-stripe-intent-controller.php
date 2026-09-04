@@ -816,17 +816,16 @@ class WC_Stripe_Intent_Controller {
 						$order = $fresh_order;
 					}
 
-					if ( $order_helper->is_order_payment_settled( $order ) ) {
-						WC_Stripe_Logger::info( "Skipping update_order_status_ajax for order $order_id; order was settled by a concurrent request." );
-						$order_helper->unlock_order_payment( $order );
-					} else {
-						$processing_started = true; // Past validation; a failure from here on is a genuine payment failure.
-						try {
+					try {
+						if ( $order_helper->is_order_payment_settled( $order ) ) {
+							WC_Stripe_Logger::info( "Skipping update_order_status_ajax for order $order_id; order was settled by a concurrent request." );
+						} else {
+							$processing_started = true; // Past validation; a failure from here on is a genuine payment failure.
 							$gateway->process_order_for_confirmed_intent( $order, $intent_id_received, $save_payment_method );
-						} finally {
-							// This request owns the lock (we just acquired it above), so it must release it.
-							$order_helper->unlock_order_payment( $order );
 						}
+					} finally {
+						// This request owns the lock (we just acquired it above), so it must release it.
+						$order_helper->unlock_order_payment( $order );
 					}
 				}
 			}
