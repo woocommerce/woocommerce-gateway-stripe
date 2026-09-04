@@ -3589,6 +3589,80 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * A stale PaymentMethod lock must be reclaimed so an abandoned request does not block checkout.
+	 */
+	public function test_process_payment_with_saved_method_reclaims_stale_lock() {
+		$token = $this->set_postvars_for_saved_payment_method();
+
+		$_POST['payment_method']           = 'stripe';
+		$_POST['wc-stripe-payment-method'] = 'pm_mock';
+
+		$order             = WC_Helper_Order::create_order();
+		$payment_method_id = $token->get_token();
+		$lock_option       = $this->get_payment_method_lock_option_name( $payment_method_id );
+		$lock_ttl          = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_UPE_Payment_Gateway::class, 'PAYMENT_METHOD_LOCK_TTL', 'integer' );
+		$stale_owner       = ( time() - $lock_ttl - 1 ) . ':abandoned-request';
+
+		add_option( $lock_option, $stale_owner, '', false );
+
+		list( $amount ) = $this->get_order_details( $order );
+
+		$payment_intent_mock = (object) array_merge(
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE,
+			[
+				'amount'         => $amount,
+				'payment_method' => $payment_method_id,
+				'charges'        => (object) [
+					'data' => [
+						(object) [
+							'id'       => 'ch_mock',
+							'captured' => true,
+							'status'   => 'succeeded',
+						],
+					],
+				],
+			]
+		);
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
+			->method( 'create_and_confirm_payment_intent' )
+			->willReturn( $payment_intent_mock );
+
+		$this->mock_gateway
+			->method( 'get_stripe_customer_id' )
+			->willReturn( 'cus_mock' );
+
+		$this->mock_gateway
+			->expects( $this->once() )
+			->method( 'update_saved_payment_method' )
+			->with(
+				$this->equalTo( $payment_method_id ),
+				$this->callback(
+					function () use ( $lock_option, $stale_owner ) {
+						$this->assertNotSame( $stale_owner, get_option( $lock_option ) );
+						return true;
+					}
+				)
+			);
+
+		$this->mock_gateway
+			->method( 'get_latest_charge_from_intent' )
+			->willReturn(
+				(object) [
+					'id'       => 'ch_mock',
+					'captured' => true,
+					'status'   => 'succeeded',
+				]
+			);
+
+		$response = $this->mock_gateway->process_payment( $order->get_id() );
+
+		$this->assertSame( 'success', $response['result'] );
+		$this->assertFalse( get_option( $lock_option, false ) );
+	}
+
+	/**
 	 * Test SCA 3DS flow with saved payment method.
 	 */
 	public function test_sca_checkout_with_saved_payment_method_redirects_client() {
