@@ -201,7 +201,8 @@ class WC_Stripe_Checkout_Session_Context {
 		}
 
 		WC_Stripe_Database_Cache::delete( self::get_context_cache_key( $session_id ) );
-		self::release_mutation_lock( $session_id );
+		// Without the context no holder can act on the session, so the lock row is only litter.
+		WC_Stripe_Option_Lock::force_release( self::get_mutation_lock_option_name( $session_id ) );
 	}
 
 	/**
@@ -213,14 +214,15 @@ class WC_Stripe_Checkout_Session_Context {
 	 * @throws Exception When the Checkout Session is currently locked.
 	 */
 	public static function with_mutation_lock( string $session_id, callable $callback ) {
-		if ( ! self::acquire_mutation_lock( $session_id ) ) {
+		$lock_owner = self::acquire_mutation_lock( $session_id );
+		if ( null === $lock_owner ) {
 			throw new Exception( self::get_unavailable_message() );
 		}
 
 		try {
 			return $callback();
 		} finally {
-			self::release_mutation_lock( $session_id );
+			self::release_mutation_lock( $session_id, $lock_owner );
 		}
 	}
 
@@ -307,44 +309,27 @@ class WC_Stripe_Checkout_Session_Context {
 	/**
 	 * Attempt to acquire the Checkout Session mutation lock.
 	 *
-	 * Best-effort: the lock only serializes the short update/link window so a stale validation
-	 * result cannot race a concurrent cart update or order submission. The authoritative guard
-	 * against amount manipulation is the order-id and amount/currency checks, so the rare race
-	 * where two requests reclaim the same expired lock is acceptable.
-	 *
-	 * `add_option()` is atomic on the option name, so the common (uncrashed) path is race-free.
-	 * A lock abandoned by a crashed request is reclaimed once MUTATION_LOCK_TTL has elapsed.
+	 * The lock only serializes the short update/link window so a stale validation result cannot
+	 * race a concurrent cart update or order submission. The authoritative guard against amount
+	 * manipulation is the order-id and amount/currency checks. A lock abandoned by a crashed
+	 * request is reclaimed once MUTATION_LOCK_TTL has elapsed.
 	 *
 	 * @param string $session_id Stripe Checkout Session ID.
-	 * @return bool True when the caller acquired the lock.
+	 * @return string|null The owner value to release the lock with, or null when another request holds it.
 	 */
-	private static function acquire_mutation_lock( string $session_id ): bool {
-		$option_name = self::get_mutation_lock_option_name( $session_id );
-		$now         = time();
-
-		if ( add_option( $option_name, $now, '', false ) ) {
-			return true;
-		}
-
-		$existing = (int) get_option( $option_name, 0 );
-		if ( $existing > 0 && ( $now - $existing ) < self::MUTATION_LOCK_TTL ) {
-			return false;
-		}
-
-		// Reclaim a lock abandoned by a crashed request; the loser of a concurrent
-		// reclaim is rejected by add_option()'s atomic insert. Still best-effort.
-		delete_option( $option_name );
-		return add_option( $option_name, $now, '', false );
+	private static function acquire_mutation_lock( string $session_id ): ?string {
+		return WC_Stripe_Option_Lock::acquire( self::get_mutation_lock_option_name( $session_id ), self::MUTATION_LOCK_TTL );
 	}
 
 	/**
 	 * Release the Checkout Session mutation lock.
 	 *
 	 * @param string $session_id Stripe Checkout Session ID.
+	 * @param string $lock_owner The owner value returned by `acquire_mutation_lock()`.
 	 * @return void
 	 */
-	private static function release_mutation_lock( string $session_id ): void {
-		delete_option( self::get_mutation_lock_option_name( $session_id ) );
+	private static function release_mutation_lock( string $session_id, string $lock_owner ): void {
+		WC_Stripe_Option_Lock::release( self::get_mutation_lock_option_name( $session_id ), $lock_owner );
 	}
 
 	/**

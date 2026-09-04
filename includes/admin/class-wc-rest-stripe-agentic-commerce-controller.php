@@ -22,8 +22,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	 * Option key for the sync lock.
 	 *
 	 * Uses a dedicated option (not a transient) so the lock is not silently
-	 * dropped by object-cache flushes. The stored value is the lock acquisition
-	 * timestamp; locks older than {@see self::SYNC_LOCK_TTL} are treated as stale.
+	 * dropped by object-cache flushes. The stored value starts with the lock
+	 * acquisition timestamp; locks older than {@see self::SYNC_LOCK_TTL} are treated as stale.
 	 *
 	 * @var string
 	 * @since 10.7.0
@@ -275,7 +275,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 			);
 		}
 
-		if ( ! $this->acquire_sync_lock() ) {
+		$lock_owner = $this->acquire_sync_lock();
+		if ( null === $lock_owner ) {
 			return new WP_Error(
 				'stripe_agentic_commerce_sync_locked',
 				__( 'A sync is already in progress.', 'woocommerce-gateway-stripe' ),
@@ -325,7 +326,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 				[ 'status' => 500 ]
 			);
 		} finally {
-			$this->release_sync_lock();
+			$this->release_sync_lock( $lock_owner );
 		}
 
 		return rest_ensure_response( [ 'success' => true ] );
@@ -569,38 +570,24 @@ class WC_REST_Stripe_Agentic_Commerce_Controller extends WC_Stripe_REST_Base_Con
 	/**
 	 * Attempt to acquire the sync lock.
 	 *
-	 * Uses a dedicated option (with `add_option()` for atomicity) rather than a
-	 * transient so the lock survives object-cache flushes. A lock older than
-	 * {@see self::SYNC_LOCK_TTL} is considered stale and overwritten.
+	 * Uses a dedicated option rather than a transient so the lock survives object-cache
+	 * flushes. A lock older than {@see self::SYNC_LOCK_TTL} is considered stale and reclaimed.
 	 *
 	 * @since 10.7.0
-	 * @return bool True if the caller holds the lock, false if another caller holds it.
+	 * @return string|null The owner value to release the lock with, or null when another caller holds it.
 	 */
-	private function acquire_sync_lock(): bool {
-		$now = time();
-
-		// `add_option` returns false if the option already exists — atomic acquire.
-		if ( add_option( self::SYNC_LOCK_OPTION, $now, '', false ) ) {
-			return true;
-		}
-
-		$existing = (int) get_option( self::SYNC_LOCK_OPTION, 0 );
-		if ( $existing > 0 && ( $now - $existing ) < self::SYNC_LOCK_TTL ) {
-			return false;
-		}
-
-		// Stale lock — take it over.
-		update_option( self::SYNC_LOCK_OPTION, $now, false );
-		return true;
+	private function acquire_sync_lock(): ?string {
+		return WC_Stripe_Option_Lock::acquire( self::SYNC_LOCK_OPTION, self::SYNC_LOCK_TTL );
 	}
 
 	/**
 	 * Release the sync lock.
 	 *
 	 * @since 10.7.0
+	 * @param string $lock_owner The owner value returned by `acquire_sync_lock()`.
 	 * @return void
 	 */
-	private function release_sync_lock(): void {
-		delete_option( self::SYNC_LOCK_OPTION );
+	private function release_sync_lock( string $lock_owner ): void {
+		WC_Stripe_Option_Lock::release( self::SYNC_LOCK_OPTION, $lock_owner );
 	}
 }

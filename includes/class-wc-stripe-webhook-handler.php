@@ -2518,7 +2518,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	private function attach_customer_to_user( int $user_id, string $customer_id ): void {
 		$lock_option = 'wc_stripe_user_customer_lock_' . $user_id;
-		$lock_owner  = $this->acquire_user_customer_lock( $lock_option );
+		$lock_owner  = WC_Stripe_Option_Lock::acquire( $lock_option, MINUTE_IN_SECONDS );
 
 		if ( null === $lock_owner ) {
 			WC_Stripe_Logger::info( 'Skipping user customer attachment: another request holds the lock.', [ 'user_id' => $user_id ] );
@@ -2533,80 +2533,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$user_customer->update_id_in_meta( $customer_id );
 			}
 		} finally {
-			$this->release_user_customer_lock( $lock_option, $lock_owner );
+			WC_Stripe_Option_Lock::release( $lock_option, $lock_owner );
 		}
-	}
-
-	/**
-	 * Acquires the per-user customer attachment lock.
-	 *
-	 * The lock row bypasses the options API: `add_option()` upserts behind a cached existence
-	 * check, so two concurrent callers can both succeed, and it offers no conditional update or
-	 * delete. Each holder stores `<timestamp>:<token>`; a lock abandoned for over a minute is
-	 * reclaimed with a compare-and-swap on the exact stale value, so of two requests that read
-	 * the same expired lock only one wins, and neither can remove a lock it does not own.
-	 *
-	 * @param string $lock_option The lock option name.
-	 * @return string|null The owner value to release the lock with, or null when another request holds it.
-	 */
-	private function acquire_user_customer_lock( string $lock_option ): ?string {
-		global $wpdb;
-
-		$lock_owner = time() . ':' . wp_generate_uuid4();
-
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$inserted = $wpdb->query(
-			$wpdb->prepare(
-				"INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'off')",
-				$lock_option,
-				$lock_owner
-			)
-		);
-		if ( 1 === $inserted ) {
-			return $lock_owner;
-		}
-
-		$current = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", $lock_option ) );
-		if ( ! is_string( $current ) ) {
-			return null;
-		}
-
-		$locked_at = (int) strtok( $current, ':' );
-		if ( $locked_at > 0 && ( time() - $locked_at ) < MINUTE_IN_SECONDS ) {
-			return null;
-		}
-
-		$reclaimed = $wpdb->query(
-			$wpdb->prepare(
-				"UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND option_value = %s",
-				$lock_owner,
-				$lock_option,
-				$current
-			)
-		);
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-
-		return 1 === $reclaimed ? $lock_owner : null;
-	}
-
-	/**
-	 * Releases the per-user customer attachment lock, but only while this request still owns it.
-	 *
-	 * @param string $lock_option The lock option name.
-	 * @param string $lock_owner  The owner value returned by `acquire_user_customer_lock()`.
-	 */
-	private function release_user_customer_lock( string $lock_option, string $lock_owner ): void {
-		global $wpdb;
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$wpdb->delete(
-			$wpdb->options,
-			[
-				'option_name'  => $lock_option,
-				'option_value' => $lock_owner,
-			]
-		);
-		wp_cache_delete( $lock_option, 'options' );
 	}
 
 	/**
