@@ -844,6 +844,7 @@ class WC_Stripe_API {
 	protected static function maybe_remove_application_fees_from_request( array $request ): array {
 		$wc_stripe = WC_Stripe::get_instance();
 
+		// @phpstan-ignore isset.property (The connect property is public, so this is a safety check.)
 		if ( ! isset( $wc_stripe->connect ) ) {
 			return $request;
 		}
