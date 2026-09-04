@@ -127,6 +127,9 @@ jobs:
         env:
           STRIPE_PUB_KEY: ${{ matrix.project == 'blik' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_AU || secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
           STRIPE_SECRET_KEY: ${{ matrix.project == 'blik' && secrets.E2E_STRIPE_SECRET_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_SECRET_KEY_AU || secrets.E2E_STRIPE_SECRET_KEY }}
+          # Block themes render heavier pages; 5 workers exhaust the single-container
+          # site into connection resets, so cap concurrency for the purple jobs.
+          E2E_WORKERS: ${{ matrix.theme == 'purple' && '3' || '' }}
         run: npm run test:e2e-run -- --project=${{ matrix.project }}
 
       - name: Upload E2E-${{ matrix.project }}-${{ matrix.theme }}-WP_latest-WC_latest-results
