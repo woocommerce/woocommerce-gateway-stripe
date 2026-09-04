@@ -2,40 +2,39 @@ import { randomUUID } from 'crypto';
 import { expect, test } from '@playwright/test';
 import config from 'config';
 import { api, payments, products } from '../../utils';
-import { setProductType } from '../../utils/wp-cli';
 import {
 	assertLinkModalLoads,
 	fillLinkCardDetails,
 	fillLinkPaymentDetails,
 	fillLinkShippingAddress,
+	getLinkButton,
 	loginToLink,
 	openLinkPopup,
 	signUpForLink,
 } from './utils';
 
-const { clickAddToCartButton, emptyCart, waitForOrderReceivedPage } = payments;
+const {
+	clickAddToCartButton,
+	emptyCart,
+	selectSubscriptionOption,
+	waitForOrderReceivedPage,
+} = payments;
 
 let virtualProductId;
 let physicalProductId;
 
-const createFreeTrialProduct = async ( { virtual } ) => {
-	const productId = await api.create.product(
-		products.freeTrialSubscriptionData( { virtual } )
-	);
-	// Clean up the just-created product if the type flip fails, otherwise its
-	// ID never reaches afterAll and it leaks into the test site.
-	try {
-		await setProductType( productId, 'subscription' );
-	} catch ( error ) {
-		await api.deletePost.product( productId );
-		throw error;
-	}
-	return productId;
-};
+const createFreeTrialProduct = ( { virtual } ) =>
+	// api.create.product attaches the subscription plan and deletes the product
+	// if the plan creation fails, so a failure can't leak a product.
+	api.create.product( products.freeTrialSubscriptionData( { virtual } ) );
 
-const addProductToCartById = async ( page, productId ) => {
+// APFS products offer a one-time vs subscription choice, so pick the
+// subscription option before adding to the cart (mirrors the subscription
+// purchase specs).
+const addSubscriptionToCart = async ( page, productId ) => {
 	await page.goto( `?p=${ productId }` );
-	await clickAddToCartButton( page );
+	await selectSubscriptionOption( page );
+	await clickAddToCartButton( page, 'Sign up' );
 	await expect(
 		page.getByText( 'has been added to your cart' )
 	).toBeVisible();
@@ -44,8 +43,12 @@ const addProductToCartById = async ( page, productId ) => {
 // Free trial carts total 0 at checkout time, which is normally a condition for
 // hiding express checkout; free trials are the deliberate exception (the
 // element is created with mode: 'subscription' and amount: 0). These tests pin
-// that exception across the classic and Blocks surfaces, with and without
-// shipping, since a regression here silently removes the buttons.
+// that exception across the classic and Blocks cart/checkout surfaces, with and
+// without shipping, since a regression there silently removes the buttons.
+//
+// Coverage is limited to the cart/checkout surfaces: these are APFS
+// (subscribe-and-save) products, and APFS intentionally hides express checkout
+// on the product page, so that surface is asserted hidden rather than driven.
 test.describe( 'express checkout with free trial subscriptions', () => {
 	test.beforeAll( async () => {
 		virtualProductId = await createFreeTrialProduct( { virtual: true } );
@@ -67,17 +70,22 @@ test.describe( 'express checkout with free trial subscriptions', () => {
 	} );
 
 	test.describe( 'without shipping (virtual product)', () => {
-		test( 'loads Link on the product page @express-checkout @subscriptions', async ( {
+		test( 'hides express checkout on the product page @express-checkout @subscriptions', async ( {
 			page,
 		} ) => {
 			await page.goto( `?p=${ virtualProductId }` );
-			await assertLinkModalLoads( page );
+			// Wait for the APFS subscribe/one-time selector so the assertion
+			// isn't racing the page load.
+			await expect(
+				page.locator( '.wcsatt-options-prompt-label-subscription' )
+			).toBeVisible();
+			await expect( await getLinkButton( page ) ).toHaveCount( 0 );
 		} );
 
 		test( 'loads Link on the classic checkout page @express-checkout @subscriptions', async ( {
 			page,
 		} ) => {
-			await addProductToCartById( page, virtualProductId );
+			await addSubscriptionToCart( page, virtualProductId );
 			await page.goto( '/checkout-shortcode' );
 			await assertLinkModalLoads( page );
 		} );
@@ -85,7 +93,7 @@ test.describe( 'express checkout with free trial subscriptions', () => {
 		test( 'loads Link on the block cart page @blocks @express-checkout @subscriptions', async ( {
 			page,
 		} ) => {
-			await addProductToCartById( page, virtualProductId );
+			await addSubscriptionToCart( page, virtualProductId );
 			await page.goto( '/cart' );
 			await assertLinkModalLoads( page, true );
 		} );
@@ -93,24 +101,27 @@ test.describe( 'express checkout with free trial subscriptions', () => {
 		test( 'loads Link on the block checkout page @blocks @express-checkout @subscriptions', async ( {
 			page,
 		} ) => {
-			await addProductToCartById( page, virtualProductId );
+			await addSubscriptionToCart( page, virtualProductId );
 			await page.goto( '/checkout' );
 			await assertLinkModalLoads( page, true );
 		} );
 	} );
 
 	test.describe( 'with shipping (physical product)', () => {
-		test( 'loads Link on the product page @express-checkout @subscriptions', async ( {
+		test( 'hides express checkout on the product page @express-checkout @subscriptions', async ( {
 			page,
 		} ) => {
 			await page.goto( `?p=${ physicalProductId }` );
-			await assertLinkModalLoads( page );
+			await expect(
+				page.locator( '.wcsatt-options-prompt-label-subscription' )
+			).toBeVisible();
+			await expect( await getLinkButton( page ) ).toHaveCount( 0 );
 		} );
 
 		test( 'loads Link on the classic checkout page @express-checkout @subscriptions', async ( {
 			page,
 		} ) => {
-			await addProductToCartById( page, physicalProductId );
+			await addSubscriptionToCart( page, physicalProductId );
 			await page.goto( '/checkout-shortcode' );
 			await assertLinkModalLoads( page );
 		} );
@@ -118,7 +129,7 @@ test.describe( 'express checkout with free trial subscriptions', () => {
 		test( 'loads Link on the block cart page @blocks @express-checkout @subscriptions', async ( {
 			page,
 		} ) => {
-			await addProductToCartById( page, physicalProductId );
+			await addSubscriptionToCart( page, physicalProductId );
 			await page.goto( '/cart' );
 			await assertLinkModalLoads( page, true );
 		} );
@@ -126,7 +137,7 @@ test.describe( 'express checkout with free trial subscriptions', () => {
 		test( 'loads Link on the block checkout page @blocks @express-checkout @subscriptions', async ( {
 			page,
 		} ) => {
-			await addProductToCartById( page, physicalProductId );
+			await addSubscriptionToCart( page, physicalProductId );
 			await page.goto( '/checkout' );
 			await assertLinkModalLoads( page, true );
 		} );
@@ -145,7 +156,7 @@ test.describe( 'express checkout with free trial subscriptions', () => {
 			page,
 		} ) => {
 			test.setTimeout( 240 * 1000 );
-			await addProductToCartById( page, virtualProductId );
+			await addSubscriptionToCart( page, virtualProductId );
 			await page.goto( '/checkout' );
 
 			const popup = await openLinkPopup( page, true );
@@ -172,7 +183,7 @@ test.describe( 'express checkout with free trial subscriptions', () => {
 			page,
 		} ) => {
 			test.setTimeout( 240 * 1000 );
-			await addProductToCartById( page, virtualProductId );
+			await addSubscriptionToCart( page, virtualProductId );
 			await page.goto( '/checkout' );
 
 			const popup = await openLinkPopup( page, true );
@@ -239,7 +250,7 @@ test.describe( 'express checkout with free trial subscriptions', () => {
 		} ) => {
 			test.fail();
 			test.setTimeout( 240 * 1000 );
-			await addProductToCartById( page, physicalProductId );
+			await addSubscriptionToCart( page, physicalProductId );
 			await page.goto( '/checkout' );
 
 			const popup = await openLinkPopup( page, true );

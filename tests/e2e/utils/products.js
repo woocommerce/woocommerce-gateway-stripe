@@ -36,17 +36,15 @@ export function preOrderData() {
 }
 
 /**
- * Get product data for a native WCS subscription product with a free trial.
+ * Get product data for a free-trial subscription, using the same APFS
+ * (All Products for Subscriptions) plan approach as subscriptionData() — a
+ * simple product with a subscription plan attached — plus a 14-day free trial.
  *
- * Unlike subscriptionData(), which attaches an APFS plan to a simple product,
- * this targets a `subscription`-type product so trial detection
- * (WC_Subscriptions_Product::get_trial_length) also works on the product page,
- * where express checkout reads the trial from the product rather than the cart.
- *
- * The type is `simple` because the WC REST API only accepts core product
- * types; after creating the product, flip it to `subscription` with
- * setProductType() from utils/wp-cli.js — the subscription meta set here is
- * inert until then.
+ * Express checkout reads the trial from the cart at checkout
+ * (WC_Subscriptions_Cart::cart_contains_free_trial), so an APFS plan is enough
+ * for the cart/checkout flow. Note APFS deliberately hides express checkout on
+ * the product page for plan-bearing products, so this fixture cannot exercise
+ * product-page express checkout.
  *
  * @param {Object}  options
  * @param {boolean} options.virtual Whether the product is virtual (no shipping needed).
@@ -59,14 +57,15 @@ export function freeTrialSubscriptionData( { virtual = true } = {} ) {
 		type: 'simple',
 		virtual,
 		regular_price: '9.99',
-		meta_data: [
-			{ key: '_subscription_price', value: '9.99' },
-			{ key: '_subscription_period', value: 'month' },
-			{ key: '_subscription_period_interval', value: '1' },
-			{ key: '_subscription_length', value: '0' },
-			{ key: '_subscription_trial_length', value: '14' },
-			{ key: '_subscription_trial_period', value: 'day' },
-		],
+		subscriptionPlan: {
+			subscription_period: 'month',
+			subscription_period_interval: 1,
+			subscription_length: 0,
+			subscription_trial_period: 'day',
+			subscription_trial_length: 14,
+			subscription_pricing_method: 'inherit',
+			subscription_discount: 0,
+		},
 	};
 }
 
