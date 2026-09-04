@@ -206,6 +206,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Only sync the Agentic Commerce catalog, inventory, and archive feeds to Stripe after onboarding is complete (the feature is enabled and the webhook secret is saved)
 * Tweak - Disable the Agentic Commerce "Sync now" button until onboarding is complete, with a note explaining the remaining step
 * Fix - Attach a Stripe customer to guest Adaptive Pricing checkouts, linking it to the order and any account created at checkout
-* Fix - Prevent a stale Optimized Checkout update lock or Agentic Commerce sync lock from being reclaimed by two requests at once or released by a request that no longer holds it
+* Fix - Stop two requests from reclaiming the same expired Optimized Checkout or Agentic Commerce sync lock
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
