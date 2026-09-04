@@ -24,8 +24,15 @@ const testCard = async ( page, cardKey ) => {
 	await fillCreditCardDetailsShortcode( page, card );
 	await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
 
+	// Classic themes render checkout errors as `.woocommerce-error`, block
+	// themes as an error notice banner.
+	const errorNotice = page
+		.locator(
+			'.woocommerce-error, .wc-block-components-notice-banner.is-error'
+		)
+		.first();
 	expect
-		.soft( await page.innerText( '.woocommerce-error' ) )
+		.soft( await errorNotice.innerText() )
 		.toMatch( new RegExp( `(?:${ card.error.join( '|' ) })`, 'i' ) );
 };
 

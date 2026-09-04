@@ -20,7 +20,7 @@ test.describe( 'BLIK payment tests @shortcode @blik', () => {
 		);
 		await page.getByText( 'BLIK', { exact: true } ).click();
 		await fillBLIKDetails( page );
-		await page.locator( 'text=Place order' ).click();
+		await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
 		await waitForOrderReceivedPage( page );
 	} );
 } );

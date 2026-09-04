@@ -45,7 +45,7 @@ test( 'customer can purchase a subscription product @smoke @subscriptions', asyn
 
 	const expectedTotal = await getCartTotal( page );
 
-	await page.locator( 'text=Place order' ).click();
+	await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
 
 	await waitForOrderReceivedPageAndConfirmExpectedTotal(
 		browser,

@@ -65,7 +65,7 @@ test( 'customer can renew a subscription @smoke @subscriptions', async ( {
 
 		purchaseTotal = await getCartTotal( page );
 
-		await page.locator( 'text=Place order' ).click();
+		await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
 		await waitForOrderReceivedPage( page );
 
 		purchaseOrderId = getOrderIdFromOrderReceivedUrl( page.url() );

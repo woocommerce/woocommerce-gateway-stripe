@@ -24,6 +24,15 @@ DEBUG=false
 ADMIN_USER=admin
 ADMIN_PASSWORD=admin
 
+# Theme to activate for the run. Defaults to Storefront (classic markup). Set
+# WP_THEME to a WordPress.org slug to test another, or point WP_THEME_TARBALL_URL
+# at a Git tarball whose top level contains a "$WP_THEME/" directory (used for
+# block themes not on WordPress.org, e.g. the WooCommerce "purple" starter
+# theme from the woo-themes repo). CI parameterizes these to test both a classic
+# and a block theme.
+WP_THEME=${WP_THEME:-storefront}
+WP_THEME_TARBALL_URL=${WP_THEME_TARBALL_URL:-}
+
 DEPS_DIR="$E2E_ROOT/deps"
 
 cd "$CWD"
@@ -95,6 +104,52 @@ fetch_plugin_zip() {
 	exit 1
 }
 
+# Installs and activates $WP_THEME. Themes on WordPress.org install by slug;
+# a WP_THEME_TARBALL_URL instead fetches a Git tarball, packages its
+# "$WP_THEME/" subdirectory into a zip under deps/, and installs that (block
+# themes like "purple" live in a monorepo subdir with no per-theme zip URL).
+install_theme() {
+	if [[ -z "$WP_THEME_TARBALL_URL" ]]; then
+		echo " - Installing theme '$WP_THEME' from WordPress.org"
+		redirect_output cli wp theme install "$WP_THEME" --activate
+		return
+	fi
+
+	check_dep 'tar'
+	check_dep 'zip'
+
+	echo " - Fetching theme '$WP_THEME' from $WP_THEME_TARBALL_URL"
+	mkdir -p "$DEPS_DIR"
+	local work
+	work=$(mktemp -d)
+	# --strip-components=1 drops the tarball's top-level "<repo>-<ref>/" wrapper,
+	# leaving "$WP_THEME/" at the root of $work.
+	if ! curl -sfL "$WP_THEME_TARBALL_URL" | tar -xz -C "$work" --strip-components=1; then
+		rm -rf "$work"
+		error "Could not download or extract theme tarball from $WP_THEME_TARBALL_URL"
+		exit 1
+	fi
+
+	if [[ ! -d "$work/$WP_THEME" ]]; then
+		rm -rf "$work"
+		error "Tarball has no '$WP_THEME/' directory at its top level."
+		exit 1
+	fi
+
+	# wp theme install expects a zip whose single top-level entry is the theme
+	# directory, so zip "$WP_THEME" from inside $work.
+	rm -f "$DEPS_DIR/$WP_THEME.zip"
+	( cd "$work" && zip -qr "$DEPS_DIR/$WP_THEME.zip" "$WP_THEME" )
+	rm -rf "$work"
+
+	# --force so a re-run reinstalls over an existing theme dir: the themes
+	# volume is shared/external and survives DB resets, and wp theme install
+	# otherwise aborts with "Destination folder already exists".
+	redirect_output cli wp theme install \
+		"/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/deps/$WP_THEME.zip" \
+		--force --activate
+}
+
 if ! docker info > /dev/null 2>&1; then
 	echo
 	error "Docker is not running, please start it and try again."
@@ -114,9 +169,9 @@ fetch_plugin_zip "woocommerce/woocommerce-pre-orders" "woocommerce-pre-orders.zi
 
 step "Starting E2E docker containers"
 if [ "$CI" = "true" ]; then
-    CWD="$CWD" E2E_ROOT="$E2E_ROOT" redirect_output docker compose -p wcstripe-e2e -f "$E2E_ROOT"/env/docker-compose.yml up --build --force-recreate -d
+    CWD="$CWD" E2E_ROOT="$E2E_ROOT" redirect_output docker compose -p "$E2E_PROJECT" -f "$E2E_ROOT"/env/docker-compose.yml up --build --force-recreate -d
 else
-    CWD="$CWD" E2E_ROOT="$E2E_ROOT" redirect_output docker compose -p wcstripe-e2e --env-file "$E2E_ROOT"/config/local.env -f "$E2E_ROOT"/env/docker-compose.yml up --build --force-recreate -d
+    CWD="$CWD" E2E_ROOT="$E2E_ROOT" redirect_output docker compose -p "$E2E_PROJECT" --env-file "$E2E_ROOT"/config/local.env -f "$E2E_ROOT"/env/docker-compose.yml up --build --force-recreate -d
 fi
 
 step "Configuring WordPress"
@@ -133,7 +188,7 @@ set -e
 
 redirect_output cli wp core install \
 	--path=/var/www/html \
-	--url="http://localhost:8088" \
+	--url="http://localhost:${E2E_WP_PORT}" \
 	--title="WCStripe E2E test store" \
 	--admin_name="${ADMIN_USER}" \
 	--admin_password="${ADMIN_PASSWORD}" \
@@ -198,8 +253,8 @@ redirect_output cli wp option set woocommerce_product_type "both"
 redirect_output cli wp option set woocommerce_allow_tracking "no"
 redirect_output cli wp option set woocommerce_coming_soon "no"
 
-echo " - Installing Storefront theme"
-redirect_output cli wp theme install storefront --activate
+step "Installing theme: $WP_THEME"
+install_theme
 
 redirect_output cli wp --user=${ADMIN_USER} wc tool run install_pages
 
@@ -210,11 +265,15 @@ redirect_output cli wp --user=${ADMIN_USER} wc shipping_zone_method create 1 --m
 redirect_output cli wp option update --format=json woocommerce_flat_rate_1_settings '{"title":"Flat rate","tax_status":"taxable","cost":"10"}'
 
 echo " - Creating Cart and Checkout shortcode pages"
+# No --page_template: 'template-fullwidth.php' is a Storefront-specific template
+# and wp-cli rejects an unregistered template ("Invalid page template"), which
+# aborts setup under block themes. The default template renders the shortcode on
+# any theme, and the tests target the shortcode markup, not the page chrome.
 if ! cli wp post list --post_type=page --field=post_name | grep -q 'cart-shortcode'; then
-	redirect_output cli wp post create --post_type=page --post_title='Cart Shortcode' --post_name='cart-shortcode' --post_status=publish --page_template='template-fullwidth.php' --post_content='<!-- wp:shortcode -->[woocommerce_cart]<!-- /wp:shortcode -->'
+	redirect_output cli wp post create --post_type=page --post_title='Cart Shortcode' --post_name='cart-shortcode' --post_status=publish --post_content='<!-- wp:shortcode -->[woocommerce_cart]<!-- /wp:shortcode -->'
 fi
 if ! cli wp post list --post_type=page --field=post_name | grep -q 'checkout-shortcode'; then
-	redirect_output cli wp post create --post_type=page --post_title='Checkout Shortcode' --post_name='checkout-shortcode' --post_status=publish --page_template='template-fullwidth.php' --post_content='<!-- wp:shortcode -->[woocommerce_checkout]<!-- /wp:shortcode -->'
+	redirect_output cli wp post create --post_type=page --post_title='Checkout Shortcode' --post_name='checkout-shortcode' --post_status=publish --post_content='<!-- wp:shortcode -->[woocommerce_checkout]<!-- /wp:shortcode -->'
 fi
 
 echo " - Importing sample products"
@@ -259,4 +318,4 @@ echo "Subscriptions => $(cli wp plugin get woocommerce-subscriptions --field=ver
 echo "Pre-Orders    => $(cli wp plugin get woocommerce-pre-orders --field=version)"
 echo "============================================================"
 echo
-step "E2E environment up and running at http://localhost:8088/wp-admin/"
+step "E2E environment up and running at http://localhost:${E2E_WP_PORT}/wp-admin/"

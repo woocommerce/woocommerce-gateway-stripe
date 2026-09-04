@@ -50,7 +50,7 @@ test.describe( 'ACH payment tests @shortcode', () => {
 		await setupACHCheckout( page, 'shortcode' );
 		await fillACHBankDetails( page );
 
-		await page.locator( 'text=Place order' ).click();
+		await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
 		await waitForOrderReceivedPage( page );
 	} );
 
