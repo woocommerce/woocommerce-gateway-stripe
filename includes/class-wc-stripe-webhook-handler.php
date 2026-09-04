@@ -590,10 +590,16 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$needs_response = in_array( $notification->data->object->status, [ 'needs_response', 'warning_needs_response' ], true );
 		if ( $needs_response ) {
+			// Guard against a non-string transaction URL.
+			$transaction_url = $this->get_transaction_url( $order );
+			if ( ! is_string( $transaction_url ) || empty( $transaction_url ) ) {
+				$transaction_url = 'https://dashboard.stripe.com/';
+			}
+
 			$message = sprintf(
 			/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
 				__( 'A dispute was created for this order. Response is needed. Please go to your %1$sStripe Dashboard%2$s to review this dispute.', 'woocommerce-gateway-stripe' ),
-				'<a href="' . esc_url( $this->get_transaction_url( $order ) ) . '" title="Stripe Dashboard" target="_blank">',
+				WC_Stripe_Helper::get_external_link_open_tag( $transaction_url, '', __( 'Stripe Dashboard', 'woocommerce-gateway-stripe' ) ),
 				'</a>'
 			);
 		} else {
@@ -1192,7 +1198,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$message = sprintf(
 		/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag 3) The reason type. */
 			__( 'A review has been opened for this order. Action is needed. Please go to your %1$sStripe Dashboard%2$s to review the issue. Reason: (%3$s).', 'woocommerce-gateway-stripe' ),
-			'<a href="' . esc_url( $this->get_transaction_url( $order ) ) . '" title="Stripe Dashboard" target="_blank">',
+			WC_Stripe_Helper::get_external_link_open_tag( $this->get_transaction_url( $order ), '', __( 'Stripe Dashboard', 'woocommerce-gateway-stripe' ) ),
 			'</a>',
 			esc_html( $notification->data->object->reason )
 		);
@@ -1823,7 +1829,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			wp_kses_post( $formatted_price ),
 			esc_html( $intent_id ),
 			esc_html( (string) $charge->id ),
-			'<a href="' . esc_url( $dashboard_url ) . '" target="_blank" rel="noopener noreferrer">',
+			WC_Stripe_Helper::get_external_link_open_tag( $dashboard_url ),
 			'</a>'
 		);
 
@@ -2044,9 +2050,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$reference    = sprintf(
 			/* translators: 1: opening anchor tag for the PaymentIntent, 2: Stripe PaymentIntent ID, 3: opening anchor tag for the charge, 4: Stripe charge ID, 5: closing anchor tag. */
 			__( 'PaymentIntent: %1$s%2$s%5$s. Charge: %3$s%4$s%5$s.', 'woocommerce-gateway-stripe' ),
-			'<a href="' . esc_url( $intent_url ) . '" target="_blank" rel="noopener noreferrer">',
+			WC_Stripe_Helper::get_external_link_open_tag( $intent_url ),
 			esc_html( $intent_id ),
-			'<a href="' . esc_url( $charge_url ) . '" target="_blank" rel="noopener noreferrer">',
+			WC_Stripe_Helper::get_external_link_open_tag( $charge_url ),
 			esc_html( $charge_id ),
 			'</a>'
 		);
