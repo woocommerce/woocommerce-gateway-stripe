@@ -1551,6 +1551,32 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return array|null An array with result of payment and redirect URL, or nothing.
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
+		// Fallback for WooCommerce versions before 11.2.0, where Store API checkout never sets
+		// `order_awaiting_payment` (classic checkout always has). We need to set the flag so WC core's
+		// wc_clear_cart_after_payment() clears the cart when a redirect payment's return
+		// doesn't have the session cookie (mobile app/browser handoffs). This removes a paid-for cart
+		// from the session.
+		// The logic matches WC_Checkout::process_order_payment(), and only adds the value when unset.
+		// Skipped for subscription payment-method changes, where $order_id is a
+		// non-pending subscription ID, not an order ID.
+		$order      = wc_get_order( $order_id );
+		$wc_session = WC()->session;
+		if ( $order instanceof WC_Order
+			&& $order->needs_payment()
+			&& $wc_session
+			&& is_callable( [ $wc_session, 'set' ] )
+			&& ! $this->is_changing_payment_method_for_subscription()
+			// Don't set the flag for the pay-for-order path.
+			&& ! did_action( 'woocommerce_before_pay_action' )
+			&& (string) ( $wc_session->get( 'order_awaiting_payment' ) ?? '' ) !== (string) $order_id
+		) {
+			$wc_session->set( 'order_awaiting_payment', $order_id );
+			// Ensure the flag is saved rather than waiting until the end of the request.
+			if ( is_callable( [ $wc_session, 'save_data' ] ) ) {
+				$wc_session->save_data();
+			}
+		}
+
 		$payment_intent_id     = isset( $_POST['wc_payment_intent_id'] ) ? wc_clean( wp_unslash( $_POST['wc_payment_intent_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$checkout_session_id   = isset( $_POST['wc_stripe_checkout_session_id'] ) ? wc_clean( wp_unslash( $_POST['wc_stripe_checkout_session_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$selected_payment_type = $this->get_selected_payment_method_type_from_request();
