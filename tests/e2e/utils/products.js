@@ -36,19 +36,14 @@ export function preOrderData() {
 }
 
 /**
- * Get product data for a free-trial subscription, using the same APFS
- * (All Products for Subscriptions) plan approach as subscriptionData() — a
- * simple product with a subscription plan attached — plus a 14-day free trial.
+ * Get product data for a free-trial subscription: a simple product with an APFS
+ * plan attached (like subscriptionData()) plus a 14-day free trial.
  *
- * Express checkout reads the trial from the cart at checkout
- * (WC_Subscriptions_Cart::cart_contains_free_trial), so an APFS plan is enough
- * for the cart/checkout flow. Note APFS deliberately hides express checkout on
- * the product page for plan-bearing products, so this fixture cannot exercise
- * product-page express checkout.
+ * APFS hides express checkout on the product page, so this fixture only
+ * exercises the cart/checkout express checkout flow.
  *
  * @param {Object}  options
  * @param {boolean} options.virtual Whether the product is virtual (no shipping needed).
- *
  * @returns {Object} Free trial subscription product data
  */
 export function freeTrialSubscriptionData( { virtual = true } = {} ) {

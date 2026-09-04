@@ -56,10 +56,18 @@ export const assertLinkModalLoads = async ( page, isBlockPage = false ) => {
  * @param {string} phone US-format phone number.
  */
 export const signUpForLink = async ( popup, email, phone ) => {
-	await popup.locator( 'input[name="email"]' ).fill( email );
+	const emailInput = popup.locator( 'input[name="email"]' );
+	await expect(
+		emailInput,
+		'Link sign-up email field did not appear'
+	).toBeVisible( { timeout: 30 * 1000 } );
+	await emailInput.fill( email );
 
 	const phoneInput = popup.locator( 'input[type="tel"]' ).first();
-	await phoneInput.waitFor( { timeout: 15 * 1000 } );
+	await expect(
+		phoneInput,
+		'Link sign-up phone field did not appear — the email may already be enrolled, which shows the login flow instead'
+	).toBeVisible( { timeout: 15 * 1000 } );
 	// The phone country selector defaults to the runner's locale, which would
 	// reject the US-format test number.
 	await popup.locator( 'select' ).first().selectOption( 'US' );
@@ -77,7 +85,10 @@ export const signUpForLink = async ( popup, email, phone ) => {
  */
 export const fillLinkPaymentDetails = async ( popup, card, address ) => {
 	const cardInput = popup.locator( 'input[name="cardNumber"]' );
-	await cardInput.waitFor( { timeout: 30 * 1000 } );
+	await expect(
+		cardInput,
+		'Link payment form (card number field) did not appear'
+	).toBeVisible( { timeout: 30 * 1000 } );
 
 	// Select the country first: it defaults to the runner's locale and
 	// decides which address fields render.
@@ -121,7 +132,10 @@ export const fillLinkPaymentDetails = async ( popup, card, address ) => {
  */
 export const fillLinkShippingAddress = async ( popup, address ) => {
 	const nameInput = popup.locator( 'input[name="name"]' );
-	await nameInput.waitFor( { timeout: 30 * 1000 } );
+	await expect(
+		nameInput,
+		'Link shipping address form did not appear'
+	).toBeVisible( { timeout: 30 * 1000 } );
 
 	// Country first (it decides the field layout), street address last: typing
 	// into it opens an autocomplete suggestion list that overlays the fields
@@ -159,7 +173,10 @@ export const fillLinkShippingAddress = async ( popup, address ) => {
  */
 export const fillLinkCardDetails = async ( popup, card ) => {
 	const cardInput = popup.locator( 'input[name="cardNumber"]' );
-	await cardInput.waitFor( { timeout: 30 * 1000 } );
+	await expect(
+		cardInput,
+		'Link payment form (card number field) did not appear'
+	).toBeVisible( { timeout: 30 * 1000 } );
 	await cardInput.fill( card.number );
 	await popup
 		.locator( 'input[name="cardExpiry"]' )
@@ -177,11 +194,19 @@ export const fillLinkCardDetails = async ( popup, card ) => {
  * @param {string} email Email of an already-enrolled Link account.
  */
 export const loginToLink = async ( popup, email ) => {
-	await popup.locator( 'input[name="email"]' ).fill( email );
+	const emailInput = popup.locator( 'input[name="email"]' );
+	await expect(
+		emailInput,
+		'Link login email field did not appear'
+	).toBeVisible( { timeout: 30 * 1000 } );
+	await emailInput.fill( email );
 
 	const otpInput = popup
 		.locator( 'input[autocomplete="one-time-code"]' )
 		.first();
-	await otpInput.waitFor( { timeout: 30 * 1000 } );
+	await expect(
+		otpInput,
+		'Link OTP field did not appear — expected an already-enrolled account for this email'
+	).toBeVisible( { timeout: 30 * 1000 } );
 	await otpInput.fill( '000000' );
 };
