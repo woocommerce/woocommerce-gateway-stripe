@@ -317,7 +317,10 @@ const humanTimeDiff = ( timestamp ) => {
 	);
 };
 
-const AgenticCommerceSyncStatus = () => {
+const AgenticCommerceSyncStatus = ( {
+	isOnboardingComplete = false,
+	hasUnsavedWebhookSecret = false,
+} ) => {
 	const [ data, setData ] = useState( null );
 	const [ isLoading, setIsLoading ] = useState( true );
 	const [ isSyncing, setIsSyncing ] = useState( false );
@@ -549,7 +552,9 @@ const AgenticCommerceSyncStatus = () => {
 						<Button
 							variant="primary"
 							isBusy={ isSyncing }
-							disabled={ isSyncing || isLoading }
+							disabled={
+								isSyncing || isLoading || ! isOnboardingComplete
+							}
 							onClick={ handleSync }
 						>
 							{ isSyncing
@@ -566,6 +571,20 @@ const AgenticCommerceSyncStatus = () => {
 							{ __( 'View logs', 'woocommerce-gateway-stripe' ) }
 						</Button>
 					</ActionRow>
+
+					{ ! isOnboardingComplete && (
+						<p className="wc-stripe-agentic-sync-onboarding-notice">
+							{ hasUnsavedWebhookSecret
+								? __(
+										'Click Save changes to store your webhook secret before syncing your catalog.',
+										'woocommerce-gateway-stripe'
+								  )
+								: __(
+										'Save your webhook secret above to finish setup before syncing your catalog.',
+										'woocommerce-gateway-stripe'
+								  ) }
+						</p>
+					) }
 				</CardBody>
 			</SectionCard>
 
