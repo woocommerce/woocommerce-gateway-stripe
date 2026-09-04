@@ -2808,7 +2808,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
-	 * Update the saved payment method information with updated billing values.
+	 * Copies the order's billing address onto a saved payment method in Stripe.
+	 *
+	 * Only the address is written. The saved method's name, email, and phone identify the person
+	 * who originally saved it and must survive later checkouts: a checkout running under the wrong
+	 * account (a shared login, a session mix-up at a caching layer) would otherwise overwrite the
+	 * cardholder's identity with someone else's, and Stripe's copy is what fraud reviews rely on.
+	 * The address is the exception because Stripe's AVS check reads it from the payment method,
+	 * so a shopper who moved would be declined on postal-code mismatch unless it is refreshed
+	 * before the charge.
 	 *
 	 * @param string       $payment_method_id The payment method to update.
 	 * @param WC_Order|int $order             Order object or id.
@@ -2821,31 +2829,25 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		try {
-			// Get the billing details from the order.
-			$billing_details = [
-				'address' => [
-					'city'        => $order->get_billing_city(),
-					'country'     => $order->get_billing_country(),
-					'line1'       => $order->get_billing_address_1(),
-					'line2'       => $order->get_billing_address_2(),
-					'postal_code' => $order->get_billing_postcode(),
-					'state'       => $order->get_billing_state(),
-				],
-				'email'   => $order->get_billing_email(),
-				'name'    => trim( $order->get_formatted_billing_full_name() ),
-				'phone'   => $order->get_billing_phone(),
+			$address = [
+				'city'        => $order->get_billing_city(),
+				'country'     => $order->get_billing_country(),
+				'line1'       => $order->get_billing_address_1(),
+				'line2'       => $order->get_billing_address_2(),
+				'postal_code' => $order->get_billing_postcode(),
+				'state'       => $order->get_billing_state(),
 			];
 
-			$billing_details = array_filter( $billing_details );
-			if ( empty( $billing_details ) ) {
+			if ( empty( array_filter( $address ) ) ) {
 				return;
 			}
 
-			// Update the billing details of the selected payment method in Stripe.
 			WC_Stripe_API::update_payment_method(
 				$payment_method_id,
 				[
-					'billing_details' => $billing_details,
+					'billing_details' => [
+						'address' => $address,
+					],
 				]
 			);
 
