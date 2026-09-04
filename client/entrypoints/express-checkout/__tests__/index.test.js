@@ -195,6 +195,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 				return button;
 			},
 			mount: jest.fn(),
+			destroy: jest.fn(),
 		};
 		mockGetStripe.mockReturnValue( {
 			elements: jest.fn( () => {
@@ -206,13 +207,13 @@ describe( 'Express Checkout product page variation breakdown', () => {
 				return elements;
 			} ),
 		} );
-		return { handlers, elementsList };
+		return { handlers, elementsList, button };
 	};
 
-	const clickEvent = () => ( {
+	const clickEvent = ( expressPaymentType = 'googlePay' ) => ( {
 		resolve: jest.fn(),
 		reject: jest.fn(),
-		expressPaymentType: 'googlePay',
+		expressPaymentType,
 	} );
 
 	const cartResponse = ( total, extra = {} ) => ( {
@@ -626,12 +627,134 @@ describe( 'Express Checkout product page variation breakdown', () => {
 			} );
 			await jest.advanceTimersByTimeAsync( 100 );
 			await clickPromise;
-			expect( alertSpy ).toHaveBeenCalledWith(
-				'There is not enough stock.'
-			);
+			// The refusal lands in the retry modal, not an alert.
+			expect(
+				document.querySelector( '.wc-stripe-ece-retry-modal__title' )
+					.textContent
+			).toBe( 'Something went wrong' );
+			expect(
+				document.querySelector( '.wc-stripe-ece-retry-modal__message' )
+					.textContent
+			).toBe( 'There is not enough stock.' );
+			expect( alertSpy ).not.toHaveBeenCalled();
 		} finally {
 			jest.useRealTimers();
 			alertSpy.mockRestore();
+		}
+	} );
+
+	it( 'offers the clicked wallet in the retry modal once the late add settles', async () => {
+		jest.useFakeTimers();
+		global.wc_stripe_express_checkout_params = productParams();
+
+		let resolveAddToCart;
+		mockAddToCart.mockImplementation(
+			() =>
+				new Promise( ( resolve ) => {
+					resolveAddToCart = resolve;
+				} )
+		);
+		mockEmptyCartLegacy.mockResolvedValue( {} );
+		stubTransformersOnce( 4000, [
+			{ name: 'Red variation (x2)', amount: 4000 },
+		] );
+
+		const { handlers, button } = stubStripeButton();
+		loadEntrypoint();
+
+		try {
+			const event = clickEvent( 'google_pay' );
+			const clickPromise = handlers.click( event );
+			await jest.advanceTimersByTimeAsync( 750 );
+
+			// Timed out: the modal holds the shopper with a loading state.
+			expect(
+				document.querySelector( '.wc-stripe-ece-retry-modal__title' )
+					.textContent
+			).toBe( 'Preparing your payment…' );
+
+			resolveAddToCart( cartResponse( 4000 ) );
+			await jest.advanceTimersByTimeAsync( 0 );
+			await clickPromise;
+
+			// Settled: the clicked wallet's button mounts inside the modal.
+			expect(
+				document.querySelector( '.wc-stripe-ece-retry-modal__title' )
+					.textContent
+			).toBe( 'Your order is ready' );
+			expect( button.mount ).toHaveBeenCalledWith(
+				'#wc-stripe-ece-retry-modal-button'
+			);
+
+			// Dismissing the sheet closes the modal and releases its element.
+			handlers.cancel();
+			expect(
+				document.querySelector( '.wc-stripe-ece-retry-modal' )
+			).toBeNull();
+			await jest.advanceTimersByTimeAsync( 0 );
+			expect( button.destroy ).toHaveBeenCalled();
+		} finally {
+			jest.useRealTimers();
+		}
+	} );
+
+	it( 'shows processing at confirm and closes the modal when payment completes', async () => {
+		jest.useFakeTimers();
+		global.wc_stripe_express_checkout_params = productParams();
+
+		let resolveAddToCart;
+		mockAddToCart.mockImplementation(
+			() =>
+				new Promise( ( resolve ) => {
+					resolveAddToCart = resolve;
+				} )
+		);
+		mockEmptyCartLegacy.mockResolvedValue( {} );
+		stubTransformersOnce( 4000, [
+			{ name: 'Red variation (x2)', amount: 4000 },
+		] );
+
+		// eslint-disable-next-line global-require
+		const {
+			onConfirmHandler,
+		} = require( 'wcstripe/express-checkout/event-handler' );
+
+		const { handlers } = stubStripeButton();
+		loadEntrypoint();
+
+		try {
+			const event = clickEvent( 'google_pay' );
+			const clickPromise = handlers.click( event );
+			await jest.advanceTimersByTimeAsync( 750 );
+			resolveAddToCart( cartResponse( 4000 ) );
+			await jest.advanceTimersByTimeAsync( 0 );
+			await clickPromise;
+
+			// The modal element registered last, so its confirm handler is the
+			// captured one - the flow under test.
+			await handlers.confirm( { paymentFailed: jest.fn() } );
+
+			// Mid-confirmation the modal must read as processing and lose its
+			// close button: removing the dialog now would detach the active
+			// Stripe frame.
+			expect(
+				document.querySelector( '.wc-stripe-ece-retry-modal__title' )
+					.textContent
+			).toBe( 'Processing your payment…' );
+			expect(
+				document.querySelector( '.wc-stripe-ece-retry-modal__close' )
+					.style.display
+			).toBe( 'none' );
+
+			// A hash URL keeps jsdom's navigation stub happy.
+			const { completePayment } =
+				onConfirmHandler.mock.calls.at( -1 )[ 0 ];
+			completePayment( '#order-received' );
+			expect(
+				document.querySelector( '.wc-stripe-ece-retry-modal' )
+			).toBeNull();
+		} finally {
+			jest.useRealTimers();
 		}
 	} );
 
