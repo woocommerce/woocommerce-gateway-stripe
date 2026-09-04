@@ -17,6 +17,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 	public const ID = 'stripe';
 
+	private const PAYMENT_METHOD_LOCK_OPTION_PREFIX = 'wc_stripe_payment_method_lock_';
+	private const PAYMENT_METHOD_LOCK_TTL           = 5 * MINUTE_IN_SECONDS;
+
 	/**
 	 * Upe Available Methods
 	 *
@@ -1781,36 +1784,58 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				);
 			}
 
-			// Update saved payment method to include billing details.
+			$payment_method_lock_owner = null;
 			if ( $is_using_saved_payment_method ) {
-				$this->update_saved_payment_method( $payment_method_id, $order );
+				$payment_method_lock_owner = $this->acquire_payment_method_lock( $payment_method_id );
+				if ( null === $payment_method_lock_owner ) {
+					if ( $order instanceof WC_Order ) {
+						$order_helper->unlock_order_payment( $order );
+					}
+
+					return [
+						'result'   => 'failure',
+						'redirect' => '',
+						'message'  => __( 'This saved payment method is already being used. Please try again.', 'woocommerce-gateway-stripe' ),
+					];
+				}
 			}
 
-			if ( $payment_needed ) {
-				// Throw an exception if the minimum order amount isn't met.
-				$order_helper->validate_minimum_order_amount( $order );
+			try {
+				// The address update and intent confirmation must remain together so another order cannot replace the AVS address between them.
+				if ( $is_using_saved_payment_method ) {
+					$this->update_saved_payment_method( $payment_method_id, $order );
+				}
 
-				// Create a payment intent, or update an existing one associated with the order.
-				$payment_intent = $this->process_payment_intent_for_order( $order, $payment_information );
-			} elseif ( $is_using_saved_payment_method && WC_Stripe_Payment_Methods::CASHAPP_PAY === $selected_payment_type ) {
-				// If the payment method is Cash App Pay, the order has no cost, and a saved payment method is used, mark the order as paid.
-				$this->maybe_update_source_on_subscription_order(
-					$order,
-					(object) [
-						'payment_method' => $payment_information['payment_method'],
-						'customer'       => $payment_information['customer'],
-					],
-					$this->get_upe_gateway_id_for_order( $upe_payment_method )
-				);
-				$order->payment_complete();
+				if ( $payment_needed ) {
+					// Throw an exception if the minimum order amount isn't met.
+					$order_helper->validate_minimum_order_amount( $order );
 
-				return [
-					'result'   => 'success',
-					'redirect' => $this->get_return_url( $order ),
-				];
-			} else {
-				// Create a setup intent, or update an existing one associated with the order.
-				$payment_intent = $this->process_setup_intent_for_order( $order, $payment_information );
+					// Create a payment intent, or update an existing one associated with the order.
+					$payment_intent = $this->process_payment_intent_for_order( $order, $payment_information );
+				} elseif ( $is_using_saved_payment_method && WC_Stripe_Payment_Methods::CASHAPP_PAY === $selected_payment_type ) {
+					// If the payment method is Cash App Pay, the order has no cost, and a saved payment method is used, mark the order as paid.
+					$this->maybe_update_source_on_subscription_order(
+						$order,
+						(object) [
+							'payment_method' => $payment_information['payment_method'],
+							'customer'       => $payment_information['customer'],
+						],
+						$this->get_upe_gateway_id_for_order( $upe_payment_method )
+					);
+					$order->payment_complete();
+
+					return [
+						'result'   => 'success',
+						'redirect' => $this->get_return_url( $order ),
+					];
+				} else {
+					// Create a setup intent, or update an existing one associated with the order.
+					$payment_intent = $this->process_setup_intent_for_order( $order, $payment_information );
+				}
+			} finally {
+				if ( null !== $payment_method_lock_owner ) {
+					$this->release_payment_method_lock( $payment_method_id, $payment_method_lock_owner );
+				}
 			}
 
 			// Handle saving the payment method in the store.
@@ -1893,6 +1918,85 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$order_helper->unlock_order_payment( $order );
 			return $this->handle_process_payment_error( $e, $order );
 		}
+	}
+
+	/**
+	 * Acquires a cross-request lock for a saved PaymentMethod.
+	 *
+	 * Each holder owns a unique value so an expired request cannot release a successor's lock.
+	 *
+	 * @param string $payment_method_id Stripe PaymentMethod identifier.
+	 * @return string|null Owner token, or null when another checkout holds the lock.
+	 */
+	private function acquire_payment_method_lock( string $payment_method_id ): ?string {
+		global $wpdb;
+
+		$option_name = self::PAYMENT_METHOD_LOCK_OPTION_PREFIX . md5( $payment_method_id );
+		$lock_owner  = time() . ':' . wp_generate_uuid4();
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$inserted = $wpdb->query(
+			$wpdb->prepare(
+				"INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'off')",
+				$option_name,
+				$lock_owner
+			)
+		);
+		if ( 1 === $inserted ) {
+			return $lock_owner;
+		}
+
+		$current = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", $option_name ) );
+		if ( ! is_string( $current ) ) {
+			return null;
+		}
+
+		$locked_at = (int) strtok( $current, ':' );
+		if ( $locked_at > 0 && ( time() - $locked_at ) < self::PAYMENT_METHOD_LOCK_TTL ) {
+			return null;
+		}
+
+		$reclaimed = $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND option_value = %s",
+				$lock_owner,
+				$option_name,
+				$current
+			)
+		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+		if ( 1 !== $reclaimed ) {
+			return null;
+		}
+
+		// The UPDATE bypasses the options API, so a value cached earlier in this request would still name the stale owner.
+		wp_cache_delete( $option_name, 'options' );
+
+		return $lock_owner;
+	}
+
+	/**
+	 * Releases a saved PaymentMethod lock only while this request still owns it.
+	 *
+	 * @param string $payment_method_id Stripe PaymentMethod identifier.
+	 * @param string $lock_owner        Owner token returned by acquire_payment_method_lock().
+	 * @return void
+	 */
+	private function release_payment_method_lock( string $payment_method_id, string $lock_owner ): void {
+		global $wpdb;
+
+		$option_name = self::PAYMENT_METHOD_LOCK_OPTION_PREFIX . md5( $payment_method_id );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->delete(
+			$wpdb->options,
+			[
+				'option_name'  => $option_name,
+				'option_value' => $lock_owner,
+			]
+		);
+		wp_cache_delete( $option_name, 'options' );
 	}
 
 	/**
@@ -2308,24 +2412,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	private function is_order_associated_to_setup_intent( int $order_id, string $intent_id ): bool {
 		$order = wc_get_order( $order_id );
-		if ( ! $order ) {
+		if ( ! $order instanceof WC_Order ) {
 			return false;
 		}
 
-		$intent = $this->stripe_request( 'setup_intents/' . $intent_id . '?expand[]=payment_method.billing_details' );
-		if ( ! $intent ) {
-			return false;
-		}
+		$stored_intent_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_setup_intent_id( $order );
 
-		if ( ! isset( $intent->payment_method ) || ! isset( $intent->payment_method->billing_details ) ) {
-			return false;
-		}
-
-		if ( $order->get_billing_email() !== $intent->payment_method->billing_details->email ) {
-			return false;
-		}
-
-		return true;
+		// The persisted Stripe identifier binds the redirect to this order even when checkout details differ from the saved cardholder identity.
+		return is_string( $stored_intent_id ) && '' !== $stored_intent_id && $stored_intent_id === $intent_id;
 	}
 
 	/**

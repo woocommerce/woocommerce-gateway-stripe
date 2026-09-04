@@ -1885,4 +1885,146 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			'force saving' => [ true ],
 		];
 	}
+
+	/**
+	 * Captures every Stripe API request body sent while the callable runs.
+	 *
+	 * @param callable $run The code under test.
+	 * @return array[] One entry per request: [ 'url' => string, 'method' => string, 'body' => array ].
+	 */
+	private function capture_stripe_requests( callable $run, string $payment_method_customer = 'cus_mock' ): array {
+		$requests = [];
+		$callback = function ( $preempt, $request_args, $url ) use ( &$requests, $payment_method_customer ) {
+			$requests[]    = [
+				'url'    => $url,
+				'method' => $request_args['method'],
+				'body'   => $request_args['body'],
+			];
+			$response_body = 'GET' === $request_args['method']
+				? [
+					'id'       => 'pm_mock',
+					'customer' => $payment_method_customer,
+				]
+				: [ 'id' => 'pm_mock' ];
+
+			return $this->build_response( $response_body );
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+		$run();
+		remove_filter( 'pre_http_request', $callback );
+
+		return $requests;
+	}
+
+	/**
+	 * The saved method's name, email, and phone identify the original cardholder and must not be
+	 * rewritten from the order; only the address (needed for AVS) is sent.
+	 */
+	public function test_update_saved_payment_method_writes_only_the_billing_address() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_billing_first_name( 'Someone' );
+		$order->set_billing_last_name( 'Else' );
+		$order->set_billing_email( 'someone.else@example.org' );
+		$order->set_billing_phone( '555-00000' );
+		$order->set_billing_address_1( 'WooAddress' );
+		$order->set_billing_address_2( 'Unit 4' );
+		$order->set_billing_city( 'WooCity' );
+		$order->set_billing_state( 'NY' );
+		$order->set_billing_postcode( '12345' );
+		$order->set_billing_country( 'US' );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_customer_id( $order, 'cus_mock' );
+		$order->save();
+
+		$requests = $this->capture_stripe_requests(
+			function () use ( $order ) {
+				$this->gateway->update_saved_payment_method( 'pm_123', $order );
+			}
+		);
+
+		$this->assertCount( 2, $requests );
+		$this->assertStringEndsWith( '/payment_methods/pm_123', $requests[0]['url'] );
+		$this->assertSame( 'GET', $requests[0]['method'] );
+		$this->assertStringEndsWith( '/payment_methods/pm_123', $requests[1]['url'] );
+		$this->assertSame( 'POST', $requests[1]['method'] );
+		$this->assertSame(
+			[
+				'billing_details' => [
+					'address' => [
+						'city'        => 'WooCity',
+						'country'     => 'US',
+						'line1'       => 'WooAddress',
+						'line2'       => 'Unit 4',
+						'postal_code' => '12345',
+						'state'       => 'NY',
+					],
+				],
+			],
+			$requests[1]['body']
+		);
+	}
+
+	/**
+	 * A PaymentMethod attached to another Stripe customer must not be changed.
+	 */
+	public function test_update_saved_payment_method_skips_customer_mismatch() {
+		$order = WC_Helper_Order::create_order();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_customer_id( $order, 'cus_order' );
+		$order->save();
+
+		$requests = $this->capture_stripe_requests(
+			function () use ( $order ) {
+				$this->gateway->update_saved_payment_method( 'pm_123', $order );
+			},
+			'cus_other'
+		);
+
+		$this->assertCount( 1, $requests );
+		$this->assertStringEndsWith( '/payment_methods/pm_123', $requests[0]['url'] );
+		$this->assertSame( 'GET', $requests[0]['method'] );
+	}
+
+	/**
+	 * @dataProvider provide_update_saved_payment_method_skips
+	 */
+	public function test_update_saved_payment_method_skips_the_stripe_write( string $payment_method_id, bool $clear_address ) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_billing_address_1( 'WooAddress' );
+		$order->set_billing_address_2( 'Unit 4' );
+		$order->set_billing_city( 'WooCity' );
+		$order->set_billing_state( 'NY' );
+		$order->set_billing_postcode( '12345' );
+		$order->set_billing_country( 'US' );
+
+		if ( $clear_address ) {
+			$order->set_billing_address_1( '' );
+			$order->set_billing_address_2( '' );
+			$order->set_billing_city( '' );
+			$order->set_billing_state( '' );
+			$order->set_billing_postcode( '' );
+			$order->set_billing_country( '' );
+		}
+
+		$order->save();
+
+		$requests = $this->capture_stripe_requests(
+			function () use ( $payment_method_id, $order ) {
+				$this->gateway->update_saved_payment_method( $payment_method_id, $order );
+			}
+		);
+
+		$this->assertSame( [], $requests );
+	}
+
+	/**
+	 * Data provider for test_update_saved_payment_method_skips_the_stripe_write.
+	 *
+	 * @return array
+	 */
+	public function provide_update_saved_payment_method_skips(): array {
+		return [
+			'legacy source id'         => [ 'src_123', false ],
+			'order without an address' => [ 'pm_123', true ],
+		];
+	}
 }

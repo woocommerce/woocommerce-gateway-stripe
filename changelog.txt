@@ -45,6 +45,7 @@ xxxx-xx-xx - version 11.0.0
 * Tweak - Disable the Agentic Commerce "Sync now" button until onboarding is complete, with a note explaining the remaining step
 * Fix - Attach a Stripe customer to guest Adaptive Pricing checkouts, linking it to the order and any account created at checkout
 * Fix - Prevent dropped webhooks, double processing, and skipped pre-order handling when requests race for the order payment lock
+* Fix - Stop rewriting a saved payment method's name, email, and phone in Stripe when it is used at checkout; only the billing address is refreshed
 
 2026-08-31 - version 10.9.1
 * Fix - Allow express checkout payments when automatic account password generation is disabled
