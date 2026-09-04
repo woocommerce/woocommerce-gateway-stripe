@@ -1559,6 +1559,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			// Core only sets this key on the checkout path; pay-for-order must not claim the
 			// session's cart, or it gets cleared after a payment for an unrelated order.
 			&& ! did_action( 'woocommerce_before_pay_action' )
+			&& (string) $order_id !== (string) ( $wc_session->get( 'order_awaiting_payment' ) ?? '' )
 		) {
 			$wc_session->set( 'order_awaiting_payment', $order_id );
 			// Persist now, like core does: if the gateway request below hangs, the session is
