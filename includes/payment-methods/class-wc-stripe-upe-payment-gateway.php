@@ -1788,10 +1788,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			if ( $is_using_saved_payment_method ) {
 				$payment_method_lock_owner = $this->acquire_payment_method_lock( $payment_method_id );
 				if ( null === $payment_method_lock_owner ) {
-					throw new WC_Stripe_Exception(
-						'Saved payment method is already being used by another checkout.',
-						__( 'This saved payment method is already being used. Please try again.', 'woocommerce-gateway-stripe' )
-					);
+					if ( $order instanceof WC_Order ) {
+						$order_helper->unlock_order_payment( $order );
+					}
+
+					return [
+						'result'   => 'failure',
+						'redirect' => '',
+						'message'  => __( 'This saved payment method is already being used. Please try again.', 'woocommerce-gateway-stripe' ),
+					];
 				}
 			}
 

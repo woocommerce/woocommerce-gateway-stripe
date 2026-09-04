@@ -3585,6 +3585,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertSame( 'failure', $response['result'] );
 		$this->assertSame( $existing_owner, get_option( $lock_option ) );
 		$this->assertEmpty( $order_helper->get_order_existing_payment_lock( $order ) );
+		$this->assertSame( OrderStatus::PENDING, wc_get_order( $order->get_id() )->get_status() );
 	}
 
 	/**
