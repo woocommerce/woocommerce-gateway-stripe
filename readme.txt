@@ -196,6 +196,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Reject negative refund amounts with an explicit error instead of silently refunding the absolute value
 * Fix - Refresh account details re-evaluates Payment Method Configuration availability so a disabled pmc_enabled flag recovers automatically
 * Fix - Complete 3DS card payments on Optimized Checkout when the Stripe Payment Method Configuration also has wallet or voucher methods active
+* Fix - Clear the shopper's cart after a redirect payment method (e.g. Amazon Pay on mobile) completes in a different browser context, preventing duplicate orders
 * Fix - Prevent test and live Stripe connections from reusing each other's cached account data
 * Fix - Hide the Apple Pay and Google Pay express buttons on pages unchecked in their own locations setting, instead of following other wallets' locations
 * Fix - Hide the save payment method checkbox for Bancontact, iDEAL and Sofort in the Adaptive Pricing checkout on non-EUR stores whose currency excludes them
