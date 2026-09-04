@@ -309,7 +309,10 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$logger          = $this->getMockBuilder( WC_Logger::class )->disableOriginalConstructor()->getMock();
 		$logger->method( 'error' )->willReturnCallback(
 			function ( $message, $context = [] ) use ( &$logged_errors ) {
-				$logged_errors[] = $message;
+				$logged_errors[] = [
+					'message' => $message,
+					'context' => $context,
+				];
 			}
 		);
 		WC_Stripe_Logger::$logger = $logger;
@@ -379,24 +382,10 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertLessThanOrEqual( $processing_finished_at + 5 * MINUTE_IN_SECONDS, $lock_expiry );
 		$this->assertSame( $initial_order_status, $renewal_order->get_status() );
 
-		$order_id        = (string) $renewal_order->get_id();
-		$matching_errors = array_filter(
-			$logged_errors,
-			function ( $message ) use ( $order_id ) {
-				return str_contains( $message, "skipping duplicate renewal attempt for order {$order_id}" );
-			}
-		);
-		$this->assertNotEmpty( $matching_errors, 'Expected a duplicate-attempt error mentioning the order id.' );
+		$order_id = $renewal_order->get_id();
+		$this->verify_error_logged_once( $logged_errors, "skipping duplicate renewal attempt for order {$order_id}" );
 
-		// The skip must leave an order note.
-		$notes          = wc_get_order_notes( [ 'order_id' => $renewal_order->get_id() ] );
-		$matching_notes = array_filter(
-			wp_list_pluck( $notes, 'content' ),
-			function ( $content ) {
-				return str_contains( $content, 'already in progress' );
-			}
-		);
-		$this->assertNotEmpty( $matching_notes, 'Expected an order note explaining the skipped renewal attempt.' );
+		$this->verify_expected_order_notes( $order_id, 'already in progress', 1 );
 	}
 
 	public function provide_locked_subscription_renewal_payment_methods() {
@@ -617,6 +606,141 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertEmpty( $order_helper->get_order_existing_payment_lock( wc_get_order( $renewal_order->get_id() ) ) );
 	}
 
+	/**
+	 * The lock is re-checked before the charge is attempted, so a lock that lapsed on the way in
+	 * fails the renewal without ever calling Stripe.
+	 *
+	 * @dataProvider provide_payment_lock_expiry_before_charge_scenarios
+	 */
+	public function test_renewal_fails_without_charging_when_payment_lock_expires_before_the_charge( $lock_offset, $prepare_source_delay, $expected_prepare_source_calls ) {
+		$renewal_order                 = WC_Helper_Order::create_order();
+		$payments_intents_api_endpoint = 'https://api.stripe.com/v1/payment_intents';
+		$request_count                 = 0;
+
+		$renewal_order->set_payment_method( 'stripe' );
+		$renewal_order->save();
+
+		$this->set_gateway_retry_interval( 0 );
+
+		// Delaying prepare_order_source() lets the lock lapse between the check before it and the check after it.
+		$this->wc_gateway_stripe
+			->expects( $this->exactly( $expected_prepare_source_calls ) )
+			->method( 'prepare_order_source' )
+			->willReturnCallback(
+				function () use ( $prepare_source_delay ) {
+					if ( $prepare_source_delay > 0 ) {
+						sleep( $prepare_source_delay );
+					}
+
+					return (object) [
+						'token_id'       => false,
+						'customer'       => 'cus_123abc',
+						'source'         => 'src_123abc',
+						'source_object'  => (object) [
+							'type' => WC_Stripe_Payment_Methods::CARD,
+						],
+						'payment_method' => null,
+					];
+				}
+			);
+
+		$lock_expiry = (string) ( time() + $lock_offset );
+
+		$order_helper_mock = $this->getMockBuilder( WC_Stripe_Order_Helper::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'lock_order_payment', 'unlock_order_payment', 'get_order_existing_payment_lock' ] )
+			->getMock();
+		$order_helper_mock->method( 'lock_order_payment' )
+			->willReturn( false );
+		$order_helper_mock->method( 'get_order_existing_payment_lock' )
+			->willReturn( $lock_expiry );
+
+		$instance_property = new ReflectionProperty( WC_Stripe_Order_Helper::class, 'instance' );
+		$instance_property->setAccessible( true );
+		$original_instance = $instance_property->getValue();
+		$instance_property->setValue( null, $order_helper_mock );
+
+		// Default logging settings: the abandoned attempt must log at error level.
+		$previous_logger = WC_Stripe_Logger::$logger;
+		$logged_errors   = [];
+		$logger          = $this->getMockBuilder( WC_Logger::class )->disableOriginalConstructor()->getMock();
+		$logger->method( 'error' )->willReturnCallback(
+			function ( $message, $context = [] ) use ( &$logged_errors ) {
+				$logged_errors[] = [
+					'message' => $message,
+					'context' => $context,
+				];
+			}
+		);
+		WC_Stripe_Logger::$logger = $logger;
+
+		$thrown_exception = null;
+		$error_helper     = function ( $exception, $order ) use ( &$thrown_exception, $renewal_order ) {
+			if ( $order && $order->get_id() === $renewal_order->get_id() ) {
+				$thrown_exception = $exception;
+			}
+		};
+		add_action( 'wc_gateway_stripe_process_payment_error', $error_helper, 10, 2 );
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $payments_intents_api_endpoint, &$request_count ) {
+			if ( $payments_intents_api_endpoint !== $url ) {
+				return $preempt;
+			}
+
+			++$request_count;
+
+			return [
+				'headers'  => [],
+				'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_success.json' ),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, true, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			remove_action( 'wc_gateway_stripe_process_payment_error', $error_helper, 10 );
+			WC_Stripe_Logger::$logger = $previous_logger;
+			$instance_property->setValue( null, $original_instance );
+		}
+
+		$renewal_order = wc_get_order( $renewal_order->get_id() );
+		$order_id      = $renewal_order->get_id();
+
+		$this->assertSame( 0, $request_count );
+		$this->assertSame( OrderStatus::FAILED, $renewal_order->get_status() );
+
+		$this->assertInstanceOf( WC_Stripe_Exception::class, $thrown_exception );
+		$this->assertSame( "Failed to process renewal for order {$order_id}. The payment lock has expired.", $thrown_exception->getMessage() );
+		$this->assertSame( 'Payment lock expired', $thrown_exception->getLocalizedMessage() );
+
+		$this->verify_error_logged_once( $logged_errors, "abandoning renewal payment retries for order {$order_id} because the payment lock has expired", [ 'order_id' => $order_id ] );
+		$this->verify_expected_order_notes( $order_id, 'abandoned renewal payment retries because the payment lock has expired', 1 );
+	}
+
+	public function provide_payment_lock_expiry_before_charge_scenarios() {
+		return [
+			'lock already expired when the attempt starts'  => [
+				-10,
+				0,
+				0,
+			],
+			'lock expires while preparing the order source' => [
+				1,
+				2,
+				1,
+			],
+		];
+	}
+
 	public function test_renewal_stops_retrying_when_payment_lock_expires() {
 		$renewal_order                 = WC_Helper_Order::create_order();
 		$payments_intents_api_endpoint = 'https://api.stripe.com/v1/payment_intents';
@@ -642,15 +766,15 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 				]
 			);
 
-		// An expired lock must stop the retry chain after the first attempt.
-		$expired_lock = (string) ( time() - 10 );
+		// Ensure the lock expires during the request, but not before.
+		$lock_expiring_during_request = (string) ( time() + 1 );
 
 		$order_helper_mock = $this->getMockBuilder( WC_Stripe_Order_Helper::class )
 			->disableOriginalConstructor()
 			->onlyMethods( [ 'lock_order_payment', 'unlock_order_payment', 'get_order_existing_payment_lock' ] )
 			->getMock();
 		$order_helper_mock->method( 'lock_order_payment' )->willReturn( false );
-		$order_helper_mock->method( 'get_order_existing_payment_lock' )->willReturn( $expired_lock );
+		$order_helper_mock->method( 'get_order_existing_payment_lock' )->willReturn( $lock_expiring_during_request );
 		$order_helper_mock->method( 'unlock_order_payment' );
 
 		$instance_property = new ReflectionProperty( WC_Stripe_Order_Helper::class, 'instance' );
@@ -658,12 +782,28 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$original_instance = $instance_property->getValue();
 		$instance_property->setValue( null, $order_helper_mock );
 
+		$previous_logger = WC_Stripe_Logger::$logger;
+		$logged_errors   = [];
+		$logger          = $this->getMockBuilder( WC_Logger::class )->disableOriginalConstructor()->getMock();
+		$logger->method( 'error' )->willReturnCallback(
+			function ( $message, $context = [] ) use ( &$logged_errors ) {
+				$logged_errors[] = [
+					'message' => $message,
+					'context' => $context,
+				];
+			}
+		);
+		WC_Stripe_Logger::$logger = $logger;
+
 		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $payments_intents_api_endpoint, &$request_count ) {
 			if ( $payments_intents_api_endpoint !== $url ) {
 				return $preempt;
 			}
 
 			++$request_count;
+
+			// Sleep 2 seconds to make sure the lock will be expired afterwards.
+			sleep( 2 );
 
 			return [
 				'headers'  => [],
@@ -690,13 +830,20 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, true, false );
 		} finally {
 			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			WC_Stripe_Logger::$logger = $previous_logger;
 			$instance_property->setValue( null, $original_instance );
 		}
 
 		$renewal_order = wc_get_order( $renewal_order->get_id() );
+		$order_id      = $renewal_order->get_id();
 
 		$this->assertSame( 1, $request_count );
 		$this->assertSame( OrderStatus::FAILED, $renewal_order->get_status() );
+
+		$this->verify_error_logged_once( $logged_errors, "abandoning renewal payment retries for order {$order_id} because the payment lock has expired", [ 'order_id' => $order_id ] );
+
+		$this->verify_expected_order_notes( $order_id, 'Sorry, we are unable to process the payment at this time. Reason: Temporary Stripe API error.', 1 );
+		$this->verify_expected_order_notes( $order_id, 'abandoned renewal payment retries because the payment lock has expired', 0 );
 	}
 
 	public function test_renewal_stops_retrying_when_payment_lock_expires_during_backoff_sleep() {
@@ -937,6 +1084,49 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$reflection = new ReflectionProperty( WC_Stripe_Payment_Gateway::class, 'retry_interval' );
 		$reflection->setAccessible( true );
 		$reflection->setValue( $this->wc_gateway_stripe, $retry_interval );
+	}
+
+	/**
+	 * Verifies that exactly one captured error log entry contains the given text and context values.
+	 *
+	 * @param array  $logged_errors    Entries captured from the mocked logger, each with 'message' and 'context' keys.
+	 * @param string $expected_message Text the log message must contain.
+	 * @param array  $expected_context Context keys and the values the matching entry must carry for them.
+	 */
+	private function verify_error_logged_once( array $logged_errors, string $expected_message, array $expected_context = [] ): void {
+		$matching_errors = array_values(
+			array_filter(
+				$logged_errors,
+				function ( $entry ) use ( $expected_message ) {
+					return str_contains( $entry['message'], $expected_message );
+				}
+			)
+		);
+
+		$this->assertCount( 1, $matching_errors, sprintf( 'Expected exactly one error log entry containing "%s".', $expected_message ) );
+
+		foreach ( $expected_context as $key => $value ) {
+			$this->assertArrayHasKey( $key, $matching_errors[0]['context'] );
+			$this->assertSame( $value, $matching_errors[0]['context'][ $key ] );
+		}
+	}
+
+	/**
+	 * Verifies the order notes contain the given text the expected number of times.
+	 *
+	 * @param int    $order_id       The order whose notes to check.
+	 * @param string $expected_text  Text the note must contain.
+	 * @param int    $expected_count How many notes are expected to match.
+	 */
+	private function verify_expected_order_notes( int $order_id, string $expected_text, int $expected_count ): void {
+		$matching_notes = array_filter(
+			wp_list_pluck( wc_get_order_notes( [ 'order_id' => $order_id ] ), 'content' ),
+			function ( $content ) use ( $expected_text ) {
+				return str_contains( $content, $expected_text );
+			}
+		);
+
+		$this->assertCount( $expected_count, $matching_notes, sprintf( 'Expected %d order note(s) containing "%s".', $expected_count, $expected_text ) );
 	}
 
 	/**
