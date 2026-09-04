@@ -208,5 +208,8 @@ export const loginToLink = async ( popup, email ) => {
 		otpInput,
 		'Link OTP field did not appear — expected an already-enrolled account for this email'
 	).toBeVisible( { timeout: 30 * 1000 } );
+	// Sandbox Link accepts any 6-digit passcode except a few reserved error
+	// codes, so 000000 authenticates. See the sandbox OTP table at
+	// https://docs.stripe.com/payments/link/payment-element-link#test-the-integration
 	await otpInput.fill( '000000' );
 };

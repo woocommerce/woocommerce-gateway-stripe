@@ -24,8 +24,6 @@ let virtualProductId;
 let physicalProductId;
 
 const createFreeTrialProduct = ( { virtual } ) =>
-	// api.create.product attaches the subscription plan and deletes the product
-	// if the plan creation fails, so a failure can't leak a product.
 	api.create.product( products.freeTrialSubscriptionData( { virtual } ) );
 
 // APFS products offer a one-time vs subscription choice, so pick the
@@ -69,79 +67,59 @@ test.describe( 'express checkout with free trial subscriptions', () => {
 		await emptyCart( page );
 	} );
 
-	test.describe( 'without shipping (virtual product)', () => {
-		test( 'hides express checkout on the product page @express-checkout @subscriptions', async ( {
-			page,
-		} ) => {
-			await page.goto( `?p=${ virtualProductId }` );
-			// Wait for the APFS subscribe/one-time selector so the assertion
-			// isn't racing the page load.
-			await expect(
-				page.locator( '.wcsatt-options-prompt-label-subscription' )
-			).toBeVisible();
-			await expect( await getLinkButton( page ) ).toHaveCount( 0 );
-		} );
+	// Both product variants run the same cart/checkout coverage. The product
+	// IDs are read lazily because they are assigned in beforeAll, after these
+	// blocks are collected.
+	const productVariants = [
+		{
+			title: 'without shipping (virtual product)',
+			id: () => virtualProductId,
+		},
+		{
+			title: 'with shipping (physical product)',
+			id: () => physicalProductId,
+		},
+	];
 
-		test( 'loads Link on the classic checkout page @express-checkout @subscriptions', async ( {
-			page,
-		} ) => {
-			await addSubscriptionToCart( page, virtualProductId );
-			await page.goto( '/checkout-shortcode' );
-			await assertLinkModalLoads( page );
-		} );
+	for ( const variant of productVariants ) {
+		test.describe( variant.title, () => {
+			test( 'hides express checkout on the product page @express-checkout @subscriptions', async ( {
+				page,
+			} ) => {
+				await page.goto( `?p=${ variant.id() }` );
+				// Wait for the APFS subscribe/one-time selector so the assertion
+				// isn't racing the page load.
+				await expect(
+					page.locator( '.wcsatt-options-prompt-label-subscription' )
+				).toBeVisible();
+				await expect( await getLinkButton( page ) ).toHaveCount( 0 );
+			} );
 
-		test( 'loads Link on the block cart page @blocks @express-checkout @subscriptions', async ( {
-			page,
-		} ) => {
-			await addSubscriptionToCart( page, virtualProductId );
-			await page.goto( '/cart' );
-			await assertLinkModalLoads( page, true );
-		} );
+			test( 'loads Link on the classic checkout page @express-checkout @subscriptions', async ( {
+				page,
+			} ) => {
+				await addSubscriptionToCart( page, variant.id() );
+				await page.goto( '/checkout-shortcode' );
+				await assertLinkModalLoads( page );
+			} );
 
-		test( 'loads Link on the block checkout page @blocks @express-checkout @subscriptions', async ( {
-			page,
-		} ) => {
-			await addSubscriptionToCart( page, virtualProductId );
-			await page.goto( '/checkout' );
-			await assertLinkModalLoads( page, true );
-		} );
-	} );
+			test( 'loads Link on the block cart page @blocks @express-checkout @subscriptions', async ( {
+				page,
+			} ) => {
+				await addSubscriptionToCart( page, variant.id() );
+				await page.goto( '/cart' );
+				await assertLinkModalLoads( page, true );
+			} );
 
-	test.describe( 'with shipping (physical product)', () => {
-		test( 'hides express checkout on the product page @express-checkout @subscriptions', async ( {
-			page,
-		} ) => {
-			await page.goto( `?p=${ physicalProductId }` );
-			await expect(
-				page.locator( '.wcsatt-options-prompt-label-subscription' )
-			).toBeVisible();
-			await expect( await getLinkButton( page ) ).toHaveCount( 0 );
+			test( 'loads Link on the block checkout page @blocks @express-checkout @subscriptions', async ( {
+				page,
+			} ) => {
+				await addSubscriptionToCart( page, variant.id() );
+				await page.goto( '/checkout' );
+				await assertLinkModalLoads( page, true );
+			} );
 		} );
-
-		test( 'loads Link on the classic checkout page @express-checkout @subscriptions', async ( {
-			page,
-		} ) => {
-			await addSubscriptionToCart( page, physicalProductId );
-			await page.goto( '/checkout-shortcode' );
-			await assertLinkModalLoads( page );
-		} );
-
-		test( 'loads Link on the block cart page @blocks @express-checkout @subscriptions', async ( {
-			page,
-		} ) => {
-			await addSubscriptionToCart( page, physicalProductId );
-			await page.goto( '/cart' );
-			await assertLinkModalLoads( page, true );
-		} );
-
-		test( 'loads Link on the block checkout page @blocks @express-checkout @subscriptions', async ( {
-			page,
-		} ) => {
-			await addSubscriptionToCart( page, physicalProductId );
-			await page.goto( '/checkout' );
-			await assertLinkModalLoads( page, true );
-		} );
-	} );
+	}
 
 	test.describe( 'completing the purchase with Link', () => {
 		// The returning-account test depends on the Link account the purchase
