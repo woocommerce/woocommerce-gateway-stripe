@@ -551,13 +551,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				return;
 			}
 
-			if ( $this->is_lock_expired( $lock_expiry ) ) {
-				$this->log_renewal_lock_expired( $renewal_order, true );
-				throw new WC_Stripe_Exception(
-					"Failed to process renewal for order $order_id. The payment lock has expired.",
-					__( 'Payment lock expired', 'woocommerce-gateway-stripe' )
-				);
-			}
+			$this->log_and_throw_if_lock_expired( $lock_expiry, $renewal_order );
 
 			// Get source from order
 			$prepared_source = $this->prepare_order_source( $renewal_order );
@@ -578,13 +572,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				]
 			);
 
-			if ( $this->is_lock_expired( $lock_expiry ) ) {
-				$this->log_renewal_lock_expired( $renewal_order, true );
-				throw new WC_Stripe_Exception(
-					"Failed to process renewal for order $order_id. The payment lock has expired.",
-					__( 'Payment lock expired', 'woocommerce-gateway-stripe' )
-				);
-			}
+			$this->log_and_throw_if_lock_expired( $lock_expiry, $renewal_order );
 
 			/*
 			 * If we're doing a retry and source is chargeable, we need to pass
@@ -873,6 +861,24 @@ trait WC_Stripe_Subscriptions_Trait {
 	 */
 	private function is_lock_expired( int $lock_expiry ): bool {
 		return $lock_expiry > 0 && time() > $lock_expiry;
+	}
+
+	/**
+	 * If the payment lock is still valid. Do nothing.
+	 * If the payment lock has expired, log an error entry and throw an exception.
+	 *
+	 * @param int      $lock_expiry   The lock expiry timestamp.
+	 * @param WC_Order $renewal_order The renewal order.
+	 * @throws WC_Stripe_Exception If the payment lock has expired.
+	 */
+	private function log_and_throw_if_lock_expired( int $lock_expiry, WC_Order $renewal_order ): void {
+		if ( ! $this->is_lock_expired( $lock_expiry ) ) {
+			return;
+		}
+
+		$this->log_renewal_lock_expired( $renewal_order, true );
+
+		throw new WC_Stripe_Exception( 'payment_lock_expired', __( 'The payment lock has expired.', 'woocommerce-gateway-stripe' ) );
 	}
 
 	/**
