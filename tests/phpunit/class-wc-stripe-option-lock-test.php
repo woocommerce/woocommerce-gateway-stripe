@@ -64,6 +64,38 @@ class WC_Stripe_Option_Lock_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A lock read through the options API before it was written, or while it held a stale owner,
+	 * must show the new owner after acquisition even though the row is written directly.
+	 *
+	 * @param string|null $seeded_value A stale lock value to seed, or null for a free lock.
+	 * @dataProvider provide_cached_option_states
+	 */
+	public function test_acquire_refreshes_the_options_cache( ?string $seeded_value ): void {
+		if ( null !== $seeded_value ) {
+			$this->seed_lock( $seeded_value );
+		}
+		// Prime the options cache: a miss lands in `notoptions`, a hit caches the stale value.
+		$this->assertSame( $seeded_value ?? false, get_option( self::LOCK_NAME ) );
+
+		$owner = WC_Stripe_Option_Lock::acquire( self::LOCK_NAME, self::TTL );
+
+		$this->assertIsString( $owner );
+		$this->assertSame( $owner, get_option( self::LOCK_NAME ) );
+	}
+
+	/**
+	 * Data provider for `test_acquire_refreshes_the_options_cache`.
+	 *
+	 * @return array
+	 */
+	public function provide_cached_option_states(): array {
+		return [
+			'cached miss on a free lock' => [ null ],
+			'cached stale owner'         => [ ( time() - self::TTL - 5 ) . ':crashed-request' ],
+		];
+	}
+
+	/**
 	 * Two requests can read the same expired lock. Only the one whose compare-and-swap lands
 	 * gets it; the other must not believe it holds the lock.
 	 */

@@ -39,6 +39,7 @@ final class WC_Stripe_Option_Lock {
 			)
 		);
 		if ( 1 === $inserted ) {
+			self::forget_cached_option( $name );
 			return $owner;
 		}
 
@@ -62,7 +63,12 @@ final class WC_Stripe_Option_Lock {
 		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
-		return 1 === $reclaimed ? $owner : null;
+		if ( 1 !== $reclaimed ) {
+			return null;
+		}
+
+		self::forget_cached_option( $name );
+		return $owner;
 	}
 
 	/**
@@ -82,7 +88,7 @@ final class WC_Stripe_Option_Lock {
 				'option_value' => $owner,
 			]
 		);
-		wp_cache_delete( $name, 'options' );
+		self::forget_cached_option( $name );
 	}
 
 	/**
@@ -98,6 +104,25 @@ final class WC_Stripe_Option_Lock {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->delete( $wpdb->options, [ 'option_name' => $name ] );
+		self::forget_cached_option( $name );
+	}
+
+	/**
+	 * Drops the options-API cache entries for the lock after a direct row write.
+	 *
+	 * The writes above bypass `add_option()`/`delete_option()`, so a caller that read the lock
+	 * through `get_option()` earlier would keep seeing the cached value, or the cached miss in
+	 * `notoptions`, under a persistent object cache.
+	 *
+	 * @param string $name The lock option name.
+	 */
+	private static function forget_cached_option( string $name ): void {
 		wp_cache_delete( $name, 'options' );
+
+		$notoptions = wp_cache_get( 'notoptions', 'options' );
+		if ( is_array( $notoptions ) && isset( $notoptions[ $name ] ) ) {
+			unset( $notoptions[ $name ] );
+			wp_cache_set( 'notoptions', $notoptions, 'options' );
+		}
 	}
 }
