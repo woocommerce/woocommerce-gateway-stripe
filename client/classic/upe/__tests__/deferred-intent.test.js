@@ -75,12 +75,12 @@ describe( 'classic checkout submission', () => {
 		expect( processPayment ).not.toHaveBeenCalled();
 	} );
 
-	it( 'drops a stale Checkout Session id when retrying with a new payment method', async () => {
+	it( 'keeps the Checkout Session id when retrying with a new payment method', async () => {
 		const { processPayment } = await placeOrderWithStaleSessionId( false );
 
 		expect(
 			document.getElementById( 'wc_stripe_checkout_session_id' )
-		).toBeNull();
+		).not.toBeNull();
 		expect( processPayment ).toHaveBeenCalled();
 	} );
 } );

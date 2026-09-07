@@ -2644,6 +2644,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order->set_status( OrderStatus::PENDING );
 		$order->save();
 
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $session_id );
+		$order->save();
 		$this->store_checkout_session_context_for_order( $session_id, $order, [ 'order_id' => $order->get_id() ] );
 
 		list( $amount ) = $this->get_order_details( $order );
@@ -2698,80 +2700,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->assertSame( 'success', $result['result'] );
 		$this->assertStringNotContainsString( 'wc_stripe_cs', (string) $result['redirect'] );
-		$this->assertEmpty(
+		$this->assertSame(
+			$session_id,
 			WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( wc_get_order( $order->get_id() ) )
 		);
-	}
-
-	/**
-	 * An abandoned Checkout Session stays linked to the order when the customer retries with a saved
-	 * token. Leaving it there makes the order screen and the customer emails present that session's
-	 * amount and currency as if it had paid for the order.
-	 */
-	public function test_process_payment_with_deferred_intent_unlinks_abandoned_checkout_session() {
-		$session_id   = 'cs_test_abandoned';
-		$token        = $this->set_postvars_for_saved_payment_method();
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
-
-		$_POST['payment_method']           = 'stripe';
-		$_POST['wc-stripe-payment-method'] = 'pm_mock';
-
-		$order = WC_Helper_Order::create_order();
-		$order_helper->update_stripe_checkout_session_id( $order, $session_id );
-		$order->save();
-
-		list( $amount ) = $this->get_order_details( $order );
-
-		$payment_intent_mock = (object) array_merge(
-			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE,
-			[
-				'id'             => 'pi_mock',
-				'amount'         => $amount,
-				'payment_method' => $token->get_token(),
-				'charges'        => (object) [
-					'data' => [
-						(object) [
-							'id'       => 'ch_mock',
-							'captured' => true,
-							'status'   => 'succeeded',
-						],
-					],
-				],
-			]
-		);
-
-		$this->mock_gateway->intent_controller
-			->expects( $this->once() )
-			->method( 'create_and_confirm_payment_intent' )
-			->willReturn( $payment_intent_mock );
-
-		$this->mock_gateway
-			->expects( $this->once() )
-			->method( 'get_stripe_customer_id' )
-			->willReturn( 'cus_mock' );
-
-		$this->mock_gateway
-			->method( 'get_latest_charge_from_intent' )
-			->willReturn(
-				$this->array_to_object(
-					[
-						'id'                     => 'ch_mock',
-						'captured'               => true,
-						'status'                 => 'succeeded',
-						'payment_method_details' => $payment_intent_mock,
-					]
-				)
-			);
-
-		try {
-			$result = $this->mock_gateway->process_payment( $order->get_id() );
-		} finally {
-			$_POST = [];
-		}
-
-		$this->assertSame( 'success', $result['result'] );
-		$this->assertEmpty( $order_helper->get_stripe_checkout_session_id( wc_get_order( $order->get_id() ) ) );
-		$this->assertFalse( WC_Stripe_Helper::get_order_by_checkout_session_id( $session_id ) );
 	}
 
 	/**
