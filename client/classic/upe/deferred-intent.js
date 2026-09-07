@@ -110,11 +110,13 @@ jQuery( function ( $ ) {
 
 	$( 'form.checkout' ).on( generateCheckoutEventNames(), function () {
 		const $form = $( this );
+		const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
 
-		// Nothing reloads the page after a failed attempt, so a Checkout Session id can outlive the
-		// attempt that added it. Drop it here: only the Adaptive Pricing branch of this submission
-		// may put one back, and the saved-token path below never reaches that branch at all.
-		removeCheckoutSessionIdFromForm( $form );
+		// A saved token bypasses Checkout Session confirmation, so discard a stale Session id left by
+		// an earlier attempt. New payment methods need the field so the Session flow can replace it.
+		if ( isUsingSavedPaymentMethod( paymentMethodType ) ) {
+			removeCheckoutSessionIdFromForm( $form );
+		}
 
 		// Don't create a Stripe payment method if required checkout fields are empty.
 		// This prevents unnecessary Stripe API calls before WC's server-side validation.

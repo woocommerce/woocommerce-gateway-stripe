@@ -628,18 +628,6 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
-	 * Deletes the Stripe checkout session ID for order.
-	 *
-	 * @since 11.0.0
-	 *
-	 * @param WC_Order|null $order
-	 * @return false|void
-	 */
-	public function delete_stripe_checkout_session_id( ?WC_Order $order = null ) {
-		return $this->delete_order_meta( $order, self::META_STRIPE_CHECKOUT_SESSION_ID );
-	}
-
-	/**
 	 * Gets whether the payment method should be saved to the store after a checkout session payment.
 	 *
 	 * @param WC_Order|null $order
