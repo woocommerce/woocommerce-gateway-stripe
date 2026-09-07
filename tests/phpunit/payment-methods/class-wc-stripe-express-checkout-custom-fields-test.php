@@ -373,9 +373,8 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A missing required field throws; when the request carries no custom-data
-	 * payload (the flow started on a page without the classic checkout form),
-	 * the error also directs the buyer to the checkout page.
+	 * Missing required fields are logged with debug logging disabled and still throw.
+	 * Requests without a classic form payload also receive checkout-page guidance.
 	 *
 	 * @dataProvider provide_missing_required_field_scenarios
 	 * @param array $extensions Extensions param to set on the request.
@@ -384,9 +383,14 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 	 */
 	public function test_process_custom_checkout_data_missing_data( $extensions, $expects_checkout_page_guidance ) {
 		$custom_checkout_fields = function ( $fields ) {
-			$fields['billing']['billing_custom_field1'] = [
+			$fields['billing']['billing_custom_field1']  = [
 				'type'     => 'text',
 				'label'    => 'Billing Custom Field 1',
+				'required' => true,
+			];
+			$fields['shipping']['shipping_custom_field'] = [
+				'type'     => 'text',
+				'label'    => 'Shipping Custom Field',
 				'required' => true,
 			];
 			return $fields;
@@ -401,23 +405,45 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 		$order                 = WC_Helper_Order::create_order();
 		$custom_fields_support = $this->get_custom_fields_support();
 
+		$original_logger   = WC_Stripe_Logger::$logger;
+		$original_settings = WC_Stripe_Helper::get_stripe_settings();
+		WC_Stripe_Helper::update_main_stripe_settings( array_merge( $original_settings, [ 'logging' => 'no' ] ) );
+
+		$logged_error_message = null;
+		$logger               = $this->createMock( WC_Logger::class );
+		$logger->expects( $this->once() )
+			->method( 'error' )
+			->with(
+				'Missing required custom fields in express checkout.',
+				$this->callback(
+					static function ( $context ) use ( &$logged_error_message ) {
+						$logged_error_message = $context['error_message'] ?? null;
+						return WC_Stripe_Logger::WC_LOG_FILENAME === $context['source'];
+					}
+				)
+			);
+		WC_Stripe_Logger::$logger = $logger;
+
 		try {
 			$custom_fields_support->process_custom_checkout_data( $order, $request );
 			$this->fail( 'Expected RouteException for a missing required field.' );
 		} catch ( RouteException $e ) {
 			$message = $e->getMessage();
+			$this->assertSame( $message, $logged_error_message );
 			$this->assertStringContainsString( 'Billing Custom Field 1 is a required field.', $message );
+			$this->assertStringContainsString( 'Shipping Custom Field is a required field.', $message );
 			if ( $expects_checkout_page_guidance ) {
 				$this->assertStringContainsString( 'go to the checkout page', $message );
 			} else {
 				$this->assertStringNotContainsString( 'go to the checkout page', $message );
 			}
+		} finally {
+			WC_Stripe_Logger::$logger = $original_logger;
+			WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
+			remove_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
+			WC()->checkout()->checkout_fields = null;
+			WC()->checkout()->get_checkout_fields();
 		}
-
-		// Remove filters and reset checkout fields.
-		remove_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
-		WC()->checkout()->checkout_fields = null;
-		WC()->checkout()->get_checkout_fields();
 	}
 
 	/**

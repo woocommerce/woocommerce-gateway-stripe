@@ -94,6 +94,7 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 				$required_field_errors[] = __( 'Please go to the checkout page, fill in the required fields, and complete your order from there.', 'woocommerce-gateway-stripe' );
 			}
 			$error_messages = implode( "\n", $required_field_errors );
+			WC_Stripe_Logger::error( 'Missing required custom fields in express checkout.', [ 'error_message' => $error_messages ] );
 			throw new RouteException( 'wc_stripe_express_checkout_missing_required_fields', $error_messages, 400 );
 		}
 
