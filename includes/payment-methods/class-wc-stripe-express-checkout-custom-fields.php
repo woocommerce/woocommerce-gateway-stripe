@@ -102,7 +102,7 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 			 * @since 11.0.0
 			 * @param bool $should_log Return false to disable this error log. Default true.
 			 */
-			if ( false !== apply_filters( 'wc_stripe_express_checkout_log_missing_required_fields', true ) ) {
+			if ( apply_filters( 'wc_stripe_express_checkout_log_missing_required_fields', true ) ) {
 				WC_Stripe_Logger::error(
 					'Missing required custom fields in express checkout.',
 					[

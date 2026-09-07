@@ -354,33 +354,46 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 	 * @return array[]
 	 */
 	public function provide_missing_required_field_scenarios() {
-		$payload_scenarios = [
-			'payload present (checkout page flow)' => [
+		$both_fields_missing = [ 'billing_custom_field1', 'shipping_custom_field' ];
+		$payload_scenarios   = [
+			'payload present (checkout page flow)'  => [
 				[
 					'wc-stripe/express-checkout' => [
 						'custom_checkout_data' => '{}',
 					],
 				],
 				false,
+				$both_fields_missing,
 			],
-			'payload with an optional field value' => [
+			'payload with an optional field value'  => [
 				[
 					'wc-stripe/express-checkout' => [
 						'custom_checkout_data' => '{"order_custom_field":"private-value"}',
 					],
 				],
 				false,
+				$both_fields_missing,
 			],
-			'payload absent (product/cart flow)'   => [
+			'payload with one required field value' => [
+				[
+					'wc-stripe/express-checkout' => [
+						'custom_checkout_data' => '{"billing_custom_field1":"private-value"}',
+					],
+				],
+				false,
+				[ 'shipping_custom_field' ],
+			],
+			'payload absent (product/cart flow)'    => [
 				[],
 				true,
+				$both_fields_missing,
 			],
 		];
-		$scenarios         = [];
+		$scenarios           = [];
 		foreach ( $payload_scenarios as $name => $args ) {
-			$scenarios[ $name . ', default logging' ]       = array_merge( $args, [ null, true ] );
-			$scenarios[ $name . ', logging disabled' ]      = array_merge( $args, [ '__return_false', false ] );
-			$scenarios[ $name . ', invalid filter return' ] = array_merge( $args, [ '__return_null', true ] );
+			$scenarios[ $name . ', default logging' ]     = array_merge( $args, [ null, true ] );
+			$scenarios[ $name . ', logging disabled' ]    = array_merge( $args, [ '__return_false', false ] );
+			$scenarios[ $name . ', falsy filter return' ] = array_merge( $args, [ '__return_null', false ] );
 		}
 		return $scenarios;
 	}
@@ -392,11 +405,12 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_missing_required_field_scenarios
 	 * @param array $extensions Extensions param to set on the request.
 	 * @param bool  $expects_checkout_page_guidance Whether the error should include the go-to-checkout recommendation.
+	 * @param array $expected_missing_field_keys Keys of the required fields left empty by the payload.
 	 * @param string|null $logging_filter Callback overriding the logging decision, or null for the default.
 	 * @param bool $expects_logging Whether an error should be logged.
 	 * @return void
 	 */
-	public function test_process_custom_checkout_data_missing_data( $extensions, $expects_checkout_page_guidance, $logging_filter, $expects_logging ) {
+	public function test_process_custom_checkout_data_missing_data( $extensions, $expects_checkout_page_guidance, $expected_missing_field_keys, $logging_filter, $expects_logging ) {
 		$custom_checkout_fields = function ( $fields ) {
 			$fields['billing']['billing_custom_field1']  = [
 				'type'     => 'text',
@@ -457,12 +471,24 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 			$this->assertSame( 400, $e->getCode() );
 			$this->assertSame( $expects_logging ? $message : null, $logged_context['error_message'] ?? null );
 			$this->assertSame(
-				$expects_logging ? [ 'billing_custom_field1', 'shipping_custom_field' ] : null,
+				$expects_logging ? $expected_missing_field_keys : null,
 				$logged_context['missing_field_keys'] ?? null
 			);
 			$this->assertStringNotContainsString( 'private-value', wp_json_encode( $logged_context ) );
-			$this->assertStringContainsString( 'Billing Custom Field 1 is a required field.', $message );
-			$this->assertStringContainsString( 'Shipping Custom Field is a required field.', $message );
+
+			// Fields the payload filled in must not be reported as missing.
+			$required_field_labels = [
+				'billing_custom_field1' => 'Billing Custom Field 1',
+				'shipping_custom_field' => 'Shipping Custom Field',
+			];
+			foreach ( $required_field_labels as $key => $label ) {
+				$field_error = $label . ' is a required field.';
+				if ( in_array( $key, $expected_missing_field_keys, true ) ) {
+					$this->assertStringContainsString( $field_error, $message );
+				} else {
+					$this->assertStringNotContainsString( $field_error, $message );
+				}
+			}
 			if ( $expects_checkout_page_guidance ) {
 				$this->assertStringContainsString( 'go to the checkout page', $message );
 			} else {
