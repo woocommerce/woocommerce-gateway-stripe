@@ -106,8 +106,8 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 				WC_Stripe_Logger::error(
 					'Missing required custom fields in express checkout.',
 					[
-						'error_message'      => $error_messages,
 						'missing_field_keys' => $missing_field_keys,
+						'error_message'      => $error_messages,
 					]
 				);
 			}
