@@ -515,6 +515,10 @@ export const appendCheckoutSessionIdToForm = ( form, checkoutSessionId ) => {
 	form.append( hiddenInput );
 };
 
+export const removeCheckoutSessionIdFromForm = ( form ) => {
+	form.find( 'input#wc_stripe_checkout_session_id' ).remove();
+};
+
 /**
  * Returns true when the current page is one of the deferred-payment flows
  * (order pay, change payment method, or add payment method).

@@ -7,6 +7,7 @@ import {
 	isPaymentMethodRestrictedToLocation,
 	isUsingSavedPaymentMethod,
 	paymentMethodSupportsDeferredIntent,
+	removeCheckoutSessionIdFromForm,
 	togglePaymentMethodForCountry,
 } from '../../stripe-utils';
 import './style.scss';
@@ -109,6 +110,11 @@ jQuery( function ( $ ) {
 
 	$( 'form.checkout' ).on( generateCheckoutEventNames(), function () {
 		const $form = $( this );
+
+		// Nothing reloads the page after a failed attempt, so a Checkout Session id can outlive the
+		// attempt that added it. Drop it here: only the Adaptive Pricing branch of this submission
+		// may put one back, and the saved-token path below never reaches that branch at all.
+		removeCheckoutSessionIdFromForm( $form );
 
 		// Don't create a Stripe payment method if required checkout fields are empty.
 		// This prevents unnecessary Stripe API calls before WC's server-side validation.
