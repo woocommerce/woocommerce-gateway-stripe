@@ -139,9 +139,8 @@ export const fillLinkShippingAddress = async ( popup, address ) => {
 
 	// Country decides the field layout, so set it first. Fill the street last so
 	// focus stays on it: typing into it opens an async Google suggestion overlay
-	// that covers "Continue to payment", and it only closes with Escape while
-	// the street field is focused. Wait for the overlay to load, dismiss it, and
-	// confirm it's gone so the click can't be intercepted.
+	// that can cover "Continue to payment", and it only closes with Escape while
+	// the street field is focused.
 	await popup
 		.locator( 'select[name="country"]' )
 		.selectOption( address.country_iso );
@@ -155,16 +154,17 @@ export const fillLinkShippingAddress = async ( popup, address ) => {
 		.locator( 'input[name="addressLine1"]' )
 		.fill( address.address_1 );
 
-	const suggestions = popup.locator(
-		'.AutocompleteGlobalPosition.is-visible'
-	);
-	await suggestions
-		.waitFor( { state: 'visible', timeout: 5 * 1000 } )
-		.catch( () => {} );
-	await popup.keyboard.press( 'Escape' );
-	await expect( suggestions ).toHaveCount( 0 );
-
-	await popup.getByRole( 'button', { name: 'Continue to payment' } ).click();
+	// Retry Escape + click so a late-appearing suggestion overlay can't
+	// intercept the click: if it does, the click throws, Escape clears it, and
+	// the next attempt lands. This avoids depending on Stripe's internal overlay
+	// markup — it only targets the button's accessible name.
+	const continueButton = popup.getByRole( 'button', {
+		name: 'Continue to payment',
+	} );
+	await expect( async () => {
+		await popup.keyboard.press( 'Escape' );
+		await continueButton.click( { timeout: 2 * 1000 } );
+	} ).toPass( { timeout: 20 * 1000 } );
 };
 
 /**
