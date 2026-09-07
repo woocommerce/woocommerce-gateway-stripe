@@ -208,5 +208,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Disable the Agentic Commerce "Sync now" button until onboarding is complete, with a note explaining the remaining step
 * Fix - Attach a Stripe customer to guest Adaptive Pricing checkouts, linking it to the order and any account created at checkout
 * Fix - Prevent dropped webhooks, double processing, and skipped pre-order handling when requests race for the order payment lock
+* Fix - Link to checkout when missing required custom fields block express checkout on other pages
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
