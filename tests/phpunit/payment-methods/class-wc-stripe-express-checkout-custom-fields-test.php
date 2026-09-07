@@ -442,7 +442,7 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 			$message = $e->getMessage();
 			$this->assertSame( 'wc_stripe_express_checkout_missing_required_fields', $e->getErrorCode() );
 			$this->assertSame( 400, $e->getCode() );
-			$this->assertSame( $expects_logging ? $message : null, $logged_error_message );
+			$this->assertSame( $expects_logging ? wp_strip_all_tags( $message ) : null, $logged_error_message );
 			$this->assertStringContainsString( 'Billing Custom Field 1 is a required field.', $message );
 			$this->assertStringContainsString( 'Shipping Custom Field is a required field.', $message );
 			if ( $expects_checkout_page_guidance ) {

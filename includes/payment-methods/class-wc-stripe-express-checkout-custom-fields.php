@@ -101,7 +101,7 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 			 * @param bool $should_log Return false to disable this error log. Default true.
 			 */
 			if ( false !== apply_filters( 'wc_stripe_express_checkout_log_missing_required_fields', true ) ) {
-				WC_Stripe_Logger::error( 'Missing required custom fields in express checkout.', [ 'error_message' => $error_messages ] );
+				WC_Stripe_Logger::error( 'Missing required custom fields in express checkout.', [ 'error_message' => wp_strip_all_tags( $error_messages ) ] );
 			}
 			throw new RouteException( 'wc_stripe_express_checkout_missing_required_fields', $error_messages, 400 );
 		}
