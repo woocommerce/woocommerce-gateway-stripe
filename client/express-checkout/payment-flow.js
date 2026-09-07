@@ -1,5 +1,9 @@
 import jQuery from 'jquery';
-import { getErrorMessageFromNotice, normalizeOrderData } from './utils';
+import {
+	getErrorMessageFromNotice,
+	getExpressCheckoutErrorMessage,
+	normalizeOrderData,
+} from './utils';
 import { __ } from '@wordpress/i18n';
 
 /**
@@ -29,17 +33,12 @@ const handlePaymentFlowException = ( event, exception, abortPayment ) => {
 			errorMessage = paymentDetailsErrorMessage;
 		}
 	}
-	if ( ! errorMessage ) {
-		errorMessage = __(
-			'There was a problem processing the order.',
-			'woocommerce-gateway-stripe'
-		);
-	}
 
 	return abortPayment(
 		event,
-		getErrorMessageFromNotice( errorMessage ),
-		true
+		getExpressCheckoutErrorMessage(
+			getErrorMessageFromNotice( errorMessage )
+		)
 	);
 };
 
@@ -157,7 +156,10 @@ export const handleManualPaymentMethodFlow = async ( {
 		} );
 
 		if ( error ) {
-			return abortPayment( event, error.message );
+			return abortPayment(
+				event,
+				getExpressCheckoutErrorMessage( error.message )
+			);
 		}
 
 		// Kick off checkout processing step.
@@ -172,8 +174,9 @@ export const handleManualPaymentMethodFlow = async ( {
 		if ( result !== 'success' ) {
 			return abortPayment(
 				event,
-				getErrorMessageFromNotice( errorMessage ),
-				true
+				getExpressCheckoutErrorMessage(
+					getErrorMessageFromNotice( errorMessage )
+				)
 			);
 		}
 
@@ -229,8 +232,9 @@ export const handleConfirmationTokenFlow = async ( {
 		if ( error ) {
 			return abortPayment(
 				event,
-				getErrorMessageFromNotice( error.message ),
-				true
+				getExpressCheckoutErrorMessage(
+					getErrorMessageFromNotice( error.message )
+				)
 			);
 		}
 
@@ -245,8 +249,9 @@ export const handleConfirmationTokenFlow = async ( {
 		if ( result !== 'success' ) {
 			return abortPayment(
 				event,
-				getErrorMessageFromNotice( errorMessage ),
-				true
+				getExpressCheckoutErrorMessage(
+					getErrorMessageFromNotice( errorMessage )
+				)
 			);
 		}
 
@@ -303,7 +308,10 @@ export const handleChangePaymentMethodFlow = async ( {
 		} );
 
 		if ( error ) {
-			return abortPayment( event, error.message );
+			return abortPayment(
+				event,
+				getExpressCheckoutErrorMessage( error.message )
+			);
 		}
 
 		// Populate the hidden fields that the UPE gateway expects.

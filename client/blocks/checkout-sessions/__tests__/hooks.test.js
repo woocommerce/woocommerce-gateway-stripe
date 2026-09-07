@@ -624,6 +624,34 @@ describe( 'CheckoutSessions hook tests', () => {
 				} )
 			);
 		} );
+
+		it( 'omits savePaymentMethod when the session does not support saving, even with the checkbox checked', async () => {
+			document.body.innerHTML = `
+				<div class="wc-block-components-payment-methods__save-card-info">
+					<input type="checkbox" checked />
+				</div>
+			`;
+			const confirm = jest.fn().mockResolvedValue( {
+				type: 'success',
+			} );
+			const checkoutState = {
+				type: 'success',
+				checkout: { email: '', confirm },
+			};
+			useCheckoutSuccessHandler(
+				checkoutState,
+				onCheckoutSuccess,
+				billing,
+				false,
+				false,
+				shippingData
+			);
+			await onCheckoutSuccessResultPromise;
+			expect( confirm ).toHaveBeenCalledTimes( 1 );
+			expect( confirm.mock.calls[ 0 ][ 0 ] ).not.toHaveProperty(
+				'savePaymentMethod'
+			);
+		} );
 	} );
 
 	describe( 'usePaymentFailHandler hook', () => {
