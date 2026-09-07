@@ -1,7 +1,7 @@
 === WooCommerce Stripe Payment Gateway ===
 Contributors: woocommerce, automattic
 Tags: credit card, stripe, payments, woocommerce, woo
-Requires at least: 6.8
+Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 7.4
 Stable tag: 10.9.1

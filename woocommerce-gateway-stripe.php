@@ -7,10 +7,10 @@
  * Author URI: https://stripe.com/
  * Version: 10.9.1
  * Requires Plugins: woocommerce
- * Requires at least: 6.8
+ * Requires at least: 6.9
  * Tested up to: 7.1
- * WC requires at least: 10.8
- * WC tested up to: 11.0
+ * WC requires at least: 10.9
+ * WC tested up to: 11.1
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  */
