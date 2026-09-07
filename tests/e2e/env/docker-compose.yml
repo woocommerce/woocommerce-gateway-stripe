@@ -5,7 +5,7 @@ volumes:
 services:
 
   wordpress:
-    image: wordpress:php7.4
+    image: wordpress:php8.2
     container_name: wcstripe-e2e-wordpress
     depends_on:
       - db

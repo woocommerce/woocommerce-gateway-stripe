@@ -107,18 +107,13 @@ if [[ -z "$STRIPE_PUB_KEY" || -z "$STRIPE_SECRET_KEY" ]]; then
 	exit 1
 fi
 
-E2E_SERVICES=(wordpress db)
-
 step "Validating Stripe listener credentials"
-if docker run --rm stripe/stripe-cli listen --api-key="$STRIPE_SECRET_KEY" --print-secret > /dev/null 2>&1; then
-	E2E_SERVICES+=(stripe)
-else
-	echo
-	echo -e "\033[0;33mWARNING\033[0m STRIPE_SECRET_KEY cannot be used by the Stripe CLI listener."
-	echo "  The Stripe listener container will not be started. Use a restricted API key instead of an OAuth key to enable it."
-
-	# A previous setup may have left the listener running with different credentials.
-	docker stop wcstripe-e2e-stripe-listener > /dev/null 2>&1 || true
+# `--print-secret` returns a webhook signing secret on stdout, so only stderr
+# can be persisted safely.
+if ! docker run --rm stripe/stripe-cli listen --api-key="$STRIPE_SECRET_KEY" --print-secret > /dev/null 2>> "$E2E_ROOT/e2e-setup.log"; then
+	error "Stripe listener credential validation failed."
+	echo "  See tests/e2e/e2e-setup.log for details. OAuth keys are not supported by Stripe CLI listeners."
+	exit 1
 fi
 
 # Resolve both plugins before building the environment.
@@ -126,16 +121,12 @@ step "Fetching plugin dependencies"
 fetch_plugin_zip "woocommerce/woocommerce-subscriptions" "woocommerce-subscriptions.zip"
 fetch_plugin_zip "woocommerce/woocommerce-pre-orders" "woocommerce-pre-orders.zip"
 
-E2E_COMPOSE_ARGS=(-p wcstripe-e2e -f "$E2E_ROOT/env/docker-compose.yml")
-if [ "$CI" != "true" ]; then
-	E2E_COMPOSE_ARGS+=(--env-file "$E2E_ROOT/config/local.env")
-fi
-
 step "Starting E2E docker containers"
-CWD="$CWD" E2E_ROOT="$E2E_ROOT" redirect_output docker compose \
-	"${E2E_COMPOSE_ARGS[@]}" \
-	up --build --force-recreate -d \
-	"${E2E_SERVICES[@]}"
+if [ "$CI" = "true" ]; then
+    CWD="$CWD" E2E_ROOT="$E2E_ROOT" redirect_output docker compose -p wcstripe-e2e -f "$E2E_ROOT"/env/docker-compose.yml up --build --force-recreate -d
+else
+    CWD="$CWD" E2E_ROOT="$E2E_ROOT" redirect_output docker compose -p wcstripe-e2e --env-file "$E2E_ROOT"/config/local.env -f "$E2E_ROOT"/env/docker-compose.yml up --build --force-recreate -d
+fi
 
 step "Configuring WordPress"
 # Wait for containers to be started up before setup.
