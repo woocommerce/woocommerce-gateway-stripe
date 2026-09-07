@@ -3,12 +3,7 @@
 set -e
 . ./tests/e2e/bin/common.sh
 
-if [[ -f "$E2E_ROOT/config/local.env" ]]; then
-	# Unreplaced <placeholder> values from local.env.example are not valid shell:
-	# sourcing one aborts the rest of the file, silently dropping every variable
-	# below it. Blank them out so only the values actually filled in take effect.
-	eval "$(sed -E 's/=<[^>]*>[[:space:]]*$/=/' "$E2E_ROOT/config/local.env")"
-fi
+load_e2e_local_env
 
 # If --base_url argument is present use the remote server setup.
 if [[ "$*" == *"--base_url"* ]]; then
@@ -107,14 +102,7 @@ if [[ -z "$STRIPE_PUB_KEY" || -z "$STRIPE_SECRET_KEY" ]]; then
 	exit 1
 fi
 
-step "Validating Stripe listener credentials"
-# `--print-secret` returns a webhook signing secret on stdout, so only stderr
-# can be persisted safely.
-if ! docker run --rm stripe/stripe-cli listen --api-key="$STRIPE_SECRET_KEY" --print-secret > /dev/null 2>> "$E2E_ROOT/e2e-setup.log"; then
-	error "Stripe listener credential validation failed."
-	echo "  See tests/e2e/e2e-setup.log for details. OAuth keys are not supported by Stripe CLI listeners."
-	exit 1
-fi
+validate_stripe_listener_credentials
 
 # Resolve both plugins before building the environment.
 step "Fetching plugin dependencies"
