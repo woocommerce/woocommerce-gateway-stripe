@@ -697,6 +697,24 @@ describe( 'address normalization', () => {
 				...params,
 			} );
 
+		test( 'preserves the checkout link on missing-required-field errors', async () => {
+			const message =
+				'Custom reference is required.\nPlease go to the <a href="https://example.com/store/checkout/">checkout page</a>, fill in the required fields, and complete your order from there.';
+			api.expressCheckoutECECreateOrder.mockRejectedValue( {
+				code: 'wc_stripe_express_checkout_missing_required_fields',
+				message,
+			} );
+
+			await flow();
+
+			expect( abortPayment ).toHaveBeenCalledWith(
+				expect.objectContaining( { expressPaymentType } ),
+				message,
+				{ preserveLinks: true }
+			);
+			expect( completePayment ).not.toHaveBeenCalled();
+		} );
+
 		test.each( [
 			[ 'null', null ],
 			[

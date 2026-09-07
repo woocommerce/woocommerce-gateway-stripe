@@ -401,23 +401,30 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 		$order                 = WC_Helper_Order::create_order();
 		$custom_fields_support = $this->get_custom_fields_support();
 
+		$checkout_url_filter = static function () {
+			return 'https://example.com/store/custom-checkout/?one=1&two=2';
+		};
+		add_filter( 'woocommerce_get_checkout_url', $checkout_url_filter );
+
 		try {
 			$custom_fields_support->process_custom_checkout_data( $order, $request );
 			$this->fail( 'Expected RouteException for a missing required field.' );
 		} catch ( RouteException $e ) {
 			$message = $e->getMessage();
+			$this->assertSame( 'wc_stripe_express_checkout_missing_required_fields', $e->getErrorCode() );
+			$this->assertSame( 400, $e->getCode() );
 			$this->assertStringContainsString( 'Billing Custom Field 1 is a required field.', $message );
 			if ( $expects_checkout_page_guidance ) {
-				$this->assertStringContainsString( 'go to the checkout page', $message );
+				$this->assertStringContainsString( 'go to the <a href="' . esc_url( wc_get_checkout_url() ) . '">checkout page</a>', $message );
 			} else {
-				$this->assertStringNotContainsString( 'go to the checkout page', $message );
+				$this->assertStringNotContainsString( '<a ', $message );
 			}
+		} finally {
+			remove_filter( 'woocommerce_get_checkout_url', $checkout_url_filter );
+			remove_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
+			WC()->checkout()->checkout_fields = null;
+			WC()->checkout()->get_checkout_fields();
 		}
-
-		// Remove filters and reset checkout fields.
-		remove_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
-		WC()->checkout()->checkout_fields = null;
-		WC()->checkout()->get_checkout_fields();
 	}
 
 	/**

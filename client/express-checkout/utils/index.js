@@ -387,17 +387,52 @@ export const getPaymentMethodTypesForExpressMethod = ( paymentMethodType ) => {
 	return paymentMethodTypes;
 };
 
+export const formatExpressCheckoutNotice = (
+	message,
+	preserveLinks = false
+) => {
+	const output = document.createElement( 'div' );
+	if ( ! preserveLinks ) {
+		output.textContent = message;
+	} else {
+		// Parse into inert content and rebuild links so field labels cannot inject HTML.
+		const template = document.createElement( 'template' );
+		template.innerHTML = message;
+		const appendNode = ( node ) => {
+			if ( node.nodeType === Node.TEXT_NODE ) {
+				output.appendChild(
+					document.createTextNode( node.textContent )
+				);
+				return;
+			}
+			const href = node.getAttribute?.( 'href' );
+			if ( node.nodeName === 'A' && /^https?:\/\//i.test( href || '' ) ) {
+				const link = document.createElement( 'a' );
+				link.href = href;
+				link.textContent = node.textContent;
+				output.appendChild( link );
+				return;
+			}
+			node.childNodes.forEach( appendNode );
+		};
+		template.content.childNodes.forEach( appendNode );
+	}
+	return output.innerHTML.replace( /\n/g, '<br>' );
+};
+
 /**
  * Display a notice on the checkout page (for Express Checkout Element).
  *
  * @param {string} message           The message to display.
  * @param {string} type              The type of notice.
  * @param {Array}  additionalClasses Additional classes to add to the notice.
+ * @param {Object} options           Optional link formatting.
  */
 export const displayExpressCheckoutNotice = (
 	message,
 	type,
-	additionalClasses
+	additionalClasses,
+	options = {}
 ) => {
 	const isBlockCheckout = getExpressCheckoutData( 'has_block' );
 	const mainNoticeClass = `woocommerce-${ type }`;
@@ -414,10 +449,10 @@ export const displayExpressCheckoutNotice = (
 		: 'woocommerce-notices-wrapper';
 	const $container = jQuery( '.' + containerClass ).first();
 
-	const safeMessage = jQuery( '<div>' )
-		.text( message )
-		.html()
-		.replace( /\n/g, '<br>' );
+	const safeMessage = formatExpressCheckoutNotice(
+		message,
+		options?.preserveLinks === true
+	);
 	const note = jQuery(
 		`<div class="${ classNames.join( ' ' ) }" role="note" />`
 	).html( safeMessage );

@@ -91,7 +91,12 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 			// without the custom-data payload came from a page without that form
 			// (e.g. product or cart), where the buyer has no way to fill the fields in.
 			if ( ! $this->request_has_custom_checkout_data( $request ) ) {
-				$required_field_errors[] = __( 'Please go to the checkout page, fill in the required fields, and complete your order from there.', 'woocommerce-gateway-stripe' );
+				$required_field_errors[] = sprintf(
+					/* translators: 1: opening checkout link, 2: closing checkout link */
+					__( 'Please go to the %1$scheckout page%2$s, fill in the required fields, and complete your order from there.', 'woocommerce-gateway-stripe' ),
+					'<a href="' . esc_url( wc_get_checkout_url() ) . '">',
+					'</a>'
+				);
 			}
 			$error_messages = implode( "\n", $required_field_errors );
 			throw new RouteException( 'wc_stripe_express_checkout_missing_required_fields', $error_messages, 400 );
