@@ -94,7 +94,15 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 				$required_field_errors[] = __( 'Please go to the checkout page, fill in the required fields, and complete your order from there.', 'woocommerce-gateway-stripe' );
 			}
 			$error_messages = implode( "\n", $required_field_errors );
-			WC_Stripe_Logger::error( 'Missing required custom fields in express checkout.', [ 'error_message' => $error_messages ] );
+			/**
+			 * Whether to log missing required custom fields during express checkout.
+			 *
+			 * @since 11.0.0
+			 * @param bool $should_log Return false to disable this error log. Default true.
+			 */
+			if ( false !== apply_filters( 'wc_stripe_express_checkout_log_missing_required_fields', true ) ) {
+				WC_Stripe_Logger::error( 'Missing required custom fields in express checkout.', [ 'error_message' => $error_messages ] );
+			}
 			throw new RouteException( 'wc_stripe_express_checkout_missing_required_fields', $error_messages, 400 );
 		}
 
