@@ -363,6 +363,14 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 				],
 				false,
 			],
+			'payload with an optional field value' => [
+				[
+					'wc-stripe/express-checkout' => [
+						'custom_checkout_data' => '{"order_custom_field":"private-value"}',
+					],
+				],
+				false,
+			],
 			'payload absent (product/cart flow)'   => [
 				[],
 				true,
@@ -400,6 +408,11 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 				'label'    => 'Shipping Custom Field',
 				'required' => true,
 			];
+			$fields['order']['order_custom_field']       = [
+				'type'     => 'text',
+				'label'    => 'Optional custom field',
+				'required' => false,
+			];
 			return $fields;
 		};
 		add_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
@@ -420,15 +433,15 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 			add_filter( 'wc_stripe_express_checkout_log_missing_required_fields', $logging_filter );
 		}
 
-		$logged_error_message = null;
-		$logger               = $this->createMock( WC_Logger::class );
+		$logged_context = null;
+		$logger         = $this->createMock( WC_Logger::class );
 		$logger->expects( $expects_logging ? $this->once() : $this->never() )
 			->method( 'error' )
 			->with(
 				'Missing required custom fields in express checkout.',
 				$this->callback(
-					static function ( $context ) use ( &$logged_error_message ) {
-						$logged_error_message = $context['error_message'] ?? null;
+					static function ( $context ) use ( &$logged_context ) {
+						$logged_context = $context;
 						return WC_Stripe_Logger::WC_LOG_FILENAME === $context['source'];
 					}
 				)
@@ -442,7 +455,12 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 			$message = $e->getMessage();
 			$this->assertSame( 'wc_stripe_express_checkout_missing_required_fields', $e->getErrorCode() );
 			$this->assertSame( 400, $e->getCode() );
-			$this->assertSame( $expects_logging ? wp_strip_all_tags( $message ) : null, $logged_error_message );
+			$this->assertSame( $expects_logging ? $message : null, $logged_context['error_message'] ?? null );
+			$this->assertSame(
+				$expects_logging ? [ 'billing_custom_field1', 'shipping_custom_field' ] : null,
+				$logged_context['missing_field_keys'] ?? null
+			);
+			$this->assertStringNotContainsString( 'private-value', wp_json_encode( $logged_context ) );
 			$this->assertStringContainsString( 'Billing Custom Field 1 is a required field.', $message );
 			$this->assertStringContainsString( 'Shipping Custom Field is a required field.', $message );
 			if ( $expects_checkout_page_guidance ) {

@@ -75,9 +75,11 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 
 		// Enforce required fields.
 		$required_field_errors  = [];
+		$missing_field_keys     = [];
 		$custom_checkout_fields = $this->get_custom_checkout_fields( 'classic' );
 		foreach ( $custom_checkout_fields as $key => $field ) {
 			if ( $field['required'] && empty( $custom_checkout_data[ $key ] ) ) {
+				$missing_field_keys[]    = $key;
 				$required_field_errors[] = sprintf(
 					/* translators: %s: field name */
 					__( '%s is a required field.', 'woocommerce-gateway-stripe' ),
@@ -101,7 +103,13 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 			 * @param bool $should_log Return false to disable this error log. Default true.
 			 */
 			if ( false !== apply_filters( 'wc_stripe_express_checkout_log_missing_required_fields', true ) ) {
-				WC_Stripe_Logger::error( 'Missing required custom fields in express checkout.', [ 'error_message' => wp_strip_all_tags( $error_messages ) ] );
+				WC_Stripe_Logger::error(
+					'Missing required custom fields in express checkout.',
+					[
+						'error_message'      => $error_messages,
+						'missing_field_keys' => $missing_field_keys,
+					]
+				);
 			}
 			throw new RouteException( 'wc_stripe_express_checkout_missing_required_fields', $error_messages, 400 );
 		}
