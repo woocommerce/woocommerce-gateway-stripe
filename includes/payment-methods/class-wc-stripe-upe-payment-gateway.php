@@ -1600,6 +1600,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return $this->process_payment_with_checkout_session( $order_id, $checkout_session_id, $save_payment_method, $selected_payment_type );
 		}
 
+		// The Checkout Session an earlier attempt linked to the order never paid for it. Left in place,
+		// it keeps feeding that session's presentment amount and currency into the order screen and the
+		// customer emails for a payment made somewhere else entirely.
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		if ( $order instanceof WC_Order && $order_helper->get_stripe_checkout_session_id( $order ) ) {
+			$order_helper->delete_stripe_checkout_session_id( $order );
+			$order->save_meta_data();
+		}
+
 		return $this->process_payment_with_deferred_intent( $order_id );
 	}
 
