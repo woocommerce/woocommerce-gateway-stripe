@@ -1592,7 +1592,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 		}
 
-		if ( is_string( $checkout_session_id ) && ! empty( $checkout_session_id ) ) {
+		// Classic checkout keeps `wc_stripe_checkout_session_id` in the form after a failed Adaptive
+		// Pricing attempt, so a retry with a saved token still submits it. The token has to win: a
+		// Checkout Session is confirmed client-side and the saved-token path never reaches that code,
+		// so routing there would return success for an order nothing ever charged.
+		if ( is_string( $checkout_session_id ) && ! empty( $checkout_session_id ) && ! $this->is_using_saved_payment_method() ) {
 			return $this->process_payment_with_checkout_session( $order_id, $checkout_session_id, $save_payment_method, $selected_payment_type );
 		}
 
