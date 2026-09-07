@@ -36,6 +36,7 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 The following items note specific versions that include important changes, features, or deprecations.
 
 * 11.0.0
+   - Missing required custom fields in express checkout are logged at ERROR level even when Stripe debug logging is disabled
    - Express checkout merges the wc_stripe_express_checkout_normalize_address filter result over the address it sent; removing a field no longer clears it, return an empty string instead
 * 10.9.1
    - Some express checkout helpers now require the caller to specify whether they are in the WooCommerce Cart context
@@ -208,5 +209,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Disable the Agentic Commerce "Sync now" button until onboarding is complete, with a note explaining the remaining step
 * Fix - Attach a Stripe customer to guest Adaptive Pricing checkouts, linking it to the order and any account created at checkout
 * Fix - Prevent dropped webhooks, double processing, and skipped pre-order handling when requests race for the order payment lock
+* Add - Log an error when missing required custom fields block express checkout
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
