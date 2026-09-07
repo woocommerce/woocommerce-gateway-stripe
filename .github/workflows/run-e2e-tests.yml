@@ -55,7 +55,7 @@ jobs:
         if: ${{ failure() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: E2E-${{ matrix.project }}-WP-${{ inputs.wp-version }}-WC-${{ inputs.wc-version }}-PHP-${{ inputs.php-version }})-setup-logs
+          name: E2E-${{ matrix.project }}-WP-${{ inputs.wp-version }}-WC-${{ inputs.wc-version }}-PHP-${{ inputs.php-version }}-setup-logs
           path: tests/e2e/e2e-setup.log
           if-no-files-found: ignore
           retention-days: 7
