@@ -590,10 +590,16 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$needs_response = in_array( $notification->data->object->status, [ 'needs_response', 'warning_needs_response' ], true );
 		if ( $needs_response ) {
+			// Guard against a non-string transaction URL.
+			$transaction_url = $this->get_transaction_url( $order );
+			if ( ! is_string( $transaction_url ) || empty( $transaction_url ) ) {
+				$transaction_url = 'https://dashboard.stripe.com/';
+			}
+
 			$message = sprintf(
 			/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
 				__( 'A dispute was created for this order. Response is needed. Please go to your %1$sStripe Dashboard%2$s to review this dispute.', 'woocommerce-gateway-stripe' ),
-				'<a href="' . esc_url( $this->get_transaction_url( $order ) ) . '" title="Stripe Dashboard" target="_blank">',
+				WC_Stripe_Helper::get_external_link_open_tag( $transaction_url, '', __( 'Stripe Dashboard', 'woocommerce-gateway-stripe' ) ),
 				'</a>'
 			);
 		} else {
@@ -1192,7 +1198,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$message = sprintf(
 		/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag 3) The reason type. */
 			__( 'A review has been opened for this order. Action is needed. Please go to your %1$sStripe Dashboard%2$s to review the issue. Reason: (%3$s).', 'woocommerce-gateway-stripe' ),
-			'<a href="' . esc_url( $this->get_transaction_url( $order ) ) . '" title="Stripe Dashboard" target="_blank">',
+			WC_Stripe_Helper::get_external_link_open_tag( $this->get_transaction_url( $order ), '', __( 'Stripe Dashboard', 'woocommerce-gateway-stripe' ) ),
 			'</a>',
 			esc_html( $notification->data->object->reason )
 		);
@@ -1339,6 +1345,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * Handles the processing of a payment intent webhook.
 	 *
 	 * @param stdClass $notification The webhook notification from Stripe.
+	 * @return bool True when the event was re-queued because the order was locked, so the
+	 *              caller can hold the `wc_stripe_webhook_received` action for the retry.
 	 */
 	public function process_payment_intent( $notification ) {
 		$intent = $notification->data->object;
@@ -1355,7 +1363,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		if ( ! $order ) {
 			WC_Stripe_Logger::warning( 'Could not find order via intent ID: ' . $intent->id );
-			return;
+			return false;
 		}
 
 		if ( ! $order->has_status(
@@ -1366,7 +1374,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$order
 			)
 		) ) {
-			return;
+			return false;
 		}
 
 		// Set the order being processed for the `wc_stripe_webhook_received` action later.
@@ -1374,8 +1382,19 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
+		// Re-queue instead of dropping: the endpoint answers 200 whether or not the
+		// event was applied, so Stripe never retries it. Bounded by the lock TTL and
+		// the status guard above.
 		if ( $order_helper->lock_order_payment( $order ) ) {
-			return;
+			$this->defer_webhook_processing(
+				$notification,
+				[
+					'order_id'  => $order->get_id(),
+					'intent_id' => $intent->id,
+				],
+				$this->locked_order_retry_delay
+			);
+			return true;
 		}
 
 		$order_id           = $order->get_id();
@@ -1433,6 +1452,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				// Process the webhook now if it's for a voucher, wallet, or BLIK payment, or if filtered to process immediately and order is not awaiting action.
 				if ( $is_voucher_payment || $is_wallet_payment || $is_blik_payment || ( ! $process_webhook_async && ! $is_awaiting_action ) ) {
 					$charge = $this->get_latest_charge_from_intent( $intent );
+
+					if ( $this->maybe_mark_order_as_pre_ordered( $order, $charge ) ) {
+						$this->run_webhook_received_action( (string) $notification->type, $notification );
+						break;
+					}
 
 					/**
 					 * Fires after a webhook charge is processed.
@@ -1507,6 +1531,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		$order_helper->unlock_order_payment( $order );
+
+		return false;
 	}
 
 	public function process_setup_intent( $notification ) {
@@ -1756,6 +1782,19 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				case 'checkout.session.async_payment_failed':
 					$this->handle_checkout_session_failure( $notification );
 					break;
+				case 'payment_intent.processing':
+				case 'payment_intent.requires_action':
+				case 'payment_intent.payment_failed':
+					/**
+					 * Retry of an immediate-mode event that hit the payment lock. A re-queue
+					 * holds the action for the next attempt, like the checkout session events.
+					 *
+					 * @var stdClass $notification
+					 */
+					if ( $this->process_payment_intent( $notification ) ) {
+						return;
+					}
+					break;
 				default:
 					throw new Exception( "Unsupported webhook type: {$webhook_type}" );
 					break;
@@ -1823,7 +1862,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			wp_kses_post( $formatted_price ),
 			esc_html( $intent_id ),
 			esc_html( (string) $charge->id ),
-			'<a href="' . esc_url( $dashboard_url ) . '" target="_blank" rel="noopener noreferrer">',
+			WC_Stripe_Helper::get_external_link_open_tag( $dashboard_url ),
 			'</a>'
 		);
 
@@ -1918,6 +1957,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		WC_Stripe_Logger::info( "Processing Stripe PaymentIntent {$intent_id} for order {$order->get_id()} via deferred webhook." );
 
+		if ( $this->maybe_mark_order_as_pre_ordered( $order, $charge ) ) {
+			return;
+		}
+
 		/** This action is documented in includes/class-wc-stripe-webhook-handler.php. */
 		do_action_deprecated(
 			'wc_gateway_stripe_process_payment',
@@ -1929,6 +1972,53 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$charge->is_webhook_response = true;
 		$this->process_response( $charge, $order );
+	}
+
+	/**
+	 * Routes webhook-settled charged-upfront pre-orders into the pre-order
+	 * lifecycle, which process_response() would otherwise skip.
+	 *
+	 * The charge is recorded first so later captures and refunds can find it:
+	 * on a manual-capture store the intent arrives here still uncaptured.
+	 *
+	 * @param WC_Order          $order  The order being settled.
+	 * @param object|string|false|null $charge The intent's latest charge, if any; a bare charge ID is ignored.
+	 * @return bool True when handled as a pre-order (skip standard completion).
+	 */
+	protected function maybe_mark_order_as_pre_ordered( $order, $charge = null ): bool {
+		if ( ! $this->is_unreleased_charged_upfront_pre_order( $order ) ) {
+			return false;
+		}
+
+		if ( is_object( $charge ) && ! empty( $charge->id ) ) {
+			$order->set_transaction_id( $charge->id );
+			WC_Stripe_Order_Helper::get_instance()->sync_stripe_charge_captured( $order, $charge );
+			$order->save();
+		}
+
+		WC_Stripe_Logger::info( "Marking order {$order->get_id()} as pre-ordered via webhook settlement." );
+		WC_Stripe::get_instance()->get_main_stripe_gateway()->mark_order_as_pre_ordered( $order );
+
+		return true;
+	}
+
+	/**
+	 * Whether the order is a charged-upfront pre-order that has not been released yet.
+	 *
+	 * The pre-order flag stays on the order for its lifetime, so has_pre_order() alone
+	 * would also catch the release payment of a charge-upon-release pre-order, which
+	 * must complete the order through process_response() like any other payment.
+	 *
+	 * @param WC_Order $order The order.
+	 * @return bool
+	 */
+	protected function is_unreleased_charged_upfront_pre_order( $order ): bool {
+		$gateway  = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$order_id = $order->get_id();
+
+		return $gateway->has_pre_order( $order_id )
+			&& ! $gateway->has_pre_order_charged_upon_release( $order )
+			&& ! $gateway->is_pre_order_completed( $order_id );
 	}
 
 	/**
@@ -2044,9 +2134,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$reference    = sprintf(
 			/* translators: 1: opening anchor tag for the PaymentIntent, 2: Stripe PaymentIntent ID, 3: opening anchor tag for the charge, 4: Stripe charge ID, 5: closing anchor tag. */
 			__( 'PaymentIntent: %1$s%2$s%5$s. Charge: %3$s%4$s%5$s.', 'woocommerce-gateway-stripe' ),
-			'<a href="' . esc_url( $intent_url ) . '" target="_blank" rel="noopener noreferrer">',
+			WC_Stripe_Helper::get_external_link_open_tag( $intent_url ),
 			esc_html( $intent_id ),
-			'<a href="' . esc_url( $charge_url ) . '" target="_blank" rel="noopener noreferrer">',
+			WC_Stripe_Helper::get_external_link_open_tag( $charge_url ),
 			esc_html( $charge_id ),
 			'</a>'
 		);
@@ -2377,6 +2467,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$order_helper->update_stripe_source_id( $order, $payment_method_id );
 			}
 
+			$this->maybe_attach_checkout_session_customer( $checkout_session, $order );
+
 			// Fetch the charge once; reused below.
 			$charge = $this->get_latest_charge_from_intent( $intent );
 
@@ -2467,6 +2559,138 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Links the Stripe customer created at session confirmation to the order and, when the order
+	 * belongs to a WP user without one, to that user. Existing IDs are never overwritten.
+	 *
+	 * @param object   $checkout_session The checkout session from the webhook event.
+	 * @param WC_Order $order            The order the session settled.
+	 */
+	private function maybe_attach_checkout_session_customer( object $checkout_session, WC_Order $order ): void {
+		$session_customer = $checkout_session->customer ?? null;
+		$customer_id      = is_object( $session_customer ) ? ( $session_customer->id ?? null ) : $session_customer;
+
+		// Anything but a non-empty string would fatal in the typed helpers below and abort settlement.
+		if ( ! is_string( $customer_id ) || '' === $customer_id ) {
+			return;
+		}
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		if ( ! $order_helper->get_stripe_customer_id( $order ) ) {
+			$order_helper->update_stripe_customer_id( $order, $customer_id );
+		}
+
+		$user_id = $order->get_user_id();
+		if ( $user_id > 0 ) {
+			$this->attach_customer_to_user( $user_id, $customer_id );
+		}
+	}
+
+	/**
+	 * Stores the Stripe customer on the user unless one is already set.
+	 *
+	 * Two sessions for the same user settle under different order locks, so the check-then-write
+	 * on user meta needs its own lock or the later webhook could replace the earlier customer.
+	 * When the lock is held by another request the attachment is skipped; that request is
+	 * already writing a customer for this user.
+	 *
+	 * @param int    $user_id     The WP user.
+	 * @param string $customer_id The Stripe customer ID.
+	 */
+	private function attach_customer_to_user( int $user_id, string $customer_id ): void {
+		$lock_option = 'wc_stripe_user_customer_lock_' . $user_id;
+		$lock_owner  = $this->acquire_user_customer_lock( $lock_option );
+
+		if ( null === $lock_owner ) {
+			WC_Stripe_Logger::info( 'Skipping user customer attachment: another request holds the lock.', [ 'user_id' => $user_id ] );
+			return;
+		}
+
+		try {
+			// Re-read under the lock: a customer written by a concurrent request may sit behind a cached value.
+			wp_cache_delete( $user_id, 'user_meta' );
+			$user_customer = new WC_Stripe_Customer( $user_id );
+			if ( ! $user_customer->get_id() ) {
+				$user_customer->update_id_in_meta( $customer_id );
+			}
+		} finally {
+			$this->release_user_customer_lock( $lock_option, $lock_owner );
+		}
+	}
+
+	/**
+	 * Acquires the per-user customer attachment lock.
+	 *
+	 * The lock row bypasses the options API: `add_option()` upserts behind a cached existence
+	 * check, so two concurrent callers can both succeed, and it offers no conditional update or
+	 * delete. Each holder stores `<timestamp>:<token>`; a lock abandoned for over a minute is
+	 * reclaimed with a compare-and-swap on the exact stale value, so of two requests that read
+	 * the same expired lock only one wins, and neither can remove a lock it does not own.
+	 *
+	 * @param string $lock_option The lock option name.
+	 * @return string|null The owner value to release the lock with, or null when another request holds it.
+	 */
+	private function acquire_user_customer_lock( string $lock_option ): ?string {
+		global $wpdb;
+
+		$lock_owner = time() . ':' . wp_generate_uuid4();
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$inserted = $wpdb->query(
+			$wpdb->prepare(
+				"INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'off')",
+				$lock_option,
+				$lock_owner
+			)
+		);
+		if ( 1 === $inserted ) {
+			return $lock_owner;
+		}
+
+		$current = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", $lock_option ) );
+		if ( ! is_string( $current ) ) {
+			return null;
+		}
+
+		$locked_at = (int) strtok( $current, ':' );
+		if ( $locked_at > 0 && ( time() - $locked_at ) < MINUTE_IN_SECONDS ) {
+			return null;
+		}
+
+		$reclaimed = $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND option_value = %s",
+				$lock_owner,
+				$lock_option,
+				$current
+			)
+		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+		return 1 === $reclaimed ? $lock_owner : null;
+	}
+
+	/**
+	 * Releases the per-user customer attachment lock, but only while this request still owns it.
+	 *
+	 * @param string $lock_option The lock option name.
+	 * @param string $lock_owner  The owner value returned by `acquire_user_customer_lock()`.
+	 */
+	private function release_user_customer_lock( string $lock_option, string $lock_owner ): void {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->delete(
+			$wpdb->options,
+			[
+				'option_name'  => $lock_option,
+				'option_value' => $lock_owner,
+			]
+		);
+		wp_cache_delete( $lock_option, 'options' );
 	}
 
 	/**
@@ -2714,7 +2938,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			case 'payment_intent.payment_failed':
 			case 'payment_intent.amount_capturable_updated':
 			case 'payment_intent.requires_action':
-				$this->process_payment_intent( $notification );
+				$payment_intent_deferred = $this->process_payment_intent( $notification );
 				break;
 
 			case 'setup_intent.succeeded':
@@ -2738,7 +2962,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			'payment_intent.succeeded',
 			'payment_intent.amount_capturable_updated',
 		];
-		if ( ( $checkout_session_deferred ?? false ) || in_array( $notification->type, $always_deferred_types, true ) ) {
+		if ( ( $checkout_session_deferred ?? false ) || ( $payment_intent_deferred ?? false ) || in_array( $notification->type, $always_deferred_types, true ) ) {
 			return;
 		}
 
