@@ -1,23 +1,8 @@
-import { randomUUID } from 'crypto';
 import { expect, test } from '@playwright/test';
-import config from 'config';
 import { api, payments, products } from '../../utils';
-import {
-	assertLinkModalLoads,
-	fillLinkCardDetails,
-	fillLinkPaymentDetails,
-	fillLinkShippingAddress,
-	loginToLink,
-	openLinkPopup,
-	signUpForLink,
-} from './utils';
+import { assertLinkModalLoads } from './utils';
 
-const {
-	clickAddToCartButton,
-	emptyCart,
-	selectSubscriptionOption,
-	waitForOrderReceivedPage,
-} = payments;
+const { clickAddToCartButton, emptyCart, selectSubscriptionOption } = payments;
 
 let virtualProductId;
 let physicalProductId;
@@ -37,15 +22,18 @@ const addSubscriptionToCart = async ( page, productId ) => {
 	).toBeVisible();
 };
 
-// Free trial carts total 0 at checkout time, which is normally a condition for
-// hiding express checkout; free trials are the deliberate exception (the
-// element is created with mode: 'subscription' and amount: 0). These tests pin
-// that exception across the classic and Blocks cart/checkout surfaces, with and
-// without shipping, since a regression there silently removes the buttons.
+// Free trial carts total 0 at checkout time, which normally hides express
+// checkout; free trials are the deliberate exception (the element is created
+// with mode: 'subscription' and amount: 0). These tests assert the Link button
+// renders on the cart/checkout surfaces for both a virtual (no shipping) and a
+// physical (needs shipping) free-trial product, since a regression there
+// silently removes the buttons. They only cover that the button appears — the
+// shipping-address code path (the same code as #5889) runs after Link login and
+// is covered by the enrollment tests in free-trial-link.spec.js.
 //
-// Coverage is limited to the cart/checkout surfaces: these are APFS
-// (subscribe-and-save) products, and APFS intentionally hides express checkout
-// on the product page, so that surface is asserted hidden rather than driven.
+// The product page is asserted hidden rather than driven: these are APFS
+// (subscribe-and-save) products, and APFS intentionally suppresses express
+// checkout on the product page.
 test.describe( 'express checkout with free trial subscriptions', () => {
 	test.beforeAll( async () => {
 		virtualProductId = await createFreeTrialProduct( { virtual: true } );
@@ -133,123 +121,4 @@ test.describe( 'express checkout with free trial subscriptions', () => {
 			} );
 		} );
 	}
-
-	test.describe( 'completing the purchase with Link', () => {
-		// The returning-account test depends on the Link account the purchase
-		// test enrolls, so a failure must retry the whole group.
-		test.describe.configure( { mode: 'serial' } );
-
-		// A unique address per run: Link sandbox keeps accounts around, and an
-		// already-enrolled email would flip the signup flow into a login flow.
-		const linkEmail = `wc-stripe-link-e2e-${ randomUUID() }@example.com`;
-
-		test( 'completes a free trial purchase with a new Link account @blocks @express-checkout @subscriptions', async ( {
-			page,
-		} ) => {
-			test.setTimeout( 240 * 1000 );
-			await addSubscriptionToCart( page, virtualProductId );
-			await page.goto( '/checkout' );
-
-			const popup = await openLinkPopup( page, true );
-			await signUpForLink(
-				popup,
-				linkEmail,
-				config.get( 'addresses.customer.billing.phone' )
-			);
-			await fillLinkPaymentDetails(
-				popup,
-				config.get( 'cards.basic' ),
-				config.get( 'addresses.customer.billing' )
-			);
-
-			await Promise.all( [
-				popup.waitForEvent( 'close', { timeout: 90 * 1000 } ),
-				popup.getByTestId( 'pay-button' ).click(),
-			] );
-
-			await waitForOrderReceivedPage( page );
-		} );
-
-		test( 'keeps the Continue button enabled for a returning Link account with a saved payment method @blocks @express-checkout @subscriptions', async ( {
-			page,
-		} ) => {
-			test.setTimeout( 240 * 1000 );
-			await addSubscriptionToCart( page, virtualProductId );
-			await page.goto( '/checkout' );
-
-			const popup = await openLinkPopup( page, true );
-			await loginToLink( popup, linkEmail );
-
-			// The saved-payment-method sheet of a signed-in Link account with
-			// a 0-amount trial cart: the sheet must remain actionable, not
-			// show a dead disabled Continue button.
-			await expect( popup.getByText( /4242/ ).first() ).toBeVisible( {
-				timeout: 60 * 1000,
-			} );
-			await expect( popup.getByTestId( 'pay-button' ) ).toBeEnabled();
-		} );
-	} );
-
-	test.describe( 'shipping-required trial cart with a saved Link shipping address', () => {
-		// The trial-cart test depends on the shipping address the purchase
-		// test saves to the Link account, so a failure must retry the whole
-		// group.
-		test.describe.configure( { mode: 'serial' } );
-
-		const linkEmail = `wc-stripe-link-e2e-${ randomUUID() }@example.com`;
-
-		test( 'saves a shipping address by completing a regular purchase @blocks @express-checkout', async ( {
-			page,
-		} ) => {
-			test.setTimeout( 240 * 1000 );
-			await page.goto( '/product/beanie' );
-			await clickAddToCartButton( page );
-			await expect(
-				page.getByText( 'has been added to your cart' )
-			).toBeVisible();
-			await page.goto( '/checkout' );
-
-			const popup = await openLinkPopup( page, true );
-			await signUpForLink(
-				popup,
-				linkEmail,
-				config.get( 'addresses.customer.billing.phone' )
-			);
-			await fillLinkShippingAddress(
-				popup,
-				config.get( 'addresses.customer.shipping' )
-			);
-			await fillLinkCardDetails( popup, config.get( 'cards.basic' ) );
-
-			await Promise.all( [
-				popup.waitForEvent( 'close', { timeout: 90 * 1000 } ),
-				popup.getByTestId( 'pay-button' ).click(),
-			] );
-
-			await waitForOrderReceivedPage( page );
-		} );
-
-		// Asserts the intended behavior; expected to fail until #5889 is
-		// fixed, so remove the test.fail() marker then.
-		// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/5889
-		test( 'accepts the saved shipping address on a free-trial cart @blocks @express-checkout @subscriptions', async ( {
-			page,
-		} ) => {
-			test.fail();
-			test.setTimeout( 240 * 1000 );
-			await addSubscriptionToCart( page, physicalProductId );
-			await page.goto( '/checkout' );
-
-			const popup = await openLinkPopup( page, true );
-			await loginToLink( popup, linkEmail );
-
-			await expect( popup.getByText( 'Shipping addresses' ) ).toBeVisible(
-				{ timeout: 60 * 1000 }
-			);
-			await expect(
-				popup.getByText( 'Unavailable for this purchase' )
-			).toBeHidden();
-			await expect( popup.getByTestId( 'pay-button' ) ).toBeEnabled();
-		} );
-	} );
 } );

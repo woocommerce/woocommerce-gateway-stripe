@@ -137,29 +137,32 @@ export const fillLinkShippingAddress = async ( popup, address ) => {
 		'Link shipping address form did not appear'
 	).toBeVisible( { timeout: 30 * 1000 } );
 
-	// Country first (it decides the field layout), street address last: typing
-	// into it opens an autocomplete suggestion list that overlays the fields
-	// below it, which must be dismissed before anything else is clicked.
+	// Country decides the field layout, so set it first. Fill the street last so
+	// focus stays on it: typing into it opens an async Google suggestion overlay
+	// that covers "Continue to payment", and it only closes with Escape while
+	// the street field is focused. Wait for the overlay to load, dismiss it, and
+	// confirm it's gone so the click can't be intercepted.
 	await popup
 		.locator( 'select[name="country"]' )
 		.selectOption( address.country_iso );
 	await nameInput.fill( `${ address.first_name } ${ address.last_name }` );
+	await popup.locator( 'input[name="locality"]' ).fill( address.city );
 	await popup.locator( 'input[name="postalCode"]' ).fill( address.postcode );
 	await popup
 		.locator( 'select[name="administrativeArea"]' )
 		.selectOption( address.state_iso );
-	await popup.locator( 'input[name="locality"]' ).fill( address.city );
 	await popup
 		.locator( 'input[name="addressLine1"]' )
 		.fill( address.address_1 );
 
-	const closeSuggestions = popup.getByTestId(
-		'autocomplete-suggestion-list-close'
+	const suggestions = popup.locator(
+		'.AutocompleteGlobalPosition.is-visible'
 	);
-	if ( await closeSuggestions.isVisible().catch( () => false ) ) {
-		await closeSuggestions.click();
-	}
+	await suggestions
+		.waitFor( { state: 'visible', timeout: 5 * 1000 } )
+		.catch( () => {} );
 	await popup.keyboard.press( 'Escape' );
+	await expect( suggestions ).toHaveCount( 0 );
 
 	await popup.getByRole( 'button', { name: 'Continue to payment' } ).click();
 };
