@@ -256,6 +256,9 @@ class WC_Stripe_REST_Disputes_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return bool
 	 */
 	private static function validate_dispute_id( $param_value, $request, $param_name ) {
+		if ( ! is_string( $param_value ) ) {
+			return false;
+		}
 		return 1 === preg_match( '/^' . self::DISPUTE_ID_PATTERN . '$/', $param_value );
 	}
 
@@ -269,6 +272,9 @@ class WC_Stripe_REST_Disputes_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return bool
 	 */
 	public static function validate_payment_intent_id( $param_value, $request, $param_name ) {
+		if ( ! is_string( $param_value ) ) {
+			return false;
+		}
 		return 1 === preg_match( '/^' . self::PAYMENT_INTENT_ID_PATTERN . '$/', $param_value );
 	}
 
@@ -282,6 +288,9 @@ class WC_Stripe_REST_Disputes_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return bool
 	 */
 	public static function validate_charge_id( $param_value, $request, $param_name ) {
+		if ( ! is_string( $param_value ) ) {
+			return false;
+		}
 		return 1 === preg_match( '/^' . self::CHARGE_ID_PATTERN . '$/', $param_value );
 	}
 
