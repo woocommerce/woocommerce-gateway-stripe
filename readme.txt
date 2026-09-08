@@ -170,6 +170,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Clear the shopper's cart after a redirect payment method (e.g. Amazon Pay on mobile) completes in a different browser context, preventing duplicate orders
 * Fix - Render classic-checkout card fields when a host optimizer defers render-blocking JavaScript (e.g. SiteGround Speed Optimizer)
 * Fix - Load a single instance of Stripe.js per page
+* Fix - Allow express checkout payments when a wallet provides a one-word shipping name
 * Fix - Hide the Apple Pay and Google Pay express buttons on pages unchecked in their own locations setting, instead of following other wallets' locations
 * Fix - Honor subscription renewal payment locks while preserving retry attempts
 * Update - Fetch express checkout AJAX nonces on demand instead of embedding them in every page
