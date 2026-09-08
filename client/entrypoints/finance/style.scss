@@ -1,0 +1,29 @@
+@use '../../styles/abstracts/styles';
+
+.wc-stripe-payment-details {
+	&__heading {
+		margin-bottom: 16px;
+		padding: 0;
+	}
+
+	&__payment-method {
+		align-items: center;
+		display: flex;
+		gap: 8px;
+
+		svg,
+		img {
+			flex-shrink: 0;
+			height: 24px;
+			width: auto;
+		}
+	}
+
+	&__empty {
+		color: styles.$gray-700;
+	}
+
+	&__pagination {
+		margin-top: 16px;
+	}
+}

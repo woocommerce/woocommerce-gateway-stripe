@@ -63,6 +63,17 @@ module.exports = {
 		),
 		new DependencyExtractionWebpackPlugin( {
 			injectPolyfill: true,
+			// WordPress registers no `wp-dataviews` script handle, and WP
+			// silently drops any script whose dependency is unregistered.
+			// Returning null (rather than undefined) keeps the whole
+			// @wordpress/dataviews subtree bundled — including its
+			// `build-style` stylesheet, which would otherwise be mangled into
+			// a bogus script handle.
+			requestToExternal( request ) {
+				if ( request.startsWith( '@wordpress/dataviews' ) ) {
+					return null;
+				}
+			},
 		} ),
 		process.env.BUNDLE_ANALYZE === 'true' &&
 			new BundleAnalyzerPlugin( {
@@ -111,6 +122,15 @@ module.exports = {
 				};
 			} ),
 			{
+				// @wordpress/dataviews declares `sideEffects: false`, so a
+				// production build tree-shakes its stylesheet import away and
+				// the table renders unstyled. Mark the stylesheet as having
+				// side effects so it survives.
+				test: /\.css$/,
+				include: /node_modules[\\/]@wordpress[\\/]dataviews[\\/]/,
+				sideEffects: true,
+			},
+			{
 				test: /\.mjs$/,
 				include: /node_modules/,
 				type: 'javascript/auto',
@@ -148,5 +168,6 @@ module.exports = {
 		'link-settings': './client/entrypoints/link-settings/index.js',
 		'plugins-page': './client/entrypoints/plugins-page/index.js',
 		'command-palette': './client/entrypoints/command-palette/index.js',
+		finance: './client/entrypoints/finance/index.js',
 	},
 };
