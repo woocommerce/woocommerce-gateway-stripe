@@ -1,4 +1,23 @@
 import { expect } from '@playwright/test';
+import { api, payments, products } from '../../utils';
+
+const { clickAddToCartButton, retryWithBackoff, selectSubscriptionOption } =
+	payments;
+
+export const createFreeTrialProduct = ( { virtual } ) =>
+	api.create.product( products.freeTrialSubscriptionData( { virtual } ) );
+
+// APFS products offer a one-time vs subscription choice, so pick the
+// subscription option before adding to the cart (mirrors the subscription
+// purchase specs).
+export const addSubscriptionToCart = async ( page, productId ) => {
+	await page.goto( `?p=${ productId }` );
+	await selectSubscriptionOption( page );
+	await clickAddToCartButton( page, 'Sign up' );
+	await expect(
+		page.getByText( 'has been added to your cart' )
+	).toBeVisible();
+};
 
 export const getLinkButton = async ( page, isBlockPage = false ) => {
 	const frameSelector = isBlockPage
@@ -13,23 +32,51 @@ export const getLinkButton = async ( page, isBlockPage = false ) => {
 };
 
 export const openLinkPopup = async ( page, isBlockPage = false ) => {
-	const linkButton = await getLinkButton( page, isBlockPage );
-	await expect( linkButton ).toBeVisible( { timeout: 60 * 1000 } );
-	await expect( linkButton ).toBeEnabled();
-
-	// The Express Checkout Element ignores clicks that land before Stripe has
-	// re-synced the iframe's position after a scroll, and Playwright scrolls the
-	// button into view as part of the click itself. So the first click is
-	// silently swallowed whenever the button starts below the fold, as it does
-	// on the Cart block; by the second the page no longer needs to scroll.
 	const context = page.context();
-	let popup;
-	await expect( async () => {
-		[ popup ] = await Promise.all( [
-			context.waitForEvent( 'page', { timeout: 10 * 1000 } ),
-			linkButton.click(),
-		] );
-	} ).toPass( { timeout: 45 * 1000 } );
+	let isFirstAttempt = true;
+
+	// Both known failure modes (the Stripe iframe never finishes loading; a
+	// click shows Link's loading state but no popup window opens) have only
+	// been seen to recover after a reload, so the retry reloads the page.
+	// The waits are sized so both attempts fit inside the 120s test timeout
+	// most callers run under, with room for the steps around this helper.
+	const popup = await retryWithBackoff(
+		async () => {
+			if ( ! isFirstAttempt ) {
+				await page.reload();
+			}
+			isFirstAttempt = false;
+
+			const linkButton = await getLinkButton( page, isBlockPage );
+			await expect( linkButton ).toBeVisible( { timeout: 15 * 1000 } );
+			await expect( linkButton ).toBeEnabled( { timeout: 5 * 1000 } );
+
+			// The first click is silently ignored when Playwright's
+			// scroll-into-view outpaces Stripe's iframe position re-sync, so
+			// allow a second one. The click timeout stays below the popup
+			// wait so an unfinished click can't outlive its own popup window
+			// and land on a later page state.
+			let lastClickError;
+			for ( let click = 0; click < 2; click++ ) {
+				try {
+					const [ newPage ] = await Promise.all( [
+						context.waitForEvent( 'page', {
+							timeout: 12 * 1000,
+						} ),
+						linkButton.click( { timeout: 5 * 1000 } ),
+					] );
+					return newPage;
+				} catch ( error ) {
+					lastClickError = error;
+				}
+			}
+			throw new Error(
+				'The Link button was clicked but its popup did not open.',
+				{ cause: lastClickError }
+			);
+		},
+		{ maxRetries: 1 }
+	);
 
 	await popup.waitForLoadState();
 
