@@ -4,7 +4,7 @@ volumes:
 
 services:
   stripe:
-    container_name: ${E2E_PROJECT:-wcstripe-e2e}-stripe-listener
+    container_name: wcstripe-e2e-stripe-listener
     image: stripe/stripe-cli
     restart: unless-stopped
     depends_on:
@@ -13,13 +13,13 @@ services:
   wordpress:
     build: .
     image: wordpress
-    container_name: ${E2E_PROJECT:-wcstripe-e2e}-wordpress
+    container_name: wcstripe-e2e-wordpress
     depends_on:
       - db
     links:
       - db:mysql
     ports:
-      - "${E2E_WP_PORT:-8088}:80"
+      - "8088:80"
     env_file:
       - default.env
     environment:
@@ -32,10 +32,10 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
   db:
-    container_name: ${E2E_PROJECT:-wcstripe-e2e}-mysql
+    container_name: wcstripe-e2e-mysql
     image: mariadb:latest
     ports:
-      - "${E2E_DB_PORT:-6789}:3306"
+      - "6789:3306"
     env_file:
       - default.env
     volumes:
