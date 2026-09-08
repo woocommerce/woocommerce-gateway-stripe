@@ -1,4 +1,4 @@
-FROM wordpress:php7.4
+FROM wordpress:php8.2
 RUN apt-get update \
 	&& apt-get install --assume-yes --quiet --no-install-recommends gnupg2 subversion mariadb-client less jq
 RUN apt-get install -y openssh-client
