@@ -402,7 +402,7 @@ const getShippingAddressData = ( event ) => {
 
 	const data = {
 		first_name: approximateFirstName( name ),
-		last_name: approximateLastName( name ),
+		last_name: approximateLastName( name, name?.trim() ? '-' : '' ),
 		company: shipping?.organization ?? '',
 		phone: getPhone( event ),
 		country: shipping?.address?.country ?? '',
