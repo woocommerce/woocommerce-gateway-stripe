@@ -201,8 +201,7 @@ class WC_Stripe_Checkout_Session_Context {
 		}
 
 		WC_Stripe_Database_Cache::delete( self::get_context_cache_key( $session_id ) );
-		// Without the context no holder can act on the session, so the lock row is only litter.
-		WC_Stripe_Option_Lock::force_release( self::get_mutation_lock_option_name( $session_id ) );
+		self::release_mutation_lock( $session_id );
 	}
 
 	/**
@@ -324,12 +323,23 @@ class WC_Stripe_Checkout_Session_Context {
 	/**
 	 * Release the Checkout Session mutation lock.
 	 *
-	 * @param string $session_id Stripe Checkout Session ID.
-	 * @param string $lock_owner The owner value returned by `acquire_mutation_lock()`.
+	 * Without an owner the lock is removed whoever holds it. That is only safe once the context
+	 * is gone, because no holder can act on the session any more; on a live session it would hand
+	 * the lock to the next caller while the holder is still working.
+	 *
+	 * @param string      $session_id Stripe Checkout Session ID.
+	 * @param string|null $lock_owner The owner value returned by `acquire_mutation_lock()`, or null to remove the lock regardless of owner.
 	 * @return void
 	 */
-	private static function release_mutation_lock( string $session_id, string $lock_owner ): void {
-		WC_Stripe_Option_Lock::release( self::get_mutation_lock_option_name( $session_id ), $lock_owner );
+	private static function release_mutation_lock( string $session_id, ?string $lock_owner = null ): void {
+		$option_name = self::get_mutation_lock_option_name( $session_id );
+
+		if ( null === $lock_owner ) {
+			WC_Stripe_Option_Lock::force_release( $option_name );
+			return;
+		}
+
+		WC_Stripe_Option_Lock::release( $option_name, $lock_owner );
 	}
 
 	/**
