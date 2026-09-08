@@ -368,17 +368,4 @@ class WC_Stripe_REST_Disputes_Controller extends WC_Stripe_REST_Base_Controller 
 
 		return ctype_digit( $value ) && ( (int) $value >= 0 );
 	}
-
-	/**
-	 * Validate that a parameter is a non-empty string.
-	 *
-	 * @param string $param_value The parameter value.
-	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
-	 * @param string $param_name The parameter name.
-	 *
-	 * @return bool
-	 */
-	public static function validate_non_empty_string( $param_value, $request, $param_name ) {
-		return '' !== trim( $param_value );
-	}
 }
