@@ -70,6 +70,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			$this->map_line_items( $order, $session );
 			$this->map_addresses( $order, $session );
 			$this->store_stripe_metadata( $order, $session );
+			$this->store_order_attribution( $order, $session );
 
 			// Save everything we've got so far.
 			$order->save();
@@ -509,6 +510,32 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 
 		// Store checkout session ID for traceability.
 		$order->update_meta_data( '_stripe_checkout_session_id', $session->get_id() ?? '' );
+	}
+
+	/**
+	 * Writes WooCommerce Order Attribution meta so agentic orders show their
+	 * originating agent in the admin Origin column instead of "Unknown".
+	 *
+	 * Order Attribution meta is normally written from checkout-page JavaScript,
+	 * which never runs for webhook-created orders. Interim canonicalization:
+	 * Core's Origin label only renders a fixed set of source types, so until it
+	 * supports a first-class 'agent' type we borrow 'referral' + utm_source,
+	 * which renders as "Referral: <agent>". When migrating to an 'agent' source
+	 * type, keep writing 'referral' on WC versions whose Origin renderer
+	 * predates it — an unrecognized type renders as "Unknown".
+	 *
+	 * @since 10.9.0
+	 * @param WC_Order                           $order   The WooCommerce order.
+	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
+	 */
+	private function store_order_attribution( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session ): void {
+		$agent_source = $session->get_agent_source();
+		if ( null === $agent_source ) {
+			return;
+		}
+
+		$order->update_meta_data( '_wc_order_attribution_source_type', 'referral' );
+		$order->update_meta_data( '_wc_order_attribution_utm_source', $agent_source );
 	}
 
 	/**

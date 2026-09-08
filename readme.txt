@@ -211,5 +211,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent dropped webhooks, double processing, and skipped pre-order handling when requests race for the order payment lock
 * Add - Log an error when missing required custom fields block express checkout, with a filter to disable the log
 * Fix - Stop two requests from reclaiming the same expired Optimized Checkout or Agentic Commerce sync lock
+* Add - Show the originating AI agent in the WooCommerce order Origin column for Agentic Commerce orders
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
