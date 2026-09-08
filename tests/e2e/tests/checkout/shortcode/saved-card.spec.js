@@ -4,6 +4,7 @@ import config from 'config';
 import { payments, api, user, admin } from '../../../utils';
 
 const {
+	clickPlaceOrder,
 	emptyCart,
 	setupCart,
 	setupShortcodeCheckout,
@@ -69,7 +70,7 @@ test( 'customer can checkout with a saved card @smoke', async ( {
 
 			const expectedTotal = await getCartTotal( page );
 
-			await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
+			await clickPlaceOrder( page );
 
 			await waitForOrderReceivedPageAndConfirmExpectedTotal(
 				browser,
@@ -101,7 +102,7 @@ test( 'customer can checkout with a saved card @smoke', async ( {
 
 			const expectedTotal = await getCartTotal( page );
 
-			await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
+			await clickPlaceOrder( page );
 
 			await waitForOrderReceivedPageAndConfirmExpectedTotal(
 				browser,

@@ -948,18 +948,18 @@ export async function handleCheckout3DSChallenge( page, action = 'authorize' ) {
  * attempt to reduce the flakiness.
  * @param {Page} page Playwright page fixture.
  */
-export async function clickPlaceOrder( page ) {
-	// Wait for the button to be enabled (i.e. clickable), to wait
-	// for any logic we are potentially depending on.
-	await expect(
-		page.getByRole( 'button', { name: 'Place order' } )
-	).toBeEnabled();
+export async function clickPlaceOrder( page, label = 'Place order' ) {
+	const placeOrderButton = page.getByRole( 'button', { name: label } );
+
+	// Wait for the button to be enabled (i.e. clickable), to wait for any logic
+	// we are potentially depending on. This also gates on hydration: dispatching
+	// before the button's handler is bound silently drops the click, which is
+	// especially likely on heavier block themes under concurrent load.
+	await expect( placeOrderButton ).toBeEnabled();
 
 	// Dispatch a click event, instead of clicking the button directly,
 	// to reduce "missed" clicks.
-	await page
-		.getByRole( 'button', { name: 'Place order' } )
-		.dispatchEvent( 'click' );
+	await placeOrderButton.dispatchEvent( 'click' );
 
 	// If we click the Place button too fast, we might sometimes get an error.
 	// One way to handle this is to always wait a few seconds before clicking Place order.
@@ -969,9 +969,7 @@ export async function clickPlaceOrder( page ) {
 		.getByLabel( 'Checkout' )
 		.getByText( 'Your payment information is' );
 	if ( await errorElement.isVisible() ) {
-		await page
-			.getByRole( 'button', { name: 'Place order' } )
-			.dispatchEvent( 'click' );
+		await placeOrderButton.dispatchEvent( 'click' );
 	}
 }
 

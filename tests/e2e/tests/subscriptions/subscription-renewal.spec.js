@@ -4,6 +4,7 @@ import config from 'config';
 import { admin, api, payments, products, user } from '../../utils';
 
 const {
+	clickPlaceOrder,
 	setupShortcodeCheckout,
 	fillCreditCardDetailsShortcode,
 	clickAddToCartButton,
@@ -65,7 +66,7 @@ test( 'customer can renew a subscription @smoke @subscriptions', async ( {
 
 		purchaseTotal = await getCartTotal( page );
 
-		await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
+		await clickPlaceOrder( page );
 		await waitForOrderReceivedPage( page );
 
 		purchaseOrderId = getOrderIdFromOrderReceivedUrl( page.url() );

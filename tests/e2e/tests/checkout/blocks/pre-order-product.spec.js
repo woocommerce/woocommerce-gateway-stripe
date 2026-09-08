@@ -8,6 +8,7 @@ const {
 	setupBlocksCheckout,
 	fillCreditCardDetails,
 	clickAddToCartButton,
+	clickPlaceOrder,
 	waitForOrderReceivedPage,
 } = payments;
 
@@ -48,7 +49,7 @@ test( 'customer can purchase a pre-order product @blocks @pre-orders', async ( {
 	await setupBlocksCheckout( page, customerData );
 	await fillCreditCardDetails( page, config.get( 'cards.no-3ds' ) );
 
-	await page.locator( 'text="Place pre-order now"' ).dispatchEvent( 'click' );
+	await clickPlaceOrder( page, 'Place pre-order now' );
 
 	await waitForOrderReceivedPage( page );
 } );

@@ -3,6 +3,7 @@ import config from 'config';
 import { payments } from '../../../utils';
 
 const {
+	clickPlaceOrder,
 	emptyCart,
 	setupCart,
 	setupShortcodeCheckout,
@@ -22,7 +23,7 @@ const testCard = async ( page, cardKey ) => {
 	const card = config.get( cardKey );
 
 	await fillCreditCardDetailsShortcode( page, card );
-	await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
+	await clickPlaceOrder( page );
 
 	// Classic themes render checkout errors as `.woocommerce-error`, block
 	// themes as an error notice banner.

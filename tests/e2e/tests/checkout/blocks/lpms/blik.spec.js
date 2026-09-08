@@ -4,6 +4,7 @@ import config from 'config';
 import { payments, api } from '../../../../utils';
 
 const {
+	clickPlaceOrder,
 	emptyCart,
 	setupCart,
 	setupBlocksCheckout,
@@ -44,7 +45,7 @@ test.describe( 'BLIK payment tests @blocks @blik', () => {
 		);
 		await page.getByLabel( /blik/i ).check();
 		await fillBLIKDetails( page );
-		await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
+		await clickPlaceOrder( page );
 		await waitForOrderReceivedPage( page );
 	} );
 } );
