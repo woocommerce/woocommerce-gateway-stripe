@@ -34,7 +34,14 @@ const selectVariation = async ( page, attributeLabel, value ) => {
 	if ( isSelect ) {
 		await dropdown.selectOption( value );
 	} else {
-		await page.getByRole( 'radio', { name: value, exact: true } ).click();
+		// Scope to the variation-selector block rather than the whole page, so
+		// an unrelated same-named radio elsewhere in the template can't match.
+		await page
+			.locator(
+				'.wp-block-woocommerce-add-to-cart-with-options-variation-selector'
+			)
+			.getByRole( 'radio', { name: value, exact: true } )
+			.click();
 	}
 };
 

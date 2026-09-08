@@ -19,7 +19,7 @@ export async function clickAddToCartButton( page, label = 'Add to cart' ) {
 		async () => {
 			// Skip the click when a previous slow add already landed, so a
 			// retry cannot add the item twice.
-			if ( ( await getCartItemsCount( page ) ) !== expectedCount ) {
+			if ( ( await getCartItemsCount( page ) ) < expectedCount ) {
 				// Match the accessible name (substring, since block themes
 				// append the product name, e.g. 'Add to cart: "Beanie"') OR the
 				// visible text: when a WCS plan is selected, the button's text
@@ -971,6 +971,19 @@ export async function clickPlaceOrder( page, label = 'Place order' ) {
 	if ( await errorElement.isVisible() ) {
 		await placeOrderButton.dispatchEvent( 'click' );
 	}
+}
+
+/**
+ * Locator for checkout error notices regardless of the active theme: classic
+ * themes render `.woocommerce-error`, block themes an error notice banner.
+ *
+ * @param {Page} page Playwright page fixture.
+ * @returns {import('@playwright/test').Locator} Locator matching all error notices.
+ */
+export function getErrorNotices( page ) {
+	return page.locator(
+		'.woocommerce-error, .wc-block-components-notice-banner.is-error'
+	);
 }
 
 /**

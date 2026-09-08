@@ -5,6 +5,7 @@ import { payments } from '../../../utils';
 const {
 	clickPlaceOrder,
 	emptyCart,
+	getErrorNotices,
 	setupCart,
 	setupShortcodeCheckout,
 	fillCreditCardDetailsShortcode,
@@ -25,13 +26,7 @@ const testCard = async ( page, cardKey ) => {
 	await fillCreditCardDetailsShortcode( page, card );
 	await clickPlaceOrder( page );
 
-	// Classic themes render checkout errors as `.woocommerce-error`, block
-	// themes as an error notice banner.
-	const errorNotice = page
-		.locator(
-			'.woocommerce-error, .wc-block-components-notice-banner.is-error'
-		)
-		.first();
+	const errorNotice = getErrorNotices( page ).first();
 	expect
 		.soft( await errorNotice.innerText() )
 		.toMatch( new RegExp( `(?:${ card.error.join( '|' ) })`, 'i' ) );
