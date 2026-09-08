@@ -1,23 +1,10 @@
 import { expect } from '@playwright/test';
 import { api, payments, products } from '../../utils';
 
-const { clickAddToCartButton, retryWithBackoff, selectSubscriptionOption } =
-	payments;
+const { retryWithBackoff } = payments;
 
 export const createFreeTrialProduct = ( { virtual } ) =>
 	api.create.product( products.freeTrialSubscriptionData( { virtual } ) );
-
-// APFS products offer a one-time vs subscription choice, so pick the
-// subscription option before adding to the cart (mirrors the subscription
-// purchase specs).
-export const addSubscriptionToCart = async ( page, productId ) => {
-	await page.goto( `?p=${ productId }` );
-	await selectSubscriptionOption( page );
-	await clickAddToCartButton( page, 'Sign up' );
-	await expect(
-		page.getByText( 'has been added to your cart' )
-	).toBeVisible();
-};
 
 export const getLinkButton = async ( page, isBlockPage = false ) => {
 	const frameSelector = isBlockPage

@@ -1,26 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { api, payments, products } from '../../utils';
-import { assertLinkModalLoads } from './utils';
+import { api, payments } from '../../utils';
+import { assertLinkModalLoads, createFreeTrialProduct } from './utils';
 
-const { clickAddToCartButton, emptyCart, selectSubscriptionOption } = payments;
+const { addSubscriptionToCart, emptyCart } = payments;
 
 let virtualProductId;
 let physicalProductId;
-
-const createFreeTrialProduct = ( { virtual } ) =>
-	api.create.product( products.freeTrialSubscriptionData( { virtual } ) );
-
-// APFS products offer a one-time vs subscription choice, so pick the
-// subscription option before adding to the cart (mirrors the subscription
-// purchase specs).
-const addSubscriptionToCart = async ( page, productId ) => {
-	await page.goto( `?p=${ productId }` );
-	await selectSubscriptionOption( page );
-	await clickAddToCartButton( page, 'Sign up' );
-	await expect(
-		page.getByText( 'has been added to your cart' )
-	).toBeVisible();
-};
 
 // Free trial carts total 0 at checkout time, which normally hides express
 // checkout; free trials are the deliberate exception (the element is created

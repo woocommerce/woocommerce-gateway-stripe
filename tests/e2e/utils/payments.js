@@ -33,6 +33,24 @@ export async function selectSubscriptionOption( page ) {
 }
 
 /**
+ * Add an APFS subscription product to the cart from its product page.
+ *
+ * APFS products offer a one-time vs subscription choice, so pick the
+ * subscription option before adding to the cart.
+ *
+ * @param {Page}   page      Playwright page fixture.
+ * @param {number} productId The product ID.
+ */
+export async function addSubscriptionToCart( page, productId ) {
+	await page.goto( `?p=${ productId }` );
+	await selectSubscriptionOption( page );
+	await clickAddToCartButton( page, 'Sign up' );
+	await expect(
+		page.getByText( 'has been added to your cart' )
+	).toBeVisible();
+}
+
+/**
  * Empty the WC cart.
  * @param {Page} page Playwright page fixture.
  */
