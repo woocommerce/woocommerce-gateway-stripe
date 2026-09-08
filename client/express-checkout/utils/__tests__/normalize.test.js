@@ -584,6 +584,24 @@ describe( 'Express checkout normalization', () => {
 			} );
 		} );
 
+		test( 'should use the shipping last name fallback for a one-word shipping name with leading and trailing whitespace', () => {
+			const oneWordShippingNameEvent = {
+				shippingAddress: {
+					name: '  Cher  ',
+				},
+			};
+
+			const normalizedData = normalizeOrderData( {
+				event: oneWordShippingNameEvent,
+				paymentMethodId,
+			} );
+
+			expect( normalizedData.shipping_address ).toMatchObject( {
+				first_name: 'Cher',
+				last_name: '-',
+			} );
+		} );
+
 		test( 'should not use the shipping last name fallback for a whitespace-only name', () => {
 			const normalizedData = normalizeOrderData( {
 				event: {
