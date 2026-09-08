@@ -5,10 +5,20 @@ E2E_ROOT="$CWD/tests/e2e"
 
 # The compose project (and its container-name prefix) and the host ports are
 # global to the machine: two checkouts using the defaults clobber each other's
-# stacks. Override these to run an isolated second stack side-by-side.
+# stacks. `npm run worktree:setup` records an isolated stack for each worktree
+# in its .env; fall back to those values so every terminal in a worktree
+# targets the right stack without exporting anything. Explicit env vars win,
+# so a caller can still point at any stack. Read only these three keys rather
+# than sourcing .env, which would let unrelated keys leak into the scripts.
+env_file_value() {
+	grep "^$1=" "$CWD/.env" 2>/dev/null | tail -1 | cut -d= -f2-
+}
 # Exported so docker compose can interpolate them in env/docker-compose.yml.
+export E2E_PROJECT=${E2E_PROJECT:-$(env_file_value E2E_PROJECT)}
 export E2E_PROJECT=${E2E_PROJECT:-wcstripe-e2e}
+export E2E_WP_PORT=${E2E_WP_PORT:-$(env_file_value E2E_WP_PORT)}
 export E2E_WP_PORT=${E2E_WP_PORT:-8088}
+export E2E_DB_PORT=${E2E_DB_PORT:-$(env_file_value E2E_DB_PORT)}
 export E2E_DB_PORT=${E2E_DB_PORT:-6789}
 
 ADMIN_USER=${ADMIN_USER-admin}
