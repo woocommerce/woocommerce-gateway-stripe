@@ -131,6 +131,17 @@ export const EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY = 'googlePay';
 export const EXPRESS_PAYMENT_METHOD_SETTING_LINK = 'link';
 
 /**
+ * Maps the wallet identifiers Express Checkout Element events report
+ * (snake_case) to the settings identifiers used for element creation.
+ */
+export const EXPRESS_PAYMENT_TYPE_TO_SETTING = {
+	apple_pay: EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+	google_pay: EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+	amazon_pay: EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
+	link: EXPRESS_PAYMENT_METHOD_SETTING_LINK,
+};
+
+/**
  * List of express payment methods
  */
 export const EXPRESS_PAYMENT_METHODS = [

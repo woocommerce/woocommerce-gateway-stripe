@@ -37,7 +37,15 @@ jest.mock( 'wcstripe/express-checkout/transformers/stripe-to-wc', () => ( {
 } ) );
 
 jest.mock( 'wcstripe/express-checkout/transformers/wc-to-stripe', () => ( {
-	transformPrice: jest.fn( ( price ) => price ),
+	// Delegate to the real helper so the mock cannot drift from its
+	// minor-unit conversion behavior.
+	transformCartTotalAmount: jest.fn( ( totals ) =>
+		jest
+			.requireActual(
+				'wcstripe/express-checkout/transformers/wc-to-stripe'
+			)
+			.transformCartTotalAmount( totals )
+	),
 	transformCartDataForDisplayItems: jest.fn( () => [
 		{ name: 'Item', amount: 500 },
 	] ),

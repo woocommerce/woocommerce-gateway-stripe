@@ -8,17 +8,9 @@
  */
 
 const mockGetCartDetails = jest.fn();
-const mockGetSelectedProductData = jest.fn();
 const mockGetStripe = jest.fn();
 const mockAddToCart = jest.fn();
 const mockEmptyCartLegacy = jest.fn();
-
-// Drain both microtasks and jQuery Deferred's timer-scheduled callbacks.
-const flushPromises = async () => {
-	for ( let i = 0; i < 5; i++ ) {
-		await new Promise( ( resolve ) => setTimeout( resolve, 0 ) );
-	}
-};
 
 // Run jQuery's ready callback synchronously instead of on a `setTimeout` macrotask,
 // which raced the test's flush under CI load and bled into the next test. Other
@@ -37,7 +29,6 @@ jest.mock( '../../../api', () =>
 	jest.fn().mockImplementation( () => ( {
 		expressCheckoutGetCartDetails: mockGetCartDetails,
 		getStripe: mockGetStripe,
-		expressCheckoutGetSelectedProductData: mockGetSelectedProductData,
 		expressCheckoutAddToCart: mockAddToCart,
 		expressCheckoutEmptyCartLegacy: mockEmptyCartLegacy,
 	} ) )
@@ -48,7 +39,7 @@ jest.mock( '../../../api', () =>
 jest.mock( 'wcstripe/express-checkout/transformers/wc-to-stripe', () => ( {
 	transformCartDataForDisplayItems: jest.fn( () => [] ),
 	transformLabeledDisplayItems: jest.fn( () => [] ),
-	transformPrice: jest.fn( () => 1500 ),
+	transformCartTotalAmount: jest.fn( () => 1500 ),
 } ) );
 
 // Stub the shared event handlers so the entrypoint's own `abortPayment` can be
@@ -204,6 +195,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 				return button;
 			},
 			mount: jest.fn(),
+			destroy: jest.fn(),
 		};
 		mockGetStripe.mockReturnValue( {
 			elements: jest.fn( () => {
@@ -215,17 +207,39 @@ describe( 'Express Checkout product page variation breakdown', () => {
 				return elements;
 			} ),
 		} );
-		return { handlers, elementsList };
+		return { handlers, elementsList, button };
+	};
+
+	const clickEvent = ( expressPaymentType = 'googlePay' ) => ( {
+		resolve: jest.fn(),
+		reject: jest.fn(),
+		expressPaymentType,
+	} );
+
+	const cartResponse = ( total, extra = {} ) => ( {
+		items_count: 1,
+		totals: {
+			total_price: String( total ),
+			total_refund: '0',
+			currency_minor_unit: 2,
+		},
+		...extra,
+	} );
+
+	const stubTransformersOnce = ( amount, displayItems = [] ) => {
+		// eslint-disable-next-line global-require
+		const transformers = require( 'wcstripe/express-checkout/transformers/wc-to-stripe' );
+		transformers.transformCartTotalAmount.mockReturnValueOnce( amount );
+		transformers.transformCartDataForDisplayItems.mockReturnValueOnce(
+			displayItems
+		);
 	};
 
 	beforeEach( () => {
 		jest.resetModules();
-		[
-			mockGetSelectedProductData,
-			mockGetStripe,
-			mockAddToCart,
-			mockEmptyCartLegacy,
-		].forEach( ( m ) => m.mockReset() );
+		[ mockGetStripe, mockAddToCart, mockEmptyCartLegacy ].forEach( ( m ) =>
+			m.mockReset()
+		);
 
 		// The BlockUI plugin (`.block()`/`.unblock()`) isn't loaded in jsdom.
 		// eslint-disable-next-line global-require
@@ -258,112 +272,526 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		delete global.wc_stripe_express_checkout_params;
 	} );
 
-	it( 'resolves the click with the newly selected variation’s line items, not the initial ones', async () => {
+	it( 'resolves the click from the cart response, not the initial preview', async () => {
 		global.wc_stripe_express_checkout_params = productParams();
 
-		// Switching to blue ($20) refreshes the preview via the fast-path, which
-		// updates only the element amount — the regression left the breakdown stale.
-		mockGetSelectedProductData.mockResolvedValue( {
-			total: { amount: 2000 },
-			currency: 'usd',
-			requestShipping: false,
-			displayItems: [ { label: 'Blue variation', amount: 2000 } ],
-		} );
-		mockAddToCart.mockResolvedValue( { items_count: 1 } );
+		mockAddToCart.mockResolvedValue( cartResponse( 2000 ) );
 		mockEmptyCartLegacy.mockResolvedValue( {} );
+		stubTransformersOnce( 2000, [
+			{ name: 'Blue variation', amount: 2000 },
+		] );
 
-		const { handlers } = stubStripeButton();
-
+		const { handlers, elementsList } = stubStripeButton();
 		loadEntrypoint();
 
-		// eslint-disable-next-line global-require
-		require( 'jquery' )( document.body ).trigger(
-			'woocommerce_variation_has_changed'
-		);
-		await flushPromises();
-
-		const event = { resolve: jest.fn(), expressPaymentType: 'googlePay' };
+		const event = clickEvent();
 		await handlers.click( event );
 
 		expect( event.resolve ).toHaveBeenCalledTimes( 1 );
 		expect( event.resolve.mock.calls[ 0 ][ 0 ].lineItems ).toEqual( [
 			{ name: 'Blue variation', amount: 2000 },
 		] );
+		// Every wallet mounts its own Elements group; a group left at the
+		// previous amount rejects the click when the line items exceed it.
+		expect( elementsList.length ).toBeGreaterThan( 1 );
+		elementsList.forEach( ( elements ) =>
+			expect( elements.update ).toHaveBeenCalledWith( { amount: 2000 } )
+		);
 	} );
 
-	it( 'refreshes the click breakdown when the quantity changes', async () => {
-		// The `.qty` handler is debounced (250ms), so drive timers deterministically.
-		jest.useFakeTimers();
+	it( "resolves a simple product's click from the cart response, quantity included", async () => {
 		global.wc_stripe_express_checkout_params = productParams();
 
-		// Bumping qty to 2 doubles the red variation breakdown via the debounced
-		// .qty fast-path, which writes the new total/displayItems back to the cache.
-		mockGetSelectedProductData.mockResolvedValue( {
-			total: { amount: 2000 },
-			currency: 'usd',
-			requestShipping: false,
-			displayItems: [ { label: 'Red variation', amount: 2000 } ],
-		} );
-		mockAddToCart.mockResolvedValue( { items_count: 1 } );
+		// Simple product: no variation markup, quantity 2. The cart-derived
+		// items carry the quantity; creation-time options would not.
+		document.body.innerHTML = `
+			<div id="wc-stripe-express-checkout-element"></div>
+			<div class="quantity"><input type="number" class="qty" name="quantity" value="2" /></div>
+			<button class="single_add_to_cart_button" value="99">Add</button>`;
+
+		mockAddToCart.mockResolvedValue( cartResponse( 4000 ) );
 		mockEmptyCartLegacy.mockResolvedValue( {} );
+		stubTransformersOnce( 4000, [
+			{ name: 'Simple thing (x2)', amount: 4000 },
+		] );
 
 		const { handlers } = stubStripeButton();
-
 		loadEntrypoint();
 
-		// eslint-disable-next-line global-require
-		const jq = require( 'jquery' );
-		const qtyInput = document.querySelector( '.qty' );
-		qtyInput.value = '2';
-		jq( qtyInput ).trigger( 'input' );
-
-		// Run the debounce and flush the resulting promise chain. Restore real
-		// timers in `finally` so a throw here can't leak fake timers into later tests.
-		try {
-			await jest.advanceTimersByTimeAsync( 300 );
-		} finally {
-			jest.useRealTimers();
-		}
-
-		const event = { resolve: jest.fn(), expressPaymentType: 'googlePay' };
+		const event = clickEvent();
 		await handlers.click( event );
 
-		expect( event.resolve ).toHaveBeenCalledTimes( 1 );
 		expect( event.resolve.mock.calls[ 0 ][ 0 ].lineItems ).toEqual( [
-			{ name: 'Red variation', amount: 2000 },
+			{ name: 'Simple thing (x2)', amount: 4000 },
 		] );
 	} );
 
-	it( 'pushes the new amount to every mounted express button, not just the last one', async () => {
+	it( 'prices the sheet from a legacy add-to-cart response (bookings shape)', async () => {
 		global.wc_stripe_express_checkout_params = productParams();
 
-		mockGetSelectedProductData.mockResolvedValue( {
-			total: { amount: 2000 },
-			currency: 'usd',
-			requestShipping: false,
-			displayItems: [ { label: 'Blue variation', amount: 2000 } ],
+		// The legacy endpoint also returns cart-computed data
+		// (build_display_items after calculate_totals), just in the labeled
+		// shape with amounts already in Stripe minor units.
+		mockAddToCart.mockResolvedValue( {
+			result: 'success',
+			total: { label: 'Total', amount: 3200 },
+			displayItems: [ { label: 'Booking', amount: 3200 } ],
 		} );
-		mockAddToCart.mockResolvedValue( { items_count: 1 } );
 		mockEmptyCartLegacy.mockResolvedValue( {} );
 
-		const { elementsList } = stubStripeButton();
-
+		const { handlers, elementsList } = stubStripeButton();
 		loadEntrypoint();
 
-		// Apple Pay and Google Pay each mount their own Elements group.
-		expect( elementsList.length ).toBeGreaterThan( 1 );
+		const event = clickEvent();
+		await handlers.click( event );
+
+		expect( event.reject ).not.toHaveBeenCalled();
+		expect( event.resolve ).toHaveBeenCalledTimes( 1 );
+		expect( event.resolve.mock.calls[ 0 ][ 0 ].lineItems ).toEqual( [
+			{ name: 'Booking', amount: 3200 },
+		] );
+		elementsList.forEach( ( elements ) =>
+			expect( elements.update ).toHaveBeenCalledWith( { amount: 3200 } )
+		);
+	} );
+
+	it.each( [
+		{
+			name: 'skips the address prompt when the cart says the selection is virtual',
+			needsShipping: false,
+		},
+		{
+			name: 'asks for an address when the cart says the selection is shippable',
+			needsShipping: true,
+		},
+	] )( '$name', async ( { needsShipping } ) => {
+		// The creation-time flag reflects the variable parent, so the cart's
+		// verdict must override it in both directions - a wrong prompt
+		// hard-fails on a cart with no shippable items.
+		const params = productParams();
+		params.product.requestShipping = ! needsShipping;
+		if ( ! needsShipping ) {
+			// Init refuses to render a shipping-required button without a rate.
+			params.product.shippingOptions = {
+				id: 'flat',
+				label: 'Flat',
+				amount: 0,
+			};
+		}
+		global.wc_stripe_express_checkout_params = params;
+
+		mockAddToCart.mockResolvedValue(
+			cartResponse( 2000, { needs_shipping: needsShipping } )
+		);
+		mockEmptyCartLegacy.mockResolvedValue( {} );
+		stubTransformersOnce( 2000 );
+
+		const { handlers } = stubStripeButton();
+		loadEntrypoint();
+
+		const event = clickEvent();
+		await handlers.click( event );
+
+		const clickOptions = event.resolve.mock.calls[ 0 ][ 0 ];
+		expect( clickOptions.shippingAddressRequired ).toBe( needsShipping );
+		expect( 'shippingRates' in clickOptions ).toBe( needsShipping );
+		// Stripe requires a rate with the address prompt; with no zone
+		// default configured the pending placeholder stands in.
+		expect( clickOptions.shippingRates?.length > 0 ).toBe( needsShipping );
+	} );
+
+	it( 'rejects the click and relays the server message when the add is refused', async () => {
+		global.wc_stripe_express_checkout_params = productParams();
+
+		// Store API 4xx (insufficient stock, unsupported product type, …)
+		// rejects the fetch with a localized shopper-facing message.
+		jest.useFakeTimers();
+		mockAddToCart.mockRejectedValue( {
+			code: 'woocommerce_rest_product_out_of_stock',
+			message: 'There is not enough stock.',
+		} );
+		mockEmptyCartLegacy.mockResolvedValue( {} );
+		const alertSpy = jest
+			.spyOn( window, 'alert' )
+			.mockImplementation( () => {} );
+
+		const { handlers } = stubStripeButton();
+		loadEntrypoint();
+
+		try {
+			const event = clickEvent();
+			await handlers.click( event );
+
+			expect( event.reject ).toHaveBeenCalledTimes( 1 );
+			expect( event.resolve ).not.toHaveBeenCalled();
+			await jest.advanceTimersByTimeAsync( 100 );
+			expect( alertSpy ).toHaveBeenCalledWith(
+				'There is not enough stock.'
+			);
+		} finally {
+			jest.useRealTimers();
+			alertSpy.mockRestore();
+		}
+	} );
+
+	it.each( [
+		{
+			name: 'prompts for options when the selection is incomplete',
+			arrange: () => {
+				document.querySelector( 'input[name="variation_id"]' ).value =
+					'';
+			},
+			message: 'select your product options',
+		},
+		{
+			// Variation resolved (fixture variation_id=123) but the button is
+			// disabled - e.g. an out-of-stock variation.
+			name: 'explains a stock or quantity block when the selection is complete',
+			arrange: () => {
+				document
+					.querySelector( '.single_add_to_cart_button' )
+					.classList.add( 'disabled' );
+			},
+			message:
+				'cannot be purchased with the selected options or quantity',
+		},
+	] )( 'rejects the click and $name', async ( { arrange, message } ) => {
+		jest.useFakeTimers();
+		global.wc_stripe_express_checkout_params = productParams();
+		arrange();
+		const alertSpy = jest
+			.spyOn( window, 'alert' )
+			.mockImplementation( () => {} );
+
+		const { handlers } = stubStripeButton();
+		loadEntrypoint();
+
+		try {
+			const event = clickEvent();
+			await handlers.click( event );
+
+			expect( event.reject ).toHaveBeenCalledTimes( 1 );
+			expect( event.resolve ).not.toHaveBeenCalled();
+			// The prompt is deferred so the rejected wallet UI can dismiss
+			// before the blocking dialog pauses the event loop.
+			expect( alertSpy ).not.toHaveBeenCalled();
+			await jest.advanceTimersByTimeAsync( 100 );
+			expect( alertSpy ).toHaveBeenCalledWith(
+				expect.stringContaining( message )
+			);
+			expect( mockAddToCart ).not.toHaveBeenCalled();
+		} finally {
+			jest.useRealTimers();
+			alertSpy.mockRestore();
+		}
+	} );
+
+	it( 'rejects the click when the cart response misses the deadline; an unchanged retry resolves without re-adding, a changed selection re-adds', async () => {
+		jest.useFakeTimers();
+		global.wc_stripe_express_checkout_params = productParams();
+
+		let resolveAddToCart;
+		mockAddToCart.mockImplementation(
+			() =>
+				new Promise( ( resolve ) => {
+					resolveAddToCart = resolve;
+				} )
+		);
+		mockEmptyCartLegacy.mockResolvedValue( {} );
+		stubTransformersOnce( 4000, [
+			{ name: 'Red variation (x2)', amount: 4000 },
+		] );
+		// eslint-disable-next-line global-require
+		const jq = require( 'jquery' );
+		const unblockSpy = jest.fn().mockReturnThis();
+		jq.fn.unblock = unblockSpy;
+
+		const { handlers, elementsList } = stubStripeButton();
+		loadEntrypoint();
+
+		try {
+			const event = clickEvent();
+			const clickPromise = handlers.click( event );
+
+			await jest.advanceTimersByTimeAsync( 750 );
+			// Sheet must not open from a stale preview.
+			expect( event.reject ).toHaveBeenCalledTimes( 1 );
+			expect( event.resolve ).not.toHaveBeenCalled();
+			// Still blocked: a retry must not overlap the pending
+			// empty-cart -> add mutation.
+			expect( unblockSpy ).not.toHaveBeenCalled();
+
+			resolveAddToCart( cartResponse( 4000 ) );
+			await jest.advanceTimersByTimeAsync( 0 );
+			await clickPromise;
+
+			// The late response refreshes the elements for the next attempt.
+			elementsList.forEach( ( elements ) =>
+				expect( elements.update ).toHaveBeenCalledWith( {
+					amount: 4000,
+				} )
+			);
+			expect( unblockSpy ).toHaveBeenCalled();
+
+			// An unchanged retry resolves from the settled cart data without
+			// a second add-to-cart - otherwise a consistently slow store
+			// would reject every attempt.
+			const retryEvent = clickEvent();
+			await handlers.click( retryEvent );
+			expect( mockAddToCart ).toHaveBeenCalledTimes( 1 );
+			expect( retryEvent.reject ).not.toHaveBeenCalled();
+			expect( retryEvent.resolve ).toHaveBeenCalledTimes( 1 );
+			expect( retryEvent.resolve.mock.calls[ 0 ][ 0 ].lineItems ).toEqual(
+				[ { name: 'Red variation (x2)', amount: 4000 } ]
+			);
+
+			// A different variation invalidates the settled selection, so the
+			// next click must re-add. The key follows the attribute selection
+			// (what add-to-cart sends), not the resolved variation_id.
+			const select = document.querySelector(
+				'select[name="attribute_color"]'
+			);
+			const redOption = document.createElement( 'option' );
+			redOption.value = 'red';
+			select.appendChild( redOption );
+			select.value = 'red';
+			mockAddToCart.mockResolvedValue( cartResponse( 5000 ) );
+			stubTransformersOnce( 5000 );
+
+			const changedEvent = clickEvent();
+			await handlers.click( changedEvent );
+			expect( mockAddToCart ).toHaveBeenCalledTimes( 2 );
+			expect( changedEvent.resolve ).toHaveBeenCalledTimes( 1 );
+		} finally {
+			jest.useRealTimers();
+		}
+	} );
+
+	it( 'shows a generic message when the add fails without a server refusal', async () => {
+		jest.useFakeTimers();
+		global.wc_stripe_express_checkout_params = productParams();
+
+		// A transport failure (no apiFetch code) must not surface internals
+		// or selection advice.
+		mockAddToCart.mockRejectedValue( new TypeError( 'Failed to fetch' ) );
+		mockEmptyCartLegacy.mockResolvedValue( {} );
+		const alertSpy = jest
+			.spyOn( window, 'alert' )
+			.mockImplementation( () => {} );
+
+		const { handlers } = stubStripeButton();
+		loadEntrypoint();
+
+		try {
+			const event = clickEvent();
+			await handlers.click( event );
+			expect( event.reject ).toHaveBeenCalledTimes( 1 );
+			await jest.advanceTimersByTimeAsync( 100 );
+			expect( alertSpy ).toHaveBeenCalledWith(
+				'There was an error adding the product to the cart.'
+			);
+		} finally {
+			jest.useRealTimers();
+			alertSpy.mockRestore();
+		}
+	} );
+
+	it( 'relays the server message when a slow add is refused after the deadline', async () => {
+		jest.useFakeTimers();
+		global.wc_stripe_express_checkout_params = productParams();
+
+		let rejectAddToCart;
+		mockAddToCart.mockImplementation(
+			() =>
+				new Promise( ( resolve, reject ) => {
+					rejectAddToCart = reject;
+				} )
+		);
+		mockEmptyCartLegacy.mockResolvedValue( {} );
+		const alertSpy = jest
+			.spyOn( window, 'alert' )
+			.mockImplementation( () => {} );
+
+		const { handlers } = stubStripeButton();
+		loadEntrypoint();
+
+		try {
+			const event = clickEvent();
+			const clickPromise = handlers.click( event );
+			await jest.advanceTimersByTimeAsync( 750 );
+			expect( event.reject ).toHaveBeenCalledTimes( 1 );
+
+			rejectAddToCart( {
+				code: 'woocommerce_rest_product_out_of_stock',
+				message: 'There is not enough stock.',
+			} );
+			await jest.advanceTimersByTimeAsync( 100 );
+			await clickPromise;
+			// The refusal lands in the retry modal, not an alert.
+			expect(
+				document.querySelector( '.wc-stripe-ece-retry-modal__title' )
+					.textContent
+			).toBe( 'Something went wrong' );
+			expect(
+				document.querySelector( '.wc-stripe-ece-retry-modal__message' )
+					.textContent
+			).toBe( 'There is not enough stock.' );
+			expect( alertSpy ).not.toHaveBeenCalled();
+		} finally {
+			jest.useRealTimers();
+			alertSpy.mockRestore();
+		}
+	} );
+
+	it( 'offers the clicked wallet in the retry modal once the late add settles', async () => {
+		jest.useFakeTimers();
+		global.wc_stripe_express_checkout_params = productParams();
+
+		let resolveAddToCart;
+		mockAddToCart.mockImplementation(
+			() =>
+				new Promise( ( resolve ) => {
+					resolveAddToCart = resolve;
+				} )
+		);
+		mockEmptyCartLegacy.mockResolvedValue( {} );
+		stubTransformersOnce( 4000, [
+			{ name: 'Red variation (x2)', amount: 4000 },
+		] );
+
+		const { handlers, button } = stubStripeButton();
+		loadEntrypoint();
+
+		try {
+			const event = clickEvent( 'google_pay' );
+			const clickPromise = handlers.click( event );
+			await jest.advanceTimersByTimeAsync( 750 );
+
+			// Timed out: the modal holds the shopper with a loading state.
+			expect(
+				document.querySelector( '.wc-stripe-ece-retry-modal__title' )
+					.textContent
+			).toBe( 'Preparing your payment…' );
+
+			resolveAddToCart( cartResponse( 4000 ) );
+			await jest.advanceTimersByTimeAsync( 0 );
+			await clickPromise;
+
+			// Settled: the clicked wallet's button mounts inside the modal.
+			expect(
+				document.querySelector( '.wc-stripe-ece-retry-modal__title' )
+					.textContent
+			).toBe( 'Your order is ready' );
+			expect( button.mount ).toHaveBeenCalledWith(
+				'#wc-stripe-ece-retry-modal-button'
+			);
+
+			// Dismissing the sheet closes the modal and releases its element.
+			handlers.cancel();
+			expect(
+				document.querySelector( '.wc-stripe-ece-retry-modal' )
+			).toBeNull();
+			await jest.advanceTimersByTimeAsync( 0 );
+			expect( button.destroy ).toHaveBeenCalled();
+		} finally {
+			jest.useRealTimers();
+		}
+	} );
+
+	it( 'shows processing at confirm and closes the modal when payment completes', async () => {
+		jest.useFakeTimers();
+		global.wc_stripe_express_checkout_params = productParams();
+
+		let resolveAddToCart;
+		mockAddToCart.mockImplementation(
+			() =>
+				new Promise( ( resolve ) => {
+					resolveAddToCart = resolve;
+				} )
+		);
+		mockEmptyCartLegacy.mockResolvedValue( {} );
+		stubTransformersOnce( 4000, [
+			{ name: 'Red variation (x2)', amount: 4000 },
+		] );
 
 		// eslint-disable-next-line global-require
-		require( 'jquery' )( document.body ).trigger(
-			'woocommerce_variation_has_changed'
-		);
-		await flushPromises();
+		const {
+			onConfirmHandler,
+		} = require( 'wcstripe/express-checkout/event-handler' );
 
-		// The regression updated only the last group, leaving the others below
-		// the refreshed line-item total so their wallet rejected the click.
-		elementsList.forEach( ( elements ) => {
-			expect( elements.update ).toHaveBeenCalledWith( { amount: 2000 } );
-		} );
+		const { handlers } = stubStripeButton();
+		loadEntrypoint();
+
+		try {
+			const event = clickEvent( 'google_pay' );
+			const clickPromise = handlers.click( event );
+			await jest.advanceTimersByTimeAsync( 750 );
+			resolveAddToCart( cartResponse( 4000 ) );
+			await jest.advanceTimersByTimeAsync( 0 );
+			await clickPromise;
+
+			// The modal element registered last, so its confirm handler is the
+			// captured one - the flow under test.
+			await handlers.confirm( { paymentFailed: jest.fn() } );
+
+			// Mid-confirmation the modal must read as processing and lose its
+			// close button: removing the dialog now would detach the active
+			// Stripe frame.
+			expect(
+				document.querySelector( '.wc-stripe-ece-retry-modal__title' )
+					.textContent
+			).toBe( 'Processing your payment…' );
+			expect(
+				document.querySelector( '.wc-stripe-ece-retry-modal__close' )
+					.style.display
+			).toBe( 'none' );
+
+			// A hash URL keeps jsdom's navigation stub happy.
+			const { completePayment } =
+				onConfirmHandler.mock.calls.at( -1 )[ 0 ];
+			completePayment( '#order-received' );
+			expect(
+				document.querySelector( '.wc-stripe-ece-retry-modal' )
+			).toBeNull();
+		} finally {
+			jest.useRealTimers();
+		}
+	} );
+
+	it( 'unblocks the button when the pending add never settles', async () => {
+		jest.useFakeTimers();
+		global.wc_stripe_express_checkout_params = productParams();
+
+		// A request the browser hangs onto: never resolves, never rejects.
+		mockAddToCart.mockImplementation( () => new Promise( () => {} ) );
+		mockEmptyCartLegacy.mockResolvedValue( {} );
+		// eslint-disable-next-line global-require
+		const jq = require( 'jquery' );
+		const unblockSpy = jest.fn().mockReturnThis();
+		jq.fn.unblock = unblockSpy;
+
+		const { handlers, elementsList } = stubStripeButton();
+		loadEntrypoint();
+
+		try {
+			const event = clickEvent();
+			const clickPromise = handlers.click( event );
+
+			await jest.advanceTimersByTimeAsync( 750 );
+			expect( event.reject ).toHaveBeenCalledTimes( 1 );
+			expect( unblockSpy ).not.toHaveBeenCalled();
+
+			// The bounded wait gives up and releases the button; nothing is
+			// primed from the abandoned attempt.
+			await jest.advanceTimersByTimeAsync( 30000 );
+			await clickPromise;
+			expect( unblockSpy ).toHaveBeenCalled();
+			elementsList.forEach( ( elements ) =>
+				expect( elements.update ).not.toHaveBeenCalled()
+			);
+		} finally {
+			jest.useRealTimers();
+		}
 	} );
 } );
 
@@ -548,5 +976,39 @@ describe( 'Express Checkout order failures', () => {
 		expect(
 			onAbortPaymentHandler.mock.invocationCallOrder[ 0 ]
 		).toBeLessThan( event.paymentFailed.mock.invocationCallOrder[ 0 ] );
+	} );
+
+	it( 'closes the retry modal when the payment errors so the notice is readable', async () => {
+		const handlers = stubStripeButton();
+		loadEntrypoint();
+
+		// eslint-disable-next-line global-require
+		const jq = require( 'jquery' );
+		// eslint-disable-next-line global-require
+		const {
+			onConfirmHandler,
+		} = require( 'wcstripe/express-checkout/event-handler' );
+
+		jq( document.body ).trigger( 'updated_checkout' );
+
+		const event = { paymentFailed: jest.fn() };
+		await handlers.confirm( event );
+
+		// A timed-out click leaves the retry modal on screen; the error path
+		// must remove it, or the page notice renders behind its backdrop.
+		document.body.insertAdjacentHTML(
+			'beforeend',
+			'<div id="wc-stripe-ece-retry-modal"></div>'
+		);
+
+		const { abortPayment } = onConfirmHandler.mock.calls[ 0 ][ 0 ];
+		abortPayment( event, 'Order creation error' );
+
+		expect(
+			document.querySelector( '#wc-stripe-ece-retry-modal' )
+		).toBeNull();
+		expect(
+			document.querySelector( '.woocommerce-error' ).textContent
+		).toBe( 'Order creation error' );
 	} );
 } );

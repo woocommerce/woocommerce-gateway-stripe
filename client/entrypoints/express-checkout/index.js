@@ -1,7 +1,6 @@
 /* global wcStripeExpressCheckoutPayForOrderParams */
 /* global wc_stripe_express_checkout_params */
 
-import { debounce } from 'lodash';
 import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
 import { __ } from '@wordpress/i18n';
@@ -12,7 +11,12 @@ import {
 	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
 	getPaymentMethodTypesForExpressMethod,
+	getSelectedVariationAttributes,
+	getSelectedVariationId,
+	hasVariationSelectionUi,
+	isAddToCartUnavailable,
 	isManualPaymentMethodCreation,
+	isSelectedVariationUnavailable,
 	normalizeLineItems,
 	transformVariationAttributesForStoreApi,
 	buildBookingConfiguration,
@@ -36,11 +40,12 @@ import {
 	EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
 	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 	EXPRESS_PAYMENT_METHOD_SETTING_LINK,
+	EXPRESS_PAYMENT_TYPE_TO_SETTING,
 } from 'wcstripe/stripe-utils/constants';
 import {
 	transformCartDataForDisplayItems,
+	transformCartTotalAmount,
 	transformLabeledDisplayItems,
-	transformPrice,
 } from 'wcstripe/express-checkout/transformers/wc-to-stripe';
 
 jQuery( function ( $ ) {
@@ -75,57 +80,76 @@ jQuery( function ( $ ) {
 		}
 	);
 
-	let wcStripeECEError = '';
-	const defaultErrorMessage = __(
-		'There was an error getting the product information.',
-		'woocommerce-gateway-stripe'
-	);
-
 	// Snapshot is first-paint only; re-inits reconcile via AJAX (see init() below).
 	let cartBootstrapConsumed = false;
 
-	const hasVariationForm = $( '.variations_form' ).length > 0;
+	// True for a variable product on both the classic and blockified templates.
+	const hasVariationUi = hasVariationSelectionUi();
 	const hasBookingForm = $( '.wc-bookings-booking-form' ).length > 0;
 
 	// Variable and booking products keep the legacy display-item format: their
-	// product-page preview comes from `get_selected_product_data`, which has no
-	// Store API equivalent. Add-to-cart routing is handled separately in `addToCart()`.
-	const useLegacyDisplayItems = hasVariationForm || hasBookingForm;
+	// bootstrap params and legacy add-to-cart responses carry labeled items
+	// from `build_display_items()`. Add-to-cart routing is handled separately
+	// in `addToCart()`.
+	const useLegacyDisplayItems = hasVariationUi || hasBookingForm;
 
 	const resolveClickEvent = ( event, options ) => {
 		const getDefaultShippingRates = () => {
 			// Return a default shipping option when shipping is required but no rates are provided
 			const defaultShippingOption =
 				getExpressCheckoutData( 'checkout' )?.default_shipping_option;
-			return defaultShippingOption ? [ defaultShippingOption ] : [];
+			// Stripe requires a rate once an address is required; real rates
+			// replace this placeholder at shippingaddresschange.
+			return defaultShippingOption
+				? [ defaultShippingOption ]
+				: [
+						{
+							id: 'pending',
+							displayName: __(
+								'Pending',
+								'woocommerce-gateway-stripe'
+							),
+							amount: 0,
+						},
+				  ];
 		};
 		const allowedShippingCountries = getExpressCheckoutData(
 			'allowed_shipping_countries'
 		);
 
-		// The fast-path on variation/qty change updates only the element amount,
-		// not this click closure, so read the latest items from the store to keep
-		// the wallet breakdown in sync. Legacy (variable/booking) format only.
-		const displayItems =
-			useLegacyDisplayItems && getExpressCheckoutData( 'is_product_page' )
-				? getExpressCheckoutData( 'product' )?.displayItems ??
-				  options.displayItems
-				: options.displayItems;
+		// Product pages: the click handler writes cart-derived items into
+		// the cached params before resolving, so read them from there for
+		// every product type.
+		const isProductPage = getExpressCheckoutData( 'is_product_page' );
+		const displayItems = isProductPage
+			? getExpressCheckoutData( 'product' )?.displayItems ??
+			  options.displayItems
+			: options.displayItems;
+
+		// The creation-time flag reflects the parent product, which reports
+		// needing shipping even when every variation is virtual - prompting
+		// for an address then hard-fails on a cart with no shippable items.
+		// The cart response knows the actual selection, so it wins.
+		const requestShipping = isProductPage
+			? getExpressCheckoutData( 'product' )?.requestShipping ??
+			  options.requestShipping
+			: options.requestShipping;
 
 		const clickOptions = {
-			lineItems: useLegacyDisplayItems
-				? normalizeLineItems( displayItems )
-				: displayItems,
+			lineItems:
+				isProductPage || useLegacyDisplayItems
+					? normalizeLineItems( displayItems )
+					: displayItems,
 			emailRequired: true,
-			shippingAddressRequired: options.requestShipping,
+			shippingAddressRequired: requestShipping,
 			phoneNumberRequired: options.requestPhone,
-			...( options.requestShipping && {
+			...( requestShipping && {
 				shippingRates:
 					options.shippingRates?.length > 0
 						? options.shippingRates
 						: getDefaultShippingRates(),
 			} ),
-			...( options.requestShipping &&
+			...( requestShipping &&
 				Array.isArray( allowedShippingCountries ) && {
 					allowedShippingCountries,
 				} ),
@@ -133,6 +157,11 @@ jQuery( function ( $ ) {
 
 		return event.resolve( clickOptions );
 	};
+
+	// The selection a late-settled add left in the cart; a matching retry
+	// resolves without re-adding. Never set on the fast path, which
+	// re-prices every click to stay fresh.
+	let cartSelectionKey = null;
 
 	// Check if the product is waiting for a variation to be selected.
 	const isVariationSelectionNeeded = () => {
@@ -142,14 +171,7 @@ jQuery( function ( $ ) {
 			return false;
 		}
 
-		const isVariationProduct = document.querySelector(
-			'.single_variation_wrap'
-		);
-		const variationId = document.querySelector(
-			'input[name="variation_id"]'
-		)?.value;
-		const variationSelected = variationId && variationId !== '0';
-		return isVariationProduct && ! variationSelected;
+		return hasVariationUi && ! getSelectedVariationId();
 	};
 
 	const wcStripeECE = {
@@ -168,7 +190,24 @@ jQuery( function ( $ ) {
 			wcStripeECE.getButtonSeparator().hide();
 		},
 
-		renderButton: ( eceButton, expressPaymentType ) => {
+		renderButton: ( eceButton, expressPaymentType, mountTarget ) => {
+			// Retry-modal path: mount into the modal's own container instead
+			// of the standard express-checkout element area. If the button
+			// fails to load, the modal would say "your order is ready" with
+			// nothing to tap - surface an error state instead.
+			if ( mountTarget ) {
+				eceButton.on( 'loaderror', () => {
+					wcStripeECE.setRetryModalError(
+						__(
+							'This payment method failed to load. Please refresh the page and try again.',
+							'woocommerce-gateway-stripe'
+						)
+					);
+				} );
+				eceButton.mount( mountTarget );
+				return;
+			}
+
 			if ( $( '#wc-stripe-express-checkout-element' ).length ) {
 				const containerName = `wc-stripe-express-checkout-element-${ expressPaymentType }`;
 				if ( ! $( `#${ containerName }` ).length ) {
@@ -191,12 +230,6 @@ jQuery( function ( $ ) {
 					$( `#${ containerName }` ).remove();
 				} );
 			}
-		},
-
-		productHasDepositOption() {
-			return !! $( 'form' ).has(
-				'input[name=wc_deposit_option],input[name=wc_deposit_payment_plan]'
-			).length;
 		},
 
 		/**
@@ -276,27 +309,50 @@ jQuery( function ( $ ) {
 			} );
 		},
 
-		createExpressCheckoutElement: ( expressPaymentType, options ) => {
+		createExpressCheckoutElement: (
+			expressPaymentType,
+			options,
+			mountTarget
+		) => {
+			// Only Store API refusals (code + message) carry a shopper-facing
+			// message; anything else gets the generic one.
+			const addToCartFailureMessage = ( error ) =>
+				error?.code && error?.message
+					? error.message
+					: __(
+							'There was an error adding the product to the cart.',
+							'woocommerce-gateway-stripe'
+					  );
+
+			// alert() pauses this page's event loop, which would also freeze
+			// the wallet-UI dismissal that reject() queues for methods opening
+			// on the raw gesture (e.g. Amazon Pay) — leaving the sheet on
+			// screen behind the alert. Yield so the dismissal lands first.
+			const promptAfterWalletDismissal = ( message ) =>
+				setTimeout( () => {
+					// eslint-disable-next-line no-alert
+					window.alert( message );
+				}, 100 );
+
 			const handleProductPageECEButtonClick = async (
 				event,
 				clickOptions
 			) => {
-				const addToCartButton = document.querySelector(
-					'.single_add_to_cart_button'
-				);
+				// The buttons render before a variation is selected, so this
+				// guard is what prompts the shopper for their options instead
+				// of opening the wallet sheet.
+				if ( isAddToCartUnavailable() ) {
+					// The click contract requires resolve() or reject()
+					// within 1s; rejecting also closes the wallet UI some
+					// methods (Link, Amazon Pay) open on the raw gesture.
+					event.reject?.();
 
-				// First check if product can be added to cart.
-				if ( addToCartButton.classList.contains( 'disabled' ) ) {
 					const defaultMessage = __(
 						'Please select your product options before proceeding.',
 						'woocommerce-gateway-stripe'
 					);
 					let message;
-					if (
-						addToCartButton.classList.contains(
-							'wc-variation-is-unavailable'
-						)
-					) {
+					if ( isSelectedVariationUnavailable() ) {
 						message =
 							getAddToCartVariationParams(
 								'i18n_unavailable_text'
@@ -305,55 +361,127 @@ jQuery( function ( $ ) {
 								'Sorry, this product is unavailable. Please choose a different combination.',
 								'woocommerce-gateway-stripe'
 							);
+					} else if ( ! isVariationSelectionNeeded() ) {
+						// Everything is selected (or the product has no
+						// options): the block is stock or quantity, so asking
+						// for options would mislead.
+						message = __(
+							'This product cannot be purchased with the selected options or quantity. Please adjust your selection and try again.',
+							'woocommerce-gateway-stripe'
+						);
 					}
 
-					// eslint-disable-next-line no-alert
-					window.alert( message || defaultMessage );
+					promptAfterWalletDismissal( message || defaultMessage );
 					return;
 				}
 
-				if ( wcStripeECEError ) {
-					// eslint-disable-next-line no-alert
-					window.alert( wcStripeECEError );
-					return;
-				}
+				const request = wcStripeECE.buildAddToCartRequest();
+				const selectionKey = JSON.stringify( request );
 
-				// Stripe requires event.resolve() to be called within 1s of the click event.
-				// Here, we enforce a timeout for the addToCart operation. If the operation
-				// takes longer, we will call event.resolve() immediately,
-				// and wait for the addToCart operation to finish after.
-				const addToCartPromise = wcStripeECE.addToCart();
+				// The cart already holds this selection (a late-settled
+				// add): resolve from the cart-derived params, no re-add.
+				if ( cartSelectionKey === selectionKey ) {
+					wcStripeECE.isAddToCartSuccessful = true;
+					return resolveClickEvent( event, clickOptions );
+				}
+				cartSelectionKey = null;
+
+				// Stripe requires resolve()/reject() within 1s of the click, so
+				// the cart request gets a 700ms budget - the margin also has
+				// to absorb main-thread scheduling between our resolve() and
+				// Stripe's frame receiving it. The timer winning the race
+				// doesn't mean the request failed — it's still in flight,
+				// just too slow for this click's deadline.
+				const addToCartPromise = wcStripeECE.addToCart( request );
 				const timeout = new Promise( ( resolve ) =>
 					setTimeout( () => {
 						resolve( 'timeout' );
 					}, 700 )
 				);
-				const result = await Promise.race( [
-					addToCartPromise,
-					timeout,
-				] );
-				if ( result === 'timeout' ) {
-					// Immediately resolve the click event to avoid the 1s timeout.
-					resolveClickEvent( event, clickOptions );
-
-					// Wait for the addToCart operation to finish, checking
-					// that the product was successfully added to the cart.
+				let result;
+				try {
+					result = await Promise.race( [
+						addToCartPromise,
+						timeout,
+					] );
+				} catch ( error ) {
+					event.reject?.();
 					wcStripeECE.isAddToCartSuccessful = false;
-					const response = await addToCartPromise;
-					const isAddToCartSuccessful = response?.items_count > 0;
-					const isLegacyAddToCartSuccessful =
-						response?.result === 'success';
-					if (
-						isAddToCartSuccessful ||
-						isLegacyAddToCartSuccessful
-					) {
-						wcStripeECE.isAddToCartSuccessful = true;
+					promptAfterWalletDismissal(
+						addToCartFailureMessage( error )
+					);
+					return;
+				}
+				if ( result === 'timeout' ) {
+					// Opening the sheet now would show a preview amount the cart
+					// may not match, so reject the click and hand off to the
+					// retry modal: it holds the shopper with a loading state
+					// while the pending add settles, then offers a fresh wallet
+					// button primed with the settled cart data.
+					event.reject?.();
+					wcStripeECE.showRetryModal();
+					wcStripeECE.blockExpressCheckoutButton();
+					try {
+						// Waiting for the pending mutation keeps a retry from
+						// overlapping it, but a request the browser hangs onto
+						// would keep the button blocked indefinitely - after a
+						// generous bound, treat the attempt as failed. A stray
+						// late add can't double-charge: every click empties
+						// the cart first and prices from its own response.
+						const response = await Promise.race( [
+							addToCartPromise,
+							new Promise( ( resolve ) =>
+								setTimeout(
+									() => resolve( 'abandoned' ),
+									30000
+								)
+							),
+						] );
+						if ( response === 'abandoned' ) {
+							wcStripeECE.isAddToCartSuccessful = false;
+							wcStripeECE.setRetryModalError(
+								__(
+									'We could not prepare your payment. Please check your internet connection and try again.',
+									'woocommerce-gateway-stripe'
+								)
+							);
+						} else {
+							wcStripeECE.isAddToCartSuccessful =
+								response?.items_count > 0 ||
+								response?.result === 'success';
+							// Record only when the cached params hold
+							// this response's cart data.
+							if (
+								wcStripeECE.refreshTotalsFromCart( response ) &&
+								wcStripeECE.isAddToCartSuccessful
+							) {
+								cartSelectionKey = selectionKey;
+								wcStripeECE.setRetryModalReady(
+									event.expressPaymentType
+								);
+							} else {
+								wcStripeECE.setRetryModalError(
+									addToCartFailureMessage( response )
+								);
+							}
+						}
+					} catch ( error ) {
+						wcStripeECE.isAddToCartSuccessful = false;
+						// The click was already rejected at the deadline;
+						// still explain why a retry won't work.
+						wcStripeECE.setRetryModalError(
+							addToCartFailureMessage( error )
+						);
+					} finally {
+						wcStripeECE.unblockExpressCheckoutButton();
 					}
 
 					return;
 				}
 
 				wcStripeECE.isAddToCartSuccessful = true;
+				wcStripeECE.refreshTotalsFromCart( result );
+
 				return resolveClickEvent( event, clickOptions );
 			};
 
@@ -363,7 +491,7 @@ jQuery( function ( $ ) {
 			// rate if one is required and available.
 			// If no shipping rate is found we can't render the button so we just exit.
 			if ( options.requestShipping && ! options.shippingRates ) {
-				return;
+				return null;
 			}
 
 			const hasFreeTrial = getExpressCheckoutData( 'has_free_trial' );
@@ -386,7 +514,7 @@ jQuery( function ( $ ) {
 			} catch ( error ) {
 				// Stripe.js failed the origin assertion (fail closed): skip
 				// rendering the express checkout button instead of throwing.
-				return;
+				return null;
 			}
 
 			const elements = stripe.elements( {
@@ -437,11 +565,16 @@ jQuery( function ( $ ) {
 				},
 			} );
 
-			wcStripeECE.renderButton( eceButton, expressPaymentType );
+			wcStripeECE.renderButton(
+				eceButton,
+				expressPaymentType,
+				mountTarget
+			);
 
 			eceButton.on( 'click', async function ( event ) {
 				// If login is required for checkout, display redirect confirmation dialog.
 				if ( getExpressCheckoutData( 'login_confirmation' ) ) {
+					event.reject?.();
 					displayLoginConfirmation( event.expressPaymentType );
 					return;
 				}
@@ -496,6 +629,11 @@ jQuery( function ( $ ) {
 			);
 
 			eceButton.on( 'confirm', async ( event ) => {
+				// The wallet has handed off; "your order is ready" would now
+				// mislead for however long the server takes to confirm.
+				if ( mountTarget ) {
+					wcStripeECE.setRetryModalProcessing();
+				}
 				if (
 					getExpressCheckoutData( 'is_product_page' ) &&
 					wcStripeECE.isAddToCartSuccessful === false
@@ -530,13 +668,18 @@ jQuery( function ( $ ) {
 			} );
 
 			eceButton.on( 'cancel', () => {
-				wcStripeECE.paymentAborted = true;
 				onCancelHandler();
+				// A sheet opened from the retry modal has served its purpose;
+				// dismissing it should hand the page back, not strand the
+				// shopper behind the modal backdrop. The main buttons stay
+				// primed for an instant retry.
+				if ( mountTarget ) {
+					wcStripeECE.closeRetryModal();
+				}
 			} );
 
 			eceButton.on( 'ready', ( onReadyParams ) => {
 				if (
-					! isVariationSelectionNeeded() &&
 					onReadyParams.availablePaymentMethods &&
 					Object.values(
 						onReadyParams.availablePaymentMethods
@@ -547,9 +690,7 @@ jQuery( function ( $ ) {
 				}
 			} );
 
-			if ( getExpressCheckoutData( 'is_product_page' ) ) {
-				wcStripeECE.attachProductPageEventListeners();
-			}
+			return { elements, eceButton };
 		},
 
 		/**
@@ -649,17 +790,11 @@ jQuery( function ( $ ) {
 						),
 					} );
 
-					// After initializing a new express checkout button, we need to reset the paymentAborted flag.
-					wcStripeECE.paymentAborted = false;
 					return;
 				}
 
 				api.expressCheckoutGetCartDetails().then( ( cart ) => {
-					const total = transformPrice(
-						parseInt( cart.totals.total_price, 10 ) -
-							parseInt( cart.totals.total_refund || 0, 10 ),
-						cart.totals
-					);
+					const total = transformCartTotalAmount( cart.totals );
 
 					if (
 						total === 0 &&
@@ -681,92 +816,20 @@ jQuery( function ( $ ) {
 					} );
 				} );
 			}
-
-			// After initializing a new express checkout button, we need to reset the paymentAborted flag.
-			wcStripeECE.paymentAborted = false;
 		},
 
-		getAttributes: () => {
-			const select = $( '.variations_form' ).find( '.variations select' );
-			const data = {};
-			let count = 0;
-			let chosen = 0;
-
-			select.each( function () {
-				const attributeName =
-					$( this ).data( 'attribute_name' ) ||
-					$( this ).attr( 'name' );
-				const value = $( this ).val() || '';
-
-				if ( value.length > 0 ) {
-					chosen++;
-				}
-
-				count++;
-				data[ attributeName ] = value;
-			} );
-
-			return {
-				count,
-				chosenCount: chosen,
-				data,
-			};
-		},
-
-		getSelectedProductData: () => {
-			let productId = $( '.single_add_to_cart_button' ).val();
-
-			// Check if product is a variable product.
-			if ( $( '.single_variation_wrap' ).length ) {
-				productId = $( '.single_variation_wrap' )
-					.find( 'input[name="product_id"]' )
-					.val();
-			}
-
-			// WC Bookings Support.
-			if ( $( '.wc-bookings-booking-form' ).length ) {
-				productId = $( '.wc-booking-product-id' ).val();
-			}
-
-			const addons =
-				$( '#product-addons-total' ).data( 'price_data' ) || [];
-			const addonValue = addons.reduce(
-				( sum, addon ) => sum + addon.cost,
-				0
-			);
-
-			// WC Deposits Support.
-			const depositObject = {};
-			if ( $( 'input[name=wc_deposit_option]' ).length ) {
-				depositObject.wc_deposit_option = $(
-					'input[name=wc_deposit_option]:checked'
-				).val();
-			}
-			if ( $( 'input[name=wc_deposit_payment_plan]' ).length ) {
-				depositObject.wc_deposit_payment_plan = $(
-					'input[name=wc_deposit_payment_plan]:checked'
-				).val();
-			}
-
-			const data = {
-				product_id: productId,
-				qty: $( quantityInputSelector ).val(),
-				attributes: $( '.variations_form' ).length
-					? wcStripeECE.getAttributes().data
-					: [],
-				addon_value: addonValue,
-				...depositObject,
-			};
-
-			return api.expressCheckoutGetSelectedProductData( data );
-		},
+		getAttributes: () => getSelectedVariationAttributes(),
 
 		/**
-		 * Adds the item to the cart and return cart details.
+		 * Builds the add-to-cart request from the current page state. Also
+		 * serves as the retry-priming key material, so the key cannot drift
+		 * from what reaches the cart.
 		 *
-		 * @return {Promise} Promise for the request to the server.
+		 * @return {{usesLegacyEndpoint: boolean, emptyCartParams: Object, data: Object}}
+		 *         The endpoint routing flag, the empty-cart parameters, and
+		 *         the request body.
 		 */
-		addToCart: async () => {
+		buildAddToCartRequest: () => {
 			let productId = $( '.single_add_to_cart_button' ).val();
 			let emptyCartParams = {};
 
@@ -821,40 +884,58 @@ jQuery( function ( $ ) {
 					  )
 					: null;
 
-				// Clear the cart first (with the booking id) so prior items don't
-				// skew the total, matching the variable/simple path below.
-				await api.expressCheckoutEmptyCartLegacy( emptyCartParams );
-
 				if ( ! bookingConfiguration ) {
 					data.product_id = productId;
 					data.attributes = wcStripeECE.getAttributes().data;
-
-					return api.expressCheckoutAddToCartLegacy( data );
+					return { usesLegacyEndpoint: true, emptyCartParams, data };
 				}
 
 				data.id = productId;
 				data.booking_configuration = bookingConfiguration;
-
-				return api.expressCheckoutAddToCart( data );
+				return { usesLegacyEndpoint: false, emptyCartParams, data };
 			}
 
 			data.id = productId;
 
 			// Variable products: `productId` is the parent id, so pass the chosen
 			// attributes for the Store API to resolve the variation (incl. "any" attributes).
-			data.variation = hasVariationForm
+			data.variation = hasVariationUi
 				? transformVariationAttributesForStoreApi(
 						wcStripeECE.getAttributes().data
 				  )
 				: [];
 
-			// Clear the cart, so items that are currently in it
-			//  do not interfere with computed totals.
-			// Use the non-StoreAPI method as it is faster; Stripe requires
-			// the click event to be resolved within 1 second.
+			return { usesLegacyEndpoint: false, emptyCartParams, data };
+		},
+
+		/**
+		 * Adds the item to the cart and returns cart details.
+		 *
+		 * @param {Object}  request                    The built request; defaults
+		 *                                             to building one from the
+		 *                                             current page state.
+		 * @param {boolean} request.usesLegacyEndpoint Route to the legacy
+		 *                                             endpoint.
+		 * @param {Object}  request.emptyCartParams    Parameters for the cart clear.
+		 * @param {Object}  request.data               The request body.
+		 * @return {Promise} Promise for the request to the server.
+		 */
+		addToCart: async (
+			{
+				usesLegacyEndpoint,
+				emptyCartParams,
+				data,
+			} = wcStripeECE.buildAddToCartRequest()
+		) => {
+			// Clear the cart (with the booking id where applicable), so items
+			// currently in it do not interfere with computed totals. Use the
+			// non-StoreAPI method as it is faster; Stripe requires the click
+			// event to be resolved within 1 second.
 			await api.expressCheckoutEmptyCartLegacy( emptyCartParams );
 
-			return api.expressCheckoutAddToCart( data );
+			return usesLegacyEndpoint
+				? api.expressCheckoutAddToCartLegacy( data )
+				: api.expressCheckoutAddToCart( data );
 		},
 
 		/**
@@ -863,6 +944,10 @@ jQuery( function ( $ ) {
 		 * @param {string} url Order thank you page URL.
 		 */
 		completePayment: ( url ) => {
+			// The redirect takes a beat to land; drop the retry modal so the
+			// shopper sees the page's blocked/loading state instead of a stale
+			// "your order is ready" prompt. No-op when no modal is open.
+			wcStripeECE.closeRetryModal();
 			onCompletePaymentHandler( url );
 			window.location = url;
 		},
@@ -875,6 +960,10 @@ jQuery( function ( $ ) {
 		 */
 		abortPayment: ( payment, message ) => {
 			onAbortPaymentHandler( payment, message );
+			// The error notice renders on the page, which the retry modal's
+			// backdrop would otherwise cover — hand the page back so the
+			// shopper can actually read it. No-op when no modal is open.
+			wcStripeECE.closeRetryModal();
 			displayExpressCheckoutNotice( message, 'error' );
 
 			// The wallet sheet only closes once the confirm event gets a terminal
@@ -883,138 +972,56 @@ jQuery( function ( $ ) {
 			payment.paymentFailed( { reason: 'fail' } );
 		},
 
-		attachProductPageEventListeners: () => {
-			// WooCommerce Deposits support.
-			// Trigger the "woocommerce_variation_has_changed" event when the deposit option is changed.
-			// Needs to be defined before the `woocommerce_variation_has_changed` event handler is set.
-			$(
-				'input[name=wc_deposit_option],input[name=wc_deposit_payment_plan]'
-			)
-				.off( 'change' )
-				.on( 'change', () => {
-					$( 'form' )
-						.has(
-							'input[name=wc_deposit_option],input[name=wc_deposit_payment_plan]'
-						)
-						.trigger( 'woocommerce_variation_has_changed' );
+		/**
+		 * Refreshes the cached product params and the element amount from an
+		 * add-to-cart response. Both shapes are cart-computed: Store API, and
+		 * legacy (`build_display_items()`, amounts already in minor units).
+		 *
+		 * @param {Object} cart The add-to-cart response.
+		 * @return {boolean} Whether cart data was applied; false off product
+		 *                   pages or for unrecognized shapes.
+		 */
+		refreshTotalsFromCart: ( cart ) => {
+			if ( ! getExpressCheckoutData( 'product' ) ) {
+				return false;
+			}
+
+			if ( cart?.totals ) {
+				const amount = transformCartTotalAmount( cart.totals );
+
+				// The selection decides whether an address is needed (a
+				// virtual variation must not prompt), so the cart's verdict
+				// replaces the parent-product flag the page loaded with.
+				if ( typeof cart.needs_shipping === 'boolean' ) {
+					getExpressCheckoutData( 'product' ).requestShipping =
+						cart.needs_shipping;
+				}
+
+				wcStripeECE.refreshTotals( {
+					total: {
+						...getExpressCheckoutData( 'product' ).total,
+						amount,
+						pending: false,
+					},
+					displayItems: transformCartDataForDisplayItems( cart ),
 				} );
+				wcStripeECE.updateExpressCheckoutAmount( amount );
+				return true;
+			}
 
-			$( document.body )
-				.off( 'woocommerce_variation_has_changed' )
-				.on( 'woocommerce_variation_has_changed', () => {
-					if ( isVariationSelectionNeeded() ) {
-						wcStripeECE.hide();
-						return;
-					}
-
-					wcStripeECE.blockExpressCheckoutButton();
-
-					$.when( wcStripeECE.getSelectedProductData() )
-						.then( ( response ) => {
-							if ( response.error ) {
-								wcStripeECE.hide();
-							} else {
-								const isDeposits =
-									wcStripeECE.productHasDepositOption();
-								/**
-								 * If the customer aborted the express checkout,
-								 * we need to re init the express checkout button to ensure the shipping
-								 * options are refetched. If the customer didn't abort the express checkout,
-								 * and the product's shipping status is consistent,
-								 * we can simply update the express checkout button with the new total and display items.
-								 */
-								const needsShipping =
-									! wcStripeECE.paymentAborted &&
-									getExpressCheckoutData( 'product' )
-										.requestShipping ===
-										response.requestShipping;
-
-								if ( ! isDeposits && needsShipping ) {
-									// Refresh stored items so the click breakdown matches this variation.
-									wcStripeECE.refreshTotals( response );
-									wcStripeECE.updateExpressCheckoutAmount(
-										response.total.amount
-									);
-								} else {
-									wcStripeECE.reInitExpressCheckoutElement(
-										response
-									);
-								}
-
-								wcStripeECE.show();
-							}
-						} )
-						.catch( () => {
-							wcStripeECE.hide();
-						} )
-						.always( () => {
-							wcStripeECE.unblockExpressCheckoutButton();
-						} );
+			if ( typeof cart?.total?.amount === 'number' ) {
+				// Legacy shape (bookings and their fallbacks). The labeled
+				// display items normalize at resolve time; no shipping flag
+				// is carried, so the creation-time one stands.
+				wcStripeECE.refreshTotals( {
+					total: { ...cart.total, pending: false },
+					displayItems: cart.displayItems ?? [],
 				} );
+				wcStripeECE.updateExpressCheckoutAmount( cart.total.amount );
+				return true;
+			}
 
-			$( document.body )
-				.off( 'woocommerce_update_variation_values' )
-				.on( 'woocommerce_update_variation_values', () => {
-					if ( isVariationSelectionNeeded() ) {
-						wcStripeECE.hide();
-					}
-				} );
-
-			$( '.quantity' )
-				.off( 'input', '.qty' )
-				.on(
-					'input',
-					'.qty',
-					debounce( () => {
-						wcStripeECE.blockExpressCheckoutButton();
-						wcStripeECEError = '';
-
-						$.when( wcStripeECE.getSelectedProductData() )
-							.then(
-								( response ) => {
-									// In case the server returns an unexpected response
-									if ( typeof response !== 'object' ) {
-										wcStripeECEError = defaultErrorMessage;
-									}
-
-									if (
-										! wcStripeECE.paymentAborted &&
-										getExpressCheckoutData( 'product' )
-											.requestShipping ===
-											response.requestShipping
-									) {
-										// Refresh stored items so the click breakdown matches the new qty.
-										wcStripeECE.refreshTotals( response );
-										wcStripeECE.updateExpressCheckoutAmount(
-											response.total.amount
-										);
-									} else {
-										wcStripeECE.reInitExpressCheckoutElement(
-											response
-										);
-									}
-								},
-								( response ) => {
-									if ( response.responseJSON ) {
-										wcStripeECEError =
-											response.responseJSON.error;
-									} else {
-										wcStripeECEError = defaultErrorMessage;
-									}
-								}
-							)
-							.always( function () {
-								wcStripeECE.unblockExpressCheckoutButton();
-							} );
-					}, 250 )
-				);
-		},
-
-		reInitExpressCheckoutElement: ( response ) => {
-			getExpressCheckoutData( 'product' ).requestShipping =
-				response.requestShipping;
-			wcStripeECE.refreshTotals( response );
-			wcStripeECE.init();
+			return false;
 		},
 
 		// Keep the cached product breakdown in sync with the latest server response so the
@@ -1033,6 +1040,245 @@ jQuery( function ( $ ) {
 			( wcStripeECE.expressCheckoutElements ?? [] ).forEach(
 				( elements ) => elements.update( { amount } )
 			);
+		},
+
+		// ---- Retry modal for a timed-out express click. ----
+		// Wallet sheets only open from a genuine gesture on a Stripe-rendered
+		// button (ECE has no programmatic show()), so the modal's CTA must be
+		// a real express-checkout button mounted inside the modal, restricted
+		// to the wallet the shopper originally clicked. Its click re-enters
+		// handleProductPageECEButtonClick and resolves instantly off the
+		// primed cartSelectionKey.
+
+		// The <dialog> node while the modal is open, else null.
+		retryModal: null,
+
+		// The { elements, eceButton } pair mounted inside the modal, so its
+		// group can be released on close instead of accumulating across
+		// repeated timeouts.
+		retryModalElement: null,
+
+		// While Stripe is confirming, the modal must not close: removing it
+		// would detach the active element's frame mid-payment.
+		isRetryModalProcessing: false,
+
+		retryModalPart: ( className ) =>
+			wcStripeECE.retryModal?.querySelector( `.${ className }` ),
+
+		showRetryModal: () => {
+			wcStripeECE.closeRetryModal();
+
+			const dialog = document.createElement( 'dialog' );
+			dialog.id = 'wc-stripe-ece-retry-modal';
+			dialog.className = 'wc-stripe-ece-retry-modal';
+			dialog.setAttribute(
+				'aria-labelledby',
+				'wc-stripe-ece-retry-modal-title'
+			);
+
+			const close = document.createElement( 'button' );
+			close.type = 'button';
+			close.className = 'wc-stripe-ece-retry-modal__close';
+			close.setAttribute(
+				'aria-label',
+				__( 'Close', 'woocommerce-gateway-stripe' )
+			);
+			close.textContent = '×';
+			close.addEventListener( 'click', () =>
+				wcStripeECE.closeRetryModal()
+			);
+
+			const title = document.createElement( 'h2' );
+			title.id = 'wc-stripe-ece-retry-modal-title';
+			title.className = 'wc-stripe-ece-retry-modal__title';
+			title.textContent = __(
+				'Preparing your payment…',
+				'woocommerce-gateway-stripe'
+			);
+
+			const message = document.createElement( 'p' );
+			message.className = 'wc-stripe-ece-retry-modal__message';
+			message.textContent = __(
+				'This is taking a little longer than usual. Hang tight while we get your order ready.',
+				'woocommerce-gateway-stripe'
+			);
+
+			const spinner = document.createElement( 'div' );
+			spinner.className = 'wc-stripe-ece-retry-modal__spinner';
+
+			const buttonHost = document.createElement( 'div' );
+			buttonHost.id = 'wc-stripe-ece-retry-modal-button';
+			buttonHost.className = 'wc-stripe-ece-retry-modal__button';
+
+			dialog.append( close, title, message, spinner, buttonHost );
+
+			// Esc closes via the dialog's native cancel event; block it only
+			// while a confirmation is in flight.
+			dialog.addEventListener( 'cancel', ( cancelEvent ) => {
+				if ( wcStripeECE.isRetryModalProcessing ) {
+					cancelEvent.preventDefault();
+					return;
+				}
+				wcStripeECE.retryModal = null;
+				dialog.remove();
+			} );
+
+			document.body.appendChild( dialog );
+			// showModal() puts the dialog in the top layer (above any theme
+			// z-index) with focus trapping; jsdom either lacks it or stubs it
+			// to throw, so fall back to the open attribute there.
+			try {
+				dialog.showModal();
+			} catch ( e ) {
+				dialog.setAttribute( 'open', '' );
+			}
+
+			wcStripeECE.retryModal = dialog;
+			wcStripeECE.isRetryModalProcessing = false;
+		},
+
+		closeRetryModal: () => {
+			const dialog =
+				wcStripeECE.retryModal ??
+				document.getElementById( 'wc-stripe-ece-retry-modal' );
+			wcStripeECE.retryModal = null;
+			wcStripeECE.isRetryModalProcessing = false;
+
+			const created = wcStripeECE.retryModalElement;
+			wcStripeECE.retryModalElement = null;
+			if ( created ) {
+				const groups = wcStripeECE.expressCheckoutElements ?? [];
+				const index = groups.indexOf( created.elements );
+				if ( index !== -1 ) {
+					groups.splice( index, 1 );
+				}
+				// Terminal events settle asynchronously (paymentFailed()
+				// rejects an internal promise after this call stack), so give
+				// Stripe the current task before tearing the element down.
+				setTimeout( () => {
+					try {
+						created.eceButton.destroy();
+					} catch ( e ) {
+						// Already destroyed with its DOM subtree.
+					}
+				} );
+			}
+
+			if ( ! dialog ) {
+				return;
+			}
+			// close() restores focus to the element focused before showModal().
+			if ( dialog.open && typeof dialog.close === 'function' ) {
+				dialog.close();
+			}
+			dialog.remove();
+		},
+
+		setRetryModalReady: ( clickedExpressPaymentType ) => {
+			// The shopper closed the modal while waiting; the primed
+			// cartSelectionKey still makes the main button resolve instantly.
+			if ( ! wcStripeECE.retryModal ) {
+				return;
+			}
+
+			const settingType =
+				EXPRESS_PAYMENT_TYPE_TO_SETTING[ clickedExpressPaymentType ];
+
+			if ( ! settingType ) {
+				wcStripeECE.setRetryModalError(
+					__(
+						'This payment method is unavailable. Please try again.',
+						'woocommerce-gateway-stripe'
+					)
+				);
+				return;
+			}
+
+			wcStripeECE.retryModalPart(
+				'wc-stripe-ece-retry-modal__spinner'
+			).style.display = 'none';
+			wcStripeECE.retryModalPart(
+				'wc-stripe-ece-retry-modal__title'
+			).textContent = __(
+				'Your order is ready',
+				'woocommerce-gateway-stripe'
+			);
+			wcStripeECE.retryModalPart(
+				'wc-stripe-ece-retry-modal__message'
+			).textContent = __(
+				'Tap the button below to complete your purchase.',
+				'woocommerce-gateway-stripe'
+			);
+
+			const product = getExpressCheckoutData( 'product' );
+			wcStripeECE.retryModalElement =
+				wcStripeECE.createExpressCheckoutElement(
+					settingType,
+					{
+						total: product.total.amount,
+						currency: product.currency,
+						requestShipping: product.requestShipping ?? false,
+						requestPhone:
+							getExpressCheckoutData( 'checkout' )
+								?.needs_payer_phone ?? false,
+						displayItems: product.displayItems,
+						shippingRates: product.shippingOptions ?? [],
+					},
+					'#wc-stripe-ece-retry-modal-button'
+				);
+		},
+
+		setRetryModalProcessing: () => {
+			if ( ! wcStripeECE.retryModal ) {
+				return;
+			}
+			wcStripeECE.isRetryModalProcessing = true;
+			wcStripeECE.retryModalPart(
+				'wc-stripe-ece-retry-modal__spinner'
+			).style.display = '';
+			wcStripeECE.retryModalPart(
+				'wc-stripe-ece-retry-modal__title'
+			).textContent = __(
+				'Processing your payment…',
+				'woocommerce-gateway-stripe'
+			);
+			wcStripeECE.retryModalPart(
+				'wc-stripe-ece-retry-modal__message'
+			).textContent = '';
+			// Keep the element mounted — Stripe may still need its frame to
+			// finish the confirmation — but take it out of sight, and remove
+			// the close button so the shopper cannot detach it either.
+			const buttonHost = wcStripeECE.retryModalPart(
+				'wc-stripe-ece-retry-modal__button'
+			);
+			buttonHost.style.visibility = 'hidden';
+			buttonHost.style.height = '0';
+			buttonHost.style.minHeight = '0';
+			wcStripeECE.retryModalPart(
+				'wc-stripe-ece-retry-modal__close'
+			).style.display = 'none';
+		},
+
+		setRetryModalError: ( message ) => {
+			if ( ! wcStripeECE.retryModal ) {
+				return;
+			}
+			wcStripeECE.isRetryModalProcessing = false;
+			wcStripeECE.retryModalPart(
+				'wc-stripe-ece-retry-modal__spinner'
+			).style.display = 'none';
+			wcStripeECE.retryModalPart(
+				'wc-stripe-ece-retry-modal__close'
+			).style.display = '';
+			wcStripeECE.retryModalPart(
+				'wc-stripe-ece-retry-modal__title'
+			).textContent = __(
+				'Something went wrong',
+				'woocommerce-gateway-stripe'
+			);
+			wcStripeECE.retryModalPart(
+				'wc-stripe-ece-retry-modal__message'
+			).textContent = message;
 		},
 
 		blockExpressCheckoutButton: () => {

@@ -26,14 +26,16 @@ export const assertLinkModalLoads = async ( page, isBlockPage = false ) => {
 	let popup;
 	await expect( async () => {
 		[ popup ] = await Promise.all( [
-			context.waitForEvent( 'page', { timeout: 10 * 1000 } ),
+			context.waitForEvent( 'page', { timeout: 5 * 1000 } ),
 			linkButton.click(),
 		] );
 	} ).toPass( { timeout: 45 * 1000 } );
 
-	await popup.waitForLoadState();
-
+	// No waitForLoadState: the pay-button expectation already polls until
+	// the popup has rendered far enough to assert on.
 	await expect( popup.getByTestId( 'pay-button' ) ).toBeVisible( {
 		timeout: 60 * 1000,
 	} );
+
+	return popup;
 };
