@@ -1072,14 +1072,14 @@ const getOCPaymentFrame = async ( page, iframeSelector, timeout = 10000 ) => {
 };
 
 /**
- * Fill in the payment details for Optimized Checkout (OC).
+ * Ensure the Card method is the one selected in the Optimized Checkout (OC)
+ * payment element, and return the element's iframe.
  *
  * @param {Page} page Playwright page fixture.
- * @param {Object} card The CC info in the format provided on the test-data.
  * @param {string} checkoutType The type of checkout ('blocks' or 'shortcode').
+ * @returns {Promise<FrameLocator>} The OC payment element frame.
  */
-export const fillOCDetails = async ( page, card, checkoutType = 'blocks' ) => {
-	// Determine the appropriate iframe selector based on checkout type
+export const selectOCCardMethod = async ( page, checkoutType = 'blocks' ) => {
 	const iframeSelector =
 		checkoutType === 'blocks'
 			? '#radio-control-wc-payment-method-options-stripe__content iframe[name^="__privateStripeFrame"]'
@@ -1087,7 +1087,10 @@ export const fillOCDetails = async ( page, card, checkoutType = 'blocks' ) => {
 
 	const paymentFrame = await getOCPaymentFrame( page, iframeSelector );
 
-	// Expand the Card accordion row if its fields are not showing yet.
+	// Expand the Card accordion row if its fields are not showing yet. The
+	// element's initial selection follows Stripe's own ranking and is not
+	// guaranteed to be Card, so callers asserting card-specific behavior must
+	// select it explicitly rather than rely on the default.
 	if ( ! ( await paymentFrame.locator( '[name="number"]' ).isVisible() ) ) {
 		await paymentFrame
 			.locator(
@@ -1096,6 +1099,19 @@ export const fillOCDetails = async ( page, card, checkoutType = 'blocks' ) => {
 			.first()
 			.click();
 	}
+
+	return paymentFrame;
+};
+
+/**
+ * Fill in the payment details for Optimized Checkout (OC).
+ *
+ * @param {Page} page Playwright page fixture.
+ * @param {Object} card The CC info in the format provided on the test-data.
+ * @param {string} checkoutType The type of checkout ('blocks' or 'shortcode').
+ */
+export const fillOCDetails = async ( page, card, checkoutType = 'blocks' ) => {
+	const paymentFrame = await selectOCCardMethod( page, checkoutType );
 
 	// Fill in test card details
 	await paymentFrame.locator( '[name="number"]' ).fill( card.number );
