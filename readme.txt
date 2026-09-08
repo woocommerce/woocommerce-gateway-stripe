@@ -162,6 +162,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 11.0.0 - xxxx-xx-xx =
+* Fix - Preselect the customer's default saved Stripe payment method in Blocks checkout
 * Fix - Allow express checkout payments when a wallet provides a one-word shipping name
 * Add - Show a placement simulator on each Customize express checkouts tab that previews where the express checkout button would and wouldn't appear, with the reason
 * Tweak - Dim the button size hint on the Amazon Pay and Link customize tabs so it matches the Apple Pay/Google Pay tab
