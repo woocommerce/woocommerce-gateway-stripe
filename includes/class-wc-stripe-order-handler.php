@@ -322,7 +322,10 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
+		// Require 'edit' mode so we get the raw, unfiltered payment method.
+		$payment_method = $order->get_payment_method( 'edit' );
+
+		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $payment_method ) ) {
 			$charge             = $order->get_transaction_id();
 			$is_stripe_captured = false;
 
@@ -360,6 +363,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 						}
 					} elseif ( WC_Stripe_Intent_Status::SUCCEEDED === $intent->status ) {
 						$is_stripe_captured = true;
+						$result             = $this->get_latest_charge_from_intent( $intent );
 					}
 				} else {
 					// The order doesn't have a Payment Intent, fall back to capturing the Charge directly
