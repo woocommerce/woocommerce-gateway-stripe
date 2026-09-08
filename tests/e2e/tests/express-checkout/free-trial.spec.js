@@ -7,18 +7,12 @@ const { addSubscriptionToCart, emptyCart } = payments;
 let virtualProductId;
 let physicalProductId;
 
-// Free trial carts total 0 at checkout time, which normally hides express
-// checkout; free trials are the deliberate exception (the element is created
-// with mode: 'subscription' and amount: 0). These tests assert the Link button
-// renders on the cart/checkout surfaces for both a virtual (no shipping) and a
-// physical (needs shipping) free-trial product, since a regression there
-// silently removes the buttons. They only cover that the button appears — the
-// shipping-address code path (the same code as #5889) runs after Link login and
-// is covered by the enrollment tests in free-trial-link.spec.js.
-//
-// The product page is asserted hidden rather than driven: these are APFS
-// (subscribe-and-save) products, and APFS intentionally suppresses express
-// checkout on the product page.
+// Free-trial carts total 0, which normally hides express checkout; free
+// trials are the deliberate exception. These tests only assert the Link
+// button renders on the cart/checkout surfaces (virtual + physical) — the
+// post-login shipping path is covered in free-trial-link.spec.js. The
+// product page is asserted hidden instead: APFS suppresses express checkout
+// there.
 test.describe( 'express checkout with free trial subscriptions', () => {
 	test.beforeAll( async () => {
 		virtualProductId = await createFreeTrialProduct( { virtual: true } );
