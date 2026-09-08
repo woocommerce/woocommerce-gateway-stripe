@@ -81,11 +81,65 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	public function initialize() {
 		$this->settings = WC_Stripe_Helper::get_stripe_settings();
 
+		add_filter( 'woocommerce_hydration_request_after_callbacks', [ $this, 'clear_hydrated_payment_method_for_default_token' ], 10, 3 );
+
 		// Hooks to manually enqueue the block CSS, as WooCommerce doesn't have an API for styles.
 		add_filter( 'render_block_woocommerce/checkout', [ $this, 'maybe_enqueue_blocks_style' ] );
 		add_filter( 'render_block_woocommerce/cart', [ $this, 'maybe_enqueue_blocks_style' ] );
 		// Note that this is hooked at priority 20 so we run after WooCommerce has registered and enqueued the Cart and Checkout editor scripts.
 		add_action( 'enqueue_block_editor_assets', [ $this, 'maybe_enqueue_blocks_style_for_editor' ], 20 );
+	}
+
+	/**
+	 * Lets Blocks select the default Stripe token instead of the first Stripe token.
+	 *
+	 * @param mixed $response Hydrated Store API response.
+	 * @param mixed $handler  Store API route handler.
+	 * @param mixed $request  Store API request.
+	 *
+	 * @return mixed
+	 */
+	public function clear_hydrated_payment_method_for_default_token( $response, $handler, $request ) {
+		if (
+			! $response instanceof WP_REST_Response
+			|| ! $request instanceof WP_REST_Request
+			|| '/wc/store/v1/checkout' !== $request->get_route()
+			|| ! is_user_logged_in()
+		) {
+			return $response;
+		}
+
+		$data = $response->get_data();
+		if (
+			! is_array( $data )
+			|| ! in_array( $data['payment_method'] ?? null, WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true )
+		) {
+			return $response;
+		}
+
+		$default_token = WC_Payment_Tokens::get_customer_default_token( get_current_user_id() );
+		if ( ! $default_token instanceof WC_Payment_Token ) {
+			return $response;
+		}
+
+		$gateway_id = $default_token->get_gateway_id();
+		if ( ! in_array( $gateway_id, WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true ) ) {
+			return $response;
+		}
+
+		$main_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		if ( $main_gateway instanceof WC_Stripe_UPE_Payment_Gateway && $main_gateway->is_optimized_checkout_active() ) {
+			$gateway_id = WC_Stripe_UPE_Payment_Gateway::ID;
+		}
+
+		if ( ( $data['payment_method'] ?? null ) !== $gateway_id ) {
+			return $response;
+		}
+
+		$data['payment_method'] = '';
+		$response->set_data( $data );
+
+		return $response;
 	}
 
 	/**
