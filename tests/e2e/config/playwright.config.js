@@ -31,10 +31,9 @@ const config = {
 	// Folder for test artifacts such as screenshots, videos, traces, etc
 	outputDir: '../test-results/output',
 
-	/* Retry on CI only */
-	retries: CI ? 3 : 0,
+	retries: 3,
 
-	workers: 5,
+	workers: CI ? 5 : undefined,
 
 	// Reporter to use. See https://playwright.dev/docs/test-reporters
 	reporter: [
