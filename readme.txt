@@ -166,6 +166,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 **Important Fixes and Updates**
 
 * Add - Show a placement simulator on each Customize express checkouts tab that previews where the express checkout button would and wouldn't appear, with the reason
+* Add - Log an error when missing required custom fields block express checkout, with a filter to disable the log
 * Fix - Clear the shopper's cart after a redirect payment method (e.g. Amazon Pay on mobile) completes in a different browser context, preventing duplicate orders
 * Fix - Render classic-checkout card fields when a host optimizer defers render-blocking JavaScript (e.g. SiteGround Speed Optimizer)
 * Fix - Load a single instance of Stripe.js per page
