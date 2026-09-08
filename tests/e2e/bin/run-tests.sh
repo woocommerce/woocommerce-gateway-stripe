@@ -54,4 +54,14 @@ if [[ "adaptive-pricing" == "$project" ]]; then
 	cli sh -c "mkdir -p /var/www/html/wp-content/mu-plugins && cp /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/env/mu-plugins/wc-stripe-e2e-location-simulation.php /var/www/html/wp-content/mu-plugins/"
 fi
 
+# The delegated-checkout hook specs POST signed events directly to the webhook
+# endpoint, so the store needs the feature enabled, a known signing secret, and
+# a deterministic flat-rate cost for the shipping-options assertions.
+if [[ "agentic" == "$project" ]]; then
+	echo "Seeding Agentic Commerce prerequisites"
+	cli wp option update _wcstripe_feature_agentic_commerce yes
+	cli wp option update wc_stripe_agentic_commerce_webhook_secret whsec_e2e_agentic
+	cli wp option update woocommerce_flat_rate_1_settings --format=json '{"title":"Flat rate","tax_status":"taxable","cost":"10.00"}'
+fi
+
 cross-env $TEST_ENV playwright test --config=tests/e2e/config/playwright.config.js $TEST_ARGS ${project:+--project=$project}
