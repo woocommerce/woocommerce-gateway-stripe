@@ -2,6 +2,7 @@
 use Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType;
 use Automattic\WooCommerce\StoreApi\Payments\PaymentResult;
 use Automattic\WooCommerce\StoreApi\Payments\PaymentContext;
+use Automattic\WooCommerce\StoreApi\Utilities\PaymentUtils;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -91,7 +92,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	}
 
 	/**
-	 * Lets Blocks select the default Stripe token instead of the first Stripe token.
+	 * Lets Blocks select the visible default Stripe token instead of an earlier token for the same gateway.
 	 *
 	 * @param mixed $response Hydrated Store API response.
 	 * @param mixed $handler  Store API route handler.
@@ -117,27 +118,40 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			return $response;
 		}
 
-		$default_token = WC_Payment_Tokens::get_customer_default_token( get_current_user_id() );
-		if ( ! $default_token instanceof WC_Payment_Token ) {
+		$saved_payment_methods = PaymentUtils::get_saved_payment_methods();
+		$enabled_methods       = $saved_payment_methods['enabled'] ?? null;
+		if ( ! is_array( $enabled_methods ) ) {
 			return $response;
 		}
 
-		$gateway_id = $default_token->get_gateway_id();
-		if ( ! in_array( $gateway_id, WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true ) ) {
-			return $response;
-		}
+		$has_earlier_gateway_token = false;
+		foreach ( $enabled_methods as $methods ) {
+			if ( ! is_array( $methods ) ) {
+				continue;
+			}
 
-		$main_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
-		if ( $main_gateway instanceof WC_Stripe_UPE_Payment_Gateway && $main_gateway->is_optimized_checkout_active() ) {
-			$gateway_id = WC_Stripe_UPE_Payment_Gateway::ID;
-		}
+			foreach ( $methods as $method ) {
+				if (
+					! is_array( $method )
+					|| ( $method['method']['gateway'] ?? null ) !== $data['payment_method']
+				) {
+					continue;
+				}
 
-		if ( ( $data['payment_method'] ?? null ) !== $gateway_id ) {
-			return $response;
-		}
+				if ( true === ( $method['is_default'] ?? null ) ) {
+					if ( ! $has_earlier_gateway_token ) {
+						return $response;
+					}
 
-		$data['payment_method'] = '';
-		$response->set_data( $data );
+					$data['payment_method'] = '';
+					$response->set_data( $data );
+
+					return $response;
+				}
+
+				$has_earlier_gateway_token = true;
+			}
+		}
 
 		return $response;
 	}
