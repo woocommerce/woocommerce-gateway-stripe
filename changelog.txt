@@ -48,6 +48,7 @@ xxxx-xx-xx - version 11.0.0
 * Fix - Prevent dropped webhooks, double processing, and skipped pre-order handling when requests race for the order payment lock
 * Add - Log an error when missing required custom fields block express checkout, with a filter to disable the log
 * Fix - Stop two requests from reclaiming the same expired Optimized Checkout or Agentic Commerce sync lock
+* Fix - Keep the order notes a customer typed in the classic checkout when account creation and a failed Stripe payment reload the page
 
 2026-08-31 - version 10.9.1
 * Fix - Allow express checkout payments when automatic account password generation is disabled
