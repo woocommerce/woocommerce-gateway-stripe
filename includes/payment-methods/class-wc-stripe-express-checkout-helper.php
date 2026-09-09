@@ -1233,6 +1233,10 @@ class WC_Stripe_Express_Checkout_Helper {
 	/**
 	 * Gets shipping options available for specified shipping address
 	 *
+	 * Since 11.0.0, this method no longer defines the WOOCOMMERCE_CART constant;
+	 * callers are responsible for defining it when they need this to run in a
+	 * WooCommerce cart context.
+	 *
 	 * @param array   $shipping_address       Shipping address.
 	 * @param boolean $itemized_display_items Indicates whether to show subtotals or itemized views.
 	 *
@@ -1772,6 +1776,10 @@ class WC_Stripe_Express_Checkout_Helper {
 	/**
 	 * Builds the line items to pass to express checkout elements.
 	 *
+	 * Since 11.0.0, this method no longer defines the WOOCOMMERCE_CART constant;
+	 * callers are responsible for defining it when they need this to run in a
+	 * WooCommerce cart context.
+	 *
 	 * @param bool $itemized_display_items Whether to include itemized display items.
 	 *
 	 * @return array {
@@ -1788,9 +1796,9 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * }
 	 */
 	public function build_display_items( $itemized_display_items = false ) {
-		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
-			define( 'WOOCOMMERCE_CART', true );
-		}
+		// Don't define WOOCOMMERCE_CART here: this also runs on full checkout page
+		// renders, where the constant would flip is_cart() to true. The ECE AJAX
+		// entry points define it themselves.
 
 		/**
 		 * Filters whether Express Checkout itemization should be hidden.

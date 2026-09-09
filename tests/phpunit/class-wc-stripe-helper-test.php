@@ -47,6 +47,105 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test for `get_external_link_open_tag`.
+	 *
+	 * @param string $url       The URL to link to.
+	 * @param string $css_class The CSS class for the anchor.
+	 * @param string $title     The title for the anchor.
+	 * @param string $expected  The expected opening tag.
+	 * @return void
+	 * @dataProvider provide_get_external_link_open_tag
+	 */
+	public function test_get_external_link_open_tag( string $url, string $css_class, string $title, string $expected ) {
+		$this->assertSame( $expected, WC_Stripe_Helper::get_external_link_open_tag( $url, $css_class, $title ) );
+	}
+
+	/**
+	 * Data provider for `test_get_external_link_open_tag`.
+	 *
+	 * @return array
+	 */
+	public function provide_get_external_link_open_tag(): array {
+		return [
+			'plain URL'                  => [
+				'https://dashboard.stripe.com/payments/pi_123',
+				'',
+				'',
+				'<a href="https://dashboard.stripe.com/payments/pi_123" target="_blank" rel="noopener noreferrer">',
+			],
+			'URL with a class'           => [
+				'https://dashboard.stripe.com/account/payments/settings',
+				'button',
+				'',
+				'<a href="https://dashboard.stripe.com/account/payments/settings" class="button" target="_blank" rel="noopener noreferrer">',
+			],
+			'URL with a title'           => [
+				'https://dashboard.stripe.com/account/payments/settings',
+				'',
+				'Stripe Dashboard',
+				'<a href="https://dashboard.stripe.com/account/payments/settings" title="Stripe Dashboard" target="_blank" rel="noopener noreferrer">',
+			],
+			'URL with a class and title' => [
+				'https://dashboard.stripe.com/account/payments/settings',
+				'button',
+				'Stripe Dashboard',
+				'<a href="https://dashboard.stripe.com/account/payments/settings" class="button" title="Stripe Dashboard" target="_blank" rel="noopener noreferrer">',
+			],
+			// esc_url() encodes "&" as "&#038;" and drops unsupported protocols entirely.
+			'URL with a query'           => [
+				'https://dashboard.stripe.com/logs/req_123?t=1&span=2',
+				'',
+				'',
+				'<a href="https://dashboard.stripe.com/logs/req_123?t=1&#038;span=2" target="_blank" rel="noopener noreferrer">',
+			],
+			'javascript: scheme'         => [
+				'javascript:alert(1)',
+				'',
+				'',
+				'<a href="" target="_blank" rel="noopener noreferrer">',
+			],
+		];
+	}
+
+	/**
+	 * Test for `get_external_link`.
+	 *
+	 * @param string $url      The URL to link to.
+	 * @param string $text     The link text.
+	 * @param string $expected The expected anchor.
+	 * @return void
+	 * @dataProvider provide_get_external_link
+	 */
+	public function test_get_external_link( string $url, string $text, string $expected ) {
+		$this->assertSame( $expected, WC_Stripe_Helper::get_external_link( $url, $text ) );
+	}
+
+	/**
+	 * Data provider for `test_get_external_link`.
+	 *
+	 * @return array
+	 */
+	public function provide_get_external_link(): array {
+		return [
+			'text defaults to the URL'   => [
+				'https://dashboard.stripe.com/logs/req_123?t=1&span=2',
+				'',
+				'<a href="https://dashboard.stripe.com/logs/req_123?t=1&#038;span=2" target="_blank" rel="noopener noreferrer">https://dashboard.stripe.com/logs/req_123?t=1&amp;span=2</a>',
+			],
+			'custom text is escaped'     => [
+				'https://dashboard.stripe.com/customers/cus_123',
+				'<b>Stripe</b> customer page',
+				'<a href="https://dashboard.stripe.com/customers/cus_123" target="_blank" rel="noopener noreferrer">&lt;b&gt;Stripe&lt;/b&gt; customer page</a>',
+			],
+			'existing entities are kept' => [
+				'https://dashboard.stripe.com/customers/cus_123',
+				'Stripe customer page &rarr;',
+				'<a href="https://dashboard.stripe.com/customers/cus_123" target="_blank" rel="noopener noreferrer">Stripe customer page &rarr;</a>',
+			],
+		];
+	}
+
+	/**
 	 * Test for `is_valid_stripe_id`.
 	 *
 	 * @param mixed             $id       The value to validate.
