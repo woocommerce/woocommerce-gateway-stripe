@@ -264,6 +264,9 @@ class WC_Stripe {
 			$checkout_session_lifecycle = new WC_Stripe_Checkout_Session_Lifecycle();
 			$checkout_session_lifecycle->init_classic_hooks();
 			WC_Stripe_Checkout_Session_Context::init_hooks();
+
+			$checkout_customer_note = new WC_Stripe_Checkout_Customer_Note();
+			$checkout_customer_note->init_hooks();
 		}
 
 		if ( is_admin() ) {
