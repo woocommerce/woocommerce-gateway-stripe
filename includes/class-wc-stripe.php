@@ -264,6 +264,15 @@ class WC_Stripe {
 			$checkout_session_lifecycle = new WC_Stripe_Checkout_Session_Lifecycle();
 			$checkout_session_lifecycle->init_classic_hooks();
 			WC_Stripe_Checkout_Session_Context::init_hooks();
+
+			if (
+				class_exists( 'Automattic\WooCommerce\Enums\FinanceDataSource' )
+				&& interface_exists( 'Automattic\WooCommerce\Admin\Payments\Finance\FinanceDataProviderInterface' )
+				&& interface_exists( 'Automattic\WooCommerce\Admin\Payments\Finance\BalanceProviderInterface' )
+				&& interface_exists( 'Automattic\WooCommerce\Admin\Payments\Finance\PayoutsProviderInterface' )
+			) {
+				( new WC_Stripe_Finance_Data_Provider() )->register_hooks();
+			}
 		}
 
 		if ( is_admin() ) {
