@@ -38,29 +38,53 @@ export const openLinkPopup = async ( page, isBlockPage = false ) => {
 			await expect( linkButton ).toBeVisible( { timeout: 15 * 1000 } );
 			await expect( linkButton ).toBeEnabled( { timeout: 5 * 1000 } );
 
+			// A single waiter spans both clicks below, so a popup that opens
+			// late — between or after the clicks — is never missed.
+			let popupError;
+			const popupPromise = context
+				.waitForEvent( 'page', { timeout: 24 * 1000 } )
+				.catch( ( error ) => {
+					popupError = error;
+					return null;
+				} );
+
 			// The first click is silently ignored when Playwright's
 			// scroll-into-view outpaces Stripe's iframe position re-sync, so
-			// allow a second one. The click timeout stays below the popup
-			// wait so an unfinished click can't outlive its own popup window
-			// and land on a later page state.
+			// click a second time if the popup hasn't appeared shortly after
+			// the first.
 			let lastClickError;
-			for ( let click = 0; click < 2; click++ ) {
+			try {
+				await linkButton.click( { timeout: 5 * 1000 } );
+			} catch ( error ) {
+				lastClickError = error;
+			}
+
+			let secondClickTimer;
+			const secondClickDelay = new Promise( ( resolve ) => {
+				secondClickTimer = setTimeout( resolve, 10 * 1000 );
+			} );
+			const earlyPopup = await Promise.race( [
+				popupPromise,
+				secondClickDelay,
+			] );
+			clearTimeout( secondClickTimer );
+
+			if ( ! earlyPopup ) {
 				try {
-					const [ newPage ] = await Promise.all( [
-						context.waitForEvent( 'page', {
-							timeout: 12 * 1000,
-						} ),
-						linkButton.click( { timeout: 5 * 1000 } ),
-					] );
-					return newPage;
+					await linkButton.click( { timeout: 5 * 1000 } );
 				} catch ( error ) {
 					lastClickError = error;
 				}
 			}
-			throw new Error(
-				'The Link button was clicked but its popup did not open.',
-				{ cause: lastClickError }
-			);
+
+			const newPage = await popupPromise;
+			if ( ! newPage ) {
+				throw new Error(
+					'The Link button was clicked but its popup did not open.',
+					{ cause: lastClickError ?? popupError }
+				);
+			}
+			return newPage;
 		},
 		{ maxRetries: 1 }
 	);
