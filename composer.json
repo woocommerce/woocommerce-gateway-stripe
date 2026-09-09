@@ -35,6 +35,7 @@
         "includes/admin/class-wc-rest-stripe-exit-survey-controller.php",
         "includes/admin/class-wc-stripe-plugins-page-controller.php",
         "includes/admin/class-wc-stripe-rest-balance-controller.php",
+        "includes/admin/class-wc-stripe-rest-disputes-controller.php",
         "includes/admin/class-wc-stripe-rest-payment-intents-controller.php",
         "includes/admin/class-wc-stripe-rest-payouts-controller.php",
         "includes/admin/class-wc-stripe-rest-response-filter.php",
