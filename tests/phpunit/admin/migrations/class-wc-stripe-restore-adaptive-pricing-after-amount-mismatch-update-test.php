@@ -49,7 +49,7 @@ class WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update_Test exten
 	public function test_migration_scenarios( $previous_version, ?string $mismatch_marker, ?string $migration_flag, string $adaptive_pricing, string $expected_adaptive_pricing, $expected_marker, $expected_migration_flag, bool $expect_log ): void {
 		$migration_flag_option = $this->get_migration_flag_option_name();
 		add_option(
-			WC_Stripe_Helper::SETTINGS_OPTION,
+			WC_Stripe::SETTINGS_OPTION_NAME,
 			[
 				'adaptive_pricing'           => $adaptive_pricing,
 				'logging'                    => 'yes',
@@ -86,7 +86,7 @@ class WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update_Test exten
 		$migration = new WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update();
 		$migration->maybe_migrate( $previous_version );
 
-		$stored_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stored_settings = WC_Stripe::get_instance()->get_settings();
 
 		$this->assertSame( $expected_adaptive_pricing, $stored_settings['adaptive_pricing'] );
 		$this->assertSame( 'yes', $stored_settings['pmc_enabled'], 'Unrelated settings must survive the migration.' );
@@ -179,7 +179,7 @@ class WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update_Test exten
 	 */
 	public function test_failed_settings_write_remains_retryable(): void {
 		add_option(
-			WC_Stripe_Helper::SETTINGS_OPTION,
+			WC_Stripe::SETTINGS_OPTION_NAME,
 			[
 				'adaptive_pricing' => 'no',
 				'logging'          => 'yes',
@@ -204,7 +204,7 @@ class WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update_Test exten
 			remove_filter( 'pre_update_option_woocommerce_stripe_settings', $prevent_ap_restore, PHP_INT_MAX );
 		}
 
-		$this->assertSame( 'no', WC_Stripe_Helper::get_stripe_settings()['adaptive_pricing'] );
+		$this->assertSame( 'no', WC_Stripe::get_instance()->get_settings()['adaptive_pricing'] );
 		$this->assertSame( 'yes', get_option( self::AMOUNT_MISMATCH_OPTION ) );
 		$this->assertFalse( get_option( $this->get_migration_flag_option_name() ) );
 	}

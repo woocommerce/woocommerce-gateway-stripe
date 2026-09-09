@@ -26,7 +26,10 @@ import {
 	maybeShowCashAppLimitNotice,
 	removeCashAppLimitNotice,
 } from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
-import { validateBlikCode } from 'wcstripe/stripe-utils';
+import {
+	validateBlikCode,
+	getExcludedPaymentMethodTypesForBillingCountry,
+} from 'wcstripe/stripe-utils';
 import {
 	invalidateAppearanceCache,
 	initializeUPEAppearance,
@@ -335,6 +338,35 @@ const PaymentProcessor = ( {
 		elements,
 		stripeServerData,
 		paymentMethodsConfig,
+	] );
+
+	// Refresh the OC element's country-restricted exclusions on billing-country
+	// changes; Adaptive Pricing's initCheckout() has no update(), so it's skipped.
+	useEffect( () => {
+		if (
+			! stripeServerData?.shouldShowOptimizedCheckout ||
+			// The editor preview has no shopper country; recomputing there
+			// would exclude every country-restricted method from the preview.
+			stripeServerData?.isAdmin ||
+			! elements ||
+			typeof elements.update !== 'function'
+		) {
+			return;
+		}
+
+		elements.update( {
+			excludedPaymentMethodTypes:
+				getExcludedPaymentMethodTypesForBillingCountry(
+					billing?.billingAddress?.country || ''
+				),
+		} );
+		// Depend on the primitive flag actually read, not the whole config
+		// object, so a changed config identity can't re-fire the Stripe update.
+	}, [
+		elements,
+		billing?.billingAddress?.country,
+		stripeServerData?.shouldShowOptimizedCheckout,
+		stripeServerData?.isAdmin,
 	] );
 
 	// After web fonts finish loading, re-compute the appearance so the PE

@@ -95,9 +95,10 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 		$reflection->setAccessible( true );
 		$reflection->setValue( WC_Stripe::get_instance(), null );
 
+		$webhook_status_cache_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_STATUS_CACHE_KEY', 'string' );
 		// is_webhook_enabled() short-circuits on a cached status, so we don't hit the Stripe API here.
-		set_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION, 'enabled', HOUR_IN_SECONDS );
-		set_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION, 'enabled', HOUR_IN_SECONDS );
+		WC_Stripe_Database_Cache::set_with_mode( $webhook_status_cache_key, 'enabled', HOUR_IN_SECONDS, 'live' );
+		WC_Stripe_Database_Cache::set_with_mode( $webhook_status_cache_key, 'enabled', HOUR_IN_SECONDS, 'test' );
 
 		$account = $this->getMockBuilder( WC_Stripe_Account::class )
 			->disableOriginalConstructor()
@@ -112,10 +113,10 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 		WC_Pre_Orders_Product::set_is_pre_order_charged_upon_release( false );
 		WC_Deposits_Product_Manager::set_deposits_enabled( false );
 
-		return function () use ( $original_settings, $original_account, $reflection ): void {
+		return function () use ( $original_settings, $original_account, $reflection, $webhook_status_cache_key ): void {
 			WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
-			delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
-			delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
+			WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'live' );
+			WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'test' );
 			WC_Stripe::get_instance()->account = $original_account;
 			WC_Subscriptions_Product::set_is_subscription( false );
 			WC_Subscriptions_Product::set_subscription_product_ids( [] );
@@ -415,10 +416,12 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 
 		$this->assertArrayNotHasKey( 'saved_payment_method_options', $captured_creates[0] );
 		$this->assertArrayNotHasKey( 'customer', $captured_creates[0] );
+		$this->assertSame( 'always', $captured_creates[0]['customer_creation'], 'A guest session must ask Stripe to create a Customer at confirmation.' );
 		$this->assertFalse( $as_guest['save_payment_method_enabled'] );
 
 		$this->assertSame( [ 'payment_method_save' => 'enabled' ], $captured_creates[1]['saved_payment_method_options'] );
 		$this->assertSame( 'cus_login_transition', $captured_creates[1]['customer'] );
+		$this->assertArrayNotHasKey( 'customer_creation', $captured_creates[1], 'An attached customer must not also request customer creation.' );
 		$this->assertSame( 'cs_test_login_transition_2', $after_login['session_id'] );
 		$this->assertTrue( $after_login['save_payment_method_enabled'] );
 
@@ -435,8 +438,10 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 		$this->assertSame( 2, $create_count, 'The logout must trigger exactly one session recreation.' );
 		$this->assertCount( 2, $captured_creates );
 		$this->assertTrue( $while_logged_in['save_payment_method_enabled'] );
+		$this->assertArrayNotHasKey( 'customer_creation', $captured_creates[0] );
 		$this->assertArrayNotHasKey( 'saved_payment_method_options', $captured_creates[1] );
 		$this->assertArrayNotHasKey( 'customer', $captured_creates[1] );
+		$this->assertSame( 'always', $captured_creates[1]['customer_creation'] );
 		$this->assertSame( 'cs_test_logout_transition_2', $after_logout['session_id'] );
 		$this->assertFalse( $after_logout['save_payment_method_enabled'] );
 

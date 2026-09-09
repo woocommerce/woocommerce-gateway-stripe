@@ -47,6 +47,105 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test for `get_external_link_open_tag`.
+	 *
+	 * @param string $url       The URL to link to.
+	 * @param string $css_class The CSS class for the anchor.
+	 * @param string $title     The title for the anchor.
+	 * @param string $expected  The expected opening tag.
+	 * @return void
+	 * @dataProvider provide_get_external_link_open_tag
+	 */
+	public function test_get_external_link_open_tag( string $url, string $css_class, string $title, string $expected ) {
+		$this->assertSame( $expected, WC_Stripe_Helper::get_external_link_open_tag( $url, $css_class, $title ) );
+	}
+
+	/**
+	 * Data provider for `test_get_external_link_open_tag`.
+	 *
+	 * @return array
+	 */
+	public function provide_get_external_link_open_tag(): array {
+		return [
+			'plain URL'                  => [
+				'https://dashboard.stripe.com/payments/pi_123',
+				'',
+				'',
+				'<a href="https://dashboard.stripe.com/payments/pi_123" target="_blank" rel="noopener noreferrer">',
+			],
+			'URL with a class'           => [
+				'https://dashboard.stripe.com/account/payments/settings',
+				'button',
+				'',
+				'<a href="https://dashboard.stripe.com/account/payments/settings" class="button" target="_blank" rel="noopener noreferrer">',
+			],
+			'URL with a title'           => [
+				'https://dashboard.stripe.com/account/payments/settings',
+				'',
+				'Stripe Dashboard',
+				'<a href="https://dashboard.stripe.com/account/payments/settings" title="Stripe Dashboard" target="_blank" rel="noopener noreferrer">',
+			],
+			'URL with a class and title' => [
+				'https://dashboard.stripe.com/account/payments/settings',
+				'button',
+				'Stripe Dashboard',
+				'<a href="https://dashboard.stripe.com/account/payments/settings" class="button" title="Stripe Dashboard" target="_blank" rel="noopener noreferrer">',
+			],
+			// esc_url() encodes "&" as "&#038;" and drops unsupported protocols entirely.
+			'URL with a query'           => [
+				'https://dashboard.stripe.com/logs/req_123?t=1&span=2',
+				'',
+				'',
+				'<a href="https://dashboard.stripe.com/logs/req_123?t=1&#038;span=2" target="_blank" rel="noopener noreferrer">',
+			],
+			'javascript: scheme'         => [
+				'javascript:alert(1)',
+				'',
+				'',
+				'<a href="" target="_blank" rel="noopener noreferrer">',
+			],
+		];
+	}
+
+	/**
+	 * Test for `get_external_link`.
+	 *
+	 * @param string $url      The URL to link to.
+	 * @param string $text     The link text.
+	 * @param string $expected The expected anchor.
+	 * @return void
+	 * @dataProvider provide_get_external_link
+	 */
+	public function test_get_external_link( string $url, string $text, string $expected ) {
+		$this->assertSame( $expected, WC_Stripe_Helper::get_external_link( $url, $text ) );
+	}
+
+	/**
+	 * Data provider for `test_get_external_link`.
+	 *
+	 * @return array
+	 */
+	public function provide_get_external_link(): array {
+		return [
+			'text defaults to the URL'   => [
+				'https://dashboard.stripe.com/logs/req_123?t=1&span=2',
+				'',
+				'<a href="https://dashboard.stripe.com/logs/req_123?t=1&#038;span=2" target="_blank" rel="noopener noreferrer">https://dashboard.stripe.com/logs/req_123?t=1&amp;span=2</a>',
+			],
+			'custom text is escaped'     => [
+				'https://dashboard.stripe.com/customers/cus_123',
+				'<b>Stripe</b> customer page',
+				'<a href="https://dashboard.stripe.com/customers/cus_123" target="_blank" rel="noopener noreferrer">&lt;b&gt;Stripe&lt;/b&gt; customer page</a>',
+			],
+			'existing entities are kept' => [
+				'https://dashboard.stripe.com/customers/cus_123',
+				'Stripe customer page &rarr;',
+				'<a href="https://dashboard.stripe.com/customers/cus_123" target="_blank" rel="noopener noreferrer">Stripe customer page &rarr;</a>',
+			],
+		];
+	}
+
+	/**
 	 * Test for `is_valid_stripe_id`.
 	 *
 	 * @param mixed             $id       The value to validate.
@@ -1068,6 +1167,24 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * get_stripe_settings( $method ) reads the raw per-method option and always
+	 * returns an array, including when the option is missing or malformed.
+	 *
+	 * @return void
+	 */
+	public function test_get_stripe_settings_reads_per_method_option() {
+		update_option( 'woocommerce_stripe_boleto_settings', [ 'foo' => 'bar' ] );
+		$this->assertEquals( [ 'foo' => 'bar' ], WC_Stripe_Helper::get_stripe_settings( WC_Stripe_Payment_Methods::BOLETO ) );
+
+		delete_option( 'woocommerce_stripe_boleto_settings' );
+		$this->assertSame( [], WC_Stripe_Helper::get_stripe_settings( WC_Stripe_Payment_Methods::BOLETO ) );
+
+		update_option( 'woocommerce_stripe_boleto_settings', 'not-an-array' );
+		$this->assertSame( [], WC_Stripe_Helper::get_stripe_settings( WC_Stripe_Payment_Methods::BOLETO ) );
+		delete_option( 'woocommerce_stripe_boleto_settings' );
+	}
+
+	/**
 	 * Test for `get_klarna_preferred_locale`.
 	 * @return void
 	 */
@@ -2019,13 +2136,21 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		}
 		WC_Stripe_Helper::update_main_stripe_settings( $new_stripe_settings );
 
+		$webhook_status_cache_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_STATUS_CACHE_KEY', 'string' );
+
 		// is_webhook_enabled() short-circuits on a cached status, so we don't hit the Stripe API here.
 		if ( $webhook_enabled ) {
-			set_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION, 'enabled', HOUR_IN_SECONDS );
-			set_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION, 'enabled', HOUR_IN_SECONDS );
+			WC_Stripe_Database_Cache::set_with_mode( $webhook_status_cache_key, 'enabled', HOUR_IN_SECONDS, 'live' );
+			WC_Stripe_Database_Cache::set_with_mode( $webhook_status_cache_key, 'enabled', HOUR_IN_SECONDS, 'test' );
 		} else {
-			delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
-			delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
+			WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'live' );
+			WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'test' );
+		}
+
+		if ( $customer_mismatch ) {
+			WC()->session->init();
+			$amount_mismatch_session_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Checkout_Session_Context::class, 'AMOUNT_MISMATCH_SESSION_KEY', 'string' );
+			WC()->session->set( $amount_mismatch_session_key, 'yes' );
 		}
 
 		if ( $customer_mismatch ) {
@@ -2091,8 +2216,9 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		remove_filter( 'woocommerce_is_checkout', $is_checkout_filter );
 		WC_Stripe_Helper::update_main_stripe_settings( $original_stripe_settings );
-		delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
-		delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
+		$webhook_status_cache_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_STATUS_CACHE_KEY', 'string' );
+		WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'live' );
+		WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'test' );
 		if ( WC()->session ) {
 			$amount_mismatch_session_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Checkout_Session_Context::class, 'AMOUNT_MISMATCH_SESSION_KEY', 'string' );
 			WC()->session->set( $amount_mismatch_session_key, null );
@@ -2311,13 +2437,15 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		}
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
+		$webhook_status_cache_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_STATUS_CACHE_KEY', 'string' );
+
 		// is_webhook_enabled() short-circuits on a cached status, so we don't hit the Stripe API here.
 		if ( $webhook_enabled ) {
-			set_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION, 'enabled', HOUR_IN_SECONDS );
-			set_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION, 'enabled', HOUR_IN_SECONDS );
+			WC_Stripe_Database_Cache::set_with_mode( $webhook_status_cache_key, 'enabled', HOUR_IN_SECONDS, 'live' );
+			WC_Stripe_Database_Cache::set_with_mode( $webhook_status_cache_key, 'enabled', HOUR_IN_SECONDS, 'test' );
 		} else {
-			delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
-			delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
+			WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'live' );
+			WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'test' );
 		}
 
 		if ( $amount_mismatch_detected ) {
@@ -2337,8 +2465,10 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		update_option( 'woocommerce_currency', $original_currency );
 		delete_option( 'wc_stripe_adaptive_pricing_session_amount_mismatch_detected' );
 		WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
-		delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
-		delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
+
+		$webhook_status_cache_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_STATUS_CACHE_KEY', 'string' );
+		WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'live' );
+		WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'test' );
 
 		$this->assertSame( $expected, $actual );
 	}
@@ -2654,6 +2784,35 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * The three Customize express checkouts controllers share these gate params; assert the shape
+	 * and that the connection gate tracks the saved keys.
+	 *
+	 * @return void
+	 */
+	public function test_get_express_checkout_simulator_gate_params(): void {
+		$settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$settings['testmode']             = 'yes';
+		$settings['test_publishable_key'] = 'pk_test_123';
+		$settings['test_secret_key']      = 'sk_test_123';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$params = WC_Stripe_Helper::get_express_checkout_simulator_gate_params();
+
+		$this->assertArrayHasKey( 'is_account_connected', $params );
+		$this->assertArrayHasKey( 'is_https', $params );
+		$this->assertArrayHasKey( 'is_test_mode', $params );
+		$this->assertTrue( $params['is_account_connected'] );
+		$this->assertTrue( $params['is_test_mode'] );
+
+		// Dropping a key flips the connection gate, so the simulator reflects a disconnected account.
+		$settings['test_secret_key'] = '';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$params = WC_Stripe_Helper::get_express_checkout_simulator_gate_params();
+		$this->assertFalse( $params['is_account_connected'] );
+	}
+
+	/**
 	 * Test for `is_checkout_sessions_available`.
 	 *
 	 * @param bool   $pmc_enabled           Whether the Payment Method Configuration API is enabled.
@@ -2732,5 +2891,21 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'          => false,
 			],
 		];
+	}
+
+	/**
+	 * The shared helper must produce the canonical 'stripe' handle.
+	 *
+	 * @return void
+	 */
+	public function test_register_stripe_js_registers_the_stripe_handle() {
+		wp_deregister_script( 'stripe' );
+
+		WC_Stripe_Helper::register_stripe_js();
+
+		$this->assertTrue( wp_script_is( 'stripe', 'registered' ) );
+		$registered = wp_scripts()->registered['stripe'];
+		$this->assertSame( 'https://js.stripe.com/dahlia/stripe.js', $registered->src );
+		$this->assertSame( 1, wp_scripts()->get_data( 'stripe', 'group' ), 'Stripe.js must load in the footer.' );
 	}
 }

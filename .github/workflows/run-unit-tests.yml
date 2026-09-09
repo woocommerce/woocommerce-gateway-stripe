@@ -17,6 +17,7 @@ jobs:
   php-unit-tests:
     name: PHP Unit - WP=${{ inputs.wp-version }}, WC=${{ inputs.wc-version }}, PHP=${{ inputs.php-version }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       WP_VERSION: ${{ inputs.wp-version }}
       WC_VERSION: ${{ inputs.wc-version }}

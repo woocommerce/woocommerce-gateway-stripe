@@ -19,6 +19,7 @@ on:
 jobs:
   e2e-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       max-parallel: 10
@@ -49,6 +50,15 @@ jobs:
           STRIPE_PUB_KEY: ${{ matrix.project == 'blik' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_AU || secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
           STRIPE_SECRET_KEY: ${{ matrix.project == 'blik' && secrets.E2E_STRIPE_SECRET_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_SECRET_KEY_AU || secrets.E2E_STRIPE_SECRET_KEY }}
         run: npm run test:e2e-setup
+
+      - name: Upload e2e setup logs
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: E2E-${{ matrix.project }}-WP-${{ inputs.wp-version }}-WC-${{ inputs.wc-version }}-PHP-${{ inputs.php-version }}-setup-logs
+          path: tests/e2e/e2e-setup.log
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Run E2E tests
         env:

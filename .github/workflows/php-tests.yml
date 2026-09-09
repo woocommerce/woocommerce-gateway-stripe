@@ -11,6 +11,7 @@ jobs:
   changes:
     name: Check for code changes
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: read
       pull-requests: read
@@ -25,6 +26,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-22.04
+    timeout-minutes: 5
     outputs:
         woocommerce-versions-json: ${{ steps.get-released-woocommerce-versions.outputs.versions-json }}
     steps:
@@ -41,6 +43,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-22.04
+    timeout-minutes: 5
     outputs:
       wordpress-versions-json: ${{ steps.get-wordpress-versions.outputs.versions-json }}
     steps:
@@ -55,6 +58,7 @@ jobs:
 
   test:
     runs-on: ubuntu-22.04
+    timeout-minutes: 20
     needs: [ get-woocommerce-versions, get-wordpress-versions ]
     strategy:
       fail-fast:    false
