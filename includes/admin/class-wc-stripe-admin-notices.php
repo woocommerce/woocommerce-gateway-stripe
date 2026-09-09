@@ -561,8 +561,8 @@ class WC_Stripe_Admin_Notices {
 			return;
 		}
 
-		// The stored value can be the legacy flat list or the unified
-		// location => methods map; the express checkout helper reads both shapes.
+		// Read through the helper so a non-array value (every location unchecked) is
+		// treated as disabled instead of a misconfiguration.
 		$locations = ( new WC_Stripe_Express_Checkout_Helper() )->get_button_locations( 'payment_request' );
 
 		$has_product  = in_array( 'product', $locations, true );

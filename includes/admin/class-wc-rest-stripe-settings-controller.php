@@ -580,43 +580,22 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	}
 
 	/**
-	 * Collapses the per-method button location params into the unified location => methods map.
-	 * Methods absent from the request keep their current locations, so partial updates are non-destructive.
+	 * Saves the express checkout button locations.
 	 *
-	 * @param WP_REST_Request $request Request object.
+	 * The UI edits one map, but each method keeps its own option so a rollback to a
+	 * version that reads the per-method options still sees the merchant's choices.
 	 *
+	 * @param WP_REST_Request $request Full data about the request.
 	 * @return void
 	 */
-	private function update_express_checkout_button_locations( WP_REST_Request $request ) {
-		$request_keys = [
-			'payment_request' => 'express_checkout_button_locations',
-			'link'            => 'link_button_locations',
-			'amazon_pay'      => 'amazon_pay_button_locations',
-		];
-
-		$has_param = false;
-		foreach ( $request_keys as $request_key ) {
-			if ( null !== $request->get_param( $request_key ) ) {
-				$has_param = true;
-				break;
+	private function update_express_checkout_button_locations( WP_REST_Request $request ): void {
+		foreach ( WC_Stripe_Express_Checkout_Helper::BUTTON_LOCATION_OPTION_KEYS as $option_key ) {
+			$value = $request->get_param( $option_key );
+			if ( null === $value ) {
+				continue;
 			}
+			$this->gateway->update_validated_option( $option_key, array_values( (array) $value ) );
 		}
-
-		if ( ! $has_param ) {
-			return;
-		}
-
-		$helper        = new WC_Stripe_Express_Checkout_Helper();
-		$legacy_shaped = [];
-		foreach ( $request_keys as $method => $request_key ) {
-			$value                         = $request->get_param( $request_key );
-			$legacy_shaped[ $request_key ] = null !== $value
-				? array_values( (array) $value )
-				: $helper->get_button_locations( $method );
-		}
-
-		$map = WC_Stripe_Express_Checkout_Helper::build_locations_map_from_legacy( $legacy_shaped );
-		$this->gateway->update_option( 'express_checkout_button_locations', $map );
 	}
 
 	/**
@@ -629,7 +608,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	private function update_express_checkout_settings( WP_REST_Request $request ) {
 		$attributes = [
 			'express_checkout_button_type'  => 'express_checkout_button_type',
-			'express_checkout_button_size'  => 'express_checkout_button_size',
 			'express_checkout_button_theme' => 'express_checkout_button_theme',
 		];
 
@@ -644,11 +622,17 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 		// Deprecated aliases: pre-unification clients may still send a per-method
 		// size. They update the shared size, but the shared parameter wins.
-		if ( null === $request->get_param( 'express_checkout_button_size' ) ) {
-			$legacy_size = $request->get_param( 'link_button_size' ) ?? $request->get_param( 'amazon_pay_button_size' );
-			if ( null !== $legacy_size ) {
-				$this->gateway->update_validated_option( 'express_checkout_button_size', $legacy_size );
-			}
+		$size = $request->get_param( 'express_checkout_button_size' )
+			?? $request->get_param( 'link_button_size' )
+			?? $request->get_param( 'amazon_pay_button_size' );
+		if ( null === $size ) {
+			return;
+		}
+
+		// The per-method size options are no longer read, but they are kept in step with
+		// the shared size so a rollback to a version that reads them shows the same size.
+		foreach ( [ 'express_checkout_button_size', 'link_button_size', 'amazon_pay_button_size' ] as $option_key ) {
+			$this->gateway->update_validated_option( $option_key, $size );
 		}
 	}
 

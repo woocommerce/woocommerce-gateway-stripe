@@ -1888,116 +1888,83 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	 * Returns the unified express checkout locations map (location => enabled methods).
+	 * Placement every express checkout method gets until the merchant saves its locations.
 	 *
-	 * Post-migration the stored map is authoritative, even when empty. Pre-migration
-	 * (legacy per-method options still present) the map is derived from those options
-	 * on the fly, falling back to the default placement when nothing is configured.
+	 * @var string[]
+	 */
+	public const DEFAULT_BUTTON_LOCATIONS = [ 'product', 'cart' ];
+
+	/**
+	 * Option key holding each express checkout method's locations.
+	 *
+	 * The settings UI edits the locations as one map, but these per-method options stay
+	 * the persisted form so a rollback to a version that reads them directly keeps the
+	 * merchant's choices.
+	 *
+	 * @var array<string, string>
+	 */
+	public const BUTTON_LOCATION_OPTION_KEYS = [
+		'payment_request' => 'express_checkout_button_locations',
+		'link'            => 'link_button_locations',
+		'amazon_pay'      => 'amazon_pay_button_locations',
+	];
+
+	/**
+	 * Returns the express checkout locations map (location => enabled methods).
 	 *
 	 * @return array<string, string[]>
 	 */
 	public function get_express_checkout_locations_map(): array {
-		$stored = $this->stripe_settings['express_checkout_button_locations'] ?? null;
-
-		if ( is_array( $stored ) && self::is_locations_map( $stored ) ) {
-			// An empty map is only authoritative once the legacy per-method options are gone.
-			if ( ! empty( $stored ) || ! $this->has_legacy_per_method_locations() ) {
-				return $stored;
-			}
-		}
-
-		if ( $this->has_legacy_location_settings() ) {
-			return self::build_locations_map_from_legacy( $this->stripe_settings );
-		}
-
-		return self::get_default_locations_map();
+		return self::build_locations_map_from_settings( $this->stripe_settings );
 	}
 
 	/**
-	 * Default map: every method on product and cart, matching the historical default.
+	 * Builds the location => methods map from the per-method location options.
 	 *
+	 * A missing option means the method was never configured and keeps the default
+	 * placement. A non-array value means every location was unchecked (WooCommerce
+	 * stores an emptied multiselect as ""), so the method is disabled everywhere.
+	 *
+	 * @param array $settings The main Stripe settings, or request values in the same shape.
 	 * @return array<string, string[]>
 	 */
-	private static function get_default_locations_map(): array {
-		$map = [];
-		foreach ( [ 'product', 'cart' ] as $location ) {
-			$map[ $location ] = self::EXPRESS_CHECKOUT_METHODS;
-		}
-
-		return $map;
-	}
-
-	/**
-	 * Whether any legacy location option (the unified key included) is present.
-	 *
-	 * @return bool
-	 */
-	private function has_legacy_location_settings(): bool {
-		return isset( $this->stripe_settings['express_checkout_button_locations'] )
-			|| $this->has_legacy_per_method_locations();
-	}
-
-	/**
-	 * Whether the per-method location options the migration removes are present.
-	 *
-	 * @return bool
-	 */
-	private function has_legacy_per_method_locations(): bool {
-		return isset( $this->stripe_settings['link_button_locations'] )
-			|| isset( $this->stripe_settings['amazon_pay_button_locations'] );
-	}
-
-	/**
-	 * Whether the value is a unified locations map rather than a legacy flat list
-	 * (integer keys). An empty array counts as a map.
-	 *
-	 * @param array $value The stored value.
-	 * @return bool
-	 */
-	public static function is_locations_map( array $value ): bool {
-		foreach ( array_keys( $value ) as $key ) {
-			if ( is_int( $key ) ) {
-				return false;
-			}
-		}
-
-		return true;
-	}
-
-	/**
-	 * Builds the unified locations map from the legacy per-method options.
-	 * Shared by the migration and the runtime pre-migration fallback.
-	 *
-	 * @param array $settings The Stripe settings array.
-	 * @return array<string, string[]>
-	 */
-	public static function build_locations_map_from_legacy( array $settings ): array {
-		$legacy_keys = [
-			'payment_request' => 'express_checkout_button_locations',
-			'link'            => 'link_button_locations',
-			'amazon_pay'      => 'amazon_pay_button_locations',
-		];
-
+	public static function build_locations_map_from_settings( array $settings ): array {
 		$map = [];
 		foreach ( self::EXPRESS_CHECKOUT_METHODS as $method ) {
-			$locations = $settings[ $legacy_keys[ $method ] ] ?? [];
-			if ( ! is_array( $locations ) ) {
-				continue;
-			}
-
-			foreach ( $locations as $location ) {
-				// Values come from stored options or REST input: only non-empty string
-				// locations are usable keys, and repeats must not duplicate a method.
-				if ( ! is_string( $location ) || '' === $location ) {
-					continue;
-				}
-				if ( ! in_array( $method, $map[ $location ] ?? [], true ) ) {
-					$map[ $location ][] = $method;
-				}
+			foreach ( self::get_method_locations_from_settings( $settings, $method ) as $location ) {
+				$map[ $location ][] = $method;
 			}
 		}
 
 		return $map;
+	}
+
+	/**
+	 * Reads one method's locations from the settings, in stored order.
+	 *
+	 * @param array  $settings The main Stripe settings, or request values in the same shape.
+	 * @param string $method   Canonical express checkout method key.
+	 * @return string[]
+	 */
+	private static function get_method_locations_from_settings( array $settings, string $method ): array {
+		$key = self::BUTTON_LOCATION_OPTION_KEYS[ $method ];
+		if ( ! isset( $settings[ $key ] ) ) {
+			return self::DEFAULT_BUTTON_LOCATIONS;
+		}
+		if ( ! is_array( $settings[ $key ] ) ) {
+			return [];
+		}
+
+		$locations = [];
+		foreach ( $settings[ $key ] as $location ) {
+			// Values come from stored options or REST input: only non-empty string
+			// locations are usable, and repeats must not duplicate a location.
+			if ( is_string( $location ) && '' !== $location && ! in_array( $location, $locations, true ) ) {
+				$locations[] = $location;
+			}
+		}
+
+		return $locations;
 	}
 
 	/**
@@ -2018,18 +1985,9 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return array
 	 */
 	public function get_button_locations( ?string $express_checkout_type = null ): array {
-		$map = $this->get_express_checkout_locations_map();
-
 		$method = self::normalize_express_checkout_method( (string) $express_checkout_type );
 
-		$locations = [];
-		foreach ( $map as $location => $methods ) {
-			if ( in_array( $method, (array) $methods, true ) ) {
-				$locations[] = $location;
-			}
-		}
-
-		return $locations;
+		return self::get_method_locations_from_settings( $this->stripe_settings, $method );
 	}
 
 	/**

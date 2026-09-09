@@ -1573,43 +1573,18 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				array_merge( $base_settings, [ 'express_checkout_button_locations' => [ 'cart' ] ] ),
 				false,
 			],
-			'shown for unified map (product+cart, no checkout)'       => [
+			'not shown when checkout enabled for the method'          => [
 				'yes',
-				array_merge(
-					$base_settings,
-					[
-						'express_checkout_button_locations' => [
-							'product' => [ 'payment_request' ],
-							'cart'    => [ 'payment_request' ],
-						],
-					]
-				),
-				true,
-			],
-			'not shown for unified map with checkout for the method'  => [
-				'yes',
-				array_merge(
-					$base_settings,
-					[
-						'express_checkout_button_locations' => [
-							'product'  => [ 'payment_request' ],
-							'cart'     => [ 'payment_request' ],
-							'checkout' => [ 'payment_request' ],
-						],
-					]
-				),
+				array_merge( $base_settings, [ 'express_checkout_button_locations' => [ 'product', 'cart', 'checkout' ] ] ),
 				false,
 			],
-			'shown when checkout only has other methods in the map'   => [
+			'shown when only another method has checkout'             => [
 				'yes',
 				array_merge(
 					$base_settings,
 					[
-						'express_checkout_button_locations' => [
-							'product'  => [ 'payment_request' ],
-							'cart'     => [ 'payment_request' ],
-							'checkout' => [ 'link' ],
-						],
+						'express_checkout_button_locations' => [ 'product', 'cart' ],
+						'link_button_locations'             => [ 'checkout' ],
 					]
 				),
 				true,

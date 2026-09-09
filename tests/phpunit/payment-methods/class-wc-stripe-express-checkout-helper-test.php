@@ -1147,30 +1147,88 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	public function test_get_button_locations_defaults_to_payment_request(): void {
 		$helper                  = new WC_Stripe_Express_Checkout_Helper();
 		$helper->stripe_settings = [
-			'express_checkout_button_locations' => [
-				'product'  => [ 'payment_request' ],
-				'checkout' => [ 'link' ],
-			],
+			'express_checkout_button_locations' => [ 'product' ],
+			'link_button_locations'             => [ 'checkout' ],
 		];
 
 		$this->assertSame( [ 'product' ], $helper->get_button_locations() );
 	}
 
 	/**
-	 * Non-string legacy entries are skipped and repeated locations deduplicated,
-	 * so an already-unified map fed back through the converter cannot fatal.
+	 * Non-string entries are skipped and repeated locations deduplicated, so stored
+	 * or posted values with junk in them cannot fatal.
 	 *
 	 * @return void
 	 */
-	public function test_build_locations_map_from_legacy_skips_malformed_entries(): void {
-		$map = WC_Stripe_Express_Checkout_Helper::build_locations_map_from_legacy(
+	public function test_build_locations_map_from_settings_skips_malformed_entries(): void {
+		$map = WC_Stripe_Express_Checkout_Helper::build_locations_map_from_settings(
 			[
 				'express_checkout_button_locations' => [ 'product', 'product', '', 5, [ 'cart' ] ],
 				'link_button_locations'             => [ 'product' ],
+				'amazon_pay_button_locations'       => '',
 			]
 		);
 
 		$this->assertSame( [ 'product' => [ 'link', 'payment_request' ] ], $map );
+	}
+
+	/**
+	 * A method whose option was never saved keeps the default placement, while one
+	 * whose option is present but empty stays disabled everywhere.
+	 *
+	 * @param array $settings Per-method location options.
+	 * @param array $expected Expected location => methods map.
+	 * @return void
+	 *
+	 * @dataProvider provide_build_locations_map_from_settings_partial_settings
+	 */
+	public function test_build_locations_map_from_settings_with_partial_settings( array $settings, array $expected ): void {
+		$this->assertSame( $expected, WC_Stripe_Express_Checkout_Helper::build_locations_map_from_settings( $settings ) );
+	}
+
+	/**
+	 * Provider for `test_build_locations_map_from_settings_with_partial_settings`.
+	 *
+	 * @return array
+	 */
+	public function provide_build_locations_map_from_settings_partial_settings(): array {
+		return [
+			'nothing saved: every method on the default locations'                     => [
+				'settings' => [],
+				'expected' => [
+					'product' => [ 'amazon_pay', 'link', 'payment_request' ],
+					'cart'    => [ 'amazon_pay', 'link', 'payment_request' ],
+				],
+			],
+			'only Link saved: the other methods keep their defaults'                   => [
+				'settings' => [ 'link_button_locations' => [ 'checkout' ] ],
+				'expected' => [
+					'product'  => [ 'amazon_pay', 'payment_request' ],
+					'cart'     => [ 'amazon_pay', 'payment_request' ],
+					'checkout' => [ 'link' ],
+				],
+			],
+			'empty array disables only that method'                                    => [
+				'settings' => [
+					'express_checkout_button_locations' => [],
+					'link_button_locations'             => [ 'cart' ],
+				],
+				'expected' => [
+					'product' => [ 'amazon_pay' ],
+					'cart'    => [ 'amazon_pay', 'link' ],
+				],
+			],
+			'empty string (WooCommerce emptied multiselect) disables only that method' => [
+				'settings' => [
+					'express_checkout_button_locations' => '',
+					'amazon_pay_button_locations'       => '',
+				],
+				'expected' => [
+					'product' => [ 'link' ],
+					'cart'    => [ 'link' ],
+				],
+			],
+		];
 	}
 
 	/**
@@ -1179,63 +1237,60 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * @return array
 	 */
 	public function provide_test_get_button_locations(): array {
-		$unified_map = [
-			'express_checkout_button_locations' => [
-				'product'  => [ 'amazon_pay', 'link', 'payment_request' ],
-				'cart'     => [ 'payment_request', 'link' ],
-				'checkout' => [ 'link' ],
-			],
+		$per_method = [
+			'express_checkout_button_locations' => [ 'product', 'cart' ],
+			'link_button_locations'             => [ 'product', 'cart', 'checkout' ],
+			'amazon_pay_button_locations'       => [ 'product' ],
 		];
 
 		return [
-			// Unified location => methods map (post-migration shape).
-			'map: payment_request locations'                          => [
+			'all methods saved: payment_request locations'       => [
 				'express checkout type' => 'payment_request',
-				'settings'              => $unified_map,
+				'settings'              => $per_method,
 				'expected'              => [ 'product', 'cart' ],
 			],
-			'map: link locations'                                     => [
+			'all methods saved: link locations'                  => [
 				'express checkout type' => 'link',
-				'settings'              => $unified_map,
+				'settings'              => $per_method,
 				'expected'              => [ 'product', 'cart', 'checkout' ],
 			],
-			'map: amazon_pay locations'                               => [
+			'all methods saved: amazon_pay locations'            => [
 				'express checkout type' => 'amazon_pay',
-				'settings'              => $unified_map,
+				'settings'              => $per_method,
 				'expected'              => [ 'product' ],
 			],
-			'map: express_checkout alias resolves to payment_request' => [
+			'express_checkout alias resolves to payment_request' => [
 				'express checkout type' => 'express_checkout',
-				'settings'              => $unified_map,
+				'settings'              => $per_method,
 				'expected'              => [ 'product', 'cart' ],
 			],
-			// Legacy per-method flat options are still honoured before migration.
-			'legacy payment request, settings exists'                 => [
+			// Each method falls back to the default placement until its own option is saved.
+			'payment request, settings exists'                   => [
 				'express checkout type' => 'payment_request',
 				'settings'              => [ 'express_checkout_button_locations' => [ 'checkout', 'cart' ] ],
 				'expected'              => [ 'checkout', 'cart' ],
 			],
-			'legacy payment request, settings exists, invalid array'  => [
+			'payment request, settings exists, invalid array'    => [
 				'express checkout type' => 'payment_request',
 				'settings'              => [ 'express_checkout_button_locations' => 'invalid_value' ],
 				'expected'              => [],
 			],
-			'legacy payment request, settings do not exist'           => [
+			'payment request, settings do not exist'             => [
 				'express checkout type' => 'payment_request',
 				'settings'              => [],
 				'expected'              => [ 'product', 'cart' ],
 			],
-			'legacy link, settings exists'                            => [
+			'link, settings exists'                              => [
 				'express checkout type' => 'link',
 				'settings'              => [ 'link_button_locations' => [ 'cart' ] ],
 				'expected'              => [ 'cart' ],
 			],
-			'legacy amazon pay, settings exists'                      => [
+			'amazon pay, settings exists'                        => [
 				'express checkout type' => 'amazon_pay',
 				'settings'              => [ 'amazon_pay_button_locations' => [ 'checkout' ] ],
 				'expected'              => [ 'checkout' ],
 			],
-			'legacy link, settings do not exist'                      => [
+			'link, settings do not exist'                        => [
 				'express checkout type' => 'link',
 				'settings'              => [],
 				'expected'              => [ 'product', 'cart' ],
@@ -1258,6 +1313,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$stripe_settings                                      = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['express_checkout_button_locations'] = $button_locations;
 		$stripe_settings['amazon_pay_button_locations']       = $button_locations;
+		$stripe_settings['link_button_locations']             = $button_locations;
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )

@@ -36,7 +36,7 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 The following items note specific versions that include important changes, features, or deprecations.
 
 * 11.1.0
-   - Express checkout buttons now share one location setting and one size setting; per-method options are migrated automatically and the separate Link and Amazon Pay size settings were removed
+   - Express checkout buttons now share one location setting and one size setting in the settings UI. The per-method options (`link_button_locations`, `amazon_pay_button_locations`, `link_button_size`, `amazon_pay_button_size`) are still stored and kept in sync so a rollback keeps working; they will be removed in a future version
 * 11.0.0
    - Express checkout merges the wc_stripe_express_checkout_normalize_address filter result over the address it sent; removing a field no longer clears it, return an empty string instead
 * 10.9.1
