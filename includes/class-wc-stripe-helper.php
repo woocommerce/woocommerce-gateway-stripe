@@ -1834,6 +1834,43 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Returns the opening tag of a link that opens in a new tab.
+	 *
+	 * Prefer `get_external_link()`. This exists for the strings whose link text sits inside
+	 * the translatable sentence (`%1$sStripe Dashboard%2$s`), where the anchor has to be
+	 * supplied to `sprintf()` in two pieces and no wrapper can reach the text between them.
+	 * Callers are responsible for the matching `</a>`.
+	 *
+	 * @param string $url       URL to link to.
+	 * @param string $css_class Optional CSS class for the anchor.
+	 * @return string
+	 */
+	public static function get_external_link_open_tag( string $url, string $css_class = '', string $title = '' ): string {
+		return sprintf(
+			'<a href="%1$s"%2$s%3$s target="_blank" rel="noopener noreferrer">',
+			esc_url( $url ),
+			'' === $css_class ? '' : ' class="' . esc_attr( $css_class ) . '"',
+			'' === $title ? '' : ' title="' . esc_attr( $title ) . '"'
+		);
+	}
+
+	/**
+	 * Returns a complete link that opens in a new tab.
+	 *
+	 * Mirrors the `ExternalLink` component the React settings screens use, so a Stripe
+	 * Dashboard link behaves the same whether PHP or React rendered it. `noopener noreferrer`
+	 * keeps the opened page from reaching back through `window.opener`.
+	 *
+	 * @param string $url       URL to link to.
+	 * @param string $text      Optional link text. Defaults to the URL itself.
+	 * @param string $css_class Optional CSS class for the anchor.
+	 * @return string
+	 */
+	public static function get_external_link( string $url, string $text = '', string $css_class = '', string $title = '' ): string {
+		return self::get_external_link_open_tag( $url, $css_class, $title ) . esc_html( '' === $text ? $url : $text ) . '</a>';
+	}
+
+	/**
 	 * Returns a supported locale for setting Klarna's "preferred_locale".
 	 * While Stripe allows for localization of Klarna's payments page, it still
 	 * limits the locale to the billing country's set of supported locales. For example,
@@ -2213,6 +2250,23 @@ class WC_Stripe_Helper {
 		} else {
 			return isset( $options['publishable_key'], $options['secret_key'] ) && trim( $options['publishable_key'] ) && trim( $options['secret_key'] );
 		}
+	}
+
+	/**
+	 * Returns the account-level gate values the Customize express checkouts settings pages localize
+	 * for their placement simulator. These gates apply to every express method (Apple Pay/Google Pay,
+	 * Amazon Pay, Link), so they live here rather than being duplicated across the three controllers.
+	 *
+	 * @return array{is_account_connected: bool, is_https: bool, is_test_mode: bool}
+	 */
+	public static function get_express_checkout_simulator_gate_params(): array {
+		return [
+			'is_account_connected' => self::is_connected(),
+			// is_ssl() would report the admin request's scheme, not the storefront's; the configured
+			// site URLs are what the storefront gate will effectively see.
+			'is_https'             => wp_is_using_https(),
+			'is_test_mode'         => WC_Stripe_Mode::is_test(),
+		];
 	}
 
 	/**
