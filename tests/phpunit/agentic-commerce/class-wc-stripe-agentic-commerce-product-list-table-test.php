@@ -346,6 +346,69 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table_Test extends WP_UnitTestCase
 	}
 
 	/**
+	 * When the toggle is off but the eligibility verdict blocks the sync, the
+	 * column must not claim "Synced" — and the toggle state must win the label
+	 * when both apply, since the quick-edit checkbox mirrors the toggle alone.
+	 */
+	public function test_render_column_reflects_eligibility_verdict(): void {
+		$column  = $this->class_const( 'COLUMN_KEY' );
+		$table   = new WC_Stripe_Agentic_Commerce_Product_List_Table();
+		$product = WC_Helper_Product::create_simple_product();
+
+		add_filter( 'woocommerce_agentic_commerce_should_sync_product', '__return_false' );
+
+		ob_start();
+		$table->render_column( $column, $product->get_id() );
+		$this->assertStringContainsString( 'Not synced', ob_get_clean() );
+
+		// The quick-edit source must keep mirroring the toggle alone, so the
+		// eligibility verdict must not leak into the inline-data state.
+		ob_start();
+		$table->render_inline_data( get_post( $product->get_id() ), get_post_type_object( 'product' ) );
+		$this->assertStringContainsString( '>no<', ob_get_clean() );
+
+		update_post_meta( $product->get_id(), WC_Stripe_Agentic_Commerce_Product_Exclusion::get_meta_key(), 'yes' );
+		ob_start();
+		$table->render_column( $column, $product->get_id() );
+		$output = ob_get_clean();
+		$this->assertStringContainsString( 'Excluded', $output );
+		$this->assertStringNotContainsString( 'Not synced', $output );
+
+		remove_filter( 'woocommerce_agentic_commerce_should_sync_product', '__return_false' );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Non-published products must not claim "Synced": the feed only exports
+	 * published products.
+	 */
+	public function test_render_column_labels_unpublished_as_not_synced(): void {
+		$column  = $this->class_const( 'COLUMN_KEY' );
+		$table   = new WC_Stripe_Agentic_Commerce_Product_List_Table();
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_status( 'draft' );
+		$product->save();
+
+		ob_start();
+		$table->render_column( $column, $product->get_id() );
+		$this->assertStringContainsString( 'Not synced', ob_get_clean() );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * The excluded-products URL getter must carry the same query var and value
+	 * the filter dropdown reads.
+	 */
+	public function test_get_excluded_products_url_matches_filter_query_var(): void {
+		$url = WC_Stripe_Agentic_Commerce_Product_List_Table::get_excluded_products_url();
+
+		$this->assertStringContainsString( 'edit.php?post_type=product', $url );
+		$this->assertStringContainsString( $this->class_const( 'FILTER_QUERY_VAR' ) . '=excluded', $url );
+	}
+
+	/**
 	 * The inline-data div carries the exclude state for supported product rows
 	 * only — its absence is the quick-edit script's cue to hide the checkbox.
 	 */

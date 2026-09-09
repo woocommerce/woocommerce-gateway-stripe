@@ -47,6 +47,174 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test for `get_external_link_open_tag`.
+	 *
+	 * @param string $url       The URL to link to.
+	 * @param string $css_class The CSS class for the anchor.
+	 * @param string $title     The title for the anchor.
+	 * @param string $expected  The expected opening tag.
+	 * @return void
+	 * @dataProvider provide_get_external_link_open_tag
+	 */
+	public function test_get_external_link_open_tag( string $url, string $css_class, string $title, string $expected ) {
+		$this->assertSame( $expected, WC_Stripe_Helper::get_external_link_open_tag( $url, $css_class, $title ) );
+	}
+
+	/**
+	 * Data provider for `test_get_external_link_open_tag`.
+	 *
+	 * @return array
+	 */
+	public function provide_get_external_link_open_tag(): array {
+		return [
+			'plain URL'                  => [
+				'https://dashboard.stripe.com/payments/pi_123',
+				'',
+				'',
+				'<a href="https://dashboard.stripe.com/payments/pi_123" target="_blank" rel="noopener noreferrer">',
+			],
+			'URL with a class'           => [
+				'https://dashboard.stripe.com/account/payments/settings',
+				'button',
+				'',
+				'<a href="https://dashboard.stripe.com/account/payments/settings" class="button" target="_blank" rel="noopener noreferrer">',
+			],
+			'URL with a title'           => [
+				'https://dashboard.stripe.com/account/payments/settings',
+				'',
+				'Stripe Dashboard',
+				'<a href="https://dashboard.stripe.com/account/payments/settings" title="Stripe Dashboard" target="_blank" rel="noopener noreferrer">',
+			],
+			'URL with a class and title' => [
+				'https://dashboard.stripe.com/account/payments/settings',
+				'button',
+				'Stripe Dashboard',
+				'<a href="https://dashboard.stripe.com/account/payments/settings" class="button" title="Stripe Dashboard" target="_blank" rel="noopener noreferrer">',
+			],
+			// esc_url() encodes "&" as "&#038;" and drops unsupported protocols entirely.
+			'URL with a query'           => [
+				'https://dashboard.stripe.com/logs/req_123?t=1&span=2',
+				'',
+				'',
+				'<a href="https://dashboard.stripe.com/logs/req_123?t=1&#038;span=2" target="_blank" rel="noopener noreferrer">',
+			],
+			'javascript: scheme'         => [
+				'javascript:alert(1)',
+				'',
+				'',
+				'<a href="" target="_blank" rel="noopener noreferrer">',
+			],
+		];
+	}
+
+	/**
+	 * Test for `get_external_link`.
+	 *
+	 * @param string $url      The URL to link to.
+	 * @param string $text     The link text.
+	 * @param string $expected The expected anchor.
+	 * @return void
+	 * @dataProvider provide_get_external_link
+	 */
+	public function test_get_external_link( string $url, string $text, string $expected ) {
+		$this->assertSame( $expected, WC_Stripe_Helper::get_external_link( $url, $text ) );
+	}
+
+	/**
+	 * Data provider for `test_get_external_link`.
+	 *
+	 * @return array
+	 */
+	public function provide_get_external_link(): array {
+		return [
+			'text defaults to the URL'   => [
+				'https://dashboard.stripe.com/logs/req_123?t=1&span=2',
+				'',
+				'<a href="https://dashboard.stripe.com/logs/req_123?t=1&#038;span=2" target="_blank" rel="noopener noreferrer">https://dashboard.stripe.com/logs/req_123?t=1&amp;span=2</a>',
+			],
+			'custom text is escaped'     => [
+				'https://dashboard.stripe.com/customers/cus_123',
+				'<b>Stripe</b> customer page',
+				'<a href="https://dashboard.stripe.com/customers/cus_123" target="_blank" rel="noopener noreferrer">&lt;b&gt;Stripe&lt;/b&gt; customer page</a>',
+			],
+			'existing entities are kept' => [
+				'https://dashboard.stripe.com/customers/cus_123',
+				'Stripe customer page &rarr;',
+				'<a href="https://dashboard.stripe.com/customers/cus_123" target="_blank" rel="noopener noreferrer">Stripe customer page &rarr;</a>',
+			],
+		];
+	}
+
+	/**
+	 * Test for `is_valid_stripe_id`.
+	 *
+	 * @param mixed             $id       The value to validate.
+	 * @param string|array|null $prefixes Allowed prefix(es).
+	 * @param bool              $expected Whether the value should be considered a valid Stripe ID.
+	 * @return void
+	 * @dataProvider provide_is_valid_stripe_id
+	 */
+	public function test_is_valid_stripe_id( $id, $prefixes, bool $expected ) {
+		$this->assertSame( $expected, WC_Stripe_Helper::is_valid_stripe_id( $id, $prefixes ) );
+	}
+
+	/**
+	 * Data provider for `test_is_valid_stripe_id`.
+	 *
+	 * Covers the payment-method grammar used at the checkout boundary as well as the structural
+	 * delimiters that must never be accepted, since the value is concatenated into Stripe API paths.
+	 *
+	 * @return array
+	 */
+	public function provide_is_valid_stripe_id(): array {
+		$pm_prefixes = [ 'pm', 'src', 'card' ];
+
+		return [
+			// Valid identifiers.
+			'valid pm'                     => [ 'pm_1MqLiJLkdIwHu7ixUEgbFdYF', $pm_prefixes, true ],
+			'valid src'                    => [ 'src_1AbCdEfGhIjKlMnO', $pm_prefixes, true ],
+			'valid legacy card'            => [ 'card_1AbCdEfGhIjKlMnO', $pm_prefixes, true ],
+			'valid with any prefix'        => [ 'cus_1AbCdEfG', null, true ],
+			'valid explicit single prefix' => [ 'seti_1AbCdEfG', 'seti', true ],
+			'minimum valid token'          => [ 'pm_a', $pm_prefixes, true ],
+			'underscores within token'     => [ 'pm_a_b_c', $pm_prefixes, true ],
+
+			// Wrong prefix for the allowed set.
+			'disallowed prefix'            => [ 'cus_1AbCdEfG', $pm_prefixes, false ],
+			'prefix mismatch'              => [ 'seti_1AbCdEfG', 'pm', false ],
+
+			// An empty allow-list (or empty prefix string) must validate nothing, not accept "_token".
+			'empty prefix array'           => [ '_x', [], false ],
+			'empty explicit prefix'        => [ '_x', '', false ],
+
+			// Structural delimiters that survive sanitize_text_field() but must be rejected.
+			'path traversal / attach'      => [ 'pm_1AbC/../setup_intents', $pm_prefixes, false ],
+			'slash'                        => [ 'pm_1AbC/extra', $pm_prefixes, false ],
+			'dot segment'                  => [ 'pm_1AbC.setup', $pm_prefixes, false ],
+			'query delimiter'              => [ 'pm_1AbC?foo=bar', $pm_prefixes, false ],
+			'ampersand'                    => [ 'pm_1AbC&foo=bar', $pm_prefixes, false ],
+			'equals'                       => [ 'pm_1AbC=bar', $pm_prefixes, false ],
+			'fragment'                     => [ 'pm_1AbC#frag', $pm_prefixes, false ],
+			'bracket'                      => [ 'pm_1AbC[0]', $pm_prefixes, false ],
+			'full retargeting payload'     => [ '../setup_intents?payment_method_types[]=card&usage=on_session#', $pm_prefixes, false ],
+			'newline control char'         => [ "pm_1AbC\nfoo", $pm_prefixes, false ],
+			'trailing newline'             => [ "pm_1AbC\n", $pm_prefixes, false ],
+
+			// Malformed shapes.
+			'empty string'                 => [ '', $pm_prefixes, false ],
+			'no prefix separator'          => [ 'pm1AbC', $pm_prefixes, false ],
+			'prefix only'                  => [ 'pm_', $pm_prefixes, false ],
+			'non-string'                   => [ 12345, $pm_prefixes, false ],
+			'null value'                   => [ null, $pm_prefixes, false ],
+			'pm max length (255 total)'    => [ 'pm_' . str_repeat( 'a', 252 ), $pm_prefixes, true ],
+			'src max length (255 total)'   => [ 'src_' . str_repeat( 'a', 251 ), $pm_prefixes, true ],
+			'card max length (255 total)'  => [ 'card_' . str_repeat( 'a', 250 ), $pm_prefixes, true ],
+			'over length (256 total)'      => [ 'pm_' . str_repeat( 'a', 253 ), $pm_prefixes, false ],
+			'long prefix over 255'         => [ str_repeat( 'a', 260 ) . '_x', null, false ],
+		];
+	}
+
+	/**
 	 * Test for `convert_wc_locale_to_stripe_locale`.
 	 *
 	 * @param string $wc_locale     The WooCommerce locale.
@@ -1985,6 +2153,12 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			WC()->session->set( $amount_mismatch_session_key, 'yes' );
 		}
 
+		if ( $customer_mismatch ) {
+			WC()->session->init();
+			$amount_mismatch_session_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Checkout_Session_Context::class, 'AMOUNT_MISMATCH_SESSION_KEY', 'string' );
+			WC()->session->set( $amount_mismatch_session_key, 'yes' );
+		}
+
 		$is_checkout_filter = function () use ( $is_checkout ) {
 			return $is_checkout;
 		};
@@ -2607,6 +2781,35 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				false,
 			],
 		];
+	}
+
+	/**
+	 * The three Customize express checkouts controllers share these gate params; assert the shape
+	 * and that the connection gate tracks the saved keys.
+	 *
+	 * @return void
+	 */
+	public function test_get_express_checkout_simulator_gate_params(): void {
+		$settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$settings['testmode']             = 'yes';
+		$settings['test_publishable_key'] = 'pk_test_123';
+		$settings['test_secret_key']      = 'sk_test_123';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$params = WC_Stripe_Helper::get_express_checkout_simulator_gate_params();
+
+		$this->assertArrayHasKey( 'is_account_connected', $params );
+		$this->assertArrayHasKey( 'is_https', $params );
+		$this->assertArrayHasKey( 'is_test_mode', $params );
+		$this->assertTrue( $params['is_account_connected'] );
+		$this->assertTrue( $params['is_test_mode'] );
+
+		// Dropping a key flips the connection gate, so the simulator reflects a disconnected account.
+		$settings['test_secret_key'] = '';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$params = WC_Stripe_Helper::get_express_checkout_simulator_gate_params();
+		$this->assertFalse( $params['is_account_connected'] );
 	}
 
 	/**

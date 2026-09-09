@@ -67,6 +67,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 	const [ isFeatureEnabled, setIsFeatureEnabled ] = useState( false );
 	const [ disableCheckout, setDisableCheckout ] = useState( false );
 	const [ webhookSecret, setWebhookSecret ] = useState( '' );
+	const [ savedWebhookSecret, setSavedWebhookSecret ] = useState( '' );
 	const [ isLoadingSettings, setIsLoadingSettings ] = useState( true );
 	const [ settingsNotice, setSettingsNotice ] = useState( null );
 
@@ -74,6 +75,15 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 	const mode = isTestMode ? 'test' : 'live';
 	const { data } = useAccount();
 	const webhookURLForDisplay = data?.configured_webhook_urls?.[ mode ] ?? '';
+
+	// The catalog sync only runs once onboarding is complete server-side
+	// (feature enabled + webhook secret saved), so mirror that in the UI.
+	// Gate on the saved secret, not the live field: a sync started before
+	// Save would fail against the persisted option.
+	const isOnboardingComplete =
+		isFeatureEnabled && savedWebhookSecret.trim() !== '';
+	const hasUnsavedWebhookSecret =
+		webhookSecret.trim() !== '' && webhookSecret !== savedWebhookSecret;
 	const agenticCommerceUrl = isTestMode
 		? 'https://dashboard.stripe.com/test/agentic-commerce'
 		: 'https://dashboard.stripe.com/agentic-commerce';
@@ -87,6 +97,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			setIsFeatureEnabled( result.is_enabled );
 			setDisableCheckout( result.disable_checkout ?? false );
 			setWebhookSecret( result.webhook_secret ?? '' );
+			setSavedWebhookSecret( result.webhook_secret ?? '' );
 		} catch {
 			// Settings fetch failure is non-fatal; defaults remain.
 		} finally {
@@ -113,6 +124,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			setIsFeatureEnabled( result.is_enabled );
 			setDisableCheckout( result.disable_checkout ?? false );
 			setWebhookSecret( result.webhook_secret ?? '' );
+			setSavedWebhookSecret( result.webhook_secret ?? '' );
 			// No success notice: the global Save changes flow already shows a page-level toast.
 		} catch ( err ) {
 			setSettingsNotice( {
@@ -188,6 +200,30 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 										checked={ disableCheckout }
 										onChange={ setDisableCheckout }
 									/>
+								) }
+
+								{ isFeatureEnabled && (
+									<p>
+										{ interpolateComponents( {
+											mixedString: __(
+												'To keep specific products out of the catalog, exclude them on the Products screen — individually, via Quick Edit, or with the bulk actions. {{excludedLink}}View excluded products{{/excludedLink}}',
+												'woocommerce-gateway-stripe'
+											),
+											components: {
+												excludedLink: (
+													// eslint-disable-next-line jsx-a11y/anchor-has-content
+													<a
+														href={
+															window
+																.wc_stripe_settings_params
+																?.agentic_commerce_excluded_products_url ||
+															'edit.php?post_type=product&wc_stripe_agentic_sync_status=excluded'
+														}
+													/>
+												),
+											},
+										} ) }
+									</p>
 								) }
 
 								{ isFeatureEnabled && (
@@ -304,7 +340,12 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 				</Card>
 			</LoadableSettingsSection>
 
-			{ isFeatureEnabled && <AgenticCommerceSyncStatus /> }
+			{ isFeatureEnabled && (
+				<AgenticCommerceSyncStatus
+					isOnboardingComplete={ isOnboardingComplete }
+					hasUnsavedWebhookSecret={ hasUnsavedWebhookSecret }
+				/>
+			) }
 
 			{ isFeatureEnabled && <AgenticCommerceFeedPreview /> }
 		</SettingsSection>

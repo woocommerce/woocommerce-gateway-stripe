@@ -121,6 +121,11 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$wc_stripe_instance_reflection = new ReflectionProperty( WC_Stripe::class, 'instance' );
 		$wc_stripe_instance_reflection->setAccessible( true );
+		// The original instance has to come back: clearing the singleton makes the next
+		// get_instance() build a replacement whose hook registrations the WP test case
+		// wipes on the next tear_down, so every later test in the process would see a
+		// WC_Stripe with none of its hooks attached.
+		$original_wc_stripe = $wc_stripe_instance_reflection->getValue();
 		$wc_stripe_instance_reflection->setValue( null, $mock_wc_stripe );
 
 		try {
@@ -129,7 +134,7 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			$admin_note_store = WC_Data_Store::load( 'admin-note' );
 			$this->assertSame( 0, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_StripeLink_Note::NOTE_NAME ) ) );
 		} finally {
-			$wc_stripe_instance_reflection->setValue( null, null );
+			$wc_stripe_instance_reflection->setValue( null, $original_wc_stripe );
 		}
 	}
 
