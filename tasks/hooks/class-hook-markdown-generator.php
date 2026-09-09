@@ -198,8 +198,8 @@ final class Hook_Markdown_Generator {
 		$grouped_actions = $this->group_hooks_by_name( $actions );
 		$grouped_filters = $this->group_hooks_by_name( $filters );
 
-		$deprecated_actions = $this->extract_deprecated_hooks( 'action', $grouped_actions );
-		$deprecated_filters = $this->extract_deprecated_hooks( 'filter', $grouped_filters );
+		$deprecated_actions = $this->extract_deprecated_hooks( $grouped_actions );
+		$deprecated_filters = $this->extract_deprecated_hooks( $grouped_filters );
 
 		$lines[] = '> [!NOTE]';
 		$lines[] = '> We are unable to provide support for custom code under [our Support Policy](https://woocommerce.com/support-policy/#customization). If you need assistance with custom code, we highly recommend [Codeable](https://www.codeable.io/partners/woocommerce/?ref=OaWImk) or a [Certified WooExpert](https://partners.woocommerce.com/English/marketplace/).';
@@ -450,11 +450,10 @@ final class Hook_Markdown_Generator {
 	/**
 	 * Extracts deprecated hooks from a set of grouped hooks.
 	 *
-	 * @param string                                       $hook_type      The type of hook to extract deprecated hooks from. Either 'action' or 'filter'.
 	 * @param array<string,array<int,array<string,mixed>>> &$grouped_hooks The grouped hooks to extract deprecated hooks from.
 	 * @return array<string,array<int,array<string,mixed>>> The deprecated hook groups.
 	 */
-	private function extract_deprecated_hooks( string $hook_type, array &$grouped_hooks ): array {
+	private function extract_deprecated_hooks( array &$grouped_hooks ): array {
 		$deprecated_hooks = [];
 		foreach ( $grouped_hooks as $name => $entries ) {
 			if ( null !== $this->get_deprecated_hook_from_group( $entries ) ) {
