@@ -237,6 +237,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		if ( WC()->session ) {
 			$amount_mismatch_session_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Checkout_Session_Context::class, 'AMOUNT_MISMATCH_SESSION_KEY', 'string' );
 			WC()->session->set( $amount_mismatch_session_key, null );
+			// In-memory session data survives the per-test DB rollback.
+			WC()->session->set( 'order_awaiting_payment', null );
 		}
 
 		// The tests in this file do not mock ALL the calls to the Stripe API, and as we use mocked API keys they trigger the 401 rate-limiter,
@@ -868,6 +870,132 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				],
 			],
 		];
+	}
+
+	/**
+	 * Test that `process_payment` sets `order_awaiting_payment` in the session so WC core can
+	 * clear the cart even when the payment's return redirect never reaches this session.
+	 *
+	 * @dataProvider provide_process_payment_sets_order_awaiting_payment_in_session
+	 */
+	public function test_process_payment_sets_order_awaiting_payment_in_session( $order_status, $expect_session_key_set, $is_pay_for_order = false ) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( $order_status );
+		$order->save();
+		$order_id = $order->get_id();
+
+		WC()->session->init();
+		WC()->session->set( 'order_awaiting_payment', null );
+
+		$mock_intent = (object) wp_parse_args(
+			[
+				'payment_method' => 'pm_mock',
+				'charges'        => (object) [
+					'data' => [
+						(object) [
+							'id'       => $order_id,
+							'captured' => 'yes',
+							'status'   => 'succeeded',
+						],
+					],
+				],
+			],
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
+		);
+
+		$_POST = [
+			'payment_method'               => 'stripe',
+			'wc-stripe-payment-method'     => 'pm_mock',
+			'wc-stripe-confirmation-token' => '',
+		];
+
+		$this->mock_gateway->intent_controller
+			->method( 'create_and_confirm_payment_intent' )
+			->willReturn( $mock_intent );
+
+		$this->mock_gateway
+			->method( 'get_stripe_customer_id' )
+			->willReturn( 'cus_mock' );
+
+		if ( $is_pay_for_order ) {
+			do_action( 'woocommerce_before_pay_action', $order );
+		}
+
+		$this->mock_gateway->process_payment( $order_id );
+
+		$expected = $expect_session_key_set ? $order_id : null;
+		$this->assertSame( $expected, WC()->session->get( 'order_awaiting_payment' ) );
+	}
+
+	/**
+	 * Provider for `test_process_payment_sets_order_awaiting_payment_in_session`.
+	 */
+	public function provide_process_payment_sets_order_awaiting_payment_in_session() {
+		return [
+			'order needing payment is marked awaiting payment'      => [ OrderStatus::PENDING, true ],
+			'already-paid order is not marked'                      => [ OrderStatus::PROCESSING, false ],
+			'pay-for-order request does not claim the session cart' => [ OrderStatus::PENDING, false, true ],
+		];
+	}
+
+	/**
+	 * Test that `process_payment` persists the session right after marking the order awaiting
+	 * payment, so a hanging gateway request can't lose the key at shutdown.
+	 */
+	public function test_process_payment_saves_session_after_marking_order_awaiting_payment() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$session_data = [];
+		$mock_session = $this->createMock( WC_Session_Handler::class );
+		$mock_session->method( 'set' )->willReturnCallback(
+			function ( $key, $value ) use ( &$session_data ) {
+				$session_data[ $key ] = $value;
+			}
+		);
+		$mock_session->expects( $this->once() )->method( 'save_data' );
+
+		$mock_intent = (object) wp_parse_args(
+			[
+				'payment_method' => 'pm_mock',
+				'charges'        => (object) [
+					'data' => [
+						(object) [
+							'id'       => $order_id,
+							'captured' => 'yes',
+							'status'   => 'succeeded',
+						],
+					],
+				],
+			],
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
+		);
+
+		$_POST = [
+			'payment_method'               => 'stripe',
+			'wc-stripe-payment-method'     => 'pm_mock',
+			'wc-stripe-confirmation-token' => '',
+		];
+
+		$this->mock_gateway->intent_controller
+		->method( 'create_and_confirm_payment_intent' )
+			->willReturn( $mock_intent );
+
+		$this->mock_gateway
+			->method( 'get_stripe_customer_id' )
+			->willReturn( 'cus_mock' );
+
+		$original_session = WC()->session;
+		WC()->session     = $mock_session;
+		try {
+			$this->mock_gateway->process_payment( $order_id );
+		} finally {
+			WC()->session = $original_session;
+		}
+
+		$this->assertSame( $order_id, $session_data['order_awaiting_payment'] );
 	}
 
 	/**
@@ -6880,6 +7008,51 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertStringNotContainsString( '<div', $output );
 		$this->assertStringNotContainsString( '<p', $output );
 		$this->assertStringContainsString( 'Currency Conversion', $output );
+	}
+
+	/**
+	 * Test that set_cookie_on_current_request() does not set the cookie outside of checkout.
+	 *
+	 * @see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4875
+	 *
+	 * @param bool|null $checkout_constant Value for `WOOCOMMERCE_CHECKOUT`, or null to leave it undefined.
+	 * @param bool      $customer_created  Whether `woocommerce_created_customer` has fired on this request.
+	 * @param bool      $expects_cookie    Whether the logged-in cookie is expected to be swapped.
+	 *
+	 * @dataProvider provide_set_cookie_on_current_request_contexts
+	 */
+	public function test_set_cookie_on_current_request( bool $is_checkout, bool $customer_created, bool $expects_cookie ): void {
+		$is_checkout_return = $is_checkout ? '__return_true' : '__return_false';
+		add_filter( 'woocommerce_is_checkout', $is_checkout_return );
+
+		if ( $customer_created ) {
+			do_action( 'woocommerce_created_customer', 1, [], false );
+		}
+
+		$gateway = new WC_Stripe_UPE_Payment_Gateway();
+		$gateway->set_cookie_on_current_request( 'test_cookie_value' );
+
+		remove_filter( 'woocommerce_is_checkout', $is_checkout_return );
+
+		if ( $expects_cookie ) {
+			$this->assertSame( 'test_cookie_value', $_COOKIE[ LOGGED_IN_COOKIE ] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		} else {
+			$this->assertArrayNotHasKey( LOGGED_IN_COOKIE, $_COOKIE );
+		}
+	}
+
+	/**
+	 * Data provider for {@see test_set_cookie_on_current_request()}.
+	 *
+	 * @return array<string, array{0: bool|null, 1: bool, 2: bool}>
+	 */
+	public function provide_set_cookie_on_current_request_contexts() {
+		return [
+			'not in checkout, no customer created' => [ false, false, false ],
+			'not in checkout, customer registered' => [ false, true, false ],
+			'in checkout, no customer created'     => [ true, false, false ],
+			'in checkout, customer just created'   => [ true, true, true ],
+		];
 	}
 
 	/**

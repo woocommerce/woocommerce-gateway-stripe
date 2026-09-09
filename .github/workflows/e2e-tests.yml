@@ -35,7 +35,7 @@ jobs:
         # block theme (Twenty Twenty-Five, installed from WordPress.org) to
         # catch regressions in either theme family.
         theme: ['storefront', 'twentytwentyfive']
-        project: ['default', 'isk', 'acss', 'optimized-checkout', 'adaptive-pricing', 'blik', 'becs']
+        project: ['default', 'express-checkout-link', 'isk', 'acss', 'optimized-checkout', 'adaptive-pricing', 'blik', 'becs']
 
     name: E2E - ${{ matrix.project }} (${{ matrix.theme }}) WP=latest, WC=latest, PHP=7.4
     steps:

@@ -40,13 +40,12 @@ const config = {
 	// Folder for test artifacts such as screenshots, videos, traces, etc
 	outputDir: '../test-results/output',
 
-	/* Retry on CI only */
-	retries: CI ? 3 : 0,
+	retries: 3,
 
 	// Overridable so heavier themes can lower concurrency: block/FSE themes
 	// (e.g. purple) load far more per page than a classic theme, and 5 workers
 	// against the single-container e2e site exhaust it into connection resets.
-	workers: E2E_WORKERS ? Number( E2E_WORKERS ) : 5,
+	workers: E2E_WORKERS ? Number( E2E_WORKERS ) : CI ? 5 : undefined,
 
 	// Reporter to use. See https://playwright.dev/docs/test-reporters
 	reporter: [
@@ -108,6 +107,7 @@ const config = {
 				'**/blik.spec.js',
 				'**/becs.spec.js',
 				'**/isk.spec.js',
+				'**/free-trial-link.spec.js',
 			],
 			dependencies: [ 'default-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
@@ -115,6 +115,15 @@ const config = {
 		{
 			name: 'isk',
 			testMatch: '**/isk.spec.js',
+			dependencies: [ 'default-setup' ],
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			// Runs the slow Link enrollment/purchase flows in their own job so a
+			// slow Link popup can't push the shared `default` job over its
+			// timeout and cancel the other specs.
+			name: 'express-checkout-link',
+			testMatch: '**/free-trial-link.spec.js',
 			dependencies: [ 'default-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},

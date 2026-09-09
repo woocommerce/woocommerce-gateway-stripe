@@ -499,7 +499,47 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return void
 	 */
 	public function process_subscription_payment( $amount, $renewal_order, $retry = true, $previous_error = false ) {
-		$order_locked = false;
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_id     = $renewal_order->get_id();
+
+		// One lock covers the whole attempt, retries included, so a concurrent renewal cannot charge in between.
+		if ( $order_helper->lock_order_payment( $renewal_order ) ) {
+			// Log an error to ensure we log the error even when debug logging is disabled.
+			WC_Stripe_Logger::error( "Stripe: skipping duplicate renewal attempt for order {$order_id} because the payment lock is already held." );
+			$renewal_order->add_order_note( __( 'Stripe: skipped this renewal payment attempt because another payment attempt for this order was already in progress.', 'woocommerce-gateway-stripe' ) );
+			return;
+		}
+
+		// The 5-minute lock can lapse mid-retry; only release it while it is still ours.
+		$our_lock = (string) $order_helper->get_order_existing_payment_lock( $renewal_order );
+		if ( '' === $our_lock ) {
+			WC_Stripe_Logger::error( "Stripe: skipping renewal attempt for order {$order_id} because we could not confirm the payment lock." );
+			$renewal_order->add_order_note( __( 'Stripe: skipped this renewal payment attempt because we could not confirm the payment lock.', 'woocommerce-gateway-stripe' ) );
+			return;
+		}
+
+		$lock_expiry = (int) $our_lock;
+
+		try {
+			$this->process_subscription_payment_attempt( $amount, $renewal_order, $retry, $previous_error, $lock_expiry );
+		} finally {
+			if ( (string) $order_helper->get_order_existing_payment_lock( $renewal_order ) === $our_lock ) {
+				$order_helper->unlock_order_payment( $renewal_order );
+			}
+		}
+	}
+
+	/**
+	 * Runs one renewal attempt and its retries under the caller's lock.
+	 *
+	 * @param float        $amount         The amount to charge.
+	 * @param WC_Order     $renewal_order  The renewal order.
+	 * @param bool         $retry          Should we retry the process?
+	 * @param object|false $previous_error Previous error object.
+	 * @param int          $lock_expiry    Unix timestamp at which the caller's payment lock expires. 0 when unknown.
+	 * @return void
+	 */
+	private function process_subscription_payment_attempt( $amount, $renewal_order, $retry = true, $previous_error = false, int $lock_expiry = 0 ) {
 		$radar_reason = false;
 		$response     = null;
 
@@ -510,6 +550,8 @@ trait WC_Stripe_Subscriptions_Trait {
 			if ( $this->has_authentication_already_failed( $renewal_order ) ) {
 				return;
 			}
+
+			$this->log_and_throw_if_lock_expired( $lock_expiry, $renewal_order );
 
 			// Get source from order
 			$prepared_source = $this->prepare_order_source( $renewal_order );
@@ -530,6 +572,8 @@ trait WC_Stripe_Subscriptions_Trait {
 				]
 			);
 
+			$this->log_and_throw_if_lock_expired( $lock_expiry, $renewal_order );
+
 			/*
 			 * If we're doing a retry and source is chargeable, we need to pass
 			 * a different idempotency key and retry for success.
@@ -548,23 +592,9 @@ trait WC_Stripe_Subscriptions_Trait {
 				$prepared_source->source = '';
 			}
 
-			$order_helper = WC_Stripe_Order_Helper::get_instance();
-
-			// If the payment gateway is SEPA, use the charges API.
-			// TODO: Remove when SEPA is migrated to payment intents.
-			if ( 'stripe_sepa' === $this->id ) {
-				$request            = $this->generate_payment_request( $renewal_order, $prepared_source );
-				$request['capture'] = 'true';
-				$request['amount']  = WC_Stripe_Helper::get_stripe_amount( $amount, $request['currency'] );
-				$response           = WC_Stripe_API::request( $request );
-
-				$is_authentication_required = false;
-			} else {
-				$order_helper->lock_order_payment( $renewal_order );
-				$order_locked               = true;
-				$response                   = $this->create_and_confirm_intent_for_off_session( $renewal_order, $prepared_source, $amount );
-				$is_authentication_required = $this->is_authentication_required_for_payment( $response );
-			}
+			$payment_attempt            = $this->attempt_subscription_renewal_payment( $amount, $renewal_order, $prepared_source );
+			$response                   = $payment_attempt['response'];
+			$is_authentication_required = $payment_attempt['is_authentication_required'];
 
 			// It's only a failed payment if it's an error and it's not of the type 'authentication_required'.
 			// If it's 'authentication_required', then we should email the user and ask them to authenticate.
@@ -572,13 +602,20 @@ trait WC_Stripe_Subscriptions_Trait {
 				// Compute once here so the catch block can reuse the result without a second API call.
 				$radar_reason = $this->is_charge_blocked_by_radar( $response );
 
+				// Both failure notes below surface this link, so build it once.
+				$request_log_link = isset( $response->error->request_log_url )
+					? WC_Stripe_Helper::get_external_link( $response->error->request_log_url )
+					: '';
+
 				// We want to retry — unless Stripe Radar blocked the charge, in which case retrying
 				// would just create another blocked charge and inflate the block rate.
 				if ( $this->is_retryable_error( $response->error ) && false === $radar_reason ) {
-					if ( $retry ) {
-						// Don't do anymore retries after this.
+					// Stop retrying once the lock lapses; a concurrent renewal may hold its own lock by then.
+					$lock_expired = $this->is_order_payment_lock_expired( $lock_expiry );
+
+					if ( $retry && ! $lock_expired ) {
 						if ( 5 <= $this->retry_interval ) { // @phpstan-ignore-line (retry_interval is defined in classes using this class)
-							$this->process_subscription_payment( $amount, $renewal_order, false, $response->error );
+							$this->process_subscription_payment_attempt( $amount, $renewal_order, false, $response->error, $lock_expiry );
 							return;
 						}
 
@@ -586,18 +623,25 @@ trait WC_Stripe_Subscriptions_Trait {
 
 						++$this->retry_interval;
 
-						$this->process_subscription_payment( $amount, $renewal_order, true, $response->error );
-						return;
-					} else {
-						$localized_message = sprintf(
-							/* translators: 1) error message from Stripe; 2) request log URL */
-							__( 'Sorry, we are unable to process the payment at this time. Reason: %1$s %2$s', 'woocommerce-gateway-stripe' ),
-							$response->error->message,
-							isset( $response->error->request_log_url ) ? '<a href="' . esc_url( $response->error->request_log_url ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $response->error->request_log_url ) . '</a>' : ''
-						);
-						$renewal_order->add_order_note( $localized_message );
-						throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
+						$lock_expired = $this->is_order_payment_lock_expired( $lock_expiry );
+						if ( ! $lock_expired ) {
+							$this->process_subscription_payment_attempt( $amount, $renewal_order, true, $response->error, $lock_expiry );
+							return;
+						}
 					}
+
+					if ( $lock_expired ) {
+						$this->log_renewal_lock_expired( $renewal_order, false );
+					}
+
+					$localized_message = sprintf(
+						/* translators: 1) error message from Stripe; 2) HTML link to the Stripe request log */
+						__( 'Sorry, we are unable to process the payment at this time. Reason: %1$s %2$s', 'woocommerce-gateway-stripe' ),
+						$response->error->message,
+						$request_log_link
+					);
+					$renewal_order->add_order_note( $localized_message );
+					throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 				}
 
 				if ( 'payment_intent_mandate_invalid' === $response->error->type ) {
@@ -609,8 +653,8 @@ trait WC_Stripe_Subscriptions_Trait {
 					$localized_message = WC_Stripe_Helper::get_localized_error_message_from_response( $response );
 				}
 
-				if ( isset( $response->error->request_log_url ) ) {
-					$localized_message .= ' <a href="' . esc_url( $response->error->request_log_url ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $response->error->request_log_url ) . '</a>';
+				if ( '' !== $request_log_link ) {
+					$localized_message .= ' ' . $request_log_link;
 				}
 
 				$renewal_order->add_order_note( $localized_message );
@@ -716,12 +760,6 @@ trait WC_Stripe_Subscriptions_Trait {
 					'Error while handling a Stripe Radar-blocked subscription renewal: ' . $exception->getMessage(),
 					[ 'order_id' => $renewal_order->get_id() ]
 				);
-			} finally {
-				// Always release the lock, or the order stays locked until the lock's TTL expires.
-				if ( $order_locked && isset( $order_helper ) ) {
-					$order_helper->unlock_order_payment( $renewal_order );
-					$order_locked = false;
-				}
 			}
 
 			return;
@@ -799,7 +837,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 				// Use the last charge within the intent or the full response body in case of SEPA.
 				$latest_charge = $this->get_latest_charge_from_intent( $response );
-				$this->process_response( ( ! empty( $latest_charge ) ) ? $latest_charge : $response, $renewal_order );
+				$this->process_response( ( ! empty( $latest_charge ) && is_object( $latest_charge ) ) ? $latest_charge : $response, $renewal_order );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::error(
@@ -817,10 +855,98 @@ trait WC_Stripe_Subscriptions_Trait {
 			 */
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
 		}
+	}
 
-		if ( $order_locked && isset( $order_helper ) ) {
-			$order_helper->unlock_order_payment( $renewal_order );
+	/**
+	 * Helper method to check if the payment lock has expired.
+	 *
+	 * @param int $lock_expiry The lock expiry timestamp.
+	 * @return bool True if the lock has expired, false otherwise.
+	 * @phpstan-impure Code checks the current time.
+	 */
+	protected function is_order_payment_lock_expired( int $lock_expiry ): bool {
+		return $lock_expiry > 0 && time() > $lock_expiry;
+	}
+
+	/**
+	 * If the payment lock is still valid. Do nothing.
+	 * If the payment lock has expired, log an error entry and throw an exception.
+	 *
+	 * @param int      $lock_expiry   The lock expiry timestamp.
+	 * @param WC_Order $renewal_order The renewal order.
+	 * @throws WC_Stripe_Exception If the payment lock has expired.
+	 */
+	private function log_and_throw_if_lock_expired( int $lock_expiry, WC_Order $renewal_order ): void {
+		if ( ! $this->is_order_payment_lock_expired( $lock_expiry ) ) {
+			return;
 		}
+
+		$this->log_renewal_lock_expired( $renewal_order, true );
+
+		throw new WC_Stripe_Exception(
+			"Failed to process renewal for order {$renewal_order->get_id()}. The payment lock has expired.",
+			__( 'The payment lock has expired.', 'woocommerce-gateway-stripe' )
+		);
+	}
+
+	/**
+	 * Helper method to log a renewal payment lock expiration.
+	 *
+	 * @param WC_Order $renewal_order  The renewal order.
+	 * @param bool     $add_order_note Whether to add an order note to the renewal order.
+	 * @return void
+	 */
+	private function log_renewal_lock_expired( WC_Order $renewal_order, bool $add_order_note ): void {
+		WC_Stripe_Logger::error(
+			"Stripe: abandoning renewal payment retries for order {$renewal_order->get_id()} because the payment lock has expired.",
+			[ 'order_id' => $renewal_order->get_id() ]
+		);
+		if ( $add_order_note ) {
+			$renewal_order->add_order_note( __( 'Stripe: abandoned renewal payment retries because the payment lock has expired.', 'woocommerce-gateway-stripe' ) );
+		}
+	}
+
+	/**
+	 * Makes one Stripe payment attempt. The caller holds the lock.
+	 *
+	 * @param float    $amount         The amount to charge.
+	 * @param WC_Order $renewal_order  The renewal order.
+	 * @param object   $prepared_source The prepared renewal order source.
+	 * @return array{response: stdClass, is_authentication_required: bool}
+	 * @throws WC_Stripe_Exception When the Stripe API request fails.
+	 */
+	private function attempt_subscription_renewal_payment( $amount, WC_Order $renewal_order, $prepared_source ): array {
+		// If the payment gateway is SEPA, use the charges API.
+		// TODO: Remove when SEPA is migrated to payment intents.
+		if ( 'stripe_sepa' === $this->id ) {
+			$request            = $this->generate_payment_request( $renewal_order, $prepared_source );
+			$request['capture'] = 'true';
+			$request['amount']  = WC_Stripe_Helper::get_stripe_amount( $amount, $request['currency'] );
+
+			/**
+			 * The API layer decodes responses to stdClass.
+			 *
+			 * @var stdClass $response
+			 */
+			$response = WC_Stripe_API::request( $request );
+
+			return [
+				'response'                   => $response,
+				'is_authentication_required' => false,
+			];
+		}
+
+		/**
+		 * The API layer decodes responses to stdClass.
+		 *
+		 * @var stdClass $response
+		 */
+		$response = $this->create_and_confirm_intent_for_off_session( $renewal_order, $prepared_source, $amount );
+
+		return [
+			'response'                   => $response,
+			'is_authentication_required' => $this->is_authentication_required_for_payment( $response ),
+		];
 	}
 
 	/**

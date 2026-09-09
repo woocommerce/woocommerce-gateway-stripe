@@ -772,6 +772,335 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A payment_intent event landing while another request holds the payment lock
+	 * must re-queue itself instead of being dropped.
+	 */
+	public function test_immediate_payment_intent_requeues_while_order_locked() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->update_meta_data( '_stripe_intent_id', self::MOCK_PAYMENT_INTENT['id'] );
+		$order->save();
+
+		// No metadata/charges on the intent, so the order resolves via the stored intent ID.
+		$notification = (object) [
+			'type' => 'payment_intent.processing',
+			'data' => (object) [
+				'object' => (object) [
+					'id'     => self::MOCK_PAYMENT_INTENT['id'],
+					'object' => 'payment_intent',
+					'status' => WC_Stripe_Intent_Status::PROCESSING,
+				],
+			],
+		];
+
+		// Simulate the AJAX confirm (or another request) holding the lock.
+		$order_helper = $this->createPartialMock(
+			WC_Stripe_Order_Helper::class,
+			[ 'lock_order_payment', 'unlock_order_payment' ]
+		);
+		$order_helper->expects( $this->once() )
+			->method( 'lock_order_payment' )
+			->willReturn( true );
+		$order_helper->expects( $this->never() )
+			->method( 'unlock_order_payment' );
+		WC_Stripe_Order_Helper::set_instance( $order_helper );
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'defer_webhook_processing' ] )
+			->getMock();
+
+		$handler->expects( $this->once() )
+			->method( 'defer_webhook_processing' )
+			->with(
+				$notification,
+				[
+					'order_id'  => $order->get_id(),
+					'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
+				],
+				10
+			);
+
+		$this->assertTrue( $handler->process_payment_intent( $notification ), 'A re-queued event must report itself as deferred.' );
+
+		// The event must not have been applied while locked.
+		$this->assertTrue( wc_get_order( $order->get_id() )->has_status( OrderStatus::PENDING ) );
+	}
+
+	/**
+	 * On the live webhook pass, a payment_intent event that hits the payment lock is
+	 * re-queued and must hold wc_stripe_webhook_received for the retry, while an event
+	 * that is applied fires it as before.
+	 *
+	 * @param bool $locked       Whether another request holds the payment lock.
+	 * @param int  $action_count Expected number of wc_stripe_webhook_received invocations.
+	 * @dataProvider provide_immediate_payment_intent_action_cases
+	 */
+	public function test_immediate_payment_intent_holds_received_action_while_locked( bool $locked, int $action_count ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->update_meta_data( '_stripe_intent_id', self::MOCK_PAYMENT_INTENT['id'] );
+		$order->save();
+
+		$notification = (object) [
+			'type' => 'payment_intent.processing',
+			'data' => (object) [
+				'object' => (object) [
+					'id'     => self::MOCK_PAYMENT_INTENT['id'],
+					'object' => 'payment_intent',
+					'status' => WC_Stripe_Intent_Status::PROCESSING,
+				],
+			],
+		];
+
+		$order_helper = $this->createPartialMock(
+			WC_Stripe_Order_Helper::class,
+			[ 'lock_order_payment', 'unlock_order_payment' ]
+		);
+		$order_helper->method( 'lock_order_payment' )->willReturn( $locked );
+		WC_Stripe_Order_Helper::set_instance( $order_helper );
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'defer_webhook_processing' ] )
+			->getMock();
+		$handler->expects( $locked ? $this->once() : $this->never() )->method( 'defer_webhook_processing' );
+
+		$fired    = 0;
+		$listener = function () use ( &$fired ) {
+			++$fired;
+		};
+		add_action( 'wc_stripe_webhook_received', $listener );
+
+		try {
+			$handler->process_webhook( wp_json_encode( $notification ) );
+		} finally {
+			remove_action( 'wc_stripe_webhook_received', $listener );
+			WC_Stripe_Order_Helper::set_instance( null );
+		}
+
+		$this->assertSame( $action_count, $fired );
+	}
+
+	/**
+	 * Data provider for `test_immediate_payment_intent_holds_received_action_while_locked`.
+	 *
+	 * @return array
+	 */
+	public function provide_immediate_payment_intent_action_cases(): array {
+		return [
+			'applied'   => [
+				'locked'       => false,
+				'action_count' => 1,
+			],
+			're-queued' => [
+				'locked'       => true,
+				'action_count' => 0,
+			],
+		];
+	}
+
+	/**
+	 * A deferred retry fires wc_stripe_webhook_received only once the event was applied;
+	 * a retry that hits the lock again holds the action for the next attempt.
+	 *
+	 * @param bool $requeued     Whether the immediate handler re-queued the event again.
+	 * @param int  $action_count Expected number of wc_stripe_webhook_received invocations.
+	 * @dataProvider provide_deferred_retry_action_cases
+	 */
+	public function test_deferred_retry_fires_received_action_only_when_processed( bool $requeued, int $action_count ): void {
+		$order        = WC_Helper_Order::create_order();
+		$data         = [
+			'order_id'  => $order->get_id(),
+			'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.processing',
+			'data' => (object) [
+				'object' => (object) self::MOCK_PAYMENT_INTENT,
+			],
+		];
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'process_payment_intent' ] )
+			->getMock();
+		$handler->method( 'process_payment_intent' )->willReturn( $requeued );
+
+		$fired    = 0;
+		$listener = function () use ( &$fired ) {
+			++$fired;
+		};
+		add_action( 'wc_stripe_webhook_received', $listener );
+
+		try {
+			$handler->process_deferred_webhook( 'payment_intent.processing', $data, $notification );
+		} finally {
+			remove_action( 'wc_stripe_webhook_received', $listener );
+		}
+
+		$this->assertSame( $action_count, $fired );
+	}
+
+	/**
+	 * Data provider for `test_deferred_retry_fires_received_action_only_when_processed`.
+	 *
+	 * @return array
+	 */
+	public function provide_deferred_retry_action_cases(): array {
+		return [
+			'processed on retry' => [
+				'requeued'     => false,
+				'action_count' => 1,
+			],
+			'locked again'       => [
+				'requeued'     => true,
+				'action_count' => 0,
+			],
+		];
+	}
+
+	/**
+	 * A re-queued event re-enters the immediate handler from the deferred processor,
+	 * so its guards and lock handling run again on retry.
+	 */
+	public function test_deferred_retry_reenters_immediate_handler() {
+		$order        = WC_Helper_Order::create_order();
+		$data         = [
+			'order_id'  => $order->get_id(),
+			'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.processing',
+			'data' => (object) [
+				'object' => (object) self::MOCK_PAYMENT_INTENT,
+			],
+		];
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'process_payment_intent' ] )
+			->getMock();
+
+		$handler->expects( $this->once() )
+			->method( 'process_payment_intent' )
+			->with(
+				$this->callback(
+					function ( $passed ) {
+						return is_object( $passed ) && 'payment_intent.processing' === $passed->type;
+					}
+				)
+			);
+
+		$handler->process_deferred_webhook( 'payment_intent.processing', $data, $notification );
+	}
+
+	/**
+	 * When the webhook settles a charged-upfront pre-order, the deferred handler must
+	 * route it into the pre-order lifecycle instead of standard completion.
+	 */
+	public function test_deferred_payment_intent_succeeded_marks_pre_order() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+
+		$data         = [
+			'order_id'  => $order->get_id(),
+			'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [
+				'object' => (object) self::MOCK_PAYMENT_INTENT,
+			],
+		];
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods(
+				[
+					'get_intent_from_order',
+					'get_latest_charge_from_intent',
+					'process_response',
+					'maybe_mark_order_as_pre_ordered',
+				]
+			)
+			->getMock();
+
+		$handler->expects( $this->any() )
+			->method( 'get_intent_from_order' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT );
+		$handler->expects( $this->any() )
+			->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) [ 'id' => 'ch_mock' ] );
+		$handler->expects( $this->once() )
+			->method( 'maybe_mark_order_as_pre_ordered' )
+			->willReturn( true );
+
+		// The pre-order lifecycle replaces the standard completion flow.
+		$handler->expects( $this->never() )
+			->method( 'process_response' );
+
+		$handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+	}
+
+	/**
+	 * A pre-order settled by the webhook must keep the charge on the order, including an
+	 * uncaptured one, so a later capture or refund can find it.
+	 *
+	 * @param bool $captured Whether the charge is already captured.
+	 * @dataProvider provide_pre_order_charge_states
+	 */
+	public function test_deferred_payment_intent_succeeded_records_charge_on_pre_order( bool $captured ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+
+		$data         = [
+			'order_id'  => $order->get_id(),
+			'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [
+				'object' => (object) self::MOCK_PAYMENT_INTENT,
+			],
+		];
+		$charge       = (object) [
+			'id'       => 'ch_pre_order',
+			'captured' => $captured,
+		];
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods(
+				[
+					'get_intent_from_order',
+					'get_latest_charge_from_intent',
+					'process_response',
+					'is_unreleased_charged_upfront_pre_order',
+				]
+			)
+			->getMock();
+		$handler->method( 'get_intent_from_order' )->willReturn( (object) self::MOCK_PAYMENT_INTENT );
+		$handler->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
+		$handler->method( 'is_unreleased_charged_upfront_pre_order' )->willReturn( true );
+		$handler->expects( $this->never() )->method( 'process_response' );
+
+		$handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+
+		$order = wc_get_order( $order->get_id() );
+		$this->assertSame( 'ch_pre_order', $order->get_transaction_id() );
+		$this->assertSame( wc_bool_to_string( $captured ), WC_Stripe_Order_Helper::get_instance()->get_stripe_charge_captured( $order ) );
+	}
+
+	/**
+	 * Data provider for `test_deferred_payment_intent_succeeded_records_charge_on_pre_order`.
+	 *
+	 * @return array
+	 */
+	public function provide_pre_order_charge_states(): array {
+		return [
+			'captured'   => [ 'captured' => true ],
+			'uncaptured' => [ 'captured' => false ],
+		];
+	}
+
+	/**
 	 * Creates an order carrying a Stripe PaymentIntent that was ultimately settled via the given
 	 * gateway — the shared setup for the unexpected-charge detection tests.
 	 *
@@ -3359,6 +3688,247 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				],
 			],
 		];
+	}
+
+	/**
+	 * The session's Stripe customer must be linked to the order and to the order's WP user,
+	 * without overwriting an ID the user already has.
+	 *
+	 * @param bool    $order_has_user            Whether the order belongs to a WP user.
+	 * @param ?string $existing_user_customer_id A Stripe customer ID already stored on that user, if any.
+	 * @param ?string $expected_user_customer_id The user's Stripe customer ID after processing.
+	 * @param bool    $user_lock_held            Whether another request holds the user attachment lock.
+	 * @dataProvider provide_test_checkout_session_customer_attachment
+	 */
+	public function test_process_checkout_session_attaches_session_customer( bool $order_has_user, ?string $existing_user_customer_id, ?string $expected_user_customer_id, bool $user_lock_held = false ): void {
+		$checkout_session_id = 'cs_test_customer123';
+		$session_customer_id = 'cus_session_123';
+
+		$user_id = 0;
+		if ( $order_has_user ) {
+			$user_id = self::factory()->user->create();
+			if ( null !== $existing_user_customer_id ) {
+				update_user_option( $user_id, '_stripe_customer_id', $existing_user_customer_id, false );
+			}
+			if ( $user_lock_held ) {
+				add_option( 'wc_stripe_user_customer_lock_' . $user_id, time() . ':other-request', '', false );
+			}
+		}
+
+		$order = WC_Helper_Order::create_order( $user_id );
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_abc',
+					'customer'       => $session_customer_id,
+					'amount_total'   => WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ),
+					'currency'       => strtolower( $order->get_currency() ),
+				],
+			],
+		];
+
+		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->getMock();
+		$this->mock_webhook_handler->method( 'get_intent_from_order' )
+			->willReturn( (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'payment_method' => null ] ) );
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+
+		$prop = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $this->mock_webhook_handler, $this->createMock( WC_Stripe_Action_Scheduler_Service::class ) );
+
+		$this->mock_webhook_handler->process_checkout_session_success( $notification );
+
+		$this->assertSame(
+			$session_customer_id,
+			WC_Stripe_Order_Helper::get_instance()->get_stripe_customer_id( wc_get_order( $order->get_id() ) )
+		);
+
+		if ( $order_has_user ) {
+			delete_option( 'wc_stripe_user_customer_lock_' . $user_id );
+			$this->assertSame( $expected_user_customer_id, ( new WC_Stripe_Customer( $user_id ) )->get_id() );
+		}
+	}
+
+	/**
+	 * Data provider for `test_process_checkout_session_attaches_session_customer`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_checkout_session_customer_attachment(): array {
+		return [
+			'guest order'                           => [
+				'order_has_user'            => false,
+				'existing_user_customer_id' => null,
+				'expected_user_customer_id' => null,
+			],
+			'user without a Stripe customer'        => [
+				'order_has_user'            => true,
+				'existing_user_customer_id' => null,
+				'expected_user_customer_id' => 'cus_session_123',
+			],
+			'user with an existing Stripe customer' => [
+				'order_has_user'            => true,
+				'existing_user_customer_id' => 'cus_existing_456',
+				'expected_user_customer_id' => 'cus_existing_456',
+			],
+			'user attachment lock held elsewhere'   => [
+				'order_has_user'            => true,
+				'existing_user_customer_id' => null,
+				'expected_user_customer_id' => '',
+				'user_lock_held'            => true,
+			],
+		];
+	}
+
+	/**
+	 * A malformed session customer must be ignored, not abort settlement.
+	 *
+	 * @param mixed $session_customer The `customer` value on the checkout session.
+	 * @dataProvider provide_test_malformed_session_customer
+	 */
+	public function test_process_checkout_session_ignores_malformed_session_customer( $session_customer ): void {
+		$checkout_session_id = 'cs_test_malformed_customer_' . md5( wp_json_encode( $session_customer ) );
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_abc',
+					'customer'       => $session_customer,
+					'amount_total'   => WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ),
+					'currency'       => strtolower( $order->get_currency() ),
+				],
+			],
+		];
+
+		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->getMock();
+		$this->mock_webhook_handler->method( 'get_intent_from_order' )
+			->willReturn( (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'payment_method' => null ] ) );
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+		$this->mock_webhook_handler->expects( $this->once() )->method( 'process_response' );
+
+		$prop = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $this->mock_webhook_handler, $this->createMock( WC_Stripe_Action_Scheduler_Service::class ) );
+
+		$this->mock_webhook_handler->process_checkout_session_success( $notification );
+
+		$this->assertEmpty( WC_Stripe_Order_Helper::get_instance()->get_stripe_customer_id( wc_get_order( $order->get_id() ) ) );
+	}
+
+	/**
+	 * Data provider for `test_process_checkout_session_ignores_malformed_session_customer`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_malformed_session_customer(): array {
+		return [
+			'object with array id' => [ (object) [ 'id' => [ 'cus_123' ] ] ],
+			'object without id'    => [ (object) [ 'object' => 'customer' ] ],
+			'array'                => [ [ 'cus_123' ] ],
+			'integer'              => [ 123 ],
+			'empty string'         => [ '' ],
+		];
+	}
+
+	/**
+	 * A lock abandoned by a crashed request must not block the attachment forever.
+	 */
+	public function test_attach_customer_to_user_reclaims_an_abandoned_lock(): void {
+		$user_id     = self::factory()->user->create();
+		$lock_option = 'wc_stripe_user_customer_lock_' . $user_id;
+		add_option( $lock_option, ( time() - 2 * MINUTE_IN_SECONDS ) . ':crashed-request', '', false );
+
+		$this->invoke_attach_customer_to_user( $user_id, 'cus_reclaimed' );
+
+		$this->assertSame( 'cus_reclaimed', ( new WC_Stripe_Customer( $user_id ) )->get_id() );
+		$this->assertNull( $this->read_user_customer_lock( $lock_option ), 'The reclaimed lock must be released afterwards.' );
+	}
+
+	/**
+	 * Two requests can read the same expired lock. Only the one whose compare-and-swap lands
+	 * may write the customer, and the loser's release must leave the winner's lock in place.
+	 */
+	public function test_attach_customer_to_user_loses_a_contested_stale_lock_reclaim(): void {
+		global $wpdb;
+
+		$user_id     = self::factory()->user->create();
+		$lock_option = 'wc_stripe_user_customer_lock_' . $user_id;
+		$rival_owner = time() . ':rival-request';
+		add_option( $lock_option, ( time() - 2 * MINUTE_IN_SECONDS ) . ':crashed-request', '', false );
+
+		// The rival reclaims the stale lock after this request has read it but before its swap runs.
+		$rival_reclaims = static function ( $query ) use ( &$rival_reclaims, $wpdb, $lock_option, $rival_owner ) {
+			if ( is_string( $query ) && 0 === stripos( ltrim( $query ), 'UPDATE' ) && false !== strpos( $query, $lock_option ) ) {
+				remove_filter( 'query', $rival_reclaims );
+				$wpdb->update( $wpdb->options, [ 'option_value' => $rival_owner ], [ 'option_name' => $lock_option ] );
+			}
+			return $query;
+		};
+		add_filter( 'query', $rival_reclaims );
+
+		try {
+			$this->invoke_attach_customer_to_user( $user_id, 'cus_loser' );
+		} finally {
+			remove_filter( 'query', $rival_reclaims );
+		}
+
+		$this->assertSame( '', ( new WC_Stripe_Customer( $user_id ) )->get_id(), 'The loser of the reclaim must not write the customer.' );
+		$this->assertSame( $rival_owner, $this->read_user_customer_lock( $lock_option ), 'The loser must not release the rival\'s lock.' );
+
+		delete_option( $lock_option );
+	}
+
+	/**
+	 * Invokes the private user attachment routine on a real handler instance.
+	 *
+	 * @param int    $user_id     The WP user.
+	 * @param string $customer_id The Stripe customer ID to attach.
+	 */
+	private function invoke_attach_customer_to_user( int $user_id, string $customer_id ): void {
+		$method = new ReflectionMethod( WC_Stripe_Webhook_Handler::class, 'attach_customer_to_user' );
+		$method->setAccessible( true );
+		$method->invoke( $this->mock_webhook_handler, $user_id, $customer_id );
+	}
+
+	/**
+	 * Reads the lock row straight from the database; the options cache may hold a stale seed value.
+	 *
+	 * @param string $lock_option The lock option name.
+	 * @return string|null The stored owner value, or null when no lock row exists.
+	 */
+	private function read_user_customer_lock( string $lock_option ): ?string {
+		global $wpdb;
+
+		$value = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", $lock_option ) );
+
+		return is_string( $value ) ? $value : null;
 	}
 
 	/**

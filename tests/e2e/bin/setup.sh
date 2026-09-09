@@ -3,12 +3,7 @@
 set -e
 . ./tests/e2e/bin/common.sh
 
-if [[ -f "$E2E_ROOT/config/local.env" ]]; then
-	# Unreplaced <placeholder> values from local.env.example are not valid shell:
-	# sourcing one aborts the rest of the file, silently dropping every variable
-	# below it. Blank them out so only the values actually filled in take effect.
-	eval "$(sed -E 's/=<[^>]*>[[:space:]]*$/=/' "$E2E_ROOT/config/local.env")"
-fi
+load_e2e_local_env
 
 # If --base_url argument is present use the remote server setup.
 if [[ "$*" == *"--base_url"* ]]; then
@@ -161,6 +156,8 @@ if [[ -z "$STRIPE_PUB_KEY" || -z "$STRIPE_SECRET_KEY" ]]; then
 	error "STRIPE_PUB_KEY and STRIPE_SECRET_KEY must be set in tests/e2e/config/local.env."
 	exit 1
 fi
+
+validate_stripe_listener_credentials
 
 # Resolve both plugins before building the environment.
 step "Fetching plugin dependencies"
