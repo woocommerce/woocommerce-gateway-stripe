@@ -3,23 +3,21 @@
 CWD=$(pwd)
 E2E_ROOT="$CWD/tests/e2e"
 
-# The compose project (and its container-name prefix) and the host ports are
-# global to the machine: two checkouts using the defaults clobber each other's
-# stacks. `npm run worktree:setup` records an isolated stack for each worktree
-# in its .env; fall back to those values so every terminal in a worktree
-# targets the right stack without exporting anything. Explicit env vars win,
-# so a caller can still point at any stack. Read only these three keys rather
-# than sourcing .env, which would let unrelated keys leak into the scripts.
+# The compose project and host ports are machine-global, so worktree:setup
+# records an isolated stack per worktree in .env. Resolution: env var > .env
+# key > historical default (two lines per var: one ${:-} holds one fallback).
+# Grep rather than source .env so unrelated keys can't leak into the scripts.
 env_file_value() {
 	grep "^$1=" "$CWD/.env" 2>/dev/null | tail -1 | cut -d= -f2-
 }
+. "$(dirname "${BASH_SOURCE[0]}")/e2e-stack-defaults.sh"
 # Exported so docker compose can interpolate them in env/docker-compose.yml.
 export E2E_PROJECT=${E2E_PROJECT:-$(env_file_value E2E_PROJECT)}
-export E2E_PROJECT=${E2E_PROJECT:-wcstripe-e2e}
+export E2E_PROJECT=${E2E_PROJECT:-$E2E_DEFAULT_PROJECT}
 export E2E_WP_PORT=${E2E_WP_PORT:-$(env_file_value E2E_WP_PORT)}
-export E2E_WP_PORT=${E2E_WP_PORT:-8088}
+export E2E_WP_PORT=${E2E_WP_PORT:-$E2E_DEFAULT_WP_PORT}
 export E2E_DB_PORT=${E2E_DB_PORT:-$(env_file_value E2E_DB_PORT)}
-export E2E_DB_PORT=${E2E_DB_PORT:-6789}
+export E2E_DB_PORT=${E2E_DB_PORT:-$E2E_DEFAULT_DB_PORT}
 
 ADMIN_USER=${ADMIN_USER-admin}
 ADMIN_PASSWORD=${ADMIN_PASSWORD-admin}

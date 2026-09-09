@@ -42,8 +42,8 @@ Use the smallest command set needed for the task:
 | Start shared infrastructure | `npm run infra:up` | Run from the main checkout. Brings up shared db + phpMyAdmin + bind volumes. |
 | Stop shared infrastructure | `npm run infra:down` | Stops shared db + phpMyAdmin (volumes preserved). |
 | Configure a worktree | `npm run worktree:setup` | Writes `.env` with `WORKTREE_ID`, an unused `WORDPRESS_PORT`, and an isolated e2e Docker stack (`E2E_PROJECT`/`E2E_WP_PORT`/`E2E_DB_PORT`). Called automatically by `npm run up`. |
-| List worktrees | `npm run worktree:status` | Shows port, URL, container state for every worktree; warns about orphan containers. |
-| Clean up a worktree | `npm run worktree:cleanup` | Stops the worktree's container, drops `wcstripe_tests_<id>`, removes `.env`. Run before `git worktree remove`. |
+| List worktrees | `npm run worktree:status` | Shows port, URL, container state, and e2e stack for every worktree; warns about orphan containers and orphan e2e stacks. |
+| Clean up a worktree | `npm run worktree:cleanup` | Stops the worktree's container, drops `wcstripe_tests_<id>`, tears down its e2e Docker stack, removes `.env`. Run before `git worktree remove`. |
 | Build frontend assets | `npm run build:webpack` | Use when editing client-side sources that ship built assets. |
 | Analyze bundle sizes | `BUNDLE_ANALYZE=true npm run build:webpack` | Writes `bundle-report.html` (gitignored) to the repo root. Open it to see a per-bundle module treemap. |
 | Dev hot reload | `npm start` | Webpack watch/dev mode. |

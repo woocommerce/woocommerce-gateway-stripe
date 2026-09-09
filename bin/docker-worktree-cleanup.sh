@@ -52,6 +52,25 @@ else
     echo "Database container not running, skipping test database cleanup."
 fi
 
+# Tear down this worktree's e2e Docker stack (wordpress + mysql + stripe-listener
+# and its named volume). `docker compose -p <project> down` locates containers by
+# their project label, so no compose file is needed here. A worktree .env that
+# still holds the main-checkout default project means it was copied from the main
+# checkout — tearing that project down would kill the main checkout's stack, so
+# skip it (worktree:setup warns about such .env files).
+. "$(dirname "${BASH_SOURCE[0]}")/../tests/e2e/bin/e2e-stack-defaults.sh"
+if [[ -z "$E2E_PROJECT" ]]; then
+    E2E_PROJECT="$E2E_DEFAULT_PROJECT-${WORKTREE_ID}"
+fi
+if [[ "$E2E_PROJECT" == "$E2E_DEFAULT_PROJECT" ]]; then
+    echo "Skipping e2e stack teardown: E2E_PROJECT is the main-checkout default ($E2E_DEFAULT_PROJECT)."
+elif [[ -n "$(docker compose -p "$E2E_PROJECT" ps -a -q 2>/dev/null)" ]]; then
+    echo "Tearing down e2e Docker stack: ${E2E_PROJECT}"
+    docker compose -p "$E2E_PROJECT" down --volumes --remove-orphans
+else
+    echo "No e2e Docker stack found for this worktree."
+fi
+
 if [[ -f ".env" ]]; then
     echo "Removing .env"
     rm .env
