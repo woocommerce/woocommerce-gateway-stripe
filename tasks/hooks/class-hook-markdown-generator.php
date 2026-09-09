@@ -208,44 +208,27 @@ final class Hook_Markdown_Generator {
 		$lines[] = '## Contents';
 		$lines[] = '';
 
-		$action_index_lines = [];
-		foreach ( array_keys( $grouped_actions ) as $action_name ) {
-			$action_index_lines[] = $this->render_index_entry( $action_name );
-		}
 		$lines = array_merge(
 			$lines,
-			$this->render_details_index_section( 'Actions', '#actions', $action_index_lines )
+			$this->render_index_for_group( 'Actions', '#actions', $grouped_actions )
 		);
 
-		$filter_index_lines = [];
-		foreach ( array_keys( $grouped_filters ) as $filter_name ) {
-			$filter_index_lines[] = $this->render_index_entry( $filter_name );
-		}
 		$lines = array_merge(
 			$lines,
-			$this->render_details_index_section( 'Filters', '#filters', $filter_index_lines )
+			$this->render_index_for_group( 'Filters', '#filters', $grouped_filters )
 		);
 
 		if ( [] !== $deprecated_actions ) {
-			$deprecated_action_index_lines = [];
-
-			foreach ( array_keys( $deprecated_actions ) as $deprecated_action_name ) {
-				$deprecated_action_index_lines[] = $this->render_index_entry( $deprecated_action_name );
-			}
 			$lines = array_merge(
 				$lines,
-				$this->render_details_index_section( 'Deprecated Actions', '#deprecated-actions', $deprecated_action_index_lines )
+				$this->render_index_for_group( 'Deprecated Actions', '#deprecated-actions', $deprecated_actions )
 			);
 		}
 
 		if ( [] !== $deprecated_filters ) {
-			$deprecated_filter_index_lines = [];
-			foreach ( array_keys( $deprecated_filters ) as $deprecated_filter_name ) {
-				$deprecated_filter_index_lines[] = $this->render_index_entry( $deprecated_filter_name );
-			}
 			$lines = array_merge(
 				$lines,
-				$this->render_details_index_section( 'Deprecated Filters', '#deprecated-filters', $deprecated_filter_index_lines )
+				$this->render_index_for_group( 'Deprecated Filters', '#deprecated-filters', $deprecated_filters )
 			);
 		}
 
@@ -275,23 +258,29 @@ final class Hook_Markdown_Generator {
 	}
 
 	/**
-	 * Renders a details wrapper for a section of the document that contains an index.
+	 * Renders an index for a group of hooks using a details element as a wrapper.
 	 *
-	 * @param string   $title         The title of the section.
-	 * @param string   $anchor        The anchor of the section.
-	 * @param string[] $content_lines The lines of the section.
-	 * @return string[] The markdown lines of the details section.
+	 * @param string                                       $title         The title of the group.
+	 * @param string                                       $anchor        The anchor for the group.
+	 * @param array<string,array<int,array<string,mixed>>> $grouped_hooks The grouped hooks to render.
+	 * @return string[] The markdown lines of the index section.
 	 */
-	private function render_details_index_section( string $title, string $anchor, array $content_lines ): array {
-		return [
+	private function render_index_for_group( string $title, string $anchor, array $grouped_hooks ): array {
+		$index_lines = [
 			'<details>',
 			'<summary><strong>' . $title . ' <a href="' . $anchor . '">#</a></strong></summary>',
 			'',
-			...$content_lines,
-			'',
-			'</details>',
-			'',
 		];
+
+		foreach ( array_keys( $grouped_hooks ) as $hook_name ) {
+			$index_lines[] = $this->render_index_entry( $hook_name );
+		}
+
+		$index_lines[] = '';
+		$index_lines[] = '</details>';
+		$index_lines[] = '';
+
+		return $index_lines;
 	}
 
 	/**
