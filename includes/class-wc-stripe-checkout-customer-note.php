@@ -31,8 +31,10 @@ class WC_Stripe_Checkout_Customer_Note {
 	/**
 	 * Returns the customer note of the order awaiting payment in the session when the field has no other default.
 	 *
-	 * Mirrors the conditions WooCommerce core uses to resume an order at checkout (pending or
-	 * failed status), narrowed to orders that went through a Stripe gateway.
+	 * Uses the status half of the condition WooCommerce core applies when it resumes that order
+	 * (pending or failed), narrowed to orders that went through a Stripe gateway. The cart-hash
+	 * half is skipped on purpose: the note is the customer's own input for this session, so it
+	 * should survive a cart change that makes core create a fresh order instead.
 	 *
 	 * @param string|null $value The default value WooCommerce computed for the order notes field.
 	 * @return string|null
