@@ -50,11 +50,6 @@ const TestModeCheckbox = () => {
 		<>
 			<h4>{ __( 'Test mode', 'woocommerce-gateway-stripe' ) }</h4>
 			<CheckboxControl
-				className={
-					isLocked
-						? 'wcstripe-test-mode-checkbox--disabled'
-						: undefined
-				}
 				checked={ isTestModeEnabled }
 				disabled={ isLocked }
 				onChange={ handleCheckboxChange }

@@ -75,6 +75,19 @@ class WC_Stripe_Payment_Methods {
 	];
 
 	/**
+	 * Payment methods whose intent must not be confirmed immediately: the voucher/QR code is shown
+	 * to the customer first and confirmation happens from the front-end afterwards.
+	 *
+	 * @var array
+	 */
+	public const DELAYED_CONFIRMATION_PAYMENT_METHODS = [
+		self::BOLETO,
+		self::OXXO,
+		self::MULTIBANCO,
+		self::CASHAPP_PAY,
+	];
+
+	/**
 	 * Payment methods that are considered as BNPL (Buy Now, Pay Later) payment methods.
 	 *
 	 * @var array

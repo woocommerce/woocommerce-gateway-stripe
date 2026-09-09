@@ -1121,22 +1121,15 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 			return $this->cached_shipping_zones;
 		}
 
-		// Get the main zones.
-		$this->cached_shipping_zones = \WC_Shipping_Zones::get_zones();
+		$zones = \WC_Shipping_Zones::get_zones();
 
-		if ( ! empty( $this->cached_shipping_zones ) ) {
-			return $this->cached_shipping_zones;
-		}
-
-		// There is the "Locations not covered by other zones" zone.
+		// get_zones() omits the built-in catch-all zone 0 ("Locations not covered
+		// by your other zones"), which still ships real orders. Append it so its
+		// shipping — or a missing flat rate — is mapped and diagnosed alongside the
+		// named zones, not only when a store has no named zones at all.
 		$generic_zone = \WC_Shipping_Zones::get_zone( 0 );
-		if ( ! $generic_zone || is_wp_error( $generic_zone ) || ! ( $generic_zone instanceof \WC_Shipping_Zone ) ) {
-			$this->cached_shipping_zones = [];
-			return $this->cached_shipping_zones;
-		}
-
-		$this->cached_shipping_zones = [
-			[
+		if ( $generic_zone instanceof \WC_Shipping_Zone ) {
+			$zones[] = [
 				'zone_name'        => __( 'Locations not covered by your other zones', 'woocommerce-gateway-stripe' ),
 				'zone_locations'   => [
 					(object) [
@@ -1145,9 +1138,10 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 					],
 				],
 				'shipping_methods' => $generic_zone->get_shipping_methods(),
-			],
-		];
+			];
+		}
 
+		$this->cached_shipping_zones = $zones;
 		return $this->cached_shipping_zones;
 	}
 
@@ -1166,11 +1160,50 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	}
 
 	/**
+	 * Whether the product sits behind a post password.
+	 *
+	 * Unlike catalog visibility, a variation does NOT inherit the parent's
+	 * password — it is a separate post with its own (empty) value. Resolve to the
+	 * parent, or every variation of a protected variable product keeps syncing.
+	 *
+	 * @since 10.9.0
+	 * @param \WC_Product $product Product to check.
+	 * @return bool
+	 */
+	public static function is_password_protected( \WC_Product $product ): bool {
+		$parent_id = $product->get_parent_id();
+		if ( $parent_id > 0 ) {
+			$parent = wc_get_product( $parent_id );
+			if ( $parent instanceof \WC_Product ) {
+				$product = $parent;
+			}
+		}
+
+		return '' !== (string) $product->get_post_password();
+	}
+
+	/**
+	 * Whether the merchant hid the product from both the catalog and search.
+	 *
+	 * The partial values (`catalog`, `search`) are deliberately not exclusions:
+	 * the product is still reachable by the other route.
+	 *
+	 * @since 10.9.0
+	 * @param \WC_Product $product Product to check.
+	 * @return bool
+	 */
+	public static function is_hidden_from_catalog( \WC_Product $product ): bool {
+		return 'hidden' === $product->get_catalog_visibility();
+	}
+
+	/**
 	 * Whether the given product should be included in any Agentic Commerce sync
 	 * (full feed, inventory updates, archive events).
 	 *
-	 * Default is true; integrations such as WC AI Storefront can return false to
-	 * exclude a product based on merchant-configured visibility settings.
+	 * Defaults to true, minus the built-in exclusions: subscriptions,
+	 * password-protected products, and products hidden from catalog and search.
+	 * Integrations such as WC AI Storefront can return false to exclude a product,
+	 * or true to re-include one the defaults dropped.
 	 *
 	 * @since 10.8.0
 	 * @param \WC_Product $product Product to check.
@@ -1181,7 +1214,12 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		// post type, so the feed's simple/variation query returns them; left in,
 		// they fail validation and downgrade every sync to a partial success.
 		// Excluded by default, still overridable via the filters below.
-		$default_should_sync = ! self::is_subscription_product( $product );
+		//
+		// The other two express intent the query cannot: it selects on status and
+		// type only, so a protected or hidden product is still `publish`.
+		$default_should_sync = ! self::is_subscription_product( $product )
+			&& ! self::is_password_protected( $product )
+			&& ! self::is_hidden_from_catalog( $product );
 
 		// Opt-in default: drop detector-flagged configurator products, whose
 		// runtime-variable pricing the static feed can't honour. A filter below
@@ -1231,8 +1269,13 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		 * `do_action( 'wc_stripe_agentic_commerce_schedule_full_resync' )` to
 		 * enqueue an immediate full-catalog sync.
 		 *
+		 * Also runs per row on the admin Products list (sync-status column),
+		 * so callbacks must be fast.
+		 *
 		 * @since 10.9.0
-		 * @param bool        $should_sync Whether to include the product. Default true (false for subscriptions).
+		 * @param bool        $should_sync Whether to include the product. Default true, except for
+		 *                                 subscriptions, password-protected products, and products
+		 *                                 hidden from catalog and search.
 		 * @param \WC_Product $product     Product being evaluated.
 		 */
 		return wp_validate_boolean( apply_filters( 'woocommerce_agentic_commerce_should_sync_product', $should_sync, $product ) );

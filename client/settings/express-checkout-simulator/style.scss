@@ -1,0 +1,63 @@
+@use '../../styles/abstracts/styles';
+
+.express-checkout-simulator {
+	margin-top: 24px;
+
+	h4 {
+		margin-bottom: 8px;
+	}
+
+	&__checks,
+	&__locations {
+		margin: 0 0 16px;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	&__check,
+	&__location {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin: 0;
+		flex-wrap: wrap;
+
+		// The icon inherits color so each status/verdict can tint it.
+		.components-icon,
+		svg {
+			flex-shrink: 0;
+		}
+	}
+
+	&__check.is-pass svg,
+	&__location.is-shown svg {
+		fill: styles.$wp-green-50;
+	}
+
+	&__check.is-fail svg,
+	&__location.is-hidden svg {
+		fill: styles.$wp-red-50;
+	}
+
+	&__check.is-info svg {
+		fill: styles.$gray-700;
+	}
+
+	&__check-label,
+	&__location-label {
+		font-weight: 600;
+		color: styles.$gray-900;
+	}
+
+	&__check-detail,
+	&__location-reason {
+		color: styles.$gray-700;
+	}
+
+	&__caveat {
+		color: styles.$gray-700;
+		font-style: italic;
+		margin-bottom: 0;
+	}
+}

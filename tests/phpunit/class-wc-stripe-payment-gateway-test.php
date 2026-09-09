@@ -667,16 +667,99 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Tests that process_refund returns false for negative amounts.
+	 * Tests that a failed captured-state lookup surfaces the lookup error instead of
+	 * being treated as an uncaptured charge (which would suggest a manual refund for
+	 * money Stripe may still hold).
 	 */
-	public function test_process_refund_fails_on_negative_amount() {
+	public function test_process_refund_fails_when_captured_state_cannot_be_resolved() {
 		$order = WC_Helper_Order::create_order();
 		$order->set_transaction_id( 'ch_123' );
 		$order->save();
 		$order_id = $order->get_id();
 
+		// No captured flag recorded, so process_refund resolves it by fetching the charge.
+		$callback = function ( $preempt, $request_args, $url ) {
+			if ( strpos( $url, 'charges/ch_123' ) !== false ) {
+				return $this->build_response(
+					[
+						'error' => (object) [
+							'type'    => 'invalid_request_error',
+							'message' => 'No such charge: ch_123',
+						],
+					]
+				);
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		$result = $this->gateway->process_refund( $order_id, 10.00 );
+
+		remove_filter( 'pre_http_request', $callback );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'stripe_error', $result->get_error_code() );
+		// The lookup failure itself reaches the merchant, not uncaptured-charge guidance.
+		$this->assertStringContainsString( 'No such charge: ch_123', $result->get_error_message() );
+
+		// Nothing was recorded from the failed resolution: the flag stays unwritten so a
+		// later attempt resolves again instead of trusting a fabricated value.
+		$this->assertSame( '', wc_get_order( $order_id )->get_meta( '_stripe_charge_captured' ) );
+	}
+
+	/**
+	 * Tests that process_refund rejects negative amounts without contacting Stripe.
+	 * WC_Stripe_Helper::get_stripe_amount() strips the sign, so an unguarded negative
+	 * amount would refund the absolute value instead of failing.
+	 *
+	 * @dataProvider provide_test_process_refund_fails_on_negative_amount
+	 * @param string $captured_meta Stored _stripe_charge_captured value ('' = never recorded).
+	 */
+	public function test_process_refund_fails_on_negative_amount( string $captured_meta ) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		$order->set_transaction_id( 'ch_123' );
+		if ( '' !== $captured_meta ) {
+			$this->updateOrderMeta( $order, '_stripe_charge_captured', $captured_meta );
+		}
+		$order->save();
+		$order_id = $order->get_id();
+
+		$requested_urls = [];
+
+		$callback = function ( $preempt, $request_args, $url ) use ( &$requested_urls ) {
+			$requested_urls[] = $url;
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
 		$result = $this->gateway->process_refund( $order_id, -10 );
-		$this->assertSame( null, $result );
+
+		remove_filter( 'pre_http_request', $callback );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'stripe_error', $result->get_error_code() );
+		$this->assertStringContainsString( 'must be greater than or equal to zero', $result->get_error_message() );
+
+		// No request reached Stripe: an unguarded -10 would have refunded +10, and a
+		// missing captured flag must not trigger the charge lookup for a doomed refund.
+		$this->assertSame( [], $requested_urls );
+	}
+
+	/**
+	 * Data provider for test_process_refund_fails_on_negative_amount.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_process_refund_fails_on_negative_amount(): array {
+		return [
+			'captured charge'               => [ 'yes' ],
+			'authorize-only charge'         => [ 'no' ],
+			'captured state never recorded' => [ '' ],
+			'unexpected stored value'       => [ 'maybe' ],
+		];
 	}
 
 	/**
@@ -720,7 +803,172 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$result = $this->gateway->process_refund( $order_id, 10.00, 'Customer requested' );
 		$this->assertTrue( $result );
 
+		// A direct call with no WC refund record (e.g. voiding via cancel_payment) must not fatal.
+		$this->assertCount( 0, wc_get_order( $order_id )->get_refunds() );
+
 		remove_filter( 'pre_http_request', $callback );
+	}
+
+	/**
+	 * Tests that process_refund stores the Stripe refund ID on the WC refund record.
+	 */
+	public function test_process_refund_stores_refund_id_on_refund_record() {
+		$refund_meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Order_Helper::class, 'META_STRIPE_REFUND_ID', 'string' );
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		$order->set_transaction_id( 'ch_123' );
+		$order->update_meta_data( '_stripe_charge_captured', 'yes' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		// WC core creates and saves the refund record before invoking the gateway.
+		$refund = wc_create_refund(
+			[
+				'order_id' => $order_id,
+				'amount'   => 10.00,
+				'reason'   => 'Customer requested',
+			]
+		);
+		$this->assertNotWPError( $refund );
+
+		$callback = function ( $preempt, $request_args, $url ) {
+			if ( strpos( $url, 'refunds' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'       => 're_123',
+						'object'   => 'refund',
+						'amount'   => 1000,
+						'currency' => 'usd',
+						'charge'   => 'ch_123',
+						'status'   => 'succeeded',
+					]
+				);
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		$result = $this->gateway->process_refund( $order_id, 10.00, 'Customer requested' );
+		$this->assertTrue( $result );
+
+		remove_filter( 'pre_http_request', $callback );
+
+		$reloaded_refund = wc_get_order( $refund->get_id() );
+		$this->assertSame( 're_123', $reloaded_refund->get_meta( $refund_meta_key ) );
+		$this->assertSame( 're_123', WC_Stripe_Order_Helper::get_instance()->get_stripe_refund_id( wc_get_order( $order_id ) ) );
+	}
+
+	/**
+	 * Tests that multiple partial refunds each keep their own Stripe refund ID.
+	 */
+	public function test_process_refund_multiple_refunds_keep_distinct_ids() {
+		$refund_meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Order_Helper::class, 'META_STRIPE_REFUND_ID', 'string' );
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		$order->set_transaction_id( 'ch_123' );
+		$order->update_meta_data( '_stripe_charge_captured', 'yes' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$mock_refund_id     = 're_1';
+		$mock_refund_amount = 500;
+
+		$callback = function ( $preempt, $request_args, $url ) use ( &$mock_refund_id, &$mock_refund_amount ) {
+			if ( strpos( $url, 'refunds' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'       => $mock_refund_id,
+						'object'   => 'refund',
+						'amount'   => $mock_refund_amount,
+						'currency' => 'usd',
+						'charge'   => 'ch_123',
+						'status'   => 'succeeded',
+					]
+				);
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		$wc_refund_1 = wc_create_refund(
+			[
+				'order_id' => $order_id,
+				'amount'   => 5.00,
+			]
+		);
+		$this->assertNotWPError( $wc_refund_1 );
+		$this->assertTrue( $this->gateway->process_refund( $order_id, 5.00 ) );
+
+		$mock_refund_id     = 're_2';
+		$mock_refund_amount = 700;
+
+		$wc_refund_2 = wc_create_refund(
+			[
+				'order_id' => $order_id,
+				'amount'   => 7.00,
+			]
+		);
+		$this->assertNotWPError( $wc_refund_2 );
+		$this->assertTrue( $this->gateway->process_refund( $order_id, 7.00 ) );
+
+		remove_filter( 'pre_http_request', $callback );
+
+		$this->assertSame( 're_1', wc_get_order( $wc_refund_1->get_id() )->get_meta( $refund_meta_key ) );
+		$this->assertSame( 're_2', wc_get_order( $wc_refund_2->get_id() )->get_meta( $refund_meta_key ) );
+		$this->assertSame( 're_2', WC_Stripe_Order_Helper::get_instance()->get_stripe_refund_id( wc_get_order( $order_id ) ) );
+	}
+
+	/**
+	 * Tests that a refund record whose amount does not match the Stripe response is left untagged.
+	 */
+	public function test_process_refund_skips_refund_record_on_amount_mismatch() {
+		$refund_meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Order_Helper::class, 'META_STRIPE_REFUND_ID', 'string' );
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		$order->set_transaction_id( 'ch_123' );
+		$order->update_meta_data( '_stripe_charge_captured', 'yes' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		// Record for a different amount than what Stripe reports refunded.
+		$refund = wc_create_refund(
+			[
+				'order_id' => $order_id,
+				'amount'   => 5.00,
+			]
+		);
+		$this->assertNotWPError( $refund );
+
+		$callback = function ( $preempt, $request_args, $url ) {
+			if ( strpos( $url, 'refunds' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'       => 're_123',
+						'object'   => 'refund',
+						'amount'   => 1000,
+						'currency' => 'usd',
+						'charge'   => 'ch_123',
+						'status'   => 'succeeded',
+					]
+				);
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		$result = $this->gateway->process_refund( $order_id, 10.00 );
+		$this->assertTrue( $result );
+
+		remove_filter( 'pre_http_request', $callback );
+
+		$this->assertSame( '', wc_get_order( $refund->get_id() )->get_meta( $refund_meta_key ) );
+		$this->assertSame( 're_123', WC_Stripe_Order_Helper::get_instance()->get_stripe_refund_id( wc_get_order( $order_id ) ) );
 	}
 
 	/**
@@ -916,6 +1164,56 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertFalse( $result );
 
 		remove_filter( 'pre_http_request', $callback );
+	}
+
+	/**
+	 * Tests that process_refund reconciles a missing captured flag from the charge itself.
+	 * Async-confirmed orders (e.g. ACH microdeposits) never write the meta at checkout,
+	 * and treating that as "not captured" used to silently skip the refund request.
+	 */
+	public function test_process_refund_reconciles_missing_captured_meta_from_charge() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		// Transaction ID back-filled by the async completion webhooks; captured meta never written.
+		$order->set_transaction_id( 'py_123' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$callback = function ( $preempt, $request_args, $url ) {
+			if ( strpos( $url, 'charges/py_123' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'       => 'py_123',
+						'object'   => 'charge',
+						'captured' => true,
+						'status'   => 'succeeded',
+					]
+				);
+			}
+			if ( strpos( $url, 'refunds' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'       => 're_123',
+						'object'   => 'refund',
+						'amount'   => 1000,
+						'currency' => 'usd',
+						'charge'   => 'py_123',
+						'status'   => 'succeeded',
+					]
+				);
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		$result = $this->gateway->process_refund( $order_id, 10.00, 'Customer requested' );
+		$this->assertTrue( $result );
+
+		remove_filter( 'pre_http_request', $callback );
+
+		// The reconciled captured state is persisted for subsequent refund paths.
+		$this->assertSame( 'yes', wc_get_order( $order_id )->get_meta( '_stripe_charge_captured' ) );
 	}
 
 	/**
@@ -1548,6 +1846,43 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		return [
 			'phone present' => [ '+1 555-333-4444', true ],
 			'phone empty'   => [ '', false ],
+		];
+	}
+
+	/**
+	 * Locks the fieldset > p.woocommerce-SavedPaymentMethods-saveNew structure the
+	 * empty-box hide rule in client/classic/upe/style.scss depends on.
+	 *
+	 * @param bool $force_checked Whether saving is mandatory (e.g. subscription in cart):
+	 *                            the checkbox renders pre-checked and its wrapper hidden
+	 *                            so the shopper cannot opt out.
+	 * @dataProvider provide_test_save_payment_method_checkbox
+	 */
+	public function test_save_payment_method_checkbox_renders_hideable_fieldset_wrapper( bool $force_checked ) {
+		ob_start();
+		$this->gateway->save_payment_method_checkbox( $force_checked );
+		$output = ob_get_clean();
+
+		$this->assertMatchesRegularExpression( '/^\s*<fieldset[^>]*>\s*<p class="form-row woocommerce-SavedPaymentMethods-saveNew/', $output );
+
+		if ( $force_checked ) {
+			$this->assertStringContainsString( '<fieldset style="display: none;">', $output );
+			$this->assertStringContainsString( 'checked', $output );
+		} else {
+			$this->assertStringNotContainsString( '<fieldset style="display: none;">', $output );
+			$this->assertStringNotContainsString( 'checked', $output );
+		}
+	}
+
+	/**
+	 * Data provider for test_save_payment_method_checkbox_renders_hideable_fieldset_wrapper.
+	 *
+	 * @return array
+	 */
+	public function provide_test_save_payment_method_checkbox(): array {
+		return [
+			'default'      => [ false ],
+			'force saving' => [ true ],
 		];
 	}
 }
