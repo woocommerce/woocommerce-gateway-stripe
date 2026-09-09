@@ -44,7 +44,14 @@ export async function selectSubscriptionOption( page ) {
 export async function addSubscriptionToCart( page, productId ) {
 	await page.goto( `?p=${ productId }` );
 	await selectSubscriptionOption( page );
-	await clickAddToCartButton( page, 'Sign up' );
+	// Click the cart form's submit rather than matching the button copy: the
+	// label varies with the WC/WCS combination ("Sign up" on WC <= 11.0,
+	// "Add to cart" on 11.1) and with the store locale.
+	const addToCartButton = page
+		.locator( 'form.cart button[type="submit"]' )
+		.first();
+	await expect( addToCartButton ).toBeEnabled();
+	await addToCartButton.click();
 	await expect(
 		page.getByText( 'has been added to your cart' )
 	).toBeVisible();
