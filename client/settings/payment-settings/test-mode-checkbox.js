@@ -37,11 +37,19 @@ const TestModeCheckbox = () => {
 		components: {
 			testCardNumbersLink: (
 				// eslint-disable-next-line jsx-a11y/anchor-has-content
-				<a href="https://docs.stripe.com/testing#cards" />
+				<a
+					href="https://docs.stripe.com/testing#cards"
+					target="_blank"
+					rel="noreferrer"
+				/>
 			),
 			learnMoreLink: (
 				// eslint-disable-next-line jsx-a11y/anchor-has-content
-				<a href="https://woocommerce.com/document/stripe/customer-experience/testing/" />
+				<a
+					href="https://woocommerce.com/document/stripe/customer-experience/testing/"
+					target="_blank"
+					rel="noreferrer"
+				/>
 			),
 		},
 	} );

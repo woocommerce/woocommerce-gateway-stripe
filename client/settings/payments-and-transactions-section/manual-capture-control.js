@@ -83,7 +83,11 @@ const ManualCaptureControl = () => {
 					components: {
 						learnMoreLink: (
 							// eslint-disable-next-line jsx-a11y/anchor-has-content
-							<a href="https://woocommerce.com/document/stripe/admin-experience/authorize-and-capture/" />
+							<a
+								href="https://woocommerce.com/document/stripe/admin-experience/authorize-and-capture/"
+								target="_blank"
+								rel="noreferrer"
+							/>
 						),
 					},
 				} ) }

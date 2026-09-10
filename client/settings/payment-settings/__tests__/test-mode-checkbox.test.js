@@ -45,6 +45,20 @@ const mockAccount = ( {
 };
 
 describe( 'TestModeCheckbox', () => {
+	it( 'opens help links in a new tab', () => {
+		useTestMode.mockReturnValue( [ false, jest.fn() ] );
+		mockAccount( { liveConnected: true, testConnected: true } );
+
+		render( <TestModeCheckbox /> );
+
+		expect(
+			screen.getByRole( 'link', { name: 'test card numbers' } )
+		).toHaveAttribute( 'target', '_blank' );
+		expect(
+			screen.getByRole( 'link', { name: 'Learn more' } )
+		).toHaveAttribute( 'target', '_blank' );
+	} );
+
 	it( 'allows enabling test mode when a test account is connected', async () => {
 		const setTestModeMock = jest.fn();
 		useTestMode.mockReturnValue( [ false, setTestModeMock ] );

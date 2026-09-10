@@ -23,6 +23,14 @@ describe( 'ManualCaptureControl', () => {
 		delete global.wc_stripe_settings_params;
 	} );
 
+	it( 'opens the help link in a new tab', () => {
+		render( <ManualCaptureControl /> );
+
+		expect(
+			screen.getByRole( 'link', { name: 'Learn more' } )
+		).toHaveAttribute( 'target', '_blank' );
+	} );
+
 	it( 'notes in the confirmation modal that agentic purchases follow the Stripe dashboard capture setting when agentic commerce is enabled', async () => {
 		global.wc_stripe_settings_params.is_agentic_commerce_merchant_enabled = true;
 		useManualCapture.mockReturnValue( [ false, jest.fn() ] );
