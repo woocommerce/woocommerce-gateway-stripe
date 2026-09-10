@@ -5,7 +5,7 @@
  * Builds WC shipping packages with resolved product contents for agentic checkout.
  *
  * @package WooCommerce_Stripe/Agentic_Commerce
- * @since   10.9.0
+ * @since   11.1.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
