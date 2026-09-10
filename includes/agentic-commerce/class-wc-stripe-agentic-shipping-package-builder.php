@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * `contents` entries — product data, quantities, and line totals — so the
  * entries mirror WC_Cart's cart item format.
  *
- * @since 10.9.0
+ * @since 11.1.0
  */
 class WC_Stripe_Agentic_Shipping_Package_Builder {
 
