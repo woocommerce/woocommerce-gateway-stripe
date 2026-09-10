@@ -504,7 +504,7 @@ class WC_Stripe_API {
 			empty( $level3_data ) ||
 			get_transient( 'wc_stripe_level3_not_allowed' ) ||
 			'US' !== WC()->countries->get_base_country() ||
-			! self::payment_supports_level3_data( $request, $order )
+			! WC_Stripe_Helper::order_supports_level3_data( $order )
 		) {
 			return self::request(
 				$request,
@@ -544,9 +544,10 @@ class WC_Stripe_API {
 		);
 
 		if ( $is_level3_param_not_allowed ) {
-			// Only cache the rejection for payments known to support level3: for an unknown
-			// payment type it's ambiguous and would disable level3 account-wide.
-			if ( self::is_payment_known_to_support_level3_data( $request, $order ) ) {
+			// When the request itself declares only non-level3 payment method types, the
+			// rejection reflects this one request, not the account's level3 gating — caching
+			// it would disable level3 for legitimate card payments account-wide.
+			if ( ! self::declares_only_non_level3_payment_method_types( $request ) ) {
 				// Set a transient so that future requests do not add level 3 data.
 				// Transient is set to expire in 3 months, can be manually removed if needed.
 				set_transient( 'wc_stripe_level3_not_allowed', true, 3 * MONTH_IN_SECONDS );
@@ -577,50 +578,21 @@ class WC_Stripe_API {
 	}
 
 	/**
-	 * Determines whether Level 3 data may be attached to the given request.
+	 * Determines whether the request positively declares only payment method types that do
+	 * not support Level 3 data.
 	 *
-	 * Prefers the payment_method_types the request itself declares; the order meta is the
-	 * fallback for requests that carry no payment method info (e.g. capture-time calls).
+	 * A request that declares no types (e.g. capture or confirm calls) returns false: its
+	 * rejection is ambiguous and keeps the pre-existing caching behavior.
 	 *
-	 * @param array    $request The request parameters.
-	 * @param WC_Order $order   The order associated with the payment.
+	 * @param array $request The request parameters.
 	 *
-	 * @return bool Whether Level 3 data applies to the payment.
+	 * @return bool Whether every declared type is a non-level3 type.
 	 */
-	private static function payment_supports_level3_data( $request, $order ) {
+	private static function declares_only_non_level3_payment_method_types( $request ) {
 		$payment_method_types = self::get_request_payment_method_types( $request );
 
-		if ( [] !== $payment_method_types ) {
-			// A supported type among the candidates is enough (e.g. [card, link]): Stripe
-			// only rejects level3 when no type on the intent supports it.
-			return [] !== array_intersect( $payment_method_types, WC_Stripe_Payment_Methods::LEVEL3_SUPPORTED_PAYMENT_METHODS );
-		}
-
-		return WC_Stripe_Helper::order_supports_level3_data( $order );
-	}
-
-	/**
-	 * Determines whether the payment is positively identified as a level3-supported type.
-	 *
-	 * Unlike payment_supports_level3_data(), an unknown payment type does NOT count as
-	 * supported here — a level3 rejection for an unknown type is ambiguous.
-	 *
-	 * @param array    $request The request parameters.
-	 * @param WC_Order $order   The order associated with the payment.
-	 *
-	 * @return bool Whether the payment is known to be a level3-supported type.
-	 */
-	private static function is_payment_known_to_support_level3_data( $request, $order ) {
-		$payment_method_types = self::get_request_payment_method_types( $request );
-
-		if ( [] === $payment_method_types && $order instanceof WC_Order ) {
-			$order_payment_type = WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order );
-			if ( is_string( $order_payment_type ) && '' !== $order_payment_type ) {
-				$payment_method_types = [ $order_payment_type ];
-			}
-		}
-
-		return [] !== array_intersect( $payment_method_types, WC_Stripe_Payment_Methods::LEVEL3_SUPPORTED_PAYMENT_METHODS );
+		return [] !== $payment_method_types
+			&& [] === array_intersect( $payment_method_types, WC_Stripe_Payment_Methods::LEVEL3_SUPPORTED_PAYMENT_METHODS );
 	}
 
 	/**
@@ -637,7 +609,7 @@ class WC_Stripe_API {
 		}
 
 		// The request passes through public filters before this point, so drop non-string
-		// entries: a fully malformed list then falls back to the order meta.
+		// entries: a fully malformed list then counts as declaring no types.
 		return array_filter(
 			$request['payment_method_types'],
 			static function ( $type ) {
