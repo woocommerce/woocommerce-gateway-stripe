@@ -1965,6 +1965,33 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * A PaymentMethod the caller already retrieved is trusted for the ownership check, so
+	 * checkout does not pay for a second retrieval.
+	 */
+	public function test_update_saved_payment_method_reuses_the_given_payment_method() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_billing_address_1( 'WooAddress' );
+		$order->set_billing_country( 'US' );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_customer_id( $order, 'cus_mock' );
+		$order->save();
+
+		$payment_method = (object) [
+			'id'       => 'pm_123',
+			'customer' => 'cus_mock',
+		];
+
+		$requests = $this->capture_stripe_requests(
+			function () use ( $order, $payment_method ) {
+				$this->gateway->update_saved_payment_method( 'pm_123', $order, $payment_method );
+			}
+		);
+
+		$this->assertCount( 1, $requests );
+		$this->assertStringEndsWith( '/payment_methods/pm_123', $requests[0]['url'] );
+		$this->assertSame( 'POST', $requests[0]['method'] );
+	}
+
+	/**
 	 * A PaymentMethod attached to another Stripe customer must not be changed.
 	 */
 	public function test_update_saved_payment_method_skips_customer_mismatch() {

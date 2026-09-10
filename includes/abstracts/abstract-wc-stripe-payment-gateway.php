@@ -2815,8 +2815,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @param string       $payment_method_id The payment method to update.
 	 * @param WC_Order|int $order             Order object or id.
+	 * @param object|null  $payment_method    The PaymentMethod object when the caller already retrieved it, so the ownership check needs no extra request.
 	 */
-	public function update_saved_payment_method( $payment_method_id, $order ) {
+	public function update_saved_payment_method( $payment_method_id, $order, $payment_method = null ) {
 		$order = ! is_a( $order, 'WC_Order' ) ? wc_get_order( $order ) : $order;
 
 		if ( ! $order instanceof WC_Order || ! $this->is_type_payment_method( $payment_method_id ) ) {
@@ -2837,7 +2838,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				return;
 			}
 
-			$payment_method          = WC_Stripe_API::get_payment_method( $payment_method_id );
+			if ( ! is_object( $payment_method ) || ( $payment_method->id ?? null ) !== $payment_method_id ) {
+				$payment_method = WC_Stripe_API::get_payment_method( $payment_method_id );
+			}
 			$payment_method_customer = is_object( $payment_method ) && isset( $payment_method->customer ) ? $payment_method->customer : null;
 			$order_customer          = $this->get_stripe_customer_id( $order );
 

@@ -3589,6 +3589,72 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * A subscription payment-method change that needs confirmation must persist the
+	 * SetupIntent ID before redirecting, so the return request can match it.
+	 */
+	public function test_change_subscription_payment_persists_setup_intent_id_before_redirect(): void {
+		$subscription = new WC_Subscription( WC_Helper_Order::create_order()->get_id() );
+		$subscription->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$subscription->save();
+
+		$previous_wcs_get_subscription          = WC_Subscriptions::$wcs_get_subscription;
+		WC_Subscriptions::$wcs_get_subscription = function () use ( $subscription ) {
+			return $subscription;
+		};
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->onlyMethods( [ 'prepare_payment_information_from_request', 'validate_selected_payment_method_type', 'stripe_request', 'process_setup_intent_for_order', 'get_redirect_url', 'get_return_url' ] )
+			->getMock();
+		$gateway->method( 'prepare_payment_information_from_request' )->willReturn(
+			[
+				'payment_method'               => 'pm_mock',
+				'selected_payment_type'        => WC_Stripe_Payment_Methods::CARD,
+				'payment_method_details'       => (object) [
+					'id'   => 'pm_mock',
+					'type' => 'card',
+				],
+				'save_payment_method_to_store' => false,
+				'customer'                     => 'cus_mock',
+				'token'                        => false,
+			]
+		);
+		$gateway->method( 'stripe_request' )->willReturn(
+			(object) [
+				'id'   => 'pm_mock',
+				'type' => 'card',
+			]
+		);
+		$gateway->method( 'process_setup_intent_for_order' )->willReturn(
+			(object) [
+				'id'     => 'seti_mock',
+				'status' => WC_Stripe_Intent_Status::REQUIRES_ACTION,
+			]
+		);
+		$gateway->method( 'get_return_url' )->willReturn( 'https://example.org/return' );
+		$gateway->method( 'get_redirect_url' )->willReturn( 'https://example.org/confirm' );
+
+		// Intercept wp_safe_redirect so exit() is never reached and the assertions can run.
+		add_filter(
+			'wp_redirect',
+			function () {
+				throw new \RuntimeException( 'redirect_intercepted' );
+			}
+		);
+
+		try {
+			$gateway->process_change_subscription_payment_with_deferred_intent( $subscription->get_id() );
+			$this->fail( 'Expected the confirmation redirect' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirect_intercepted', $e->getMessage() );
+		} finally {
+			remove_all_filters( 'wp_redirect' );
+			WC_Subscriptions::$wcs_get_subscription = $previous_wcs_get_subscription;
+		}
+
+		$this->assertSame( 'seti_mock', WC_Stripe_Order_Helper::get_instance()->get_stripe_setup_intent_id( $subscription ) );
+	}
+
+	/**
 	 * A stale PaymentMethod lock must be reclaimed so an abandoned request does not block checkout.
 	 */
 	public function test_process_payment_with_saved_method_reclaims_stale_lock() {

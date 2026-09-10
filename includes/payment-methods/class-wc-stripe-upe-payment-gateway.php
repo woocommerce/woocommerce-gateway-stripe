@@ -1786,7 +1786,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			$payment_method_lock_owner = null;
 			if ( $is_using_saved_payment_method ) {
-				$payment_method_lock_owner = $this->acquire_payment_method_lock( $payment_method_id );
+				$payment_method_lock_owner = WC_Stripe_Option_Lock::acquire( $this->get_payment_method_lock_name( $payment_method_id ), self::PAYMENT_METHOD_LOCK_TTL );
 				if ( null === $payment_method_lock_owner ) {
 					if ( $order instanceof WC_Order ) {
 						$order_helper->unlock_order_payment( $order );
@@ -1803,7 +1803,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			try {
 				// The address update and intent confirmation must remain together so another order cannot replace the AVS address between them.
 				if ( $is_using_saved_payment_method ) {
-					$this->update_saved_payment_method( $payment_method_id, $order );
+					$this->update_saved_payment_method( $payment_method_id, $order, $payment_method );
 				}
 
 				if ( $payment_needed ) {
@@ -1834,7 +1834,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				}
 			} finally {
 				if ( null !== $payment_method_lock_owner ) {
-					$this->release_payment_method_lock( $payment_method_id, $payment_method_lock_owner );
+					WC_Stripe_Option_Lock::release( $this->get_payment_method_lock_name( $payment_method_id ), $payment_method_lock_owner );
 				}
 			}
 
@@ -1921,82 +1921,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Acquires a cross-request lock for a saved PaymentMethod.
-	 *
-	 * Each holder owns a unique value so an expired request cannot release a successor's lock.
+	 * Option name of the cross-request lock serializing checkouts that reuse one saved PaymentMethod.
 	 *
 	 * @param string $payment_method_id Stripe PaymentMethod identifier.
-	 * @return string|null Owner token, or null when another checkout holds the lock.
+	 * @return string
 	 */
-	private function acquire_payment_method_lock( string $payment_method_id ): ?string {
-		global $wpdb;
-
-		$option_name = self::PAYMENT_METHOD_LOCK_OPTION_PREFIX . md5( $payment_method_id );
-		$lock_owner  = time() . ':' . wp_generate_uuid4();
-
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$inserted = $wpdb->query(
-			$wpdb->prepare(
-				"INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'off')",
-				$option_name,
-				$lock_owner
-			)
-		);
-		if ( 1 === $inserted ) {
-			return $lock_owner;
-		}
-
-		$current = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", $option_name ) );
-		if ( ! is_string( $current ) ) {
-			return null;
-		}
-
-		$locked_at = (int) strtok( $current, ':' );
-		if ( $locked_at > 0 && ( time() - $locked_at ) < self::PAYMENT_METHOD_LOCK_TTL ) {
-			return null;
-		}
-
-		$reclaimed = $wpdb->query(
-			$wpdb->prepare(
-				"UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND option_value = %s",
-				$lock_owner,
-				$option_name,
-				$current
-			)
-		);
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-
-		if ( 1 !== $reclaimed ) {
-			return null;
-		}
-
-		// The UPDATE bypasses the options API, so a value cached earlier in this request would still name the stale owner.
-		wp_cache_delete( $option_name, 'options' );
-
-		return $lock_owner;
-	}
-
-	/**
-	 * Releases a saved PaymentMethod lock only while this request still owns it.
-	 *
-	 * @param string $payment_method_id Stripe PaymentMethod identifier.
-	 * @param string $lock_owner        Owner token returned by acquire_payment_method_lock().
-	 * @return void
-	 */
-	private function release_payment_method_lock( string $payment_method_id, string $lock_owner ): void {
-		global $wpdb;
-
-		$option_name = self::PAYMENT_METHOD_LOCK_OPTION_PREFIX . md5( $payment_method_id );
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$wpdb->delete(
-			$wpdb->options,
-			[
-				'option_name'  => $option_name,
-				'option_value' => $lock_owner,
-			]
-		);
-		wp_cache_delete( $option_name, 'options' );
+	private function get_payment_method_lock_name( string $payment_method_id ): string {
+		return self::PAYMENT_METHOD_LOCK_OPTION_PREFIX . md5( $payment_method_id );
 	}
 
 	/**
