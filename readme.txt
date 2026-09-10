@@ -165,5 +165,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add E2E coverage for express checkout with free trial subscriptions, with and without shipping, including completing the purchase with Link
 * Fix - Prevent dropped webhooks, double processing, and skipped pre-order handling when requests race for the order payment lock
 * Fix - Stop two requests from reclaiming the same expired Optimized Checkout or Agentic Commerce sync lock
+* Fix - Stop rewriting a saved payment method's name, email, and phone in Stripe when it is used at checkout; only the billing address is refreshed
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

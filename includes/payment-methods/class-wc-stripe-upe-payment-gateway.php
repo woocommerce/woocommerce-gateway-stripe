@@ -17,6 +17,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 	public const ID = 'stripe';
 
+	private const PAYMENT_METHOD_LOCK_OPTION_PREFIX = 'wc_stripe_payment_method_lock_';
+	private const PAYMENT_METHOD_LOCK_TTL           = 5 * MINUTE_IN_SECONDS;
+
 	/**
 	 * Upe Available Methods
 	 *
@@ -1781,36 +1784,58 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				);
 			}
 
-			// Update saved payment method to include billing details.
+			$payment_method_lock_owner = null;
 			if ( $is_using_saved_payment_method ) {
-				$this->update_saved_payment_method( $payment_method_id, $order );
+				$payment_method_lock_owner = WC_Stripe_Option_Lock::acquire( $this->get_payment_method_lock_name( $payment_method_id ), self::PAYMENT_METHOD_LOCK_TTL );
+				if ( null === $payment_method_lock_owner ) {
+					if ( $order instanceof WC_Order ) {
+						$order_helper->unlock_order_payment( $order );
+					}
+
+					return [
+						'result'   => 'failure',
+						'redirect' => '',
+						'message'  => __( 'This saved payment method is already being used. Please try again.', 'woocommerce-gateway-stripe' ),
+					];
+				}
 			}
 
-			if ( $payment_needed ) {
-				// Throw an exception if the minimum order amount isn't met.
-				$order_helper->validate_minimum_order_amount( $order );
+			try {
+				// The address update and intent confirmation must remain together so another order cannot replace the AVS address between them.
+				if ( $is_using_saved_payment_method ) {
+					$this->update_saved_payment_method( $payment_method_id, $order, $payment_method );
+				}
 
-				// Create a payment intent, or update an existing one associated with the order.
-				$payment_intent = $this->process_payment_intent_for_order( $order, $payment_information );
-			} elseif ( $is_using_saved_payment_method && WC_Stripe_Payment_Methods::CASHAPP_PAY === $selected_payment_type ) {
-				// If the payment method is Cash App Pay, the order has no cost, and a saved payment method is used, mark the order as paid.
-				$this->maybe_update_source_on_subscription_order(
-					$order,
-					(object) [
-						'payment_method' => $payment_information['payment_method'],
-						'customer'       => $payment_information['customer'],
-					],
-					$this->get_upe_gateway_id_for_order( $upe_payment_method )
-				);
-				$order->payment_complete();
+				if ( $payment_needed ) {
+					// Throw an exception if the minimum order amount isn't met.
+					$order_helper->validate_minimum_order_amount( $order );
 
-				return [
-					'result'   => 'success',
-					'redirect' => $this->get_return_url( $order ),
-				];
-			} else {
-				// Create a setup intent, or update an existing one associated with the order.
-				$payment_intent = $this->process_setup_intent_for_order( $order, $payment_information );
+					// Create a payment intent, or update an existing one associated with the order.
+					$payment_intent = $this->process_payment_intent_for_order( $order, $payment_information );
+				} elseif ( $is_using_saved_payment_method && WC_Stripe_Payment_Methods::CASHAPP_PAY === $selected_payment_type ) {
+					// If the payment method is Cash App Pay, the order has no cost, and a saved payment method is used, mark the order as paid.
+					$this->maybe_update_source_on_subscription_order(
+						$order,
+						(object) [
+							'payment_method' => $payment_information['payment_method'],
+							'customer'       => $payment_information['customer'],
+						],
+						$this->get_upe_gateway_id_for_order( $upe_payment_method )
+					);
+					$order->payment_complete();
+
+					return [
+						'result'   => 'success',
+						'redirect' => $this->get_return_url( $order ),
+					];
+				} else {
+					// Create a setup intent, or update an existing one associated with the order.
+					$payment_intent = $this->process_setup_intent_for_order( $order, $payment_information );
+				}
+			} finally {
+				if ( null !== $payment_method_lock_owner ) {
+					WC_Stripe_Option_Lock::release( $this->get_payment_method_lock_name( $payment_method_id ), $payment_method_lock_owner );
+				}
 			}
 
 			// Handle saving the payment method in the store.
@@ -1893,6 +1918,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$order_helper->unlock_order_payment( $order );
 			return $this->handle_process_payment_error( $e, $order );
 		}
+	}
+
+	/**
+	 * Option name of the cross-request lock serializing checkouts that reuse one saved PaymentMethod.
+	 *
+	 * @param string $payment_method_id Stripe PaymentMethod identifier.
+	 * @return string
+	 */
+	private function get_payment_method_lock_name( string $payment_method_id ): string {
+		return self::PAYMENT_METHOD_LOCK_OPTION_PREFIX . md5( $payment_method_id );
 	}
 
 	/**
@@ -2308,24 +2343,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	private function is_order_associated_to_setup_intent( int $order_id, string $intent_id ): bool {
 		$order = wc_get_order( $order_id );
-		if ( ! $order ) {
+		if ( ! $order instanceof WC_Order ) {
 			return false;
 		}
 
-		$intent = $this->stripe_request( 'setup_intents/' . $intent_id . '?expand[]=payment_method.billing_details' );
-		if ( ! $intent ) {
-			return false;
-		}
+		$stored_intent_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_setup_intent_id( $order );
 
-		if ( ! isset( $intent->payment_method ) || ! isset( $intent->payment_method->billing_details ) ) {
-			return false;
-		}
-
-		if ( $order->get_billing_email() !== $intent->payment_method->billing_details->email ) {
-			return false;
-		}
-
-		return true;
+		// The persisted Stripe identifier binds the redirect to this order even when checkout details differ from the saved cardholder identity.
+		return is_string( $stored_intent_id ) && '' !== $stored_intent_id && $stored_intent_id === $intent_id;
 	}
 
 	/**
