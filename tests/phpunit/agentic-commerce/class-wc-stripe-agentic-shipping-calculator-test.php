@@ -303,6 +303,29 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Product IDs the tax step already resolved are used as-is, so the SKU is not
+	 * looked up again and both steps price the same product.
+	 */
+	public function test_uses_supplied_product_ids_instead_of_resolving_skus() {
+		$this->shipping_zone = $this->create_shipping_zone_with_flat_rate( 'US', 5.00 );
+		$product             = \WC_Helper_Product::create_simple_product( true, [ 'regular_price' => '10' ] );
+
+		$event = $this->build_event_from_raw_items(
+			[
+				[
+					'id'       => 'li_pre_resolved',
+					'sku_id'   => 'NON-EXISTENT-SKU-' . uniqid(),
+					'quantity' => 1,
+				],
+			]
+		);
+
+		$result = $this->calculator->calculate( $event, 'usd', [ 'li_pre_resolved' => $product->get_id() ] );
+
+		$this->assertNotEmpty( $result['shipping_options'] ?? [] );
+	}
+
+	/**
 	 * Data provider for out-of-bounds line item quantity/unit_amount values.
 	 *
 	 * @return array<string, array{quantity: int, unit_amount: int}>

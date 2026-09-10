@@ -67,16 +67,18 @@ class WC_Stripe_Agentic_Shipping_Package_Builder {
 	 * present, falling back to the catalog price otherwise.
 	 *
 	 * @since 11.1.0
-	 * @param WC_Stripe_Agentic_Customize_Checkout_Event $event    The customization hook event.
-	 * @param string                                     $currency The three-letter currency code.
+	 * @param WC_Stripe_Agentic_Customize_Checkout_Event $event                    The customization hook event.
+	 * @param string                                     $currency                 The three-letter currency code.
+	 * @param array<string,int>                          $product_ids_by_line_item Product IDs already resolved for the event's line items, keyed by line item ID; a supplied ID is trusted so the SKU lookup is not repeated.
 	 * @return array Cart-item-format entries keyed by line item ID.
 	 * @throws Exception When a line item's sku_id cannot be resolved to a product, its quantity or unit_amount is out of bounds, or the product has no catalog price to fall back on.
 	 */
-	public static function build_contents_from_event( WC_Stripe_Agentic_Customize_Checkout_Event $event, string $currency ): array {
+	public static function build_contents_from_event( WC_Stripe_Agentic_Customize_Checkout_Event $event, string $currency, array $product_ids_by_line_item = [] ): array {
 		$contents = [];
 
 		foreach ( $event->get_line_items() as $line_item ) {
-			$product_id = WC_Stripe_Agentic_Commerce_Product_Resolver::resolve_product_id_by_external_reference( $line_item->get_sku_id() );
+			$product_id = (int) ( $product_ids_by_line_item[ $line_item->get_id() ]
+				?? WC_Stripe_Agentic_Commerce_Product_Resolver::resolve_product_id_by_external_reference( $line_item->get_sku_id() ) );
 
 			if ( ! $product_id ) {
 				throw new Exception(

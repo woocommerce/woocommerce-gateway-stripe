@@ -555,10 +555,13 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 
 		$address = $session->get_shipping_address() ?? $session->get_billing_address();
 
+		// User ID 0 on purpose: the rate Stripe charged was quoted by the customization
+		// webhook, which has no logged-in user, so matching it needs the same guest context
+		// even when the order belongs to a customer.
 		$package = WC_Stripe_Agentic_Shipping_Package_Builder::build_package(
 			WC_Stripe_Agentic_Shipping_Package_Builder::build_contents_from_order( $order ),
 			$address,
-			$order->get_customer_id()
+			0
 		);
 
 		$wc_shipping = WC()->shipping();

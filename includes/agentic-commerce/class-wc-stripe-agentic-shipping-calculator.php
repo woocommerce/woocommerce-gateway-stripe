@@ -30,12 +30,13 @@ class WC_Stripe_Agentic_Shipping_Calculator {
 	 * array when shipping is disabled or no rates are found for the destination.
 	 *
 	 * @since 10.6.0
-	 * @param WC_Stripe_Agentic_Customize_Checkout_Event $event    The customization hook event.
-	 * @param string                                     $currency The three-letter currency code (e.g. "USD").
+	 * @param WC_Stripe_Agentic_Customize_Checkout_Event $event                    The customization hook event.
+	 * @param string                                     $currency                 The three-letter currency code (e.g. "USD").
+	 * @param array<string,int>                          $product_ids_by_line_item Product IDs already resolved for the event's line items, keyed by line item ID. Line items missing from it are resolved here.
 	 * @return array The response array in Stripe's expected format, or [] when no rates apply.
 	 * @throws Exception When neither a shipping nor billing address is available, or a line item's product cannot be resolved.
 	 */
-	public function calculate( WC_Stripe_Agentic_Customize_Checkout_Event $event, string $currency ): array {
+	public function calculate( WC_Stripe_Agentic_Customize_Checkout_Event $event, string $currency, array $product_ids_by_line_item = [] ): array {
 		if ( ! wc_shipping_enabled() ) {
 			return [];
 		}
@@ -47,7 +48,7 @@ class WC_Stripe_Agentic_Shipping_Calculator {
 		}
 
 		$package = WC_Stripe_Agentic_Shipping_Package_Builder::build_package(
-			WC_Stripe_Agentic_Shipping_Package_Builder::build_contents_from_event( $event, $currency ),
+			WC_Stripe_Agentic_Shipping_Package_Builder::build_contents_from_event( $event, $currency, $product_ids_by_line_item ),
 			$address,
 			get_current_user_id()
 		);

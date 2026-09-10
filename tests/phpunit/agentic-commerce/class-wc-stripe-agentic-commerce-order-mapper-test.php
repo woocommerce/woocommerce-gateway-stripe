@@ -1209,9 +1209,22 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$order          = $this->mapper->create_order_from_checkout_session( $session );
+		// The webhook quoted the rate as a guest, so the recalculation must too.
+		$captured_packages = [];
+		$capture           = function ( $packages ) use ( &$captured_packages ) {
+			$captured_packages = $packages;
+			return $packages;
+		};
+		add_filter( 'woocommerce_shipping_packages', $capture );
+
+		try {
+			$order = $this->mapper->create_order_from_checkout_session( $session );
+		} finally {
+			remove_filter( 'woocommerce_shipping_packages', $capture );
+		}
 		$shipping_items = $order->get_items( 'shipping' );
 
+		$this->assertSame( 0, $captured_packages[0]['user']['ID'] ?? null );
 		$this->assertCount( 1, $shipping_items );
 
 		$shipping_item = reset( $shipping_items );
