@@ -187,7 +187,7 @@ class WC_Stripe_Agentic_Shipping_Package_Builder {
 	 * `line_total`, and `line_subtotal`; tax fields are zeroed because tax is
 	 * calculated separately in both agentic flows.
 	 *
-	 * @since 10.9.0
+	 * @since 11.1.0
 	 * @param WC_Product $product       The resolved product (simple or variation).
 	 * @param int        $quantity      The line item quantity.
 	 * @param float      $line_total    The line total after discounts, excluding tax.
