@@ -849,7 +849,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * `shipping` column, or null when it has no static cost (live-rate /
 	 * calculated methods price at checkout and can't be a fixed feed value).
 	 *
-	 * @since 10.9.0
+	 * @since 11.1.0
 	 * @param \WC_Shipping_Method $method Shipping method instance.
 	 * @return string|null Formatted price (e.g. "5.00"), or null when not flat-rate.
 	 */
