@@ -26,9 +26,15 @@ describe( 'ManualCaptureControl', () => {
 	it( 'opens the help link in a new tab', () => {
 		render( <ManualCaptureControl /> );
 
-		expect(
-			screen.getByRole( 'link', { name: 'Learn more' } )
-		).toHaveAttribute( 'target', '_blank' );
+		const learnMoreLink = screen.getByRole( 'link', {
+			name: 'Learn more (opens in a new tab)',
+		} );
+
+		expect( learnMoreLink ).toHaveAttribute( 'target', '_blank' );
+		expect( learnMoreLink ).toHaveAttribute(
+			'rel',
+			'external noreferrer noopener'
+		);
 	} );
 
 	it( 'notes in the confirmation modal that agentic purchases follow the Stripe dashboard capture setting when agentic commerce is enabled', async () => {

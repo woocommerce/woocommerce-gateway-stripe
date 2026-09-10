@@ -20,6 +20,12 @@ jest.mock( '@wordpress/components', () => ( {
 			<span>{ help }</span>
 		</>
 	),
+	ExternalLink: ( { href, children } ) => (
+		<a href={ href } target="_blank" rel="external noreferrer noopener">
+			{ children }
+			<span>(opens in a new tab)</span>
+		</a>
+	),
 } ) );
 
 jest.mock( 'wcstripe/data', () => ( {
@@ -51,12 +57,23 @@ describe( 'TestModeCheckbox', () => {
 
 		render( <TestModeCheckbox /> );
 
-		expect(
-			screen.getByRole( 'link', { name: 'test card numbers' } )
-		).toHaveAttribute( 'target', '_blank' );
-		expect(
-			screen.getByRole( 'link', { name: 'Learn more' } )
-		).toHaveAttribute( 'target', '_blank' );
+		const testCardNumbersLink = screen.getByRole( 'link', {
+			name: 'test card numbers (opens in a new tab)',
+		} );
+		const learnMoreLink = screen.getByRole( 'link', {
+			name: 'Learn more (opens in a new tab)',
+		} );
+
+		expect( testCardNumbersLink ).toHaveAttribute( 'target', '_blank' );
+		expect( testCardNumbersLink ).toHaveAttribute(
+			'rel',
+			'external noreferrer noopener'
+		);
+		expect( learnMoreLink ).toHaveAttribute( 'target', '_blank' );
+		expect( learnMoreLink ).toHaveAttribute(
+			'rel',
+			'external noreferrer noopener'
+		);
 	} );
 
 	it( 'allows enabling test mode when a test account is connected', async () => {

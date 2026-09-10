@@ -1,7 +1,7 @@
 import { React } from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
 import { __ } from '@wordpress/i18n';
-import { CheckboxControl } from '@wordpress/components';
+import { CheckboxControl, ExternalLink } from '@wordpress/components';
 import { useTestMode } from 'wcstripe/data';
 import { useAccount } from 'wcstripe/data/account';
 
@@ -36,20 +36,10 @@ const TestModeCheckbox = () => {
 		),
 		components: {
 			testCardNumbersLink: (
-				// eslint-disable-next-line jsx-a11y/anchor-has-content
-				<a
-					href="https://docs.stripe.com/testing#cards"
-					target="_blank"
-					rel="noreferrer"
-				/>
+				<ExternalLink href="https://docs.stripe.com/testing#cards" />
 			),
 			learnMoreLink: (
-				// eslint-disable-next-line jsx-a11y/anchor-has-content
-				<a
-					href="https://woocommerce.com/document/stripe/customer-experience/testing/"
-					target="_blank"
-					rel="noreferrer"
-				/>
+				<ExternalLink href="https://woocommerce.com/document/stripe/customer-experience/testing/" />
 			),
 		},
 	} );
