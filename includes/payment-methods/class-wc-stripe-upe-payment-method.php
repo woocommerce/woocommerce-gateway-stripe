@@ -174,7 +174,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$this->testmode                 = WC_Stripe_Mode::is_test();
 		$this->supports                 = [ PaymentGatewayFeature::PRODUCTS, PaymentGatewayFeature::REFUNDS ];
 		$this->supports_deferred_intent = true;
-		$this->oc_enabled               = WC_Stripe_Feature_Flags::is_oc_available() && 'yes' === $this->get_option( 'optimized_checkout_element' );
+		$this->oc_enabled               = WC_Stripe_Feature_Flags::is_oc_offered() && 'yes' === $this->get_option( 'optimized_checkout_element' );
 
 		// Note: we use static:: references to access the overridden constant values in the child class.
 		$this->supported_billing_countries   = static::SUPPORTED_BILLING_COUNTRIES;
