@@ -1076,7 +1076,9 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 						'code' => '',
 					],
 				],
-				'shipping_methods' => $generic_zone->get_shipping_methods(),
+				// Enabled-only, matching what get_zones() returns for named zones; a
+				// disabled flat rate must neither price the feed nor hide the warning.
+				'shipping_methods' => $generic_zone->get_shipping_methods( true ),
 			];
 		}
 

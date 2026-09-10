@@ -1552,4 +1552,30 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 			$named->delete();
 		}
 	}
+
+	/**
+	 * A disabled flat rate on the catch-all zone must not count as feed shipping:
+	 * WooCommerce never offers it at checkout, so the zone stays flagged.
+	 *
+	 * @return void
+	 */
+	public function test_get_shipping_diagnostics_ignores_disabled_methods_on_default_zone() {
+		global $wpdb;
+
+		$zone        = WC_Shipping_Zones::get_zone( 0 );
+		$instance_id = $zone->add_shipping_method( 'flat_rate' );
+		$wpdb->update( $wpdb->prefix . 'woocommerce_shipping_zone_methods', [ 'is_enabled' => 0 ], [ 'instance_id' => $instance_id ] );
+
+		try {
+			$diagnostics = ( new \WC_Stripe_Agentic_Commerce_Product_Mapper() )->get_shipping_diagnostics();
+
+			$this->assertContains(
+				'Locations not covered by your other zones',
+				$diagnostics['zones_without_flat_rate'],
+				'A disabled flat rate must not satisfy the zone.'
+			);
+		} finally {
+			$zone->delete_shipping_method( $instance_id );
+		}
+	}
 }
