@@ -21,7 +21,7 @@ jest.mock( '@wordpress/components', () => ( {
 		</>
 	),
 	ExternalLink: ( { href, children } ) => (
-		<a href={ href } target="_blank" rel="external noreferrer noopener">
+		<a href={ href }>
 			{ children }
 			<span>(opens in a new tab)</span>
 		</a>
@@ -51,7 +51,7 @@ const mockAccount = ( {
 };
 
 describe( 'TestModeCheckbox', () => {
-	it( 'opens help links in a new tab', () => {
+	it( 'renders accessible external help links', () => {
 		useTestMode.mockReturnValue( [ false, jest.fn() ] );
 		mockAccount( { liveConnected: true, testConnected: true } );
 
@@ -64,15 +64,13 @@ describe( 'TestModeCheckbox', () => {
 			name: 'Learn more (opens in a new tab)',
 		} );
 
-		expect( testCardNumbersLink ).toHaveAttribute( 'target', '_blank' );
 		expect( testCardNumbersLink ).toHaveAttribute(
-			'rel',
-			'external noreferrer noopener'
+			'href',
+			'https://docs.stripe.com/testing#cards'
 		);
-		expect( learnMoreLink ).toHaveAttribute( 'target', '_blank' );
 		expect( learnMoreLink ).toHaveAttribute(
-			'rel',
-			'external noreferrer noopener'
+			'href',
+			'https://woocommerce.com/document/stripe/customer-experience/testing/'
 		);
 	} );
 

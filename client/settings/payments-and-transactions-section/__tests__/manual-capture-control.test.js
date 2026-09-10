@@ -35,6 +35,10 @@ describe( 'ManualCaptureControl', () => {
 			'rel',
 			'external noreferrer noopener'
 		);
+		expect( learnMoreLink ).toHaveAttribute(
+			'href',
+			'https://woocommerce.com/document/stripe/admin-experience/authorize-and-capture/'
+		);
 	} );
 
 	it( 'notes in the confirmation modal that agentic purchases follow the Stripe dashboard capture setting when agentic commerce is enabled', async () => {
