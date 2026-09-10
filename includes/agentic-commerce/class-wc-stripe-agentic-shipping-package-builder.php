@@ -31,7 +31,7 @@ class WC_Stripe_Agentic_Shipping_Package_Builder {
 	 * `contents_cost` and `cart_subtotal` are derived from the entries' line
 	 * totals, matching how WC_Cart::get_shipping_packages() sums shippable items.
 	 *
-	 * @since 10.9.0
+	 * @since 11.1.0
 	 * @param array                 $contents Cart-item-format entries from the build_contents_* methods.
 	 * @param WC_Stripe_API_Address $address  The destination address.
 	 * @param int                   $user_id  The WordPress user ID, or 0 for guests.
