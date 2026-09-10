@@ -577,6 +577,11 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		}
 	}
 
+	/**
+	 * Covers Stripe's strict upper bound and the cart discount sign convention.
+	 *
+	 * @return array
+	 */
 	public function provide_build_display_items_totals(): array {
 		$subtotal = [
 			'label'  => 'Subtotal',

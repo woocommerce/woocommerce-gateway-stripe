@@ -167,6 +167,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent dropped webhooks, double processing, and skipped pre-order handling when requests race for the order payment lock
 * Fix - Stop two requests from reclaiming the same expired Optimized Checkout or Agentic Commerce sync lock
 * Fix - Open testing and payment settings documentation links in new tabs
-* Fix - Prevent express checkout wallets from failing when rounded display items exceed the cart total
+* Fix - Prevent express checkout wallets from failing when rounded display items exceed the payment total
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

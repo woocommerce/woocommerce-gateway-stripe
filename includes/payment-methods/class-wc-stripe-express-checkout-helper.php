@@ -1857,20 +1857,10 @@ class WC_Stripe_Express_Checkout_Helper {
 		 */
 		$calculated_total = apply_filters( 'wc_stripe_calculated_total', $calculated_total, $order_total, WC()->cart );
 		$total_amount     = max( 0, $calculated_total );
-		$display_items    = WC_Stripe_Helper::build_line_items( $display_items );
-
-		$display_items_total = array_reduce(
-			$display_items,
-			static function ( $total, $item ) {
-				$amount = 'total_discount' === ( $item['key'] ?? '' ) ? -$item['amount'] : $item['amount'];
-				return $total + $amount;
-			},
-			0
+		$display_items    = $this->get_display_items_for_total(
+			WC_Stripe_Helper::build_line_items( $display_items ),
+			$total_amount
 		);
-
-		if ( $total_amount < $display_items_total ) {
-			$display_items = [];
-		}
 
 		return [
 			'displayItems' => $display_items,
@@ -1880,6 +1870,30 @@ class WC_Stripe_Express_Checkout_Helper {
 				'pending' => false,
 			],
 		];
+	}
+
+	/**
+	 * Omits itemization when separately rounded items exceed the authoritative total.
+	 *
+	 * Cart discounts use a positive amount with a key, while Pay for Order discounts
+	 * are already negative. Only keyed discounts need their sign adjusted here.
+	 *
+	 * @param array     $display_items Display items in the PHP-generated format.
+	 * @param float|int $total_amount  Total amount in the currency's smallest unit.
+	 *
+	 * @return array The original items, or an empty array when Stripe would reject them.
+	 */
+	public function get_display_items_for_total( array $display_items, $total_amount ): array {
+		$display_items_total = array_reduce(
+			$display_items,
+			static function ( $total, $item ) {
+				$amount = 'total_discount' === ( $item['key'] ?? '' ) ? -$item['amount'] : $item['amount'];
+				return $total + $amount;
+			},
+			0
+		);
+
+		return $total_amount < $display_items_total ? [] : $display_items;
 	}
 
 	/**
