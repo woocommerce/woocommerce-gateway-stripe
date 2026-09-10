@@ -151,7 +151,7 @@ class WC_Stripe_Agentic_Shipping_Package_Builder {
 	 * already been resolved and added to the order. Keeps only shippable
 	 * products.
 	 *
-	 * @since 10.9.0
+	 * @since 11.1.0
 	 * @param WC_Order $order The order with mapped product line items.
 	 * @return array Cart-item-format entries keyed by order item ID.
 	 */
