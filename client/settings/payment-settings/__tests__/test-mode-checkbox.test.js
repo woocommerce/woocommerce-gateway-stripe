@@ -20,6 +20,12 @@ jest.mock( '@wordpress/components', () => ( {
 			<span>{ help }</span>
 		</>
 	),
+	ExternalLink: ( { href, children } ) => (
+		<a href={ href }>
+			{ children }
+			<span>(opens in a new tab)</span>
+		</a>
+	),
 } ) );
 
 jest.mock( 'wcstripe/data', () => ( {
@@ -45,6 +51,29 @@ const mockAccount = ( {
 };
 
 describe( 'TestModeCheckbox', () => {
+	it( 'renders accessible external help links', () => {
+		useTestMode.mockReturnValue( [ false, jest.fn() ] );
+		mockAccount( { liveConnected: true, testConnected: true } );
+
+		render( <TestModeCheckbox /> );
+
+		const testCardNumbersLink = screen.getByRole( 'link', {
+			name: 'test card numbers (opens in a new tab)',
+		} );
+		const learnMoreLink = screen.getByRole( 'link', {
+			name: 'Learn more (opens in a new tab)',
+		} );
+
+		expect( testCardNumbersLink ).toHaveAttribute(
+			'href',
+			'https://docs.stripe.com/testing#cards'
+		);
+		expect( learnMoreLink ).toHaveAttribute(
+			'href',
+			'https://woocommerce.com/document/stripe/customer-experience/testing/'
+		);
+	} );
+
 	it( 'allows enabling test mode when a test account is connected', async () => {
 		const setTestModeMock = jest.fn();
 		useTestMode.mockReturnValue( [ false, setTestModeMock ] );
