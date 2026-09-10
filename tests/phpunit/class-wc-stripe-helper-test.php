@@ -2908,4 +2908,44 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertSame( 'https://js.stripe.com/dahlia/stripe.js', $registered->src );
 		$this->assertSame( 1, wp_scripts()->get_data( 'stripe', 'group' ), 'Stripe.js must load in the footer.' );
 	}
+
+	/**
+	 * The script gate honors the stored locations: an absent option means the default
+	 * placement and a non-array value means every location was unchecked.
+	 *
+	 * @param array|string|null $locations Stored locations value; null omits the key.
+	 * @param bool              $expected  Whether product-page scripts should load.
+	 * @return void
+	 * @dataProvider provide_should_load_scripts_location_shapes
+	 */
+	public function test_should_load_scripts_honors_stored_locations( $locations, bool $expected ) {
+		$settings = [ 'express_checkout' => 'yes' ];
+		if ( null !== $locations ) {
+			$settings['express_checkout_button_locations'] = $locations;
+		}
+		update_option( 'woocommerce_stripe_settings', $settings );
+
+		// The filter default would mask a gate miss; force it off.
+		add_filter( 'wc_stripe_load_scripts_on_product_page_when_prbs_disabled', '__return_false' );
+
+		try {
+			$this->assertSame( $expected, WC_Stripe_Helper::should_load_scripts_on_product_page() );
+		} finally {
+			remove_filter( 'wc_stripe_load_scripts_on_product_page_when_prbs_disabled', '__return_false' );
+		}
+	}
+
+	/**
+	 * Data provider for `test_should_load_scripts_honors_stored_locations`.
+	 *
+	 * @return array
+	 */
+	public function provide_should_load_scripts_location_shapes(): array {
+		return [
+			'list with product'              => [ [ 'product', 'cart' ], true ],
+			'list without product'           => [ [ 'cart' ], false ],
+			'non-array stored value'         => [ 'invalid_value', false ],
+			'absent option uses the default' => [ null, true ],
+		];
+	}
 }

@@ -760,55 +760,133 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	/**
+	 * The deprecated per-method size params still update the (now shared) size.
+	 *
+	 * @return void
+	 */
+	public function test_legacy_button_size_params_update_shared_size() {
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_upe_enabled', true );
+		$request->set_param( 'link_button_size', 'large' );
+
+		$response = rest_do_request( $request );
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertSame( 'large', $this->get_gateway()->get_option( 'express_checkout_button_size' ) );
+		// The per-method options stay in step so a rollback shows the same size.
+		$this->assertSame( 'large', $this->get_gateway()->get_option( 'link_button_size' ) );
+		$this->assertSame( 'large', $this->get_gateway()->get_option( 'amazon_pay_button_size' ) );
+
+		// GET keeps exposing the deprecated fields, aliased to the shared size.
+		$data = $this->rest_get_settings()->get_data();
+		$this->assertSame( 'large', $data['link_button_size'] );
+		$this->assertSame( 'large', $data['amazon_pay_button_size'] );
+	}
+
+	/**
+	 * When both the shared and a deprecated size param are present, the shared one wins.
+	 *
+	 * @return void
+	 */
+	public function test_shared_button_size_param_wins_over_legacy_alias() {
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_upe_enabled', true );
+		$request->set_param( 'express_checkout_button_size', 'small' );
+		$request->set_param( 'amazon_pay_button_size', 'large' );
+
+		$response = rest_do_request( $request );
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertSame( 'small', $this->get_gateway()->get_option( 'express_checkout_button_size' ) );
+		$this->assertSame( 'small', $this->get_gateway()->get_option( 'amazon_pay_button_size' ) );
+	}
+
+	/**
+	 * Each method's locations are stored in its own option, so a rollback to a version
+	 * that reads those options directly keeps the merchant's choices, and GET returns
+	 * the same flat lists.
+	 *
+	 * @return void
+	 */
+	public function test_express_checkout_button_locations_are_stored_per_method() {
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_upe_enabled', true );
+		$request->set_param( 'express_checkout_button_locations', [ 'product', 'cart' ] );
+		$request->set_param( 'link_button_locations', [ 'product', 'checkout' ] );
+		$request->set_param( 'amazon_pay_button_locations', [ 'product' ] );
+
+		$response = rest_do_request( $request );
+		$this->assertEquals( 200, $response->get_status() );
+
+		$gateway = $this->get_gateway();
+		$this->assertSame( [ 'product', 'cart' ], $gateway->get_option( 'express_checkout_button_locations' ) );
+		$this->assertSame( [ 'product', 'checkout' ], $gateway->get_option( 'link_button_locations' ) );
+		$this->assertSame( [ 'product' ], $gateway->get_option( 'amazon_pay_button_locations' ) );
+
+		$data = $this->rest_get_settings()->get_data();
+		$this->assertSame( [ 'product', 'cart' ], $data['express_checkout_button_locations'] );
+		$this->assertSame( [ 'product', 'checkout' ], $data['link_button_locations'] );
+		$this->assertSame( [ 'product' ], $data['amazon_pay_button_locations'] );
+	}
+
+	/**
+	 * Saving one method's locations leaves the other methods' options alone, and an
+	 * emptied list disables that method without touching the others.
+	 *
+	 * @return void
+	 */
+	public function test_express_checkout_button_locations_partial_update_keeps_other_methods() {
+		$settings                          = WC_Stripe_Helper::get_stripe_settings();
+		$settings['link_button_locations'] = [ 'checkout' ];
+		unset( $settings['amazon_pay_button_locations'] );
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		// The gateway caches settings on load; reload so the removed key is really absent.
+		$gateway = $this->get_gateway();
+		$gateway->init_settings();
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_upe_enabled', true );
+		$request->set_param( 'express_checkout_button_locations', [] );
+
+		$response = rest_do_request( $request );
+		$this->assertEquals( 200, $response->get_status() );
+
+		$this->assertSame( [ 'checkout' ], $gateway->get_option( 'link_button_locations' ) );
+
+		$data = $this->rest_get_settings()->get_data();
+		$this->assertSame( [], $data['express_checkout_button_locations'] );
+		$this->assertSame( [ 'checkout' ], $data['link_button_locations'] );
+		// Amazon Pay was never saved, so it keeps the default placement.
+		$this->assertSame( [ 'product', 'cart' ], $data['amazon_pay_button_locations'] );
+	}
+
+	/**
 	 * Data provider for `test_enum_fields`.
 	 *
 	 * @return array
 	 */
 	public function enum_field_provider() {
 		return [
-			'express_checkout_button_theme'     => [
+			'express_checkout_button_theme' => [
 				'express_checkout_button_theme',
 				'express_checkout_button_theme',
 				'dark',
 				'light',
 				'foo',
 			],
-			'express_checkout_button_size'      => [
+			'express_checkout_button_size'  => [
 				'express_checkout_button_size',
 				'express_checkout_button_size',
 				'default',
 				'large',
 				'foo',
 			],
-			'express_checkout_button_type'      => [
+			'express_checkout_button_type'  => [
 				'express_checkout_button_type',
 				'express_checkout_button_type',
 				'buy',
 				'book',
 				'foo',
 			],
-			'express_checkout_button_locations' => [
-				'express_checkout_button_locations',
-				'express_checkout_button_locations',
-				[ 'cart' ],
-				[ 'cart', 'checkout', 'product' ],
-				[ 'foo' ],
-			],
-			'link_button_size'                  => [
-				'link_button_size',
-				'link_button_size',
-				'default',
-				'large',
-				'foo',
-			],
-			'link_button_locations'             => [
-				'link_button_locations',
-				'link_button_locations',
-				[ 'cart' ],
-				[ 'cart', 'checkout', 'product' ],
-				[ 'foo' ],
-			],
-			'optimized_checkout_layout'         => [
+			'optimized_checkout_layout'     => [
 				'oc_layout',
 				'optimized_checkout_layout',
 				'accordion',

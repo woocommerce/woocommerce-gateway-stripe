@@ -1,10 +1,8 @@
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import AmazonPaySettingsSection from '../amazon-pay-settings-section';
 import {
 	useAmazonPayEnabledSettings,
 	useAmazonPayLocations,
-	useAmazonPayButtonSize,
 } from 'wcstripe/data';
 
 const realPathToA11yModule =
@@ -17,7 +15,9 @@ jest.mock( realPathToA11yModule, () => ( {
 jest.mock( 'wcstripe/data', () => ( {
 	useAmazonPayEnabledSettings: jest.fn(),
 	useAmazonPayLocations: jest.fn(),
-	useAmazonPayButtonSize: jest.fn().mockReturnValue( [ 'default' ] ),
+	useExpressCheckoutButtonSize: jest
+		.fn()
+		.mockReturnValue( [ 'default', jest.fn() ] ),
 } ) );
 jest.mock( 'wcstripe/data/account/hooks', () => ( {
 	useAccount: jest.fn().mockReturnValue( { data: {} } ),
@@ -51,38 +51,20 @@ describe( 'AmazonPaySettingsSection', () => {
 		global.wc_stripe_amazon_pay_settings_params = globalValues;
 	} );
 
-	it( 'renders settings with defaults', () => {
+	it( 'renders the locations section and preview, without a per-method size control', () => {
 		render( <AmazonPaySettingsSection /> );
 
-		// confirm settings headings.
+		// Location checkboxes render.
+		expect(
+			screen.getByRole( 'checkbox', { name: /checkout/i } )
+		).toBeInTheDocument();
+		expect( screen.getByText( 'Preview' ) ).toBeInTheDocument();
+
+		// The size control now lives on the Express Checkout settings page.
 		expect(
 			screen.queryByRole( 'heading', { name: 'Appearance' } )
-		).toBeInTheDocument();
-
-		// confirm radio button groups displayed.
-		const [ sizeRadio ] = screen.queryAllByRole( 'radio' );
-		expect( sizeRadio ).toBeInTheDocument();
-
-		// confirm default values.
-		expect( screen.getByLabelText( 'Default (48 px)' ) ).toBeChecked();
-	} );
-
-	it( 'triggers the hooks when the settings are being interacted with', async () => {
-		const setButtonSizeMock = jest.fn();
-
-		useAmazonPayButtonSize.mockReturnValue( [
-			'default',
-			setButtonSizeMock,
-		] );
-		useAmazonPayEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
-
-		render( <AmazonPaySettingsSection /> );
-
-		expect( setButtonSizeMock ).not.toHaveBeenCalled();
-
-		await userEvent.click( screen.getByLabelText( 'Large (56 px)' ) );
-
-		expect( setButtonSizeMock ).toHaveBeenCalledWith( 'large' );
+		).not.toBeInTheDocument();
+		expect( screen.queryAllByRole( 'radio' ) ).toHaveLength( 0 );
 	} );
 
 	it( 'shows the appearance override notice when an override is in effect', () => {
