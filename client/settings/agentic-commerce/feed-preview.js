@@ -160,6 +160,7 @@ const AgenticCommerceFeedPreview = () => {
 		validation_errors: validationErrors,
 		truncated,
 		scan_limited: scanLimited,
+		shipping_warnings: shippingWarnings = [],
 	} = data ?? {};
 
 	const excludedSubscriptions = excludedBreakdown?.subscriptions ?? 0;
@@ -211,6 +212,22 @@ const AgenticCommerceFeedPreview = () => {
 									),
 									totalCount.toLocaleString()
 								) }
+							</Notice>
+						) }
+
+						{ shippingWarnings.length > 0 && (
+							<Notice status="warning" isDismissible={ false }>
+								<p>
+									{ __(
+										'Some shipping zones will have no shipping in the feed:',
+										'woocommerce-gateway-stripe'
+									) }
+								</p>
+								<ul>
+									{ shippingWarnings.map( ( warning, i ) => (
+										<li key={ i }>{ warning }</li>
+									) ) }
+								</ul>
 							</Notice>
 						) }
 
