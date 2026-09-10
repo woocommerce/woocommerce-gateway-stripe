@@ -149,9 +149,9 @@ export const transformCartDataForDisplayItems = ( rawCartData ) => {
  * @return {Array} The transformed display items.
  */
 export const transformLabeledDisplayItems = ( displayItems ) => {
-	return ( displayItems ?? [] ).map( ( { label, amount } ) => ( {
+	return ( displayItems ?? [] ).map( ( { key, label, amount } ) => ( {
 		name: label,
-		amount,
+		amount: key === 'total_discount' ? -amount : amount,
 	} ) );
 };
 
