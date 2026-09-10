@@ -33,6 +33,31 @@ export async function selectSubscriptionOption( page ) {
 }
 
 /**
+ * Add an APFS subscription product to the cart from its product page.
+ *
+ * APFS products offer a one-time vs subscription choice, so pick the
+ * subscription option before adding to the cart.
+ *
+ * @param {Page}   page      Playwright page fixture.
+ * @param {number} productId The product ID.
+ */
+export async function addSubscriptionToCart( page, productId ) {
+	await page.goto( `?p=${ productId }` );
+	await selectSubscriptionOption( page );
+	// Click the cart form's submit rather than matching the button copy: the
+	// label varies with the WC/WCS combination ("Sign up" on WC <= 11.0,
+	// "Add to cart" on 11.1) and with the store locale.
+	const addToCartButton = page
+		.locator( 'form.cart button[type="submit"]' )
+		.first();
+	await expect( addToCartButton ).toBeEnabled();
+	await addToCartButton.click();
+	await expect(
+		page.getByText( 'has been added to your cart' )
+	).toBeVisible();
+}
+
+/**
  * Empty the WC cart.
  * @param {Page} page Playwright page fixture.
  */
@@ -232,13 +257,16 @@ export async function retryWithBackoff( fn, options = {} ) {
 }
 
 /**
- * Fills in the credit card details on the default (blocks) checkout page.
+ * Resolves the Stripe payment element frame on the default (blocks) checkout page.
+ *
+ * Stripe injects extra iframes alongside the payment element (bank details, the
+ * ACH bank search results), so we require a visible frame to avoid picking the
+ * wrong one.
+ *
  * @param {Page} page Playwright page fixture.
- * @param {Object} card The CC info in the format provided on the test-data.
+ * @return {FrameLocator} The payment element frame.
  */
-export async function fillCreditCardDetails( page, card ) {
-	// Stripe may inject a second iframe for bank details, so
-	// we require a visible frame to avoid picking the wrong one.
+export async function getPaymentElementFrame( page ) {
 	const paymentIframe = page
 		.locator(
 			'.wcstripe-payment-element iframe[name^="__privateStripeFrame"]'
@@ -247,7 +275,16 @@ export async function fillCreditCardDetails( page, card ) {
 		.first();
 	await paymentIframe.waitFor( { state: 'visible', timeout: 10000 } );
 
-	const form = paymentIframe.contentFrame();
+	return paymentIframe.contentFrame();
+}
+
+/**
+ * Fills in the credit card details on the default (blocks) checkout page.
+ * @param {Page} page Playwright page fixture.
+ * @param {Object} card The CC info in the format provided on the test-data.
+ */
+export async function fillCreditCardDetails( page, card ) {
+	const form = await getPaymentElementFrame( page );
 
 	await form.locator( '[name="number"]' ).fill( card.number );
 

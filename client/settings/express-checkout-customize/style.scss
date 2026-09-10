@@ -1,0 +1,9 @@
+@use '../../styles/abstracts/styles';
+
+.express-checkout-customize {
+	// Dims the "(40 px)" size hint. Previously only the Express tab styled this; sharing the
+	// control gives the Amazon Pay and Link tabs the same muted hint.
+	&__option-muted-text {
+		color: styles.$gray-700;
+	}
+}
