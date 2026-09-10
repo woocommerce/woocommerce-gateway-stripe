@@ -870,7 +870,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * flat-rate shipping. Mirrors the skip logic in {@see self::get_shipping()}
 	 * without emitting log lines.
 	 *
-	 * @since 10.9.0
+	 * @since 11.1.0
 	 * @return array{zones_without_flat_rate: string[]}
 	 */
 	public function get_shipping_diagnostics(): array {
