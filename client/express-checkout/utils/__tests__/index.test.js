@@ -98,6 +98,25 @@ describe( 'Express checkout utils', () => {
 			render( <App /> );
 			expect( screen.queryByRole( 'note' ) ).toBeInTheDocument();
 		} );
+
+		// Without a fallback the message is dropped and the shopper sees nothing.
+		test( 'falls back to the express checkout button when no wrapper exists', () => {
+			const button = document.createElement( 'div' );
+			button.id = 'wc-stripe-express-checkout-element';
+			document.body.appendChild( button );
+
+			displayExpressCheckoutNotice( 'Test message', 'error' );
+
+			const note = screen.queryByRole( 'note' );
+			expect( note ).toBeInTheDocument();
+			expect( note.nextElementSibling ).toBe( button );
+		} );
+
+		test( 'does nothing when there is nowhere to render the notice', () => {
+			displayExpressCheckoutNotice( 'Test message', 'error' );
+
+			expect( screen.queryByRole( 'note' ) ).not.toBeInTheDocument();
+		} );
 	} );
 
 	describe( 'getPaymentMethodTypesForExpressMethod', () => {

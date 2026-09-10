@@ -3,7 +3,7 @@ import interpolateComponents from '@automattic/interpolate-components';
 import React, { useState } from 'react';
 import { Icon, info } from '@wordpress/icons';
 import { __ } from '@wordpress/i18n';
-import { CheckboxControl, Button } from '@wordpress/components';
+import { CheckboxControl, Button, ExternalLink } from '@wordpress/components';
 import { useManualCapture } from 'wcstripe/data';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 
@@ -82,8 +82,7 @@ const ManualCaptureControl = () => {
 					),
 					components: {
 						learnMoreLink: (
-							// eslint-disable-next-line jsx-a11y/anchor-has-content
-							<a href="https://woocommerce.com/document/stripe/admin-experience/authorize-and-capture/" />
+							<ExternalLink href="https://woocommerce.com/document/stripe/admin-experience/authorize-and-capture/" />
 						),
 					},
 				} ) }
