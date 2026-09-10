@@ -4,6 +4,7 @@ import config from 'config';
 import { api, payments, products } from '../../../utils';
 
 const {
+	clickPlaceOrder,
 	setupBlocksCheckout,
 	fillCreditCardDetails,
 	addSubscriptionToCart,
@@ -42,7 +43,7 @@ test( 'customer can purchase a subscription product @smoke @blocks @subscription
 
 	const expectedTotal = await getCartTotal( page );
 
-	await page.locator( 'text=Place order' ).click();
+	await clickPlaceOrder( page );
 
 	await waitForOrderReceivedPageAndConfirmExpectedTotal(
 		browser,

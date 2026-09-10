@@ -3,7 +3,9 @@ import config from 'config';
 import { payments } from '../../../utils';
 
 const {
+	clickPlaceOrder,
 	emptyCart,
+	getErrorNotices,
 	setupCart,
 	setupShortcodeCheckout,
 	fillCreditCardDetailsShortcode,
@@ -22,10 +24,11 @@ const testCard = async ( page, cardKey ) => {
 	const card = config.get( cardKey );
 
 	await fillCreditCardDetailsShortcode( page, card );
-	await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
+	await clickPlaceOrder( page );
 
+	const errorNotice = getErrorNotices( page ).first();
 	expect
-		.soft( await page.innerText( '.woocommerce-error' ) )
+		.soft( await errorNotice.innerText() )
 		.toMatch( new RegExp( `(?:${ card.error.join( '|' ) })`, 'i' ) );
 };
 

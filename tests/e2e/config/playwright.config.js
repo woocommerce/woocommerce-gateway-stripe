@@ -9,7 +9,16 @@ dotenv.config( {
 	path: `${ process.env.E2E_ROOT }/config/local.env`,
 } );
 
-const { BASE_URL, CI, DOCKER, E2E_MAX_FAILURES, TIMEOUT } = process.env;
+const {
+	BASE_URL,
+	CI,
+	DOCKER,
+	E2E_MAX_FAILURES,
+	E2E_TRACE,
+	E2E_VIDEO,
+	E2E_WORKERS,
+	TIMEOUT,
+} = process.env;
 
 const config = {
 	globalSetup: DOCKER ? './global-setup-docker' : './global-setup',
@@ -33,7 +42,10 @@ const config = {
 
 	retries: 3,
 
-	workers: CI ? 5 : undefined,
+	// Overridable so heavier themes can lower concurrency: block/FSE themes
+	// (e.g. purple) load far more per page than a classic theme, and 5 workers
+	// against the single-container e2e site exhaust it into connection resets.
+	workers: E2E_WORKERS ? Number( E2E_WORKERS ) : CI ? 5 : undefined,
 
 	// Reporter to use. See https://playwright.dev/docs/test-reporters
 	reporter: [
@@ -64,10 +76,14 @@ const config = {
 		screenshot: 'only-on-failure',
 
 		// Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer
-		trace: 'retain-on-failure',
+		// Override with E2E_TRACE=on to record every test (view with
+		// `npx playwright show-trace <trace.zip>`).
+		trace: E2E_TRACE || 'retain-on-failure',
 
-		// Record video only when retrying a test for the first time
-		video: 'on-first-retry',
+		// Record video only when retrying a test for the first time. Override
+		// with E2E_VIDEO=on to screen-record every test, or
+		// E2E_VIDEO=retain-on-failure to keep only failing runs' videos.
+		video: E2E_VIDEO || 'on-first-retry',
 
 		viewport: { width: 1280, height: 720 },
 

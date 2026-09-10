@@ -52,7 +52,9 @@ test( 'completes a classic checkout order submitted during a checkout re-render'
 	} );
 
 	await page.waitForURL( /order-received/, { timeout: 30000 } );
-	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-		'Order received'
-	);
+	// Match by role and text: classic themes render `h1.entry-title` while
+	// block themes render a plain h1 in the order-confirmation template.
+	await expect(
+		page.getByRole( 'heading', { level: 1, name: 'Order received' } )
+	).toBeVisible();
 } );

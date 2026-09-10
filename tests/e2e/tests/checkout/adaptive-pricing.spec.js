@@ -102,7 +102,9 @@ const payWithConvertedCurrency = async (
 	// checkout-session fetch when the page renders, so they work
 	// without the settlement webhook CI can't receive.
 	await expect(
-		page.locator( '.woocommerce-info', {
+		// Classic themes render the notice as `.woocommerce-info`, block themes
+		// as a `wc-block-components-notice-banner`.
+		page.locator( '.woocommerce-info, .wc-block-components-notice-banner', {
 			hasText: 'Currency Conversion:',
 		} )
 	).toContainText( 'EUR' );

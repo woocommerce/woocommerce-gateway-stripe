@@ -28,6 +28,14 @@ on:
           - '8.3'
           - '8.4'
           - '8.5'
+      theme:
+        description: Theme to install and activate for the run.
+        type: choice
+        default: 'storefront'
+        required: true
+        options:
+          - 'storefront'
+          - 'twentytwentyfive'
 
 jobs:
   test:
@@ -38,4 +46,5 @@ jobs:
       wp-version: ${{ inputs.wordpress-version }}
       wc-version: ${{ inputs.woocommerce-version }}
       php-version: ${{ inputs.php-version }}
+      theme: ${{ inputs.theme }}
       branch: ${{ inputs.branch }}
