@@ -3107,12 +3107,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$tax_calculator      = new WC_Stripe_Agentic_Commerce_Tax_Calculator();
 		$shipping_calculator = new WC_Stripe_Agentic_Shipping_Calculator();
 
-		$line_items_with_tax = $tax_calculator->calculate(
-			$event,
-			$tax_calculator->extract_line_items_from_customization_hook( $event )
-		);
+		// Resolved once so tax and shipping price the same products, even when
+		// woocommerce_get_product_id_by_sku is filtered, and each SKU costs one query.
+		$product_ids_by_line_item = $tax_calculator->extract_line_items_from_customization_hook( $event );
 
-		$shipping_options = $shipping_calculator->calculate( $event, $event->get_currency() );
+		$line_items_with_tax = $tax_calculator->calculate( $event, $product_ids_by_line_item );
+
+		$shipping_options = $shipping_calculator->calculate( $event, $event->get_currency(), $product_ids_by_line_item );
 
 		return array_merge( $line_items_with_tax, $shipping_options );
 	}
