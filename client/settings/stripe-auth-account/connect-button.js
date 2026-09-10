@@ -33,7 +33,7 @@ const ConnectButton = ( {
 		? __( 'Create or connect a test account', 'woocommerce-gateway-stripe' )
 		: __( 'Create or connect an account', 'woocommerce-gateway-stripe' );
 	const handleError = ( message ) => {
-		const errorValue = message || true;
+		const errorValue = typeof message === 'string' ? message : '';
 
 		setError( errorValue );
 		setIsLoading( false );
@@ -80,12 +80,8 @@ const ConnectButton = ( {
 
 	// If onErrorChange is provided, parent handles error display
 	// Otherwise, show error inline for backward compatibility
-	if ( ! onErrorChange && error ) {
-		return (
-			<ConnectionErrorNotice
-				message={ typeof error === 'string' ? error : undefined }
-			/>
-		);
+	if ( ! onErrorChange && error !== null ) {
+		return <ConnectionErrorNotice message={ error } />;
 	}
 
 	const button = (

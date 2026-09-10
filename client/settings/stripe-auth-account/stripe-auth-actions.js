@@ -17,11 +17,7 @@ const StripeAuthActions = ( { testMode, displayWebhookConfigure } ) => {
 
 	return (
 		<>
-			{ error && (
-				<ConnectionErrorNotice
-					message={ typeof error === 'string' ? error : undefined }
-				/>
-			) }
+			{ error !== null && <ConnectionErrorNotice message={ error } /> }
 			<div className="woocommerce-stripe-auth__actions">
 				<ConnectButton
 					testMode={ testMode }

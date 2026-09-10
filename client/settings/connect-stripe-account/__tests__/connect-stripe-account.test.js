@@ -209,7 +209,7 @@ describe( 'ConnectStripeAccount', () => {
 			} ),
 		};
 
-		render( <ConnectStripeAccount /> );
+		const { container } = render( <ConnectStripeAccount /> );
 
 		await act( async () => {
 			await userEvent.click(
@@ -218,9 +218,9 @@ describe( 'ConnectStripeAccount', () => {
 		} );
 
 		await waitFor( () => {
-			expect(
-				screen.getAllByText( 'The connection request was rejected.' )
-			).not.toHaveLength( 0 );
+			expect( container ).toHaveTextContent(
+				'The connection request was rejected.'
+			);
 		} );
 		expect(
 			screen.queryByText( /valid SSL certificate/ )

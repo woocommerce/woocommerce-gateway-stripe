@@ -21,7 +21,7 @@ describe( 'StripeAuthActions', () => {
 			} ),
 		};
 
-		render(
+		const { container } = render(
 			<StripeAuthActions
 				testMode={ true }
 				displayWebhookConfigure={ false }
@@ -35,11 +35,43 @@ describe( 'StripeAuthActions', () => {
 		} );
 
 		await waitFor( () => {
-			expect(
-				screen.getAllByText(
-					'The test account could not be connected.'
-				)
-			).not.toHaveLength( 0 );
+			expect( container ).toHaveTextContent(
+				'The test account could not be connected.'
+			);
 		} );
+	} );
+
+	it( 'should display the server error and re-enable the button when the request is rejected', async () => {
+		global.jQuery = {
+			ajax: jest.fn().mockRejectedValue( {
+				responseJSON: {
+					data: {
+						message: 'The test account could not be connected.',
+					},
+				},
+			} ),
+		};
+
+		const { container } = render(
+			<StripeAuthActions
+				testMode={ true }
+				displayWebhookConfigure={ false }
+			/>
+		);
+
+		const connectButton = screen.getByRole( 'button', {
+			name: 'Create or connect a test account',
+		} );
+
+		await act( async () => {
+			await userEvent.click( connectButton );
+		} );
+
+		await waitFor( () => {
+			expect( container ).toHaveTextContent(
+				'The test account could not be connected.'
+			);
+		} );
+		expect( connectButton ).toBeEnabled();
 	} );
 } );
