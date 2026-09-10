@@ -998,6 +998,8 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 			'card meta caches the rejection'             => [ null, WC_Stripe_Payment_Methods::CARD, true ],
 			// No declared types: ambiguous rejection keeps the pre-existing caching behavior.
 			'no declared types cache the rejection'      => [ null, '', true ],
+			'empty declared types cache the rejection'   => [ [], '', true ],
+			'card-present request caches the rejection'  => [ [ WC_Stripe_Payment_Methods::CARD_PRESENT ], '', true ],
 			// The fix: a mismatched flow that sent level3 for a request Stripe knows is
 			// non-card must not disable level3 account-wide.
 			'non-card request does not cache'            => [ [ WC_Stripe_Payment_Methods::SEPA_DEBIT ], '', false ],
