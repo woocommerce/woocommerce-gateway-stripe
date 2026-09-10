@@ -1910,39 +1910,13 @@ class WC_Stripe_Express_Checkout_Helper {
 	];
 
 	/**
-	 * Returns the express checkout locations map (location => enabled methods).
-	 *
-	 * @return array<string, string[]>
-	 */
-	public function get_express_checkout_locations_map(): array {
-		return self::build_locations_map_from_settings( $this->stripe_settings );
-	}
-
-	/**
-	 * Builds the location => methods map from the per-method location options.
+	 * Reads one method's locations from the settings, in stored order.
 	 *
 	 * A missing option means the method was never configured and keeps the default
 	 * placement. A non-array value means every location was unchecked (WooCommerce
 	 * stores an emptied multiselect as ""), so the method is disabled everywhere.
 	 *
-	 * @param array $settings The main Stripe settings, or request values in the same shape.
-	 * @return array<string, string[]>
-	 */
-	public static function build_locations_map_from_settings( array $settings ): array {
-		$map = [];
-		foreach ( self::EXPRESS_CHECKOUT_METHODS as $method ) {
-			foreach ( self::get_method_locations_from_settings( $settings, $method ) as $location ) {
-				$map[ $location ][] = $method;
-			}
-		}
-
-		return $map;
-	}
-
-	/**
-	 * Reads one method's locations from the settings, in stored order.
-	 *
-	 * @param array  $settings The main Stripe settings, or request values in the same shape.
+	 * @param array  $settings The main Stripe settings.
 	 * @param string $method   Canonical express checkout method key.
 	 * @return string[]
 	 */

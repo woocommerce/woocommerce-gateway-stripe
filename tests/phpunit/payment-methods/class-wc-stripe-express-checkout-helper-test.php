@@ -1156,56 +1156,60 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 	/**
 	 * Non-string entries are skipped and repeated locations deduplicated, so stored
-	 * or posted values with junk in them cannot fatal.
+	 * values with junk in them cannot fatal.
 	 *
 	 * @return void
 	 */
-	public function test_build_locations_map_from_settings_skips_malformed_entries(): void {
-		$map = WC_Stripe_Express_Checkout_Helper::build_locations_map_from_settings(
-			[
-				'express_checkout_button_locations' => [ 'product', 'product', '', 5, [ 'cart' ] ],
-				'link_button_locations'             => [ 'product' ],
-				'amazon_pay_button_locations'       => '',
-			]
-		);
+	public function test_get_button_locations_skips_malformed_entries(): void {
+		$helper                  = new WC_Stripe_Express_Checkout_Helper();
+		$helper->stripe_settings = [
+			'express_checkout_button_locations' => [ 'product', 'product', '', 5, [ 'cart' ] ],
+		];
 
-		$this->assertSame( [ 'product' => [ 'link', 'payment_request' ] ], $map );
+		$this->assertSame( [ 'product' ], $helper->get_button_locations( 'payment_request' ) );
 	}
 
 	/**
 	 * A method whose option was never saved keeps the default placement, while one
-	 * whose option is present but empty stays disabled everywhere.
+	 * whose option is present but empty stays disabled everywhere, without affecting
+	 * the other methods.
 	 *
 	 * @param array $settings Per-method location options.
-	 * @param array $expected Expected location => methods map.
+	 * @param array $expected Expected locations per method.
 	 * @return void
 	 *
-	 * @dataProvider provide_build_locations_map_from_settings_partial_settings
+	 * @dataProvider provide_get_button_locations_partial_settings
 	 */
-	public function test_build_locations_map_from_settings_with_partial_settings( array $settings, array $expected ): void {
-		$this->assertSame( $expected, WC_Stripe_Express_Checkout_Helper::build_locations_map_from_settings( $settings ) );
+	public function test_get_button_locations_with_partial_settings( array $settings, array $expected ): void {
+		$helper                  = new WC_Stripe_Express_Checkout_Helper();
+		$helper->stripe_settings = $settings;
+
+		foreach ( $expected as $method => $locations ) {
+			$this->assertSame( $locations, $helper->get_button_locations( $method ), $method );
+		}
 	}
 
 	/**
-	 * Provider for `test_build_locations_map_from_settings_with_partial_settings`.
+	 * Provider for `test_get_button_locations_with_partial_settings`.
 	 *
 	 * @return array
 	 */
-	public function provide_build_locations_map_from_settings_partial_settings(): array {
+	public function provide_get_button_locations_partial_settings(): array {
 		return [
 			'nothing saved: every method on the default locations'                     => [
 				'settings' => [],
 				'expected' => [
-					'product' => [ 'amazon_pay', 'link', 'payment_request' ],
-					'cart'    => [ 'amazon_pay', 'link', 'payment_request' ],
+					'payment_request' => [ 'product', 'cart' ],
+					'link'            => [ 'product', 'cart' ],
+					'amazon_pay'      => [ 'product', 'cart' ],
 				],
 			],
 			'only Link saved: the other methods keep their defaults'                   => [
 				'settings' => [ 'link_button_locations' => [ 'checkout' ] ],
 				'expected' => [
-					'product'  => [ 'amazon_pay', 'payment_request' ],
-					'cart'     => [ 'amazon_pay', 'payment_request' ],
-					'checkout' => [ 'link' ],
+					'payment_request' => [ 'product', 'cart' ],
+					'link'            => [ 'checkout' ],
+					'amazon_pay'      => [ 'product', 'cart' ],
 				],
 			],
 			'empty array disables only that method'                                    => [
@@ -1214,8 +1218,9 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 					'link_button_locations'             => [ 'cart' ],
 				],
 				'expected' => [
-					'product' => [ 'amazon_pay' ],
-					'cart'    => [ 'amazon_pay', 'link' ],
+					'payment_request' => [],
+					'link'            => [ 'cart' ],
+					'amazon_pay'      => [ 'product', 'cart' ],
 				],
 			],
 			'empty string (WooCommerce emptied multiselect) disables only that method' => [
@@ -1224,8 +1229,9 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 					'amazon_pay_button_locations'       => '',
 				],
 				'expected' => [
-					'product' => [ 'link' ],
-					'cart'    => [ 'link' ],
+					'payment_request' => [],
+					'link'            => [ 'product', 'cart' ],
+					'amazon_pay'      => [],
 				],
 			],
 		];
