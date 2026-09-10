@@ -2690,11 +2690,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$is_expired = 'checkout.session.expired' === $notification->type;
 
 		try {
-			if ( $order_helper->is_stripe_status_final( $order ) ) {
+			if ( ! $this->order_uses_stripe_gateway( $order ) ) {
 				return;
 			}
 
-			if ( ! $this->order_uses_stripe_gateway( $order ) ) {
+			if ( $order_helper->is_stripe_status_final( $order ) ) {
 				return;
 			}
 
