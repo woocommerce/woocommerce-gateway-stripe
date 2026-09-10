@@ -91,6 +91,7 @@ const config = {
 				'**/blik.spec.js',
 				'**/becs.spec.js',
 				'**/isk.spec.js',
+				'**/free-trial-link.spec.js',
 			],
 			dependencies: [ 'default-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
@@ -98,6 +99,15 @@ const config = {
 		{
 			name: 'isk',
 			testMatch: '**/isk.spec.js',
+			dependencies: [ 'default-setup' ],
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			// Runs the slow Link enrollment/purchase flows in their own job so a
+			// slow Link popup can't push the shared `default` job over its
+			// timeout and cancel the other specs.
+			name: 'express-checkout-link',
+			testMatch: '**/free-trial-link.spec.js',
 			dependencies: [ 'default-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
