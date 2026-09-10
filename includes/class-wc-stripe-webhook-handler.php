@@ -1817,7 +1817,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Returns true when the order was paid via a Stripe gateway (the main `stripe` gateway or a
+	 * Returns true when the order uses a Stripe gateway (the main `stripe` gateway or a
 	 * `stripe_*` payment method).
 	 *
 	 * @param WC_Order $order
@@ -2691,6 +2691,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		try {
 			if ( $order_helper->is_stripe_status_final( $order ) ) {
+				return;
+			}
+
+			if ( ! $this->order_uses_stripe_gateway( $order ) ) {
 				return;
 			}
 
