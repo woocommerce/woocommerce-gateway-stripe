@@ -1165,6 +1165,168 @@ parameters:
 			path: includes/admin/class-wc-stripe-admin-notices.php
 
 		-
+			message: '#^Access to constant BALANCE on an unknown class Automattic\\WooCommerce\\Enums\\FinanceDataSource\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/admin/class-wc-stripe-finance-data-provider.php
+
+		-
+			message: '#^Access to constant COMPLETE on an unknown class Automattic\\WooCommerce\\Enums\\PayoutStatus\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/admin/class-wc-stripe-finance-data-provider.php
+
+		-
+			message: '#^Access to constant FAILED on an unknown class Automattic\\WooCommerce\\Enums\\PayoutStatus\.$#'
+			identifier: class.notFound
+			count: 2
+			path: includes/admin/class-wc-stripe-finance-data-provider.php
+
+		-
+			message: '#^Access to constant PAYOUTS on an unknown class Automattic\\WooCommerce\\Enums\\FinanceDataSource\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/admin/class-wc-stripe-finance-data-provider.php
+
+		-
+			message: '#^Access to constant PENDING on an unknown class Automattic\\WooCommerce\\Enums\\PayoutStatus\.$#'
+			identifier: class.notFound
+			count: 3
+			path: includes/admin/class-wc-stripe-finance-data-provider.php
+
+		-
+			message: '#^Call to method get_next_cursor\(\) on an unknown class Automattic\\WooCommerce\\Admin\\Payments\\Finance\\FinanceDataQuery\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/admin/class-wc-stripe-finance-data-provider.php
+
+		-
+			message: '#^Call to method get_per_page\(\) on an unknown class Automattic\\WooCommerce\\Admin\\Payments\\Finance\\FinanceDataQuery\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/admin/class-wc-stripe-finance-data-provider.php
+
+		-
+			message: '#^Call to method get_prev_cursor\(\) on an unknown class Automattic\\WooCommerce\\Admin\\Payments\\Finance\\FinanceDataQuery\.$#'
+			identifier: class.notFound
+			count: 2
+			path: includes/admin/class-wc-stripe-finance-data-provider.php
+
+		-
+			message: '#^Call to method is_registered\(\) on an unknown class Automattic\\WooCommerce\\Admin\\Payments\\Finance\\FinanceDataProviderRegistry\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/admin/class-wc-stripe-finance-data-provider.php
+
+		-
+			message: '#^Call to method register\(\) on an unknown class Automattic\\WooCommerce\\Admin\\Payments\\Finance\\FinanceDataProviderRegistry\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/admin/class-wc-stripe-finance-data-provider.php
+
+		-
+			message: '#^Call to method set_available_amount\(\) on an unknown class Automattic\\WooCommerce\\Admin\\Payments\\Finance\\V1\\Balance\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/admin/class-wc-stripe-finance-data-provider.php
+
+		-
+			message: '#^Call to method set_bank_account\(\) on an unknown class Automattic\\WooCommerce\\Admin\\Payments\\Finance\\V1\\Payout\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/admin/class-wc-stripe-finance-data-provider.php
+
+		-
+			message: '#^Call to method set_payout_link\(\) on an unknown class Automattic\\WooCommerce\\Admin\\Payments\\Finance\\V1\\Balance\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/admin/class-wc-stripe-finance-data-provider.php
+
+		-
+			message: '#^Call to method set_provider_link\(\) on an unknown class Automattic\\WooCommerce\\Admin\\Payments\\Finance\\V1\\Payout\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/admin/class-wc-stripe-finance-data-provider.php
+
+		-
+			message: '#^Instantiated class Automattic\\WooCommerce\\Admin\\Payments\\Finance\\FinanceDataException not found\.$#'
+			identifier: class.notFound
+			count: 2
+			path: includes/admin/class-wc-stripe-finance-data-provider.php
+
+		-
+			message: '#^Instantiated class Automattic\\WooCommerce\\Admin\\Payments\\Finance\\FinanceDataPage not found\.$#'
+			identifier: class.notFound
+			count: 2
+			path: includes/admin/class-wc-stripe-finance-data-provider.php
+
+		-
+			message: '#^Instantiated class Automattic\\WooCommerce\\Admin\\Payments\\Finance\\V1\\Balance not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/admin/class-wc-stripe-finance-data-provider.php
+
+		-
+			message: '#^Instantiated class Automattic\\WooCommerce\\Admin\\Payments\\Finance\\V1\\Link not found\.$#'
+			identifier: class.notFound
+			count: 2
+			path: includes/admin/class-wc-stripe-finance-data-provider.php
+
+		-
+			message: '#^Instantiated class Automattic\\WooCommerce\\Admin\\Payments\\Finance\\V1\\Payout not found\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/admin/class-wc-stripe-finance-data-provider.php
+
+		-
+			message: '#^Method WC_Stripe_Finance_Data_Provider\:\:get_balances\(\) has invalid return type Automattic\\WooCommerce\\Admin\\Payments\\Finance\\FinanceDataPage\.$#'
+			identifier: class.notFound
+			count: 2
+			path: includes/admin/class-wc-stripe-finance-data-provider.php
+
+		-
+			message: '#^Method WC_Stripe_Finance_Data_Provider\:\:get_payouts\(\) has invalid return type Automattic\\WooCommerce\\Admin\\Payments\\Finance\\FinanceDataPage\.$#'
+			identifier: class.notFound
+			count: 2
+			path: includes/admin/class-wc-stripe-finance-data-provider.php
+
+		-
+			message: '#^PHPDoc tag @throws with type Automattic\\WooCommerce\\Admin\\Payments\\Finance\\FinanceDataException is not subtype of Throwable$#'
+			identifier: throws.notThrowable
+			count: 2
+			path: includes/admin/class-wc-stripe-finance-data-provider.php
+
+		-
+			message: '#^Parameter \#3 \$arg_separator of function http_build_query expects string, null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/admin/class-wc-stripe-finance-data-provider.php
+
+		-
+			message: '#^Parameter \$query of method WC_Stripe_Finance_Data_Provider\:\:get_balances\(\) has invalid type Automattic\\WooCommerce\\Admin\\Payments\\Finance\\FinanceDataQuery\.$#'
+			identifier: class.notFound
+			count: 2
+			path: includes/admin/class-wc-stripe-finance-data-provider.php
+
+		-
+			message: '#^Parameter \$query of method WC_Stripe_Finance_Data_Provider\:\:get_payouts\(\) has invalid type Automattic\\WooCommerce\\Admin\\Payments\\Finance\\FinanceDataQuery\.$#'
+			identifier: class.notFound
+			count: 2
+			path: includes/admin/class-wc-stripe-finance-data-provider.php
+
+		-
+			message: '#^Parameter \$registry of method WC_Stripe_Finance_Data_Provider\:\:register_finance_data_provider\(\) has invalid type Automattic\\WooCommerce\\Admin\\Payments\\Finance\\FinanceDataProviderRegistry\.$#'
+			identifier: class.notFound
+			count: 2
+			path: includes/admin/class-wc-stripe-finance-data-provider.php
+
+		-
+			message: '#^Throwing object of an unknown class Automattic\\WooCommerce\\Admin\\Payments\\Finance\\FinanceDataException\.$#'
+			identifier: class.notFound
+			count: 2
+			path: includes/admin/class-wc-stripe-finance-data-provider.php
+
+		-
 			message: '#^Call to an undefined method WC_Data_Store\:\:get_notes_with_name\(\)\.$#'
 			identifier: method.notFound
 			count: 3
@@ -1543,13 +1705,13 @@ parameters:
 			path: includes/class-wc-stripe-blocks-support.php
 
 		-
-			message: '#^Access to protected property Automattic\\WooCommerce\\StoreApi\\Payments\\PaymentResult\:\:\$status\.$#'
+			message: '#^Access to protected property Automattic\\WooCommerce\\StoreApi\\Payments\\PaymentResult\:\:\$redirect_url\.$#'
 			identifier: property.protected
 			count: 1
 			path: includes/class-wc-stripe-blocks-support.php
 
 		-
-			message: '#^Access to protected property Automattic\\WooCommerce\\StoreApi\\Payments\\PaymentResult\:\:\$redirect_url\.$#'
+			message: '#^Access to protected property Automattic\\WooCommerce\\StoreApi\\Payments\\PaymentResult\:\:\$status\.$#'
 			identifier: property.protected
 			count: 1
 			path: includes/class-wc-stripe-blocks-support.php
