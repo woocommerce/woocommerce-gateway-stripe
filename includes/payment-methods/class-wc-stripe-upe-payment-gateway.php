@@ -1600,7 +1600,70 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return $this->process_payment_with_checkout_session( $order_id, $checkout_session_id, $save_payment_method, $selected_payment_type );
 		}
 
+		if ( $this->is_using_saved_payment_method() && $order instanceof WC_Order ) {
+			$this->retire_checkout_session_for_saved_payment( $order );
+		}
+
 		return $this->process_payment_with_deferred_intent( $order_id );
+	}
+
+	/**
+	 * Retires an order's remote Checkout Session before a saved payment method is charged.
+	 *
+	 * An unsuccessful embedded Checkout Session remains open and can be completed later. Retiring
+	 * it before starting another payment prevents a late Session webhook or customer retry from
+	 * creating a second charge for the same order.
+	 *
+	 * @param WC_Order $order The order being retried.
+	 * @return void
+	 * @throws WC_Stripe_Exception When the Session cannot be confirmed as expired.
+	 */
+	private function retire_checkout_session_for_saved_payment( WC_Order $order ): void {
+		$order_helper        = WC_Stripe_Order_Helper::get_instance();
+		$checkout_session_id = $order_helper->get_stripe_checkout_session_id( $order );
+		if ( ! is_string( $checkout_session_id ) || '' === $checkout_session_id ) {
+			return;
+		}
+
+		$unavailable_message = WC_Stripe_Checkout_Session_Context::get_unavailable_message();
+		try {
+			$checkout_session = $this->stripe_request( 'checkout/sessions/' . $checkout_session_id );
+		} catch ( Exception $e ) {
+			throw new WC_Stripe_Exception( $e->getMessage(), $unavailable_message );
+		}
+		if (
+			! is_object( $checkout_session )
+			|| ! isset( $checkout_session->id, $checkout_session->status )
+			|| ! is_string( $checkout_session->id )
+			|| $checkout_session_id !== $checkout_session->id
+			|| ! is_string( $checkout_session->status )
+		) {
+			throw new WC_Stripe_Exception( 'Unable to retrieve the Checkout Session.', $unavailable_message );
+		}
+
+		if ( 'open' === $checkout_session->status ) {
+			try {
+				$checkout_session = WC_Stripe_API::request( [], 'checkout/sessions/' . $checkout_session_id . '/expire' );
+			} catch ( Exception $e ) {
+				throw new WC_Stripe_Exception( $e->getMessage(), $unavailable_message );
+			}
+
+			if (
+				! is_object( $checkout_session )
+				|| ! isset( $checkout_session->id, $checkout_session->status )
+				|| ! is_string( $checkout_session->id )
+				|| $checkout_session_id !== $checkout_session->id
+				|| 'expired' !== $checkout_session->status
+			) {
+				throw new WC_Stripe_Exception( 'Unable to expire the Checkout Session.', $unavailable_message );
+			}
+		} elseif ( 'expired' !== $checkout_session->status ) {
+			throw new WC_Stripe_Exception( 'Checkout Session is not expireable.', $unavailable_message );
+		}
+
+		$order_helper->delete_stripe_checkout_session_id( $order );
+		$order->save();
+		WC_Stripe_Checkout_Session_Context::delete_context( $checkout_session_id );
 	}
 
 	/**

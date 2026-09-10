@@ -2632,8 +2632,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * A saved token must win over a `wc_stripe_checkout_session_id` left in the classic checkout form
 	 * by a previous Adaptive Pricing attempt. Checkout Sessions are confirmed client-side and the
 	 * saved-token path never reaches that code, so routing there returns success for an uncharged order.
+	 *
+	 * @dataProvider provide_saved_payment_retry_checkout_session_states
+	 *
+	 * @param string $session_status The status returned by the Checkout Session retrieval.
+	 * @param bool   $should_expire  Whether the open Session should be expired.
 	 */
-	public function test_process_payment_with_saved_token_ignores_submitted_checkout_session_id() {
+	public function test_process_payment_with_saved_token_ignores_submitted_checkout_session_id( string $session_status, bool $should_expire ) {
 		$session_id = 'cs_test_saved_token_retry';
 		$token      = $this->set_postvars_for_saved_payment_method();
 
@@ -2647,6 +2652,45 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $session_id );
 		$order->save();
 		$this->store_checkout_session_context_for_order( $session_id, $order, [ 'order_id' => $order->get_id() ] );
+
+		$this->mock_gateway->method( 'stripe_request' )->willReturnCallback(
+			function ( $path ) use ( $session_id, $session_status ) {
+				if ( 'checkout/sessions/' . $session_id === $path ) {
+					return (object) [
+						'id'     => $session_id,
+						'status' => $session_status,
+					];
+				}
+
+				return null;
+			}
+		);
+
+		$session_expired = false;
+		$pre_http_filter = function ( $return_value, $parsed_args, $url ) use ( $session_id, $should_expire, &$session_expired ) {
+			if ( WC_Stripe_API::ENDPOINT . 'checkout/sessions/' . $session_id . '/expire' !== $url ) {
+				return $return_value;
+			}
+
+			$session_expired = true;
+			if ( ! $should_expire ) {
+				return $return_value;
+			}
+
+			return [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'body'     => wp_json_encode(
+					[
+						'id'     => $session_id,
+						'status' => 'expired',
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
 
 		list( $amount ) = $this->get_order_details( $order );
 
@@ -2694,16 +2738,132 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		try {
 			$result = $this->mock_gateway->process_payment( $order->get_id() );
 		} finally {
+			remove_filter( 'pre_http_request', $pre_http_filter );
 			WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
 			$_POST = [];
 		}
 
 		$this->assertSame( 'success', $result['result'] );
 		$this->assertStringNotContainsString( 'wc_stripe_cs', (string) $result['redirect'] );
-		$this->assertSame(
-			$session_id,
-			WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( wc_get_order( $order->get_id() ) )
+		$this->assertSame( $should_expire, $session_expired );
+		$this->assertEmpty( WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( wc_get_order( $order->get_id() ) ) );
+		$this->assertFalse( WC_Stripe_Helper::get_order_by_checkout_session_id( $session_id ) );
+		$this->assertNull( WC_Stripe_Checkout_Session_Context::get_context( $session_id ) );
+	}
+
+	/**
+	 * @return array<string,array{string,bool}>
+	 */
+	public function provide_saved_payment_retry_checkout_session_states(): array {
+		return [
+			'open Session is expired before retry' => [ 'open', true ],
+			'already expired Session is unlinked'  => [ 'expired', false ],
+		];
+	}
+
+	/**
+	 * A saved-payment retry must fail closed if its existing Checkout Session cannot be retired.
+	 *
+	 * @dataProvider provide_unretireable_checkout_session_states
+	 *
+	 * @param string|null $session_status    The status returned by Session retrieval.
+	 * @param string|null $expiration_status The status returned by Session expiration.
+	 * @param bool        $retrieval_error   Whether Session retrieval throws.
+	 */
+	public function test_saved_payment_retry_fails_closed_when_checkout_session_cannot_be_retired( ?string $session_status, ?string $expiration_status, bool $retrieval_error ) {
+		$session_id = 'cs_test_saved_token_retry_failure';
+		$this->set_postvars_for_saved_payment_method();
+		$_POST['wc_stripe_checkout_session_id'] = $session_id;
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $session_id );
+		$order->save();
+		$this->store_checkout_session_context_for_order( $session_id, $order, [ 'order_id' => $order->get_id() ] );
+
+		$this->mock_gateway->method( 'stripe_request' )->willReturnCallback(
+			function ( $path ) use ( $session_id, $session_status, $retrieval_error ) {
+				if ( 'checkout/sessions/' . $session_id !== $path ) {
+					return null;
+				}
+
+				if ( $retrieval_error ) {
+					throw new WC_Stripe_Exception( 'retrieve failed' );
+				}
+
+				return (object) [
+					'id'     => $session_id,
+					'status' => $session_status,
+				];
+			}
 		);
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->never() )
+			->method( 'create_and_confirm_payment_intent' );
+
+		$pre_http_filter = function ( $return_value, $parsed_args, $url ) use ( $session_id, $expiration_status ) {
+			if ( WC_Stripe_API::ENDPOINT . 'checkout/sessions/' . $session_id . '/expire' !== $url ) {
+				return $return_value;
+			}
+
+			if ( null === $expiration_status ) {
+				return [
+					'response' => [
+						'code'    => 400,
+						'message' => 'Bad Request',
+					],
+					'body'     => wp_json_encode( [ 'error' => [ 'message' => 'expire failed' ] ] ),
+				];
+			}
+
+			return [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'body'     => wp_json_encode(
+					[
+						'id'     => $session_id,
+						'status' => $expiration_status,
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
+
+		$exception = null;
+		try {
+			$this->mock_gateway->process_payment( $order->get_id() );
+		} catch ( WC_Stripe_Exception $e ) {
+			$exception = $e;
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_filter );
+		}
+
+		$this->assertInstanceOf( WC_Stripe_Exception::class, $exception );
+		$this->assertSame( WC_Stripe_Checkout_Session_Context::get_unavailable_message(), $exception->getLocalizedMessage() );
+		$this->assertSame( $session_id, WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( wc_get_order( $order->get_id() ) ) );
+		$this->assertIsArray( WC_Stripe_Checkout_Session_Context::get_context( $session_id ) );
+
+		WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
+		$_POST = [];
+	}
+
+	/**
+	 * @return array<string,array{string|null,string|null,bool}>
+	 */
+	public function provide_unretireable_checkout_session_states(): array {
+		return [
+			'complete Session'        => [ 'complete', null, false ],
+			'malformed Session'       => [ null, null, false ],
+			'retrieval failure'       => [ null, null, true ],
+			'expiration failure'      => [ 'open', null, false ],
+			'expiration wrong status' => [ 'open', 'complete', false ],
+		];
 	}
 
 	/**
