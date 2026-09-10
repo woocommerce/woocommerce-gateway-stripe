@@ -30,6 +30,15 @@ Read `README.md` in this directory for domain-specific feed requirements.
 - Entry values must remain scalar or `null`; complex values must be serialized before `add_entry()`.
 - Keep logging and cleanup behavior on error paths intact.
 
+## Merchant Configuration Surface
+
+See README.md "Merchant configuration cookbook" for the merchant-facing recipes. When changing this surface, keep all of it in sync:
+
+- **Filters** use the shareable `woocommerce_agentic_commerce_*` prefix. The Stripe-prefixed `wc_stripe_agentic_commerce_*` twins are deprecated via `apply_filters_deprecated` (seed the new default) — do not drop them. Canonical names: `woocommerce_agentic_commerce_should_sync_product`, `woocommerce_agentic_commerce_disable_checkout`, `woocommerce_agentic_commerce_addon_detection_meta_keys`.
+- **Add-on detection** (`WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons()`) is per-product postmeta, resolved on the parent for variations. MUST NOT gate on `class_exists()` of configurator plugins (over-matches the whole catalog).
+- **Opt-in toggles** are defaults, not overrides: a custom filter always wins. Both default off, so an upgrade with no new options set MUST behave identically.
+- New merchant options/filters/helpers are public surface — add PHPUnit (and JS for UI) coverage, and document them in the cookbook.
+
 ## Feed Contract Checklist (MUST)
 
 - Keep schema/header alignment intact when adding or removing fields.
