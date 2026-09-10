@@ -22,6 +22,7 @@ import {
 	maybeUpdateOptimizedCheckoutExclusions,
 	mountStripePaymentElement,
 	processPayment,
+	resetCheckoutCompletionState,
 	trackMountInProgress,
 } from './payment-processing';
 import { __ } from '@wordpress/i18n';
@@ -103,14 +104,6 @@ jQuery( function ( $ ) {
 	} );
 
 	function processPaymentIfNotUsingSavedMethod( $form ) {
-		const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
-
-		// A saved token travels in the POST and needs no payment method, so the
-		// required-field state is none of our business on that path.
-		if ( isUsingSavedPaymentMethod( paymentMethodType ) ) {
-			return;
-		}
-
 		// Returning false is what stops WooCommerce submitting: returning early without
 		// it would let the form POST with no payment method, and the order would be
 		// created and then failed. jQuery :visible filters out fields hidden by
@@ -121,6 +114,7 @@ jQuery( function ( $ ) {
 				$form.find( '.validate-required:visible' ).toArray()
 			)
 		) {
+			resetCheckoutCompletionState();
 			showErrorCheckout(
 				__(
 					'Please fill in all required fields.',
@@ -130,7 +124,10 @@ jQuery( function ( $ ) {
 			return false;
 		}
 
-		return processPayment( api, $form, paymentMethodType );
+		const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
+		if ( ! isUsingSavedPaymentMethod( paymentMethodType ) ) {
+			return processPayment( api, $form, paymentMethodType );
+		}
 	}
 
 	$( 'form.checkout' ).on( generateCheckoutEventNames(), function () {

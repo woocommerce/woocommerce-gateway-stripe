@@ -862,9 +862,15 @@ export const clearStaleCheckoutTotalNotice = () => {
  * @param {string} errorMessage
  */
 export const showErrorCheckout = ( errorMessage ) => {
-	const $container = jQuery( '.woocommerce-notices-wrapper' ).first();
+	let $container = jQuery( '.woocommerce-notices-wrapper' ).first();
 	const isMyAccountPage =
 		jQuery( '.woocommerce-MyAccount-content' ).length > 0;
+
+	// Some custom checkout templates omit the standard notices wrapper. The form
+	// is the same fallback WooCommerce uses for checkout AJAX errors.
+	if ( ! $container.length ) {
+		$container = jQuery( 'form.checkout' ).first();
+	}
 
 	if ( ! $container.length ) {
 		return;

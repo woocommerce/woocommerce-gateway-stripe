@@ -5,6 +5,7 @@
  * an order and then fails it. These tests pin the return value, not just the side effects.
  */
 const mockProcessPayment = jest.fn();
+const mockResetCheckoutCompletionState = jest.fn();
 const mockShowErrorCheckout = jest.fn();
 let mockIsEmpty = false;
 let mockUsingSavedMethod = false;
@@ -33,6 +34,8 @@ jest.mock( '../payment-processing', () => ( {
 	maybeUpdateOptimizedCheckoutExclusions: () => {},
 	mountStripePaymentElement: () => Promise.resolve(),
 	processPayment: ( ...args ) => mockProcessPayment( ...args ),
+	resetCheckoutCompletionState: ( ...args ) =>
+		mockResetCheckoutCompletionState( ...args ),
 	trackMountInProgress: () => {},
 } ) );
 
@@ -57,6 +60,7 @@ describe( 'classic checkout place-order handler', () => {
 		mockUsingSavedMethod = false;
 		mockProcessPayment.mockReset();
 		mockProcessPayment.mockReturnValue( false );
+		mockResetCheckoutCompletionState.mockReset();
 		mockShowErrorCheckout.mockReset();
 
 		document.body.innerHTML = '<form class="checkout"></form>';
@@ -78,6 +82,7 @@ describe( 'classic checkout place-order handler', () => {
 
 		expect( placeOrder() ).toBe( false );
 		expect( mockProcessPayment ).not.toHaveBeenCalled();
+		expect( mockResetCheckoutCompletionState ).toHaveBeenCalledTimes( 1 );
 		expect( mockShowErrorCheckout ).toHaveBeenCalledWith(
 			'Please fill in all required fields.'
 		);
@@ -87,17 +92,28 @@ describe( 'classic checkout place-order handler', () => {
 		placeOrder();
 
 		expect( mockProcessPayment ).toHaveBeenCalled();
+		expect( mockResetCheckoutCompletionState ).not.toHaveBeenCalled();
 		expect( mockShowErrorCheckout ).not.toHaveBeenCalled();
 	} );
 
-	// The saved token travels in the POST, so core must be allowed to submit even when
-	// the required-field check would have objected.
-	it( 'lets core submit a saved token without consulting the required fields', () => {
+	it( 'blocks a saved-token checkout when a required field is empty', () => {
 		mockIsEmpty = true;
+		mockUsingSavedMethod = true;
+
+		expect( placeOrder() ).toBe( false );
+		expect( mockProcessPayment ).not.toHaveBeenCalled();
+		expect( mockResetCheckoutCompletionState ).toHaveBeenCalledTimes( 1 );
+		expect( mockShowErrorCheckout ).toHaveBeenCalledWith(
+			'Please fill in all required fields.'
+		);
+	} );
+
+	it( 'lets core submit a saved token when required fields are filled', () => {
 		mockUsingSavedMethod = true;
 
 		expect( placeOrder() ).toBeUndefined();
 		expect( mockProcessPayment ).not.toHaveBeenCalled();
+		expect( mockResetCheckoutCompletionState ).not.toHaveBeenCalled();
 		expect( mockShowErrorCheckout ).not.toHaveBeenCalled();
 	} );
 } );
