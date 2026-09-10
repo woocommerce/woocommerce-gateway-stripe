@@ -23,6 +23,7 @@ jest.mock( 'wcstripe/data', () => ( {
 	useExpressCheckoutButtonType: jest.fn().mockReturnValue( [ 'buy' ] ),
 	useExpressCheckoutButtonSize: jest.fn().mockReturnValue( [ 'default' ] ),
 	useExpressCheckoutButtonTheme: jest.fn().mockReturnValue( [ 'dark' ] ),
+	useEnabledPaymentMethodIds: jest.fn().mockReturnValue( [ [] ] ),
 } ) );
 jest.mock( 'wcstripe/data/account/hooks', () => ( {
 	useAccount: jest.fn().mockReturnValue( { data: {} } ),

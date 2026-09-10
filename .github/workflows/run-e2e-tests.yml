@@ -24,12 +24,12 @@ jobs:
       fail-fast: false
       max-parallel: 10
       matrix:
-        project: [ 'default', 'isk', 'acss', 'optimized-checkout', 'blik', 'becs' ]
+        project: [ 'default', 'express-checkout-link', 'isk', 'acss', 'optimized-checkout', 'blik', 'becs' ]
 
     name: E2E - ${{ matrix.project }} (WP=${{ inputs.wp-version }}, WC=${{ inputs.wc-version }}, PHP=${{ inputs.php-version }})
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.branch }}
 
@@ -51,6 +51,15 @@ jobs:
           STRIPE_SECRET_KEY: ${{ matrix.project == 'blik' && secrets.E2E_STRIPE_SECRET_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_SECRET_KEY_AU || secrets.E2E_STRIPE_SECRET_KEY }}
         run: npm run test:e2e-setup
 
+      - name: Upload e2e setup logs
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: E2E-${{ matrix.project }}-WP-${{ inputs.wp-version }}-WC-${{ inputs.wc-version }}-PHP-${{ inputs.php-version }}-setup-logs
+          path: tests/e2e/e2e-setup.log
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Run E2E tests
         env:
           STRIPE_PUB_KEY: ${{ matrix.project == 'blik' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_AU || secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
@@ -59,7 +68,7 @@ jobs:
 
       - name: Upload E2E test results
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: ${{ matrix.project }}-WP_${{ inputs.wp-version }}-WC_${{ inputs.wc-version }}-results
           path: tests/e2e/test-results

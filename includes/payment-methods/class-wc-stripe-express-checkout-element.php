@@ -222,6 +222,10 @@ class WC_Stripe_Express_Checkout_Element {
 				'is_link_enabled'             => $this->express_checkout_helper->is_link_enabled(),
 				'is_express_checkout_enabled' => $this->express_checkout_helper->is_express_checkout_enabled(),
 				'is_amazon_pay_enabled'       => $this->express_checkout_helper->is_amazon_pay_enabled(),
+				// `is_express_checkout_enabled` aggregates all methods, so Apple/Google Pay need their
+				// own flags; per-wallet keys keep the contract stable if the shared setting ever splits.
+				'is_apple_pay_enabled'        => $this->express_checkout_helper->is_apple_google_pay_enabled(),
+				'is_google_pay_enabled'       => $this->express_checkout_helper->is_apple_google_pay_enabled(),
 			],
 			// The wc-ajax nonces are fetched on demand (see
 			// ajax_get_express_checkout_nonces) so page caches can't serve expired copies.

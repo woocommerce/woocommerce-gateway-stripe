@@ -227,9 +227,14 @@ jQuery( function ( $ ) {
 
 			const shippingRates = getShippingRates();
 
-			const isExpressCheckoutEnabled =
+			// Deliberately not `is_express_checkout_enabled`: that aggregate is true when
+			// any wallet's locations cover this page, which would render Apple/Google Pay
+			// on pages where only another wallet (e.g. Amazon Pay) is enabled.
+			const isApplePayEnabled =
+				wc_stripe_express_checkout_params?.stripe?.is_apple_pay_enabled; // eslint-disable-line camelcase
+			const isGooglePayEnabled =
 				wc_stripe_express_checkout_params?.stripe // eslint-disable-line camelcase
-					?.is_express_checkout_enabled;
+					?.is_google_pay_enabled;
 			const isAmazonPayEnabled =
 				wc_stripe_express_checkout_params?.stripe // eslint-disable-line camelcase
 					?.is_amazon_pay_enabled;
@@ -250,10 +255,8 @@ jQuery( function ( $ ) {
 			// may require different options or configurations, e.g. Amazon Pay
 			// does not support paymentMethodCreation: 'manual'.
 			const expressPaymentTypes = [
-				isExpressCheckoutEnabled &&
-					EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
-				isExpressCheckoutEnabled &&
-					EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+				isApplePayEnabled && EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+				isGooglePayEnabled && EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 				isAmazonPayEnabled &&
 					! areTaxesBasedOnBillingAddress &&
 					! isChangePaymentMethod &&
@@ -867,17 +870,17 @@ jQuery( function ( $ ) {
 		/**
 		 * Abort the payment and display error messages.
 		 *
-		 * @param {PaymentResponse} payment      Payment response instance.
-		 * @param {string}          message      Error message to display.
-		 * @param {boolean}         isOrderError Whether the error is related to the order creation.
+		 * @param {PaymentResponse} payment Payment response instance.
+		 * @param {string}          message Error message to display.
 		 */
-		abortPayment: ( payment, message, isOrderError = false ) => {
-			if ( ! isOrderError ) {
-				payment.paymentFailed( { reason: 'fail' } );
-			}
+		abortPayment: ( payment, message ) => {
 			onAbortPaymentHandler( payment, message );
-
 			displayExpressCheckoutNotice( message, 'error' );
+
+			// The wallet sheet only closes once the confirm event gets a terminal
+			// result, so order errors must fail it too. A late call rejects an
+			// internal Stripe promise asynchronously, after the message is shown.
+			payment.paymentFailed( { reason: 'fail' } );
 		},
 
 		attachProductPageEventListeners: () => {

@@ -51,6 +51,18 @@ jest.mock( 'wcstripe/express-checkout/transformers/wc-to-stripe', () => ( {
 	transformPrice: jest.fn( () => 1500 ),
 } ) );
 
+// Stub the shared event handlers so the entrypoint's own `abortPayment` can be
+// captured from the params it hands to onConfirmHandler.
+jest.mock( 'wcstripe/express-checkout/event-handler', () => ( {
+	onAbortPaymentHandler: jest.fn(),
+	onCancelHandler: jest.fn(),
+	onClickHandler: jest.fn(),
+	onCompletePaymentHandler: jest.fn(),
+	onConfirmHandler: jest.fn(),
+	shippingAddressChangeHandler: jest.fn(),
+	shippingRateChangeHandler: jest.fn(),
+} ) );
+
 // Side-effect-only compatibility shims attach jQuery handlers we don't drive here.
 jest.mock(
 	'wcstripe/express-checkout/compatibility/wc-order-attribution',
@@ -166,6 +178,8 @@ describe( 'Express Checkout product page variation breakdown', () => {
 			publishable_key: 'pk_test_123',
 			locale: 'en',
 			is_express_checkout_enabled: true,
+			is_apple_pay_enabled: true,
+			is_google_pay_enabled: true,
 		},
 		product: {
 			total: { amount: 1000 },
@@ -350,5 +364,189 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		elementsList.forEach( ( elements ) => {
 			expect( elements.update ).toHaveBeenCalledWith( { amount: 2000 } );
 		} );
+	} );
+} );
+
+describe( 'Express Checkout per-method location gating', () => {
+	// Each created express button mounts into its own
+	// `#wc-stripe-express-checkout-element-<type>` container, so the container ids
+	// are the observable record of which wallets were actually created.
+	const mountedTypes = () =>
+		Array.from(
+			document.querySelectorAll(
+				'#wc-stripe-express-checkout-element > div'
+			)
+		).map( ( el ) =>
+			el.id.replace( 'wc-stripe-express-checkout-element-', '' )
+		);
+
+	const stubStripe = () => {
+		const button = {
+			on: () => button,
+			mount: jest.fn(),
+		};
+		mockGetStripe.mockReturnValue( {
+			elements: jest.fn( () => ( {
+				create: jest.fn( () => button ),
+				update: jest.fn(),
+			} ) ),
+		} );
+	};
+
+	const cartParamsWithFlags = ( stripeFlags ) => ( {
+		...baseParams(),
+		stripe: {
+			publishable_key: 'pk_test_123',
+			locale: 'en',
+			...stripeFlags,
+		},
+		cart: {
+			total: 1500,
+			currency: 'usd',
+			requestShipping: false,
+			requestPhone: false,
+			displayItems: [],
+		},
+	} );
+
+	beforeEach( () => {
+		jest.resetModules();
+		mockGetStripe.mockReset();
+		stubStripe();
+		document.body.innerHTML =
+			'<div id="wc-stripe-express-checkout-element"></div>';
+	} );
+
+	afterEach( () => {
+		delete global.wc_stripe_express_checkout_params;
+	} );
+
+	it( 'does not create Apple/Google Pay buttons when only another wallet covers this page', () => {
+		global.wc_stripe_express_checkout_params = cartParamsWithFlags( {
+			// The aggregate is true because Amazon Pay covers this location —
+			// that alone must not surface Apple/Google Pay (STRIPE-1363).
+			is_express_checkout_enabled: true,
+			is_apple_pay_enabled: false,
+			is_google_pay_enabled: false,
+			is_amazon_pay_enabled: true,
+		} );
+
+		loadEntrypoint();
+
+		expect( mountedTypes() ).toEqual( [ 'amazonPay' ] );
+	} );
+
+	it( 'creates Apple/Google Pay buttons when their own locations cover this page', () => {
+		global.wc_stripe_express_checkout_params = cartParamsWithFlags( {
+			is_express_checkout_enabled: true,
+			is_apple_pay_enabled: true,
+			is_google_pay_enabled: true,
+			is_amazon_pay_enabled: false,
+		} );
+
+		loadEntrypoint();
+
+		expect( mountedTypes() ).toEqual( [ 'applePay', 'googlePay' ] );
+	} );
+
+	it( 'gates each wallet on its own flag, ready for a future settings split', () => {
+		global.wc_stripe_express_checkout_params = cartParamsWithFlags( {
+			is_express_checkout_enabled: true,
+			is_apple_pay_enabled: false,
+			is_google_pay_enabled: true,
+			is_amazon_pay_enabled: false,
+		} );
+
+		loadEntrypoint();
+
+		expect( mountedTypes() ).toEqual( [ 'googlePay' ] );
+	} );
+} );
+
+describe( 'Express Checkout order failures', () => {
+	const stubStripeButton = () => {
+		const handlers = {};
+		const button = {
+			on: ( evt, cb ) => {
+				handlers[ evt ] = cb;
+				return button;
+			},
+			mount: jest.fn(),
+		};
+		mockGetStripe.mockReturnValue( {
+			elements: jest.fn( () => ( {
+				create: jest.fn( () => button ),
+				update: jest.fn(),
+			} ) ),
+		} );
+		return handlers;
+	};
+
+	beforeEach( () => {
+		jest.resetModules();
+		mockGetStripe.mockReset();
+
+		// No notices wrapper: the storefront case where the message used to vanish.
+		document.body.innerHTML =
+			'<div id="wc-stripe-express-checkout-element"></div>';
+
+		global.wc_stripe_express_checkout_params = {
+			...baseParams(),
+			is_cart_page: false,
+			stripe: {
+				publishable_key: 'pk_test_123',
+				locale: 'en',
+				is_apple_pay_enabled: true,
+			},
+			cart: {
+				total: 1500,
+				currency: 'usd',
+				requestShipping: false,
+				requestPhone: false,
+				displayItems: [],
+			},
+		};
+	} );
+
+	afterEach( () => {
+		delete global.wc_stripe_express_checkout_params;
+	} );
+
+	// The order-side abort used to skip paymentFailed(), leaving the approved wallet
+	// sheet open with nothing on screen. The third argument is the removed
+	// `isOrderError` opt-out: passing it must change nothing.
+	it( 'fails the wallet sheet and shows the message when the order errors', async () => {
+		const handlers = stubStripeButton();
+		loadEntrypoint();
+
+		// Resolve the mocks from the same module registry the entrypoint loaded from;
+		// `jest.resetModules()` hands each test its own copy.
+		// eslint-disable-next-line global-require
+		const jq = require( 'jquery' );
+		const {
+			onAbortPaymentHandler,
+			onConfirmHandler,
+			// eslint-disable-next-line global-require
+		} = require( 'wcstripe/express-checkout/event-handler' );
+
+		jq( document.body ).trigger( 'updated_checkout' );
+
+		const event = { paymentFailed: jest.fn() };
+		await handlers.confirm( event );
+
+		const { abortPayment } = onConfirmHandler.mock.calls[ 0 ][ 0 ];
+		abortPayment( event, 'Order creation error', true );
+
+		expect( event.paymentFailed ).toHaveBeenCalledWith( {
+			reason: 'fail',
+		} );
+		expect(
+			document.querySelector( '.woocommerce-error' ).textContent
+		).toBe( 'Order creation error' );
+
+		// The message has to be in front of the shopper before the sheet closes.
+		expect(
+			onAbortPaymentHandler.mock.invocationCallOrder[ 0 ]
+		).toBeLessThan( event.paymentFailed.mock.invocationCallOrder[ 0 ] );
 	} );
 } );
