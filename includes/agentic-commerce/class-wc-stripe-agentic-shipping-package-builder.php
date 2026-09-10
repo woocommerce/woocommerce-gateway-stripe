@@ -66,7 +66,7 @@ class WC_Stripe_Agentic_Shipping_Package_Builder {
 	 * shippable products. Line totals come from the event's unit_amount when
 	 * present, falling back to the catalog price otherwise.
 	 *
-	 * @since 10.9.0
+	 * @since 11.1.0
 	 * @param WC_Stripe_Agentic_Customize_Checkout_Event $event    The customization hook event.
 	 * @param string                                     $currency The three-letter currency code.
 	 * @return array Cart-item-format entries keyed by line item ID.
