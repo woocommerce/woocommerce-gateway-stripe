@@ -10,6 +10,9 @@ on:
 jobs:
   check_changelog:
     name: 'Check for changelog updates'
+    # Dependabot cannot tick the exemption checkbox, so the job would be red on
+    # every dependency PR.
+    if: github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -44,10 +47,18 @@ jobs:
               per_page: 100
             });
 
+            const RELEASE_METADATA_FILES = ['changelog.txt', 'readme.txt'];
+
             const changelogUpdated = files.some(file => file.filename === 'changelog.txt');
             const readmeUpdated = files.some(file => file.filename === 'readme.txt');
-            
-            if (!changelogUpdated || !readmeUpdated) {
+
+            // A PR that changes nothing but the release metadata files is the
+            // changelog work itself (release notes, a stable tag bump, fixing an
+            // entry), and those legitimately touch only one of the two files.
+            const releaseMetadataOnly = files.length > 0
+              && files.every(file => RELEASE_METADATA_FILES.includes(file.filename));
+
+            if (!releaseMetadataOnly && (!changelogUpdated || !readmeUpdated)) {
               core.setFailed(
                 'This PR requires changelog entries. Please run `npm run changelog` to add entries to both changelog.txt and readme.txt, ' +
                 'or check "This Pull Request does not require a changelog entry" in the PR description if no changelog is needed.'
@@ -101,11 +112,18 @@ jobs:
         env:
           CHANGELOG_DIFF: ${{ steps.get_changelog_diff.outputs.changelog-diff }}
         run: |
-          NEWLINE=$'\n'
-          TRAILING_PERIOD_REGEX="${NEWLINE}\+\*[^${NEWLINE}]*\.[:space:]*${NEWLINE}"
-          if [[ "$CHANGELOG_DIFF" =~ $TRAILING_PERIOD_REGEX ]]; then
+          # Matched per line with grep: a bash regex needs the newlines around the
+          # entry, and the one after the last line is stripped from the step output,
+          # which hid an offending entry whenever it was the final line of the diff.
+          # [[:blank:]] is spaces and tabs; the class has to be bracketed twice, and
+          # [:space:] alone silently means the characters : s p a c e.
+          # A here-string rather than a pipe into grep: with pipefail, grep -q can
+          # exit before the writer finishes and turn the whole pipeline non-zero,
+          # which would read as "no match" on a large diff.
+          TRAILING_PERIOD_REGEX='^\+\*.*\.[[:blank:]]*$'
+          if grep -qE "$TRAILING_PERIOD_REGEX" <<< "$CHANGELOG_DIFF"; then
             echo "Changelog entries with trailing periods found:"
-            echo "$CHANGELOG_DIFF"
+            grep -E "$TRAILING_PERIOD_REGEX" <<< "$CHANGELOG_DIFF"
             exit 1
           fi
           echo "No changelog entries with trailing periods found ✅"
