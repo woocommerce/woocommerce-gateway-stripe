@@ -4,7 +4,7 @@ xxxx-xx-xx - version 11.1.0
 * Dev - Add E2E coverage for express checkout with free trial subscriptions, with and without shipping, including completing the purchase with Link
 * Fix - Prevent dropped webhooks, double processing, and skipped pre-order handling when requests race for the order payment lock
 * Fix - Stop two requests from reclaiming the same expired Optimized Checkout or Agentic Commerce sync lock
-* Fix - Show coupon discounts as negative line items in Apple Pay and Google Pay on classic checkout
+* Fix - Show coupon discounts as negative line items in Apple Pay and Google Pay on classic cart and checkout pages
 
 2026-09-08 - version 11.0.0
 * Fix - Allow express checkout payments when a wallet provides a one-word shipping name
