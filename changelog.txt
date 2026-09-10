@@ -6,6 +6,7 @@ xxxx-xx-xx - version 11.1.0
 * Fix - Prevent dropped webhooks, double processing, and skipped pre-order handling when requests race for the order payment lock
 * Fix - Stop two requests from reclaiming the same expired Optimized Checkout or Agentic Commerce sync lock
 * Fix - Open testing and payment settings documentation links in new tabs
+* Fix - Prevent express checkout wallets from failing when rounded display items exceed the cart total
 
 2026-09-08 - version 11.0.0
 * Fix - Allow express checkout payments when a wallet provides a one-word shipping name
@@ -38,7 +39,6 @@ xxxx-xx-xx - version 11.1.0
 * Fix - Stop sending Level 3 data when paying with a non-card payment method through express checkout (e.g. Amazon Pay), which Stripe rejects and can disable Level 3 data for card payments
 * Fix - Record the charge-captured state for asynchronously confirmed payments (e.g. ACH) so refunds from wp-admin and the Stripe Dashboard behave correctly
 * Fix - Reject negative refund amounts with an explicit error instead of silently refunding the absolute value
-* Fix - Prevent express checkout wallets from failing when rounded display items exceed the cart total
 * Fix - Refresh account details re-evaluates Payment Method Configuration availability so a disabled pmc_enabled flag recovers automatically
 * Fix - Complete 3DS card payments on Optimized Checkout when the Stripe Payment Method Configuration also has wallet or voucher methods active
 * Fix - Clear the shopper's cart after a redirect payment method (e.g. Amazon Pay on mobile) completes in a different browser context, preventing duplicate orders
