@@ -185,6 +185,13 @@ class WC_Stripe_Finance_Data_Provider implements FinanceDataProviderInterface, B
 		$last_id    = null;
 		$gateway_id = $this->get_payment_gateway_id();
 
+		$account_id   = null;
+		$is_test_mode = WC_Stripe_Mode::is_test();
+		$account_data = WC_Stripe::get_instance()->account->get_cached_account_data( $is_test_mode ? 'test' : 'live' );
+		if ( ! empty( $account_data['id'] ) ) {
+			$account_id = $account_data['id'];
+		}
+
 		foreach ( $stripe_payouts->data as $stripe_payout ) {
 			if ( null === $first_id ) {
 				$first_id = $stripe_payout->id;
@@ -210,10 +217,19 @@ class WC_Stripe_Finance_Data_Provider implements FinanceDataProviderInterface, B
 			if ( ! empty( $stripe_payout->destination->bank_name ) ) {
 				$bank_account = $stripe_payout->destination->bank_name;
 				if ( ! empty( $stripe_payout->destination->last4 ) ) {
-					$bank_account .= ' ****' . $stripe_payout->destination->last4;
+					$bank_account .= ' ••••' . $stripe_payout->destination->last4;
 				}
 				$payout->set_bank_account( $bank_account );
 			}
+
+			if ( ! empty( $account_id ) ) {
+				$payout_link = new Link(
+					__( 'View in Stripe', 'woocommerce-gateway-stripe' ),
+					esc_url( 'https://dashboard.stripe.com/' . $account_id . '/' . ( $is_test_mode ? 'test/' : '' ) . 'payouts/' . $stripe_payout->id )
+				);
+				$payout->set_provider_link( $payout_link );
+			}
+
 			$payouts[] = $payout;
 		}
 
