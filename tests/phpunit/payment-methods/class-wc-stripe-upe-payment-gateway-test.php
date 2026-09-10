@@ -2835,20 +2835,28 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		};
 		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
 
-		$exception = null;
 		try {
-			$this->mock_gateway->process_payment( $order->get_id() );
+			$result = $this->mock_gateway->process_payment( $order->get_id() );
 		} catch ( WC_Stripe_Exception $e ) {
-			$exception = $e;
+			$this->fail( 'The retirement failure should be returned as a standard payment failure.' );
 		} finally {
 			remove_filter( 'pre_http_request', $pre_http_filter );
 		}
 
-		$this->assertInstanceOf( WC_Stripe_Exception::class, $exception );
-		$this->assertSame( WC_Stripe_Checkout_Session_Context::get_unavailable_message(), $exception->getLocalizedMessage() );
-		$this->assertSame( $session_id, WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( wc_get_order( $order->get_id() ) ) );
+		$this->assertSame( 'failure', $result['result'] );
+		$this->assert_checkout_session_failure_notice(
+			sprintf(
+				'There was an error processing the payment: %s',
+				WC_Stripe_Checkout_Session_Context::get_unavailable_message()
+			)
+		);
+
+		$processed_order = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::PENDING, $processed_order->get_status() );
+		$this->assertSame( $session_id, WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( $processed_order ) );
 		$this->assertIsArray( WC_Stripe_Checkout_Session_Context::get_context( $session_id ) );
 
+		wc_clear_notices();
 		WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
 		$_POST = [];
 	}

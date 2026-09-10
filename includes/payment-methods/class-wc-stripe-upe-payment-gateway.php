@@ -1601,7 +1601,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		if ( $this->is_using_saved_payment_method() && $order instanceof WC_Order ) {
-			$this->retire_checkout_session_for_saved_payment( $order );
+			try {
+				$this->retire_checkout_session_for_saved_payment( $order );
+			} catch ( WC_Stripe_Exception $e ) {
+				// Keep the order pending so the existing Session can still reconcile if retirement failed.
+				return $this->handle_process_payment_error( $e, $order, false );
+			}
 		}
 
 		return $this->process_payment_with_deferred_intent( $order_id );
@@ -2031,10 +2036,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @param WC_Stripe_Exception $e    The exception that was thrown.
 	 * @param WC_Order            $order The order that was being processed.
+	 * @param bool                $mark_order_failed Whether to mark the order as failed.
 	 *
 	 * @return array
 	 */
-	private function handle_process_payment_error( WC_Stripe_Exception $e, $order ) {
+	private function handle_process_payment_error( WC_Stripe_Exception $e, $order, bool $mark_order_failed = true ) {
 		$error_message = sprintf(
 			/* translators: localized exception message */
 			__( 'There was an error processing the payment: %s', 'woocommerce-gateway-stripe' ),
@@ -2057,11 +2063,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		 */
 		do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
-		$order->update_status(
-			OrderStatus::FAILED,
-			/* translators: localized exception message */
-			sprintf( __( 'Payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getLocalizedMessage() )
-		);
+		if ( $mark_order_failed ) {
+			$order->update_status(
+				OrderStatus::FAILED,
+				/* translators: localized exception message */
+				sprintf( __( 'Payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getLocalizedMessage() )
+			);
+		}
 
 		return [
 			'result'   => 'failure',
