@@ -44,6 +44,9 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		// Clear any outage state recorded during the test run.
 		delete_transient( WC_Stripe_API_Outage_Status::OUTAGE_TRANSIENT_KEY );
 
+		// Clear any level3 rejection state recorded during the test run.
+		delete_transient( 'wc_stripe_level3_not_allowed' );
+
 		WC_Stripe_Helper::delete_main_stripe_settings();
 		WC_Stripe_API::set_secret_key( null );
 
@@ -919,5 +922,91 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 			$caught->getLocalizedMessage()
 		);
 		$this->assertTrue( WC_Stripe_API_Outage_Status::is_in_outage() );
+	}
+
+	/**
+	 * A level3 rejection is cached account-wide (3-month transient) as before, EXCEPT when
+	 * the request itself declares only non-level3 payment method types — there the rejection
+	 * reflects that one request, and caching it would disable level3 for card payments too.
+	 * The payment must go through either way, via the retry without level3.
+	 *
+	 * @param string[]|null $request_types    The payment_method_types the request carries, or null for none.
+	 * @param string        $order_meta_type  The Stripe UPE payment type stored on the order, or '' for none.
+	 * @param bool          $expect_transient Whether the rejection should set the account-wide transient.
+	 * @dataProvider provide_test_request_with_level3_data_rejection_transient
+	 */
+	public function test_request_with_level3_data_skips_rejection_caching_for_non_level3_requests( $request_types, $order_meta_type, $expect_transient ) {
+		// The level3 gate only applies to US-based stores.
+		update_option( 'woocommerce_default_country', 'US:CA' );
+		delete_transient( 'wc_stripe_level3_not_allowed' );
+
+		$order = WC_Helper_Order::create_order();
+		if ( '' !== $order_meta_type ) {
+			WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_payment_type( $order, $order_meta_type );
+			$order->save_meta_data();
+		}
+
+		$request = [ 'amount' => 100 ];
+		if ( null !== $request_types ) {
+			$request['payment_method_types'] = $request_types;
+		}
+
+		$bodies_seen = [];
+		$mock        = function ( $preempt, $parsed_args ) use ( &$bodies_seen ) {
+			$bodies_seen[] = $parsed_args['body'];
+
+			$body = isset( $parsed_args['body']['level3'] )
+				? '{"error":{"code":"parameter_unknown","param":"level3","type":"invalid_request_error","message":"Received unknown parameter: level3"}}'
+				: '{"id":"pi_mock"}';
+
+			return [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => $body,
+			];
+		};
+		add_filter( 'pre_http_request', $mock, 10, 2 );
+
+		$result = WC_Stripe_API::request_with_level3_data( $request, 'payment_intents', [ 'merchant_reference' => (string) $order->get_id() ], $order );
+
+		remove_filter( 'pre_http_request', $mock, 10 );
+
+		// The rejection must always trigger a retry without level3 so the payment goes through.
+		$this->assertCount( 2, $bodies_seen );
+		$this->assertArrayHasKey( 'level3', $bodies_seen[0] );
+		$this->assertArrayNotHasKey( 'level3', $bodies_seen[1] );
+		$this->assertSame( 'pi_mock', $result->id );
+
+		$this->assertSame( $expect_transient, (bool) get_transient( 'wc_stripe_level3_not_allowed' ) );
+	}
+
+	/**
+	 * Provider for {@see test_request_with_level3_data_skips_rejection_caching_for_non_level3_requests()}.
+	 *
+	 * Only combinations where the meta gate attaches level3 (card or absent meta) can reach
+	 * the rejection.
+	 *
+	 * @return array
+	 */
+	public function provide_test_request_with_level3_data_rejection_transient() {
+		return [
+			'card request caches the rejection'          => [ [ WC_Stripe_Payment_Methods::CARD ], '', true ],
+			'mixed types with card cache the rejection'  => [ [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::KLARNA ], '', true ],
+			'card meta caches the rejection'             => [ null, WC_Stripe_Payment_Methods::CARD, true ],
+			// No declared types: ambiguous rejection keeps the pre-existing caching behavior.
+			'no declared types cache the rejection'      => [ null, '', true ],
+			'empty declared types cache the rejection'   => [ [], '', true ],
+			'card-present request caches the rejection'  => [ [ WC_Stripe_Payment_Methods::CARD_PRESENT ], '', true ],
+			// The fix: a mismatched flow that sent level3 for a request Stripe knows is
+			// non-card must not disable level3 account-wide.
+			'non-card request does not cache'            => [ [ WC_Stripe_Payment_Methods::SEPA_DEBIT ], '', false ],
+			'non-card request with card meta skips too'  => [ [ WC_Stripe_Payment_Methods::AMAZON_PAY ], WC_Stripe_Payment_Methods::CARD, false ],
+			// Filters run on the request before this point: unexpected non-string entries must
+			// not count as declared types, so the rejection stays ambiguous and caches.
+			'malformed types count as no declared types' => [ [ null, [ 'nested' ] ], '', true ],
+		];
 	}
 }
