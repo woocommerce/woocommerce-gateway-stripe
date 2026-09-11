@@ -6,6 +6,7 @@ xxxx-xx-xx - version 11.1.0
 * Fix - Prevent dropped webhooks, double processing, and skipped pre-order handling when requests race for the order payment lock
 * Fix - Stop two requests from reclaiming the same expired Optimized Checkout or Agentic Commerce sync lock
 * Fix - Open testing and payment settings documentation links in new tabs
+* Dev - Give each git worktree its own isolated local E2E Docker stack, derived by `worktree:setup` and covered by `worktree:status` and `worktree:cleanup`
 
 2026-09-08 - version 11.0.0
 * Fix - Allow express checkout payments when a wallet provides a one-word shipping name
