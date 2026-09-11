@@ -21,6 +21,9 @@ jest.mock( 'wcstripe/express-checkout/event-handler', () => ( {
 
 jest.mock( 'wcstripe/express-checkout/utils', () => ( {
 	displayExpressCheckoutNotice: jest.fn(),
+	formatExpressCheckoutNotice: jest.requireActual(
+		'wcstripe/express-checkout/utils'
+	).formatExpressCheckoutNotice,
 	getExpressCheckoutButtonStyleSettings: jest.fn( () => ( {
 		paymentMethods: {},
 	} ) ),
@@ -229,44 +232,57 @@ describe( 'useExpressCheckout', () => {
 	// An order-side failure still has to give the wallet sheet a terminal result,
 	// otherwise it stays open and the shopper is left with nothing. The third
 	// argument is the removed `isOrderError` opt-out: passing it must change nothing.
-	it( 'fails the payment on the wallet sheet when the order errors', async () => {
-		const setExpressPaymentError = jest.fn();
+	it.each( [
+		[ 'plain message', 'Order creation error', true ],
+		[
+			'checkout link',
+			'Required field.\nPlease go to the <a href="https://example.com/checkout/" onclick="alert(1)">checkout page</a>.',
+			{ preserveLinks: true },
+		],
+	] )(
+		'fails the payment and shows the %s when the order errors',
+		async ( _name, message, options ) => {
+			onConfirmHandler.mockClear();
+			const setExpressPaymentError = jest.fn();
 
-		const { result } = renderHook( () =>
-			useExpressCheckout( {
-				api: {},
-				billing: {
-					currency: { minorUnit: 2 },
-					cartTotal: { value: 7500 },
-					cartTotalItems: [],
-				},
-				shippingData: { needsShipping: false, shippingRates: [] },
-				onClick: jest.fn(),
-				onClose: jest.fn(),
-				setExpressPaymentError,
-			} )
-		);
+			const { result } = renderHook( () =>
+				useExpressCheckout( {
+					api: {},
+					billing: {
+						currency: { minorUnit: 2 },
+						cartTotal: { value: 7500 },
+						cartTotalItems: [],
+					},
+					shippingData: { needsShipping: false, shippingRates: [] },
+					onClick: jest.fn(),
+					onClose: jest.fn(),
+					setExpressPaymentError,
+				} )
+			);
 
-		const event = { paymentFailed: jest.fn() };
-		await act( async () => {
-			await result.current.onConfirm( event );
-		} );
+			const event = { paymentFailed: jest.fn() };
+			await act( async () => {
+				await result.current.onConfirm( event );
+			} );
 
-		const { abortPayment } = onConfirmHandler.mock.calls[ 0 ][ 0 ];
-		abortPayment( event, 'Order creation error', true );
+			const { abortPayment } = onConfirmHandler.mock.calls[ 0 ][ 0 ];
+			abortPayment( event, message, options );
 
-		expect( event.paymentFailed ).toHaveBeenCalledWith( {
-			reason: 'fail',
-		} );
-		expect( setExpressPaymentError ).toHaveBeenCalledWith(
-			'Order creation error'
-		);
+			expect( event.paymentFailed ).toHaveBeenCalledWith( {
+				reason: 'fail',
+			} );
+			expect( setExpressPaymentError ).toHaveBeenCalledWith(
+				options.preserveLinks
+					? 'Required field.<br>Please go to the <a href="https://example.com/checkout/">checkout page</a>.'
+					: message
+			);
 
-		// The message has to be in front of the shopper before the sheet closes.
-		expect(
-			setExpressPaymentError.mock.invocationCallOrder[ 0 ]
-		).toBeLessThan( event.paymentFailed.mock.invocationCallOrder[ 0 ] );
-	} );
+			// The message has to be in front of the shopper before the sheet closes.
+			expect(
+				setExpressPaymentError.mock.invocationCallOrder[ 0 ]
+			).toBeLessThan( event.paymentFailed.mock.invocationCallOrder[ 0 ] );
+		}
+	);
 
 	// Blocks passes fresh billing/shippingData refs each cart tick; memoised
 	// outputs must stay stable so the Stripe element doesn't churn.

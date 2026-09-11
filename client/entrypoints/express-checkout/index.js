@@ -872,10 +872,16 @@ jQuery( function ( $ ) {
 		 *
 		 * @param {PaymentResponse} payment Payment response instance.
 		 * @param {string}          message Error message to display.
+		 * @param {Object}          options Optional link formatting.
 		 */
-		abortPayment: ( payment, message ) => {
+		abortPayment: ( payment, message, options = {} ) => {
 			onAbortPaymentHandler( payment, message );
-			displayExpressCheckoutNotice( message, 'error' );
+			displayExpressCheckoutNotice(
+				message,
+				'error',
+				undefined,
+				options
+			);
 
 			// The wallet sheet only closes once the confirm event gets a terminal
 			// result, so order errors must fail it too. A late call rejects an

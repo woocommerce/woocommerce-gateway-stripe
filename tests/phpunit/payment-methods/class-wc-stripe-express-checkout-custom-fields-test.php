@@ -439,6 +439,11 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 		$order                 = WC_Helper_Order::create_order();
 		$custom_fields_support = $this->get_custom_fields_support();
 
+		$checkout_url_filter = static function () {
+			return 'https://example.com/store/custom-checkout/?one=1&two=2';
+		};
+		add_filter( 'woocommerce_get_checkout_url', $checkout_url_filter );
+
 		$original_logger   = WC_Stripe_Logger::$logger;
 		$original_settings = WC_Stripe_Helper::get_stripe_settings();
 		WC_Stripe_Helper::update_main_stripe_settings( array_merge( $original_settings, [ 'logging' => 'no' ] ) );
@@ -490,11 +495,12 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 				}
 			}
 			if ( $expects_checkout_page_guidance ) {
-				$this->assertStringContainsString( 'go to the checkout page', $message );
+				$this->assertStringContainsString( 'go to the <a href="' . esc_url( wc_get_checkout_url() ) . '">checkout page</a>', $message );
 			} else {
-				$this->assertStringNotContainsString( 'go to the checkout page', $message );
+				$this->assertStringNotContainsString( '<a ', $message );
 			}
 		} finally {
+			remove_filter( 'woocommerce_get_checkout_url', $checkout_url_filter );
 			if ( null !== $logging_filter ) {
 				remove_filter( 'wc_stripe_express_checkout_log_missing_required_fields', $logging_filter );
 			}

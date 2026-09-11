@@ -4,6 +4,7 @@
 import { screen, render } from '@testing-library/react';
 import {
 	displayExpressCheckoutNotice,
+	formatExpressCheckoutNotice,
 	getErrorMessageFromNotice,
 	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
@@ -62,6 +63,7 @@ describe( 'Express checkout utils', () => {
 	describe( 'displayExpressCheckoutNotice', () => {
 		afterEach( () => {
 			document.getElementsByTagName( 'body' )[ 0 ].innerHTML = '';
+			window.wc_stripe_express_checkout_params = {};
 		} );
 
 		const additionalClasses = [ 'class-2', 'class-3' ];
@@ -70,6 +72,35 @@ describe( 'Express checkout utils', () => {
 			wrapper.classList.add( 'woocommerce-notices-wrapper' );
 			document.body.appendChild( wrapper );
 		};
+
+		test.each( [ false, true ] )(
+			'renders a checkout link with block layout %s',
+			( hasBlock ) => {
+				window.wc_stripe_express_checkout_params = {
+					has_block: hasBlock,
+				};
+				document.body.innerHTML =
+					'<div class="woocommerce-notices-wrapper wc-block-components-main"></div>';
+				displayExpressCheckoutNotice(
+					'Custom reference is required.\nPlease go to the <a href="https://example.com/store/checkout/">checkout page</a>, fill in the required fields, and complete your order from there.',
+					'error',
+					undefined,
+					{ preserveLinks: true }
+				);
+				expect(
+					screen.getByRole( 'link', { name: 'checkout page' } )
+				).toHaveAttribute(
+					'href',
+					'https://example.com/store/checkout/'
+				);
+				expect( screen.getByRole( 'note' ) ).toHaveTextContent(
+					'Custom reference is required.'
+				);
+				expect( screen.getByRole( 'note' ) ).toHaveTextContent(
+					'complete your order from there.'
+				);
+			}
+		);
 
 		test( 'with info', async () => {
 			function App() {
@@ -116,6 +147,38 @@ describe( 'Express checkout utils', () => {
 			displayExpressCheckoutNotice( 'Test message', 'error' );
 
 			expect( screen.queryByRole( 'note' ) ).not.toBeInTheDocument();
+		} );
+	} );
+
+	describe( 'formatExpressCheckoutNotice', () => {
+		test( 'escapes links unless explicitly enabled', () => {
+			expect(
+				formatExpressCheckoutNotice(
+					'<a href="https://example.com/checkout/">checkout</a>'
+				)
+			).toBe(
+				'&lt;a href="https://example.com/checkout/"&gt;checkout&lt;/a&gt;'
+			);
+		} );
+
+		test( 'preserves only safe links and text', () => {
+			const message =
+				'<strong>Required field</strong>\n<a href="https://example.com/checkout/?one=1&amp;two=2" onclick="alert(1)"><em>checkout page</em></a><img src=x onerror="alert(1)"><a href="javascript:alert(1)">unsafe</a><script>alert(1)</script>';
+			const container = document.createElement( 'div' );
+			container.innerHTML = formatExpressCheckoutNotice( message, true );
+			expect( container.querySelectorAll( 'a' ) ).toHaveLength( 1 );
+			expect( container.querySelector( 'a' ).outerHTML ).toBe(
+				'<a href="https://example.com/checkout/?one=1&amp;two=2">checkout page</a>'
+			);
+			expect(
+				container.querySelector(
+					'img, script, strong, em, [onclick], [onerror]'
+				)
+			).toBeNull();
+			expect( container.textContent ).toBe(
+				'Required fieldcheckout pageunsafealert(1)'
+			);
+			expect( container.querySelector( 'br' ) ).not.toBeNull();
 		} );
 	} );
 

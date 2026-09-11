@@ -10,6 +10,7 @@ import {
 } from 'wcstripe/express-checkout/event-handler';
 import {
 	displayExpressCheckoutNotice,
+	formatExpressCheckoutNotice,
 	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
 	normalizeLineItems,
@@ -55,9 +56,12 @@ export const useExpressCheckout = ( {
 	}, [] );
 
 	const abortPayment = useCallback(
-		( onConfirmEvent, message ) => {
+		( onConfirmEvent, message, options = {} ) => {
 			// If we have a multiline message using newlines, replace them with <br>.
-			const formattedMessage = message.replace( /\n/g, '<br>' );
+			const formattedMessage =
+				options?.preserveLinks === true
+					? formatExpressCheckoutNotice( message, true )
+					: message.replace( /\n/g, '<br>' );
 			setExpressPaymentError( formattedMessage );
 
 			onAbortPaymentHandler( onConfirmEvent, message );

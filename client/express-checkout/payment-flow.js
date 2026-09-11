@@ -34,6 +34,18 @@ const handlePaymentFlowException = ( event, exception, abortPayment ) => {
 		}
 	}
 
+	if (
+		exception.code === 'wc_stripe_express_checkout_missing_required_fields'
+	) {
+		return abortPayment(
+			event,
+			getExpressCheckoutErrorMessage( errorMessage ),
+			{
+				preserveLinks: true,
+			}
+		);
+	}
+
 	return abortPayment(
 		event,
 		getExpressCheckoutErrorMessage(
