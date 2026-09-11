@@ -3,9 +3,7 @@
 set -e
 . ./tests/e2e/bin/common.sh
 
-if [[ -f "$E2E_ROOT/config/local.env" ]]; then
-	. "$E2E_ROOT/config/local.env"
-fi
+load_e2e_local_env
 
 # If --base_url argument is present use the remote server setup.
 if [[ "$*" == *"--base_url"* ]]; then
@@ -52,6 +50,7 @@ if [[ "adaptive-pricing" == "$project" ]]; then
 	# Cookie-gated mu-plugin that simulates the shopper's country for
 	# conversion tests (Stripe's "+location_XX" customer_email test hook).
 	cli sh -c "mkdir -p /var/www/html/wp-content/mu-plugins && cp /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/env/mu-plugins/wc-stripe-e2e-location-simulation.php /var/www/html/wp-content/mu-plugins/"
+	cli cp /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/env/mu-plugins/wc-stripe-e2e-checkout-fields.php /var/www/html/wp-content/mu-plugins/
 fi
 
 cross-env $TEST_ENV playwright test --config=tests/e2e/config/playwright.config.js $TEST_ARGS ${project:+--project=$project}
