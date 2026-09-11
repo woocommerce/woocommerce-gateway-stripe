@@ -30,6 +30,7 @@ const getMockPaymentRequestEnabledSettings = (
 
 describe( 'PaymentRequestSection', () => {
 	const globalValues = global.wc_stripe_settings_params;
+	const globalSettings = global.wcSettings;
 
 	beforeEach( () => {
 		useExpressCheckoutEnabledSettings.mockReturnValue(
@@ -52,11 +53,16 @@ describe( 'PaymentRequestSection', () => {
 			taxes_based_on_billing: false,
 			is_card_method_enabled: true,
 		};
+		global.wcSettings = {
+			...globalSettings,
+			currency: { code: 'USD' },
+		};
 	} );
 
 	afterEach( () => {
 		jest.clearAllMocks();
 		global.wc_stripe_settings_params = globalValues;
+		global.wcSettings = globalSettings;
 	} );
 
 	it( 'renders settings with defaults', () => {
@@ -144,6 +150,20 @@ describe( 'PaymentRequestSection', () => {
 			name: /Amazon Pay Input/i,
 		} );
 		expect( amazonPayCheckbox ).toBeDisabled();
+	} );
+
+	it( 'Amazon Pay checkbox enabled when the base currency is unsupported', () => {
+		global.wcSettings = {
+			...globalSettings,
+			currency: { code: 'CHF' },
+		};
+
+		const container = render( <PaymentRequestSection /> );
+		const amazonPayCheckbox = container.getByRole( 'checkbox', {
+			name: /Amazon Pay Input/i,
+		} );
+		expect( amazonPayCheckbox ).toBeEnabled();
+		expect( screen.getByText( 'Requires currency' ) ).toBeVisible();
 	} );
 
 	it( 'Apple Pay / Google Pay checkbox disabled', () => {

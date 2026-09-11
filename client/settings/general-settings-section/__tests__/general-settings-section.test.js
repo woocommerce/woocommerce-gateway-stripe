@@ -358,7 +358,7 @@ describe( 'GeneralSettingsSection', () => {
 		).not.toBeInTheDocument();
 	} );
 
-	it( 'should disable the payment method checkbox and show the requires currency notice when currency is not supported', () => {
+	it( 'should enable the payment method checkbox and show the requires currency notice when currency is not supported', () => {
 		useEnabledPaymentMethodIds.mockReturnValue( [
 			[ PAYMENT_METHOD_CARD ],
 		] );
@@ -395,7 +395,7 @@ describe( 'GeneralSettingsSection', () => {
 			screen.queryByRole( 'checkbox', {
 				name: 'Alipay',
 			} )
-		).toBeDisabled();
+		).toBeEnabled();
 
 		expect( screen.queryByText( 'Requires currency' ) ).toBeVisible();
 	} );
@@ -462,7 +462,7 @@ describe( 'GeneralSettingsSection', () => {
 		} );
 
 		expect( cardElement ).toBeEnabled();
-		expect( alipayElement ).not.toBeEnabled();
+		expect( alipayElement ).toBeEnabled();
 		expect( affirmElement ).not.toBeEnabled();
 		expect( sepaElement ).toBeEnabled();
 

@@ -103,6 +103,8 @@ const PaymentRequestSection = () => {
 
 	const isAmazonPayDisabled =
 		amazonPayUnavailableReason !== null &&
+		amazonPayUnavailableReason !==
+			PAYMENT_METHOD_UNAVAILABLE_REASONS.UNSUPPORTED_CURRENCY &&
 		! enabledMethodIds.includes( PAYMENT_METHOD_AMAZON_PAY );
 
 	const isApplePayGooglePayDisabled =
