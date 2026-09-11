@@ -4,6 +4,7 @@ import {
 	getDefaultValues,
 	getBillingDetailsForDeferredFlow,
 	getHiddenBillingFields,
+	getUserDataForCheckoutSession,
 	getStripeServerData,
 	showErrorCheckout,
 	getExcludedPaymentMethodTypesForBillingCountry,
@@ -76,8 +77,7 @@ describe( 'utils', () => {
 			};
 
 			// Mock document.getElementById for fallback behavior
-			mockGetElementById = jest.fn();
-			document.getElementById = mockGetElementById;
+			mockGetElementById = jest.spyOn( document, 'getElementById' );
 		} );
 
 		afterEach( () => {
@@ -728,6 +728,54 @@ describe( 'utils', () => {
 			expect( getHiddenBillingFields( [ 'billing_phone' ] ).phone ).toBe(
 				'auto'
 			);
+		} );
+	} );
+
+	describe( 'getUserDataForCheckoutSession', () => {
+		const globalValues = global.wc_stripe_upe_params;
+
+		beforeEach( () => {
+			global.wc_stripe_upe_params = {
+				isPayerPhoneRequired: false,
+			};
+		} );
+
+		afterEach( () => {
+			global.wc_stripe_upe_params = globalValues;
+			document.body.innerHTML = '';
+		} );
+
+		it( 'omits the billing address when the billing country is missing', () => {
+			document.body.innerHTML = `
+				<input id="billing_first_name" value="Jane" />
+				<input id="billing_last_name" value="Doe" />
+				<input id="billing_email" value="jane@example.com" />
+			`;
+
+			const result = getUserDataForCheckoutSession();
+
+			expect( result ).not.toHaveProperty( 'billingAddress' );
+			expect( result.email ).toBe( 'jane@example.com' );
+		} );
+
+		it( 'includes the billing address when the billing country is present', () => {
+			document.body.innerHTML = `
+				<input id="billing_first_name" value="Jane" />
+				<input id="billing_last_name" value="Doe" />
+				<input id="billing_country" value="uy" />
+			`;
+
+			expect( getUserDataForCheckoutSession().billingAddress ).toEqual( {
+				name: 'Jane Doe',
+				address: {
+					country: 'UY',
+					line1: undefined,
+					line2: undefined,
+					state: undefined,
+					city: undefined,
+					postal_code: undefined,
+				},
+			} );
 		} );
 	} );
 
