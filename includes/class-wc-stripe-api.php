@@ -113,6 +113,27 @@ class WC_Stripe_API {
 	}
 
 	/**
+	 * Maps request rate-limit state to the mode of the active secret key.
+	 *
+	 * @return string|null The matching mode, or null when the key is not configured for either mode.
+	 */
+	private static function get_mode_for_active_secret_key(): ?string {
+		$options      = WC_Stripe_Helper::get_stripe_settings();
+		$secret_key   = self::get_secret_key();
+		$current_mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
+		$current_key  = 'test' === $current_mode ? ( $options['test_secret_key'] ?? '' ) : ( $options['secret_key'] ?? '' );
+
+		if ( $secret_key === $current_key ) {
+			return $current_mode;
+		}
+
+		$other_mode = 'test' === $current_mode ? 'live' : 'test';
+		$other_key  = 'test' === $other_mode ? ( $options['test_secret_key'] ?? '' ) : ( $options['secret_key'] ?? '' );
+
+		return $secret_key === $other_key ? $other_mode : null;
+	}
+
+	/**
 	 * Generates the user agent we use to pass to API request so
 	 * Stripe can identify our application.
 	 *
@@ -151,6 +172,13 @@ class WC_Stripe_API {
 			'Stripe-Version' => self::STRIPE_API_VERSION,
 		];
 
+		/**
+		 * Filters the request headers sent to the Stripe API. Deprecated in favor of wc_stripe_request_headers.
+		 *
+		 * @deprecated 9.7.0
+		 *
+		 * @param array $headers The headers to send to the Stripe API.
+		 */
 		$headers = apply_filters_deprecated(
 			'woocommerce_stripe_request_headers',
 			[ $headers ],
@@ -224,6 +252,14 @@ class WC_Stripe_API {
 			$headers['Idempotency-Key'] = $idempotency_key;
 		}
 
+		/**
+		 * Filters the request body sent to the Stripe API. Deprecated in favor of wc_stripe_request_body.
+		 *
+		 * @deprecated 9.7.0
+		 *
+		 * @param array $request The request body to send to the Stripe API.
+		 * @param string $api The Stripe API endpoint.
+		 */
 		$request = apply_filters_deprecated(
 			'woocommerce_stripe_request_body',
 			[ $request, $api ],
@@ -329,7 +365,8 @@ class WC_Stripe_API {
 	public static function retrieve( $api ) {
 		// If keep count of consecutive 401 errors, and it exceeds INVALID_API_KEY_ERROR_COUNT_THRESHOLD,
 		// we return null until the cache expires (INVALID_API_KEY_ERROR_COUNT_CACHE_TIMEOUT) or the keys are updated.
-		$invalid_api_key_error_count = WC_Stripe_Database_Cache::get( self::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
+		$mode                        = self::get_mode_for_active_secret_key();
+		$invalid_api_key_error_count = WC_Stripe_Database_Cache::get_with_mode( self::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY, $mode );
 		if ( ! empty( $invalid_api_key_error_count ) && self::INVALID_API_KEY_ERROR_COUNT_THRESHOLD <= $invalid_api_key_error_count ) {
 			// We skip logging the error here because when there is no Account cache,
 			// the instantiation of the UPE gateway triggers a call to this method for
@@ -388,7 +425,7 @@ class WC_Stripe_API {
 			);
 
 			++$invalid_api_key_error_count;
-			WC_Stripe_Database_Cache::set( self::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY, $invalid_api_key_error_count, self::INVALID_API_KEY_ERROR_COUNT_CACHE_TIMEOUT );
+			WC_Stripe_Database_Cache::set_with_mode( self::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY, $invalid_api_key_error_count, self::INVALID_API_KEY_ERROR_COUNT_CACHE_TIMEOUT, $mode );
 
 			if ( $invalid_api_key_error_count >= self::INVALID_API_KEY_ERROR_COUNT_THRESHOLD ) {
 				WC_Stripe_Logger::error(
@@ -401,7 +438,7 @@ class WC_Stripe_API {
 				);
 
 				// We need to invalidate the Account Data cache here, so that the UI shows the "Connect to Stripe" button.
-				WC_Stripe_Database_Cache::delete( WC_Stripe_Account::ACCOUNT_CACHE_KEY );
+				WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $mode );
 			}
 
 			return null; // The UI expects this empty response in case of invalid API keys.
@@ -410,7 +447,7 @@ class WC_Stripe_API {
 
 		// We got a valid, non-401 response, so clear the invalid API key count if it is present.
 		if ( null !== $invalid_api_key_error_count ) {
-			WC_Stripe_Database_Cache::delete( self::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
+			WC_Stripe_Database_Cache::delete_with_mode( self::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY, $mode );
 		}
 
 		$response_body_raw = wp_remote_retrieve_body( $response );
@@ -507,9 +544,14 @@ class WC_Stripe_API {
 		);
 
 		if ( $is_level3_param_not_allowed ) {
-			// Set a transient so that future requests do not add level 3 data.
-			// Transient is set to expire in 3 months, can be manually removed if needed.
-			set_transient( 'wc_stripe_level3_not_allowed', true, 3 * MONTH_IN_SECONDS );
+			// When the request itself declares only non-level3 payment method types, the
+			// rejection reflects this one request, not the account's level3 gating — caching
+			// it would disable level3 for legitimate card payments account-wide.
+			if ( ! self::declares_only_non_level3_payment_method_types( $request ) ) {
+				// Set a transient so that future requests do not add level 3 data.
+				// Transient is set to expire in 3 months, can be manually removed if needed.
+				set_transient( 'wc_stripe_level3_not_allowed', true, 3 * MONTH_IN_SECONDS );
+			}
 		} elseif ( $is_level_3data_incorrect ) {
 			// Log the issue so we could debug it.
 			WC_Stripe_Logger::error(
@@ -536,6 +578,47 @@ class WC_Stripe_API {
 	}
 
 	/**
+	 * Determines whether the request positively declares only payment method types that do
+	 * not support Level 3 data.
+	 *
+	 * A request that declares no types (e.g. capture or confirm calls) returns false: its
+	 * rejection is ambiguous and keeps the pre-existing caching behavior.
+	 *
+	 * @param array $request The request parameters.
+	 *
+	 * @return bool Whether every declared type is a non-level3 type.
+	 */
+	private static function declares_only_non_level3_payment_method_types( $request ) {
+		$payment_method_types = self::get_request_payment_method_types( $request );
+
+		return [] !== $payment_method_types
+			&& [] === array_intersect( $payment_method_types, WC_Stripe_Payment_Methods::LEVEL3_SUPPORTED_PAYMENT_METHODS );
+	}
+
+	/**
+	 * Extracts the payment method types the request itself declares, if any.
+	 *
+	 * @param array $request The request parameters.
+	 *
+	 * @return string[] The declared payment method types, or an empty array when the request
+	 *                  carries none (e.g. capture or confirm calls).
+	 */
+	private static function get_request_payment_method_types( $request ) {
+		if ( ! isset( $request['payment_method_types'] ) || ! is_array( $request['payment_method_types'] ) ) {
+			return [];
+		}
+
+		// The request passes through public filters before this point, so drop non-string
+		// entries: a fully malformed list then counts as declaring no types.
+		return array_filter(
+			$request['payment_method_types'],
+			static function ( $type ) {
+				return is_string( $type ) && '' !== $type;
+			}
+		);
+	}
+
+	/**
 	 * Returns a payment method object from Stripe given an ID. Accepts both 'src_xxx' and 'pm_xxx'
 	 * style IDs for backwards compatibility.
 	 *
@@ -544,6 +627,9 @@ class WC_Stripe_API {
 	 * @return stdClass  The payment method object.
 	 */
 	public static function get_payment_method( string $payment_method_id ) {
+		// Encode as a single path segment so a crafted ID can't smuggle path syntax (no-op for valid IDs).
+		$payment_method_id = rawurlencode( $payment_method_id );
+
 		// Sources have a separate API.
 		if ( 0 === strpos( $payment_method_id, 'src_' ) ) {
 			return self::retrieve( 'sources/' . $payment_method_id );
@@ -566,7 +652,7 @@ class WC_Stripe_API {
 	public static function update_payment_method( $payment_method_id, $payment_method_data = [] ) {
 		return self::request(
 			$payment_method_data,
-			'payment_methods/' . $payment_method_id
+			'payment_methods/' . rawurlencode( $payment_method_id )
 		);
 	}
 
@@ -588,9 +674,10 @@ class WC_Stripe_API {
 			);
 		}
 
+		// Encode as a single path segment so a crafted ID can't smuggle path syntax (no-op for valid IDs).
 		return self::request(
 			[ 'customer' => $customer_id ],
-			'payment_methods/' . $payment_method_id . '/attach'
+			'payment_methods/' . rawurlencode( $payment_method_id ) . '/attach'
 		);
 	}
 
@@ -610,18 +697,21 @@ class WC_Stripe_API {
 
 		$payment_method_id = sanitize_text_field( $payment_method_id );
 
+		// Encode as a single path segment so a crafted ID can't smuggle path syntax (no-op for valid IDs).
+		$encoded_payment_method_id = rawurlencode( $payment_method_id );
+
 		// Sources and Payment Methods need different API calls.
 		if ( 0 === strpos( $payment_method_id, 'src_' ) ) {
 			return self::request(
 				[],
-				'customers/' . $customer_id . '/sources/' . $payment_method_id,
+				'customers/' . $customer_id . '/sources/' . $encoded_payment_method_id,
 				'DELETE'
 			);
 		}
 
 		return self::request(
 			[],
-			'payment_methods/' . $payment_method_id . '/detach'
+			'payment_methods/' . $encoded_payment_method_id . '/detach'
 		);
 	}
 

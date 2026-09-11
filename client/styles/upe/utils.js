@@ -134,6 +134,12 @@ const STRIPE_PADDING_TOP = '4px';
 const STRIPE_PADDING_OFFSET = '1px';
 const STRIPE_FLOATING_LABEL_MARGIN_TOP = '3px';
 
+// Computed styles resolve to px; anything else means the value didn't resolve.
+const parsePx = ( value ) =>
+	typeof value === 'string' && value.endsWith( 'px' )
+		? parseFloat( value )
+		: NaN;
+
 /**
  * Modifies the appearance object to include styles for floating label.
  * Adjusts input padding to prevent fields from growing taller when labels
@@ -150,7 +156,10 @@ export const handleAppearanceForFloatingLabel = (
 	// Add floating label styles.
 	appearance.rules[ '.Label--floating' ] = floatingLabelStyles;
 
-	// Update line-height for floating label to account for scaling.
+	// Update line-height for floating label to account for scaling. Cleared
+	// when the label's rendered size can't be determined, so the padding
+	// logic below stands down instead of compensating with a wrong value.
+	let compensationPossible = true;
 	if (
 		appearance.rules[ '.Label--floating' ].transform &&
 		appearance.rules[ '.Label--floating' ].transform !== 'none'
@@ -162,50 +171,64 @@ export const handleAppearanceForFloatingLabel = (
 			const splitMatrixValues = matrixValues[ 1 ].split( /\s*,\s*/ );
 			const scaleX = parseFloat( splitMatrixValues[ 0 ] );
 			const scaleY = parseFloat( splitMatrixValues[ 3 ] );
-			if ( ! Number.isFinite( scaleX ) || ! Number.isFinite( scaleY ) ) {
-				delete appearance.rules[ '.Label--floating' ].transform;
-				return appearance;
-			}
-			const scale = ( scaleX + scaleY ) / 2;
-
-			const lineHeight = parseFloat(
+			const lineHeight = parsePx(
 				appearance.rules[ '.Label--floating' ].lineHeight
 			);
-			if ( isNaN( lineHeight ) ) {
-				delete appearance.rules[ '.Label--floating' ].transform;
-				return appearance;
+			if (
+				! Number.isFinite( scaleX ) ||
+				! Number.isFinite( scaleY ) ||
+				isNaN( lineHeight )
+			) {
+				compensationPossible = false;
+			} else {
+				const scale = ( scaleX + scaleY ) / 2;
+				const newLineHeight = Math.floor( lineHeight * scale );
+				appearance.rules[
+					'.Label--floating'
+				].lineHeight = `${ newLineHeight }px`;
+				appearance.rules[
+					'.Label--floating'
+				].fontSize = `${ newLineHeight }px`;
 			}
-			const newLineHeight = Math.floor( lineHeight * scale );
-			appearance.rules[
-				'.Label--floating'
-			].lineHeight = `${ newLineHeight }px`;
-			appearance.rules[
-				'.Label--floating'
-			].fontSize = `${ newLineHeight }px`;
+		} else {
+			// A transform we can't read — e.g. matrix3d() — may scale the
+			// label, so its rendered size is unknown.
+			compensationPossible = false;
 		}
 		delete appearance.rules[ '.Label--floating' ].transform;
 	}
 
-	// Subtract the label's lineHeight from padding-top to account for floating label height.
-	// Minus STRIPE_PADDING_TOP which is a constant value added by Stripe to the padding-top.
-	// Minus STRIPE_PADDING_OFFSET for each vertical padding to account for unpredictable input height.
-	if ( appearance.rules[ '.Input' ].paddingTop ) {
-		appearance.rules[
-			'.Input'
-		].paddingTop = `calc(${ appearance.rules[ '.Input' ].paddingTop } - ${ appearance.rules[ '.Label--floating' ].lineHeight } - ${ STRIPE_PADDING_TOP } - ${ STRIPE_PADDING_OFFSET })`;
-	}
-	if ( appearance.rules[ '.Input' ].paddingBottom ) {
-		const paddingOffset = parseFloat( STRIPE_PADDING_OFFSET );
-		const originalPaddingBottom = parseFloat(
-			appearance.rules[ '.Input' ].paddingBottom
-		);
-		appearance.rules[ '.Input' ].paddingBottom = `${
-			originalPaddingBottom - paddingOffset
-		}px`;
+	// Reserve room for the floating label without letting the field grow taller.
+	const paddingTop = parsePx( appearance.rules[ '.Input' ].paddingTop );
+	const paddingBottom = parsePx( appearance.rules[ '.Input' ].paddingBottom );
+	const floatingLabelLineHeight = parsePx(
+		appearance.rules[ '.Label--floating' ].lineHeight
+	);
 
-		appearance.rules[ '.Label' ].marginTop = `${ Math.floor(
-			( originalPaddingBottom - paddingOffset ) / 3
-		) }px`;
+	if (
+		compensationPossible &&
+		Number.isFinite( paddingTop ) &&
+		Number.isFinite( paddingBottom ) &&
+		Number.isFinite( floatingLabelLineHeight )
+	) {
+		// Split the padding evenly: content stays centered, field height unchanged.
+		// Clamp at zero — negative padding is invalid CSS.
+		const reservedForLabel =
+			floatingLabelLineHeight +
+			parseFloat( STRIPE_PADDING_TOP ) +
+			parseFloat( STRIPE_PADDING_OFFSET ) * 2;
+		const balancedPadding = Math.max(
+			0,
+			( paddingTop + paddingBottom - reservedForLabel ) / 2
+		);
+
+		appearance.rules[ '.Input' ].paddingTop = `${ balancedPadding }px`;
+		appearance.rules[ '.Input' ].paddingBottom = `${ balancedPadding }px`;
+	} else {
+		// A value didn't resolve to a number, so the compensation can't be
+		// computed. Remove both overrides and let Stripe's defaults apply.
+		delete appearance.rules[ '.Input' ].paddingTop;
+		delete appearance.rules[ '.Input' ].paddingBottom;
 	}
 
 	// Add top margin so the floating label doesn't sit flush against the input border.

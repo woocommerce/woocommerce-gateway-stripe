@@ -6,6 +6,7 @@ import { isEmpty } from 'lodash';
 import SettingsLayout from '../settings-layout';
 import PaymentSettingsPanel from '../payment-settings';
 import PaymentMethodsPanel from '../payment-methods';
+import AgenticCommerceSection from '../agentic-commerce';
 import SaveSettingsSection from '../save-settings-section';
 import { useEnabledPaymentMethodIds, useSettings } from '../../data';
 import { TabPanel } from '@wordpress/components';
@@ -25,7 +26,7 @@ const StyledTabPanel = styled( TabPanel )`
 	}
 `;
 
-const TABS = [
+const getTabs = ( isAgenticCommerceEnabled ) => [
 	{
 		name: 'methods',
 		title: __( 'Payment Methods', 'woocommerce-gateway-stripe' ),
@@ -34,6 +35,17 @@ const TABS = [
 		name: 'settings',
 		title: __( 'Settings', 'woocommerce-gateway-stripe' ),
 	},
+	...( isAgenticCommerceEnabled
+		? [
+				{
+					name: 'agentic-commerce',
+					title: __(
+						'Agentic Commerce',
+						'woocommerce-gateway-stripe'
+					),
+				},
+		  ]
+		: [] ),
 ];
 
 const SettingsManager = () => {
@@ -96,12 +108,12 @@ const SettingsManager = () => {
 		updateQueryString( { panel: tabName }, '/', getQuery() );
 	};
 
-	const getInitialTab = () => {
-		if ( panel === 'settings' ) {
-			return 'settings';
-		}
+	const tabs = getTabs( isAgenticCommerceEnabled );
 
-		return 'methods';
+	const getInitialTab = () => {
+		const requestedTab = tabs.find( ( { name } ) => name === panel );
+
+		return requestedTab ? requestedTab.name : 'methods';
 	};
 
 	return (
@@ -119,7 +131,7 @@ const SettingsManager = () => {
 			<StyledTabPanel
 				className="wc-stripe-account-settings-panel"
 				initialTabName={ getInitialTab() }
-				tabs={ TABS }
+				tabs={ tabs }
 				onSelect={ updatePanelUri }
 			>
 				{ ( tab ) => (
@@ -133,10 +145,6 @@ const SettingsManager = () => {
 								promotionalBannerType={ promotionalBannerType }
 								isOCEnabled={ isOCEnabled }
 								setIsOCEnabled={ setIsOCEnabled }
-								isAgenticCommerceEnabled={
-									isAgenticCommerceEnabled
-								}
-								agenticSaveRef={ agenticSaveRef }
 							/>
 						) }
 						{ tab.name === 'methods' && (
@@ -151,10 +159,13 @@ const SettingsManager = () => {
 								setIsOCEnabled={ setIsOCEnabled }
 							/>
 						) }
+						{ tab.name === 'agentic-commerce' && (
+							<AgenticCommerceSection ref={ agenticSaveRef } />
+						) }
 						<SaveSettingsSection
 							onSettingsSave={ onSettingsSave }
 							agenticSaveRef={
-								tab.name === 'settings'
+								tab.name === 'agentic-commerce'
 									? agenticSaveRef
 									: undefined
 							}

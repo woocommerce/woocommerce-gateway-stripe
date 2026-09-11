@@ -49,6 +49,9 @@ const SummaryStat = styled.div`
 	}
 
 	.wc-stripe-agentic-preview__excluded-details-toggle {
+		/* Own line under the label; inline it would sit beside "Excluded" and
+		   stretch that stat's label row taller than its siblings'. */
+		display: flex;
 		height: auto;
 		margin-top: 4px;
 		padding: 0;
@@ -160,6 +163,9 @@ const AgenticCommerceFeedPreview = () => {
 	} = data ?? {};
 
 	const excludedSubscriptions = excludedBreakdown?.subscriptions ?? 0;
+	const excludedPasswordProtected =
+		excludedBreakdown?.password_protected ?? 0;
+	const excludedHidden = excludedBreakdown?.hidden ?? 0;
 	const excludedFiltered = excludedBreakdown?.filtered ?? 0;
 
 	return (
@@ -208,7 +214,10 @@ const AgenticCommerceFeedPreview = () => {
 							</Notice>
 						) }
 
-						<SummaryRow justify="flex-start">
+						{ /* Top-align via the prop: Flex's own emotion class wins
+						     over styled() CSS, and its default centering floats the
+						     taller Excluded stat's value above its siblings. */ }
+						<SummaryRow justify="flex-start" align="flex-start">
 							<SummaryStat className="is-included">
 								<span className="wc-stripe-agentic-preview__stat-value">
 									{ includedCount.toLocaleString() }
@@ -281,6 +290,34 @@ const AgenticCommerceFeedPreview = () => {
 													'woocommerce-gateway-stripe'
 												),
 												excludedSubscriptions.toLocaleString()
+											) }
+										</li>
+									) }
+									{ excludedPasswordProtected > 0 && (
+										<li>
+											{ sprintf(
+												/* translators: %s: number of password-protected products. */
+												_n(
+													'%s password-protected product — agents can’t show products behind a password.',
+													'%s password-protected products — agents can’t show products behind a password.',
+													excludedPasswordProtected,
+													'woocommerce-gateway-stripe'
+												),
+												excludedPasswordProtected.toLocaleString()
+											) }
+										</li>
+									) }
+									{ excludedHidden > 0 && (
+										<li>
+											{ sprintf(
+												/* translators: %s: number of products hidden from the catalog. */
+												_n(
+													'%s product hidden from your catalog and search results.',
+													'%s products hidden from your catalog and search results.',
+													excludedHidden,
+													'woocommerce-gateway-stripe'
+												),
+												excludedHidden.toLocaleString()
 											) }
 										</li>
 									) }

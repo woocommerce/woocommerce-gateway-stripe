@@ -365,6 +365,63 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Password-protected and hidden products get their own buckets so the UI can
+	 * name the setting that hid them instead of blaming a generic store rule.
+	 *
+	 * @return void
+	 */
+	public function test_excluded_breakdown_separates_password_and_hidden_products(): void {
+		$protected = $this->create_valid_product();
+		wp_update_post(
+			[
+				'ID'            => $protected->get_id(),
+				'post_password' => 'secret',
+			]
+		);
+
+		$hidden = $this->create_valid_product();
+		$hidden->set_catalog_visibility( 'hidden' );
+		$hidden->save();
+
+		$this->scope_to( [ $protected->get_id(), $hidden->get_id() ] );
+
+		$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
+
+		$this->assertSame( 2, $preview['excluded_count'] );
+		$this->assertSame( 1, $preview['excluded_breakdown']['password_protected'] );
+		$this->assertSame( 1, $preview['excluded_breakdown']['hidden'] );
+		$this->assertSame( 0, $preview['excluded_breakdown']['filtered'] );
+		$this->assertSame( 0, $preview['excluded_breakdown']['subscriptions'] );
+	}
+
+	/**
+	 * A product tripping several exclusions is counted once, under the first
+	 * match, so the buckets always sum to `excluded_count`.
+	 *
+	 * @return void
+	 */
+	public function test_excluded_breakdown_counts_a_product_once_under_one_reason(): void {
+		$product = $this->create_valid_product();
+		$product->set_catalog_visibility( 'hidden' );
+		$product->save();
+		wp_update_post(
+			[
+				'ID'            => $product->get_id(),
+				'post_password' => 'secret',
+			]
+		);
+
+		$this->scope_to( [ $product->get_id() ] );
+
+		$preview   = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
+		$breakdown = $preview['excluded_breakdown'];
+
+		$this->assertSame( 1, $preview['excluded_count'] );
+		$this->assertSame( 1, array_sum( $breakdown ), 'Buckets must sum to the excluded total.' );
+		$this->assertSame( 1, $breakdown['password_protected'] );
+	}
+
+	/**
 	 * The scan limit caps how many products the synchronous preview walks and
 	 * flags the result as partial, so a large catalog can't run past the request
 	 * time limit. Products beyond the cap are never counted.

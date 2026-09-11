@@ -88,7 +88,7 @@ class WC_Stripe_Webhook_State {
 	 */
 	public static function set_last_webhook_success_at( $timestamp ): void {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_SUCCESS_AT : self::OPTION_LIVE_LAST_SUCCESS_AT;
-		update_option( $option, $timestamp );
+		self::update_int_option( $option, $timestamp );
 	}
 
 	/**
@@ -111,7 +111,7 @@ class WC_Stripe_Webhook_State {
 	 */
 	public static function set_last_webhook_failure_at( $timestamp ): void {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_FAILURE_AT : self::OPTION_LIVE_LAST_FAILURE_AT;
-		update_option( $option, $timestamp );
+		self::update_int_option( $option, $timestamp );
 	}
 
 	/**
@@ -225,7 +225,7 @@ class WC_Stripe_Webhook_State {
 	 */
 	public static function set_pending_webhooks_count( $pending_webhooks ): void {
 		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_PENDING_WEBHOOKS : self::OPTION_LIVE_PENDING_WEBHOOKS;
-		update_option( $option, $pending_webhooks );
+		self::update_int_option( $option, $pending_webhooks );
 	}
 
 	/**
@@ -360,10 +360,45 @@ class WC_Stripe_Webhook_State {
 	 */
 	protected static function get_int_option( string $option_name ): int {
 		$option_value = get_option( $option_name, 0 );
-		if ( ! ctype_digit( (string) $option_value ) ) {
+
+		$validated_value = self::validate_int_value( $option_value );
+		if ( null === $validated_value ) {
 			return 0;
 		}
 
-		return (int) $option_value;
+		return $validated_value;
+	}
+
+	/**
+	 * Update an option with an integer value.
+	 *
+	 * @param string $option_name The name of the option to update.
+	 * @param mixed  $value       The value to update the option with. Should be a scalar integer.
+	 * @return void
+	 */
+	protected static function update_int_option( string $option_name, $value ): void {
+		$int_value = self::validate_int_value( $value );
+		if ( null === $int_value ) {
+			return;
+		}
+		update_option( $option_name, $int_value );
+	}
+
+	/**
+	 * Validate that a value is an integer.
+	 *
+	 * @param mixed $value The value to validate.
+	 * @return int|null The integer value of the value, or null if the value is not an integer.
+	 */
+	protected static function validate_int_value( $value ): ?int {
+		if ( ! is_scalar( $value ) ) {
+			return null;
+		}
+
+		if ( ! ctype_digit( (string) $value ) ) {
+			return null;
+		}
+
+		return (int) $value;
 	}
 }

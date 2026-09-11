@@ -32,19 +32,20 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$stripe_settings['test_secret_key'] = self::TEST_SECRET_KEY;
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		// Reset the invalid API keys count cache.
-		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
+		$this->clear_mode_caches();
 	}
 
 	/**
 	 * Tear down environment after tests.
 	 */
 	public function tear_down() {
-		// Reset the invalid API keys count cache.
-		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
+		$this->clear_mode_caches();
 
 		// Clear any outage state recorded during the test run.
 		delete_transient( WC_Stripe_API_Outage_Status::OUTAGE_TRANSIENT_KEY );
+
+		// Clear any level3 rejection state recorded during the test run.
+		delete_transient( 'wc_stripe_level3_not_allowed' );
 
 		WC_Stripe_Helper::delete_main_stripe_settings();
 		WC_Stripe_API::set_secret_key( null );
@@ -180,6 +181,72 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Provide active and requested modes for invalid-key isolation tests.
+	 *
+	 * @return array
+	 */
+	public function provide_invalid_key_mode_test_cases(): array {
+		return [
+			'live request while test mode is active' => [ 'yes', 'live', 'test' ],
+			'test request while live mode is active' => [ 'no', 'test', 'live' ],
+		];
+	}
+
+	/**
+	 * Invalid-key rate limiting and account invalidation must stay within the requested key's mode.
+	 *
+	 * @param string $testmode       The active test mode setting.
+	 * @param string $requested_mode The mode whose key is used for the request.
+	 * @param string $other_mode     The mode that must remain unaffected.
+	 *
+	 * @dataProvider provide_invalid_key_mode_test_cases
+	 */
+	public function test_retrieve_scopes_invalid_key_state_to_active_secret_key( string $testmode, string $requested_mode, string $other_mode ) {
+		$stripe_settings             = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['testmode'] = $testmode;
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$requested_account = [ 'id' => "acct_$requested_mode" ];
+		$other_account     = [ 'id' => "acct_$other_mode" ];
+		WC_Stripe_Database_Cache::set_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $requested_account, HOUR_IN_SECONDS, $requested_mode );
+		WC_Stripe_Database_Cache::set_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $other_account, HOUR_IN_SECONDS, $other_mode );
+		WC_Stripe_API::set_secret_key_for_mode( $requested_mode );
+
+		$unauthorized_response = [ $this, 'mock_unauthorized_response' ];
+		add_filter( 'pre_http_request', $unauthorized_response );
+
+		$stripe_api_class = new ReflectionClass( WC_Stripe_API::class );
+		$threshold        = $stripe_api_class->getConstant( 'INVALID_API_KEY_ERROR_COUNT_THRESHOLD' );
+		for ( $i = 0; $i < $threshold; $i++ ) {
+			WC_Stripe_API::retrieve( 'test_endpoint' );
+		}
+
+		remove_filter( 'pre_http_request', $unauthorized_response );
+
+		$this->assertSame( $threshold, WC_Stripe_Database_Cache::get_with_mode( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY, $requested_mode ) );
+		$this->assertNull( WC_Stripe_Database_Cache::get_with_mode( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY, $other_mode ) );
+		$this->assertNull( WC_Stripe_Database_Cache::get_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $requested_mode ) );
+		$this->assertSame( $other_account, WC_Stripe_Database_Cache::get_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $other_mode ) );
+
+		WC_Stripe_API::set_secret_key_for_mode( $other_mode );
+		add_filter( 'pre_http_request', [ $this, 'mock_successful_response' ] );
+		$result = WC_Stripe_API::retrieve( 'test_endpoint' );
+		remove_filter( 'pre_http_request', [ $this, 'mock_successful_response' ] );
+
+		$this->assertSame( 'success', $result );
+	}
+
+	/**
+	 * Clear mode-specific caches used by these tests.
+	 */
+	private function clear_mode_caches(): void {
+		foreach ( [ 'test', 'live' ] as $mode ) {
+			WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY, $mode );
+			WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $mode );
+		}
+	}
+
+	/**
 	 * Helper method to mock a successful API response.
 	 */
 	public function mock_successful_response() {
@@ -255,6 +322,179 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 			$captured_args['reject_unsafe_urls'] ?? false,
 			'Stripe API GET requests must not set reject_unsafe_urls.'
 		);
+	}
+
+	/**
+	 * Captures the outbound HTTP request (URL + args) made during $callback, without hitting Stripe.
+	 *
+	 * @param callable $callback Invokes the WC_Stripe_API method under test.
+	 * @return array{url:?string,args:?array} The captured request.
+	 */
+	private function capture_stripe_request( callable $callback ): array {
+		$captured = [
+			'url'  => null,
+			'args' => null,
+		];
+
+		$capture_filter = function ( $return_value, $parsed_args, $url ) use ( &$captured ) {
+			$captured['url']  = $url;
+			$captured['args'] = $parsed_args;
+			return $this->mock_successful_response();
+		};
+		add_filter( 'pre_http_request', $capture_filter, 10, 3 );
+
+		try {
+			$callback();
+		} finally {
+			remove_filter( 'pre_http_request', $capture_filter, 10 );
+		}
+
+		return $captured;
+	}
+
+	/**
+	 * Prefix-compatible values whose structural delimiters must be percent-encoded when concatenated
+	 * into a Stripe API path, alongside valid IDs that must pass through unchanged (encoding no-op).
+	 *
+	 * All values take the default (payment_methods) branch, so a single provider drives every helper.
+	 *
+	 * @return array<string, array{string, string}>
+	 */
+	public function provide_path_segment_encoding_ids(): array {
+		return [
+			'valid pm (encoding is a no-op)'          => [ 'pm_1MqLiJLkdIwHu7ixUEgbFdYF', 'pm_1MqLiJLkdIwHu7ixUEgbFdYF' ],
+			'valid legacy card (encoding is a no-op)' => [ 'card_1AbCdEfGhIjKlMnO', 'card_1AbCdEfGhIjKlMnO' ],
+			'path traversal to another API'           => [ 'pm_1AbC/../setup_intents', 'pm_1AbC%2F..%2Fsetup_intents' ],
+			'extra path segment'                      => [ 'pm_1AbC/extra', 'pm_1AbC%2Fextra' ],
+			'query delimiter'                         => [ 'pm_1AbC?foo=bar', 'pm_1AbC%3Ffoo%3Dbar' ],
+			'ampersand and equals'                    => [ 'pm_1AbC&usage=on_session=1', 'pm_1AbC%26usage%3Don_session%3D1' ],
+			'fragment'                                => [ 'pm_1AbC#/attach', 'pm_1AbC%23%2Fattach' ],
+			'brackets'                                => [ 'pm_1AbC[0]', 'pm_1AbC%5B0%5D' ],
+			'space (rawurlencode not urlencode)'      => [ 'pm_a b', 'pm_a%20b' ],
+			'prefixless retargeting payload'          => [ '../setup_intents?payment_method_types[]=card&usage=on_session#', '..%2Fsetup_intents%3Fpayment_method_types%5B%5D%3Dcard%26usage%3Don_session%23' ],
+		];
+	}
+
+	/**
+	 * A payment method ID is concatenated into the Stripe path, so it must be encoded as a single
+	 * segment: structural delimiters percent-encoded, valid IDs left byte-for-byte identical.
+	 *
+	 * @dataProvider provide_path_segment_encoding_ids
+	 */
+	public function test_get_payment_method_encodes_id_as_single_path_segment( string $id, string $encoded_id ) {
+		$captured = $this->capture_stripe_request(
+			function () use ( $id ) {
+				WC_Stripe_API::get_payment_method( $id );
+			}
+		);
+
+		$this->assertSame( WC_Stripe_API::ENDPOINT . 'payment_methods/' . $encoded_id, $captured['url'] );
+	}
+
+	/**
+	 * get_payment_method routes src_ IDs to the Sources API, which must also encode them as one segment.
+	 */
+	public function test_get_payment_method_encodes_source_id_as_single_path_segment() {
+		$captured = $this->capture_stripe_request(
+			function () {
+				WC_Stripe_API::get_payment_method( 'src_1AbC/../charges' );
+			}
+		);
+
+		$this->assertSame( WC_Stripe_API::ENDPOINT . 'sources/src_1AbC%2F..%2Fcharges', $captured['url'] );
+	}
+
+	/**
+	 * A pre-encoded value is treated as literal path data, not decoded: an embedded %2F becomes %252F,
+	 * so it can never be re-interpreted as a path separator downstream.
+	 */
+	public function test_get_payment_method_does_not_decode_pre_encoded_input() {
+		$captured = $this->capture_stripe_request(
+			function () {
+				WC_Stripe_API::get_payment_method( 'pm_a%2Fb' );
+			}
+		);
+
+		$this->assertSame( WC_Stripe_API::ENDPOINT . 'payment_methods/pm_a%252Fb', $captured['url'] );
+	}
+
+	/**
+	 * The update path — `payment_methods/{id}`.
+	 *
+	 * @dataProvider provide_path_segment_encoding_ids
+	 */
+	public function test_update_payment_method_encodes_id_as_single_path_segment( string $id, string $encoded_id ) {
+		$captured = $this->capture_stripe_request(
+			function () use ( $id ) {
+				WC_Stripe_API::update_payment_method( $id );
+			}
+		);
+
+		$this->assertSame( WC_Stripe_API::ENDPOINT . 'payment_methods/' . $encoded_id, $captured['url'] );
+	}
+
+	/**
+	 * The default (PaymentMethod) attach path — `payment_methods/{id}/attach`. The src_ branch, which
+	 * sends the value in the request body instead, is covered by the test below.
+	 *
+	 * @dataProvider provide_path_segment_encoding_ids
+	 */
+	public function test_attach_payment_method_to_customer_encodes_id_as_single_path_segment( string $id, string $encoded_id ) {
+		$captured = $this->capture_stripe_request(
+			function () use ( $id ) {
+				WC_Stripe_API::attach_payment_method_to_customer( 'cus_123', $id );
+			}
+		);
+
+		$this->assertSame( WC_Stripe_API::ENDPOINT . 'payment_methods/' . $encoded_id . '/attach', $captured['url'] );
+	}
+
+	/**
+	 * For src_ IDs, attach sends the value in the request body (source=), not the path — so there is
+	 * nothing to path-encode. Assert the ID never lands in the URL and is preserved intact in the body.
+	 */
+	public function test_attach_payment_method_to_customer_keeps_source_id_out_of_the_path() {
+		$captured = $this->capture_stripe_request(
+			function () {
+				WC_Stripe_API::attach_payment_method_to_customer( 'cus_123', 'src_1AbC' );
+			}
+		);
+
+		$this->assertSame( WC_Stripe_API::ENDPOINT . 'customers/cus_123/sources', $captured['url'] );
+
+		$body        = $captured['args']['body'];
+		$body_string = is_array( $body ) ? http_build_query( $body ) : (string) $body;
+		$this->assertStringContainsString( 'src_1AbC', $body_string );
+	}
+
+	/**
+	 * The default (PaymentMethod) detach path — `payment_methods/{id}/detach`. The src_ branch, which
+	 * uses the Sources API instead, is covered by the test below.
+	 *
+	 * @dataProvider provide_path_segment_encoding_ids
+	 */
+	public function test_detach_payment_method_from_customer_encodes_id_as_single_path_segment( string $id, string $encoded_id ) {
+		$captured = $this->capture_stripe_request(
+			function () use ( $id ) {
+				WC_Stripe_API::detach_payment_method_from_customer( 'cus_123', $id );
+			}
+		);
+
+		$this->assertSame( WC_Stripe_API::ENDPOINT . 'payment_methods/' . $encoded_id . '/detach', $captured['url'] );
+	}
+
+	/**
+	 * detach_payment_method_from_customer routes src_ IDs to the Sources API (DELETE) and encodes them.
+	 */
+	public function test_detach_payment_method_from_customer_encodes_source_id_as_single_path_segment() {
+		$captured = $this->capture_stripe_request(
+			function () {
+				WC_Stripe_API::detach_payment_method_from_customer( 'cus_123', 'src_1AbC/../charges' );
+			}
+		);
+
+		$this->assertSame( WC_Stripe_API::ENDPOINT . 'customers/cus_123/sources/src_1AbC%2F..%2Fcharges', $captured['url'] );
+		$this->assertSame( 'DELETE', $captured['args']['method'] );
 	}
 
 	/**
@@ -682,5 +922,91 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 			$caught->getLocalizedMessage()
 		);
 		$this->assertTrue( WC_Stripe_API_Outage_Status::is_in_outage() );
+	}
+
+	/**
+	 * A level3 rejection is cached account-wide (3-month transient) as before, EXCEPT when
+	 * the request itself declares only non-level3 payment method types — there the rejection
+	 * reflects that one request, and caching it would disable level3 for card payments too.
+	 * The payment must go through either way, via the retry without level3.
+	 *
+	 * @param string[]|null $request_types    The payment_method_types the request carries, or null for none.
+	 * @param string        $order_meta_type  The Stripe UPE payment type stored on the order, or '' for none.
+	 * @param bool          $expect_transient Whether the rejection should set the account-wide transient.
+	 * @dataProvider provide_test_request_with_level3_data_rejection_transient
+	 */
+	public function test_request_with_level3_data_skips_rejection_caching_for_non_level3_requests( $request_types, $order_meta_type, $expect_transient ) {
+		// The level3 gate only applies to US-based stores.
+		update_option( 'woocommerce_default_country', 'US:CA' );
+		delete_transient( 'wc_stripe_level3_not_allowed' );
+
+		$order = WC_Helper_Order::create_order();
+		if ( '' !== $order_meta_type ) {
+			WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_payment_type( $order, $order_meta_type );
+			$order->save_meta_data();
+		}
+
+		$request = [ 'amount' => 100 ];
+		if ( null !== $request_types ) {
+			$request['payment_method_types'] = $request_types;
+		}
+
+		$bodies_seen = [];
+		$mock        = function ( $preempt, $parsed_args ) use ( &$bodies_seen ) {
+			$bodies_seen[] = $parsed_args['body'];
+
+			$body = isset( $parsed_args['body']['level3'] )
+				? '{"error":{"code":"parameter_unknown","param":"level3","type":"invalid_request_error","message":"Received unknown parameter: level3"}}'
+				: '{"id":"pi_mock"}';
+
+			return [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => $body,
+			];
+		};
+		add_filter( 'pre_http_request', $mock, 10, 2 );
+
+		$result = WC_Stripe_API::request_with_level3_data( $request, 'payment_intents', [ 'merchant_reference' => (string) $order->get_id() ], $order );
+
+		remove_filter( 'pre_http_request', $mock, 10 );
+
+		// The rejection must always trigger a retry without level3 so the payment goes through.
+		$this->assertCount( 2, $bodies_seen );
+		$this->assertArrayHasKey( 'level3', $bodies_seen[0] );
+		$this->assertArrayNotHasKey( 'level3', $bodies_seen[1] );
+		$this->assertSame( 'pi_mock', $result->id );
+
+		$this->assertSame( $expect_transient, (bool) get_transient( 'wc_stripe_level3_not_allowed' ) );
+	}
+
+	/**
+	 * Provider for {@see test_request_with_level3_data_skips_rejection_caching_for_non_level3_requests()}.
+	 *
+	 * Only combinations where the meta gate attaches level3 (card or absent meta) can reach
+	 * the rejection.
+	 *
+	 * @return array
+	 */
+	public function provide_test_request_with_level3_data_rejection_transient() {
+		return [
+			'card request caches the rejection'          => [ [ WC_Stripe_Payment_Methods::CARD ], '', true ],
+			'mixed types with card cache the rejection'  => [ [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::KLARNA ], '', true ],
+			'card meta caches the rejection'             => [ null, WC_Stripe_Payment_Methods::CARD, true ],
+			// No declared types: ambiguous rejection keeps the pre-existing caching behavior.
+			'no declared types cache the rejection'      => [ null, '', true ],
+			'empty declared types cache the rejection'   => [ [], '', true ],
+			'card-present request caches the rejection'  => [ [ WC_Stripe_Payment_Methods::CARD_PRESENT ], '', true ],
+			// The fix: a mismatched flow that sent level3 for a request Stripe knows is
+			// non-card must not disable level3 account-wide.
+			'non-card request does not cache'            => [ [ WC_Stripe_Payment_Methods::SEPA_DEBIT ], '', false ],
+			'non-card request with card meta skips too'  => [ [ WC_Stripe_Payment_Methods::AMAZON_PAY ], WC_Stripe_Payment_Methods::CARD, false ],
+			// Filters run on the request before this point: unexpected non-string entries must
+			// not count as declared types, so the rejection stays ambiguous and caches.
+			'malformed types count as no declared types' => [ [ null, [ 'nested' ] ], '', true ],
+		];
 	}
 }
