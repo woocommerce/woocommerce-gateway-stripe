@@ -766,27 +766,41 @@ describe( 'utils', () => {
 
 describe( 'showErrorCheckout', () => {
 	let container;
+	let checkoutForm;
+	let hasNoticesWrapper;
 	const originalJQuery = global.jQuery;
 	const originalWcSettings = global.wcSettings;
 	const originalWc = global.wc;
 
 	beforeEach( () => {
+		hasNoticesWrapper = true;
 		container = {
 			length: 1,
 			find: jest.fn().mockReturnThis(),
 			remove: jest.fn().mockReturnThis(),
 			prepend: jest.fn().mockReturnThis(),
 		};
+		checkoutForm = {
+			length: 1,
+			find: jest.fn( () => ( { length: 0, remove: jest.fn() } ) ),
+			prepend: jest.fn().mockReturnThis(),
+		};
 
 		const jQueryMock = jest.fn( ( selector ) => {
 			if ( selector === '.woocommerce-notices-wrapper' ) {
-				return { first: () => container };
+				return {
+					first: () =>
+						hasNoticesWrapper ? container : { length: 0 },
+				};
 			}
 			if ( selector === '.woocommerce-MyAccount-content' ) {
 				return { length: 0 };
 			}
 			if ( selector === 'form.checkout' ) {
-				return { find: () => ( { length: 0 } ) };
+				return {
+					first: () => checkoutForm,
+					find: checkoutForm.find,
+				};
 			}
 			return { trigger: jest.fn().mockReturnThis(), each: jest.fn() };
 		} );
@@ -843,6 +857,21 @@ describe( 'showErrorCheckout', () => {
 
 		expect( container.prepend ).toHaveBeenCalledWith(
 			expect.stringContaining( 'Your card was declined.' )
+		);
+	} );
+
+	it( 'falls back to the checkout form when the notices wrapper is missing', () => {
+		hasNoticesWrapper = false;
+		dispatch.mockReturnValue( null );
+		global.wcSettings = { wcBlocksConfig: false };
+
+		showErrorCheckout( 'Your card was declined.' );
+
+		expect( checkoutForm.prepend ).toHaveBeenCalledWith(
+			expect.stringContaining( 'Your card was declined.' )
+		);
+		expect( global.jQuery.scroll_to_notices ).toHaveBeenCalledWith(
+			checkoutForm
 		);
 	} );
 
