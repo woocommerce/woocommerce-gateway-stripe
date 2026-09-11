@@ -7,8 +7,9 @@ describe( 'ConnectionErrorNotice', () => {
 		const { container } = render( <ConnectionErrorNotice /> );
 
 		expect( container ).toHaveTextContent(
-			'An issue occurred generating a connection to Stripe'
+			'An issue occurred generating a connection to Stripe. Please try again.'
 		);
+		expect( container ).not.toHaveTextContent( 'valid SSL certificate' );
 	} );
 
 	it( 'renders a custom message when the message prop is provided', () => {

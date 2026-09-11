@@ -23,7 +23,7 @@ const ConnectionErrorNotice = ( { message } = {} ) => {
 				mixedString:
 					message ||
 					__(
-						'An issue occurred generating a connection to Stripe, please ensure your server has a valid SSL certificate and try again.{{br /}}For assistance, refer to our {{Link}}documentation{{/Link}}.',
+						'An issue occurred generating a connection to Stripe. Please try again.{{br /}}For assistance, refer to our {{Link}}documentation{{/Link}}.',
 						'woocommerce-gateway-stripe'
 					),
 				components: {

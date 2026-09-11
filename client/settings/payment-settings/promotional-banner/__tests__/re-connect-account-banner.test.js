@@ -96,6 +96,7 @@ describe( 'Reconnect banner', () => {
 
 		expect( global.jQuery.ajax ).toHaveBeenCalledWith(
 			expect.objectContaining( {
+				dataType: 'json',
 				data: expect.objectContaining( {
 					action: 'wc_stripe_get_oauth_url',
 					mode: 'test',
@@ -198,7 +199,7 @@ describe( 'Reconnect banner', () => {
 
 		await waitFor( () => {
 			expect( noticesDispatch.createErrorNotice ).toHaveBeenCalledWith(
-				'There was an error. Please reload the page and try again.'
+				'Server error'
 			);
 		} );
 	} );

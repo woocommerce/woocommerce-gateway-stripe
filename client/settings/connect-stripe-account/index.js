@@ -71,8 +71,8 @@ const ConnectStripeAccount = () => {
 	const [ errorMessage, setErrorMessage ] = useState( connectErrorMessage );
 
 	const handleErrorChange = useCallback( ( error ) => {
-		setHasError( !! error );
-		setErrorMessage( undefined );
+		setHasError( Boolean( error ) );
+		setErrorMessage( typeof error === 'string' ? error : undefined );
 	}, [] );
 
 	return (

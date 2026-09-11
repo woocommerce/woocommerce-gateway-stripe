@@ -134,6 +134,7 @@ describe( 'ConnectStripeAccount', () => {
 
 		expect( global.jQuery.ajax ).toHaveBeenCalledWith(
 			expect.objectContaining( {
+				dataType: 'json',
 				data: expect.objectContaining( {
 					action: 'wc_stripe_get_oauth_url',
 					mode: 'live',
@@ -198,6 +199,32 @@ describe( 'ConnectStripeAccount', () => {
 		Object.defineProperty( window, 'location', {
 			value: { assign },
 		} );
+	} );
+
+	it( 'should display the server error when the OAuth URL request fails', async () => {
+		global.jQuery = {
+			ajax: jest.fn().mockResolvedValue( {
+				success: false,
+				data: { message: 'The connection request was rejected.' },
+			} ),
+		};
+
+		render( <ConnectStripeAccount /> );
+
+		await act( async () => {
+			await userEvent.click(
+				screen.getByText( 'Create or connect a test account' )
+			);
+		} );
+
+		await waitFor( () => {
+			expect(
+				screen.getAllByText( 'The connection request was rejected.' )
+			).not.toHaveLength( 0 );
+		} );
+		expect(
+			screen.queryByText( /valid SSL certificate/ )
+		).not.toBeInTheDocument();
 	} );
 
 	it( 'should disable the live button and show tooltip when SSL is not enabled', async () => {
