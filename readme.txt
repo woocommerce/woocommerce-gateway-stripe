@@ -169,5 +169,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Stop two requests from reclaiming the same expired Optimized Checkout or Agentic Commerce sync lock
 * Fix - Stop disabling Level 3 data account-wide when Stripe rejects it for a request that declares a non-card payment method
 * Fix - Open testing and payment settings documentation links in new tabs
+* Fix - Point a saved Stripe Link payment method at the newest card selection when the customer re-enrolls through Link, so subscription renewals stop charging the replaced card
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
