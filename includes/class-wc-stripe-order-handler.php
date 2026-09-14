@@ -591,7 +591,16 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
-			WC_Stripe_Logger::info( "Settling order {$order->get_id()} from PaymentIntent {$intent_id} ({$intent_status}) instead of cancelling it as unpaid." );
+			WC_Stripe_Logger::info(
+				"Processing order {$order->get_id()} from PaymentIntent {$intent_id} ({$intent_status}) instead of cancelling it as unpaid.",
+				[
+					'order_id'      => $order->get_id(),
+					'order_status'  => $order->get_status( 'edit' ),
+					'intent_id'     => $intent_id,
+					'intent_status' => $intent_status,
+					'charge_id      => $charge->id ?? '(no id)',
+				]
+			);
 
 			$order->add_order_note( __( 'Stripe reports this payment as successful or still processing, but the payment confirmation never reached this site (e.g. a missed webhook). The order was updated from Stripe instead of being auto-cancelled as unpaid.', 'woocommerce-gateway-stripe' ) );
 
