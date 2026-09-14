@@ -167,9 +167,12 @@ test.describe( 'express checkout free trial purchases with Link', () => {
 			await loginToLink( popup, linkEmail );
 			await addressEvaluated;
 
-			await expect( popup.getByText( 'Shipping addresses' ) ).toBeVisible(
-				{ timeout: 60 * 1000 }
-			);
+			// The deferred free-trial shipping resolves to the "Pending"
+			// placeholder rate, so the sheet shows that instead of the address
+			// form once the fix accepts the address.
+			await expect(
+				popup.getByText( 'Pending', { exact: true } )
+			).toBeVisible( { timeout: 60 * 1000 } );
 			await expect(
 				popup.getByText( 'Unavailable for this purchase' )
 			).toBeHidden();

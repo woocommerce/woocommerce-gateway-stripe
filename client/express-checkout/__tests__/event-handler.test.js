@@ -282,7 +282,10 @@ describe( 'Express checkout event handlers', () => {
 			expect( event.resolve ).not.toHaveBeenCalled();
 		} );
 
-		test( 'should resolve without calling the Store API for the pending placeholder rate', async () => {
+		test( 'should resolve without calling the Store API for the default shipping placeholder rate', async () => {
+			global.wc_stripe_express_checkout_params = {
+				checkout: { default_shipping_option: { id: 'pending' } },
+			};
 			event.shippingRate.id = 'pending';
 
 			await shippingRateChangeHandler( event, elements );
@@ -290,6 +293,8 @@ describe( 'Express checkout event handlers', () => {
 			expect( mockCartApi.selectShippingRate ).not.toHaveBeenCalled();
 			expect( event.resolve ).toHaveBeenCalled();
 			expect( event.reject ).not.toHaveBeenCalled();
+
+			global.wc_stripe_express_checkout_params = {};
 		} );
 	} );
 
