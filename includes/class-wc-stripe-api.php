@@ -544,9 +544,14 @@ class WC_Stripe_API {
 		);
 
 		if ( $is_level3_param_not_allowed ) {
-			// Set a transient so that future requests do not add level 3 data.
-			// Transient is set to expire in 3 months, can be manually removed if needed.
-			set_transient( 'wc_stripe_level3_not_allowed', true, 3 * MONTH_IN_SECONDS );
+			// When the request itself declares only non-level3 payment method types, the
+			// rejection reflects this one request, not the account's level3 gating — caching
+			// it would disable level3 for legitimate card payments account-wide.
+			if ( ! self::declares_only_non_level3_payment_method_types( $request ) ) {
+				// Set a transient so that future requests do not add level 3 data.
+				// Transient is set to expire in 3 months, can be manually removed if needed.
+				set_transient( 'wc_stripe_level3_not_allowed', true, 3 * MONTH_IN_SECONDS );
+			}
 		} elseif ( $is_level_3data_incorrect ) {
 			// Log the issue so we could debug it.
 			WC_Stripe_Logger::error(
@@ -570,6 +575,47 @@ class WC_Stripe_API {
 		}
 
 		return $result;
+	}
+
+	/**
+	 * Determines whether the request positively declares only payment method types that do
+	 * not support Level 3 data.
+	 *
+	 * A request that declares no types (e.g. capture or confirm calls) returns false: its
+	 * rejection is ambiguous and keeps the pre-existing caching behavior.
+	 *
+	 * @param array $request The request parameters.
+	 *
+	 * @return bool Whether every declared type is a non-level3 type.
+	 */
+	private static function declares_only_non_level3_payment_method_types( $request ) {
+		$payment_method_types = self::get_request_payment_method_types( $request );
+
+		return [] !== $payment_method_types
+			&& [] === array_intersect( $payment_method_types, WC_Stripe_Payment_Methods::LEVEL3_SUPPORTED_PAYMENT_METHODS );
+	}
+
+	/**
+	 * Extracts the payment method types the request itself declares, if any.
+	 *
+	 * @param array $request The request parameters.
+	 *
+	 * @return string[] The declared payment method types, or an empty array when the request
+	 *                  carries none (e.g. capture or confirm calls).
+	 */
+	private static function get_request_payment_method_types( $request ) {
+		if ( ! isset( $request['payment_method_types'] ) || ! is_array( $request['payment_method_types'] ) ) {
+			return [];
+		}
+
+		// The request passes through public filters before this point, so drop non-string
+		// entries: a fully malformed list then counts as declaring no types.
+		return array_filter(
+			$request['payment_method_types'],
+			static function ( $type ) {
+				return is_string( $type ) && '' !== $type;
+			}
+		);
 	}
 
 	/**

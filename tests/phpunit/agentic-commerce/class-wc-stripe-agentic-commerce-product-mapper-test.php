@@ -1702,7 +1702,10 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 			$diagnostics = $mapper->get_shipping_diagnostics();
 
 			$this->assertArrayHasKey( 'zones_without_flat_rate', $diagnostics );
-			$this->assertContains( 'Diagnostics Test Zone', $diagnostics['zones_without_flat_rate'] );
+			$by_id = array_column( $diagnostics['zones_without_flat_rate'], 'name', 'id' );
+			// Entries carry the zone id so the preview can deep-link to its settings.
+			$this->assertArrayHasKey( $zone->get_id(), $by_id );
+			$this->assertSame( 'Diagnostics Test Zone', $by_id[ $zone->get_id() ] );
 		} finally {
 			$zone->delete();
 		}
@@ -1727,18 +1730,45 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 			$mapper      = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
 			$diagnostics = $mapper->get_shipping_diagnostics();
 
+			$flagged_names = array_column( $diagnostics['zones_without_flat_rate'], 'name' );
 			$this->assertNotContains(
 				'Covered Zone',
-				$diagnostics['zones_without_flat_rate'],
+				$flagged_names,
 				'A named zone with a flat-cost method must not be flagged.'
 			);
 			$this->assertContains(
 				'Locations not covered by your other zones',
-				$diagnostics['zones_without_flat_rate'],
+				$flagged_names,
 				'Zone 0 must still be diagnosed when named zones exist.'
 			);
 		} finally {
 			$named->delete();
+		}
+	}
+
+	/**
+	 * A disabled flat rate on the catch-all zone must not count as feed shipping:
+	 * WooCommerce never offers it at checkout, so the zone stays flagged.
+	 *
+	 * @return void
+	 */
+	public function test_get_shipping_diagnostics_ignores_disabled_methods_on_default_zone() {
+		global $wpdb;
+
+		$zone        = WC_Shipping_Zones::get_zone( 0 );
+		$instance_id = $zone->add_shipping_method( 'flat_rate' );
+		$wpdb->update( $wpdb->prefix . 'woocommerce_shipping_zone_methods', [ 'is_enabled' => 0 ], [ 'instance_id' => $instance_id ] );
+
+		try {
+			$diagnostics = ( new \WC_Stripe_Agentic_Commerce_Product_Mapper() )->get_shipping_diagnostics();
+
+			$this->assertContains(
+				'Locations not covered by your other zones',
+				array_column( $diagnostics['zones_without_flat_rate'], 'name' ),
+				'A disabled flat rate must not satisfy the zone.'
+			);
+		} finally {
+			$zone->delete_shipping_method( $instance_id );
 		}
 	}
 }

@@ -393,17 +393,21 @@ shipping in the feed, agents see no shipping for that destination.
 
 This is discoverable two ways:
 
-- **Logs** (WooCommerce → Status → Logs, `wc-stripe` source):
-  - *info* — "shipping method has no flat rate and was omitted from the feed"
-    (with the zone, method id, and method title), once per sync.
-  - *warning* — "shipping zone has no flat-rate method; it contributes no
-    shipping options to the feed" (with the zone name).
+- **Logs** (WooCommerce → Status → Logs, `woocommerce-gateway-stripe` source),
+  written only while Stripe logging (**Stripe settings → Settings → Log error
+  messages**) or verbose debug mode is enabled:
+  - *warning* — "some shipping zones have no flat-rate method and contribute no
+    shipping options to the feed" (with the list of zone names), logged once per
+    sync so a store with many live-rate-only zones does not swamp the log.
 - **Feed preview** (**Stripe settings → Agentic commerce → Preview feed**): the
-  `shipping_warnings` array names every zone with no flat-rate fallback.
+  `shipping_warnings` array names every zone with no flat-rate fallback, each
+  linking to that zone's shipping settings.
 
 **Recommended fix:** add a low-cost or representative flat-rate method to each
-live-rate-only zone as a feed fallback, so the catalog advertises a shipping
-price while WooCommerce still computes the real live rate at checkout.
+live-rate-only zone so the catalog advertises a shipping price. That method is
+not feed-only: WooCommerce offers it at checkout next to the live rate, so pick
+a cost the merchant is willing to honour.
+
 ## Coupons and discounts
 
 WooCommerce coupons do not participate in delegated (in-agent) checkout. Prices come from the synced product feed and are computed by Stripe, the shopper pays inside the AI agent, and the WooCommerce order is only created afterwards from the completed session. Consequences merchants should be aware of:

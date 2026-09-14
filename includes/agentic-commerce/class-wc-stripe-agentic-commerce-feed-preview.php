@@ -105,7 +105,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 	 *     scan_limited: bool,
 	 *     advisories: array<int, array{product_id:int, product_name:string, edit_link:string, type:string, detail:string}>,
 	 *     advisories_truncated: int,
-	 *     shipping_warnings: string[]
+	 *     shipping_warnings: array<int, array{message:string, edit_link:string}>
 	 * }
 	 */
 	public function generate( int $detail_limit = self::DEFAULT_DETAIL_LIMIT, int $scan_limit = self::DEFAULT_SCAN_LIMIT ): array {
@@ -161,12 +161,23 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 		// independent of the product walk.
 		$shipping_warnings = [];
 		if ( $mapper instanceof WC_Stripe_Agentic_Commerce_Product_Mapper ) {
-			foreach ( $mapper->get_shipping_diagnostics()['zones_without_flat_rate'] as $zone_name ) {
-				$shipping_warnings[] = sprintf(
-					/* translators: %s: shipping zone name */
-					__( 'Shipping zone "%s" has no flat-rate method, so the feed carries no shipping for it (live-rate / calculated methods price at checkout).', 'woocommerce-gateway-stripe' ),
-					$zone_name
-				);
+			foreach ( $mapper->get_shipping_diagnostics()['zones_without_flat_rate'] as $zone ) {
+				$shipping_warnings[] = [
+					'message'   => sprintf(
+						/* translators: %s: shipping zone name */
+						__( 'Shipping zone "%s" has no flat-rate method, so the feed carries no shipping for it (live-rate / calculated methods price at checkout).', 'woocommerce-gateway-stripe' ),
+						$zone['name']
+					),
+					// Deep-link to the zone's shipping settings so the merchant can act.
+					'edit_link' => add_query_arg(
+						[
+							'page'    => 'wc-settings',
+							'tab'     => 'shipping',
+							'zone_id' => $zone['id'],
+						],
+						admin_url( 'admin.php' )
+					),
+				];
 			}
 		}
 
