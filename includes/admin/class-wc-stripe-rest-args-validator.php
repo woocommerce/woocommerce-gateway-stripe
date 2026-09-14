@@ -16,6 +16,14 @@ abstract class WC_Stripe_REST_Args_Validator
 	public const PAYMENT_INTENT_ID_PATTERN = 'pi_[A-Za-z0-9_]+';
 	public const PAYOUT_ID_PATTERN         = 'po_[A-Za-z0-9_]+';
 
+	/**
+	 * Validate a parameter value by a regexp pattern.
+	 *
+	 * @param string $regexp_pattern The regexp pattern to match.
+	 * @param string $param_value The parameter value.
+	 *
+	 * @return bool
+	 */
 	private static function validate_by_regexp_pattern( $regexp_pattern, $param_value ) {
 		if ( ! is_string( $param_value ) ) {
 			return false;
@@ -34,7 +42,7 @@ abstract class WC_Stripe_REST_Args_Validator
 	 * @return bool
 	 */
 	public static function validate_customer_id( $param_value, $request, $param_name ) {
-		return static::validate_by_regexp_pattern( self::CUSTOMER_ID_PATTERN, $param_value );
+		return self::validate_by_regexp_pattern( self::CUSTOMER_ID_PATTERN, $param_value );
 	}
 
 	/**
@@ -44,6 +52,7 @@ abstract class WC_Stripe_REST_Args_Validator
 	 * @param string $param_value The parameter value.
 	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
 	 * @param string $param_name The parameter name.
+	 * @param string $id_type_regexp_pattern A regular expression pattern to match the ID against.
 	 *
 	 * @return WP_Error|bool
 	 */
@@ -55,7 +64,7 @@ abstract class WC_Stripe_REST_Args_Validator
 			);
 		}
 
-		return static::validate_by_regexp_pattern( $id_type_regexp_pattern, $param_value );
+		return self::validate_by_regexp_pattern( $id_type_regexp_pattern, $param_value );
 	}
 
 	/**
