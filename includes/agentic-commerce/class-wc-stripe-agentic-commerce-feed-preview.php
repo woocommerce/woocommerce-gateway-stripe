@@ -102,7 +102,8 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 	 *     invalid_count: int,
 	 *     validation_errors: array<int, array{product_id:int, product_name:string, edit_link:string, errors:string[]}>,
 	 *     truncated: int,
-	 *     scan_limited: bool
+	 *     scan_limited: bool,
+	 *     shipping_warnings: array<int, array{message:string, edit_link:string}>
 	 * }
 	 */
 	public function generate( int $detail_limit = self::DEFAULT_DETAIL_LIMIT, int $scan_limit = self::DEFAULT_SCAN_LIMIT ): array {
@@ -151,6 +152,30 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 		$truncated              = 0;
 		$scan_limited           = false;
 		$validation_errors      = [];
+
+		// Zones that contribute no flat-rate shipping to the feed. Computed once,
+		// independent of the product walk.
+		$shipping_warnings = [];
+		if ( $mapper instanceof WC_Stripe_Agentic_Commerce_Product_Mapper ) {
+			foreach ( $mapper->get_shipping_diagnostics()['zones_without_flat_rate'] as $zone ) {
+				$shipping_warnings[] = [
+					'message'   => sprintf(
+						/* translators: %s: shipping zone name */
+						__( 'Shipping zone "%s" has no flat-rate method, so the feed carries no shipping for it (live-rate / calculated methods price at checkout).', 'woocommerce-gateway-stripe' ),
+						$zone['name']
+					),
+					// Deep-link to the zone's shipping settings so the merchant can act.
+					'edit_link' => add_query_arg(
+						[
+							'page'    => 'wc-settings',
+							'tab'     => 'shipping',
+							'zone_id' => $zone['id'],
+						],
+						admin_url( 'admin.php' )
+					),
+				];
+			}
+		}
 
 		$page = 1;
 		do {
@@ -249,6 +274,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 			'validation_errors'  => $validation_errors,
 			'truncated'          => $truncated,
 			'scan_limited'       => $scan_limited,
+			'shipping_warnings'  => $shipping_warnings,
 		];
 	}
 

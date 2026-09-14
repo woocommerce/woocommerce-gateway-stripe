@@ -331,6 +331,54 @@ describe( 'AgenticCommerceFeedPreview', () => {
 		} );
 	} );
 
+	it( 'lists the shipping zones that carry no shipping in the feed', async () => {
+		apiFetch.mockResolvedValue( {
+			...PREVIEW_RESPONSE,
+			shipping_warnings: [
+				{
+					message:
+						'Shipping zone "Europe" has no flat-rate method, so the feed carries no shipping for it (live-rate / calculated methods price at checkout).',
+					edit_link:
+						'/wp-admin/admin.php?page=wc-settings&tab=shipping&zone_id=1',
+				},
+			],
+		} );
+
+		const { container } = render( <AgenticCommerceFeedPreview /> );
+		fireEvent.click(
+			screen.getByRole( 'button', { name: /Preview feed/i } )
+		);
+
+		await waitFor( () => {
+			expect(
+				within( container ).getByText(
+					/Shipping zone "Europe" has no flat-rate method/i
+				)
+			).toBeInTheDocument();
+		} );
+	} );
+
+	it( 'shows no shipping notice when every zone has a flat rate', async () => {
+		apiFetch.mockResolvedValue( {
+			...PREVIEW_RESPONSE,
+			shipping_warnings: [],
+		} );
+
+		const { container } = render( <AgenticCommerceFeedPreview /> );
+		fireEvent.click(
+			screen.getByRole( 'button', { name: /Preview feed/i } )
+		);
+
+		await waitFor( () => {
+			expect(
+				within( container ).getByText( /Included/i )
+			).toBeInTheDocument();
+		} );
+		expect(
+			within( container ).queryByText( /no shipping in the feed/i )
+		).not.toBeInTheDocument();
+	} );
+
 	it( 'does not warn about a partial preview when the scan completed', async () => {
 		apiFetch.mockResolvedValue( {
 			...PREVIEW_RESPONSE,
