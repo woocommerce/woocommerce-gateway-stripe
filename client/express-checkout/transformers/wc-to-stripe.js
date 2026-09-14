@@ -1,7 +1,10 @@
 import { __ } from '@wordpress/i18n';
 import { applyFilters } from '@wordpress/hooks';
 import { decodeEntities } from '@wordpress/html-entities';
-import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
+import {
+	getExpressCheckoutData,
+	normalizeLineItems,
+} from 'wcstripe/express-checkout/utils';
 import { SHIPPING_RATES_UPPER_LIMIT_COUNT } from 'wcstripe/stripe-utils/constants';
 
 /**
@@ -149,10 +152,7 @@ export const transformCartDataForDisplayItems = ( rawCartData ) => {
  * @return {Array} The transformed display items.
  */
 export const transformLabeledDisplayItems = ( displayItems ) => {
-	return ( displayItems ?? [] ).map( ( { label, amount } ) => ( {
-		name: label,
-		amount,
-	} ) );
+	return normalizeLineItems( displayItems ?? [] );
 };
 
 /**
