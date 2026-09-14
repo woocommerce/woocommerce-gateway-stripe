@@ -1591,6 +1591,32 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The final add-on verdict is filterable so a plugin can flag a configurator
+	 * that stores nothing in a detectable meta key, or clear a false positive.
+	 *
+	 * @return void
+	 */
+	public function test_product_has_addons_verdict_is_filterable() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$this->assertFalse( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ) );
+
+		$force_true = static fn() => true;
+		add_filter( 'woocommerce_agentic_commerce_product_has_addon', $force_true );
+
+		try {
+			$this->assertTrue(
+				WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ),
+				'The filter must be able to mark an otherwise-plain product as configurable.'
+			);
+		} finally {
+			remove_filter( 'woocommerce_agentic_commerce_product_has_addon', $force_true );
+			$product->delete( true );
+		}
+	}
+
+	/**
 	 * With the auto-exclude toggle off (default), an add-on product still syncs —
 	 * preserving backward-compatible behavior.
 	 *
@@ -1665,7 +1691,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	 */
 	public function test_disable_checkout_auto_default_for_addon_products() {
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
-		update_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_DISABLE_CHECKOUT_ADDONS_OPTION, 'yes' );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_REDIRECT_CHECKOUT_ADDONS_OPTION, 'yes' );
 
 		$addon = WC_Helper_Product::create_simple_product();
 		$addon->update_meta_data( '_product_addons', [ [ 'name' => 'Engraving' ] ] );
@@ -1680,7 +1706,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 			$this->assertSame( 'addons', $mapper->resolve_disable_checkout( $addon )['source'] );
 			$this->assertSame( 'false', $mapper->map_product( $plain )['disable_checkout'] );
 		} finally {
-			delete_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_DISABLE_CHECKOUT_ADDONS_OPTION );
+			delete_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_REDIRECT_CHECKOUT_ADDONS_OPTION );
 			$addon->delete( true );
 			$plain->delete( true );
 		}

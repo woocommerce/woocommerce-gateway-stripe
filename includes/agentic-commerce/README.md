@@ -451,7 +451,7 @@ without code, under **Stripe settings → Agentic commerce**:
 | Toggle | Option key | Effect |
 | --- | --- | --- |
 | **Exclude products with add-ons or configurators from the feed** | `wc_stripe_agentic_commerce_auto_exclude_addons` | Detected products never enter the catalog. Use when configurator SKUs should not appear in agents at all. |
-| **Redirect shoppers to my store for products with add-ons or configurators** | `wc_stripe_agentic_commerce_auto_disable_checkout_addons` | Detected products stay discoverable but agents send shoppers to the store to configure and buy (`disable_checkout=true`). Use to keep discoverability while moving the actual purchase on-site. |
+| **Redirect shoppers to my store for products with add-ons or configurators** | `wc_stripe_agentic_commerce_auto_redirect_checkout_addons` | Detected products stay discoverable but agents send shoppers to the store to configure and buy (`disable_checkout=true`). Use to keep discoverability while moving the actual purchase on-site. |
 
 Exclude wins over redirect (an excluded product is never in the feed, so its
 checkout mode is moot). Both are **defaults** — a custom filter still wins.
@@ -469,6 +469,21 @@ add_filter(
     function ( array $meta_keys, WC_Product $product ): array {
         $meta_keys[] = '_my_configurator_options';
         return $meta_keys;
+    },
+    10,
+    2
+);
+```
+
+When a configurator stores nothing in a stable meta key, decide per product with
+`woocommerce_agentic_commerce_product_has_addon` instead — it filters the final
+verdict, so it can also clear a false positive:
+
+```php
+add_filter(
+    'woocommerce_agentic_commerce_product_has_addon',
+    function ( bool $has_addons, WC_Product $product ): bool {
+        return $product->is_type( 'my_configurator' ) ? true : $has_addons;
     },
     10,
     2

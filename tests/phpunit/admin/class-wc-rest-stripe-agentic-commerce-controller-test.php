@@ -1321,16 +1321,16 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 
 		$data = rest_do_request( $request )->get_data();
 		$this->assertArrayHasKey( 'auto_exclude_addons', $data );
-		$this->assertArrayHasKey( 'auto_disable_checkout_addons', $data );
+		$this->assertArrayHasKey( 'auto_redirect_checkout_addons', $data );
 		$this->assertFalse( $data['auto_exclude_addons'] );
-		$this->assertFalse( $data['auto_disable_checkout_addons'] );
+		$this->assertFalse( $data['auto_redirect_checkout_addons'] );
 
 		update_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION, 'yes' );
-		update_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_DISABLE_CHECKOUT_ADDONS_OPTION, 'yes' );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_REDIRECT_CHECKOUT_ADDONS_OPTION, 'yes' );
 
 		$data = rest_do_request( $request )->get_data();
 		$this->assertTrue( $data['auto_exclude_addons'] );
-		$this->assertTrue( $data['auto_disable_checkout_addons'] );
+		$this->assertTrue( $data['auto_redirect_checkout_addons'] );
 	}
 
 	/**
@@ -1393,8 +1393,8 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$request->set_body(
 			wp_json_encode(
 				[
-					'auto_exclude_addons'          => true,
-					'auto_disable_checkout_addons' => true,
+					'auto_exclude_addons'           => true,
+					'auto_redirect_checkout_addons' => true,
 				]
 			)
 		);
@@ -1403,9 +1403,9 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 200, $response->get_status() );
 		$this->assertTrue( $response->get_data()['auto_exclude_addons'] );
-		$this->assertTrue( $response->get_data()['auto_disable_checkout_addons'] );
+		$this->assertTrue( $response->get_data()['auto_redirect_checkout_addons'] );
 		$this->assertSame( 'yes', get_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION ) );
-		$this->assertSame( 'yes', get_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_DISABLE_CHECKOUT_ADDONS_OPTION ) );
+		$this->assertSame( 'yes', get_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_REDIRECT_CHECKOUT_ADDONS_OPTION ) );
 	}
 
 	/**

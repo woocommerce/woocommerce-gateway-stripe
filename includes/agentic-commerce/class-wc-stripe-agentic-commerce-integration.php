@@ -699,8 +699,8 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @since 10.9.0
 	 * @return bool
 	 */
-	public static function is_auto_disable_checkout_addons_enabled(): bool {
-		return 'yes' === get_option( self::AUTO_DISABLE_CHECKOUT_ADDONS_OPTION, 'no' );
+	public static function is_auto_redirect_checkout_addons_enabled(): bool {
+		return 'yes' === get_option( self::AUTO_REDIRECT_CHECKOUT_ADDONS_OPTION, 'no' );
 	}
 
 	/**

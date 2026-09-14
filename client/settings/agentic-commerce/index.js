@@ -67,7 +67,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 	const [ isFeatureEnabled, setIsFeatureEnabled ] = useState( false );
 	const [ disableCheckout, setDisableCheckout ] = useState( false );
 	const [ autoExcludeAddons, setAutoExcludeAddons ] = useState( false );
-	const [ autoDisableCheckoutAddons, setAutoDisableCheckoutAddons ] =
+	const [ autoRedirectCheckoutAddons, setAutoRedirectCheckoutAddons ] =
 		useState( false );
 	const [ webhookSecret, setWebhookSecret ] = useState( '' );
 	const [ savedWebhookSecret, setSavedWebhookSecret ] = useState( '' );
@@ -100,8 +100,8 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			setIsFeatureEnabled( result.is_enabled );
 			setDisableCheckout( result.disable_checkout ?? false );
 			setAutoExcludeAddons( result.auto_exclude_addons ?? false );
-			setAutoDisableCheckoutAddons(
-				result.auto_disable_checkout_addons ?? false
+			setAutoRedirectCheckoutAddons(
+				result.auto_redirect_checkout_addons ?? false
 			);
 			setWebhookSecret( result.webhook_secret ?? '' );
 			setSavedWebhookSecret( result.webhook_secret ?? '' );
@@ -126,15 +126,15 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 					is_enabled: isFeatureEnabled,
 					disable_checkout: disableCheckout,
 					auto_exclude_addons: autoExcludeAddons,
-					auto_disable_checkout_addons: autoDisableCheckoutAddons,
+					auto_redirect_checkout_addons: autoRedirectCheckoutAddons,
 					webhook_secret: webhookSecret,
 				},
 			} );
 			setIsFeatureEnabled( result.is_enabled );
 			setDisableCheckout( result.disable_checkout ?? false );
 			setAutoExcludeAddons( result.auto_exclude_addons ?? false );
-			setAutoDisableCheckoutAddons(
-				result.auto_disable_checkout_addons ?? false
+			setAutoRedirectCheckoutAddons(
+				result.auto_redirect_checkout_addons ?? false
 			);
 			setWebhookSecret( result.webhook_secret ?? '' );
 			setSavedWebhookSecret( result.webhook_secret ?? '' );
@@ -154,7 +154,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 		isFeatureEnabled,
 		disableCheckout,
 		autoExcludeAddons,
-		autoDisableCheckoutAddons,
+		autoRedirectCheckoutAddons,
 		webhookSecret,
 	] );
 
@@ -270,9 +270,9 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 											'Instead of excluding add-on / configurator products, keep them discoverable in agents but send shoppers to your store to configure and complete the purchase. Has no effect on products already excluded above.',
 											'woocommerce-gateway-stripe'
 										) }
-										checked={ autoDisableCheckoutAddons }
+										checked={ autoRedirectCheckoutAddons }
 										onChange={
-											setAutoDisableCheckoutAddons
+											setAutoRedirectCheckoutAddons
 										}
 									/>
 								) }

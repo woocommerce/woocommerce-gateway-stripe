@@ -278,7 +278,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 
 		// Only relevant when store-wide hasn't already disabled checkout.
 		$addon_default = ! $store_wide
-			&& WC_Stripe_Agentic_Commerce_Integration::is_auto_disable_checkout_addons_enabled()
+			&& WC_Stripe_Agentic_Commerce_Integration::is_auto_redirect_checkout_addons_enabled()
 			&& self::product_has_addons( $product );
 
 		$default = $store_wide || $addon_default;
@@ -1338,24 +1338,40 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 			$target
 		);
 
+		$has_addons = false;
 		if ( is_array( $meta_keys ) ) {
 			foreach ( $meta_keys as $meta_key ) {
 				if ( ! is_string( $meta_key ) || '' === $meta_key ) {
 					continue;
 				}
 				if ( ! empty( $target->get_meta( $meta_key ) ) ) {
-					return true;
+					$has_addons = true;
+					break;
 				}
 			}
 		}
 
 		// Bundles only vary at runtime when priced individually; the meta is `no`
 		// on fixed-price bundles, which must stay eligible.
-		if ( 'yes' === $target->get_meta( self::ADDON_META_BUNDLE_PRICED_INDIVIDUALLY ) ) {
-			return true;
+		if ( ! $has_addons && 'yes' === $target->get_meta( self::ADDON_META_BUNDLE_PRICED_INDIVIDUALLY ) ) {
+			$has_addons = true;
 		}
 
-		return false;
+		/**
+		 * Whether a product carries add-on / configurator options. Lets plugins
+		 * whose options are not stored in a detectable meta key mark a product as
+		 * configurable (or clear a false positive) directly, instead of only
+		 * extending the meta-key set.
+		 *
+		 * Uses the shareable `woocommerce_` prefix so non-Stripe Agentic Commerce
+		 * integrations can hook the same decision.
+		 *
+		 * @since 11.1.0
+		 * @param bool        $has_addons Whether meta-key detection flagged the product.
+		 * @param \WC_Product $product    The product (or variation) inspected.
+		 * @param \WC_Product $target     The product whose meta was read (parent for variations).
+		 */
+		return (bool) apply_filters( 'woocommerce_agentic_commerce_product_has_addon', $has_addons, $product, $target );
 	}
 
 	/**
