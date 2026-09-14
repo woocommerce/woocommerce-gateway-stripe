@@ -542,7 +542,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		if ( 'payment_intent' === ( $intent->object ?? '' )
 			&& in_array( $intent->status ?? '', WC_Stripe_Intent_Status::SUCCESSFUL_STATUSES, true )
 		) {
-			$this->settle_paid_order_instead_of_cancelling( $order, $intent );
+			$this->maybe_process_paid_order_instead_of_cancelling( $order, $intent );
 			return false;
 		}
 
@@ -563,17 +563,17 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Settles a pending order whose PaymentIntent Stripe reports as paid (or as an async
+	 * Processes a pending order whose PaymentIntent Stripe reports as paid (or as an async
 	 * payment still processing), via process_response()
 	 * — the same path a webhook would take. If a concurrent process holds the payment lock,
-	 * nothing is settled here; blocking the cancellation is enough and the lock holder finishes.
+	 * nothing is processed here; blocking the cancellation is enough and the lock holder finishes.
 	 *
 	 * @since 11.1.0
 	 *
 	 * @param WC_Order $order  The pending order about to be cancelled as unpaid.
 	 * @param object   $intent The PaymentIntent fetched from Stripe.
 	 */
-	private function settle_paid_order_instead_of_cancelling( $order, $intent ): void {
+	private function maybe_process_paid_order_instead_of_cancelling( $order, $intent ): void {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		if ( $order_helper->lock_order_payment( $order ) ) {
@@ -607,7 +607,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					'order_status'  => $order->get_status( 'edit' ),
 					'intent_id'     => $intent_id,
 					'intent_status' => $intent_status,
-					'charge_id      => $charge->id ?? '(no id)',
+					'charge_id'     => $charge->id ?? '(no id)',
 				]
 			);
 
