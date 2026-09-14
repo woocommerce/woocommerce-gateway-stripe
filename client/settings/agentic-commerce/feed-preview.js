@@ -225,7 +225,17 @@ const AgenticCommerceFeedPreview = () => {
 								</p>
 								<ul>
 									{ shippingWarnings.map( ( warning, i ) => (
-										<li key={ i }>{ warning }</li>
+										<li key={ i }>
+											{ warning.edit_link ? (
+												<ExternalLink
+													href={ warning.edit_link }
+												>
+													{ warning.message }
+												</ExternalLink>
+											) : (
+												warning.message
+											) }
+										</li>
 									) ) }
 								</ul>
 							</Notice>

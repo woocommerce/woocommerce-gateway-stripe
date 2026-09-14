@@ -509,8 +509,15 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 		try {
 			$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
 
-			$joined = implode( "\n", $preview['shipping_warnings'] );
+			$joined = implode( "\n", array_column( $preview['shipping_warnings'], 'message' ) );
 			$this->assertStringContainsString( 'Preview No-Flat-Rate Zone', $joined );
+
+			// The warning deep-links to that zone's shipping settings.
+			$links = implode( "\n", array_column( $preview['shipping_warnings'], 'edit_link' ) );
+			$this->assertStringContainsString(
+				'page=wc-settings&tab=shipping&zone_id=' . $zone->get_id(),
+				$links
+			);
 		} finally {
 			$zone->delete();
 		}
@@ -535,7 +542,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 		try {
 			$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
 
-			$joined = implode( "\n", $preview['shipping_warnings'] );
+			$joined = implode( "\n", array_column( $preview['shipping_warnings'], 'message' ) );
 			$this->assertStringContainsString( 'Locations not covered by your other zones', $joined );
 			$this->assertStringNotContainsString( 'Preview Covered Zone', $joined );
 		} finally {

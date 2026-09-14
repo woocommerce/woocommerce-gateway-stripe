@@ -335,7 +335,12 @@ describe( 'AgenticCommerceFeedPreview', () => {
 		apiFetch.mockResolvedValue( {
 			...PREVIEW_RESPONSE,
 			shipping_warnings: [
-				'Shipping zone "Europe" has no flat-rate method, so the feed carries no shipping for it (live-rate / calculated methods price at checkout).',
+				{
+					message:
+						'Shipping zone "Europe" has no flat-rate method, so the feed carries no shipping for it (live-rate / calculated methods price at checkout).',
+					edit_link:
+						'/wp-admin/admin.php?page=wc-settings&tab=shipping&zone_id=1',
+				},
 			],
 		} );
 

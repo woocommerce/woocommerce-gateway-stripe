@@ -1513,7 +1513,10 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 			$diagnostics = $mapper->get_shipping_diagnostics();
 
 			$this->assertArrayHasKey( 'zones_without_flat_rate', $diagnostics );
-			$this->assertContains( 'Diagnostics Test Zone', $diagnostics['zones_without_flat_rate'] );
+			$by_id = array_column( $diagnostics['zones_without_flat_rate'], 'name', 'id' );
+			// Entries carry the zone id so the preview can deep-link to its settings.
+			$this->assertArrayHasKey( $zone->get_id(), $by_id );
+			$this->assertSame( 'Diagnostics Test Zone', $by_id[ $zone->get_id() ] );
 		} finally {
 			$zone->delete();
 		}
@@ -1538,14 +1541,15 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 			$mapper      = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
 			$diagnostics = $mapper->get_shipping_diagnostics();
 
+			$flagged_names = array_column( $diagnostics['zones_without_flat_rate'], 'name' );
 			$this->assertNotContains(
 				'Covered Zone',
-				$diagnostics['zones_without_flat_rate'],
+				$flagged_names,
 				'A named zone with a flat-cost method must not be flagged.'
 			);
 			$this->assertContains(
 				'Locations not covered by your other zones',
-				$diagnostics['zones_without_flat_rate'],
+				$flagged_names,
 				'Zone 0 must still be diagnosed when named zones exist.'
 			);
 		} finally {
@@ -1571,7 +1575,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 
 			$this->assertContains(
 				'Locations not covered by your other zones',
-				$diagnostics['zones_without_flat_rate'],
+				array_column( $diagnostics['zones_without_flat_rate'], 'name' ),
 				'A disabled flat rate must not satisfy the zone.'
 			);
 		} finally {
