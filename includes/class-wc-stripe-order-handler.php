@@ -587,7 +587,16 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			$charge = $this->get_latest_charge_from_intent( $intent );
 
 			if ( ! is_object( $charge ) ) {
-				WC_Stripe_Logger::warning( "PaymentIntent {$intent_id} reports status {$intent_status} but has no charge; blocked cancellation of order {$order->get_id()} without settling it." );
+				WC_Stripe_Logger::warning(
+					"PaymentIntent {$intent_id} reports status {$intent_status} but has no charge; order cancellation blocked for order {$order->get_id()}, but order status was not updated from {$order->get_status()}.",
+					[
+						'order_id'      => $order->get_id(),
+						'order_status'  => $order->get_status( 'edit' ),
+						'intent_id'     => $intent_id,
+						'intent_status' => $intent_status,
+						'charge'        => $charge,
+					]
+				);
 				return;
 			}
 
