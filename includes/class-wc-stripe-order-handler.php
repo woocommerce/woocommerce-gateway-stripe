@@ -536,11 +536,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			return $cancel_order;
 		}
 
-		// A lost or misrouted webhook leaves a paid order looking unpaid locally, so ask
-		// Stripe before cancelling — cancelling would orphan the captured payment. Async
-		// methods (e.g. Cash App Pay, ACH) sit at `processing` while the charge clears and
-		// count as paid here too; process_response() parks those orders on-hold until the
-		// charge settles.
+		// Before cancelling, check with Stripe if the payment intent has already been paid or
+		// is still being processed (which is common for async methods like ACH and Cash App Pay).
+		// For those cases, we want to mimic the processing from webhooks.
 		if ( 'payment_intent' === ( $intent->object ?? '' )
 			&& in_array( $intent->status ?? '', WC_Stripe_Intent_Status::SUCCESSFUL_STATUSES, true )
 		) {
