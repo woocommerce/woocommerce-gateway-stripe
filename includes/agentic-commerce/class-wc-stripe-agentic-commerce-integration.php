@@ -114,13 +114,13 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	/**
 	 * Option key ('yes'/'no', default off) for defaulting `disable_checkout=true`
 	 * on detected configurator products so agents redirect shoppers to the store
-	 * while the products still syndicate for discovery. Exclude wins over this
+	 * while the products are still uploaded to Stripe for discovery. Exclude wins over this
 	 * (an excluded product is never in the feed).
 	 *
 	 * @var string
 	 * @since 10.9.0
 	 */
-	public const AUTO_DISABLE_CHECKOUT_ADDONS_OPTION = 'wc_stripe_agentic_commerce_auto_disable_checkout_addons';
+	public const AUTO_REDIRECT_CHECKOUT_ADDONS_OPTION = 'wc_stripe_agentic_commerce_auto_redirect_checkout_addons';
 
 	/**
 	 * Option key storing the content hash, upload timestamp, and Stripe file id
