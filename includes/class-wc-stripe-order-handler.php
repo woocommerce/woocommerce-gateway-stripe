@@ -597,7 +597,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 			$this->process_response( $charge, $order );
 		} catch ( Exception $e ) {
-			WC_Stripe_Logger::error( "Failed to settle order {$order->get_id()} from its PaymentIntent before cancellation: " . $e->getMessage() );
+			WC_Stripe_Logger::error( "Failed to update order {$order->get_id()} from its PaymentIntent before cancellation: " . $e->getMessage() );
 		} finally {
 			$order_helper->unlock_order_payment( $order );
 		}
