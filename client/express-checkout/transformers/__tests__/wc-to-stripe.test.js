@@ -500,6 +500,24 @@ describe( 'wc-to-stripe transformers', () => {
 		} );
 	} );
 
+	describe( 'transformLabeledDisplayItems', () => {
+		it( 'uses a negative amount for discounts', () => {
+			expect(
+				transformLabeledDisplayItems( [
+					{ label: 'Subtotal', amount: 5500 },
+					{
+						key: 'total_discount',
+						label: 'Discount',
+						amount: 5225,
+					},
+				] )
+			).toStrictEqual( [
+				{ name: 'Subtotal', amount: 5500 },
+				{ name: 'Discount', amount: -5225 },
+			] );
+		} );
+	} );
+
 	describe( 'transformCartDataForShippingRates', () => {
 		const makeRate = ( overrides = {} ) => ( {
 			rate_id: 'flat_rate:1',

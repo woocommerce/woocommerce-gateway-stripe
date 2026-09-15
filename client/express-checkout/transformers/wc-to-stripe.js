@@ -2,7 +2,10 @@ import { normalizeLineItems } from '../utils/normalize';
 import { __ } from '@wordpress/i18n';
 import { applyFilters } from '@wordpress/hooks';
 import { decodeEntities } from '@wordpress/html-entities';
-import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
+import {
+	getExpressCheckoutData,
+	normalizeLineItems,
+} from 'wcstripe/express-checkout/utils';
 import { SHIPPING_RATES_UPPER_LIMIT_COUNT } from 'wcstripe/stripe-utils/constants';
 
 /**
