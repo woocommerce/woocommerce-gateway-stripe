@@ -172,5 +172,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Stop disabling Level 3 data account-wide when Stripe rejects it for a request that declares a non-card payment method
 * Fix - Open testing and payment settings documentation links in new tabs
 * Fix - Complete express checkout payments on the Pay for Order page when the checkout phone field is required, and preserve the order's saved billing phone
+* Fix - Accept shipping addresses in the express checkout wallet sheet for free-trial subscription carts whose shipping is charged with the recurring payments
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
