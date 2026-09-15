@@ -92,6 +92,7 @@ const config = {
 				'**/becs.spec.js',
 				'**/isk.spec.js',
 				'**/free-trial-link.spec.js',
+				'**/pay-for-order-link.spec.js',
 			],
 			dependencies: [ 'default-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
@@ -108,6 +109,14 @@ const config = {
 			// timeout and cancel the other specs.
 			name: 'express-checkout-link',
 			testMatch: '**/free-trial-link.spec.js',
+			dependencies: [ 'default-setup' ],
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			// Toggles the store-wide checkout phone-field setting, so it runs
+			// in its own job away from every other spec.
+			name: 'express-checkout-pay-for-order',
+			testMatch: '**/pay-for-order-link.spec.js',
 			dependencies: [ 'default-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
