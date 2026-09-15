@@ -318,6 +318,20 @@ describe( 'WCStripeAPI', () => {
 
 			expect( payload.shipping_address ).toEqual( emptyShippingAddress );
 		} );
+
+		it( 'does not mutate the caller’s payment data', () => {
+			const paymentData = {
+				billing_address: { first_name: 'Jane', phone: '' },
+				shipping_address: { first_name: 'Wallet' },
+			};
+
+			payForOrder( orderDetails(), paymentData );
+
+			expect( paymentData ).toEqual( {
+				billing_address: { first_name: 'Jane', phone: '' },
+				shipping_address: { first_name: 'Wallet' },
+			} );
+		} );
 	} );
 
 	describe( 'createIntent', () => {
