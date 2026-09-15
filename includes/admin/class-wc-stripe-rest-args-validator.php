@@ -186,6 +186,9 @@ abstract class WC_Stripe_REST_Args_Validator {
 	 * @return bool
 	 */
 	public static function validate_non_empty_string( $param_value, $request, $param_name ) {
+		if ( ! is_string( $param_value ) ) {
+			return false;
+		}
 		return '' !== trim( $param_value );
 	}
 }

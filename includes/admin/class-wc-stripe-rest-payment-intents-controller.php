@@ -11,9 +11,6 @@ defined( 'ABSPATH' ) || exit;
  * @since 10.9.0
  */
 class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Controller {
-
-	protected const PAYMENT_INTENT_ID_PATTERN = 'pi_[A-Za-z0-9_]+';
-
 	/**
 	 * Endpoint path.
 	 *
