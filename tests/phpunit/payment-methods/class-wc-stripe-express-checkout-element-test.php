@@ -1075,7 +1075,7 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	/**
 	 * The pay-for-order payload must carry the order's saved billing phone so the
 	 * client can preserve it when the wallet sheet didn't collect one — the Store
-	 * API order-pay route otherwise overwrites it with an empty value. See STRIPE-1449.
+	 * API order-pay route otherwise overwrites it with an empty value.
 	 *
 	 * @return void
 	 */

@@ -614,7 +614,7 @@ describe( 'Express Checkout pay-for-order phone collection', () => {
 
 	// The order-pay Store API route replaces the order's billing address with the
 	// wallet payload before validating it, so if the sheet never collects a phone
-	// the payment 400s whenever the checkout phone field is required (STRIPE-1449).
+	// the payment 400s whenever the checkout phone field is required.
 	it.each`
 		fieldState      | needsPayerPhone
 		${ 'required' } | ${ true }
