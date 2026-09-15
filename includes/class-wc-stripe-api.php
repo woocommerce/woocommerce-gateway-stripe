@@ -640,7 +640,10 @@ class WC_Stripe_API {
 			return $request;
 		}
 
-		$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
+		$mode = self::get_mode_for_active_secret_key();
+		if ( null === $mode ) {
+			return $request;
+		}
 
 		if ( ! $stripe->connect->is_connected_via_oauth( $mode ) ) {
 			return $request;
