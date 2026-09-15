@@ -686,7 +686,7 @@ const normalizeCountryForStripe = ( country ) => {
  * form and returns to use in Stripe Custom Checkout `confirm()` args.
  *
  * @param {Object} currentSession The current session object.
- * @return {Object} Partial confirm args: `billingAddress`, optional `shippingAddress`, optional `email`, optional `phoneNumber`.
+ * @return {Object} Partial confirm args: optional `billingAddress`, `shippingAddress`, `email`, and `phoneNumber`.
  */
 export const getUserDataForCheckoutSession = ( currentSession = null ) => {
 	const result = {};
@@ -716,7 +716,9 @@ export const getUserDataForCheckoutSession = ( currentSession = null ) => {
 				postal_code: getFieldValue( 'billing_postcode' ) || undefined,
 			},
 		};
-		result.billingAddress = billingAddress;
+		if ( billingCountry ) {
+			result.billingAddress = billingAddress;
+		}
 	}
 
 	if ( ! currentSession?.shippingAddress ) {
