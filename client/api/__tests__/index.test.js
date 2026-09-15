@@ -223,7 +223,7 @@ describe( 'WCStripeAPI', () => {
 		// The Store API order-pay route replaces the order's saved billing address
 		// with this payload before validating it, so an empty phone from a wallet
 		// sheet that never asked for one would wipe the order's saved phone.
-		it( 'falls back to the order’s saved billing phone when the wallet returned none', () => {
+		it( "falls back to the order's saved billing phone when the wallet returned none", () => {
 			const [ , payload ] = payForOrder( orderDetails(), {
 				billing_address: { first_name: 'Jane', phone: '' },
 			} );
@@ -253,7 +253,7 @@ describe( 'WCStripeAPI', () => {
 		// order's saved one. Its phone is then backfilled from billing, since
 		// the route validates it with the same requiredness — mirroring
 		// cart/checkout, which send one wallet phone for both.
-		it( 'replaces the shipping address with the order’s saved one, backfilling its phone', () => {
+		it( "replaces the shipping address with the order's saved one, backfilling its phone", () => {
 			const [ , payload ] = payForOrder( orderDetails(), {
 				billing_address: { first_name: 'Jane', phone: '' },
 				shipping_address: { first_name: 'Wallet' },
@@ -319,7 +319,7 @@ describe( 'WCStripeAPI', () => {
 			expect( payload.shipping_address ).toEqual( emptyShippingAddress );
 		} );
 
-		it( 'does not mutate the caller’s payment data', () => {
+		it( "does not mutate the caller's payment data", () => {
 			const paymentData = {
 				billing_address: { first_name: 'Jane', phone: '' },
 				shipping_address: { first_name: 'Wallet' },

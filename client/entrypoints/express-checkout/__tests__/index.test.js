@@ -96,6 +96,27 @@ const loadEntrypoint = () => {
 	require( '../index.js' );
 };
 
+// Stripe button stub that captures the bound event handlers so tests can
+// invoke them directly. The variation-breakdown describe keeps its own richer
+// stub, which also collects every created Elements group.
+const stubStripeButtonHandlers = () => {
+	const handlers = {};
+	const button = {
+		on: ( eventName, callback ) => {
+			handlers[ eventName ] = callback;
+			return button;
+		},
+		mount: jest.fn(),
+	};
+	mockGetStripe.mockReturnValue( {
+		elements: jest.fn( () => ( {
+			create: jest.fn( () => button ),
+			update: jest.fn(),
+		} ) ),
+	} );
+	return handlers;
+};
+
 describe( 'Express Checkout cart/checkout bootstrap', () => {
 	beforeEach( () => {
 		// Reset module state so the consume-once `cartBootstrapConsumed` flag
@@ -464,24 +485,6 @@ describe( 'Express Checkout per-method location gating', () => {
 } );
 
 describe( 'Express Checkout order failures', () => {
-	const stubStripeButton = () => {
-		const handlers = {};
-		const button = {
-			on: ( evt, cb ) => {
-				handlers[ evt ] = cb;
-				return button;
-			},
-			mount: jest.fn(),
-		};
-		mockGetStripe.mockReturnValue( {
-			elements: jest.fn( () => ( {
-				create: jest.fn( () => button ),
-				update: jest.fn(),
-			} ) ),
-		} );
-		return handlers;
-	};
-
 	beforeEach( () => {
 		jest.resetModules();
 		mockGetStripe.mockReset();
@@ -516,7 +519,7 @@ describe( 'Express Checkout order failures', () => {
 	// sheet open with nothing on screen. The third argument is the removed
 	// `isOrderError` opt-out: passing it must change nothing.
 	it( 'fails the wallet sheet and shows the message when the order errors', async () => {
-		const handlers = stubStripeButton();
+		const handlers = stubStripeButtonHandlers();
 		loadEntrypoint();
 
 		// Resolve the mocks from the same module registry the entrypoint loaded from;
@@ -552,24 +555,6 @@ describe( 'Express Checkout order failures', () => {
 } );
 
 describe( 'Express Checkout pay-for-order phone collection', () => {
-	const stubStripeButton = () => {
-		const handlers = {};
-		const button = {
-			on: ( eventName, callback ) => {
-				handlers[ eventName ] = callback;
-				return button;
-			},
-			mount: jest.fn(),
-		};
-		mockGetStripe.mockReturnValue( {
-			elements: jest.fn( () => ( {
-				create: jest.fn( () => button ),
-				update: jest.fn(),
-			} ) ),
-		} );
-		return handlers;
-	};
-
 	beforeEach( () => {
 		jest.resetModules();
 		mockGetStripe.mockReset();
@@ -625,7 +610,7 @@ describe( 'Express Checkout pay-for-order phone collection', () => {
 			global.wc_stripe_express_checkout_params =
 				payForOrderParams( needsPayerPhone );
 
-			const handlers = stubStripeButton();
+			const handlers = stubStripeButtonHandlers();
 			loadEntrypoint();
 
 			const event = {
