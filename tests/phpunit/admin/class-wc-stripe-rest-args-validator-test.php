@@ -245,4 +245,32 @@ class WC_Stripe_REST_Args_Validator_Test extends WP_UnitTestCase {
 	public function test_is_valid_timestamp( $param_value, $expect ) {
 		$this->assertEquals( WC_Stripe_REST_Args_Validator::is_valid_timestamp( $param_value ), $expect );
 	}
+
+	public static function provide_non_empty_string(): array {
+		return [
+			[
+				'abc',
+				true,
+			],
+			[
+				'',
+				false,
+			],
+			[
+				123,
+				false,
+			],
+			[
+				[],
+				false,
+			],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_non_empty_string
+	*/
+	public function test_validate_non_empty_string( $param_value, $expect ) {
+		$this->assertEquals( WC_Stripe_REST_Args_Validator::validate_non_empty_string( $param_value, new WP_REST_Request(), 'test_param' ), $expect );
+	}
 }
