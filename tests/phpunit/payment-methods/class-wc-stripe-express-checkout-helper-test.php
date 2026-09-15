@@ -521,6 +521,68 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Stripe requires the normalized display-item sum to stay at or below the total.
+	 *
+	 * @dataProvider provide_get_display_items_for_total
+	 */
+	public function test_get_display_items_for_total( array $display_items, int $total_amount, array $expected_items ): void {
+		$helper = new WC_Stripe_Express_Checkout_Helper();
+
+		$this->assertSame( $expected_items, $helper->get_display_items_for_total( $display_items, $total_amount ) );
+	}
+
+	/**
+	 * Covers the strict upper bound and both display-item discount formats.
+	 *
+	 * @return array
+	 */
+	public function provide_get_display_items_for_total(): array {
+		$subtotal = [
+			'label'  => 'Subtotal',
+			'amount' => 1000,
+		];
+
+		$keyed_discount = [
+			'key'    => 'total_discount',
+			'label'  => 'Discount',
+			'amount' => 100,
+		];
+
+		$signed_discount = [
+			'label'  => 'Discount',
+			'amount' => -100,
+		];
+
+		return [
+			'display items exceed total'     => [
+				'display items'  => [ $subtotal ],
+				'total amount'   => 999,
+				'expected items' => [],
+			],
+			'display items equal total'      => [
+				'display items'  => [ $subtotal ],
+				'total amount'   => 1000,
+				'expected items' => [ $subtotal ],
+			],
+			'display items below total'      => [
+				'display items'  => [ $subtotal ],
+				'total amount'   => 1001,
+				'expected items' => [ $subtotal ],
+			],
+			'keyed discount is negative'     => [
+				'display items'  => [ $subtotal, $keyed_discount ],
+				'total amount'   => 900,
+				'expected items' => [ $subtotal, $keyed_discount ],
+			],
+			'signed discount stays negative' => [
+				'display items'  => [ $subtotal, $signed_discount ],
+				'total amount'   => 900,
+				'expected items' => [ $subtotal, $signed_discount ],
+			],
+		];
+	}
+
+	/**
 	 * Stripe rejects wallet updates when the normalized display item sum exceeds the total.
 	 *
 	 * @dataProvider provide_build_display_items_totals
