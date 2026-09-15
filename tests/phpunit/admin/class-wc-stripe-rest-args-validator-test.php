@@ -20,40 +20,40 @@ class WC_Stripe_REST_Args_Validator_Test extends WP_UnitTestCase {
 
 	public static function provide_payment_intent_id_pagination_cursor(): array {
 		return [
-			'valid_starting_after' => [
+			'valid_starting_after'                  => [
 				'starting_after',
 				[
 					'starting_after' => 'pi_test',
-				], 
+				],
 				true,
 			],
-			'invalid_starting_after' => [
+			'invalid_starting_after'                => [
 				'starting_after',
 				[
 					'starting_after' => 'xyz',
-				], 
+				],
 				false,
 			],
-			'valid_ending_before' => [
+			'valid_ending_before'                   => [
 				'ending_before',
 				[
 					'ending_before' => 'pi_test',
-				], 
+				],
 				true,
 			],
-			'invalid_ending_before' => [
+			'invalid_ending_before'                 => [
 				'ending_before',
 				[
 					'ending_before' => [],
-				], 
+				],
 				false,
 			],
 			'both_starting_after_and_ending_before' => [
 				'starting_after',
 				[
 					'starting_after' => 'pi_test',
-					'ending_before' => 'pi_test',
-				], 
+					'ending_before'  => 'pi_test',
+				],
 				false,
 			],
 		];
@@ -65,7 +65,7 @@ class WC_Stripe_REST_Args_Validator_Test extends WP_UnitTestCase {
 	public function test_validate_payment_intent_id_pagination_cursor( $test_param_name, $all_params, $expected ) {
 		$request = new WP_REST_Request();
 
-		foreach( $all_params as $param_name => $param_value ) {
+		foreach ( $all_params as $param_name => $param_value ) {
 			$request->set_param( $param_name, $param_value );
 
 			if ( $param_name === $test_param_name ) {
@@ -88,40 +88,40 @@ class WC_Stripe_REST_Args_Validator_Test extends WP_UnitTestCase {
 
 	public static function provide_payout_id_pagination_cursor(): array {
 		return [
-			'valid_starting_after' => [
+			'valid_starting_after'                  => [
 				'starting_after',
 				[
 					'starting_after' => 'po_test',
-				], 
+				],
 				true,
 			],
-			'invalid_starting_after' => [
+			'invalid_starting_after'                => [
 				'starting_after',
 				[
 					'starting_after' => 'xyz',
-				], 
+				],
 				false,
 			],
-			'valid_ending_before' => [
+			'valid_ending_before'                   => [
 				'ending_before',
 				[
 					'ending_before' => 'po_test',
-				], 
+				],
 				true,
 			],
-			'invalid_ending_before' => [
+			'invalid_ending_before'                 => [
 				'ending_before',
 				[
 					'ending_before' => [],
-				], 
+				],
 				false,
 			],
 			'both_starting_after_and_ending_before' => [
 				'starting_after',
 				[
 					'starting_after' => 'po_test',
-					'ending_before' => 'po_test',
-				], 
+					'ending_before'  => 'po_test',
+				],
 				false,
 			],
 		];
@@ -133,7 +133,7 @@ class WC_Stripe_REST_Args_Validator_Test extends WP_UnitTestCase {
 	public function test_validate_payout_id_pagination_cursor( $test_param_name, $all_params, $expected ) {
 		$request = new WP_REST_Request();
 
-		foreach( $all_params as $param_name => $param_value ) {
+		foreach ( $all_params as $param_name => $param_value ) {
 			$request->set_param( $param_name, $param_value );
 
 			if ( $param_name === $test_param_name ) {
@@ -162,25 +162,25 @@ class WC_Stripe_REST_Args_Validator_Test extends WP_UnitTestCase {
 			],
 			[
 				[
-					'lt' => '1779802569'
+					'lt' => '1779802569',
 				],
 				true,
 			],
 			[
 				[
-					'lte' => '1779802569'
+					'lte' => '1779802569',
 				],
 				true,
 			],
 			[
 				[
-					'gt' => '1779802569'
+					'gt' => '1779802569',
 				],
 				true,
 			],
 			[
 				[
-					'gte' => '1779802569'
+					'gte' => '1779802569',
 				],
 				true,
 			],
@@ -197,7 +197,7 @@ class WC_Stripe_REST_Args_Validator_Test extends WP_UnitTestCase {
 			],
 			[
 				[
-					'ltxyz' => '1779802569'
+					'ltxyz' => '1779802569',
 				],
 				false,
 			],
@@ -243,6 +243,6 @@ class WC_Stripe_REST_Args_Validator_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_unix_timestamp
 	*/
 	public function test_is_valid_timestamp( $param_value, $expect ) {
-		$this->assertEquals(  WC_Stripe_REST_Args_Validator::is_valid_timestamp( $param_value ), $expect );
+		$this->assertEquals( WC_Stripe_REST_Args_Validator::is_valid_timestamp( $param_value ), $expect );
 	}
 }

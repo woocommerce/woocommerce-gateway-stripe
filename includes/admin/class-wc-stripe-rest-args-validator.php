@@ -6,12 +6,11 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * 
+ * Class for validating Stripe API endpoint specific argument types
  *
  * @since 10.9.0
  */
-abstract class WC_Stripe_REST_Args_Validator
-{
+abstract class WC_Stripe_REST_Args_Validator {
 	public const CUSTOMER_ID_PATTERN       = 'cus_[A-Za-z0-9_]+';
 	public const PAYMENT_INTENT_ID_PATTERN = 'pi_[A-Za-z0-9_]+';
 	public const PAYOUT_ID_PATTERN         = 'po_[A-Za-z0-9_]+';
@@ -76,7 +75,7 @@ abstract class WC_Stripe_REST_Args_Validator
 	 *
 	 * @return WP_Error|bool
 	 */
-	public static function validate_payment_intent_pagination_cursor($param_value, $request, $param_name) {
+	public static function validate_payment_intent_pagination_cursor( $param_value, $request, $param_name ) {
 		return self::validate_pagination_cursor( $param_value, $request, $param_name, self::PAYMENT_INTENT_ID_PATTERN );
 	}
 
@@ -89,7 +88,7 @@ abstract class WC_Stripe_REST_Args_Validator
 	 *
 	 * @return WP_Error|bool
 	 */
-	public static function validate_payout_pagination_cursor($param_value, $request, $param_name) {
+	public static function validate_payout_pagination_cursor( $param_value, $request, $param_name ) {
 		return self::validate_pagination_cursor( $param_value, $request, $param_name, self::PAYOUT_ID_PATTERN );
 	}
 
