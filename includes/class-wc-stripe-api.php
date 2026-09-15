@@ -625,6 +625,8 @@ class WC_Stripe_API {
 	/**
 	 * Ensure that payment intent POST requests for OAuth-connected accounts do not include platform fee fields.
 	 *
+	 * @since 11.1.0
+	 *
 	 * @param string $method  The HTTP method for the request.
 	 * @param string $api     The API endpoint for the request.
 	 * @param array  $request The possibly updated request body.
