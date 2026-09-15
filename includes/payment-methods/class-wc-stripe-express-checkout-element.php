@@ -365,6 +365,7 @@ class WC_Stripe_Express_Checkout_Element {
 			];
 		}
 
+		$total_amount           = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
 		$data['order']          = $order->get_id();
 		$data['orderDetails']   = [
 			'orderKey'        => $order->get_order_key(),
@@ -382,12 +383,12 @@ class WC_Stripe_Express_Checkout_Element {
 				'phone'      => $order->get_shipping_phone(),
 			],
 		];
-		$data['displayItems']   = $items;
+		$data['displayItems']   = $this->express_checkout_helper->get_display_items_for_total( $items, $total_amount );
 		$data['currency']       = strtolower( $currency );
 		$data['needs_shipping'] = false; // This should be already entered/prepared.
 		$data['total']          = [
 			'label'   => $this->express_checkout_helper->get_total_label(),
-			'amount'  => WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency ),
+			'amount'  => $total_amount,
 			'pending' => true,
 		];
 

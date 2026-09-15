@@ -146,7 +146,7 @@ export const transformCartDataForDisplayItems = ( rawCartData ) => {
 };
 
 /**
- * Transforms the `displayItems` from the Stripe ECE to the format expected by the Store API.
+ * Transforms labeled display items to the format expected by Stripe ECE.
  *
  * @param {Array} displayItems
  * @return {Array} The transformed display items.

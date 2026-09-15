@@ -316,6 +316,26 @@ describe( 'wc-to-stripe transformers', () => {
 		} );
 	} );
 
+	describe( 'transformLabeledDisplayItems', () => {
+		it( 'normalizes keyed discounts without changing unkeyed amounts', () => {
+			expect(
+				transformLabeledDisplayItems( [
+					{ label: 'Subtotal', amount: 1000 },
+					{
+						key: 'total_discount',
+						label: 'Discount',
+						amount: 100,
+					},
+					{ label: 'Refund', amount: -50 },
+				] )
+			).toStrictEqual( [
+				{ name: 'Subtotal', amount: 1000 },
+				{ name: 'Discount', amount: -100 },
+				{ name: 'Refund', amount: -50 },
+			] );
+		} );
+	} );
+
 	describe( 'transformPrice', () => {
 		afterEach( () => {
 			delete global.wc_stripe_express_checkout_params.checkout

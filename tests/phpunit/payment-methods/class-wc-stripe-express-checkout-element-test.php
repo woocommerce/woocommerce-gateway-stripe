@@ -1073,6 +1073,29 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Stripe rejects Pay for Order wallets when the item breakdown exceeds the order total.
+	 *
+	 * @return void
+	 */
+	public function test_localize_pay_for_order_omits_items_exceeding_total(): void {
+		wp_deregister_script( 'wc_stripe_express_checkout' );
+
+		$order = WC_Helper_Order::create_order( 1, null, [ 'currency' => 'JPY' ] );
+		$order->set_total( 49 );
+		$order->save();
+
+		try {
+			$this->element->localize_pay_for_order_page_scripts( $order );
+			$params = $this->get_localized_pay_for_order_params();
+
+			$this->assertSame( [], $params['displayItems'] );
+			$this->assertSame( 49, $params['total']['amount'] );
+		} finally {
+			WC_Helper_Order::delete_order( $order->get_id() );
+		}
+	}
+
+	/**
 	 * Decode the localized `wcStripeExpressCheckoutPayForOrderParams` payload back into an array.
 	 *
 	 * `wp_localize_script` stores it as `var wcStripeExpressCheckoutPayForOrderParams = {json};`.
