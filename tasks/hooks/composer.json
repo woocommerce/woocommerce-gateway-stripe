@@ -17,7 +17,18 @@
             "@generate:markdown"
         ]
     },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/daledupreez/wp-hooks-generator"
+        }
+    ],
     "require-dev": {
-        "wp-hooks/generator": "^1"
+        "wp-hooks/generator": "dev-try/add-support-for-deprecated-actions-and-filters#3405335054130e575078d947d6663a5764876a07"
+    },
+    "extra": {
+        "wp-hooks": {
+            "include-deprecated": true
+        }
     }
 }
