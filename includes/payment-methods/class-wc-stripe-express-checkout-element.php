@@ -369,6 +369,8 @@ class WC_Stripe_Express_Checkout_Element {
 		$data['orderDetails']   = [
 			'orderKey'        => $order->get_order_key(),
 			'billingEmail'    => $order->get_billing_email(),
+			'billingPhone'    => $order->get_billing_phone(),
+			'needsShipping'   => $order->needs_shipping(),
 			'shippingAddress' => [
 				'first_name' => $order->get_shipping_first_name(),
 				'last_name'  => $order->get_shipping_last_name(),

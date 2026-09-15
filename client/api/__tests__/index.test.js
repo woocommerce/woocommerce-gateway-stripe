@@ -201,6 +201,125 @@ describe( 'WCStripeAPI', () => {
 		} );
 	} );
 
+	describe( 'expressCheckoutECEPayForOrder', () => {
+		const orderDetails = ( overrides = {} ) => ( {
+			orderKey: 'wc_order_test_key',
+			billingEmail: 'jane.doe@example.com',
+			billingPhone: '+14155550123',
+			needsShipping: true,
+			shippingAddress: { first_name: 'Jane', phone: '' },
+			...overrides,
+		} );
+
+		const payForOrder = ( details, paymentData ) => {
+			const api = new WCStripeAPI( { key: 'pk_test_123', locale: 'en' } );
+			const postSpy = jest
+				.spyOn( api, 'postToStoreApi' )
+				.mockResolvedValue( {} );
+			api.expressCheckoutECEPayForOrder( 660, details, paymentData );
+			return postSpy.mock.calls[ 0 ];
+		};
+
+		// The Store API order-pay route replaces the order's saved billing address
+		// with this payload before validating it, so an empty phone from a wallet
+		// sheet that never asked for one would wipe the order's saved phone.
+		it( 'falls back to the order’s saved billing phone when the wallet returned none', () => {
+			const [ , payload ] = payForOrder( orderDetails(), {
+				billing_address: { first_name: 'Jane', phone: '' },
+			} );
+
+			expect( payload.billing_address.phone ).toBe( '+14155550123' );
+		} );
+
+		it( 'keeps the wallet-provided phone over the saved one', () => {
+			const [ , payload ] = payForOrder( orderDetails(), {
+				billing_address: { first_name: 'Jane', phone: '+19998887777' },
+			} );
+
+			expect( payload.billing_address.phone ).toBe( '+19998887777' );
+		} );
+
+		it( 'leaves the phone empty when the order has none saved either', () => {
+			const [ , payload ] = payForOrder(
+				orderDetails( { billingPhone: '' } ),
+				{ billing_address: { first_name: 'Jane', phone: '' } }
+			);
+
+			expect( payload.billing_address.phone ).toBe( '' );
+		} );
+
+		// The pay-for-order sheet never collects shipping, so the wallet's
+		// synthesized shipping address is empty and must not overwrite the
+		// order's saved one. Its phone is then backfilled from billing, since
+		// the route validates it with the same requiredness — mirroring
+		// cart/checkout, which send one wallet phone for both.
+		it( 'replaces the shipping address with the order’s saved one, backfilling its phone', () => {
+			const [ , payload ] = payForOrder( orderDetails(), {
+				billing_address: { first_name: 'Jane', phone: '' },
+				shipping_address: { first_name: 'Wallet' },
+			} );
+
+			expect( payload.shipping_address ).toEqual( {
+				first_name: 'Jane',
+				phone: '+14155550123',
+			} );
+		} );
+
+		it( 'keeps the saved shipping phone when the order has one', () => {
+			const [ , payload ] = payForOrder(
+				orderDetails( {
+					shippingAddress: {
+						first_name: 'Jane',
+						phone: '+12223334444',
+					},
+				} ),
+				{
+					billing_address: { first_name: 'Jane', phone: '' },
+				}
+			);
+
+			expect( payload.shipping_address.phone ).toBe( '+12223334444' );
+		} );
+
+		it( 'backfills the shipping phone from a wallet-provided billing phone', () => {
+			const [ , payload ] = payForOrder(
+				orderDetails( { billingPhone: '' } ),
+				{
+					billing_address: {
+						first_name: 'Jane',
+						phone: '+19998887777',
+					},
+				}
+			);
+
+			expect( payload.shipping_address.phone ).toBe( '+19998887777' );
+		} );
+
+		// A virtual/downloadable order carries an all-empty shipping address
+		// and the order-pay route skips shipping validation for it, so
+		// backfilling a phone would send a lone-phone "address" for no reason.
+		it( 'passes the shipping address through untouched when the order needs no shipping', () => {
+			const emptyShippingAddress = {
+				first_name: '',
+				last_name: '',
+				address_1: '',
+				city: '',
+				country: '',
+				postcode: '',
+				phone: '',
+			};
+			const [ , payload ] = payForOrder(
+				orderDetails( {
+					needsShipping: false,
+					shippingAddress: emptyShippingAddress,
+				} ),
+				{ billing_address: { first_name: 'Jane', phone: '' } }
+			);
+
+			expect( payload.shipping_address ).toEqual( emptyShippingAddress );
+		} );
+	} );
+
 	describe( 'createIntent', () => {
 		it( 'includes the order key in the PaymentIntent AJAX request', async () => {
 			const request = jest.fn().mockResolvedValue( {

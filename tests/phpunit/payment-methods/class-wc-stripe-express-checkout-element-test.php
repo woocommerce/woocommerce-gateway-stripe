@@ -1073,6 +1073,66 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The pay-for-order payload must carry the order's saved billing phone so the
+	 * client can preserve it when the wallet sheet didn't collect one — the Store
+	 * API order-pay route otherwise overwrites it with an empty value. See STRIPE-1449.
+	 *
+	 * @return void
+	 */
+	public function test_localize_pay_for_order_includes_saved_billing_phone() {
+		// Start from a clean script registration so we read only this call's localized data.
+		wp_deregister_script( 'wc_stripe_express_checkout' );
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_billing_phone( '+14155550123' );
+		$order->save();
+
+		$this->element->localize_pay_for_order_page_scripts( $order );
+
+		$params = $this->get_localized_pay_for_order_params();
+
+		$this->assertSame( '+14155550123', $params['orderDetails']['billingPhone'] );
+	}
+
+	/**
+	 * The Store API order-pay route validates the shipping address only when the
+	 * order needs shipping, so the payload must tell the client which case it is —
+	 * otherwise the client can't know whether to backfill the shipping phone.
+	 *
+	 * @dataProvider provide_localize_pay_for_order_needs_shipping
+	 * @param bool $virtual  Whether the ordered product is virtual.
+	 * @param bool $expected Expected needsShipping value.
+	 * @return void
+	 */
+	public function test_localize_pay_for_order_includes_needs_shipping( $virtual, $expected ) {
+		// Start from a clean script registration so we read only this call's localized data.
+		wp_deregister_script( 'wc_stripe_express_checkout' );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_virtual( $virtual );
+		$product->save();
+		$order = WC_Helper_Order::create_order( 1, $product );
+
+		$this->element->localize_pay_for_order_page_scripts( $order );
+
+		$params = $this->get_localized_pay_for_order_params();
+
+		$this->assertSame( $expected, $params['orderDetails']['needsShipping'] );
+	}
+
+	/**
+	 * Provider for test_localize_pay_for_order_includes_needs_shipping.
+	 *
+	 * @return array
+	 */
+	public function provide_localize_pay_for_order_needs_shipping() {
+		return [
+			'physical product order needs shipping' => [ false, true ],
+			'virtual product order does not'        => [ true, false ],
+		];
+	}
+
+	/**
 	 * Decode the localized `wcStripeExpressCheckoutPayForOrderParams` payload back into an array.
 	 *
 	 * `wp_localize_script` stores it as `var wcStripeExpressCheckoutPayForOrderParams = {json};`.
