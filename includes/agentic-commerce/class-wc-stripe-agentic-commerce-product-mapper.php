@@ -117,7 +117,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * Stripe reads only `id` and `delete`; the other columns stay null just to
 	 * keep the CSV aligned with the feed headers.
 	 *
-	 * @since 11.0.0
+	 * @since 11.1.0
 	 * @param \WC_Product $product Product to remove from Stripe's catalog.
 	 * @return array Full-width row with only `id` and `delete` populated.
 	 */
@@ -131,7 +131,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	/**
 	 * Whether a mapped row is a `delete=true` removal signal.
 	 *
-	 * @since 11.0.0
+	 * @since 11.1.0
 	 * @param array $row Mapped row.
 	 * @return bool
 	 */
@@ -218,7 +218,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 *
 	 * Static so removal paths queued outside a feed walk target the exported id.
 	 *
-	 * @since 11.0.0
+	 * @since 11.1.0
 	 * @param \WC_Product $product Product object.
 	 * @return string SKU when present, otherwise the product ID as a string.
 	 */
@@ -1113,7 +1113,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * The feed query checks `publish` only on the row itself, so variations of
 	 * a draft or private parent would otherwise keep syncing with a dead link.
 	 *
-	 * @since 11.0.0
+	 * @since 11.1.0
 	 * @param \WC_Product $product Product to check.
 	 * @return bool
 	 */
@@ -1133,7 +1133,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * and the feed query still selects them; without this check those stale
 	 * rows would keep syncing (or, for a deleted parent, hard-fail the walk).
 	 *
-	 * @since 11.0.0
+	 * @since 11.1.0
 	 * @param \WC_Product $product Product to check.
 	 * @return bool
 	 */

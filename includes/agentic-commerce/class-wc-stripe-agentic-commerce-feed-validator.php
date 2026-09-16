@@ -86,7 +86,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterfac
 	 * `delete=true` rows waved into the feed — entries, but not synced
 	 * products, so the caller subtracts this from the entry count.
 	 *
-	 * @since 11.0.0
+	 * @since 11.1.0
 	 * @var int
 	 */
 	protected int $removed_count = 0;
@@ -199,7 +199,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator implements FeedValidatorInterfac
 	/**
 	 * Count of `delete=true` removal rows admitted into the feed this run.
 	 *
-	 * @since 11.0.0
+	 * @since 11.1.0
 	 * @return int
 	 */
 	public function get_removed_count(): int {

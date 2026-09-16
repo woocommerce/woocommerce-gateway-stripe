@@ -177,7 +177,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	 * Trash is skipped here: `wp_trash_post` fires before the status is written,
 	 * while the product still loads cleanly, and handles that path.
 	 *
-	 * @since 11.0.0
+	 * @since 11.1.0
 	 * @param string  $new_status Status the post is entering.
 	 * @param string  $old_status Status the post is leaving.
 	 * @param WP_Post $post       The post being transitioned.
@@ -333,7 +333,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	 * the next full sync, and a product that was never in the feed has nothing
 	 * to remove.
 	 *
-	 * @since 11.0.0
+	 * @since 11.1.0
 	 * @param \WC_Product|mixed $product  The saved product, carrying the new type.
 	 * @param string            $old_type Product type before the change.
 	 * @param string            $new_type Product type after the change.
@@ -386,7 +386,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	 * for variable products, and removal paths run after the parent stopped
 	 * being one.
 	 *
-	 * @since 11.0.0
+	 * @since 11.1.0
 	 * @param int $parent_id Parent product ID.
 	 * @return \WC_Product[]
 	 */
@@ -414,7 +414,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 	/**
 	 * Queue `delete=true` rows for the given products and schedule the flush.
 	 *
-	 * @since 11.0.0
+	 * @since 11.1.0
 	 * @param \WC_Product[] $products Products to remove from Stripe's catalog.
 	 * @return void
 	 */
