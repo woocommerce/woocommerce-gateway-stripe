@@ -548,7 +548,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		}
 
 		$order->update_meta_data( '_wc_order_attribution_source_type', 'referral' );
-		$order->update_meta_data( '_wc_order_attribution_utm_source', $agent_source );
+		$order->update_meta_data( '_wc_order_attribution_utm_source', sanitize_text_field( $agent_source ) );
 	}
 
 	/**

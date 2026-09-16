@@ -332,6 +332,33 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that the agent source is sanitized before it is stored: the value
+	 * comes from an external payload and is later rendered in the admin Origin
+	 * column, so tags and control characters must not reach the database.
+	 *
+	 * @return void
+	 */
+	public function test_order_attribution_agent_source_is_sanitized() {
+		$session = $this->build_checkout_session(
+			[
+				'payment_intent' => (object) [
+					'id'            => 'pi_test_attr_sanitize',
+					'agent_details' => (object) [
+						'network_business_profile' => "  <script>alert(1)</script>Agent\tName\n",
+					],
+				],
+			]
+		);
+		$order   = $this->mapper->create_order_from_checkout_session( $session );
+
+		// sanitize_text_field() drops script tags with their contents, strips
+		// the surrounding whitespace, and collapses the tab and newline.
+		$this->assertSame( 'Agent Name', $order->get_meta( '_wc_order_attribution_utm_source', true ) );
+
+		$order->delete( true );
+	}
+
+	/**
 	 * Tests that no Order Attribution meta is written when the session carries
 	 * no agent details, leaving the Origin column untouched.
 	 *
