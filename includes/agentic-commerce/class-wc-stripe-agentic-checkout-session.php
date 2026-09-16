@@ -335,11 +335,13 @@ class WC_Stripe_Agentic_Checkout_Session {
 			return null;
 		}
 
-		$candidates = [
-			$agent_details->name ?? null,
-			$agent_details->display_name ?? null,
-			$agent_details->network_business_profile ?? null,
-		];
+		$candidates = array_filter(
+			[
+				$agent_details->name ?? null,
+				$agent_details->display_name ?? null,
+				$agent_details->network_business_profile ?? null,
+			]
+		);
 
 		foreach ( $candidates as $candidate ) {
 			// Tolerate a future expansion of the profile into an object.
