@@ -104,6 +104,9 @@ class WC_Stripe_Ability_Base_Test extends WP_UnitTestCase {
 					'code'    => 402,
 					'message' => 'Payment Required',
 				],
+				'body'     => '{"error":{"code":"card_declined","message":"Your card was declined."}}',
+				'headers'  => [],
+				'cookies'  => [],
 			];
 		};
 
@@ -131,6 +134,9 @@ class WC_Stripe_Ability_Base_Test extends WP_UnitTestCase {
 					'code'    => 200,
 					'message' => 'OK',
 				],
+				'body'     => '{"id":"acct_123","object":"account","email":"test@example.com"}',
+				'headers'  => [],
+				'cookies'  => [],
 			];
 		};
 

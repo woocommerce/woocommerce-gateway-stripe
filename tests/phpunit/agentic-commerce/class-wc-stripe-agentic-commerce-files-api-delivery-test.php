@@ -6,7 +6,6 @@
  */
 
 use Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedInterface;
-use SebastianBergmann\CodeCoverage\StaticAnalysis\FileAnalyser;
 
 // phpcs:disable WordPress.WP.AlternativeFunctions
 
