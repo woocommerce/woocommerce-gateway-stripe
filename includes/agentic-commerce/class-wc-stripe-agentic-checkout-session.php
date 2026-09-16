@@ -327,7 +327,7 @@ class WC_Stripe_Agentic_Checkout_Session {
 	 * the profile, but the profile is an opaque `profile_…` ID — it still
 	 * distinguishes networks, yet reads poorly in merchant-facing surfaces.
 	 *
-	 * @since 10.9.0
+	 * @since 11.1.0
 	 * @return string|null
 	 */
 	public function get_agent_source(): ?string {

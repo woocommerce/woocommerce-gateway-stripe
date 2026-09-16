@@ -540,7 +540,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * type, keep writing 'referral' on WC versions whose Origin renderer
 	 * predates it — an unrecognized type renders as "Unknown".
 	 *
-	 * @since 10.9.0
+	 * @since 11.1.0
 	 * @param WC_Order                           $order   The WooCommerce order.
 	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
 	 */
