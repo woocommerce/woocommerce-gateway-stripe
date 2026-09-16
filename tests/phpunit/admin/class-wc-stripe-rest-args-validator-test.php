@@ -70,7 +70,7 @@ class WC_Stripe_REST_Args_Validator_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * @dataProvider provide_payment_intent_id_pagination_cursor.
+	 * @dataProvider provide_payment_intent_id_pagination_cursor
 	*/
 	public function test_validate_payment_intent_id_pagination_cursor( $test_param_name, $all_params, $expected ) {
 		$request = new WP_REST_Request();
