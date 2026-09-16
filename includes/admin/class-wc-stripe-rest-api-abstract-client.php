@@ -10,8 +10,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * @since 10.9.0
  */
-abstract class WC_Stripe_REST_API_Abstract_Client
-{
+abstract class WC_Stripe_REST_API_Abstract_Client {
 	/**
 	 * Builds an array of parameters to forward to Stripe API.
 	 *
@@ -41,7 +40,7 @@ abstract class WC_Stripe_REST_API_Abstract_Client
 	 * @return StdClass|WP_Error
 	 */
 	public static function fetch_from_stripe( $endpoint, $params = [] ) {
-		$query_string = 0 === count($params) ? '' : http_build_query( $params, '', '&', PHP_QUERY_RFC3986 );
+		$query_string = 0 === count( $params ) ? '' : http_build_query( $params, '', '&', PHP_QUERY_RFC3986 );
 
 		$stripe_resource_url = $endpoint . ( '' === $query_string ? '' : '?' . $query_string );
 

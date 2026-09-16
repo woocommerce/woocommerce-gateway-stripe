@@ -147,8 +147,6 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		return rest_ensure_response( $filtered_response );
 	}
 
-	
-
 	/**
 	 * Retrieve, filters and return Stripe payment intents.
 	 *
@@ -157,7 +155,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_payment_intents( $request ) {
-		$response =WC_Stripe_REST_API_Abstract_Client::fetch_from_stripe(
+		$response = WC_Stripe_REST_API_Abstract_Client::fetch_from_stripe(
 			'payment_intents',
 			WC_Stripe_REST_API_Abstract_Client::build_params_to_forward( $request, self::STRIPE_LIST_PARAMS_TO_FORWARD, self::STRIPE_LIST_EXPAND_PARAM ),
 		);
@@ -170,8 +168,6 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 
 		return rest_ensure_response( $filtered_response );
 	}
-
-	
 
 	/**
 	 * Validate starting_after parameter value that should be a payment intent ID.
