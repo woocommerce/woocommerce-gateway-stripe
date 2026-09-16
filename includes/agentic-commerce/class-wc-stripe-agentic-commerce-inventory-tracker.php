@@ -357,9 +357,26 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 		}
 
 		if ( ProductType::VARIABLE === $old_type ) {
+			$variations = $this->load_variations( $product->get_id() );
+
+			// Mirror of the simple→variable guard above: SKU-less variations
+			// inherit the parent SKU as their feed id, so on variable→simple
+			// their delete rows would remove the simple row re-added under the
+			// same id — and that upsert overwrites the stale variation rows on
+			// the id collision anyway.
+			if ( ProductType::SIMPLE === $new_type && '' !== $product->get_sku() ) {
+				$sku        = $product->get_sku();
+				$variations = array_values(
+					array_filter(
+						$variations,
+						fn( $variation ) => WC_Stripe_Agentic_Commerce_Product_Mapper::get_feed_id( $variation ) !== $sku
+					)
+				);
+			}
+
 			// The variation posts survive the type switch; the orphaned-variation
 			// eligibility check also converges them on the next full sync.
-			$this->queue_removals( $this->load_variations( $product->get_id() ) );
+			$this->queue_removals( $variations );
 		}
 	}
 
@@ -408,14 +425,6 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 		foreach ( $products as $item ) {
 			$this->evict_pending_entries( $item->get_id() );
 
-			if ( count( $pending ) >= self::MAX_PENDING_UPDATES && ! isset( $pending[ $item->get_id() ] ) ) {
-				WC_Stripe_Logger::warning(
-					'Agentic Commerce: Pending archive threshold reached - removal not queued',
-					[ 'product_id' => $item->get_id() ]
-				);
-				continue;
-			}
-
 			// Stripe reads only `id` and `delete` from a removal row, so the feed
 			// id is the only product data worth capturing before deletion.
 			$pending[ $item->get_id() ] = [
@@ -432,8 +441,21 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker {
 
 		update_option( self::PENDING_ARCHIVES_OPTION, $pending, false );
 
+		// A removal dropped here would be lost for good: these products already
+		// left the feed query, so no later full sync can emit their delete rows.
+		// A full queue (e.g. a bulk trash) is therefore queued anyway and drained
+		// immediately instead of waiting out the batch delay.
+		$is_full = count( $pending ) >= self::MAX_PENDING_UPDATES;
+		if ( $is_full ) {
+			WC_Stripe_Logger::warning(
+				'Agentic Commerce: Pending archive threshold reached - flushing immediately',
+				[ 'pending_count' => count( $pending ) ]
+			);
+		}
+
 		if ( function_exists( 'as_has_scheduled_action' ) && ! as_has_scheduled_action( self::ARCHIVE_SCHEDULED_ACTION ) ) {
-			as_schedule_single_action( time() + self::BATCH_DELAY_SECONDS, self::ARCHIVE_SCHEDULED_ACTION, [], 'wc-stripe' );
+			$delay = $is_full ? 0 : self::BATCH_DELAY_SECONDS;
+			as_schedule_single_action( time() + $delay, self::ARCHIVE_SCHEDULED_ACTION, [], 'wc-stripe' );
 		}
 	}
 

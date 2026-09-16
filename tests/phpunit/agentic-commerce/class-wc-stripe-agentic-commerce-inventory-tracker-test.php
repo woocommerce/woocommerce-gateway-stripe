@@ -1019,11 +1019,18 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	}
 
 	/**
-	 * Test that no new archives are added once the MAX_PENDING_UPDATES threshold is reached.
+	 * Test that an archive queued past the MAX_PENDING_UPDATES threshold is kept
+	 * and drained immediately. A removal dropped at the cap would be lost for
+	 * good, because the full catalog sync cannot emit delete rows for products
+	 * that already left the feed query.
 	 *
 	 * @return void
 	 */
-	public function test_track_product_archive_stops_accumulating_at_threshold() {
+	public function test_track_product_archive_flushes_immediately_past_threshold() {
+		if ( ! function_exists( 'as_next_scheduled_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
 		$max           = WC_Stripe_Agentic_Commerce_Inventory_Tracker::MAX_PENDING_UPDATES;
 		$extra_product = $this->create_simple_product_with_stock( 1 );
 		$product_id    = $extra_product->get_id();
@@ -1042,13 +1049,21 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 			++$i;
 		}
 		update_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, $pending );
+		as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION );
 
 		$this->sut->track_product_archive( $extra_product );
 
 		$after = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
 
-		$this->assertCount( $max, $after );
-		$this->assertArrayNotHasKey( $product_id, $after );
+		$this->assertCount( $max + 1, $after );
+		$this->assertArrayHasKey( $product_id, $after );
+
+		// The full queue must drain now, not after the batch delay.
+		$scheduled = as_next_scheduled_action( WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION );
+		$this->assertNotFalse( $scheduled );
+		$this->assertLessThanOrEqual( time(), $scheduled );
+
+		as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION );
 	}
 
 	// -------------------------------------------------------------------------
@@ -1720,6 +1735,39 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 			$this->assertArrayHasKey( $variation_id, $pending );
 			$this->assertEquals( 'true', $pending[ $variation_id ]['delete'] );
 		}
+	}
+
+	/**
+	 * On variable→simple of a SKU'd parent, SKU-less variations report the
+	 * parent's SKU as their feed id, so their delete rows would remove the
+	 * simple row re-added under that id. They must be skipped; variations
+	 * with their own SKU still queue.
+	 *
+	 * @return void
+	 */
+	public function test_handle_product_type_change_skips_sku_collision_on_variable_to_simple() {
+		$parent = WC_Helper_Product::create_variation_product();
+		$parent->set_sku( 'PARENT-SKU-' . uniqid() );
+		$parent->save();
+
+		$variation_ids = $parent->get_children();
+
+		// First variation inherits the parent SKU (its own is cleared); the
+		// second keeps the distinct SKU the helper assigned.
+		$inheriting = wc_get_product( $variation_ids[0] );
+		$inheriting->set_sku( '' );
+		$inheriting->save();
+		$own_sku = wc_get_product( $variation_ids[1] );
+
+		wp_set_object_terms( $parent->get_id(), 'simple', 'product_type' );
+		$converted = wc_get_product( $parent->get_id() );
+
+		$this->sut->handle_product_type_change( $converted, 'variable', 'simple' );
+
+		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+		$this->assertArrayNotHasKey( $inheriting->get_id(), $pending );
+		$this->assertArrayHasKey( $own_sku->get_id(), $pending );
+		$this->assertEquals( 'true', $pending[ $own_sku->get_id() ]['delete'] );
 	}
 
 	/**
