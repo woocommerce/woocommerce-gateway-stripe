@@ -319,6 +319,28 @@ describe( 'WCStripeAPI', () => {
 			expect( payload.shipping_address ).toEqual( emptyShippingAddress );
 		} );
 
+		// A shippable order with no saved shipping address localizes an
+		// all-empty address, and the route persists submitted addresses even
+		// when validation then fails the payment — so no phone may be
+		// fabricated onto it.
+		it( 'passes an all-empty shipping address through untouched even when the order needs shipping', () => {
+			const emptyShippingAddress = {
+				first_name: '',
+				last_name: '',
+				address_1: '',
+				city: '',
+				country: '',
+				postcode: '',
+				phone: '',
+			};
+			const [ , payload ] = payForOrder(
+				orderDetails( { shippingAddress: emptyShippingAddress } ),
+				{ billing_address: { first_name: 'Jane', phone: '' } }
+			);
+
+			expect( payload.shipping_address ).toEqual( emptyShippingAddress );
+		} );
+
 		it( 'leaves absent addresses untouched instead of fabricating phone-only ones', () => {
 			const [ , payload ] = payForOrder(
 				orderDetails( { shippingAddress: undefined } ),

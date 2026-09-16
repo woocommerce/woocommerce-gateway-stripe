@@ -676,8 +676,6 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutECEPayForOrder( order, orderDetails, paymentData ) {
-		// Leaves an absent address untouched: spreading one would fabricate a
-		// phone-only address object where the caller sent none.
 		const withPhoneFallback = ( address, phone ) =>
 			address && ! address.phone && phone
 				? { ...address, phone }
@@ -692,18 +690,20 @@ export default class WCStripeAPI {
 			paymentData.billing_address,
 			orderDetails.billingPhone
 		);
+		const hasSavedShippingAddress = Object.values(
+			orderDetails.shippingAddress ?? {}
+		).some( Boolean );
+
 		const payload = {
 			...paymentData,
 			billing_address: billingAddress,
-			// Non-shippable orders skip shipping validation, so pass their
-			// (empty) address through untouched rather than adding a stray
-			// phone.
-			shipping_address: orderDetails.needsShipping
-				? withPhoneFallback(
-						orderDetails.shippingAddress,
-						billingAddress?.phone
-				  )
-				: orderDetails.shippingAddress,
+			shipping_address:
+				orderDetails.needsShipping && hasSavedShippingAddress
+					? withPhoneFallback(
+							orderDetails.shippingAddress,
+							billingAddress?.phone
+					  )
+					: orderDetails.shippingAddress,
 		};
 
 		const billingEmail = orderDetails.billingEmail ?? '';
