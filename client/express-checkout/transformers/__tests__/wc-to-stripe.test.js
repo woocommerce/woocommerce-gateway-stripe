@@ -316,26 +316,6 @@ describe( 'wc-to-stripe transformers', () => {
 		} );
 	} );
 
-	describe( 'transformLabeledDisplayItems', () => {
-		it( 'normalizes keyed discounts without changing unkeyed amounts', () => {
-			expect(
-				transformLabeledDisplayItems( [
-					{ label: 'Subtotal', amount: 1000 },
-					{
-						key: 'total_discount',
-						label: 'Discount',
-						amount: 100,
-					},
-					{ label: 'Refund', amount: -50 },
-				] )
-			).toStrictEqual( [
-				{ name: 'Subtotal', amount: 1000 },
-				{ name: 'Discount', amount: -100 },
-				{ name: 'Refund', amount: -50 },
-			] );
-		} );
-	} );
-
 	describe( 'transformPrice', () => {
 		afterEach( () => {
 			delete global.wc_stripe_express_checkout_params.checkout
@@ -501,21 +481,64 @@ describe( 'wc-to-stripe transformers', () => {
 	} );
 
 	describe( 'transformLabeledDisplayItems', () => {
-		it( 'uses a negative amount for discounts', () => {
+		const displayItems = [
+			{ label: 'Subtotal', amount: 1000 },
+			{
+				key: 'total_discount',
+				label: 'Discount',
+				amount: 100,
+			},
+			{ label: 'Refund', amount: -50 },
+		];
+		const normalizedDisplayItems = [
+			{ name: 'Subtotal', amount: 1000 },
+			{ name: 'Discount', amount: -100 },
+			{ name: 'Refund', amount: -50 },
+		];
+
+		it( 'keeps existing behavior when no total is supplied', () => {
 			expect(
-				transformLabeledDisplayItems( [
-					{ label: 'Subtotal', amount: 5500 },
-					{
-						key: 'total_discount',
-						label: 'Discount',
-						amount: 5225,
-					},
-				] )
-			).toStrictEqual( [
-				{ name: 'Subtotal', amount: 5500 },
-				{ name: 'Discount', amount: -5225 },
-			] );
+				transformLabeledDisplayItems( displayItems )
+			).toStrictEqual( normalizedDisplayItems );
 		} );
+
+		it.each( [
+			{
+				description: 'exceeds the total',
+				totalAmount: 849,
+				expectedItems: [],
+			},
+			{
+				description: 'equals the total',
+				totalAmount: 850,
+				expectedItems: normalizedDisplayItems,
+			},
+			{
+				description: 'is below the total',
+				totalAmount: 851,
+				expectedItems: normalizedDisplayItems,
+			},
+		] )(
+			'returns the expected items when their normalized sum $description',
+			( { totalAmount, expectedItems } ) => {
+				expect(
+					transformLabeledDisplayItems( displayItems, totalAmount )
+				).toStrictEqual( expectedItems );
+			}
+		);
+
+		it.each( [
+			{ description: 'null', totalAmount: null },
+			{ description: 'a numeric string', totalAmount: '850' },
+			{ description: 'NaN', totalAmount: Number.NaN },
+		] )(
+			'keeps items when the total is $description',
+			( { totalAmount } ) => {
+				expect(
+					transformLabeledDisplayItems( displayItems, totalAmount )
+				).toStrictEqual( normalizedDisplayItems );
+			}
+		);
 	} );
 
 	describe( 'transformCartDataForShippingRates', () => {
