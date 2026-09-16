@@ -47,7 +47,11 @@ class WC_Stripe_UPE_Payment_Method_Boleto extends WC_Stripe_UPE_Payment_Method {
 			'woocommerce-gateway-stripe'
 		);
 
-		add_filter( 'wc_stripe_allowed_payment_processing_statuses', [ $this, 'add_allowed_payment_processing_statuses' ], 10, 2 );
+		$this->register_instance_hooks_once(
+			function () {
+				add_filter( 'wc_stripe_allowed_payment_processing_statuses', [ $this, 'add_allowed_payment_processing_statuses' ], 10, 2 );
+			}
+		);
 	}
 
 	/**

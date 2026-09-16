@@ -397,12 +397,16 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 		$body      = wp_remote_retrieve_body( $response );
 
 		if ( $http_code < 200 || $http_code > 299 ) {
+			// The HTTP status rides on the exception code so callers can react
+			// to specific statuses (the refresh poll treats 404 as "wrong
+			// mode's key") without parsing the message.
 			throw new Exception(
 				sprintf(
 					'Stripe ImportSet status API returned HTTP %d: %s',
 					$http_code,
 					$this->parse_stripe_error( $body )
-				)
+				),
+				(int) $http_code
 			);
 		}
 

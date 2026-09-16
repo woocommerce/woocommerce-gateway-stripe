@@ -154,6 +154,50 @@ class WC_Stripe_Agentic_Commerce_Product_Exclusion_Test extends WP_UnitTestCase 
 	}
 
 	/**
+	 * supports() accepts only WC_Product instances of a supported type.
+	 *
+	 * @dataProvider provide_supports_scenarios
+	 *
+	 * @param string $product_type Product type to build, or 'none' for a non-product value.
+	 * @param bool   $expected     Expected supports() verdict.
+	 */
+	public function test_supports_gates_on_instance_and_type( string $product_type, bool $expected ): void {
+		switch ( $product_type ) {
+			case 'none':
+				$product = null;
+				break;
+			case 'grouped':
+				$product = WC_Helper_Product::create_grouped_product();
+				break;
+			case 'variable':
+				$product = WC_Helper_Product::create_variation_product();
+				break;
+			default:
+				$product = WC_Helper_Product::create_simple_product();
+		}
+
+		$this->assertSame( $expected, WC_Stripe_Agentic_Commerce_Product_Exclusion::supports( $product ) );
+
+		if ( $product instanceof WC_Product ) {
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * Scenarios for {@see self::test_supports_gates_on_instance_and_type()}.
+	 *
+	 * @return array<string, array{0: string, 1: bool}>
+	 */
+	public function provide_supports_scenarios(): array {
+		return [
+			'simple is supported'      => [ 'simple', true ],
+			'variable is supported'    => [ 'variable', true ],
+			'grouped is not supported' => [ 'grouped', false ],
+			'non-product is rejected'  => [ 'none', false ],
+		];
+	}
+
+	/**
 	 * Mixed hook-input votes and their normalized boolean results.
 	 *
 	 * @return array<string, array{0: mixed, 1: bool}>

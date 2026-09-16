@@ -118,6 +118,78 @@ describe( 'AgenticCommerceFeedPreview', () => {
 		).toBeInTheDocument();
 	} );
 
+	it( 'names password protection and hidden visibility as distinct reasons', async () => {
+		apiFetch.mockResolvedValue( {
+			...PREVIEW_RESPONSE,
+			excluded_count: 9,
+			excluded_breakdown: {
+				subscriptions: 0,
+				password_protected: 4,
+				hidden: 3,
+				filtered: 2,
+			},
+		} );
+
+		render( <AgenticCommerceFeedPreview /> );
+		fireEvent.click(
+			screen.getByRole( 'button', { name: /Preview feed/i } )
+		);
+
+		await waitFor( () => {
+			expect(
+				screen.getByRole( 'button', { name: /Details/i } )
+			).toBeInTheDocument();
+		} );
+		fireEvent.click( screen.getByRole( 'button', { name: /Details/i } ) );
+
+		expect(
+			screen.getByText( /4 password-protected products/i )
+		).toBeInTheDocument();
+		expect(
+			screen.getByText(
+				/3 products hidden from your catalog and search results/i
+			)
+		).toBeInTheDocument();
+		expect(
+			screen.getByText( /2 products excluded by your store’s rules/i )
+		).toBeInTheDocument();
+		expect(
+			screen.queryByText( /subscription product/i )
+		).not.toBeInTheDocument();
+	} );
+
+	// A response predating the split carries neither key; the reasons must fall
+	// back to zero rather than rendering "undefined".
+	it( 'tolerates a breakdown without the newer reason keys', async () => {
+		apiFetch.mockResolvedValue( {
+			...PREVIEW_RESPONSE,
+			excluded_count: 3,
+			excluded_breakdown: { subscriptions: 1, filtered: 2 },
+		} );
+
+		render( <AgenticCommerceFeedPreview /> );
+		fireEvent.click(
+			screen.getByRole( 'button', { name: /Preview feed/i } )
+		);
+
+		await waitFor( () => {
+			expect(
+				screen.getByRole( 'button', { name: /Details/i } )
+			).toBeInTheDocument();
+		} );
+		fireEvent.click( screen.getByRole( 'button', { name: /Details/i } ) );
+
+		expect(
+			screen.getByText( /1 subscription product/i )
+		).toBeInTheDocument();
+		expect(
+			screen.queryByText( /password-protected/i )
+		).not.toBeInTheDocument();
+		expect(
+			screen.queryByText( /hidden from your/i )
+		).not.toBeInTheDocument();
+	} );
+
 	it( 'omits a breakdown reason whose count is zero', async () => {
 		apiFetch.mockResolvedValue( {
 			...PREVIEW_RESPONSE,

@@ -13,10 +13,20 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	private $connect;
 
 	/**
+	 * REQUEST_URI as the test bootstrap left it, restored in tear_down().
+	 *
+	 * @var string|null
+	 */
+	private $original_request_uri;
+
+	/**
 	 * @inheritDoc
 	 */
 	public function set_up() {
 		parent::set_up();
+
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Snapshot restored verbatim in tear_down(); unslashing or sanitizing here would restore a different value than the bootstrap set.
+		$this->original_request_uri = $_SERVER['REQUEST_URI'] ?? null;
 
 		// The settings-update filter merges defaults when saving settings, which would
 		// inject `optimized_checkout_element` / `adaptive_pricing` defaults and obscure
@@ -34,6 +44,15 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @inheritDoc
 	 */
 	public function tear_down() {
+		// PHPUnit runs with backupGlobals disabled, so a REQUEST_URI left pointing at
+		// wp-admin leaks into every later test in the process: wp_validate_redirect()
+		// resolves schemeless relative redirects against dirname( REQUEST_URI ).
+		if ( null === $this->original_request_uri ) {
+			unset( $_SERVER['REQUEST_URI'] );
+		} else {
+			$_SERVER['REQUEST_URI'] = $this->original_request_uri;
+		}
+
 		delete_option( 'wc_stripe_optimized_checkout_default_on' );
 		delete_option( 'wc_stripe_oauth_failed_attempts' );
 		WC_Stripe_Helper::update_main_stripe_settings( [] );

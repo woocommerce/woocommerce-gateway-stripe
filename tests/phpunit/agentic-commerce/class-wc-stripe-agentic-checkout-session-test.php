@@ -55,6 +55,43 @@ class WC_Stripe_Agentic_Checkout_Session_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test get_amount_discount reads total_details and defaults to 0 when absent.
+	 *
+	 * @dataProvider provide_amount_discount_cases
+	 *
+	 * @param object $raw      Raw session data.
+	 * @param int    $expected Expected discount amount.
+	 */
+	public function test_get_amount_discount( object $raw, int $expected ) {
+		$session = new WC_Stripe_Agentic_Checkout_Session( $raw );
+		$this->assertSame( $expected, $session->get_amount_discount() );
+	}
+
+	/**
+	 * @return array
+	 */
+	public function provide_amount_discount_cases(): array {
+		return [
+			'discount present'          => [
+				(object) [ 'total_details' => (object) [ 'amount_discount' => 500 ] ],
+				500,
+			],
+			'zero discount'             => [
+				(object) [ 'total_details' => (object) [ 'amount_discount' => 0 ] ],
+				0,
+			],
+			'total_details without key' => [
+				(object) [ 'total_details' => (object) [] ],
+				0,
+			],
+			'missing total_details'     => [
+				(object) [],
+				0,
+			],
+		];
+	}
+
+	/**
 	 * @dataProvider provide_amount_total_cases
 	 */
 	public function test_get_amount_total( object $raw, ?int $expected ) {

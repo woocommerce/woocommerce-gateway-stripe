@@ -8,6 +8,7 @@ import {
 	getPaymentMethodsConstants,
 	PAYMENT_METHOD_LINK,
 	PAYMENT_METHOD_CARD,
+	CHECKOUT_SESSION_INPUT_ID,
 } from './constants';
 import { __ } from '@wordpress/i18n';
 import { dispatch } from '@wordpress/data';
@@ -501,7 +502,7 @@ export const getUpeSettings = () => {
 };
 
 export const appendCheckoutSessionIdToForm = ( form, checkoutSessionId ) => {
-	const existingElement = form.find( 'input#wc_stripe_checkout_session_id' );
+	const existingElement = form.find( `input#${ CHECKOUT_SESSION_INPUT_ID }` );
 	if ( existingElement.length ) {
 		existingElement.val( checkoutSessionId );
 		return;
@@ -509,10 +510,14 @@ export const appendCheckoutSessionIdToForm = ( form, checkoutSessionId ) => {
 
 	const hiddenInput = document.createElement( 'input' );
 	hiddenInput.type = 'hidden';
-	hiddenInput.id = 'wc_stripe_checkout_session_id';
-	hiddenInput.name = 'wc_stripe_checkout_session_id';
+	hiddenInput.id = CHECKOUT_SESSION_INPUT_ID;
+	hiddenInput.name = CHECKOUT_SESSION_INPUT_ID;
 	hiddenInput.value = checkoutSessionId;
 	form.append( hiddenInput );
+};
+
+export const removeCheckoutSessionIdFromForm = ( form ) => {
+	form.find( `input#${ CHECKOUT_SESSION_INPUT_ID }` ).remove();
 };
 
 /**
@@ -788,6 +793,48 @@ export const getExcludedPaymentMethodTypes = () => {
 };
 
 /**
+ * Returns the OC excluded payment method types for a billing country, combining
+ * the server-seeded list with the per-method `countriesByMethod` map.
+ *
+ * @param {string} billingCountry Two-letter ISO billing country (may be empty when unknown).
+ * @return {Array<string>} Payment method types to exclude for the country.
+ */
+export const getExcludedPaymentMethodTypesForBillingCountry = (
+	billingCountry
+) => {
+	const countriesByMethod =
+		getStripeServerData()?.paymentMethodsConfig?.[ PAYMENT_METHOD_CARD ]
+			?.countriesByMethod || {};
+	const isCountryRestricted = ( countries ) =>
+		Array.isArray( countries ) && countries.length > 0;
+	// `countriesByMethod` values are uppercase ISO codes; normalize in case a
+	// caller hands us a lowercase form value.
+	const country = ( billingCountry || '' ).toUpperCase();
+
+	// The server exposes its country-derived exclusions separately, so the
+	// recompute subtracts exactly that portion from the seed — anything else in
+	// the seed (unsupported methods, third-party `wc_stripe_upe_params`
+	// additions) is preserved rather than dropped and re-derived.
+	const countryExcludedSeed =
+		getStripeServerData()?.countryExcludedPaymentMethodTypes || [];
+	const excluded = getExcludedPaymentMethodTypes().filter(
+		( method ) => ! countryExcludedSeed.includes( method )
+	);
+
+	Object.entries( countriesByMethod ).forEach( ( [ method, countries ] ) => {
+		// Empty list = no restriction; an unknown country can't confirm a restricted method.
+		if (
+			isCountryRestricted( countries ) &&
+			! countries.includes( country )
+		) {
+			excluded.push( method );
+		}
+	} );
+
+	return [ ...new Set( excluded ) ];
+};
+
+/**
  * Notice shown when the Adaptive Pricing Checkout Session total can't be resynced
  * with the cart.
  *
@@ -982,6 +1029,17 @@ export const paymentMethodSupportsDeferredIntent = ( upeElement ) => {
 };
 
 /**
+ * Returns the shopper's billing country for classic checkout, falling back to
+ * server customer data on "pay for order" (no billing input).
+ *
+ * @return {string} Two-letter ISO billing country, or empty when unknown.
+ */
+export const getCurrentBillingCountry = () =>
+	document.getElementById( 'billing_country' )?.value ||
+	getStripeServerData()?.customerData?.billing_country ||
+	'';
+
+/**
  * @param {Object} upeElement The selector of the DOM element of particular payment method to mount the UPE element to.
  */
 export const togglePaymentMethodForCountry = ( upeElement ) => {
@@ -991,11 +1049,7 @@ export const togglePaymentMethodForCountry = ( upeElement ) => {
 	const supportedCountries =
 		paymentMethodsConfig[ paymentMethodType ].countries;
 
-	// in the case of "pay for order", there is no "billing country" input, so we need to rely on backend data.
-	const billingCountry =
-		document.getElementById( 'billing_country' )?.value ||
-		getStripeServerData()?.customerData?.billing_country ||
-		'';
+	const billingCountry = getCurrentBillingCountry();
 
 	const upeContainer = document.querySelector(
 		'.payment_method_stripe_' + paymentMethodType

@@ -566,6 +566,55 @@ describe( 'Express checkout normalization', () => {
 			} );
 		} );
 
+		test( 'should use the shipping last name fallback for a one-word shipping name', () => {
+			const oneWordShippingNameEvent = {
+				shippingAddress: {
+					name: 'Cher',
+				},
+			};
+
+			const normalizedData = normalizeOrderData( {
+				event: oneWordShippingNameEvent,
+				paymentMethodId,
+			} );
+
+			expect( normalizedData.shipping_address ).toMatchObject( {
+				first_name: 'Cher',
+				last_name: '-',
+			} );
+		} );
+
+		test( 'should use the shipping last name fallback for a one-word shipping name with leading and trailing whitespace', () => {
+			const oneWordShippingNameEvent = {
+				shippingAddress: {
+					name: '  Cher  ',
+				},
+			};
+
+			const normalizedData = normalizeOrderData( {
+				event: oneWordShippingNameEvent,
+				paymentMethodId,
+			} );
+
+			expect( normalizedData.shipping_address ).toMatchObject( {
+				first_name: 'Cher',
+				last_name: '-',
+			} );
+		} );
+
+		test( 'should not use the shipping last name fallback for a whitespace-only name', () => {
+			const normalizedData = normalizeOrderData( {
+				event: {
+					shippingAddress: {
+						name: ' ',
+					},
+				},
+				paymentMethodId,
+			} );
+
+			expect( normalizedData.shipping_address.last_name ).toBe( '' );
+		} );
+
 		test( 'should use the placeholder fallback instead of an existing billing last name', () => {
 			select.mockImplementation( () => ( {
 				getExtensionData: () => ( {} ),

@@ -4,6 +4,7 @@
 import { screen, render } from '@testing-library/react';
 import {
 	displayExpressCheckoutNotice,
+	getDefaultShippingOptions,
 	getErrorMessageFromNotice,
 	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
@@ -42,6 +43,33 @@ describe( 'Express checkout utils', () => {
 		};
 
 		expect( getExpressCheckoutData( 'ajax_url' ) ).toBe( 'test' );
+	} );
+
+	describe( 'getDefaultShippingOptions', () => {
+		afterEach( () => {
+			window.wc_stripe_express_checkout_params = {};
+		} );
+
+		test( 'returns the server-provided default option wrapped in an array', () => {
+			const defaultShippingOption = {
+				id: 'pending',
+				displayName: 'Pending',
+				amount: 0,
+			};
+			window.wc_stripe_express_checkout_params = {
+				checkout: { default_shipping_option: defaultShippingOption },
+			};
+
+			expect( getDefaultShippingOptions() ).toEqual( [
+				defaultShippingOption,
+			] );
+		} );
+
+		test( 'returns an empty array when no default option is configured', () => {
+			window.wc_stripe_express_checkout_params = { checkout: {} };
+
+			expect( getDefaultShippingOptions() ).toEqual( [] );
+		} );
 	} );
 
 	test( 'getErrorMessageFromNotice strips formatting', () => {
@@ -97,6 +125,25 @@ describe( 'Express checkout utils', () => {
 			}
 			render( <App /> );
 			expect( screen.queryByRole( 'note' ) ).toBeInTheDocument();
+		} );
+
+		// Without a fallback the message is dropped and the shopper sees nothing.
+		test( 'falls back to the express checkout button when no wrapper exists', () => {
+			const button = document.createElement( 'div' );
+			button.id = 'wc-stripe-express-checkout-element';
+			document.body.appendChild( button );
+
+			displayExpressCheckoutNotice( 'Test message', 'error' );
+
+			const note = screen.queryByRole( 'note' );
+			expect( note ).toBeInTheDocument();
+			expect( note.nextElementSibling ).toBe( button );
+		} );
+
+		test( 'does nothing when there is nowhere to render the notice', () => {
+			displayExpressCheckoutNotice( 'Test message', 'error' );
+
+			expect( screen.queryByRole( 'note' ) ).not.toBeInTheDocument();
 		} );
 	} );
 

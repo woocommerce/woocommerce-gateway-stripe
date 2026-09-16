@@ -147,6 +147,89 @@ export const initializeOptimizedCheckout = async (
 };
 
 /**
+ * Enables or disables Adaptive Pricing in the Stripe settings.
+ *
+ * Enabling turns on the Optimized Checkout Suite first (AP requires it);
+ * disabling leaves OC on.
+ *
+ * @param {Browser} browser      Playwright browser fixture.
+ * @param {boolean} shouldEnable Whether to enable or disable Adaptive Pricing.
+ */
+export const initializeAdaptivePricing = async (
+	browser,
+	shouldEnable = true
+) => {
+	if ( shouldEnable ) {
+		await initializeOptimizedCheckout( browser, true );
+	}
+
+	const adminContext = await browser.newContext( {
+		storageState: process.env.ADMINSTATE,
+	} );
+
+	const page = await adminContext.newPage();
+
+	await page.goto(
+		'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings'
+	);
+
+	const checkbox = page.getByLabel(
+		'Let customers pay in their local currency with Adaptive Pricing'
+	);
+	const isChecked = await checkbox.isChecked();
+
+	const updateNeeded =
+		( shouldEnable && ! isChecked ) || ( ! shouldEnable && isChecked );
+
+	if ( updateNeeded ) {
+		// Fail fast when an availability gate (webhooks, PMC, capture, OC)
+		// is unmet, instead of timing out on the click.
+		await expect( checkbox ).toBeEnabled();
+		await checkbox.click();
+		await page.click( 'text=Save changes' );
+		await expect(
+			page.locator(
+				'.components-snackbar__content:has-text("Settings saved.")'
+			)
+		).toBeVisible();
+
+		// A save that silently didn't take would fail every dependent test
+		// deep in checkout; assert the resulting state here instead.
+		if ( shouldEnable ) {
+			await expect( checkbox ).toBeChecked();
+		} else {
+			await expect( checkbox ).not.toBeChecked();
+		}
+	}
+
+	await adminContext.close();
+};
+
+/**
+ * Open the admin order edit screen. Uses the legacy post edit URL, which
+ * redirects to the new order screen when HPOS is enabled.
+ *
+ * @param {Page}   page    Playwright page already authenticated as admin.
+ * @param {string} orderId The WooCommerce order ID.
+ */
+export const gotoOrderEditPage = async ( page, orderId ) => {
+	await page.goto( `/wp-admin/post.php?post=${ orderId }&action=edit` );
+};
+
+/**
+ * Locate a row in the order totals table by its label and return its amount cell.
+ *
+ * @param {Page}   page  Playwright page on the order edit screen.
+ * @param {string} label The row label, e.g. "Order Total" or "Paid by customer".
+ * @return {Locator} The amount cell for that row.
+ */
+export const getOrderTotalForLabel = ( page, label ) =>
+	page
+		.locator( '.wc-order-totals tr' )
+		.filter( { hasText: label } )
+		.locator( '.total' );
+
+/**
  * Open the admin order edit page for an order and confirm the expected amount
  * was charged.
  *
@@ -168,14 +251,10 @@ export const verifyOrderChargedAmount = async (
 	const { context, page } = await getAdminPage( browser );
 
 	try {
-		// Access via the post edit screen - we should be redirected if HPOS is enabled.
-		await page.goto( `/wp-admin/post.php?post=${ orderId }&action=edit` );
+		await gotoOrderEditPage( page, orderId );
 
 		const totalElementForLabel = ( label ) =>
-			page
-				.locator( '.wc-order-totals tr' )
-				.filter( { hasText: label } )
-				.locator( '.total' );
+			getOrderTotalForLabel( page, label );
 
 		// The order is recorded for the expected total...
 		await expect( totalElementForLabel( 'Order Total' ) ).toContainText(

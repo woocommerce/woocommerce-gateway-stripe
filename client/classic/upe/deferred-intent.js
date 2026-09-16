@@ -7,6 +7,7 @@ import {
 	isPaymentMethodRestrictedToLocation,
 	isUsingSavedPaymentMethod,
 	paymentMethodSupportsDeferredIntent,
+	removeCheckoutSessionIdFromForm,
 	togglePaymentMethodForCountry,
 } from '../../stripe-utils';
 import './style.scss';
@@ -18,6 +19,7 @@ import {
 	hasEmptyRequiredFields,
 	initializeUPEComponents,
 	maybeUpdateAdaptivePricingCheckoutSession,
+	maybeUpdateOptimizedCheckoutExclusions,
 	mountStripePaymentElement,
 	processPayment,
 	trackMountInProgress,
@@ -90,8 +92,10 @@ jQuery( function ( $ ) {
 	$( document.body ).on( 'updated_checkout', () => {
 		// Track the re-render → re-mount chain so a mid-update submission waits.
 		const updateChain = ( async () => {
-			await maybeUpdateAdaptivePricingCheckoutSession( api );
+			await maybeUpdateAdaptivePricingCheckoutSession();
 			await maybeMountStripePaymentElement();
+			// Remounting skips an already-mounted OC element; refresh its exclusions.
+			maybeUpdateOptimizedCheckoutExclusions();
 		} )();
 		trackMountInProgress( updateChain );
 		void updateChain;
@@ -106,6 +110,13 @@ jQuery( function ( $ ) {
 
 	$( 'form.checkout' ).on( generateCheckoutEventNames(), function () {
 		const $form = $( this );
+		const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
+
+		// A saved token bypasses Checkout Session confirmation, so discard a stale Session id left by
+		// an earlier attempt. New payment methods need the field so the Session flow can replace it.
+		if ( isUsingSavedPaymentMethod( paymentMethodType ) ) {
+			removeCheckoutSessionIdFromForm( $form );
+		}
 
 		// Don't create a Stripe payment method if required checkout fields are empty.
 		// This prevents unnecessary Stripe API calls before WC's server-side validation.

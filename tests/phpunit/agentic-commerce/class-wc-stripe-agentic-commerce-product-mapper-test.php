@@ -1003,6 +1003,128 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The exported `link` for a protected product only renders a password prompt.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_product_excludes_password_protected_products() {
+		$product = WC_Helper_Product::create_simple_product();
+		wp_update_post(
+			[
+				'ID'            => $product->get_id(),
+				'post_password' => 'secret',
+			]
+		);
+		$product = wc_get_product( $product->get_id() );
+
+		$this->assertFalse( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * A variation does NOT inherit the parent's `post_password`. Variations are
+	 * what the feed exports, so the predicate must resolve to the parent.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_product_excludes_variations_of_password_protected_parent() {
+		$parent     = WC_Helper_Product::create_variation_product();
+		$variations = $parent->get_children();
+		$variation  = wc_get_product( $variations[0] );
+
+		$this->assertTrue(
+			\WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $variation ),
+			'The variation should sync before the parent is password-protected.'
+		);
+
+		wp_update_post(
+			[
+				'ID'            => $parent->get_id(),
+				'post_password' => 'secret',
+			]
+		);
+		$variation = wc_get_product( $variations[0] );
+
+		$this->assertSame( '', $variation->get_post_password(), 'Guards the inheritance assumption this predicate is built on.' );
+		$this->assertFalse( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $variation ) );
+
+		$parent->delete( true );
+	}
+
+	/**
+	 * `hidden` removes the product from both catalog and search.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_product_excludes_products_hidden_from_catalog() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_catalog_visibility( 'hidden' );
+		$product->save();
+
+		$this->assertFalse( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Catalog visibility values that hide a product from only one surface.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public function provide_partial_catalog_visibility_values(): array {
+		return [
+			'excluded from search only'  => [ 'catalog' ],
+			'excluded from catalog only' => [ 'search' ],
+		];
+	}
+
+	/**
+	 * The partial values leave the product reachable by the other route, so
+	 * excluding it would overreach.
+	 *
+	 * @dataProvider provide_partial_catalog_visibility_values
+	 * @param string $visibility Catalog visibility value.
+	 * @return void
+	 */
+	public function test_should_sync_product_keeps_partially_visible_products( string $visibility ) {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_catalog_visibility( $visibility );
+		$product->save();
+
+		$this->assertTrue( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * The new exclusions are defaults, not hard blocks — matching the
+	 * subscription contract.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_product_filter_can_re_include_password_protected_products() {
+		$product = WC_Helper_Product::create_simple_product();
+		wp_update_post(
+			[
+				'ID'            => $product->get_id(),
+				'post_password' => 'secret',
+			]
+		);
+		$product = wc_get_product( $product->get_id() );
+
+		$callback = static fn() => true;
+		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback );
+
+		try {
+			$this->assertTrue( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+		} finally {
+			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback );
+			$product->delete( true );
+		}
+	}
+
+	/**
 	 * map_product short-circuits subscription products to an empty row, the
 	 * signal the validator treats as a clean exclusion.
 	 *
