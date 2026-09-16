@@ -1125,21 +1125,25 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * map_product short-circuits subscription products to an empty row, the
-	 * signal the validator treats as a clean exclusion.
+	 * map_product short-circuits subscription products to a `delete=true` row,
+	 * the explicit removal signal Stripe's upsert-mode imports require.
 	 *
 	 * @return void
 	 */
-	public function test_map_product_returns_empty_row_for_subscription_products() {
+	public function test_map_product_returns_delete_row_for_subscription_products() {
 		$product = $this->getMockBuilder( WC_Product::class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'get_type' ] )
+			->onlyMethods( [ 'get_type', 'get_sku', 'get_id' ] )
 			->getMock();
 		$product->method( 'get_type' )->willReturn( 'subscription_variation' );
+		$product->method( 'get_sku' )->willReturn( '' );
+		$product->method( 'get_id' )->willReturn( 123 );
 
 		$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$row    = $mapper->map_product( $product );
 
-		$this->assertSame( [], $mapper->map_product( $product ) );
+		$this->assertTrue( \WC_Stripe_Agentic_Commerce_Product_Mapper::is_delete_row( $row ) );
+		$this->assertSame( '123', $row['id'] );
 	}
 
 	/**
@@ -1185,15 +1189,15 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that `map_product` short-circuits to an empty row when the visibility
-	 * hook excludes the product. An empty row is the agreed signal the feed
-	 * validator's required-field check rejects, so the walker skips the entry
-	 * without polluting the validator's per-product error accumulator with
-	 * intentional exclusions.
+	 * Test that `map_product` short-circuits to a `delete=true` row when the
+	 * visibility hook excludes the product. Stripe's upsert-mode imports leave
+	 * omitted products in the catalog, so the removal must be explicit; only
+	 * `id` and `delete` carry data, keeping the walker's entry aligned with the
+	 * feed headers without exporting the excluded product's fields.
 	 *
 	 * @return void
 	 */
-	public function test_map_product_returns_empty_row_when_filter_excludes_product() {
+	public function test_map_product_returns_delete_row_when_filter_excludes_product() {
 		$product = WC_Helper_Product::create_simple_product();
 		$product->set_regular_price( '9.99' );
 		$product->save();
@@ -1205,7 +1209,10 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
 			$result = $mapper->map_product( $product );
 
-			$this->assertSame( [], $result );
+			$this->assertTrue( \WC_Stripe_Agentic_Commerce_Product_Mapper::is_delete_row( $result ) );
+			$this->assertSame( \WC_Stripe_Agentic_Commerce_Product_Mapper::get_feed_id( $product ), $result['id'] );
+			$this->assertNull( $result['title'] );
+			$this->assertNull( $result['price'] );
 		} finally {
 			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10 );
 			$product->delete( true );
@@ -1233,8 +1240,8 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 
 		try {
 			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
-			$this->assertNotEmpty( $mapper->map_product( $included ) );
-			$this->assertSame( [], $mapper->map_product( $excluded ) );
+			$this->assertFalse( \WC_Stripe_Agentic_Commerce_Product_Mapper::is_delete_row( $mapper->map_product( $included ) ) );
+			$this->assertTrue( \WC_Stripe_Agentic_Commerce_Product_Mapper::is_delete_row( $mapper->map_product( $excluded ) ) );
 		} finally {
 			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10 );
 			$included->delete( true );
@@ -1494,6 +1501,124 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		} finally {
 			remove_filter( 'woocommerce_agentic_commerce_disable_checkout', $callback, 10 );
 			$parent->delete( true );
+		}
+	}
+
+	/**
+	 * Data provider of non-publish statuses that make a product ineligible.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public function provide_unpublished_statuses(): array {
+		return [
+			'draft'   => [ 'draft' ],
+			'private' => [ 'private' ],
+			'pending' => [ 'pending' ],
+		];
+	}
+
+	/**
+	 * An unpublished product is ineligible: it left the storefront, so the feed
+	 * must carry its removal rather than keep exporting stale data.
+	 *
+	 * @dataProvider provide_unpublished_statuses
+	 * @param string $status Post status to test.
+	 * @return void
+	 */
+	public function test_should_sync_product_excludes_unpublished_product( string $status ) {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_status( $status );
+		$product->save();
+
+		try {
+			$this->assertFalse( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+		} finally {
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * A variation of an unpublished parent is ineligible even though its own
+	 * status stays `publish` — the feed query only checks the variation row, so
+	 * without this the variation would keep syncing with a dead `link`.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_product_excludes_variation_of_unpublished_parent() {
+		$parent    = WC_Helper_Product::create_variation_product();
+		$variation = wc_get_product( $parent->get_children()[0] );
+
+		try {
+			$this->assertTrue( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $variation ) );
+
+			wp_update_post(
+				[
+					'ID'          => $parent->get_id(),
+					'post_status' => 'draft',
+				]
+			);
+			// Re-read so the variation's parent lookup sees the fresh status.
+			$variation = wc_get_product( $variation->get_id() );
+
+			$this->assertFalse( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $variation ) );
+
+			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+			$this->assertTrue( \WC_Stripe_Agentic_Commerce_Product_Mapper::is_delete_row( $mapper->map_product( $variation ) ) );
+		} finally {
+			$parent->delete( true );
+		}
+	}
+
+	/**
+	 * A variation whose parent is no longer a variable product is ineligible:
+	 * variation posts survive a parent type switch and still match the feed
+	 * query, so without this they would keep syncing as stale rows.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_product_excludes_variation_of_non_variable_parent() {
+		$parent    = WC_Helper_Product::create_variation_product();
+		$variation = wc_get_product( $parent->get_children()[0] );
+
+		try {
+			$this->assertTrue( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $variation ) );
+
+			// Simulate the merchant switching the product type away from variable.
+			// A real save invalidates WC's product-type cache; the direct term
+			// write here doesn't, so invalidate it explicitly.
+			wp_set_object_terms( $parent->get_id(), 'simple', 'product_type' );
+			WC_Cache_Helper::invalidate_cache_group( 'product_' . $parent->get_id() );
+			$variation = wc_get_product( $variation->get_id() );
+
+			$this->assertFalse( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $variation ) );
+
+			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+			$this->assertTrue( \WC_Stripe_Agentic_Commerce_Product_Mapper::is_delete_row( $mapper->map_product( $variation ) ) );
+		} finally {
+			wp_delete_post( $parent->get_id(), true );
+		}
+	}
+
+	/**
+	 * The feed id survives to the delete row: a SKU'd product must be removed
+	 * under the SKU it was exported as, not its numeric ID.
+	 *
+	 * @return void
+	 */
+	public function test_delete_row_uses_sku_feed_id() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_sku( 'DELETE-ROW-SKU' );
+		$product->set_status( 'draft' );
+		$product->save();
+
+		try {
+			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+			$row    = $mapper->map_product( $product );
+
+			$this->assertTrue( \WC_Stripe_Agentic_Commerce_Product_Mapper::is_delete_row( $row ) );
+			$this->assertSame( 'DELETE-ROW-SKU', $row['id'] );
+		} finally {
+			$product->delete( true );
 		}
 	}
 }

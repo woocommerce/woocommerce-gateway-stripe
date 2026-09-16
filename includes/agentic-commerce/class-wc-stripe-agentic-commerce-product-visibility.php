@@ -17,9 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Watches product saves and exclude-flag writes, and schedules a full resync
  * when a product's `should_sync_product()` outcome flips.
  *
- * The filter only governs what is *sent*, so an already-exported product stays
- * live until a full feed replacement. The tracker can't close that gap — its
- * archive path bails on the same predicate, so a later trash never lands.
+ * Upsert-mode imports only drop a product when a feed carries its
+ * `delete=true` row; the mapper emits one for every in-query ineligible
+ * product, and this class makes the sync carrying it run promptly.
  *
  * @internal
  * @since 10.9.0
