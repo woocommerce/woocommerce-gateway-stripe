@@ -35,6 +35,9 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
+		// Use the real helper so locks are persisted.
+		WC_Stripe_Order_Helper::set_instance( null );
+
 		// WC_Stripe_API::retrieve() returns null once the consecutive-401 counter reaches its
 		// threshold, and earlier test class trip it with their mocked API keys.
 		// TODO: The proper fix is to remove any non stubbed call to Stripe; which is also the
@@ -42,15 +45,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY, 'test' );
 		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY, 'live' );
 
-		$this->wc_gateway_stripe = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
-			->disableOriginalConstructor()
-			->onlyMethods( [ 'prepare_order_source', 'has_subscription' ] )
-			->getMock();
-
-		// Mocked in order to get metadata[payment_type] = recurring in the HTTP request.
-		$this->wc_gateway_stripe
-			->method( 'has_subscription' )
-			->willReturn( true );
+		$this->reset_gateway_mock();
 
 		$this->statement_descriptor = 'This is a statement descriptor.';
 
@@ -66,15 +61,36 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	 * Tears down the stuff we set up.
 	 */
 	public function tear_down() {
-		WC_Stripe_Helper::delete_main_stripe_settings();
-
 		// The tests in this file do not mock ALL the calls to the Stripe API, and as we use mocked API keys they trigger the 401 rate-limiter,
 		// this is not a problem for these tests as they don't depend on the reponses.
+		//
+		// Delete the cached data before we delete the settings: the cache key depends on the current mode.
 		//
 		// TODO: Remove this once we've mocked all calls to the Stripe API (either using the pre_http_request filter, or by using a mocked WC_Stripe_API class).
 		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 
+		WC_Stripe_Helper::delete_main_stripe_settings();
+
 		parent::tear_down();
+	}
+
+	/**
+	 * Helper method to reset the gateway mock in {@see wc_gateway_stripe}.
+	 *
+	 * @param array $additional_methods Additional methods to mock.
+	 */
+	protected function reset_gateway_mock( array $additional_methods = [] ): void {
+		$methods = array_merge( [ 'prepare_order_source', 'has_subscription' ], $additional_methods );
+
+		$this->wc_gateway_stripe = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
+			->disableOriginalConstructor()
+			->onlyMethods( $methods )
+			->getMock();
+
+		// Mocked in order to get metadata[payment_type] = recurring in the HTTP request.
+		$this->wc_gateway_stripe
+			->method( 'has_subscription' )
+			->willReturn( true );
 	}
 
 	/**
@@ -262,6 +278,921 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		// Clean up.
 		remove_filter( 'pre_http_request', [ $this, 'pre_http_request_response_success' ] );
+	}
+
+	/**
+	 * @dataProvider provide_locked_subscription_renewal_payment_methods
+	 */
+	public function test_renewal_returns_without_charging_when_payment_lock_is_held( $gateway_id, $expected_api_endpoint ) {
+		$renewal_order         = WC_Helper_Order::create_order();
+		$customer              = 'cus_123abc';
+		$source                = 'src_123abc';
+		$api_requests          = [];
+		$processing_started_at = time();
+
+		$renewal_order->set_payment_method( $gateway_id );
+		$renewal_order->save();
+		$initial_order_status = $renewal_order->get_status();
+
+		$this->wc_gateway_stripe->id = $gateway_id;
+
+		$this->wc_gateway_stripe
+			->expects( $this->any() )
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => $customer,
+					'source'         => $source,
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$lock_result  = $order_helper->lock_order_payment( $renewal_order );
+
+		// Default logging settings: the skip must log at error level.
+		$previous_logger = WC_Stripe_Logger::$logger;
+		$logged_errors   = [];
+		$logger          = $this->getMockBuilder( WC_Logger::class )->disableOriginalConstructor()->getMock();
+		$logger->method( 'error' )->willReturnCallback(
+			function ( $message, $context = [] ) use ( &$logged_errors ) {
+				$logged_errors[] = [
+					'message' => $message,
+					'context' => $context,
+				];
+			}
+		);
+		WC_Stripe_Logger::$logger = $logger;
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $expected_api_endpoint, &$api_requests ) {
+			if ( ! str_starts_with( $url, $expected_api_endpoint ) ) {
+				return $preempt;
+			}
+
+			$api_requests[] = $url;
+
+			if ( 'https://api.stripe.com/v1/charges' === $expected_api_endpoint ) {
+				return [
+					'headers'  => [],
+					'body'     => wp_json_encode(
+						[
+							'id'                     => 'ch_123abc',
+							'object'                 => 'charge',
+							'captured'               => true,
+							'status'                 => 'succeeded',
+							'payment_method_details' => [
+								'type' => WC_Stripe_Payment_Methods::CARD,
+							],
+						]
+					),
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'cookies'  => [],
+					'filename' => null,
+				];
+			}
+
+			return [
+				'headers'  => [],
+				'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_success.json' ),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		try {
+			$this->assertFalse( $lock_result, 'Expect a new lock to be acquired before we run the main test.' );
+
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			WC_Stripe_Logger::$logger = $previous_logger;
+		}
+
+		// The gateway stamps the lock while processing, so the ceiling is the clock after the call, not before it.
+		$processing_finished_at = time();
+
+		$renewal_order = wc_get_order( $renewal_order->get_id() );
+
+		$lock_expiry = (int) $order_helper->get_order_existing_payment_lock( $renewal_order );
+
+		$this->assertSame( [], $api_requests );
+		$this->assertGreaterThan( $processing_started_at, $lock_expiry );
+		$this->assertLessThanOrEqual( $processing_finished_at + 5 * MINUTE_IN_SECONDS, $lock_expiry );
+		$this->assertSame( $initial_order_status, $renewal_order->get_status() );
+
+		$order_id = $renewal_order->get_id();
+		$this->verify_error_logged_once( $logged_errors, "skipping duplicate renewal attempt for order {$order_id}" );
+
+		$this->verify_expected_order_notes( $order_id, 'already in progress', 1 );
+	}
+
+	public function provide_locked_subscription_renewal_payment_methods() {
+		return [
+			'payment intents renewal' => [
+				'stripe',
+				'https://api.stripe.com/v1/payment_intents',
+			],
+			'legacy SEPA renewal'     => [
+				'stripe_sepa',
+				'https://api.stripe.com/v1/charges',
+			],
+		];
+	}
+
+	public function test_renewal_retry_acquires_the_lock_only_once() {
+		$renewal_order                 = WC_Helper_Order::create_order();
+		$customer                      = 'cus_123abc';
+		$source                        = 'src_123abc';
+		$payments_intents_api_endpoint = 'https://api.stripe.com/v1/payment_intents';
+		$request_count                 = 0;
+
+		$renewal_order->set_payment_method( 'stripe' );
+		$renewal_order->save();
+
+		$this->set_gateway_retry_interval( 0 );
+
+		$this->wc_gateway_stripe
+			->expects( $this->any() )
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => $customer,
+					'source'         => $source,
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		// Spy on lock/unlock only; the rest of the helper runs real.
+		$original_order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		$order_helper_spy = $this->getMockBuilder( WC_Stripe_Order_Helper::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'lock_order_payment', 'unlock_order_payment' ] )
+			->getMock();
+		$order_helper_spy->expects( $this->once() )
+			->method( 'lock_order_payment' )
+			->willReturnCallback( [ $original_order_helper, 'lock_order_payment' ] );
+		$order_helper_spy->method( 'unlock_order_payment' )
+			->willReturnCallback( [ $original_order_helper, 'unlock_order_payment' ] );
+
+		$instance_property = new ReflectionProperty( WC_Stripe_Order_Helper::class, 'instance' );
+		$instance_property->setAccessible( true );
+		$instance_property->setValue( null, $order_helper_spy );
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $payments_intents_api_endpoint, &$request_count ) {
+			if ( $payments_intents_api_endpoint !== $url ) {
+				return $preempt;
+			}
+
+			++$request_count;
+
+			if ( 1 === $request_count ) {
+				return [
+					'headers'  => [],
+					'body'     => wp_json_encode(
+						[
+							'error' => [
+								'type'    => 'api_error',
+								'message' => 'Temporary Stripe API error.',
+							],
+						]
+					),
+					'response' => [
+						'code'    => 400,
+						'message' => 'Bad Request',
+					],
+					'cookies'  => [],
+					'filename' => null,
+				];
+			}
+
+			return [
+				'headers'  => [],
+				'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_success.json' ),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, true, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			$instance_property->setValue( null, $original_order_helper );
+		}
+
+		$renewal_order = wc_get_order( $renewal_order->get_id() );
+
+		$this->assertSame( 2, $request_count );
+		$this->assertSame( OrderStatus::PROCESSING, $renewal_order->get_status() );
+	}
+
+	public function test_renewal_holds_payment_lock_until_response_is_processed() {
+		$renewal_order = WC_Helper_Order::create_order();
+		$customer      = 'cus_123abc';
+		$source        = 'src_123abc';
+
+		$renewal_order->set_payment_method( 'stripe' );
+		$renewal_order->save();
+
+		$this->wc_gateway_stripe
+			->expects( $this->any() )
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => $customer,
+					'source'         => $source,
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) {
+			if ( 'https://api.stripe.com/v1/payment_intents' !== $url ) {
+				return $preempt;
+			}
+
+			return [
+				'headers'  => [],
+				'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_success.json' ),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		// Capture the lock while process_response() fires its hook.
+		$order_helper           = WC_Stripe_Order_Helper::get_instance();
+		$lock_during_processing = null;
+		$capture_lock           = function () use ( $order_helper, $renewal_order, &$lock_during_processing ) {
+			$lock_during_processing = $order_helper->get_order_existing_payment_lock( wc_get_order( $renewal_order->get_id() ) );
+		};
+		add_action( 'wc_gateway_stripe_process_payment_charge', $capture_lock );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			remove_action( 'wc_gateway_stripe_process_payment_charge', $capture_lock );
+		}
+
+		$renewal_order = wc_get_order( $renewal_order->get_id() );
+
+		$this->assertGreaterThan( time(), $lock_during_processing );
+		$this->assertEmpty( $order_helper->get_order_existing_payment_lock( $renewal_order ) );
+		$this->assertSame( OrderStatus::PROCESSING, $renewal_order->get_status() );
+	}
+
+	public function test_renewal_releases_lock_on_unexpected_error() {
+		$renewal_order = WC_Helper_Order::create_order();
+
+		$renewal_order->set_payment_method( 'stripe' );
+		$renewal_order->save();
+
+		$this->wc_gateway_stripe
+			->expects( $this->any() )
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => 'cus_123abc',
+					'source'         => 'src_123abc',
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		// Throw a non-Stripe exception after the lock is acquired.
+		$thrower = function ( $preempt, $request_args, $url ) {
+			if ( 'https://api.stripe.com/v1/payment_intents' === $url ) {
+				throw new RuntimeException( 'Unexpected failure during the renewal charge.' );
+			}
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $thrower, 10, 3 );
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$caught       = null;
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
+		} catch ( \Throwable $e ) {
+			$caught = $e;
+		} finally {
+			remove_filter( 'pre_http_request', $thrower, 10 );
+		}
+
+		$this->assertInstanceOf( RuntimeException::class, $caught );
+		$this->assertEmpty( $order_helper->get_order_existing_payment_lock( wc_get_order( $renewal_order->get_id() ) ) );
+	}
+
+	/**
+	 * The lock is re-checked before the charge is attempted, so a lock that lapsed on the way in
+	 * fails the renewal without ever calling Stripe.
+	 *
+	 * @dataProvider provide_payment_lock_expiry_before_charge_scenarios
+	 */
+	public function test_renewal_fails_without_charging_when_payment_lock_expires_before_the_charge( $lock_expired_when_attempt_starts, $expected_prepare_source_calls ) {
+		$renewal_order                 = WC_Helper_Order::create_order();
+		$payments_intents_api_endpoint = 'https://api.stripe.com/v1/payment_intents';
+		$request_count                 = 0;
+
+		$renewal_order->set_payment_method( 'stripe' );
+		$renewal_order->save();
+
+		$this->reset_gateway_mock( [ 'is_order_payment_lock_expired' ] );
+		$this->set_gateway_retry_interval( 0 );
+
+		$lock_expired = $lock_expired_when_attempt_starts;
+
+		$this->wc_gateway_stripe
+			->method( 'is_order_payment_lock_expired' )
+			->willReturnCallback(
+				function () use ( &$lock_expired ) {
+					return $lock_expired;
+				}
+			);
+
+		$this->wc_gateway_stripe
+			->expects( $this->exactly( $expected_prepare_source_calls ) )
+			->method( 'prepare_order_source' )
+			->willReturnCallback(
+				function () use ( &$lock_expired ) {
+					// Update $lock_expired to mark the lock as expired for the next call.
+					$lock_expired = true;
+
+					return (object) [
+						'token_id'       => false,
+						'customer'       => 'cus_123abc',
+						'source'         => 'src_123abc',
+						'source_object'  => (object) [
+							'type' => WC_Stripe_Payment_Methods::CARD,
+						],
+						'payment_method' => null,
+					];
+				}
+			);
+
+		// Note that is_order_payment_lock_expired() is mocked and ignores this value.
+		$lock_expiry = (string) ( time() + 5 * MINUTE_IN_SECONDS );
+
+		$order_helper_mock = $this->getMockBuilder( WC_Stripe_Order_Helper::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'lock_order_payment', 'unlock_order_payment', 'get_order_existing_payment_lock' ] )
+			->getMock();
+		$order_helper_mock->method( 'lock_order_payment' )
+			->willReturn( false );
+		$order_helper_mock->method( 'get_order_existing_payment_lock' )
+			->willReturn( $lock_expiry );
+
+		$instance_property = new ReflectionProperty( WC_Stripe_Order_Helper::class, 'instance' );
+		$instance_property->setAccessible( true );
+		$original_instance = $instance_property->getValue();
+		$instance_property->setValue( null, $order_helper_mock );
+
+		// Default logging settings: the abandoned attempt must log at error level.
+		$previous_logger = WC_Stripe_Logger::$logger;
+		$logged_errors   = [];
+		$logger          = $this->getMockBuilder( WC_Logger::class )->disableOriginalConstructor()->getMock();
+		$logger->method( 'error' )->willReturnCallback(
+			function ( $message, $context = [] ) use ( &$logged_errors ) {
+				$logged_errors[] = [
+					'message' => $message,
+					'context' => $context,
+				];
+			}
+		);
+		WC_Stripe_Logger::$logger = $logger;
+
+		$thrown_exception = null;
+		$error_helper     = function ( $exception, $order ) use ( &$thrown_exception, $renewal_order ) {
+			if ( $order && $order->get_id() === $renewal_order->get_id() ) {
+				$thrown_exception = $exception;
+			}
+		};
+		add_action( 'wc_gateway_stripe_process_payment_error', $error_helper, 10, 2 );
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $payments_intents_api_endpoint, &$request_count ) {
+			if ( $payments_intents_api_endpoint !== $url ) {
+				return $preempt;
+			}
+
+			++$request_count;
+
+			return [
+				'headers'  => [],
+				'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_success.json' ),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, true, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			remove_action( 'wc_gateway_stripe_process_payment_error', $error_helper, 10 );
+			WC_Stripe_Logger::$logger = $previous_logger;
+			$instance_property->setValue( null, $original_instance );
+		}
+
+		$renewal_order = wc_get_order( $renewal_order->get_id() );
+		$order_id      = $renewal_order->get_id();
+
+		$this->assertSame( 0, $request_count );
+		$this->assertSame( OrderStatus::FAILED, $renewal_order->get_status() );
+
+		$this->assertInstanceOf( WC_Stripe_Exception::class, $thrown_exception );
+		$this->assertSame( "Failed to process renewal for order {$order_id}. The payment lock has expired.", $thrown_exception->getMessage() );
+		$this->assertSame( 'The payment lock has expired.', $thrown_exception->getLocalizedMessage() );
+
+		$this->verify_error_logged_once( $logged_errors, "abandoning renewal payment retries for order {$order_id} because the payment lock has expired", [ 'order_id' => $order_id ] );
+		$this->verify_expected_order_notes( $order_id, 'abandoned renewal payment retries because the payment lock has expired', 1 );
+	}
+
+	public function provide_payment_lock_expiry_before_charge_scenarios() {
+		return [
+			'lock already expired when the attempt starts'  => [
+				true,
+				0,
+			],
+			'lock expires while preparing the order source' => [
+				false,
+				1,
+			],
+		];
+	}
+
+	public function test_renewal_stops_retrying_when_payment_lock_expires() {
+		$renewal_order                 = WC_Helper_Order::create_order();
+		$payments_intents_api_endpoint = 'https://api.stripe.com/v1/payment_intents';
+		$request_count                 = 0;
+
+		$renewal_order->set_payment_method( 'stripe' );
+		$renewal_order->save();
+
+		$this->reset_gateway_mock( [ 'is_order_payment_lock_expired' ] );
+		$this->set_gateway_retry_interval( 0 );
+
+		$lock_expired = false;
+		$this->wc_gateway_stripe
+			->method( 'is_order_payment_lock_expired' )
+			->willReturnCallback(
+				function () use ( &$lock_expired ) {
+					return $lock_expired;
+				}
+			);
+
+		$this->wc_gateway_stripe
+			->expects( $this->any() )
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => 'cus_123abc',
+					'source'         => 'src_123abc',
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		// Note that is_order_payment_lock_expired() is mocked and ignores this value.
+		$lock_expiry = (string) ( time() + 5 * MINUTE_IN_SECONDS );
+
+		$order_helper_mock = $this->getMockBuilder( WC_Stripe_Order_Helper::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'lock_order_payment', 'unlock_order_payment', 'get_order_existing_payment_lock' ] )
+			->getMock();
+		$order_helper_mock->method( 'lock_order_payment' )->willReturn( false );
+		$order_helper_mock->method( 'get_order_existing_payment_lock' )->willReturn( $lock_expiry );
+		$order_helper_mock->method( 'unlock_order_payment' );
+
+		$instance_property = new ReflectionProperty( WC_Stripe_Order_Helper::class, 'instance' );
+		$instance_property->setAccessible( true );
+		$original_instance = $instance_property->getValue();
+		$instance_property->setValue( null, $order_helper_mock );
+
+		$previous_logger = WC_Stripe_Logger::$logger;
+		$logged_errors   = [];
+		$logger          = $this->getMockBuilder( WC_Logger::class )->disableOriginalConstructor()->getMock();
+		$logger->method( 'error' )->willReturnCallback(
+			function ( $message, $context = [] ) use ( &$logged_errors ) {
+				$logged_errors[] = [
+					'message' => $message,
+					'context' => $context,
+				];
+			}
+		);
+		WC_Stripe_Logger::$logger = $logger;
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $payments_intents_api_endpoint, &$request_count, &$lock_expired ) {
+			if ( $payments_intents_api_endpoint !== $url ) {
+				return $preempt;
+			}
+
+			++$request_count;
+			// Mark the lock as expired for the next call to is_order_payment_lock_expired().
+			$lock_expired = true;
+
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode(
+					[
+						'error' => [
+							'type'    => 'api_error',
+							'message' => 'Temporary Stripe API error.',
+						],
+					]
+				),
+				'response' => [
+					'code'    => 400,
+					'message' => 'Bad Request',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, true, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			WC_Stripe_Logger::$logger = $previous_logger;
+			$instance_property->setValue( null, $original_instance );
+		}
+
+		$renewal_order = wc_get_order( $renewal_order->get_id() );
+		$order_id      = $renewal_order->get_id();
+
+		$this->assertSame( 1, $request_count );
+		$this->assertSame( OrderStatus::FAILED, $renewal_order->get_status() );
+
+		$this->verify_error_logged_once( $logged_errors, "abandoning renewal payment retries for order {$order_id} because the payment lock has expired", [ 'order_id' => $order_id ] );
+
+		$this->verify_expected_order_notes( $order_id, 'Sorry, we are unable to process the payment at this time. Reason: Temporary Stripe API error.', 1 );
+		$this->verify_expected_order_notes( $order_id, 'abandoned renewal payment retries because the payment lock has expired', 0 );
+	}
+
+	public function test_renewal_stops_retrying_when_payment_lock_expires_during_backoff_sleep() {
+		$renewal_order                 = WC_Helper_Order::create_order();
+		$payments_intents_api_endpoint = 'https://api.stripe.com/v1/payment_intents';
+		$request_count                 = 0;
+
+		$renewal_order->set_payment_method( 'stripe' );
+		$renewal_order->save();
+
+		$this->reset_gateway_mock( [ 'is_order_payment_lock_expired' ] );
+		$this->set_gateway_retry_interval( 0 );
+
+		// Manually mark the lock as value for the first 3 calls to is_order_payment_lock_expired(),
+		// and then mark it as expired for the 4th call.
+		$this->wc_gateway_stripe
+			->method( 'is_order_payment_lock_expired' )
+			->willReturnOnConsecutiveCalls( false, false, false, true );
+
+		$this->wc_gateway_stripe
+			->expects( $this->any() )
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => 'cus_123abc',
+					'source'         => 'src_123abc',
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		// Note that is_order_payment_lock_expired() is mocked and ignores this value.
+		$lock_expiry = (string) ( time() + 5 * MINUTE_IN_SECONDS );
+
+		$order_helper_mock = $this->getMockBuilder( WC_Stripe_Order_Helper::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'lock_order_payment', 'unlock_order_payment', 'get_order_existing_payment_lock' ] )
+			->getMock();
+		$order_helper_mock->method( 'lock_order_payment' )->willReturn( false );
+		$order_helper_mock->method( 'get_order_existing_payment_lock' )->willReturn( $lock_expiry );
+		$order_helper_mock->method( 'unlock_order_payment' );
+
+		$instance_property = new ReflectionProperty( WC_Stripe_Order_Helper::class, 'instance' );
+		$instance_property->setAccessible( true );
+		$original_instance = $instance_property->getValue();
+		$instance_property->setValue( null, $order_helper_mock );
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $payments_intents_api_endpoint, &$request_count ) {
+			if ( $payments_intents_api_endpoint !== $url ) {
+				return $preempt;
+			}
+
+			++$request_count;
+
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode(
+					[
+						'error' => [
+							'type'    => 'api_error',
+							'message' => 'Temporary Stripe API error.',
+						],
+					]
+				),
+				'response' => [
+					'code'    => 400,
+					'message' => 'Bad Request',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, true, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			$instance_property->setValue( null, $original_instance );
+		}
+
+		$renewal_order = wc_get_order( $renewal_order->get_id() );
+
+		$this->assertSame( 1, $request_count );
+		$this->assertSame( OrderStatus::FAILED, $renewal_order->get_status() );
+	}
+
+	/**
+	 * Tests for the the protected is_order_payment_lock_expired() method.
+	 *
+	 * @dataProvider provide_is_order_payment_lock_expired_scenarios
+	 *
+	 * @param ?int $seconds_until_expiry The number of seconds until the lock expires, or null to set expiry to 0.
+	 * @param bool $expect_expired       Whether the lock is expected to be expired.
+	 */
+	public function test_is_order_payment_lock_expired( ?int $seconds_until_expiry, bool $expect_expired ): void {
+		$method = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'is_order_payment_lock_expired' );
+		$method->setAccessible( true );
+
+		// null stands for "no expiry recorded", which the gateway represents as 0.
+		$lock_expiry = null === $seconds_until_expiry ? 0 : time() + $seconds_until_expiry;
+
+		$this->assertSame( $expect_expired, $method->invoke( $this->wc_gateway_stripe, $lock_expiry ) );
+	}
+
+	/**
+	 * Data provider for {@see test_is_order_payment_lock_expired()}.
+	 */
+	public function provide_is_order_payment_lock_expired_scenarios(): array {
+		return [
+			'no expiry recorded'           => [ null, false ],
+			'expired one second ago'       => [ -1, true ],
+			'expires two seconds from now' => [ 2, false ],
+			'expires in five minutes'      => [ 5 * MINUTE_IN_SECONDS, false ],
+		];
+	}
+
+	public function test_renewal_does_not_release_lock_held_by_another_process() {
+		$renewal_order = WC_Helper_Order::create_order();
+
+		$renewal_order->set_payment_method( 'stripe' );
+		$renewal_order->save();
+
+		$this->wc_gateway_stripe
+			->expects( $this->any() )
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => 'cus_123abc',
+					'source'         => 'src_123abc',
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		// Another process replaced the lock before the finally block; unlock must not run.
+		$our_lock     = (string) ( time() + 5 * MINUTE_IN_SECONDS );
+		$foreign_lock = (string) ( time() + 10 * MINUTE_IN_SECONDS );
+
+		$order_helper_mock = $this->getMockBuilder( WC_Stripe_Order_Helper::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'lock_order_payment', 'unlock_order_payment', 'get_order_existing_payment_lock' ] )
+			->getMock();
+		$order_helper_mock->method( 'lock_order_payment' )->willReturn( false );
+		$order_helper_mock->method( 'get_order_existing_payment_lock' )
+			->willReturnOnConsecutiveCalls( $our_lock, $foreign_lock );
+		$order_helper_mock->expects( $this->never() )->method( 'unlock_order_payment' );
+
+		$instance_property = new ReflectionProperty( WC_Stripe_Order_Helper::class, 'instance' );
+		$instance_property->setAccessible( true );
+		$original_instance = $instance_property->getValue();
+		$instance_property->setValue( null, $order_helper_mock );
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) {
+			if ( 'https://api.stripe.com/v1/payment_intents' !== $url ) {
+				return $preempt;
+			}
+
+			return [
+				'headers'  => [],
+				'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_success.json' ),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			$instance_property->setValue( null, $original_instance );
+		}
+
+		$renewal_order = wc_get_order( $renewal_order->get_id() );
+
+		$this->assertSame( OrderStatus::PROCESSING, $renewal_order->get_status() );
+	}
+
+	public function test_renewal_sepa_success_processes_charge_response() {
+		$renewal_order         = WC_Helper_Order::create_order();
+		$customer              = 'cus_123abc';
+		$source                = 'src_123abc';
+		$charges_api           = 'https://api.stripe.com/v1/charges';
+		$requested             = [];
+		$lock_during_request   = null;
+		$processing_started_at = time();
+
+		$renewal_order->set_payment_method( 'stripe_sepa' );
+		$renewal_order->save();
+
+		$this->wc_gateway_stripe->id = 'stripe_sepa';
+
+		$this->wc_gateway_stripe
+			->expects( $this->any() )
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => $customer,
+					'source'         => $source,
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::SEPA,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $charges_api, &$requested, $renewal_order, $order_helper, &$lock_during_request ) {
+			if ( ! str_starts_with( $url, $charges_api ) ) {
+				return $preempt;
+			}
+
+			$requested[]         = $url;
+			$lock_during_request = $order_helper->get_order_existing_payment_lock( wc_get_order( $renewal_order->get_id() ) );
+
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode(
+					[
+						'id'                     => 'ch_123abc',
+						'object'                 => 'charge',
+						'captured'               => true,
+						'paid'                   => true,
+						'status'                 => 'succeeded',
+						'currency'               => strtolower( $renewal_order->get_currency() ),
+						'payment_method_details' => [
+							'type' => WC_Stripe_Payment_Methods::SEPA,
+						],
+					]
+				),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+		}
+
+		// The gateway stamps the lock while processing, so the ceiling is the clock after the call, not before it.
+		$processing_finished_at = time();
+
+		$renewal_order = wc_get_order( $renewal_order->get_id() );
+
+		$this->assertNotEmpty( $requested );
+		$this->assertGreaterThan( $processing_started_at, (int) $lock_during_request );
+		$this->assertLessThanOrEqual( $processing_finished_at + 5 * MINUTE_IN_SECONDS, (int) $lock_during_request );
+		$this->assertSame( OrderStatus::PROCESSING, $renewal_order->get_status() );
+		$this->assertEmpty( $order_helper->get_order_existing_payment_lock( $renewal_order ) );
+	}
+
+	private function set_gateway_retry_interval( $retry_interval ) {
+		$reflection = new ReflectionProperty( WC_Stripe_Payment_Gateway::class, 'retry_interval' );
+		$reflection->setAccessible( true );
+		$reflection->setValue( $this->wc_gateway_stripe, $retry_interval );
+	}
+
+	/**
+	 * Verifies that exactly one captured error log entry contains the given text and context values.
+	 *
+	 * @param array  $logged_errors    Entries captured from the mocked logger, each with 'message' and 'context' keys.
+	 * @param string $expected_message Text the log message must contain.
+	 * @param array  $expected_context Context keys and the values the matching entry must carry for them.
+	 */
+	private function verify_error_logged_once( array $logged_errors, string $expected_message, array $expected_context = [] ): void {
+		$matching_errors = array_values(
+			array_filter(
+				$logged_errors,
+				function ( $entry ) use ( $expected_message ) {
+					return str_contains( $entry['message'], $expected_message );
+				}
+			)
+		);
+
+		$this->assertCount( 1, $matching_errors, sprintf( 'Expected exactly one error log entry containing "%s".', $expected_message ) );
+
+		foreach ( $expected_context as $key => $value ) {
+			$this->assertArrayHasKey( $key, $matching_errors[0]['context'] );
+			$this->assertSame( $value, $matching_errors[0]['context'][ $key ] );
+		}
+	}
+
+	/**
+	 * Verifies the order notes contain the given text the expected number of times.
+	 *
+	 * @param int    $order_id       The order whose notes to check.
+	 * @param string $expected_text  Text the note must contain.
+	 * @param int    $expected_count How many notes are expected to match.
+	 */
+	private function verify_expected_order_notes( int $order_id, string $expected_text, int $expected_count ): void {
+		$matching_notes = array_filter(
+			wp_list_pluck( wc_get_order_notes( [ 'order_id' => $order_id ] ), 'content' ),
+			function ( $content ) use ( $expected_text ) {
+				return str_contains( $content, $expected_text );
+			}
+		);
+
+		$this->assertCount( $expected_count, $matching_notes, sprintf( 'Expected %d order note(s) containing "%s".', $expected_count, $expected_text ) );
 	}
 
 	/**

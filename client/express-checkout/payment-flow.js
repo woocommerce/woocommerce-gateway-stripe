@@ -1,5 +1,9 @@
 import jQuery from 'jquery';
-import { getErrorMessageFromNotice, normalizeOrderData } from './utils';
+import {
+	getErrorMessageFromNotice,
+	getExpressCheckoutErrorMessage,
+	normalizeOrderData,
+} from './utils';
 import { __ } from '@wordpress/i18n';
 
 /**
@@ -29,19 +33,21 @@ const handlePaymentFlowException = ( event, exception, abortPayment ) => {
 			errorMessage = paymentDetailsErrorMessage;
 		}
 	}
-	if ( ! errorMessage ) {
-		errorMessage = __(
-			'There was a problem processing the order.',
-			'woocommerce-gateway-stripe'
-		);
-	}
 
 	return abortPayment(
 		event,
-		getErrorMessageFromNotice( errorMessage ),
-		true
+		getExpressCheckoutErrorMessage(
+			getErrorMessageFromNotice( errorMessage )
+		)
 	);
 };
+
+const getUsableAddress = ( address ) =>
+	address !== null &&
+	typeof address === 'object' &&
+	! Array.isArray( address )
+		? address
+		: {};
 
 /**
  * Creates or pays for an order using the Express Checkout payment data,
@@ -77,11 +83,16 @@ const processOrder = async ( {
 		normalizedOrderData.shipping_address
 	);
 
-	if ( normalizedAddress ) {
-		normalizedOrderData.billing_address = normalizedAddress.billing_address;
-		normalizedOrderData.shipping_address =
-			normalizedAddress.shipping_address;
-	}
+	// Merge rather than replace: the response can carry no usable address at all,
+	// and replacing with `undefined` would drop the keys from the Store API request
+	normalizedOrderData.billing_address = {
+		...normalizedOrderData.billing_address,
+		...getUsableAddress( normalizedAddress?.billing_address ),
+	};
+	normalizedOrderData.shipping_address = {
+		...normalizedOrderData.shipping_address,
+		...getUsableAddress( normalizedAddress?.shipping_address ),
+	};
 
 	if ( order ) {
 		orderResponse = await api.expressCheckoutECEPayForOrder(
@@ -145,7 +156,10 @@ export const handleManualPaymentMethodFlow = async ( {
 		} );
 
 		if ( error ) {
-			return abortPayment( event, error.message );
+			return abortPayment(
+				event,
+				getExpressCheckoutErrorMessage( error.message )
+			);
 		}
 
 		// Kick off checkout processing step.
@@ -160,8 +174,9 @@ export const handleManualPaymentMethodFlow = async ( {
 		if ( result !== 'success' ) {
 			return abortPayment(
 				event,
-				getErrorMessageFromNotice( errorMessage ),
-				true
+				getExpressCheckoutErrorMessage(
+					getErrorMessageFromNotice( errorMessage )
+				)
 			);
 		}
 
@@ -217,8 +232,9 @@ export const handleConfirmationTokenFlow = async ( {
 		if ( error ) {
 			return abortPayment(
 				event,
-				getErrorMessageFromNotice( error.message ),
-				true
+				getExpressCheckoutErrorMessage(
+					getErrorMessageFromNotice( error.message )
+				)
 			);
 		}
 
@@ -233,8 +249,9 @@ export const handleConfirmationTokenFlow = async ( {
 		if ( result !== 'success' ) {
 			return abortPayment(
 				event,
-				getErrorMessageFromNotice( errorMessage ),
-				true
+				getExpressCheckoutErrorMessage(
+					getErrorMessageFromNotice( errorMessage )
+				)
 			);
 		}
 
@@ -291,7 +308,10 @@ export const handleChangePaymentMethodFlow = async ( {
 		} );
 
 		if ( error ) {
-			return abortPayment( event, error.message );
+			return abortPayment(
+				event,
+				getExpressCheckoutErrorMessage( error.message )
+			);
 		}
 
 		// Populate the hidden fields that the UPE gateway expects.

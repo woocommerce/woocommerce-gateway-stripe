@@ -143,18 +143,18 @@ export const usePaymentSetupHandler = (
 /**
  * Handles the Block Checkout onCheckoutSuccess event for the Checkout Sessions integration.
  *
- * @param {*}       checkoutState        The checkout state.
- * @param {*}       onCheckoutSuccess    The onCheckoutSuccess event.
- * @param {Object}  billing              The billing data from WooCommerce Blocks, containing billingAddress.
- * @param {boolean} isLoggedIn           Whether the customer is logged-in.
- * @param {boolean} isPayerPhoneRequired Whether the payer phone information is required.
- * @param {Object}  shippingData         The shipping data from WooCommerce Blocks, containing shippingAddress.
+ * @param {*}       checkoutState            The checkout state.
+ * @param {*}       onCheckoutSuccess        The onCheckoutSuccess event.
+ * @param {Object}  billing                  The billing data from WooCommerce Blocks, containing billingAddress.
+ * @param {boolean} savePaymentMethodEnabled Whether the Checkout Session was created with payment method saving enabled.
+ * @param {boolean} isPayerPhoneRequired     Whether the payer phone information is required.
+ * @param {Object}  shippingData             The shipping data from WooCommerce Blocks, containing shippingAddress.
  */
 export const useCheckoutSuccessHandler = (
 	checkoutState,
 	onCheckoutSuccess,
 	billing,
-	isLoggedIn,
+	savePaymentMethodEnabled,
 	isPayerPhoneRequired,
 	shippingData
 ) => {
@@ -196,7 +196,9 @@ export const useCheckoutSuccessHandler = (
 						redirect: 'if_required',
 					};
 
-					if ( isLoggedIn ) {
+					// Stripe rejects savePaymentMethod when the session was created
+					// without save support (e.g. as a guest).
+					if ( savePaymentMethodEnabled ) {
 						confirmArgs.savePaymentMethod =
 							isSavePaymentMethodCheckboxChecked();
 					}
@@ -285,7 +287,7 @@ export const useCheckoutSuccessHandler = (
 			onCheckoutSuccess,
 			checkoutState,
 			billing,
-			isLoggedIn,
+			savePaymentMethodEnabled,
 			isPayerPhoneRequired,
 			shippingData,
 		]

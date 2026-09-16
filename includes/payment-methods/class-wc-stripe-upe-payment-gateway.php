@@ -395,10 +395,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Proceed with current request using new login session (to ensure consistent nonce).
 	 *
+	 * Only applies during checkout after a customer has been created, to avoid a race condition
+	 * with WooPayments + Jetpack that causes the cart to be emptied on My Account registration.
+	 *
 	 * @param string $cookie New cookie value.
 	 */
 	public function set_cookie_on_current_request( $cookie ) {
-		$_COOKIE[ LOGGED_IN_COOKIE ] = $cookie;
+		if (
+			did_action( 'woocommerce_created_customer' ) > 0
+			&& is_checkout()
+		) {
+			$_COOKIE[ LOGGED_IN_COOKIE ] = $cookie;
+		}
 	}
 
 	/**
@@ -568,7 +576,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 		}
 
-		$express_checkout_helper = new WC_Stripe_Express_Checkout_Helper();
+		$express_checkout_helper = $this->get_express_checkout_helper();
 
 		$is_signup_on_checkout_allowed = 'yes' === get_option( 'woocommerce_enable_signup_and_login_from_checkout', 'no' )
 			|| ( $this->is_subscription_item_in_cart() && 'yes' === get_option( 'woocommerce_enable_signup_from_checkout_for_subscriptions', 'no' ) );
@@ -603,6 +611,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$stripe_params['isExpressCheckoutEnabled']          = $express_checkout_helper->is_express_checkout_enabled();
 		$stripe_params['isAmazonPayEnabled']                = $express_checkout_helper->is_amazon_pay_enabled();
 		$stripe_params['isLinkEnabled']                     = $express_checkout_helper->is_link_enabled();
+		// `isExpressCheckoutEnabled` aggregates all methods, so Apple/Google Pay need their own
+		// flags; per-wallet keys keep the contract stable if the shared setting ever splits.
+		$stripe_params['isApplePayEnabled']  = $express_checkout_helper->is_apple_google_pay_enabled();
+		$stripe_params['isGooglePayEnabled'] = $express_checkout_helper->is_apple_google_pay_enabled();
 
 		if ( $this->testmode ) {
 			/**
@@ -756,6 +768,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		return array_merge( $stripe_params, WC_Stripe_Helper::get_localized_messages() );
+	}
+
+	/**
+	 * Returns the express checkout helper used to compute the per-method flags.
+	 *
+	 * Protected seam so tests can substitute the helper.
+	 *
+	 * @return WC_Stripe_Express_Checkout_Helper
+	 */
+	protected function get_express_checkout_helper() {
+		return new WC_Stripe_Express_Checkout_Helper();
 	}
 
 	/**
@@ -1528,6 +1551,32 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return array|null An array with result of payment and redirect URL, or nothing.
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
+		// Fallback for WooCommerce versions before 11.2.0, where Store API checkout never sets
+		// `order_awaiting_payment` (classic checkout always has). We need to set the flag so WC core's
+		// wc_clear_cart_after_payment() clears the cart when a redirect payment's return
+		// doesn't have the session cookie (mobile app/browser handoffs). This removes a paid-for cart
+		// from the session.
+		// The logic matches WC_Checkout::process_order_payment(), and only adds the value when unset.
+		// Skipped for subscription payment-method changes, where $order_id is a
+		// non-pending subscription ID, not an order ID.
+		$order      = wc_get_order( $order_id );
+		$wc_session = WC()->session;
+		if ( $order instanceof WC_Order
+			&& $order->needs_payment()
+			&& $wc_session
+			&& is_callable( [ $wc_session, 'set' ] )
+			&& ! $this->is_changing_payment_method_for_subscription()
+			// Don't set the flag for the pay-for-order path.
+			&& ! did_action( 'woocommerce_before_pay_action' )
+			&& (string) ( $wc_session->get( 'order_awaiting_payment' ) ?? '' ) !== (string) $order_id
+		) {
+			$wc_session->set( 'order_awaiting_payment', $order_id );
+			// Ensure the flag is saved rather than waiting until the end of the request.
+			if ( is_callable( [ $wc_session, 'save_data' ] ) ) {
+				$wc_session->save_data();
+			}
+		}
+
 		$payment_intent_id     = isset( $_POST['wc_payment_intent_id'] ) ? wc_clean( wp_unslash( $_POST['wc_payment_intent_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$checkout_session_id   = isset( $_POST['wc_stripe_checkout_session_id'] ) ? wc_clean( wp_unslash( $_POST['wc_stripe_checkout_session_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$selected_payment_type = $this->get_selected_payment_method_type_from_request();
@@ -1795,7 +1844,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			if ( in_array( $payment_intent->status, WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION_OR_ACTION_STATUSES, true )
 				&& WC_Stripe_Payment_Methods::BLIK !== $selected_payment_type ) {
 				$wallet_and_voucher_methods        = array_merge( WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS );
-				$contains_wallet_or_voucher_method = isset( $payment_intent->payment_method_types ) && count( array_intersect( $wallet_and_voucher_methods, $payment_intent->payment_method_types ) ) !== 0;
+				$contains_wallet_or_voucher_method = $this->is_payment_using_method_types( $wallet_and_voucher_methods, $selected_payment_type, $payment_intent );
 				$contains_redirect_next_action     = isset( $payment_intent->next_action->type ) && in_array( $payment_intent->next_action->type, [ 'redirect_to_url', 'alipay_handle_redirect' ], true )
 					&& ! empty( $payment_intent->next_action->{$payment_intent->next_action->type}->url );
 				if ( ! $contains_wallet_or_voucher_method && ! $contains_redirect_next_action ) {
@@ -3130,7 +3179,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$data['description'] .= '</tbody>
 			</table>
-			<p><a class="button" target="_blank" href="https://dashboard.stripe.com/account/payments/settings">' . __( 'Get more payment methods', 'woocommerce-gateway-stripe' ) . '</a></p>
+			<p>' . WC_Stripe_Helper::get_external_link( 'https://dashboard.stripe.com/account/payments/settings', __( 'Get more payment methods', 'woocommerce-gateway-stripe' ), 'button' ) . '</p>
 			<span id="wc_stripe_upe_change_notice" class="hidden">' . __( 'You must save your changes.', 'woocommerce-gateway-stripe' ) . '</span>';
 
 		return $this->generate_title_html( $key, $data );
@@ -3516,6 +3565,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 		} else {
 			$payment_method_id = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+			if ( '' === $payment_method_id && empty( $_POST['wc-stripe-confirmation-token'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+				// The gateway the shopper picked is fine; what is missing are the payment details the
+				// browser should have attached. This path is shared by every deferred-intent flow, so
+				// the message must not name a cause: it is also reached when Stripe.js fails to load,
+				// when the payment element is remounting, and on tampered requests.
+				throw new WC_Stripe_Exception(
+					'Payment method ID is missing from the request.',
+					__( 'Your payment details were not submitted. Please review the checkout form and try again.', 'woocommerce-gateway-stripe' )
+				);
+			}
 
 			// sanitize_text_field() leaves URL metacharacters intact, so validate the grammar before the
 			// value is concatenated into the Stripe API paths below, where it could retarget the request.
@@ -4378,7 +4438,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	protected function get_redirect_url( $return_url, $payment_intent, $payment_information, $order, $payment_needed ) {
 		$selected_payment_type = $this->get_selected_payment_type_from_info( $payment_information );
-		if ( isset( $payment_intent->payment_method_types ) && count( array_intersect( WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, $payment_intent->payment_method_types ) ) !== 0 ) {
+		if ( $this->is_payment_using_method_types( WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, $selected_payment_type, $payment_intent ) ) {
 			// For Voucher payment method types (Boleto/Oxxo/Multibanco), redirect the customer to a URL hash formatted #wc-stripe-voucher-{order_id}:{payment_method_type}:{client_secret}:{redirect_url} to confirm the intent which also displays the voucher.
 			return sprintf(
 				'#wc-stripe-voucher-%s:%s:%s:%s',
@@ -4387,7 +4447,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				$payment_intent->client_secret,
 				rawurlencode( $return_url )
 			);
-		} elseif ( isset( $payment_intent->payment_method_types ) && count( array_intersect( WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, $payment_intent->payment_method_types ) ) !== 0 ) {
+		} elseif ( $this->is_payment_using_method_types( WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, $selected_payment_type, $payment_intent ) ) {
 			// For Wallet payment method types (CashApp/WeChat Pay), redirect the customer to a URL hash formatted #wc-stripe-wallet-{order_id}:{payment_method_type}:{payment_intent_type}:{client_secret}:{redirect_url} to confirm the intent which also displays the modal.
 			return sprintf(
 				'#wc-stripe-wallet-%s:%s:%s:%s:%s:%s',
@@ -4409,6 +4469,27 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$payment_intent->client_secret,
 			wp_create_nonce( 'wc_stripe_update_order_status_nonce' )
 		);
+	}
+
+	/**
+	 * Whether the payment being processed uses one of the given payment method types.
+	 *
+	 * The selected type is authoritative: under Dynamic Payment Methods the intent's
+	 * `payment_method_types` lists every PMC-enabled method, not the customer's selection.
+	 * The intent-types intersect remains as a fallback when there is no selection reference.
+	 *
+	 * @param string[] $payment_method_types  Payment method types to match against.
+	 * @param string   $selected_payment_type The resolved selected payment type, '' when unknown.
+	 * @param object   $payment_intent        The Stripe payment intent.
+	 *
+	 * @return bool
+	 */
+	private function is_payment_using_method_types( array $payment_method_types, string $selected_payment_type, $payment_intent ): bool {
+		if ( '' !== $selected_payment_type ) {
+			return in_array( $selected_payment_type, $payment_method_types, true );
+		}
+
+		return isset( $payment_intent->payment_method_types ) && count( array_intersect( $payment_method_types, $payment_intent->payment_method_types ) ) !== 0;
 	}
 
 	/**

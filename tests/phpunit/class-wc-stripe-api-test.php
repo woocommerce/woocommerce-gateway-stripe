@@ -32,16 +32,14 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$stripe_settings['test_secret_key'] = self::TEST_SECRET_KEY;
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		// Reset the invalid API keys count cache.
-		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
+		$this->clear_mode_caches();
 	}
 
 	/**
 	 * Tear down environment after tests.
 	 */
 	public function tear_down() {
-		// Reset the invalid API keys count cache.
-		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
+		$this->clear_mode_caches();
 
 		// Clear any outage state recorded during the test run.
 		delete_transient( WC_Stripe_API_Outage_Status::OUTAGE_TRANSIENT_KEY );
@@ -177,6 +175,72 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$this->assertNull( $count, 'Cache should be deleted after a successful response.' );
 
 		remove_all_filters( 'pre_http_request' );
+	}
+
+	/**
+	 * Provide active and requested modes for invalid-key isolation tests.
+	 *
+	 * @return array
+	 */
+	public function provide_invalid_key_mode_test_cases(): array {
+		return [
+			'live request while test mode is active' => [ 'yes', 'live', 'test' ],
+			'test request while live mode is active' => [ 'no', 'test', 'live' ],
+		];
+	}
+
+	/**
+	 * Invalid-key rate limiting and account invalidation must stay within the requested key's mode.
+	 *
+	 * @param string $testmode       The active test mode setting.
+	 * @param string $requested_mode The mode whose key is used for the request.
+	 * @param string $other_mode     The mode that must remain unaffected.
+	 *
+	 * @dataProvider provide_invalid_key_mode_test_cases
+	 */
+	public function test_retrieve_scopes_invalid_key_state_to_active_secret_key( string $testmode, string $requested_mode, string $other_mode ) {
+		$stripe_settings             = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['testmode'] = $testmode;
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$requested_account = [ 'id' => "acct_$requested_mode" ];
+		$other_account     = [ 'id' => "acct_$other_mode" ];
+		WC_Stripe_Database_Cache::set_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $requested_account, HOUR_IN_SECONDS, $requested_mode );
+		WC_Stripe_Database_Cache::set_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $other_account, HOUR_IN_SECONDS, $other_mode );
+		WC_Stripe_API::set_secret_key_for_mode( $requested_mode );
+
+		$unauthorized_response = [ $this, 'mock_unauthorized_response' ];
+		add_filter( 'pre_http_request', $unauthorized_response );
+
+		$stripe_api_class = new ReflectionClass( WC_Stripe_API::class );
+		$threshold        = $stripe_api_class->getConstant( 'INVALID_API_KEY_ERROR_COUNT_THRESHOLD' );
+		for ( $i = 0; $i < $threshold; $i++ ) {
+			WC_Stripe_API::retrieve( 'test_endpoint' );
+		}
+
+		remove_filter( 'pre_http_request', $unauthorized_response );
+
+		$this->assertSame( $threshold, WC_Stripe_Database_Cache::get_with_mode( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY, $requested_mode ) );
+		$this->assertNull( WC_Stripe_Database_Cache::get_with_mode( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY, $other_mode ) );
+		$this->assertNull( WC_Stripe_Database_Cache::get_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $requested_mode ) );
+		$this->assertSame( $other_account, WC_Stripe_Database_Cache::get_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $other_mode ) );
+
+		WC_Stripe_API::set_secret_key_for_mode( $other_mode );
+		add_filter( 'pre_http_request', [ $this, 'mock_successful_response' ] );
+		$result = WC_Stripe_API::retrieve( 'test_endpoint' );
+		remove_filter( 'pre_http_request', [ $this, 'mock_successful_response' ] );
+
+		$this->assertSame( 'success', $result );
+	}
+
+	/**
+	 * Clear mode-specific caches used by these tests.
+	 */
+	private function clear_mode_caches(): void {
+		foreach ( [ 'test', 'live' ] as $mode ) {
+			WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY, $mode );
+			WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $mode );
+		}
 	}
 
 	/**
