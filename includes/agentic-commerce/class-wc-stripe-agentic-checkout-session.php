@@ -322,10 +322,9 @@ class WC_Stripe_Agentic_Checkout_Session {
 	 * Returns a label for the agent network that originated this session,
 	 * or null when absent (non-agentic sessions).
 	 *
-	 * Prefers the human-readable agent name over network_business_profile:
-	 * per the ACP spec, agent_details carries both a name/display_name and
-	 * the profile, but the profile is an opaque `profile_…` ID — it still
-	 * distinguishes networks, yet reads poorly in merchant-facing surfaces.
+	 * Prefer the human-readable agent name over network_business_profile:
+	 * agent_details includes name and display_name fields as well as the profile
+	 * field, but the profile is an opaque ID which is not meaningful to merchants.
 	 *
 	 * @since 11.1.0
 	 * @return string|null
