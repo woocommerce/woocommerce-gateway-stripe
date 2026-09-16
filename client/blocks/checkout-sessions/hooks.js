@@ -150,6 +150,7 @@ export const usePaymentSetupHandler = (
  * @param {boolean} savePaymentMethodEnabled Whether the Checkout Session was created with payment method saving enabled.
  * @param {boolean} isPayerPhoneRequired     Whether the payer phone information is required.
  * @param {Object}  shippingData             The shipping data from WooCommerce Blocks, containing shippingAddress.
+ * @param {?string} savedPaymentMethodId     Stripe PaymentMethod id of a saved token paying the session, or null for a new payment method.
  */
 export const useCheckoutSuccessHandler = (
 	checkoutState,
@@ -157,7 +158,8 @@ export const useCheckoutSuccessHandler = (
 	billing,
 	savePaymentMethodEnabled,
 	isPayerPhoneRequired,
-	shippingData
+	shippingData,
+	savedPaymentMethodId = null
 ) => {
 	useEffect(
 		() =>
@@ -197,9 +199,14 @@ export const useCheckoutSuccessHandler = (
 						redirect: 'if_required',
 					};
 
-					// Stripe rejects savePaymentMethod when the session was created
-					// without save support (e.g. as a guest).
-					if ( savePaymentMethodEnabled ) {
+					// A saved token pays the session directly: `paymentMethod`
+					// makes confirm() ignore the Payment Element, and an
+					// already-saved method must not request saving again.
+					// Stripe also rejects savePaymentMethod when the session
+					// was created without save support (e.g. as a guest).
+					if ( savedPaymentMethodId ) {
+						confirmArgs.paymentMethod = savedPaymentMethodId;
+					} else if ( savePaymentMethodEnabled ) {
 						confirmArgs.savePaymentMethod =
 							isSavePaymentMethodCheckboxChecked();
 					}
@@ -291,7 +298,72 @@ export const useCheckoutSuccessHandler = (
 			savePaymentMethodEnabled,
 			isPayerPhoneRequired,
 			shippingData,
+			savedPaymentMethodId,
 		]
+	);
+};
+
+/**
+ * Handles the Block Checkout onPaymentSetup event when a saved token pays the
+ * Checkout Session. No Payment Element completeness applies; the returned
+ * payment data replaces the store's token payload, so the token keys are
+ * re-emitted alongside the session id.
+ *
+ * @param {*}      onPaymentSetup    The onPaymentSetup event.
+ * @param {string} checkoutSessionId The ID of the checkout session.
+ * @param {Object} syncFailedRef     Ref set when the last totals resync failed, so submission is blocked while the session total is stale.
+ * @param {string} tokenId           The WooCommerce payment token id the customer selected.
+ */
+export const useSavedTokenPaymentSetupHandler = (
+	onPaymentSetup,
+	checkoutSessionId,
+	syncFailedRef,
+	tokenId
+) => {
+	useEffect(
+		() =>
+			onPaymentSetup( () => {
+				const { validationStore } = window.wc?.wcBlocksData ?? {};
+				if ( validationStore ) {
+					const store = select( validationStore );
+					if ( store.hasValidationErrors() ) {
+						return;
+					}
+				}
+
+				if ( ! checkoutSessionId ) {
+					return {
+						type: 'error',
+						message: __(
+							'We could not initialize the payment session. Please refresh the page and try again.',
+							'woocommerce-gateway-stripe'
+						),
+					};
+				}
+
+				// The session still holds stale line items from a failed
+				// resync, so its total no longer matches the cart.
+				if ( syncFailedRef?.current ) {
+					return {
+						type: 'error',
+						message: getStaleCheckoutTotalMessage(),
+					};
+				}
+
+				return {
+					type: 'success',
+					meta: {
+						paymentMethodData: {
+							payment_method: 'stripe',
+							token: tokenId,
+							'wc-stripe-payment-token': String( tokenId ),
+							isSavedToken: true,
+							wc_stripe_checkout_session_id: checkoutSessionId,
+						},
+					},
+				};
+			} ),
+		[ checkoutSessionId, onPaymentSetup, syncFailedRef, tokenId ]
 	);
 };
 

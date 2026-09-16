@@ -5,6 +5,7 @@ jest.mock( 'wcstripe/classic/upe/payment-processing', () => ( {
 	confirmWalletPayment: jest.fn(),
 	createAndConfirmSetupIntent: jest.fn(),
 	getMountedUPEComponent: jest.fn(),
+	hasActiveCheckoutSession: jest.fn().mockReturnValue( false ),
 	hasEmptyRequiredFields: jest.fn().mockReturnValue( false ),
 	initializeUPEComponents: jest.fn(),
 	maybeUpdateAdaptivePricingCheckoutSession: jest.fn(),
@@ -18,6 +19,9 @@ jest.mock( 'wcstripe/stripe-utils', () => ( {
 	generateCheckoutEventNames: jest
 		.fn()
 		.mockReturnValue( 'checkout_place_order_stripe' ),
+	getAdaptivePricingSavedTokenPaymentMethod: jest
+		.fn()
+		.mockReturnValue( null ),
 	getSelectedUPEGatewayPaymentMethod: jest.fn().mockReturnValue( 'card' ),
 	getStripeServerData: jest.fn().mockReturnValue( {} ),
 	isPaymentMethodRestrictedToLocation: jest.fn().mockReturnValue( false ),
@@ -38,10 +42,14 @@ const STALE_SESSION_ID = 'cs_test_stale';
  * The module registry is reset first so every case gets a script instance bound to the jQuery
  * instance and the DOM used here, rather than to a previous case's.
  *
- * @param {boolean} usingSavedToken Whether the customer picked a saved payment method.
+ * @param {boolean}  usingSavedToken Whether the customer picked a saved payment method.
+ * @param {Function} configureMocks  Optional hook to adjust the freshly reset mocks before the order is placed.
  * @return {Promise<Object>} The mocked payment-processing module the script was loaded against.
  */
-const placeOrderWithStaleSessionId = async ( usingSavedToken ) => {
+const placeOrderWithStaleSessionId = async (
+	usingSavedToken,
+	configureMocks = () => {}
+) => {
 	document.body.innerHTML = `
 		<form class="checkout">
 			<input type="hidden" id="wc_stripe_checkout_session_id" name="wc_stripe_checkout_session_id" value="${ STALE_SESSION_ID }" />
@@ -53,6 +61,7 @@ const placeOrderWithStaleSessionId = async ( usingSavedToken ) => {
 		usingSavedToken
 	);
 	const paymentProcessing = require( 'wcstripe/classic/upe/payment-processing' );
+	configureMocks( paymentProcessing );
 
 	const jQuery = require( 'jquery' );
 	require( '../deferred-intent' );
@@ -81,6 +90,23 @@ describe( 'classic checkout submission', () => {
 		expect(
 			document.getElementById( 'wc_stripe_checkout_session_id' )
 		).not.toBeNull();
+		expect( processPayment ).toHaveBeenCalled();
+	} );
+
+	it( 'pays through the live Checkout Session when an Adaptive Pricing saved card is selected', async () => {
+		const { processPayment } = await placeOrderWithStaleSessionId(
+			true,
+			( paymentProcessing ) => {
+				paymentProcessing.hasActiveCheckoutSession.mockReturnValue(
+					true
+				);
+				require( 'wcstripe/stripe-utils' ).getAdaptivePricingSavedTokenPaymentMethod.mockReturnValue(
+					'pm_saved_ap_123'
+				);
+			}
+		);
+
+		// The saved card pays the mounted session via confirm( { paymentMethod } ).
 		expect( processPayment ).toHaveBeenCalled();
 	} );
 } );

@@ -7,6 +7,7 @@ import {
 	getStripeServerData,
 	showErrorCheckout,
 	getExcludedPaymentMethodTypesForBillingCountry,
+	getAdaptivePricingSavedTokenPaymentMethod,
 } from '../utils';
 import { initializeUPEAppearance } from '../upe-appearance';
 import { getAppearance } from '../../styles/upe';
@@ -958,6 +959,68 @@ describe( 'showErrorCheckout', () => {
 			expect(
 				getExcludedPaymentMethodTypesForBillingCountry( 'US' )
 			).toEqual( [ 'amazon_pay' ] );
+		} );
+	} );
+
+	describe( 'getAdaptivePricingSavedTokenPaymentMethod', () => {
+		const globalValues = global.wc_stripe_upe_params;
+
+		const renderTokenRadios = ( checkedValue ) => {
+			document.body.innerHTML = `
+				<input id="wc-stripe-payment-token-1" name="wc-stripe-payment-token" value="12" type="radio" ${
+					checkedValue === '12' ? 'checked' : ''
+				} />
+				<input id="wc-stripe-payment-token-2" name="wc-stripe-payment-token" value="34" type="radio" ${
+					checkedValue === '34' ? 'checked' : ''
+				} />
+				<input id="wc-stripe-payment-token-new" name="wc-stripe-payment-token" value="new" type="radio" ${
+					checkedValue === 'new' ? 'checked' : ''
+				} />
+			`;
+		};
+
+		beforeEach( () => {
+			global.wc_stripe_upe_params = {
+				adaptivePricingSavedTokens: { 12: 'pm_saved_card_12' },
+			};
+		} );
+
+		afterEach( () => {
+			global.wc_stripe_upe_params = globalValues;
+			document.body.innerHTML = '';
+		} );
+
+		it( 'returns the PaymentMethod id for a mapped (card) token', () => {
+			renderTokenRadios( '12' );
+
+			expect( getAdaptivePricingSavedTokenPaymentMethod( 'card' ) ).toBe(
+				'pm_saved_card_12'
+			);
+		} );
+
+		it( 'returns null for a token the server left out of the map', () => {
+			renderTokenRadios( '34' );
+
+			expect(
+				getAdaptivePricingSavedTokenPaymentMethod( 'card' )
+			).toBeNull();
+		} );
+
+		it( 'returns null when "Use a new payment method" is selected', () => {
+			renderTokenRadios( 'new' );
+
+			expect(
+				getAdaptivePricingSavedTokenPaymentMethod( 'card' )
+			).toBeNull();
+		} );
+
+		it( 'returns null when no map was provided (guest or AP off)', () => {
+			global.wc_stripe_upe_params = {};
+			renderTokenRadios( '12' );
+
+			expect(
+				getAdaptivePricingSavedTokenPaymentMethod( 'card' )
+			).toBeNull();
 		} );
 	} );
 } );
