@@ -17,6 +17,7 @@ xxxx-xx-xx - version 11.1.0
 * Fix - Accept shipping addresses in the express checkout wallet sheet for free-trial subscription carts whose shipping is charged with the recurring payments
 * Update - Ensure that application fees are not sent to Stripe for OAuth-connected accounts
 * Dev - Block outbound HTTP requests from unit tests
+* Update - Reuse the mounted express checkout buttons on cart and checkout updates instead of re-creating them on every totals refresh, and defer refreshes while the wallet sheet is open
 
 2026-09-08 - version 11.0.0
 * Fix - Allow express checkout payments when a wallet provides a one-word shipping name
