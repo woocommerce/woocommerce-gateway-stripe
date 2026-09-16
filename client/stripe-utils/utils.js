@@ -8,6 +8,7 @@ import {
 	getPaymentMethodsConstants,
 	PAYMENT_METHOD_LINK,
 	PAYMENT_METHOD_CARD,
+	CHECKOUT_SESSION_INPUT_ID,
 } from './constants';
 import { __ } from '@wordpress/i18n';
 import { dispatch } from '@wordpress/data';
@@ -534,7 +535,7 @@ export const getUpeSettings = () => {
 };
 
 export const appendCheckoutSessionIdToForm = ( form, checkoutSessionId ) => {
-	const existingElement = form.find( 'input#wc_stripe_checkout_session_id' );
+	const existingElement = form.find( `input#${ CHECKOUT_SESSION_INPUT_ID }` );
 	if ( existingElement.length ) {
 		existingElement.val( checkoutSessionId );
 		return;
@@ -542,10 +543,14 @@ export const appendCheckoutSessionIdToForm = ( form, checkoutSessionId ) => {
 
 	const hiddenInput = document.createElement( 'input' );
 	hiddenInput.type = 'hidden';
-	hiddenInput.id = 'wc_stripe_checkout_session_id';
-	hiddenInput.name = 'wc_stripe_checkout_session_id';
+	hiddenInput.id = CHECKOUT_SESSION_INPUT_ID;
+	hiddenInput.name = CHECKOUT_SESSION_INPUT_ID;
 	hiddenInput.value = checkoutSessionId;
 	form.append( hiddenInput );
+};
+
+export const removeCheckoutSessionIdFromForm = ( form ) => {
+	form.find( `input#${ CHECKOUT_SESSION_INPUT_ID }` ).remove();
 };
 
 /**

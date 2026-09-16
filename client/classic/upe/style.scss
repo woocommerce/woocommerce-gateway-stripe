@@ -133,6 +133,19 @@ body.wc-stripe-hide-save-checkbox .woocommerce-SavedPaymentMethods-saveNew {
 }
 
 /*
+ * Scripts (WC core's tokenization form, our Link/OC handling, the PHP guest
+ * render) hide only the inner row, and the empty fieldset left behind draws its
+ * border/padding/background as an empty box. Matches the canonical
+ * "display: none" spelling both the CSSOM serializer and
+ * save_payment_method_checkbox() emit; :only-child keeps the fieldset visible
+ * when third-party content is added inside it.
+ */
+body.wc-stripe-hide-save-checkbox #payment .payment_box[class*='payment_method_stripe'] > fieldset:has( > .woocommerce-SavedPaymentMethods-saveNew:only-child ),
+#payment .payment_box[class*='payment_method_stripe'] > fieldset:has( > .woocommerce-SavedPaymentMethods-saveNew:only-child[style*='display: none'] ) {
+	display: none;
+}
+
+/*
  * Adaptive Pricing currency selector nested inside the selected saved token's
  * row (relocateCurrencySelector()): indent past the radio to align with the
  * token label.
