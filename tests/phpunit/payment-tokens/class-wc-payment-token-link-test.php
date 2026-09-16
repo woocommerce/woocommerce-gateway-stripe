@@ -112,23 +112,15 @@ class WC_Payment_Token_Link_Test extends WP_UnitTestCase {
 	/**
 	 * Test for `is_equal_payment_method()`.
 	 *
-	 * @param string $token_email          The email set on the token.
-	 * @param string $payment_method_type  The type set on the payment method mock.
-	 * @param string $payment_method_email The email set on the payment method mock.
-	 * @param bool   $expected             The expected result.
-	 * @param string $message              The assertion failure message.
+	 * @param string $token_email         The email set on the token.
+	 * @param object $payment_method_mock The payment method mock.
+	 * @param bool   $expected            The expected result.
+	 * @param string $message             The assertion failure message.
 	 * @return void
 	 * @dataProvider provide_test_is_equal_payment_method
 	 */
-	public function test_is_equal_payment_method( string $token_email, string $payment_method_type, string $payment_method_email, bool $expected, string $message ): void {
+	public function test_is_equal_payment_method( string $token_email, object $payment_method_mock, bool $expected, string $message ): void {
 		$this->token->set_email( $token_email );
-
-		$payment_method_mock = (object) [
-			'type' => $payment_method_type,
-			'link' => (object) [
-				'email' => $payment_method_email,
-			],
-		];
 
 		$this->assertSame( $expected, $this->token->is_equal_payment_method( $payment_method_mock ), $message );
 	}
@@ -140,10 +132,67 @@ class WC_Payment_Token_Link_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_is_equal_payment_method(): array {
 		return [
-			'type and email match' => [ 'user@example.com', WC_Stripe_Payment_Methods::LINK, 'user@example.com', true, 'is_equal_payment_method() should return true when type and email match.' ],
-			'mismatched type'      => [ 'user@example.com', 'card', 'user@example.com', false, 'is_equal_payment_method() should return false when the type is not link.' ],
-			'mismatched email'     => [ 'user@example.com', WC_Stripe_Payment_Methods::LINK, 'other@example.com', false, 'is_equal_payment_method() should return false when the email does not match.' ],
-			'empty token email'    => [ '', WC_Stripe_Payment_Methods::LINK, '', true, 'is_equal_payment_method() should return true when both emails are empty.' ],
+			'type and email match'  => [
+				'user@example.com',
+				(object) [
+					'type' => WC_Stripe_Payment_Methods::LINK,
+					'link' => (object) [
+						'email' => 'user@example.com',
+					],
+				],
+				true,
+				'is_equal_payment_method() should return true when type and email match.',
+			],
+			'mismatched type'       => [
+				'user@example.com',
+				(object) [
+					'type' => 'card',
+					'link' => (object) [
+						'email' => 'user@example.com',
+					],
+				],
+				false,
+				'is_equal_payment_method() should return false when the type is not link.',
+			],
+			'mismatched email'      => [
+				'user@example.com',
+				(object) [
+					'type' => WC_Stripe_Payment_Methods::LINK,
+					'link' => (object) [
+						'email' => 'other@example.com',
+					],
+				],
+				false,
+				'is_equal_payment_method() should return false when the email does not match.',
+			],
+			'empty token email'     => [
+				'',
+				(object) [
+					'type' => WC_Stripe_Payment_Methods::LINK,
+					'link' => (object) [
+						'email' => '',
+					],
+				],
+				true,
+				'is_equal_payment_method() should return true when both emails are empty.',
+			],
+			'missing link property' => [
+				'user@example.com',
+				(object) [
+					'type' => WC_Stripe_Payment_Methods::LINK,
+				],
+				false,
+				'is_equal_payment_method() should return false when the link property is missing.',
+			],
+			'missing email in link' => [
+				'user@example.com',
+				(object) [
+					'type' => WC_Stripe_Payment_Methods::LINK,
+					'link' => (object) [],
+				],
+				false,
+				'is_equal_payment_method() should return false when the email property is missing from link.',
+			],
 		];
 	}
 }

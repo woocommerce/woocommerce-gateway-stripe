@@ -112,23 +112,15 @@ class WC_Payment_Token_CashApp_Test extends WP_UnitTestCase {
 	/**
 	 * Test for `is_equal_payment_method()`.
 	 *
-	 * @param string $token_cashtag          The cashtag set on the token.
-	 * @param string $payment_method_type    The type set on the payment method mock.
-	 * @param string $payment_method_cashtag The cashtag set on the payment method mock.
-	 * @param bool   $expected               The expected result.
-	 * @param string $message                The assertion failure message.
+	 * @param string $token_cashtag       The cashtag set on the token.
+	 * @param object $payment_method_mock The payment method mock.
+	 * @param bool   $expected            The expected result.
+	 * @param string $message             The assertion failure message.
 	 * @return void
 	 * @dataProvider provide_test_is_equal_payment_method
 	 */
-	public function test_is_equal_payment_method( string $token_cashtag, string $payment_method_type, string $payment_method_cashtag, bool $expected, string $message ): void {
+	public function test_is_equal_payment_method( string $token_cashtag, object $payment_method_mock, bool $expected, string $message ): void {
 		$this->token->set_cashtag( $token_cashtag );
-
-		$payment_method_mock = (object) [
-			'type'    => $payment_method_type,
-			'cashapp' => (object) [
-				'cashtag' => $payment_method_cashtag,
-			],
-		];
 
 		$this->assertSame( $expected, $this->token->is_equal_payment_method( $payment_method_mock ), $message );
 	}
@@ -140,10 +132,67 @@ class WC_Payment_Token_CashApp_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_is_equal_payment_method(): array {
 		return [
-			'type and cashtag match' => [ '$cashuser', WC_Stripe_Payment_Methods::CASHAPP_PAY, '$cashuser', true, 'is_equal_payment_method() should return true when type and cashtag match.' ],
-			'mismatched type'        => [ '$cashuser', 'card', '$cashuser', false, 'is_equal_payment_method() should return false when the type is not cashapp.' ],
-			'mismatched cashtag'     => [ '$cashuser', WC_Stripe_Payment_Methods::CASHAPP_PAY, '$otheruser', false, 'is_equal_payment_method() should return false when the cashtag does not match.' ],
-			'empty token cashtag'    => [ '', WC_Stripe_Payment_Methods::CASHAPP_PAY, '', true, 'is_equal_payment_method() should return true when both cashtags are empty.' ],
+			'type and cashtag match'     => [
+				'$cashuser',
+				(object) [
+					'type'    => WC_Stripe_Payment_Methods::CASHAPP_PAY,
+					'cashapp' => (object) [
+						'cashtag' => '$cashuser',
+					],
+				],
+				true,
+				'is_equal_payment_method() should return true when type and cashtag match.',
+			],
+			'mismatched type'            => [
+				'$cashuser',
+				(object) [
+					'type'    => 'card',
+					'cashapp' => (object) [
+						'cashtag' => '$cashuser',
+					],
+				],
+				false,
+				'is_equal_payment_method() should return false when the type is not cashapp.',
+			],
+			'mismatched cashtag'         => [
+				'$cashuser',
+				(object) [
+					'type'    => WC_Stripe_Payment_Methods::CASHAPP_PAY,
+					'cashapp' => (object) [
+						'cashtag' => '$otheruser',
+					],
+				],
+				false,
+				'is_equal_payment_method() should return false when the cashtag does not match.',
+			],
+			'empty token cashtag'        => [
+				'',
+				(object) [
+					'type'    => WC_Stripe_Payment_Methods::CASHAPP_PAY,
+					'cashapp' => (object) [
+						'cashtag' => '',
+					],
+				],
+				true,
+				'is_equal_payment_method() should return true when both cashtags are empty.',
+			],
+			'missing cashapp property'   => [
+				'$cashuser',
+				(object) [
+					'type' => WC_Stripe_Payment_Methods::CASHAPP_PAY,
+				],
+				false,
+				'is_equal_payment_method() should return false when the cashapp property is missing.',
+			],
+			'missing cashtag in cashapp' => [
+				'$cashuser',
+				(object) [
+					'type'    => WC_Stripe_Payment_Methods::CASHAPP_PAY,
+					'cashapp' => (object) [],
+				],
+				false,
+				'is_equal_payment_method() should return false when the cashtag property is missing from cashapp.',
+			],
 		];
 	}
 }
