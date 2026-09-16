@@ -11,13 +11,14 @@ jobs:
   check_changelog:
     name: 'Check for changelog updates'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Check PR description for changelog exemption
         id: check_exemption
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         with:
           script: |
             const prBody = context.payload.pull_request.body || '';
@@ -30,7 +31,7 @@ jobs:
       - name: Check for changelog updates
         id: has_changelog_entries
         if: steps.check_exemption.outputs.is_exempt != 'true'
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         with:
           script: |
             // Paginate: a PR can change more files than a single listFiles page
