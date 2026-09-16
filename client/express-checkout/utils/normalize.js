@@ -398,11 +398,11 @@ const getBillingAddressData = ( event ) => {
  */
 const getShippingAddressData = ( event ) => {
 	const shipping = event?.shippingAddress ?? {};
-	const name = shipping?.name;
+	const name = shipping?.name?.trim() ?? '';
 
 	const data = {
 		first_name: approximateFirstName( name ),
-		last_name: approximateLastName( name ),
+		last_name: approximateLastName( name, name === '' ? '' : '-' ),
 		company: shipping?.organization ?? '',
 		phone: getPhone( event ),
 		country: shipping?.address?.country ?? '',
