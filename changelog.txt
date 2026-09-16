@@ -18,6 +18,7 @@ xxxx-xx-xx - version 11.1.0
 * Update - Ensure that application fees are not sent to Stripe for OAuth-connected accounts
 * Fix - When checking if unpaid orders should be cancelled, get the Stripe payment status, and update orders with Stripe payment details
 * Dev - Block outbound HTTP requests from unit tests
+* Add - Show the originating AI agent in the WooCommerce order Origin column for Agentic Commerce orders
 
 2026-09-08 - version 11.0.0
 * Fix - Allow express checkout payments when a wallet provides a one-word shipping name
