@@ -1,6 +1,6 @@
 <?php
 /**
- * Class WC_Stripe_REST_Payouts_Controller_Test
+ * Class WC_Stripe_REST_API_Abstract_Client_Test
  */
 class WC_Stripe_REST_API_Abstract_Client_Test extends WP_UnitTestCase {
 	public function test_build_params_to_forward() {
