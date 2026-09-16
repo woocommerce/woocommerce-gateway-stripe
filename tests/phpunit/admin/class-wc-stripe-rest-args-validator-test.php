@@ -1,6 +1,13 @@
 <?php
-
+/**
+ * Class WC_Stripe_REST_Args_Validator_Test
+ * 
+ * Implements WC_Stripe_REST_Args_Validator class unit tests.
+ */
 class WC_Stripe_REST_Args_Validator_Test extends WP_UnitTestCase {
+	/**
+	 * Provide customer_id test cases as value-validity pairs.
+	 */
 	public static function provide_customer_id(): array {
 		return [
 			[ 'cus_test', true ],
@@ -18,6 +25,9 @@ class WC_Stripe_REST_Args_Validator_Test extends WP_UnitTestCase {
 		$this->assertEquals( WC_Stripe_REST_Args_Validator::validate_customer_id( $customer_id, new WP_REST_Request(), 'test_param' ), $expected );
 	}
 
+	/**
+	 * Provide payment intents pagination cursor test cases as triplets of parameter name, value, and validity.
+	 */
 	public static function provide_payment_intent_id_pagination_cursor(): array {
 		return [
 			'valid_starting_after'                  => [
@@ -60,7 +70,7 @@ class WC_Stripe_REST_Args_Validator_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * @dataProvider provide_payment_intent_id_pagination_cursor
+	 * @dataProvider provide_payment_intent_id_pagination_cursor.
 	*/
 	public function test_validate_payment_intent_id_pagination_cursor( $test_param_name, $all_params, $expected ) {
 		$request = new WP_REST_Request();
@@ -86,6 +96,9 @@ class WC_Stripe_REST_Args_Validator_Test extends WP_UnitTestCase {
 		}
 	}
 
+	/**
+	 * Provide payouts pagination cursor test cases as triplets of parameter name, value, and validity.
+	 */
 	public static function provide_payout_id_pagination_cursor(): array {
 		return [
 			'valid_starting_after'                  => [
@@ -154,6 +167,9 @@ class WC_Stripe_REST_Args_Validator_Test extends WP_UnitTestCase {
 		}
 	}
 
+	/**
+	 * Provide unix timestamp range test cases as value-validity pairs.
+	 */
 	public static function provide_unix_timestamp_range(): array {
 		return [
 			[
@@ -214,6 +230,9 @@ class WC_Stripe_REST_Args_Validator_Test extends WP_UnitTestCase {
 		);
 	}
 
+	/**
+	 * Provide unix timestamp test cases as value-validity pairs.
+	 */
 	public static function provide_unix_timestamp(): array {
 		return [
 			[
@@ -246,6 +265,9 @@ class WC_Stripe_REST_Args_Validator_Test extends WP_UnitTestCase {
 		$this->assertEquals( WC_Stripe_REST_Args_Validator::is_valid_timestamp( $param_value ), $expect );
 	}
 
+	/**
+	 * Provide non-empty string test cases as value-validity pairs.
+	 */
 	public static function provide_non_empty_string(): array {
 		return [
 			[
