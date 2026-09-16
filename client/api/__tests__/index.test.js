@@ -319,6 +319,16 @@ describe( 'WCStripeAPI', () => {
 			expect( payload.shipping_address ).toEqual( emptyShippingAddress );
 		} );
 
+		it( 'leaves absent addresses untouched instead of fabricating phone-only ones', () => {
+			const [ , payload ] = payForOrder(
+				orderDetails( { shippingAddress: undefined } ),
+				{}
+			);
+
+			expect( payload.billing_address ).toBeUndefined();
+			expect( payload.shipping_address ).toBeUndefined();
+		} );
+
 		it( "does not mutate the caller's payment data", () => {
 			const paymentData = {
 				billing_address: { first_name: 'Jane', phone: '' },

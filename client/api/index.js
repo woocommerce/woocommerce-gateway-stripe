@@ -676,8 +676,12 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutECEPayForOrder( order, orderDetails, paymentData ) {
+		// Leaves an absent address untouched: spreading one would fabricate a
+		// phone-only address object where the caller sent none.
 		const withPhoneFallback = ( address, phone ) =>
-			! address?.phone && phone ? { ...address, phone } : address;
+			address && ! address.phone && phone
+				? { ...address, phone }
+				: address;
 
 		// The order-pay route overwrites the order's saved addresses before
 		// validating them, checking both phones against the single checkout
