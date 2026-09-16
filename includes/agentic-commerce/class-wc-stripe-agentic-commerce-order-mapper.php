@@ -75,7 +75,9 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			// Save everything we've got so far.
 			$order->save();
 
-			// Map shipping data and save again.
+			// Must run after map_line_items(): map_shipping() builds the shipping
+			// package from the order's resolved line items, so the items have to be
+			// on the order before shipping is calculated.
 			$this->map_shipping( $order, $session );
 
 			// Confirm everything is right.
@@ -247,7 +249,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * @since 10.6.0
 	 * @param WC_Order                           $order   The WooCommerce order.
 	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
-	 * @throws Exception When a product cannot be found for a line item.
+	 * @throws Exception When a product cannot be found for a line item, or a line item has a non-positive quantity.
 	 */
 	private function map_line_items( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session ): void {
 		$currency   = $session->get_currency() ?? '';
@@ -275,7 +277,21 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 
 			$product = WC_Stripe_Agentic_Commerce_Product_Resolver::resolve_product( $product_id );
 
-			$quantity   = $line_item->get_quantity();
+			$quantity = $line_item->get_quantity();
+
+			// The getter only casts to int, and the line-total reconciliation
+			// below can't catch a payload that is internally consistent with a
+			// non-positive quantity (e.g. quantity 0 with amount_total 0).
+			if ( $quantity < 1 ) {
+				throw new Exception(
+					sprintf(
+						'Line item %s has an invalid quantity (%d).',
+						$line_item->get_id(),
+						$quantity
+					)
+				);
+			}
+
 			$line_total = WC_Stripe_Helper::convert_from_stripe_amount(
 				$line_item->get_amount_total() - $line_item->get_amount_tax(),
 				$currency
@@ -566,22 +582,14 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 
 		$address = $session->get_shipping_address() ?? $session->get_billing_address();
 
-		// Populate contents with resolved products for content-dependent
-		// shipping methods (table rate, weight-based). See STRIPE-986.
-		$package = [
-			'contents'        => [],
-			'contents_cost'   => 0,
-			'applied_coupons' => [],
-			'user'            => [ 'ID' => 0 ],
-			'destination'     => [
-				'country'  => $address->get_country() ?? '',
-				'state'    => $address->get_state() ?? '',
-				'postcode' => $address->get_postal_code() ?? '',
-				'city'     => $address->get_city() ?? '',
-				'address'  => '',
-			],
-			'cart_subtotal'   => 0,
-		];
+		// User ID 0 on purpose: the rate Stripe charged was quoted by the customization
+		// webhook, which has no logged-in user, so matching it needs the same guest context
+		// even when the order belongs to a customer.
+		$package = WC_Stripe_Agentic_Shipping_Package_Builder::build_package(
+			WC_Stripe_Agentic_Shipping_Package_Builder::build_contents_from_order( $order ),
+			$address,
+			0
+		);
 
 		$wc_shipping = WC()->shipping();
 
@@ -601,9 +609,8 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 				WC()->initialize_session();
 			}
 
-			$wc_shipping->calculate_shipping( [ $package ] );
-			$packages = $wc_shipping->get_packages();
-			$rates    = $packages[0]['rates'] ?? [];
+			$wc_shipping->calculate_shipping( WC_Stripe_Agentic_Shipping_Package_Builder::get_filtered_packages( $package ) );
+			$rates = WC_Stripe_Agentic_Shipping_Package_Builder::combine_package_rates( $wc_shipping->get_packages() );
 		} catch ( Throwable $e ) {
 			WC_Stripe_Logger::warning(
 				'Agentic order mapper: WC shipping calculation failed; will use free-form shipping line.',
@@ -644,7 +651,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			$shipping_item = new WC_Order_Item_Shipping();
 			$shipping_item->set_method_title( $matched_rate->get_label() );
 			$shipping_item->set_method_id( $matched_rate->get_method_id() );
-			$shipping_item->set_instance_id( $matched_rate->get_instance_id() );
+			$shipping_item->set_instance_id( (string) $matched_rate->get_instance_id() );
 			$shipping_item->set_total( $matched_rate->get_cost() );
 			$order->add_item( $shipping_item );
 			return;
