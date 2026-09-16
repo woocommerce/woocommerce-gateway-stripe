@@ -71,48 +71,10 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 			return;
 		}
 
-		$custom_checkout_data = $this->get_custom_checkout_data_from_request( $request );
-
-		// Enforce required fields.
-		$required_field_errors  = [];
-		$missing_field_keys     = [];
+		$custom_checkout_data   = $this->get_custom_checkout_data_from_request( $request );
 		$custom_checkout_fields = $this->get_custom_checkout_fields( 'classic' );
-		foreach ( $custom_checkout_fields as $key => $field ) {
-			if ( $field['required'] && empty( $custom_checkout_data[ $key ] ) ) {
-				$missing_field_keys[]    = $key;
-				$required_field_errors[] = sprintf(
-					/* translators: %s: field name */
-					__( '%s is a required field.', 'woocommerce-gateway-stripe' ),
-					empty( $field['label'] ) ? $key : $field['label']
-				);
-			}
-		}
 
-		if ( ! empty( $required_field_errors ) ) {
-			// Only the classic checkout form can collect these values, so a request
-			// without the custom-data payload came from a page without that form
-			// (e.g. product or cart), where the buyer has no way to fill the fields in.
-			if ( ! $this->request_has_custom_checkout_data( $request ) ) {
-				$required_field_errors[] = __( 'Please go to the checkout page, fill in the required fields, and complete your order from there.', 'woocommerce-gateway-stripe' );
-			}
-			$error_messages = implode( "\n", $required_field_errors );
-			/**
-			 * Whether to log missing required custom fields during express checkout.
-			 *
-			 * @since 11.0.0
-			 * @param bool $should_log Return false to disable this error log. Default true.
-			 */
-			if ( apply_filters( 'wc_stripe_express_checkout_log_missing_required_fields', true ) ) {
-				WC_Stripe_Logger::error(
-					'Missing required custom fields in express checkout.',
-					[
-						'missing_field_keys' => $missing_field_keys,
-						'error_message'      => $error_messages,
-					]
-				);
-			}
-			throw new RouteException( 'wc_stripe_express_checkout_missing_required_fields', $error_messages, 400 );
-		}
+		$this->enforce_required_fields( $request, $custom_checkout_fields, $custom_checkout_data );
 
 		$errors = new WP_Error();
 		/**
@@ -159,6 +121,70 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 	}
 
 	/**
+	 * Refuse the order when the request leaves required classic custom fields unfilled.
+	 *
+	 * No-op when enforcement doesn't apply to the request (see
+	 * should_enforce_required_fields()); only enforcement is skipped, so the
+	 * caller's third-party validation and persistence hooks still run.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @param array $custom_checkout_fields Classic custom checkout fields.
+	 * @param array $custom_checkout_data Custom checkout data from the request.
+	 * @return void
+	 * @throws RouteException When a required field is left unfilled.
+	 */
+	private function enforce_required_fields( $request, $custom_checkout_fields, $custom_checkout_data ) {
+		// The checkout block never renders classic-registry fields, including
+		// third-party ones — block-capable plugins register via the Additional
+		// Checkout Fields API, which the Store API validates itself — so enforcing
+		// the classic registry on a block store would refuse every order.
+		if ( ! $this->should_enforce_required_fields( $request ) ) {
+			return;
+		}
+
+		$required_field_errors = [];
+		$missing_field_keys    = [];
+		foreach ( $custom_checkout_fields as $key => $field ) {
+			if ( $field['required'] && empty( $custom_checkout_data[ $key ] ) ) {
+				$missing_field_keys[]    = $key;
+				$required_field_errors[] = sprintf(
+					/* translators: %s: field name */
+					__( '%s is a required field.', 'woocommerce-gateway-stripe' ),
+					empty( $field['label'] ) ? $key : $field['label']
+				);
+			}
+		}
+
+		if ( empty( $required_field_errors ) ) {
+			return;
+		}
+
+		// Only the classic checkout form can collect these values, so a request
+		// without the custom-data payload came from a page without that form
+		// (e.g. product or cart), where the buyer has no way to fill the fields in.
+		if ( ! $this->request_has_custom_checkout_data( $request ) ) {
+			$required_field_errors[] = __( 'Please go to the checkout page, fill in the required fields, and complete your order from there.', 'woocommerce-gateway-stripe' );
+		}
+		$error_messages = implode( "\n", $required_field_errors );
+		/**
+		 * Whether to log missing required custom fields during express checkout.
+		 *
+		 * @since 11.0.0
+		 * @param bool $should_log Return false to disable this error log. Default true.
+		 */
+		if ( apply_filters( 'wc_stripe_express_checkout_log_missing_required_fields', true ) ) {
+			WC_Stripe_Logger::error(
+				'Missing required custom fields in express checkout.',
+				[
+					'missing_field_keys' => $missing_field_keys,
+					'error_message'      => $error_messages,
+				]
+			);
+		}
+		throw new RouteException( 'wc_stripe_express_checkout_missing_required_fields', $error_messages, 400 );
+	}
+
+	/**
 	 * Whether the request carries the express checkout custom-data payload.
 	 *
 	 * The client attaches the payload (even when empty) whenever a classic
@@ -171,6 +197,29 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 	private function request_has_custom_checkout_data( $request ) {
 		$extensions = $request->get_param( 'extensions' );
 		return ! empty( $extensions['wc-stripe/express-checkout']['custom_checkout_data'] );
+	}
+
+	/**
+	 * Whether required classic custom fields should be enforced for this request.
+	 *
+	 * Enforce when the payload is present (it came from a page with the classic
+	 * form) or when the checkout page can render that form. On a block-based
+	 * checkout page the classic fields appear nowhere in the buyer's flow, so
+	 * enforcing them would block every express order; the block checkout's own
+	 * fields are validated by the Store API instead.
+	 *
+	 * Checked by page ID because a Store API request has no global `$post`, so a
+	 * bare `has_block()` would misreport a block store as classic.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return bool
+	 */
+	private function should_enforce_required_fields( $request ) {
+		if ( $this->request_has_custom_checkout_data( $request ) ) {
+			return true;
+		}
+
+		return ! has_block( 'woocommerce/checkout', wc_get_page_id( 'checkout' ) );
 	}
 
 	/**
