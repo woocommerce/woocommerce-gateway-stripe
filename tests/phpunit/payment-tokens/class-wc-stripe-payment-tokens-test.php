@@ -535,6 +535,74 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Data provider for equal-timestamp Link PM tie-break scenarios. Stripe's
+	 * `created` has one-second resolution, so a re-enrollment can attach a PM
+	 * with the same timestamp as the replaced one; the tie must be broken by
+	 * Stripe's list order (most recently created first).
+	 *
+	 * @return array<string, array{stored_pm: string, incoming_pm: string, list_order: string[], expected_token: string}>
+	 */
+	public function provide_link_equal_created_tie_break() {
+		return [
+			'incoming listed first repoints the token' => [
+				'stored_pm'      => 'pm_link_old',
+				'incoming_pm'    => 'pm_link_new',
+				'list_order'     => [ 'pm_link_new', 'pm_link_old' ],
+				'expected_token' => 'pm_link_new',
+			],
+			'incoming listed last keeps the token'     => [
+				'stored_pm'      => 'pm_link_new',
+				'incoming_pm'    => 'pm_link_old',
+				'list_order'     => [ 'pm_link_new', 'pm_link_old' ],
+				'expected_token' => 'pm_link_new',
+			],
+		];
+	}
+
+	/**
+	 * When two Link PMs share the same `created` timestamp, the token must
+	 * follow Stripe's list order (most recent first): a same-second
+	 * re-enrollment still repoints the token, and the older PM cannot
+	 * displace the newer one when processed later in the sync loop.
+	 *
+	 * @dataProvider provide_link_equal_created_tie_break
+	 */
+	public function test_add_token_to_user_breaks_equal_created_tie_with_list_order( string $stored_pm, string $incoming_pm, array $list_order, string $expected_token ) {
+		$user_id = $this->factory->user->create();
+		update_user_option( $user_id, '_stripe_customer_id', 'cus_test_link_tie', false );
+
+		$seed_token = new WC_Payment_Token_Link();
+		$seed_token->set_token( $stored_pm );
+		$seed_token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$seed_token->set_user_id( $user_id );
+		$seed_token->set_email( 'link@example.com' );
+		$seed_token->save();
+		$seed_token_id = $seed_token->get_id();
+
+		$pms = [];
+		foreach ( $list_order as $pm_id ) {
+			$pms[ $pm_id ] = (object) [
+				'id'      => $pm_id,
+				'type'    => WC_Stripe_Payment_Methods::LINK,
+				'created' => 1700000100,
+				'link'    => (object) [ 'email' => 'link@example.com' ],
+			];
+		}
+
+		$customer = new WC_Stripe_Customer( $user_id );
+
+		$reflection = new ReflectionMethod( WC_Stripe_Payment_Tokens::class, 'add_token_to_user' );
+		$reflection->setAccessible( true );
+		$result = $reflection->invoke( $this->stripe_payment_tokens, $pms[ $incoming_pm ], $customer, array_values( $pms ) );
+
+		$this->assertSame( $seed_token_id, $result->get_id() );
+		$this->assertSame( $expected_token, $result->get_token() );
+
+		$reloaded = WC_Payment_Tokens::get( $seed_token_id );
+		$this->assertSame( $expected_token, $reloaded->get_token() );
+	}
+
+	/**
 	 * Test for `woocommerce_payment_token_class`.
 	 *
 	 * @return void

@@ -945,15 +945,34 @@ class WC_Stripe_Payment_Tokens {
 	 * @return bool
 	 */
 	private function is_newer_link_payment_method( $payment_method, $token, $payment_methods ): bool {
-		foreach ( $payment_methods as $attached ) {
-			if ( ( $attached->id ?? null ) === $token->get_token() ) {
-				// Strictly newer, so two PMs created in the same second can't
-				// repoint the token back and forth across syncs.
-				return isset( $payment_method->created, $attached->created ) && $payment_method->created > $attached->created;
+		$incoming_index = null;
+		$attached       = null;
+		$attached_index = null;
+
+		foreach ( array_values( $payment_methods ) as $index => $candidate ) {
+			$candidate_id = $candidate->id ?? null;
+			if ( ( $payment_method->id ?? null ) === $candidate_id ) {
+				$incoming_index = $index;
+			}
+			if ( $candidate_id === $token->get_token() ) {
+				$attached       = $candidate;
+				$attached_index = $index;
 			}
 		}
 
-		return false;
+		if ( null === $attached || ! isset( $payment_method->created, $attached->created ) ) {
+			return false;
+		}
+
+		if ( $attached->created !== $payment_method->created ) {
+			return $payment_method->created > $attached->created;
+		}
+
+		// `created` has one-second resolution, so a re-enrollment can produce
+		// two PMs with equal timestamps. Break the tie with Stripe's list
+		// order (most recently created first); position is fixed per snapshot,
+		// so the comparison stays stable and cannot flap across syncs.
+		return null !== $incoming_index && $incoming_index < $attached_index;
 	}
 
 	/**
