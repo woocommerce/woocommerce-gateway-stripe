@@ -217,34 +217,48 @@ const AgenticCommerceFeedPreview = () => {
 
 						{ shippingWarnings.length > 0 && (
 							<Notice status="warning" isDismissible={ false }>
-								<p>
-									{ __(
-										'Some shipping zones will have no shipping in the feed:',
-										'woocommerce-gateway-stripe'
-									) }
-								</p>
-								<ul>
-									{ shippingWarnings.map( ( warning, i ) => (
-										<li key={ i }>
-											{ warning.message }
-											{ warning.edit_link && (
-												<>
-													{ ' ' }
-													<a
-														href={
-															warning.edit_link
-														}
-													>
-														{ __(
-															'Edit shipping zone',
-															'woocommerce-gateway-stripe'
-														) }
-													</a>
-												</>
-											) }
-										</li>
-									) ) }
-								</ul>
+								{ /* Expanded by default so the zones are not missed;
+								     collapsible so a long list can be folded away while
+								     debugging. The collapse is per-render DOM state:
+								     nothing is persisted or shared between users. */ }
+								<details open>
+									<summary>
+										{ sprintf(
+											/* translators: %d: number of shipping zones the warning covers. */
+											_n(
+												'%d shipping zone will have no shipping in the feed:',
+												'%d shipping zones will have no shipping in the feed:',
+												shippingWarnings.length,
+												'woocommerce-gateway-stripe'
+											),
+											shippingWarnings.length
+										) }
+									</summary>
+									<ul>
+										{ shippingWarnings.map(
+											( warning, i ) => (
+												<li key={ i }>
+													{ warning.message }
+													{ warning.edit_link && (
+														<>
+															{ ' ' }
+															<a
+																href={
+																	warning.edit_link
+																}
+															>
+																{ __(
+																	'Edit shipping zone',
+																	'woocommerce-gateway-stripe'
+																) }
+															</a>
+														</>
+													) }
+												</li>
+											)
+										) }
+									</ul>
+								</details>
 							</Notice>
 						) }
 

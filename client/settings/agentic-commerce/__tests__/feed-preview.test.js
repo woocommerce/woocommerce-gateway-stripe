@@ -365,6 +365,15 @@ describe( 'AgenticCommerceFeedPreview', () => {
 			'href',
 			'/wp-admin/admin.php?page=wc-settings&tab=shipping&zone_id=1'
 		);
+
+		// The list is collapsible for long zone lists, and expanded by default
+		// so the zones are not missed.
+		const details = container.querySelector( 'details' );
+		expect( details ).not.toBeNull();
+		expect( details ).toHaveAttribute( 'open' );
+		expect( details.querySelector( 'summary' ) ).toHaveTextContent(
+			'1 shipping zone will have no shipping in the feed:'
+		);
 	} );
 
 	it( 'shows no shipping notice when every zone has a flat rate', async () => {
