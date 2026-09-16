@@ -278,6 +278,10 @@ class WC_Stripe_API {
 		 */
 		$request = apply_filters( 'wc_stripe_request_body', $request, $api );
 
+		if ( 'POST' === $method && is_array( $request ) && str_starts_with( $api, 'payment_intents' ) ) {
+			$request = self::maybe_strip_platform_fee_fields( $method, $api, $request );
+		}
+
 		$masked_secret_key = self::get_masked_secret_key();
 
 		// Log the request after the filters have been applied.
@@ -616,6 +620,60 @@ class WC_Stripe_API {
 				return is_string( $type ) && '' !== $type;
 			}
 		);
+	}
+
+	/**
+	 * Ensure that payment intent POST requests for OAuth-connected accounts do not include platform fee fields.
+	 *
+	 * @since 11.1.0
+	 *
+	 * @param string $method  The HTTP method for the request.
+	 * @param string $api     The API endpoint for the request.
+	 * @param array  $request The possibly updated request body.
+	 *
+	 * @return array The possibly updated request body.
+	 */
+	private static function maybe_strip_platform_fee_fields( string $method, string $api, array $request ): array {
+		$stripe = function_exists( 'woocommerce_gateway_stripe' ) ? woocommerce_gateway_stripe() : null;
+
+		if ( ! $stripe || ! isset( $stripe->connect ) ) {
+			return $request;
+		}
+
+		$mode = self::get_mode_for_active_secret_key();
+		if ( null === $mode ) {
+			return $request;
+		}
+
+		if ( ! $stripe->connect->is_connected_via_oauth( $mode ) ) {
+			return $request;
+		}
+
+		$platform_fee_fields = [
+			'application_fee_amount',
+			'application_fee',
+		];
+
+		$removed_fields = [];
+		foreach ( $platform_fee_fields as $field ) {
+			if ( isset( $request[ $field ] ) ) {
+				unset( $request[ $field ] );
+				$removed_fields[] = $field;
+			}
+		}
+
+		if ( [] !== $removed_fields ) {
+			WC_Stripe_Logger::warning(
+				'Platform fee fields removed from Stripe API request',
+				[
+					'api'            => $api,
+					'method'         => $method,
+					'removed_fields' => $removed_fields,
+				]
+			);
+		}
+
+		return $request;
 	}
 
 	/**
