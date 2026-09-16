@@ -356,6 +356,15 @@ describe( 'AgenticCommerceFeedPreview', () => {
 				)
 			).toBeInTheDocument();
 		} );
+
+		// The message stays plain text; the zone edit link renders separately.
+		const editLink = within( container ).getByRole( 'link', {
+			name: 'Edit shipping zone',
+		} );
+		expect( editLink ).toHaveAttribute(
+			'href',
+			'/wp-admin/admin.php?page=wc-settings&tab=shipping&zone_id=1'
+		);
 	} );
 
 	it( 'shows no shipping notice when every zone has a flat rate', async () => {

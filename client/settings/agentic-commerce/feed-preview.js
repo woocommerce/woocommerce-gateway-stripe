@@ -226,14 +226,21 @@ const AgenticCommerceFeedPreview = () => {
 								<ul>
 									{ shippingWarnings.map( ( warning, i ) => (
 										<li key={ i }>
-											{ warning.edit_link ? (
-												<ExternalLink
-													href={ warning.edit_link }
-												>
-													{ warning.message }
-												</ExternalLink>
-											) : (
-												warning.message
+											{ warning.message }
+											{ warning.edit_link && (
+												<>
+													{ ' ' }
+													<a
+														href={
+															warning.edit_link
+														}
+													>
+														{ __(
+															'Edit shipping zone',
+															'woocommerce-gateway-stripe'
+														) }
+													</a>
+												</>
 											) }
 										</li>
 									) ) }
