@@ -122,36 +122,20 @@ class WC_Stripe_Payment_Method_Configurations {
 	private static function get_payment_method_configuration_from_stripe() {
 		$is_test_mode = WC_Stripe_Mode::is_test();
 
-		/**
-		 * Allows merchants to specify the ID of a Payment Method Configuration to use. This makes it possible for
-		 * merchants to create configurations for specific sites, e.g. when they operate sites in different countries
-		 * with different local payment methods.
-		 *
-		 * @param string|null $preselected_pmc_id The ID of the Payment Method Configuration to use. Null by default, but a string value may be returned.
-		 * @param bool        $is_test_mode       Whether the site is in test mode.
-		 */
-		$preselected_pmc_id = apply_filters( 'wc_stripe_preselect_payment_method_configuration', null, $is_test_mode );
+		$preselected_pmc = self::get_preselected_pmc( $is_test_mode );
 
-		if ( is_string( $preselected_pmc_id ) && str_starts_with( $preselected_pmc_id, 'pmc_' ) ) {
-			$configuration = WC_Stripe_API::retrieve( 'payment_method_configurations/' . $preselected_pmc_id );
-			$error         = null;
-			if ( is_wp_error( $configuration ) ) {
-				$error = $configuration;
-			} elseif ( ! empty( $configuration->error ) ) {
-				$error = $configuration->error;
-			}
-
-			if ( null !== $error ) {
+		if ( null !== $preselected_pmc['pmc_id'] ) {
+			if ( null !== $preselected_pmc['error'] ) {
 				WC_Stripe_Logger::error(
 					'Error retrieving preselected Payment Method Configuration',
 					[
-						'pmc_id' => $preselected_pmc_id,
-						'error'  => $error,
+						'pmc_id' => $preselected_pmc['pmc_id'],
+						'error'  => $preselected_pmc['error'],
 					]
 				);
-			} elseif ( ! empty( $configuration ) ) {
-				self::set_payment_method_configuration_cache( $configuration );
-				return $configuration;
+			} elseif ( ! empty( $preselected_pmc['configuration'] ) ) {
+				self::set_payment_method_configuration_cache( $preselected_pmc['configuration'] );
+				return $preselected_pmc['configuration'];
 			}
 			// If the preselected Payment Method Configuration is not found, we continue with the default logic below.
 		}
@@ -159,16 +143,98 @@ class WC_Stripe_Payment_Method_Configurations {
 		$result         = WC_Stripe_API::get_instance()->get_payment_method_configurations();
 		$configurations = $result->data ?? [];
 
+		[
+			'pmc'    => $pmc,
+			'reason' => $reason,
+		] = self::select_platform_or_fallback_pmc( $configurations );
+
+		if ( null === $pmc ) {
+			// If we can't find a usable Payment Method Configuration, disable Payment Method Configuration sync.
+			WC_Stripe_Logger::error(
+				'No usable Payment Method Configuration found; disabling Payment Method Configuration sync',
+				[
+					'reason'      => $reason,
+					'stripe_mode' => $is_test_mode ? 'test' : 'live',
+				]
+			);
+			self::disable_payment_method_configuration_sync();
+			return null;
+		}
+
+		self::set_payment_method_configuration_cache( $pmc );
+		return $pmc;
+	}
+
+	/**
+	 * Gets the merchant-selected Payment Method Configuration when the preselect filter is set.
+	 *
+	 * @param bool $is_test_mode Whether the site is in test mode.
+	 * @return array {
+	 *     @type string|null $pmc_id        The preselected Payment Method Configuration ID.
+	 *     @type mixed       $configuration The retrieved Payment Method Configuration, if available.
+	 *     @type mixed       $error         The normalized retrieval error, if any.
+	 * }
+	 */
+	private static function get_preselected_pmc( bool $is_test_mode ): array {
+		/**
+		 * Allows merchants to specify the ID of a Payment Method Configuration to use. This makes it possible for
+		 * merchants to create configurations for specific sites, e.g. when they operate sites in different countries
+		 * with different local payment methods.
+		 *
+		 * @since 10.1.0
+		 *
+		 * @param string|null $preselected_pmc_id The ID of the Payment Method Configuration to use. Null by default, but a string value may be returned.
+		 * @param bool        $is_test_mode       Whether the site is in test mode.
+		 */
+		$preselected_pmc_id = apply_filters( 'wc_stripe_preselect_payment_method_configuration', null, $is_test_mode );
+
+		if ( ! is_string( $preselected_pmc_id ) || ! str_starts_with( $preselected_pmc_id, 'pmc_' ) ) {
+			return [
+				'pmc_id'        => null,
+				'configuration' => null,
+				'error'         => null,
+			];
+		}
+
+		$response = WC_Stripe_API::retrieve( 'payment_method_configurations/' . $preselected_pmc_id );
+		$error    = null;
+		if ( is_wp_error( $response ) ) {
+			$error = $response;
+		} elseif ( is_object( $response ) && ! empty( $response->error ) ) {
+			$error = $response->error;
+		}
+
+		return [
+			'pmc_id'        => $preselected_pmc_id,
+			'configuration' => null === $error ? $response : null,
+			'error'         => $error,
+		];
+	}
+
+	/**
+	 * Selects a usable Payment Method Configuration from a Stripe configurations list:
+	 * the platform-child PMC if present, otherwise the fallback PMC.
+	 *
+	 * @param array $configurations The list of payment method configurations returned from Stripe.
+	 * @return array {
+	 *     @type object|null $pmc    The selected Payment Method Configuration, or null if none is usable.
+	 *     @type string|null $reason The reason for the selection (or for not finding one).
+	 * }
+	 */
+	private static function select_platform_or_fallback_pmc( array $configurations ): array {
+		$is_test_mode     = WC_Stripe_Mode::is_test();
 		$fallback_pmc_key = $is_test_mode ? 'woocommerce_stripe_pmc_fallback_id_test' : 'woocommerce_stripe_pmc_fallback_id_live';
 
 		// When connecting to the WooCommerce Platform account a new payment method configuration is created for the merchant.
 		// This new payment method configuration has the WooCommerce Platform payment method configuration as parent, and inherits it's default payment methods.
 		foreach ( $configurations as $configuration ) {
 			// The API returns data for the corresponding mode of the api keys used, so we'll get either test or live PMCs, but never both.
-			if ( $configuration->parent && ( self::LIVE_MODE_CONFIGURATION_PARENT_ID === $configuration->parent || self::TEST_MODE_CONFIGURATION_PARENT_ID === $configuration->parent ) ) {
-				self::set_payment_method_configuration_cache( $configuration );
+			if ( ( $configuration->parent ?? null ) && ( self::LIVE_MODE_CONFIGURATION_PARENT_ID === $configuration->parent || self::TEST_MODE_CONFIGURATION_PARENT_ID === $configuration->parent ) ) {
 				delete_option( $fallback_pmc_key );
-				return $configuration;
+				return [
+					'pmc'    => $configuration,
+					'reason' => 'platform_child_used',
+				];
 			}
 		}
 
@@ -179,33 +245,24 @@ class WC_Stripe_Payment_Method_Configurations {
 			'reason' => $fallback_reason,
 		] = self::get_fallback_payment_method_configuration( $configurations );
 
-		if ( null === $fallback_pmc ) {
-			// If we can't find a usable Payment Method Configuration, disable Payment Method Configuration sync.
-			WC_Stripe_Logger::error(
-				'No usable Payment Method Configuration found; disabling Payment Method Configuration sync',
+		if ( null !== $fallback_pmc ) {
+			WC_Stripe_Logger::debug(
+				'Using fallback Payment Method Configuration',
 				[
+					'pmc_id'      => $fallback_pmc->id,
 					'reason'      => $fallback_reason,
+					'name'        => $fallback_pmc->name ?? null,
+					'livemode'    => $fallback_pmc->livemode ?? null,
 					'stripe_mode' => $is_test_mode ? 'test' : 'live',
+					'option_name' => $fallback_pmc_key,
 				]
 			);
-			self::disable_payment_method_configuration_sync();
-			return null;
 		}
 
-		WC_Stripe_Logger::debug(
-			'Using fallback Payment Method Configuration',
-			[
-				'pmc_id'      => $fallback_pmc->id,
-				'reason'      => $fallback_reason,
-				'name'        => $fallback_pmc->name ?? null,
-				'livemode'    => $fallback_pmc->livemode ?? null,
-				'stripe_mode' => $is_test_mode ? 'test' : 'live',
-				'option_name' => $fallback_pmc_key,
-			]
-		);
-
-		self::set_payment_method_configuration_cache( $fallback_pmc );
-		return $fallback_pmc;
+		return [
+			'pmc'    => $fallback_pmc,
+			'reason' => $fallback_reason,
+		];
 	}
 
 	/**
@@ -555,6 +612,105 @@ class WC_Stripe_Payment_Method_Configurations {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Re-evaluates whether the merchant has a usable Payment Method Configuration in Stripe and
+	 * updates the `pmc_enabled` setting accordingly.
+	 *
+	 * Fetches directly from Stripe, bypassing the configuration cache, so an explicit caller (e.g. the
+	 * "Refresh account details" admin action) forces a reconciliation. On transport or Stripe API
+	 * errors `pmc_enabled` is left untouched so a transient failure can't flip the merchant into the
+	 * DB-only fallback path.
+	 *
+	 * Selection follows the same precedence as the normal fetch path: the
+	 * `wc_stripe_preselect_payment_method_configuration` filter takes priority, then the
+	 * platform-child PMC, then the fallback PMC.
+	 *
+	 * Outcomes:
+	 *   - No usable PMC found: delegates to {@see self::disable_payment_method_configuration_sync()} ('no').
+	 *   - Usable PMC + `pmc_enabled` already 'yes': no-op.
+	 *   - Usable PMC + `pmc_enabled` empty or 'no': runs the DB-to-PMC migration to reconcile any
+	 *     payment methods edited while the flag was 'no', and the migration sets 'yes' on success.
+	 *
+	 * Note: when recovering from 'no', the union behavior of the migration may re-enable methods the
+	 * merchant disabled during the 'no' window. Disables made during that window are not preserved.
+	 *
+	 * @return void
+	 */
+	public static function refresh_pmc_availability() {
+		// Re-arm the cooldown instead of clearing it: this admin action triggers a forced settings
+		// re-fetch (get_upe_enabled_payment_method_ids( true )), which would otherwise bypass the PMC
+		// we cache below and make a redundant Stripe call — one that, on a transient failure, could
+		// flip pmc_enabled to 'no' and undo the protection this method provides.
+		update_option( self::FETCH_COOLDOWN_OPTION_KEY, time() + MINUTE_IN_SECONDS );
+
+		$usable_pmc   = null;
+		$is_test_mode = WC_Stripe_Mode::is_test();
+
+		$preselected_pmc = self::get_preselected_pmc( $is_test_mode );
+		if ( null !== $preselected_pmc['pmc_id'] ) {
+			// A pinned PMC is authoritative during refresh, so lookup failures must not fall
+			// through to a different PMC or the DB-only fallback path.
+			if ( null !== $preselected_pmc['error'] || ! is_object( $preselected_pmc['configuration'] ) ) {
+				WC_Stripe_Logger::warning(
+					'Skipping PMC availability refresh: preselected Payment Method Configuration could not be retrieved',
+					[
+						'pmc_id' => $preselected_pmc['pmc_id'],
+						'error'  => $preselected_pmc['error'],
+					]
+				);
+				return;
+			}
+			$usable_pmc = $preselected_pmc['configuration'];
+		}
+
+		if ( null === $usable_pmc ) {
+			$api_response = WC_Stripe_API::get_instance()->get_payment_method_configurations();
+
+			// `WC_Stripe_API::get_payment_method_configurations()` returns null on invalid keys,
+			// WP_Error on transport failures, and an object with `->error` set on Stripe API errors.
+			// Bail without mutating pmc_enabled so a transient failure can't flip the merchant into
+			// the DB-only fallback path.
+			if ( ! is_object( $api_response ) || is_wp_error( $api_response ) || ! empty( $api_response->error ) ) {
+				WC_Stripe_Logger::warning(
+					'Skipping PMC availability refresh because the Stripe API call failed',
+					[ 'response' => $api_response ]
+				);
+				return;
+			}
+
+			$configurations = is_array( $api_response->data ?? null ) ? $api_response->data : [];
+
+			[ 'pmc' => $usable_pmc ] = self::select_platform_or_fallback_pmc( $configurations );
+		}
+
+		if ( ! $usable_pmc ) {
+			WC_Stripe_Logger::warning(
+				'No usable Payment Method Configuration found during account refresh; disabling Payment Method Configuration sync',
+				[ 'stripe_mode' => $is_test_mode ? 'test' : 'live' ]
+			);
+			self::disable_payment_method_configuration_sync();
+			return;
+		}
+
+		self::set_payment_method_configuration_cache( $usable_pmc );
+
+		$stripe_settings    = WC_Stripe_Helper::get_stripe_settings();
+		$previous_pmc_state = $stripe_settings['pmc_enabled'] ?? '';
+
+		if ( 'yes' === $previous_pmc_state ) {
+			return;
+		}
+
+		if ( 'no' === $previous_pmc_state ) {
+			// Reset the flag so the migration's is_enabled() short-circuit doesn't block it.
+			// The migration will set 'yes' once it finishes.
+			unset( $stripe_settings['pmc_enabled'] );
+			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		}
+
+		self::maybe_migrate_payment_methods_from_db_to_pmc();
 	}
 
 	/**

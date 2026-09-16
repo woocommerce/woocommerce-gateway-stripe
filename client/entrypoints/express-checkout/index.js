@@ -8,6 +8,7 @@ import { __ } from '@wordpress/i18n';
 import {
 	displayExpressCheckoutNotice,
 	displayLoginConfirmation,
+	getDefaultShippingOptions,
 	getExpressCheckoutButtonAppearance,
 	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
@@ -93,12 +94,6 @@ jQuery( function ( $ ) {
 	const useLegacyDisplayItems = hasVariationForm || hasBookingForm;
 
 	const resolveClickEvent = ( event, options ) => {
-		const getDefaultShippingRates = () => {
-			// Return a default shipping option when shipping is required but no rates are provided
-			const defaultShippingOption =
-				getExpressCheckoutData( 'checkout' )?.default_shipping_option;
-			return defaultShippingOption ? [ defaultShippingOption ] : [];
-		};
 		const allowedShippingCountries = getExpressCheckoutData(
 			'allowed_shipping_countries'
 		);
@@ -123,7 +118,7 @@ jQuery( function ( $ ) {
 				shippingRates:
 					options.shippingRates?.length > 0
 						? options.shippingRates
-						: getDefaultShippingRates(),
+						: getDefaultShippingOptions(),
 			} ),
 			...( options.requestShipping &&
 				Array.isArray( allowedShippingCountries ) && {
@@ -990,18 +985,18 @@ jQuery( function ( $ ) {
 		/**
 		 * Abort the payment and display error messages.
 		 *
-		 * @param {PaymentResponse} payment      Payment response instance.
-		 * @param {string}          message      Error message to display.
-		 * @param {boolean}         isOrderError Whether the error is related to the order creation.
+		 * @param {PaymentResponse} payment Payment response instance.
+		 * @param {string}          message Error message to display.
 		 */
-		abortPayment: ( payment, message, isOrderError = false ) => {
+		abortPayment: ( payment, message ) => {
 			wcStripeECE.paymentInFlight = false;
-			if ( ! isOrderError ) {
-				payment.paymentFailed( { reason: 'fail' } );
-			}
 			onAbortPaymentHandler( payment, message );
-
 			displayExpressCheckoutNotice( message, 'error' );
+
+			// The wallet sheet only closes once the confirm event gets a terminal
+			// result, so order errors must fail it too. A late call rejects an
+			// internal Stripe promise asynchronously, after the message is shown.
+			payment.paymentFailed( { reason: 'fail' } );
 		},
 
 		attachProductPageEventListeners: () => {

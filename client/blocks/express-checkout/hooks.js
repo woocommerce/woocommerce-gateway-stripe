@@ -10,6 +10,7 @@ import {
 } from 'wcstripe/express-checkout/event-handler';
 import {
 	displayExpressCheckoutNotice,
+	getDefaultShippingOptions,
 	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
 	normalizeLineItems,
@@ -55,16 +56,17 @@ export const useExpressCheckout = ( {
 	}, [] );
 
 	const abortPayment = useCallback(
-		( onConfirmEvent, message, isOrderError = false ) => {
-			if ( ! isOrderError ) {
-				onConfirmEvent.paymentFailed( { reason: 'fail' } );
-			}
-
+		( onConfirmEvent, message ) => {
 			// If we have a multiline message using newlines, replace them with <br>.
 			const formattedMessage = message.replace( /\n/g, '<br>' );
 			setExpressPaymentError( formattedMessage );
 
 			onAbortPaymentHandler( onConfirmEvent, message );
+
+			// The wallet sheet only closes once the confirm event gets a terminal
+			// result, so order errors must fail it too. A late call rejects an
+			// internal Stripe promise asynchronously, after the message is shown.
+			onConfirmEvent.paymentFailed( { reason: 'fail' } );
 		},
 		[ setExpressPaymentError ]
 	);
@@ -91,11 +93,7 @@ export const useExpressCheckout = ( {
 
 				// Return a default shipping option, as a non-empty shippingRates array
 				// is required when shippingAddressRequired is true.
-				const defaultShippingOption =
-					getExpressCheckoutData(
-						'checkout'
-					)?.default_shipping_option;
-				return defaultShippingOption ? [ defaultShippingOption ] : [];
+				return getDefaultShippingOptions();
 			};
 
 			const lineItems = normalizeLineItems( billing.cartTotalItems ).map(

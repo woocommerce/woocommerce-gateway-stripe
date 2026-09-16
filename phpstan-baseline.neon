@@ -391,12 +391,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Cannot access property \$error on array\|object\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Cannot access property \$id on array\|stdClass\.$#'
 			identifier: property.nonObject
 			count: 3
@@ -410,12 +404,6 @@ parameters:
 
 		-
 			message: '#^Cannot access property \$latest_charge on array\|stdClass\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot access property \$processing on array\|object\.$#'
 			identifier: property.nonObject
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
@@ -829,12 +817,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Parameter \#1 \$intent of method WC_Stripe_Payment_Gateway\:\:get_latest_charge_from_intent\(\) expects object, array\|object given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Parameter \#1 \$nonce of function wp_verify_nonce expects string, array\|string given\.$#'
 			identifier: argument.type
 			count: 1
@@ -937,12 +919,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Parameter \#1 \$payment_intent of method WC_Stripe_Payment_Gateway\:\:is_charge_attempt_delayed\(\) expects stdClass, array\|object given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Parameter \#1 \$payment_method of static method WC_Stripe_Helper\:\:is_reusable_payment_method\(\) expects stdClass, object given\.$#'
 			identifier: argument.type
 			count: 2
@@ -962,12 +938,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$response of method WC_Stripe_Payment_Gateway\:\:is_authentication_required_for_payment\(\) expects object, array\|stdClass given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Parameter \#1 \$response of method WC_Stripe_Payment_Gateway\:\:process_response\(\) expects object, array\|object\|string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
@@ -1071,12 +1041,6 @@ parameters:
 		-
 			message: '#^Variable \$name in empty\(\) always exists and is not falsy\.$#'
 			identifier: empty.variable
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
-			identifier: isset.variable
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
@@ -1557,7 +1521,7 @@ parameters:
 		-
 			message: '#^Access to protected property Automattic\\WooCommerce\\StoreApi\\Payments\\PaymentContext\:\:\$order\.$#'
 			identifier: property.protected
-			count: 2
+			count: 4
 			path: includes/class-wc-stripe-blocks-support.php
 
 		-
@@ -1569,13 +1533,19 @@ parameters:
 		-
 			message: '#^Access to protected property Automattic\\WooCommerce\\StoreApi\\Payments\\PaymentContext\:\:\$payment_method\.$#'
 			identifier: property.protected
-			count: 6
+			count: 5
 			path: includes/class-wc-stripe-blocks-support.php
 
 		-
 			message: '#^Access to protected property Automattic\\WooCommerce\\StoreApi\\Payments\\PaymentResult\:\:\$payment_details\.$#'
 			identifier: property.protected
 			count: 2
+			path: includes/class-wc-stripe-blocks-support.php
+
+		-
+			message: '#^Access to protected property Automattic\\WooCommerce\\StoreApi\\Payments\\PaymentResult\:\:\$status\.$#'
+			identifier: property.protected
+			count: 1
 			path: includes/class-wc-stripe-blocks-support.php
 
 		-
@@ -1645,18 +1615,6 @@ parameters:
 			path: includes/class-wc-stripe-customer.php
 
 		-
-			message: '#^Cannot access property \$message on array\.$#'
-			identifier: property.nonObject
-			count: 2
-			path: includes/class-wc-stripe-customer.php
-
-		-
-			message: '#^Cannot access property \$type on array\.$#'
-			identifier: property.nonObject
-			count: 2
-			path: includes/class-wc-stripe-customer.php
-
-		-
 			message: '#^Cannot call method save\(\) on WC_Payment_Token_SEPA\|WC_Stripe_Payment_Token_CC\|false\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -1707,12 +1665,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Customer\:\:get_user\(\) should return WP_User but returns WP_User\|false\.$#'
 			identifier: return.type
-			count: 1
-			path: includes/class-wc-stripe-customer.php
-
-		-
-			message: '#^Method WC_Stripe_Customer\:\:is_no_such_customer_error\(\) has no return type specified\.$#'
-			identifier: missingType.return
 			count: 1
 			path: includes/class-wc-stripe-customer.php
 
@@ -2743,12 +2695,6 @@ parameters:
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
-			message: '#^Method WC_Stripe_Webhook_Handler\:\:process_payment_intent\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
 			message: '#^Method WC_Stripe_Webhook_Handler\:\:process_review_closed\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -3723,7 +3669,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$client_secret\.$#'
 			identifier: property.notFound
-			count: 3
+			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -3747,7 +3693,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$object\.$#'
 			identifier: property.notFound
-			count: 3
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -4873,12 +4819,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
-			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
-			identifier: isset.variable
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$acss_debit\.$#'
 			identifier: property.notFound
 			count: 2
@@ -5187,12 +5127,6 @@ parameters:
 		-
 			message: '#^Return type \(WC_Payment_Token_ACSS\|null\) of method WC_Stripe_UPE_Payment_Method_ACSS\:\:create_payment_token_for_user\(\) should be compatible with return type \(WC_Payment_Token_SEPA\) of method WC_Stripe_UPE_Payment_Method\:\:create_payment_token_for_user\(\)$#'
 			identifier: method.childReturnType
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
-			identifier: isset.variable
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
@@ -5515,12 +5449,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
-			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
-			identifier: isset.variable
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
 			message: '#^Access to an undefined property WC_Cart\:\:\$total\.$#'
 			identifier: property.notFound
 			count: 1
@@ -5839,12 +5767,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
-			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
-			identifier: isset.variable
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$acss_debit\.$#'
 			identifier: property.notFound
 			count: 2
@@ -6147,12 +6069,6 @@ parameters:
 		-
 			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
 			identifier: isset.property
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
-			identifier: isset.variable
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
@@ -6471,12 +6387,6 @@ parameters:
 		-
 			message: '#^Return type \(WC_Payment_Token_Becs_Debit\|null\) of method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:create_payment_token_for_user\(\) should be compatible with return type \(WC_Payment_Token_SEPA\) of method WC_Stripe_UPE_Payment_Method\:\:create_payment_token_for_user\(\)$#'
 			identifier: method.childReturnType
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
-			identifier: isset.variable
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
@@ -6801,12 +6711,6 @@ parameters:
 		-
 			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
 			identifier: isset.property
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
-			identifier: isset.variable
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
@@ -7141,12 +7045,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
-			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
-			identifier: isset.variable
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$acss_debit\.$#'
 			identifier: property.notFound
 			count: 2
@@ -7453,12 +7351,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
-			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
-			identifier: isset.variable
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$acss_debit\.$#'
 			identifier: property.notFound
 			count: 2
@@ -7761,12 +7653,6 @@ parameters:
 		-
 			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
 			identifier: isset.property
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
-			identifier: isset.variable
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
@@ -8149,12 +8035,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
-			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
-			identifier: isset.variable
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
 			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$can_refund \(array\) does not accept false\.$#'
 			identifier: assign.propertyType
 			count: 1
@@ -8473,12 +8353,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
-			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
-			identifier: isset.variable
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
 			message: '#^Access to an undefined property object\:\:\$acss_debit\.$#'
 			identifier: property.notFound
 			count: 2
@@ -8781,12 +8655,6 @@ parameters:
 		-
 			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$stripe_id \(string\) in isset\(\) is not nullable\.$#'
 			identifier: isset.property
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Variable \$order_helper in isset\(\) always exists and is not nullable\.$#'
-			identifier: isset.variable
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 

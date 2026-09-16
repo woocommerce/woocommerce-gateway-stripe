@@ -47,6 +47,105 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test for `get_external_link_open_tag`.
+	 *
+	 * @param string $url       The URL to link to.
+	 * @param string $css_class The CSS class for the anchor.
+	 * @param string $title     The title for the anchor.
+	 * @param string $expected  The expected opening tag.
+	 * @return void
+	 * @dataProvider provide_get_external_link_open_tag
+	 */
+	public function test_get_external_link_open_tag( string $url, string $css_class, string $title, string $expected ) {
+		$this->assertSame( $expected, WC_Stripe_Helper::get_external_link_open_tag( $url, $css_class, $title ) );
+	}
+
+	/**
+	 * Data provider for `test_get_external_link_open_tag`.
+	 *
+	 * @return array
+	 */
+	public function provide_get_external_link_open_tag(): array {
+		return [
+			'plain URL'                  => [
+				'https://dashboard.stripe.com/payments/pi_123',
+				'',
+				'',
+				'<a href="https://dashboard.stripe.com/payments/pi_123" target="_blank" rel="noopener noreferrer">',
+			],
+			'URL with a class'           => [
+				'https://dashboard.stripe.com/account/payments/settings',
+				'button',
+				'',
+				'<a href="https://dashboard.stripe.com/account/payments/settings" class="button" target="_blank" rel="noopener noreferrer">',
+			],
+			'URL with a title'           => [
+				'https://dashboard.stripe.com/account/payments/settings',
+				'',
+				'Stripe Dashboard',
+				'<a href="https://dashboard.stripe.com/account/payments/settings" title="Stripe Dashboard" target="_blank" rel="noopener noreferrer">',
+			],
+			'URL with a class and title' => [
+				'https://dashboard.stripe.com/account/payments/settings',
+				'button',
+				'Stripe Dashboard',
+				'<a href="https://dashboard.stripe.com/account/payments/settings" class="button" title="Stripe Dashboard" target="_blank" rel="noopener noreferrer">',
+			],
+			// esc_url() encodes "&" as "&#038;" and drops unsupported protocols entirely.
+			'URL with a query'           => [
+				'https://dashboard.stripe.com/logs/req_123?t=1&span=2',
+				'',
+				'',
+				'<a href="https://dashboard.stripe.com/logs/req_123?t=1&#038;span=2" target="_blank" rel="noopener noreferrer">',
+			],
+			'javascript: scheme'         => [
+				'javascript:alert(1)',
+				'',
+				'',
+				'<a href="" target="_blank" rel="noopener noreferrer">',
+			],
+		];
+	}
+
+	/**
+	 * Test for `get_external_link`.
+	 *
+	 * @param string $url      The URL to link to.
+	 * @param string $text     The link text.
+	 * @param string $expected The expected anchor.
+	 * @return void
+	 * @dataProvider provide_get_external_link
+	 */
+	public function test_get_external_link( string $url, string $text, string $expected ) {
+		$this->assertSame( $expected, WC_Stripe_Helper::get_external_link( $url, $text ) );
+	}
+
+	/**
+	 * Data provider for `test_get_external_link`.
+	 *
+	 * @return array
+	 */
+	public function provide_get_external_link(): array {
+		return [
+			'text defaults to the URL'   => [
+				'https://dashboard.stripe.com/logs/req_123?t=1&span=2',
+				'',
+				'<a href="https://dashboard.stripe.com/logs/req_123?t=1&#038;span=2" target="_blank" rel="noopener noreferrer">https://dashboard.stripe.com/logs/req_123?t=1&amp;span=2</a>',
+			],
+			'custom text is escaped'     => [
+				'https://dashboard.stripe.com/customers/cus_123',
+				'<b>Stripe</b> customer page',
+				'<a href="https://dashboard.stripe.com/customers/cus_123" target="_blank" rel="noopener noreferrer">&lt;b&gt;Stripe&lt;/b&gt; customer page</a>',
+			],
+			'existing entities are kept' => [
+				'https://dashboard.stripe.com/customers/cus_123',
+				'Stripe customer page &rarr;',
+				'<a href="https://dashboard.stripe.com/customers/cus_123" target="_blank" rel="noopener noreferrer">Stripe customer page &rarr;</a>',
+			],
+		];
+	}
+
+	/**
 	 * Test for `is_valid_stripe_id`.
 	 *
 	 * @param mixed             $id       The value to validate.
@@ -2266,12 +2365,14 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Tests for `build_line_items`.
 	 *
-	 * @param bool  $itemized       Whether itemized line items are enabled.
-	 * @param array $expected_items The expected line items.
+	 * @param bool       $itemized       Whether itemized line items are enabled.
+	 * @param array      $expected_items The expected line items.
+	 * @param ?float     $fee_amount     Optional cart fee amount to add (negative for a discount-as-fee, positive for a surcharge).
+	 * @param string     $fee_name       Name for the optional cart fee.
 	 * @return void
 	 * @dataProvider provide_test_build_line_items
 	 */
-	public function test_build_line_items( bool $itemized = false, array $expected_items = [] ): void {
+	public function test_build_line_items( bool $itemized = false, array $expected_items = [], ?float $fee_amount = null, string $fee_name = 'Cart fee' ): void {
 		update_option( 'woocommerce_calc_taxes', 'yes' );
 
 		$product = WC_Helper_Product::create_simple_product();
@@ -2288,6 +2389,12 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		WC()->cart->add_to_cart( $product->get_id(), 1 );
 		WC()->cart->add_discount( 'TESTDISCOUNT' );
+
+		if ( null !== $fee_amount ) {
+			// Mirrors how third-party discount extensions (e.g. Discount Rules "apply as fee")
+			// add a negative cart fee instead of a coupon.
+			WC()->cart->add_fee( $fee_name, $fee_amount );
+		}
 
 		$actual = WC_Stripe_Helper::build_line_items( $itemized );
 
@@ -2572,7 +2679,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_build_line_items(): array {
 		return [
-			'itemized'     => [
+			'itemized'                                                          => [
 				'itemized'       => true,
 				'expected items' => [
 					[
@@ -2595,7 +2702,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					],
 				],
 			],
-			'non-itemized' => [
+			'non-itemized'                                                      => [
 				'itemized'       => false,
 				'expected items' => array_merge(
 					[
@@ -2614,6 +2721,62 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 						],
 					],
 				),
+			],
+			// A negative cart fee (e.g. a discount extension applying its discount as a cart
+			// fee instead of a coupon) must be tagged the same way the coupon discount item
+			// is, so the express checkout client re-applies the sign. Without the `key`, the
+			// item stays positive and the summed display items exceed the cart total, which
+			// Stripe rejects. See https://github.com/woocommerce/woocommerce-gateway-stripe/issues/5926.
+			'non-itemized with a negative cart fee (discount applied as a fee)' => [
+				'itemized'       => false,
+				'expected items' => [
+					[
+						'label'  => 'Subtotal',
+						'amount' => 1000,
+					],
+					[
+						'label'  => 'Tax',
+						'amount' => 0,
+					],
+					[
+						'key'    => 'total_discount',
+						'label'  => 'Discount',
+						'amount' => 100,
+					],
+					[
+						'key'    => 'total_discount',
+						'label'  => 'Cart fee',
+						'amount' => 500,
+					],
+				],
+				'fee_amount'     => -5.0,
+				'fee_name'       => 'Cart fee',
+			],
+			// A positive cart fee (e.g. a surcharge) is not a discount and must not be
+			// negated or tagged; it is summed into the total like any other line item.
+			'non-itemized with a positive cart fee (surcharge)'                 => [
+				'itemized'       => false,
+				'expected items' => [
+					[
+						'label'  => 'Subtotal',
+						'amount' => 1000,
+					],
+					[
+						'label'  => 'Tax',
+						'amount' => 0,
+					],
+					[
+						'key'    => 'total_discount',
+						'label'  => 'Discount',
+						'amount' => 100,
+					],
+					[
+						'label'  => 'Cart fee',
+						'amount' => 500,
+					],
+				],
+				'fee_amount'     => 5.0,
+				'fee_name'       => 'Cart fee',
 			],
 		];
 	}

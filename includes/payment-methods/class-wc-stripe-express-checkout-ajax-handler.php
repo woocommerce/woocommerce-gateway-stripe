@@ -327,6 +327,9 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		 * as it can cause issues for express checkout flows. Also ensure that data is correctly sanitized and checked
 		 * as it will be visible to shoppers.
 		 *
+		 * Since 11.0.0 the client merges the returned addresses over the ones it sent, so removing a field
+		 * from an address no longer clears it. Return an empty string to clear a field.
+		 *
 		 * @since 10.2.0
 		 *
 		 * @param array $normalized_data The normalized address data.
@@ -351,6 +354,10 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 	public function ajax_get_shipping_options() {
 		check_ajax_referer( 'wc-stripe-express-checkout-shipping', 'security' );
 		_deprecated_function( __METHOD__, '10.9.0' );
+
+		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
+			define( 'WOOCOMMERCE_CART', true );
+		}
 
 		$shipping_address          = filter_input_array(
 			INPUT_POST,
