@@ -98,6 +98,67 @@ export const updateStoreCurrency = async ( browser, currency ) => {
 };
 
 /**
+ * Update the checkout phone-field visibility (the setting behind both the
+ * classic Customizer control and the checkout block's Address Fields panel).
+ *
+ * There is no wc-settings screen for this option; it is registered on the WP
+ * core settings endpoint, so update it there using the admin session. The
+ * REST nonce comes from core's `rest-nonce` admin-ajax action.
+ *
+ * @param {Browser} browser    Playwright browser fixture.
+ * @param {string}  visibility One of 'optional', 'required', 'hidden'.
+ * @returns {Promise<string>} The previous visibility, for restoring later.
+ */
+export const updateCheckoutPhoneFieldVisibility = async (
+	browser,
+	visibility
+) => {
+	const context = await browser.newContext( {
+		storageState: process.env.ADMINSTATE,
+	} );
+
+	try {
+		const nonce = (
+			await (
+				await context.request.get(
+					'/wp-admin/admin-ajax.php?action=rest-nonce'
+				)
+			).text()
+		).trim();
+		const headers = { 'X-WP-Nonce': nonce };
+
+		const settingsResponse = await context.request.get(
+			'/wp-json/wp/v2/settings',
+			{ headers }
+		);
+		if ( ! settingsResponse.ok() ) {
+			throw new Error(
+				`Failed to read site settings: ${ settingsResponse.status() }`
+			);
+		}
+		const previous = ( await settingsResponse.json() )
+			.woocommerce_checkout_phone_field;
+
+		const updateResponse = await context.request.post(
+			'/wp-json/wp/v2/settings',
+			{
+				headers,
+				data: { woocommerce_checkout_phone_field: visibility },
+			}
+		);
+		if ( ! updateResponse.ok() ) {
+			throw new Error(
+				`Failed to update the checkout phone field setting: ${ updateResponse.status() }`
+			);
+		}
+
+		return previous;
+	} finally {
+		await context.close();
+	}
+};
+
+/**
  * Enable or disable the Optimized Checkout feature in Stripe settings.
  *
  * @param {Browser} browser      Playwright browser fixture.
