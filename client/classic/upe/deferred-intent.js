@@ -7,6 +7,7 @@ import {
 	isPaymentMethodRestrictedToLocation,
 	isUsingSavedPaymentMethod,
 	paymentMethodSupportsDeferredIntent,
+	removeCheckoutSessionIdFromForm,
 	togglePaymentMethodForCountry,
 } from '../../stripe-utils';
 import './style.scss';
@@ -109,6 +110,13 @@ jQuery( function ( $ ) {
 
 	$( 'form.checkout' ).on( generateCheckoutEventNames(), function () {
 		const $form = $( this );
+		const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
+
+		// A saved token bypasses Checkout Session confirmation, so discard a stale Session id left by
+		// an earlier attempt. New payment methods need the field so the Session flow can replace it.
+		if ( isUsingSavedPaymentMethod( paymentMethodType ) ) {
+			removeCheckoutSessionIdFromForm( $form );
+		}
 
 		// Don't create a Stripe payment method if required checkout fields are empty.
 		// This prevents unnecessary Stripe API calls before WC's server-side validation.

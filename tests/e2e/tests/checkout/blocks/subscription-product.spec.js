@@ -6,8 +6,7 @@ import { api, payments, products } from '../../../utils';
 const {
 	setupBlocksCheckout,
 	fillCreditCardDetails,
-	clickAddToCartButton,
-	selectSubscriptionOption,
+	addSubscriptionToCart,
 	getCartTotal,
 	waitForOrderReceivedPageAndConfirmExpectedTotal,
 } = payments;
@@ -26,9 +25,7 @@ test( 'customer can purchase a subscription product @smoke @blocks @subscription
 	page,
 	browser,
 } ) => {
-	await page.goto( `?p=${ productId }` );
-	await selectSubscriptionOption( page );
-	await clickAddToCartButton( page, 'Sign up' );
+	await addSubscriptionToCart( page, productId );
 
 	const randomString = randomUUID();
 	// Subscriptions will create an account for this checkout, we need a random email.
