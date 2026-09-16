@@ -1592,12 +1592,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 		}
 
-		// Classic checkout keeps `wc_stripe_checkout_session_id` in the form after a failed Adaptive
-		// Pricing attempt, so a retry with a saved token still submits it. The token has to win: a
-		// Checkout Session is confirmed client-side and the saved-token path never reaches that code,
-		// so routing there would return success for an order nothing ever charged.
-		if ( is_string( $checkout_session_id ) && ! empty( $checkout_session_id ) && ! $this->is_using_saved_payment_method() ) {
-			return $this->process_payment_with_checkout_session( $order_id, $checkout_session_id, $save_payment_method, $selected_payment_type );
+		if ( is_string( $checkout_session_id ) && ! empty( $checkout_session_id ) ) {
+			if ( ! $this->is_using_saved_payment_method() ) {
+				return $this->process_payment_with_checkout_session( $order_id, $checkout_session_id, $save_payment_method, $selected_payment_type );
+			}
+
+			// A saved card pays the live session client-side via confirm( { paymentMethod } )
+			// before this request, so a completed session takes the session path. Any other
+			// status means the id is stale from a failed Adaptive Pricing attempt: the token
+			// has to win, because routing an unpaid session to the session path would return
+			// success for an order nothing ever charged. Fall through so the stale session is
+			// retired and the saved token charges through the deferred intent.
+			if ( $this->is_checkout_session_completed( $checkout_session_id ) ) {
+				return $this->process_payment_with_checkout_session( $order_id, $checkout_session_id, $save_payment_method, $selected_payment_type );
+			}
 		}
 
 		if ( $this->is_using_saved_payment_method() && $order instanceof WC_Order ) {
@@ -1610,6 +1618,27 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		return $this->process_payment_with_deferred_intent( $order_id );
+	}
+
+	/**
+	 * Whether the remote Checkout Session has been completed (paid).
+	 *
+	 * Errors resolve to false: the saved-token retry path retires the session
+	 * itself and surfaces retrieval failures with a proper customer message.
+	 *
+	 * @param string $checkout_session_id The Checkout Session id from the request.
+	 * @return bool
+	 */
+	private function is_checkout_session_completed( string $checkout_session_id ): bool {
+		try {
+			$checkout_session = $this->stripe_request( 'checkout/sessions/' . $checkout_session_id );
+		} catch ( Exception $e ) {
+			return false;
+		}
+
+		return is_object( $checkout_session )
+			&& isset( $checkout_session->status )
+			&& 'complete' === $checkout_session->status;
 	}
 
 	/**

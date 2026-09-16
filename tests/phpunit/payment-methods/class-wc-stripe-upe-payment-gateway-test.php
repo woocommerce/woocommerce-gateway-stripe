@@ -2359,6 +2359,54 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Mocks the gateway's Checkout Session retrieval to report the session as
+	 * completed, which is what routes a saved token onto the session path.
+	 *
+	 * @param string $session_id The Checkout Session id to report as complete.
+	 * @return void
+	 */
+	private function mock_completed_checkout_session( string $session_id ): void {
+		$this->mock_gateway->method( 'stripe_request' )->willReturnCallback(
+			function ( $path ) use ( $session_id ) {
+				if ( 'checkout/sessions/' . $session_id === $path ) {
+					return (object) [
+						'id'     => $session_id,
+						'status' => 'complete',
+					];
+				}
+
+				return null;
+			}
+		);
+	}
+
+	/**
+	 * Builds a pre_http_request stub serving Stripe customer creation, which the
+	 * Checkout Session payment path performs for logged-in users. The bootstrap
+	 * blocks all unmocked outbound HTTP, so these tests must serve it locally.
+	 *
+	 * @return callable The filter callback for `pre_http_request` (3 args).
+	 */
+	private function build_customers_endpoint_stub(): callable {
+		return function ( $return_value, $parsed_args, $url ) {
+			if ( false === strpos( $url, 'api.stripe.com/v1/customers' ) ) {
+				return $return_value;
+			}
+
+			return [
+				'headers'  => [],
+				'cookies'  => [],
+				'filename' => null,
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'body'     => wp_json_encode( [ 'id' => 'cus_mock_cs_token' ] ),
+			];
+		};
+	}
+
+	/**
 	 * Assert that a Checkout Session processing failure is surfaced through Woo checkout notices.
 	 *
 	 * @param string $expected_message Expected notice message.
@@ -2450,9 +2498,19 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->store_checkout_session_context_for_order( $session_id, $order );
 
+		// A saved token only takes the session path once the client has completed
+		// the session via confirm( { paymentMethod } ).
+		$this->mock_completed_checkout_session( $session_id );
+
+		// The session payment path ensures a Stripe customer for the logged-in
+		// user; the bootstrap blocks outbound HTTP, so serve the creation here.
+		$pre_http_filter = $this->build_customers_endpoint_stub();
+		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
+
 		try {
 			$result = $this->mock_gateway->process_payment( $order->get_id() );
 		} finally {
+			remove_filter( 'pre_http_request', $pre_http_filter );
 			WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
 			unset( $_POST['wc_stripe_checkout_session_id'], $_POST['payment_method'], $_POST['wc-stripe-payment-method'], $_POST['wc-stripe-payment-token'] );
 			add_filter( 'woocommerce_get_customer_payment_tokens', [ $stripe_payment_tokens, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
@@ -2503,9 +2561,19 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->store_checkout_session_context_for_order( $session_id, $order );
 
+		// Even a completed session must reject a non-card token inside the
+		// session path, so mock the completed state to reach that guard.
+		$this->mock_completed_checkout_session( $session_id );
+
+		// The token-type check runs after the customer is ensured, so the
+		// blocked /v1/customers call must be served for the rejection to be reached.
+		$pre_http_filter = $this->build_customers_endpoint_stub();
+		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
+
 		try {
 			$result = $this->mock_gateway->process_payment( $order->get_id() );
 		} finally {
+			remove_filter( 'pre_http_request', $pre_http_filter );
 			WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
 			unset( $_POST['wc_stripe_checkout_session_id'], $_POST['payment_method'], $_POST['wc-stripe-payment-method'], $_POST['wc-stripe-payment-token'] );
 			add_filter( 'woocommerce_get_customer_payment_tokens', [ $stripe_payment_tokens, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
@@ -2961,11 +3029,15 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * A complete session is deliberately absent: a saved card completes the
+	 * session client-side via confirm( { paymentMethod } ), so that state routes
+	 * to the session path instead of retirement (see
+	 * test_process_payment_with_checkout_session_accepts_saved_card_token).
+	 *
 	 * @return array<string,array{string|null,string|null,bool}>
 	 */
 	public function provide_unretireable_checkout_session_states(): array {
 		return [
-			'complete Session'        => [ 'complete', null, false ],
 			'malformed Session'       => [ null, null, false ],
 			'retrieval failure'       => [ null, null, true ],
 			'expiration failure'      => [ 'open', null, false ],
