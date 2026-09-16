@@ -3,6 +3,7 @@ import {
 	transformPriceWithMinorUnits,
 	transformCartDataForDisplayItems,
 	transformCartDataForShippingRates,
+	transformLabeledDisplayItems,
 } from '../wc-to-stripe';
 
 global.wc_stripe_express_checkout_params = {};
@@ -476,6 +477,24 @@ describe( 'wc-to-stripe transformers', () => {
 					)
 				).toBe( testCase.expected );
 			} );
+		} );
+	} );
+
+	describe( 'transformLabeledDisplayItems', () => {
+		it( 'uses a negative amount for discounts', () => {
+			expect(
+				transformLabeledDisplayItems( [
+					{ label: 'Subtotal', amount: 5500 },
+					{
+						key: 'total_discount',
+						label: 'Discount',
+						amount: 5225,
+					},
+				] )
+			).toStrictEqual( [
+				{ name: 'Subtotal', amount: 5500 },
+				{ name: 'Discount', amount: -5225 },
+			] );
 		} );
 	} );
 
