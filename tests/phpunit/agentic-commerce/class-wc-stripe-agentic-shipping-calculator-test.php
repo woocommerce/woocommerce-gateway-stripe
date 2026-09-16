@@ -31,6 +31,11 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 	 */
 	private $shipping_zone;
 
+	/**
+	 * @var \WC_Product[] Array of created products during the test.
+	 */
+	private $products = [];
+
 	public function setUp(): void {
 		parent::setUp();
 
@@ -55,6 +60,11 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 			$this->shipping_zone->delete();
 			$this->shipping_zone = null;
 		}
+
+		foreach ( $this->products as $product ) {
+			$product->delete( true );
+		}
+		$this->products = [];
 
 		$this->restore_wc_options();
 
@@ -242,9 +252,10 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 	 * @dataProvider cost_expression_provider
 	 */
 	public function test_cost_expression_prices_package_contents( string $cost_expression, array $product_specs, array $line_item_specs, int $expected_amount ) {
-		$products = [];
+		$this->products = [];
+
 		foreach ( $product_specs as $i => $spec ) {
-			$products[] = \WC_Helper_Product::create_simple_product(
+			$this->products[] = \WC_Helper_Product::create_simple_product(
 				true,
 				[
 					'regular_price' => $spec['price'],
@@ -261,7 +272,7 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 		foreach ( $line_item_specs as $i => $spec ) {
 			$raw_item = [
 				'id'       => 'li_' . $i,
-				'sku_id'   => (string) $products[ $spec['product'] ]->get_sku(),
+				'sku_id'   => (string) $this->products[ $spec['product'] ]->get_sku(),
 				'quantity' => $spec['quantity'],
 			];
 			if ( isset( $spec['unit_amount'] ) ) {
@@ -273,10 +284,6 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 		$result = $this->calculator->calculate( $this->build_event_from_raw_items( $raw_items ), 'usd' );
 
 		$this->assertSame( $expected_amount, $result['shipping_options'][0]['shipping_rate_data']['fixed_amount']['amount'] );
-
-		foreach ( $products as $product ) {
-			$product->delete( true );
-		}
 	}
 
 	/**
@@ -309,6 +316,7 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 	public function test_uses_supplied_product_ids_instead_of_resolving_skus() {
 		$this->shipping_zone = $this->create_shipping_zone_with_flat_rate( 'US', 5.00 );
 		$product             = \WC_Helper_Product::create_simple_product( true, [ 'regular_price' => '10' ] );
+		$this->products[]    = $product;
 
 		$event = $this->build_event_from_raw_items(
 			[
@@ -363,6 +371,8 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 			]
 		);
 
+		$this->products[] = $product;
+
 		$this->shipping_zone = $this->create_shipping_zone_with_flat_rate( 'US', '[cost]' );
 
 		$event = $this->build_event_from_raw_items(
@@ -376,14 +386,10 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 			]
 		);
 
-		try {
-			$this->expectException( \Exception::class );
-			$this->expectExceptionMessage( 'invalid quantity or unit_amount' );
+		$this->expectException( \Exception::class );
+		$this->expectExceptionMessage( 'invalid quantity or unit_amount' );
 
-			$this->calculator->calculate( $event, 'usd' );
-		} finally {
-			$product->delete( true );
-		}
+		$this->calculator->calculate( $event, 'usd' );
 	}
 
 	/**
@@ -400,6 +406,8 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 			]
 		);
 
+		$this->products[] = $product;
+
 		$this->shipping_zone = $this->create_shipping_zone_with_flat_rate( 'US', '[cost]' );
 
 		$event = $this->build_event_from_raw_items(
@@ -412,14 +420,10 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 			]
 		);
 
-		try {
-			$this->expectException( \Exception::class );
-			$this->expectExceptionMessage( 'no catalog price' );
+		$this->expectException( \Exception::class );
+		$this->expectExceptionMessage( 'no catalog price' );
 
-			$this->calculator->calculate( $event, 'usd' );
-		} finally {
-			$product->delete( true );
-		}
+		$this->calculator->calculate( $event, 'usd' );
 	}
 
 	/**
@@ -457,6 +461,8 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 			]
 		);
 
+		$this->products[] = $product;
+
 		$this->shipping_zone = $this->create_shipping_zone_with_flat_rate( 'US', '2 * [qty]' );
 
 		$raw    = $this->get_mock_customize_checkout_event();
@@ -464,8 +470,6 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 		$result = $this->calculator->calculate( $event, $raw->data->currency );
 
 		$this->assertSame( 200, $result['shipping_options'][0]['shipping_rate_data']['fixed_amount']['amount'] );
-
-		$product->delete( true );
 	}
 
 	/**

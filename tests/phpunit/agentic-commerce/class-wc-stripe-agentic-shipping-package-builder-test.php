@@ -93,19 +93,21 @@ class WC_Stripe_Agentic_Shipping_Package_Builder_Test extends WP_UnitTestCase {
 
 		$contents = WC_Stripe_Agentic_Shipping_Package_Builder::build_contents_from_order( $order );
 
-		$this->assertCount( 1, $contents );
+		try {
+			$this->assertCount( 1, $contents );
 
-		$entry = reset( $contents );
-		$this->assertSame( $shippable->get_id(), $entry['product_id'] );
-		$this->assertSame( 0, $entry['variation_id'] );
-		$this->assertSame( 3, $entry['quantity'] );
-		$this->assertSame( $shippable->get_id(), $entry['data']->get_id() );
-		$this->assertSame( 30.0, $entry['line_total'] );
-		$this->assertSame( 30.0, $entry['line_subtotal'] );
-
-		$order->delete( true );
-		$shippable->delete( true );
-		$virtual->delete( true );
+			$entry = reset( $contents );
+			$this->assertSame( $shippable->get_id(), $entry['product_id'] );
+			$this->assertSame( 0, $entry['variation_id'] );
+			$this->assertSame( 3, $entry['quantity'] );
+			$this->assertSame( $shippable->get_id(), $entry['data']->get_id() );
+			$this->assertSame( 30.0, $entry['line_total'] );
+			$this->assertSame( 30.0, $entry['line_subtotal'] );
+		} finally {
+			$order->delete( true );
+			$shippable->delete( true );
+			$virtual->delete( true );
+		}
 	}
 
 	/**
@@ -122,14 +124,17 @@ class WC_Stripe_Agentic_Shipping_Package_Builder_Test extends WP_UnitTestCase {
 
 		$contents = WC_Stripe_Agentic_Shipping_Package_Builder::build_contents_from_order( $order );
 
-		$this->assertCount( 1, $contents );
+		try {
+			$this->assertCount( 1, $contents );
 
-		$entry = reset( $contents );
-		$this->assertSame( $variable->get_id(), $entry['product_id'] );
-		$this->assertSame( $variation->get_id(), $entry['variation_id'] );
-		$this->assertSame( 2, $entry['quantity'] );
-
-		$order->delete( true );
-		$variable->delete( true );
+			$entry = reset( $contents );
+			$this->assertSame( $variable->get_id(), $entry['product_id'] );
+			$this->assertSame( $variation->get_id(), $entry['variation_id'] );
+			$this->assertSame( 2, $entry['quantity'] );
+		} finally {
+			$order->delete( true );
+			$variation->delete( true );
+			$variable->delete( true );
+		}
 	}
 }
