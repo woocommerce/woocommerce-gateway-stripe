@@ -59,9 +59,9 @@ class WC_Stripe_Agentic_Shipping_Calculator {
 			return [];
 		}
 
-		$shipping->calculate_shipping( [ $package ] );
+		$shipping->calculate_shipping( WC_Stripe_Agentic_Shipping_Package_Builder::get_filtered_packages( $package ) );
 
-		$shipping_rates = $shipping->get_packages()[0]['rates'] ?? [];
+		$shipping_rates = WC_Stripe_Agentic_Shipping_Package_Builder::combine_package_rates( $shipping->get_packages() );
 
 		if ( empty( $shipping_rates ) ) {
 			return [];

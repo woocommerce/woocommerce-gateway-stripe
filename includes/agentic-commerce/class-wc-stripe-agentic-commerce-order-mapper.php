@@ -582,9 +582,8 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 				WC()->initialize_session();
 			}
 
-			$wc_shipping->calculate_shipping( [ $package ] );
-			$packages = $wc_shipping->get_packages();
-			$rates    = $packages[0]['rates'] ?? [];
+			$wc_shipping->calculate_shipping( WC_Stripe_Agentic_Shipping_Package_Builder::get_filtered_packages( $package ) );
+			$rates = WC_Stripe_Agentic_Shipping_Package_Builder::combine_package_rates( $wc_shipping->get_packages() );
 		} catch ( Throwable $e ) {
 			WC_Stripe_Logger::warning(
 				'Agentic order mapper: WC shipping calculation failed; will use free-form shipping line.',
@@ -625,7 +624,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			$shipping_item = new WC_Order_Item_Shipping();
 			$shipping_item->set_method_title( $matched_rate->get_label() );
 			$shipping_item->set_method_id( $matched_rate->get_method_id() );
-			$shipping_item->set_instance_id( $matched_rate->get_instance_id() );
+			$shipping_item->set_instance_id( (string) $matched_rate->get_instance_id() );
 			$shipping_item->set_total( $matched_rate->get_cost() );
 			$order->add_item( $shipping_item );
 			return;

@@ -60,6 +60,84 @@ class WC_Stripe_Agentic_Shipping_Package_Builder {
 	}
 
 	/**
+	 * Applies the agentic package-split filter to a built package.
+	 *
+	 * The agentic flow has no cart, so `woocommerce_cart_shipping_packages`,
+	 * the filter extensions use to split a cart into multiple shipments, never
+	 * fires. This filter is its equivalent here: callbacks receive the single
+	 * built package and may split it into several before rates are calculated.
+	 * Non-array entries are dropped because callbacks are untrusted.
+	 *
+	 * Both agentic call sites (rate quoting and order mapping) must run this
+	 * filter, so a rate quoted from split packages can be matched again when
+	 * the order is created.
+	 *
+	 * @since 11.1.0
+	 * @param array $package The package built by build_package().
+	 * @return array The packages to pass to WC_Shipping::calculate_shipping().
+	 */
+	public static function get_filtered_packages( array $package ): array {
+		/**
+		 * Filters the shipping packages used for agentic checkout rate calculation.
+		 *
+		 * Callbacks may split the single built package into several. Rates
+		 * offered to the agent are those available for every package, with
+		 * costs summed across packages.
+		 *
+		 * @since 11.1.0
+		 * @param array $packages Array containing the single built package.
+		 */
+		$packages = apply_filters( 'wc_stripe_agentic_shipping_packages', [ $package ] );
+
+		return array_values( array_filter( (array) $packages, 'is_array' ) );
+	}
+
+	/**
+	 * Combines calculated per-package rates into one flat, rate-ID-keyed list.
+	 *
+	 * The agentic response format supports a single shipping choice, while WC
+	 * prices split packages independently. A rate is offered only when every
+	 * package can ship with it (same rate ID), and its cost is the sum across
+	 * packages; rates missing from any package are dropped, as are entries
+	 * that are not WC_Shipping_Rate objects (packages pass through filters).
+	 * When packages were split, combined rates are clones, so the objects held
+	 * by WC_Shipping stay untouched.
+	 *
+	 * @since 11.1.0
+	 * @param array $packages The packages returned by WC_Shipping::get_packages() after calculation.
+	 * @return array<string, WC_Shipping_Rate> Rates keyed by rate ID.
+	 */
+	public static function combine_package_rates( array $packages ): array {
+		$packages = array_values( $packages );
+		$is_split = count( $packages ) > 1;
+
+		$combined    = [];
+		$first_rates = $packages[0]['rates'] ?? [];
+		foreach ( is_array( $first_rates ) ? $first_rates : [] as $rate_id => $rate ) {
+			if ( $rate instanceof WC_Shipping_Rate ) {
+				$combined[ (string) $rate_id ] = $is_split ? clone $rate : $rate;
+			}
+		}
+
+		foreach ( array_slice( $packages, 1 ) as $package ) {
+			$package_rates = is_array( $package['rates'] ?? null ) ? $package['rates'] : [];
+
+			foreach ( $combined as $rate_id => $rate ) {
+				$package_rate = $package_rates[ $rate_id ] ?? null;
+
+				if ( ! $package_rate instanceof WC_Shipping_Rate ) {
+					unset( $combined[ $rate_id ] );
+					continue;
+				}
+
+				$rate->set_cost( (string) ( (float) $rate->get_cost() + (float) $package_rate->get_cost() ) );
+			}
+		}
+
+		return $combined;
+	}
+
+	/**
 	 * Builds package contents from a customize_checkout event's line items.
 	 *
 	 * Resolves each line item's sku_id to a WooCommerce product and keeps only

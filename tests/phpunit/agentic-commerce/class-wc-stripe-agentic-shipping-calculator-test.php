@@ -56,6 +56,8 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 	}
 
 	public function tearDown(): void {
+		remove_all_filters( 'wc_stripe_agentic_shipping_packages' );
+
 		if ( $this->shipping_zone ) {
 			$this->shipping_zone->delete();
 			$this->shipping_zone = null;
@@ -132,6 +134,28 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 		$this->assertIsInt( $fixed_amount['amount'] );
 		$this->assertGreaterThan( 0, $fixed_amount['amount'] );
 		$this->assertEquals( 'usd', $fixed_amount['currency'] );
+	}
+
+	/**
+	 * Test that a wc_stripe_agentic_shipping_packages callback splitting the
+	 * package into two shipments doubles a fixed flat rate: each package is
+	 * priced independently and the offered rate is the summed cost.
+	 */
+	public function test_split_packages_filter_sums_rate_costs() {
+		$this->shipping_zone = $this->create_shipping_zone_with_flat_rate( 'US', 5.00 );
+
+		add_filter(
+			'wc_stripe_agentic_shipping_packages',
+			function ( $packages ) {
+				return [ $packages[0], $packages[0] ];
+			}
+		);
+
+		$event  = $this->build_event_from_products( [] );
+		$result = $this->calculator->calculate( $event, 'usd' );
+
+		$this->assertCount( 1, $result['shipping_options'] );
+		$this->assertSame( 1000, $result['shipping_options'][0]['shipping_rate_data']['fixed_amount']['amount'] );
 	}
 
 	/**

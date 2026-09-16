@@ -9,6 +9,7 @@ namespace WooCommerce\Stripe\Tests;
 
 use WP_UnitTestCase;
 use WC_Helper_Product;
+use WC_Shipping_Rate;
 use WC_Stripe_API_Address;
 use WC_Stripe_Agentic_Shipping_Package_Builder;
 
@@ -23,6 +24,11 @@ class WC_Stripe_Agentic_Shipping_Package_Builder_Test extends WP_UnitTestCase {
 		if ( ! class_exists( 'WC_Stripe_Agentic_Shipping_Package_Builder' ) ) {
 			$this->markTestSkipped( 'WC_Stripe_Agentic_Shipping_Package_Builder class not loaded' );
 		}
+	}
+
+	public function tearDown(): void {
+		remove_all_filters( 'wc_stripe_agentic_shipping_packages' );
+		parent::tearDown();
 	}
 
 	/**
@@ -136,5 +142,68 @@ class WC_Stripe_Agentic_Shipping_Package_Builder_Test extends WP_UnitTestCase {
 			$variation->delete( true );
 			$variable->delete( true );
 		}
+	}
+
+	/**
+	 * Test that get_filtered_packages wraps the package unchanged when no
+	 * callback is attached, and drops non-array entries returned by callbacks.
+	 */
+	public function test_get_filtered_packages_wraps_package_and_drops_invalid_entries() {
+		$package = WC_Stripe_Agentic_Shipping_Package_Builder::build_package( [], $this->build_address(), 0 );
+
+		$this->assertSame( [ $package ], WC_Stripe_Agentic_Shipping_Package_Builder::get_filtered_packages( $package ) );
+
+		add_filter(
+			'wc_stripe_agentic_shipping_packages',
+			function ( $packages ) {
+				return [ $packages[0], 'not-a-package', null, $packages[0] ];
+			}
+		);
+
+		$filtered = WC_Stripe_Agentic_Shipping_Package_Builder::get_filtered_packages( $package );
+
+		$this->assertSame( [ $package, $package ], $filtered );
+	}
+
+	/**
+	 * Test that combine_package_rates returns a single package's rates as-is.
+	 */
+	public function test_combine_package_rates_passes_through_single_package() {
+		$rate  = new WC_Shipping_Rate( 'flat_rate:1', 'Flat rate', 5.00, [], 'flat_rate', 1 );
+		$rates = [ 'flat_rate:1' => $rate ];
+
+		$this->assertSame( [], WC_Stripe_Agentic_Shipping_Package_Builder::combine_package_rates( [] ) );
+		$this->assertSame( $rates, WC_Stripe_Agentic_Shipping_Package_Builder::combine_package_rates( [ [ 'rates' => $rates ] ] ) );
+	}
+
+	/**
+	 * Test that combine_package_rates keeps only rates available for every
+	 * package, sums their costs across packages, and leaves the original rate
+	 * objects unmodified.
+	 */
+	public function test_combine_package_rates_intersects_by_rate_id_and_sums_costs() {
+		$flat_a   = new WC_Shipping_Rate( 'flat_rate:1', 'Flat rate', 5.00, [], 'flat_rate', 1 );
+		$pickup_a = new WC_Shipping_Rate( 'local_pickup:2', 'Local pickup', 0.00, [], 'local_pickup', 2 );
+		$flat_b   = new WC_Shipping_Rate( 'flat_rate:1', 'Flat rate', 7.50, [], 'flat_rate', 1 );
+
+		$combined = WC_Stripe_Agentic_Shipping_Package_Builder::combine_package_rates(
+			[
+				[
+					'rates' => [
+						'flat_rate:1'    => $flat_a,
+						'local_pickup:2' => $pickup_a,
+					],
+				],
+				[ 'rates' => [ 'flat_rate:1' => $flat_b ] ],
+			]
+		);
+
+		$this->assertSame( [ 'flat_rate:1' ], array_keys( $combined ) );
+		$this->assertSame( 12.5, (float) $combined['flat_rate:1']->get_cost() );
+		$this->assertSame( 'Flat rate', $combined['flat_rate:1']->get_label() );
+
+		// Originals must not be mutated: the combined rate is a clone.
+		$this->assertSame( 5.0, (float) $flat_a->get_cost() );
+		$this->assertSame( 7.5, (float) $flat_b->get_cost() );
 	}
 }
