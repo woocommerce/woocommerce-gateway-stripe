@@ -1,7 +1,7 @@
 <?php
 /**
  * Class WC_Stripe_REST_Args_Validator_Test
- * 
+ *
  * Implements WC_Stripe_REST_Args_Validator class unit tests.
  */
 class WC_Stripe_REST_Args_Validator_Test extends WP_UnitTestCase {
