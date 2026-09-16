@@ -538,6 +538,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 		// Before cancelling, check with Stripe if the payment intent has already been paid or
 		// is still being processed (which is common for async methods like ACH and Cash App Pay).
+		// Capture state doesn't matter here: an authorized-but-uncaptured payment
+		// (requires_capture) must also settle the order rather than be cancelled.
 		// For those cases, we want to mimic the processing from webhooks.
 		if ( 'payment_intent' === ( $intent->object ?? '' )
 			&& in_array( $intent->status ?? '', WC_Stripe_Intent_Status::SUCCESSFUL_STATUSES, true )

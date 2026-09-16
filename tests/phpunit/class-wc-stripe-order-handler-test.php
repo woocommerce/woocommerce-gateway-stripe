@@ -325,7 +325,9 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 	 */
 	public function test_settles_order_with_paid_intent_instead_of_cancelling( $intent_status ) {
 		$order = WC_Helper_Order::create_order();
-		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		// ACH: an async method whose delayed status updates are the typical way
+		// a paid order is still pending when the auto-cancel runs.
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID );
 		$order->set_status( 'pending' );
 		$order->save();
 		$order = wc_get_order( $order->get_id() );
