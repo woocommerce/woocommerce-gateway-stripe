@@ -140,14 +140,12 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	public function test_retrieve_returns_null_without_api_call_after_threshold() {
 		$call_count = 0;
 
+		$mock_unauthorized_filter = function () use ( &$call_count ) {
+			$call_count++;
+			return $this->mock_unauthorized_response();
+		};
 		// Mock HTTP to always return 401 and increment the counter.
-		add_filter(
-			'pre_http_request',
-			function () use ( &$call_count ) {
-				$call_count++;
-				return $this->mock_unauthorized_response();
-			}
-		);
+		add_filter( 'pre_http_request', $mock_unauthorized_filter );
 
 		$stripe_api_class = new ReflectionClass( WC_Stripe_API::class );
 		$threshold        = $stripe_api_class->getConstant( 'INVALID_API_KEY_ERROR_COUNT_THRESHOLD' );
@@ -163,7 +161,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$this->assertNull( $result, 'Expected null after reaching invalid API key threshold.' );
 		$this->assertEquals( $threshold, $call_count, 'Should not make another HTTP call after threshold is reached.' );
 
-		remove_all_filters( 'pre_http_request' );
+		remove_filter( 'pre_http_request', $mock_unauthorized_filter );
 		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 	}
 
@@ -179,7 +177,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$count = WC_Stripe_Database_Cache::get( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 		$this->assertEquals( 1, $count, 'Cache count should be 1 after first 401.' );
 
-		remove_all_filters( 'pre_http_request' );
+		remove_filter( 'pre_http_request', [ $this, 'mock_unauthorized_response' ] );
 
 		// 2. Mock a 200 response for the second call.
 		add_filter( 'pre_http_request', [ $this, 'mock_successful_response' ] );
@@ -189,7 +187,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$count = WC_Stripe_Database_Cache::get( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 		$this->assertNull( $count, 'Cache should be deleted after a successful response.' );
 
-		remove_all_filters( 'pre_http_request' );
+		remove_filter( 'pre_http_request', [ $this, 'mock_successful_response' ] );
 	}
 
 	/**
