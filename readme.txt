@@ -169,6 +169,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add E2E coverage for express checkout with free trial subscriptions, with and without shipping, including completing the purchase with Link
 * Fix - Prevent dropped webhooks, double processing, and skipped pre-order handling when requests race for the order payment lock
 * Fix - Stop two requests from reclaiming the same expired Optimized Checkout or Agentic Commerce sync lock
+* Fix - Include cart contents in agentic checkout shipping calculations so content-dependent shipping methods such as table rate and weight-based return accurate rates
+* Fix - Reject agentic checkout line items with a zero or negative quantity, or a negative amount, when building shipping packages, instead of quoting rates from corrupted totals
 * Fix - Show coupon discounts as negative line items in Express Checkout on classic cart and checkout pages
 * Fix - Show negative cart fees (e.g. a discount extension applying its discount as a fee) as negative line items in Express Checkout on classic cart page
 * Fix - Stop disabling Level 3 data account-wide when Stripe rejects it for a request that declares a non-card payment method
