@@ -824,6 +824,18 @@ class WC_Stripe_OCS_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$cashapp_token->set_token( 'pm_ap_cashapp_123' );
 		$cashapp_token->save();
 
+		// A Sources-era card: confirm() only accepts pm_ ids, so it must stay
+		// on the store-currency flow instead of failing the session confirm.
+		$legacy_card_token = new WC_Payment_Token_CC();
+		$legacy_card_token->set_user_id( $user_id );
+		$legacy_card_token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$legacy_card_token->set_token( 'src_legacy_card_123' );
+		$legacy_card_token->set_card_type( 'visa' );
+		$legacy_card_token->set_last4( '1111' );
+		$legacy_card_token->set_expiry_month( '12' );
+		$legacy_card_token->set_expiry_year( '2030' );
+		$legacy_card_token->save();
+
 		$gateway = $this->getMockBuilder( WC_Stripe_OCS_Payment_Gateway::class )
 			->setConstructorArgs( [] )
 			->onlyMethods(
@@ -856,6 +868,7 @@ class WC_Stripe_OCS_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$this->assertArrayHasKey( 'adaptivePricingSavedTokens', $params );
 			$this->assertSame( 'pm_ap_card_123', $params['adaptivePricingSavedTokens'][ $card_token->get_id() ] ?? null );
 			$this->assertArrayNotHasKey( $cashapp_token->get_id(), $params['adaptivePricingSavedTokens'] );
+			$this->assertArrayNotHasKey( $legacy_card_token->get_id(), $params['adaptivePricingSavedTokens'] );
 
 			wp_set_current_user( 0 );
 			$this->assertArrayNotHasKey( 'adaptivePricingSavedTokens', $gateway->javascript_params() );

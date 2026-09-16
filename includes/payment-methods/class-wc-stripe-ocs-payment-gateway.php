@@ -138,6 +138,9 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 	 *
 	 * Cards only: single-currency methods (e.g. SEPA) cannot settle a converted
 	 * presentment currency, so their tokens keep using the store-currency flow.
+	 * Legacy Sources-era cards (src_/card_ ids) are excluded too: confirm()
+	 * only accepts PaymentMethod ids, so those cards must keep paying through
+	 * the store-currency intent flow instead of failing the session confirm.
 	 * Exposing the ids is safe — they are the logged-in user's own, and Stripe
 	 * rejects a confirm() whose PaymentMethod the session's customer doesn't own.
 	 *
@@ -147,7 +150,7 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 		$map = [];
 
 		foreach ( $this->get_tokens() as $token ) {
-			if ( $token instanceof WC_Payment_Token_CC ) {
+			if ( $token instanceof WC_Payment_Token_CC && 0 === strpos( (string) $token->get_token(), 'pm_' ) ) {
 				$map[ $token->get_id() ] = $token->get_token();
 			}
 		}

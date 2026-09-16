@@ -84,6 +84,19 @@ const SavedTokenCheckoutForm = ( {
 		};
 	}, [ token ] );
 
+	// Both transitions live in an effect: the fallback updates the parent's
+	// state, which React forbids during this component's render, and render
+	// must stay pure either way.
+	useEffect( () => {
+		if ( checkoutState.type === 'error' ) {
+			// Fall back to the store-currency saved-token flow rather than
+			// blocking checkout on a session failure.
+			setShouldLoadStripeElements( true );
+		} else if ( checkoutState.type === 'success' ) {
+			setCheckoutSessionId( checkoutState.checkout.id );
+		}
+	}, [ checkoutState, setShouldLoadStripeElements ] );
+
 	useSavedTokenPaymentSetupHandler(
 		onPaymentSetup,
 		checkoutSessionId,
@@ -119,15 +132,8 @@ const SavedTokenCheckoutForm = ( {
 			/>
 		) : null;
 	} else if ( checkoutState.type === 'error' ) {
-		// Fall back to the store-currency saved-token flow rather than
-		// blocking checkout on a session failure.
-		setShouldLoadStripeElements( true );
+		// The effect above switches the parent to the store-currency flow.
 		return null;
-	} else if (
-		checkoutState.type === 'success' &&
-		checkoutSessionId !== checkoutState.checkout?.id
-	) {
-		setCheckoutSessionId( checkoutState.checkout.id );
 	}
 
 	// Wait until the placement decision resolves so the Stripe iframe mounts

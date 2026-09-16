@@ -1,5 +1,7 @@
 import { render, screen } from '@testing-library/react';
+import { useCheckout } from '@stripe/react-stripe-js/checkout';
 import SavedTokenCheckoutForm from 'wcstripe/blocks/checkout-sessions/saved-token-checkout-form';
+import { useSavedTokenPaymentSetupHandler } from 'wcstripe/blocks/checkout-sessions/hooks';
 
 jest.mock( '@stripe/react-stripe-js/checkout', () => ( {
 	CurrencySelectorElement: jest.fn( () => (
@@ -18,7 +20,7 @@ jest.mock( 'wcstripe/blocks/checkout-sessions/hooks', () => ( {
 } ) );
 
 describe( 'SavedTokenCheckoutForm', () => {
-	const renderForm = ( token ) =>
+	const renderForm = ( token, setShouldLoadStripeElements = jest.fn() ) =>
 		render(
 			<SavedTokenCheckoutForm
 				emitResponse={ {} }
@@ -33,7 +35,7 @@ describe( 'SavedTokenCheckoutForm', () => {
 				shippingData={ {} }
 				cartData={ {} }
 				LoadingMask={ null }
-				setShouldLoadStripeElements={ jest.fn() }
+				setShouldLoadStripeElements={ setShouldLoadStripeElements }
 				token={ token }
 				savedPaymentMethodId="pm_saved_card_12"
 			/>
@@ -100,5 +102,36 @@ describe( 'SavedTokenCheckoutForm', () => {
 		expect(
 			document.querySelector( '.wc-stripe-saved-token-currency-selector' )
 		).toBeNull();
+	} );
+
+	it( 'falls back to the store-currency flow when the checkout session errors', () => {
+		useCheckout.mockReturnValue( { type: 'error' } );
+		const setShouldLoadStripeElements = jest.fn();
+
+		try {
+			renderForm( 12, setShouldLoadStripeElements );
+
+			expect( setShouldLoadStripeElements ).toHaveBeenCalledWith( true );
+			expect(
+				screen.queryByTestId( 'wc-stripe-currency-selector' )
+			).not.toBeInTheDocument();
+		} finally {
+			useCheckout.mockReturnValue( {
+				type: 'success',
+				checkout: { id: 'cs_test_1' },
+			} );
+		}
+	} );
+
+	it( 'propagates the checkout session id to the payment setup handler', () => {
+		renderForm( 12 );
+
+		// First render passes null; the effect then commits the session id.
+		expect( useSavedTokenPaymentSetupHandler ).toHaveBeenLastCalledWith(
+			expect.anything(),
+			'cs_test_1',
+			expect.anything(),
+			12
+		);
 	} );
 } );
