@@ -18,12 +18,12 @@ abstract class WC_Stripe_REST_Args_Validator {
 	/**
 	 * Validate a parameter value by a regexp pattern.
 	 *
+	 * @param mixed $param_value The parameter value.
 	 * @param string $regexp_pattern The regexp pattern to match.
-	 * @param string $param_value The parameter value.
 	 *
 	 * @return bool
 	 */
-	private static function validate_by_regexp_pattern( $regexp_pattern, $param_value ) {
+	private static function validate_by_regexp_pattern( $param_value, string $regexp_pattern ) {
 		if ( ! is_string( $param_value ) ) {
 			return false;
 		}
@@ -34,28 +34,28 @@ abstract class WC_Stripe_REST_Args_Validator {
 	/**
 	 * Validate a parameter value that should be a customer ID.
 	 *
-	 * @param string $param_value The parameter value.
+	 * @param mixed $param_value The parameter value.
 	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
 	 * @param string $param_name The parameter name.
 	 *
 	 * @return bool
 	 */
-	public static function validate_customer_id( $param_value, $request, $param_name ) {
-		return self::validate_by_regexp_pattern( self::CUSTOMER_ID_PATTERN, $param_value );
+	public static function validate_customer_id( $param_value, WP_REST_Request $request, string $param_name ) {
+		return self::validate_by_regexp_pattern( $param_value, self::CUSTOMER_ID_PATTERN );
 	}
 
 	/**
 	 * Validate a pagination cursor (starting_after or ending_before) parameter value that should be of a given type of ID.
 	 * Also raise an error if both starting_after and ending_before parameter are specified.
 	 *
-	 * @param string $param_value The parameter value.
+	 * @param mixed $param_value The parameter value.
 	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
 	 * @param string $param_name The parameter name.
 	 * @param string $id_type_regexp_pattern A regular expression pattern to match the ID against.
 	 *
 	 * @return WP_Error|bool
 	 */
-	public static function validate_pagination_cursor( $param_value, $request, $param_name, $id_type_regexp_pattern ) {
+	public static function validate_pagination_cursor( $param_value, WP_REST_Request $request, string $param_name, string $id_type_regexp_pattern ) {
 		if ( $request->has_param( 'starting_after' ) && $request->has_param( 'ending_before' ) ) {
 			return new WP_Error(
 				'invalid_pagination_cursor',
@@ -63,7 +63,7 @@ abstract class WC_Stripe_REST_Args_Validator {
 			);
 		}
 
-		return self::validate_by_regexp_pattern( $id_type_regexp_pattern, $param_value );
+		return self::validate_by_regexp_pattern( $param_value, $id_type_regexp_pattern );
 	}
 
 	/**
@@ -75,7 +75,7 @@ abstract class WC_Stripe_REST_Args_Validator {
 	 *
 	 * @return WP_Error|bool
 	 */
-	public static function validate_payment_intent_pagination_cursor( $param_value, $request, $param_name ) {
+	public static function validate_payment_intent_pagination_cursor( $param_value, WP_REST_Request $request, string $param_name ) {
 		return self::validate_pagination_cursor( $param_value, $request, $param_name, self::PAYMENT_INTENT_ID_PATTERN );
 	}
 
@@ -88,7 +88,7 @@ abstract class WC_Stripe_REST_Args_Validator {
 	 *
 	 * @return WP_Error|bool
 	 */
-	public static function validate_payout_pagination_cursor( $param_value, $request, $param_name ) {
+	public static function validate_payout_pagination_cursor( $param_value, WP_REST_Request $request, string $param_name ) {
 		return self::validate_pagination_cursor( $param_value, $request, $param_name, self::PAYOUT_ID_PATTERN );
 	}
 
@@ -101,7 +101,7 @@ abstract class WC_Stripe_REST_Args_Validator {
 	 *
 	 * @return mixed
 	 */
-	public static function sanitize_unix_timestamp_range( $param_value, $request, $param_name ) {
+	public static function sanitize_unix_timestamp_range( $param_value, WP_REST_Request $request, string $param_name ) {
 		if ( ! is_array( $param_value ) ) {
 			$sanitized_value = self::is_valid_timestamp( $param_value ) ? (int) $param_value : '';
 		} else {
@@ -131,7 +131,7 @@ abstract class WC_Stripe_REST_Args_Validator {
 	 *
 	 * @return bool
 	 */
-	public static function validate_unix_timestamp_range( $param_value, $request, $param_name ) {
+	public static function validate_unix_timestamp_range( $param_value, WP_REST_Request $request, string $param_name ) {
 		if ( self::is_valid_timestamp( $param_value ) ) {
 			return true;
 		}
