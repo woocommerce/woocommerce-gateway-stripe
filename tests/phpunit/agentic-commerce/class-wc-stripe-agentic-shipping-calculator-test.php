@@ -471,7 +471,7 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that a full customize_checkout webhook payload parses end-to-end: its
+	 * Test that a full customize_checkout webhook payload computes the correct shipping price: its
 	 * single qty-1 line item resolves to a shippable product and a
 	 * content-dependent '2 * [qty]' flat rate prices the populated package.
 	 */
