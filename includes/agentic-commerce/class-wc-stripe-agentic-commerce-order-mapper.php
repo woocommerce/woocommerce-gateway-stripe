@@ -533,12 +533,9 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * originating agent in the admin Origin column instead of "Unknown".
 	 *
 	 * Order Attribution meta is normally written from checkout-page JavaScript,
-	 * which never runs for webhook-created orders. Interim canonicalization:
-	 * Core's Origin label only renders a fixed set of source types, so until it
-	 * supports a first-class 'agent' type we borrow 'referral' + utm_source,
-	 * which renders as "Referral: <agent>". When migrating to an 'agent' source
-	 * type, keep writing 'referral' on WC versions whose Origin renderer
-	 * predates it — an unrecognized type renders as "Unknown".
+	 * which never runs for webhook-created orders. WooCommerce Core does not 
+	 * support a dedicated agent source/type, so we use the `referral` type with the
+	 * name of the agent as the `utm_source`.
 	 *
 	 * @since 11.1.0
 	 * @param WC_Order                           $order   The WooCommerce order.
