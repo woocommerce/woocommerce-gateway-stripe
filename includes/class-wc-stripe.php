@@ -160,6 +160,7 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-helper.php';
 		include_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-order-helper.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-database-cache.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-option-lock.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-checkout-session-context.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-payment-method-configurations.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-database-cache-prefetch.php';
@@ -972,6 +973,8 @@ class WC_Stripe {
 		$stripe_tokens_controller          = new WC_REST_Stripe_Tokens_Controller();
 		$stripe_account_controller         = new WC_REST_Stripe_Account_Controller( $this->get_main_stripe_gateway(), $this->account );
 		$stripe_payment_intents_controller = new WC_Stripe_REST_Payment_Intents_Controller();
+		$stripe_payouts_controller         = new WC_Stripe_REST_Payouts_Controller();
+		$stripe_balance_controller         = new WC_Stripe_REST_Balance_Controller();
 
 		$connection_tokens_controller->register_routes();
 		$locations_controller->register_routes();
@@ -979,6 +982,8 @@ class WC_Stripe {
 		$stripe_tokens_controller->register_routes();
 		$stripe_account_controller->register_routes();
 		$stripe_payment_intents_controller->register_routes();
+		$stripe_payouts_controller->register_routes();
+		$stripe_balance_controller->register_routes();
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-settings-controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-keys-controller.php';
