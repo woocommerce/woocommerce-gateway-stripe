@@ -5,6 +5,7 @@ import { dispatch, select } from '@wordpress/data';
 import { isSavePaymentMethodCheckboxChecked } from 'wcstripe/blocks/utils';
 import { normalizeReturnUrl } from 'wcstripe/stripe-utils/normalize-return-url';
 import { getStaleCheckoutTotalMessage } from 'wcstripe/stripe-utils/utils';
+import { CHECKOUT_SESSION_INPUT_ID } from 'wcstripe/stripe-utils/constants';
 import { waitForPaymentElementCompletion } from 'wcstripe/blocks/wait-for-payment-element-completion';
 
 /**
@@ -117,7 +118,7 @@ export const usePaymentSetupHandler = (
 									isSavePaymentMethodCheckboxChecked()
 										? 'yes'
 										: 'no',
-								wc_stripe_checkout_session_id:
+								[ CHECKOUT_SESSION_INPUT_ID ]:
 									checkoutSessionId,
 								wc_stripe_selected_upe_payment_type:
 									selectedPaymentType ?? '',
