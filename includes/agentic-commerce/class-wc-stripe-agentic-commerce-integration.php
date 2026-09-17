@@ -114,9 +114,8 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 
 	/**
 	 * Option key ('yes'/'no', default off) for defaulting `disable_checkout=true`
-	 * on detected configurator products so agents redirect shoppers to the store
-	 * while the products are still uploaded to Stripe for discovery. Exclude wins over this
-	 * (an excluded product is never in the feed).
+	 * on detected add-on/configurator products, so shoppers will be redirected
+	 * to the store for these products.
 	 *
 	 * @var string
 	 * @since 10.9.0
