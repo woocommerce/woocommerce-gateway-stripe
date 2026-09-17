@@ -2309,6 +2309,168 @@ describe( 'ensureUPEElementMounted', () => {
 			);
 		} );
 	} );
+
+	describe( 'confirmWalletPayment', () => {
+		let originalLocation;
+
+		const RETURN_URL = 'https://shop.com/order-received/123/';
+
+		beforeEach( () => {
+			originalLocation = window.location;
+			delete window.location;
+			window.location = {
+				href: '',
+				origin: 'https://shop.com',
+				pathname: '/checkout',
+				search: '',
+				assign: jest.fn(),
+			};
+			jest.spyOn( window.history, 'replaceState' ).mockImplementation(
+				() => {}
+			);
+		} );
+
+		afterEach( () => {
+			window.location = originalLocation;
+			jest.clearAllMocks();
+		} );
+
+		// Hash format written by process_payment_with_deferred_intent():
+		// #wc-stripe-wallet-<order_id>:<type>:<intent_type>:<client_secret>:<encoded_redirect_url>:<nonce>
+		const setWalletHash = () => {
+			window.location.href =
+				'https://shop.com/checkout#wc-stripe-wallet-123:cashapp:payment_intent:pi_secret:' +
+				encodeURIComponent( RETURN_URL ) +
+				':nonce_abc';
+		};
+
+		const buildWalletApi = ( paymentIntent, response ) => ( {
+			getStripe: jest.fn( () => ( {
+				confirmCashappPayment: jest
+					.fn()
+					.mockResolvedValue( { paymentIntent } ),
+			} ) ),
+			getAjaxUrl: jest.fn(
+				( endpoint ) => `/?wc-ajax=wc_stripe_${ endpoint }`
+			),
+			request: jest.fn().mockResolvedValue( response ),
+		} );
+
+		it( 'confirms the change of payment method with the server and follows its return URL', async () => {
+			setWalletHash();
+			stripeUtils.getStripeServerData.mockReturnValue( {
+				isChangingPayment: true,
+			} );
+			const api = buildWalletApi(
+				{ id: 'pi_123', status: 'succeeded', payment_method: 'pm_123' },
+				{
+					success: true,
+					data: { return_url: 'https://shop.com/my-account/' },
+				}
+			);
+
+			await paymentProcessing.confirmWalletPayment(
+				api,
+				createMockForm()
+			);
+
+			expect( api.request ).toHaveBeenCalledWith(
+				'/?wc-ajax=wc_stripe_confirm_change_payment',
+				{
+					order_id: '123',
+					intent_id: 'pi_123',
+					payment_method_id: 'pm_123',
+					_ajax_nonce: 'nonce_abc',
+				}
+			);
+			expect( window.location.href ).toBe(
+				'https://shop.com/my-account/'
+			);
+		} );
+
+		it( 'sends a null payment method ID when the intent has none', async () => {
+			setWalletHash();
+			stripeUtils.getStripeServerData.mockReturnValue( {
+				isChangingPayment: true,
+			} );
+			const api = buildWalletApi(
+				{ id: 'pi_123', status: 'succeeded' },
+				{ success: true, data: { return_url: RETURN_URL } }
+			);
+
+			await paymentProcessing.confirmWalletPayment(
+				api,
+				createMockForm()
+			);
+
+			expect( api.request ).toHaveBeenCalledWith(
+				expect.any( String ),
+				expect.objectContaining( { payment_method_id: null } )
+			);
+		} );
+
+		// The confirmation request is not limited to the change-payment flow: a
+		// regular payment redirects first and still posts to the server.
+		it( 'still posts the confirmation request for a regular payment', async () => {
+			setWalletHash();
+			stripeUtils.getStripeServerData.mockReturnValue( {
+				isChangingPayment: false,
+			} );
+			const api = buildWalletApi(
+				{ id: 'pi_123', status: 'succeeded', payment_method: 'pm_123' },
+				{ success: true, data: { return_url: RETURN_URL } }
+			);
+
+			await paymentProcessing.confirmWalletPayment(
+				api,
+				createMockForm()
+			);
+
+			expect( api.request ).toHaveBeenCalledTimes( 1 );
+			expect( window.location.href ).toBe( RETURN_URL );
+		} );
+
+		it( 'shows the server error when the confirmation request is rejected by the server', async () => {
+			setWalletHash();
+			stripeUtils.getStripeServerData.mockReturnValue( {
+				isChangingPayment: true,
+			} );
+			const api = buildWalletApi(
+				{ id: 'pi_123', status: 'succeeded', payment_method: 'pm_123' },
+				{
+					success: false,
+					data: { error: { message: 'Unable to change payment.' } },
+				}
+			);
+
+			await paymentProcessing.confirmWalletPayment(
+				api,
+				createMockForm()
+			);
+
+			expect( stripeUtils.showErrorCheckout ).toHaveBeenCalledWith(
+				'Unable to change payment.'
+			);
+		} );
+
+		it( 'skips the confirmation request while the intent still requires action', async () => {
+			setWalletHash();
+			stripeUtils.getStripeServerData.mockReturnValue( {
+				isChangingPayment: true,
+			} );
+			const api = buildWalletApi(
+				{ id: 'pi_123', status: 'requires_action' },
+				{ success: true, data: { return_url: RETURN_URL } }
+			);
+
+			await paymentProcessing.confirmWalletPayment(
+				api,
+				createMockForm()
+			);
+
+			expect( api.request ).not.toHaveBeenCalled();
+		} );
+	} );
 } );
 
 describe( 'maybeUpdateOptimizedCheckoutExclusions', () => {

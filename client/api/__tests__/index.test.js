@@ -1,5 +1,9 @@
 import WCStripeAPI from '..';
+import apiFetch from '@wordpress/api-fetch';
+import { addFilter, removeFilter } from '@wordpress/hooks';
 import { REGISTRY_KEY } from 'wcstripe/stripe-utils/shared-stripe-instance';
+
+jest.mock( '@wordpress/api-fetch' );
 
 jest.mock( 'wcstripe/stripe-utils', () => ( {
 	getStripeServerData: jest.fn(),
@@ -154,6 +158,236 @@ describe( 'WCStripeAPI', () => {
 					product_id: 1,
 				}
 			);
+		} );
+	} );
+
+	describe( 'getAjaxUrl', () => {
+		it( 'interpolates the endpoint with the default prefix', () => {
+			const api = new WCStripeAPI( {
+				ajax_url: '/?wc-ajax=%%endpoint%%',
+			} );
+
+			expect( api.getAjaxUrl( 'create_payment_intent' ) ).toBe(
+				'/?wc-ajax=wc_stripe_create_payment_intent'
+			);
+		} );
+
+		it( 'supports core WooCommerce endpoints through an empty prefix', () => {
+			const api = new WCStripeAPI( {
+				ajax_url: '/?wc-ajax=%%endpoint%%',
+			} );
+
+			expect( api.getAjaxUrl( 'checkout', '' ) ).toBe(
+				'/?wc-ajax=checkout'
+			);
+		} );
+
+		it( 'returns undefined when no AJAX URL was provided', () => {
+			expect(
+				new WCStripeAPI( {} ).getAjaxUrl( 'checkout' )
+			).toBeUndefined();
+		} );
+	} );
+
+	describe( 'loadStripe', () => {
+		let warnSpy;
+
+		beforeEach( () => {
+			delete window[ REGISTRY_KEY ];
+			global.Stripe = jest.fn( () => ( {} ) );
+			warnSpy = jest
+				.spyOn( console, 'warn' )
+				.mockImplementation( () => {} );
+		} );
+
+		afterEach( () => {
+			warnSpy.mockRestore();
+			delete global.Stripe;
+			document.getElementById( 'stripe-js' )?.remove();
+		} );
+
+		it( 'resolves with the shared Stripe instance', async () => {
+			const script = document.createElement( 'script' );
+			script.id = 'stripe-js';
+			script.setAttribute(
+				'src',
+				'https://js.stripe.com/dahlia/stripe.js'
+			);
+			document.body.appendChild( script );
+			const api = new WCStripeAPI( { key: 'pk_test_123', locale: 'en' } );
+
+			await expect( api.loadStripe() ).resolves.toBe( api.getStripe() );
+		} );
+
+		// Callers render nothing on failure, so the error is handed back as a
+		// value to keep it out of the shopper's console.
+		it( 'resolves with the error instead of rejecting when Stripe cannot be created', async () => {
+			const api = new WCStripeAPI( { key: 'pk_test_123', locale: 'en' } );
+
+			const result = await api.loadStripe();
+
+			expect( result.error.message ).toMatch( /provenance check failed/ );
+		} );
+	} );
+
+	describe( 'intent request failures', () => {
+		const options = { ajax_url: '/?wc-ajax=%%endpoint%%' };
+
+		it( 'rejects with the server error when the response is unsuccessful', async () => {
+			const serverError = { message: 'Order not found.' };
+			const request = jest.fn().mockResolvedValue( {
+				success: false,
+				data: { error: serverError },
+			} );
+			const api = new WCStripeAPI( options, request );
+
+			await expect( api.createIntent( 1 ) ).rejects.toBe( serverError );
+			await expect( api.initSetupIntent( 'card' ) ).rejects.toBe(
+				serverError
+			);
+		} );
+
+		// A failed jqXHR carries no message, and only its statusText (a string)
+		// reaches the message lookup, so the timeout/abort wording is never
+		// selected: every transport failure reads as the generic message.
+		it.each( [ [ 'timeout' ], [ 'abort' ], [ 'error' ] ] )(
+			'reports the generic connection error for a "%s" transport failure',
+			async ( statusText ) => {
+				const request = jest.fn().mockRejectedValue( { statusText } );
+				const api = new WCStripeAPI( options, request );
+				const genericMessage =
+					'An error occurred while connecting to the server. Please try again.';
+
+				await expect( api.createIntent( 1 ) ).rejects.toThrow(
+					genericMessage
+				);
+				await expect( api.initSetupIntent( 'card' ) ).rejects.toThrow(
+					genericMessage
+				);
+				await expect(
+					api.processCheckout( 'pi_123', {} )
+				).rejects.toThrow( genericMessage );
+			}
+		);
+	} );
+
+	describe( 'confirmIntent', () => {
+		it( 'returns true when the redirect URL carries no confirmation hash', () => {
+			const api = new WCStripeAPI( {}, jest.fn() );
+
+			expect(
+				api.confirmIntent( 'https://shop.com/order-received/123/' )
+			).toBe( true );
+		} );
+	} );
+
+	describe( 'Store API requests', () => {
+		beforeEach( () => {
+			apiFetch.mockReset();
+			apiFetch.mockResolvedValue( {} );
+			global.wc_stripe_express_checkout_params = {
+				nonce: {
+					wc_store_api: 'store_nonce',
+					wc_store_api_express_checkout: 'ece_nonce',
+				},
+			};
+		} );
+
+		afterEach( () => {
+			delete global.wc_stripe_express_checkout_params;
+			document.body.innerHTML = '';
+		} );
+
+		it( 'reads the cart from the Store API', async () => {
+			await new WCStripeAPI( {} ).expressCheckoutGetCartDetails();
+
+			expect( apiFetch ).toHaveBeenCalledWith(
+				expect.objectContaining( {
+					method: 'GET',
+					path: '/wc/store/v1/cart',
+				} )
+			);
+		} );
+
+		it( 'adds a product using the Store API quantity parameter', async () => {
+			await new WCStripeAPI( {} ).expressCheckoutAddToCart( {
+				id: 12,
+				qty: 3,
+			} );
+
+			expect( apiFetch ).toHaveBeenCalledWith( {
+				method: 'POST',
+				path: '/wc/store/v1/cart/add-item',
+				headers: { Nonce: 'store_nonce' },
+				data: { id: 12, quantity: 3 },
+			} );
+		} );
+
+		it( 'defaults the quantity to 1 and lets extensions filter the add-to-cart data', async () => {
+			addFilter(
+				'wcstripe.express-checkout.cart-add-item',
+				'wcstripe/test',
+				( data ) => ( { ...data, extra: 'value' } )
+			);
+
+			await new WCStripeAPI( {} ).expressCheckoutAddToCart( { id: 12 } );
+
+			removeFilter(
+				'wcstripe.express-checkout.cart-add-item',
+				'wcstripe/test'
+			);
+			expect( apiFetch ).toHaveBeenCalledWith(
+				expect.objectContaining( {
+					data: { id: 12, quantity: 1, extra: 'value' },
+				} )
+			);
+		} );
+
+		it( 'creates the order with the express checkout headers and the customer note', async () => {
+			document.body.innerHTML =
+				'<form class="checkout"><textarea name="order_comments">Leave at the door</textarea></form>';
+
+			await new WCStripeAPI( {} ).expressCheckoutECECreateOrder( {
+				payment_method: 'stripe',
+			} );
+
+			expect( apiFetch ).toHaveBeenCalledWith( {
+				method: 'POST',
+				path: '/wc/store/v1/checkout',
+				headers: {
+					Nonce: 'store_nonce',
+					'X-WCSTRIPE-EXPRESS-CHECKOUT': true,
+					'X-WCSTRIPE-EXPRESS-CHECKOUT-NONCE': 'ece_nonce',
+				},
+				data: {
+					payment_method: 'stripe',
+					customer_note: 'Leave at the door',
+				},
+			} );
+		} );
+
+		it( 'pays for an existing order using its key and billing email', async () => {
+			const shippingAddress = { city: 'Cape Town' };
+
+			await new WCStripeAPI( {} ).expressCheckoutECEPayForOrder(
+				45,
+				{
+					orderKey: 'wc_order_abc',
+					billingEmail: 'shopper@example.com',
+					shippingAddress,
+				},
+				{ payment_method: 'stripe' }
+			);
+
+			expect( apiFetch ).toHaveBeenCalledWith( {
+				method: 'POST',
+				path: '/wc/store/v1/checkout/45?key=wc_order_abc&billing_email=shopper@example.com',
+				headers: { Nonce: 'store_nonce' },
+				data: {
+					payment_method: 'stripe',
+					shipping_address: shippingAddress,
+				},
+			} );
 		} );
 	} );
 
