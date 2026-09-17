@@ -103,8 +103,9 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 
 	/**
 	 * Option key ('yes'/'no', default off) for auto-excluding detector-flagged
-	 * add-on / configurator products from the feed. Drives a default branch in
-	 * {@see WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product()}.
+	 * add-on / configurator products from the feed.
+	 *
+	 * @see WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product()
 	 *
 	 * @var string
 	 * @since 10.9.0
