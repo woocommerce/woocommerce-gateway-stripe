@@ -103,7 +103,8 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 	 *     validation_errors: array<int, array{product_id:int, product_name:string, edit_link:string, errors:string[]}>,
 	 *     truncated: int,
 	 *     scan_limited: bool,
-	 *     shipping_warnings: array<int, array{message:string, edit_link:string}>
+	 *     shipping_warnings: array<int, array{message:string, edit_link:string}>,
+	 *     shipping_warnings_severity: string
 	 * }
 	 */
 	public function generate( int $detail_limit = self::DEFAULT_DETAIL_LIMIT, int $scan_limit = self::DEFAULT_SCAN_LIMIT ): array {
@@ -261,20 +262,24 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 		} while ( self::PER_PAGE === $batch_iterated && $page <= $max_num_pages );
 
 		return [
-			'total_count'        => $total_count,
-			'included_count'     => $included_count,
-			'excluded_count'     => $excluded_count,
-			'excluded_breakdown' => [
+			'total_count'                => $total_count,
+			'included_count'             => $included_count,
+			'excluded_count'             => $excluded_count,
+			'excluded_breakdown'         => [
 				'subscriptions'      => $excluded_subscriptions,
 				'password_protected' => $excluded_password,
 				'hidden'             => $excluded_hidden,
 				'filtered'           => $excluded_filtered,
 			],
-			'invalid_count'      => $invalid_count,
-			'validation_errors'  => $validation_errors,
-			'truncated'          => $truncated,
-			'scan_limited'       => $scan_limited,
-			'shipping_warnings'  => $shipping_warnings,
+			'invalid_count'              => $invalid_count,
+			'validation_errors'          => $validation_errors,
+			'truncated'                  => $truncated,
+			'scan_limited'               => $scan_limited,
+			'shipping_warnings'          => $shipping_warnings,
+			// A missing shipping price only undercharges shoppers in in-agent
+			// checkout. With store-wide redirect the cost is computed at the
+			// merchant's own checkout, so the zones are informational there.
+			'shipping_warnings_severity' => WC_Stripe_Agentic_Commerce_Integration::is_checkout_disabled() ? 'info' : 'warning',
 		];
 	}
 

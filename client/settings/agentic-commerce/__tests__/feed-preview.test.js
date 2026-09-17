@@ -331,6 +331,44 @@ describe( 'AgenticCommerceFeedPreview', () => {
 		} );
 	} );
 
+	it( 'renders the zone list as an informational notice when agentic traffic is redirected', async () => {
+		apiFetch.mockResolvedValue( {
+			...PREVIEW_RESPONSE,
+			shipping_warnings: [
+				{
+					message:
+						'We cannot precompute a shipping price for shipping zone "Europe", so we cannot send any shipping costs to Stripe.',
+					edit_link: '',
+				},
+			],
+			shipping_warnings_severity: 'info',
+		} );
+
+		const { container } = render( <AgenticCommerceFeedPreview /> );
+		fireEvent.click(
+			screen.getByRole( 'button', { name: /Preview feed/i } )
+		);
+
+		await waitFor( () => {
+			expect(
+				within( container ).getByText( /shipping zone "Europe"/i )
+			).toBeInTheDocument();
+		} );
+
+		// Info status, not warning, plus the redirect explanation.
+		expect(
+			container.querySelector( '.components-notice.is-info' )
+		).not.toBeNull();
+		expect(
+			container.querySelector( '.components-notice.is-warning' )
+		).toBeNull();
+		expect(
+			within( container ).getByText(
+				/redirected to your WooCommerce checkout/i
+			)
+		).toBeInTheDocument();
+	} );
+
 	it( 'lists the shipping zones that carry no shipping in the feed', async () => {
 		apiFetch.mockResolvedValue( {
 			...PREVIEW_RESPONSE,

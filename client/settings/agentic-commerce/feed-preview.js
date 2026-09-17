@@ -168,6 +168,7 @@ const AgenticCommerceFeedPreview = () => {
 		truncated,
 		scan_limited: scanLimited,
 		shipping_warnings: shippingWarnings = [],
+		shipping_warnings_severity: shippingWarningsSeverity = 'warning',
 	} = data ?? {};
 
 	const excludedSubscriptions = excludedBreakdown?.subscriptions ?? 0;
@@ -223,7 +224,10 @@ const AgenticCommerceFeedPreview = () => {
 						) }
 
 						{ shippingWarnings.length > 0 && (
-							<Notice status="warning" isDismissible={ false }>
+							<Notice
+								status={ shippingWarningsSeverity }
+								isDismissible={ false }
+							>
 								{ /* Expanded by default so the zones are not missed;
 								     collapsible so a long list can be folded away while
 								     debugging. The collapse is per-render DOM state:
@@ -243,6 +247,14 @@ const AgenticCommerceFeedPreview = () => {
 											) }
 										</strong>
 									</summary>
+									{ shippingWarningsSeverity === 'info' && (
+										<p>
+											{ __(
+												'Agentic shoppers are redirected to your WooCommerce checkout, where shipping is computed as usual; the feed just won’t advertise a shipping price for these zones.',
+												'woocommerce-gateway-stripe'
+											) }
+										</p>
+									) }
 									<ShippingWarningList>
 										{ shippingWarnings.map(
 											( warning, i ) => (

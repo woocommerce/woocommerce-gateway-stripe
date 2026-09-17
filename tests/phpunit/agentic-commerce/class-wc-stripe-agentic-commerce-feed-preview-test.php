@@ -524,6 +524,29 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The shipping warnings carry warning severity by default, and drop to
+	 * info when store-wide redirect is on: shipping is then computed at the
+	 * merchant's own checkout, so a missing feed price cannot undercharge.
+	 *
+	 * @return void
+	 */
+	public function test_shipping_warnings_severity_follows_checkout_mode(): void {
+		$product = $this->create_valid_product();
+		$this->scope_to( [ $product->get_id() ] );
+
+		try {
+			$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
+			$this->assertSame( 'warning', $preview['shipping_warnings_severity'] );
+
+			update_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION, 'yes' );
+			$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
+			$this->assertSame( 'info', $preview['shipping_warnings_severity'] );
+		} finally {
+			delete_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
+		}
+	}
+
+	/**
 	 * The catch-all zone 0 surfaces as a shipping warning even when a named zone
 	 * exists and ships, mirroring the get_shipping_diagnostics() behavior.
 	 *
