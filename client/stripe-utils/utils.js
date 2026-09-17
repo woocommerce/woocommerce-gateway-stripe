@@ -705,18 +705,19 @@ export const getUserDataForCheckoutSession = ( currentSession = null ) => {
 			getFieldValue( 'billing_country' )
 		);
 
-		const billingAddress = {
-			name: billingName,
-			address: {
-				country: billingCountry || undefined,
-				line1: getFieldValue( 'billing_address_1' ) || undefined,
-				line2: getFieldValue( 'billing_address_2' ) || undefined,
-				state: getFieldValue( 'billing_state' ) || undefined,
-				city: getFieldValue( 'billing_city' ) || undefined,
-				postal_code: getFieldValue( 'billing_postcode' ) || undefined,
-			},
-		};
 		if ( billingCountry ) {
+			const billingAddress = {
+				name: billingName,
+				address: {
+					country: billingCountry,
+					line1: getFieldValue( 'billing_address_1' ) || undefined,
+					line2: getFieldValue( 'billing_address_2' ) || undefined,
+					state: getFieldValue( 'billing_state' ) || undefined,
+					city: getFieldValue( 'billing_city' ) || undefined,
+					postal_code:
+						getFieldValue( 'billing_postcode' ) || undefined,
+				},
+			};
 			result.billingAddress = billingAddress;
 		}
 	}
