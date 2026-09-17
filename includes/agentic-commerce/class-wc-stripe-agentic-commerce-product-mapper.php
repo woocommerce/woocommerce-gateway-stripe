@@ -38,7 +38,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * Postmeta keys whose non-empty presence marks a product as carrying add-on /
 	 * configurator options: Product Add-Ons, TM Extra Product Options, and
 	 * Composite Products. Seeds the
-	 * `woocommerce_agentic_commerce_addon_detection_meta_keys` filter default;
+	 * `wc_stripe_agentic_commerce_addon_detection_meta_keys` filter default;
 	 * the Bundles key is checked separately (only `yes` counts). See
 	 * {@see self::product_has_addons()}.
 	 */
@@ -290,21 +290,23 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 
 		$default = $store_wide || $addon_default;
 
-		// Legacy filter's result seeds the default for the canonical filter below,
-		// so existing hooks keep working while a hook on the new name wins.
+		// The woocommerce_-prefixed name shipped in 10.9.0 anticipating a shared
+		// cross-plugin contract that woocommerce-ai never implemented (WOOAI-636),
+		// so the plugin's own prefix is canonical again. The deprecated name's
+		// result seeds the canonical filter's default, so existing hooks keep
+		// working while a hook on the canonical name wins.
 		$disabled = apply_filters_deprecated(
-			'wc_stripe_agentic_commerce_disable_checkout',
-			[ $default, $product, $parent_product ],
-			'10.9.0',
 			'woocommerce_agentic_commerce_disable_checkout',
-			'The wc_stripe_agentic_commerce_disable_checkout filter is deprecated since WooCommerce Stripe Gateway 10.9.0. Use woocommerce_agentic_commerce_disable_checkout instead.'
+			[ $default, $product, $parent_product ],
+			'11.1.0',
+			'wc_stripe_agentic_commerce_disable_checkout',
+			'The woocommerce_agentic_commerce_disable_checkout filter is deprecated since WooCommerce Stripe Gateway 11.1.0. Use wc_stripe_agentic_commerce_disable_checkout instead.'
 		);
 
 		/**
 		 * Filter whether a product is excluded from in-agent checkout (redirect to its `link`).
 		 *
-		 * Uses the shareable `woocommerce_` prefix so non-Stripe Agentic Commerce
-		 * integrations can hook it too. Variations receive the parent product.
+		 * Variations receive the parent product.
 		 *
 		 * @since 10.9.0
 		 * @param bool             $disabled       Resolved default (store-wide option, plus the add-on auto-default).
@@ -314,7 +316,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		// wp_validate_boolean() rather than a plain (bool) cast: a callback that
 		// returns the string 'false' would be truthy under a cast and wrongly
 		// enable redirect mode. This still normalises null / 0 / '' to false.
-		$disabled = wp_validate_boolean( apply_filters( 'woocommerce_agentic_commerce_disable_checkout', $disabled, $product, $parent_product ) );
+		$disabled = wp_validate_boolean( apply_filters( 'wc_stripe_agentic_commerce_disable_checkout', $disabled, $product, $parent_product ) );
 
 		$source = null;
 		if ( $disabled ) {
@@ -1250,15 +1252,17 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 			$default_should_sync = false;
 		}
 
-		// The Stripe-prefixed filter is retained for backward compatibility. Its
-		// result seeds the default for the canonical filter below, so existing
-		// adapters keep working while a hook on the new name still takes precedence.
+		// The woocommerce_-prefixed name shipped in 10.9.0 anticipating a shared
+		// cross-plugin contract that woocommerce-ai never implemented (WOOAI-636),
+		// so the plugin's own prefix is canonical again. The deprecated name's
+		// result seeds the canonical filter's default, so existing adapters keep
+		// working while a hook on the canonical name wins.
 		$should_sync = apply_filters_deprecated(
-			'wc_stripe_agentic_commerce_should_sync_product',
-			[ $default_should_sync, $product ],
-			'10.9.0',
 			'woocommerce_agentic_commerce_should_sync_product',
-			'The wc_stripe_agentic_commerce_should_sync_product filter is deprecated since WooCommerce Stripe Gateway 10.9.0. Use woocommerce_agentic_commerce_should_sync_product instead.'
+			[ $default_should_sync, $product ],
+			'11.1.0',
+			'wc_stripe_agentic_commerce_should_sync_product',
+			'The woocommerce_agentic_commerce_should_sync_product filter is deprecated since WooCommerce Stripe Gateway 11.1.0. Use wc_stripe_agentic_commerce_should_sync_product instead.'
 		);
 
 		// wp_validate_boolean() rather than a plain (bool) cast: an adapter that
@@ -1266,10 +1270,6 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		// sync the product. This still normalises null / 0 / '' to false.
 		/**
 		 * Filter whether a product should be included in any Agentic Commerce sync.
-		 *
-		 * Uses the WooCommerce core `woocommerce_` prefix rather than `wc_stripe_`
-		 * so the same hook can be shared by other Agentic Commerce integrations
-		 * that are not Stripe-specific.
 		 *
 		 * Applied per product at three entry points: the full-feed mapper, the
 		 * inventory-change tracker, and the archive tracker. Returning false from
@@ -1291,13 +1291,13 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		 * Also runs per row on the admin Products list (sync-status column),
 		 * so callbacks must be fast.
 		 *
-		 * @since 10.9.0
+		 * @since 10.8.0
 		 * @param bool        $should_sync Whether to include the product. Default true, except for
 		 *                                 subscriptions, password-protected products, and products
 		 *                                 hidden from catalog and search.
 		 * @param \WC_Product $product     Product being evaluated.
 		 */
-		return wp_validate_boolean( apply_filters( 'woocommerce_agentic_commerce_should_sync_product', $should_sync, $product ) );
+		return wp_validate_boolean( apply_filters( 'wc_stripe_agentic_commerce_should_sync_product', $should_sync, $product ) );
 	}
 
 	/**
@@ -1341,15 +1341,12 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		 * configurable (or clear a false positive) directly, instead of only
 		 * extending the meta-key set.
 		 *
-		 * Uses the shareable `woocommerce_` prefix so non-Stripe Agentic Commerce
-		 * integrations can hook the same decision.
-		 *
 		 * @since 11.1.0
 		 * @param bool        $has_addons Whether meta-key detection flagged the product.
 		 * @param \WC_Product $product    The product (or variation) inspected.
 		 * @param \WC_Product $target     The product whose meta was read (parent for variations).
 		 */
-		return (bool) apply_filters( 'woocommerce_agentic_commerce_product_has_addon', $has_addons, $product, $target );
+		return (bool) apply_filters( 'wc_stripe_agentic_commerce_product_has_addon', $has_addons, $product, $target );
 	}
 
 	/**
@@ -1369,7 +1366,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		 * @param string[]    $meta_keys Meta keys treated as add-on signals.
 		 * @param \WC_Product $target    Product whose meta is inspected (parent for variations).
 		 */
-		$meta_keys = apply_filters( 'woocommerce_agentic_commerce_addon_detection_meta_keys', self::ADDON_DETECTION_META_KEYS, $target );
+		$meta_keys = apply_filters( 'wc_stripe_agentic_commerce_addon_detection_meta_keys', self::ADDON_DETECTION_META_KEYS, $target );
 
 		if ( ! is_array( $meta_keys ) || [] === $meta_keys ) {
 			return false;

@@ -353,7 +353,7 @@ The store-wide default is set in **Stripe settings → Agentic commerce → "Red
 
 ```php
 add_filter(
-    'woocommerce_agentic_commerce_disable_checkout',
+    'wc_stripe_agentic_commerce_disable_checkout',
     function ( bool $disabled, WC_Product $product, ?WC_Product $parent ): bool {
         // e.g. redirect only for a specific category.
         return has_term( 'made-to-order', 'product_cat', $product->get_id() ) ? true : $disabled;
@@ -363,7 +363,7 @@ add_filter(
 );
 ```
 
-> The Stripe-prefixed `wc_stripe_agentic_commerce_disable_checkout` filter is **deprecated since 10.9.0** in favour of the shareable `woocommerce_agentic_commerce_disable_checkout` above (mirroring the `woocommerce_agentic_commerce_should_sync_product` migration). Existing hooks on the old name still run — they seed the new filter's default — but emit a deprecation notice.
+> The `woocommerce_agentic_commerce_disable_checkout` name is **deprecated since 11.1.0** in favour of the Stripe-prefixed `wc_stripe_agentic_commerce_disable_checkout` above (mirroring the `should_sync_product` naming; the planned shared cross-plugin contract never materialized). Existing hooks on the deprecated name still run — they seed the canonical filter's default — but emit a deprecation notice.
 
 ## Product sync eligibility
 
@@ -380,7 +380,7 @@ Catalog visibility values that hide a product from only one surface (`catalog`, 
 
 A variation inherits its parent's catalog visibility but **not** its `post_password` (it is a separate post with its own empty value), so the password check resolves to the parent. Variations are what the feed actually exports, so skipping that lookup would leak every variation of a password-protected variable product.
 
-All of these are defaults rather than hard blocks: `woocommerce_agentic_commerce_should_sync_product` can return `true` to opt a product back in.
+All of these are defaults rather than hard blocks: `wc_stripe_agentic_commerce_should_sync_product` can return `true` to opt a product back in.
 
 Because the filter only governs what is *sent*, a product that was already exported and later becomes ineligible stays in Stripe's catalog until a full feed replacement. `WC_Stripe_Agentic_Commerce_Product_Visibility` watches product saves and per-product exclude-flag writes, and fires `wc_stripe_agentic_commerce_schedule_full_resync` when a product crosses that boundary — adapters whose own filter verdict changes must fire the same action.
 
@@ -465,7 +465,7 @@ forking:
 
 ```php
 add_filter(
-    'woocommerce_agentic_commerce_addon_detection_meta_keys',
+    'wc_stripe_agentic_commerce_addon_detection_meta_keys',
     function ( array $meta_keys, WC_Product $product ): array {
         $meta_keys[] = '_my_configurator_options';
         return $meta_keys;
@@ -476,12 +476,12 @@ add_filter(
 ```
 
 When a configurator stores nothing in a stable meta key, decide per product with
-`woocommerce_agentic_commerce_product_has_addon` instead — it filters the final
+`wc_stripe_agentic_commerce_product_has_addon` instead — it filters the final
 verdict, so it can also clear a false positive:
 
 ```php
 add_filter(
-    'woocommerce_agentic_commerce_product_has_addon',
+    'wc_stripe_agentic_commerce_product_has_addon',
     function ( bool $has_addons, WC_Product $product ): bool {
         return $product->is_type( 'my_configurator' ) ? true : $has_addons;
     },
@@ -493,12 +493,12 @@ add_filter(
 ### Per-product redirect without the toggles
 
 To redirect specific products regardless of the toggles, hook the
-`woocommerce_agentic_commerce_disable_checkout` filter shown above. To exclude
-specific products from the feed, hook `woocommerce_agentic_commerce_should_sync_product`:
+`wc_stripe_agentic_commerce_disable_checkout` filter shown above. To exclude
+specific products from the feed, hook `wc_stripe_agentic_commerce_should_sync_product`:
 
 ```php
 add_filter(
-    'woocommerce_agentic_commerce_should_sync_product',
+    'wc_stripe_agentic_commerce_should_sync_product',
     function ( bool $should_sync, WC_Product $product ): bool {
         return get_post_meta( $product->get_id(), '_hide_from_agents', true ) ? false : $should_sync;
     },

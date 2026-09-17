@@ -73,7 +73,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 		remove_filter( 'woocommerce_product_class', [ $this, 'map_simple_to_subscription' ] );
 		remove_filter( 'woocommerce_product_type_query', [ $this, 'force_subscription_type' ] );
 		remove_filter( 'woocommerce_data_stores', [ $this, 'register_subscription_variation_store' ] );
-		remove_all_filters( 'woocommerce_agentic_commerce_should_sync_product' );
+		remove_all_filters( 'wc_stripe_agentic_commerce_should_sync_product' );
 		parent::tearDown();
 	}
 
@@ -198,7 +198,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 		// Exclude one product via the visibility filter — a merchant choice, not
 		// a validation failure.
 		add_filter(
-			'woocommerce_agentic_commerce_should_sync_product',
+			'wc_stripe_agentic_commerce_should_sync_product',
 			static function ( $should_sync, $product ) use ( $excluded ) {
 				return $product->get_id() === $excluded->get_id() ? false : $should_sync;
 			},
@@ -257,7 +257,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 	public function test_excluded_product_is_not_reported_as_error(): void {
 		$excluded = $this->create_invalid_product( 'Hidden From Agents' );
 
-		add_filter( 'woocommerce_agentic_commerce_should_sync_product', '__return_false' );
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', '__return_false' );
 
 		$this->scope_to( [ $excluded->get_id() ] );
 
@@ -354,7 +354,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 	public function test_excluded_breakdown_counts_filtered_products(): void {
 		$excluded = $this->create_valid_product();
 
-		add_filter( 'woocommerce_agentic_commerce_should_sync_product', '__return_false' );
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', '__return_false' );
 		$this->scope_to( [ $excluded->get_id() ] );
 
 		$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
@@ -543,7 +543,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 		$excluded = $this->create_valid_product();
 
 		add_filter(
-			'woocommerce_agentic_commerce_should_sync_product',
+			'wc_stripe_agentic_commerce_should_sync_product',
 			static function ( $should_sync, $product ) use ( $excluded ) {
 				return $product->get_id() === $excluded->get_id() ? false : $should_sync;
 			},
