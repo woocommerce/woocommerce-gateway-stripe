@@ -6,6 +6,10 @@ jest.mock( 'react-dom/client', () => ( {
 	createRoot: jest.fn(),
 } ) );
 
+jest.mock( 'wcstripe/api/stripe', () => ( {
+	loadStripe: jest.fn( () => Promise.resolve( {} ) ),
+} ) );
+
 jest.mock( 'wcstripe/express-checkout/utils', () => ( {
 	getExpressCheckoutData: jest.fn(),
 	getPaymentMethodTypesForExpressMethod: jest.fn( () => [ 'card' ] ),
@@ -13,7 +17,7 @@ jest.mock( 'wcstripe/express-checkout/utils', () => ( {
 } ) );
 
 describe( 'checkPaymentMethodIsAvailable', () => {
-	const api = { loadStripe: jest.fn( () => Promise.resolve( {} ) ) };
+	const api = {};
 
 	const render = jest.fn();
 	const unmount = jest.fn();

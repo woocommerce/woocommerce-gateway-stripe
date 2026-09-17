@@ -2,6 +2,7 @@ import { Component } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ExpressCheckoutElement, Elements } from '@stripe/react-stripe-js';
 import { memoize } from 'lodash';
+import { loadStripe } from 'wcstripe/api/stripe';
 import {
 	getExpressCheckoutData,
 	getPaymentMethodTypesForExpressMethod,
@@ -84,7 +85,7 @@ const checkPaymentMethodAvailability = memoize(
 			root.render(
 				<ProbeErrorBoundary onError={ failProbe }>
 					<Elements
-						stripe={ api.loadStripe() }
+						stripe={ loadStripe( api ) }
 						options={ {
 							mode: hasFreeTrial ? 'subscription' : 'payment',
 							...( isManualPaymentMethodCreation(

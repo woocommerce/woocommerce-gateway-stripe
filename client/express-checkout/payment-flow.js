@@ -5,6 +5,12 @@ import {
 	normalizeOrderData,
 } from './utils';
 import { __ } from '@wordpress/i18n';
+import {
+	expressCheckoutECECreateOrder,
+	expressCheckoutECEPayForOrder,
+	expressCheckoutNormalizeAddress,
+} from 'wcstripe/api/express-checkout';
+import { confirmIntent } from 'wcstripe/api/intents';
 
 /**
  * Handles exceptions thrown during the payment flow by extracting a human-readable
@@ -78,7 +84,8 @@ const processOrder = async ( {
 		confirmationTokenId,
 	} );
 
-	const normalizedAddress = await api.expressCheckoutNormalizeAddress(
+	const normalizedAddress = await expressCheckoutNormalizeAddress(
+		api,
 		normalizedOrderData.billing_address,
 		normalizedOrderData.shipping_address
 	);
@@ -95,14 +102,14 @@ const processOrder = async ( {
 	};
 
 	if ( order ) {
-		orderResponse = await api.expressCheckoutECEPayForOrder(
+		orderResponse = await expressCheckoutECEPayForOrder(
 			order,
 			orderDetails,
 			normalizedOrderData
 		);
 	} else {
 		orderResponse =
-			await api.expressCheckoutECECreateOrder( normalizedOrderData );
+			await expressCheckoutECECreateOrder( normalizedOrderData );
 	}
 
 	// Extract redirect URL from payment_details if redirect_url is empty
@@ -180,7 +187,7 @@ export const handleManualPaymentMethodFlow = async ( {
 			);
 		}
 
-		const confirmationRequest = api.confirmIntent( redirect );
+		const confirmationRequest = confirmIntent( api, redirect );
 
 		// `true` means there is no intent to confirm.
 		if ( confirmationRequest === true ) {
@@ -255,7 +262,7 @@ export const handleConfirmationTokenFlow = async ( {
 			);
 		}
 
-		const confirmationRequest = api.confirmIntent( redirect );
+		const confirmationRequest = confirmIntent( api, redirect );
 
 		// `true` means there is no intent to confirm.
 		if ( confirmationRequest === true ) {
