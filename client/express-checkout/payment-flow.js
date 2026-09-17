@@ -60,7 +60,7 @@ const getUsableAddress = ( address ) =>
  * normalizing addresses before submission.
  *
  * @param {Object} params
- * @param {Object} params.api                 The WCStripeAPI instance.
+ * @param {Object} params.api                 The API client.
  * @param {Object} params.event               The Stripe express checkout event.
  * @param {string} params.paymentMethodId     The Stripe payment method ID (manual flow).
  * @param {string} params.confirmationTokenId The Stripe confirmation token ID (token flow).
@@ -137,7 +137,7 @@ const processOrder = async ( {
  * any pending payment intent.
  *
  * @param {Object}   params
- * @param {Object}   params.api             The WCStripeAPI instance.
+ * @param {Object}   params.api             The API client.
  * @param {Object}   params.stripe          The Stripe.js instance.
  * @param {Object}   params.elements        The Stripe Elements instance.
  * @param {Function} params.completePayment Callback to complete the payment with a redirect URL.
@@ -209,7 +209,7 @@ export const handleManualPaymentMethodFlow = async ( {
  * any pending payment intent.
  *
  * @param {Object}   params
- * @param {Object}   params.api             The WCStripeAPI instance.
+ * @param {Object}   params.api             The API client.
  * @param {Object}   params.stripe          The Stripe.js instance.
  * @param {Object}   params.elements        The Stripe Elements instance.
  * @param {Function} params.completePayment Callback to complete the payment with a redirect URL.

@@ -45,7 +45,7 @@ class ProbeErrorBoundary extends Component {
  * event to learn whether the given express payment method is available.
  *
  * @param {string} paymentMethod The express payment method identifier (e.g. 'googlePay', 'applePay').
- * @param {Object} api           The WCStripeAPI instance used to load Stripe.
+ * @param {Object} api           The API client used to load Stripe.
  * @param {Object} cart          The WooCommerce cart object containing totals and currency info.
  * @return {Promise<boolean>} Promise that resolves to true if the payment method is available, false otherwise.
  */
@@ -157,7 +157,7 @@ const checkPaymentMethodAvailability = memoize(
  * method. Failed probes are not cached, so a later call retries.
  *
  * @param {string} paymentMethod The express payment method identifier (e.g. 'googlePay', 'applePay').
- * @param {Object} api           The WCStripeAPI instance used to load Stripe.
+ * @param {Object} api           The API client used to load Stripe.
  * @param {Object} cart          The WooCommerce cart object containing totals and currency info.
  * @return {Promise<boolean>} Promise that resolves to true if the payment method is available, false otherwise.
  */
