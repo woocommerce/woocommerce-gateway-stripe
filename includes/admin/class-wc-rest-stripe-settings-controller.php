@@ -305,9 +305,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$payment_method_ids_to_enable  = $this->get_payment_method_ids_to_enable( $request );
 		$is_upe_enabled                = $request->get_param( 'is_upe_enabled' );
 		$update_payment_methods_result = $this->update_enabled_payment_methods( $payment_method_ids_to_enable, $is_upe_enabled );
-		if ( is_wp_error( $update_payment_methods_result ) ) {
-			return new WP_REST_Response( [ 'message' => $update_payment_methods_result->get_error_message() ], 500 );
-		}
 
 		/* Settings > General */
 		$this->update_is_stripe_enabled( $request );
@@ -331,6 +328,13 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		/* Settings > Advanced settings */
 		$this->update_is_debug_log_enabled( $request );
 		$this->update_oc_settings( $request );
+
+		// Surfaced last so a failed PMC update cannot block the other settings:
+		// the merchant must still be able to, for example, disable the gateway.
+		// 502, not 500: the failure is the upstream Stripe call, not our code.
+		if ( is_wp_error( $update_payment_methods_result ) ) {
+			return new WP_REST_Response( [ 'message' => $update_payment_methods_result->get_error_message() ], 502 );
+		}
 
 		return new WP_REST_Response( [], 200 );
 	}
