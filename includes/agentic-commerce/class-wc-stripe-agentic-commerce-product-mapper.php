@@ -38,7 +38,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * Postmeta keys whose non-empty presence marks a product as carrying add-on /
 	 * configurator options: Product Add-Ons, TM Extra Product Options, and
 	 * Composite Products. Seeds the
-	 * `wc_stripe_agentic_commerce_addon_detection_meta_keys` filter default;
+	 * `woocommerce_agentic_commerce_addon_detection_meta_keys` filter default;
 	 * the Bundles key is checked separately (only `yes` counts). See
 	 * {@see self::product_has_addons()}.
 	 */
@@ -1341,12 +1341,15 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		 * configurable (or clear a false positive) directly, instead of only
 		 * extending the meta-key set.
 		 *
+		 * Uses the shareable `woocommerce_` prefix so non-Stripe Agentic Commerce
+		 * integrations can hook the same decision.
+		 *
 		 * @since 11.1.0
 		 * @param bool        $has_addons Whether meta-key detection flagged the product.
 		 * @param \WC_Product $product    The product (or variation) inspected.
 		 * @param \WC_Product $target     The product whose meta was read (parent for variations).
 		 */
-		return (bool) apply_filters( 'wc_stripe_agentic_commerce_product_has_addon', $has_addons, $product, $target );
+		return (bool) apply_filters( 'woocommerce_agentic_commerce_product_has_addon', $has_addons, $product, $target );
 	}
 
 	/**
@@ -1366,7 +1369,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		 * @param string[]    $meta_keys Meta keys treated as add-on signals.
 		 * @param \WC_Product $target    Product whose meta is inspected (parent for variations).
 		 */
-		$meta_keys = apply_filters( 'wc_stripe_agentic_commerce_addon_detection_meta_keys', self::ADDON_DETECTION_META_KEYS, $target );
+		$meta_keys = apply_filters( 'woocommerce_agentic_commerce_addon_detection_meta_keys', self::ADDON_DETECTION_META_KEYS, $target );
 
 		if ( ! is_array( $meta_keys ) || [] === $meta_keys ) {
 			return false;

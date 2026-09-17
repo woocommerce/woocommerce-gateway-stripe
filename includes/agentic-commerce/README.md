@@ -465,7 +465,7 @@ forking:
 
 ```php
 add_filter(
-    'wc_stripe_agentic_commerce_addon_detection_meta_keys',
+    'woocommerce_agentic_commerce_addon_detection_meta_keys',
     function ( array $meta_keys, WC_Product $product ): array {
         $meta_keys[] = '_my_configurator_options';
         return $meta_keys;
@@ -476,12 +476,12 @@ add_filter(
 ```
 
 When a configurator stores nothing in a stable meta key, decide per product with
-`wc_stripe_agentic_commerce_product_has_addon` instead — it filters the final
+`woocommerce_agentic_commerce_product_has_addon` instead — it filters the final
 verdict, so it can also clear a false positive:
 
 ```php
 add_filter(
-    'wc_stripe_agentic_commerce_product_has_addon',
+    'woocommerce_agentic_commerce_product_has_addon',
     function ( bool $has_addons, WC_Product $product ): bool {
         return $product->is_type( 'my_configurator' ) ? true : $has_addons;
     },
