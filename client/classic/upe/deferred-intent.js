@@ -8,6 +8,7 @@ import {
 	isUsingSavedPaymentMethod,
 	paymentMethodSupportsDeferredIntent,
 	removeCheckoutSessionIdFromForm,
+	showErrorCheckout,
 	togglePaymentMethodForCountry,
 } from '../../stripe-utils';
 import './style.scss';
@@ -22,8 +23,10 @@ import {
 	maybeUpdateOptimizedCheckoutExclusions,
 	mountStripePaymentElement,
 	processPayment,
+	resetCheckoutCompletionState,
 	trackMountInProgress,
 } from './payment-processing';
+import { __ } from '@wordpress/i18n';
 
 jQuery( function ( $ ) {
 	const stripeServerData = getStripeServerData();
@@ -94,6 +97,26 @@ jQuery( function ( $ ) {
 	} );
 
 	function processPaymentIfNotUsingSavedMethod( $form ) {
+		// Returning false is what stops WooCommerce submitting: returning early without
+		// it would let the form POST with no payment method, and the order would be
+		// created and then failed. jQuery :visible filters out fields hidden by
+		// conditional checkout logic (e.g. shipping fields when "Ship to different
+		// address" is unchecked).
+		if (
+			hasEmptyRequiredFields(
+				$form.find( '.validate-required:visible' ).toArray()
+			)
+		) {
+			resetCheckoutCompletionState();
+			showErrorCheckout(
+				__(
+					'Please fill in all required fields.',
+					'woocommerce-gateway-stripe'
+				)
+			);
+			return false;
+		}
+
 		const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
 		if ( ! isUsingSavedPaymentMethod( paymentMethodType ) ) {
 			return processPayment( api, $form, paymentMethodType );
@@ -102,24 +125,13 @@ jQuery( function ( $ ) {
 
 	$( 'form.checkout' ).on( generateCheckoutEventNames(), function () {
 		const $form = $( this );
-		const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
 
 		// A saved token bypasses Checkout Session confirmation, so discard a stale Session id left by
 		// an earlier attempt. New payment methods need the field so the Session flow can replace it.
-		if ( isUsingSavedPaymentMethod( paymentMethodType ) ) {
-			removeCheckoutSessionIdFromForm( $form );
-		}
-
-		// Don't create a Stripe payment method if required checkout fields are empty.
-		// This prevents unnecessary Stripe API calls before WC's server-side validation.
-		// jQuery :visible filters out fields hidden by conditional checkout logic
-		// (e.g. shipping fields when "Ship to different address" is unchecked).
 		if (
-			hasEmptyRequiredFields(
-				$form.find( '.validate-required:visible' ).toArray()
-			)
+			isUsingSavedPaymentMethod( getSelectedUPEGatewayPaymentMethod() )
 		) {
-			return;
+			removeCheckoutSessionIdFromForm( $form );
 		}
 
 		return processPaymentIfNotUsingSavedMethod( $form );

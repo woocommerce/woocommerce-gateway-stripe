@@ -599,7 +599,8 @@ jQuery( function ( $ ) {
 					appearance: getExpressCheckoutButtonAppearance(),
 					locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
 					displayItems: transformLabeledDisplayItems(
-						displayItems ?? []
+						displayItems ?? [],
+						total
 					),
 					order,
 					orderDetails,
@@ -641,7 +642,8 @@ jQuery( function ( $ ) {
 						requestShipping: cartBootstrap.requestShipping,
 						requestPhone: cartBootstrap.requestPhone,
 						displayItems: transformLabeledDisplayItems(
-							cartBootstrap.displayItems ?? []
+							cartBootstrap.displayItems ?? [],
+							cartBootstrap.total
 						),
 					} );
 
