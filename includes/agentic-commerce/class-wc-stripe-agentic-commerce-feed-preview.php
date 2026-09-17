@@ -161,7 +161,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 				$shipping_warnings[] = [
 					'message'   => sprintf(
 						/* translators: %s: shipping zone name */
-						__( 'Shipping zone "%s" has no flat-rate method, so the feed carries no shipping for it (live-rate / calculated methods price at checkout).', 'woocommerce-gateway-stripe' ),
+						__( 'We cannot precompute a shipping price for shipping zone "%s", so we cannot send any shipping costs to Stripe.', 'woocommerce-gateway-stripe' ),
 						$zone['name']
 					),
 					// Deep-link to the zone's shipping settings so the merchant can act.
