@@ -109,6 +109,13 @@ const IntroDescription = styled.p`
 	margin-top: 16px;
 `;
 
+const ShippingWarningList = styled.ul`
+	/* wp-admin strips list markers; reinstate them so zones scan as a list. */
+	list-style: disc;
+	padding-left: 20px;
+	margin: 8px 0 0;
+`;
+
 const ExcludedDetails = styled.div`
 	margin: 8px 0 16px;
 `;
@@ -236,7 +243,7 @@ const AgenticCommerceFeedPreview = () => {
 											) }
 										</strong>
 									</summary>
-									<ul>
+									<ShippingWarningList>
 										{ shippingWarnings.map(
 											( warning, i ) => (
 												<li key={ i }>
@@ -259,7 +266,7 @@ const AgenticCommerceFeedPreview = () => {
 												</li>
 											)
 										) }
-									</ul>
+									</ShippingWarningList>
 								</details>
 							</Notice>
 						) }
