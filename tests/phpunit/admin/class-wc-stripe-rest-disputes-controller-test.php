@@ -1,0 +1,427 @@
+<?php
+/**
+ * Class WC_Stripe_REST_Disputes_Controller_Test
+ */
+class WC_Stripe_REST_Disputes_Controller_Test extends WP_UnitTestCase {
+	private const SINGLE_DISPUTE_ENDPOINT_URL = '/wc/v3/wc_stripe/disputes/du_test_9876543210';
+	private const ALL_DISPUTES_ENDPOINT_URL   = '/wc/v3/wc_stripe/disputes';
+
+	/** Initialise REST API, make WC_Stripe_REST_Disputes_Controller instance available for testing*/
+	public static function set_up_before_class() {
+		parent::set_up_before_class();
+
+		do_action( 'rest_api_init' );
+	}
+
+	public function teardown(): void {
+		remove_filter(
+			'pre_http_request',
+			[ static::class, 'pre_http_request_mock_handler' ],
+			10,
+			3
+		);
+	}
+
+	public static function pre_http_request_mock_handler( bool $preempt, array $request_args, $url ) {
+		if ( ! str_starts_with( $url, 'https://api.stripe.com/v1/disputes' ) ) {
+			return $preempt;
+		}
+
+		return [
+			'headers'  => [],
+			'body'     => wp_json_encode(
+				[
+					'data'     => [],
+					'has_more' => false,
+				]
+			),
+			'response' => [
+				'code'    => 200,
+				'message' => 'OK',
+			],
+		];
+	}
+	/** Mock stripe API calls to avoid making real HTTP requests. */
+	protected function stub_http_call() {
+		add_filter(
+			'pre_http_request',
+			[ static::class, 'pre_http_request_mock_handler' ],
+			10,
+			3
+		);
+	}
+	/**
+	 * Send a request to the REST server.
+	 *
+	 * If non-empty, adds the entries from $params to the request object.
+	 */
+	private function send_request( string $url, array $params = [] ) {
+		$request = new WP_REST_Request(
+			WP_REST_Server::READABLE,
+			$url
+		);
+
+		if ( $params ) {
+			foreach ( $params as $param_name => $param_value ) {
+				$request->set_param( $param_name, $param_value );
+			}
+		}
+
+		$response = rest_get_server()->dispatch( $request );
+
+		return $response;
+	}
+
+	/** Create a non-admin user, set it as current user and send an API request. */
+	public function test_permission_check_denies_unauthorized_call() {
+		$subscriber_id = $this->factory()->user->create( [ 'role' => 'subscriber' ] );
+
+		wp_set_current_user( $subscriber_id );
+
+		$response = $this->send_request( self::SINGLE_DISPUTE_ENDPOINT_URL );
+
+		$this->assertSame( 403, $response->get_status() );
+	}
+
+	public function test_wrong_stripe_api_key() {
+		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
+		$http_code_401_mock = function ( $pre, $parsed_args, $url ) {
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode(
+					[
+						'error' => [
+							'code'    => 'invalid_request_error',
+							'message' => 'Invalid API Key provided',
+						],
+					]
+				),
+				'response' => [
+					'code'    => 401,
+					'message' => 'OK',
+				],
+			];
+		};
+
+		add_filter(
+			'pre_http_request',
+			$http_code_401_mock,
+			10,
+			3
+		);
+
+		$response = $this->send_request( self::SINGLE_DISPUTE_ENDPOINT_URL );
+
+		remove_filter(
+			'pre_http_request',
+			$http_code_401_mock,
+			10,
+			3
+		);
+
+		$this->assertSame( 401, $response->get_status() );
+	}
+
+	/** Create an admin user, set it as current user and send a API request. */
+	public function test_permission_check_allows_authorized_call() {
+		$this->stub_http_call();
+
+		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
+
+		$response = $this->send_request( self::SINGLE_DISPUTE_ENDPOINT_URL );
+
+		$this->assertSame( 200, $response->get_status() );
+	}
+
+	public static function provide_dispute_list_malformed_param(): array {
+		return [
+			[ 'limit', '' ],
+			[ 'limit', 'abc' ],
+			[ 'created', '' ],
+			[ 'created', -1779802569 ],
+			[ 'created', 'a1779802569' ],
+			[
+				'created',
+				[
+					0 => '1779802569',
+				],
+			],
+			[
+				'created',
+				[
+					'lt3' => '1779802569',
+				],
+			],
+			[
+				'created',
+				[
+					'lt'  => '1779802569',
+					'gt3' => '1779802569',
+				],
+			],
+			[ 'starting_after', 'xyz' ],
+			[ 'ending_before', 'xyz' ],
+			[ 'payment_intent', 'test' ],
+			[ 'charge', 'test' ],
+		];
+	}
+
+	/**
+	 * Create an admin user and send requests containing incorrect format args.
+	 *
+	 * @dataProvider provide_dispute_list_malformed_param
+	 *
+	 * @param string $param_name
+	 * @param mixed $param_value
+	*/
+	public function test_dispute_list_malformed_param( string $param_name, $param_value ) {
+		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
+
+		$response = $this->send_request( self::ALL_DISPUTES_ENDPOINT_URL, [ $param_name => $param_value ] );
+
+		$this->assertSame( 400, $response->get_status() );
+	}
+
+	/**
+	 * Create an admin user and send requests containing both starting_after and ending_before args.
+	 *
+	 * @param string $param_name
+	 * @param mixed $param_value
+	*/
+	public function test_dispute_list_with_both_starting_after_and_ending_before() {
+		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
+
+		$response = $this->send_request(
+			self::ALL_DISPUTES_ENDPOINT_URL,
+			[
+				'starting_after' => 'du_test',
+				'ending_before'  => 'du_test2',
+			]
+		);
+
+		$this->assertSame( 400, $response->get_status() );
+	}
+
+	public static function provide_dispute_list_params(): array {
+		return [
+			'created_zero_timestamp'                      => [
+				[ 'created' => 0 ],
+			],
+			'created_and_starting_after'                  => [
+				[
+					'created'        => '1779802569',
+					'starting_after' => 'du_3TbL9RJlUF0dQbSB00q0FJS2',
+				],
+			],
+			'created_with_lt_and_ending_before'           => [
+				[
+					'created'       =>
+						[
+							'lt' => '1779802569',
+						],
+					'ending_before' => 'du_3TbL9RJlUF0dQbSB00q0FJS2',
+				],
+			],
+			'limit_and_created_with_lt_and_ending_before' => [
+				[
+					'limit'         => 100,
+					'created'       =>
+						[
+							'lt' => '1779802569',
+						],
+					'ending_before' => 'du_3TbL9RJlUF0dQbSB00q0FJS2',
+				],
+			],
+			'created_with_lt_gt'                          => [
+				[
+					'created' =>
+						[
+							'lt' => '1779802821',
+							'gt' => '1779802569',
+						],
+				],
+			],
+			'created_with_lte_gte'                        => [
+				[
+					'created' =>
+						[
+							'lte' => '1779802821',
+							'gte' => '1779802569',
+						],
+				],
+			],
+			'created_with_lte_gte_zero'                   => [
+				[
+					'created' =>
+						[
+							'lte' => '1779802821',
+							'gte' => '0',
+						],
+				],
+			],
+			'created_with_lte_zero_gte_zero'              => [
+				[
+					'created' =>
+						[
+							'lte' => '0',
+							'gte' => '0',
+						],
+				],
+			],
+			'payment_intent'                              => [
+				[
+					'payment_intent' => 'pi_test',
+				],
+			],
+			'charge'                                      => [
+				[
+					'charge' => 'ch_test',
+				],
+			],
+		];
+	}
+
+	/**
+	 * Send requests containing valid parameters and check they are forwarded correctly to the Stripe API
+	 * using a 'pre_http_request' hook.
+	 *
+	 * @dataProvider provide_dispute_list_params
+	*/
+	public function test_pass_dispute_list_params( array $rest_params ) {
+		$controller = new WC_Stripe_REST_Disputes_Controller();
+
+		$request = new WP_REST_Request(
+			WP_REST_Server::READABLE,
+			self::ALL_DISPUTES_ENDPOINT_URL,
+		);
+
+		foreach ( $rest_params as $rest_param_name => $rest_param_value ) {
+			$request->set_param( $rest_param_name, $rest_param_value );
+		}
+
+		$passed_rest_params = $request->get_params();
+
+		$pre_http_request_params = [];
+
+		$this->stub_http_call();
+		$http_stub = function ( $pre, $parsed_args, $url ) use ( &$pre_http_request_params ) {
+				$url_components = parse_url( $url );
+
+				parse_str( $url_components['query'], $pre_http_request_params['search_params'] );
+
+				return $pre;
+		};
+		add_filter(
+			'pre_http_request',
+			$http_stub,
+			10,
+			3
+		);
+
+		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
+
+		try {
+			rest_get_server()->dispatch( $request );
+		} finally {
+			remove_filter( 'pre_http_request', $http_stub, 10, 3 );
+		}
+
+		$this->assertEquals( $rest_params, $passed_rest_params );
+		$this->assertEquals(
+			$rest_params,
+			array_intersect_key( $pre_http_request_params['search_params'], $rest_params )
+		);
+		$test = array_diff_key( $pre_http_request_params['search_params'], $rest_params );
+
+		if ( array_key_exists( 'limit', $rest_params ) ) {
+			$this->assertEmpty( array_diff_key( $pre_http_request_params['search_params'], $rest_params ) );
+		} else {
+			// We default the `limit` argument when not supplied by the caller.
+			$this->assertEquals(
+				[ 'limit' => 10 ],
+				array_diff_key( $pre_http_request_params['search_params'], $rest_params )
+			);
+		}
+	}
+
+	public static function provide_single_dispute_filtering_test_data(): array {
+		$response_allowed_part = '
+			"object": "dispute",
+			"id": "du_test",
+			"created": 1783384650,
+			"amount": 4422,
+			"currency": "ron",
+			"status": "paid"
+		';
+		$response_as_string    = '{
+			' . $response_allowed_part . ',
+			"failure_balance_transaction": null,
+			"failure_code": null,
+			"failure_message": null,
+			"livemode": false,
+			"metadata": {},
+			"method": "standard",
+			"original_payout": null,
+			"payout_method": null,
+			"reconciliation_status": "not_applicable",
+			"reversed_by": null,
+			"source_type": "card",
+			"statement_descriptor": null,
+
+			"trace_id": {
+				"status": "supported",
+				"value": "test"
+			},
+			"type": "bank_account"
+		}';
+		return [
+			[
+				$response_as_string,
+				'{' . $response_allowed_part . '}',
+			],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_single_dispute_filtering_test_data
+	*/
+	public function test_single_dispute_response_filtering( string $response_as_string, string $response_allowed_part ) {
+		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
+
+		$http_code_401_mock = function ( $pre, $parsed_args, $url ) use ( $response_as_string ) {
+			return [
+				'headers'  => [],
+				'body'     => $response_as_string,
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+			];
+		};
+
+		add_filter(
+			'pre_http_request',
+			$http_code_401_mock,
+			10,
+			3
+		);
+
+		$response               = $this->send_request( self::SINGLE_DISPUTE_ENDPOINT_URL );
+		$expected_response_data = json_decode( $response_allowed_part );
+
+		remove_filter(
+			'pre_http_request',
+			$http_code_401_mock,
+			10,
+			3
+		);
+
+		$this->assertEquals( $expected_response_data, $response->data );
+	}
+}
