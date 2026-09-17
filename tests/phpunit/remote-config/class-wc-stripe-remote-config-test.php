@@ -76,6 +76,22 @@ class WC_Stripe_Remote_Config_Test extends WP_UnitTestCase {
 		];
 	}
 
+	/**
+	 * get_cache_age() must report seconds since the last successful fetch and
+	 * null for a mode that has never been fetched.
+	 */
+	public function test_get_cache_age_reflects_fetched_at(): void {
+		$rc = new WC_Stripe_Remote_Config();
+
+		$this->assertNull( $rc->get_cache_age( 'live' ) );
+
+		$rc->apply( 'live', $this->get_valid_payload() );
+		$age = $rc->get_cache_age( 'live' );
+		$this->assertIsInt( $age );
+		$this->assertLessThanOrEqual( 5, $age, 'A just-applied payload must have an age of ~0 seconds.' );
+		$this->assertNull( $rc->get_cache_age( 'test' ) );
+	}
+
 	public function test_apply_drops_unknown_flag_names_silently(): void {
 		$rc                               = new WC_Stripe_Remote_Config();
 		$payload                          = $this->get_valid_payload();
