@@ -644,7 +644,7 @@ trait WC_Stripe_Subscriptions_Trait {
 					throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 				}
 
-				if ( 'payment_intent_mandate_invalid' === $response->error->type ) {
+				if ( isset( $response->error->code ) && 'payment_intent_mandate_invalid' === $response->error->code ) {
 					$localized_message = __(
 						'The mandate used for this renewal payment is invalid. You may need to bring the customer back to your store and ask them to resubmit their payment information.',
 						'woocommerce-gateway-stripe'
