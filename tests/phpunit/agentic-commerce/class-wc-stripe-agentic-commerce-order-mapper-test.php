@@ -359,6 +359,33 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that no Order Attribution meta is written when the agent source
+	 * sanitizes to an empty string, so a dangling "Referral:" with no source
+	 * never reaches the Origin column.
+	 *
+	 * @return void
+	 */
+	public function test_order_attribution_meta_is_not_stored_when_agent_source_sanitizes_to_empty() {
+		$session = $this->build_checkout_session(
+			[
+				'payment_intent' => (object) [
+					'id'            => 'pi_test_attr_empty',
+					'agent_details' => (object) [
+						'network_business_profile' => '<script>alert(1)</script>',
+					],
+				],
+			]
+		);
+		$order   = $this->mapper->create_order_from_checkout_session( $session );
+
+		// A dangling source type without a source must not be written either.
+		$this->assertSame( '', $order->get_meta( '_wc_order_attribution_source_type', true ) );
+		$this->assertSame( '', $order->get_meta( '_wc_order_attribution_utm_source', true ) );
+
+		$order->delete( true );
+	}
+
+	/**
 	 * Tests that no Order Attribution meta is written when the session carries
 	 * no agent details, leaving the Origin column untouched.
 	 *
