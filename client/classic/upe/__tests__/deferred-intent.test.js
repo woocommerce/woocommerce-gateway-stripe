@@ -19,6 +19,9 @@ jest.mock( '../../../stripe-utils', () => ( {
 	isPaymentMethodRestrictedToLocation: () => false,
 	isUsingSavedPaymentMethod: () => mockUsingSavedMethod,
 	paymentMethodSupportsDeferredIntent: () => true,
+	removeCheckoutSessionIdFromForm: jest.requireActual(
+		'../../../stripe-utils/utils'
+	).removeCheckoutSessionIdFromForm,
 	showErrorCheckout: ( ...args ) => mockShowErrorCheckout( ...args ),
 	togglePaymentMethodForCountry: () => {},
 } ) );
@@ -115,5 +118,37 @@ describe( 'classic checkout place-order handler', () => {
 		expect( mockProcessPayment ).not.toHaveBeenCalled();
 		expect( mockResetCheckoutCompletionState ).not.toHaveBeenCalled();
 		expect( mockShowErrorCheckout ).not.toHaveBeenCalled();
+	} );
+
+	// A saved token bypasses Checkout Session confirmation, so a stale Session id
+	// left in the form by an earlier Adaptive Pricing attempt must be dropped
+	// before core submits; new payment methods keep it for the Session flow.
+	const appendStaleSessionId = () =>
+		$( 'form.checkout' ).append(
+			'<input type="hidden" id="wc_stripe_checkout_session_id" name="wc_stripe_checkout_session_id" value="cs_test_stale" />'
+		);
+
+	it( 'drops a stale Checkout Session id when retrying with a saved token', () => {
+		mockUsingSavedMethod = true;
+		appendStaleSessionId();
+
+		placeOrder();
+
+		expect(
+			document.getElementById( 'wc_stripe_checkout_session_id' )
+		).toBeNull();
+		// The saved token is charged through the deferred intent, not the Checkout Session.
+		expect( mockProcessPayment ).not.toHaveBeenCalled();
+	} );
+
+	it( 'keeps the Checkout Session id when retrying with a new payment method', () => {
+		appendStaleSessionId();
+
+		placeOrder();
+
+		expect(
+			document.getElementById( 'wc_stripe_checkout_session_id' )
+		).not.toBeNull();
+		expect( mockProcessPayment ).toHaveBeenCalled();
 	} );
 } );

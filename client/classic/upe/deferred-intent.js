@@ -7,6 +7,7 @@ import {
 	isPaymentMethodRestrictedToLocation,
 	isUsingSavedPaymentMethod,
 	paymentMethodSupportsDeferredIntent,
+	removeCheckoutSessionIdFromForm,
 	showErrorCheckout,
 	togglePaymentMethodForCountry,
 } from '../../stripe-utils';
@@ -131,7 +132,17 @@ jQuery( function ( $ ) {
 	}
 
 	$( 'form.checkout' ).on( generateCheckoutEventNames(), function () {
-		return processPaymentIfNotUsingSavedMethod( $( this ) );
+		const $form = $( this );
+
+		// A saved token bypasses Checkout Session confirmation, so discard a stale Session id left by
+		// an earlier attempt. New payment methods need the field so the Session flow can replace it.
+		if (
+			isUsingSavedPaymentMethod( getSelectedUPEGatewayPaymentMethod() )
+		) {
+			removeCheckoutSessionIdFromForm( $form );
+		}
+
+		return processPaymentIfNotUsingSavedMethod( $form );
 	} );
 
 	// Mount the Stripe Payment Elements onto the Add Payment Method page and Pay for Order page.
