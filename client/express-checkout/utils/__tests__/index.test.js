@@ -18,9 +18,12 @@ import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_LINK,
 } from 'wcstripe/stripe-utils/constants';
-import { isAmazonPayEnabled, isLinkEnabled } from 'wcstripe/stripe-utils';
+import {
+	isAmazonPayEnabled,
+	isLinkEnabled,
+} from 'wcstripe/stripe-utils/payment-method-availability';
 
-jest.mock( 'wcstripe/stripe-utils', () => ( {
+jest.mock( 'wcstripe/stripe-utils/payment-method-availability', () => ( {
 	isAmazonPayEnabled: jest.fn(),
 	isLinkEnabled: jest.fn(),
 } ) );

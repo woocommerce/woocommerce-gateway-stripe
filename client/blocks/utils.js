@@ -1,5 +1,5 @@
 import { getSetting } from '@woocommerce/settings';
-import { isLinkEnabled } from 'wcstripe/stripe-utils';
+import { isLinkEnabled } from 'wcstripe/stripe-utils/payment-method-availability';
 import { OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT } from 'wcstripe/stripe-utils/constants';
 
 /**

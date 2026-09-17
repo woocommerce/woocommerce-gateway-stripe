@@ -1,7 +1,10 @@
 /* global wc_stripe_express_checkout_params */
 import jQuery from 'jquery';
 import { __ } from '@wordpress/i18n';
-import { isAmazonPayEnabled, isLinkEnabled } from 'wcstripe/stripe-utils';
+import {
+	isAmazonPayEnabled,
+	isLinkEnabled,
+} from 'wcstripe/stripe-utils/payment-method-availability';
 import { EXPRESS_CHECKOUT_NOTICE_DELAY } from 'wcstripe/data/constants';
 import {
 	EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,

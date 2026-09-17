@@ -1,7 +1,7 @@
-/* global wc_stripe_upe_params, wc_stripe_express_checkout_params */
-import { getSetting } from '@woocommerce/settings';
 import React from 'react';
 import { createPortal } from 'react-dom';
+import { getStripeServerData } from './get-stripe-server-data';
+import { isLinkEnabled } from './payment-method-availability';
 import {
 	errorTypes,
 	errorCodes,
@@ -14,31 +14,18 @@ import { __ } from '@wordpress/i18n';
 import { dispatch } from '@wordpress/data';
 import { PAYMENT_METHOD_AMAZON_PAY } from 'wcstripe/stripe-utils/constants';
 
+export { getStripeServerData } from './get-stripe-server-data';
+export {
+	isAmazonPayEnabled,
+	isLinkEnabled,
+} from './payment-method-availability';
+
 /**
  * @typedef {import('./type-defs').StripeServerData} StripeServerData
  * @typedef {import('./type-defs').StripePaymentItem} StripePaymentItem
  * @typedef {import('./type-defs').StripePaymentRequest} StripePaymentRequest
  * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').PreparedCartTotalItem} CartTotalItem
  */
-
-/**
- * Stripe data comes form the server passed on a global object.
- *
- * @return  {StripeServerData|null} Stripe server data, or null when it isn't localized on the page.
- */
-const getStripeServerData = () => {
-	let data = null;
-
-	// eslint-disable-next-line camelcase
-	if ( typeof wc_stripe_upe_params !== 'undefined' ) {
-		data = wc_stripe_upe_params; // eslint-disable-line camelcase
-	} else {
-		// 'stripe_data' is available via wc-settings on block checkout only.
-		data = getSetting( 'stripe_data', null );
-	}
-
-	return data || null;
-};
 
 /**
  * Determines whether the given error type is considered non-friendly (i.e. not directly
@@ -156,6 +143,8 @@ const getErrorMessageForTypeAndCode = ( type, code = '' ) => {
 	return null;
 };
 
+export { getErrorMessageForTypeAndCode };
+
 /**
  * Generates terms parameter for UPE, with value set for reusable payment methods
  *
@@ -217,34 +206,7 @@ export const getStorageWithExpiration = ( key ) => {
 	return item.value;
 };
 
-export { getStripeServerData, getErrorMessageForTypeAndCode };
-
 // Used by dPE.
-
-/**
- * Check whether Stripe Link is enabled.
- *
- * @param {Object} paymentMethodsConfig Checkout payment methods configuration settings object.
- * @return {boolean} True, if enabled; false otherwise.
- */
-export const isLinkEnabled = ( paymentMethodsConfig ) => {
-	paymentMethodsConfig =
-		paymentMethodsConfig || getStripeServerData()?.paymentMethodsConfig;
-	return (
-		paymentMethodsConfig?.link !== undefined &&
-		paymentMethodsConfig?.card !== undefined
-	);
-};
-
-/**
- * Check whether Amazon Pay is enabled.
- *
- * @return {boolean} True, if enabled; false otherwise.
- */
-export const isAmazonPayEnabled = () => {
-	// eslint-disable-next-line camelcase, no-undef
-	return !! wc_stripe_express_checkout_params?.stripe?.is_amazon_pay_enabled;
-};
 
 /**
  * Get array of payment method types to use with intent.
