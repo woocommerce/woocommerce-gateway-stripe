@@ -62,7 +62,7 @@ class WC_Stripe_Amazon_Pay_Controller {
 		wp_register_style(
 			'wc-stripe-amazon-pay-settings',
 			plugins_url( 'build/amazon-pay-settings.css', WC_STRIPE_MAIN_FILE ),
-			[ 'wc-components' ],
+			[ 'wc-components', 'wp-components' ],
 			$asset_metadata['version']
 		);
 		wp_enqueue_style( 'wc-stripe-amazon-pay-settings' );

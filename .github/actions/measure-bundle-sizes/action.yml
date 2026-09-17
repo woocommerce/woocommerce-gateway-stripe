@@ -1,6 +1,6 @@
 name: Measure Bundle Sizes
 description: >
-  Restores cached JS bundle sizes or builds webpack bundles from scratch,
+  Restores cached JS and CSS bundle sizes or builds webpack bundles from scratch,
   measures the output file sizes, and uploads a sizes.json artifact.
 
 inputs:
@@ -40,7 +40,9 @@ runs:
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: sizes.json
-        key: bundle-sizes-${{ runner.os }}-${{ inputs.commit-sha }}
+        # Bump the version whenever the set of measured files changes, so a sizes.json with the
+        # old shape is never compared against a new one.
+        key: bundle-sizes-v2-${{ runner.os }}-${{ inputs.commit-sha }}
 
     - name: Setup PHP and Node
       if: steps.cache.outputs.cache-hit != 'true'
@@ -64,7 +66,8 @@ runs:
       run: |
         node -e "
         const fs = require('fs'), path = require('path'), dir = 'build';
-        const files = fs.readdirSync(dir).filter(f => f.endsWith('.js') && !f.endsWith('.js.map')).sort();
+        // The -rtl.css files mirror their LTR counterparts, so counting them would double every CSS delta.
+        const files = fs.readdirSync(dir).filter(f => f.endsWith('.js') || (f.endsWith('.css') && !f.endsWith('-rtl.css'))).sort();
         const sizes = {};
         for (const f of files) sizes[f] = fs.statSync(path.join(dir, f)).size;
         fs.writeFileSync('sizes.json', JSON.stringify(sizes, null, 2));

@@ -58,7 +58,7 @@ class WC_Stripe_Link_Controller {
 		wp_register_style(
 			'wc-stripe-link-settings',
 			plugins_url( 'build/link-settings.css', WC_STRIPE_MAIN_FILE ),
-			[ 'wc-components' ],
+			[ 'wc-components', 'wp-components' ],
 			$asset_metadata['version']
 		);
 		wp_enqueue_style( 'wc-stripe-link-settings' );

@@ -65,37 +65,71 @@ const allFiles = [
 	...new Set( [ ...Object.keys( baseData ), ...Object.keys( headData ) ] ),
 ].sort();
 
-let totalBase = 0;
-let totalHead = 0;
-const rows = [];
+// JS and CSS are reported separately: moving styles out of JS shrinks one and grows the
+// other, and a single combined total would hide that trade.
+const groups = [
+	{ title: 'JavaScript', extension: '.js' },
+	{ title: 'CSS', extension: '.css' },
+];
 
-for ( const file of allFiles ) {
-	const base = baseData[ file ] ?? 0;
-	const head = headData[ file ] ?? 0;
-	const delta = head - base;
-	totalBase += base;
-	totalHead += head;
+function buildTable( { title, extension } ) {
+	let totalBase = 0;
+	let totalHead = 0;
+	const rows = [];
 
-	// Skip files with no change.
-	if ( delta === 0 ) {
-		continue;
+	for ( const file of allFiles ) {
+		if ( ! file.endsWith( extension ) ) {
+			continue;
+		}
+
+		const base = baseData[ file ] ?? 0;
+		const head = headData[ file ] ?? 0;
+		const delta = head - base;
+		totalBase += base;
+		totalHead += head;
+
+		// Skip files with no change.
+		if ( delta === 0 ) {
+			continue;
+		}
+
+		const icon = statusIcon( file, delta );
+		rows.push(
+			`| ${ icon } \`${ file }\` | ${ toKB( base ) } KB | ${ toKB(
+				head
+			) } KB | ${ formatDelta( delta ) } | ${ formatPercent(
+				delta,
+				base
+			) } |`
+		);
 	}
 
-	const icon = statusIcon( file, delta );
-	rows.push(
-		`| ${ icon } \`${ file }\` | ${ toKB( base ) } KB | ${ toKB(
-			head
-		) } KB | ${ formatDelta( delta ) } | ${ formatPercent(
-			delta,
-			base
-		) } |`
-	);
+	if ( rows.length === 0 ) {
+		return [];
+	}
+
+	const totalDelta = totalHead - totalBase;
+
+	return [
+		`### ${ title }`,
+		'',
+		'| Bundle | Base | Head | Delta | Change |',
+		'|--------|------|------|-------|--------|',
+		...rows,
+		`| **Total** | **${ toKB( totalBase ) } KB** | **${ toKB(
+			totalHead
+		) } KB** | **${ formatDelta( totalDelta ) }** | **${ formatPercent(
+			totalDelta,
+			totalBase
+		) }** |`,
+		'',
+	];
 }
 
-const totalDelta = totalHead - totalBase;
+const tables = groups.flatMap( buildTable );
 
 // If no bundles changed, skip the report entirely.
-if ( rows.length === 0 ) {
+if ( tables.length === 0 ) {
 	console.log( 'No bundle size changes detected. Skipping report.' );
 	process.exit( 0 );
 }
@@ -106,15 +140,7 @@ const lines = [
 	'',
 	`Comparing \`${ headRef }\` → \`${ baseRef }\``,
 	'',
-	'| Bundle | Base | Head | Delta | Change |',
-	'|--------|------|------|-------|--------|',
-	...rows,
-	`| **Total** | **${ toKB( totalBase ) } KB** | **${ toKB(
-		totalHead
-	) } KB** | **${ formatDelta( totalDelta ) }** | **${ formatPercent(
-		totalDelta,
-		totalBase
-	) }** |`,
+	...tables,
 ];
 
 const output = lines.join( '\n' ) + '\n';
