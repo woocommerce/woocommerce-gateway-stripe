@@ -277,6 +277,28 @@ export const confirmIntent = ( client, redirectUrl, paymentMethodToSave ) => {
 };
 
 /**
+ * Tells the server that the intent used to change a subscription's payment method was confirmed.
+ *
+ * @param {WCStripeApiClient} client                 The API client.
+ * @param {Object}            params                 Parameters.
+ * @param {string}            params.orderId         The ID of the order (the subscription) being updated.
+ * @param {string}            params.intentId        The ID of the confirmed intent.
+ * @param {string}            params.paymentMethodId The ID of the payment method attached to the intent, if any.
+ * @param {string}            params.nonce           The nonce the server issued for this confirmation.
+ * @return {Promise} Promise for the request to the server.
+ */
+export const confirmChangePayment = (
+	client,
+	{ orderId, intentId, paymentMethodId, nonce }
+) =>
+	client.request( getAjaxUrl( client, 'confirm_change_payment' ), {
+		order_id: orderId,
+		intent_id: intentId,
+		payment_method_id: paymentMethodId || null,
+		_ajax_nonce: nonce,
+	} );
+
+/**
  * Process checkout and update payment intent via AJAX.
  *
  * @param {WCStripeApiClient} client          The API client.

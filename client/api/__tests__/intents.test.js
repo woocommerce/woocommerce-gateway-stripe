@@ -1,5 +1,6 @@
 import { createApiClient } from '../core';
 import {
+	confirmChangePayment,
 	confirmIntent,
 	createIntent,
 	initSetupIntent,
@@ -86,6 +87,49 @@ describe( 'wcstripe/api/intents', () => {
 				).rejects.toThrow( genericMessage );
 			}
 		);
+	} );
+
+	describe( 'confirmChangePayment', () => {
+		it( 'posts the confirmed intent to the change payment endpoint', async () => {
+			const response = { success: true, data: { return_url: '/' } };
+			const request = jest.fn().mockResolvedValue( response );
+			const client = createApiClient( options, request );
+
+			await expect(
+				confirmChangePayment( client, {
+					orderId: '123',
+					intentId: 'seti_123',
+					paymentMethodId: 'pm_123',
+					nonce: 'nonce_abc',
+				} )
+			).resolves.toBe( response );
+
+			expect( request ).toHaveBeenCalledWith(
+				'/?wc-ajax=wc_stripe_confirm_change_payment',
+				{
+					order_id: '123',
+					intent_id: 'seti_123',
+					payment_method_id: 'pm_123',
+					_ajax_nonce: 'nonce_abc',
+				}
+			);
+		} );
+
+		it( 'sends a null payment method ID when the intent has none', async () => {
+			const request = jest.fn().mockResolvedValue( {} );
+			const client = createApiClient( options, request );
+
+			await confirmChangePayment( client, {
+				orderId: '123',
+				intentId: 'seti_123',
+				nonce: 'nonce_abc',
+			} );
+
+			expect( request ).toHaveBeenCalledWith(
+				expect.any( String ),
+				expect.objectContaining( { payment_method_id: null } )
+			);
+		} );
 	} );
 
 	describe( 'confirmIntent', () => {

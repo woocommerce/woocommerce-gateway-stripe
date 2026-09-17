@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import { getStripe } from 'wcstripe/api/stripe';
 import { getStripeServerData } from 'wcstripe/stripe-utils';
 import {
 	PAYMENT_INTENT_STATUS_REQUIRES_CAPTURE,
@@ -32,7 +33,7 @@ export const legacyHashchangeHandler = ( api, showError ) => {
 		document.title,
 		window.location.pathname + window.location.search
 	);
-	api.getStripe()
+	getStripe( api )
 		[ type === 'si' ? 'handleCardSetup' : 'handleCardPayment' ](
 			intentClientSecret
 		)

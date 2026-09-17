@@ -1,5 +1,3 @@
-jest.mock( 'wcstripe/api', () => jest.fn() );
-
 jest.mock( 'wcstripe/classic/upe/payment-processing', () => ( {
 	confirmVoucherPayment: jest.fn(),
 	confirmWalletPayment: jest.fn(),

@@ -47,6 +47,20 @@ jest.mock( 'wcstripe/stripe-utils', () => ( {
 	validateBlikCode: jest.fn(),
 } ) );
 
+// Each case builds its own API fake, carrying that case's Stripe double and spies,
+// so the API functions are routed to whichever fake the code under test was given.
+jest.mock( 'wcstripe/api/stripe', () => ( {
+	getStripe: ( api ) => api.getStripe(),
+} ) );
+
+jest.mock( 'wcstripe/api/intents', () => ( {
+	confirmChangePayment: jest.requireActual( 'wcstripe/api/intents' )
+		.confirmChangePayment,
+	createIntent: ( api, ...args ) => api.createIntent( ...args ),
+	initSetupIntent: ( api, ...args ) => api.initSetupIntent( ...args ),
+	setupIntent: ( api, ...args ) => api.setupIntent( ...args ),
+} ) );
+
 jest.mock( 'wcstripe/stripe-utils/upe-appearance', () => ( {
 	initializeUPEAppearance: jest.fn().mockReturnValue( {} ),
 	invalidateAppearanceCache: jest.fn(),
@@ -228,7 +242,7 @@ const createMockApi = ( checkoutElements ) => {
 		checkoutSessionsUpdateSession: jest.fn( () =>
 			Promise.resolve( { success: true } )
 		),
-		getAjaxUrl: jest.fn( () => '/?wc-ajax=checkout' ),
+		options: { ajax_url: '/?wc-ajax=%%endpoint%%' },
 		createIntent: jest.fn(),
 		initSetupIntent: jest.fn(),
 		_stripe: stripe,
@@ -897,7 +911,7 @@ describe( 'payment-processing', () => {
 				expect( mockJQueryAjax ).toHaveBeenCalledWith(
 					expect.objectContaining( {
 						type: 'POST',
-						url: api.getAjaxUrl(),
+						url: '/?wc-ajax=checkout',
 					} )
 				);
 				// Confirm is called with the order-received URL.
@@ -2350,9 +2364,7 @@ describe( 'ensureUPEElementMounted', () => {
 					.fn()
 					.mockResolvedValue( { paymentIntent } ),
 			} ) ),
-			getAjaxUrl: jest.fn(
-				( endpoint ) => `/?wc-ajax=wc_stripe_${ endpoint }`
-			),
+			options: { ajax_url: '/?wc-ajax=%%endpoint%%' },
 			request: jest.fn().mockResolvedValue( response ),
 		} );
 

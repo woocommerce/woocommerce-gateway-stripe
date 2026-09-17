@@ -1,5 +1,5 @@
 import jQuery from 'jquery';
-import WCStripeAPI from '../../api';
+import { createApiClient } from '../../api/core';
 import {
 	generateCheckoutEventNames,
 	getSelectedUPEGatewayPaymentMethod,
@@ -29,15 +29,7 @@ jQuery( function ( $ ) {
 	const stripeServerData = getStripeServerData();
 
 	// Create an API object, which will be used throughout the checkout.
-	const api = new WCStripeAPI(
-		stripeServerData,
-		// A promise-based interface to jQuery.post.
-		( url, args ) => {
-			return new Promise( ( resolve, reject ) => {
-				jQuery.post( url, args ).then( resolve ).fail( reject );
-			} );
-		}
-	);
+	const api = createApiClient( stripeServerData );
 
 	// Initialize the list of Stripe Elements to be mounted when UPE is enabled.
 	initializeUPEComponents();
