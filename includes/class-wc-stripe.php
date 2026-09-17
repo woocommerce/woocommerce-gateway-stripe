@@ -1203,7 +1203,7 @@ class WC_Stripe {
 		);
 		if ( is_wp_error( $result ) ) {
 			WC_Stripe_Logger::error(
-				'Failed to update payment methods after deactivating incompatible plugins',
+				'Failed to disable Stripe payment methods superseded by other active plugins',
 				[ 'error' => $result->get_error_message() ]
 			);
 		}
