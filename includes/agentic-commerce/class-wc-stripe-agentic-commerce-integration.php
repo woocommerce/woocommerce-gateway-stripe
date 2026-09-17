@@ -679,11 +679,10 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 
 	/**
 	 * Whether the merchant has opted to auto-exclude add-on / configurator
-	 * products from the feed entirely. Drives a default branch in
-	 * {@see WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product()};
-	 * a custom filter still overrides it.
+	 * products from the feed entirely.
 	 *
-	 * @since 10.9.0
+	 * @see WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product()
+	 * @since 11.1.0
 	 * @return bool
 	 */
 	public static function is_auto_exclude_addons_enabled(): bool {
