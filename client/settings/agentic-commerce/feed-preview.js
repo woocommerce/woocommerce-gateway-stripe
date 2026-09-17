@@ -223,16 +223,18 @@ const AgenticCommerceFeedPreview = () => {
 								     nothing is persisted or shared between users. */ }
 								<details open>
 									<summary>
-										{ sprintf(
-											/* translators: %d: number of shipping zones the warning covers. */
-											_n(
-												'%d shipping zone will have no shipping in the feed:',
-												'%d shipping zones will have no shipping in the feed:',
-												shippingWarnings.length,
-												'woocommerce-gateway-stripe'
-											),
-											shippingWarnings.length
-										) }
+										<strong>
+											{ sprintf(
+												/* translators: %d: number of shipping zones the warning covers. */
+												_n(
+													'%d shipping zone will have no shipping in the feed:',
+													'%d shipping zones will have no shipping in the feed:',
+													shippingWarnings.length,
+													'woocommerce-gateway-stripe'
+												),
+												shippingWarnings.length
+											) }
+										</strong>
 									</summary>
 									<ul>
 										{ shippingWarnings.map(
