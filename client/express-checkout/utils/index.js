@@ -65,6 +65,23 @@ export const getExpressCheckoutData = ( key ) =>
 	wc_stripe_express_checkout_params?.[ key ] ?? null;
 
 /**
+ * Returns the server-provided default shipping option as a single-element rates
+ * array, or an empty array when none is configured.
+ *
+ * Express Checkout requires a non-empty shipping-rates array whenever shipping
+ * is required. The classic, Blocks, and event-handler flows share this fallback
+ * for when the cart yields no real rates (e.g. free-trial carts that defer
+ * shipping to the recurring payment).
+ *
+ * @return {Array} The default shipping options array, empty when none is set.
+ */
+export const getDefaultShippingOptions = () => {
+	const defaultShippingOption =
+		getExpressCheckoutData( 'checkout' )?.default_shipping_option;
+	return defaultShippingOption ? [ defaultShippingOption ] : [];
+};
+
+/**
  * Construct Express Checkout AJAX endpoint URL.
  *
  * @param {string} endpoint Request endpoint URL.
