@@ -45,7 +45,7 @@ Use the smallest command set needed for the task:
 | List worktrees | `npm run worktree:status` | Shows port, URL, container state for every worktree; warns about orphan containers. |
 | Clean up a worktree | `npm run worktree:cleanup` | Stops the worktree's container, drops `wcstripe_tests_<id>`, removes `.env`. Run before `git worktree remove`. |
 | Build frontend assets | `npm run build:webpack` | Use when editing client-side sources that ship built assets. |
-| Analyze bundle sizes | `BUNDLE_ANALYZE=true npm run build:webpack` | Writes `bundle-report.html` (gitignored) to the repo root. Open it to see a per-bundle module treemap. |
+| Analyze bundle sizes | `BUNDLE_ANALYZE=true npm run build:webpack` | Writes `bundle-report-shopper.html` and `bundle-report-admin.html` (gitignored) to the repo root. Open them to see a per-bundle module treemap. Note the per-module sizes are estimates split proportionally across a scope-hoisted bundle; attribute real bytes via the emitted `.js.map` when precision matters. |
 | Dev hot reload | `npm start` | Webpack watch/dev mode. |
 | PHPUnit | `npm run test:php` | Requires Docker environment running. |
 | PHPUnit (parallel) | `npm run test:php:parallel` | Runs tests in parallel via paratest; requires Docker. Set `XDEBUG_MODE_PHPUNIT=coverage` to enable coverage. |
@@ -66,6 +66,7 @@ Use the smallest command set needed for the task:
 - Missing E2E config: copy `tests/e2e/config/local.env.example` to `tests/e2e/config/local.env`.
 - E2E specs that mutate global store settings (for example currency) MUST run in a dedicated Playwright project and separate CI matrix job, not in `default`.
 - Forgetting payment method registration: adding a `WC_Stripe_UPE_Payment_Method` class is not enough; it must also be registered in `WC_Stripe::init()` and constants updated.
+- Adding a webpack entry point to only one of `shopperEntries`/`adminEntries` in `webpack.config.js`, or to the wrong one: the two groups get different Babel polyfill targets. See [Webpack Entry Point Groups](#webpack-entry-point-groups).
 - Updating only backend or frontend for UPE changes: most payment method work spans PHP (`includes/payment-methods/`) and Blocks/UI (`client/blocks/upe/`, icons).
 - Treating PHPStan baseline as a blanket suppressor: fix real type/nullability issues first.
 - Skipping `@dataProvider` for multi-scenario PHPUnit tests: this repository standardizes on data providers for parameterized inputs.
@@ -107,6 +108,30 @@ Traits:
 - WooCommerce Blocks integration: `client/blocks/`.
 - Data stores: `client/data/` (`settings`, `account`, `payment-gateway`, `account-keys`).
 - Express checkout flows: `client/express-checkout/`.
+
+### Webpack Entry Point Groups
+
+`webpack.config.js` exports **two** configurations, not one. Every entry point belongs
+to exactly one of them:
+
+- `shopperEntries` (`upe-classic`, `upe-blocks`, `express-checkout`) build with no
+  Babel `targets`, so `@babel/transform-runtime` ships a core-js polyfill for every
+  method call it can polyfill. A shopper whose browser can't run checkout is a lost
+  order and can't be asked to upgrade.
+- `adminEntries` (everything else) build with `@wordpress/browserslist-config`
+  targets, dropping the polyfills those browsers implement natively.
+
+They are separate compilers because the two groups share modules (`client/api/`,
+`client/stripe-utils/`, …) and Babel transforms a module once per compiler — a
+single compiler with per-path Babel overrides could not polyfill the same shared
+module for shoppers while leaving it unpolyfilled for admin.
+
+**MUST:** a new entry point has to be added to one of those two objects. Adding it to
+`adminEntries` when it renders on the storefront silently narrows browser support for
+shoppers.
+
+Both compilers emit into `build/`, so webpack's own output cleaning is off and
+`npm run build:webpack` empties the directory itself.
 
 ### Key Patterns
 
