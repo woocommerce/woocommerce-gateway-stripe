@@ -676,12 +676,40 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutECEPayForOrder( order, orderDetails, paymentData ) {
-		paymentData.shipping_address = orderDetails.shippingAddress;
+		const withPhoneFallback = ( address, phone ) =>
+			address && ! address.phone && phone
+				? { ...address, phone }
+				: address;
+
+		// The order-pay route overwrites the order's saved addresses before
+		// validating them, checking both phones against the single checkout
+		// phone-field option — so an empty wallet phone would erase the saved
+		// one. Reuse the resolved billing phone for shipping, as cart/checkout
+		// do with the one wallet phone.
+		const billingAddress = withPhoneFallback(
+			paymentData.billing_address,
+			orderDetails.billingPhone
+		);
+		const hasSavedShippingAddress = Object.values(
+			orderDetails.shippingAddress ?? {}
+		).some( Boolean );
+
+		const payload = {
+			...paymentData,
+			billing_address: billingAddress,
+			shipping_address:
+				orderDetails.needsShipping && hasSavedShippingAddress
+					? withPhoneFallback(
+							orderDetails.shippingAddress,
+							billingAddress?.phone
+					  )
+					: orderDetails.shippingAddress,
+		};
 
 		const billingEmail = orderDetails.billingEmail ?? '';
 		const key = orderDetails.orderKey ?? '';
 		const url = `/wc/store/v1/checkout/${ order }?key=${ key }&billing_email=${ billingEmail }`;
-		return this.postToStoreApi( url, paymentData );
+		return this.postToStoreApi( url, payload );
 	}
 
 	/**
