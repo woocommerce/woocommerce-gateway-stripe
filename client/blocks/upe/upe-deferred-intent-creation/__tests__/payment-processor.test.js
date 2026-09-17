@@ -37,7 +37,9 @@ jest.mock( 'wcstripe/blocks/utils', () => ( {
 	getStripeImageUrl: jest.fn( () => '' ),
 } ) );
 
-jest.mock( 'wcstripe/api', () => jest.fn() );
+jest.mock( 'wcstripe/api/stripe', () => ( {
+	getStripe: ( api ) => api.getStripe(),
+} ) );
 
 jest.mock( 'wcstripe/stripe-utils', () => ( {
 	validateBlikCode: jest.fn(),
