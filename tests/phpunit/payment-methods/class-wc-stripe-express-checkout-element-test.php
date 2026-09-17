@@ -1076,7 +1076,7 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	 * A negative order fee (e.g. a discount extension applying its discount as a fee) must be
 	 * tagged with the `total_discount` key so the express checkout client re-applies the sign.
 	 * Without the tag, `get_stripe_amount()` flips the fee positive, the display items sum to
-	 * more than the order total, and Stripe rejects the wallet sheet. See STRIPE-1456.
+	 * more than the order total, and Stripe rejects the wallet sheet.
 	 *
 	 * @param float $fee_amount    Fee amount to add to the order.
 	 * @param array $expected_item Expected display item for the fee, as decoded from the payload.
