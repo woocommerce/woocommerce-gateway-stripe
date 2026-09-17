@@ -692,12 +692,11 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	}
 
 	/**
-	 * Whether the merchant has opted to auto-set `disable_checkout` (feed-only /
-	 * redirect) on add-on / configurator products. Drives a default branch in
-	 * {@see WC_Stripe_Agentic_Commerce_Product_Mapper::get_disable_checkout()};
-	 * a custom filter still overrides it.
+	 * Whether the merchant has opted to set `disable_checkout` for add-on /
+	 * configurator products so they redirect to the local checkout.
 	 *
-	 * @since 10.9.0
+	 * @see WC_Stripe_Agentic_Commerce_Product_Mapper::get_disable_checkout()
+	 * @since 11.1.0
 	 * @return bool
 	 */
 	public static function is_auto_redirect_checkout_addons_enabled(): bool {
