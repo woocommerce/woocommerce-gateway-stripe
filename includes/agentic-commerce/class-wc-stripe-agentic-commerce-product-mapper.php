@@ -36,15 +36,22 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 
 	/**
 	 * Postmeta keys whose non-empty presence marks a product as carrying add-on /
-	 * configurator options. The first three seed the
-	 * `woocommerce_agentic_commerce_addon_detection_meta_keys` filter default;
+	 * configurator options: Product Add-Ons, TM Extra Product Options, and
+	 * Composite Products. Seeds the
+	 * `wc_stripe_agentic_commerce_addon_detection_meta_keys` filter default;
 	 * the Bundles key is checked separately (only `yes` counts). See
 	 * {@see self::product_has_addons()}.
 	 */
-	public const ADDON_META_PRODUCT_ADDONS             = '_product_addons';
-	public const ADDON_META_EXTRA_PRODUCT_OPTIONS      = 'tm_meta_cpf_options';
-	public const ADDON_META_COMPOSITE                  = 'composite_data';
-	public const ADDON_META_BUNDLE_PRICED_INDIVIDUALLY = '_wc_pb_priced_individually';
+	private const ADDON_DETECTION_META_KEYS = [
+		'_product_addons',
+		'tm_meta_cpf_options',
+		'composite_data',
+	];
+
+	/**
+	 * Product Bundles' priced-individually flag; an add-on signal only when `yes`.
+	 */
+	private const ADDON_META_BUNDLE_PRICED_INDIVIDUALLY = '_wc_pb_priced_individually';
 
 	/**
 	 * Stripe feed schema definition.
@@ -1320,36 +1327,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 			}
 		}
 
-		/**
-		 * Meta keys whose non-empty presence marks a product as carrying add-on /
-		 * configurator options. Extend to support plugins not covered here.
-		 *
-		 * @since 10.9.0
-		 * @param string[]    $meta_keys Meta keys treated as add-on signals.
-		 * @param \WC_Product $target    Product whose meta is inspected (parent for variations).
-		 */
-		$meta_keys = apply_filters(
-			'woocommerce_agentic_commerce_addon_detection_meta_keys',
-			[
-				self::ADDON_META_PRODUCT_ADDONS,
-				self::ADDON_META_EXTRA_PRODUCT_OPTIONS,
-				self::ADDON_META_COMPOSITE,
-			],
-			$target
-		);
-
-		$has_addons = false;
-		if ( is_array( $meta_keys ) ) {
-			foreach ( $meta_keys as $meta_key ) {
-				if ( ! is_string( $meta_key ) || '' === $meta_key ) {
-					continue;
-				}
-				if ( ! empty( $target->get_meta( $meta_key ) ) ) {
-					$has_addons = true;
-					break;
-				}
-			}
-		}
+		$has_addons = self::matches_addon_meta_keys( $target );
 
 		// Bundles only vary at runtime when priced individually; the meta is `no`
 		// on fixed-price bundles, which must stay eligible.
@@ -1363,15 +1341,44 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		 * configurable (or clear a false positive) directly, instead of only
 		 * extending the meta-key set.
 		 *
-		 * Uses the shareable `woocommerce_` prefix so non-Stripe Agentic Commerce
-		 * integrations can hook the same decision.
-		 *
 		 * @since 11.1.0
 		 * @param bool        $has_addons Whether meta-key detection flagged the product.
 		 * @param \WC_Product $product    The product (or variation) inspected.
 		 * @param \WC_Product $target     The product whose meta was read (parent for variations).
 		 */
-		return (bool) apply_filters( 'woocommerce_agentic_commerce_product_has_addon', $has_addons, $product, $target );
+		return (bool) apply_filters( 'wc_stripe_agentic_commerce_product_has_addon', $has_addons, $product, $target );
+	}
+
+	/**
+	 * Whether any of the (filterable) add-on detection meta keys is non-empty
+	 * on the given product.
+	 *
+	 * @since 11.1.0
+	 * @param \WC_Product $target Product whose meta is inspected (parent for variations).
+	 * @return bool
+	 */
+	private static function matches_addon_meta_keys( \WC_Product $target ): bool {
+		/**
+		 * Meta keys whose non-empty presence marks a product as carrying add-on /
+		 * configurator options. Extend to support plugins not covered here.
+		 *
+		 * @since 11.1.0
+		 * @param string[]    $meta_keys Meta keys treated as add-on signals.
+		 * @param \WC_Product $target    Product whose meta is inspected (parent for variations).
+		 */
+		$meta_keys = apply_filters( 'wc_stripe_agentic_commerce_addon_detection_meta_keys', self::ADDON_DETECTION_META_KEYS, $target );
+
+		if ( ! is_array( $meta_keys ) || [] === $meta_keys ) {
+			return false;
+		}
+
+		foreach ( $meta_keys as $meta_key ) {
+			if ( is_string( $meta_key ) && '' !== $meta_key && ! empty( $target->get_meta( $meta_key ) ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**

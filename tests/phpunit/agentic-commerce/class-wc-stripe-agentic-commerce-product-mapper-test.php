@@ -1580,12 +1580,12 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 			$keys[] = '_my_custom_configurator';
 			return $keys;
 		};
-		add_filter( 'woocommerce_agentic_commerce_addon_detection_meta_keys', $callback );
+		add_filter( 'wc_stripe_agentic_commerce_addon_detection_meta_keys', $callback );
 
 		try {
 			$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ) );
 		} finally {
-			remove_filter( 'woocommerce_agentic_commerce_addon_detection_meta_keys', $callback );
+			remove_filter( 'wc_stripe_agentic_commerce_addon_detection_meta_keys', $callback );
 			$product->delete( true );
 		}
 	}
@@ -1603,7 +1603,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$this->assertFalse( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ) );
 
 		$force_true = static fn() => true;
-		add_filter( 'woocommerce_agentic_commerce_product_has_addon', $force_true );
+		add_filter( 'wc_stripe_agentic_commerce_product_has_addon', $force_true );
 
 		try {
 			$this->assertTrue(
@@ -1611,7 +1611,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 				'The filter must be able to mark an otherwise-plain product as configurable.'
 			);
 		} finally {
-			remove_filter( 'woocommerce_agentic_commerce_product_has_addon', $force_true );
+			remove_filter( 'wc_stripe_agentic_commerce_product_has_addon', $force_true );
 			$product->delete( true );
 		}
 	}
