@@ -359,10 +359,24 @@ class WC_Stripe_Express_Checkout_Element {
 		}
 
 		foreach ( $order->get_fees() as $fee ) {
-			$items[] = [
-				'label'  => $fee->get_name(),
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $fee->get_amount(), $currency ),
-			];
+			$fee_amount = (float) $fee->get_amount();
+			$item       = [];
+
+			// A negative fee (e.g. a discount extension applying its discount as a fee
+			// instead of a coupon) must stay negative once it reaches Stripe, but
+			// get_stripe_amount() always returns a non-negative minor-unit value. Tag it
+			// so the express checkout client (`normalizeLineItems()`) re-applies the sign,
+			// mirroring WC_Stripe_Helper::build_line_items(); otherwise the summed display
+			// items exceed the order total and Stripe rejects the payment sheet with
+			// "the amount is less than the total amount of the line items provided."
+			if ( $fee_amount < 0 ) {
+				$item['key'] = 'total_discount';
+			}
+
+			$item['label']  = $fee->get_name();
+			$item['amount'] = WC_Stripe_Helper::get_stripe_amount( abs( $fee_amount ), $currency );
+
+			$items[] = $item;
 		}
 
 		$data['order']          = $order->get_id();

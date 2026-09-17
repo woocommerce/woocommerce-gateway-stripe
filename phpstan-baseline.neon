@@ -3435,7 +3435,7 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
 			identifier: argument.type
-			count: 2
+			count: 1
 			path: includes/payment-methods/class-wc-stripe-express-checkout-element.php
 
 		-
