@@ -355,7 +355,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		// Card is required for Apple Pay and Google Pay.
 		if ( $is_upe_enabled &&
 			$is_express_checkout_enabled &&
-			is_array( $payment_method_ids_to_enable ) &&
 			in_array( WC_Stripe_Payment_Methods::CARD, $payment_method_ids_to_enable, true )
 		) {
 			$payment_method_ids_to_enable = array_merge(
