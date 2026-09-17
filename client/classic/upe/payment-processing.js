@@ -747,7 +747,7 @@ function createStripePaymentMethod(
 			: { elements, params };
 
 	return api
-		.getStripe( paymentMethodType )
+		.getStripe()
 		.createPaymentMethod( paymentMethodData )
 		.then( ( paymentMethod ) => {
 			if ( paymentMethod.error ) {

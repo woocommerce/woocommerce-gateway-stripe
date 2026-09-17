@@ -309,7 +309,7 @@ export default class WCStripeAPI {
 
 		const confirmAction = isSetupIntent
 			? this.getStripe().confirmSetup( confirmArgs )
-			: this.getStripe( true ).confirmPayment( confirmArgs );
+			: this.getStripe().confirmPayment( confirmArgs );
 
 		const request = confirmAction
 			// ToDo: Switch to an async function once it works with webpack.
