@@ -267,52 +267,6 @@ export default class WCStripeAPI {
 	}
 
 	/**
-	 * Updates a payment intent with data from order: customer, level3 data and and maybe sets the payment for future use.
-	 *
-	 * @param {string} intentId               The id of the payment intent.
-	 * @param {number} orderId                The id of the order.
-	 * @param {string} savePaymentMethod      'yes' if saving.
-	 * @param {string} selectedUPEPaymentType The name of the selected UPE payment type or empty string.
-	 *
-	 * @return {Object|undefined} The response from the server or undefined if the intent is a setup intent.
-	 */
-	updateIntent(
-		intentId,
-		orderId,
-		savePaymentMethod,
-		selectedUPEPaymentType
-	) {
-		// Don't update setup intents.
-		if ( intentId.includes( 'seti_' ) ) {
-			return;
-		}
-
-		return this.request( this.getAjaxUrl( 'update_payment_intent' ), {
-			stripe_order_id: orderId,
-			wc_payment_intent_id: intentId,
-			save_payment_method: savePaymentMethod,
-			selected_upe_payment_type: selectedUPEPaymentType,
-			_ajax_nonce: this.options?.updatePaymentIntentNonce,
-		} )
-			.then( ( response ) => {
-				if ( response.result === 'failure' ) {
-					throw new Error( response.messages );
-				}
-				return response;
-			} )
-			.catch( ( error ) => {
-				if ( error.message ) {
-					throw error;
-				} else {
-					// Covers the case of error on the Ajaxrequest.
-					throw new Error(
-						this.getFriendlyErrorMessage( error.statusText )
-					);
-				}
-			} );
-	}
-
-	/**
 	 * Extracts the details about a payment intent from the redirect URL,
 	 * and displays the intent confirmation modal (if needed).
 	 *
@@ -486,42 +440,6 @@ export default class WCStripeAPI {
 	}
 
 	/**
-	 * Submits shipping address to get available shipping options
-	 * from Express Checkout ECE payment method.
-	 *
-	 * @param {Object} shippingAddress Shipping details.
-	 * @return {Promise} Promise for the request to the server.
-	 */
-	async expressCheckoutECECalculateShippingOptions( shippingAddress ) {
-		return this.request(
-			getExpressCheckoutAjaxURL( 'get_shipping_options' ),
-			{
-				security: await this.expressCheckoutGetNonce( 'shipping' ),
-				is_product_page: getExpressCheckoutData( 'is_product_page' ),
-				...shippingAddress,
-			}
-		);
-	}
-
-	/**
-	 * Updates cart with selected shipping option.
-	 *
-	 * @param {Object} shippingOption Shipping option.
-	 * @return {Promise} Promise for the request to the server.
-	 */
-	async expressCheckoutUpdateShippingDetails( shippingOption ) {
-		return this.request(
-			getExpressCheckoutAjaxURL( 'update_shipping_method' ),
-			{
-				security:
-					await this.expressCheckoutGetNonce( 'update_shipping' ),
-				shipping_method: [ shippingOption.id ],
-				is_product_page: getExpressCheckoutData( 'is_product_page' ),
-			}
-		);
-	}
-
-	/**
 	 * Normalizes address fields in WooCommerce supported format.
 	 *
 	 * @param {Object} billingAddress  Billing address.
@@ -548,19 +466,6 @@ export default class WCStripeAPI {
 			method: 'GET',
 			path: '/wc/store/v1/cart',
 			security: getExpressCheckoutData( 'nonce' )?.wc_store_api,
-		} );
-	}
-
-	/**
-	 * Get cart items and total amount (legacy version, non-StoreAPI).
-	 *
-	 * @todo Remove this once WC 9.7.0 is the min. required version.
-	 *
-	 * @return {Promise} Promise for the request to the server.
-	 */
-	async expressCheckoutGetCartDetailsLegacy() {
-		return this.request( getExpressCheckoutAjaxURL( 'get_cart_details' ), {
-			security: await this.expressCheckoutGetNonce( 'get_cart_details' ),
 		} );
 	}
 
@@ -601,34 +506,6 @@ export default class WCStripeAPI {
 			security: await this.expressCheckoutGetNonce( 'add_to_cart' ),
 			...productData,
 		} );
-	}
-
-	/**
-	 * Empty the cart.
-	 *
-	 * @param {number} bookingId Booking ID.
-	 * @return {Promise} Promise for the request to the server.
-	 */
-	async expressCheckoutEmptyCart( bookingId ) {
-		try {
-			const cartData = await apiFetch( {
-				method: 'GET',
-				path: '/wc/store/v1/cart',
-				headers: {
-					Nonce: getExpressCheckoutData( 'nonce' )?.wc_store_api,
-				},
-			} );
-			const removeItemsPromises = cartData.items.map( ( item ) => {
-				return this.postToStoreApi( '/wc/store/v1/cart/remove-item', {
-					key: item.key,
-					booking_id: bookingId,
-				} );
-			} );
-
-			await Promise.all( removeItemsPromises );
-		} catch ( e ) {
-			// let's ignore the error, it's likely not going to be relevant.
-		}
 	}
 
 	/**
@@ -720,39 +597,5 @@ export default class WCStripeAPI {
 				...productData,
 			}
 		);
-	}
-
-	/**
-	 * Creates a new checkout session.
-	 *
-	 * @return {Promise} Promise for the request to the server.
-	 */
-	checkoutSessionsCreateSession() {
-		return this.request( this.getAjaxUrl( 'create_checkout_session' ), {
-			security: this.options?.createCheckoutSessionNonce,
-		} );
-	}
-
-	/**
-	 * Update a Stripe Checkout Session.
-	 *
-	 * @param {string} sessionId The ID of the checkout session to update.
-	 * @return {Promise} Promise for the request to the server.
-	 * @throws {Error} When the server responds with an application-level error.
-	 */
-	async checkoutSessionsUpdateSession( sessionId ) {
-		const response = await this.request(
-			this.getAjaxUrl( 'update_checkout_session' ),
-			{
-				security: this.options?.updateCheckoutSessionNonce,
-				checkout_session_id: sessionId,
-			}
-		);
-
-		if ( response && response.success === false ) {
-			throw new Error( response.data?.message );
-		}
-
-		return response;
 	}
 }
