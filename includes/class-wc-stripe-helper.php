@@ -2379,10 +2379,24 @@ class WC_Stripe_Helper {
 
 		// Include fees and taxes as display items.
 		foreach ( $cart_fees as $fee ) {
-			$items[] = [
-				'label'  => $fee->name,
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $fee->amount ),
-			];
+			$fee_amount = (float) $fee->amount;
+			$item       = [];
+
+			// A negative fee (e.g. a discount extension applying its discount as a cart fee
+			// instead of a coupon) must stay negative once it reaches Stripe, but
+			// get_stripe_amount() always returns a non-negative minor-unit value. Tag it the
+			// same way the coupon discount item above is tagged so the express checkout
+			// client (`normalizeLineItems()`) re-applies the sign; otherwise the summed
+			// display items exceed the cart total and Stripe rejects the payment sheet with
+			// "the amount is less than the total amount of the line items provided."
+			if ( $fee_amount < 0 ) {
+				$item['key'] = 'total_discount';
+			}
+
+			$item['label']  = $fee->name;
+			$item['amount'] = WC_Stripe_Helper::get_stripe_amount( abs( $fee_amount ) );
+
+			$items[] = $item;
 		}
 
 		return $items;

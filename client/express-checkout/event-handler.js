@@ -1,4 +1,5 @@
 import {
+	getDefaultShippingOptions,
 	getExpressCheckoutData,
 	getExpressCheckoutErrorMessage,
 	isManualPaymentMethodCreation,
@@ -45,7 +46,18 @@ export const shippingAddressChangeHandler = async ( event, elements ) => {
 			),
 		} );
 
-		const shippingRates = transformCartDataForShippingRates( cartData );
+		let shippingRates = transformCartDataForShippingRates( cartData );
+
+		// No package at all means nothing ships now (Woo Subscriptions defers
+		// free-trial shipping to the recurring payments), so keep the
+		// placeholder the sheet was opened with. A package with empty rates
+		// still rejects below: that address cannot be served.
+		if (
+			shippingRates.length === 0 &&
+			( cartData?.shipping_rates?.length ?? 0 ) === 0
+		) {
+			shippingRates = getDefaultShippingOptions();
+		}
 
 		if ( shippingRates.length === 0 ) {
 			event.reject();
@@ -78,6 +90,20 @@ export const shippingAddressChangeHandler = async ( event, elements ) => {
  * @return {Promise<void>} Resolves when the shipping rate has been updated.
  */
 export const shippingRateChangeHandler = async ( event, elements ) => {
+	// The default shipping option from get_default_shipping_option() is a
+	// placeholder, not a real WooCommerce rate; the Store API would reject
+	// selecting it. Compare against the server-provided id so this stays in
+	// sync if that placeholder id ever changes.
+	const defaultShippingOptionId =
+		getExpressCheckoutData( 'checkout' )?.default_shipping_option?.id;
+	if (
+		defaultShippingOptionId &&
+		event.shippingRate?.id === defaultShippingOptionId
+	) {
+		event.resolve();
+		return;
+	}
+
 	try {
 		const cartData = await cartApi.selectShippingRate( {
 			package_id: 0,

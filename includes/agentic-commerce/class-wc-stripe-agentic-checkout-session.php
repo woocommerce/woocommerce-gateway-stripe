@@ -317,4 +317,46 @@ class WC_Stripe_Agentic_Checkout_Session {
 		$network_business_profile = $agent_details->network_business_profile ?? '';
 		return is_string( $network_business_profile ) && '' !== $network_business_profile;
 	}
+
+	/**
+	 * Returns a label for the agent network that originated this session,
+	 * or null when absent (non-agentic sessions).
+	 *
+	 * Prefer the human-readable agent name over network_business_profile:
+	 * agent_details includes name and display_name fields as well as the profile
+	 * field, but the profile is an opaque ID which is not meaningful to merchants.
+	 *
+	 * @since 11.1.0
+	 * @return string|null
+	 */
+	public function get_agent_source(): ?string {
+		$agent_details = $this->session->payment_intent->agent_details ?? null;
+		if ( ! is_object( $agent_details ) ) {
+			return null;
+		}
+
+		$candidates = array_filter(
+			[
+				$agent_details->name ?? null,
+				$agent_details->display_name ?? null,
+				$agent_details->network_business_profile ?? null,
+			]
+		);
+
+		foreach ( $candidates as $candidate ) {
+			// Tolerate a future expansion of the profile into an object.
+			if ( is_object( $candidate ) ) {
+				$candidate = $candidate->name ?? $candidate->id ?? null;
+			}
+
+			if ( is_string( $candidate ) ) {
+				$trimmed_candidate = trim( $candidate );
+				if ( '' !== $trimmed_candidate ) {
+					return $trimmed_candidate;
+				}
+			}
+		}
+
+		return null;
+	}
 }
