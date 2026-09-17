@@ -2,6 +2,7 @@ import {
 	normalizeLineItems,
 	normalizeOrderData,
 	normalizeShippingAddress,
+	transformVariationAttributesForStoreApi,
 } from '../normalize';
 import { select } from '@wordpress/data';
 import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
@@ -565,6 +566,55 @@ describe( 'Express checkout normalization', () => {
 			} );
 		} );
 
+		test( 'should use the shipping last name fallback for a one-word shipping name', () => {
+			const oneWordShippingNameEvent = {
+				shippingAddress: {
+					name: 'Cher',
+				},
+			};
+
+			const normalizedData = normalizeOrderData( {
+				event: oneWordShippingNameEvent,
+				paymentMethodId,
+			} );
+
+			expect( normalizedData.shipping_address ).toMatchObject( {
+				first_name: 'Cher',
+				last_name: '-',
+			} );
+		} );
+
+		test( 'should use the shipping last name fallback for a one-word shipping name with leading and trailing whitespace', () => {
+			const oneWordShippingNameEvent = {
+				shippingAddress: {
+					name: '  Cher  ',
+				},
+			};
+
+			const normalizedData = normalizeOrderData( {
+				event: oneWordShippingNameEvent,
+				paymentMethodId,
+			} );
+
+			expect( normalizedData.shipping_address ).toMatchObject( {
+				first_name: 'Cher',
+				last_name: '-',
+			} );
+		} );
+
+		test( 'should not use the shipping last name fallback for a whitespace-only name', () => {
+			const normalizedData = normalizeOrderData( {
+				event: {
+					shippingAddress: {
+						name: ' ',
+					},
+				},
+				paymentMethodId,
+			} );
+
+			expect( normalizedData.shipping_address.last_name ).toBe( '' );
+		} );
+
 		test( 'should use the placeholder fallback instead of an existing billing last name', () => {
 			select.mockImplementation( () => ( {
 				getExtensionData: () => ( {} ),
@@ -774,5 +824,44 @@ describe( 'Express checkout normalization', () => {
 				expectedNormalizedAddress
 			);
 		} );
+	} );
+
+	describe( 'transformVariationAttributesForStoreApi', () => {
+		test( 'maps the attribute/value object to the Store API pair list', () => {
+			const attributes = {
+				attribute_pa_color: 'blue',
+				attribute_size: 'large',
+			};
+
+			expect(
+				transformVariationAttributesForStoreApi( attributes )
+			).toEqual( [
+				{ attribute: 'attribute_pa_color', value: 'blue' },
+				{ attribute: 'attribute_size', value: 'large' },
+			] );
+		} );
+
+		test( 'preserves empty "any" attribute values', () => {
+			const attributes = {
+				attribute_pa_color: '',
+				attribute_size: 'large',
+			};
+
+			expect(
+				transformVariationAttributesForStoreApi( attributes )
+			).toEqual( [
+				{ attribute: 'attribute_pa_color', value: '' },
+				{ attribute: 'attribute_size', value: 'large' },
+			] );
+		} );
+
+		test.each( [ [ undefined ], [ null ], [ {} ] ] )(
+			'returns an empty array for %p',
+			( input ) => {
+				expect(
+					transformVariationAttributesForStoreApi( input )
+				).toEqual( [] );
+			}
+		);
 	} );
 } );

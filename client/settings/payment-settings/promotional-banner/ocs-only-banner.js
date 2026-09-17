@@ -35,7 +35,7 @@ export const OCSOnlyBanner = ( { setShowPromotionalBanner } ) => {
 					</BannerTitle>
 					<BannerIntro>
 						{ __(
-							'Your checkout dynamically displays the payment methods most likely to drive conversions.',
+							"Your checkout is optimized for sales by dynamically displaying the most relevant payment methods you've enabled for each customer.",
 							'woocommerce-gateway-stripe'
 						) }
 					</BannerIntro>

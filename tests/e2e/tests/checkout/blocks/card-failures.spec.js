@@ -7,6 +7,7 @@ const {
 	setupCart,
 	setupBlocksCheckout,
 	fillCreditCardDetails,
+	getPaymentElementFrame,
 	clickPlaceOrder,
 } = payments;
 
@@ -31,12 +32,8 @@ const testCard = async ( page, cardKey ) => {
 	 */
 	let expected;
 	if ( cardKey === 'cards.declined-incorrect' ) {
-		expected = await page
-			.frameLocator(
-				'.wcstripe-payment-element iframe[name^="__privateStripeFrame"]'
-			)
-			.locator( '#Field-numberError' )
-			.innerText();
+		const form = await getPaymentElementFrame( page );
+		expected = await form.locator( '#Field-numberError' ).innerText();
 	} else {
 		expected = await page.innerText(
 			'.wc-block-store-notice.is-error .wc-block-components-notice-banner__content'

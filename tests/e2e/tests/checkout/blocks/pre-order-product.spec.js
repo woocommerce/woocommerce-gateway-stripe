@@ -4,8 +4,12 @@ import config from 'config';
 import { api, payments, products } from '../../../utils';
 import { isPluginInstalled } from '../../../utils/plugin-utils';
 
-const { setupBlocksCheckout, fillCreditCardDetails, clickAddToCartButton } =
-	payments;
+const {
+	setupBlocksCheckout,
+	fillCreditCardDetails,
+	clickAddToCartButton,
+	waitForOrderReceivedPage,
+} = payments;
 
 let productId;
 
@@ -45,9 +49,6 @@ test( 'customer can purchase a pre-order product @blocks @pre-orders', async ( {
 	await fillCreditCardDetails( page, config.get( 'cards.no-3ds' ) );
 
 	await page.locator( 'text="Place pre-order now"' ).click();
-	await page.waitForURL( '**/checkout/order-received/**' );
 
-	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-		'Order received'
-	);
+	await waitForOrderReceivedPage( page );
 } );

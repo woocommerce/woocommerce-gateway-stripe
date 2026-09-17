@@ -43,6 +43,15 @@ class WC_Helper_Stripe_Api extends WC_Stripe_API {
 	public static $expected_request_call_params = null;
 
 	/**
+	 * Exception to throw from request().
+	 *
+	 * Use this to simulate a failing Stripe API request (e.g. a network error).
+	 *
+	 * @var Exception|null
+	 */
+	public static $request_exception = null;
+
+	/**
 	 * Reset the helper.
 	 */
 	public static function reset() {
@@ -52,6 +61,7 @@ class WC_Helper_Stripe_Api extends WC_Stripe_API {
 		];
 		self::$request_response             = [];
 		self::$expected_request_call_params = null;
+		self::$request_exception            = null;
 	}
 
 	/**
@@ -76,6 +86,11 @@ class WC_Helper_Stripe_Api extends WC_Stripe_API {
 	 * @return array $response
 	 */
 	public static function request( $request, $api = 'charges', $method = 'POST', $with_headers = false ) {
+		// Simulate a failing Stripe API request when configured to do so.
+		if ( self::$request_exception instanceof Exception ) {
+			throw self::$request_exception;
+		}
+
 		// If the expected request calls params are set, check if the params match the expected params.
 		if ( ! is_null( self::$expected_request_call_params ) ) {
 			$passed_params   = [ $request, $api, $method, $with_headers ];

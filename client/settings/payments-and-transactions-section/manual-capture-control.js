@@ -3,7 +3,7 @@ import interpolateComponents from '@automattic/interpolate-components';
 import React, { useState } from 'react';
 import { Icon, info } from '@wordpress/icons';
 import { __ } from '@wordpress/i18n';
-import { CheckboxControl, Button } from '@wordpress/components';
+import { CheckboxControl, Button, ExternalLink } from '@wordpress/components';
 import { useManualCapture } from 'wcstripe/data';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 
@@ -41,6 +41,13 @@ const ManualCaptureControl = () => {
 	const [ isConfirmationModalOpen, setIsConfirmationModalOpen ] =
 		useState( false );
 
+	// Agentic Commerce capture is configured in the Stripe dashboard, not by this
+	// plugin setting, so only flag the divergence to merchants who have actually
+	// enabled Agentic Commerce — gate on the merchant toggle, not the feature flag.
+	const isAgenticCommerceEnabled =
+		!! window.wc_stripe_settings_params
+			?.is_agentic_commerce_merchant_enabled;
+
 	const handleCheckboxToggle = ( isChecked ) => {
 		// toggling from "manual" capture to "automatic" capture - no need to show the modal.
 		if ( ! isChecked ) {
@@ -75,8 +82,7 @@ const ManualCaptureControl = () => {
 					),
 					components: {
 						learnMoreLink: (
-							// eslint-disable-next-line jsx-a11y/anchor-has-content
-							<a href="https://woocommerce.com/document/stripe/admin-experience/authorize-and-capture/" />
+							<ExternalLink href="https://woocommerce.com/document/stripe/admin-experience/authorize-and-capture/" />
 						),
 					},
 				} ) }
@@ -121,6 +127,14 @@ const ManualCaptureControl = () => {
 								'woocommerce-gateway-stripe'
 							) }
 						</WarningListElement>
+						{ isAgenticCommerceEnabled && (
+							<WarningListElement>
+								{ __(
+									'Agentic Commerce purchases follow the capture setting in your Stripe agentic commerce dashboard, not this option.',
+									'woocommerce-gateway-stripe'
+								) }
+							</WarningListElement>
+						) }
 					</WarningList>
 				</ConfirmationModal>
 			) }

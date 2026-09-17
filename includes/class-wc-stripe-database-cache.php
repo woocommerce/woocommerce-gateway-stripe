@@ -122,6 +122,7 @@ class WC_Stripe_Database_Cache {
 	 * @return mixed|null The cache contents. NULL if the cache value is expired or missing.
 	 */
 	public static function get_with_mode( $key, ?string $mode = null ) {
+		$mode           = self::resolve_mode( $mode );
 		$prefixed_key   = self::add_key_prefix( $key, $mode );
 		$cache_contents = self::get_from_cache( $prefixed_key );
 		if ( is_array( $cache_contents ) && array_key_exists( 'data', $cache_contents ) ) {
@@ -129,7 +130,10 @@ class WC_Stripe_Database_Cache {
 				return null;
 			}
 
-			self::maybe_trigger_prefetch( $key, $cache_contents );
+			// Prefetch handlers refresh the active mode, so another mode would update the wrong cache.
+			if ( self::resolve_mode() === $mode ) {
+				self::maybe_trigger_prefetch( $key, $cache_contents );
+			}
 
 			return $cache_contents['data'];
 		}
@@ -270,8 +274,6 @@ class WC_Stripe_Database_Cache {
 		 * @param bool   $is_expired Whether the cache is expired.
 		 * @param string $prefixed_key The cache key (with prefix).
 		 * @param array  $cache_contents The cache contents.
-		 *
-		 * @return bool Whether the cache is expired.
 		 */
 		return apply_filters( 'wc_stripe_database_cache_is_expired', $expires < $now, $prefixed_key, $cache_contents );
 	}
@@ -329,14 +331,21 @@ class WC_Stripe_Database_Cache {
 	 * @return string The key with the prefix.
 	 */
 	private static function add_key_prefix( string $key, ?string $mode = null ): string {
+		return self::CACHE_KEY_PREFIX . self::resolve_mode( $mode ) . '_' . $key;
+	}
+
+	/**
+	 * Resolves the cache mode while preserving the existing fallback for invalid values.
+	 *
+	 * @param string|null $mode The requested mode.
+	 * @return string The resolved mode.
+	 */
+	private static function resolve_mode( ?string $mode = null ): string {
 		if ( null === $mode ) {
-			$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
-		} elseif ( 'live' !== $mode && 'test' !== $mode ) {
-			// Don't allow other values for $mode
-			$mode = 'test';
+			return WC_Stripe_Mode::is_test() ? 'test' : 'live';
 		}
-		// Otherwise $mode is either 'live' or 'test'
-		return self::CACHE_KEY_PREFIX . $mode . '_' . $key;
+
+		return in_array( $mode, [ 'test', 'live' ], true ) ? $mode : 'test';
 	}
 
 	/**

@@ -2,7 +2,7 @@ import jQuery from 'jquery';
 import { addFilter } from '@wordpress/hooks';
 
 /**
- * Sets the product ID when using the BlocksAPI and single variation form is present.
+ * Sets the product ID when using the Store API and single variation form is present.
  */
 addFilter(
 	'wcstripe.express-checkout.cart-add-item',

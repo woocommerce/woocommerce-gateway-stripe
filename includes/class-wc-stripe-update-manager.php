@@ -77,9 +77,11 @@ class WC_Stripe_Update_Manager {
 			[ WC_Stripe_Admin_Notices::class, 'check_update_notices' ],
 			[ new Allowed_Payment_Request_Button_Types_Update(), 'maybe_migrate' ],
 			[ new Migrate_Payment_Request_Data_To_Express_Checkout_Data(), 'maybe_migrate' ],
+			[ new WC_Stripe_Migrate_Link_Button_Locations(), 'maybe_migrate' ],
 			[ new Sepa_Tokens_For_Other_Methods_Settings_Update(), 'maybe_migrate' ],
 			[ new WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update(), 'maybe_migrate' ],
 			[ new WC_Stripe_OCS_AP_Default_On_Update(), 'maybe_migrate' ],
+			[ new WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update(), 'maybe_migrate' ],
 		];
 
 		return $functions;

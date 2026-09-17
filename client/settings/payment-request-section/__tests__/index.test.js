@@ -49,7 +49,6 @@ describe( 'PaymentRequestSection', () => {
 		useIsAdaptivePricingEnabled.mockReturnValue( [ false, jest.fn() ] );
 		global.wc_stripe_settings_params = {
 			...globalValues,
-			is_amazon_pay_available: true,
 			taxes_based_on_billing: false,
 			is_card_method_enabled: true,
 		};
@@ -99,22 +98,17 @@ describe( 'PaymentRequestSection', () => {
 		expect( linkCheckbox ).not.toBeChecked();
 	} );
 
-	it( 'render Amazon Pay if feature flag is on', () => {
-		global.wc_stripe_settings_params = {
-			...globalValues,
-			is_amazon_pay_available: true,
-		};
-
+	it( 'render Amazon Pay if it is an available payment method', () => {
 		render( <PaymentRequestSection /> );
 
 		expect( screen.queryByText( 'Amazon Pay' ) ).toBeInTheDocument();
 	} );
 
-	it( 'hide Amazon Pay if feature flag is off', () => {
-		global.wc_stripe_settings_params = {
-			...globalValues,
-			is_amazon_pay_available: false,
-		};
+	it( 'hide Amazon Pay if it is not an available payment method', () => {
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			PAYMENT_METHOD_CARD,
+			PAYMENT_METHOD_LINK,
+		] );
 
 		render( <PaymentRequestSection /> );
 
@@ -142,7 +136,6 @@ describe( 'PaymentRequestSection', () => {
 	it( 'Amazon Pay checkbox disabled', () => {
 		global.wc_stripe_settings_params = {
 			...globalValues,
-			is_amazon_pay_available: true,
 			taxes_based_on_billing: true,
 		};
 

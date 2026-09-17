@@ -1,10 +1,14 @@
 import { act, renderHook } from '@testing-library/react';
 import { useExpressCheckout } from '../hooks';
+import { onConfirmHandler } from 'wcstripe/express-checkout/event-handler';
 import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
 
+// Stable singletons, matching how react-stripe-js returns the same instances.
+const mockStripe = { confirmPayment: jest.fn() };
+const mockElements = { submit: jest.fn() };
 jest.mock( '@stripe/react-stripe-js', () => ( {
-	useStripe: jest.fn( () => ( { confirmPayment: jest.fn() } ) ),
-	useElements: jest.fn( () => ( { submit: jest.fn() } ) ),
+	useStripe: jest.fn( () => mockStripe ),
+	useElements: jest.fn( () => mockElements ),
 } ) );
 
 jest.mock( 'wcstripe/express-checkout/event-handler', () => ( {
@@ -220,5 +224,111 @@ describe( 'useExpressCheckout', () => {
 				phoneNumberRequired: true,
 			} )
 		);
+	} );
+
+	// An order-side failure still has to give the wallet sheet a terminal result,
+	// otherwise it stays open and the shopper is left with nothing. The third
+	// argument is the removed `isOrderError` opt-out: passing it must change nothing.
+	it( 'fails the payment on the wallet sheet when the order errors', async () => {
+		const setExpressPaymentError = jest.fn();
+
+		const { result } = renderHook( () =>
+			useExpressCheckout( {
+				api: {},
+				billing: {
+					currency: { minorUnit: 2 },
+					cartTotal: { value: 7500 },
+					cartTotalItems: [],
+				},
+				shippingData: { needsShipping: false, shippingRates: [] },
+				onClick: jest.fn(),
+				onClose: jest.fn(),
+				setExpressPaymentError,
+			} )
+		);
+
+		const event = { paymentFailed: jest.fn() };
+		await act( async () => {
+			await result.current.onConfirm( event );
+		} );
+
+		const { abortPayment } = onConfirmHandler.mock.calls[ 0 ][ 0 ];
+		abortPayment( event, 'Order creation error', true );
+
+		expect( event.paymentFailed ).toHaveBeenCalledWith( {
+			reason: 'fail',
+		} );
+		expect( setExpressPaymentError ).toHaveBeenCalledWith(
+			'Order creation error'
+		);
+
+		// The message has to be in front of the shopper before the sheet closes.
+		expect(
+			setExpressPaymentError.mock.invocationCallOrder[ 0 ]
+		).toBeLessThan( event.paymentFailed.mock.invocationCallOrder[ 0 ] );
+	} );
+
+	// Blocks passes fresh billing/shippingData refs each cart tick; memoised
+	// outputs must stay stable so the Stripe element doesn't churn.
+	it( 'keeps memoised outputs referentially stable across a cart-data re-render', () => {
+		const onClick = jest.fn();
+		const onClose = jest.fn();
+		const setExpressPaymentError = jest.fn();
+		const api = {};
+
+		const makeProps = () => ( {
+			api,
+			billing: {
+				currency: { minorUnit: 2, code: 'USD' },
+				cartTotal: { value: 7500 },
+				cartTotalItems: [ { name: 'Subtotal', amount: 7500 } ],
+			},
+			shippingData: { needsShipping: true, shippingRates: [] },
+			onClick,
+			onClose,
+			setExpressPaymentError,
+			expressPaymentMethod: 'applePay',
+		} );
+
+		const { result, rerender } = renderHook(
+			( props ) => useExpressCheckout( props ),
+			{ initialProps: makeProps() }
+		);
+
+		const first = result.current;
+
+		// Re-render with brand-new billing/shippingData refs (same values).
+		rerender( makeProps() );
+
+		expect( result.current.buttonOptions ).toBe( first.buttonOptions );
+		expect( result.current.onConfirm ).toBe( first.onConfirm );
+		expect( result.current.onCancel ).toBe( first.onCancel );
+	} );
+
+	it( 'rebuilds buttonOptions when the express payment method changes', () => {
+		const baseProps = {
+			api: {},
+			billing: {
+				currency: { minorUnit: 2, code: 'USD' },
+				cartTotal: { value: 7500 },
+				cartTotalItems: [],
+			},
+			shippingData: { needsShipping: false, shippingRates: [] },
+			onClick: jest.fn(),
+			onClose: jest.fn(),
+			setExpressPaymentError: jest.fn(),
+			expressPaymentMethod: 'applePay',
+		};
+
+		const { result, rerender } = renderHook(
+			( props ) => useExpressCheckout( props ),
+			{ initialProps: baseProps }
+		);
+
+		const first = result.current.buttonOptions;
+
+		rerender( { ...baseProps, expressPaymentMethod: 'googlePay' } );
+
+		expect( result.current.buttonOptions ).not.toBe( first );
 	} );
 } );

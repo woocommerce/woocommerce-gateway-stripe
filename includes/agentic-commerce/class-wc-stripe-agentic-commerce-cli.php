@@ -31,7 +31,13 @@ class WC_Stripe_Agentic_Commerce_CLI extends WP_CLI_Command {
 	 * ## OPTIONS
 	 *
 	 * [--push]
-	 * : Deliver the feed to Stripe after generation.
+	 * : Deliver the feed to Stripe after generation. Requires completed
+	 * onboarding (settings toggle on and webhook secret saved), matching the
+	 * scheduled sync's gate.
+	 *
+	 * [--force]
+	 * : Push even if onboarding is incomplete. Development escape hatch;
+	 * uploads the catalog to the connected Stripe account.
 	 *
 	 * ## EXAMPLES
 	 *
@@ -49,6 +55,12 @@ class WC_Stripe_Agentic_Commerce_CLI extends WP_CLI_Command {
 		// Check delivery setup before generating if pushing.
 		$delivery = null;
 		if ( $push ) {
+			// Same gate as WC_Stripe_Agentic_Commerce_Integration::sync_feed():
+			// nothing should reach Stripe before the merchant finishes onboarding.
+			if ( empty( $assoc_args['force'] ) && ! WC_Stripe_Agentic_Commerce_Integration::is_onboarding_complete() ) {
+				WP_CLI::error( 'Onboarding incomplete (enable Agentic Commerce in settings and save a webhook secret). Cannot push feed. Use --force to override.' );
+			}
+
 			$delivery = $integration->get_push_delivery_method();
 			if ( ! $delivery->check_setup() ) {
 				WP_CLI::error( 'Stripe API key is not configured. Cannot push feed.' );
@@ -108,6 +120,64 @@ class WC_Stripe_Agentic_Commerce_CLI extends WP_CLI_Command {
 		WP_CLI::log( sprintf( '  File ID:       %s', $result['file_id'] ) );
 		WP_CLI::log( sprintf( '  ImportSet ID:  %s', $result['import_set_id'] ) );
 		WP_CLI::log( sprintf( '  Status:        %s', $result['status'] ) );
+	}
+
+	/**
+	 * Preview what the next sync would include, exclude, and reject — without
+	 * generating a CSV or uploading anything to Stripe.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--limit=<number>]
+	 * : Maximum number of invalid products to list with their errors.
+	 * ---
+	 * default: 50
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp stripe agentic-commerce preview
+	 *     wp stripe agentic-commerce preview --limit=100
+	 *
+	 * @param array $args       Positional arguments.
+	 * @param array $assoc_args Associative arguments.
+	 * @return void
+	 */
+	public function preview( $args, $assoc_args ): void {
+		$limit = (int) ( $assoc_args['limit'] ?? WC_Stripe_Agentic_Commerce_Feed_Preview::DEFAULT_DETAIL_LIMIT );
+
+		WP_CLI::log( 'Building feed preview...' );
+
+		try {
+			$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate( $limit );
+		} catch ( Exception $e ) {
+			WP_CLI::error( 'Preview generation failed: ' . $e->getMessage() );
+			return; // Never reached — error() exits.
+		}
+
+		WP_CLI::success( 'Preview generation complete.' );
+		WP_CLI::log( sprintf( '  Products scanned: %d', $preview['total_count'] ) );
+		WP_CLI::log( sprintf( '  Included:         %d', $preview['included_count'] ) );
+		WP_CLI::log( sprintf( '  Excluded (filter): %d', $preview['excluded_count'] ) );
+		WP_CLI::log( sprintf( '  Invalid:          %d', $preview['invalid_count'] ) );
+
+		if ( empty( $preview['validation_errors'] ) ) {
+			return;
+		}
+
+		WP_CLI::log( '' );
+		WP_CLI::log( 'Products with validation errors:' );
+		foreach ( $preview['validation_errors'] as $entry ) {
+			WP_CLI::log( sprintf( '--- #%d %s ---', $entry['product_id'], $entry['product_name'] ) );
+			foreach ( $entry['errors'] as $message ) {
+				WP_CLI::log( sprintf( '  - %s', $message ) );
+			}
+		}
+
+		if ( $preview['truncated'] > 0 ) {
+			WP_CLI::log( '' );
+			WP_CLI::log( sprintf( '... and %d more invalid product(s) not shown (raise --limit to see them).', $preview['truncated'] ) );
+		}
 	}
 
 	/**

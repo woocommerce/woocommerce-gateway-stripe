@@ -39,4 +39,13 @@ describe( 'applyStyles', () => {
 		);
 		expect( stripeIframe.style.margin ).toBe( '0px' );
 	} );
+
+	it( 'does not throw when the Stripe iframe has not rendered yet', () => {
+		document.body.innerHTML = `
+			<div id="radio-control-wc-payment-method-options-stripe__content"></div>
+			<div id="radio-control-wc-payment-method-options-stripe__label"></div>
+		`;
+
+		expect( () => applyStyles() ).not.toThrow();
+	} );
 } );

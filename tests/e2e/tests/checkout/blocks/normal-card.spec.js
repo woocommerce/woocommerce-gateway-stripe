@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import config from 'config';
-import { payments } from '../../../utils';
+import { admin, payments } from '../../../utils';
 
 const {
 	emptyCart,
@@ -8,10 +8,13 @@ const {
 	fillCreditCardDetails,
 	setupBlocksCheckout,
 	clickPlaceOrder,
+	getCartTotal,
+	waitForOrderReceivedPageAndConfirmExpectedTotal,
 } = payments;
 
 test( 'customer can checkout with a normal credit card @smoke @blocks', async ( {
 	page,
+	browser,
 } ) => {
 	await emptyCart( page );
 	await setupCart( page );
@@ -21,10 +24,14 @@ test( 'customer can checkout with a normal credit card @smoke @blocks', async ( 
 	);
 
 	await fillCreditCardDetails( page, config.get( 'cards.basic' ) );
-	await clickPlaceOrder( page );
-	await page.waitForURL( '**/checkout/order-received/**' );
 
-	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-		'Order received'
+	const expectedTotal = await getCartTotal( page );
+
+	await clickPlaceOrder( page );
+
+	await waitForOrderReceivedPageAndConfirmExpectedTotal(
+		browser,
+		page,
+		expectedTotal
 	);
 } );

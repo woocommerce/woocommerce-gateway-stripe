@@ -363,6 +363,11 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 			return [ false, true, [ sprintf( __( 'Order ID %d is less than set retention days. Personal data retained. (Stripe)', 'woocommerce-gateway-stripe' ), $order->get_id() ) ] ];
 		}
 
+		/**
+		 * Filters subscription statuses that retain Stripe personal data during erasure.
+		 *
+		 * @param string[] $statuses Subscription statuses that should retain personal data.
+		 */
 		if ( $subscription->has_status( apply_filters( 'wc_stripe_privacy_eraser_subs_statuses', [ 'on-hold', 'active' ] ) ) ) {
 			/* translators: %d Order ID */
 			return [ false, true, [ sprintf( __( 'Order ID %d contains an active Subscription. Personal data retained. (Stripe)', 'woocommerce-gateway-stripe' ), $order->get_id() ) ] ];
@@ -373,6 +378,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 			$order_helper->delete_stripe_source_id( $renewal_order );
 			$order_helper->delete_stripe_refund_id( $renewal_order );
 			$order_helper->delete_stripe_customer_id( $renewal_order );
+			$order_helper->delete_stripe_refund_ids_from_refunds( $renewal_order );
 		}
 
 		$order_helper->delete_stripe_source_id( $subscription );
@@ -389,23 +395,25 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 	 * @return array
 	 */
 	protected function maybe_handle_order( $order ) {
-		$order_helper       = WC_Stripe_Order_Helper::get_instance();
-		$stripe_source_id   = $order_helper->get_stripe_source_id( $order );
-		$stripe_refund_id   = $order_helper->get_stripe_refund_id( $order );
-		$stripe_customer_id = $order_helper->get_stripe_customer_id( $order );
+		$order_helper           = WC_Stripe_Order_Helper::get_instance();
+		$stripe_source_id       = $order_helper->get_stripe_source_id( $order );
+		$stripe_refund_id       = $order_helper->get_stripe_refund_id( $order );
+		$stripe_customer_id     = $order_helper->get_stripe_customer_id( $order );
+		$refunds_with_stripe_id = $order_helper->get_refunds_with_stripe_refund_ids( $order );
 
 		if ( ! $this->is_retention_expired( $order->get_date_created()->getTimestamp() ) ) {
 			/* translators: %d Order ID */
 			return [ false, true, [ sprintf( __( 'Order ID %d is less than set retention days. Personal data retained. (Stripe)', 'woocommerce-gateway-stripe' ), $order->get_id() ) ] ];
 		}
 
-		if ( empty( $stripe_source_id ) && empty( $stripe_refund_id ) && empty( $stripe_customer_id ) ) {
+		if ( empty( $stripe_source_id ) && empty( $stripe_refund_id ) && empty( $stripe_customer_id ) && empty( $refunds_with_stripe_id ) ) {
 			return [ false, false, [] ];
 		}
 
 		$order_helper->delete_stripe_source_id( $order );
 		$order_helper->delete_stripe_refund_id( $order );
 		$order_helper->delete_stripe_customer_id( $order );
+		$order_helper->delete_stripe_refund_ids_from_refunds( $order );
 
 		return [ true, false, [ __( 'Stripe personal data erased.', 'woocommerce-gateway-stripe' ) ] ];
 	}

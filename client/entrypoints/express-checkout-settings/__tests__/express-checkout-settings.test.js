@@ -10,12 +10,20 @@ import {
 } from 'wcstripe/data';
 import ExpressCheckoutButtonPreview from 'wcstripe/entrypoints/express-checkout-settings/express-checkout-button-preview';
 
+const realPathToA11yModule =
+	'@wordpress/components/node_modules/@wordpress/a11y';
+
+jest.mock( realPathToA11yModule, () => ( {
+	...jest.requireActual( realPathToA11yModule ),
+	speak: jest.fn(),
+} ) );
 jest.mock( 'wcstripe/data', () => ( {
 	useExpressCheckoutEnabledSettings: jest.fn(),
 	useExpressCheckoutLocations: jest.fn(),
 	useExpressCheckoutButtonType: jest.fn().mockReturnValue( [ 'buy' ] ),
 	useExpressCheckoutButtonSize: jest.fn().mockReturnValue( [ 'default' ] ),
 	useExpressCheckoutButtonTheme: jest.fn().mockReturnValue( [ 'dark' ] ),
+	useEnabledPaymentMethodIds: jest.fn().mockReturnValue( [ [] ] ),
 } ) );
 jest.mock( 'wcstripe/data/account/hooks', () => ( {
 	useAccount: jest.fn().mockReturnValue( { data: {} } ),
@@ -144,5 +152,23 @@ describe( 'ExpressCheckoutSettingsSection', () => {
 		await userEvent.click( screen.getByLabelText( 'Large (56 px)' ) );
 
 		expect( setButtonSizeMock ).toHaveBeenCalledWith( 'large' );
+	} );
+
+	it( 'shows the appearance override notice when an override is in effect', () => {
+		global.wc_stripe_express_checkout_settings_params.is_button_style_overridden = true;
+
+		render( <ExpressCheckoutSettingsSection /> );
+
+		expect( screen.getByText( /may be overridden/ ) ).toBeInTheDocument();
+	} );
+
+	it( 'hides the appearance override notice when there is no override', () => {
+		global.wc_stripe_express_checkout_settings_params.is_button_style_overridden = false;
+
+		render( <ExpressCheckoutSettingsSection /> );
+
+		expect(
+			screen.queryByText( /may be overridden/ )
+		).not.toBeInTheDocument();
 	} );
 } );

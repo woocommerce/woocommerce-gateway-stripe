@@ -1,16 +1,19 @@
 /* global wc_stripe_express_checkout_settings_params */
-import { ADMIN_URL, getSetting } from '@woocommerce/settings';
-import React, { useMemo } from 'react';
-import interpolateComponents from '@automattic/interpolate-components';
-import { loadStripe } from '@stripe/stripe-js';
-import styled from '@emotion/styled';
-import ExpressCheckoutPreviewComponent from './express-checkout-preview-component';
+import React from 'react';
+import ExpressCheckoutPreview from 'wcstripe/settings/express-checkout-preview';
+import ExpressCheckoutSimulator from 'wcstripe/settings/express-checkout-simulator';
 import {
-	Card,
-	RadioControl,
-	CheckboxControl,
-	Notice,
-} from '@wordpress/components';
+	buildBaseChecks,
+	buildCardMethodCheck,
+	buildLocations,
+} from 'wcstripe/settings/express-checkout-simulator/build-checks';
+import {
+	ExpressCheckoutAppearanceOverrideNotice,
+	ExpressCheckoutButtonSizeControl,
+	ExpressCheckoutLocationsControl,
+	getExpressCheckoutLocationKeys,
+} from 'wcstripe/settings/express-checkout-customize';
+import { Card, RadioControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import {
 	useExpressCheckoutEnabledSettings,
@@ -18,53 +21,12 @@ import {
 	useExpressCheckoutButtonType,
 	useExpressCheckoutButtonSize,
 	useExpressCheckoutButtonTheme,
+	useEnabledPaymentMethodIds,
 } from 'wcstripe/data';
+import { PAYMENT_METHOD_CARD } from 'wcstripe/stripe-utils/constants';
 import CardBody from 'wcstripe/settings/card-body';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
-import { useAccount } from 'wcstripe/data/account/hooks';
-import {
-	useAccountKeysPublishableKey,
-	useAccountKeysTestPublishableKey,
-} from 'wcstripe/data/account-keys/hooks';
 
-const makeButtonSizeText = ( string ) =>
-	interpolateComponents( {
-		mixedString: string,
-		components: {
-			helpText: (
-				<span className="payment-method-settings__option-muted-text" />
-			),
-		},
-	} );
-const buttonSizeOptions = [
-	{
-		label: makeButtonSizeText(
-			__(
-				'Small {{helpText}}(40 px){{/helpText}}',
-				'woocommerce-gateway-stripe'
-			)
-		),
-		value: 'small',
-	},
-	{
-		label: makeButtonSizeText(
-			__(
-				'Default {{helpText}}(48 px){{/helpText}}',
-				'woocommerce-gateway-stripe'
-			)
-		),
-		value: 'default',
-	},
-	{
-		label: makeButtonSizeText(
-			__(
-				'Large {{helpText}}(56 px){{/helpText}}',
-				'woocommerce-gateway-stripe'
-			)
-		),
-		value: 'large',
-	},
-];
 const buttonActionOptions = [
 	{
 		label: __( 'Only icon', 'woocommerce-gateway-stripe' ),
@@ -115,142 +77,54 @@ const ExpressCheckoutSettingsSection = () => {
 	const [ buttonType, setButtonType ] = useExpressCheckoutButtonType();
 	const [ size, setSize ] = useExpressCheckoutButtonSize();
 	const [ theme, setTheme ] = useExpressCheckoutButtonTheme();
-	const accountId = useAccount().data?.account?.id;
-	const [ publishableKey ] = useAccountKeysPublishableKey();
-	const [ testPublishableKey ] = useAccountKeysTestPublishableKey();
-
-	const stripePromise = useMemo( () => {
-		return loadStripe(
-			publishableKey || testPublishableKey || 'pk_test_123',
-			{
-				stripeAccount: accountId || '0001',
-				locale: 'en',
-			}
-		);
-	}, [ testPublishableKey, publishableKey, accountId ] );
+	const isButtonStyleOverridden =
+		!! wc_stripe_express_checkout_settings_params?.is_button_style_overridden; // eslint-disable-line camelcase
+	// eslint-disable-next-line camelcase
+	const previewParams = wc_stripe_express_checkout_settings_params;
+	// eslint-disable-next-line camelcase
+	const isSubscriptionsActive = !! previewParams?.is_subscriptions_active;
 
 	const [ isExpressCheckoutEnabled ] = useExpressCheckoutEnabledSettings();
 
 	const [ expressCheckoutLocations, updateExpressCheckoutLocations ] =
 		useExpressCheckoutLocations();
 
-	const makeLocationChangeHandler = ( location ) => ( isChecked ) => {
-		if ( isChecked ) {
-			updateExpressCheckoutLocations( [
-				...expressCheckoutLocations,
-				location,
-			] );
-		} else {
-			updateExpressCheckoutLocations(
-				expressCheckoutLocations.filter( ( name ) => name !== location )
-			);
-		}
-	};
+	const [ enabledMethodIds ] = useEnabledPaymentMethodIds();
 
-	const StyledLink = styled.a`
-		&:focus,
-		&:visited {
-			box-shadow: none;
-		}
-	`;
+	const methodLabel = __(
+		'Apple Pay / Google Pay',
+		'woocommerce-gateway-stripe'
+	);
+	const simulatorChecks = [
+		...buildBaseChecks( {
+			params: previewParams,
+			methodEnabled: isExpressCheckoutEnabled,
+			methodLabel,
+		} ),
+		buildCardMethodCheck( {
+			isCardEnabled: enabledMethodIds.includes( PAYMENT_METHOD_CARD ),
+			methodLabel,
+		} ),
+	];
+	const simulatorLocations = buildLocations(
+		getExpressCheckoutLocationKeys( {
+			includeChangePaymentMethod: isSubscriptionsActive,
+		} ),
+		expressCheckoutLocations
+	);
 
 	return (
 		<Card className="express-checkout-settings">
 			<CardBody>
-				<Notice status="warning" isDismissible={ false }>
-					{ interpolateComponents( {
-						mixedString: __(
-							'Some appearance settings may be overridden by the express payment section of the ' +
-								'{{checkoutPageLink}}Cart & Checkout blocks{{/checkoutPageLink}}.',
-							'woocommerce-gateway-stripe'
-						),
-						components: {
-							checkoutPageLink: (
-								<StyledLink
-									href={ `${ ADMIN_URL }post.php?post=${
-										getSetting( 'storePages' )?.checkout?.id
-									}&action=edit` }
-									target="_blank"
-									rel="noreferrer"
-									onClick={ ( ev ) => {
-										// Stop propagation is necessary so it doesn't trigger the tooltip click event.
-										ev.stopPropagation();
-									} }
-								/>
-							),
-						},
-					} ) }
-				</Notice>
-				<h4>
-					{ __(
-						'Show express checkouts on',
-						'woocommerce-gateway-stripe'
-					) }
-				</h4>
-				<ul className="payment-request-settings__location">
-					<li>
-						<CheckboxControl
-							disabled={ ! isExpressCheckoutEnabled }
-							checked={
-								isExpressCheckoutEnabled &&
-								expressCheckoutLocations.includes( 'checkout' )
-							}
-							onChange={ makeLocationChangeHandler( 'checkout' ) }
-							label={ __(
-								'Checkout',
-								'woocommerce-gateway-stripe'
-							) }
-						/>
-					</li>
-					<li>
-						<CheckboxControl
-							disabled={ ! isExpressCheckoutEnabled }
-							checked={
-								isExpressCheckoutEnabled &&
-								expressCheckoutLocations.includes( 'product' )
-							}
-							onChange={ makeLocationChangeHandler( 'product' ) }
-							label={ __(
-								'Product page',
-								'woocommerce-gateway-stripe'
-							) }
-						/>
-					</li>
-					<li>
-						<CheckboxControl
-							disabled={ ! isExpressCheckoutEnabled }
-							checked={
-								isExpressCheckoutEnabled &&
-								expressCheckoutLocations.includes( 'cart' )
-							}
-							onChange={ makeLocationChangeHandler( 'cart' ) }
-							label={ __( 'Cart', 'woocommerce-gateway-stripe' ) }
-						/>
-					</li>
-					{
-						// eslint-disable-next-line camelcase
-						wc_stripe_express_checkout_settings_params?.is_subscriptions_active && (
-							<li>
-								<CheckboxControl
-									disabled={ ! isExpressCheckoutEnabled }
-									checked={
-										isExpressCheckoutEnabled &&
-										expressCheckoutLocations.includes(
-											'change_payment_method'
-										)
-									}
-									onChange={ makeLocationChangeHandler(
-										'change_payment_method'
-									) }
-									label={ __(
-										'Change payment method for WooCommerce Subscriptions',
-										'woocommerce-gateway-stripe'
-									) }
-								/>
-							</li>
-						)
-					}
-				</ul>
+				<ExpressCheckoutAppearanceOverrideNotice
+					isOverridden={ isButtonStyleOverridden }
+				/>
+				<ExpressCheckoutLocationsControl
+					methodEnabled={ isExpressCheckoutEnabled }
+					locations={ expressCheckoutLocations }
+					onChange={ updateExpressCheckoutLocations }
+					showChangePaymentMethod={ isSubscriptionsActive }
+				/>
 				<h4>
 					{ __( 'Call to action', 'woocommerce-gateway-stripe' ) }
 				</h4>
@@ -270,14 +144,8 @@ const ExpressCheckoutSettingsSection = () => {
 					onChange={ setButtonType }
 				/>
 				<h4>{ __( 'Appearance', 'woocommerce-gateway-stripe' ) }</h4>
-				<RadioControl
-					help={ __(
-						'Note that larger buttons are more suitable for mobile use.',
-						'woocommerce-gateway-stripe'
-					) }
-					label={ __( 'Size', 'woocommerce-gateway-stripe' ) }
-					selected={ size }
-					options={ buttonSizeOptions }
+				<ExpressCheckoutButtonSizeControl
+					size={ size }
 					onChange={ setSize }
 				/>
 				<RadioControl
@@ -288,13 +156,34 @@ const ExpressCheckoutSettingsSection = () => {
 				/>
 				<p>{ __( 'Preview', 'woocommerce-gateway-stripe' ) }</p>
 				<LoadableAccountSection numLines={ 7 }>
-					<ExpressCheckoutPreviewComponent
-						stripe={ stripePromise }
+					<ExpressCheckoutPreview
+						params={ previewParams }
+						paymentMethodTypes={ [ PAYMENT_METHOD_CARD ] }
+						paymentMethods={ {
+							link: 'never',
+							googlePay: 'always',
+							applePay: 'always',
+							amazonPay: 'never',
+							klarna: 'never',
+						} }
 						buttonType={ buttonType }
 						theme={ theme }
 						size={ size }
+						requireExpressCheckoutEnabled
+						isExpressCheckoutEnabled={ isExpressCheckoutEnabled }
+						errorMessage={ __(
+							'Failed to preview the Apple Pay or Google Pay button. ' +
+								'Ensure your store uses HTTPS on a publicly available domain ' +
+								"and you're viewing this page in a Safari or Chrome browser. " +
+								'Your device must be configured to use Apple Pay or Google Pay.',
+							'woocommerce-gateway-stripe'
+						) }
 					/>
 				</LoadableAccountSection>
+				<ExpressCheckoutSimulator
+					checks={ simulatorChecks }
+					locations={ simulatorLocations }
+				/>
 			</CardBody>
 		</Card>
 	);

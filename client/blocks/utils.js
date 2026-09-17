@@ -221,7 +221,7 @@ export const getStripeElementOptions = ( forCheckoutSession = false ) => {
 				stripeServerData?.OCLayout || OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
 		};
 		if ( layout.type === OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT ) {
-			layout.radios = false;
+			layout.radios = 'never';
 			layout.spacedAccordionItems = false;
 		}
 		options = {

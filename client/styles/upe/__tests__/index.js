@@ -247,6 +247,44 @@ describe( 'Getting styles for automated theming', () => {
 		expect( appearance.rules[ '.Label--resting' ] ).toBeDefined();
 	} );
 
+	it( 'getAppearance returns a light editor-safe appearance in the block editor', () => {
+		global.wc_stripe_upe_params = { shouldShowOptimizedCheckout: false };
+
+		// Simulate a dark editor canvas: every sampled element reports a dark
+		// background. Without the editor guard this would flip the theme to
+		// 'night' and render the Payment Element with a dark appearance.
+		jest.spyOn( document, 'querySelector' ).mockImplementation(
+			() => mockElement
+		);
+		jest.spyOn( window, 'getComputedStyle' ).mockImplementation( () => ( {
+			...mockCSStyleDeclaration,
+			backgroundColor: 'rgb(0, 0, 0)',
+			getPropertyValue: ( property ) =>
+				property === 'backgroundColor'
+					? 'rgb(0, 0, 0)'
+					: mockCssProperties[ property ],
+		} ) );
+
+		const isBlocksCheckout = true;
+		const shouldExpandOptimizedCheckout = false;
+		const isEditor = true;
+		const appearance = upeStyles.getAppearance(
+			isBlocksCheckout,
+			shouldExpandOptimizedCheckout,
+			isEditor
+		);
+
+		expect( appearance.theme ).toBe( 'stripe' );
+		expect( appearance.labels ).toBe( 'floating' );
+		// No DOM-derived rules are produced in editor mode.
+		expect( appearance.rules ).toBeUndefined();
+	} );
+
+	it( 'getAppearance uses above labels for classic checkout in the editor', () => {
+		const appearance = upeStyles.getAppearance( false, false, true );
+		expect( appearance ).toEqual( { theme: 'stripe', labels: 'above' } );
+	} );
+
 	it( 'getAppearance returns the object with filtered CSS rules for UPE theming', () => {
 		global.wc_stripe_upe_params = { shouldShowOptimizedCheckout: false };
 

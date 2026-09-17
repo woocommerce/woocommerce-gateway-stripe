@@ -111,6 +111,87 @@ describe( 'handleAppearanceForFloatingLabel', () => {
 		},
 	} );
 
+	// Real values from a stock Blocks checkout at a 16px root font size:
+	// input padding 24px top / 8px bottom, label line-height 22px, scale 0.82.
+	const BLOCKS_INPUT_PADDING_TOP = '24px';
+	const BLOCKS_INPUT_PADDING_BOTTOM = '8px';
+	const BLOCKS_FLOATING_LABEL = {
+		transform: 'matrix(0.82, 0, 0, 0.82, 0, 0)',
+		lineHeight: '22px',
+		color: 'rgb(100, 100, 100)',
+	};
+
+	it( 'splits the floating label compensation evenly across the input', () => {
+		const appearance = makeAppearance( {
+			paddingTop: BLOCKS_INPUT_PADDING_TOP,
+			paddingBottom: BLOCKS_INPUT_PADDING_BOTTOM,
+		} );
+
+		const result = upeUtils.handleAppearanceForFloatingLabel( appearance, {
+			...BLOCKS_FLOATING_LABEL,
+		} );
+
+		// Stripe centers field content — including the card brand icons — inside
+		// .Input, so an uneven split leaves them sitting off-center.
+		expect( result.rules[ '.Input' ].paddingTop ).toBe(
+			result.rules[ '.Input' ].paddingBottom
+		);
+
+		// floor(22 * 0.82) = 18px reserved for the label, plus Stripe's 4px and
+		// 1px of offset per side: (24 + 8 - 18 - 4 - 2) / 2 = 4px each.
+		expect( result.rules[ '.Input' ].paddingTop ).toBe( '4px' );
+		expect( result.rules[ '.Input' ].paddingBottom ).toBe( '4px' );
+	} );
+
+	it( 'preserves the total vertical padding so the field height is unchanged', () => {
+		const appearance = makeAppearance( {
+			paddingTop: BLOCKS_INPUT_PADDING_TOP,
+			paddingBottom: BLOCKS_INPUT_PADDING_BOTTOM,
+		} );
+
+		const result = upeUtils.handleAppearanceForFloatingLabel( appearance, {
+			...BLOCKS_FLOATING_LABEL,
+		} );
+
+		const total =
+			parseFloat( result.rules[ '.Input' ].paddingTop ) +
+			parseFloat( result.rules[ '.Input' ].paddingBottom );
+
+		// Same total the top-heavy split reserved: 1px + 7px.
+		expect( total ).toBe( 8 );
+	} );
+
+	it( 'leaves the resting label unnudged once padding is balanced', () => {
+		const appearance = makeAppearance( {
+			paddingTop: BLOCKS_INPUT_PADDING_TOP,
+			paddingBottom: BLOCKS_INPUT_PADDING_BOTTOM,
+		} );
+
+		const result = upeUtils.handleAppearanceForFloatingLabel( appearance, {
+			...BLOCKS_FLOATING_LABEL,
+		} );
+
+		// The margin existed only to pull the label back toward center against
+		// a top-heavy input; with even padding it would push it low instead.
+		expect( 'marginTop' in result.rules[ '.Label' ] ).toBe( false );
+	} );
+
+	it( 'clamps to zero rather than emitting negative padding', () => {
+		const appearance = makeAppearance( {
+			paddingTop: '8px',
+			paddingBottom: '8px',
+		} );
+
+		const result = upeUtils.handleAppearanceForFloatingLabel( appearance, {
+			...BLOCKS_FLOATING_LABEL,
+		} );
+
+		// 8 + 8 - 18 - 4 - 2 is negative; a negative padding would be dropped by
+		// Stripe and let the field grow taller than the theme's inputs.
+		expect( result.rules[ '.Input' ].paddingTop ).toBe( '0px' );
+		expect( result.rules[ '.Input' ].paddingBottom ).toBe( '0px' );
+	} );
+
 	it( 'adjusts padding and label styles with a valid transform matrix', () => {
 		const appearance = makeAppearance();
 		const floatingStyles = {
@@ -131,16 +212,12 @@ describe( 'handleAppearanceForFloatingLabel', () => {
 			'transform'
 		);
 
-		// paddingTop = calc(10px - 15px - 4px - 1px)
-		expect( result.rules[ '.Input' ].paddingTop ).toBe(
-			'calc(10px - 15px - 4px - 1px)'
-		);
+		// (10 + 12 - 15 - 4 - 2) / 2 = 0.5px on each side.
+		expect( result.rules[ '.Input' ].paddingTop ).toBe( '0.5px' );
+		expect( result.rules[ '.Input' ].paddingBottom ).toBe( '0.5px' );
 
-		// paddingBottom = 12 - 1 = 11px
-		expect( result.rules[ '.Input' ].paddingBottom ).toBe( '11px' );
-
-		// Label marginTop = floor((12 - 1) / 3) = 3px
-		expect( result.rules[ '.Label' ].marginTop ).toBe( '3px' );
+		// Balanced padding centers the resting label without a nudge.
+		expect( 'marginTop' in result.rules[ '.Label' ] ).toBe( false );
 
 		// Floating label marginTop set to 3px for border spacing.
 		expect( result.rules[ '.Label--floating' ].marginTop ).toBe( '3px' );
@@ -167,27 +244,6 @@ describe( 'handleAppearanceForFloatingLabel', () => {
 		);
 	} );
 
-	it( 'returns early when matrix scale components are non-finite', () => {
-		const appearance = makeAppearance();
-		const floatingStyles = {
-			transform: 'matrix(foo, 0, 0, 0.75, 0, -10)',
-			lineHeight: '20px',
-		};
-
-		const result = upeUtils.handleAppearanceForFloatingLabel(
-			appearance,
-			floatingStyles
-		);
-
-		// Early return path: transform removed, no padding/margin adjustments applied.
-		expect( result.rules[ '.Label--floating' ] ).not.toHaveProperty(
-			'transform'
-		);
-		expect( result.rules[ '.Input' ].paddingTop ).toBe( '10px' );
-		expect( result.rules[ '.Input' ].paddingBottom ).toBe( '12px' );
-		expect( 'marginTop' in result.rules[ '.Label' ] ).toBe( false );
-	} );
-
 	it( 'skips transform processing when transform is absent', () => {
 		const appearance = makeAppearance();
 		const floatingStyles = {
@@ -204,10 +260,9 @@ describe( 'handleAppearanceForFloatingLabel', () => {
 		expect( result.rules[ '.Label--floating' ] ).not.toHaveProperty(
 			'fontSize'
 		);
-		// Padding adjustments still run using original lineHeight.
-		expect( result.rules[ '.Input' ].paddingTop ).toBe(
-			'calc(10px - 20px - 4px - 1px)'
-		);
+		// Padding adjustments still run using the original lineHeight, and
+		// 10 + 12 - 20 - 4 - 2 is negative, so both sides clamp to zero.
+		expect( result.rules[ '.Input' ].paddingTop ).toBe( '0px' );
 	} );
 
 	it( 'skips transform processing when transform is none', () => {
@@ -227,79 +282,208 @@ describe( 'handleAppearanceForFloatingLabel', () => {
 		expect( result.rules[ '.Label--floating' ].transform ).toBe( 'none' );
 	} );
 
-	it( 'skips matrix block when transform is not a matrix', () => {
-		const appearance = makeAppearance();
-		const floatingStyles = {
-			transform: 'translateY(-10px)',
-			lineHeight: '20px',
+	// When a value can't be resolved, both padding overrides come off
+	// together — a partial adjustment is worse than none.
+	describe( 'when an operand cannot be resolved', () => {
+		// One object, so a partial adjustment shows all properties at once.
+		// The resting label must not receive a margin nudge on fallback paths.
+		const overridesOn = ( result ) => ( {
+			paddingTop: 'paddingTop' in result.rules[ '.Input' ],
+			paddingBottom: 'paddingBottom' in result.rules[ '.Input' ],
+			legacyLabelNudge: 'marginTop' in result.rules[ '.Label' ],
+		} );
+
+		const NONE = {
+			paddingTop: false,
+			paddingBottom: false,
+			legacyLabelNudge: false,
 		};
 
-		const result = upeUtils.handleAppearanceForFloatingLabel(
-			appearance,
-			floatingStyles
-		);
+		it( 'drops the overrides when the label styles are empty', () => {
+			// A missed selector gives {} label styles while the input padding
+			// is still valid. Without the guard this emits `calc(... - undefined ...)`.
+			const appearance = makeAppearance( {
+				paddingTop: BLOCKS_INPUT_PADDING_TOP,
+				paddingBottom: BLOCKS_INPUT_PADDING_BOTTOM,
+			} );
 
-		// Matrix regex doesn't match — transform deleted but lineHeight unchanged.
-		expect( result.rules[ '.Label--floating' ] ).not.toHaveProperty(
-			'transform'
-		);
-		expect( result.rules[ '.Label--floating' ].lineHeight ).toBe( '20px' );
-	} );
+			const result = upeUtils.handleAppearanceForFloatingLabel(
+				appearance,
+				{}
+			);
 
-	it( 'returns early when lineHeight is NaN', () => {
-		const appearance = makeAppearance();
-		const floatingStyles = {
-			transform: 'matrix(0.75, 0, 0, 0.75, 0, -10)',
-			lineHeight: 'normal',
-		};
+			expect( overridesOn( result ) ).toEqual( NONE );
+		} );
 
-		const result = upeUtils.handleAppearanceForFloatingLabel(
-			appearance,
-			floatingStyles
-		);
+		it( 'drops the overrides when the input styles are empty', () => {
+			const appearance = makeAppearance();
+			delete appearance.rules[ '.Input' ].paddingTop;
+			delete appearance.rules[ '.Input' ].paddingBottom;
 
-		// NaN guard triggers early return — padding unchanged.
-		expect( result.rules[ '.Input' ].paddingTop ).toBe( '10px' );
-		expect( result.rules[ '.Label--floating' ] ).not.toHaveProperty(
-			'transform'
-		);
-	} );
+			const result = upeUtils.handleAppearanceForFloatingLabel(
+				appearance,
+				{ ...BLOCKS_FLOATING_LABEL }
+			);
 
-	it( 'skips paddingTop adjustment when paddingTop is absent', () => {
-		const appearance = makeAppearance();
-		delete appearance.rules[ '.Input' ].paddingTop;
-		const floatingStyles = {
-			lineHeight: '20px',
-		};
+			expect( overridesOn( result ) ).toEqual( NONE );
+		} );
 
-		const result = upeUtils.handleAppearanceForFloatingLabel(
-			appearance,
-			floatingStyles
-		);
+		it( 'drops the overrides when lineHeight is a keyword and no transform scales it', () => {
+			// No transform means no early return — `normal` reaches the padding math.
+			const appearance = makeAppearance();
 
-		expect( 'paddingTop' in result.rules[ '.Input' ] ).toBe( false );
-		// paddingBottom adjustment still runs.
-		expect( result.rules[ '.Input' ].paddingBottom ).toBe( '11px' );
-	} );
+			const result = upeUtils.handleAppearanceForFloatingLabel(
+				appearance,
+				{ lineHeight: 'normal', color: 'rgb(100, 100, 100)' }
+			);
 
-	it( 'skips paddingBottom adjustment when paddingBottom is absent', () => {
-		const appearance = makeAppearance();
-		delete appearance.rules[ '.Input' ].paddingBottom;
-		const floatingStyles = {
-			lineHeight: '20px',
-		};
+			expect( overridesOn( result ) ).toEqual( NONE );
+		} );
 
-		const result = upeUtils.handleAppearanceForFloatingLabel(
-			appearance,
-			floatingStyles
-		);
+		it( 'drops the overrides when the matrix scale is not finite', () => {
+			const appearance = makeAppearance();
 
-		expect( 'paddingBottom' in result.rules[ '.Input' ] ).toBe( false );
-		// paddingTop adjustment still runs.
-		expect( result.rules[ '.Input' ].paddingTop ).toBe(
-			'calc(10px - 20px - 4px - 1px)'
-		);
-		// Label marginTop not adjusted without paddingBottom.
-		expect( 'marginTop' in result.rules[ '.Label' ] ).toBe( false );
+			const result = upeUtils.handleAppearanceForFloatingLabel(
+				appearance,
+				{
+					transform: 'matrix(foo, 0, 0, 0.75, 0, -10)',
+					lineHeight: '20px',
+				}
+			);
+
+			expect( overridesOn( result ) ).toEqual( NONE );
+			expect( result.rules[ '.Label--floating' ] ).not.toHaveProperty(
+				'transform'
+			);
+			// The label still floats, so it keeps its border offset.
+			expect( result.rules[ '.Label--floating' ].marginTop ).toBe(
+				'3px'
+			);
+		} );
+
+		it( 'drops the overrides when lineHeight is a keyword and a transform scales it', () => {
+			const appearance = makeAppearance();
+
+			const result = upeUtils.handleAppearanceForFloatingLabel(
+				appearance,
+				{
+					transform: 'matrix(0.75, 0, 0, 0.75, 0, -10)',
+					lineHeight: 'normal',
+				}
+			);
+
+			expect( overridesOn( result ) ).toEqual( NONE );
+			expect( result.rules[ '.Label--floating' ] ).not.toHaveProperty(
+				'transform'
+			);
+		} );
+
+		it( 'drops the overrides when the transform is not a 2d matrix', () => {
+			// Computed transforms are always none, matrix() or matrix3d(). A
+			// 3d matrix may scale the label, but this code can't read it.
+			const appearance = makeAppearance();
+
+			const result = upeUtils.handleAppearanceForFloatingLabel(
+				appearance,
+				{
+					transform:
+						'matrix3d(0.82, 0, 0, 0, 0, 0.82, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)',
+					lineHeight: '20px',
+				}
+			);
+
+			expect( overridesOn( result ) ).toEqual( NONE );
+			expect( result.rules[ '.Label--floating' ] ).not.toHaveProperty(
+				'transform'
+			);
+			// The unreadable transform is discarded, not applied unscaled.
+			expect( result.rules[ '.Label--floating' ].lineHeight ).toBe(
+				'20px'
+			);
+		} );
+
+		it( 'drops the overrides when a padding is not in px', () => {
+			const appearance = makeAppearance( { paddingTop: '1.5rem' } );
+
+			const result = upeUtils.handleAppearanceForFloatingLabel(
+				appearance,
+				{ lineHeight: '20px' }
+			);
+
+			expect( overridesOn( result ) ).toEqual( NONE );
+		} );
+
+		it( 'drops the overrides when paddingTop is absent', () => {
+			const appearance = makeAppearance();
+			delete appearance.rules[ '.Input' ].paddingTop;
+
+			const result = upeUtils.handleAppearanceForFloatingLabel(
+				appearance,
+				{ lineHeight: '20px' }
+			);
+
+			expect( overridesOn( result ) ).toEqual( NONE );
+		} );
+
+		it( 'drops the overrides when paddingBottom is absent', () => {
+			const appearance = makeAppearance();
+			delete appearance.rules[ '.Input' ].paddingBottom;
+
+			const result = upeUtils.handleAppearanceForFloatingLabel(
+				appearance,
+				{ lineHeight: '20px' }
+			);
+
+			expect( overridesOn( result ) ).toEqual( NONE );
+		} );
+
+		it( 'never emits an unusable length', () => {
+			// Stripe silently drops values it can't parse, so a bad one is
+			// invisible in production. Anything emitted must be a plain px length.
+			const cases = [
+				[ 'empty label styles', { paddingTop: '24px' }, {} ],
+				[ 'keyword lineHeight', {}, { lineHeight: 'normal' } ],
+				[
+					'calc() padding',
+					{ paddingTop: 'calc(1rem + 2px)' },
+					{ lineHeight: '20px' },
+				],
+				[
+					'var() padding',
+					{ paddingBottom: 'var(--pad)' },
+					{ lineHeight: '20px' },
+				],
+				[
+					'rem padding',
+					{ paddingTop: '1.5rem' },
+					{ lineHeight: '20px' },
+				],
+			];
+
+			const violations = [];
+			cases.forEach( ( [ name, inputOverrides, floatingStyles ] ) => {
+				const result = upeUtils.handleAppearanceForFloatingLabel(
+					makeAppearance( inputOverrides ),
+					floatingStyles
+				);
+
+				Object.entries( {
+					paddingTop: result.rules[ '.Input' ].paddingTop,
+					paddingBottom: result.rules[ '.Input' ].paddingBottom,
+					labelMarginTop: result.rules[ '.Label' ].marginTop,
+					floatingLabelMarginTop:
+						result.rules[ '.Label--floating' ].marginTop,
+				} ).forEach( ( [ prop, value ] ) => {
+					if (
+						value !== undefined &&
+						! /^\d+(\.\d+)?px$/.test( value )
+					) {
+						violations.push( `${ name } → ${ prop }: ${ value }` );
+					}
+				} );
+			} );
+
+			expect( violations ).toEqual( [] );
+		} );
 	} );
 } );

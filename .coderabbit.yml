@@ -78,6 +78,15 @@ reviews:
         For webhooks, require signature verification and idempotent processing before mutating state.
         Never expose secrets or sensitive payment/customer data in logs, notes, metadata, or errors.
         Preserve backward compatibility for existing hooks/options and supported WordPress/WooCommerce versions.
+        Treat any change to a public or externally exposed class, interface, function, or method signature as high-risk
+        and ask the author to state the backwards-compatibility impact in the PR description. Flag adding a method to an
+        interface that external code can implement: this is backwards-incompatible because existing implementers fatal on
+        load. Suggest a non-breaking alternative (add the method to a concrete class, introduce a new interface, or
+        provide a default via an abstract base class). For renames or removals of existing public symbols, follow
+        deprecate-don't-rename: keep the original with an `@deprecated` notice pointing to the replacement. This plugin
+        also implements upstream WooCommerce interfaces (e.g. `Internal\ProductFeed\Feed\FeedInterface` in
+        `includes/agentic-commerce/`); flag changes to those implementations that could break compatibility with the
+        supported WooCommerce range.
         Request PHPUnit coverage when behavior changes.
     - path: "client/**/*.{js,jsx,ts,tsx}"
       instructions: |

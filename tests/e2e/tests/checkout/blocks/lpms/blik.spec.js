@@ -1,9 +1,15 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 import { randomUUID } from 'crypto';
 import config from 'config';
 import { payments, api } from '../../../../utils';
 
-const { emptyCart, setupCart, setupBlocksCheckout, fillBLIKDetails } = payments;
+const {
+	emptyCart,
+	setupCart,
+	setupBlocksCheckout,
+	fillBLIKDetails,
+	waitForOrderReceivedPage,
+} = payments;
 
 test.describe( 'BLIK payment tests @blocks @blik', () => {
 	let username, userEmail;
@@ -39,9 +45,6 @@ test.describe( 'BLIK payment tests @blocks @blik', () => {
 		await page.getByLabel( /blik/i ).check();
 		await fillBLIKDetails( page );
 		await page.locator( 'text=Place order' ).click();
-		await page.waitForURL( '**/checkout/order-received/**' );
-		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-			'Order received'
-		);
+		await waitForOrderReceivedPage( page );
 	} );
 } );

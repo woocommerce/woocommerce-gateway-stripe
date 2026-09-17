@@ -726,7 +726,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator_Test extends WP_UnitTestCase {
 		$product = WC_Helper_Product::create_simple_product();
 
 		$callback = static fn( $sync, $candidate ) => $candidate->get_id() !== $product->get_id();
-		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10, 2 );
+		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10, 2 );
 
 		try {
 			$validator = new \WC_Stripe_Agentic_Commerce_Feed_Validator();
@@ -736,7 +736,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator_Test extends WP_UnitTestCase {
 			$this->assertSame( 1, $validator->get_excluded_count(), 'The exclusion must be counted.' );
 			$this->assertSame( [], $validator->get_collected_errors()['products'], 'An exclusion must not be recorded as a validation failure.' );
 		} finally {
-			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10 );
+			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10 );
 			$product->delete( true );
 		}
 	}

@@ -26,7 +26,10 @@ import {
 	maybeShowCashAppLimitNotice,
 	removeCashAppLimitNotice,
 } from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
-import { validateBlikCode } from 'wcstripe/stripe-utils';
+import {
+	validateBlikCode,
+	getExcludedPaymentMethodTypesForBillingCountry,
+} from 'wcstripe/stripe-utils';
 import {
 	invalidateAppearanceCache,
 	initializeUPEAppearance,
@@ -41,6 +44,7 @@ import {
 import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/handle-display-of-payment-instructions';
 import { applyStyles } from 'wcstripe/optimized-checkout/apply-styles';
 import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handle-display-of-saving-checkbox';
+import { waitForPaymentElementCompletion } from 'wcstripe/blocks/wait-for-payment-element-completion';
 
 const noop = () => null;
 
@@ -113,6 +117,11 @@ const PaymentProcessor = ( {
 
 	const hasLoadErrorRef = useRef( false );
 
+	// onPaymentSetup's callback is registered once, so it closes over the
+	// initial isPaymentElementComplete and misses later updates. This ref,
+	// refreshed in onSelectedPaymentMethodChange, feeds it the live value.
+	const isCompleteRef = useRef( false );
+
 	const setHasLoadError = ( event ) => {
 		hasLoadErrorRef.current = true;
 		onLoadError( event );
@@ -149,7 +158,11 @@ const PaymentProcessor = ( {
 					}
 
 					// BLIK is a special case which is not handled through the Stripe element.
-					if ( ! ( isPaymentElementComplete || isBlikSelected ) ) {
+					// If mid-(re)mount, wait briefly for it to settle first.
+					if ( ! ( isCompleteRef.current || isBlikSelected ) ) {
+						await waitForPaymentElementCompletion( isCompleteRef );
+					}
+					if ( ! ( isCompleteRef.current || isBlikSelected ) ) {
 						return {
 							type: 'error',
 							message: __(
@@ -303,7 +316,7 @@ const PaymentProcessor = ( {
 			savingPaymentMethodCheckbox?.addEventListener(
 				'change',
 				function () {
-					// `stripe.elements()` exposes `update()`; Adaptive Pricing uses `initCheckout()`, which
+					// `stripe.elements()` exposes `update()`; Adaptive Pricing uses `initCheckoutElementsSdk()`, which
 					// returns a Checkout object without that API — toggling save-for-later there requires handling the change in the server.
 					// not a client-side Elements update.
 					// We check for the existence of the `update` function here instead of the 'isAdaptivePricingEnabled' flag
@@ -327,10 +340,47 @@ const PaymentProcessor = ( {
 		paymentMethodsConfig,
 	] );
 
+	// Refresh the OC element's country-restricted exclusions on billing-country
+	// changes; Adaptive Pricing's initCheckout() has no update(), so it's skipped.
+	useEffect( () => {
+		if (
+			! stripeServerData?.shouldShowOptimizedCheckout ||
+			// The editor preview has no shopper country; recomputing there
+			// would exclude every country-restricted method from the preview.
+			stripeServerData?.isAdmin ||
+			! elements ||
+			typeof elements.update !== 'function'
+		) {
+			return;
+		}
+
+		elements.update( {
+			excludedPaymentMethodTypes:
+				getExcludedPaymentMethodTypesForBillingCountry(
+					billing?.billingAddress?.country || ''
+				),
+		} );
+		// Depend on the primitive flag actually read, not the whole config
+		// object, so a changed config identity can't re-fire the Stripe update.
+	}, [
+		elements,
+		billing?.billingAddress?.country,
+		stripeServerData?.shouldShowOptimizedCheckout,
+		stripeServerData?.isAdmin,
+	] );
+
 	// After web fonts finish loading, re-compute the appearance so the PE
 	// uses the correct font families instead of fallback generics.
 	useEffect( () => {
 		if ( ! elements ) {
+			return;
+		}
+
+		// In the block editor preview the appearance is a static, editor-safe
+		// object that does not depend on page fonts. Recomputing here would
+		// sample the editor DOM and reintroduce the dark appearance. See
+		// STRIPE-1061.
+		if ( stripeServerData?.isAdmin ) {
 			return;
 		}
 
@@ -359,7 +409,7 @@ const PaymentProcessor = ( {
 		return () => {
 			cancelled = true;
 		};
-	}, [ elements ] );
+	}, [ elements, stripeServerData ] );
 
 	usePaymentCompleteHandler(
 		api,
@@ -381,6 +431,7 @@ const PaymentProcessor = ( {
 	const onSelectedPaymentMethodChange = ( { value, complete } ) => {
 		setSelectedPaymentMethodType( value.type );
 		setIsPaymentElementComplete( complete );
+		isCompleteRef.current = complete;
 		if ( stripeServerData?.shouldShowOptimizedCheckout ) {
 			handleDisplayOfPaymentInstructions( value.type, 'blocks' );
 			handleDisplayOfSavingCheckbox( value.type, paymentMethodsConfig );

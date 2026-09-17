@@ -5,16 +5,16 @@ import { admin, api, payments, products, user } from '../../utils';
 
 const {
 	emptyCart,
-	clickAddToCartButton,
+	addSubscriptionToCart,
 	setupOptimizedCheckout,
 	fillOCDetails,
 	clickPlaceOrder,
+	getCartTotal,
+	getOrderIdFromOrderReceivedUrl,
+	waitForOrderReceivedPage,
 } = payments;
 
 let productId;
-
-// Subscription product ($9.99) + flat-rate shipping ($10.00).
-const EXPECTED_ORDER_TOTAL = '19.99';
 
 const relatedOrdersRow = '.woocommerce-orders-table--orders tbody tr';
 
@@ -68,12 +68,9 @@ test.describe( 'Optimized Checkout subscription renewal tests @subscriptions', (
 			await page.locator( '#place_order' ).click();
 		}
 
-		await page.waitForURL( '**/order-received/**' );
-		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-			'Order received'
-		);
+		await waitForOrderReceivedPage( page );
 
-		return admin.getOrderIdFromOrderReceivedUrl( page.url() );
+		return getOrderIdFromOrderReceivedUrl( page.url() );
 	}
 
 	/**
@@ -100,7 +97,7 @@ test.describe( 'Optimized Checkout subscription renewal tests @subscriptions', (
 			username,
 		} );
 
-		let purchaseOrderId, renewalOrderId;
+		let purchaseOrderId, renewalOrderId, purchaseTotal, renewalTotal;
 
 		await test.step( 'customer login', async () => {
 			await user.login(
@@ -114,8 +111,7 @@ test.describe( 'Optimized Checkout subscription renewal tests @subscriptions', (
 			// The initial purchase goes through the OCS payment element,
 			// which auto-saves the payment token used by the renewal below.
 			await emptyCart( page );
-			await page.goto( `?p=${ productId }` );
-			await clickAddToCartButton( page );
+			await addSubscriptionToCart( page, productId );
 
 			await setupOptimizedCheckout( page, checkoutType, {
 				timeout: 10000,
@@ -127,15 +123,12 @@ test.describe( 'Optimized Checkout subscription renewal tests @subscriptions', (
 				checkoutType
 			);
 
-			await clickPlaceOrder( page );
-			await page.waitForURL( '**/checkout/order-received/**' );
-			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-				'Order received'
-			);
+			purchaseTotal = await getCartTotal( page );
 
-			purchaseOrderId = admin.getOrderIdFromOrderReceivedUrl(
-				page.url()
-			);
+			await clickPlaceOrder( page );
+			await waitForOrderReceivedPage( page );
+
+			purchaseOrderId = getOrderIdFromOrderReceivedUrl( page.url() );
 		} );
 
 		await test.step( 'customer renews the subscription', async () => {
@@ -154,6 +147,9 @@ test.describe( 'Optimized Checkout subscription renewal tests @subscriptions', (
 				await page.goto( '/checkout-shortcode/' );
 			}
 
+			// Capture the renewal total shown to the shopper before renewing.
+			renewalTotal = await getCartTotal( page );
+
 			renewalOrderId = await completeRenewal( page, checkoutType );
 		} );
 
@@ -169,12 +165,12 @@ test.describe( 'Optimized Checkout subscription renewal tests @subscriptions', (
 			await admin.verifyOrderChargedAmount(
 				browser,
 				purchaseOrderId,
-				EXPECTED_ORDER_TOTAL
+				purchaseTotal
 			);
 			await admin.verifyOrderChargedAmount(
 				browser,
 				renewalOrderId,
-				EXPECTED_ORDER_TOTAL
+				renewalTotal
 			);
 		} );
 	}

@@ -20,6 +20,7 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 			'email'      => 'test@example.com',
 			'first_name' => 'Test',
 			'last_name'  => 'User',
+			'phone'      => '',
 			'address_1'  => '123 Test St',
 			'address_2'  => '',
 			'city'       => 'Test City',
@@ -41,6 +42,7 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 					'get_billing_email',
 					'get_billing_first_name',
 					'get_billing_last_name',
+					'get_billing_phone',
 					'get_billing_postcode',
 					'get_billing_state',
 				]
@@ -50,6 +52,7 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 		$mock_order->method( 'get_billing_email' )->willReturn( $billing_data['email'] );
 		$mock_order->method( 'get_billing_first_name' )->willReturn( $billing_data['first_name'] );
 		$mock_order->method( 'get_billing_last_name' )->willReturn( $billing_data['last_name'] );
+		$mock_order->method( 'get_billing_phone' )->willReturn( $billing_data['phone'] );
 		$mock_order->method( 'get_billing_address_1' )->willReturn( $billing_data['address_1'] );
 		$mock_order->method( 'get_billing_address_2' )->willReturn( $billing_data['address_2'] );
 		$mock_order->method( 'get_billing_city' )->willReturn( $billing_data['city'] );
@@ -194,6 +197,22 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 				'expected_exception_message' => 'missing_required_customer_field: email',
 				'expected_exception_string'  => 'Missing required customer field: email',
 				'current_context'            => \WC_Stripe_Customer::CUSTOMER_CONTEXT_PAY_FOR_ORDER,
+			],
+			'checkout session, only email present and required, no overrides'                     => [
+				'billing_fields'             => [], // only email is required
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => null,
+				'expected_exception_string'  => null,
+				'current_context'            => \WC_Stripe_Customer::CUSTOMER_CONTEXT_CHECKOUT_SESSION,
+			],
+			'checkout session, only email is empty string'                                        => [
+				'billing_fields'             => [ 'email' => '' ],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => 'missing_required_customer_field: email',
+				'expected_exception_string'  => 'Missing required customer field: email',
+				'current_context'            => \WC_Stripe_Customer::CUSTOMER_CONTEXT_CHECKOUT_SESSION,
 			],
 			'all fields present and required, no overrides, context is false'                     => [
 				'billing_fields'             => [],
@@ -495,6 +514,119 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that generate_customer_request includes the billing phone so it reaches the Stripe
+	 * customer object, where issuers and Stripe Radar can use it for risk decisioning (STRIPE-973).
+	 *
+	 * @dataProvider provide_test_generate_customer_request_phone_cases
+	 *
+	 * @param string $phone         The order billing phone.
+	 * @param bool   $expect_phone  Whether the phone key is expected in the request.
+	 */
+	public function test_generate_customer_request_includes_billing_phone( string $phone, bool $expect_phone ) {
+		$customer = new \WC_Stripe_Customer();
+
+		$mock_order = $this->create_mock_order( [ 'phone' => $phone ] );
+
+		$captured_args  = null;
+		$capture_filter = function ( $args ) use ( &$captured_args ) {
+			$captured_args = $args;
+			return $args;
+		};
+		add_filter( 'wc_stripe_create_customer_args', $capture_filter, 10, 1 );
+
+		$mock_http = function ( $return_value, $parsed_args, $url ) {
+			if ( str_starts_with( $url, 'https://api.stripe.com/v1/customers' ) ) {
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => json_encode( [ 'id' => 'cus_test_phone' ] ),
+				];
+			}
+			return $return_value;
+		};
+		add_filter( 'pre_http_request', $mock_http, 10, 3 );
+
+		try {
+			$customer->create_customer( [], null, $mock_order );
+
+			$this->assertNotNull( $captured_args, 'Customer args should have been captured' );
+			if ( $expect_phone ) {
+				$this->assertArrayHasKey( 'phone', $captured_args, 'Customer request should include the billing phone' );
+				$this->assertEquals( $phone, $captured_args['phone'], 'phone should match the order billing phone' );
+			} else {
+				$this->assertArrayNotHasKey( 'phone', $captured_args, 'Customer request should omit an empty billing phone' );
+			}
+		} finally {
+			remove_filter( 'wc_stripe_create_customer_args', $capture_filter, 10 );
+			remove_filter( 'pre_http_request', $mock_http, 10 );
+		}
+	}
+
+	/**
+	 * Data provider for test_generate_customer_request_includes_billing_phone.
+	 *
+	 * @return array
+	 */
+	public function provide_test_generate_customer_request_phone_cases(): array {
+		return [
+			'phone present' => [ '+1 555-123-4567', true ],
+			'phone empty'   => [ '', false ],
+		];
+	}
+
+	/**
+	 * Test that map_customer_data includes the billing phone and, when shipping is present, the
+	 * shipping phone (STRIPE-973).
+	 */
+	public function test_map_customer_data_includes_billing_and_shipping_phone() {
+		$order = new \WC_Order();
+		$order->set_billing_first_name( 'Jane' );
+		$order->set_billing_last_name( 'Doe' );
+		$order->set_billing_email( 'jane@example.com' );
+		$order->set_billing_phone( '+1 555-111-2222' );
+		$order->set_shipping_first_name( 'Jane' );
+		$order->set_shipping_last_name( 'Doe' );
+		$order->set_shipping_address_1( '123 Ship St' );
+		$order->set_shipping_city( 'Shipville' );
+		$order->set_shipping_postcode( '90210' );
+		$order->set_shipping_state( 'CA' );
+		$order->set_shipping_country( 'US' );
+		$order->set_shipping_phone( '+1 555-333-4444' );
+
+		try {
+			$data = \WC_Stripe_Customer::map_customer_data( $order );
+
+			$this->assertEquals( '+1 555-111-2222', $data['phone'], 'Billing phone should be mapped to the customer phone' );
+			$this->assertArrayHasKey( 'shipping', $data, 'Shipping should be mapped when a shipping postcode is present' );
+			$this->assertEquals( '+1 555-333-4444', $data['shipping']['phone'], 'Shipping phone should be mapped to the shipping object' );
+		} finally {
+			$order->delete( true );
+		}
+	}
+
+	/**
+	 * Test that map_customer_data omits the shipping phone when none is set.
+	 */
+	public function test_map_customer_data_omits_empty_shipping_phone() {
+		$order = new \WC_Order();
+		$order->set_billing_first_name( 'Jane' );
+		$order->set_billing_last_name( 'Doe' );
+		$order->set_shipping_first_name( 'Jane' );
+		$order->set_shipping_last_name( 'Doe' );
+		$order->set_shipping_address_1( '123 Ship St' );
+		$order->set_shipping_postcode( '90210' );
+
+		try {
+			$data = \WC_Stripe_Customer::map_customer_data( $order );
+
+			$this->assertArrayHasKey( 'shipping', $data, 'Shipping should be mapped when a shipping postcode is present' );
+			$this->assertArrayNotHasKey( 'phone', $data['shipping'], 'Shipping object should omit an empty phone' );
+		} finally {
+			$order->delete( true );
+		}
+	}
+
+	/**
 	 * Test that order data is excluded from Stripe API requests when passed via $args['order'].
 	 *
 	 * This test verifies the fix for backwards compatibility: when order is passed via $args['order'],
@@ -578,5 +710,238 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 		} finally {
 			remove_filter( 'pre_http_request', $mock_update_call, 10 );
 		}
+	}
+
+	/**
+	 * A guest checkout (user id 0) creates a fresh Stripe customer rather than
+	 * reusing one matched by billing name + email.
+	 *
+	 * @return void
+	 */
+	public function test_guest_checkout_does_not_reuse_customer_by_name_and_email() {
+		wp_set_current_user( 0 );
+
+		$customer   = new \WC_Stripe_Customer(); // Guest: user id 0.
+		$mock_order = $this->create_mock_order(
+			[
+				'email'      => 'victim@example.com',
+				'first_name' => 'Jane',
+				'last_name'  => 'Victim',
+			]
+		);
+
+		$search_called = false;
+		$update_called = false;
+		$create_called = false;
+
+		$spy = function ( $return_value, $parsed_args, $url ) use ( &$search_called, &$update_called, &$create_called ) {
+			$method = $parsed_args['method'] ?? '';
+			if ( 'GET' === $method && str_starts_with( $url, 'https://api.stripe.com/v1/customers/search' ) ) {
+				$search_called = true;
+				// Return a match so a regression would take the reuse branch.
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => json_encode( [ 'data' => [ [ 'id' => 'cus_victim' ] ] ] ),
+				];
+			}
+			if ( 'POST' === $method && 'https://api.stripe.com/v1/customers' === $url ) {
+				$create_called = true;
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => json_encode( [ 'id' => 'cus_fresh_guest' ] ),
+				];
+			}
+			if ( 'POST' === $method && 'https://api.stripe.com/v1/customers/cus_victim' === $url ) {
+				$update_called = true;
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => json_encode( [ 'id' => 'cus_victim' ] ),
+				];
+			}
+			return $return_value;
+		};
+		add_filter( 'pre_http_request', $spy, 10, 3 );
+
+		try {
+			$id = $customer->create_customer( [], null, $mock_order );
+
+			$this->assertFalse( $search_called, 'Guest checkout must not query customers/search.' );
+			$this->assertFalse( $update_called, 'Guest checkout must not overwrite a matched customer.' );
+			$this->assertTrue( $create_called, 'Guest checkout must create a fresh customer.' );
+			$this->assertSame( 'cus_fresh_guest', $id, 'The order must bind to the freshly created customer, not a matched one.' );
+		} finally {
+			remove_filter( 'pre_http_request', $spy, 10 );
+		}
+	}
+
+	/**
+	 * Builds a pre_http_request callback that answers Stripe payment_methods requests with the given body.
+	 *
+	 * @param array $body        The decoded response body to return.
+	 * @param int   $status_code The HTTP status code to return.
+	 * @return callable
+	 */
+	private function mock_payment_methods_http_response( array $body, int $status_code ): callable {
+		return function ( $preempt, $parsed_args, $url ) use ( $body, $status_code ) {
+			if ( false === strpos( $url, 'payment_methods' ) ) {
+				return $preempt;
+			}
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode( $body ),
+				'response' => [
+					'code'    => $status_code,
+					'message' => 'OK',
+				],
+			];
+		};
+	}
+
+	/**
+	 * A generic API error throws when requested and does not cache an empty list.
+	 */
+	public function test_get_all_payment_methods_throws_on_generic_error_when_requested() {
+		$user_id = $this->factory->user->create();
+		update_user_option( $user_id, '_stripe_customer_id', 'cus_generic_error_' . $user_id, false );
+		$customer = new \WC_Stripe_Customer( $user_id );
+
+		$mock_http = $this->mock_payment_methods_http_response(
+			[
+				'error' => [
+					'code'    => 'rate_limit',
+					'message' => 'Too many requests.',
+					'type'    => 'api_error',
+				],
+			],
+			429
+		);
+		add_filter( 'pre_http_request', $mock_http, 10, 3 );
+
+		try {
+			$this->expectException( \WC_Stripe_Exception::class );
+			$customer->get_all_payment_methods( [], -1, true );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_http, 10 );
+			$this->assertFalse(
+				get_transient( \WC_Stripe_Customer::PAYMENT_METHODS_TRANSIENT_KEY . '__all_cus_generic_error_' . $user_id ),
+				'A generic API error must not cache an empty payment methods list.'
+			);
+		}
+	}
+
+	/**
+	 * A missing customer returns and caches an empty list even with $throw_on_error.
+	 */
+	public function test_get_all_payment_methods_returns_empty_when_customer_missing_even_with_throw_on_error() {
+		$user_id = $this->factory->user->create();
+		update_user_option( $user_id, '_stripe_customer_id', 'cus_gone_' . $user_id, false );
+		$customer = new \WC_Stripe_Customer( $user_id );
+
+		$mock_http = $this->mock_payment_methods_http_response(
+			[
+				'error' => [
+					'code'    => 'resource_missing',
+					'message' => 'No such customer',
+					'param'   => 'customer',
+					'type'    => 'invalid_request_error',
+				],
+			],
+			404
+		);
+		add_filter( 'pre_http_request', $mock_http, 10, 3 );
+
+		try {
+			$result = $customer->get_all_payment_methods( [], -1, true );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_http, 10 );
+		}
+
+		$this->assertSame( [], $result );
+		$this->assertSame(
+			[],
+			get_transient( \WC_Stripe_Customer::PAYMENT_METHODS_TRANSIENT_KEY . '__all_cus_gone_' . $user_id ),
+			'A missing customer must cache the empty payment methods list.'
+		);
+	}
+
+	/**
+	 * By default a generic API error still returns an empty array.
+	 */
+	public function test_get_all_payment_methods_returns_empty_on_generic_error_by_default() {
+		$user_id = $this->factory->user->create();
+		update_user_option( $user_id, '_stripe_customer_id', 'cus_default_error_' . $user_id, false );
+		$customer = new \WC_Stripe_Customer( $user_id );
+
+		$mock_http = $this->mock_payment_methods_http_response(
+			[
+				'error' => [
+					'code'    => 'rate_limit',
+					'message' => 'Too many requests.',
+					'type'    => 'api_error',
+				],
+			],
+			429
+		);
+		add_filter( 'pre_http_request', $mock_http, 10, 3 );
+
+		try {
+			$result = $customer->get_all_payment_methods();
+		} finally {
+			remove_filter( 'pre_http_request', $mock_http, 10 );
+		}
+
+		$this->assertSame( [], $result );
+	}
+
+	/**
+	 * is_no_such_customer_error() must recognize both error shapes Stripe returns for a
+	 * missing customer and reject unrelated errors.
+	 *
+	 * @param object|null $error    The error object under test.
+	 * @param bool        $expected Whether the error identifies a missing customer.
+	 *
+	 * @dataProvider provide_is_no_such_customer_error_cases
+	 */
+	public function test_is_no_such_customer_error( ?object $error, bool $expected ) {
+		$customer = new \WC_Stripe_Customer();
+
+		$this->assertSame( $expected, (bool) $customer->is_no_such_customer_error( $error ) );
+	}
+
+	/**
+	 * Cases for test_is_no_such_customer_error.
+	 *
+	 * @return array[]
+	 */
+	public function provide_is_no_such_customer_error_cases(): array {
+		return [
+			'code and param pair' => [
+				(object) [
+					'code'  => 'resource_missing',
+					'param' => 'customer',
+				],
+				true,
+			],
+			'message only'        => [
+				(object) [
+					'type'    => 'invalid_request_error',
+					'message' => "No such customer: 'cus_123'",
+				],
+				true,
+			],
+			'unrelated error'     => [
+				(object) [
+					'code'    => 'card_declined',
+					'param'   => 'card',
+					'type'    => 'card_error',
+					'message' => 'Your card was declined.',
+				],
+				false,
+			],
+			'no error'            => [ null, false ],
+		];
 	}
 }

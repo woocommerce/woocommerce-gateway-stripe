@@ -297,6 +297,86 @@ class WC_Stripe_Level3_Data_Test extends WP_UnitTestCase {
 		);
 	}
 
+	/**
+	 * A negative fee and its tax must reduce the Level 3 total, not inflate it, so it still
+	 * matches the capture amount.
+	 */
+	public function test_level3_data_with_negative_fee() {
+		$mock_item = $this->getMockBuilder( WC_Order_Item_Product::class )
+			->disableOriginalConstructor()
+			->setMethods( [ 'get_name', 'get_quantity', 'get_subtotal', 'get_total_tax', 'get_total', 'get_variation_id', 'get_product_id' ] )
+			->getMock();
+
+		$mock_item->method( 'get_name' )->willReturn( 'Beanie with Logo' );
+		$mock_item->method( 'get_quantity' )->willReturn( 1 );
+		$mock_item->method( 'get_total' )->willReturn( 18 );
+		$mock_item->method( 'get_subtotal' )->willReturn( 18 );
+		$mock_item->method( 'get_total_tax' )->willReturn( 3.6 );
+		$mock_item->method( 'get_variation_id' )->willReturn( false );
+		$mock_item->method( 'get_product_id' )->willReturn( 30 );
+
+		$mock_fee = $this->getMockBuilder( WC_Order_Item_Fee::class )
+			->disableOriginalConstructor()
+			->setMethods( [ 'get_name', 'get_quantity', 'get_total_tax', 'get_total' ] )
+			->getMock();
+
+		$mock_fee->method( 'get_name' )->willReturn( 'Discount' );
+		$mock_fee->method( 'get_quantity' )->willReturn( 1 );
+		$mock_fee->method( 'get_total' )->willReturn( -5 );
+		$mock_fee->method( 'get_total_tax' )->willReturn( -1 );
+
+		$mock_order = $this->getMockBuilder( WC_Order::class )
+			->disableOriginalConstructor()
+			->setMethods( [ 'get_id', 'get_items', 'get_currency', 'get_shipping_total', 'get_shipping_tax', 'get_shipping_postcode' ] )
+			->getMock();
+
+		$mock_order->method( 'get_id' )->willReturn( 210 );
+		$mock_order->method( 'get_items' )->willReturn( [ $mock_item, $mock_fee ] );
+		$mock_order->method( 'get_currency' )->willReturn( WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR );
+		$mock_order->method( 'get_shipping_total' )->willReturn( 0 );
+		$mock_order->method( 'get_shipping_tax' )->willReturn( 0 );
+		$mock_order->method( 'get_shipping_postcode' )->willReturn( '98012' );
+
+		$gateway = new WC_Stripe_UPE_Payment_Gateway();
+		$result  = $gateway->get_level3_data_from_order( $mock_order );
+
+		// The negative fee is represented as a zero-cost line item with an equivalent discount
+		// (fee 5.00 + fee tax 1.00 = 600 minor units) so the Level 3 total nets down correctly.
+		$this->assertEquals(
+			[
+				(object) [
+					'product_code'        => '30',
+					'product_description' => 'Beanie with Logo',
+					'unit_cost'           => 1800,
+					'quantity'            => 1,
+					'tax_amount'          => 360,
+					'discount_amount'     => 0,
+				],
+				(object) [
+					'product_code'        => 'discount',
+					'product_description' => 'Discount',
+					'unit_cost'           => 0,
+					'quantity'            => 1,
+					'tax_amount'          => 0,
+					'discount_amount'     => 600,
+				],
+			],
+			$result['line_items']
+		);
+
+		// The Level 3 total must equal the capture amount (order total 15.60 => 1560).
+		$level3_total  = array_reduce(
+			$result['line_items'],
+			function ( $sum, $item ) {
+				return $sum + ( $item->quantity * $item->unit_cost ) - $item->discount_amount + $item->tax_amount;
+			},
+			0
+		);
+		$level3_total += $result['shipping_amount'];
+
+		$this->assertEquals( 1560, $level3_total );
+	}
+
 	public function test_full_level3_data_with_fee() {
 		$expected_data = [
 			'merchant_reference'   => '210',

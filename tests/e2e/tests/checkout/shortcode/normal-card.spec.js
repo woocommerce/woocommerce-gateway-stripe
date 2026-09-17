@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 import config from 'config';
 import { payments } from '../../../utils';
 
@@ -7,10 +7,13 @@ const {
 	setupCart,
 	setupShortcodeCheckout,
 	fillCreditCardDetailsShortcode,
+	getCartTotal,
+	waitForOrderReceivedPageAndConfirmExpectedTotal,
 } = payments;
 
 test( 'customer can checkout with a normal credit card @smoke', async ( {
 	page,
+	browser,
 } ) => {
 	await emptyCart( page );
 	await setupCart( page );
@@ -19,10 +22,14 @@ test( 'customer can checkout with a normal credit card @smoke', async ( {
 		config.get( 'addresses.customer.billing' )
 	);
 	await fillCreditCardDetailsShortcode( page, config.get( 'cards.basic' ) );
-	await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
-	await page.waitForNavigation();
 
-	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-		'Order received'
+	const expectedTotal = await getCartTotal( page );
+
+	await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
+
+	await waitForOrderReceivedPageAndConfirmExpectedTotal(
+		browser,
+		page,
+		expectedTotal
 	);
 } );

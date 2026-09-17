@@ -7,6 +7,8 @@ import {
 	isPaymentMethodRestrictedToLocation,
 	isUsingSavedPaymentMethod,
 	paymentMethodSupportsDeferredIntent,
+	removeCheckoutSessionIdFromForm,
+	showErrorCheckout,
 	togglePaymentMethodForCountry,
 } from '../../stripe-utils';
 import './style.scss';
@@ -15,11 +17,16 @@ import {
 	confirmWalletPayment,
 	createAndConfirmSetupIntent,
 	getMountedUPEComponent,
+	hasEmptyRequiredFields,
 	initializeUPEComponents,
 	maybeUpdateAdaptivePricingCheckoutSession,
+	maybeUpdateOptimizedCheckoutExclusions,
 	mountStripePaymentElement,
 	processPayment,
+	resetCheckoutCompletionState,
+	trackMountInProgress,
 } from './payment-processing';
+import { __ } from '@wordpress/i18n';
 
 jQuery( function ( $ ) {
 	const stripeServerData = getStripeServerData();
@@ -86,13 +93,38 @@ jQuery( function ( $ ) {
 	// Only attempt to mount the card element once that section of the page has loaded.
 	// We can use the updated_checkout event for this.
 	$( document.body ).on( 'updated_checkout', () => {
-		void ( async () => {
-			await maybeUpdateAdaptivePricingCheckoutSession( api );
+		// Track the re-render → re-mount chain so a mid-update submission waits.
+		const updateChain = ( async () => {
+			await maybeUpdateAdaptivePricingCheckoutSession();
 			await maybeMountStripePaymentElement();
+			// Remounting skips an already-mounted OC element; refresh its exclusions.
+			maybeUpdateOptimizedCheckoutExclusions();
 		} )();
+		trackMountInProgress( updateChain );
+		void updateChain;
 	} );
 
 	function processPaymentIfNotUsingSavedMethod( $form ) {
+		// Returning false is what stops WooCommerce submitting: returning early without
+		// it would let the form POST with no payment method, and the order would be
+		// created and then failed. jQuery :visible filters out fields hidden by
+		// conditional checkout logic (e.g. shipping fields when "Ship to different
+		// address" is unchecked).
+		if (
+			hasEmptyRequiredFields(
+				$form.find( '.validate-required:visible' ).toArray()
+			)
+		) {
+			resetCheckoutCompletionState();
+			showErrorCheckout(
+				__(
+					'Please fill in all required fields.',
+					'woocommerce-gateway-stripe'
+				)
+			);
+			return false;
+		}
+
 		const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
 		if ( ! isUsingSavedPaymentMethod( paymentMethodType ) ) {
 			return processPayment( api, $form, paymentMethodType );
@@ -100,7 +132,17 @@ jQuery( function ( $ ) {
 	}
 
 	$( 'form.checkout' ).on( generateCheckoutEventNames(), function () {
-		return processPaymentIfNotUsingSavedMethod( $( this ) );
+		const $form = $( this );
+
+		// A saved token bypasses Checkout Session confirmation, so discard a stale Session id left by
+		// an earlier attempt. New payment methods need the field so the Session flow can replace it.
+		if (
+			isUsingSavedPaymentMethod( getSelectedUPEGatewayPaymentMethod() )
+		) {
+			removeCheckoutSessionIdFromForm( $form );
+		}
+
+		return processPaymentIfNotUsingSavedMethod( $form );
 	} );
 
 	// Mount the Stripe Payment Elements onto the Add Payment Method page and Pay for Order page.
@@ -133,6 +175,15 @@ jQuery( function ( $ ) {
 
 	// Pay for Order page submit.
 	$( '#order_review' ).on( 'submit', () => {
+		// ECE populates the hidden fields and drives its own submit, so skip the
+		// inline Payment Element flow here to avoid overwriting its payment method.
+		const isExpressCheckoutSubmission = $( '#order_review' )
+			.find( 'input[name="express_checkout_type"]' )
+			.val();
+		if ( isExpressCheckoutSubmission ) {
+			return;
+		}
+
 		const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
 		if ( ! isUsingSavedPaymentMethod( paymentMethodType ) ) {
 			return processPayment(
@@ -194,7 +245,7 @@ jQuery( function ( $ ) {
 				const cartContainsSubscription =
 					stripeServerData?.cartContainsSubscription;
 
-				// `stripe.elements()` exposes `update()`; Adaptive Pricing uses `initCheckout()`, which
+				// `stripe.elements()` exposes `update()`; Adaptive Pricing uses `initCheckoutElementsSdk()`, which
 				// returns a Checkout object without that API — toggling save-for-later there requires handling the change in the server.
 				// not a client-side Elements update.
 				// We check for the existence of the `update` function here instead of the 'isAdaptivePricingEnabled' flag

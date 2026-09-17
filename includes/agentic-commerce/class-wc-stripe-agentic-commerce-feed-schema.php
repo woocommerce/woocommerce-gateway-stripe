@@ -323,6 +323,13 @@ class WC_Stripe_Agentic_Commerce_Feed_Schema {
 				'description' => 'Number of verified reviews',
 			],
 
+			// Optional - Checkout.
+			'disable_checkout'          => [
+				'required'    => false,
+				'type'        => 'boolean',
+				'description' => 'Exclude product from in-agent checkout (redirect to link)',
+			],
+
 			// Optional - Product Lifecycle.
 			'expiration_date'           => [
 				'required'    => false,

@@ -428,8 +428,22 @@ export const sampleFontFamily = ( isBlocksCheckout = false ) => {
 
 export const getAppearance = (
 	isBlocksCheckout = false,
-	shouldExpandOptimizedCheckout = false
+	shouldExpandOptimizedCheckout = false,
+	isEditor = false
 ) => {
+	// In the block editor (Site/Full Site Editor) the checkout block renders a
+	// preview that does not reflect the live storefront DOM. Sampling computed
+	// styles there yields incorrect colors — typically a dark editor-canvas
+	// background that flips the theme to 'night', so the Payment Element fields
+	// render with a dark/black appearance. Return a neutral light appearance
+	// instead so the preview renders correctly. See STRIPE-1061.
+	if ( isEditor ) {
+		return {
+			theme: 'stripe',
+			labels: isBlocksCheckout ? 'floating' : 'above',
+		};
+	}
+
 	const selectors = appearanceSelectors.getSelectors( isBlocksCheckout );
 
 	// Add hidden fields to DOM for generating styles.

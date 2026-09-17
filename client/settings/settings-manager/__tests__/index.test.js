@@ -6,6 +6,8 @@ jest.mock( '../../payment-settings' );
 
 jest.mock( '../../payment-methods' );
 
+jest.mock( '../../agentic-commerce' );
+
 jest.mock( '../../save-settings-section' );
 
 jest.mock( 'wcstripe/data', () => ( {
@@ -67,7 +69,7 @@ describe( 'SettingsManager', () => {
 		} );
 	} );
 
-	it( 'should not render a third tab when agentic commerce is enabled', async () => {
+	it( 'should render an Agentic Commerce tab when the feature is enabled', async () => {
 		global.wc_stripe_settings_params = {
 			...BASE_PARAMS,
 			is_agentic_commerce_enabled: true,
@@ -77,9 +79,13 @@ describe( 'SettingsManager', () => {
 
 		await waitFor( () => {
 			expect(
-				screen.getByRole( 'tab', { name: /Payment Methods/i } )
+				screen.getByRole( 'tab', { name: /Agentic Commerce/i } )
 			).toBeInTheDocument();
 		} );
+	} );
+
+	it( 'should not render an Agentic Commerce tab when the feature is disabled', async () => {
+		render( <SettingsManager /> );
 
 		await waitFor( () => {
 			expect(
@@ -90,6 +96,24 @@ describe( 'SettingsManager', () => {
 		expect(
 			screen.queryByRole( 'tab', { name: /Agentic/i } )
 		).not.toBeInTheDocument();
+	} );
+
+	it( 'should open the Agentic Commerce tab when the URL panel matches', async () => {
+		global.wc_stripe_settings_params = {
+			...BASE_PARAMS,
+			is_agentic_commerce_enabled: true,
+		};
+		getQuery.mockReturnValue( { panel: 'agentic-commerce' } );
+
+		render( <SettingsManager /> );
+
+		await waitFor( () => {
+			expect(
+				screen.queryByTestId( 'agentic-commerce-tab' )
+			).toBeInTheDocument();
+		} );
+
+		expect( screen.queryByTestId( 'methods-tab' ) ).not.toBeInTheDocument();
 	} );
 
 	it( 'should render the Stripe payment method tab content by default', async () => {

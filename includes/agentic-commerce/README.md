@@ -341,3 +341,57 @@ Common patterns:
 - **Categories:** `Electronics > Computers > Laptops`
 - **Variants:** `Size:Large,Color:Blue`
 - **Shipping:** `US:CA:Express:1-2:12.99 USD`
+
+## Checkout Mode (embedded vs. redirect)
+
+Stripe's feed supports two checkout behaviors per product via the `disable_checkout` field — the same feed and Files API delivery serve both, so this is not a separate ingestion path:
+
+- **Embedded / delegated checkout** (`disable_checkout=false`, the default): the shopper completes the purchase inside the AI agent.
+- **Feed-only / redirect** (`disable_checkout=true`): the product is still syndicated for discovery, but the agent sends the shopper to the product's `link` URL to check out on the store.
+
+The store-wide default is set in **Stripe settings → Agentic commerce → "Redirect shoppers to my store to check out"** (option `wc_stripe_agentic_commerce_disable_checkout`). Per-product overrides go through a filter:
+
+```php
+add_filter(
+    'woocommerce_agentic_commerce_disable_checkout',
+    function ( bool $disabled, WC_Product $product, ?WC_Product $parent ): bool {
+        // e.g. redirect only for a specific category.
+        return has_term( 'made-to-order', 'product_cat', $product->get_id() ) ? true : $disabled;
+    },
+    10,
+    3
+);
+```
+
+> The Stripe-prefixed `wc_stripe_agentic_commerce_disable_checkout` filter is **deprecated since 10.9.0** in favour of the shareable `woocommerce_agentic_commerce_disable_checkout` above (mirroring the `woocommerce_agentic_commerce_should_sync_product` migration). Existing hooks on the old name still run — they seed the new filter's default — but emit a deprecation notice.
+
+## Product sync eligibility
+
+The feed query selects published simple products and variations, so grouped, external/affiliate, private, draft and trashed products never reach it. On top of that, `WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product()` excludes by default:
+
+| Excluded | Why |
+| --- | --- |
+| Subscription product types | They fail feed validation and downgrade the whole sync to a partial success. |
+| Password-protected products | The password gate states who may view the product, and the exported `link` would only render a password prompt. |
+| Products hidden from catalog **and** search | `hidden` is the strongest "do not surface this" signal WooCommerce offers. |
+| Products with the per-product exclude flag | The merchant opted the product out explicitly. |
+
+Catalog visibility values that hide a product from only one surface (`catalog`, `search`) are **not** treated as exclusions — the product is still meant to be reachable by the other route.
+
+A variation inherits its parent's catalog visibility but **not** its `post_password` (it is a separate post with its own empty value), so the password check resolves to the parent. Variations are what the feed actually exports, so skipping that lookup would leak every variation of a password-protected variable product.
+
+All of these are defaults rather than hard blocks: `woocommerce_agentic_commerce_should_sync_product` can return `true` to opt a product back in.
+
+Because the filter only governs what is *sent*, a product that was already exported and later becomes ineligible stays in Stripe's catalog until a full feed replacement. `WC_Stripe_Agentic_Commerce_Product_Visibility` watches product saves and per-product exclude-flag writes, and fires `wc_stripe_agentic_commerce_schedule_full_resync` when a product crosses that boundary — adapters whose own filter verdict changes must fire the same action.
+
+## Coupons and discounts
+
+WooCommerce coupons do not participate in delegated (in-agent) checkout. Prices come from the synced product feed and are computed by Stripe, the shopper pays inside the AI agent, and the WooCommerce order is only created afterwards from the completed session. Consequences merchants should be aware of:
+
+- No WooCommerce coupon is ever applied to an agentic order — agentic shoppers pay the feed price.
+- WooCommerce coupon **usage limits are neither enforced nor consumed** by agentic sales. A limited-use coupon promotion does not cap, count, or discount purchases completed inside an agent.
+- Stripe-side discounts are rejected at order creation: a session whose `total_details.amount_discount` is non-zero fails with an explicit error (WooCommerce recalculates full catalog prices, so such an order could never pass total verification). Because Stripe captures payment before the webhook fires, the failure surfaces in logs for manual resolution.
+
+This limitation only affects delegated (in-agent) purchases. In feed-only / redirect mode (see [Checkout Mode](#checkout-mode-embedded-vs-redirect) above) the shopper completes checkout on the store, where WooCommerce coupons and their usage limits apply as usual.
+
+Whether to support promotions in delegated checkout (mapping Stripe discounts to WooCommerce coupons and enforcing usage limits at `finalize_checkout`) is an open product decision, tracked in STRIPE-1257.

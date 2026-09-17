@@ -45,6 +45,7 @@ function _manually_load_plugin() {
 	// REST API.
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-base-controller.php';
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-settings-controller.php';
+	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-controller.php';
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-keys-controller.php';
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-agentic-commerce-controller.php';
 	// Stub WooCommerce ProductFeed interfaces/classes when running against an older WooCommerce
@@ -84,6 +85,50 @@ unset( $_test_token );
 
 require $_tests_dir . '/includes/bootstrap.php';
 
+/**
+ * Block outbound HTTP requests to prevent unintentional, slow API calls that will fail.
+ * Return an HTTP 400 response to reflect that this was a blocked, bad request, as returning
+ * a WP_Error instance would be treated as an API outage.
+ *
+ * @param mixed  $preempt     Whether to preempt the request with a specific return value.
+ * @param array  $parsed_args HTTP request arguments.
+ * @param string $url         The URL being requested.
+ * @return mixed The preempted return value.
+ */
+function _wc_stripe_block_outbound_http_requests( $preempt, $parsed_args, $url ) {
+	// If another filter has modified the return value, make no changes.
+	if ( false !== $preempt ) {
+		return $preempt;
+	}
+
+	$message = sprintf(
+		'Unmocked outbound HTTP request to %s. Stub `pre_http_request` in the test to return the expected response.',
+		$url
+	);
+
+	return [
+		'headers'  => [],
+		'cookies'  => [],
+		'filename' => null,
+		'response' => [
+			'code'    => 400,
+			'message' => 'Bad Request',
+		],
+		'body'     => wp_json_encode(
+			[
+				'error' => [
+					'type'    => 'invalid_request_error',
+					'message' => $message,
+				],
+			]
+		),
+	];
+}
+
+// Registered at PHP_INT_MAX so any `pre_http_request` filters in tests will run before this filter.
+add_filter( 'pre_http_request', '_wc_stripe_block_outbound_http_requests', PHP_INT_MAX, 3 );
+
+
 # Load test helpers manually. The helpers/ directory is excluded from the Composer classmap
 # (to prevent stub classes like WC_Subscriptions from being autoloaded in E2E environments
 # where the real plugin is active), so all helpers must be explicitly required here.
@@ -110,6 +155,7 @@ require_once __DIR__ . '/helpers/class-oc-test-helper.php';
 require_once __DIR__ . '/helpers/class-pmc-test-helper.php';
 require_once __DIR__ . '/helpers/class-upe-test-helper.php';
 require_once __DIR__ . '/helpers/class-wc-stripe-test-helper.php';
+require_once __DIR__ . '/helpers/trait-wc-stripe-hook-manager-reset.php';
 
 // Pre-create HPOS (Custom Orders Table) schema so that parallel workers don't
 // race to create it when tests toggle `woocommerce_custom_orders_table_enabled`.

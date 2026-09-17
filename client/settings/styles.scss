@@ -1,5 +1,10 @@
 #wc-stripe-account-settings-container {
 	box-sizing: border-box;
+
+	/* Ensure that disabled, checked checkboxes look disabled */
+	.components-checkbox-control__input[type='checkbox']:checked:disabled {
+		opacity: 0.5;
+	}
 }
 
 #wc-stripe-new-account-container {

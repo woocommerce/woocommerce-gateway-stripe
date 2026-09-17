@@ -102,7 +102,7 @@ describe( 'Blocks Utils', () => {
 				const options = getStripeElementOptions();
 
 				expect( options.layout.type ).toBe( 'accordion' );
-				expect( options.layout.radios ).toBe( false );
+				expect( options.layout.radios ).toBe( 'never' );
 				expect( options.layout.spacedAccordionItems ).toBe( false );
 			} );
 
@@ -128,7 +128,7 @@ describe( 'Blocks Utils', () => {
 				const options = getStripeElementOptions();
 
 				expect( options.layout.type ).toBe( 'accordion' );
-				expect( options.layout.radios ).toBe( false );
+				expect( options.layout.radios ).toBe( 'never' );
 				expect( options.layout.spacedAccordionItems ).toBe( false );
 			} );
 		} );

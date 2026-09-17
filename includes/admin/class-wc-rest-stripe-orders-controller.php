@@ -117,6 +117,11 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 		}
 
 		// Validate order status before creating customer.
+		/**
+		 * Filters order statuses that cannot be used when creating a Stripe customer from an order.
+		 *
+		 * @param string[] $disallowed_order_statuses Order statuses that cannot create a customer.
+		 */
 		$disallowed_order_statuses = apply_filters( 'wc_stripe_create_customer_disallowed_order_statuses', [ OrderStatus::COMPLETED, OrderStatus::CANCELLED, OrderStatus::REFUNDED, OrderStatus::FAILED ] );
 		if ( $order->has_status( $disallowed_order_statuses ) ) {
 			return new WP_Error( 'wc_stripe_invalid_order_status', __( 'Invalid order status', 'woocommerce-gateway-stripe' ), [ 'status' => 400 ] );

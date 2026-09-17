@@ -138,11 +138,18 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function save_payment_method_checkbox( $force_checked = false ) {
 		$id = 'wc-' . $this->id . '-new-payment-method';
 		?>
-		<fieldset <?php echo $force_checked ? 'style="display:none;"' : ''; /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?>>
+		<fieldset <?php echo $force_checked ? 'style="display: none;"' : ''; /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?>>
 			<p class="form-row woocommerce-SavedPaymentMethods-saveNew">
 				<input id="<?php echo esc_attr( $id ); ?>" name="<?php echo esc_attr( $id ); ?>" type="checkbox" value="true" style="width:auto;" <?php echo $force_checked ? 'checked' : ''; /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?> />
 				<label for="<?php echo esc_attr( $id ); ?>" style="display:inline;">
-					<?php echo esc_html( apply_filters( 'wc_stripe_save_to_account_text', __( 'Save payment information to my account for future purchases.', 'woocommerce-gateway-stripe' ) ) ); ?>
+					<?php
+					/**
+					 * Filters the checkout text for saving payment information to the customer's account.
+					 *
+					 * @param string $text Save payment method checkbox label.
+					 */
+					echo esc_html( apply_filters( 'wc_stripe_save_to_account_text', __( 'Save payment information to my account for future purchases.', 'woocommerce-gateway-stripe' ) ) );
+					?>
 				</label>
 			</p>
 		</fieldset>
@@ -388,6 +395,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( 'yes' === $this->get_option( 'optimized_checkout_element' ) ) {
 			$icon_list['cards'] = '';
 		}
+		/**
+		 * Filters the Stripe payment method icon HTML strings.
+		 *
+		 * @param array $icon_list Payment method icon HTML keyed by payment method ID.
+		 */
 		return apply_filters( 'wc_stripe_payment_icons', $icon_list );
 	}
 
@@ -485,12 +497,16 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$post_data['currency']                 = strtolower( $order->get_currency() );
 		$post_data['amount']                   = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $post_data['currency'] );
 
-		/* translators: 1) blog name 2) order number */
-		$post_data['description'] = sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() );
+		$post_data['description'] = WC_Stripe_Helper::get_payment_intent_description( $order );
 		$billing_email            = $order->get_billing_email();
 		$billing_first_name       = $order->get_billing_first_name();
 		$billing_last_name        = $order->get_billing_last_name();
 
+		/**
+		 * Filters whether to send Stripe receipt emails for payment requests.
+		 *
+		 * @param bool $send_receipt Whether to send a Stripe receipt email.
+		 */
 		if ( ! empty( $billing_email ) && apply_filters( 'wc_stripe_send_stripe_receipt', false ) ) {
 			$post_data['receipt_email'] = $billing_email;
 		}
@@ -514,6 +530,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 					'state'       => $order->get_shipping_state(),
 				],
 			];
+
+			// Include the shipping phone, when available, to support risk decisioning.
+			$shipping_phone = $order->get_shipping_phone();
+			if ( ! empty( $shipping_phone ) ) {
+				$post_data['shipping']['phone'] = $shipping_phone;
+			}
 		}
 
 		$post_data['expand[]'] = 'balance_transaction';
@@ -602,10 +624,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$order_id     = $order->get_id();
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
-		$captured     = isset( $response->captured ) && $response->captured;
 
-		// Store charge data.
-		$order_helper->set_stripe_charge_captured( $order, $captured );
+		// Record the captured flag for refund/capture flows; a chargeless intent records
+		// nothing, and the refund path later resolves the real state from Stripe.
+		$captured = $order_helper->sync_stripe_charge_captured( $order, $response ) ?? false;
 
 		if ( isset( $response->balance_transaction ) ) {
 			$this->update_fees( $order, is_string( $response->balance_transaction ) ? $response->balance_transaction : $response->balance_transaction->id );
@@ -702,6 +724,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$order->save();
 		}
 
+		/**
+		 * Fires after a Stripe charge response is processed.
+		 *
+		 * @param object   $response Stripe charge response.
+		 * @param WC_Order $order    Order associated with the charge.
+		 */
 		do_action( 'wc_gateway_stripe_process_response', $response, $order );
 
 		return $response;
@@ -805,6 +833,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$details['address']['postal_code'] = $order->get_billing_postcode();
 		$details['address']['country']     = $order->get_billing_country();
 
+		/**
+		 * Filters owner details sent to Stripe.
+		 *
+		 * @param array    $details Owner details.
+		 * @param WC_Order $order   Order used to build the owner details.
+		 */
 		return (object) apply_filters( 'wc_stripe_owner_details', $details, $order );
 	}
 
@@ -903,6 +937,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function maybe_disallow_prepaid_card( $payment_method ) {
 		// Check if we don't allow prepaid credit cards.
+		/**
+		 * Filters whether prepaid cards are accepted.
+		 *
+		 * @param bool $allow_prepaid_card Whether prepaid cards are accepted.
+		 */
 		if ( apply_filters( 'wc_stripe_allow_prepaid_card', true ) || ! $this->is_prepaid_card( $payment_method ) ) {
 			return;
 		}
@@ -1086,7 +1125,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			if ( $source_id ) {
 				$stripe_source = $source_id;
 				$source_object = WC_Stripe_API::get_payment_method( $source_id );
-			} elseif ( apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
+			} elseif (
+				/** This filter is documented in includes/compat/trait-wc-stripe-subscriptions.php. */
+				apply_filters( 'wc_stripe_use_default_customer_source', true )
+			) {
 				/*
 				 * We can attempt to charge the customer's default source
 				 * by sending empty source id.
@@ -1204,14 +1246,23 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param  int $order_id
 	 * @param  float $amount
 	 *
-	 * @return bool True or false based on success.
+	 * @return bool|WP_Error True on success, false when there is nothing to refund, or a WP_Error describing the failure.
 	 * @throws Exception Throws exception when charge wasn't captured.
 	 */
 	public function process_refund( $order_id, $amount = null, $reason = '' ) {
 		$order = wc_get_order( $order_id );
 
-		if ( ! $order ) {
+		if ( ! $order instanceof WC_Order ) {
 			return false;
+		}
+
+		// Stripe amounts are unsigned — WC_Stripe_Helper::get_stripe_amount() would silently
+		// flip the sign and refund the absolute value — so reject negative amounts outright.
+		if ( ! is_null( $amount ) && $amount < 0 ) {
+			return new WP_Error(
+				'stripe_error',
+				__( 'The refund amount must be greater than or equal to zero.', 'woocommerce-gateway-stripe' )
+			);
 		}
 
 		$request = [];
@@ -1221,7 +1272,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$charge_id      = $order->get_transaction_id();
 
 		// Card payments have no webhook that back-fills a lost charge ID, so recover it from the intent.
-		if ( ! $charge_id && $order instanceof WC_Order ) {
+		if ( ! $charge_id ) {
 			$charge_id = $this->recover_charge_id_from_intent( $order );
 		}
 
@@ -1229,8 +1280,30 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return false;
 		}
 
-		// Read after recovery, which reconciles the captured flag.
-		$captured = $order_helper->is_stripe_charge_captured( $order );
+		// Refund vs void depends on the captured state; if it cannot be determined the refund
+		// must fail with the real error. Defaulting to "not captured" would route a possibly
+		// captured charge to the void path and its "Refund manually" guidance.
+		try {
+			$captured = $this->resolve_charge_captured_state( $order, $charge_id );
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::warning(
+				'Unable to resolve the captured state of the Stripe charge before refunding.',
+				[
+					'order_id'      => $order->get_id(),
+					'charge_id'     => $charge_id,
+					'error_message' => $e->getMessage(),
+				]
+			);
+
+			return new WP_Error(
+				'stripe_error',
+				sprintf(
+					/* translators: %1$s is a stripe error message */
+					__( 'There was a problem initiating a refund: %1$s', 'woocommerce-gateway-stripe' ),
+					$e->getLocalizedMessage() ? $e->getLocalizedMessage() : $e->getMessage()
+				)
+			);
+		}
 
 		if ( ! is_null( $amount ) ) {
 			$request['amount'] = WC_Stripe_Helper::get_stripe_amount( $amount, $order_currency );
@@ -1263,6 +1336,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		WC_Stripe_Logger::info( "Info: Beginning refund for order {$charge_id} for the amount of {$amount}" );
 		$response = new stdClass();
 		try {
+			/**
+			 * Filters the Stripe refund request before it is sent.
+			 *
+			 * @param array    $request Refund request data.
+			 * @param WC_Order $order   Order associated with the refund.
+			 */
 			$request = apply_filters( 'wc_stripe_refund_request', $request, $order );
 
 			$intent           = $this->get_intent_from_order( $order );
@@ -1345,6 +1424,26 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			$order_helper->update_stripe_refund_id( $order, $response->id );
 
+			// The parent-order meta above only tracks the latest refund, so also store the ID on the
+			// WC refund record itself for per-refund reconciliation. WooCommerce core creates and saves
+			// the refund before invoking the gateway, so the matching record is the newest one without
+			// a Stripe refund ID. The amount check guards direct callers (e.g. voids) whose refunded
+			// amount corresponds to no WC refund record — better to leave a record untagged than to
+			// tag the wrong one.
+			if ( isset( $response->amount ) ) {
+				foreach ( $order->get_refunds() as $wc_refund ) {
+					if ( $order_helper->get_stripe_refund_id_for_refund( $wc_refund ) ) {
+						continue;
+					}
+
+					if ( WC_Stripe_Helper::get_stripe_amount( $wc_refund->get_amount(), $order_currency ) === (int) $response->amount ) {
+						$order_helper->update_stripe_refund_id_for_refund( $wc_refund, $response->id );
+						$wc_refund->save_meta_data();
+						break;
+					}
+				}
+			}
+
 			if ( isset( $response->balance_transaction ) ) {
 				$this->update_fees( $order, $response->balance_transaction );
 			}
@@ -1399,9 +1498,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$order->set_transaction_id( $charge_id );
 
 		// Reconcile the captured flag, which may have been lost with the charge ID.
-		if ( isset( $charge->captured ) ) {
-			$order_helper->set_stripe_charge_captured( $order, (bool) $charge->captured );
-		}
+		$order_helper->sync_stripe_charge_captured( $order, $charge );
 
 		$order->save();
 
@@ -1411,6 +1508,42 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		WC_Stripe_Logger::info( "Recovered missing charge ID {$charge_id} for order {$order->get_id()} from the stored payment intent." );
 
 		return $charge_id;
+	}
+
+	/**
+	 * Resolves whether the order's charge is captured, asking Stripe when the stored flag is missing.
+	 *
+	 * A stored 'yes'/'no' is trusted; only a missing flag ('') triggers the lookup, because
+	 * async-confirmed orders (e.g. ACH) may have had no charge at checkout, and treating
+	 * "never recorded" as "not captured" would wrongly void a refundable charge. An
+	 * undeterminable state throws instead of defaulting: callers treat false as safe to void.
+	 *
+	 * @param WC_Order $order     The order being refunded.
+	 * @param string   $charge_id The order's charge ID.
+	 * @return bool Whether the charge is captured.
+	 * @throws WC_Stripe_Exception When the captured state cannot be determined from Stripe.
+	 */
+	private function resolve_charge_captured_state( WC_Order $order, string $charge_id ): bool {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$captured     = $order_helper->is_stripe_charge_captured( $order );
+
+		// A stored 'yes' or 'no' is authoritative; only a missing value ('') needs Stripe.
+		if ( $captured || '' !== (string) $order_helper->get_stripe_charge_captured( $order ) ) {
+			return $captured;
+		}
+
+		$synced = $order_helper->sync_stripe_charge_captured( $order, $this->get_charge_object( $charge_id ) );
+
+		if ( null === $synced ) {
+			throw new WC_Stripe_Exception(
+				"Charge {$charge_id} carries no captured state.",
+				__( 'The captured state of the charge could not be determined from Stripe.', 'woocommerce-gateway-stripe' )
+			);
+		}
+
+		$order->save();
+
+		return $synced;
 	}
 
 	/**
@@ -1455,9 +1588,18 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return [ 'result' => 'failure' ];
 		}
 
-		$payment_method_name = isset( $_POST['payment_method'] ) ? wc_clean( wp_unslash( $_POST['payment_method'] ) ) : '';
+		$payment_method_id = isset( $_POST['payment_method'] ) ? wc_clean( wp_unslash( $_POST['payment_method'] ) ) : '';
+		$payment_method_id = is_string( $payment_method_id ) ? $payment_method_id : '';
 
-		do_action( 'wc_stripe_add_payment_method_' . $payment_method_name . '_success', $source_object->id, $source_object );
+		/**
+		 * Fires after adding a payment method succeeds.
+		 *
+		 * The dynamic portion of the hook name is the payment method ID.
+		 *
+		 * @param string $source_id     Stripe source ID.
+		 * @param object $source_object Stripe source object.
+		 */
+		do_action( "wc_stripe_add_payment_method_{$payment_method_id}_success", $source_object->id, $source_object );
 
 		return [
 			'result'   => 'success',
@@ -1611,9 +1753,23 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 					WC_Stripe_Logger::error( $error_msg );
 					throw new WC_Stripe_Exception( $error_msg );
 				}
-				$unit_cost       = WC_Stripe_Helper::get_stripe_amount( ( $subtotal / $quantity ), $currency );
-				$tax_amount      = WC_Stripe_Helper::get_stripe_amount( $item->get_total_tax(), $currency );
-				$discount_amount = WC_Stripe_Helper::get_stripe_amount( $subtotal - $item->get_total(), $currency );
+				$total_tax  = $item->get_total_tax();
+				$item_total = $item->get_total();
+
+				if ( $subtotal >= 0 ) {
+					$unit_cost       = WC_Stripe_Helper::get_stripe_amount( ( $subtotal / $quantity ), $currency );
+					$discount_amount = WC_Stripe_Helper::get_stripe_amount( $subtotal - $item_total, $currency );
+				} else {
+					$unit_cost       = 0;
+					$discount_amount = WC_Stripe_Helper::get_stripe_amount( $item_total, $currency );
+				}
+
+				// Tax must not be negative either; fold a negative tax into the discount.
+				$tax_amount = WC_Stripe_Helper::get_stripe_amount( $total_tax, $currency );
+				if ( $total_tax < 0 ) {
+					$discount_amount += $tax_amount;
+					$tax_amount       = 0;
+				}
 
 				return (object) [
 					'product_code'        => (string) $product_id, // Up to 12 characters that uniquely identify the product.
@@ -2283,7 +2439,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return;
 		}
 
-		wp_register_script( 'stripe', 'https://js.stripe.com/clover/stripe.js', [], null, true );
+		WC_Stripe_Helper::register_stripe_js();
 		wp_enqueue_script( 'stripe' );
 
 		if ( $this->should_skip_full_payment_scripts() ) {
@@ -2300,6 +2456,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		wp_localize_script(
 			'woocommerce_stripe',
 			'wc_stripe_params',
+			/**
+			 * Filters the classic checkout JavaScript parameters for Stripe.
+			 *
+			 * @param array $params Stripe JavaScript parameters.
+			 */
 			apply_filters( 'wc_stripe_params', $this->javascript_params() )
 		);
 
@@ -2398,6 +2559,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			}
 		}
 
+		/**
+		 * Filters Stripe Elements options for SEPA fields.
+		 *
+		 * @param array $options Stripe Elements options.
+		 */
 		$sepa_elements_options = apply_filters(
 			'wc_stripe_sepa_elements_options',
 			[
@@ -2407,26 +2573,47 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			]
 		);
 
-		$stripe_params['stripe_locale']               = WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() );
-		$stripe_params['no_prepaid_card_msg']         = __( 'Sorry, we\'re not accepting prepaid cards at this time. Your credit card has not been charged. Please try with alternative payment method.', 'woocommerce-gateway-stripe' );
-		$stripe_params['no_sepa_owner_msg']           = __( 'Please enter your IBAN account name.', 'woocommerce-gateway-stripe' );
-		$stripe_params['no_sepa_iban_msg']            = __( 'Please enter your IBAN account number.', 'woocommerce-gateway-stripe' );
-		$stripe_params['payment_intent_error']        = __( 'We couldn\'t initiate the payment. Please try again.', 'woocommerce-gateway-stripe' );
-		$stripe_params['sepa_mandate_notification']   = apply_filters( 'wc_stripe_sepa_mandate_notification', 'email' );
-		$stripe_params['allow_prepaid_card']          = apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no';
-		$stripe_params['inline_cc_form']              = ( isset( $this->inline_cc_form ) && $this->inline_cc_form ) ? 'yes' : 'no';
-		$stripe_params['is_checkout']                 = ( is_checkout() && empty( $_GET['pay_for_order'] ) ) ? 'yes' : 'no'; // wpcs: csrf ok.
-		$stripe_params['return_url']                  = $this->get_stripe_return_url();
-		$stripe_params['ajaxurl']                     = WC_AJAX::get_endpoint( '%%endpoint%%' );
-		$stripe_params['stripe_nonce']                = wp_create_nonce( '_wc_stripe_nonce' );
-		$stripe_params['statement_descriptor']        = $this->statement_descriptor; // @phpstan-ignore-line (statement_descriptor is defined in the classes that use this class)
-		$stripe_params['elements_options']            = apply_filters( 'wc_stripe_elements_options', [] );
-		$stripe_params['sepa_elements_options']       = $sepa_elements_options;
-		$stripe_params['invalid_owner_name']          = __( 'Billing First Name and Last Name are required.', 'woocommerce-gateway-stripe' );
-		$stripe_params['is_change_payment_page']      = isset( $_GET['change_payment_method'] ) ? 'yes' : 'no'; // wpcs: csrf ok.
-		$stripe_params['is_add_payment_page']         = is_wc_endpoint_url( 'add-payment-method' ) ? 'yes' : 'no';
-		$stripe_params['is_pay_for_order_page']       = is_wc_endpoint_url( 'order-pay' ) ? 'yes' : 'no';
-		$stripe_params['elements_styling']            = apply_filters( 'wc_stripe_elements_styling', false );
+		$stripe_params['stripe_locale']        = WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() );
+		$stripe_params['no_prepaid_card_msg']  = __( 'Sorry, we\'re not accepting prepaid cards at this time. Your credit card has not been charged. Please try with alternative payment method.', 'woocommerce-gateway-stripe' );
+		$stripe_params['no_sepa_owner_msg']    = __( 'Please enter your IBAN account name.', 'woocommerce-gateway-stripe' );
+		$stripe_params['no_sepa_iban_msg']     = __( 'Please enter your IBAN account number.', 'woocommerce-gateway-stripe' );
+		$stripe_params['payment_intent_error'] = __( 'We couldn\'t initiate the payment. Please try again.', 'woocommerce-gateway-stripe' );
+		/**
+		 * Filters the SEPA mandate notification channel.
+		 *
+		 * @param string $notification_channel Mandate notification channel.
+		 */
+		$stripe_params['sepa_mandate_notification'] = apply_filters( 'wc_stripe_sepa_mandate_notification', 'email' );
+		/** This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php. */
+		$stripe_params['allow_prepaid_card']   = apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no';
+		$stripe_params['inline_cc_form']       = ( isset( $this->inline_cc_form ) && $this->inline_cc_form ) ? 'yes' : 'no';
+		$stripe_params['is_checkout']          = ( is_checkout() && empty( $_GET['pay_for_order'] ) ) ? 'yes' : 'no'; // wpcs: csrf ok.
+		$stripe_params['return_url']           = $this->get_stripe_return_url();
+		$stripe_params['ajaxurl']              = WC_AJAX::get_endpoint( '%%endpoint%%' );
+		$stripe_params['stripe_nonce']         = wp_create_nonce( '_wc_stripe_nonce' );
+		$stripe_params['statement_descriptor'] = $this->statement_descriptor; // @phpstan-ignore-line (statement_descriptor is defined in the classes that use this class)
+		/**
+		 * Filters Stripe Elements options.
+		 *
+		 * @param array $options Stripe Elements options.
+		 */
+		$stripe_params['elements_options']       = apply_filters( 'wc_stripe_elements_options', [] );
+		$stripe_params['sepa_elements_options']  = $sepa_elements_options;
+		$stripe_params['invalid_owner_name']     = __( 'Billing First Name and Last Name are required.', 'woocommerce-gateway-stripe' );
+		$stripe_params['is_change_payment_page'] = isset( $_GET['change_payment_method'] ) ? 'yes' : 'no'; // wpcs: csrf ok.
+		$stripe_params['is_add_payment_page']    = is_wc_endpoint_url( 'add-payment-method' ) ? 'yes' : 'no';
+		$stripe_params['is_pay_for_order_page']  = is_wc_endpoint_url( 'order-pay' ) ? 'yes' : 'no';
+		/**
+		 * Filters Stripe Elements styling.
+		 *
+		 * @param array|false $styles Stripe Elements styling, or false to use defaults.
+		 */
+		$stripe_params['elements_styling'] = apply_filters( 'wc_stripe_elements_styling', false );
+		/**
+		 * Filters Stripe Elements CSS classes.
+		 *
+		 * @param array|false $classes Stripe Elements classes, or false to use defaults.
+		 */
 		$stripe_params['elements_classes']            = apply_filters( 'wc_stripe_elements_classes', false );
 		$stripe_params['add_card_nonce']              = wp_create_nonce( 'wc_stripe_create_si' );
 		$stripe_params['create_payment_intent_nonce'] = wp_create_nonce( 'wc_stripe_create_payment_intent_nonce' );
@@ -2745,5 +2932,53 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		];
 
 		return sprintf( '%d:%s', $order->get_id(), md5( implode( '-', $signature ) ) );
+	}
+
+	/**
+	 * Returns the default order-identification metadata sent to Stripe for an order's intent.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param WC_Order $order The order the intent belongs to.
+	 * @return array The default metadata: order_id, order_key, signature and tax_amount.
+	 */
+	protected function get_order_metadata( $order ) {
+		return [
+			'order_id'   => $order->get_order_number(),
+			'order_key'  => $order->get_order_key(),
+			'signature'  => $this->get_order_signature( $order ),
+			'tax_amount' => WC_Stripe_Helper::get_stripe_amount( $order->get_total_tax(), strtolower( $order->get_currency() ) ),
+		];
+	}
+
+	/**
+	 * Prepares Stripe metadata for a given order.
+	 *
+	 * @param WC_Order $order Order being processed.
+	 *
+	 * @return array Array of keyed metadata values.
+	 */
+	public function get_metadata_from_order( $order ) {
+		$payment_type = $this->is_payment_recurring( $order->get_id() ) ? 'recurring' : 'single';
+		$name         = trim( sanitize_text_field( $order->get_billing_first_name() ) . ' ' . sanitize_text_field( $order->get_billing_last_name() ) );
+		$email        = sanitize_email( $order->get_billing_email() );
+
+		$metadata = array_merge(
+			[
+				'customer_name'  => $name,
+				'customer_email' => $email,
+				'site_url'       => esc_url( get_site_url() ),
+				'payment_type'   => $payment_type,
+			],
+			$this->get_order_metadata( $order )
+		);
+
+		/**
+		 * Filters metadata added to Stripe intents.
+		 *
+		 * @param array    $metadata Intent metadata.
+		 * @param WC_Order $order    Order associated with the intent.
+		 */
+		return apply_filters( 'wc_stripe_intent_metadata', $metadata, $order );
 	}
 }
