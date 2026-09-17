@@ -370,7 +370,7 @@ class WC_Stripe_Express_Checkout_Element {
 			// items exceed the order total and Stripe rejects the payment sheet with
 			// "the amount is less than the total amount of the line items provided."
 			if ( $fee_amount < 0 ) {
-				$item['key'] = 'total_discount';
+				$item['key'] = WC_Stripe_Helper::EXPRESS_CHECKOUT_DISCOUNT_ITEM_KEY;
 			}
 
 			$item['label']  = $fee->get_name();
