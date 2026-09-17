@@ -505,6 +505,10 @@ describe( 'Express Checkout order failures', () => {
 				requestPhone: false,
 				displayItems: [],
 			},
+			i18n: {
+				go_to_checkout:
+					'Please go to the <a href="https://example.com/checkout/">checkout page</a>.',
+			},
 		};
 	} );
 
@@ -519,8 +523,8 @@ describe( 'Express Checkout order failures', () => {
 		[ 'plain message', 'Order creation error', true ],
 		[
 			'checkout link',
-			'Required field.\nPlease go to the <a href="https://example.com/checkout/">checkout page</a>.',
-			{ preserveLinks: true },
+			'Size <XL> is a required field.',
+			{ redirectToCheckout: true },
 		],
 	] )(
 		'fails the wallet sheet and shows the %s when the order errors',
@@ -553,11 +557,14 @@ describe( 'Express Checkout order failures', () => {
 			expect(
 				notice.querySelector( 'a' )?.getAttribute( 'href' ) ?? null
 			).toBe(
-				options.preserveLinks ? 'https://example.com/checkout/' : null
+				options.redirectToCheckout
+					? 'https://example.com/checkout/'
+					: null
 			);
+			// A tag-like label stays visible as text.
 			expect( notice.textContent ).toBe(
-				options.preserveLinks
-					? 'Required field.Please go to the checkout page.'
+				options.redirectToCheckout
+					? 'Size <XL> is a required field.Please go to the checkout page.'
 					: message
 			);
 

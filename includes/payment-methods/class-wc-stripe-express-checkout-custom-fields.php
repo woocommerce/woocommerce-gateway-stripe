@@ -92,15 +92,9 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 			// Only the classic checkout form can collect these values, so a request
 			// without the custom-data payload came from a page without that form
 			// (e.g. product or cart), where the buyer has no way to fill the fields in.
-			if ( ! $this->request_has_custom_checkout_data( $request ) ) {
-				$required_field_errors[] = sprintf(
-					/* translators: 1: opening checkout link, 2: closing checkout link */
-					__( 'Please go to the %1$scheckout page%2$s, fill in the required fields, and complete your order from there.', 'woocommerce-gateway-stripe' ),
-					'<a href="' . esc_url( wc_get_checkout_url() ) . '">',
-					'</a>'
-				);
-			}
-			$error_messages = implode( "\n", $required_field_errors );
+			// The client turns this flag into a checkout link; the message stays plain text.
+			$redirect_to_checkout = ! $this->request_has_custom_checkout_data( $request );
+			$error_messages       = implode( "\n", $required_field_errors );
 			/**
 			 * Whether to log missing required custom fields during express checkout.
 			 *
@@ -111,12 +105,19 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 				WC_Stripe_Logger::error(
 					'Missing required custom fields in express checkout.',
 					[
-						'missing_field_keys' => $missing_field_keys,
-						'error_message'      => $error_messages,
+						'missing_field_keys'   => $missing_field_keys,
+						'redirect_to_checkout' => $redirect_to_checkout,
+						'error_message'        => $error_messages,
 					]
 				);
 			}
-			throw new RouteException( 'wc_stripe_express_checkout_missing_required_fields', $error_messages, 400 );
+			// Only send the flag when set: older Store API versions array_filter() this data and would drop a false.
+			throw new RouteException(
+				'wc_stripe_express_checkout_missing_required_fields',
+				$error_messages,
+				400,
+				$redirect_to_checkout ? [ 'redirect_to_checkout' => true ] : []
+			);
 		}
 
 		$errors = new WP_Error();

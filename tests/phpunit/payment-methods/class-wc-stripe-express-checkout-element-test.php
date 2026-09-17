@@ -161,6 +161,41 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The go-to-checkout sentence ships as ready-to-render HTML so the client never builds
+	 * the link itself; the URL must be the filtered checkout URL, attribute-escaped.
+	 *
+	 * @return void
+	 */
+	public function test_javascript_params_links_go_to_checkout_to_the_checkout_page() {
+		$ajax_handler = $this->getMockBuilder( WC_Stripe_Express_Checkout_Ajax_Handler::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $gateway ] )
+			->getMock();
+
+		$checkout_url_filter = static function () {
+			return 'https://example.com/store/custom-checkout/?one=1&two=2';
+		};
+		add_filter( 'woocommerce_get_checkout_url', $checkout_url_filter );
+
+		try {
+			$element  = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
+			$sentence = $element->javascript_params()['i18n']['go_to_checkout'];
+		} finally {
+			remove_filter( 'woocommerce_get_checkout_url', $checkout_url_filter );
+		}
+
+		$this->assertStringContainsString( 'go to the <a href="https://example.com/store/custom-checkout/?one=1&#038;two=2">checkout page</a>', $sentence );
+		$this->assertStringNotContainsString( '%', $sentence );
+	}
+
+	/**
 	 * Test for `scripts`.
 	 *
 	 * @return void

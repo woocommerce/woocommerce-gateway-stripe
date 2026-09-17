@@ -3,8 +3,8 @@
  */
 import { screen, render } from '@testing-library/react';
 import {
+	appendCheckoutLink,
 	displayExpressCheckoutNotice,
-	formatExpressCheckoutNotice,
 	getDefaultShippingOptions,
 	getErrorMessageFromNotice,
 	getExpressCheckoutButtonStyleSettings,
@@ -101,19 +101,23 @@ describe( 'Express checkout utils', () => {
 			document.body.appendChild( wrapper );
 		};
 
+		const goToCheckout =
+			'Please go to the <a href="https://example.com/store/checkout/">checkout page</a>, fill in the required fields, and complete your order from there.';
+
 		test.each( [ false, true ] )(
-			'renders a checkout link with block layout %s',
+			'appends the checkout link with block layout %s',
 			( hasBlock ) => {
 				window.wc_stripe_express_checkout_params = {
 					has_block: hasBlock,
+					i18n: { go_to_checkout: goToCheckout },
 				};
 				document.body.innerHTML =
 					'<div class="woocommerce-notices-wrapper wc-block-components-main"></div>';
 				displayExpressCheckoutNotice(
-					'Custom reference is required.\nPlease go to the <a href="https://example.com/store/checkout/">checkout page</a>, fill in the required fields, and complete your order from there.',
+					'Size <XL> is a required field.',
 					'error',
 					undefined,
-					{ preserveLinks: true }
+					{ redirectToCheckout: true }
 				);
 				expect(
 					screen.getByRole( 'link', { name: 'checkout page' } )
@@ -121,8 +125,9 @@ describe( 'Express checkout utils', () => {
 					'href',
 					'https://example.com/store/checkout/'
 				);
+				// Labels stay text even when they look like markup.
 				expect( screen.getByRole( 'note' ) ).toHaveTextContent(
-					'Custom reference is required.'
+					'Size <XL> is a required field.'
 				);
 				expect( screen.getByRole( 'note' ) ).toHaveTextContent(
 					'complete your order from there.'
@@ -178,35 +183,27 @@ describe( 'Express checkout utils', () => {
 		} );
 	} );
 
-	describe( 'formatExpressCheckoutNotice', () => {
-		test( 'escapes links unless explicitly enabled', () => {
-			expect(
-				formatExpressCheckoutNotice(
-					'<a href="https://example.com/checkout/">checkout</a>'
-				)
-			).toBe(
-				'&lt;a href="https://example.com/checkout/"&gt;checkout&lt;/a&gt;'
+	describe( 'appendCheckoutLink', () => {
+		afterEach( () => {
+			window.wc_stripe_express_checkout_params = {};
+		} );
+
+		test( 'appends the localized sentence after a line break', () => {
+			window.wc_stripe_express_checkout_params = {
+				i18n: {
+					go_to_checkout:
+						'Go to the <a href="https://example.com/checkout/">checkout page</a>.',
+				},
+			};
+			expect( appendCheckoutLink( 'Required field.' ) ).toBe(
+				'Required field.<br>Go to the <a href="https://example.com/checkout/">checkout page</a>.'
 			);
 		} );
 
-		test( 'preserves only safe links and text', () => {
-			const message =
-				'<strong>Required field</strong>\n<a href="https://example.com/checkout/?one=1&amp;two=2" onclick="alert(1)"><em>checkout page</em></a><img src=x onerror="alert(1)"><a href="javascript:alert(1)">unsafe</a><script>alert(1)</script>';
-			const container = document.createElement( 'div' );
-			container.innerHTML = formatExpressCheckoutNotice( message, true );
-			expect( container.querySelectorAll( 'a' ) ).toHaveLength( 1 );
-			expect( container.querySelector( 'a' ).outerHTML ).toBe(
-				'<a href="https://example.com/checkout/?one=1&amp;two=2">checkout page</a>'
+		test( 'leaves the notice unchanged when the sentence is not localized', () => {
+			expect( appendCheckoutLink( 'Required field.' ) ).toBe(
+				'Required field.'
 			);
-			expect(
-				container.querySelector(
-					'img, script, strong, em, [onclick], [onerror]'
-				)
-			).toBeNull();
-			expect( container.textContent ).toBe(
-				'Required fieldcheckout pageunsafealert(1)'
-			);
-			expect( container.querySelector( 'br' ) ).not.toBeNull();
 		} );
 	} );
 

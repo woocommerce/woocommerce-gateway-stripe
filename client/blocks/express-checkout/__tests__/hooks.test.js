@@ -20,10 +20,8 @@ jest.mock( 'wcstripe/express-checkout/event-handler', () => ( {
 } ) );
 
 jest.mock( 'wcstripe/express-checkout/utils', () => ( {
+	appendCheckoutLink: jest.fn( ( notice ) => `${ notice }<br>LINK` ),
 	displayExpressCheckoutNotice: jest.fn(),
-	formatExpressCheckoutNotice: jest.requireActual(
-		'wcstripe/express-checkout/utils'
-	).formatExpressCheckoutNotice,
 	getExpressCheckoutButtonStyleSettings: jest.fn( () => ( {
 		paymentMethods: {},
 	} ) ),
@@ -236,8 +234,8 @@ describe( 'useExpressCheckout', () => {
 		[ 'plain message', 'Order creation error', true ],
 		[
 			'checkout link',
-			'Required field.\nPlease go to the <a href="https://example.com/checkout/" onclick="alert(1)">checkout page</a>.',
-			{ preserveLinks: true },
+			'Required field.\nAnother required field.',
+			{ redirectToCheckout: true },
 		],
 	] )(
 		'fails the payment and shows the %s when the order errors',
@@ -272,8 +270,8 @@ describe( 'useExpressCheckout', () => {
 				reason: 'fail',
 			} );
 			expect( setExpressPaymentError ).toHaveBeenCalledWith(
-				options.preserveLinks
-					? 'Required field.<br>Please go to the <a href="https://example.com/checkout/">checkout page</a>.'
+				options.redirectToCheckout
+					? 'Required field.<br>Another required field.<br>LINK'
 					: message
 			);
 

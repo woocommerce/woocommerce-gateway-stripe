@@ -697,23 +697,35 @@ describe( 'address normalization', () => {
 				...params,
 			} );
 
-		test( 'preserves the checkout link on missing-required-field errors', async () => {
-			const message =
-				'Custom reference is required.\nPlease go to the <a href="https://example.com/store/checkout/">checkout page</a>, fill in the required fields, and complete your order from there.';
-			api.expressCheckoutECECreateOrder.mockRejectedValue( {
-				code: 'wc_stripe_express_checkout_missing_required_fields',
-				message,
-			} );
+		test.each( [
+			[
+				'links to checkout when the server flags it',
+				{ redirect_to_checkout: true, status: 400 },
+				true,
+			],
+			[ 'stays put on the checkout page', { status: 400 }, false ],
+		] )(
+			'%s on missing-required-field errors',
+			async ( _case, data, redirectToCheckout ) => {
+				const message = 'Size <XL> is a required field.';
+				api.expressCheckoutECECreateOrder.mockRejectedValue( {
+					code: 'wc_stripe_express_checkout_missing_required_fields',
+					message,
+					data,
+				} );
 
-			await flow();
+				await flow();
 
-			expect( abortPayment ).toHaveBeenCalledWith(
-				expect.objectContaining( { expressPaymentType } ),
-				message,
-				{ preserveLinks: true }
-			);
-			expect( completePayment ).not.toHaveBeenCalled();
-		} );
+				// The message must arrive untouched: parsing it as a notice
+				// would cut it off at the tag-like label.
+				expect( abortPayment ).toHaveBeenCalledWith(
+					expect.objectContaining( { expressPaymentType } ),
+					message,
+					{ redirectToCheckout }
+				);
+				expect( completePayment ).not.toHaveBeenCalled();
+			}
+		);
 
 		test.each( [
 			[ 'null', null ],

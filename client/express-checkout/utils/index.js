@@ -404,37 +404,18 @@ export const getPaymentMethodTypesForExpressMethod = ( paymentMethodType ) => {
 	return paymentMethodTypes;
 };
 
-export const formatExpressCheckoutNotice = (
-	message,
-	preserveLinks = false
-) => {
-	const output = document.createElement( 'div' );
-	if ( ! preserveLinks ) {
-		output.textContent = message;
-	} else {
-		// Parse into inert content and rebuild links so field labels cannot inject HTML.
-		const template = document.createElement( 'template' );
-		template.innerHTML = message;
-		const appendNode = ( node ) => {
-			if ( node.nodeType === Node.TEXT_NODE ) {
-				output.appendChild(
-					document.createTextNode( node.textContent )
-				);
-				return;
-			}
-			const href = node.getAttribute?.( 'href' );
-			if ( node.nodeName === 'A' && /^https?:\/\//i.test( href || '' ) ) {
-				const link = document.createElement( 'a' );
-				link.href = href;
-				link.textContent = node.textContent;
-				output.appendChild( link );
-				return;
-			}
-			node.childNodes.forEach( appendNode );
-		};
-		template.content.childNodes.forEach( appendNode );
-	}
-	return output.innerHTML.replace( /\n/g, '<br>' );
+/**
+ * Appends the "go to the checkout page" sentence to a notice.
+ *
+ * The sentence is rendered server-side with the page's own checkout URL, so the
+ * client never builds link markup from message text.
+ *
+ * @param {string} noticeHtml The notice as safe HTML.
+ * @return {string} The notice with the linked sentence appended, when available.
+ */
+export const appendCheckoutLink = ( noticeHtml ) => {
+	const sentence = getExpressCheckoutData( 'i18n' )?.go_to_checkout;
+	return sentence ? `${ noticeHtml }<br>${ sentence }` : noticeHtml;
 };
 
 /**
@@ -443,7 +424,7 @@ export const formatExpressCheckoutNotice = (
  * @param {string} message           The message to display.
  * @param {string} type              The type of notice.
  * @param {Array}  additionalClasses Additional classes to add to the notice.
- * @param {Object} options           Optional link formatting.
+ * @param {Object} options           Set `redirectToCheckout` to append a link to the checkout page.
  */
 export const displayExpressCheckoutNotice = (
 	message,
@@ -466,10 +447,13 @@ export const displayExpressCheckoutNotice = (
 		: 'woocommerce-notices-wrapper';
 	const $container = jQuery( '.' + containerClass ).first();
 
-	const safeMessage = formatExpressCheckoutNotice(
-		message,
-		options?.preserveLinks === true
-	);
+	let safeMessage = jQuery( '<div>' )
+		.text( message )
+		.html()
+		.replace( /\n/g, '<br>' );
+	if ( options?.redirectToCheckout ) {
+		safeMessage = appendCheckoutLink( safeMessage );
+	}
 	const note = jQuery(
 		`<div class="${ classNames.join( ' ' ) }" role="note" />`
 	).html( safeMessage );

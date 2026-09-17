@@ -400,17 +400,17 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 
 	/**
 	 * Missing required fields still throw when logging is disabled by a filter.
-	 * Requests without a classic form payload also receive checkout-page guidance.
+	 * Requests without a classic form payload are also flagged so the client can link to the checkout page.
 	 *
 	 * @dataProvider provide_missing_required_field_scenarios
 	 * @param array $extensions Extensions param to set on the request.
-	 * @param bool  $expects_checkout_page_guidance Whether the error should include the go-to-checkout recommendation.
+	 * @param bool  $expects_redirect_to_checkout Whether the error should flag the client to link to the checkout page.
 	 * @param array $expected_missing_field_keys Keys of the required fields left empty by the payload.
 	 * @param string|null $logging_filter Callback overriding the logging decision, or null for the default.
 	 * @param bool $expects_logging Whether an error should be logged.
 	 * @return void
 	 */
-	public function test_process_custom_checkout_data_missing_data( $extensions, $expects_checkout_page_guidance, $expected_missing_field_keys, $logging_filter, $expects_logging ) {
+	public function test_process_custom_checkout_data_missing_data( $extensions, $expects_redirect_to_checkout, $expected_missing_field_keys, $logging_filter, $expects_logging ) {
 		$custom_checkout_fields = function ( $fields ) {
 			$fields['billing']['billing_custom_field1']  = [
 				'type'     => 'text',
@@ -438,11 +438,6 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 
 		$order                 = WC_Helper_Order::create_order();
 		$custom_fields_support = $this->get_custom_fields_support();
-
-		$checkout_url_filter = static function () {
-			return 'https://example.com/store/custom-checkout/?one=1&two=2';
-		};
-		add_filter( 'woocommerce_get_checkout_url', $checkout_url_filter );
 
 		$original_logger   = WC_Stripe_Logger::$logger;
 		$original_settings = WC_Stripe_Helper::get_stripe_settings();
@@ -494,13 +489,15 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 					$this->assertStringNotContainsString( $field_error, $message );
 				}
 			}
-			if ( $expects_checkout_page_guidance ) {
-				$this->assertStringContainsString( 'go to the <a href="' . esc_url( wc_get_checkout_url() ) . '">checkout page</a>', $message );
-			} else {
-				$this->assertStringNotContainsString( '<a ', $message );
-			}
+			$this->assertSame(
+				$expects_redirect_to_checkout ? [ 'redirect_to_checkout' => true ] : [],
+				$e->getAdditionalData()
+			);
+			$this->assertSame(
+				$expects_logging ? $expects_redirect_to_checkout : null,
+				$logged_context['redirect_to_checkout'] ?? null
+			);
 		} finally {
-			remove_filter( 'woocommerce_get_checkout_url', $checkout_url_filter );
 			if ( null !== $logging_filter ) {
 				remove_filter( 'wc_stripe_express_checkout_log_missing_required_fields', $logging_filter );
 			}
