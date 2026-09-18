@@ -15,8 +15,6 @@
 		max-width: 100%;
 	}
 
-	$payment-method-outline: #ddd;
-
 	.wc-stripe-payment-method-icon--small {
 		height: 24px;
 		width: 37px;
@@ -28,8 +26,8 @@
 	}
 
 	.wc-stripe-payment-method-icon--shell {
-		background: #fff;
-		border-color: $payment-method-outline;
+		background: styles.$white;
+		border-color: styles.$gray-300;
 		border-radius: 5px;
 		overflow: hidden;
 
@@ -59,7 +57,7 @@
 		border: none;
 
 		img {
-			outline: 1px solid $payment-method-outline;
+			outline: 1px solid styles.$gray-300;
 		}
 	}
 
