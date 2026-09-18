@@ -737,7 +737,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		// Update order status for actionable states (note is passed to update_status which adds it).
 		// For non-actionable states, add the note manually and save.
-		if ( $target_order_status ) {
+		if ( $target_order_status && ! $order->get_transaction_id() ) {
 			$order->update_status( $target_order_status, $note );
 		} else {
 			$order->add_order_note( $note );
