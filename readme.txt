@@ -182,6 +182,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - When checking if unpaid orders should be cancelled, get the Stripe payment status, and update orders with Stripe payment details
 * Dev - Block outbound HTTP requests from unit tests
 * Add - Show the originating AI agent in the WooCommerce order Origin column for Agentic Commerce orders
+* Fix - Show the on-page 3D Secure authentication modal instead of a full-page redirect for card payments under Optimized Checkout with Dynamic Payment Methods
 * Tweak - Agentic Commerce: surface shipping zones with no flat-rate method (which contribute no shipping to the feed) in the feed preview and logs
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
