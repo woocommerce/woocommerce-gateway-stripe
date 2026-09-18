@@ -66,7 +66,7 @@ runs:
       run: |
         node -e "
         const fs = require('fs'), path = require('path'), dir = 'build';
-        // The -rtl.css files mirror their LTR counterparts, so counting them would double every CSS delta.
+        // Ignore -rtl.css files as they mirror the original file and should not be double-counted.
         const files = fs.readdirSync(dir).filter(f => f.endsWith('.js') || (f.endsWith('.css') && !f.endsWith('-rtl.css'))).sort();
         const sizes = {};
         for (const f of files) sizes[f] = fs.statSync(path.join(dir, f)).size;
