@@ -85,6 +85,12 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		$settings['pmc_enabled']          = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
+		// Reload the shared gateway instance's in-memory settings so they carry
+		// the keys injected above. Otherwise a test that saves a gateway option
+		// (e.g. disabling the gateway) flushes the stale in-memory settings back
+		// to the DB and wipes the keys, disconnecting the account mid-request.
+		$this->get_gateway()->init_settings();
+
 		$this->controller = new WC_REST_Stripe_Settings_Controller( $this->get_gateway() );
 
 		add_action( 'rest_api_init', [ $this, 'deregister_wc_blocks_rest_api' ], 5 );
