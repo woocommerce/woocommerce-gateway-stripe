@@ -32,6 +32,17 @@ jest.mock( 'wcstripe/blocks/utils', () => ( {
 	shouldSetupOffSessionPayment: jest.fn( () => false ),
 } ) );
 
+// Each case builds its own API fake around its Stripe double, so the API
+// functions are routed to whichever fake the component was given.
+jest.mock( 'wcstripe/api/stripe', () => ( {
+	getStripe: ( api ) => api.getStripe(),
+} ) );
+
+jest.mock( 'wcstripe/api/intents', () => ( {
+	createIntent: ( api, ...args ) => api.createIntent( ...args ),
+	initSetupIntent: ( api, ...args ) => api.initSetupIntent( ...args ),
+} ) );
+
 jest.mock( 'wcstripe/stripe-utils', () => ( {
 	getPaymentMethodTypes: jest.fn( () => [] ),
 	getExcludedPaymentMethodTypes: jest.fn( () => [] ),

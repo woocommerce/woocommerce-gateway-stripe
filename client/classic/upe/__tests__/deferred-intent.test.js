@@ -10,8 +10,6 @@ const mockShowErrorCheckout = jest.fn();
 let mockIsEmpty = false;
 let mockUsingSavedMethod = false;
 
-jest.mock( '../../../api', () => jest.fn() );
-
 jest.mock( '../../../stripe-utils', () => ( {
 	generateCheckoutEventNames: () => 'checkout_place_order_stripe',
 	getSelectedUPEGatewayPaymentMethod: () => 'card',

@@ -3,7 +3,16 @@
 
 import { debounce } from 'lodash';
 import jQuery from 'jquery';
-import WCStripeAPI from '../../api';
+import { createApiClient } from '../../api/core';
+import {
+	expressCheckoutAddToCart,
+	expressCheckoutAddToCartLegacy,
+	expressCheckoutEmptyCartLegacy,
+	expressCheckoutFetchNonces,
+	expressCheckoutGetCartDetails,
+	expressCheckoutGetSelectedProductData,
+} from '../../api/express-checkout';
+import { getStripe } from '../../api/stripe';
 import { __ } from '@wordpress/i18n';
 import {
 	displayExpressCheckoutNotice,
@@ -62,19 +71,11 @@ jQuery( function ( $ ) {
 		return;
 	}
 
-	const api = new WCStripeAPI(
-		{
-			key: publishableKey,
-			locale: stripeParams.locale,
-			ajax_url: getExpressCheckoutData( 'ajax_url' ),
-		},
-		// A promise-based interface to jQuery.post.
-		( url, args ) => {
-			return new Promise( ( resolve, reject ) => {
-				jQuery.post( url, args ).then( resolve ).fail( reject );
-			} );
-		}
-	);
+	const api = createApiClient( {
+		key: publishableKey,
+		locale: stripeParams.locale,
+		ajax_url: getExpressCheckoutData( 'ajax_url' ),
+	} );
 
 	let wcStripeECEError = '';
 	const defaultErrorMessage = __(
@@ -377,7 +378,7 @@ jQuery( function ( $ ) {
 
 			let stripe;
 			try {
-				stripe = api.getStripe();
+				stripe = getStripe( api );
 			} catch ( error ) {
 				// Stripe.js failed the origin assertion (fail closed): skip
 				// rendering the express checkout button instead of throwing.
@@ -513,7 +514,7 @@ jQuery( function ( $ ) {
 				const orderDetails = options.orderDetails ?? {};
 				return await onConfirmHandler( {
 					api,
-					stripe: api.getStripe(),
+					stripe: getStripe( api ),
 					elements,
 					completePayment: wcStripeECE.completePayment,
 					abortPayment: wcStripeECE.abortPayment,
@@ -651,7 +652,7 @@ jQuery( function ( $ ) {
 					return;
 				}
 
-				api.expressCheckoutGetCartDetails().then( ( cart ) => {
+				expressCheckoutGetCartDetails().then( ( cart ) => {
 					const total = transformPrice(
 						parseInt( cart.totals.total_price, 10 ) -
 							parseInt( cart.totals.total_refund || 0, 10 ),
@@ -755,7 +756,7 @@ jQuery( function ( $ ) {
 				...depositObject,
 			};
 
-			return api.expressCheckoutGetSelectedProductData( data );
+			return expressCheckoutGetSelectedProductData( api, data );
 		},
 
 		/**
@@ -820,19 +821,19 @@ jQuery( function ( $ ) {
 
 				// Clear the cart first (with the booking id) so prior items don't
 				// skew the total, matching the variable/simple path below.
-				await api.expressCheckoutEmptyCartLegacy( emptyCartParams );
+				await expressCheckoutEmptyCartLegacy( api, emptyCartParams );
 
 				if ( ! bookingConfiguration ) {
 					data.product_id = productId;
 					data.attributes = wcStripeECE.getAttributes().data;
 
-					return api.expressCheckoutAddToCartLegacy( data );
+					return expressCheckoutAddToCartLegacy( api, data );
 				}
 
 				data.id = productId;
 				data.booking_configuration = bookingConfiguration;
 
-				return api.expressCheckoutAddToCart( data );
+				return expressCheckoutAddToCart( data );
 			}
 
 			data.id = productId;
@@ -849,9 +850,9 @@ jQuery( function ( $ ) {
 			//  do not interfere with computed totals.
 			// Use the non-StoreAPI method as it is faster; Stripe requires
 			// the click event to be resolved within 1 second.
-			await api.expressCheckoutEmptyCartLegacy( emptyCartParams );
+			await expressCheckoutEmptyCartLegacy( api, emptyCartParams );
 
-			return api.expressCheckoutAddToCart( data );
+			return expressCheckoutAddToCart( data );
 		},
 
 		/**
@@ -1074,7 +1075,7 @@ jQuery( function ( $ ) {
 				eventName,
 				// Warm-up is best-effort: a failed prefetch rejects (and clears
 				// the memo so the real interaction retries), so swallow it here.
-				() => api.expressCheckoutFetchNonces().catch( () => {} ),
+				() => expressCheckoutFetchNonces( api ).catch( () => {} ),
 				{ once: true, passive: true }
 			)
 		);

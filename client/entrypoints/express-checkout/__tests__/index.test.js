@@ -33,16 +33,21 @@ jest.mock( 'jquery', () => {
 	return Object.assign( syncReadyJQuery, actualJQuery );
 } );
 
-// Stub the API so we can spy on the cart-details fetch without hitting the network.
-jest.mock( '../../../api', () =>
-	jest.fn().mockImplementation( () => ( {
-		expressCheckoutGetCartDetails: mockGetCartDetails,
-		getStripe: mockGetStripe,
-		expressCheckoutGetSelectedProductData: mockGetSelectedProductData,
-		expressCheckoutAddToCart: mockAddToCart,
-		expressCheckoutEmptyCartLegacy: mockEmptyCartLegacy,
-	} ) )
-);
+// Stub the API requests so we can spy on the cart-details fetch without hitting the network.
+jest.mock( 'wcstripe/api/express-checkout', () => ( {
+	expressCheckoutGetCartDetails: ( ...args ) => mockGetCartDetails( ...args ),
+	expressCheckoutGetSelectedProductData: ( ...args ) =>
+		mockGetSelectedProductData( ...args ),
+	expressCheckoutAddToCart: ( ...args ) => mockAddToCart( ...args ),
+	expressCheckoutAddToCartLegacy: jest.fn(),
+	expressCheckoutEmptyCartLegacy: ( ...args ) =>
+		mockEmptyCartLegacy( ...args ),
+	expressCheckoutFetchNonces: jest.fn( () => Promise.resolve( {} ) ),
+} ) );
+
+jest.mock( 'wcstripe/api/stripe', () => ( {
+	getStripe: ( ...args ) => mockGetStripe( ...args ),
+} ) );
 
 // Transformers are exercised elsewhere; stub them so the init() flow stays
 // focused on the fetch-vs-snapshot branch and never depends on cart shape.

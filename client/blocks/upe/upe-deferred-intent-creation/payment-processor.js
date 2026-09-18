@@ -21,7 +21,7 @@ import {
 	getBlocksConfiguration,
 	getStripeElementOptions,
 } from 'wcstripe/blocks/utils';
-import WCStripeAPI from 'wcstripe/api';
+import { getStripe } from 'wcstripe/api/stripe';
 import {
 	maybeShowCashAppLimitNotice,
 	removeCashAppLimitNotice,
@@ -46,6 +46,10 @@ import { applyStyles } from 'wcstripe/optimized-checkout/apply-styles';
 import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handle-display-of-saving-checkbox';
 import { waitForPaymentElementCompletion } from 'wcstripe/blocks/wait-for-payment-element-completion';
 
+/**
+ * @typedef {import('wcstripe/api/core').WCStripeApiClient} WCStripeApiClient
+ */
+
 const noop = () => null;
 
 /**
@@ -65,20 +69,20 @@ export function validateElements( elements ) {
 /**
  * Renders the payment processor for the Stripe UPE payment method with deferred intent creation.
  *
- * @param {*}           args                     Additional arguments passed for payment processing on the Block Checkout.
- * @param {WCStripeAPI} args.api                 The Stripe API object.
- * @param {string}      args.paymentIntentId     The payment intent ID.
- * @param {string}      args.activePaymentMethod The currently selected/active payment method ID.
- * @param {string}      args.description         The payment method description to display.
- * @param {string}      args.testingInstructions The testing instructions to display.
- * @param {Object}      args.eventRegistration   The checkout event emitter registration object.
- * @param {Object}      args.emitResponse        Various helpers for usage with observer response objects.
- * @param {string}      args.paymentMethodId     The UPE payment method ID.
- * @param {Array}       args.upeMethods          The UPE methods.
- * @param {string}      args.errorMessage        The error message to display.
- * @param {boolean}     args.shouldSavePayment   Whether or not to save the payment method.
- * @param {string}      args.fingerprint         The fingerprint.
- * @param {Object}      args.billing             The checkout billing data.
+ * @param {*}                 args                     Additional arguments passed for payment processing on the Block Checkout.
+ * @param {WCStripeApiClient} args.api                 The Stripe API object.
+ * @param {string}            args.paymentIntentId     The payment intent ID.
+ * @param {string}            args.activePaymentMethod The currently selected/active payment method ID.
+ * @param {string}            args.description         The payment method description to display.
+ * @param {string}            args.testingInstructions The testing instructions to display.
+ * @param {Object}            args.eventRegistration   The checkout event emitter registration object.
+ * @param {Object}            args.emitResponse        Various helpers for usage with observer response objects.
+ * @param {string}            args.paymentMethodId     The UPE payment method ID.
+ * @param {Array}             args.upeMethods          The UPE methods.
+ * @param {string}            args.errorMessage        The error message to display.
+ * @param {boolean}           args.shouldSavePayment   Whether or not to save the payment method.
+ * @param {string}            args.fingerprint         The fingerprint.
+ * @param {Object}            args.billing             The checkout billing data.
  *
  * @return {JSX.Element} Rendered payment processor.
  */
@@ -221,9 +225,10 @@ const PaymentProcessor = ( {
 								type: selectedPaymentMethodType,
 						  }
 						: { elements, params };
-					const paymentMethodObject = await api
-						.getStripe()
-						.createPaymentMethod( paymentMethodData );
+					const paymentMethodObject =
+						await getStripe( api ).createPaymentMethod(
+							paymentMethodData
+						);
 
 					if ( paymentMethodObject.error ) {
 						return {
