@@ -3,6 +3,9 @@
  * Class WC_Stripe_REST_API_Abstract_Client_Test
  */
 class WC_Stripe_REST_API_Abstract_Client_Test extends WP_UnitTestCase {
+	/**
+	 *	Tests that only the specified request parameters are added to the list of parameters to be forwarded to Stripe API.
+	 */
 	public function test_build_params_to_forward() {
 		$all_params = [
 			'test_param'            => 'test_val',
@@ -29,6 +32,9 @@ class WC_Stripe_REST_API_Abstract_Client_Test extends WP_UnitTestCase {
 		$this->assertEquals( $expand_param, $forwarded_params[ 'expand' ]);
 	}
 
+	/**
+	 * Tests that only specified request parameters are forwarded to Stripe API.
+	 */
 	public function test_fetch_from_stripe() {
 		$params = [
 			'param1' => 'val1',
@@ -70,4 +76,3 @@ class WC_Stripe_REST_API_Abstract_Client_Test extends WP_UnitTestCase {
 		$this->assertEquals( $params, $forwarded_params );
 	}
 }
-
