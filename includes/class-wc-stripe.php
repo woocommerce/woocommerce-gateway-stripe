@@ -309,7 +309,7 @@ class WC_Stripe {
 			}
 
 			if ( self::$instance === $this ) {
-				( new WC_Stripe_Finance_UI_Controller() )->init();
+				( new WC_Stripe_Payments_UI_Controller() )->init();
 			}
 
 			if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
