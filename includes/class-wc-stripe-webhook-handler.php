@@ -859,9 +859,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			try {
 				if ( 'inactive' === $mandate_status && ! $subscription->has_status( 'on-hold' ) ) {
-					// An inactive mandate can no longer be charged, so the subscription is put on
-					// hold rather than cancelled: a revocation does not necessarily mean the customer
-					// wants to end the subscription, and the merchant can ask them to re-authorize.
+					// An inactive mandate can no longer be charged, so the subscription is put on hold
 					$note = $revocation_reason
 						? __( 'Subscription put on hold because the customer revoked the Stripe mandate.', 'woocommerce-gateway-stripe' )
 						: __( 'Subscription put on hold because the Stripe mandate became inactive.', 'woocommerce-gateway-stripe' );
