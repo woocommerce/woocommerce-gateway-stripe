@@ -2,6 +2,7 @@ import React from 'react';
 import { PAYOUT_STATUS_COLORS, PAYOUT_STATUS_LABELS } from './constants';
 import EmptyCell from './empty-cell';
 import { formatStripeAmount, formatStripeTimestamp } from './utils';
+import { ExternalLink } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
 import Chip from 'wcstripe/components/chip';
 
@@ -51,6 +52,23 @@ const fields = [
 			) : (
 				<EmptyCell />
 			),
+	},
+	{
+		id: 'id',
+		label: __( 'Payout ID', 'woocommerce-gateway-stripe' ),
+		enableSorting: false,
+		enableHiding: true,
+		filterBy: false,
+		getValue: ( { item } ) => item.id,
+		render: ( { item } ) => (
+			<ExternalLink
+				href={ `https://dashboard.stripe.com/payouts/${ encodeURIComponent(
+					item.id
+				) }` }
+			>
+				{ item.id }
+			</ExternalLink>
+		),
 	},
 	{
 		id: 'bank_details',

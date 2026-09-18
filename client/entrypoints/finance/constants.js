@@ -36,7 +36,14 @@ export const DEFAULT_PAYOUTS_VIEW = {
 	type: 'table',
 	page: 1,
 	perPage: DEFAULT_PER_PAGE,
-	fields: [ 'created', 'arrival_date', 'amount', 'status', 'bank_details' ],
+	fields: [
+		'created',
+		'arrival_date',
+		'amount',
+		'status',
+		'bank_details',
+		'id',
+	],
 	layout: {
 		density: 'balanced',
 		enableMoving: false,
