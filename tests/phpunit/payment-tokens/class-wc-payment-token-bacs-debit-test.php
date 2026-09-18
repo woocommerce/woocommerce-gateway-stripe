@@ -15,7 +15,7 @@ class WC_Payment_Token_Bacs_Debit_Test extends WP_UnitTestCase {
 	/**
 	 * Setup test environment.
 	 */
-	protected function setUp(): void {
+	public function setUp(): void {
 		parent::setUp();
 		$this->token = new WC_Payment_Token_Bacs_Debit();
 	}
