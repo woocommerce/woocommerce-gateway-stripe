@@ -238,8 +238,8 @@ const AgenticCommerceFeedPreview = () => {
 											{ sprintf(
 												/* translators: %d: number of shipping zones the warning covers. */
 												_n(
-													'%d shipping zone will have no shipping in the feed:',
-													'%d shipping zones will have no shipping in the feed:',
+													'%d shipping zone will have no shipping prices in the feed.',
+													'%d shipping zones will have no shipping prices in the feed.',
 													shippingWarnings.length,
 													'woocommerce-gateway-stripe'
 												),
