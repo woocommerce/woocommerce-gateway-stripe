@@ -646,7 +646,7 @@ const normalizeCountryForStripe = ( country ) => {
  * form and returns to use in Stripe Custom Checkout `confirm()` args.
  *
  * @param {Object} currentSession The current session object.
- * @return {Object} Partial confirm args: `billingAddress`, optional `shippingAddress`, optional `email`, optional `phoneNumber`.
+ * @return {Object} Partial confirm args: optional `billingAddress`, `shippingAddress`, `email`, and `phoneNumber`.
  */
 export const getUserDataForCheckoutSession = ( currentSession = null ) => {
 	const result = {};
@@ -665,18 +665,21 @@ export const getUserDataForCheckoutSession = ( currentSession = null ) => {
 			getFieldValue( 'billing_country' )
 		);
 
-		const billingAddress = {
-			name: billingName,
-			address: {
-				country: billingCountry || undefined,
-				line1: getFieldValue( 'billing_address_1' ) || undefined,
-				line2: getFieldValue( 'billing_address_2' ) || undefined,
-				state: getFieldValue( 'billing_state' ) || undefined,
-				city: getFieldValue( 'billing_city' ) || undefined,
-				postal_code: getFieldValue( 'billing_postcode' ) || undefined,
-			},
-		};
-		result.billingAddress = billingAddress;
+		if ( billingCountry ) {
+			const billingAddress = {
+				name: billingName,
+				address: {
+					country: billingCountry,
+					line1: getFieldValue( 'billing_address_1' ) || undefined,
+					line2: getFieldValue( 'billing_address_2' ) || undefined,
+					state: getFieldValue( 'billing_state' ) || undefined,
+					city: getFieldValue( 'billing_city' ) || undefined,
+					postal_code:
+						getFieldValue( 'billing_postcode' ) || undefined,
+				},
+			};
+			result.billingAddress = billingAddress;
+		}
 	}
 
 	if ( ! currentSession?.shippingAddress ) {
@@ -827,9 +830,15 @@ export const clearStaleCheckoutTotalNotice = () => {
  * @param {string} errorMessage
  */
 export const showErrorCheckout = ( errorMessage ) => {
-	const $container = jQuery( '.woocommerce-notices-wrapper' ).first();
+	let $container = jQuery( '.woocommerce-notices-wrapper' ).first();
 	const isMyAccountPage =
 		jQuery( '.woocommerce-MyAccount-content' ).length > 0;
+
+	// Some custom checkout templates omit the standard notices wrapper. The form
+	// is the same fallback WooCommerce uses for checkout AJAX errors.
+	if ( ! $container.length ) {
+		$container = jQuery( 'form.checkout' ).first();
+	}
 
 	if ( ! $container.length ) {
 		return;
