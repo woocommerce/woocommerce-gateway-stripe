@@ -1,7 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { getStripeServerData } from './get-stripe-server-data';
-import { isLinkEnabled } from './payment-method-availability';
+import { isLinkEnabled } from './is-link-enabled';
 import {
 	errorTypes,
 	errorCodes,
@@ -15,10 +15,8 @@ import { dispatch } from '@wordpress/data';
 import { PAYMENT_METHOD_AMAZON_PAY } from 'wcstripe/stripe-utils/constants';
 
 export { getStripeServerData } from './get-stripe-server-data';
-export {
-	isAmazonPayEnabled,
-	isLinkEnabled,
-} from './payment-method-availability';
+export { isAmazonPayEnabled } from './is-amazon-pay-enabled';
+export { isLinkEnabled } from './is-link-enabled';
 
 /**
  * @typedef {import('./type-defs').StripeServerData} StripeServerData
