@@ -132,7 +132,7 @@ class WC_Stripe_Intent_Controller {
 			}
 
 			// Validate the intent being verified.
-			$order_intent_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_intent_id( $order );
+			$order_intent_id = wc_stripe_order_helper()->get_stripe_intent_id( $order );
 			if ( ! $order_intent_id || ! isset( $_GET['intent_id'] ) || $order_intent_id !== $_GET['intent_id'] ) {
 				throw new WC_Stripe_Exception( 'invalid_intent', __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
@@ -554,7 +554,7 @@ class WC_Stripe_Intent_Controller {
 			];
 		}
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 
 		$selected_payment_type = '' !== $selected_upe_payment_type && is_string( $selected_upe_payment_type ) ? $selected_upe_payment_type : null;
 		$order_helper->validate_intent_for_order( $order, $intent_id, $selected_payment_type );
@@ -762,7 +762,7 @@ class WC_Stripe_Intent_Controller {
 	 * @return void
 	 */
 	public function update_order_status_ajax() {
-		$order_helper       = WC_Stripe_Order_Helper::get_instance();
+		$order_helper       = wc_stripe_order_helper();
 		$order              = false;
 		$order_id           = isset( $_POST['order_id'] ) ? absint( $_POST['order_id'] ) : false;
 		$processing_started = false;
@@ -1192,7 +1192,7 @@ class WC_Stripe_Intent_Controller {
 			return;
 		}
 
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_payment_type( $order, $selected_payment_type );
+		wc_stripe_order_helper()->update_stripe_upe_payment_type( $order, $selected_payment_type );
 		$order->save_meta_data();
 	}
 

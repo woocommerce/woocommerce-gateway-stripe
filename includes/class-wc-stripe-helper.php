@@ -1700,7 +1700,7 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		$payment_method_type = WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order );
+		$payment_method_type = wc_stripe_order_helper()->get_stripe_upe_payment_type( $order );
 
 		// Legacy WC_Gateway_Stripe orders and the charge-based capture fallback never write the
 		// UPE payment-type meta but are card payments, so an unset type must keep sending level3.
@@ -2180,14 +2180,14 @@ class WC_Stripe_Helper {
 		}
 
 		if ( null === $selected_payment_type ) {
-			$selected_payment_type = WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order );
+			$selected_payment_type = wc_stripe_order_helper()->get_stripe_upe_payment_type( $order );
 		}
 
 		// If we don't have a selected payment type, that implies we have no stored value and a new payment type is permitted.
 		$is_valid_payment_type = empty( $selected_payment_type ) || ( ! empty( $intent->payment_method_types ) && in_array( $selected_payment_type, $intent->payment_method_types, true ) );
 		$order_currency        = strtolower( $order->get_currency() );
 		$order_amount          = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
-		$order_intent_id       = WC_Stripe_Order_Helper::get_instance()->get_intent_id_from_order( $order );
+		$order_intent_id       = wc_stripe_order_helper()->get_intent_id_from_order( $order );
 		$intent_currency       = isset( $intent->currency ) ? strtolower( $intent->currency ) : null;
 		$intent_amount         = isset( $intent->amount ) ? (int) $intent->amount : null;
 

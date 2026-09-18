@@ -499,7 +499,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return void
 	 */
 	public function process_subscription_payment( $amount, $renewal_order, $retry = true, $previous_error = false ) {
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 		$order_id     = $renewal_order->get_id();
 
 		// One lock covers the whole attempt, retries included, so a concurrent renewal cannot charge in between.
@@ -975,7 +975,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			$subscriptions = [];
 		}
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 		foreach ( $subscriptions as $subscription ) {
 			if ( $source->customer ) {
 				$order_helper->update_stripe_customer_id( $subscription, $source->customer );
@@ -1007,7 +1007,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			return;
 		}
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 		$order_helper->delete_stripe_source_id( $resubscribe_order );
 
 		$order_helper->delete_stripe_customer_id( $resubscribe_order );
@@ -1030,7 +1030,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			return $renewal_order;
 		}
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 		$order_helper->delete_stripe_fee( $renewal_order );
 		$order_helper->delete_stripe_net( $renewal_order );
 
@@ -1057,7 +1057,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			return;
 		}
 
-		$order_helper       = WC_Stripe_Order_Helper::get_instance();
+		$order_helper       = wc_stripe_order_helper();
 		$stripe_customer_id = $order_helper->get_stripe_customer_id( $renewal_order );
 		$stripe_source_id   = $order_helper->get_stripe_source_id( $renewal_order );
 
@@ -1078,7 +1078,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 */
 	public function add_subscription_payment_meta( $payment_meta, $subscription ) {
 		$subscription_id = $subscription->get_id();
-		$order_helper    = WC_Stripe_Order_Helper::get_instance();
+		$order_helper    = wc_stripe_order_helper();
 		$source_id       = $order_helper->get_stripe_source_id( $subscription );
 
 		// For BW compat will remove in future.
@@ -1168,7 +1168,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			//       when creating the intent? It's called in process_subscription_payment though
 			//       so it's probably needed here too?
 			// If we've already created a mandate for this order; use that.
-			$mandate = WC_Stripe_Order_Helper::get_instance()->get_stripe_mandate_id( $order );
+			$mandate = wc_stripe_order_helper()->get_stripe_mandate_id( $order );
 			if ( isset( $request['confirm'] ) && filter_var( $request['confirm'], FILTER_VALIDATE_BOOLEAN ) && ! empty( $mandate ) ) {
 				$request['mandate'] = $mandate;
 
@@ -1232,7 +1232,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				continue;
 			}
 
-			$order_helper                 = WC_Stripe_Order_Helper::get_instance();
+			$order_helper                 = wc_stripe_order_helper();
 			$mandate                      = $order_helper->get_stripe_mandate_id( $renewal_order );
 			$renewal_order_payment_method = $order_helper->get_stripe_source_id( $renewal_order );
 
@@ -1365,7 +1365,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			return $payment_method_to_display;
 		}
 
-		$order_helper     = WC_Stripe_Order_Helper::get_instance();
+		$order_helper     = wc_stripe_order_helper();
 		$stripe_source_id = $order_helper->get_stripe_source_id( $subscription );
 
 		// For BW compat will remove in future.
@@ -1396,7 +1396,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		// If we couldn't find a Stripe customer linked to the account, fallback to the order meta data.
 		if ( ( ! $stripe_customer_id || ! is_string( $stripe_customer_id ) ) && false !== $subscription->get_parent() ) {
-			$order_helper       = WC_Stripe_Order_Helper::get_instance();
+			$order_helper       = wc_stripe_order_helper();
 			$parent_order       = wc_get_order( $subscription->get_parent_id() );
 			$stripe_customer_id = $order_helper->get_stripe_customer_id( $parent_order );
 			$stripe_source_id   = $order_helper->get_stripe_source_id( $parent_order );
@@ -1714,11 +1714,11 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		// Bail if subscription's parent order does not have a mandate ID
-		if ( empty( WC_Stripe_Order_Helper::get_instance()->get_stripe_mandate_id( $parent_order ) ) ) {
+		if ( empty( wc_stripe_order_helper()->get_stripe_mandate_id( $parent_order ) ) ) {
 			return $editable;
 		}
 
-		$source_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_source_id( $order );
+		$source_id = wc_stripe_order_helper()->get_stripe_source_id( $order );
 		if ( empty( $source_id ) ) {
 			return $editable;
 		}

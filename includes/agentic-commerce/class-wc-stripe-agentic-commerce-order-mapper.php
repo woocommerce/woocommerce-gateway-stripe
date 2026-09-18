@@ -510,7 +510,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
 	 */
 	private function store_stripe_metadata( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session ): void {
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 
 		// Store payment intent ID (also adds an order note).
 		$order_helper->add_payment_intent_to_order( $session->get_payment_intent_id() ?? '', $order );

@@ -134,7 +134,7 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 		}
 		$customer = new WC_Stripe_Customer( $order_user->ID );
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 
 		// Set the customer ID if known but not already set.
 		$customer_id = $order_helper->get_stripe_customer_id( $order );
@@ -197,7 +197,7 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 			}
 
 			// Store IPP channel from intent metadata for POS identification.
-			$order_helper     = WC_Stripe_Order_Helper::get_instance();
+			$order_helper     = wc_stripe_order_helper();
 			$ipp_channel      = $intent->metadata->ipp_channel ?? '';
 			$allowed_channels = [ 'mobile_pos', 'mobile_store_management' ];
 			if ( in_array( $ipp_channel, $allowed_channels, true ) ) {

@@ -78,7 +78,7 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 		if ( $this->is_optimized_checkout_active() && ( is_wc_endpoint_url( 'order-received' ) || $this->is_order_details_page() ) ) {
 			global $theorder;
 			if ( $theorder instanceof WC_Order ) {
-				$checkout_session_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( $theorder );
+				$checkout_session_id = wc_stripe_order_helper()->get_stripe_checkout_session_id( $theorder );
 				if ( ! empty( $checkout_session_id ) ) {
 					$title = $theorder->get_payment_method_title();
 					if ( ! empty( $title ) ) {

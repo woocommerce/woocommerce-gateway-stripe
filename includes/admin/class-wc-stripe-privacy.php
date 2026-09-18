@@ -122,7 +122,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		$done           = false;
 		$data_to_export = [];
 		$orders         = $this->get_stripe_orders( $email_address, (int) $page );
-		$order_helper   = WC_Stripe_Order_Helper::get_instance();
+		$order_helper   = wc_stripe_order_helper();
 		$done           = true;
 		if ( 0 < count( $orders ) ) {
 			foreach ( $orders as $order ) {
@@ -190,7 +190,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		$done = true;
 
 		if ( 0 < count( $subscriptions ) ) {
-			$order_helper = WC_Stripe_Order_Helper::get_instance();
+			$order_helper = wc_stripe_order_helper();
 			foreach ( $subscriptions as $subscription ) {
 				$data_to_export[] = [
 					'group_id'    => 'woocommerce_subscriptions',
@@ -351,7 +351,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 
 		$subscription = current( wcs_get_subscriptions_for_order( $order->get_id() ) );
 
-		$order_helper     = WC_Stripe_Order_Helper::get_instance();
+		$order_helper     = wc_stripe_order_helper();
 		$stripe_source_id = $order_helper->get_stripe_source_id( $subscription );
 
 		if ( empty( $stripe_source_id ) ) {
@@ -395,7 +395,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 	 * @return array
 	 */
 	protected function maybe_handle_order( $order ) {
-		$order_helper           = WC_Stripe_Order_Helper::get_instance();
+		$order_helper           = wc_stripe_order_helper();
 		$stripe_source_id       = $order_helper->get_stripe_source_id( $order );
 		$stripe_refund_id       = $order_helper->get_stripe_refund_id( $order );
 		$stripe_customer_id     = $order_helper->get_stripe_customer_id( $order );

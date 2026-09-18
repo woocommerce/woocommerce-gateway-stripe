@@ -417,7 +417,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return array|bool
 	 */
 	public function can_refund_order( $order ) {
-		$upe_payment_type = WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order );
+		$upe_payment_type = wc_stripe_order_helper()->get_stripe_upe_payment_type( $order );
 
 		if ( ! $upe_payment_type ) {
 			return true;
@@ -1624,7 +1624,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @throws WC_Stripe_Exception When the Session cannot be confirmed as expired.
 	 */
 	private function retire_checkout_session_for_saved_payment( WC_Order $order ): void {
-		$order_helper        = WC_Stripe_Order_Helper::get_instance();
+		$order_helper        = wc_stripe_order_helper();
 		$checkout_session_id = $order_helper->get_stripe_checkout_session_id( $order );
 		if ( ! is_string( $checkout_session_id ) || '' === $checkout_session_id ) {
 			return;
@@ -1719,7 +1719,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			];
 		}
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 
 		try {
 			WC_Stripe_Checkout_Session_Context::with_mutation_lock(
@@ -1801,7 +1801,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return $this->process_change_subscription_payment_with_deferred_intent( $order_id );
 		}
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 
 		$order = wc_get_order( $order_id );
 
@@ -2130,7 +2130,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			if ( $payment_needed ) {
 				// This will throw exception if not valid.
-				WC_Stripe_Order_Helper::get_instance()->validate_minimum_order_amount( $order );
+				wc_stripe_order_helper()->validate_minimum_order_amount( $order );
 
 				$request_details = $this->generate_payment_request( $order, $prepared_payment_method );
 				$endpoint        = false !== $intent ? "payment_intents/$intent->id" : 'payment_intents';
@@ -2431,7 +2431,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 
 		if ( $order_helper->get_stripe_upe_redirect_processed( $order ) ) {
 			return;
@@ -2557,7 +2557,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 
 		// Webhook-already-fired short-circuit: order is in a terminal-success state.
 		// Strip the disambiguation query args from the address bar by redirecting
@@ -2721,7 +2721,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			throw new WC_Stripe_Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 		}
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 
 		// Validates the intent can be applied to the order.
 		try {
@@ -2845,7 +2845,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param stdClass $payment_method Stripe Payment Method.
 	 */
 	public function save_payment_method_to_order( $order, $payment_method ) {
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 		if ( $payment_method->customer ) {
 			$order_helper->update_stripe_customer_id( $order, $payment_method->customer );
 		}
@@ -3864,7 +3864,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$preferred_brand = $payment_method->card->networks->preferred ?? null;
 		if ( WC_Stripe_Co_Branded_CC_Compatibility::is_wc_supported() && $preferred_brand ) {
 
-			WC_Stripe_Order_Helper::get_instance()->update_stripe_card_brand( $order, $preferred_brand );
+			wc_stripe_order_helper()->update_stripe_card_brand( $order, $preferred_brand );
 			$order->save_meta_data();
 
 			if ( function_exists( 'wc_admin_record_tracks_event' ) ) {
@@ -4087,7 +4087,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	public function set_payment_method_id_for_order( WC_Order $order, string $payment_method_id ) {
 		// Save the payment method id as `source_id`, because we use both `sources` and `payment_methods` APIs.
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_source_id( $order, $payment_method_id );
+		wc_stripe_order_helper()->update_stripe_source_id( $order, $payment_method_id );
 		$order->save_meta_data();
 	}
 
@@ -4098,7 +4098,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param string   $payment_method_id The value to be set.
 	 */
 	public function set_payment_method_id_for_subscription( $subscription, string $payment_method_id ) {
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_source_id( $subscription, $payment_method_id );
+		wc_stripe_order_helper()->update_stripe_source_id( $subscription, $payment_method_id );
 		$subscription->save_meta_data();
 	}
 
@@ -4111,7 +4111,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param string   $customer_id The value to be set.
 	 */
 	public function set_customer_id_for_order( WC_Order $order, string $customer_id ) {
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_customer_id( $order, $customer_id );
+		wc_stripe_order_helper()->update_stripe_customer_id( $order, $customer_id );
 		$order->save_meta_data();
 	}
 
@@ -4124,7 +4124,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param string          $customer_id The value to be set.
 	 */
 	public function set_customer_id_for_subscription( $subscription, string $customer_id ) {
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_customer_id( $subscription, $customer_id );
+		wc_stripe_order_helper()->update_stripe_customer_id( $subscription, $customer_id );
 		$subscription->save_meta_data();
 	}
 
@@ -4135,7 +4135,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param string   $selected_payment_type The selected payment type.
 	 */
 	private function set_selected_payment_type_for_order( WC_Order $order, string $selected_payment_type ) {
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_payment_type( $order, $selected_payment_type );
+		wc_stripe_order_helper()->update_stripe_upe_payment_type( $order, $selected_payment_type );
 		$order->save_meta_data();
 	}
 	/**
@@ -4635,7 +4635,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		// If the order has a checkout session ID and is pending, hide the action buttons. The orders with checkout sessions take a while to be processed via webhooks.
-		$checkout_session_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( $order );
+		$checkout_session_id = wc_stripe_order_helper()->get_stripe_checkout_session_id( $order );
 		if ( $checkout_session_id ) {
 			unset( $actions['pay'], $actions['cancel'] );
 		}
@@ -4748,7 +4748,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 		$fee          = $order_helper->get_stripe_fee( $order );
 		$currency     = $order_helper->get_stripe_currency( $order );
 
@@ -4849,7 +4849,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 		$net          = $order_helper->get_stripe_net( $order );
 		$currency     = $order_helper->get_stripe_currency( $order );
 
@@ -4987,7 +4987,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 
 		if ( $order_helper->lock_order_payment( $order ) ) {
 			return;
@@ -5363,7 +5363,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return object|null The checkout session object, or null if it could not be retrieved.
 	 */
 	private function get_checkout_session_from_order( WC_Order $order, bool $force_refresh = false, bool $expand_payment_intent = false ): ?object {
-		$checkout_session_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( $order );
+		$checkout_session_id = wc_stripe_order_helper()->get_stripe_checkout_session_id( $order );
 		if ( ! $checkout_session_id ) {
 			return null;
 		}
@@ -5418,7 +5418,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return void
 	 */
 	private function maybe_add_presentment_metadata_to_order( WC_Order $order ): void {
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 
 		if ( ! $order_helper->get_stripe_checkout_session_id( $order )
 			|| ( $order_helper->get_stripe_presentment_currency( $order ) && $order_helper->get_stripe_presentment_amount( $order ) ) ) {
@@ -5499,7 +5499,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return null;
 		}
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 
 		$checkout_session_id = $order_helper->get_stripe_checkout_session_id( $order );
 		if ( ! $checkout_session_id ) {

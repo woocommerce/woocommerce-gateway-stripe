@@ -727,7 +727,7 @@ class WC_Stripe_Admin_Notices {
 			)
 		);
 		$customer_stripe_page = WC_Stripe_Helper::get_external_link(
-			WC_Stripe_Subscriptions_Helper::STRIPE_CUSTOMER_PAGE_BASE_URL . WC_Stripe_Order_Helper::get_instance()->get_stripe_customer_id( $subscription ),
+			WC_Stripe_Subscriptions_Helper::STRIPE_CUSTOMER_PAGE_BASE_URL . wc_stripe_order_helper()->get_stripe_customer_id( $subscription ),
 			/* translators: this is a text for a link pointing to the customer's page on Stripe */
 			__( 'Stripe customer page &rarr;', 'woocommerce-gateway-stripe' )
 		);

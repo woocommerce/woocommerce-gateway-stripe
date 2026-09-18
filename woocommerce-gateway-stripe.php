@@ -113,6 +113,19 @@ function woocommerce_gateway_stripe() {
 	return $plugin;
 }
 
+/**
+ * Returns the shared WC_Stripe_Order_Helper instance.
+ *
+ * Shorthand for WC_Stripe_Order_Helper::get_instance() so the many call sites read
+ * cleanly; each call resolves the current instance, so set_instance() overrides in
+ * tests are still honored.
+ *
+ * @return WC_Stripe_Order_Helper
+ */
+function wc_stripe_order_helper() {
+	return WC_Stripe_Order_Helper::get_instance();
+}
+
 add_action( 'plugins_loaded', 'woocommerce_gateway_stripe_init' );
 
 function woocommerce_gateway_stripe_init() {

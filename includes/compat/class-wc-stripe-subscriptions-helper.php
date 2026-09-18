@@ -139,12 +139,12 @@ class WC_Stripe_Subscriptions_Helper {
 			return false;
 		}
 
-		if ( ! WC_Stripe_Order_Helper::get_instance()->is_stripe_gateway_order( $subscription ) ) {
+		if ( ! wc_stripe_order_helper()->is_stripe_gateway_order( $subscription ) ) {
 			// If the payment method is not a Stripe method, we don't need to check further.
 			return false;
 		}
 
-		$source_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_source_id( $subscription );
+		$source_id = wc_stripe_order_helper()->get_stripe_source_id( $subscription );
 		if ( ! $source_id ) {
 			return false;
 		}
@@ -213,7 +213,7 @@ class WC_Stripe_Subscriptions_Helper {
 	public static function get_detached_payment_data_from_subscription( $subscription ) {
 		return [
 			'id'                        => $subscription->get_id(),
-			'customer_id'               => WC_Stripe_Order_Helper::get_instance()->get_stripe_customer_id( $subscription ),
+			'customer_id'               => wc_stripe_order_helper()->get_stripe_customer_id( $subscription ),
 			'change_payment_method_url' => $subscription->get_change_payment_method_url(),
 		];
 	}
