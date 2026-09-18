@@ -395,10 +395,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Proceed with current request using new login session (to ensure consistent nonce).
 	 *
+	 * Only applies during checkout after a customer has been created, to avoid a race condition
+	 * with WooPayments + Jetpack that causes the cart to be emptied on My Account registration.
+	 *
 	 * @param string $cookie New cookie value.
 	 */
 	public function set_cookie_on_current_request( $cookie ) {
-		$_COOKIE[ LOGGED_IN_COOKIE ] = $cookie;
+		if (
+			did_action( 'woocommerce_created_customer' ) > 0
+			&& is_checkout()
+		) {
+			$_COOKIE[ LOGGED_IN_COOKIE ] = $cookie;
+		}
 	}
 
 	/**
@@ -1543,6 +1551,32 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return array|null An array with result of payment and redirect URL, or nothing.
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
+		// Fallback for WooCommerce versions before 11.2.0, where Store API checkout never sets
+		// `order_awaiting_payment` (classic checkout always has). We need to set the flag so WC core's
+		// wc_clear_cart_after_payment() clears the cart when a redirect payment's return
+		// doesn't have the session cookie (mobile app/browser handoffs). This removes a paid-for cart
+		// from the session.
+		// The logic matches WC_Checkout::process_order_payment(), and only adds the value when unset.
+		// Skipped for subscription payment-method changes, where $order_id is a
+		// non-pending subscription ID, not an order ID.
+		$order      = wc_get_order( $order_id );
+		$wc_session = WC()->session;
+		if ( $order instanceof WC_Order
+			&& $order->needs_payment()
+			&& $wc_session
+			&& is_callable( [ $wc_session, 'set' ] )
+			&& ! $this->is_changing_payment_method_for_subscription()
+			// Don't set the flag for the pay-for-order path.
+			&& ! did_action( 'woocommerce_before_pay_action' )
+			&& (string) ( $wc_session->get( 'order_awaiting_payment' ) ?? '' ) !== (string) $order_id
+		) {
+			$wc_session->set( 'order_awaiting_payment', $order_id );
+			// Ensure the flag is saved rather than waiting until the end of the request.
+			if ( is_callable( [ $wc_session, 'save_data' ] ) ) {
+				$wc_session->save_data();
+			}
+		}
+
 		$payment_intent_id     = isset( $_POST['wc_payment_intent_id'] ) ? wc_clean( wp_unslash( $_POST['wc_payment_intent_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$checkout_session_id   = isset( $_POST['wc_stripe_checkout_session_id'] ) ? wc_clean( wp_unslash( $_POST['wc_stripe_checkout_session_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$selected_payment_type = $this->get_selected_payment_method_type_from_request();
@@ -1558,11 +1592,83 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 		}
 
-		if ( is_string( $checkout_session_id ) && ! empty( $checkout_session_id ) ) {
+		// Classic checkout keeps `wc_stripe_checkout_session_id` in the form after a failed Adaptive
+		// Pricing attempt, so a retry with a saved token still submits it. The token has to win: a
+		// Checkout Session is confirmed client-side and the saved-token path never reaches that code,
+		// so routing there would return success for an order nothing ever charged.
+		if ( is_string( $checkout_session_id ) && ! empty( $checkout_session_id ) && ! $this->is_using_saved_payment_method() ) {
 			return $this->process_payment_with_checkout_session( $order_id, $checkout_session_id, $save_payment_method, $selected_payment_type );
 		}
 
+		if ( $this->is_using_saved_payment_method() && $order instanceof WC_Order ) {
+			try {
+				$this->retire_checkout_session_for_saved_payment( $order );
+			} catch ( WC_Stripe_Exception $e ) {
+				// Keep the order pending so the existing Session can still reconcile if retirement failed.
+				return $this->handle_process_payment_error( $e, $order, false );
+			}
+		}
+
 		return $this->process_payment_with_deferred_intent( $order_id );
+	}
+
+	/**
+	 * Retires an order's remote Checkout Session before a saved payment method is charged.
+	 *
+	 * An unsuccessful embedded Checkout Session remains open and can be completed later. Retiring
+	 * it before starting another payment prevents a late Session webhook or customer retry from
+	 * creating a second charge for the same order.
+	 *
+	 * @param WC_Order $order The order being retried.
+	 * @return void
+	 * @throws WC_Stripe_Exception When the Session cannot be confirmed as expired.
+	 */
+	private function retire_checkout_session_for_saved_payment( WC_Order $order ): void {
+		$order_helper        = WC_Stripe_Order_Helper::get_instance();
+		$checkout_session_id = $order_helper->get_stripe_checkout_session_id( $order );
+		if ( ! is_string( $checkout_session_id ) || '' === $checkout_session_id ) {
+			return;
+		}
+
+		$unavailable_message = WC_Stripe_Checkout_Session_Context::get_unavailable_message();
+		try {
+			$checkout_session = $this->stripe_request( 'checkout/sessions/' . $checkout_session_id );
+		} catch ( Exception $e ) {
+			throw new WC_Stripe_Exception( $e->getMessage(), $unavailable_message );
+		}
+		if (
+			! is_object( $checkout_session )
+			|| ! isset( $checkout_session->id, $checkout_session->status )
+			|| ! is_string( $checkout_session->id )
+			|| $checkout_session_id !== $checkout_session->id
+			|| ! is_string( $checkout_session->status )
+		) {
+			throw new WC_Stripe_Exception( 'Unable to retrieve the Checkout Session.', $unavailable_message );
+		}
+
+		if ( 'open' === $checkout_session->status ) {
+			try {
+				$checkout_session = WC_Stripe_API::request( [], 'checkout/sessions/' . $checkout_session_id . '/expire' );
+			} catch ( Exception $e ) {
+				throw new WC_Stripe_Exception( $e->getMessage(), $unavailable_message );
+			}
+
+			if (
+				! is_object( $checkout_session )
+				|| ! isset( $checkout_session->id, $checkout_session->status )
+				|| ! is_string( $checkout_session->id )
+				|| $checkout_session_id !== $checkout_session->id
+				|| 'expired' !== $checkout_session->status
+			) {
+				throw new WC_Stripe_Exception( 'Unable to expire the Checkout Session.', $unavailable_message );
+			}
+		} elseif ( 'expired' !== $checkout_session->status ) {
+			throw new WC_Stripe_Exception( 'Checkout Session is not expireable.', $unavailable_message );
+		}
+
+		$order_helper->delete_stripe_checkout_session_id( $order );
+		$order->save();
+		WC_Stripe_Checkout_Session_Context::delete_context( $checkout_session_id );
 	}
 
 	/**
@@ -1878,6 +1984,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			$this->set_customer_id_for_order( $order, $payment_information['customer'] );
 
+			$selected_payment_type = $payment_information['selected_payment_type'];
+
+			// Persist the selected payment type (when known) before the intent request so
+			// parallel readers (e.g. webhooks fired by the confirmation) see it.
+			if ( $order instanceof WC_Order && is_string( $selected_payment_type ) && '' !== $selected_payment_type ) {
+				$this->set_selected_payment_type_for_order( $order, $selected_payment_type );
+			}
+
 			$payment_needed = $this->is_payment_needed( $order->get_id() );
 
 			if ( $payment_needed ) {
@@ -1889,8 +2003,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			$payment_method_id = $payment_intent->payment_method;
 			$this->set_payment_method_id_for_order( $order, $payment_method_id );
-
-			$selected_payment_type = $payment_information['selected_payment_type'];
 
 			// Retrieve the payment method object from Stripe.
 			$payment_method = $this->stripe_request( 'payment_methods/' . $payment_method_id );
@@ -1930,10 +2042,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @param WC_Stripe_Exception $e    The exception that was thrown.
 	 * @param WC_Order            $order The order that was being processed.
+	 * @param bool                $mark_order_failed Whether to mark the order as failed.
 	 *
 	 * @return array
 	 */
-	private function handle_process_payment_error( WC_Stripe_Exception $e, $order ) {
+	private function handle_process_payment_error( WC_Stripe_Exception $e, $order, bool $mark_order_failed = true ) {
 		$error_message = sprintf(
 			/* translators: localized exception message */
 			__( 'There was an error processing the payment: %s', 'woocommerce-gateway-stripe' ),
@@ -1956,11 +2069,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		 */
 		do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
-		$order->update_status(
-			OrderStatus::FAILED,
-			/* translators: localized exception message */
-			sprintf( __( 'Payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getLocalizedMessage() )
-		);
+		if ( $mark_order_failed ) {
+			$order->update_status(
+				OrderStatus::FAILED,
+				/* translators: localized exception message */
+				sprintf( __( 'Payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getLocalizedMessage() )
+			);
+		}
 
 		return [
 			'result'   => 'failure',
@@ -3145,7 +3260,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$data['description'] .= '</tbody>
 			</table>
-			<p><a class="button" target="_blank" href="https://dashboard.stripe.com/account/payments/settings">' . __( 'Get more payment methods', 'woocommerce-gateway-stripe' ) . '</a></p>
+			<p>' . WC_Stripe_Helper::get_external_link( 'https://dashboard.stripe.com/account/payments/settings', __( 'Get more payment methods', 'woocommerce-gateway-stripe' ), 'button' ) . '</p>
 			<span id="wc_stripe_upe_change_notice" class="hidden">' . __( 'You must save your changes.', 'woocommerce-gateway-stripe' ) . '</span>';
 
 		return $this->generate_title_html( $key, $data );

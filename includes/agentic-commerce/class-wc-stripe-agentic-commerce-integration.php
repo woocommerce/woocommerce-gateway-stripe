@@ -633,6 +633,19 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	}
 
 	/**
+	 * Whether the merchant has completed Agentic Commerce onboarding: the feature
+	 * is enabled in settings and the webhook signing secret has been saved. Both
+	 * are set by the settings UI; a catalog sync should not push before they are.
+	 *
+	 * @since 10.9.0
+	 * @return bool True once onboarding is complete.
+	 */
+	public static function is_onboarding_complete(): bool {
+		return self::is_merchant_enabled()
+			&& '' !== (string) get_option( self::WEBHOOK_SECRET_OPTION, '' );
+	}
+
+	/**
 	 * Whether the store-wide default disables in-agent checkout (feed-only / redirect).
 	 * Per-product overrides live in the mapper's filter.
 	 *
@@ -665,9 +678,10 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return false;
 		}
 
-		// Skip the sync if Agentic Commerce is disabled.
-		if ( ! self::is_merchant_enabled() ) {
-			WC_Stripe_Logger::info( 'Agentic Commerce: Sync skipped - merchant toggle disabled' );
+		// Don't push until onboarding is complete. The teardown push bypasses
+		// this via run_feed_sync().
+		if ( ! self::is_onboarding_complete() ) {
+			WC_Stripe_Logger::info( 'Agentic Commerce: Sync skipped - onboarding incomplete' );
 			return false;
 		}
 

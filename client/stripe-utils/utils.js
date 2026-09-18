@@ -8,6 +8,7 @@ import {
 	getPaymentMethodsConstants,
 	PAYMENT_METHOD_LINK,
 	PAYMENT_METHOD_CARD,
+	CHECKOUT_SESSION_INPUT_ID,
 } from './constants';
 import { __ } from '@wordpress/i18n';
 import { dispatch } from '@wordpress/data';
@@ -501,7 +502,7 @@ export const getUpeSettings = () => {
 };
 
 export const appendCheckoutSessionIdToForm = ( form, checkoutSessionId ) => {
-	const existingElement = form.find( 'input#wc_stripe_checkout_session_id' );
+	const existingElement = form.find( `input#${ CHECKOUT_SESSION_INPUT_ID }` );
 	if ( existingElement.length ) {
 		existingElement.val( checkoutSessionId );
 		return;
@@ -509,10 +510,14 @@ export const appendCheckoutSessionIdToForm = ( form, checkoutSessionId ) => {
 
 	const hiddenInput = document.createElement( 'input' );
 	hiddenInput.type = 'hidden';
-	hiddenInput.id = 'wc_stripe_checkout_session_id';
-	hiddenInput.name = 'wc_stripe_checkout_session_id';
+	hiddenInput.id = CHECKOUT_SESSION_INPUT_ID;
+	hiddenInput.name = CHECKOUT_SESSION_INPUT_ID;
 	hiddenInput.value = checkoutSessionId;
 	form.append( hiddenInput );
+};
+
+export const removeCheckoutSessionIdFromForm = ( form ) => {
+	form.find( `input#${ CHECKOUT_SESSION_INPUT_ID }` ).remove();
 };
 
 /**
@@ -681,7 +686,7 @@ const normalizeCountryForStripe = ( country ) => {
  * form and returns to use in Stripe Custom Checkout `confirm()` args.
  *
  * @param {Object} currentSession The current session object.
- * @return {Object} Partial confirm args: `billingAddress`, optional `shippingAddress`, optional `email`, optional `phoneNumber`.
+ * @return {Object} Partial confirm args: optional `billingAddress`, `shippingAddress`, `email`, and `phoneNumber`.
  */
 export const getUserDataForCheckoutSession = ( currentSession = null ) => {
 	const result = {};
@@ -700,18 +705,21 @@ export const getUserDataForCheckoutSession = ( currentSession = null ) => {
 			getFieldValue( 'billing_country' )
 		);
 
-		const billingAddress = {
-			name: billingName,
-			address: {
-				country: billingCountry || undefined,
-				line1: getFieldValue( 'billing_address_1' ) || undefined,
-				line2: getFieldValue( 'billing_address_2' ) || undefined,
-				state: getFieldValue( 'billing_state' ) || undefined,
-				city: getFieldValue( 'billing_city' ) || undefined,
-				postal_code: getFieldValue( 'billing_postcode' ) || undefined,
-			},
-		};
-		result.billingAddress = billingAddress;
+		if ( billingCountry ) {
+			const billingAddress = {
+				name: billingName,
+				address: {
+					country: billingCountry,
+					line1: getFieldValue( 'billing_address_1' ) || undefined,
+					line2: getFieldValue( 'billing_address_2' ) || undefined,
+					state: getFieldValue( 'billing_state' ) || undefined,
+					city: getFieldValue( 'billing_city' ) || undefined,
+					postal_code:
+						getFieldValue( 'billing_postcode' ) || undefined,
+				},
+			};
+			result.billingAddress = billingAddress;
+		}
 	}
 
 	if ( ! currentSession?.shippingAddress ) {
@@ -862,9 +870,15 @@ export const clearStaleCheckoutTotalNotice = () => {
  * @param {string} errorMessage
  */
 export const showErrorCheckout = ( errorMessage ) => {
-	const $container = jQuery( '.woocommerce-notices-wrapper' ).first();
+	let $container = jQuery( '.woocommerce-notices-wrapper' ).first();
 	const isMyAccountPage =
 		jQuery( '.woocommerce-MyAccount-content' ).length > 0;
+
+	// Some custom checkout templates omit the standard notices wrapper. The form
+	// is the same fallback WooCommerce uses for checkout AJAX errors.
+	if ( ! $container.length ) {
+		$container = jQuery( 'form.checkout' ).first();
+	}
 
 	if ( ! $container.length ) {
 		return;
