@@ -136,7 +136,7 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_payment_intent( $request ) {
-		$response = $this->fetch_from_stripe( 'payment_intents/' . rawurlencode( $request['id'] ), [ 'expand' => self::STRIPE_SINGLE_EXPAND_PARAM ] );
+		$response = WC_Stripe_REST_API_Abstract_Client::fetch_from_stripe( 'payment_intents/' . rawurlencode( $request['id'] ), [ 'expand' => self::STRIPE_SINGLE_EXPAND_PARAM ] );
 
 		if ( is_wp_error( $response ) ) {
 			return $response;
@@ -148,26 +148,6 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	}
 
 	/**
-	 * Builds an array of parameters to forward to Stripe API.
-	 *
-	 * @param WP_REST_Request<array<string, mixed>> $request An incoming REST request.
-	 * @param array $params_to_forward Names of params to forward.
-	 * @param array $expand_param Array of value to populate the 'expand' Stripe AAPI param.
-	 *
-	 * @return array
-	 */
-	private static function build_params_to_forward( $request, $params_to_forward, $expand_param ) {
-		$stripe_params = array_intersect_key(
-			$request->get_params(),
-			array_flip( $params_to_forward )
-		);
-
-		$stripe_params['expand'] = $expand_param;
-
-		return $stripe_params;
-	}
-
-	/**
 	 * Retrieve, filters and return Stripe payment intents.
 	 *
 	 * @param WP_REST_Request<array<string, mixed>> $request The incoming REST request.
@@ -175,9 +155,9 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function get_payment_intents( $request ) {
-		$response = $this->fetch_from_stripe(
+		$response = WC_Stripe_REST_API_Abstract_Client::fetch_from_stripe(
 			'payment_intents',
-			self::build_params_to_forward( $request, self::STRIPE_LIST_PARAMS_TO_FORWARD, self::STRIPE_LIST_EXPAND_PARAM ),
+			WC_Stripe_REST_API_Abstract_Client::build_params_to_forward( $request, self::STRIPE_LIST_PARAMS_TO_FORWARD, self::STRIPE_LIST_EXPAND_PARAM ),
 		);
 
 		if ( is_wp_error( $response ) ) {
@@ -187,43 +167,6 @@ class WC_Stripe_REST_Payment_Intents_Controller extends WC_Stripe_REST_Base_Cont
 		$filtered_response = WC_Stripe_REST_Response_Filter::filter_response( $response, self::STRIPE_LIST_RESPONSE_ALLOWED_FIELDS );
 
 		return rest_ensure_response( $filtered_response );
-	}
-
-	/**
-	 * Fetch data from an Stripe API endpoint and returns its raw data or a WP_Error if an error occurs.
-	 *
-	 * @param string $endpoint The Stripe endpoint.
-	 * @param array $params Parameters to pass to the endpoint.
-	 *
-	 * @return StdClass|WP_Error
-	 */
-	protected function fetch_from_stripe( $endpoint, $params ) {
-		$query_string = http_build_query( $params, '', '&', PHP_QUERY_RFC3986 );
-
-		$stripe_resource_url = $endpoint . ( '' === $query_string ? '' : '?' . $query_string );
-
-		$response = WC_Stripe_API::retrieve( $stripe_resource_url );
-
-		if ( null === $response ) {
-			return new WP_Error(
-				'wc_stripe_error',
-				__( 'Unable to fetch data from Stripe.', 'woocommerce-gateway-stripe' ),
-				[ 'status' => 401 ]
-			);
-		}
-
-		if ( is_wp_error( $response ) ) {
-			return $response;
-		}
-
-		if ( is_object( $response ) && isset( $response->error ) ) {
-			$error_code    = isset( $response->error->code ) ? (string) $response->error->code : 'wc_stripe_api_error';
-			$error_message = isset( $response->error->message ) ? (string) $response->error->message : __( 'Stripe API returned an error.', 'woocommerce-gateway-stripe' );
-
-			return new WP_Error( $error_code, $error_message, [ 'status' => 400 ] );
-		}
-
-		return $response;
 	}
 
 	/**
