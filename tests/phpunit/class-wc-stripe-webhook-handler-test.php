@@ -1502,7 +1502,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$order->save_meta_data();
 
 		// Clear per-session caches so the handler doesn't short-circuit on a stale lock entry.
-		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Option_Lock::force_release( 'wc_stripe_checkout_session_processing_lock_' . $checkout_session_id );
 		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
 
 		// Simulate a concurrent process holding the order payment lock.
@@ -1560,6 +1560,58 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		// Settlement is deferred to the retry, so the order must still be unsettled.
 		$this->assertTrue( wc_get_order( $order->get_id() )->has_status( OrderStatus::PENDING ) );
+
+		// The processing lock must be released before the retry, otherwise the requeued run
+		// would find it held and bail, leaving the order stuck pending forever.
+		$this->assertFalse( get_option( 'wc_stripe_checkout_session_processing_lock_' . $checkout_session_id ) );
+	}
+
+	/**
+	 * A checkout session already being processed by a concurrent worker (the processing lock is
+	 * held) must be skipped, so the two runs cannot both create an order for the same session.
+	 *
+	 * @return void
+	 */
+	public function test_handle_checkout_session_success_skips_when_already_processing(): void {
+		$checkout_session_id = 'cs_test_already_processing';
+		$lock_option         = 'wc_stripe_checkout_session_processing_lock_' . $checkout_session_id;
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		// A concurrent worker already holds the processing lock.
+		$owner = WC_Stripe_Option_Lock::acquire( $lock_option, 5 * MINUTE_IN_SECONDS );
+		$this->assertIsString( $owner );
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_already_processing',
+					'amount_total'   => WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $order->get_currency() ),
+					'currency'       => strtolower( $order->get_currency() ),
+				],
+			],
+		];
+
+		$handler = new WC_Stripe_Webhook_Handler();
+		$method  = new ReflectionMethod( WC_Stripe_Webhook_Handler::class, 'handle_checkout_session_success' );
+		$method->setAccessible( true );
+
+		$result = $method->invoke( $handler, $notification );
+
+		// The handler bailed on the held lock: it reports handled and leaves the order untouched.
+		$this->assertFalse( $result );
+		$this->assertTrue( wc_get_order( $order->get_id() )->has_status( OrderStatus::PENDING ) );
+
+		// The concurrent worker still owns the lock; the skipped run must not have cleared it.
+		$this->assertSame( $owner, get_option( $lock_option ) );
+
+		WC_Stripe_Option_Lock::release( $lock_option, $owner );
 	}
 
 	/**
@@ -1578,7 +1630,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
 		$order->save_meta_data();
 
-		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Option_Lock::force_release( 'wc_stripe_checkout_session_processing_lock_' . $checkout_session_id );
 		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
 
 		$order_helper = $this->createPartialMock(
@@ -3409,7 +3461,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		// handle_checkout_session_success() returns early without calling schedule_job()
 		// when the per-session lock is present, which caused this test to intermittently
 		// fail in CI under paratest/randomized ordering.
-		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Option_Lock::force_release( 'wc_stripe_checkout_session_processing_lock_' . $checkout_session_id );
 		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
 
 		// Build the mock notification.
@@ -3538,7 +3590,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		// Clear per-session cache so handle_checkout_session_success() does not short-circuit on a
 		// stale lock (flaky under paratest/randomized ordering).
-		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Option_Lock::force_release( 'wc_stripe_checkout_session_processing_lock_' . $checkout_session_id );
 		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
 
 		$effective_session_amount   = $session_amount_total;
@@ -3774,7 +3826,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
 		$order->save_meta_data();
 
-		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Option_Lock::force_release( 'wc_stripe_checkout_session_processing_lock_' . $checkout_session_id );
 		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
 
 		$notification = (object) [
@@ -3861,7 +3913,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
 		$order->save_meta_data();
 
-		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Option_Lock::force_release( 'wc_stripe_checkout_session_processing_lock_' . $checkout_session_id );
 		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
 
 		$notification = (object) [
