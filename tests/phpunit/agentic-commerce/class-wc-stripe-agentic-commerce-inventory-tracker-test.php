@@ -52,7 +52,6 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		WC_Stripe_API::set_secret_key( '' );
 		remove_all_filters( 'wc_stripe_agentic_commerce_files_api_pre_request' );
 		remove_all_filters( 'wc_stripe_agentic_commerce_import_set_pre_request' );
-		remove_all_filters( 'pre_http_request' );
 
 		// Remove any action hooks registered by this test's sut to prevent leaking into subsequent tests.
 		if ( isset( $this->sut ) ) {
@@ -1260,31 +1259,32 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 			}
 		);
 
+		$mock_successful_response_filter = function ( $pre, $args, $url ) {
+			if ( false !== strpos( $url, 'import_sets' ) ) {
+				return [
+					'response' => [ 'code' => 200 ],
+					'body'     => wp_json_encode(
+						[
+							'id'     => 'impset_test_arc_456',
+							'status' => 'pending',
+						]
+					),
+				];
+			}
+			return $pre;
+		};
+
 		// Short-circuit the ImportSet creation.
-		add_filter(
-			'pre_http_request',
-			function ( $pre, $args, $url ) {
-				if ( false !== strpos( $url, 'import_sets' ) ) {
-					return [
-						'response' => [ 'code' => 200 ],
-						'body'     => wp_json_encode(
-							[
-								'id'     => 'impset_test_arc_456',
-								'status' => 'pending',
-							]
-						),
-					];
-				}
-				return $pre;
-			},
-			10,
-			3
-		);
+		add_filter( 'pre_http_request', $mock_successful_response_filter, 10, 3 );
 
-		$this->sut->sync_archives();
+		try {
+			$this->sut->sync_archives();
 
-		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
-		$this->assertEmpty( $pending );
+			$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+			$this->assertEmpty( $pending );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_successful_response_filter );
+		}
 	}
 
 	/**

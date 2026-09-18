@@ -12,6 +12,7 @@ const mockGetSelectedProductData = jest.fn();
 const mockGetStripe = jest.fn();
 const mockAddToCart = jest.fn();
 const mockEmptyCartLegacy = jest.fn();
+const mockTransformLabeledDisplayItems = jest.fn( () => [] );
 
 // Drain both microtasks and jQuery Deferred's timer-scheduled callbacks.
 const flushPromises = async () => {
@@ -47,7 +48,7 @@ jest.mock( '../../../api', () =>
 // focused on the fetch-vs-snapshot branch and never depends on cart shape.
 jest.mock( 'wcstripe/express-checkout/transformers/wc-to-stripe', () => ( {
 	transformCartDataForDisplayItems: jest.fn( () => [] ),
-	transformLabeledDisplayItems: jest.fn( () => [] ),
+	transformLabeledDisplayItems: mockTransformLabeledDisplayItems,
 	transformPrice: jest.fn( () => 1500 ),
 } ) );
 
@@ -102,6 +103,7 @@ describe( 'Express Checkout cart/checkout bootstrap', () => {
 		// starts fresh for every test.
 		jest.resetModules();
 		mockGetCartDetails.mockReset();
+		mockTransformLabeledDisplayItems.mockClear();
 		mockGetCartDetails.mockResolvedValue( {
 			totals: { total_price: '1500', total_refund: '0' },
 			needs_shipping: false,
@@ -115,6 +117,7 @@ describe( 'Express Checkout cart/checkout bootstrap', () => {
 		// (`jest.resetModules`), so a later test's trigger can only reach its own
 		// jQuery copy's handlers — no need to detach the previous test's bindings.
 		delete global.wc_stripe_express_checkout_params;
+		delete global.wcStripeExpressCheckoutPayForOrderParams;
 	} );
 
 	it( 'renders from the localized snapshot and skips the cart-details fetch on first paint', () => {
@@ -132,6 +135,35 @@ describe( 'Express Checkout cart/checkout bootstrap', () => {
 		loadEntrypoint();
 
 		expect( mockGetCartDetails ).not.toHaveBeenCalled();
+		expect( mockTransformLabeledDisplayItems ).toHaveBeenCalledWith(
+			[],
+			1500
+		);
+	} );
+
+	it( 'passes the order total when transforming Pay for Order items', () => {
+		global.wc_stripe_express_checkout_params = {
+			...baseParams(),
+			is_pay_for_order: true,
+			is_cart_page: false,
+		};
+		global.wcStripeExpressCheckoutPayForOrderParams = {
+			total: { amount: 1500 },
+			currency: 'usd',
+			displayItems: [ { label: 'Subtotal', amount: 1500 } ],
+			order: 123,
+			orderDetails: {
+				orderKey: 'wc_order_test',
+				billingEmail: 'customer@example.com',
+			},
+		};
+
+		loadEntrypoint();
+
+		expect( mockTransformLabeledDisplayItems ).toHaveBeenCalledWith(
+			[ { label: 'Subtotal', amount: 1500 } ],
+			1500
+		);
 	} );
 
 	it( 'falls back to the cart-details fetch on re-init once the snapshot is consumed', () => {

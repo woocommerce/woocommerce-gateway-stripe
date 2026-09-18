@@ -109,6 +109,13 @@ const IntroDescription = styled.p`
 	margin-top: 16px;
 `;
 
+const ShippingWarningList = styled.ul`
+	/* wp-admin strips list markers; reinstate them so zones scan as a list. */
+	list-style: disc;
+	padding-left: 20px;
+	margin: 8px 0 0;
+`;
+
 const ExcludedDetails = styled.div`
 	margin: 8px 0 16px;
 `;
@@ -161,6 +168,7 @@ const AgenticCommerceFeedPreview = () => {
 		truncated,
 		scan_limited: scanLimited,
 		shipping_warnings: shippingWarnings = [],
+		shipping_warnings_severity: shippingWarningsSeverity = 'warning',
 	} = data ?? {};
 
 	const excludedSubscriptions = excludedBreakdown?.subscriptions ?? 0;
@@ -216,28 +224,62 @@ const AgenticCommerceFeedPreview = () => {
 						) }
 
 						{ shippingWarnings.length > 0 && (
-							<Notice status="warning" isDismissible={ false }>
-								<p>
-									{ __(
-										'Some shipping zones will have no shipping in the feed:',
-										'woocommerce-gateway-stripe'
-									) }
-								</p>
-								<ul>
-									{ shippingWarnings.map( ( warning, i ) => (
-										<li key={ i }>
-											{ warning.edit_link ? (
-												<ExternalLink
-													href={ warning.edit_link }
-												>
-													{ warning.message }
-												</ExternalLink>
-											) : (
-												warning.message
+							<Notice
+								status={ shippingWarningsSeverity }
+								isDismissible={ false }
+							>
+								{ /* Expanded by default so the zones are not missed;
+								     collapsible so a long list can be folded away while
+								     debugging. The collapse is per-render DOM state:
+								     nothing is persisted or shared between users. */ }
+								<details open>
+									<summary>
+										<strong>
+											{ sprintf(
+												/* translators: %d: number of shipping zones the warning covers. */
+												_n(
+													'%d shipping zone will have no shipping prices in the feed.',
+													'%d shipping zones will have no shipping prices in the feed.',
+													shippingWarnings.length,
+													'woocommerce-gateway-stripe'
+												),
+												shippingWarnings.length
 											) }
-										</li>
-									) ) }
-								</ul>
+										</strong>
+									</summary>
+									{ shippingWarningsSeverity === 'info' && (
+										<p>
+											{ __(
+												'Agentic shoppers are redirected to your WooCommerce checkout, where shipping is computed as usual. The agent won’t be able to show shipping prices for these zones.',
+												'woocommerce-gateway-stripe'
+											) }
+										</p>
+									) }
+									<ShippingWarningList>
+										{ shippingWarnings.map(
+											( warning, i ) => (
+												<li key={ i }>
+													{ warning.message }
+													{ warning.edit_link && (
+														<>
+															{ ' ' }
+															<a
+																href={
+																	warning.edit_link
+																}
+															>
+																{ __(
+																	'Edit shipping zone',
+																	'woocommerce-gateway-stripe'
+																) }
+															</a>
+														</>
+													) }
+												</li>
+											)
+										) }
+									</ShippingWarningList>
+								</details>
 							</Notice>
 						) }
 

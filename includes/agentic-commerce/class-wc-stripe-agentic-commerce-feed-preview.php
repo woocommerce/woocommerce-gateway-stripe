@@ -105,7 +105,8 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 	 *     scan_limited: bool,
 	 *     advisories: array<int, array{product_id:int, product_name:string, edit_link:string, type:string, detail:string}>,
 	 *     advisories_truncated: int,
-	 *     shipping_warnings: array<int, array{message:string, edit_link:string}>
+	 *     shipping_warnings: array<int, array{message:string, edit_link:string}>,
+	 *     shipping_warnings_severity: string
 	 * }
 	 */
 	public function generate( int $detail_limit = self::DEFAULT_DETAIL_LIMIT, int $scan_limit = self::DEFAULT_SCAN_LIMIT ): array {
@@ -166,6 +167,30 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 					'message'   => sprintf(
 						/* translators: %s: shipping zone name */
 						__( 'Shipping zone "%s" has no flat-rate method, so the feed carries no shipping for it (live-rate / calculated methods price at checkout).', 'woocommerce-gateway-stripe' ),
+						$zone['name']
+					),
+					// Deep-link to the zone's shipping settings so the merchant can act.
+					'edit_link' => add_query_arg(
+						[
+							'page'    => 'wc-settings',
+							'tab'     => 'shipping',
+							'zone_id' => $zone['id'],
+						],
+						admin_url( 'admin.php' )
+					),
+				];
+			}
+		}
+
+		// Zones that contribute no flat-rate shipping to the feed. Computed once,
+		// independent of the product walk.
+		$shipping_warnings = [];
+		if ( $mapper instanceof WC_Stripe_Agentic_Commerce_Product_Mapper ) {
+			foreach ( $mapper->get_shipping_diagnostics()['zones_without_flat_rate'] as $zone ) {
+				$shipping_warnings[] = [
+					'message'   => sprintf(
+						/* translators: %s: shipping zone name */
+						__( 'We cannot precompute a shipping price for shipping zone "%s", so we cannot send any shipping costs to Stripe.', 'woocommerce-gateway-stripe' ),
 						$zone['name']
 					),
 					// Deep-link to the zone's shipping settings so the merchant can act.
@@ -269,23 +294,28 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 			++$page;
 		} while ( self::PER_PAGE === $batch_iterated && $page <= $max_num_pages );
 
+		// Shipping issues should only be reported as warnings when Stripe hosts checkout.
+		// When shoppers access WooCommerce checkout, shipping will be computed at that stage.
+		$shipping_warnings_severity = WC_Stripe_Agentic_Commerce_Integration::is_checkout_disabled() ? 'info' : 'warning';
+
 		return [
-			'total_count'          => $total_count,
-			'included_count'       => $included_count,
-			'excluded_count'       => $excluded_count,
-			'excluded_breakdown'   => [
+			'total_count'                => $total_count,
+			'included_count'             => $included_count,
+			'excluded_count'             => $excluded_count,
+			'excluded_breakdown'         => [
 				'subscriptions'      => $excluded_subscriptions,
 				'password_protected' => $excluded_password,
 				'hidden'             => $excluded_hidden,
 				'filtered'           => $excluded_filtered,
 			],
-			'invalid_count'        => $invalid_count,
-			'validation_errors'    => $validation_errors,
-			'truncated'            => $truncated,
-			'scan_limited'         => $scan_limited,
-			'advisories'           => $advisories,
-			'advisories_truncated' => $advisories_truncated,
-			'shipping_warnings'    => $shipping_warnings,
+			'invalid_count'              => $invalid_count,
+			'validation_errors'          => $validation_errors,
+			'truncated'                  => $truncated,
+			'scan_limited'               => $scan_limited,
+			'advisories'                 => $advisories,
+			'advisories_truncated'       => $advisories_truncated,
+			'shipping_warnings'          => $shipping_warnings,
+			'shipping_warnings_severity' => $shipping_warnings_severity,
 		];
 	}
 
