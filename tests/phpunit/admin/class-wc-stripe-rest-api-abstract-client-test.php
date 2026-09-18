@@ -4,12 +4,12 @@
  */
 class WC_Stripe_REST_API_Abstract_Client_Test extends WP_UnitTestCase {
 	/**
-	 *	Tests that only the specified request parameters are added to the list of parameters to be forwarded to Stripe API.
+	 * Tests that only the specified request parameters are added to the list of parameters to be forwarded to Stripe API.
 	 */
 	public function test_build_params_to_forward() {
 		$all_params = [
 			'test_param'            => 'test_val',
-			'test_param_to_forward' => 'test_val_to_forward'
+			'test_param_to_forward' => 'test_val_to_forward',
 		];
 
 		$params_to_forward = [ 'test_param_to_forward' ];
@@ -24,12 +24,12 @@ class WC_Stripe_REST_API_Abstract_Client_Test extends WP_UnitTestCase {
 		$forwarded_params = WC_Stripe_REST_API_Abstract_Client::build_params_to_forward( $request, $params_to_forward, $expand_param );
 
 		$this->assertEquals( 2, count( $forwarded_params ) );
-	
-		$this->assertTrue( array_key_exists( 'test_param_to_forward', $forwarded_params) );
-		$this->assertEquals( $all_params[ 'test_param_to_forward' ], $forwarded_params[ 'test_param_to_forward' ]);
 
-		$this->assertTrue( array_key_exists( 'expand', $forwarded_params) );
-		$this->assertEquals( $expand_param, $forwarded_params[ 'expand' ]);
+		$this->assertTrue( array_key_exists( 'test_param_to_forward', $forwarded_params ) );
+		$this->assertEquals( $all_params['test_param_to_forward'], $forwarded_params['test_param_to_forward'] );
+
+		$this->assertTrue( array_key_exists( 'expand', $forwarded_params ) );
+		$this->assertEquals( $expand_param, $forwarded_params['expand'] );
 	}
 
 	/**
