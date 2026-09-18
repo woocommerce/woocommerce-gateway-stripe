@@ -721,8 +721,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$revocation_reason = $this->get_mandate_revocation_reason( $mandate );
 
 		// An inactive mandate (whether paused or revoked) can no longer be charged, so the
-		// order is put on hold. A revocation does not cancel the order outright — it only
-		// changes the wording of the note so the merchant can follow up with the customer.
+		// order is put on hold.
 		$target_order_status = ( 'inactive' === $mandate_status ) ? OrderStatus::ON_HOLD : null;
 
 		// Idempotency guard: skip if the order is already in the target status (e.g. on webhook redelivery).
