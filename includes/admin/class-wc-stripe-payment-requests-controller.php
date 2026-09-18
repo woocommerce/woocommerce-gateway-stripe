@@ -58,7 +58,7 @@ class WC_Stripe_Payment_Requests_Controller {
 		wp_register_style(
 			'wc-stripe-payment-request-settings',
 			plugins_url( 'build/express-checkout-settings.css', WC_STRIPE_MAIN_FILE ),
-			[ 'wc-components', 'wp-components' ],
+			[ 'wc-components' ],
 			$asset_metadata['version']
 		);
 		wp_enqueue_style( 'wc-stripe-payment-request-settings' );

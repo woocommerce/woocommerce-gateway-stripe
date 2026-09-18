@@ -66,7 +66,7 @@ class WC_Stripe_Payment_Gateways_Controller {
 		wp_register_style(
 			'woocommerce_stripe_payment_gateways_page',
 			plugins_url( 'build/payment-gateways.css', WC_STRIPE_MAIN_FILE ),
-			[ 'wc-components', 'wp-components' ],
+			[ 'wc-components' ],
 			$payment_gateways_script_asset['version']
 		);
 	}

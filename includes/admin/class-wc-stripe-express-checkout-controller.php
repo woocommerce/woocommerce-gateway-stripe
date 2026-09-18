@@ -64,7 +64,7 @@ class WC_Stripe_Express_Checkout_Controller {
 		wp_register_style(
 			'wc-stripe-express-checkout-settings',
 			plugins_url( 'build/express-checkout-settings.css', WC_STRIPE_MAIN_FILE ),
-			[ 'wc-components', 'wp-components' ],
+			[ 'wc-components' ],
 			$asset_metadata['version']
 		);
 		wp_enqueue_style( 'wc-stripe-express-checkout-settings' );
