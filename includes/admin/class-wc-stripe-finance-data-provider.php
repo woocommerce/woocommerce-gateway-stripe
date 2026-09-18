@@ -61,6 +61,15 @@ class WC_Stripe_Finance_Data_Provider implements FinanceDataProviderInterface, B
 	}
 
 	/**
+	 * Get the Stripe title.
+	 *
+	 * @return string The Stripe title: 'Stripe'.
+	 */
+	public function get_title(): string {
+		return 'Stripe';
+	}
+
+	/**
 	 * Get the Stripe icon URL.
 	 *
 	 * @return string The Stripe icon URL.
