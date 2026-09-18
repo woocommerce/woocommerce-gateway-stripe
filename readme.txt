@@ -182,5 +182,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - When checking if unpaid orders should be cancelled, get the Stripe payment status, and update orders with Stripe payment details
 * Dev - Block outbound HTTP requests from unit tests
 * Add - Show the originating AI agent in the WooCommerce order Origin column for Agentic Commerce orders
+* Dev - Give each git worktree its own isolated local E2E Docker stack, derived by `worktree:setup` and covered by `worktree:status` and `worktree:cleanup`
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

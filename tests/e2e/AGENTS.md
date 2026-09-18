@@ -20,7 +20,8 @@ For repository-wide rules, always read the root `AGENTS.md` first.
 | Run default project | `npm run test:e2e -- --base_url=<url>` | Uses `default` Playwright project. |
 | Run specific project | `npm run test:e2e-run -- --project=<name> --base_url=<url>` | Project names include `default`, `acss`, `becs`, `blik`, `optimized-checkout`. |
 | Debug run | `npm run test:e2e-debug -- --base_url=<url>` | Playwright debug mode. |
-| Docker setup/run | `npm run test:e2e-setup` then `npm run test:e2e` | Local Docker path (`http://localhost:8088`). |
+| Docker setup/run | `npm run test:e2e-setup` then `npm run test:e2e` | Local Docker path (`http://localhost:8088` in the main checkout; worktrees get their own port — see below). |
+| Second Docker stack | automatic via `npm run worktree:setup` | The compose project name and host ports (8088/6789) are machine-global, so `worktree:setup` writes an isolated `E2E_PROJECT`/`E2E_WP_PORT`/`E2E_DB_PORT` trio to the worktree's `.env`, which every `test:e2e*` command reads (explicit env vars still win). Ports are assigned by the same `.env`-scan in `bin/docker-port-setup.sh` that picks each worktree's `WORDPRESS_PORT`. |
 | Tear down Docker | `npm run test:e2e-down` | Stops E2E containers. |
 
 ## File Layout

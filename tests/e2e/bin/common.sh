@@ -3,6 +3,22 @@
 CWD=$(pwd)
 E2E_ROOT="$CWD/tests/e2e"
 
+# The compose project and host ports are machine-global, so worktree:setup
+# records an isolated stack per worktree in .env. Resolution: env var > .env
+# key > historical default (two lines per var: one ${:-} holds one fallback).
+# Grep rather than source .env so unrelated keys can't leak into the scripts.
+env_file_value() {
+	grep "^$1=" "$CWD/.env" 2>/dev/null | tail -1 | cut -d= -f2-
+}
+. "$(dirname "${BASH_SOURCE[0]}")/e2e-stack-defaults.sh"
+# Exported so docker compose can interpolate them in env/docker-compose.yml.
+export E2E_PROJECT=${E2E_PROJECT:-$(env_file_value E2E_PROJECT)}
+export E2E_PROJECT=${E2E_PROJECT:-$E2E_DEFAULT_PROJECT}
+export E2E_WP_PORT=${E2E_WP_PORT:-$(env_file_value E2E_WP_PORT)}
+export E2E_WP_PORT=${E2E_WP_PORT:-$E2E_DEFAULT_WP_PORT}
+export E2E_DB_PORT=${E2E_DB_PORT:-$(env_file_value E2E_DB_PORT)}
+export E2E_DB_PORT=${E2E_DB_PORT:-$E2E_DEFAULT_DB_PORT}
+
 ADMIN_USER=${ADMIN_USER-admin}
 ADMIN_PASSWORD=${ADMIN_PASSWORD-admin}
 ADMIN_EMAIL=${ADMIN_EMAIL-admin@example.com}
@@ -63,5 +79,5 @@ validate_stripe_listener_credentials() {
 # --user xfs forces the wordpress:cli container to use a user with the same ID as the main wordpress container.
 # See: https://hub.docker.com/_/wordpress#running-as-an-arbitrary-user
 cli() {
-	docker run -i --rm --user 33:33 --env-file ${E2E_ROOT}/env/default.env --volumes-from "wcstripe-e2e-wordpress" --network container:"wcstripe-e2e-wordpress" wordpress:cli "$@"
+	docker run -i --rm --user 33:33 --env-file ${E2E_ROOT}/env/default.env --volumes-from "${E2E_PROJECT}-wordpress" --network container:"${E2E_PROJECT}-wordpress" wordpress:cli "$@"
 }
