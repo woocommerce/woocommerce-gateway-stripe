@@ -1,0 +1,28 @@
+@use 'sass:list';
+@use '../../styles/abstracts/styles';
+@use '../../styles/abstracts/custom-styles';
+
+$badge-tones: (
+	'success': ( styles.$wp-green-0, styles.$wp-green-70 ),
+	'error': ( styles.$wp-red-0, styles.$wp-red-70 ),
+	'warning': ( styles.$wp-yellow-0, custom-styles.$color-warning ),
+	'info': ( styles.$wp-blue-0, custom-styles.$color-info ),
+	'neutral': ( styles.$gray-100, styles.$wp-gray-60 ),
+);
+
+.wc-stripe-pill.wc-stripe-agentic-sync-status-badge {
+	border-radius: 2px;
+	line-height: 16px;
+
+	@each $tone, $pair in $badge-tones {
+		&.wc-stripe-agentic-sync-status-badge--#{$tone} {
+			background: list.nth( $pair, 1 );
+			border-color: list.nth( $pair, 1 );
+			color: list.nth( $pair, 2 );
+		}
+	}
+
+	svg {
+		fill: currentColor;
+	}
+}

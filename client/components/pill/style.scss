@@ -1,0 +1,20 @@
+@use '../../styles/abstracts/styles';
+
+.wc-stripe-pill {
+	border: 1px solid styles.$wc-stripe-text-muted;
+	border-radius: 28px;
+	color: styles.$wc-stripe-text-muted;
+	display: inline-block;
+	font-size: 12px;
+	font-weight: 400;
+	line-height: 1.4em;
+	padding: 2px 8px;
+	text-align: center;
+	width: fit-content;
+
+	&.wc-stripe-pill--flex {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+	}
+}
