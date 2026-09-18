@@ -301,14 +301,14 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return WP_REST_Response
 	 */
 	public function update_settings( WP_REST_Request $request ) {
+		/* Settings > General */
+		$this->update_is_stripe_enabled( $request );
+		$this->update_is_test_mode_enabled( $request );
+
 		/* Settings > Payments accepted on checkout + Express checkouts */
 		$payment_method_ids_to_enable  = $this->get_payment_method_ids_to_enable( $request );
 		$is_upe_enabled                = $request->get_param( 'is_upe_enabled' );
 		$update_payment_methods_result = $this->update_enabled_payment_methods( $payment_method_ids_to_enable, $is_upe_enabled );
-
-		/* Settings > General */
-		$this->update_is_stripe_enabled( $request );
-		$this->update_is_test_mode_enabled( $request );
 		if ( ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
 			// We need to update a separate setting for legacy checkout.
 			$this->update_is_express_checkout_enabled_for_legacy_checkout( $request );
@@ -329,8 +329,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$this->update_is_debug_log_enabled( $request );
 		$this->update_oc_settings( $request );
 
-		// Surfaced last so a failed PMC update cannot block the other settings:
-		// the merchant must still be able to, for example, disable the gateway.
 		// Handle a PMC update error last so updates to other settings are saved.
 		// Return an HTTP 502 error code because the error comes from Stripe.
 		if ( is_wp_error( $update_payment_methods_result ) ) {
