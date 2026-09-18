@@ -1084,7 +1084,7 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	 * @return void
 	 * @dataProvider provide_test_localize_pay_for_order_fee_display_items
 	 */
-	public function test_localize_pay_for_order_fee_display_items( $fee_amount, $expected_item ) {
+	public function test_localize_pay_for_order_fee_display_items( $fee_amount, $expected_item, $set_amount = true ) {
 		// Start from a clean script registration so we read only this call's localized data.
 		wp_deregister_script( 'wc_stripe_express_checkout' );
 
@@ -1092,7 +1092,11 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 
 		$fee = new WC_Order_Item_Fee();
 		$fee->set_name( 'Test fee' );
-		$fee->set_amount( $fee_amount );
+		// Some flows (REST, admin line-total edits) set only the total, leaving amount empty.
+		// The builder must key off get_total(), the value that feeds $order->get_total().
+		if ( $set_amount ) {
+			$fee->set_amount( $fee_amount );
+		}
 		$fee->set_total( $fee_amount );
 		$order->add_item( $fee );
 		$order->calculate_totals();
@@ -1143,6 +1147,18 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 					'label'  => 'Test fee',
 					'amount' => 500,
 				],
+			],
+			// A negative fee whose amount was never set (only total) must still be tagged and
+			// sized from the total; keying off the empty amount would emit an untagged 0 and
+			// let the display items exceed the order total.
+			'negative fee with only total set'     => [
+				'fee_amount'    => -5.00,
+				'expected_item' => [
+					'key'    => 'total_discount',
+					'label'  => 'Test fee',
+					'amount' => 500,
+				],
+				'set_amount'    => false,
 			],
 		];
 	}
