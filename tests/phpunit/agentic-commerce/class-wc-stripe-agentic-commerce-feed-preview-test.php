@@ -73,7 +73,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 		remove_filter( 'woocommerce_product_class', [ $this, 'map_simple_to_subscription' ] );
 		remove_filter( 'woocommerce_product_type_query', [ $this, 'force_subscription_type' ] );
 		remove_filter( 'woocommerce_data_stores', [ $this, 'register_subscription_variation_store' ] );
-		remove_all_filters( 'woocommerce_agentic_commerce_should_sync_product' );
+		remove_all_filters( 'wc_stripe_agentic_commerce_should_sync_product' );
 		parent::tearDown();
 	}
 
@@ -198,7 +198,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 		// Exclude one product via the visibility filter — a merchant choice, not
 		// a validation failure.
 		add_filter(
-			'woocommerce_agentic_commerce_should_sync_product',
+			'wc_stripe_agentic_commerce_should_sync_product',
 			static function ( $should_sync, $product ) use ( $excluded ) {
 				return $product->get_id() === $excluded->get_id() ? false : $should_sync;
 			},
@@ -257,7 +257,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 	public function test_excluded_product_is_not_reported_as_error(): void {
 		$excluded = $this->create_invalid_product( 'Hidden From Agents' );
 
-		add_filter( 'woocommerce_agentic_commerce_should_sync_product', '__return_false' );
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', '__return_false' );
 
 		$this->scope_to( [ $excluded->get_id() ] );
 
@@ -354,7 +354,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 	public function test_excluded_breakdown_counts_filtered_products(): void {
 		$excluded = $this->create_valid_product();
 
-		add_filter( 'woocommerce_agentic_commerce_should_sync_product', '__return_false' );
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', '__return_false' );
 		$this->scope_to( [ $excluded->get_id() ] );
 
 		$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
@@ -494,6 +494,110 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * generate() exposes the advisory and shipping-warning surfaces added for
+	 * the merchant-configuration cookbook.
+	 *
+	 * @return void
+	 */
+	public function test_preview_exposes_advisory_and_shipping_keys(): void {
+		$product = $this->create_valid_product();
+		$this->scope_to( [ $product->get_id() ] );
+
+		$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
+
+		$this->assertArrayHasKey( 'advisories', $preview );
+		$this->assertIsArray( $preview['advisories'] );
+		$this->assertArrayHasKey( 'advisories_truncated', $preview );
+		$this->assertArrayHasKey( 'shipping_warnings', $preview );
+		$this->assertIsArray( $preview['shipping_warnings'] );
+	}
+
+	/**
+	 * A product with no SKU gets a 'no_sku' advisory; one with a SKU does not.
+	 *
+	 * @return void
+	 */
+	public function test_preview_flags_missing_sku_advisory(): void {
+		$no_sku = $this->create_valid_product();
+
+		$with_sku = $this->create_valid_product();
+		$with_sku->set_sku( 'PMC-WIDGET-1' );
+		$with_sku->save();
+
+		$this->scope_to( [ $no_sku->get_id(), $with_sku->get_id() ] );
+
+		$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
+
+		$no_sku_ids = $this->advisory_ids_of_type( $preview['advisories'], 'no_sku' );
+		$this->assertContains( $no_sku->get_id(), $no_sku_ids );
+		$this->assertNotContains( $with_sku->get_id(), $no_sku_ids );
+	}
+
+	/**
+	 * A product excluded by the visibility filter is reported with an 'excluded'
+	 * advisory whose detail names the branch that excluded it ('filter').
+	 *
+	 * @return void
+	 */
+	public function test_preview_reports_exclusion_reason_advisory(): void {
+		$excluded = $this->create_valid_product();
+
+		add_filter(
+			'wc_stripe_agentic_commerce_should_sync_product',
+			static function ( $should_sync, $product ) use ( $excluded ) {
+				return $product->get_id() === $excluded->get_id() ? false : $should_sync;
+			},
+			10,
+			2
+		);
+
+		$this->scope_to( [ $excluded->get_id() ] );
+
+		$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
+
+		$match = null;
+		foreach ( $preview['advisories'] as $advisory ) {
+			if ( 'excluded' === $advisory['type'] && $excluded->get_id() === $advisory['product_id'] ) {
+				$match = $advisory;
+				break;
+			}
+		}
+
+		$this->assertNotNull( $match, 'Excluded product should produce an excluded advisory.' );
+		$this->assertSame( 'filter', $match['detail'] );
+	}
+
+	/**
+	 * When the store-wide redirect option is on, an included product is reported
+	 * with a 'disable_checkout' advisory sourced to 'store_wide'.
+	 *
+	 * @return void
+	 */
+	public function test_preview_reports_disable_checkout_source_advisory(): void {
+		update_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION, 'yes' );
+
+		$product = $this->create_valid_product();
+		$this->scope_to( [ $product->get_id() ] );
+
+		try {
+			$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
+
+			$match = null;
+			foreach ( $preview['advisories'] as $advisory ) {
+				if ( 'disable_checkout' === $advisory['type'] && $product->get_id() === $advisory['product_id'] ) {
+					$match = $advisory;
+					break;
+				}
+			}
+
+			$this->assertNotNull( $match, 'Redirected product should produce a disable_checkout advisory.' );
+			$this->assertSame( 'store_wide', $match['detail'] );
+		} finally {
+			delete_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
+		}
+	}
+
+	/**
 	 * A configured zone with no flat-rate method surfaces as a shipping warning.
 	 *
 	 * @return void
@@ -571,6 +675,23 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 		} finally {
 			$named->delete();
 		}
+	}
+
+	/**
+	 * Collect the product IDs of advisories of a given type.
+	 *
+	 * @param array  $advisories Advisory list from the preview.
+	 * @param string $type       Advisory type to filter on.
+	 * @return int[]
+	 */
+	private function advisory_ids_of_type( array $advisories, string $type ): array {
+		$ids = [];
+		foreach ( $advisories as $advisory ) {
+			if ( $type === $advisory['type'] ) {
+				$ids[] = $advisory['product_id'];
+			}
+		}
+		return $ids;
 	}
 }
 

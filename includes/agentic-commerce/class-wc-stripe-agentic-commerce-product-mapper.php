@@ -27,6 +27,33 @@ use Automattic\WooCommerce\Internal\ProductFeed\Utils\StringHelper;
  */
 class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterface {
 	/**
+	 * Reasons a product is excluded from the feed, as reported by
+	 * {@see self::get_sync_exclusion_reason()} and surfaced in the feed preview.
+	 */
+	public const SYNC_EXCLUSION_REASON_SUBSCRIPTION = 'subscription';
+	public const SYNC_EXCLUSION_REASON_ADDONS       = 'addons';
+	public const SYNC_EXCLUSION_REASON_FILTER       = 'filter';
+
+	/**
+	 * Postmeta keys whose non-empty presence marks a product as carrying add-on /
+	 * configurator options: Product Add-Ons, TM Extra Product Options, and
+	 * Composite Products. Seeds the
+	 * `wc_stripe_agentic_commerce_addon_detection_meta_keys` filter default;
+	 * the Bundles key is checked separately (only `yes` counts). See
+	 * {@see self::product_has_addons()}.
+	 */
+	private const ADDON_DETECTION_META_KEYS = [
+		'_product_addons',
+		'tm_meta_cpf_options',
+		'composite_data',
+	];
+
+	/**
+	 * Product Bundles' priced-individually flag; an add-on signal only when `yes`.
+	 */
+	private const ADDON_META_BUNDLE_PRICED_INDIVIDUALLY = '_wc_pb_priced_individually';
+
+	/**
 	 * Stripe feed schema definition.
 	 *
 	 * @var array
@@ -237,33 +264,76 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * @return bool
 	 */
 	protected function get_disable_checkout( \WC_Product $product, ?\WC_Product $parent_product = null ): bool {
-		$default = WC_Stripe_Agentic_Commerce_Integration::is_checkout_disabled();
+		return $this->resolve_disable_checkout( $product, $parent_product )['disabled'];
+	}
 
-		// Legacy filter's result seeds the default for the canonical filter below,
-		// so existing hooks keep working while a hook on the new name wins.
+	/**
+	 * Resolve the `disable_checkout` (feed-only / redirect) decision plus the
+	 * source it came from, for the feed preview. Precedence, lowest first:
+	 * store-wide option, add-on auto-default, then filters (a hook always wins,
+	 * keeping the first two opt-in defaults). Applies the `disable_checkout`
+	 * filters, so any merchant hook runs here.
+	 *
+	 * @since 10.9.0
+	 * @param \WC_Product      $product        Product object.
+	 * @param \WC_Product|null $parent_product Parent product for variations.
+	 * @return array{disabled: bool, source: string|null} Decision plus its source
+	 *         ('store_wide' | 'addons' | 'filter' | null when not disabled).
+	 */
+	public function resolve_disable_checkout( \WC_Product $product, ?\WC_Product $parent_product = null ): array {
+		$store_wide = WC_Stripe_Agentic_Commerce_Integration::is_checkout_disabled();
+
+		// Only relevant when store-wide hasn't already disabled checkout.
+		$addon_default = ! $store_wide
+			&& WC_Stripe_Agentic_Commerce_Integration::is_auto_redirect_checkout_addons_enabled()
+			&& self::product_has_addons( $product );
+
+		$default = $store_wide || $addon_default;
+
+		// The woocommerce_-prefixed name shipped in 10.9.0 anticipating a shared
+		// cross-plugin contract that woocommerce-ai never implemented (WOOAI-636),
+		// so the plugin's own prefix is canonical again. The deprecated name's
+		// result seeds the canonical filter's default, so existing hooks keep
+		// working while a hook on the canonical name wins.
 		$disabled = apply_filters_deprecated(
-			'wc_stripe_agentic_commerce_disable_checkout',
-			[ $default, $product, $parent_product ],
-			'10.9.0',
 			'woocommerce_agentic_commerce_disable_checkout',
-			'The wc_stripe_agentic_commerce_disable_checkout filter is deprecated since WooCommerce Stripe Gateway 10.9.0. Use woocommerce_agentic_commerce_disable_checkout instead.'
+			[ $default, $product, $parent_product ],
+			'11.1.0',
+			'wc_stripe_agentic_commerce_disable_checkout',
+			'The woocommerce_agentic_commerce_disable_checkout filter is deprecated since WooCommerce Stripe Gateway 11.1.0. Use wc_stripe_agentic_commerce_disable_checkout instead.'
 		);
 
 		/**
 		 * Filter whether a product is excluded from in-agent checkout (redirect to its `link`).
 		 *
-		 * Uses the shareable `woocommerce_` prefix so non-Stripe Agentic Commerce
-		 * integrations can hook it too. Variations receive the parent product.
+		 * Variations receive the parent product.
 		 *
 		 * @since 10.9.0
-		 * @param bool             $disabled       Store-wide default.
+		 * @param bool             $disabled       Resolved default (store-wide option, plus the add-on auto-default).
 		 * @param \WC_Product      $product        Product object.
 		 * @param \WC_Product|null $parent_product Parent product for variations.
 		 */
 		// wp_validate_boolean() rather than a plain (bool) cast: a callback that
 		// returns the string 'false' would be truthy under a cast and wrongly
 		// enable redirect mode. This still normalises null / 0 / '' to false.
-		return wp_validate_boolean( apply_filters( 'woocommerce_agentic_commerce_disable_checkout', $disabled, $product, $parent_product ) );
+		$disabled = wp_validate_boolean( apply_filters( 'wc_stripe_agentic_commerce_disable_checkout', $disabled, $product, $parent_product ) );
+
+		$source = null;
+		if ( $disabled ) {
+			if ( $store_wide ) {
+				$source = 'store_wide';
+			} elseif ( $addon_default ) {
+				$source = 'addons';
+			} else {
+				// Default was false but a filter forced it true.
+				$source = 'filter';
+			}
+		}
+
+		return [
+			'disabled' => $disabled,
+			'source'   => $source,
+		];
 	}
 
 	/**
@@ -1172,15 +1242,27 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 			&& ! self::is_password_protected( $product )
 			&& ! self::is_hidden_from_catalog( $product );
 
-		// The Stripe-prefixed filter is retained for backward compatibility. Its
-		// result seeds the default for the canonical filter below, so existing
-		// adapters keep working while a hook on the new name still takes precedence.
+		// Opt-in default: drop detector-flagged configurator products, whose
+		// runtime-variable pricing the static feed can't honour. A filter below
+		// still overrides this.
+		if ( $default_should_sync
+			&& WC_Stripe_Agentic_Commerce_Integration::is_auto_exclude_addons_enabled()
+			&& self::product_has_addons( $product )
+		) {
+			$default_should_sync = false;
+		}
+
+		// The woocommerce_-prefixed name shipped in 10.9.0 anticipating a shared
+		// cross-plugin contract that woocommerce-ai never implemented (WOOAI-636),
+		// so the plugin's own prefix is canonical again. The deprecated name's
+		// result seeds the canonical filter's default, so existing adapters keep
+		// working while a hook on the canonical name wins.
 		$should_sync = apply_filters_deprecated(
-			'wc_stripe_agentic_commerce_should_sync_product',
-			[ $default_should_sync, $product ],
-			'10.9.0',
 			'woocommerce_agentic_commerce_should_sync_product',
-			'The wc_stripe_agentic_commerce_should_sync_product filter is deprecated since WooCommerce Stripe Gateway 10.9.0. Use woocommerce_agentic_commerce_should_sync_product instead.'
+			[ $default_should_sync, $product ],
+			'11.1.0',
+			'wc_stripe_agentic_commerce_should_sync_product',
+			'The woocommerce_agentic_commerce_should_sync_product filter is deprecated since WooCommerce Stripe Gateway 11.1.0. Use wc_stripe_agentic_commerce_should_sync_product instead.'
 		);
 
 		// wp_validate_boolean() rather than a plain (bool) cast: an adapter that
@@ -1188,10 +1270,6 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		// sync the product. This still normalises null / 0 / '' to false.
 		/**
 		 * Filter whether a product should be included in any Agentic Commerce sync.
-		 *
-		 * Uses the WooCommerce core `woocommerce_` prefix rather than `wc_stripe_`
-		 * so the same hook can be shared by other Agentic Commerce integrations
-		 * that are not Stripe-specific.
 		 *
 		 * Applied per product at three entry points: the full-feed mapper, the
 		 * inventory-change tracker, and the archive tracker. Returning false from
@@ -1213,12 +1291,120 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		 * Also runs per row on the admin Products list (sync-status column),
 		 * so callbacks must be fast.
 		 *
-		 * @since 10.9.0
+		 * @since 10.8.0
 		 * @param bool        $should_sync Whether to include the product. Default true, except for
 		 *                                 subscriptions, password-protected products, and products
 		 *                                 hidden from catalog and search.
 		 * @param \WC_Product $product     Product being evaluated.
 		 */
-		return wp_validate_boolean( apply_filters( 'woocommerce_agentic_commerce_should_sync_product', $should_sync, $product ) );
+		return wp_validate_boolean( apply_filters( 'wc_stripe_agentic_commerce_should_sync_product', $should_sync, $product ) );
+	}
+
+	/**
+	 * Whether a product carries add-on / configurator metadata that makes its
+	 * price depend on runtime shopper choices the static feed can't honour.
+	 *
+	 * Detection is per-product postmeta (resolved on the parent for variations)
+	 * and deliberately does NOT key off `class_exists()` of the configurator
+	 * plugins — an active plugin says nothing about whether *this* product is
+	 * configured, so a bare class check would flag the whole catalog. Covered:
+	 * Product Add-Ons (`_product_addons`), TM Extra Product Options
+	 * (`tm_meta_cpf_options`), Composite Products (`composite_data`), and Product
+	 * Bundles only when priced individually (`_wc_pb_priced_individually` = `yes`;
+	 * a fixed-price bundle stays eligible). The meta-key set is filterable.
+	 *
+	 * @since 10.9.0
+	 * @param \WC_Product $product Product (or variation) to inspect.
+	 * @return bool
+	 */
+	public static function product_has_addons( \WC_Product $product ): bool {
+		// Configurator options live on the parent; a variation inherits them.
+		$target = $product;
+		if ( ProductType::VARIATION === $product->get_type() ) {
+			$parent = wc_get_product( $product->get_parent_id() );
+			if ( $parent instanceof \WC_Product ) {
+				$target = $parent;
+			}
+		}
+
+		$has_addons = self::matches_addon_meta_keys( $target );
+
+		// Bundles only vary at runtime when priced individually; the meta is `no`
+		// on fixed-price bundles, which must stay eligible.
+		if ( ! $has_addons && 'yes' === $target->get_meta( self::ADDON_META_BUNDLE_PRICED_INDIVIDUALLY ) ) {
+			$has_addons = true;
+		}
+
+		/**
+		 * Whether a product carries add-on / configurator options. Lets plugins
+		 * whose options are not stored in a detectable meta key mark a product as
+		 * configurable (or clear a false positive) directly, instead of only
+		 * extending the meta-key set.
+		 *
+		 * @since 11.1.0
+		 * @param bool        $has_addons Whether meta-key detection flagged the product.
+		 * @param \WC_Product $product    The product (or variation) inspected.
+		 * @param \WC_Product $target     The product whose meta was read (parent for variations).
+		 */
+		return (bool) apply_filters( 'wc_stripe_agentic_commerce_product_has_addon', $has_addons, $product, $target );
+	}
+
+	/**
+	 * Whether any of the (filterable) add-on detection meta keys is non-empty
+	 * on the given product.
+	 *
+	 * @since 11.1.0
+	 * @param \WC_Product $target Product whose meta is inspected (parent for variations).
+	 * @return bool
+	 */
+	private static function matches_addon_meta_keys( \WC_Product $target ): bool {
+		/**
+		 * Meta keys whose non-empty presence marks a product as carrying add-on /
+		 * configurator options. Extend to support plugins not covered here.
+		 *
+		 * @since 11.1.0
+		 * @param string[]    $meta_keys Meta keys treated as add-on signals.
+		 * @param \WC_Product $target    Product whose meta is inspected (parent for variations).
+		 */
+		$meta_keys = apply_filters( 'wc_stripe_agentic_commerce_addon_detection_meta_keys', self::ADDON_DETECTION_META_KEYS, $target );
+
+		if ( ! is_array( $meta_keys ) || [] === $meta_keys ) {
+			return false;
+		}
+
+		foreach ( $meta_keys as $meta_key ) {
+			if ( is_string( $meta_key ) && '' !== $meta_key && ! empty( $target->get_meta( $meta_key ) ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Diagnostic companion to {@see self::should_sync_product()}: report the most
+	 * likely reason a product is excluded from the feed, or null when it syncs.
+	 * Branch order matches how the default is built (subscription, then add-on
+	 * auto-exclude), falling through to the filter reason when a custom hook
+	 * forced it.
+	 *
+	 * @since 10.9.0
+	 * @param \WC_Product $product Product to inspect.
+	 * @return string|null One of the SYNC_EXCLUSION_REASON_* constants, or null when the product syncs.
+	 */
+	public static function get_sync_exclusion_reason( \WC_Product $product ): ?string {
+		if ( self::should_sync_product( $product ) ) {
+			return null;
+		}
+
+		if ( $product->is_type( [ 'subscription', 'variable-subscription', 'subscription_variation' ] ) ) {
+			return self::SYNC_EXCLUSION_REASON_SUBSCRIPTION;
+		}
+
+		if ( WC_Stripe_Agentic_Commerce_Integration::is_auto_exclude_addons_enabled() && self::product_has_addons( $product ) ) {
+			return self::SYNC_EXCLUSION_REASON_ADDONS;
+		}
+
+		return self::SYNC_EXCLUSION_REASON_FILTER;
 	}
 }

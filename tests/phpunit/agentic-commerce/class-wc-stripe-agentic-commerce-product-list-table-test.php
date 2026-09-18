@@ -355,7 +355,7 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table_Test extends WP_UnitTestCase
 		$table   = new WC_Stripe_Agentic_Commerce_Product_List_Table();
 		$product = WC_Helper_Product::create_simple_product();
 
-		add_filter( 'woocommerce_agentic_commerce_should_sync_product', '__return_false' );
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', '__return_false' );
 
 		ob_start();
 		$table->render_column( $column, $product->get_id() );
@@ -374,7 +374,7 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table_Test extends WP_UnitTestCase
 		$this->assertStringContainsString( 'Excluded', $output );
 		$this->assertStringNotContainsString( 'Not synced', $output );
 
-		remove_filter( 'woocommerce_agentic_commerce_should_sync_product', '__return_false' );
+		remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', '__return_false' );
 
 		$product->delete( true );
 	}
