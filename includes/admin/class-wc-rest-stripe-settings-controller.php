@@ -331,7 +331,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 		// Surfaced last so a failed PMC update cannot block the other settings:
 		// the merchant must still be able to, for example, disable the gateway.
-		// 502, not 500: the failure is the upstream Stripe call, not our code.
+		// Handle a PMC update error last so updates to other settings are saved.
+		// Return an HTTP 502 error code because the error comes from Stripe.
 		if ( is_wp_error( $update_payment_methods_result ) ) {
 			return new WP_REST_Response( [ 'message' => $update_payment_methods_result->get_error_message() ], 502 );
 		}
