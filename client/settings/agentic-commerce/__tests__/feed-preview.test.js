@@ -331,6 +331,110 @@ describe( 'AgenticCommerceFeedPreview', () => {
 		} );
 	} );
 
+	it( 'renders the zone list as an informational notice when agentic traffic is redirected', async () => {
+		apiFetch.mockResolvedValue( {
+			...PREVIEW_RESPONSE,
+			shipping_warnings: [
+				{
+					message:
+						'We cannot precompute a shipping price for shipping zone "Europe", so we cannot send any shipping costs to Stripe.',
+					edit_link: '',
+				},
+			],
+			shipping_warnings_severity: 'info',
+		} );
+
+		const { container } = render( <AgenticCommerceFeedPreview /> );
+		fireEvent.click(
+			screen.getByRole( 'button', { name: /Preview feed/i } )
+		);
+
+		await waitFor( () => {
+			expect(
+				within( container ).getByText( /shipping zone "Europe"/i )
+			).toBeInTheDocument();
+		} );
+
+		// Info status, not warning, plus the redirect explanation.
+		expect(
+			container.querySelector( '.components-notice.is-info' )
+		).not.toBeNull();
+		expect(
+			container.querySelector( '.components-notice.is-warning' )
+		).toBeNull();
+		expect(
+			within( container ).getByText(
+				/redirected to your WooCommerce checkout/i
+			)
+		).toBeInTheDocument();
+	} );
+
+	it( 'lists the shipping zones that carry no shipping in the feed', async () => {
+		apiFetch.mockResolvedValue( {
+			...PREVIEW_RESPONSE,
+			shipping_warnings: [
+				{
+					message:
+						'Shipping zone "Europe" has no flat-rate method, so the feed carries no shipping for it (live-rate / calculated methods price at checkout).',
+					edit_link:
+						'/wp-admin/admin.php?page=wc-settings&tab=shipping&zone_id=1',
+				},
+			],
+		} );
+
+		const { container } = render( <AgenticCommerceFeedPreview /> );
+		fireEvent.click(
+			screen.getByRole( 'button', { name: /Preview feed/i } )
+		);
+
+		await waitFor( () => {
+			expect(
+				within( container ).getByText(
+					/Shipping zone "Europe" has no flat-rate method/i
+				)
+			).toBeInTheDocument();
+		} );
+
+		// The message stays plain text; the zone edit link renders separately.
+		const editLink = within( container ).getByRole( 'link', {
+			name: 'Edit shipping zone',
+		} );
+		expect( editLink ).toHaveAttribute(
+			'href',
+			'/wp-admin/admin.php?page=wc-settings&tab=shipping&zone_id=1'
+		);
+
+		// The list is collapsible for long zone lists, and expanded by default
+		// so the zones are not missed.
+		const details = container.querySelector( 'details' );
+		expect( details ).not.toBeNull();
+		expect( details ).toHaveAttribute( 'open' );
+		expect( details.querySelector( 'summary' ) ).toHaveTextContent(
+			'1 shipping zone will have no shipping prices in the feed.'
+		);
+	} );
+
+	it( 'shows no shipping notice when every zone has a flat rate', async () => {
+		apiFetch.mockResolvedValue( {
+			...PREVIEW_RESPONSE,
+			shipping_warnings: [],
+		} );
+
+		const { container } = render( <AgenticCommerceFeedPreview /> );
+		fireEvent.click(
+			screen.getByRole( 'button', { name: /Preview feed/i } )
+		);
+
+		await waitFor( () => {
+			expect(
+				within( container ).getByText( /Included/i )
+			).toBeInTheDocument();
+		} );
+		expect(
+			within( container ).queryByText( /no shipping in the feed/i )
+		).not.toBeInTheDocument();
+	} );
+
 	it( 'does not warn about a partial preview when the scan completed', async () => {
 		apiFetch.mockResolvedValue( {
 			...PREVIEW_RESPONSE,
