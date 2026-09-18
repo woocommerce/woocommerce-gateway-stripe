@@ -102,7 +102,7 @@ abstract class WC_Stripe_Email_Failed_Refund extends WC_Email_Failed_Order {
 			return __( 'Unknown reason', 'woocommerce-gateway-stripe' );
 		}
 
-		$refund_failure_key = WC_Stripe_Order_Helper::get_instance()->get_stripe_refund_failure_reason( $order );
+		$refund_failure_key = wc_stripe_order_helper()->get_stripe_refund_failure_reason( $order );
 		return WC_Stripe_Helper::get_refund_reason_description( $refund_failure_key );
 	}
 }

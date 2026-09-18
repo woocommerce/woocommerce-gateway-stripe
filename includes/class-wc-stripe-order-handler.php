@@ -70,7 +70,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
 
 		// Bail if the order is already captured or if manual capture is disabled.
-		if ( WC_Stripe_Order_Helper::get_instance()->is_stripe_charge_captured( $order ) || $gateway->is_automatic_capture_enabled() ) {
+		if ( wc_stripe_order_helper()->is_stripe_charge_captured( $order ) || $gateway->is_automatic_capture_enabled() ) {
 			return;
 		}
 
@@ -124,7 +124,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			// Result from Stripe API request.
 			$response = null;
 
-			$order_helper = WC_Stripe_Order_Helper::get_instance();
+			$order_helper = wc_stripe_order_helper();
 
 			// This will throw exception if not valid.
 			$order_helper->validate_minimum_order_amount( $order );
@@ -316,7 +316,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	public function capture_payment( $order_id ) {
 		$result       = new stdClass();
 		$order        = wc_get_order( $order_id );
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 
 		if ( ! $order instanceof WC_Order ) {
 			return;
@@ -442,7 +442,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			// made without wanting a gateway refund (e.g. "Refund manually"). With the flag merely
 			// missing, process_refund() would resolve it from Stripe and, if the charge turns out
 			// to be captured, issue a full refund nobody asked for.
-			if ( WC_Stripe_Order_Helper::get_instance()->is_stripe_charge_authorized_only( $order ) ) {
+			if ( wc_stripe_order_helper()->is_stripe_charge_authorized_only( $order ) ) {
 				// To cancel a pre-auth, we need to refund the charge.
 				$this->process_refund( $order_id );
 			}
@@ -514,7 +514,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			return $cancel_order;
 		}
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 
 		// Bail if the payment method is not stripe or `stripe_{apm_method}`.
 		if ( ! $order_helper->is_stripe_gateway_order( $order ) ) {
@@ -576,7 +576,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object   $intent The PaymentIntent fetched from Stripe.
 	 */
 	private function maybe_process_paid_order_instead_of_cancelling( $order, $intent ): void {
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 
 		if ( $order_helper->lock_order_payment( $order ) ) {
 			return;

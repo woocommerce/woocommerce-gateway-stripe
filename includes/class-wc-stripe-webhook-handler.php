@@ -443,7 +443,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$is_pending_receiver = ( 'receiver' === $notification->data->object->flow );
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 
 		if ( $order_helper->lock_order_payment( $order ) ) {
 			return;
@@ -606,7 +606,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$message = __( 'A dispute was created for this order.', 'woocommerce-gateway-stripe' );
 		}
 
-		if ( ! $order->has_status( OrderStatus::CANCELLED ) && ! WC_Stripe_Order_Helper::get_instance()->is_stripe_status_final( $order ) ) {
+		if ( ! $order->has_status( OrderStatus::CANCELLED ) && ! wc_stripe_order_helper()->is_stripe_status_final( $order ) ) {
 			$order->update_status( OrderStatus::ON_HOLD, $message );
 		} else {
 			$order->add_order_note( $message );
@@ -659,7 +659,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		 */
 		if ( apply_filters( 'wc_stripe_webhook_dispute_change_order_status', true, $order, $notification ) ) {
 			// Mark final so that order status is not overridden by out-of-sequence events.
-			WC_Stripe_Order_Helper::get_instance()->set_stripe_status_final( $order, true );
+			wc_stripe_order_helper()->set_stripe_status_final( $order, true );
 
 			// Fail order if dispute is lost, or else revert to pre-dispute status.
 			$order_status = 'lost' === $status ? OrderStatus::FAILED : $this->get_stripe_order_status_before_hold( $order );
@@ -693,7 +693,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	public function process_webhook_capture( $notification ) {
 		$charge       = $notification->data->object;
 		$order        = WC_Stripe_Helper::get_order_by_charge_id( $charge->id );
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 
 		if ( ! $order ) {
 			// Detect an "unexpected charge": this captured charge isn't recorded on any order (the
@@ -828,7 +828,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		// Record the captured flag while the charge is in hand; for async-confirmed orders this
 		// webhook may be the first time one exists (see sync_stripe_charge_captured()'s docblock).
-		WC_Stripe_Order_Helper::get_instance()->sync_stripe_charge_captured( $order, $charge );
+		wc_stripe_order_helper()->sync_stripe_charge_captured( $order, $charge );
 
 		// Store other data such as fees
 		$order->set_transaction_id( $charge->id );
@@ -889,7 +889,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		} else {
 			$message = __( 'This payment failed to clear.', 'woocommerce-gateway-stripe' );
 		}
-		if ( ! WC_Stripe_Order_Helper::get_instance()->is_stripe_status_final( $order ) ) {
+		if ( ! wc_stripe_order_helper()->is_stripe_status_final( $order ) ) {
 			$order->update_status( OrderStatus::FAILED, $message );
 		} else {
 			$order->add_order_note( $message );
@@ -932,7 +932,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		$message = __( 'This payment was cancelled.', 'woocommerce-gateway-stripe' );
-		if ( ! $order->has_status( OrderStatus::CANCELLED ) && ! WC_Stripe_Order_Helper::get_instance()->is_stripe_status_final( $order ) ) {
+		if ( ! $order->has_status( OrderStatus::CANCELLED ) && ! wc_stripe_order_helper()->is_stripe_status_final( $order ) ) {
 			$order->update_status( OrderStatus::CANCELLED, $message );
 		} else {
 			$order->add_order_note( $message );
@@ -956,7 +956,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$charge_payload = $notification->data->object;
 		$refund_object  = $this->get_refund_object( $notification );
 		$order          = WC_Stripe_Helper::get_order_by_refund_id( $refund_object->id );
-		$order_helper   = WC_Stripe_Order_Helper::get_instance();
+		$order_helper   = wc_stripe_order_helper();
 
 		if ( ! $order ) {
 			WC_Stripe_Logger::debug( 'Could not find order via refund ID: ' . $refund_object->id );
@@ -1088,7 +1088,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$this->resolved_order = $order;
 
 		$order_id     = $order->get_id();
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 		if ( $order_helper->is_stripe_gateway_order( $order ) ) {
 			$charge     = $order->get_transaction_id();
 			$refund_id  = $order_helper->get_stripe_refund_id( $order );
@@ -1210,7 +1210,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		 * @param WC_Order $order         Order associated with the review.
 		 * @param object   $notification  Stripe webhook notification.
 		 */
-		if ( apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) && ! WC_Stripe_Order_Helper::get_instance()->is_stripe_status_final( $order ) ) {
+		if ( apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) && ! wc_stripe_order_helper()->is_stripe_status_final( $order ) ) {
 			$order->update_status( OrderStatus::ON_HOLD, $message );
 		} else {
 			$order->add_order_note( $message );
@@ -1244,7 +1244,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		// Set the order being processed for the `wc_stripe_webhook_received` action later.
 		$this->resolved_order = $order;
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 
 		/* translators: 1) The reason type. */
 		$message = sprintf( __( 'The opened review for this order is now closed. Reason: (%s)', 'woocommerce-gateway-stripe' ), $notification->data->object->reason );
@@ -1380,7 +1380,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		// Set the order being processed for the `wc_stripe_webhook_received` action later.
 		$this->resolved_order = $order;
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 
 		// Re-queue instead of dropping: the endpoint answers 200 whether or not the
 		// event was applied, so Stripe never retries it. Bounded by the lock TTL and
@@ -1583,7 +1583,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 
 		if ( $order_helper->lock_order_payment( $order ) ) {
 			return;
@@ -1749,7 +1749,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 						return;
 					}
 
-					$order_helper = WC_Stripe_Order_Helper::get_instance();
+					$order_helper = wc_stripe_order_helper();
 
 					// Serialize against the order-received redirect handler, which holds this same
 					// lock. Without it both paths settle concurrently; the loser no-ops on an
@@ -1992,7 +1992,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		if ( is_object( $charge ) && ! empty( $charge->id ) ) {
 			$order->set_transaction_id( $charge->id );
-			WC_Stripe_Order_Helper::get_instance()->sync_stripe_charge_captured( $order, $charge );
+			wc_stripe_order_helper()->sync_stripe_charge_captured( $order, $charge );
 			$order->save();
 		}
 
@@ -2410,7 +2410,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		// Set the order being processed for the `wc_stripe_webhook_received` action later.
 		$this->resolved_order = $order;
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 
 		// Lock the order. The order-received redirect handler briefly holds this same lock across a
 		// Stripe API call without settling; dropping the event here would leave a paid order stuck
@@ -2577,7 +2577,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 
 		if ( ! $order_helper->get_stripe_customer_id( $order ) ) {
 			$order_helper->update_stripe_customer_id( $order, $customer_id );
@@ -2681,7 +2681,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$this->resolved_order = $order;
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper = wc_stripe_order_helper();
 
 		if ( $order_helper->lock_order_payment( $order ) ) {
 			return;
@@ -2950,7 +2950,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 						return false;
 					}
 
-					$intent_id = WC_Stripe_Order_Helper::get_instance()->get_intent_id_from_order( $order );
+					$intent_id = wc_stripe_order_helper()->get_intent_id_from_order( $order );
 
 					// Return the order if the intent ID matches.
 					if ( $intent->id === $intent_id ) {
