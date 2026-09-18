@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { DEFAULT_PAYOUTS_VIEW, PER_PAGE_SIZES } from './constants';
 import fields from './payouts-fields';
 import usePayouts from './use-payouts';
@@ -18,6 +18,7 @@ const EmptyState = () => (
 
 const PayoutsTable = () => {
 	const [ view, setView ] = useState( DEFAULT_PAYOUTS_VIEW );
+	const [ highestPage, setHighestPage ] = useState( 1 );
 
 	const [ cursors, setCursors ] = useState( [ null ] );
 
@@ -28,12 +29,24 @@ const PayoutsTable = () => {
 		cursor,
 	} );
 
-	// DataViews requires paginationInfo, but nothing renders it here: the
-	// endpoint reports no totals, and DataViews.Pagination is deliberately not
-	// mounted below. Real paging is the Previous/Next pair.
+	useEffect( () => {
+		if ( hasMore ) {
+			const nextPage = view.page + 1;
+			if ( nextPage > highestPage ) {
+				setHighestPage( nextPage );
+			}
+		}
+	}, [ hasMore, view.page, highestPage ] );
+
 	const paginationInfo = useMemo(
-		() => ( { totalItems: data.length, totalPages: 1 } ),
-		[ data.length ]
+		() => ( {
+			totalItems:
+				view.perPage * ( view.page - 1 ) +
+				data.length +
+				( hasMore ? 1 : 0 ),
+			totalPages: highestPage,
+		} ),
+		[ data.length, view.page, view.perPage, hasMore, highestPage ]
 	);
 
 	const onChangeView = useCallback(
@@ -96,9 +109,8 @@ const PayoutsTable = () => {
 						defaultLayouts={ { table: {} } }
 						config={ { perPageSizes: PER_PAGE_SIZES } }
 						empty={ <EmptyState /> }
-					>
-						<DataViews.Layout />
-					</DataViews>
+						search={ false }
+					/>
 
 					<Flex
 						className="wc-stripe-payouts__pagination"

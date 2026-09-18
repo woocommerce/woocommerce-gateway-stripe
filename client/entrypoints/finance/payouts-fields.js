@@ -18,6 +18,7 @@ const fields = [
 		type: 'datetime',
 		enableSorting: false,
 		enableHiding: true,
+		filterBy: false,
 		getValue: ( { item } ) => formatStripeTimestamp( item.created ),
 	},
 	{
@@ -26,6 +27,7 @@ const fields = [
 		type: 'datetime',
 		enableSorting: false,
 		enableHiding: false,
+		filterBy: false,
 		getValue: ( { item } ) => formatStripeTimestamp( item.arrival_date ),
 	},
 	{
@@ -33,6 +35,7 @@ const fields = [
 		label: __( 'Amount', 'woocommerce-gateway-stripe' ),
 		enableSorting: false,
 		enableHiding: false,
+		filterBy: false,
 		getValue: ( { item } ) => item.amount,
 		render: ( { item } ) =>
 			formatStripeAmount( item.amount, item.currency ),
@@ -42,6 +45,7 @@ const fields = [
 		label: __( 'Status', 'woocommerce-gateway-stripe' ),
 		enableSorting: false,
 		enableHiding: true,
+		filterBy: false,
 		getValue: ( { item } ) => item.status ?? '',
 		render: ( { item } ) =>
 			item.status ? (
@@ -75,9 +79,10 @@ const fields = [
 		label: __( 'Bank details', 'woocommerce-gateway-stripe' ),
 		enableSorting: false,
 		enableHiding: true,
+		filterBy: false,
 		getValue: ( { item } ) =>
 			sprintf(
-				'%s (%s)',
+				'%1$s (%2%s)',
 				item.destination?.bank_name ?? '',
 				item.destination?.last4 ?? ''
 			),
