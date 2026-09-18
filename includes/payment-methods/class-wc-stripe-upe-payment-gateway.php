@@ -855,12 +855,37 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// accepted as the safer failure mode. Other OCS flows recompute it on country change.
 		$excluded_methods = array_merge( $excluded_methods, $this->get_country_excluded_payment_method_types() );
 
+		// Non-deferred-intent methods (e.g. BLIK, ACSS) can't render inside the Payment Element,
+		// so exclude them here; they surface as their own entries in get_enabled_payment_method_config().
+		$excluded_methods = array_merge( $excluded_methods, $this->get_non_deferred_payment_method_types() );
+
 		// Always exclude Amazon Pay, as it is shown via Express Checkout and not in the standard Payment Element.
 		if ( ! in_array( WC_Stripe_Payment_Methods::AMAZON_PAY, $excluded_methods, true ) ) {
 			$excluded_methods[] = WC_Stripe_Payment_Methods::AMAZON_PAY;
 		}
 
 		return array_values( array_unique( $excluded_methods ) );
+	}
+
+	/**
+	 * Returns the enabled-at-checkout methods that don't support deferred intent
+	 * (e.g. BLIK, ACSS). These can't render inside the Optimized Checkout Payment
+	 * Element, so they are excluded from it and shown as their own entries.
+	 *
+	 * @return string[] Non-deferred-intent payment method types.
+	 */
+	protected function get_non_deferred_payment_method_types(): array {
+		$non_deferred = [];
+
+		foreach ( $this->get_upe_enabled_at_checkout_payment_method_ids() as $method_id ) {
+			$payment_method = $this->payment_methods[ $method_id ] ?? null;
+
+			if ( $payment_method instanceof WC_Stripe_UPE_Payment_Method && ! $payment_method->supports_deferred_intent() ) {
+				$non_deferred[] = $method_id;
+			}
+		}
+
+		return $non_deferred;
 	}
 
 	/**

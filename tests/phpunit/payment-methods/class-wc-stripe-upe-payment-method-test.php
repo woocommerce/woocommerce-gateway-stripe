@@ -1282,6 +1282,80 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	}
 
 	/**
+	 * Non-deferred-intent methods (e.g. BLIK, ACSS) can't render inside the OC
+	 * Payment Element, so in OC mode they must stay available via their own
+	 * entry instead of being folded into the OC-container availability check.
+	 *
+	 * @dataProvider provide_non_deferred_intent_methods_available_in_oc_mode
+	 *
+	 * @param string $payment_method_class The non-deferred payment method class.
+	 * @param string $currency             A currency the method supports.
+	 */
+	public function test_non_deferred_intent_methods_are_available_in_oc_mode( $payment_method_class, $currency ) {
+		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['pmc_enabled']                = 'yes';
+		$stripe_settings['optimized_checkout_element'] = 'yes';
+		$stripe_settings['enabled']                    = 'yes';
+		$stripe_settings['upe_checkout_experience_accepted_payments'] = [
+			WC_Stripe_Payment_Methods::CARD,
+			WC_Stripe_Payment_Methods::BLIK,
+			WC_Stripe_Payment_Methods::ACSS_DEBIT,
+		];
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		// Rebuild the main gateway so it resolves to the Optimized Checkout variant.
+		$reset_stripe_gateway = Closure::bind(
+			function () {
+				$this->stripe_gateway = null;
+			},
+			WC_Stripe::get_instance(),
+			WC_Stripe::class
+		);
+		$reset_stripe_gateway();
+
+		$mocked_payment_method = $this->getMockBuilder( $payment_method_class )
+			->onlyMethods(
+				[
+					'get_capabilities_response',
+					'get_woocommerce_currency',
+					'is_subscription_item_in_cart',
+					'get_current_order_amount',
+					'is_inside_currency_limits',
+				]
+			)
+			->getMock();
+
+		$mocked_payment_method->method( 'get_capabilities_response' )->willReturn( self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
+		$mocked_payment_method->method( 'get_woocommerce_currency' )->willReturn( $currency );
+		$mocked_payment_method->method( 'is_subscription_item_in_cart' )->willReturn( false );
+		$mocked_payment_method->method( 'get_current_order_amount' )->willReturn( 150 );
+		$mocked_payment_method->method( 'is_inside_currency_limits' )->willReturn( true );
+
+		$this->assertFalse( $mocked_payment_method->supports_deferred_intent() );
+		$this->assertTrue( $mocked_payment_method->is_available() );
+
+		$reset_stripe_gateway();
+	}
+
+	/**
+	 * Data provider for test_non_deferred_intent_methods_are_available_in_oc_mode.
+	 *
+	 * @return array
+	 */
+	public function provide_non_deferred_intent_methods_available_in_oc_mode() {
+		return [
+			'BLIK with PLN currency' => [
+				'payment_method_class' => WC_Stripe_UPE_Payment_Method_BLIK::class,
+				'currency'             => WC_Stripe_Currency_Code::POLISH_ZLOTY,
+			],
+			'ACSS with CAD currency' => [
+				'payment_method_class' => WC_Stripe_UPE_Payment_Method_ACSS::class,
+				'currency'             => WC_Stripe_Currency_Code::CANADIAN_DOLLAR,
+			],
+		];
+	}
+
+	/**
 	 * Asserts that the deprecated wrapper raises a deprecation notice and delegates to the new helper.
 	 */
 	public function test_is_allowed_on_country_is_deprecated_and_delegates(): void {

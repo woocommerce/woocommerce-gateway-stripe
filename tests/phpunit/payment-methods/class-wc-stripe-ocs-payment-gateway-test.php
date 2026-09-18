@@ -311,6 +311,35 @@ class WC_Stripe_OCS_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Non-deferred-intent methods (e.g. BLIK) can't render inside the OC Payment
+	 * Element, so the config must keep a separate entry for them alongside the
+	 * OC container, marked as not supporting deferred intent.
+	 */
+	public function test_get_enabled_payment_method_config_keeps_non_deferred_methods(): void {
+		$gateway = $this->getMockBuilder( WC_Stripe_OCS_Payment_Gateway::class )
+			->onlyMethods( [ 'is_valid_optimized_checkout_page', 'is_adaptive_pricing_supported', 'get_upe_enabled_at_checkout_payment_method_ids' ] )
+			->getMock();
+		$gateway->method( 'is_valid_optimized_checkout_page' )->willReturn( true );
+		$gateway->method( 'is_adaptive_pricing_supported' )->willReturn( false );
+		$gateway->method( 'get_upe_enabled_at_checkout_payment_method_ids' )->willReturn(
+			[
+				WC_Stripe_Payment_Methods::CARD,
+				WC_Stripe_Payment_Methods::BLIK,
+			]
+		);
+
+		$get_config = new ReflectionMethod( WC_Stripe_OCS_Payment_Gateway::class, 'get_enabled_payment_method_config' );
+		$get_config->setAccessible( true );
+		$config = $get_config->invoke( $gateway );
+
+		// The OC container is present, and BLIK keeps its own entry rather than
+		// being folded into it.
+		$this->assertArrayHasKey( WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID, $config );
+		$this->assertArrayHasKey( WC_Stripe_Payment_Methods::BLIK, $config );
+		$this->assertFalse( $config[ WC_Stripe_Payment_Methods::BLIK ]['supportsDeferredIntent'] );
+	}
+
+	/**
 	 * Data provider for test_show_save_option_by_method_covers_currency_filtered_converting_methods.
 	 *
 	 * @return array[]
