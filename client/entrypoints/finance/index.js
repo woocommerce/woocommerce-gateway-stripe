@@ -1,11 +1,9 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import FinancePage from './finance-page';
+import PaymentsPage from './payments-page';
 
-const container = document.getElementById( 'wc-stripe-finance-container' );
+const container = document.getElementById( 'wc-stripe-payments-container' );
 
 if ( container ) {
-	const context = container.dataset.context ?? 'payouts';
-
-	createRoot( container ).render( <FinancePage context={ context } /> );
+	createRoot( container ).render( <PaymentsPage /> );
 }
