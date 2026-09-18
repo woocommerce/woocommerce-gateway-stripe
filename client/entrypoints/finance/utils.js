@@ -1,12 +1,12 @@
 /**
- * Reads the params localized by WC_Stripe_Finance_UI_Controller.
+ * Reads the params localized by WC_Stripe_Payments_UI_Controller.
  *
  * @param {string} key      Param name.
  * @param {*}      fallback Value to use when the param is absent.
  * @return {*} The param value.
  */
 const getParam = ( key, fallback ) =>
-	window.wc_stripe_payment_details_params?.[ key ] ?? fallback;
+	window.wc_stripe_admin_payments_params?.[ key ] ?? fallback;
 
 /**
  * Stripe's minor-unit exponent is currency-specific and does not match

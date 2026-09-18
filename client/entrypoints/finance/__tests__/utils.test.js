@@ -2,7 +2,7 @@ import { formatStripeAmount, getCurrencyExponent } from '../utils';
 
 describe( 'payment details utils', () => {
 	beforeEach( () => {
-		global.window.wc_stripe_payment_details_params = {
+		global.window.wc_stripe_admin_payments_params = {
 			locale: 'en-US',
 			noDecimalCurrencies: [ 'JPY', 'KRW', 'VND' ],
 			threeDecimalCurrencies: [ 'BHD', 'JOD', 'KWD', 'OMR', 'TND' ],
@@ -10,7 +10,7 @@ describe( 'payment details utils', () => {
 	} );
 
 	afterEach( () => {
-		delete global.window.wc_stripe_payment_details_params;
+		delete global.window.wc_stripe_admin_payments_params;
 	} );
 
 	describe( 'getCurrencyExponent', () => {
@@ -28,7 +28,7 @@ describe( 'payment details utils', () => {
 		} );
 
 		it( 'defaults to two decimals when the params are absent', () => {
-			delete global.window.wc_stripe_payment_details_params;
+			delete global.window.wc_stripe_admin_payments_params;
 
 			expect( getCurrencyExponent( 'jpy' ) ).toBe( 2 );
 		} );
@@ -70,7 +70,7 @@ describe( 'payment details utils', () => {
 		} );
 
 		it( 'respects the locale supplied by PHP', () => {
-			global.window.wc_stripe_payment_details_params.locale = 'de-DE';
+			global.window.wc_stripe_admin_payments_params.locale = 'de-DE';
 
 			const formatted = formatStripeAmount( 123456, 'eur' ).replace(
 				/[\u00a0\u202f]/g,
