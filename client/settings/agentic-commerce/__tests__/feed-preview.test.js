@@ -410,7 +410,7 @@ describe( 'AgenticCommerceFeedPreview', () => {
 		expect( details ).not.toBeNull();
 		expect( details ).toHaveAttribute( 'open' );
 		expect( details.querySelector( 'summary' ) ).toHaveTextContent(
-			'1 shipping zone will have no shipping in the feed:'
+			'1 shipping zone will have no shipping prices in the feed.'
 		);
 	} );
 
