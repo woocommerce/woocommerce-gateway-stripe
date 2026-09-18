@@ -1,18 +1,16 @@
-@use 'sass:math';
 @use '@wordpress/base-styles/variables';
-@use './colors';
 
 // Rem output with px fallback
 @mixin font-size( $sizeValue: 16, $lineHeight: false ) {
 	font-size: $sizeValue + px;
-	font-size: math.div( $sizeValue, 16 ) + rem;
+	font-size: ( $sizeValue / 16 ) + rem;
 	@if ( $lineHeight ) {
 		line-height: $lineHeight;
 	}
 }
 
 // Adds animation to placeholder section
-@mixin placeholder( $bg-color: colors.$light-gray-500 ) {
+@mixin placeholder( $bg-color: $core-light-gray-500 ) {
 	animation: loading-fade 1.6s ease-in-out infinite;
 	background: $bg-color;
 	color: transparent;
@@ -28,7 +26,7 @@
 
 	> * {
 		&:not( :first-child ) {
-			margin-left: variables.$grid-unit-20;
+			margin-left: variable.$grid-unit-20;
 		}
 	}
 }
@@ -38,7 +36,7 @@
 
 	> * {
 		&:not( :last-child ) {
-			margin-right: variables.$grid-unit-20;
+			margin-right: variable.$grid-unit-20;
 		}
 	}
 }

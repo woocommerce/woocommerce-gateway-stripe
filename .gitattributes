@@ -16,7 +16,6 @@ phpunit.xml.dist export-ignore
 phpunit.xml export-ignore
 .eslintrc.js export-ignore
 .eslintignore export-ignore
-.eslint-emotion-allowlist.js export-ignore
 .tx export-ignore
 .editorconfig export-ignore
 .jshintrc export-ignore

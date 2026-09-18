@@ -65,8 +65,7 @@ const allFiles = [
 	...new Set( [ ...Object.keys( baseData ), ...Object.keys( headData ) ] ),
 ].sort();
 
-// JS and CSS are reported separately: moving styles out of JS shrinks one and grows the
-// other, and a single combined total would hide that trade.
+// Report JS and CSS separately so we can see report their totals independently.
 const groups = [
 	{ title: 'JavaScript', extension: '.js' },
 	{ title: 'CSS', extension: '.css' },

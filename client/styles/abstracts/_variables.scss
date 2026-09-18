@@ -1,15 +1,11 @@
-@use '@wordpress/base-styles/colors';
+// Gaps (from woocommerce-admin).
+$gap-largest: 40px;
+$gap-larger: 36px;
+$gap-large: 24px;
+$gap: 16px;
+$gap-small: 12px;
+$gap-smaller: 8px;
+$gap-smallest: 4px;
 
 // Modals
 $modal-max-width: 500px;
-
-// Hairline between stacked rows inside a card. Core has no token for this value.
-$wc-stripe-divider-color: #e8eaeb;
-
-// Secondary/help text.
-$wc-stripe-text-muted: colors.$gray-700;
-
-// Width at which settings rows switch from stacked to a single line. Use it in a literal
-// `@media ( min-width: $wc-stripe-break-row )`: the `breakpoint( '>660px' )` mixin emits
-// `min-width: 661px`, which is not the same rule.
-$wc-stripe-break-row: 660px;

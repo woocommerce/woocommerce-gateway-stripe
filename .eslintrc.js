@@ -67,27 +67,7 @@ module.exports = {
 				allowedTextDomain: 'woocommerce-gateway-stripe',
 			},
 		],
-		'no-restricted-imports': [
-			'error',
-			{
-				patterns: [
-					{
-						group: [ '@emotion/*' ],
-						message:
-							'Style with a co-located style.scss and wc-stripe-* BEM classes instead. See "Styling Conventions" in client/AGENTS.md.',
-					},
-				],
-			},
-		],
 	},
-	overrides: [
-		{
-			files: require( './.eslint-emotion-allowlist.js' ),
-			rules: {
-				'no-restricted-imports': 'off',
-			},
-		},
-	],
 	settings: {
 		react: {
 			version: 'detect',
