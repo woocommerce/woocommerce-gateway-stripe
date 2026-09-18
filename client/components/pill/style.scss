@@ -1,9 +1,9 @@
 @use '../../styles/abstracts/styles';
 
 .wc-stripe-pill {
-	border: 1px solid styles.$wc-stripe-text-muted;
+	border: 1px solid styles.$gray-700;
 	border-radius: 28px;
-	color: styles.$wc-stripe-text-muted;
+	color: styles.$gray-700;
 	display: inline-block;
 	font-size: 12px;
 	font-weight: 400;
