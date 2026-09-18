@@ -42,6 +42,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	protected const META_REFUNDED_AFTER_CANCELLATION = '_stripe_refunded_after_cancellation';
 
 	/**
+	 * Subscription meta recording which Stripe mandate put it on hold, so an
+	 * `active` mandate event can only reactivate holds this handler created.
+	 */
+	protected const META_MANDATE_HOLD = '_stripe_mandate_hold';
+
+	/**
 	 * Is test mode active?
 	 *
 	 * @var bool
@@ -691,8 +697,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	public function process_webhook_mandate_updated( $notification ): void {
 		$mandate = $notification->data->object ?? null;
 
-		if ( ! isset( $mandate->id, $mandate->status ) ) {
-			WC_Stripe_Logger::warning( 'mandate.updated webhook received with missing mandate ID or status.' );
+		// Webhook payloads are untrusted: an array or object where a string is
+		// expected would reach typed calls below and fatal the processing.
+		if ( ! is_object( $mandate )
+			|| ! isset( $mandate->id, $mandate->status )
+			|| ! is_string( $mandate->id ) || '' === $mandate->id
+			|| ! is_string( $mandate->status ) || '' === $mandate->status ) {
+			WC_Stripe_Logger::warning( 'mandate.updated webhook received with a missing or malformed mandate ID or status.' );
 			return;
 		}
 
@@ -745,7 +756,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Update subscription status if applicable.
-		$this->update_subscription_for_mandate( $order, $mandate_status, $revocation_reason );
+		$this->update_subscription_for_mandate( $order, $mandate_id, $mandate_status, $revocation_reason );
 
 		WC_Stripe_Logger::info(
 			'Mandate update processed.',
@@ -771,14 +782,20 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	private function get_mandate_revocation_reason( $mandate ): ?string {
 		// The payment method type lives on payment_method_details.type, and the
 		// type-specific hash (e.g. payment_method_details.bacs_debit) carries the
-		// revocation_reason when the mandate has been revoked.
-		if ( ! isset( $mandate->payment_method_details->type ) ) {
+		// revocation_reason when the mandate has been revoked. The type feeds a
+		// variable-property access, so it must be a non-empty string.
+		if ( ! isset( $mandate->payment_method_details )
+			|| ! is_object( $mandate->payment_method_details )
+			|| ! isset( $mandate->payment_method_details->type )
+			|| ! is_string( $mandate->payment_method_details->type )
+			|| '' === $mandate->payment_method_details->type ) {
 			return null;
 		}
 
 		$type = $mandate->payment_method_details->type;
 
-		if ( isset( $mandate->payment_method_details->$type->revocation_reason ) ) {
+		if ( isset( $mandate->payment_method_details->$type->revocation_reason )
+			&& is_string( $mandate->payment_method_details->$type->revocation_reason ) ) {
 			return sanitize_text_field( $mandate->payment_method_details->$type->revocation_reason );
 		}
 
@@ -836,15 +853,19 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 10.9.0
 	 * @param WC_Order    $order             The WooCommerce order.
+	 * @param string      $mandate_id        The Stripe mandate ID from the webhook.
 	 * @param string      $mandate_status    The new mandate status.
 	 * @param string|null $revocation_reason The revocation reason, if applicable.
 	 */
-	private function update_subscription_for_mandate( WC_Order $order, string $mandate_status, ?string $revocation_reason ): void {
+	private function update_subscription_for_mandate( WC_Order $order, string $mandate_id, string $mandate_status, ?string $revocation_reason ): void {
 		if ( ! WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() || ! function_exists( 'wcs_get_subscriptions_for_order' ) ) {
 			return;
 		}
 
-		$subscriptions = wcs_get_subscriptions_for_order( $order );
+		// order_type 'any': after the first renewal, the most recent order carrying
+		// the mandate is a renewal order, which the default ['parent','switch']
+		// lookup excludes — the sync would silently stop working from then on.
+		$subscriptions = wcs_get_subscriptions_for_order( $order, [ 'order_type' => 'any' ] );
 
 		if ( empty( $subscriptions ) ) {
 			return;
@@ -858,12 +879,28 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			try {
 				if ( 'inactive' === $mandate_status && ! $subscription->has_status( 'on-hold' ) ) {
-					// An inactive mandate can no longer be charged, so the subscription is put on hold
-					$note = $revocation_reason
-						? __( 'Subscription put on hold because the customer revoked the Stripe mandate.', 'woocommerce-gateway-stripe' )
-						: __( 'Subscription put on hold because the Stripe mandate became inactive.', 'woocommerce-gateway-stripe' );
+					// Generic wording on purpose: Stripe reports `inactive` for both
+					// paused and revoked mandates, and a revocation is not necessarily
+					// customer-initiated, so the note must not claim it is.
+					$note = __( 'Subscription put on hold because the Stripe mandate became inactive.', 'woocommerce-gateway-stripe' );
+					if ( $revocation_reason ) {
+						/* translators: %s: the mandate revocation reason reported by Stripe. */
+						$note .= ' ' . sprintf( __( 'Revocation reason: %s.', 'woocommerce-gateway-stripe' ), $revocation_reason );
+					}
+
+					// Record which mandate created this hold, so an `active` event
+					// cannot reactivate a subscription some other flow put on hold.
+					$subscription->update_meta_data( self::META_MANDATE_HOLD, $mandate_id );
+					$subscription->save();
 					$subscription->update_status( 'on-hold', $note );
 				} elseif ( 'active' === $mandate_status && $subscription->has_status( 'on-hold' ) ) {
+					// Only lift holds this handler created for this mandate.
+					if ( $mandate_id !== $subscription->get_meta( self::META_MANDATE_HOLD ) ) {
+						continue;
+					}
+
+					$subscription->delete_meta_data( self::META_MANDATE_HOLD );
+					$subscription->save();
 					$subscription->update_status( 'active', __( 'Subscription reactivated because the Stripe mandate became active.', 'woocommerce-gateway-stripe' ) );
 				}
 			} catch ( Exception $e ) {

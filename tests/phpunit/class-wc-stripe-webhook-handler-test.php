@@ -4465,7 +4465,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'expected_order_status' => OrderStatus::ON_HOLD,
 				'expected_note_pattern' => '/revoked by the customer.*Reason: customer_request/',
 			],
-			'mandate paused (inactive, no revocation) puts order on hold'  => [
+			'mandate paused (inactive, no revocation) puts order on hold'       => [
 				'order_status'          => OrderStatus::PROCESSING,
 				'mandate_status'        => 'inactive',
 				'payment_method_type'   => 'card',
@@ -4473,7 +4473,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'expected_order_status' => OrderStatus::ON_HOLD,
 				'expected_note_pattern' => '/is now inactive/',
 			],
-			'mandate active adds note but does not change order status'    => [
+			'mandate active adds note but does not change order status'         => [
 				'order_status'          => OrderStatus::PROCESSING,
 				'mandate_status'        => 'active',
 				'payment_method_type'   => 'card',
@@ -4481,7 +4481,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'expected_order_status' => OrderStatus::PROCESSING,
 				'expected_note_pattern' => '/is now active/',
 			],
-			'mandate pending adds note but does not change order status'   => [
+			'mandate pending adds note but does not change order status'        => [
 				'order_status'          => OrderStatus::PROCESSING,
 				'mandate_status'        => 'pending',
 				'payment_method_type'   => 'card',
@@ -4489,7 +4489,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'expected_order_status' => OrderStatus::PROCESSING,
 				'expected_note_pattern' => '/status updated to pending/',
 			],
-			'duplicate inactive webhook does not re-update on-hold order'  => [
+			'duplicate inactive webhook does not re-update on-hold order'       => [
 				'order_status'          => OrderStatus::ON_HOLD,
 				'mandate_status'        => 'inactive',
 				'payment_method_type'   => 'card',
@@ -4497,7 +4497,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'expected_order_status' => OrderStatus::ON_HOLD,
 				'expected_note_pattern' => null,
 			],
-			'revocation on already on-hold order is skipped (idempotent)'  => [
+			'revocation on already on-hold order is skipped (idempotent)'       => [
 				'order_status'          => OrderStatus::ON_HOLD,
 				'mandate_status'        => 'inactive',
 				'payment_method_type'   => 'card',
@@ -4505,7 +4505,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'expected_order_status' => OrderStatus::ON_HOLD,
 				'expected_note_pattern' => null,
 			],
-			'unknown mandate status adds generic note without error'       => [
+			'unknown mandate status adds generic note without error'            => [
 				'order_status'          => OrderStatus::PROCESSING,
 				'mandate_status'        => 'some_unknown_status',
 				'payment_method_type'   => 'card',
@@ -4570,6 +4570,72 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$this->mock_webhook_handler->process_webhook_mandate_updated( $notification2 );
 		$this->assertTrue( true );
+
+		// Array where a string is expected: must be rejected before any typed call.
+		$notification3 = (object) [
+			'type' => 'mandate.updated',
+			'data' => (object) [
+				'object' => (object) [
+					'id'     => [ 'mandate_mock_789' ],
+					'status' => 'inactive',
+				],
+			],
+		];
+
+		$this->mock_webhook_handler->process_webhook_mandate_updated( $notification3 );
+		$this->assertTrue( true );
+
+		$notification4 = (object) [
+			'type' => 'mandate.updated',
+			'data' => (object) [
+				'object' => (object) [
+					'id'     => 'mandate_mock_789',
+					'status' => (object) [ 'value' => 'inactive' ],
+				],
+			],
+		];
+
+		$this->mock_webhook_handler->process_webhook_mandate_updated( $notification4 );
+		$this->assertTrue( true );
+
+		// The mandate itself not being an object must not fatal either.
+		$notification5 = (object) [
+			'type' => 'mandate.updated',
+			'data' => (object) [ 'object' => [ 'id' => 'mandate_mock_789' ] ],
+		];
+
+		$this->mock_webhook_handler->process_webhook_mandate_updated( $notification5 );
+		$this->assertTrue( true );
+	}
+
+	/**
+	 * A malformed payment_method_details (array type feeding the variable-property
+	 * access) must not fatal; the status update still happens with the generic note.
+	 */
+	public function test_process_webhook_mandate_updated_malformed_payment_method_details() {
+		$mandate_id = 'mandate_bad_pmd';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PROCESSING );
+		$order->update_meta_data( '_stripe_mandate_id', $mandate_id );
+		$order->save();
+
+		$notification = (object) [
+			'type' => 'mandate.updated',
+			'data' => (object) [
+				'object' => (object) [
+					'id'                     => $mandate_id,
+					'status'                 => 'inactive',
+					'payment_method_details' => (object) [
+						'type' => [ 'card' ],
+					],
+				],
+			],
+		];
+
+		$this->mock_webhook_handler->process_webhook_mandate_updated( $notification );
+
+		$this->assertSame( OrderStatus::ON_HOLD, wc_get_order( $order->get_id() )->get_status() );
 	}
 
 	/**
@@ -4583,6 +4649,9 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$old_order = WC_Helper_Order::create_order();
 		$old_order->set_status( OrderStatus::COMPLETED );
 		$old_order->update_meta_data( '_stripe_mandate_id', $mandate_id );
+		// Backdate so the date ordering is deterministic; without it both orders
+		// share the same second and the lookup's tie-break decided the winner.
+		$old_order->set_date_created( time() - DAY_IN_SECONDS );
 		$old_order->save();
 
 		// Create a newer order (processing — should be the one updated).
@@ -4672,7 +4741,14 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		// Revocation must put the subscription on hold, not cancel it.
 		$this->assertSame( 'on-hold', $subscription->get_status() );
 
-		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order = null;
+		// Renewal orders carry the mandate too; the default lookup excludes them.
+		$this->assertSame( [ 'order_type' => 'any' ], WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order_args );
+
+		// The hold is recorded against the mandate so only this handler's holds get lifted.
+		$this->assertSame( $mandate_id, $subscription->get_meta( '_stripe_mandate_hold' ) );
+
+		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order      = null;
+		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order_args = null;
 	}
 
 	/**
@@ -4688,9 +4764,15 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that an active mandate reactivates an on-hold subscription.
+	 * An active mandate lifts only the holds this handler recorded for that
+	 * mandate; holds created by other flows (or other mandates) stay put.
+	 *
+	 * @dataProvider provide_test_mandate_reactivation
+	 *
+	 * @param string|null $hold_marker     The `_stripe_mandate_hold` meta on the subscription, or null for none.
+	 * @param string      $expected_status The expected subscription status after the webhook.
 	 */
-	public function test_process_webhook_mandate_updated_reactivates_subscription() {
+	public function test_process_webhook_mandate_updated_reactivates_subscription( $hold_marker, $expected_status ) {
 		$mandate_id = 'mandate_sub_reactivate';
 
 		$order = WC_Helper_Order::create_order();
@@ -4700,14 +4782,33 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$subscription = new WC_Subscription();
 		$subscription->set_status( 'on-hold' );
+		if ( null !== $hold_marker ) {
+			$subscription->update_meta_data( '_stripe_mandate_hold', $hold_marker );
+		}
 		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order = [ $subscription ];
 
 		$notification = $this->build_mandate_notification( $mandate_id, 'active' );
 		$this->mock_webhook_handler->process_webhook_mandate_updated( $notification );
 
-		$this->assertSame( 'active', $subscription->get_status() );
+		$this->assertSame( $expected_status, $subscription->get_status() );
+		if ( 'active' === $expected_status ) {
+			$this->assertSame( '', $subscription->get_meta( '_stripe_mandate_hold' ), 'The lifted hold marker must be cleared.' );
+		}
 
 		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order = null;
+	}
+
+	/**
+	 * Data provider for test_process_webhook_mandate_updated_reactivates_subscription.
+	 *
+	 * @return array
+	 */
+	public function provide_test_mandate_reactivation() {
+		return [
+			'hold recorded for this mandate is lifted' => [ 'mandate_sub_reactivate', 'active' ],
+			'hold from another flow stays'             => [ null, 'on-hold' ],
+			'hold recorded for another mandate stays'  => [ 'mandate_other', 'on-hold' ],
+		];
 	}
 
 	/**
