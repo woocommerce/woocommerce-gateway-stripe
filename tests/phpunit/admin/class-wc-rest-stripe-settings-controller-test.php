@@ -140,12 +140,9 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	/**
 	 * Test that a 502 response is returned when the PMC update fails.
 	 *
-	 * When the Stripe API rejects the payment method configuration update, the
-	 * settings endpoint must return an error (not 200) so the frontend can show
-	 * an error instead of the misleading "Settings saved." success notice. 502,
-	 * not 500, because the failure is the upstream Stripe call. The other
-	 * settings must still be applied, so the merchant can e.g. disable the
-	 * gateway while Stripe is rejecting PMC updates.
+	 * When the Stripe API doesn't accept a payment method configuration
+	 * update, the settings endpoint must return an HTTP 502 error. The
+	 * other settings must still be applied.
 	 */
 	public function test_update_settings_returns_502_when_pmc_update_fails() {
 		// Set up initial state with only card enabled.
