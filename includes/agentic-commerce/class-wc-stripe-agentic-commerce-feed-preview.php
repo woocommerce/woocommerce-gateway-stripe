@@ -261,6 +261,10 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 			++$page;
 		} while ( self::PER_PAGE === $batch_iterated && $page <= $max_num_pages );
 
+		// Shipping issues should only be reported as warnings when Stripe hosts checkout.
+		// When shoppers access WooCommerce checkout, shipping will be computed at that stage.
+		$shipping_warnings_severity = WC_Stripe_Agentic_Commerce_Integration::is_checkout_disabled() ? 'info' : 'warning';
+
 		return [
 			'total_count'                => $total_count,
 			'included_count'             => $included_count,
@@ -276,10 +280,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 			'truncated'                  => $truncated,
 			'scan_limited'               => $scan_limited,
 			'shipping_warnings'          => $shipping_warnings,
-			// A missing shipping price only undercharges shoppers in in-agent
-			// checkout. With store-wide redirect the cost is computed at the
-			// merchant's own checkout, so the zones are informational there.
-			'shipping_warnings_severity' => WC_Stripe_Agentic_Commerce_Integration::is_checkout_disabled() ? 'info' : 'warning',
+			'shipping_warnings_severity' => $shipping_warnings_severity,
 		];
 	}
 
