@@ -1396,10 +1396,7 @@ class WC_Stripe_Order_Helper {
 			return true;
 		}
 
-		$new_lock = ( time() + 5 * MINUTE_IN_SECONDS );
-
-		$order->update_meta_data( self::META_STRIPE_LOCK_PAYMENT, $new_lock );
-		$order->save_meta_data();
+		WC_Stripe_Order_Lock::set( $order, self::META_STRIPE_LOCK_PAYMENT );
 
 		return false;
 	}
@@ -1412,8 +1409,7 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order $order The order that is being unlocked.
 	 */
 	public function unlock_order_payment( WC_Order $order ): void {
-		$order->delete_meta_data( self::META_STRIPE_LOCK_PAYMENT );
-		$order->save_meta_data();
+		WC_Stripe_Order_Lock::release( $order, self::META_STRIPE_LOCK_PAYMENT );
 	}
 
 	/**
@@ -1425,8 +1421,7 @@ class WC_Stripe_Order_Helper {
 	 * @return mixed
 	 */
 	public function get_order_existing_payment_lock( WC_Order $order ) {
-		$order->read_meta_data( true );
-		return $order->get_meta( self::META_STRIPE_LOCK_PAYMENT, true );
+		return WC_Stripe_Order_Lock::get( $order, self::META_STRIPE_LOCK_PAYMENT );
 	}
 
 	/**
@@ -1443,10 +1438,7 @@ class WC_Stripe_Order_Helper {
 			return true;
 		}
 
-		$new_lock = time() + 5 * MINUTE_IN_SECONDS;
-
-		$order->update_meta_data( self::META_STRIPE_LOCK_REFUND, $new_lock );
-		$order->save_meta_data();
+		WC_Stripe_Order_Lock::set( $order, self::META_STRIPE_LOCK_REFUND );
 
 		return false;
 	}
@@ -1460,8 +1452,7 @@ class WC_Stripe_Order_Helper {
 	 * @return mixed
 	 */
 	public function get_order_existing_refund_lock( WC_Order $order ) {
-		$order->read_meta_data( true );
-		return $order->get_meta( self::META_STRIPE_LOCK_REFUND, true );
+		return WC_Stripe_Order_Lock::get( $order, self::META_STRIPE_LOCK_REFUND );
 	}
 
 	/**
@@ -1472,8 +1463,7 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order $order The order that is being unlocked.
 	 */
 	public function unlock_order_refund( WC_Order $order ): void {
-		$order->delete_meta_data( self::META_STRIPE_LOCK_REFUND );
-		$order->save_meta_data();
+		WC_Stripe_Order_Lock::release( $order, self::META_STRIPE_LOCK_REFUND );
 	}
 
 	/**
@@ -1485,18 +1475,7 @@ class WC_Stripe_Order_Helper {
 	 * @return bool
 	 */
 	protected function is_order_payment_locked( WC_Order $order ): bool {
-		$existing_lock = $this->get_order_existing_payment_lock( $order );
-		if ( $existing_lock ) {
-			$parts      = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}"
-			$expiration = (int) $parts[0];
-
-			// If the lock is still active, return true.
-			if ( time() <= $expiration ) {
-				return true;
-			}
-		}
-
-		return false;
+		return WC_Stripe_Order_Lock::is_active( $this->get_order_existing_payment_lock( $order ) );
 	}
 
 	/**
@@ -1508,17 +1487,7 @@ class WC_Stripe_Order_Helper {
 	 * @return bool
 	 */
 	protected function is_order_refund_locked( WC_Order $order ): bool {
-		$existing_lock = $this->get_order_existing_refund_lock( $order );
-		if ( $existing_lock ) {
-			$expiration = (int) $existing_lock;
-
-			// If the lock is still active, return true.
-			if ( time() <= $expiration ) {
-				return true;
-			}
-		}
-
-		return false;
+		return WC_Stripe_Order_Lock::is_active( $this->get_order_existing_refund_lock( $order ) );
 	}
 
 	/**
