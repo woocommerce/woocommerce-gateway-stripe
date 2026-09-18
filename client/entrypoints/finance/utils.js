@@ -1,9 +1,3 @@
-import {
-	CARD_BRAND_LABELS,
-	PAYMENT_METHOD_LABELS,
-	WALLET_LABELS,
-} from './constants';
-
 /**
  * Reads the params localized by WC_Stripe_Finance_UI_Controller.
  *
@@ -93,14 +87,6 @@ export const formatStripeAmount = ( amount, currency ) => {
 	}
 };
 
-/**
- * Humanises an unmapped Stripe payment method type (`us_bank_account` etc.).
- *
- * @param {string} type Stripe payment method type.
- * @return {string} A readable label.
- */
-const humanize = ( type ) => String( type ).replace( /_/g, ' ' );
-
 export const formatStripeTimestamp = ( timestamp ) => {
 	if (
 		timestamp &&
@@ -112,43 +98,3 @@ export const formatStripeTimestamp = ( timestamp ) => {
 
 	return '';
 };
-
-/**
- * Builds the display label for a charge's payment method.
- *
- * @param {Object} charge The `latest_charge` object from a payment intent.
- * @return {string} A readable label, or an empty string when unavailable.
- */
-export const getPaymentMethodLabel = ( charge ) => {
-	const details = charge?.payment_method_details;
-	const type = details?.type;
-
-	if ( ! type ) {
-		return '';
-	}
-
-	if ( type === 'card' && details.card ) {
-		const { brand, last4, wallet } = details.card;
-
-		// The wallet is what the shopper actually chose, so it takes precedence
-		// over the underlying card brand.
-		const name =
-			WALLET_LABELS[ wallet?.type ] ??
-			CARD_BRAND_LABELS[ brand ] ??
-			( brand ? humanize( brand ) : PAYMENT_METHOD_LABELS.card );
-
-		return last4 ? `${ name } •••• ${ last4 }` : name;
-	}
-
-	return PAYMENT_METHOD_LABELS[ type ] ?? humanize( type );
-};
-
-/**
- * Resolves the icon key for a charge, matching client/payment-method-icons keys
- * to Stripe's payment_method_details.type values.
- *
- * @param {Object} charge The `latest_charge` object from a payment intent.
- * @return {string|undefined} The icon key, if any.
- */
-export const getPaymentMethodIconKey = ( charge ) =>
-	charge?.payment_method_details?.type;

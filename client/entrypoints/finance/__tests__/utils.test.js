@@ -1,8 +1,4 @@
-import {
-	formatStripeAmount,
-	getCurrencyExponent,
-	getPaymentMethodLabel,
-} from '../utils';
+import { formatStripeAmount, getCurrencyExponent } from '../utils';
 
 describe( 'payment details utils', () => {
 	beforeEach( () => {
@@ -83,62 +79,5 @@ describe( 'payment details utils', () => {
 
 			expect( formatted ).toBe( '1.234,56 €' );
 		} );
-	} );
-
-	describe( 'getPaymentMethodLabel', () => {
-		const cardCharge = ( card ) => ( {
-			payment_method_details: { type: 'card', card },
-		} );
-
-		it( 'renders a card brand with its last four digits', () => {
-			expect(
-				getPaymentMethodLabel(
-					cardCharge( { brand: 'visa', last4: '4242' } )
-				)
-			).toBe( 'Visa •••• 4242' );
-		} );
-
-		it( 'prefers the wallet over the underlying card brand', () => {
-			expect(
-				getPaymentMethodLabel(
-					cardCharge( {
-						brand: 'visa',
-						last4: '4242',
-						wallet: { type: 'apple_pay' },
-					} )
-				)
-			).toBe( 'Apple Pay •••• 4242' );
-		} );
-
-		it( 'humanises an unmapped card brand', () => {
-			expect(
-				getPaymentMethodLabel(
-					cardCharge( { brand: 'some_brand', last4: '1111' } )
-				)
-			).toBe( 'some brand •••• 1111' );
-		} );
-
-		it( 'labels a known non-card payment method', () => {
-			expect(
-				getPaymentMethodLabel( {
-					payment_method_details: { type: 'us_bank_account' },
-				} )
-			).toBe( 'ACH Direct Debit' );
-		} );
-
-		it( 'humanises an unmapped payment method type', () => {
-			expect(
-				getPaymentMethodLabel( {
-					payment_method_details: { type: 'brand_new_method' },
-				} )
-			).toBe( 'brand new method' );
-		} );
-
-		it.each( [ [ null ], [ undefined ], [ {} ] ] )(
-			'returns an empty string for charge %p',
-			( charge ) => {
-				expect( getPaymentMethodLabel( charge ) ).toBe( '' );
-			}
-		);
 	} );
 } );
