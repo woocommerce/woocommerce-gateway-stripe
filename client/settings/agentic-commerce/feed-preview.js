@@ -250,7 +250,7 @@ const AgenticCommerceFeedPreview = () => {
 									{ shippingWarningsSeverity === 'info' && (
 										<p>
 											{ __(
-												'Agentic shoppers are redirected to your WooCommerce checkout, where shipping is computed as usual; the feed just won’t advertise a shipping price for these zones.',
+												'Agentic shoppers are redirected to your WooCommerce checkout, where shipping is computed as usual. The agent won’t be able to show shipping prices for these zones.',
 												'woocommerce-gateway-stripe'
 											) }
 										</p>
