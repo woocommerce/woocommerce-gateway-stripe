@@ -363,7 +363,7 @@ add_filter(
 );
 ```
 
-> The `woocommerce_agentic_commerce_disable_checkout` name is **deprecated since 11.1.0** in favour of the Stripe-prefixed `wc_stripe_agentic_commerce_disable_checkout` above (mirroring the `should_sync_product` naming; the planned shared cross-plugin contract never materialized). Existing hooks on the deprecated name still run — they seed the canonical filter's default — but emit a deprecation notice.
+> The `woocommerce_agentic_commerce_disable_checkout` filter is **deprecated since 11.1.0** in favour of the Stripe-prefixed `wc_stripe_agentic_commerce_disable_checkout` filter.
 
 ## Product sync eligibility
 
