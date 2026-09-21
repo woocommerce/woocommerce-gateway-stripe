@@ -1507,9 +1507,11 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$product->update_meta_data( '_product_addons', [ [ 'name' => 'Engraving' ] ] );
 		$product->save();
 
-		$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ) );
-
-		$product->delete( true );
+		try {
+			$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ) );
+		} finally {
+			$product->delete( true );
+		}
 	}
 
 	/**
@@ -1520,9 +1522,11 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	public function test_product_has_addons_false_for_plain_product() {
 		$product = WC_Helper_Product::create_simple_product();
 
-		$this->assertFalse( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ) );
-
-		$product->delete( true );
+		try {
+			$this->assertFalse( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ) );
+		} finally {
+			$product->delete( true );
+		}
 	}
 
 	/**
@@ -1535,14 +1539,20 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$fixed = WC_Helper_Product::create_simple_product();
 		$fixed->update_meta_data( '_wc_pb_priced_individually', 'no' );
 		$fixed->save();
-		$this->assertFalse( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $fixed ) );
-		$fixed->delete( true );
+		try {
+			$this->assertFalse( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $fixed ) );
+		} finally {
+			$fixed->delete( true );
+		}
 
 		$dynamic = WC_Helper_Product::create_simple_product();
 		$dynamic->update_meta_data( '_wc_pb_priced_individually', 'yes' );
 		$dynamic->save();
-		$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $dynamic ) );
-		$dynamic->delete( true );
+		try {
+			$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $dynamic ) );
+		} finally {
+			$dynamic->delete( true );
+		}
 	}
 
 	/**
@@ -1558,9 +1568,11 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 
 		$variation = wc_get_product( $parent->get_children()[0] );
 
-		$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $variation ) );
-
-		$parent->delete( true );
+		try {
+			$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $variation ) );
+		} finally {
+			$parent->delete( true );
+		}
 	}
 
 	/**
@@ -1574,18 +1586,21 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$product->update_meta_data( '_my_custom_configurator', 'on' );
 		$product->save();
 
-		$this->assertFalse( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ) );
-
 		$callback = static function ( $keys ) {
 			$keys[] = '_my_custom_configurator';
 			return $keys;
 		};
-		add_filter( 'wc_stripe_agentic_commerce_addon_detection_meta_keys', $callback );
 
 		try {
-			$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ) );
+			$this->assertFalse( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ) );
+
+			add_filter( 'wc_stripe_agentic_commerce_addon_detection_meta_keys', $callback );
+			try {
+				$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ) );
+			} finally {
+				remove_filter( 'wc_stripe_agentic_commerce_addon_detection_meta_keys', $callback );
+			}
 		} finally {
-			remove_filter( 'wc_stripe_agentic_commerce_addon_detection_meta_keys', $callback );
 			$product->delete( true );
 		}
 	}
@@ -1600,18 +1615,21 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$product = WC_Helper_Product::create_simple_product();
 		$product->save();
 
-		$this->assertFalse( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ) );
-
 		$force_true = static fn() => true;
-		add_filter( 'wc_stripe_agentic_commerce_product_has_addon', $force_true );
 
 		try {
-			$this->assertTrue(
-				WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ),
-				'The filter must be able to mark an otherwise-plain product as configurable.'
-			);
+			$this->assertFalse( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ) );
+
+			add_filter( 'wc_stripe_agentic_commerce_product_has_addon', $force_true );
+			try {
+				$this->assertTrue(
+					WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ),
+					'The filter must be able to mark an otherwise-plain product as configurable.'
+				);
+			} finally {
+				remove_filter( 'wc_stripe_agentic_commerce_product_has_addon', $force_true );
+			}
 		} finally {
-			remove_filter( 'wc_stripe_agentic_commerce_product_has_addon', $force_true );
 			$product->delete( true );
 		}
 	}
@@ -1628,18 +1646,21 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$product->update_meta_data( '_product_addons', [ [ 'name' => 'Engraving' ] ] );
 		$product->save();
 
-		$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ) );
-
 		$force_string_false = static fn() => 'false';
-		add_filter( 'wc_stripe_agentic_commerce_product_has_addon', $force_string_false );
 
 		try {
-			$this->assertFalse(
-				WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ),
-				"A callback returning the string 'false' must be treated as false, not cast to true."
-			);
+			$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ) );
+
+			add_filter( 'wc_stripe_agentic_commerce_product_has_addon', $force_string_false );
+			try {
+				$this->assertFalse(
+					WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ),
+					"A callback returning the string 'false' must be treated as false, not cast to true."
+				);
+			} finally {
+				remove_filter( 'wc_stripe_agentic_commerce_product_has_addon', $force_string_false );
+			}
 		} finally {
-			remove_filter( 'wc_stripe_agentic_commerce_product_has_addon', $force_string_false );
 			$product->delete( true );
 		}
 	}

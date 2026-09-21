@@ -1406,6 +1406,24 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$this->assertTrue( $response->get_data()['auto_redirect_checkout_addons'] );
 		$this->assertSame( 'yes', get_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION ) );
 		$this->assertSame( 'yes', get_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_REDIRECT_CHECKOUT_ADDONS_OPTION ) );
+
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_body(
+			wp_json_encode(
+				[
+					'auto_exclude_addons'           => false,
+					'auto_redirect_checkout_addons' => false,
+				]
+			)
+		);
+		$request->set_header( 'content-type', 'application/json' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertFalse( $response->get_data()['auto_exclude_addons'] );
+		$this->assertFalse( $response->get_data()['auto_redirect_checkout_addons'] );
+		$this->assertSame( 'no', get_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION ) );
+		$this->assertSame( 'no', get_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_REDIRECT_CHECKOUT_ADDONS_OPTION ) );
 	}
 
 	/**

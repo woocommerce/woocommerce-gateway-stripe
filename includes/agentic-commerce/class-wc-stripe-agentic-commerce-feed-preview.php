@@ -386,7 +386,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 	 * Append a single advisory to the list, or bump the overflow counter once the
 	 * detail cap is reached.
 	 *
-	 * @since 10.9.0
+	 * @since 11.1.0
 	 * @param array       $advisories   Advisory list, modified in place.
 	 * @param int         $truncated    Overflow counter, modified in place.
 	 * @param int         $detail_limit Maximum advisories to retain.
