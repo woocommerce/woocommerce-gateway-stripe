@@ -320,7 +320,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * keeping the first two opt-in defaults). Applies the `disable_checkout`
 	 * filters, so any merchant hook runs here.
 	 *
-	 * @since 10.9.0
+	 * @since 11.1.0
 	 * @param \WC_Product      $product        Product object.
 	 * @param \WC_Product|null $parent_product Parent product for variations.
 	 * @return array{disabled: bool, source: string|null} Decision plus its source
