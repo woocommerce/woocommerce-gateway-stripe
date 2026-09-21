@@ -156,7 +156,9 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 				}
 			);
 
-			$enabled_payment_methods          = array_merge( [ $oc_method_id ], $enabled_express_methods, $non_deferred_methods );
+			// Dedupe defensively: a future method that is both express and non-deferred would
+			// otherwise appear twice. Harmless downstream (settings are keyed by id), but avoided.
+			$enabled_payment_methods          = array_values( array_unique( array_merge( [ $oc_method_id ], $enabled_express_methods, $non_deferred_methods ) ) );
 			$payment_methods[ $oc_method_id ] = new WC_Stripe_UPE_Payment_Method_OC();
 		}
 
