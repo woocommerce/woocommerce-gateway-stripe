@@ -598,6 +598,90 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A stateful disable_checkout callback that answers differently on a second
+	 * call must not desync the advisory from the row: the advisory source has to
+	 * come from the same evaluation that set the row's disable_checkout, not from
+	 * a re-fire of the filter.
+	 *
+	 * @return void
+	 */
+	public function test_preview_disable_checkout_advisory_uses_single_evaluation(): void {
+		$product = $this->create_valid_product();
+		$this->scope_to( [ $product->get_id() ] );
+
+		// Redirects on the first evaluation, then flips. A second resolve while
+		// building diagnostics would read the flipped value and mislabel the row.
+		$calls  = 0;
+		$filter = static function () use ( &$calls ) {
+			++$calls;
+			return 1 === $calls;
+		};
+		add_filter( 'wc_stripe_agentic_commerce_disable_checkout', $filter );
+
+		try {
+			$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
+
+			$match = null;
+			foreach ( $preview['advisories'] as $advisory ) {
+				if ( 'disable_checkout' === $advisory['type'] && $product->get_id() === $advisory['product_id'] ) {
+					$match = $advisory;
+					break;
+				}
+			}
+
+			$this->assertSame( 1, $calls, 'The disable_checkout filter must be evaluated once per product.' );
+			$this->assertNotNull( $match, 'The redirect resolved on the single evaluation must still be reported.' );
+			$this->assertSame( 'filter', $match['detail'] );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_disable_checkout', $filter );
+		}
+	}
+
+	/**
+	 * The exclusion advisory reads its reason from the mapper's single evaluation,
+	 * not a re-derivation. A stateful sync callback that excludes on the mapping
+	 * pass but reports differently on a later call must still yield the advisory
+	 * for the reason that actually hid the product.
+	 *
+	 * @return void
+	 */
+	public function test_preview_exclusion_advisory_uses_single_evaluation(): void {
+		$excluded = $this->create_valid_product();
+
+		// Excludes on the pass that maps the row and on the validator's skip check,
+		// then flips. Re-deriving the reason afterward would read the flipped value
+		// and silently drop the advisory.
+		$calls  = 0;
+		$filter = static function ( $should_sync, $product ) use ( $excluded, &$calls ) {
+			if ( $product->get_id() !== $excluded->get_id() ) {
+				return $should_sync;
+			}
+			++$calls;
+			return $calls > 2;
+		};
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $filter, 10, 2 );
+
+		$this->scope_to( [ $excluded->get_id() ] );
+
+		try {
+			$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
+
+			$match = null;
+			foreach ( $preview['advisories'] as $advisory ) {
+				if ( 'excluded' === $advisory['type'] && $excluded->get_id() === $advisory['product_id'] ) {
+					$match = $advisory;
+					break;
+				}
+			}
+
+			$this->assertNotNull( $match, 'The exclusion reason carried from the mapping pass must still be reported.' );
+			$this->assertSame( 'filter', $match['detail'] );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $filter, 10 );
+		}
+	}
+
+	/**
 	 * A configured zone with no flat-rate method surfaces as a shipping warning.
 	 *
 	 * @return void

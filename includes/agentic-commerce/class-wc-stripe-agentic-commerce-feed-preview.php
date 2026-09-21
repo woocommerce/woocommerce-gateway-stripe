@@ -238,8 +238,18 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 
 				++$total_count;
 
+				// The concrete mapper exposes the sync/checkout diagnostics from the
+				// same pass that builds the row, so the advisories below never re-fire
+				// the hooks and risk a verdict that disagrees with the row.
+				$diagnostics = null;
+
 				try {
-					$row = $mapper->map_product( $product );
+					if ( $mapper instanceof WC_Stripe_Agentic_Commerce_Product_Mapper ) {
+						$diagnostics = $mapper->map_product_with_diagnostics( $product );
+						$row         = $diagnostics['row'];
+					} else {
+						$row = $mapper->map_product( $product );
+					}
 				} catch ( Exception $e ) {
 					// A product the mapper can't process (e.g. a variation whose
 					// parent was deleted) would abort a real sync. Surface it as an
@@ -286,8 +296,8 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 				// redirects (and from which layer), and missing-SKU warnings.
 				// Gated on the concrete mapper since these helpers are not part
 				// of ProductMapperInterface.
-				if ( $mapper instanceof WC_Stripe_Agentic_Commerce_Product_Mapper ) {
-					$this->collect_advisories( $advisories, $advisories_truncated, $detail_limit, $product, $row, $mapper, $excluded );
+				if ( null !== $diagnostics ) {
+					$this->collect_advisories( $advisories, $advisories_truncated, $detail_limit, $product, $diagnostics );
 				}
 			}
 
@@ -360,19 +370,21 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 	 * Excluded products are never in the feed, so their SKU / checkout state is
 	 * moot — only the exclusion reason is recorded for them.
 	 *
+	 * The exclusion reason and checkout source come from the mapper's single
+	 * evaluation of the product, so an advisory can never disagree with the row
+	 * it describes even when a hook callback is stateful or context-sensitive.
+	 *
 	 * @since 11.1.0
-	 * @param array                                    $advisories Advisory list, modified in place.
-	 * @param int                                      $truncated  Overflow counter, modified in place.
-	 * @param int                                      $detail_limit Maximum advisories to retain.
-	 * @param \WC_Product                              $product    Product being inspected.
-	 * @param array                                    $row        Mapped feed row for the product.
-	 * @param WC_Stripe_Agentic_Commerce_Product_Mapper $mapper    Concrete mapper for diagnostics.
-	 * @param bool                                     $excluded   Whether the product was excluded from the feed.
+	 * @param array $advisories   Advisory list, modified in place.
+	 * @param int   $truncated    Overflow counter, modified in place.
+	 * @param int   $detail_limit Maximum advisories to retain.
+	 * @param \WC_Product $product Product being inspected.
+	 * @param array $diagnostics  Mapper output: row, excluded, exclusion_reason, disable_checkout_source.
 	 * @return void
 	 */
-	private function collect_advisories( array &$advisories, int &$truncated, int $detail_limit, \WC_Product $product, array $row, WC_Stripe_Agentic_Commerce_Product_Mapper $mapper, bool $excluded ): void {
-		if ( $excluded ) {
-			$reason = WC_Stripe_Agentic_Commerce_Product_Mapper::get_sync_exclusion_reason( $product );
+	private function collect_advisories( array &$advisories, int &$truncated, int $detail_limit, \WC_Product $product, array $diagnostics ): void {
+		if ( $diagnostics['excluded'] ) {
+			$reason = $diagnostics['exclusion_reason'];
 			if ( null !== $reason ) {
 				$this->add_advisory( $advisories, $truncated, $detail_limit, $product, 'excluded', $reason );
 			}
@@ -385,11 +397,10 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 			$this->add_advisory( $advisories, $truncated, $detail_limit, $product, 'no_sku', '' );
 		}
 
-		// Redirect-only: surface which layer set disable_checkout. The mapped row
-		// already carries the resolved boolean, so only re-resolve (re-applying
-		// the filter) to read the source when the product actually redirects.
-		if ( isset( $row['disable_checkout'] ) && 'true' === $row['disable_checkout'] ) {
-			$source = $mapper->resolve_disable_checkout( $product )['source'];
+		// Redirect-only: surface which layer set disable_checkout. Non-null only
+		// when the same evaluation that built the row resolved checkout as disabled.
+		$source = $diagnostics['disable_checkout_source'];
+		if ( null !== $source ) {
 			$this->add_advisory( $advisories, $truncated, $detail_limit, $product, 'disable_checkout', (string) $source );
 		}
 	}

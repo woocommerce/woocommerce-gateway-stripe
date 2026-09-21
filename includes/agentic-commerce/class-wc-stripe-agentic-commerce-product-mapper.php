@@ -94,13 +94,40 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * @throws RuntimeException If the parent product is not found.
 	 */
 	public function map_product( \WC_Product $product ): array {
+		return $this->map_product_with_diagnostics( $product )['row'];
+	}
+
+	/**
+	 * Map a product and capture the diagnostic context in the same pass: whether
+	 * it was excluded (and why), and which layer disabled its checkout.
+	 *
+	 * The sync and checkout decisions are hook-driven, and a stateful or
+	 * context-sensitive callback can return a different verdict when re-run. The
+	 * feed preview needs both the row and the reasons behind it, so it must read
+	 * them from this single evaluation rather than re-invoking the filters, which
+	 * could make an advisory disagree with the row it describes.
+	 *
+	 * @since 11.1.0
+	 * @param \WC_Product $product Product to map.
+	 * @return array{row: array, excluded: bool, exclusion_reason: ?string, disable_checkout_source: ?string}
+	 * @throws RuntimeException When a variation's parent product no longer exists.
+	 */
+	public function map_product_with_diagnostics( \WC_Product $product ): array {
 		// Per-product visibility gate. Returning an empty row causes the validator's
 		// required-field check to reject it, so the walker skips the entry. Adapters
 		// (e.g. WC AI Storefront) that want to scope the catalog at query time should
 		// prefer the `wc_stripe_agentic_commerce_product_query_args` filter so excluded
 		// products aren't iterated at all; this hook is the per-product safety net.
 		if ( ! self::should_sync_product( $product ) ) {
-			return [];
+			return [
+				'row'                     => [],
+				'excluded'                => true,
+				// should_sync_product() is already false here, so classify directly
+				// instead of get_sync_exclusion_reason() to avoid re-firing the sync
+				// filter and risking a verdict that disagrees with this evaluation.
+				'exclusion_reason'        => self::classify_sync_exclusion( $product ),
+				'disable_checkout_source' => null,
+			];
 		}
 
 		$row = [];
@@ -121,7 +148,19 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 			}
 		}
 
+		$disable_checkout_source = null;
+
 		foreach ( $this->schema as $field => $config ) {
+			// Resolve checkout once and reuse it for both the row and the advisory
+			// source, keeping the field's mapped value identical to map_field()
+			// (this field has no schema default, so convert_type() alone matches).
+			if ( 'disable_checkout' === $field ) {
+				$checkout                = $this->resolve_disable_checkout( $product, $parent_product );
+				$disable_checkout_source = $checkout['disabled'] ? $checkout['source'] : null;
+				$row[ $field ]           = $this->convert_type( $checkout['disabled'], $config );
+				continue;
+			}
+
 			$row[ $field ] = $this->map_field( $product, $field, $config, $parent_product );
 		}
 
@@ -133,7 +172,14 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		 * @param \WC_Product      $product         Product object.
 		 * @param \WC_Product|null $parent_product  Parent product for variations.
 		 */
-		return apply_filters( 'wc_stripe_agentic_commerce_map_product', $row, $product, $parent_product );
+		$row = apply_filters( 'wc_stripe_agentic_commerce_map_product', $row, $product, $parent_product );
+
+		return [
+			'row'                     => $row,
+			'excluded'                => false,
+			'exclusion_reason'        => null,
+			'disable_checkout_source' => $disable_checkout_source,
+		];
 	}
 
 	/**
@@ -1346,7 +1392,10 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		 * @param \WC_Product $product    The product (or variation) inspected.
 		 * @param \WC_Product $target     The product whose meta was read (parent for variations).
 		 */
-		return (bool) apply_filters( 'wc_stripe_agentic_commerce_product_has_addon', $has_addons, $product, $target );
+		// wp_validate_boolean() rather than a plain (bool) cast: a callback that
+		// returns the string 'false' would otherwise cast to true and wrongly flag
+		// the product as configurable, matching the sibling filters above.
+		return wp_validate_boolean( apply_filters( 'wc_stripe_agentic_commerce_product_has_addon', $has_addons, $product, $target ) );
 	}
 
 	/**
@@ -1397,6 +1446,22 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 			return null;
 		}
 
+		return self::classify_sync_exclusion( $product );
+	}
+
+	/**
+	 * Bucket an already-excluded product into the reason a merchant can act on.
+	 *
+	 * Split from {@see self::get_sync_exclusion_reason()} so a caller that has
+	 * already resolved should_sync_product() to false can classify without firing
+	 * the sync filter a second time. First match wins; anything the built-in
+	 * defaults did not catch is attributed to a third-party filter.
+	 *
+	 * @since 11.1.0
+	 * @param \WC_Product $product Product known to be excluded from the feed.
+	 * @return string One of the SYNC_EXCLUSION_REASON_* constants.
+	 */
+	private static function classify_sync_exclusion( \WC_Product $product ): string {
 		if ( $product->is_type( [ 'subscription', 'variable-subscription', 'subscription_variation' ] ) ) {
 			return self::SYNC_EXCLUSION_REASON_SUBSCRIPTION;
 		}

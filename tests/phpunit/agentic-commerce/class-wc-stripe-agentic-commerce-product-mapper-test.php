@@ -1617,6 +1617,34 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A filter callback returning the string 'false' must clear the verdict, not
+	 * cast to true. Guards the wp_validate_boolean() normalization of the hook
+	 * result against a plain (bool) cast.
+	 *
+	 * @return void
+	 */
+	public function test_product_has_addons_verdict_filter_string_false_is_falsey() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->update_meta_data( '_product_addons', [ [ 'name' => 'Engraving' ] ] );
+		$product->save();
+
+		$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ) );
+
+		$force_string_false = static fn() => 'false';
+		add_filter( 'wc_stripe_agentic_commerce_product_has_addon', $force_string_false );
+
+		try {
+			$this->assertFalse(
+				WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ),
+				"A callback returning the string 'false' must be treated as false, not cast to true."
+			);
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_product_has_addon', $force_string_false );
+			$product->delete( true );
+		}
+	}
+
+	/**
 	 * With the auto-exclude toggle off (default), an add-on product still syncs —
 	 * preserving backward-compatible behavior.
 	 *
