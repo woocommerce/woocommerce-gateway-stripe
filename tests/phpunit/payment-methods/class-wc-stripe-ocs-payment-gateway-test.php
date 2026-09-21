@@ -530,7 +530,7 @@ class WC_Stripe_OCS_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				[ WC_Stripe_Payment_Methods::ACSS_DEBIT, WC_Stripe_Payment_Methods::SOFORT ],
 				[ WC_Stripe_Payment_Methods::SOFORT ],
 			],
-			'Card (deferred): exclusion list is left intact' => [
+			'Card (deferred): exclusion list is left intact'                => [
 				WC_Stripe_Payment_Methods::CARD,
 				[ WC_Stripe_Payment_Methods::BLIK, WC_Stripe_Payment_Methods::SOFORT ],
 				[ WC_Stripe_Payment_Methods::BLIK, WC_Stripe_Payment_Methods::SOFORT ],
