@@ -1344,14 +1344,14 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * Whether a product carries add-on / configurator metadata that makes its
 	 * price depend on runtime shopper choices the static feed can't honour.
 	 *
-	 * Detection is per-product postmeta (resolved on the parent for variations)
-	 * and deliberately does NOT key off `class_exists()` of the configurator
-	 * plugins — an active plugin says nothing about whether *this* product is
-	 * configured, so a bare class check would flag the whole catalog. Covered:
-	 * Product Add-Ons (`_product_addons`), TM Extra Product Options
-	 * (`tm_meta_cpf_options`), Composite Products (`composite_data`), and Product
-	 * Bundles only when priced individually (`_wc_pb_priced_individually` = `yes`;
-	 * a fixed-price bundle stays eligible). The meta-key set is filterable.
+	 * Detection is via product meta fields, which are resolved on the parent for variations.
+	 * The product meta checks include the following:
+	 *  - Product Add-Ons - `_product_addons`
+	 *  - TM Extra Product Options - `tm_meta_cpf_options`
+	 *  - Composite Products - `composite_data` 
+	 *  - Product Bundles when they are priced individually - `_wc_pb_priced_individually` is `'yes'`
+	 *
+	 * The set of meta keys to check can be filtered via the wc_stripe_agentic_commerce_addon_detection_meta_keys filter.
 	 *
 	 * @since 10.9.0
 	 * @param \WC_Product $product Product (or variation) to inspect.
