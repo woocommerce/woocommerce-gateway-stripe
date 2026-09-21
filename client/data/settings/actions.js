@@ -59,12 +59,15 @@ export function* saveSettings() {
 		);
 	} catch ( e ) {
 		error = e;
-		// Prefer the message the REST endpoint returned (e.g. a Payment Method
-		// Configuration update rejected by Stripe) so the merchant sees the
-		// actual reason instead of the generic fallback.
+		// Append the REST error detail (e.g. a Payment Method Configuration
+		// update rejected by Stripe) after the generic message so the merchant
+		// sees both the outcome and the reason.
 		yield dispatch( 'core/notices' ).createErrorNotice(
-			e?.message ||
-				__( 'Error saving settings.', 'woocommerce-gateway-stripe' )
+			e?.message
+				? __( 'Error saving settings:', 'woocommerce-gateway-stripe' ) +
+						' ' +
+						e.message
+				: __( 'Error saving settings.', 'woocommerce-gateway-stripe' )
 		);
 	} finally {
 		yield updateIsSavingSettings( false, error );

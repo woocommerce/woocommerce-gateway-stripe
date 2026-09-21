@@ -107,7 +107,7 @@ describe( 'Settings actions tests', () => {
 			).not.toHaveBeenCalled();
 		} );
 
-		test( 'surfaces the REST error message when one is present', () => {
+		test( 'appends the REST error message to the generic notice when one is present', () => {
 			const saveGenerator = saveSettings();
 
 			apiFetch.mockImplementation( () => {
@@ -122,7 +122,7 @@ describe( 'Settings actions tests', () => {
 			expect(
 				dispatch( 'core/notices' ).createErrorNotice
 			).toHaveBeenCalledWith(
-				'Unable to update payment method configuration.'
+				'Error saving settings: Unable to update payment method configuration.'
 			);
 			expect(
 				dispatch( 'core/notices' ).createSuccessNotice
