@@ -461,7 +461,13 @@ Out of the box it covers `_product_addons`, `tm_meta_cpf_options`,
 `composite_data`, and `_wc_pb_priced_individually=yes`. It deliberately does not
 key off `class_exists()` of the plugins, since an active plugin says nothing
 about whether a given product is configured. Extend the detected set without
-forking:
+The default detection includes the following checks:
+ - WooCommerce Product Add-Ons - `_product_addons`
+ - TM Extra Product Options - `tm_meta_cpf_options`
+ - Composite Products - `composite_data`
+ - WooCommerce Bundles that are individually priced - `_wc_pb_priced_individually=yes`
+
+Additional meta fields can be added using the `wc_stripe_agentic_commerce_addon_detection_meta_keys` filter:
 
 ```php
 add_filter(
