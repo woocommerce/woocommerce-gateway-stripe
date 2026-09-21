@@ -985,6 +985,57 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * `use_stripe_sdk` from the payment information must be forwarded on the payment intent
+	 * request: without it, an intent confirmed with a return_url (the Dynamic Payment Methods
+	 * shape) gets a hosted redirect next action for 3DS instead of the SDK-handled modal.
+	 *
+	 * @param string|null $use_stripe_sdk The value in the payment information, null when not set.
+	 *
+	 * @dataProvider provide_create_and_confirm_payment_intent_use_stripe_sdk
+	 */
+	public function test_create_and_confirm_payment_intent_forwards_use_stripe_sdk( $use_stripe_sdk ) {
+		$payment_information                              = $this->get_base_payment_information();
+		$payment_information['automatic_payment_methods'] = true;
+		$payment_information['return_url']                = 'https://example.com/return';
+
+		if ( null !== $use_stripe_sdk ) {
+			$payment_information['use_stripe_sdk'] = $use_stripe_sdk;
+		}
+
+		$test_request = function ( $preempt, $parsed_args, $url ) use ( $use_stripe_sdk ) {
+			$body = $parsed_args['body'];
+
+			if ( null === $use_stripe_sdk ) {
+				$this->assertArrayNotHasKey( 'use_stripe_sdk', $body );
+			} else {
+				$this->assertSame( $use_stripe_sdk, $body['use_stripe_sdk'] );
+			}
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode( [] ),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$this->mock_controller->create_and_confirm_payment_intent( $payment_information );
+	}
+
+	/**
+	 * Provider for `test_create_and_confirm_payment_intent_forwards_use_stripe_sdk`.
+	 *
+	 * @return array
+	 */
+	public function provide_create_and_confirm_payment_intent_use_stripe_sdk() {
+		return [
+			'forwarded when set'   => [ 'true' ],
+			'omitted when not set' => [ null ],
+		];
+	}
+
+	/**
 	 * Minimal valid payment information for a card create_and_confirm_payment_intent request.
 	 *
 	 * @return array
