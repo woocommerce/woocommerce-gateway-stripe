@@ -475,9 +475,8 @@ add_filter(
 );
 ```
 
-When a configurator stores nothing in a stable meta key, decide per product with
-`wc_stripe_agentic_commerce_product_has_addon` instead — it filters the final
-verdict, so it can also clear a false positive:
+In cases where more nuanced checks are required, or when the meta keys to check are not consistent,
+use the `wc_stripe_agentic_commerce_product_has_addon` filter:
 
 ```php
 add_filter(
