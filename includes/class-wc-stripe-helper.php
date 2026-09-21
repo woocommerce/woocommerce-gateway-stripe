@@ -2383,6 +2383,7 @@ class WC_Stripe_Helper {
 
 		// Include fees and taxes as display items.
 		foreach ( $cart_fees as $fee ) {
+			// ->amount is safe here (cart fees are freshly calculated); order paths must read get_total() instead.
 			$fee_amount = (float) $fee->amount;
 			$item       = [];
 
