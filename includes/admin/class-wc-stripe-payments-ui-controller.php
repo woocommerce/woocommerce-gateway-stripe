@@ -128,7 +128,7 @@ class WC_Stripe_Payments_UI_Controller {
 				__( 'Add a provider', 'woocommerce-gateway-stripe' ),
 				$capability,
 				self::WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG,
-				null,
+				'',
 				// The top-level Payments link opens whichever submenu item is first, and that must stay the provider list.
 				0
 			);
