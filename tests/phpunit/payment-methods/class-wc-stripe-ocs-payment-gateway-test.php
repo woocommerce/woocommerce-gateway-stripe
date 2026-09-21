@@ -424,6 +424,121 @@ class WC_Stripe_OCS_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * A non-deferred method (BLIK, ACSS) surfaces as its own entry under OCS, but its type is also
+	 * in the Payment Element exclusion list. When the shopper submits that standalone entry, the
+	 * intent's `excluded_payment_method_types` must not exclude the very method being confirmed, or
+	 * Stripe rejects the confirmation. Deferred methods keep the full exclusion list unchanged.
+	 *
+	 * @dataProvider provide_test_prepare_payment_information_drops_selected_method_from_exclusion
+	 *
+	 * @param string   $selected_type Stripe id of the submitted method.
+	 * @param string[] $excluded      List returned by get_excluded_payment_method_types().
+	 * @param string[] $expected      Expected excluded_payment_method_types on the intent.
+	 */
+	public function test_prepare_payment_information_drops_selected_method_from_exclusion( string $selected_type, array $excluded, array $expected ): void {
+		$order             = WC_Helper_Order::create_order();
+		$payment_method_id = 'pm_test_' . $selected_type;
+
+		// Return a usable PMC so any configuration fetch during the flow is benign.
+		$this->mock_payment_method_configurations(
+			[
+				WC_Stripe_Payment_Methods::CARD,
+				WC_Stripe_Payment_Methods::BLIK,
+				WC_Stripe_Payment_Methods::ACSS_DEBIT,
+				WC_Stripe_Payment_Methods::SOFORT,
+			]
+		);
+
+		$gateway = $this->getMockBuilder( WC_Stripe_OCS_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'get_stripe_customer_id', 'get_excluded_payment_method_types' ] )
+			->getMock();
+		$gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_mock' );
+		$gateway->method( 'get_excluded_payment_method_types' )->willReturn( $excluded );
+
+		// Automatic payment methods eligibility requires OC on plus a connected, PMC-enabled account.
+		$gateway->oc_enabled = true;
+
+		$method_stub = $this->getMockBuilder( WC_Stripe_UPE_Payment_Method::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'is_reusable' ] )
+			->getMockForAbstractClass();
+		$method_stub->method( 'is_reusable' )->willReturn( false );
+		$gateway->payment_methods[ $selected_type ] = $method_stub;
+
+		$_POST = [
+			'payment_method'               => 'stripe_' . $selected_type,
+			'wc-stripe-payment-method'     => $payment_method_id,
+			'wc-stripe-new-payment-method' => 'true',
+		];
+
+		$payment_method_pre_http_filter = function ( $result, $args, $url ) use ( $payment_method_id, $selected_type ) {
+			if ( false !== strpos( $url, 'payment_methods/' . $payment_method_id ) ) {
+				return [
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'body'     => wp_json_encode(
+						[
+							'id'     => $payment_method_id,
+							'object' => 'payment_method',
+							'type'   => $selected_type,
+						]
+					),
+				];
+			}
+			return $result;
+		};
+		add_filter( 'pre_http_request', $payment_method_pre_http_filter, 10, 3 );
+
+		$reflection = new \ReflectionClass( WC_Stripe_UPE_Payment_Gateway::class );
+		$method     = $reflection->getMethod( 'prepare_payment_information_from_request' );
+		$method->setAccessible( true );
+
+		// Constructing the gateway runs a PMC reconcile that flips pmc_enabled to 'no'; restore it
+		// so the eligibility check reads a connected, PMC-enabled account.
+		$settings                = WC_Stripe_Helper::get_stripe_settings();
+		$settings['pmc_enabled'] = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		try {
+			$payment_information = $method->invoke( $gateway, $order );
+		} finally {
+			remove_filter( 'pre_http_request', $payment_method_pre_http_filter, 10 );
+			$_POST = [];
+		}
+
+		$this->assertTrue( $payment_information['automatic_payment_methods'] );
+		$this->assertSame( $expected, $payment_information['excluded_payment_method_types'] );
+	}
+
+	/**
+	 * Provider for `test_prepare_payment_information_drops_selected_method_from_exclusion`.
+	 *
+	 * @return array<string, array{string, string[], string[]}>
+	 */
+	public function provide_test_prepare_payment_information_drops_selected_method_from_exclusion(): array {
+		return [
+			'BLIK standalone: its own type is not excluded from the intent' => [
+				WC_Stripe_Payment_Methods::BLIK,
+				[ WC_Stripe_Payment_Methods::BLIK, WC_Stripe_Payment_Methods::SOFORT ],
+				[ WC_Stripe_Payment_Methods::SOFORT ],
+			],
+			'ACSS standalone: its own type is not excluded from the intent' => [
+				WC_Stripe_Payment_Methods::ACSS_DEBIT,
+				[ WC_Stripe_Payment_Methods::ACSS_DEBIT, WC_Stripe_Payment_Methods::SOFORT ],
+				[ WC_Stripe_Payment_Methods::SOFORT ],
+			],
+			'Card (deferred): exclusion list is left intact' => [
+				WC_Stripe_Payment_Methods::CARD,
+				[ WC_Stripe_Payment_Methods::BLIK, WC_Stripe_Payment_Methods::SOFORT ],
+				[ WC_Stripe_Payment_Methods::BLIK, WC_Stripe_Payment_Methods::SOFORT ],
+			],
+		];
+	}
+
+	/**
 	 * Provider for `test_prepare_payment_information_oc_drops_save_flag_when_resolved_method_not_reusable`.
 	 *
 	 * @return array<string, array{string, bool, bool}>

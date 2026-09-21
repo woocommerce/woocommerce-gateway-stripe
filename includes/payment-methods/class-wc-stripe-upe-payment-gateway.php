@@ -3731,8 +3731,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		// The exclusion list keeps plugin-unsupported PMC methods off the intent, mirroring the client Payment Element.
 		if ( $this->is_automatic_payment_methods_eligible( $selected_payment_type, $is_using_saved_payment_method, (bool) $payment_information['has_subscription'], $express_payment_type ) ) {
-			$payment_information['automatic_payment_methods']     = true;
-			$payment_information['excluded_payment_method_types'] = $this->get_excluded_payment_method_types();
+			$payment_information['automatic_payment_methods'] = true;
+
+			// A non-deferred method (BLIK, ACSS) is excluded from the Payment Element for display,
+			// but when the shopper submits its own standalone entry the intent must still allow it,
+			// or Stripe rejects the confirmation of a method its own exclusion list forbids.
+			$payment_information['excluded_payment_method_types'] = array_values(
+				array_diff( $this->get_excluded_payment_method_types(), [ $selected_payment_type ] )
+			);
 		}
 
 		if ( WC_Stripe_Payment_Methods::ACH === $selected_payment_type ) {
