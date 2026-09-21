@@ -22,6 +22,14 @@ class WC_Stripe_Helper {
 	public const PAYMENT_AWAITING_ACTION_META = '_stripe_payment_awaiting_action';
 
 	/**
+	 * Display item key treated as a negative amount by the express checkout client;
+	 * must match the literal in client/express-checkout/utils/normalize.js.
+	 *
+	 * @var string
+	 */
+	public const EXPRESS_CHECKOUT_DISCOUNT_ITEM_KEY = 'total_discount';
+
+	/**
 	 * The identifier for the official Affirm gateway plugin.
 	 *
 	 * @var string
@@ -2362,7 +2370,7 @@ class WC_Stripe_Helper {
 
 		if ( WC()->cart->has_discount() ) {
 			$items[] = [
-				'key'    => 'total_discount',
+				'key'    => self::EXPRESS_CHECKOUT_DISCOUNT_ITEM_KEY,
 				'label'  => esc_html( __( 'Discount', 'woocommerce-gateway-stripe' ) ),
 				'amount' => WC_Stripe_Helper::get_stripe_amount( $discounts ),
 			];
@@ -2372,6 +2380,7 @@ class WC_Stripe_Helper {
 
 		// Include fees and taxes as display items.
 		foreach ( $cart_fees as $fee ) {
+			// ->amount is safe here (cart fees are freshly calculated); order paths must read get_total() instead.
 			$fee_amount = (float) $fee->amount;
 			$item       = [];
 
@@ -2383,7 +2392,7 @@ class WC_Stripe_Helper {
 			// display items exceed the cart total and Stripe rejects the payment sheet with
 			// "the amount is less than the total amount of the line items provided."
 			if ( $fee_amount < 0 ) {
-				$item['key'] = 'total_discount';
+				$item['key'] = self::EXPRESS_CHECKOUT_DISCOUNT_ITEM_KEY;
 			}
 
 			$item['label']  = $fee->name;
