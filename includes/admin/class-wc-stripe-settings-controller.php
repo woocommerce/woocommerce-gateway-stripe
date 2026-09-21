@@ -143,12 +143,13 @@ class WC_Stripe_Settings_Controller {
 		$oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url( '', $mode );
 
 		if ( is_wp_error( $oauth_url ) ) {
-			$transport_error_codes = [
+			$connect_server_error_codes = [
 				'wcc_server_error',
 				'wcc_server_error_content_type',
 				'wcc_server_empty_response',
+				'wcc_server_error_response',
 			];
-			$message               = in_array( $oauth_url->get_error_code(), $transport_error_codes, true )
+			$message                    = in_array( $oauth_url->get_error_code(), $connect_server_error_codes, true )
 				? __( 'An issue occurred generating a connection to Stripe. Please try again.', 'woocommerce-gateway-stripe' )
 				: $oauth_url->get_error_message();
 

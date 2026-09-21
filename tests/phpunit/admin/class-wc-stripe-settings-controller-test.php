@@ -99,9 +99,9 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * @dataProvider provide_oauth_transport_error_codes
+	 * @dataProvider provide_oauth_connect_server_error_codes
 	 */
-	public function test_ajax_get_oauth_url_replaces_transport_errors_with_a_safe_message( string $error_code ) {
+	public function test_ajax_get_oauth_url_replaces_connect_server_errors_with_a_safe_message( string $error_code ) {
 		$request_backup = $_REQUEST;
 		$post_backup    = $_POST;
 		$connect_backup = WC_Stripe::get_instance()->connect;
@@ -139,11 +139,12 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		);
 	}
 
-	public function provide_oauth_transport_error_codes(): array {
+	public function provide_oauth_connect_server_error_codes(): array {
 		return [
-			'server error'         => [ 'wcc_server_error' ],
-			'invalid content type' => [ 'wcc_server_error_content_type' ],
-			'empty response'       => [ 'wcc_server_empty_response' ],
+			'server error'          => [ 'wcc_server_error' ],
+			'invalid content type'  => [ 'wcc_server_error_content_type' ],
+			'empty response'        => [ 'wcc_server_empty_response' ],
+			'server error response' => [ 'wcc_server_error_response' ],
 		];
 	}
 
