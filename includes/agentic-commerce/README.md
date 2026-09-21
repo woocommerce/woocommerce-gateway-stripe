@@ -424,7 +424,7 @@ Whether to support promotions in delegated checkout (mapping Stripe discounts to
 
 Recipes for onboarding catalogs that mix standard SKUs with configurator
 products (WooCommerce Product Add-Ons, TM Extra Product Options, Composite
-Products, individually-priced Bundles) — without writing custom mu-plugin code.
+Products, individually-priced Bundles).
 For live-rate shipping, see [Shipping diagnostics](#shipping-diagnostics) above.
 
 ### Prerequisites (two-step enablement)
