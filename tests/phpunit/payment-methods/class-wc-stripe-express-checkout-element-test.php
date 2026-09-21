@@ -1108,6 +1108,91 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Negative order fees must carry the `total_discount` key so the client re-applies the
+	 * sign; otherwise the display items sum to more than the total and Stripe rejects the sheet.
+	 *
+	 * @param float $fee_amount    Fee total (and amount, when $set_amount) to add to the order.
+	 * @param array $expected_item Expected display item for the fee.
+	 * @param bool  $set_amount    Whether to also set the fee's amount prop.
+	 *
+	 * @return void
+	 * @dataProvider provide_test_localize_pay_for_order_fee_display_items
+	 */
+	public function test_localize_pay_for_order_fee_display_items( $fee_amount, $expected_item, $set_amount = true ) {
+		// Start from a clean script registration so we read only this call's localized data.
+		wp_deregister_script( 'wc_stripe_express_checkout' );
+
+		$order = WC_Helper_Order::create_order();
+
+		$fee = new WC_Order_Item_Fee();
+		$fee->set_name( 'Test fee' );
+		if ( $set_amount ) {
+			$fee->set_amount( $fee_amount );
+		}
+		$fee->set_total( $fee_amount );
+		$order->add_item( $fee );
+		$order->calculate_totals();
+		$order->save();
+
+		$this->element->localize_pay_for_order_page_scripts( $order );
+
+		$params = $this->get_localized_pay_for_order_params();
+
+		$fee_items = array_values(
+			array_filter(
+				$params['displayItems'],
+				function ( $item ) {
+					return 'Test fee' === $item['label'];
+				}
+			)
+		);
+		$this->assertCount( 1, $fee_items );
+		$this->assertSame( $expected_item, $fee_items[0] );
+
+		// With the client-side negation applied, the items must sum to the validated total.
+		$signed_sum = 0;
+		foreach ( $params['displayItems'] as $item ) {
+			$signed_sum += 'total_discount' === ( $item['key'] ?? '' ) ? -$item['amount'] : $item['amount'];
+		}
+		$this->assertSame( $params['total']['amount'], $signed_sum );
+	}
+
+	/**
+	 * Data provider for `test_localize_pay_for_order_fee_display_items`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_localize_pay_for_order_fee_display_items() {
+		return [
+			'negative fee is tagged as a discount' => [
+				'fee_amount'    => -5.00,
+				'expected_item' => [
+					'key'    => 'total_discount',
+					'label'  => 'Test fee',
+					'amount' => 500,
+				],
+			],
+			'positive fee is emitted as-is'        => [
+				'fee_amount'    => 5.00,
+				'expected_item' => [
+					'label'  => 'Test fee',
+					'amount' => 500,
+				],
+			],
+			// Amount never set (REST/admin-edit flows): the builder must key off the total.
+			'negative fee with only total set'     => [
+				'fee_amount'    => -5.00,
+				'expected_item' => [
+					'key'    => 'total_discount',
+					'label'  => 'Test fee',
+					'amount' => 500,
+				],
+				'set_amount'    => false,
+			],
+		];
+	}
+
+	/**
 	 * Decode the localized `wcStripeExpressCheckoutPayForOrderParams` payload back into an array.
 	 *
 	 * `wp_localize_script` stores it as `var wcStripeExpressCheckoutPayForOrderParams = {json};`.

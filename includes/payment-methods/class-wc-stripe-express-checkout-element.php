@@ -365,10 +365,20 @@ class WC_Stripe_Express_Checkout_Element {
 		}
 
 		foreach ( $order->get_fees() as $fee ) {
-			$items[] = [
-				'label'  => $fee->get_name(),
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $fee->get_amount(), $currency ),
-			];
+			// get_total() feeds $order->get_total(); get_amount() can be empty or stale.
+			$fee_total = (float) $fee->get_total();
+			$item      = [];
+
+			// get_stripe_amount() is always non-negative, so tag negative fees for the client
+			// to re-apply the sign; otherwise the items exceed the total and Stripe rejects the sheet.
+			if ( $fee_total < 0 ) {
+				$item['key'] = WC_Stripe_Helper::EXPRESS_CHECKOUT_DISCOUNT_ITEM_KEY;
+			}
+
+			$item['label']  = $fee->get_name();
+			$item['amount'] = WC_Stripe_Helper::get_stripe_amount( abs( $fee_total ), $currency );
+
+			$items[] = $item;
 		}
 
 		$data['order']          = $order->get_id();
