@@ -1431,7 +1431,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * auto-exclude), falling through to the filter reason when a custom hook
 	 * forced it.
 	 *
-	 * @since 10.9.0
+	 * @since 11.1.0
 	 * @param \WC_Product $product Product to inspect.
 	 * @return string|null One of the SYNC_EXCLUSION_REASON_* constants, or null when the product syncs.
 	 */
