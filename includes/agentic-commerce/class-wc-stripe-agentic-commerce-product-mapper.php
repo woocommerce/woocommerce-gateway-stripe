@@ -1353,7 +1353,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 *
 	 * The set of meta keys to check can be filtered via the wc_stripe_agentic_commerce_addon_detection_meta_keys filter.
 	 *
-	 * @since 10.9.0
+	 * @since 11.1.0
 	 * @param \WC_Product $product Product (or variation) to inspect.
 	 * @return bool
 	 */
