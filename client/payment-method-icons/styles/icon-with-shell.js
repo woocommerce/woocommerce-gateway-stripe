@@ -1,7 +1,6 @@
 import React from 'react';
 import clsx from 'clsx';
 import BaseIcon from './base-icon';
-import './icon-with-shell.scss';
 
 /**
  * A payment method icon inside a bordered, padded white "shell".
