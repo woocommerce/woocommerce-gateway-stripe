@@ -158,29 +158,6 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 		$advisories             = [];
 		$advisories_truncated   = 0;
 
-		// Zones that contribute no flat-rate shipping to the feed. Computed once,
-		// independent of the product walk.
-		$shipping_warnings = [];
-		if ( $mapper instanceof WC_Stripe_Agentic_Commerce_Product_Mapper ) {
-			foreach ( $mapper->get_shipping_diagnostics()['zones_without_flat_rate'] as $zone ) {
-				$shipping_warnings[] = [
-					'message'   => sprintf(
-						/* translators: %s: shipping zone name */
-						__( 'Shipping zone "%s" has no flat-rate method, so the feed carries no shipping for it (live-rate / calculated methods price at checkout).', 'woocommerce-gateway-stripe' ),
-						$zone['name']
-					),
-					// Deep-link to the zone's shipping settings so the merchant can act.
-					'edit_link' => add_query_arg(
-						[
-							'page'    => 'wc-settings',
-							'tab'     => 'shipping',
-							'zone_id' => $zone['id'],
-						],
-						admin_url( 'admin.php' )
-					),
-				];
-			}
-		}
 
 		// Zones that contribute no flat-rate shipping to the feed. Computed once,
 		// independent of the product walk.
