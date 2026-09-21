@@ -392,6 +392,50 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Returns the currencies that may be used as the store currency at checkout.
+	 *
+	 * Multi-currency plugins can add their configured currencies so Stripe's admin
+	 * availability checks are not limited to the WooCommerce base currency.
+	 *
+	 * @since 11.1.0
+	 *
+	 * @return string[] Uppercase currency codes.
+	 */
+	public static function get_available_store_currencies(): array {
+		$store_currency             = strtoupper( (string) get_woocommerce_currency() );
+		$available_store_currencies = $store_currency ? [ $store_currency ] : [];
+
+		/**
+		 * Filters the currencies that may be used as the store currency at checkout.
+		 *
+		 * Multi-currency plugins should append their configured currencies to the
+		 * supplied WooCommerce base currency.
+		 *
+		 * @since 11.1.0
+		 *
+		 * @param string[] $available_store_currencies Available currency codes.
+		 */
+		$filtered_currencies = apply_filters( 'wc_stripe_supported_store_currencies', $available_store_currencies );
+
+		if ( ! is_array( $filtered_currencies ) ) {
+			return $available_store_currencies;
+		}
+
+		foreach ( $filtered_currencies as $currency ) {
+			if ( ! is_string( $currency ) ) {
+				continue;
+			}
+
+			$currency = strtoupper( trim( $currency ) );
+			if ( '' !== $currency ) {
+				$available_store_currencies[] = $currency;
+			}
+		}
+
+		return array_values( array_unique( $available_store_currencies ) );
+	}
+
+	/**
 	 * Stripe uses smallest denomination in currencies such as cents.
 	 * We need to format the returned currency from Stripe into human readable form.
 	 * The amount is not used in any calculations so returning string is sufficient.

@@ -65,6 +65,7 @@ jest.mock(
 
 describe( 'GeneralSettingsSection', () => {
 	const globalValues = global.wcSettings;
+	const globalSettingsParams = global.wc_stripe_settings_params;
 
 	/**
 	 * Helper to ensure that the wcSettings global and the getSetting() helper are in sync.
@@ -112,6 +113,7 @@ describe( 'GeneralSettingsSection', () => {
 
 	afterEach( () => {
 		global.wcSettings = globalValues;
+		global.wc_stripe_settings_params = globalSettingsParams;
 	} );
 
 	it( 'should show information to screen readers about the payment methods being updated', async () => {
@@ -358,31 +360,33 @@ describe( 'GeneralSettingsSection', () => {
 		).not.toBeInTheDocument();
 	} );
 
-	it( 'should enable the payment method checkbox and show the requires currency notice when currency is not supported', () => {
+	it( 'should enable a payment method when a currency supplied by a multi-currency plugin is supported', () => {
+		const actual = jest.requireActual(
+			'../../../utils/get-payment-method-unavailable-reason'
+		).default;
+		getPaymentMethodUnavailableReason.mockImplementation( ( ctx ) =>
+			actual( ctx )
+		);
+		global.wc_stripe_settings_params = {
+			...globalSettingsParams,
+			available_store_currencies: [ 'USD', 'EUR' ],
+		};
 		useEnabledPaymentMethodIds.mockReturnValue( [
 			[ PAYMENT_METHOD_CARD ],
 		] );
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			PAYMENT_METHOD_CARD,
-			PAYMENT_METHOD_ALIPAY,
+			PAYMENT_METHOD_SEPA,
 		] );
 		useGetOrderedPaymentMethodIds.mockReturnValue( {
 			orderedPaymentMethodIds: [
 				PAYMENT_METHOD_CARD,
-				PAYMENT_METHOD_ALIPAY,
+				PAYMENT_METHOD_SEPA,
 			],
 			setOrderedPaymentMethodIds: jest.fn(),
 			saveOrderedPaymentMethodIds: jest.fn(),
 		} );
-		getPaymentMethodUnavailableReason.mockImplementation(
-			( { paymentMethodId } ) => {
-				if ( paymentMethodId === PAYMENT_METHOD_ALIPAY ) {
-					return PAYMENT_METHOD_UNAVAILABLE_REASONS.UNSUPPORTED_CURRENCY;
-				}
-				return null;
-			}
-		);
-		mockCurrencyCode( 'EUR' );
+		mockCurrencyCode( 'USD' );
 		render( <GeneralSettingsSection /> );
 
 		expect(
@@ -393,11 +397,13 @@ describe( 'GeneralSettingsSection', () => {
 
 		expect(
 			screen.queryByRole( 'checkbox', {
-				name: 'Alipay',
+				name: 'Direct debit payment',
 			} )
 		).toBeEnabled();
 
-		expect( screen.queryByText( 'Requires currency' ) ).toBeVisible();
+		expect(
+			screen.queryByText( 'Requires currency' )
+		).not.toBeInTheDocument();
 	} );
 
 	it( 'should enable the payment method checkbox and not show the requires currency notice when currency is supported', () => {
@@ -462,7 +468,7 @@ describe( 'GeneralSettingsSection', () => {
 		} );
 
 		expect( cardElement ).toBeEnabled();
-		expect( alipayElement ).toBeEnabled();
+		expect( alipayElement ).not.toBeEnabled();
 		expect( affirmElement ).not.toBeEnabled();
 		expect( sepaElement ).toBeEnabled();
 

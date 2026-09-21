@@ -152,7 +152,11 @@ describe( 'PaymentRequestSection', () => {
 		expect( amazonPayCheckbox ).toBeDisabled();
 	} );
 
-	it( 'Amazon Pay checkbox enabled when the base currency is unsupported', () => {
+	it( 'Amazon Pay checkbox enabled when a currency supplied by a multi-currency plugin is supported', () => {
+		global.wc_stripe_settings_params = {
+			...global.wc_stripe_settings_params,
+			available_store_currencies: [ 'CHF', 'USD' ],
+		};
 		global.wcSettings = {
 			...globalSettings,
 			currency: { code: 'CHF' },
@@ -163,7 +167,9 @@ describe( 'PaymentRequestSection', () => {
 			name: /Amazon Pay Input/i,
 		} );
 		expect( amazonPayCheckbox ).toBeEnabled();
-		expect( screen.getByText( 'Requires currency' ) ).toBeVisible();
+		expect(
+			screen.queryByText( 'Requires currency' )
+		).not.toBeInTheDocument();
 	} );
 
 	it( 'Apple Pay / Google Pay checkbox disabled', () => {

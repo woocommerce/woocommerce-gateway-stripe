@@ -189,6 +189,10 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 				$expected_adaptive_pricing_unavailable_reason,
 				$params['adaptive_pricing_unavailable_reason']
 			);
+			$this->assertSame(
+				WC_Stripe_Helper::get_available_store_currencies(),
+				$params['available_store_currencies']
+			);
 			$this->assertSame( 'accordion', $params['oc_layout'] );
 		} finally {
 			if ( isset( $stripe_singleton_account_backup ) ) {

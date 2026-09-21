@@ -87,7 +87,7 @@ describe( 'PaymentMethod', () => {
 		);
 	} );
 
-	it( 'SEPA payment method should be enabled when the base currency is unsupported', () => {
+	it( 'SEPA payment method should be disabled when payment method is not enabled and not available', () => {
 		const data = {
 			account: {
 				default_currency: 'USD',
@@ -106,7 +106,7 @@ describe( 'PaymentMethod', () => {
 			name: 'Direct debit payment',
 		} );
 		expect( checkbox ).toBeInTheDocument();
-		expect( checkbox ).toBeEnabled();
+		expect( checkbox ).toBeDisabled();
 		expect( checkbox ).not.toBeChecked();
 
 		expect(
