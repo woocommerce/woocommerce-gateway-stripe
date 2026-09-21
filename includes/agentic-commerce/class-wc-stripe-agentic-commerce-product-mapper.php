@@ -1299,10 +1299,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		}
 
 		// The woocommerce_-prefixed name shipped in 10.9.0 anticipating a shared
-		// cross-plugin contract that woocommerce-ai never implemented (WOOAI-636),
-		// so the plugin's own prefix is canonical again. The deprecated name's
-		// result seeds the canonical filter's default, so existing adapters keep
-		// working while a hook on the canonical name wins.
+		// cross-plugin contract that was not implemented.
 		$should_sync = apply_filters_deprecated(
 			'woocommerce_agentic_commerce_should_sync_product',
 			[ $default_should_sync, $product ],
