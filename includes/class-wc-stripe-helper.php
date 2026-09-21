@@ -22,11 +22,8 @@ class WC_Stripe_Helper {
 	public const PAYMENT_AWAITING_ACTION_META = '_stripe_payment_awaiting_action';
 
 	/**
-	 * Display item key the express checkout client treats as a negative amount.
-	 *
-	 * Part of the wire format shared with `normalizeLineItems()` in
-	 * client/express-checkout/utils/normalize.js — the value must stay in sync with
-	 * the literal checked there.
+	 * Display item key treated as a negative amount by the express checkout client;
+	 * must match the literal in client/express-checkout/utils/normalize.js.
 	 *
 	 * @var string
 	 */

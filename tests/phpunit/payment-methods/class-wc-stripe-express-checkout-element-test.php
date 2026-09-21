@@ -1073,13 +1073,12 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A negative order fee (e.g. a discount extension applying its discount as a fee) must be
-	 * tagged with the `total_discount` key so the express checkout client re-applies the sign.
-	 * Without the tag, `get_stripe_amount()` flips the fee positive, the display items sum to
-	 * more than the order total, and Stripe rejects the wallet sheet.
+	 * Negative order fees must carry the `total_discount` key so the client re-applies the
+	 * sign; otherwise the display items sum to more than the total and Stripe rejects the sheet.
 	 *
-	 * @param float $fee_amount    Fee amount to add to the order.
-	 * @param array $expected_item Expected display item for the fee, as decoded from the payload.
+	 * @param float $fee_amount    Fee total (and amount, when $set_amount) to add to the order.
+	 * @param array $expected_item Expected display item for the fee.
+	 * @param bool  $set_amount    Whether to also set the fee's amount prop.
 	 *
 	 * @return void
 	 * @dataProvider provide_test_localize_pay_for_order_fee_display_items
@@ -1092,8 +1091,6 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 
 		$fee = new WC_Order_Item_Fee();
 		$fee->set_name( 'Test fee' );
-		// Some flows (REST, admin line-total edits) set only the total, leaving amount empty.
-		// The builder must key off get_total(), the value that feeds $order->get_total().
 		if ( $set_amount ) {
 			$fee->set_amount( $fee_amount );
 		}
@@ -1117,8 +1114,7 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 		$this->assertCount( 1, $fee_items );
 		$this->assertSame( $expected_item, $fee_items[0] );
 
-		// Stripe rejects the sheet when the display items sum to more than the total, so the
-		// items — with the client-side `total_discount` negation applied — must add up to it.
+		// With the client-side negation applied, the items must sum to the validated total.
 		$signed_sum = 0;
 		foreach ( $params['displayItems'] as $item ) {
 			$signed_sum += 'total_discount' === ( $item['key'] ?? '' ) ? -$item['amount'] : $item['amount'];
@@ -1148,9 +1144,7 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 					'amount' => 500,
 				],
 			],
-			// A negative fee whose amount was never set (only total) must still be tagged and
-			// sized from the total; keying off the empty amount would emit an untagged 0 and
-			// let the display items exceed the order total.
+			// Amount never set (REST/admin-edit flows): the builder must key off the total.
 			'negative fee with only total set'     => [
 				'fee_amount'    => -5.00,
 				'expected_item' => [

@@ -359,16 +359,12 @@ class WC_Stripe_Express_Checkout_Element {
 		}
 
 		foreach ( $order->get_fees() as $fee ) {
-			// get_total() is what feeds $order->get_total(); get_amount() can be empty or
-			// stale (e.g. fees created via REST or edited in admin only set the total).
+			// get_total() feeds $order->get_total(); get_amount() can be empty or stale.
 			$fee_total = (float) $fee->get_total();
 			$item      = [];
 
-			// A negative fee must stay negative once it reaches Stripe, but get_stripe_amount()
-			// always returns a non-negative value. Tag it so the express checkout client
-			// (`normalizeLineItems()`) re-applies the sign, mirroring build_line_items();
-			// otherwise the summed display items exceed the order total and Stripe rejects
-			// the payment sheet.
+			// get_stripe_amount() is always non-negative, so tag negative fees for the client
+			// to re-apply the sign; otherwise the items exceed the total and Stripe rejects the sheet.
 			if ( $fee_total < 0 ) {
 				$item['key'] = WC_Stripe_Helper::EXPRESS_CHECKOUT_DISCOUNT_ITEM_KEY;
 			}
