@@ -30,6 +30,7 @@ class WC_Stripe_REST_Payouts_Controller extends WC_Stripe_REST_Base_Controller {
 		'status',
 		'method',
 		'arrival_date',
+		'livemode',
 		'destination',
 	];
 
@@ -47,6 +48,7 @@ class WC_Stripe_REST_Payouts_Controller extends WC_Stripe_REST_Base_Controller {
 		'data.status',
 		'data.method',
 		'data.arrival_date',
+		'data.livemode',
 		'data.destination.bank_name',
 		'data.destination.last4',
 	];
