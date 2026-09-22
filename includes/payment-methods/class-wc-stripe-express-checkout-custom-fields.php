@@ -6,6 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 use Automattic\WooCommerce\Blocks\Package;
 use Automattic\WooCommerce\Blocks\Domain\Services\CheckoutFields;
+use Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils;
 use Automattic\WooCommerce\StoreApi\StoreApi;
 use Automattic\WooCommerce\StoreApi\Schemas\ExtendSchema;
 use Automattic\WooCommerce\StoreApi\Schemas\V1\CheckoutSchema;
@@ -134,10 +135,6 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 	 * @throws RouteException When a required field is left unfilled.
 	 */
 	private function enforce_required_fields( $request, $custom_checkout_fields, $custom_checkout_data ) {
-		// The checkout block never renders classic-registry fields, including
-		// third-party ones — block-capable plugins register via the Additional
-		// Checkout Fields API, which the Store API validates itself — so enforcing
-		// the classic registry on a block store would refuse every order.
 		if ( ! $this->should_enforce_required_fields( $request ) ) {
 			return;
 		}
@@ -202,14 +199,13 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 	/**
 	 * Whether required classic custom fields should be enforced for this request.
 	 *
-	 * Enforce when the payload is present (it came from a page with the classic
-	 * form) or when the checkout page can render that form. On a block-based
-	 * checkout page the classic fields appear nowhere in the buyer's flow, so
-	 * enforcing them would block every express order; the block checkout's own
-	 * fields are validated by the Store API instead.
+	 * Enforce when the payload is present (the buyer was on a classic form) or the
+	 * checkout page can render those fields. A block checkout renders none —
+	 * third-party fields included, as they use the Additional Checkout Fields API
+	 * that the Store API validates — so enforcing there would refuse every order.
 	 *
-	 * Checked by page ID because a Store API request has no global `$post`, so a
-	 * bare `has_block()` would misreport a block store as classic.
+	 * Block detection uses core's helper (`$post`-safe during a Store API request);
+	 * it is semi-internal, so fall back to a page check when unavailable.
 	 *
 	 * @param WP_REST_Request $request The request object.
 	 * @return bool
@@ -217,6 +213,10 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 	private function should_enforce_required_fields( $request ) {
 		if ( $this->request_has_custom_checkout_data( $request ) ) {
 			return true;
+		}
+
+		if ( is_callable( [ CartCheckoutUtils::class, 'is_checkout_block_default' ] ) ) {
+			return ! CartCheckoutUtils::is_checkout_block_default();
 		}
 
 		return ! has_block( 'woocommerce/checkout', wc_get_page_id( 'checkout' ) );
