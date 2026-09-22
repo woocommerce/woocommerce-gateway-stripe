@@ -121,7 +121,7 @@ jobs:
       - name: Check entries sit under the milestone's version
         # Skipped when the PR has no milestone: without it there is nothing to
         # check the placement against.
-        if: steps.has_changelog_entries.outputs.target_branch != '' && github.event.pull_request.milestone.title != ''
+        if: steps.has_changelog_entries.outputs.target_branch != '' && (github.event.pull_request.milestone?.title ?? '') != ''
         shell: bash
         env:
           MILESTONE: ${{ github.event.pull_request.milestone.title }}
