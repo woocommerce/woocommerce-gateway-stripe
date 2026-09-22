@@ -80,7 +80,10 @@ jest.mock( 'wcstripe/blocks/wait-for-payment-element-completion', () => ( {
 	waitForPaymentElementCompletion: jest.fn(),
 } ) );
 
-const renderProcessor = ( { billingCountry = 'US' } = {} ) => {
+const renderProcessor = ( {
+	billingCountry = 'US',
+	paymentMethodId = 'card',
+} = {} ) => {
 	const props = {
 		api: { getStripe: jest.fn() },
 		activePaymentMethod: 'stripe',
@@ -90,7 +93,7 @@ const renderProcessor = ( { billingCountry = 'US' } = {} ) => {
 			onCheckoutFail: jest.fn(),
 		},
 		emitResponse: {},
-		paymentMethodId: 'card',
+		paymentMethodId,
 		upeMethods: { card: 'stripe' },
 		errorMessage: '',
 		shouldSavePayment: false,
@@ -119,7 +122,9 @@ describe( 'PaymentProcessor billing-country exclusions', () => {
 		);
 		getBlocksConfiguration.mockReturnValue( {
 			shouldShowOptimizedCheckout: true,
-			paymentMethodsConfig: { card: { isReusable: true } },
+			paymentMethodsConfig: {
+				card: { isReusable: true, supportsDeferredIntent: true },
+			},
 		} );
 	} );
 
@@ -156,6 +161,27 @@ describe( 'PaymentProcessor billing-country exclusions', () => {
 		expect( elements.update ).toHaveBeenLastCalledWith( {
 			excludedPaymentMethodTypes: [ 'excluded-for-US' ],
 		} );
+	} );
+
+	it( 'skips the update for a non-deferred method whose element has no mode', () => {
+		// BLIK/ACSS render their own Payment Element created without a `mode`;
+		// excludedPaymentMethodTypes only applies to the mode-based OC element, so
+		// calling update() for them throws a Stripe IntegrationError.
+		getBlocksConfiguration.mockReturnValue( {
+			shouldShowOptimizedCheckout: true,
+			paymentMethodsConfig: {
+				blik: { supportsDeferredIntent: false },
+			},
+		} );
+		const elements = { update: jest.fn() };
+		useElements.mockReturnValue( elements );
+
+		renderProcessor( { paymentMethodId: 'blik' } );
+
+		expect(
+			getExcludedPaymentMethodTypesForBillingCountry
+		).not.toHaveBeenCalled();
+		expect( elements.update ).not.toHaveBeenCalled();
 	} );
 
 	it( 'does not update exclusions when Optimized Checkout is disabled', () => {

@@ -48,4 +48,14 @@ describe( 'applyStyles', () => {
 
 		expect( () => applyStyles() ).not.toThrow();
 	} );
+
+	it( 'does not throw when the OC content and label nodes are absent', () => {
+		// A standalone non-deferred method (BLIK, ACSS) renders as its own payment
+		// option, so the OC container's stripe__content / stripe__label nodes are
+		// not in the DOM when its processor runs applyStyles().
+		document.body.innerHTML =
+			'<div class="wcstripe-payment-element"></div>';
+
+		expect( () => applyStyles() ).not.toThrow();
+	} );
 } );
