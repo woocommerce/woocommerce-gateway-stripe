@@ -700,13 +700,13 @@ describe( 'address normalization', () => {
 		test.each( [
 			[
 				'links to checkout when the server flags it',
-				{ redirect_to_checkout: true, status: 400 },
+				{ link_to_checkout: true, status: 400 },
 				true,
 			],
 			[ 'stays put on the checkout page', { status: 400 }, false ],
 		] )(
 			'%s on missing-required-field errors',
-			async ( _case, data, redirectToCheckout ) => {
+			async ( _case, data, linkToCheckout ) => {
 				const message = 'Size <XL> is a required field.';
 				api.expressCheckoutECECreateOrder.mockRejectedValue( {
 					code: 'wc_stripe_express_checkout_missing_required_fields',
@@ -721,7 +721,7 @@ describe( 'address normalization', () => {
 				expect( abortPayment ).toHaveBeenCalledWith(
 					expect.objectContaining( { expressPaymentType } ),
 					message,
-					{ redirectToCheckout }
+					{ linkToCheckout }
 				);
 				expect( completePayment ).not.toHaveBeenCalled();
 			}

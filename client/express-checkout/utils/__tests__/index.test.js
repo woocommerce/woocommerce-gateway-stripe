@@ -120,7 +120,7 @@ describe( 'Express checkout utils', () => {
 					'Size <XL> is a required field.',
 					'error',
 					undefined,
-					{ redirectToCheckout: true }
+					{ linkToCheckout: true }
 				);
 				expect(
 					screen.getByRole( 'link', { name: 'checkout page' } )

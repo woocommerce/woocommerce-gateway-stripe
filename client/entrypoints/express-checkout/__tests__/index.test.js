@@ -556,7 +556,7 @@ describe( 'Express Checkout order failures', () => {
 		[
 			'checkout link',
 			'Size <XL> is a required field.',
-			{ redirectToCheckout: true },
+			{ linkToCheckout: true },
 		],
 	] )(
 		'fails the wallet sheet and shows the %s when the order errors',
@@ -589,14 +589,13 @@ describe( 'Express Checkout order failures', () => {
 			expect(
 				notice.querySelector( 'a' )?.getAttribute( 'href' ) ?? null
 			).toBe(
-				options.redirectToCheckout
-					? 'https://example.com/checkout/'
-					: null
+				options.linkToCheckout ? 'https://example.com/checkout/' : null
 			);
-			// A tag-like label stays visible as text.
-			expect( notice.textContent ).toBe(
-				options.redirectToCheckout
-					? 'Size <XL> is a required field.Please go to the checkout page.'
+			// A tag-like label stays visible as text, and the sentence sits on its
+			// own line -- textContent reads them as one run because <br> has no text.
+			expect( notice.innerHTML ).toBe(
+				options.linkToCheckout
+					? 'Size &lt;XL&gt; is a required field.<br>Please go to the <a href="https://example.com/checkout/">checkout page</a>.'
 					: message
 			);
 

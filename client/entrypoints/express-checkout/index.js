@@ -869,7 +869,7 @@ jQuery( function ( $ ) {
 		 *
 		 * @param {PaymentResponse} payment Payment response instance.
 		 * @param {string}          message Error message to display.
-		 * @param {Object}          options Set `redirectToCheckout` to link to the checkout page.
+		 * @param {Object}          options Set `linkToCheckout` to link to the checkout page.
 		 */
 		abortPayment: ( payment, message, options = {} ) => {
 			onAbortPaymentHandler( payment, message );

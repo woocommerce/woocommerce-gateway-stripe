@@ -60,7 +60,7 @@ export const useExpressCheckout = ( {
 		( onConfirmEvent, message, options = {} ) => {
 			// If we have a multiline message using newlines, replace them with <br>.
 			let formattedMessage = message.replace( /\n/g, '<br>' );
-			if ( options?.redirectToCheckout ) {
+			if ( options?.linkToCheckout ) {
 				formattedMessage = appendCheckoutLink( formattedMessage );
 			}
 			setExpressPaymentError( formattedMessage );

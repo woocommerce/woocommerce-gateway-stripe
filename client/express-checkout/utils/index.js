@@ -425,7 +425,7 @@ export const appendCheckoutLink = ( noticeHtml ) => {
  * @param {string} message           The message to display.
  * @param {string} type              The type of notice.
  * @param {Array}  additionalClasses Additional classes to add to the notice.
- * @param {Object} options           Set `redirectToCheckout` to append a link to the checkout page.
+ * @param {Object} options           Set `linkToCheckout` to append a link to the checkout page.
  */
 export const displayExpressCheckoutNotice = (
 	message,
@@ -452,7 +452,7 @@ export const displayExpressCheckoutNotice = (
 		.text( message )
 		.html()
 		.replace( /\n/g, '<br>' );
-	if ( options?.redirectToCheckout ) {
+	if ( options?.linkToCheckout ) {
 		safeMessage = appendCheckoutLink( safeMessage );
 	}
 	const note = jQuery(

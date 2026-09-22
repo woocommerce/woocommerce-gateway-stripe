@@ -43,8 +43,7 @@ const handlePaymentFlowException = ( event, exception, abortPayment ) => {
 			event,
 			getExpressCheckoutErrorMessage( errorMessage ),
 			{
-				redirectToCheckout:
-					exception.data?.redirect_to_checkout === true,
+				linkToCheckout: exception.data?.link_to_checkout === true,
 			}
 		);
 	}

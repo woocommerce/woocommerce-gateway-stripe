@@ -237,12 +237,7 @@ class WC_Stripe_Express_Checkout_Element {
 				'no_prepaid_card'  => __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' ),
 				/* translators: Do not translate the [option] placeholder */
 				'unknown_shipping' => __( 'Unknown shipping option "[option]".', 'woocommerce-gateway-stripe' ),
-				'go_to_checkout'   => sprintf(
-					/* translators: 1: opening checkout link, 2: closing checkout link */
-					__( 'Please go to the %1$scheckout page%2$s, fill in the required fields, and complete your order from there.', 'woocommerce-gateway-stripe' ),
-					'<a href="' . esc_url( wc_get_checkout_url() ) . '">',
-					'</a>'
-				),
+				'go_to_checkout'   => $this->get_go_to_checkout_notice(),
 			],
 			'checkout'                   => $this->express_checkout_helper->get_checkout_data(),
 			'button'                     => $this->express_checkout_helper->get_button_settings(),
@@ -451,6 +446,30 @@ class WC_Stripe_Express_Checkout_Element {
 			array_merge( [ 'jquery', 'stripe' ], $asset_data['dependencies'] ),
 			$asset_data['version'],
 			true
+		);
+	}
+
+	/**
+	 * The guidance shown when required custom fields block an express checkout started
+	 * off the checkout page.
+	 *
+	 * Returned as ready-to-render HTML because the notice is injected without a sanitizer:
+	 * kses keeps a translation from introducing anything but the checkout link, and a store
+	 * whose checkout URL resolves to nothing degrades to the same sentence without a link.
+	 *
+	 * @return string
+	 */
+	private function get_go_to_checkout_notice() {
+		$checkout_url = wc_get_checkout_url();
+
+		return wp_kses(
+			sprintf(
+				/* translators: 1: opening checkout link, 2: closing checkout link */
+				__( 'Please go to the %1$scheckout page%2$s, fill in the required fields, and complete your order from there.', 'woocommerce-gateway-stripe' ),
+				$checkout_url ? '<a href="' . esc_url( $checkout_url ) . '">' : '',
+				$checkout_url ? '</a>' : ''
+			),
+			[ 'a' => [ 'href' => [] ] ]
 		);
 	}
 
