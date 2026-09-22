@@ -161,6 +161,7 @@ class WC_Stripe {
 		include_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-order-helper.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-database-cache.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-option-lock.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-duplicate-payment-prevention.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-checkout-session-context.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-payment-method-configurations.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-database-cache-prefetch.php';
