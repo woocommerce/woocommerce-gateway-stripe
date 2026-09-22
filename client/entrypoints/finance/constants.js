@@ -55,4 +55,8 @@ export const DEFAULT_PAYOUTS_VIEW = {
 			bank_details: { width: '40%' },
 		},
 	},
+	sort: {
+		field: 'created',
+		direction: 'desc',
+	},
 };

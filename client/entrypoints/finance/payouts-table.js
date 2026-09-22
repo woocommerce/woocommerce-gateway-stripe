@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { DEFAULT_PAYOUTS_VIEW, PER_PAGE_SIZES } from './constants';
 import fields from './payouts-fields';
 import usePayouts from './use-payouts';
@@ -17,7 +17,6 @@ const EmptyState = () => (
 
 const PayoutsTable = () => {
 	const [ view, setView ] = useState( DEFAULT_PAYOUTS_VIEW );
-	const [ highestPage, setHighestPage ] = useState( 1 );
 
 	const [ cursors, setCursors ] = useState( [ null ] );
 
@@ -28,25 +27,26 @@ const PayoutsTable = () => {
 		cursor,
 	} );
 
-	useEffect( () => {
-		if ( hasMore ) {
-			const nextPage = view.page + 1;
-			if ( nextPage > highestPage ) {
-				setHighestPage( nextPage );
-			}
+	const paginationInfo = useMemo( () => {
+		if ( isLoading ) {
+			return {
+				totalItems: 0,
+				totalPages: 0,
+			};
 		}
-	}, [ hasMore, view.page, highestPage ] );
 
-	const paginationInfo = useMemo(
-		() => ( {
-			totalItems:
-				view.perPage * ( view.page - 1 ) +
-				data.length +
-				( hasMore ? 1 : 0 ),
-			totalPages: highestPage,
-		} ),
-		[ data.length, view.page, view.perPage, hasMore, highestPage ]
-	);
+		const totalItems =
+			view.perPage * ( view.page - 1 ) +
+			data.length +
+			( hasMore ? 1 : 0 );
+		const totalPages =
+			hasMore && data.length === view.perPage ? view.page + 1 : view.page;
+
+		return {
+			totalItems,
+			totalPages,
+		};
+	}, [ isLoading, data, view.page, view.perPage, hasMore ] );
 
 	const onChangeView = useCallback(
 		( nextView ) => {
@@ -57,9 +57,20 @@ const PayoutsTable = () => {
 				return;
 			}
 
+			if ( nextView.page > view.page ) {
+				const lastPayoutId = data[ data.length - 1 ]?.id;
+
+				if ( lastPayoutId ) {
+					setCursors( ( prevCursors ) => [
+						...prevCursors,
+						lastPayoutId,
+					] );
+				}
+			}
+
 			setView( nextView );
 		},
-		[ view.perPage ]
+		[ view.perPage, view.page, data ]
 	);
 
 	const showTable = ! error || data.length > 0;
