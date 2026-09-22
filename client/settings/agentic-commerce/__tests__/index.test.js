@@ -1045,7 +1045,7 @@ describe( 'AgenticCommerceSection', () => {
 		} );
 	} );
 
-	it( 'reflects auto_exclude_addons=true and hides the add-on redirect toggle', async () => {
+	it( 'reflects auto_exclude_addons=true and disables the add-on redirect toggle', async () => {
 		mockFetchByPath( EMPTY_RESPONSE, {
 			is_enabled: true,
 			auto_exclude_addons: true,
@@ -1063,12 +1063,13 @@ describe( 'AgenticCommerceSection', () => {
 		} );
 
 		// Excluding add-on products makes the add-on redirect control moot, so it
-		// is not rendered while exclude is on.
+		// is shown disabled rather than hidden, so merchants can still see the
+		// option exists.
 		expect(
-			screen.queryByLabelText(
+			screen.getByLabelText(
 				/Redirect shoppers to my store for products with add-ons or configurators/i
 			)
-		).not.toBeInTheDocument();
+		).toBeDisabled();
 	} );
 
 	it( 'persists the add-on auto-exclude toggle through a save round-trip', async () => {

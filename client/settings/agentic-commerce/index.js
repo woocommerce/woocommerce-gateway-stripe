@@ -260,17 +260,25 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 									/>
 								) }
 
-								{ isFeatureEnabled && ! autoExcludeAddons && (
+								{ isFeatureEnabled && (
 									<CheckboxControl
 										label={ __(
 											'Redirect shoppers to my store for products with add-ons or configurators',
 											'woocommerce-gateway-stripe'
 										) }
-										help={ __(
-											'Instead of excluding add-on / configurator products, keep them discoverable in agents but send shoppers to your store to configure and complete the purchase. Has no effect on products already excluded above.',
-											'woocommerce-gateway-stripe'
-										) }
+										help={
+											autoExcludeAddons
+												? __(
+														'Add-on / configurator products are excluded from the feed above, so this redirect option does not apply while that is on.',
+														'woocommerce-gateway-stripe'
+												  )
+												: __(
+														'Instead of excluding add-on / configurator products, keep them discoverable in agents but send shoppers to your store to configure and complete the purchase. Has no effect on products already excluded above.',
+														'woocommerce-gateway-stripe'
+												  )
+										}
 										checked={ autoRedirectCheckoutAddons }
+										disabled={ autoExcludeAddons }
 										onChange={
 											setAutoRedirectCheckoutAddons
 										}
