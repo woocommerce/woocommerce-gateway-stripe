@@ -43,9 +43,9 @@ jobs:
             const files = await github.paginate(github.rest.pulls.listFiles, {
               owner: context.repo.owner,
               repo: context.repo.repo,
-           const UPDATE_STATUSES = [ 'changed', 'modified' ];
-           const changelogUpdated = files.some(file => file.filename === 'changelog.txt' && UPDATE_STATUSES.includes( file.status ));
-           const readmeUpdated = files.some(file => file.filename === 'readme.txt' && UPDATE_STATUSES.includes( file.status ));
+            const UPDATE_STATUSES = [ 'changed', 'modified' ];
+            const changelogUpdated = files.some(file => file.filename === 'changelog.txt' && UPDATE_STATUSES.includes( file.status ));
+            const readmeUpdated = files.some(file => file.filename === 'readme.txt' && UPDATE_STATUSES.includes( file.status ));
 
             // Check for PRs that only update readme.txt and/or changelog.txt.
             const releaseMetadataOnly = ( files.length === 1 && ( changelogUpdated || readmeUpdated ) ) || ( files.length ===  2 && changelogUpdated && readmeUpdated );
@@ -121,13 +121,22 @@ jobs:
       - name: Check entries sit under the milestone's version
         # Skipped when the PR has no milestone: without it there is nothing to
         # check the placement against.
-        if: steps.has_changelog_entries.outputs.target_branch != '' && (github.event.pull_request.milestone?.title ?? '') != ''
+        if: steps.has_changelog_entries.outputs.target_branch != '' && github.event.pull_request.milestone.title != ''
         shell: bash
         env:
           MILESTONE: ${{ github.event.pull_request.milestone.title }}
           TARGET_SHA: ${{ steps.has_changelog_entries.outputs.target_sha }}
           PR_SHA: ${{ steps.has_changelog_entries.outputs.pr_sha }}
         run: |
+          # The milestone value is interpolated into the regexes below, so only
+          # run for a plain X.Y.Z version. A free-form milestone title (e.g.
+          # "Future") could otherwise inject regex metacharacters; treat anything
+          # that is not a version as not applicable and skip.
+          if [[ ! "$MILESTONE" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Milestone \"${MILESTONE}\" is not an X.Y.Z version; skipping the placement check."
+            exit 0
+          fi
+
           status=0
           # Dots are regex wildcards, and a version is mostly dots.
           MILESTONE_RE="${MILESTONE//./\\.}"
@@ -167,7 +176,7 @@ jobs:
 
           if [ "$status" -ne 0 ]; then
             echo "Move the entries into the ${MILESTONE} section of both files."
-            echo "\`npm run changelog\` adds to the topmost xxxx-xx-xx section, which is the released one on a branch that predates a release."
+            echo "\`npm run changelog\` adds them to the first xxxx-xx-xx block, which may not be the ${MILESTONE} section when this branch is behind the current release."
             exit 1
           fi
           echo "Changelog entries are under version ${MILESTONE} ✅"
