@@ -79,6 +79,88 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The per-wallet Apple Pay and Google Pay flags must come from the method-specific check,
+	 * not the any-method aggregate: when only another wallet's locations cover the page, the
+	 * aggregate is true but Apple/Google Pay must still be reported as disabled.
+	 *
+	 * @param bool $apple_google_enabled What the helper reports for Apple/Google Pay in this context.
+	 * @dataProvider provide_apple_google_pay_enabled
+	 */
+	public function test_javascript_params_exposes_method_specific_apple_google_pay_flags( $apple_google_enabled ) {
+		$ajax_handler = $this->getMockBuilder( WC_Stripe_Express_Checkout_Ajax_Handler::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $gateway ] )
+			->setMethods( [ 'is_apple_google_pay_enabled', 'is_amazon_pay_enabled', 'is_link_enabled', 'is_express_checkout_enabled' ] )
+			->getMock();
+		$helper->method( 'is_apple_google_pay_enabled' )->willReturn( $apple_google_enabled );
+		// Amazon Pay alone keeps the aggregate true regardless of Apple/Google Pay.
+		$helper->method( 'is_amazon_pay_enabled' )->willReturn( true );
+		$helper->method( 'is_link_enabled' )->willReturn( false );
+		$helper->method( 'is_express_checkout_enabled' )->willReturn( true );
+
+		$element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
+
+		$actual = $element->javascript_params();
+
+		// Both wallets are backed by the shared setting today, so the flags move together.
+		$this->assertSame( $apple_google_enabled, $actual['stripe']['is_apple_pay_enabled'] );
+		$this->assertSame( $apple_google_enabled, $actual['stripe']['is_google_pay_enabled'] );
+		$this->assertTrue( $actual['stripe']['is_express_checkout_enabled'] );
+	}
+
+	/**
+	 * Data provider for {@see test_javascript_params_exposes_method_specific_apple_google_pay_flags()}.
+	 *
+	 * @return array<string, array{0: bool}>
+	 */
+	public function provide_apple_google_pay_enabled() {
+		return [
+			'disabled for this location' => [ false ],
+			'enabled for this location'  => [ true ],
+		];
+	}
+
+	/**
+	 * Only the Store API nonces may be minted at render time; the wc-ajax
+	 * nonces are served on demand so cached pages can't embed expired copies.
+	 *
+	 * @return void
+	 */
+	public function test_javascript_params_only_mints_store_api_nonces() {
+		$stripe_settings['testmode']             = 'yes';
+		$stripe_settings['test_publishable_key'] = 'pk_test_123';
+
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$ajax_handler = $this->getMockBuilder( WC_Stripe_Express_Checkout_Ajax_Handler::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $gateway ] )
+			->getMock();
+
+		$element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
+
+		$nonces = $element->javascript_params()['nonce'];
+
+		$this->assertSame( [ 'wc_store_api', 'wc_store_api_express_checkout' ], array_keys( $nonces ) );
+		$this->assertNotFalse( wp_verify_nonce( $nonces['wc_store_api'], 'wc_store_api' ) );
+		$this->assertNotFalse( wp_verify_nonce( $nonces['wc_store_api_express_checkout'], 'wc_store_api_express_checkout' ) );
+	}
+
+	/**
 	 * Test for `scripts`.
 	 *
 	 * @return void
@@ -986,6 +1068,91 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 				'store_currency'  => 'USD',
 				'order_currency'  => 'USD',
 				'expected_amount' => 5000,
+			],
+		];
+	}
+
+	/**
+	 * Negative order fees must carry the `total_discount` key so the client re-applies the
+	 * sign; otherwise the display items sum to more than the total and Stripe rejects the sheet.
+	 *
+	 * @param float $fee_amount    Fee total (and amount, when $set_amount) to add to the order.
+	 * @param array $expected_item Expected display item for the fee.
+	 * @param bool  $set_amount    Whether to also set the fee's amount prop.
+	 *
+	 * @return void
+	 * @dataProvider provide_test_localize_pay_for_order_fee_display_items
+	 */
+	public function test_localize_pay_for_order_fee_display_items( $fee_amount, $expected_item, $set_amount = true ) {
+		// Start from a clean script registration so we read only this call's localized data.
+		wp_deregister_script( 'wc_stripe_express_checkout' );
+
+		$order = WC_Helper_Order::create_order();
+
+		$fee = new WC_Order_Item_Fee();
+		$fee->set_name( 'Test fee' );
+		if ( $set_amount ) {
+			$fee->set_amount( $fee_amount );
+		}
+		$fee->set_total( $fee_amount );
+		$order->add_item( $fee );
+		$order->calculate_totals();
+		$order->save();
+
+		$this->element->localize_pay_for_order_page_scripts( $order );
+
+		$params = $this->get_localized_pay_for_order_params();
+
+		$fee_items = array_values(
+			array_filter(
+				$params['displayItems'],
+				function ( $item ) {
+					return 'Test fee' === $item['label'];
+				}
+			)
+		);
+		$this->assertCount( 1, $fee_items );
+		$this->assertSame( $expected_item, $fee_items[0] );
+
+		// With the client-side negation applied, the items must sum to the validated total.
+		$signed_sum = 0;
+		foreach ( $params['displayItems'] as $item ) {
+			$signed_sum += 'total_discount' === ( $item['key'] ?? '' ) ? -$item['amount'] : $item['amount'];
+		}
+		$this->assertSame( $params['total']['amount'], $signed_sum );
+	}
+
+	/**
+	 * Data provider for `test_localize_pay_for_order_fee_display_items`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_localize_pay_for_order_fee_display_items() {
+		return [
+			'negative fee is tagged as a discount' => [
+				'fee_amount'    => -5.00,
+				'expected_item' => [
+					'key'    => 'total_discount',
+					'label'  => 'Test fee',
+					'amount' => 500,
+				],
+			],
+			'positive fee is emitted as-is'        => [
+				'fee_amount'    => 5.00,
+				'expected_item' => [
+					'label'  => 'Test fee',
+					'amount' => 500,
+				],
+			],
+			// Amount never set (REST/admin-edit flows): the builder must key off the total.
+			'negative fee with only total set'     => [
+				'fee_amount'    => -5.00,
+				'expected_item' => [
+					'key'    => 'total_discount',
+					'label'  => 'Test fee',
+					'amount' => 500,
+				],
+				'set_amount'    => false,
 			],
 		];
 	}

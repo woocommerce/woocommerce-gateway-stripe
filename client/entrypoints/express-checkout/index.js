@@ -8,6 +8,7 @@ import { __ } from '@wordpress/i18n';
 import {
 	displayExpressCheckoutNotice,
 	displayLoginConfirmation,
+	getDefaultShippingOptions,
 	getExpressCheckoutButtonAppearance,
 	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
@@ -93,12 +94,6 @@ jQuery( function ( $ ) {
 	const useLegacyDisplayItems = hasVariationForm || hasBookingForm;
 
 	const resolveClickEvent = ( event, options ) => {
-		const getDefaultShippingRates = () => {
-			// Return a default shipping option when shipping is required but no rates are provided
-			const defaultShippingOption =
-				getExpressCheckoutData( 'checkout' )?.default_shipping_option;
-			return defaultShippingOption ? [ defaultShippingOption ] : [];
-		};
 		const allowedShippingCountries = getExpressCheckoutData(
 			'allowed_shipping_countries'
 		);
@@ -123,7 +118,7 @@ jQuery( function ( $ ) {
 				shippingRates:
 					options.shippingRates?.length > 0
 						? options.shippingRates
-						: getDefaultShippingRates(),
+						: getDefaultShippingOptions(),
 			} ),
 			...( options.requestShipping &&
 				Array.isArray( allowedShippingCountries ) && {
@@ -227,9 +222,14 @@ jQuery( function ( $ ) {
 
 			const shippingRates = getShippingRates();
 
-			const isExpressCheckoutEnabled =
+			// Deliberately not `is_express_checkout_enabled`: that aggregate is true when
+			// any wallet's locations cover this page, which would render Apple/Google Pay
+			// on pages where only another wallet (e.g. Amazon Pay) is enabled.
+			const isApplePayEnabled =
+				wc_stripe_express_checkout_params?.stripe?.is_apple_pay_enabled; // eslint-disable-line camelcase
+			const isGooglePayEnabled =
 				wc_stripe_express_checkout_params?.stripe // eslint-disable-line camelcase
-					?.is_express_checkout_enabled;
+					?.is_google_pay_enabled;
 			const isAmazonPayEnabled =
 				wc_stripe_express_checkout_params?.stripe // eslint-disable-line camelcase
 					?.is_amazon_pay_enabled;
@@ -250,10 +250,8 @@ jQuery( function ( $ ) {
 			// may require different options or configurations, e.g. Amazon Pay
 			// does not support paymentMethodCreation: 'manual'.
 			const expressPaymentTypes = [
-				isExpressCheckoutEnabled &&
-					EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
-				isExpressCheckoutEnabled &&
-					EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+				isApplePayEnabled && EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+				isGooglePayEnabled && EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 				isAmazonPayEnabled &&
 					! areTaxesBasedOnBillingAddress &&
 					! isChangePaymentMethod &&
@@ -600,7 +598,8 @@ jQuery( function ( $ ) {
 					appearance: getExpressCheckoutButtonAppearance(),
 					locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
 					displayItems: transformLabeledDisplayItems(
-						displayItems ?? []
+						displayItems ?? [],
+						total
 					),
 					order,
 					orderDetails,
@@ -642,7 +641,8 @@ jQuery( function ( $ ) {
 						requestShipping: cartBootstrap.requestShipping,
 						requestPhone: cartBootstrap.requestPhone,
 						displayItems: transformLabeledDisplayItems(
-							cartBootstrap.displayItems ?? []
+							cartBootstrap.displayItems ?? [],
+							cartBootstrap.total
 						),
 					} );
 
@@ -867,17 +867,17 @@ jQuery( function ( $ ) {
 		/**
 		 * Abort the payment and display error messages.
 		 *
-		 * @param {PaymentResponse} payment      Payment response instance.
-		 * @param {string}          message      Error message to display.
-		 * @param {boolean}         isOrderError Whether the error is related to the order creation.
+		 * @param {PaymentResponse} payment Payment response instance.
+		 * @param {string}          message Error message to display.
 		 */
-		abortPayment: ( payment, message, isOrderError = false ) => {
-			if ( ! isOrderError ) {
-				payment.paymentFailed( { reason: 'fail' } );
-			}
+		abortPayment: ( payment, message ) => {
 			onAbortPaymentHandler( payment, message );
-
 			displayExpressCheckoutNotice( message, 'error' );
+
+			// The wallet sheet only closes once the confirm event gets a terminal
+			// result, so order errors must fail it too. A late call rejects an
+			// internal Stripe promise asynchronously, after the message is shown.
+			payment.paymentFailed( { reason: 'fail' } );
 		},
 
 		attachProductPageEventListeners: () => {
@@ -1061,6 +1061,23 @@ jQuery( function ( $ ) {
 		getExpressCheckoutData( 'is_change_payment_method' )
 	) {
 		wcStripeECE.init();
+	}
+
+	// Warm the on-demand nonce bundle at the first sign of intent so wallet
+	// event handlers (tight resolve deadlines) don't pay the round trip.
+	const eceContainer = document.getElementById(
+		'wc-stripe-express-checkout-element'
+	);
+	if ( eceContainer ) {
+		[ 'pointerenter', 'touchstart', 'focusin' ].forEach( ( eventName ) =>
+			eceContainer.addEventListener(
+				eventName,
+				// Warm-up is best-effort: a failed prefetch rejects (and clears
+				// the memo so the real interaction retries), so swallow it here.
+				() => api.expressCheckoutFetchNonces().catch( () => {} ),
+				{ once: true, passive: true }
+			)
+		);
 	}
 
 	// We need to refresh ECE data when total is updated.

@@ -22,6 +22,14 @@ class WC_Stripe_Helper {
 	public const PAYMENT_AWAITING_ACTION_META = '_stripe_payment_awaiting_action';
 
 	/**
+	 * Display item key treated as a negative amount by the express checkout client;
+	 * must match the literal in client/express-checkout/utils/normalize.js.
+	 *
+	 * @var string
+	 */
+	public const EXPRESS_CHECKOUT_DISCOUNT_ITEM_KEY = 'total_discount';
+
+	/**
 	 * The identifier for the official Affirm gateway plugin.
 	 *
 	 * @var string
@@ -1827,6 +1835,43 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Returns the opening tag of a link that opens in a new tab.
+	 *
+	 * Prefer `get_external_link()`. This exists for the strings whose link text sits inside
+	 * the translatable sentence (`%1$sStripe Dashboard%2$s`), where the anchor has to be
+	 * supplied to `sprintf()` in two pieces and no wrapper can reach the text between them.
+	 * Callers are responsible for the matching `</a>`.
+	 *
+	 * @param string $url       URL to link to.
+	 * @param string $css_class Optional CSS class for the anchor.
+	 * @return string
+	 */
+	public static function get_external_link_open_tag( string $url, string $css_class = '', string $title = '' ): string {
+		return sprintf(
+			'<a href="%1$s"%2$s%3$s target="_blank" rel="noopener noreferrer">',
+			esc_url( $url ),
+			'' === $css_class ? '' : ' class="' . esc_attr( $css_class ) . '"',
+			'' === $title ? '' : ' title="' . esc_attr( $title ) . '"'
+		);
+	}
+
+	/**
+	 * Returns a complete link that opens in a new tab.
+	 *
+	 * Mirrors the `ExternalLink` component the React settings screens use, so a Stripe
+	 * Dashboard link behaves the same whether PHP or React rendered it. `noopener noreferrer`
+	 * keeps the opened page from reaching back through `window.opener`.
+	 *
+	 * @param string $url       URL to link to.
+	 * @param string $text      Optional link text. Defaults to the URL itself.
+	 * @param string $css_class Optional CSS class for the anchor.
+	 * @return string
+	 */
+	public static function get_external_link( string $url, string $text = '', string $css_class = '', string $title = '' ): string {
+		return self::get_external_link_open_tag( $url, $css_class, $title ) . esc_html( '' === $text ? $url : $text ) . '</a>';
+	}
+
+	/**
 	 * Returns a supported locale for setting Klarna's "preferred_locale".
 	 * While Stripe allows for localization of Klarna's payments page, it still
 	 * limits the locale to the billing country's set of supported locales. For example,
@@ -2209,6 +2254,23 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Returns the account-level gate values the Customize express checkouts settings pages localize
+	 * for their placement simulator. These gates apply to every express method (Apple Pay/Google Pay,
+	 * Amazon Pay, Link), so they live here rather than being duplicated across the three controllers.
+	 *
+	 * @return array{is_account_connected: bool, is_https: bool, is_test_mode: bool}
+	 */
+	public static function get_express_checkout_simulator_gate_params(): array {
+		return [
+			'is_account_connected' => self::is_connected(),
+			// is_ssl() would report the admin request's scheme, not the storefront's; the configured
+			// site URLs are what the storefront gate will effectively see.
+			'is_https'             => wp_is_using_https(),
+			'is_test_mode'         => WC_Stripe_Mode::is_test(),
+		];
+	}
+
+	/**
 	 * Checks if the order is using a Stripe payment method.
 	 *
 	 * @param $order WC_Order The order to check.
@@ -2308,7 +2370,7 @@ class WC_Stripe_Helper {
 
 		if ( WC()->cart->has_discount() ) {
 			$items[] = [
-				'key'    => 'total_discount',
+				'key'    => self::EXPRESS_CHECKOUT_DISCOUNT_ITEM_KEY,
 				'label'  => esc_html( __( 'Discount', 'woocommerce-gateway-stripe' ) ),
 				'amount' => WC_Stripe_Helper::get_stripe_amount( $discounts ),
 			];
@@ -2318,10 +2380,25 @@ class WC_Stripe_Helper {
 
 		// Include fees and taxes as display items.
 		foreach ( $cart_fees as $fee ) {
-			$items[] = [
-				'label'  => $fee->name,
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $fee->amount ),
-			];
+			// ->amount is safe here (cart fees are freshly calculated); order paths must read get_total() instead.
+			$fee_amount = (float) $fee->amount;
+			$item       = [];
+
+			// A negative fee (e.g. a discount extension applying its discount as a cart fee
+			// instead of a coupon) must stay negative once it reaches Stripe, but
+			// get_stripe_amount() always returns a non-negative minor-unit value. Tag it the
+			// same way the coupon discount item above is tagged so the express checkout
+			// client (`normalizeLineItems()`) re-applies the sign; otherwise the summed
+			// display items exceed the cart total and Stripe rejects the payment sheet with
+			// "the amount is less than the total amount of the line items provided."
+			if ( $fee_amount < 0 ) {
+				$item['key'] = self::EXPRESS_CHECKOUT_DISCOUNT_ITEM_KEY;
+			}
+
+			$item['label']  = $fee->name;
+			$item['amount'] = WC_Stripe_Helper::get_stripe_amount( abs( $fee_amount ) );
+
+			$items[] = $item;
 		}
 
 		return $items;
