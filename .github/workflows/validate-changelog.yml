@@ -52,9 +52,7 @@ jobs:
             const changelogUpdated = files.some(file => file.filename === 'changelog.txt');
             const readmeUpdated = files.some(file => file.filename === 'readme.txt');
 
-            // A PR that changes nothing but the release metadata files is the
-            // changelog work itself (release notes, a stable tag bump, fixing an
-            // entry), and those legitimately touch only one of the two files.
+            // Check for PRs that only update readme.txt and/or changelog.txt.
             const releaseMetadataOnly = files.length > 0
               && files.every(file => RELEASE_METADATA_FILES.includes(file.filename));
 
