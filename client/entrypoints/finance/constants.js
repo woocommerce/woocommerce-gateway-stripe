@@ -39,10 +39,10 @@ export const DEFAULT_PAYOUTS_VIEW = {
 	fields: [
 		'created',
 		'arrival_date',
-		'amount',
 		'status',
 		'bank_details',
 		'id',
+		'amount',
 	],
 	layout: {
 		density: 'balanced',
