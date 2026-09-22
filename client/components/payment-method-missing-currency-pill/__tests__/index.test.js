@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { act } from 'react';
 import { screen, render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import PaymentMethodMissingCurrencyPill from '..';
 import { usePaymentMethodCurrencies } from 'utils/use-payment-method-currencies';
 
@@ -19,8 +20,8 @@ describe( 'PaymentMethodMissingCurrencyPill', () => {
 		usePaymentMethodCurrencies.mockReturnValue( [ 'EUR' ] );
 	} );
 
-	it( 'should render the "Requires currency" text when currency is not supported', () => {
-		render(
+	it( 'should render the currency requirement when currency is not supported', async () => {
+		const { container } = render(
 			<PaymentMethodMissingCurrencyPill
 				id="bancontact"
 				label="Bancontact"
@@ -28,5 +29,17 @@ describe( 'PaymentMethodMissingCurrencyPill', () => {
 		);
 
 		expect( screen.queryByText( 'Requires currency' ) ).toBeInTheDocument();
+
+		await act( async () => {
+			await userEvent.click(
+				container.querySelector( 'svg' ).parentElement
+			);
+		} );
+
+		expect(
+			screen.queryByText(
+				'Bancontact will only be shown at checkout when the customer pays in EUR'
+			)
+		).toBeInTheDocument();
 	} );
 } );

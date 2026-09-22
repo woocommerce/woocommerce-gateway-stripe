@@ -1,10 +1,7 @@
 import React from 'react';
-import interpolateComponents from '@automattic/interpolate-components';
 import { __, sprintf } from '@wordpress/i18n';
 import { usePaymentMethodCurrencies } from 'utils/use-payment-method-currencies';
-import PaymentMethodUnavailablePill, {
-	PaymentMethodPopoverLink,
-} from 'wcstripe/components/payment-method-unavailable-pill';
+import PaymentMethodUnavailablePill from 'wcstripe/components/payment-method-unavailable-pill';
 
 const PaymentMethodMissingCurrencyPill = ( { id, label } ) => {
 	const paymentMethodCurrencies = usePaymentMethodCurrencies( id );
@@ -12,22 +9,15 @@ const PaymentMethodMissingCurrencyPill = ( { id, label } ) => {
 		<PaymentMethodUnavailablePill
 			title={ __( 'Requires currency', 'woocommerce-gateway-stripe' ) }
 		>
-			{ interpolateComponents( {
-				mixedString: sprintf(
-					/* translators: $1: a payment method name. %2: Currency(ies). */
-					__(
-						'%1$s requires store currency to be set to %2$s. {{currencySettingsLink}}Set currency{{/currencySettingsLink}}',
-						'woocommerce-gateway-stripe'
-					),
-					label,
-					paymentMethodCurrencies.join( ', ' )
+			{ sprintf(
+				/* translators: %1$s: Payment method name. %2$s: Supported currency codes. */
+				__(
+					'%1$s will only be shown at checkout when the customer pays in %2$s',
+					'woocommerce-gateway-stripe'
 				),
-				components: {
-					currencySettingsLink: (
-						<PaymentMethodPopoverLink href="/wp-admin/admin.php?page=wc-settings&tab=general" />
-					),
-				},
-			} ) }
+				label,
+				paymentMethodCurrencies.join( ', ' )
+			) }
 		</PaymentMethodUnavailablePill>
 	);
 };
