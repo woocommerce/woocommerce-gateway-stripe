@@ -163,6 +163,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 11.1.0 - xxxx-xx-xx =
 * Add - Handle Stripe `mandate.updated` to update order and subscription status for mandate-based payments
+* Fix - Return an error response when a Payment Method Configuration update fails in settings, so the frontend correctly displays an error instead of a false success notice
+* Update - Show the specific Stripe error reason in the settings save notice when a Payment Method Configuration update is rejected
 * Fix - Show the correct guidance when a subscription renewal fails because its Stripe mandate is invalid
 * Fix - Ensure retry with a saved payment method works after a declined Adaptive Pricing payment attempt on classic checkout
 * Fix - Allow classic checkout payments without a WooCommerce billing country field when Adaptive Pricing is enabled
@@ -183,7 +185,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - When checking if unpaid orders should be cancelled, get the Stripe payment status, and update orders with Stripe payment details
 * Dev - Block outbound HTTP requests from unit tests
 * Add - Show the originating AI agent in the WooCommerce order Origin column for Agentic Commerce orders
+* Update - Reduce the size of the express checkout JS bundle
 * Fix - Show the on-page 3D Secure authentication modal instead of a full-page redirect for card payments under Optimized Checkout with Dynamic Payment Methods
 * Tweak - Agentic Commerce: surface shipping zones with no flat-rate method (which contribute no shipping to the feed) in the feed preview and logs
+* Fix - Show negative order fees as negative line items in Express Checkout on the Pay for Order page
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
