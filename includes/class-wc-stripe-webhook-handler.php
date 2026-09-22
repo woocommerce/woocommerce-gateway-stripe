@@ -2311,18 +2311,19 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				// The order is created and linked by the shopper's browser via the Store API,
 				// which can outlast a single deferred window — re-queue before conceding.
 				if ( $retry_count < $this->adaptive_pricing_order_lookup_max_retries ) {
+					$next_retry_count = $retry_count + 1;
 					WC_Stripe_Logger::info(
 						'Completed Adaptive Pricing checkout session has no matching order yet; re-queueing.',
 						[
 							'session_id'  => $session_id,
-							'retry_count' => $retry_count + 1,
+							'retry_count' => $next_retry_count,
 						]
 					);
 					$this->defer_webhook_processing(
 						$notification,
 						[
 							'session_id'  => $session_id,
-							'retry_count' => $retry_count + 1,
+							'retry_count' => $next_retry_count,
 						]
 					);
 					return true;
