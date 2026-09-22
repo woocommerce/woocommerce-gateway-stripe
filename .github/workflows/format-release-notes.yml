@@ -26,7 +26,7 @@ jobs:
           ref: ${{ inputs.branch }}
 
       - name: Format release notes with Claude
-        uses: anthropics/claude-code-action@fa2b2666b747000bf42767d1f332065b375e3c8f # v1.0.214
+        uses: anthropics/claude-code-action@51db78a4b844e144f8d02425cb280435c04a3474 # v1.0.224
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |

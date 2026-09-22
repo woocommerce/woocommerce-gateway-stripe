@@ -4,6 +4,7 @@
 import { screen, render } from '@testing-library/react';
 import {
 	displayExpressCheckoutNotice,
+	getDefaultShippingOptions,
 	getErrorMessageFromNotice,
 	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
@@ -17,10 +18,13 @@ import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_LINK,
 } from 'wcstripe/stripe-utils/constants';
-import { isAmazonPayEnabled, isLinkEnabled } from 'wcstripe/stripe-utils';
+import { isAmazonPayEnabled } from 'wcstripe/stripe-utils/is-amazon-pay-enabled';
+import { isLinkEnabled } from 'wcstripe/stripe-utils/is-link-enabled';
 
-jest.mock( 'wcstripe/stripe-utils', () => ( {
+jest.mock( 'wcstripe/stripe-utils/is-amazon-pay-enabled', () => ( {
 	isAmazonPayEnabled: jest.fn(),
+} ) );
+jest.mock( 'wcstripe/stripe-utils/is-link-enabled', () => ( {
 	isLinkEnabled: jest.fn(),
 } ) );
 
@@ -42,6 +46,33 @@ describe( 'Express checkout utils', () => {
 		};
 
 		expect( getExpressCheckoutData( 'ajax_url' ) ).toBe( 'test' );
+	} );
+
+	describe( 'getDefaultShippingOptions', () => {
+		afterEach( () => {
+			window.wc_stripe_express_checkout_params = {};
+		} );
+
+		test( 'returns the server-provided default option wrapped in an array', () => {
+			const defaultShippingOption = {
+				id: 'pending',
+				displayName: 'Pending',
+				amount: 0,
+			};
+			window.wc_stripe_express_checkout_params = {
+				checkout: { default_shipping_option: defaultShippingOption },
+			};
+
+			expect( getDefaultShippingOptions() ).toEqual( [
+				defaultShippingOption,
+			] );
+		} );
+
+		test( 'returns an empty array when no default option is configured', () => {
+			window.wc_stripe_express_checkout_params = { checkout: {} };
+
+			expect( getDefaultShippingOptions() ).toEqual( [] );
+		} );
 	} );
 
 	test( 'getErrorMessageFromNotice strips formatting', () => {

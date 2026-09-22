@@ -10,6 +10,7 @@ import {
 } from 'wcstripe/express-checkout/event-handler';
 import {
 	displayExpressCheckoutNotice,
+	getDefaultShippingOptions,
 	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
 	normalizeLineItems,
@@ -92,11 +93,7 @@ export const useExpressCheckout = ( {
 
 				// Return a default shipping option, as a non-empty shippingRates array
 				// is required when shippingAddressRequired is true.
-				const defaultShippingOption =
-					getExpressCheckoutData(
-						'checkout'
-					)?.default_shipping_option;
-				return defaultShippingOption ? [ defaultShippingOption ] : [];
+				return getDefaultShippingOptions();
 			};
 
 			const lineItems = normalizeLineItems( billing.cartTotalItems ).map(

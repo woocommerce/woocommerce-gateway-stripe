@@ -492,6 +492,86 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 			);
 		}
 	}
+
+	/**
+	 * A configured zone with no flat-rate method surfaces as a shipping warning.
+	 *
+	 * @return void
+	 */
+	public function test_preview_flags_zone_without_flat_rate(): void {
+		$zone = new WC_Shipping_Zone();
+		$zone->set_zone_name( 'Preview No-Flat-Rate Zone' );
+		$zone->save();
+
+		$product = $this->create_valid_product();
+		$this->scope_to( [ $product->get_id() ] );
+
+		try {
+			$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
+
+			$joined = implode( "\n", array_column( $preview['shipping_warnings'], 'message' ) );
+			$this->assertStringContainsString( 'Preview No-Flat-Rate Zone', $joined );
+
+			// The warning deep-links to that zone's shipping settings.
+			$links = implode( "\n", array_column( $preview['shipping_warnings'], 'edit_link' ) );
+			$this->assertStringContainsString(
+				'page=wc-settings&tab=shipping&zone_id=' . $zone->get_id(),
+				$links
+			);
+		} finally {
+			$zone->delete();
+		}
+	}
+
+	/**
+	 * The shipping warnings carry warning severity by default, and drop to
+	 * info when store-wide redirect is on: shipping is then computed at the
+	 * merchant's own checkout, so a missing feed price cannot undercharge.
+	 *
+	 * @return void
+	 */
+	public function test_shipping_warnings_severity_follows_checkout_mode(): void {
+		$product = $this->create_valid_product();
+		$this->scope_to( [ $product->get_id() ] );
+
+		try {
+			$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
+			$this->assertSame( 'warning', $preview['shipping_warnings_severity'] );
+
+			update_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION, 'yes' );
+			$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
+			$this->assertSame( 'info', $preview['shipping_warnings_severity'] );
+		} finally {
+			delete_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
+		}
+	}
+
+	/**
+	 * The catch-all zone 0 surfaces as a shipping warning even when a named zone
+	 * exists and ships, mirroring the get_shipping_diagnostics() behavior.
+	 *
+	 * @return void
+	 */
+	public function test_preview_flags_default_zone_alongside_named_zones(): void {
+		$named = new WC_Shipping_Zone();
+		$named->set_zone_name( 'Preview Covered Zone' );
+		$named->save();
+		// Free shipping counts as a static (flat) cost, so this zone ships.
+		$named->add_shipping_method( 'free_shipping' );
+
+		$product = $this->create_valid_product();
+		$this->scope_to( [ $product->get_id() ] );
+
+		try {
+			$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
+
+			$joined = implode( "\n", array_column( $preview['shipping_warnings'], 'message' ) );
+			$this->assertStringContainsString( 'Locations not covered by your other zones', $joined );
+			$this->assertStringNotContainsString( 'Preview Covered Zone', $joined );
+		} finally {
+			$named->delete();
+		}
+	}
 }
 
 /**
