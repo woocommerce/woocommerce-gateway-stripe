@@ -36,7 +36,7 @@ class WC_Stripe_REST_Payouts_Controller extends WC_Stripe_REST_Base_Controller {
 	];
 
 	protected const STRIPE_SINGLE_EXPAND_PARAM = [
-		'data.destination',
+		'destination',
 	];
 
 	protected const STRIPE_LIST_RESPONSE_ALLOWED_FIELDS = [
