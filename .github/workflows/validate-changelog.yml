@@ -137,10 +137,6 @@ jobs:
           TARGET_SHA: ${{ steps.has_changelog_entries.outputs.target_sha }}
           PR_SHA: ${{ steps.has_changelog_entries.outputs.pr_sha }}
         run: |
-          # An entry added while an older version was still unreleased stays in that
-          # block through the later merges, so it ships documented under a version
-          # that went out before the change did. The milestone names the version the
-          # entry belongs under.
           status=0
           # Dots are regex wildcards, and a version is mostly dots.
           MILESTONE_RE="${MILESTONE//./\\.}"
