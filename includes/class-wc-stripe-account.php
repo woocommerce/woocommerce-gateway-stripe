@@ -336,6 +336,21 @@ class WC_Stripe_Account {
 	}
 
 	/**
+	 * Per-mode option name for a webhook notice flag.
+	 *
+	 * Webhook detection is per mode ('live'/'test'), so the notice flags must be
+	 * too: a global flag lets a successful reconfigure of one mode clear the other
+	 * mode's outstanding notice, silently hiding that a live endpoint is still gone.
+	 *
+	 * @param string $base One of the WEBHOOK_*_NOTICE_OPTION constants.
+	 * @param string $mode 'live' or 'test'.
+	 * @return string
+	 */
+	public static function get_webhook_notice_option( string $base, string $mode ): string {
+		return $base . ( 'live' === $mode ? '_live' : '_test' );
+	}
+
+	/**
 	 * Configures webhooks for the account.
 	 *
 	 * @param string $mode The mode to configure webhooks for. Either 'live' or 'test'. Default is 'live'.
@@ -384,9 +399,10 @@ class WC_Stripe_Account {
 
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
-		// A successful (re)configuration resolves whatever the webhook notices were flagging.
-		delete_option( self::WEBHOOK_MANUAL_SECRET_NOTICE_OPTION );
-		delete_option( self::WEBHOOK_MISSING_NOTICE_OPTION );
+		// A successful (re)configuration resolves whatever this mode's webhook notices
+		// were flagging. Scoped to $mode so it can't clear the other mode's notice.
+		delete_option( self::get_webhook_notice_option( self::WEBHOOK_MANUAL_SECRET_NOTICE_OPTION, $mode ) );
+		delete_option( self::get_webhook_notice_option( self::WEBHOOK_MISSING_NOTICE_OPTION, $mode ) );
 
 		// After reconfiguring webhooks, clear the webhook state.
 		WC_Stripe_Webhook_State::clear_state();
@@ -675,7 +691,7 @@ class WC_Stripe_Account {
 					&& ( ! $existing_webhook || ( $existing_webhook->id ?? '' ) !== $stored_webhook_id )
 					&& ! $this->webhook_endpoint_exists( $stored_webhook_id )
 				) {
-					update_option( self::WEBHOOK_MISSING_NOTICE_OPTION, 'yes' );
+					update_option( self::get_webhook_notice_option( self::WEBHOOK_MISSING_NOTICE_OPTION, $mode ), 'yes' );
 					WC_Stripe_Logger::info( "Stored webhook {$stored_webhook_id} for {$mode} mode no longer exists in the Stripe account." );
 				}
 
@@ -700,7 +716,7 @@ class WC_Stripe_Account {
 				);
 
 				if ( $secret_is_manual ) {
-					update_option( self::WEBHOOK_MANUAL_SECRET_NOTICE_OPTION, 'yes' );
+					update_option( self::get_webhook_notice_option( self::WEBHOOK_MANUAL_SECRET_NOTICE_OPTION, $mode ), 'yes' );
 					WC_Stripe_Logger::info( "Skipped automatic webhook reconfiguration for {$mode} mode: the stored signing secret was set manually." );
 					continue;
 				}
