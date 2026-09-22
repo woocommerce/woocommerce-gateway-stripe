@@ -222,6 +222,7 @@
     "minimatch@3": "^3.1.5",
     "minimatch@9": "^9.0.9",
     "serialize-javascript": "^7.0.5",
-    "adm-zip": "^0.6.1"
+    "adm-zip": "^0.6.1",
+    "webpack-dev-server": "^5.2.1"
   }
 }
