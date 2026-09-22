@@ -473,7 +473,7 @@ Additional meta fields can be added using the `wc_stripe_agentic_commerce_addon_
 add_filter(
     'wc_stripe_agentic_commerce_addon_detection_meta_keys',
     function ( array $meta_keys, WC_Product $product ): array {
-        $meta_keys[] = '_my_configurator_options';
+        $meta_keys[] = '_my_configurator_meta';
         return $meta_keys;
     },
     10,
