@@ -340,6 +340,13 @@ const PaymentProcessor = ( {
 		paymentMethodsConfig,
 	] );
 
+	// Non-deferred methods (BLIK, ACSS) render their own Payment Element, created
+	// without a `mode`. `excludedPaymentMethodTypes` is only valid on the
+	// deferred-intent (mode-based) OC element, so calling update() below for them
+	// throws a Stripe IntegrationError that crashes the checkout React tree.
+	const supportsDeferredIntent =
+		paymentMethodsConfig?.[ paymentMethodId ]?.supportsDeferredIntent;
+
 	// Refresh the OC element's country-restricted exclusions on billing-country
 	// changes; Adaptive Pricing's initCheckout() has no update(), so it's skipped.
 	useEffect( () => {
@@ -349,7 +356,8 @@ const PaymentProcessor = ( {
 			// would exclude every country-restricted method from the preview.
 			stripeServerData?.isAdmin ||
 			! elements ||
-			typeof elements.update !== 'function'
+			typeof elements.update !== 'function' ||
+			! supportsDeferredIntent
 		) {
 			return;
 		}
@@ -367,6 +375,7 @@ const PaymentProcessor = ( {
 		billing?.billingAddress?.country,
 		stripeServerData?.shouldShowOptimizedCheckout,
 		stripeServerData?.isAdmin,
+		supportsDeferredIntent,
 	] );
 
 	// After web fonts finish loading, re-compute the appearance so the PE
