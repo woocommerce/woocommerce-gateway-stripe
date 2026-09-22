@@ -11,7 +11,7 @@ import {
 
 jest.mock( '@woocommerce/blocks-checkout', () => {}, { virtual: true } );
 
-jest.mock( 'wcstripe/stripe-utils', () => ( {
+jest.mock( 'wcstripe/stripe-utils/get-stripe-server-data', () => ( {
 	getStripeServerData: jest.fn( () => ( {
 		isCheckout: true,
 	} ) ),
