@@ -82,9 +82,9 @@ class WC_Stripe_Account {
 	 */
 	protected const WEBHOOK_STATUS_CACHE_KEY = 'webhook_status';
 
-	/** Metadata stamped on endpoints this plugin creates, so cleanup can tell them from merchant-created ones. */
-	public const WEBHOOK_METADATA_CREATED_BY_KEY   = 'created_by';
-	public const WEBHOOK_METADATA_CREATED_BY_VALUE = 'woocommerce_gateway_stripe';
+	/** Metadata stamped on endpoints this plugin creates, so cleanup can tell them from merchant-created ones. Internal to this class. */
+	protected const WEBHOOK_METADATA_CREATED_BY_KEY   = 'created_by';
+	protected const WEBHOOK_METADATA_CREATED_BY_VALUE = 'woocommerce_gateway_stripe';
 
 	/** Option flagging that reconfiguration was skipped over a manually set signing secret. */
 	public const WEBHOOK_MANUAL_SECRET_NOTICE_OPTION = 'wc_stripe_show_webhook_manual_secret_notice';
@@ -611,10 +611,13 @@ class WC_Stripe_Account {
 	 * Whether a webhook endpoint still exists in the connected Stripe account.
 	 * Only resource_missing counts as gone, so a transient API failure can't raise a false alarm.
 	 *
+	 * Protected: it queries whichever secret key WC_Stripe_API currently holds, so callers
+	 * must set the mode's key first (as maybe_reconfigure_webhooks_on_update() does).
+	 *
 	 * @param string $webhook_id The webhook endpoint ID to check.
 	 * @return bool
 	 */
-	public function webhook_endpoint_exists( string $webhook_id ): bool {
+	protected function webhook_endpoint_exists( string $webhook_id ): bool {
 		$response = $this->stripe_api::retrieve( "webhook_endpoints/{$webhook_id}" );
 
 		if ( is_wp_error( $response ) || ! is_object( $response ) ) {

@@ -371,7 +371,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	 */
 	public function test_delete_previously_configured_webhooks_with_exclusion() {
 		$webhook_url = WC_Stripe_Helper::get_webhook_url();
-		$plugin_meta = (object) [ WC_Stripe_Account::WEBHOOK_METADATA_CREATED_BY_KEY => WC_Stripe_Account::WEBHOOK_METADATA_CREATED_BY_VALUE ];
+		$plugin_meta = (object) [ 'created_by' => 'woocommerce_gateway_stripe' ];
 
 		// Mock the API retrieve.
 		WC_Helper_Stripe_Api::$retrieve_response = (object) [
@@ -438,7 +438,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	 */
 	public function test_delete_previously_configured_webhooks_without_exclusion() {
 		$webhook_url = WC_Stripe_Helper::get_webhook_url();
-		$plugin_meta = (object) [ WC_Stripe_Account::WEBHOOK_METADATA_CREATED_BY_KEY => WC_Stripe_Account::WEBHOOK_METADATA_CREATED_BY_VALUE ];
+		$plugin_meta = (object) [ 'created_by' => 'woocommerce_gateway_stripe' ];
 
 		// A settings-recorded endpoint predating the metadata stamp stays eligible for cleanup.
 		$settings                 = WC_Stripe_Helper::get_stripe_settings();
@@ -859,9 +859,11 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			parse_str( $captured_body, $captured_body );
 		}
 
+		// Literals pin the exact wire contract stamped on the endpoint (the
+		// constants are protected on WC_Stripe_Account).
 		$this->assertSame(
-			WC_Stripe_Account::WEBHOOK_METADATA_CREATED_BY_VALUE,
-			$captured_body['metadata'][ WC_Stripe_Account::WEBHOOK_METADATA_CREATED_BY_KEY ] ?? null
+			'woocommerce_gateway_stripe',
+			$captured_body['metadata']['created_by'] ?? null
 		);
 
 		$settings = WC_Stripe_Helper::get_stripe_settings();
