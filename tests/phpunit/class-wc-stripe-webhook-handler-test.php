@@ -1667,6 +1667,24 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Backward compatibility: handle_checkout_session_success() must keep its single
+	 * protected parameter. Adding one (the deferred retry count rides on the instance
+	 * instead) fatals PHP 8+ subclasses that override it with the original signature.
+	 *
+	 * @return void
+	 */
+	public function test_handle_checkout_session_success_keeps_single_parameter_signature(): void {
+		$method = new ReflectionMethod( WC_Stripe_Webhook_Handler::class, 'handle_checkout_session_success' );
+
+		$this->assertTrue( $method->isProtected() );
+		$this->assertSame(
+			1,
+			$method->getNumberOfParameters(),
+			'Adding a parameter to this protected method breaks subclasses that override the one-argument signature on PHP 8+.'
+		);
+	}
+
+	/**
 	 * @return array<string, array{0: string}>
 	 */
 	public function provide_deferred_checkout_session_success_event_types(): array {

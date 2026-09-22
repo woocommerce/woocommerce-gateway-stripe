@@ -89,6 +89,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	protected $adaptive_pricing_order_lookup_max_retries = 3;
 
 	/**
+	 * Retry count for the deferred Adaptive Pricing session lookup currently being handled.
+	 *
+	 * Carried on the instance rather than as a handle_checkout_session_success() parameter:
+	 * that method is protected and third-party subclasses may override it, and adding a
+	 * parameter to the parent fatals such a subclass on PHP 8+ when it kept the old signature.
+	 *
+	 * @var int
+	 */
+	private $adaptive_pricing_order_lookup_retry_count = 0;
+
+	/**
 	 * The Action Scheduler hook to use when retrying a webhook.
 	 *
 	 * @var string
@@ -1782,8 +1793,15 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				case 'checkout.session.async_payment_succeeded':
 					// If the order is still locked or not created yet, this re-queues itself again;
 					// don't fire the action now — the retry that settles the payment fires it.
-					if ( $this->handle_checkout_session_success( $notification, (int) ( $additional_data['retry_count'] ?? 0 ) ) ) {
-						return;
+					// The retry count rides on the instance so handle_checkout_session_success()
+					// keeps its one-parameter protected signature (subclasses may override it).
+					$this->adaptive_pricing_order_lookup_retry_count = (int) ( $additional_data['retry_count'] ?? 0 );
+					try {
+						if ( $this->handle_checkout_session_success( $notification ) ) {
+							return;
+						}
+					} finally {
+						$this->adaptive_pricing_order_lookup_retry_count = 0;
 					}
 					break;
 				case 'checkout.session.expired':
@@ -2274,11 +2292,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Handles a deferred checkout session success event.
 	 *
+	 * The deferred retry count is read from $this->adaptive_pricing_order_lookup_retry_count
+	 * rather than a parameter, to keep this protected signature stable for subclasses.
+	 *
 	 * @param object $notification The Stripe notification containing the checkout session data.
-	 * @param int    $retry_count  How many times this event has already been re-queued while waiting for its order.
 	 * @return bool True if the event was re-queued for async processing, false if handled inline.
 	 */
-	protected function handle_checkout_session_success( object $notification, int $retry_count = 0 ): bool {
+	protected function handle_checkout_session_success( object $notification ): bool {
+		$retry_count = $this->adaptive_pricing_order_lookup_retry_count;
 		$checkout_session = $notification->data->object;
 
 		$session_id = $checkout_session->id;
