@@ -107,9 +107,9 @@ class WC_Payment_Token_Becs_Debit_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_getters_setters(): array {
 		return [
-			'last4'               => [ 'set_last4', 'get_last4', '4356', 'The last4 property should match the value that was set.' ],
-			'payment_method_type' => [ 'set_payment_method_type', 'get_payment_method_type', 'au_becs_debit_test', 'The payment_method_type property should match the value that was set.' ],
-			'fingerprint'         => [ 'set_fingerprint', 'get_fingerprint', 'test_fp_becs_123', 'The fingerprint property should match the value that was set.' ],
+			'token'       => [ 'set_token', 'get_token', 'pm_test_becs_123', 'The token property should match the value that was set.' ],
+			'last4'       => [ 'set_last4', 'get_last4', '4356', 'The last4 property should match the value that was set.' ],
+			'fingerprint' => [ 'set_fingerprint', 'get_fingerprint', 'test_fp_becs_123', 'The fingerprint property should match the value that was set.' ],
 		];
 	}
 
