@@ -19,10 +19,13 @@ import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_LINK,
 } from 'wcstripe/stripe-utils/constants';
-import { isAmazonPayEnabled, isLinkEnabled } from 'wcstripe/stripe-utils';
+import { isAmazonPayEnabled } from 'wcstripe/stripe-utils/is-amazon-pay-enabled';
+import { isLinkEnabled } from 'wcstripe/stripe-utils/is-link-enabled';
 
-jest.mock( 'wcstripe/stripe-utils', () => ( {
+jest.mock( 'wcstripe/stripe-utils/is-amazon-pay-enabled', () => ( {
 	isAmazonPayEnabled: jest.fn(),
+} ) );
+jest.mock( 'wcstripe/stripe-utils/is-link-enabled', () => ( {
 	isLinkEnabled: jest.fn(),
 } ) );
 
