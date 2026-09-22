@@ -1766,6 +1766,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	public function provide_adaptive_pricing_order_lookup_retry_counts(): array {
 		return [
 			'first deferred run re-queues'   => [ 0, 1 ],
+			'second deferred run re-queues'  => [ 1, 2 ],
 			'last allowed retry re-queues'   => [ 2, 3 ],
 			'max retries reached — gives up' => [ 3, null ],
 		];
