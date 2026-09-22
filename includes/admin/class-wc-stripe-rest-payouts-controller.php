@@ -47,7 +47,8 @@ class WC_Stripe_REST_Payouts_Controller extends WC_Stripe_REST_Base_Controller {
 		'data.status',
 		'data.method',
 		'data.arrival_date',
-		'data.destination',
+		'data.destination.bank_name',
+		'data.destination.last4',
 	];
 
 	protected const STRIPE_LIST_EXPAND_PARAM = [ 'data.destination' ];
