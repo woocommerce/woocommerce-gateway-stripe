@@ -140,12 +140,12 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Scope the preview to a fixed set of product IDs.
+	 * Limit the preview's product query to a fixed set of product IDs.
 	 *
 	 * @param int[] $ids Product IDs.
 	 * @return void
 	 */
-	private function scope_to( array $ids ): void {
+	private function limit_product_query_to_product_ids( array $ids ): void {
 		$this->scoped_ids = $ids;
 		add_filter( 'wc_stripe_agentic_commerce_product_query_args', [ $this, 'restrict_query' ] );
 	}
@@ -206,7 +206,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 			2
 		);
 
-		$this->scope_to( [ $valid->get_id(), $invalid->get_id(), $excluded->get_id() ] );
+		$this->limit_product_query_to_product_ids( [ $valid->get_id(), $invalid->get_id(), $excluded->get_id() ] );
 
 		$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
 
@@ -230,7 +230,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 		$invalid = $this->create_invalid_product( 'Needs A Category' );
 		$valid   = $this->create_valid_product();
 
-		$this->scope_to( [ $invalid->get_id(), $valid->get_id() ] );
+		$this->limit_product_query_to_product_ids( [ $invalid->get_id(), $valid->get_id() ] );
 
 		$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
 
@@ -259,7 +259,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 
 		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', '__return_false' );
 
-		$this->scope_to( [ $excluded->get_id() ] );
+		$this->limit_product_query_to_product_ids( [ $excluded->get_id() ] );
 
 		$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
 
@@ -281,7 +281,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 			$ids[] = $this->create_invalid_product( "Invalid {$i}" )->get_id();
 		}
 
-		$this->scope_to( $ids );
+		$this->limit_product_query_to_product_ids( $ids );
 
 		$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate( 2 );
 
@@ -307,7 +307,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 
 		add_filter( 'woocommerce_data_stores', [ $this, 'register_subscription_variation_store' ] );
 		add_filter( 'woocommerce_product_class', [ $this, 'map_variation_to_subscription' ], 10, 2 );
-		$this->scope_to( $variation_ids );
+		$this->limit_product_query_to_product_ids( $variation_ids );
 
 		$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
 
@@ -336,7 +336,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 		$this->subscription_product_id = $product->get_id();
 		wp_set_object_terms( $product->get_id(), 'subscription', 'product_type' );
 
-		$this->scope_to( [ $product->get_id() ] );
+		$this->limit_product_query_to_product_ids( [ $product->get_id() ] );
 
 		$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
 
@@ -355,7 +355,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 		$excluded = $this->create_valid_product();
 
 		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', '__return_false' );
-		$this->scope_to( [ $excluded->get_id() ] );
+		$this->limit_product_query_to_product_ids( [ $excluded->get_id() ] );
 
 		$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
 
@@ -383,7 +383,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 		$hidden->set_catalog_visibility( 'hidden' );
 		$hidden->save();
 
-		$this->scope_to( [ $protected->get_id(), $hidden->get_id() ] );
+		$this->limit_product_query_to_product_ids( [ $protected->get_id(), $hidden->get_id() ] );
 
 		$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
 
@@ -411,7 +411,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$this->scope_to( [ $product->get_id() ] );
+		$this->limit_product_query_to_product_ids( [ $product->get_id() ] );
 
 		$preview   = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
 		$breakdown = $preview['excluded_breakdown'];
@@ -434,7 +434,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 			$ids[] = $this->create_valid_product()->get_id();
 		}
 
-		$this->scope_to( $ids );
+		$this->limit_product_query_to_product_ids( $ids );
 
 		$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate( WC_Stripe_Agentic_Commerce_Feed_Preview::DEFAULT_DETAIL_LIMIT, 2 );
 
@@ -448,7 +448,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_complete_walk_is_not_flagged_as_partial(): void {
-		$this->scope_to( [ $this->create_valid_product()->get_id() ] );
+		$this->limit_product_query_to_product_ids( [ $this->create_valid_product()->get_id() ] );
 
 		$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
 
@@ -479,7 +479,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 			$variation->save();
 		}
 
-		$this->scope_to( $variation_ids );
+		$this->limit_product_query_to_product_ids( $variation_ids );
 
 		$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
 
@@ -501,7 +501,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 	 */
 	public function test_preview_exposes_advisory_and_shipping_keys(): void {
 		$product = $this->create_valid_product();
-		$this->scope_to( [ $product->get_id() ] );
+		$this->limit_product_query_to_product_ids( [ $product->get_id() ] );
 
 		$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
 
@@ -524,11 +524,11 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 		$with_sku->set_sku( 'PMC-WIDGET-1' );
 		$with_sku->save();
 
-		$this->scope_to( [ $no_sku->get_id(), $with_sku->get_id() ] );
+		$this->limit_product_query_to_product_ids( [ $no_sku->get_id(), $with_sku->get_id() ] );
 
 		$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
 
-		$no_sku_ids = $this->advisory_ids_of_type( $preview['advisories'], 'no_sku' );
+		$no_sku_ids = $this->get_advisory_ids_of_type( $preview['advisories'], 'no_sku' );
 		$this->assertContains( $no_sku->get_id(), $no_sku_ids );
 		$this->assertNotContains( $with_sku->get_id(), $no_sku_ids );
 	}
@@ -551,7 +551,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 			2
 		);
 
-		$this->scope_to( [ $excluded->get_id() ] );
+		$this->limit_product_query_to_product_ids( [ $excluded->get_id() ] );
 
 		$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
 
@@ -577,7 +577,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 		update_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION, 'yes' );
 
 		$product = $this->create_valid_product();
-		$this->scope_to( [ $product->get_id() ] );
+		$this->limit_product_query_to_product_ids( [ $product->get_id() ] );
 
 		try {
 			$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
@@ -607,7 +607,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 	 */
 	public function test_preview_disable_checkout_advisory_uses_single_evaluation(): void {
 		$product = $this->create_valid_product();
-		$this->scope_to( [ $product->get_id() ] );
+		$this->limit_product_query_to_product_ids( [ $product->get_id() ] );
 
 		// Redirects on the first evaluation, then flips. A second resolve while
 		// building diagnostics would read the flipped value and mislabel the row.
@@ -661,7 +661,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 		};
 		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $filter, 10, 2 );
 
-		$this->scope_to( [ $excluded->get_id() ] );
+		$this->limit_product_query_to_product_ids( [ $excluded->get_id() ] );
 
 		try {
 			$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
@@ -692,7 +692,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 		$zone->save();
 
 		$product = $this->create_valid_product();
-		$this->scope_to( [ $product->get_id() ] );
+		$this->limit_product_query_to_product_ids( [ $product->get_id() ] );
 
 		try {
 			$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
@@ -720,7 +720,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 	 */
 	public function test_shipping_warnings_severity_follows_checkout_mode(): void {
 		$product = $this->create_valid_product();
-		$this->scope_to( [ $product->get_id() ] );
+		$this->limit_product_query_to_product_ids( [ $product->get_id() ] );
 
 		try {
 			$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
@@ -748,7 +748,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 		$named->add_shipping_method( 'free_shipping' );
 
 		$product = $this->create_valid_product();
-		$this->scope_to( [ $product->get_id() ] );
+		$this->limit_product_query_to_product_ids( [ $product->get_id() ] );
 
 		try {
 			$preview = ( new WC_Stripe_Agentic_Commerce_Feed_Preview() )->generate();
@@ -768,7 +768,7 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 	 * @param string $type       Advisory type to filter on.
 	 * @return int[]
 	 */
-	private function advisory_ids_of_type( array $advisories, string $type ): array {
+	private function get_advisory_ids_of_type( array $advisories, string $type ): array {
 		$ids = [];
 		foreach ( $advisories as $advisory ) {
 			if ( $type === $advisory['type'] ) {

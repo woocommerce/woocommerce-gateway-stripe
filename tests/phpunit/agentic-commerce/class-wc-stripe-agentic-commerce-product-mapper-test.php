@@ -1498,13 +1498,17 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * product_has_addons() detects the WooCommerce Product Add-Ons meta key.
+	 * product_has_addons() flags a product carrying any of the built-in
+	 * configurator meta keys, not only WooCommerce Product Add-Ons.
 	 *
+	 * @dataProvider provider_addon_detection_meta_keys
+	 * @param string $meta_key   Configurator meta key under test.
+	 * @param mixed  $meta_value Representative non-empty value for that key.
 	 * @return void
 	 */
-	public function test_product_has_addons_detects_product_addons_meta() {
+	public function test_product_has_addons_detects_configurator_meta( string $meta_key, $meta_value ) {
 		$product = WC_Helper_Product::create_simple_product();
-		$product->update_meta_data( '_product_addons', [ [ 'name' => 'Engraving' ] ] );
+		$product->update_meta_data( $meta_key, $meta_value );
 		$product->save();
 
 		try {
@@ -1512,6 +1516,19 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		} finally {
 			$product->delete( true );
 		}
+	}
+
+	/**
+	 * Built-in configurator meta keys, each with a representative non-empty value.
+	 *
+	 * @return array<string, array{0: string, 1: mixed}>
+	 */
+	public function provider_addon_detection_meta_keys(): array {
+		return [
+			'WooCommerce Product Add-Ons' => [ '_product_addons', [ [ 'name' => 'Engraving' ] ] ],
+			'TM Extra Product Options'    => [ 'tm_meta_cpf_options', [ 'enabled' => 'yes' ] ],
+			'Composite Products'          => [ 'composite_data', [ 'component_1' => [ 'title' => 'Frame' ] ] ],
+		];
 	}
 
 	/**

@@ -505,7 +505,7 @@ specific products from the feed, hook `wc_stripe_agentic_commerce_should_sync_pr
 add_filter(
     'wc_stripe_agentic_commerce_should_sync_product',
     function ( bool $should_sync, WC_Product $product ): bool {
-        return get_post_meta( $product->get_id(), '_hide_from_agents', true ) ? false : $should_sync;
+        return $product->get_meta( '_hide_from_agents' ) ? false : $should_sync;
     },
     10,
     2
