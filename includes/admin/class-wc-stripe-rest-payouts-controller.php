@@ -31,7 +31,8 @@ class WC_Stripe_REST_Payouts_Controller extends WC_Stripe_REST_Base_Controller {
 		'method',
 		'arrival_date',
 		'livemode',
-		'destination',
+		'destination.bank_name',
+		'destination.last4',
 	];
 
 	protected const STRIPE_SINGLE_EXPAND_PARAM = [
