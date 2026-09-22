@@ -1,7 +1,25 @@
 @use '../../styles/abstracts/styles';
 
+$stripe-payments-background-color: var(--wpds-color-background-surface-neutral, #fcfcfc);
 .wc-stripe-payments {
-	.wc-stripe-payments__tabs .components-tab-panel__tabs-item {
-		font-weight: 600;
+	.wc-stripe-payments__tabs {
+		margin-left: -22px;
+		margin-right: -20px;
+
+		.components-tab-panel__tabs {
+			border-bottom: 1px solid var(--wpds-color-stroke-surface-neutral, #dbdbdb);
+		}
+
+		.components-tab-panel__tabs-item {
+			font-weight: 600;
+		}
+
+		.dataviews-wrapper {
+			background-color: $stripe-payments-background-color;
+		}
 	}
+}
+
+body.wp-admin.payments_page_wc-stripe-payments {
+	background-color: $stripe-payments-background-color;
 }
