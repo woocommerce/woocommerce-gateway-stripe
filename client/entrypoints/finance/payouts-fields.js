@@ -82,7 +82,7 @@ const fields = [
 		filterBy: false,
 		getValue: ( { item } ) =>
 			sprintf(
-				'%1$s (%2%s)',
+				'%1$s (%2$s)',
 				item.destination?.bank_name ?? '',
 				item.destination?.last4 ?? ''
 			),
