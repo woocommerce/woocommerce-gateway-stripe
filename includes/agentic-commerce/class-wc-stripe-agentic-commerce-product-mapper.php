@@ -1307,9 +1307,6 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 			'The woocommerce_agentic_commerce_should_sync_product filter is deprecated since WooCommerce Stripe Gateway 11.1.0. Use wc_stripe_agentic_commerce_should_sync_product instead.'
 		);
 
-		// wp_validate_boolean() rather than a plain (bool) cast: an adapter that
-		// returns the string 'false' would be truthy under a cast and wrongly
-		// sync the product. This still normalises null / 0 / '' to false.
 		/**
 		 * Filter whether a product should be included in any Agentic Commerce sync.
 		 *
@@ -1339,7 +1336,12 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		 *                                 hidden from catalog and search.
 		 * @param \WC_Product $product     Product being evaluated.
 		 */
-		return wp_validate_boolean( apply_filters( 'wc_stripe_agentic_commerce_should_sync_product', $should_sync, $product ) );
+		$should_sync = apply_filters( 'wc_stripe_agentic_commerce_should_sync_product', $should_sync, $product );
+
+		// wp_validate_boolean() rather than a plain (bool) cast: an adapter that
+		// returns the string 'false' would be truthy under a cast and wrongly
+		// sync the product. This still normalises null / 0 / '' to false.
+		return wp_validate_boolean( $should_sync );
 	}
 
 	/**
@@ -1350,7 +1352,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * The product meta checks include the following:
 	 *  - Product Add-Ons - `_product_addons`
 	 *  - TM Extra Product Options - `tm_meta_cpf_options`
-	 *  - Composite Products - `composite_data` 
+	 *  - Composite Products - `composite_data`
 	 *  - Product Bundles when they are priced individually - `_wc_pb_priced_individually` is `'yes'`
 	 *
 	 * The set of meta keys to check can be filtered via the wc_stripe_agentic_commerce_addon_detection_meta_keys filter.
@@ -1388,10 +1390,12 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		 * @param \WC_Product $product    The product (or variation) inspected.
 		 * @param \WC_Product $target     The product whose meta was read (parent for variations).
 		 */
+		$has_addons = apply_filters( 'wc_stripe_agentic_commerce_product_has_addon', $has_addons, $product, $target );
+
 		// wp_validate_boolean() rather than a plain (bool) cast: a callback that
 		// returns the string 'false' would otherwise cast to true and wrongly flag
 		// the product as configurable, matching the sibling filters above.
-		return wp_validate_boolean( apply_filters( 'wc_stripe_agentic_commerce_product_has_addon', $has_addons, $product, $target ) );
+		return wp_validate_boolean( $has_addons );
 	}
 
 	/**
