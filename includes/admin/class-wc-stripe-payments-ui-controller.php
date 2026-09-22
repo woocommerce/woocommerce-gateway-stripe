@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Registers the top-level Finance admin menu and renders the Stripe section.
+ * Registers the Payments -> Stripe admin submenu and renders the Stripe Payments UI.
  *
  * @since 11.1.0
  */
@@ -146,7 +146,7 @@ class WC_Stripe_Payments_UI_Controller {
 	}
 
 	/**
-	 * Registers and enqueues the finance assets on this page only.
+	 * Registers and enqueues the payments UI assets when needed.
 	 *
 	 * @param string|null $hook_suffix The current admin page hook suffix.
 	 * @return void
@@ -156,7 +156,7 @@ class WC_Stripe_Payments_UI_Controller {
 			return;
 		}
 
-		$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/finance.asset.php';
+		$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/payments-admin.asset.php';
 		$script_asset      = file_exists( $script_asset_path )
 			? require $script_asset_path
 			: [
@@ -166,14 +166,14 @@ class WC_Stripe_Payments_UI_Controller {
 
 		wp_register_script(
 			'wc-stripe-admin-payments',
-			plugins_url( 'build/finance.js', WC_STRIPE_MAIN_FILE ),
+			plugins_url( 'build/payments-admin.js', WC_STRIPE_MAIN_FILE ),
 			$script_asset['dependencies'],
 			$script_asset['version'],
 			true
 		);
 		wp_register_style(
 			'wc-stripe-admin-payments',
-			plugins_url( 'build/finance.css', WC_STRIPE_MAIN_FILE ),
+			plugins_url( 'build/payments-admin.css', WC_STRIPE_MAIN_FILE ),
 			[ 'wc-components' ],
 			$script_asset['version']
 		);
@@ -194,7 +194,7 @@ class WC_Stripe_Payments_UI_Controller {
 	}
 
 	/**
-	 * Builds the params for the Finance UI.
+	 * Builds the params for the Payments UI.
 	 *
 	 * The minor-unit currency lists are passed through rather than duplicated in
 	 * JS so PHP stays the single source of truth for Stripe's exponent rules.
