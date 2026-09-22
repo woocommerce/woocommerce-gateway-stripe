@@ -3,10 +3,8 @@
 use Automattic\WooCommerce\Enums\OrderStatus;
 
 /**
- * Tests for the duplicate-charge guard glue on WC_Stripe_UPE_Payment_Gateway.
- *
- * Covers the gateway-side decisions that wire {@see WC_Stripe_Duplicate_Payment_Prevention} into
- * process_payment(): when the guard key applies, and how a superseded order is cancelled.
+ * Tests the duplicate-charge guard glue on WC_Stripe_UPE_Payment_Gateway: when the guard key
+ * applies, and how a superseded order is cancelled.
  *
  * @package WooCommerce/Stripe/WC_Stripe_UPE_Payment_Gateway
  */

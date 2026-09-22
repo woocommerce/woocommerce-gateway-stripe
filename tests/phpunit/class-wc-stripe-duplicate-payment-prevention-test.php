@@ -136,9 +136,8 @@ class WC_Stripe_Duplicate_Payment_Prevention_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A recorded order that later lost its paid standing (cancelled, refunded, failed, or reset to
-	 * pending, all of which keep date_paid) must not block a genuine repurchase; a still-paid order
-	 * must.
+	 * A recorded order that later lost its paid standing (cancelled, refunded, failed, pending, all
+	 * of which keep date_paid) must not block a repurchase; a still-paid one must.
 	 *
 	 * @param string $status   The status the recorded order ends in.
 	 * @param bool   $expected Whether it should still be returned as a duplicate.

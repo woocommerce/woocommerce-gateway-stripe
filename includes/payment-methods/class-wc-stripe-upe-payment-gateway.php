@@ -315,9 +315,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// Add a notice about currency conversion in the order confirmation emails when the order currency is different from the store currency.
 		add_action( 'woocommerce_email_after_order_table', [ $this, 'add_email_currency_conversion_notice' ], 10, 3 );
 
-		// Once the shopper reaches the order-received page, the paid cart is no longer at risk of an
-		// accidental duplicate submission, so release its duplicate-charge record. Runs on both
-		// classic and Blocks confirmation, without depending on the confirmation template contents.
+		// Clear the duplicate-charge record once the shopper reaches the order-received page.
 		add_action( 'template_redirect', [ $this, 'maybe_clear_duplicate_payment_record' ] );
 
 		// Hide action buttons for pending orders if they take a while to be confirmed.
@@ -1607,16 +1605,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Duplicate-charge guard for the standard checkout charge path (deferred intent and saved
-		// tokens). The Adaptive Pricing Checkout Session path above returns before this and carries
-		// its own guard.
+		// tokens). The Adaptive Pricing Checkout Session path above returns first and has its own guard.
 		$duplicate_guard_key   = $this->get_duplicate_charge_guard_key( $order );
 		$duplicate_guard_owner = null;
 		if ( '' !== $duplicate_guard_key && $order instanceof WC_Order ) {
 			$duplicate_guard_owner = WC_Stripe_Duplicate_Payment_Prevention::acquire_lock( $duplicate_guard_key );
 
-			// A concurrent submission of the same cart already holds the lock and is charging it.
-			// Turn this one away without charging; the order stays pending so a retry can resume it
-			// once the first attempt settles.
+			// A concurrent submission of the same cart holds the lock and is charging it. Turn this
+			// one away without charging; its order stays pending so a retry can resume it.
 			if ( null === $duplicate_guard_owner ) {
 				return [
 					'result'   => 'failure',
@@ -1625,8 +1621,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				];
 			}
 
-			// Under the lock, a resubmit that landed after the first attempt already paid this cart is
-			// redirected to that order instead of charging again.
+			// A resubmit that landed after the first attempt already paid this cart is redirected to
+			// that order instead of charging again.
 			$already_paid_order = WC_Stripe_Duplicate_Payment_Prevention::get_recent_paid_order( $order );
 			if ( $already_paid_order instanceof WC_Order ) {
 				$this->cancel_order_superseded_by_paid_cart( $order, $already_paid_order );
@@ -1650,10 +1646,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			$result = $this->process_payment_with_deferred_intent( $order_id );
 
-			// Record the paid cart so an interrupted response that leaves the shopper on checkout
-			// cannot resubmit into a second charge. Re-read the order for its fresh paid state; on
-			// 3DS/redirect methods the order is not paid here and is recorded on the async return
-			// instead (see process_order_for_confirmed_intent()).
+			// Record the paid cart so a resubmit cannot charge again. 3DS/redirect methods are not paid
+			// here and are recorded on the async return (see process_order_for_confirmed_intent()).
 			if ( is_array( $result ) && 'success' === ( $result['result'] ?? '' ) ) {
 				$paid_order = wc_get_order( $order_id );
 				if ( $paid_order instanceof WC_Order ) {
@@ -1670,15 +1664,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Builds the per-cart key used to guard against a duplicate charge, or '' when the guard
-	 * should not apply to this request.
+	 * Builds the per-cart guard key, or '' when the guard should not apply.
 	 *
-	 * The guard covers only a genuine "pay the session cart" checkout. It is skipped for flows that
-	 * settle a pre-existing order rather than the shopper's live cart: paying for an order (classic
-	 * pay-for-order and the Store API order route), changing a subscription's payment method, and
-	 * the add-payment-method page. It also requires the order to represent the live cart, so a
-	 * resubmit of an interrupted checkout (cart still intact) is covered while paying an unrelated
-	 * order is not.
+	 * Covers only a genuine "pay the session cart" checkout: pay-for-order, subscription
+	 * payment-method changes, and add-payment-method are skipped, and the order must represent the
+	 * live cart, so a resubmit of an interrupted checkout is covered but paying an unrelated order is
+	 * not.
 	 *
 	 * @param WC_Order|WC_Order_Refund|bool $order The order being processed.
 	 * @return string The md5 cart key, or '' when the guard does not apply.
@@ -1707,8 +1698,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return '';
 		}
 
-		// A resubmit of an interrupted checkout still holds the same items, so the new order's cart
-		// hash matches the live cart; paying a pre-existing order does not.
+		// A resubmit still holds the same items, so its order's cart hash matches the live cart;
+		// paying a pre-existing order does not.
 		if ( ! hash_equals( (string) $order->get_cart_hash(), (string) $cart->get_cart_hash() ) ) {
 			return '';
 		}
@@ -1717,12 +1708,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Cancels the redundant order core minted for a resubmit whose cart was already paid, and
-	 * empties the cart before redirecting the shopper to the order already paid.
+	 * Cancels the redundant order core minted for a resubmit and empties the cart.
 	 *
-	 * Only cancels while the redundant order is still pending or failed, so a paid order is never
-	 * touched. The transition it produces (pending/failed -> cancelled) does not trigger the core
-	 * customer cancellation email, which fires only from processing/on-hold.
+	 * Only cancels a pending or failed order, so a paid order is never touched. The pending/failed
+	 * to cancelled transition does not trigger the core cancellation email (that fires only from
+	 * processing/on-hold).
 	 *
 	 * @param WC_Order $redundant_order The order core created for the resubmit.
 	 * @param WC_Order $paid_order      The order already paid for this cart.
@@ -1746,11 +1736,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Releases the duplicate-charge record once the shopper reaches the order-received page.
+	 * Clears the duplicate-charge record once the shopper reaches the order-received page.
 	 *
-	 * Reaching confirmation proves the order succeeded, so a later repurchase of the same items is
-	 * deliberate. Hooked on `template_redirect` rather than `woocommerce_thankyou` so it does not
-	 * depend on the confirmation template rendering a particular block.
+	 * Hooked on `template_redirect` rather than `woocommerce_thankyou` so it does not depend on the
+	 * confirmation template rendering a particular block.
 	 *
 	 * @return void
 	 */
@@ -2978,9 +2967,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$order->save();
 
-		// Record the paid cart on the browser-side async return (3DS/SCA and redirect APMs), so an
-		// interrupted redirect that leaves the shopper on checkout cannot resubmit into a second
-		// charge. No-op unless the order is actually paid.
+		// Record the paid cart on the async return (3DS/SCA and redirect APMs) so a resubmit cannot
+		// charge again. No-op unless the order is paid.
 		WC_Stripe_Duplicate_Payment_Prevention::record_paid_order( $order );
 	}
 
