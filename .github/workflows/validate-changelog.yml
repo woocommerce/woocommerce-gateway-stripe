@@ -104,15 +104,12 @@ jobs:
         env:
           CHANGELOG_DIFF: ${{ steps.get_changelog_diff.outputs.changelog-diff }}
         run: |
-          # Matched per line with grep: a bash regex needs the newlines around the
-          # entry, and the one after the last line is stripped from the step output,
-          # which hid an offending entry whenever it was the final line of the diff.
-          # [[:blank:]] is spaces and tabs; the class has to be bracketed twice, and
-          # [:space:] alone silently means the characters : s p a c e.
-          # A here-string rather than a pipe into grep: with pipefail, grep -q can
+          # Use per-line grep checks with newlines around the entry.
+          TRAILING_PERIOD_REGEX='^\+\*.*\.[[:blank:]]*$'
+          # Use a here-string rather than a pipe into grep: with pipefail, grep -q can
           # exit before the writer finishes and turn the whole pipeline non-zero,
           # which would read as "no match" on a large diff.
-          TRAILING_PERIOD_REGEX='^\+\*.*\.[[:blank:]]*$'
+
           if grep -qE "$TRAILING_PERIOD_REGEX" <<< "$CHANGELOG_DIFF"; then
             echo "Changelog entries with trailing periods found:"
             grep -E "$TRAILING_PERIOD_REGEX" <<< "$CHANGELOG_DIFF"
