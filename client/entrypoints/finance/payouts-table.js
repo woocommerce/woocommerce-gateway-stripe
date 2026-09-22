@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { DEFAULT_PAYOUTS_VIEW, PER_PAGE_SIZES } from './constants';
 import fields from './payouts-fields';
 import usePayouts from './use-payouts';
-import { Button, Flex, FlexItem } from '@wordpress/components';
 // The `/wp` build inlines @wordpress/components, ui, element and private-apis,
 // externalizing only wp-data, wp-date, wp-hooks and wp-i18n. The default entry
 // would instead externalize @wordpress/components, handing DataViews whatever
@@ -63,29 +62,6 @@ const PayoutsTable = () => {
 		[ view.perPage ]
 	);
 
-	const goToNextPage = useCallback( () => {
-		const lastItem = data[ data.length - 1 ];
-
-		if ( ! lastItem ) {
-			return;
-		}
-
-		setCursors( ( previous ) => {
-			const next = previous.slice( 0, view.page );
-			next.push( lastItem.id );
-			return next;
-		} );
-		setView( ( previous ) => ( { ...previous, page: previous.page + 1 } ) );
-	}, [ data, view.page ] );
-
-	const goToPreviousPage = useCallback( () => {
-		setView( ( previous ) => ( {
-			...previous,
-			page: Math.max( 1, previous.page - 1 ),
-		} ) );
-	}, [] );
-
-	const isFirstPage = view.page <= 1;
 	const showTable = ! error || data.length > 0;
 
 	return (
@@ -97,51 +73,19 @@ const PayoutsTable = () => {
 			) }
 
 			{ showTable && (
-				<>
-					<DataViews
-						data={ data }
-						fields={ fields }
-						view={ view }
-						onChangeView={ onChangeView }
-						getItemId={ ( item ) => item.id }
-						isLoading={ isLoading }
-						paginationInfo={ paginationInfo }
-						defaultLayouts={ { table: {} } }
-						config={ { perPageSizes: PER_PAGE_SIZES } }
-						empty={ <EmptyState /> }
-						search={ false }
-					/>
-
-					<Flex
-						className="wc-stripe-payouts__pagination"
-						justify="flex-end"
-						gap={ 2 }
-					>
-						<FlexItem>
-							<Button
-								variant="secondary"
-								onClick={ goToPreviousPage }
-								disabled={ isFirstPage || isLoading }
-								__next40pxDefaultSize
-							>
-								{ __(
-									'Previous',
-									'woocommerce-gateway-stripe'
-								) }
-							</Button>
-						</FlexItem>
-						<FlexItem>
-							<Button
-								variant="secondary"
-								onClick={ goToNextPage }
-								disabled={ ! hasMore || isLoading }
-								__next40pxDefaultSize
-							>
-								{ __( 'Next', 'woocommerce-gateway-stripe' ) }
-							</Button>
-						</FlexItem>
-					</Flex>
-				</>
+				<DataViews
+					data={ data }
+					fields={ fields }
+					view={ view }
+					onChangeView={ onChangeView }
+					getItemId={ ( item ) => item.id }
+					isLoading={ isLoading }
+					paginationInfo={ paginationInfo }
+					defaultLayouts={ { table: {} } }
+					config={ { perPageSizes: PER_PAGE_SIZES } }
+					empty={ <EmptyState /> }
+					search={ false }
+				/>
 			) }
 		</>
 	);
