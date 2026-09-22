@@ -3179,6 +3179,9 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 * @return array
 	 */
 	public function provide_test_process_webhook_refund_updated() {
+		// WooCommerce renders the price markup differently across supported versions (the bidi
+		// class, `translate="no"`, and `dir="auto"` on the currency symbol appear in newer WC), so
+		// those attributes are matched optionally to keep the assertion stable across WC L..L-2.
 		return [
 			'invalid refund status' => [
 				'notification status' => 'invalid_status',
@@ -3188,12 +3191,12 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'failed refund'         => [
 				'notification status' => 'failed',
 				'email triggered'     => true,
-				'expected note'       => '/Refund failed for <span class="woocommerce-Price-amount amount"><bdi( class="woocommerce-Price-bidi")?><span class="woocommerce-Price-currencySymbol"( translate="no")?>&#36;<\/span>10.00<\/bdi><\/span> - Refund ID: refund_123 - Reason: Unknown reason Order status changed from Pending payment to Processing\./',
+				'expected note'       => '/Refund failed for <span class="woocommerce-Price-amount amount"><bdi( class="woocommerce-Price-bidi")?><span class="woocommerce-Price-currencySymbol"( translate="no")?( dir="auto")?>&#36;<\/span>10.00<\/bdi><\/span> - Refund ID: refund_123 - Reason: Unknown reason Order status changed from Pending payment to Processing\./',
 			],
 			'canceled refund'       => [
 				'notification status' => 'canceled',
 				'email triggered'     => true,
-				'expected note'       => '/Refund canceled for <span class="woocommerce-Price-amount amount"><bdi( class="woocommerce-Price-bidi")?><span class="woocommerce-Price-currencySymbol"( translate="no")?>&#36;<\/span>10.00<\/bdi><\/span> - Refund ID: refund_123 - Reason: Unknown reason Order status changed from Pending payment to Processing\./',
+				'expected note'       => '/Refund canceled for <span class="woocommerce-Price-amount amount"><bdi( class="woocommerce-Price-bidi")?><span class="woocommerce-Price-currencySymbol"( translate="no")?( dir="auto")?>&#36;<\/span>10.00<\/bdi><\/span> - Refund ID: refund_123 - Reason: Unknown reason Order status changed from Pending payment to Processing\./',
 			],
 		];
 	}
