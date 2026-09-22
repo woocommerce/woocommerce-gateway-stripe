@@ -43,18 +43,12 @@ jobs:
             const files = await github.paginate(github.rest.pulls.listFiles, {
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: context.issue.number,
-              per_page: 100
-            });
-
-            const RELEASE_METADATA_FILES = ['changelog.txt', 'readme.txt'];
-
-            const changelogUpdated = files.some(file => file.filename === 'changelog.txt');
-            const readmeUpdated = files.some(file => file.filename === 'readme.txt');
+           const UPDATE_STATUSES = [ 'changed', 'modified' ];
+           const changelogUpdated = files.some(file => file.filename === 'changelog.txt' && UPDATE_STATUSES.includes( file.status ));
+           const readmeUpdated = files.some(file => file.filename === 'readme.txt' && UPDATE_STATUSES.includes( file.status ));
 
             // Check for PRs that only update readme.txt and/or changelog.txt.
-            const releaseMetadataOnly = files.length > 0
-              && files.every(file => RELEASE_METADATA_FILES.includes(file.filename));
+            const releaseMetadataOnly = ( files.length === 1 && ( changelogUpdated || readmeUpdated ) ) || ( files.length ===  2 && changelogUpdated && readmeUpdated );
 
             if (!releaseMetadataOnly && (!changelogUpdated || !readmeUpdated)) {
               core.setFailed(
