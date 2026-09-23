@@ -363,6 +363,143 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		}
 	}
 
+	public static function provide_intent_list_params(): array {
+		return [
+			[
+				[ 'created' => 0 ],
+			],
+			[
+				[
+					'created'        => '1779802569',
+					'starting_after' => 'pi_3TbL9RJlUF0dQbSB00q0FJS2',
+				],
+			],
+			[
+				[
+					'created'       =>
+						[
+							'lt' => '1779802569',
+						],
+					'ending_before' => 'pi_3TbL9RJlUF0dQbSB00q0FJS2',
+				],
+			],
+			[
+				[
+					'limit'            => 100,
+					'customer'         => 'cus_sad8s6dasd',
+					'customer_account' => 'cus_sad8s6dasdxsa123',
+					'created'          =>
+						[
+							'lt' => '1779802569',
+						],
+					'ending_before'    => 'pi_3TbL9RJlUF0dQbSB00q0FJS2',
+				],
+			],
+			[
+				[
+					'created' =>
+						[
+							'lt' => '1779802821',
+							'gt' => '1779802569',
+						],
+				],
+			],
+			[
+				[
+					'created' =>
+						[
+							'lte' => '1779802821',
+							'gte' => '1779802569',
+						],
+				],
+				[
+					'created' =>
+						[
+							'lte' => '1779802821',
+							'gte' => '0',
+						],
+				],
+				[
+					'created' =>
+						[
+							'lte' => '0',
+							'gte' => '0',
+						],
+				],
+			],
+		];
+	}
+
+	/**
+	 * Send requests containing valid parameters and check they are forwarded correctly to the Stripe API
+	 * using a 'pre_http_request' hook.
+	 *
+	 * @dataProvider provide_intent_list_params
+	*/
+	public function test_pass_intent_list_params( array $rest_params ) {
+		$controller = new WC_Stripe_REST_Payment_Intents_Controller();
+
+		$reflection_class = new ReflectionClass( WC_Stripe_REST_Payment_Intents_Controller::class );
+		$r_const          = $reflection_class->getReflectionConstant( 'STRIPE_LIST_EXPAND_PARAM' );
+
+		$expand                = $r_const->getValue();
+		$rest_params['expand'] = $expand;
+
+		$request = new WP_REST_Request(
+			WP_REST_Server::READABLE,
+			self::ALL_INTENTS_ENDPOINT_URL,
+		);
+
+		foreach ( $rest_params as $rest_param_name => $rest_param_value ) {
+			$request->set_param( $rest_param_name, $rest_param_value );
+		}
+
+		$passed_rest_params = $request->get_params();
+
+		$pre_http_request_params = [];
+
+		$this->mock_http_call();
+		$http_stub = function ( $pre, $parsed_args, $url ) use ( &$pre_http_request_params ) {
+				$url_components = parse_url( $url );
+
+				parse_str( $url_components['query'], $pre_http_request_params['search_params'] );
+
+				return $pre;
+		};
+		add_filter(
+			'pre_http_request',
+			$http_stub,
+			10,
+			3
+		);
+
+		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
+
+		try {
+			rest_get_server()->dispatch( $request );
+		} finally {
+			remove_filter( 'pre_http_request', $http_stub, 10, 3 );
+		}
+
+		$this->assertEquals( $rest_params, $passed_rest_params );
+		$this->assertEquals(
+			$rest_params,
+			array_intersect_key( $pre_http_request_params['search_params'], $rest_params )
+		);
+		$test = array_diff_key( $pre_http_request_params['search_params'], $rest_params );
+
+		if ( array_key_exists( 'limit', $rest_params ) ) {
+			$this->assertEmpty( array_diff_key( $pre_http_request_params['search_params'], $rest_params ) );
+		} else {
+			// We default the `limit` argument when not supplied by the caller.
+			$this->assertEquals(
+				[ 'limit' => 10 ],
+				array_diff_key( $pre_http_request_params['search_params'], $rest_params )
+			);
+		}
+	}
+
 	/**
 	 * @dataProvider provide_intent_list_filtering_test_data
 	*/
