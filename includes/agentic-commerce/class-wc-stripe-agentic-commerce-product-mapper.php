@@ -101,12 +101,6 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * Map a product and capture the diagnostic context in the same pass: whether
 	 * it was excluded (and why), and which layer disabled its checkout.
 	 *
-	 * The sync and checkout decisions are hook-driven, and a stateful or
-	 * context-sensitive callback can return a different verdict when re-run. The
-	 * feed preview needs both the row and the reasons behind it, so it must read
-	 * them from this single evaluation rather than re-invoking the filters, which
-	 * could make an advisory disagree with the row it describes.
-	 *
 	 * @since 11.1.0
 	 * @param \WC_Product $product Product to map.
 	 * @return array{row: array, excluded: bool, exclusion_reason: ?string, disable_checkout_source: ?string}
