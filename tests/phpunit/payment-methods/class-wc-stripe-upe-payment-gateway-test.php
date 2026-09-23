@@ -4138,6 +4138,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$charge = [
 			'id'                     => 'ch_mock',
+			'object'                 => 'charge',
 			'captured'               => true,
 			'status'                 => 'succeeded',
 			'payment_method_details' => $payment_method_mock,
@@ -4240,6 +4241,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$charge = [
 			'id'                     => 'ch_mock',
+			'object'                 => 'charge',
 			'captured'               => true,
 			'status'                 => 'succeeded',
 			'payment_method_details' => $payment_intent_mock,

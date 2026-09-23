@@ -399,7 +399,7 @@ parameters:
 		-
 			message: '#^Cannot access property \$id on object\|string\.$#'
 			identifier: property.nonObject
-			count: 4
+			count: 2
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
@@ -4589,7 +4589,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:get_latest_charge_from_intent\(\)\.$#'
 			identifier: method.notFound
-			count: 3
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
@@ -4907,7 +4907,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:get_latest_charge_from_intent\(\)\.$#'
 			identifier: method.notFound
-			count: 3
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
@@ -5225,7 +5225,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:get_latest_charge_from_intent\(\)\.$#'
 			identifier: method.notFound
-			count: 3
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
@@ -5543,7 +5543,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:get_latest_charge_from_intent\(\)\.$#'
 			identifier: method.notFound
-			count: 3
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
@@ -5855,7 +5855,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:get_latest_charge_from_intent\(\)\.$#'
 			identifier: method.notFound
-			count: 3
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
@@ -6161,7 +6161,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:get_latest_charge_from_intent\(\)\.$#'
 			identifier: method.notFound
-			count: 3
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
@@ -6497,7 +6497,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:get_latest_charge_from_intent\(\)\.$#'
 			identifier: method.notFound
-			count: 3
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
@@ -6809,7 +6809,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:get_latest_charge_from_intent\(\)\.$#'
 			identifier: method.notFound
-			count: 3
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
@@ -7133,7 +7133,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:get_latest_charge_from_intent\(\)\.$#'
 			identifier: method.notFound
-			count: 3
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
@@ -7439,7 +7439,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:get_latest_charge_from_intent\(\)\.$#'
 			identifier: method.notFound
-			count: 3
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
@@ -7799,7 +7799,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:get_latest_charge_from_intent\(\)\.$#'
 			identifier: method.notFound
-			count: 3
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
@@ -8129,7 +8129,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:get_latest_charge_from_intent\(\)\.$#'
 			identifier: method.notFound
-			count: 3
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
@@ -8441,7 +8441,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:get_latest_charge_from_intent\(\)\.$#'
 			identifier: method.notFound
-			count: 3
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
