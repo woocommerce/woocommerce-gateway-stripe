@@ -2299,7 +2299,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @return bool True if the event was re-queued for async processing, false if handled inline.
 	 */
 	protected function handle_checkout_session_success( object $notification ): bool {
-		$retry_count = $this->adaptive_pricing_order_lookup_retry_count;
+		$retry_count      = $this->adaptive_pricing_order_lookup_retry_count;
 		$checkout_session = $notification->data->object;
 
 		$session_id = $checkout_session->id;
