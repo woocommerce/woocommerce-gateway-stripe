@@ -1050,6 +1050,9 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$settings['test_secret_key'] = 'sk_test_fake';
 		update_option( 'woocommerce_stripe_settings', $settings );
 
+		// Onboarding must be complete for the sync to push (merchant toggle is set in set_up()).
+		update_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION, 'whsec_test' );
+
 		// Create a simple product so the walker finds at least one.
 		$product = $this->create_feed_product();
 
@@ -1478,6 +1481,74 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Saving settings schedules a flush of archives queued while onboarding was
+	 * incomplete, but only once onboarding is complete.
+	 *
+	 * @param string $webhook_secret  The secret submitted with the toggle on.
+	 * @param bool   $expect_schedule Whether the archive action must be scheduled.
+	 * @dataProvider provide_archive_flush_on_settings_update_cases
+	 */
+	public function test_update_settings_schedules_pending_archive_flush( string $webhook_secret, bool $expect_schedule ): void {
+		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION );
+		update_option(
+			WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION,
+			[
+				123 => [
+					'id'           => '123',
+					'availability' => 'out_of_stock',
+				],
+			],
+			false
+		);
+
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_body(
+			wp_json_encode(
+				[
+					'is_enabled'     => true,
+					'webhook_secret' => $webhook_secret,
+				]
+			)
+		);
+		$request->set_header( 'content-type', 'application/json' );
+
+		try {
+			$response = rest_do_request( $request );
+
+			$this->assertEquals( 200, $response->get_status() );
+			$this->assertSame(
+				$expect_schedule,
+				as_has_scheduled_action( WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION )
+			);
+		} finally {
+			as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION );
+			delete_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION );
+		}
+	}
+
+	/**
+	 * Data provider for `test_update_settings_schedules_pending_archive_flush`.
+	 *
+	 * @return array
+	 */
+	public function provide_archive_flush_on_settings_update_cases(): array {
+		return [
+			'secret saved, onboarding complete' => [
+				'webhook_secret'  => 'whsec_abc123',
+				'expect_schedule' => true,
+			],
+			'empty secret, still incomplete'    => [
+				'webhook_secret'  => '',
+				'expect_schedule' => false,
+			],
+		];
+	}
+
+	/**
 	 * POST /settings does not overwrite the stored secret when the masked
 	 * placeholder is submitted (e.g. user saved without changing the field).
 	 */
@@ -1690,6 +1761,9 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$settings['test_secret_key'] = 'sk_test_fake';
 		update_option( 'woocommerce_stripe_settings', $settings );
 
+		// Onboarding must be complete for the sync to push (merchant toggle is set in set_up()).
+		update_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION, 'whsec_test' );
+
 		// Create a simple product so the walker finds at least one.
 		$product = $this->create_feed_product();
 
@@ -1768,6 +1842,9 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$settings['testmode']        = 'yes';
 		$settings['test_secret_key'] = 'sk_test_fake';
 		update_option( 'woocommerce_stripe_settings', $settings );
+
+		// Onboarding must be complete for the sync to push (merchant toggle is set in set_up()).
+		update_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION, 'whsec_test' );
 
 		$product = $this->create_feed_product();
 

@@ -253,6 +253,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 
 		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
 		update_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
+		update_option( \WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION, 'whsec_test' );
 		// Secret key lives in settings (test mode); check_setup() gates on it.
 		$settings                    = WC_Stripe_Helper::get_stripe_settings();
 		$settings['testmode']        = 'yes';
@@ -328,6 +329,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			remove_filter( 'pre_http_request', $http_stub, 10 );
 			delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
 			delete_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
+			delete_option( \WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION );
 			delete_option( 'woocommerce_stripe_settings' );
 			$kept->delete( true );
 			$excluded->delete( true );
@@ -351,6 +353,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 
 		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
 		update_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
+		update_option( \WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION, 'whsec_test' );
 		update_option(
 			'woocommerce_stripe_settings',
 			[
@@ -432,6 +435,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			remove_filter( 'pre_http_request', $http_stub, 10 );
 			delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
 			delete_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
+			delete_option( \WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION );
 			delete_option( 'woocommerce_stripe_settings' );
 			$product->delete( true );
 			if ( $cat_id ) {
@@ -719,6 +723,78 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 		} finally {
 			remove_filter( 'pre_http_request', $http_guard );
 			delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
+		}
+	}
+
+	/**
+	 * is_onboarding_complete() requires both the merchant toggle and a saved
+	 * webhook secret; either alone is not enough.
+	 *
+	 * @dataProvider provide_onboarding_states
+	 *
+	 * @param string $enabled  Value for the merchant ENABLED_OPTION.
+	 * @param string $secret   Value for the WEBHOOK_SECRET_OPTION.
+	 * @param bool   $expected Expected is_onboarding_complete() result.
+	 * @return void
+	 */
+	public function test_is_onboarding_complete( string $enabled, string $secret, bool $expected ) {
+		update_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, $enabled );
+		update_option( \WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION, $secret );
+
+		try {
+			$this->assertSame( $expected, \WC_Stripe_Agentic_Commerce_Integration::is_onboarding_complete() );
+		} finally {
+			delete_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
+			delete_option( \WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION );
+		}
+	}
+
+	/**
+	 * Data provider for test_is_onboarding_complete.
+	 *
+	 * @return array<string, array{0: string, 1: string, 2: bool}>
+	 */
+	public function provide_onboarding_states(): array {
+		return [
+			'neither set' => [ 'no', '', false ],
+			'toggle only' => [ 'yes', '', false ],
+			'secret only' => [ 'no', 'whsec_test', false ],
+			'both set'    => [ 'yes', 'whsec_test', true ],
+		];
+	}
+
+	/**
+	 * With the toggle on, feature flag on and a Stripe key present, a sync must
+	 * still bail before delivery when the webhook secret has not been saved —
+	 * onboarding is not yet complete.
+	 *
+	 * @return void
+	 */
+	public function test_sync_feed_skips_when_webhook_secret_missing() {
+		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
+		update_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
+		delete_option( \WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION );
+
+		$settings                    = WC_Stripe_Helper::get_stripe_settings();
+		$settings['testmode']        = 'yes';
+		$settings['test_secret_key'] = 'sk_test_fake';
+		update_option( 'woocommerce_stripe_settings', $settings );
+
+		$http_guard = function () {
+			$this->fail( 'sync_feed() must not reach Stripe delivery while onboarding is incomplete.' );
+		};
+		add_filter( 'pre_http_request', $http_guard );
+
+		try {
+			$integration = new \WC_Stripe_Agentic_Commerce_Integration();
+
+			$this->assertTrue( $integration->is_enabled(), 'Feature flag is on for this case.' );
+			$this->assertFalse( $integration->sync_feed( true ), 'A missing webhook secret must short-circuit the sync.' );
+		} finally {
+			remove_filter( 'pre_http_request', $http_guard );
+			delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
+			delete_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
+			delete_option( 'woocommerce_stripe_settings' );
 		}
 	}
 

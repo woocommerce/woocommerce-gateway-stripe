@@ -23,17 +23,27 @@ class WC_Stripe_Payment_Methods {
 	public const CARD_PRESENT      = 'card_present';
 	public const CASHAPP_PAY       = 'cashapp';
 	public const EPS               = 'eps';
-	public const GIROPAY           = 'giropay';
-	public const IDEAL             = 'ideal';
-	public const KLARNA            = 'klarna';
-	public const MULTIBANCO        = 'multibanco';
-	public const OXXO              = 'oxxo';
-	public const P24               = 'p24';
-	public const SEPA              = 'sepa';
-	public const SEPA_DEBIT        = 'sepa_debit';
-	public const SOFORT            = 'sofort';
-	public const WECHAT_PAY        = 'wechat_pay';
-	public const OC                = 'card'; // This is a special case for the Optimized Checkout
+	/**
+	 * The giropay method ID.
+	 *
+	 * @deprecated 11.0.0 giropay is discontinued; still needed to read historical order data.
+	 */
+	public const GIROPAY    = 'giropay';
+	public const IDEAL      = 'ideal';
+	public const KLARNA     = 'klarna';
+	public const MULTIBANCO = 'multibanco';
+	public const OXXO       = 'oxxo';
+	public const P24        = 'p24';
+	public const SEPA       = 'sepa';
+	public const SEPA_DEBIT = 'sepa_debit';
+	/**
+	 * The Sofort method ID.
+	 *
+	 * @deprecated 11.0.0 Sofort is discontinued; still needed to read historical order data.
+	 */
+	public const SOFORT     = 'sofort';
+	public const WECHAT_PAY = 'wechat_pay';
+	public const OC         = 'card'; // This is a special case for the Optimized Checkout
 
 	public const LEGACY_SEPA = 'stripe_sepa'; // Sepa method identifier for the legacy checkout (now removed)
 

@@ -12,6 +12,7 @@ const mockGetSelectedProductData = jest.fn();
 const mockGetStripe = jest.fn();
 const mockAddToCart = jest.fn();
 const mockEmptyCartLegacy = jest.fn();
+const mockTransformLabeledDisplayItems = jest.fn( () => [] );
 
 // Drain both microtasks and jQuery Deferred's timer-scheduled callbacks.
 const flushPromises = async () => {
@@ -47,7 +48,7 @@ jest.mock( '../../../api', () =>
 // focused on the fetch-vs-snapshot branch and never depends on cart shape.
 jest.mock( 'wcstripe/express-checkout/transformers/wc-to-stripe', () => ( {
 	transformCartDataForDisplayItems: jest.fn( () => [] ),
-	transformLabeledDisplayItems: jest.fn( () => [] ),
+	transformLabeledDisplayItems: mockTransformLabeledDisplayItems,
 	transformPrice: jest.fn( () => 1500 ),
 } ) );
 
@@ -102,6 +103,7 @@ describe( 'Express Checkout cart/checkout bootstrap', () => {
 		// starts fresh for every test.
 		jest.resetModules();
 		mockGetCartDetails.mockReset();
+		mockTransformLabeledDisplayItems.mockClear();
 		mockGetCartDetails.mockResolvedValue( {
 			totals: { total_price: '1500', total_refund: '0' },
 			needs_shipping: false,
@@ -115,6 +117,7 @@ describe( 'Express Checkout cart/checkout bootstrap', () => {
 		// (`jest.resetModules`), so a later test's trigger can only reach its own
 		// jQuery copy's handlers — no need to detach the previous test's bindings.
 		delete global.wc_stripe_express_checkout_params;
+		delete global.wcStripeExpressCheckoutPayForOrderParams;
 	} );
 
 	it( 'renders from the localized snapshot and skips the cart-details fetch on first paint', () => {
@@ -132,6 +135,35 @@ describe( 'Express Checkout cart/checkout bootstrap', () => {
 		loadEntrypoint();
 
 		expect( mockGetCartDetails ).not.toHaveBeenCalled();
+		expect( mockTransformLabeledDisplayItems ).toHaveBeenCalledWith(
+			[],
+			1500
+		);
+	} );
+
+	it( 'passes the order total when transforming Pay for Order items', () => {
+		global.wc_stripe_express_checkout_params = {
+			...baseParams(),
+			is_pay_for_order: true,
+			is_cart_page: false,
+		};
+		global.wcStripeExpressCheckoutPayForOrderParams = {
+			total: { amount: 1500 },
+			currency: 'usd',
+			displayItems: [ { label: 'Subtotal', amount: 1500 } ],
+			order: 123,
+			orderDetails: {
+				orderKey: 'wc_order_test',
+				billingEmail: 'customer@example.com',
+			},
+		};
+
+		loadEntrypoint();
+
+		expect( mockTransformLabeledDisplayItems ).toHaveBeenCalledWith(
+			[ { label: 'Subtotal', amount: 1500 } ],
+			1500
+		);
 	} );
 
 	it( 'falls back to the cart-details fetch on re-init once the snapshot is consumed', () => {
@@ -505,6 +537,10 @@ describe( 'Express Checkout order failures', () => {
 				requestPhone: false,
 				displayItems: [],
 			},
+			i18n: {
+				go_to_checkout:
+					'Please go to the <a href="https://example.com/checkout/">checkout page</a>.',
+			},
 		};
 	} );
 
@@ -515,38 +551,58 @@ describe( 'Express Checkout order failures', () => {
 	// The order-side abort used to skip paymentFailed(), leaving the approved wallet
 	// sheet open with nothing on screen. The third argument is the removed
 	// `isOrderError` opt-out: passing it must change nothing.
-	it( 'fails the wallet sheet and shows the message when the order errors', async () => {
-		const handlers = stubStripeButton();
-		loadEntrypoint();
+	it.each( [
+		[ 'plain message', 'Order creation error', true ],
+		[
+			'checkout link',
+			'Size <XL> is a required field.',
+			{ linkToCheckout: true },
+		],
+	] )(
+		'fails the wallet sheet and shows the %s when the order errors',
+		async ( _name, message, options ) => {
+			const handlers = stubStripeButton();
+			loadEntrypoint();
 
-		// Resolve the mocks from the same module registry the entrypoint loaded from;
-		// `jest.resetModules()` hands each test its own copy.
-		// eslint-disable-next-line global-require
-		const jq = require( 'jquery' );
-		const {
-			onAbortPaymentHandler,
-			onConfirmHandler,
+			// Resolve the mocks from the same module registry the entrypoint loaded from;
+			// `jest.resetModules()` hands each test its own copy.
 			// eslint-disable-next-line global-require
-		} = require( 'wcstripe/express-checkout/event-handler' );
+			const jq = require( 'jquery' );
+			const {
+				onAbortPaymentHandler,
+				onConfirmHandler,
+				// eslint-disable-next-line global-require
+			} = require( 'wcstripe/express-checkout/event-handler' );
 
-		jq( document.body ).trigger( 'updated_checkout' );
+			jq( document.body ).trigger( 'updated_checkout' );
 
-		const event = { paymentFailed: jest.fn() };
-		await handlers.confirm( event );
+			const event = { paymentFailed: jest.fn() };
+			await handlers.confirm( event );
 
-		const { abortPayment } = onConfirmHandler.mock.calls[ 0 ][ 0 ];
-		abortPayment( event, 'Order creation error', true );
+			const { abortPayment } = onConfirmHandler.mock.calls[ 0 ][ 0 ];
+			abortPayment( event, message, options );
 
-		expect( event.paymentFailed ).toHaveBeenCalledWith( {
-			reason: 'fail',
-		} );
-		expect(
-			document.querySelector( '.woocommerce-error' ).textContent
-		).toBe( 'Order creation error' );
+			expect( event.paymentFailed ).toHaveBeenCalledWith( {
+				reason: 'fail',
+			} );
+			const notice = document.querySelector( '.woocommerce-error' );
+			expect(
+				notice.querySelector( 'a' )?.getAttribute( 'href' ) ?? null
+			).toBe(
+				options.linkToCheckout ? 'https://example.com/checkout/' : null
+			);
+			// A tag-like label stays visible as text, and the sentence sits on its
+			// own line -- textContent reads them as one run because <br> has no text.
+			expect( notice.innerHTML ).toBe(
+				options.linkToCheckout
+					? 'Size &lt;XL&gt; is a required field.<br>Please go to the <a href="https://example.com/checkout/">checkout page</a>.'
+					: message
+			);
 
-		// The message has to be in front of the shopper before the sheet closes.
-		expect(
-			onAbortPaymentHandler.mock.invocationCallOrder[ 0 ]
-		).toBeLessThan( event.paymentFailed.mock.invocationCallOrder[ 0 ] );
-	} );
+			// The message has to be in front of the shopper before the sheet closes.
+			expect(
+				onAbortPaymentHandler.mock.invocationCallOrder[ 0 ]
+			).toBeLessThan( event.paymentFailed.mock.invocationCallOrder[ 0 ] );
+		}
+	);
 } );

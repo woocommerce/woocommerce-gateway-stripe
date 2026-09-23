@@ -1,5 +1,7 @@
 <?php
 
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -642,6 +644,18 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Deletes the Stripe checkout session ID for an order.
+	 *
+	 * @since 11.1.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|void
+	 */
+	public function delete_stripe_checkout_session_id( ?WC_Order $order = null ) {
+		return $this->delete_order_meta( $order, self::META_STRIPE_CHECKOUT_SESSION_ID );
+	}
+
+	/**
 	 * Gets whether the payment method should be saved to the store after a checkout session payment.
 	 *
 	 * @param WC_Order|null $order
@@ -1078,6 +1092,20 @@ class WC_Stripe_Order_Helper {
 	 */
 	public function get_stripe_upe_redirect_processed( ?WC_Order $order = null ) {
 		return $this->get_order_meta( $order, self::META_STRIPE_UPE_REDIRECT_PROCESSED );
+	}
+
+	/**
+	 * Whether a settlement path has already finished with this order.
+	 *
+	 * A paid status covers the webhook and redirect paths; the redirect-processed flag
+	 * covers a confirmed intent whose status transition is still pending.
+	 *
+	 * @param WC_Order $order The order.
+	 * @return bool
+	 */
+	public function is_order_payment_settled( WC_Order $order ): bool {
+		return $order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED, OrderStatus::ON_HOLD ] )
+			|| (bool) $this->get_stripe_upe_redirect_processed( $order );
 	}
 
 	/**

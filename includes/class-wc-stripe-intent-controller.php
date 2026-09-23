@@ -795,8 +795,7 @@ class WC_Stripe_Intent_Controller {
 			// request that already finished; the lock serializes against one still in flight.
 			// Mirrors WC_Stripe_UPE_Payment_Gateway::process_upe_redirect_payment(). In every case
 			// the customer is sent to the thank-you page.
-			$already_settled = $order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED, OrderStatus::ON_HOLD ] )
-				|| $order_helper->get_stripe_upe_redirect_processed( $order );
+			$already_settled = $order_helper->is_order_payment_settled( $order );
 
 			if ( ! $already_settled ) {
 				// lock_order_payment() returns true when another request already holds the lock.
@@ -804,9 +803,26 @@ class WC_Stripe_Intent_Controller {
 					// Bail without unlocking — releasing the winner's lock would defeat the mutual exclusion.
 					WC_Stripe_Logger::info( "Skipping update_order_status_ajax for order $order_id; order payment is already locked." );
 				} else {
-					$processing_started = true; // Past validation; a failure from here on is a genuine payment failure.
+					// The settled-check above ran before the lock; re-check against a
+					// fresh read in case a concurrent request settled in between. Without
+					// a persistent object cache, wc_get_order() would hand back the object
+					// this request already loaded, so drop it from the cache first.
+					clean_post_cache( $order->get_id() );
+					if ( class_exists( \Automattic\WooCommerce\Caches\OrderCache::class ) ) {
+						wc_get_container()->get( \Automattic\WooCommerce\Caches\OrderCache::class )->remove( $order->get_id() );
+					}
+					$fresh_order = wc_get_order( $order->get_id() );
+					if ( $fresh_order instanceof WC_Order ) {
+						$order = $fresh_order;
+					}
+
 					try {
-						$gateway->process_order_for_confirmed_intent( $order, $intent_id_received, $save_payment_method );
+						if ( $order_helper->is_order_payment_settled( $order ) ) {
+							WC_Stripe_Logger::info( "Skipping update_order_status_ajax for order $order_id; order was settled by a concurrent request." );
+						} else {
+							$processing_started = true; // Past validation; a failure from here on is a genuine payment failure.
+							$gateway->process_order_for_confirmed_intent( $order, $intent_id_received, $save_payment_method );
+						}
 					} finally {
 						// This request owns the lock (we just acquired it above), so it must release it.
 						$order_helper->unlock_order_payment( $order );
@@ -1269,6 +1285,14 @@ class WC_Stripe_Intent_Controller {
 		}
 
 		$request = $this->maybe_add_mandate_options( $request, $payment_information['selected_payment_type'] );
+
+		// Without this, an intent confirmed with a return_url (the Dynamic
+		// Payment Methods shape) gets a hosted-page redirect_to_url next
+		// action for 3DS instead of the SDK one the client renders as the
+		// on-page modal.
+		if ( isset( $payment_information['use_stripe_sdk'] ) ) {
+			$request['use_stripe_sdk'] = $payment_information['use_stripe_sdk'];
+		}
 
 		// Does not set the return URL if the request needs redirection.
 		if ( $this->request_needs_redirection( $payment_method_types ) ) {

@@ -160,6 +160,7 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-helper.php';
 		include_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-order-helper.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-database-cache.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-option-lock.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-checkout-session-context.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-payment-method-configurations.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-database-cache-prefetch.php';
@@ -1197,9 +1198,15 @@ class WC_Stripe {
 			return;
 		}
 
-		$gateway->update_enabled_payment_methods(
+		$result = $gateway->update_enabled_payment_methods(
 			array_diff( $enabled_payment_methods, $payment_method_ids_to_disable )
 		);
+		if ( is_wp_error( $result ) ) {
+			WC_Stripe_Logger::error(
+				'Failed to disable Stripe payment methods that should only be offered via other active plugins',
+				[ 'error' => $result->get_error_message() ]
+			);
+		}
 	}
 
 	/**
