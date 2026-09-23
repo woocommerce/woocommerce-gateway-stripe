@@ -596,9 +596,16 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 		WC_Stripe::get_instance()->get_main_stripe_gateway()->init_settings();
 
-		$payment_method_ids = array_map( [ $this, 'get_id' ], $this->mock_payment_methods );
+		$payment_method_ids      = array_map( [ $this, 'get_id' ], $this->mock_payment_methods );
+		$payment_methods_to_skip = [
+			WC_Stripe_Payment_Methods::CARD,
+			WC_Stripe_Payment_Methods::BOLETO,
+			WC_Stripe_Payment_Methods::OXXO,
+			WC_Stripe_Payment_Methods::GIROPAY,
+			WC_Stripe_Payment_Methods::SOFORT,
+		];
 		foreach ( $payment_method_ids as $id ) {
-			if ( WC_Stripe_Payment_Methods::CARD === $id || WC_Stripe_Payment_Methods::BOLETO === $id || WC_Stripe_Payment_Methods::OXXO === $id || WC_Stripe_Payment_Methods::GIROPAY === $id || WC_Stripe_Payment_Methods::SOFORT === $id ) {
+			if ( in_array( $id, $payment_methods_to_skip, true ) ) {
 				continue;
 			}
 
