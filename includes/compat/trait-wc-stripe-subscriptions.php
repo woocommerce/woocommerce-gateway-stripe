@@ -518,7 +518,8 @@ trait WC_Stripe_Subscriptions_Trait {
 			return;
 		}
 
-		$lock_expiry = (int) $our_lock;
+		// The lock is a bare timestamp or "{expiry}|{owner_token}".
+		$lock_expiry = (int) explode( '|', $our_lock, 2 )[0];
 
 		try {
 			$this->process_subscription_payment_attempt( $amount, $renewal_order, $retry, $previous_error, $lock_expiry );
@@ -904,6 +905,18 @@ trait WC_Stripe_Subscriptions_Trait {
 		if ( $add_order_note ) {
 			$renewal_order->add_order_note( __( 'Stripe: abandoned renewal payment retries because the payment lock has expired.', 'woocommerce-gateway-stripe' ) );
 		}
+
+		/**
+		 * The API layer decodes responses to stdClass.
+		 *
+		 * @var stdClass $response
+		 */
+		$response = $this->create_and_confirm_intent_for_off_session( $renewal_order, $prepared_source, $amount );
+
+		return [
+			'response'                   => $response,
+			'is_authentication_required' => $this->is_authentication_required_for_payment( $response ),
+		];
 	}
 
 	/**
