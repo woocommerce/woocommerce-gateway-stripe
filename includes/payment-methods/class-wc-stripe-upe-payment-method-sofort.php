@@ -55,7 +55,7 @@ class WC_Stripe_UPE_Payment_Method_Sofort extends WC_Stripe_UPE_Payment_Method {
 	 *
 	 * @param int|null    $order_id
 	 * @param string|null $account_domestic_currency The account's default currency.
-	 * @return bool
+	 * @return bool Always return false, as Sofort is no longer available for new purchases.
 	 */
 	public function is_enabled_at_checkout( $order_id = null, $account_domestic_currency = null ) {
 		return false;
