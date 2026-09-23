@@ -1,3 +1,4 @@
+import { act } from 'react';
 import { render, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useDispatch } from '@wordpress/data';
@@ -74,7 +75,9 @@ describe( 'Reconnect banner', () => {
 
 		const { getByText } = render( <ReConnectAccountBanner /> );
 		const reconnectButton = getByText( 'Re-authenticate' );
-		await userEvent.click( reconnectButton );
+		await act( async () => {
+			await userEvent.click( reconnectButton );
+		} );
 
 		expect( recordEvent ).toHaveBeenNthCalledWith(
 			1,
@@ -96,6 +99,7 @@ describe( 'Reconnect banner', () => {
 
 		expect( global.jQuery.ajax ).toHaveBeenCalledWith(
 			expect.objectContaining( {
+				dataType: 'json',
 				data: expect.objectContaining( {
 					action: 'wc_stripe_get_oauth_url',
 					mode: 'test',
@@ -131,7 +135,9 @@ describe( 'Reconnect banner', () => {
 
 		const { getByText } = render( <ReConnectAccountBanner /> );
 		const reconnectButton = getByText( 'Re-authenticate' );
-		await userEvent.click( reconnectButton );
+		await act( async () => {
+			await userEvent.click( reconnectButton );
+		} );
 
 		expect( recordEvent ).toHaveBeenNthCalledWith(
 			1,
@@ -174,13 +180,38 @@ describe( 'Reconnect banner', () => {
 
 		const { getByText } = render( <ReConnectAccountBanner /> );
 		const reconnectButton = getByText( 'Re-authenticate' );
-		await userEvent.click( reconnectButton );
+		await act( async () => {
+			await userEvent.click( reconnectButton );
+		} );
 
 		await waitFor( () => {
 			expect( noticesDispatch.createErrorNotice ).toHaveBeenCalledWith(
 				'There was an error. Please reload the page and try again.'
 			);
 		} );
+	} );
+
+	it( 'should use the server message when a rejected AJAX request includes one', async () => {
+		global.jQuery = {
+			ajax: jest.fn().mockRejectedValue( {
+				responseJSON: {
+					data: { message: 'The connection request was rejected.' },
+				},
+			} ),
+		};
+
+		const { getByText } = render( <ReConnectAccountBanner /> );
+		const reconnectButton = getByText( 'Re-authenticate' );
+		await act( async () => {
+			await userEvent.click( reconnectButton );
+		} );
+
+		await waitFor( () => {
+			expect( noticesDispatch.createErrorNotice ).toHaveBeenCalledWith(
+				'The connection request was rejected.'
+			);
+		} );
+		expect( reconnectButton ).toBeEnabled();
 	} );
 
 	it( 'should create error notice when AJAX returns error response', async () => {
@@ -194,11 +225,13 @@ describe( 'Reconnect banner', () => {
 
 		const { getByText } = render( <ReConnectAccountBanner /> );
 		const reconnectButton = getByText( 'Re-authenticate' );
-		await userEvent.click( reconnectButton );
+		await act( async () => {
+			await userEvent.click( reconnectButton );
+		} );
 
 		await waitFor( () => {
 			expect( noticesDispatch.createErrorNotice ).toHaveBeenCalledWith(
-				'There was an error. Please reload the page and try again.'
+				'Server error'
 			);
 		} );
 	} );
