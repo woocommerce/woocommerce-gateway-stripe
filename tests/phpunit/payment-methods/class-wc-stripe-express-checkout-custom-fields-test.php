@@ -510,7 +510,9 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 	 * On a store whose checkout page uses the checkout block, a request without
 	 * the classic-form payload must not be refused for required classic fields:
 	 * no page in the buyer's flow renders them, so the refusal would be permanent.
-	 * The third-party stand-in actions must still fire for such requests.
+	 * The third-party stand-in actions must still fire for such requests, and the
+	 * bypassed required fields must leave a debug-level trace for support, since
+	 * the order completes without values the merchant marked required.
 	 *
 	 * @return void
 	 */
@@ -550,12 +552,31 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 		$order                 = WC_Helper_Order::create_order();
 		$custom_fields_support = $this->get_custom_fields_support();
 
+		$original_logger   = WC_Stripe_Logger::$logger;
+		$original_settings = WC_Stripe_Helper::get_stripe_settings();
+		WC_Stripe_Helper::update_main_stripe_settings( array_merge( $original_settings, [ 'logging' => 'yes' ] ) );
+
+		$logger = $this->createMock( WC_Logger::class );
+		$logger->expects( $this->once() )
+			->method( 'debug' )
+			->with(
+				'Skipped enforcing required classic custom fields for an express checkout order; the block checkout cannot render them.',
+				$this->callback(
+					static function ( $context ) {
+						return [ 'billing_custom_field1' ] === $context['missing_field_keys'];
+					}
+				)
+			);
+		WC_Stripe_Logger::$logger = $logger;
+
 		try {
 			$custom_fields_support->process_custom_checkout_data( $order, $request );
 			$this->assertSame( 1, $update_order_meta_calls );
 		} catch ( Exception $e ) {
 			$this->fail( 'Block-checkout stores must not be blocked on classic required fields, but got: ' . $e->getMessage() );
 		} finally {
+			WC_Stripe_Logger::$logger = $original_logger;
+			WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
 			remove_action( 'wc_stripe_express_checkout_update_order_meta', $meta_handler );
 			update_option( 'woocommerce_checkout_page_id', $original_checkout_page_id );
 			remove_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );

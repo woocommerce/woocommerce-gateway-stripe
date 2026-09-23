@@ -124,9 +124,12 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 	/**
 	 * Refuse the order when the request leaves required classic custom fields unfilled.
 	 *
-	 * No-op when enforcement doesn't apply to the request (see
-	 * should_enforce_required_fields()); only enforcement is skipped, so the
-	 * caller's third-party validation and persistence hooks still run.
+	 * When enforcement doesn't apply to the request (see
+	 * should_enforce_required_fields()), the bypassed field keys are logged at
+	 * debug level instead — the order completes without values the merchant
+	 * marked required, and support needs a trace of that. Only enforcement is
+	 * skipped; the caller's third-party validation and persistence hooks still
+	 * run.
 	 *
 	 * @param WP_REST_Request $request The request object.
 	 * @param array $custom_checkout_fields Classic custom checkout fields.
@@ -135,10 +138,6 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 	 * @throws RouteException When a required field is left unfilled.
 	 */
 	private function enforce_required_fields( $request, $custom_checkout_fields, $custom_checkout_data ) {
-		if ( ! $this->should_enforce_required_fields( $request ) ) {
-			return;
-		}
-
 		$required_field_errors = [];
 		$missing_field_keys    = [];
 		foreach ( $custom_checkout_fields as $key => $field ) {
@@ -153,6 +152,14 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 		}
 
 		if ( empty( $required_field_errors ) ) {
+			return;
+		}
+
+		if ( ! $this->should_enforce_required_fields( $request ) ) {
+			WC_Stripe_Logger::debug(
+				'Skipped enforcing required classic custom fields for an express checkout order; the block checkout cannot render them.',
+				[ 'missing_field_keys' => $missing_field_keys ]
+			);
 			return;
 		}
 
