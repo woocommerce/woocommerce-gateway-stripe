@@ -19,6 +19,16 @@ export const ReConnectAccountBanner = () => {
 	const [ isTestModeEnabled ] = useTestMode();
 	const { createErrorNotice } = useDispatch( 'core/notices' );
 	const [ isLoading, setIsLoading ] = useState( false );
+	const handleError = ( message ) => {
+		createErrorNotice(
+			message ||
+				__(
+					'There was an error. Please reload the page and try again.',
+					'woocommerce-gateway-stripe'
+				)
+		);
+		setIsLoading( false );
+	};
 
 	const handleButtonClick = async () => {
 		const mode = isTestModeEnabled ? 'test' : 'live';
@@ -40,6 +50,7 @@ export const ReConnectAccountBanner = () => {
 			const response = await jQuery.ajax( {
 				url: ajaxurl,
 				method: 'POST',
+				dataType: 'json',
 				data: {
 					action: 'wc_stripe_get_oauth_url',
 					mode,
@@ -47,25 +58,13 @@ export const ReConnectAccountBanner = () => {
 				},
 			} );
 
-			if ( response.success && response.data.oauth_url ) {
+			if ( response?.success && response.data?.oauth_url ) {
 				window.location.assign( response.data.oauth_url );
 			} else {
-				createErrorNotice(
-					__(
-						'There was an error. Please reload the page and try again.',
-						'woocommerce-gateway-stripe'
-					)
-				);
-				setIsLoading( false );
+				handleError( response?.data?.message );
 			}
 		} catch ( err ) {
-			createErrorNotice(
-				__(
-					'There was an error. Please reload the page and try again.',
-					'woocommerce-gateway-stripe'
-				)
-			);
-			setIsLoading( false );
+			handleError( err?.responseJSON?.data?.message );
 		}
 	};
 
