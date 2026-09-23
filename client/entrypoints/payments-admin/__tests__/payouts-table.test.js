@@ -84,8 +84,8 @@ describe( 'PayoutsTable pagination', () => {
 		await goToPage( 2 );
 		await goToPage( 3 );
 
-		expect( lastStartingAfter() ).toBe( 'po_50' );
-		expect( screen.getByText( 'po_51' ) ).toBeInTheDocument();
+		expect( lastStartingAfter() ).toBe( 'po_test50' );
+		expect( screen.getByText( 'po_test51' ) ).toBeInTheDocument();
 	} );
 
 	it( 'jumps back more than one page using the cursor for that page', async () => {
@@ -98,8 +98,8 @@ describe( 'PayoutsTable pagination', () => {
 		await goToPage( 4 );
 		await goToPage( 2 );
 
-		expect( lastStartingAfter() ).toBe( 'po_25' );
-		expect( screen.getByText( 'po_26' ) ).toBeInTheDocument();
+		expect( lastStartingAfter() ).toBe( 'po_test25' );
+		expect( screen.getByText( 'po_test26' ) ).toBeInTheDocument();
 	} );
 
 	it( 'offers already-visited pages ahead of the current one', async () => {
@@ -118,20 +118,20 @@ describe( 'PayoutsTable pagination', () => {
 
 		await goToPage( 4 );
 
-		expect( lastStartingAfter() ).toBe( 'po_75' );
-		expect( screen.getByText( 'po_76' ) ).toBeInTheDocument();
+		expect( lastStartingAfter() ).toBe( 'po_test75' );
+		expect( screen.getByText( 'po_test76' ) ).toBeInTheDocument();
 	} );
 
 	it( 'does not record a cursor from rows left over after a failed load', async () => {
-		mockPayoutsApi( makePayouts( 120 ), { failCursors: [ 'po_25' ] } );
+		mockPayoutsApi( makePayouts( 120 ), { failCursors: [ 'po_test25' ] } );
 		render( <PayoutsTable /> );
 		await screen.findByText( 'page 1' );
 
 		await goToPage( 2 );
 
-		expect( lastStartingAfter() ).toBe( 'po_25' );
+		expect( lastStartingAfter() ).toBe( 'po_test25' );
 		// Page 1's rows stay on screen, but must not become page 3's cursor.
-		expect( screen.getByText( 'po_1' ) ).toBeInTheDocument();
+		expect( screen.getByText( 'po_test1' ) ).toBeInTheDocument();
 		expect(
 			screen.queryByRole( 'button', { name: 'Go to page 3' } )
 		).not.toBeInTheDocument();
@@ -144,7 +144,7 @@ describe( 'PayoutsTable pagination', () => {
 
 		await goToPage( 2 );
 
-		expect( screen.getByText( 'po_30' ) ).toBeInTheDocument();
+		expect( screen.getByText( 'po_test30' ) ).toBeInTheDocument();
 		expect(
 			screen.queryByRole( 'button', { name: 'Go to page 3' } )
 		).not.toBeInTheDocument();
@@ -164,8 +164,8 @@ describe( 'PayoutsTable pagination', () => {
 		await screen.findByText( 'page 1' );
 
 		expect( lastStartingAfter() ).toBeUndefined();
-		expect( screen.getByText( 'po_10' ) ).toBeInTheDocument();
-		expect( screen.queryByText( 'po_11' ) ).not.toBeInTheDocument();
+		expect( screen.getByText( 'po_test10' ) ).toBeInTheDocument();
+		expect( screen.queryByText( 'po_test11' ) ).not.toBeInTheDocument();
 		expect(
 			screen.queryByRole( 'button', { name: 'Go to page 3' } )
 		).not.toBeInTheDocument();
