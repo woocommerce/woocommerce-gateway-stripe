@@ -273,7 +273,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 														'woocommerce-gateway-stripe'
 												  )
 												: __(
-														'Instead of excluding add-on / configurator products, keep them discoverable in agents but send shoppers to your store to configure and complete the purchase. Has no effect on products already excluded above.',
+														'For included add-on / configurator products, ensure that Stripe redirects shoppers to your store to configure the products and make purchases.',
 														'woocommerce-gateway-stripe'
 												  )
 										}
