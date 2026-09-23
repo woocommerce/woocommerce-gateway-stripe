@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 11.1.0
  */
-class WC_Stripe_Payments_UI_Controller {
+final class WC_Stripe_Payments_UI_Controller {
 
 	/**
 	 * Menu slug shared by the top-level menu and its first submenu item.
