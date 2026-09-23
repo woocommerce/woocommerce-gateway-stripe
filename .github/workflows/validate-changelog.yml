@@ -43,6 +43,10 @@ jobs:
             const files = await github.paginate(github.rest.pulls.listFiles, {
               owner: context.repo.owner,
               repo: context.repo.repo,
+              pull_number: context.issue.number,
+              per_page: 100
+            });
+
             const UPDATE_STATUSES = [ 'changed', 'modified' ];
             const changelogUpdated = files.some(file => file.filename === 'changelog.txt' && UPDATE_STATUSES.includes( file.status ));
             const readmeUpdated = files.some(file => file.filename === 'readme.txt' && UPDATE_STATUSES.includes( file.status ));
