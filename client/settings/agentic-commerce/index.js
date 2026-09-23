@@ -269,7 +269,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 										help={
 											autoExcludeAddons
 												? __(
-														'Add-on / configurator products are excluded from the feed above, so this redirect option does not apply while that is on.',
+														'Add-on / configurator products are excluded from the feed above, so this redirect option does not apply to the excluded products.',
 														'woocommerce-gateway-stripe'
 												  )
 												: __(
