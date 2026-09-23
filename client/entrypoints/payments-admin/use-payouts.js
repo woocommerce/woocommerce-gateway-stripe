@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { PAYOUTS_PATH } from './constants';
 import apiFetch from '@wordpress/api-fetch';
+import { __ } from '@wordpress/i18n';
 import { addQueryArgs } from '@wordpress/url';
 import { NAMESPACE } from 'wcstripe/data/constants';
 
@@ -71,7 +72,12 @@ const usePayouts = ( { perPage, cursor } ) => {
 				setState( ( previous ) => ( {
 					...previous,
 					isLoading: false,
-					error: error?.message ?? null,
+					error:
+						error?.message ??
+						__(
+							'Unable to load payouts.',
+							'woocommerce-gateway-stripe'
+						),
 				} ) );
 			} );
 
