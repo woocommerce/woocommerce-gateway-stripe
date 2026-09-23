@@ -30,11 +30,13 @@ class WC_Stripe_REST_Payouts_Controller extends WC_Stripe_REST_Base_Controller {
 		'status',
 		'method',
 		'arrival_date',
-		'destination',
+		'livemode',
+		'destination.bank_name',
+		'destination.last4',
 	];
 
 	protected const STRIPE_SINGLE_EXPAND_PARAM = [
-		'data.destination',
+		'destination',
 	];
 
 	protected const STRIPE_LIST_RESPONSE_ALLOWED_FIELDS = [
@@ -47,6 +49,7 @@ class WC_Stripe_REST_Payouts_Controller extends WC_Stripe_REST_Base_Controller {
 		'data.status',
 		'data.method',
 		'data.arrival_date',
+		'data.livemode',
 		'data.destination.bank_name',
 		'data.destination.last4',
 	];

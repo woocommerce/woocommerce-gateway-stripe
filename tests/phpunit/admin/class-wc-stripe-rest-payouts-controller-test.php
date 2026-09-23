@@ -462,14 +462,14 @@ class WC_Stripe_REST_Payouts_Controller_Test extends WP_UnitTestCase {
 			"status": "paid",
 			"method": "standard",
 			"arrival_date": 1783468800,
-			"destination": "ba_test"
+			"destination": "ba_test",
+			"livemode": false
 		';
 		$response_as_string    = '{
 			' . $response_allowed_part . ',
 			"failure_balance_transaction": null,
 			"failure_code": null,
 			"failure_message": null,
-			"livemode": false,
 			"metadata": {},
 			"method": "standard",
 			"original_payout": null,
