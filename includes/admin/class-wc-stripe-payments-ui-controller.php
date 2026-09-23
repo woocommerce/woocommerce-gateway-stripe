@@ -156,6 +156,14 @@ class WC_Stripe_Payments_UI_Controller {
 			return;
 		}
 
+		add_filter(
+			'admin_body_class',
+			function ( $classes ) {
+				$classes .= ' wc-stripe-payments-admin ';
+				return $classes;
+			}
+		);
+
 		$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/payments-admin.asset.php';
 		$script_asset      = file_exists( $script_asset_path )
 			? require $script_asset_path

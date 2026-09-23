@@ -21,6 +21,6 @@ $stripe-payments-background-color: var(--wpds-color-background-surface-neutral, 
 	}
 }
 
-body.wp-admin.payments_page_wc-stripe-payments {
+body.wp-admin.wc-stripe-payments-admin {
 	background-color: $stripe-payments-background-color;
 }
