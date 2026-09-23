@@ -180,6 +180,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Show negative cart fees (e.g. a discount extension applying its discount as a fee) as negative line items in Express Checkout on classic cart page
 * Fix - Stop disabling Level 3 data account-wide when Stripe rejects it for a request that declares a non-card payment method
 * Fix - Open testing and payment settings documentation links in new tabs
+* Fix - Show a useful error when a Stripe connection cannot start
 * Fix - Prevent express checkout wallets from failing when rounded display items exceed the payment total
 * Fix - Accept shipping addresses in the express checkout wallet sheet for free-trial subscription carts whose shipping is charged with the recurring payments
 * Update - Ensure that application fees are not sent to Stripe for OAuth-connected accounts
@@ -192,5 +193,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Show negative order fees as negative line items in Express Checkout on the Pay for Order page
 * Update - Stop offering Sofort at checkout (discontinued by Stripe on March 31, 2025); refunds and subscription renewals for existing Sofort orders keep working
 * Dev - Mark the Sofort and giropay payment method classes and constants as deprecated ahead of their removal
+* Fix - Link to checkout when missing required custom fields block express checkout on other pages
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
