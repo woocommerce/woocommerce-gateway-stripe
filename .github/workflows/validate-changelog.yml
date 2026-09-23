@@ -155,9 +155,13 @@ jobs:
             fi
 
             # The milestone's block: everything between its header and the next one.
+            # Stop printing at the next header by clearing the flag rather than
+            # exiting: awk must read git show to EOF, or git show gets SIGPIPE and
+            # (under pipefail) fails the step with 141 whenever the file is larger
+            # than the pipe buffer and the milestone block sits near the top.
             block="$(git show "${PR_SHA}:${file}" | awk -v re="$header_re" '
               $0 ~ re { inside = 1; next }
-              inside && /^([0-9x]+-[0-9x]+-[0-9x]+ - version |= [0-9])/ { exit }
+              inside && /^([0-9x]+-[0-9x]+-[0-9x]+ - version |= [0-9])/ { inside = 0 }
               inside { print }
             ')"
 
