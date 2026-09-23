@@ -158,7 +158,6 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 		$advisories             = [];
 		$advisories_truncated   = 0;
 
-
 		// Zones that contribute no flat-rate shipping to the feed. Computed once,
 		// independent of the product walk.
 		$shipping_warnings = [];
