@@ -252,7 +252,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 											'woocommerce-gateway-stripe'
 										) }
 										help={ __(
-											"Products built with add-on or configurator plugins (Product Add-Ons, Extra Product Options, Composite Products, individually-priced Bundles) have prices that depend on shopper choices, which the feed can't represent. When enabled, those products are kept out of the catalog entirely.",
+											"Products built with add-on or configurator plugins (Product Add-Ons, Extra Product Options, Composite Products, individually-priced Bundles) have prices that depend on shopper choices, which the feed can't represent. When this option is enabled, those products are excluded from the Stripe agentic product catalog.",
 											'woocommerce-gateway-stripe'
 										) }
 										checked={ autoExcludeAddons }
