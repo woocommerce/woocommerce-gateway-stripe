@@ -53,12 +53,27 @@ const fields = [
 		enableSorting: false,
 		enableHiding: true,
 		filterBy: false,
-		getValue: ( { item } ) =>
-			sprintf(
+		getValue: ( { item } ) => {
+			if ( ( item.destination?.bank_name ?? '' ) === '' ) {
+				return '';
+			}
+			return [ item.destination.bank_name, item.destination?.last4 ?? '' ]
+				.filter( ( value ) => value !== '' )
+				.join( ' ' );
+		},
+		render: ( { item } ) => {
+			if ( ( item.destination?.bank_name ?? '' ) === '' ) {
+				return <EmptyCell />;
+			}
+			if ( ( item.destination?.last4 ?? '' ) === '' ) {
+				return item.destination.bank_name;
+			}
+			return sprintf(
 				'%1$s (%2$s)',
-				item.destination?.bank_name ?? '',
-				item.destination?.last4 ?? ''
-			),
+				item.destination.bank_name,
+				item.destination.last4
+			);
+		},
 	},
 	{
 		id: 'id',
