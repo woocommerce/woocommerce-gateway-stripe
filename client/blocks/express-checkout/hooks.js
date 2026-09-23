@@ -9,6 +9,7 @@ import {
 	onConfirmHandler,
 } from 'wcstripe/express-checkout/event-handler';
 import {
+	appendCheckoutLink,
 	displayExpressCheckoutNotice,
 	getDefaultShippingOptions,
 	getExpressCheckoutButtonStyleSettings,
@@ -56,9 +57,12 @@ export const useExpressCheckout = ( {
 	}, [] );
 
 	const abortPayment = useCallback(
-		( onConfirmEvent, message ) => {
+		( onConfirmEvent, message, options = {} ) => {
 			// If we have a multiline message using newlines, replace them with <br>.
-			const formattedMessage = message.replace( /\n/g, '<br>' );
+			let formattedMessage = message.replace( /\n/g, '<br>' );
+			if ( options?.linkToCheckout ) {
+				formattedMessage = appendCheckoutLink( formattedMessage );
+			}
 			setExpressPaymentError( formattedMessage );
 
 			onAbortPaymentHandler( onConfirmEvent, message );
