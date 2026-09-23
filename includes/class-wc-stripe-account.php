@@ -648,6 +648,25 @@ class WC_Stripe_Account {
 	}
 
 	/**
+	 * Fetches a specific webhook endpoint by ID from the connected Stripe account.
+	 *
+	 * Protected and mode-agnostic like webhook_endpoint_exists(): it queries whichever
+	 * secret key WC_Stripe_API currently holds, so callers set the mode's key first.
+	 *
+	 * @param string $webhook_id The webhook endpoint ID to fetch.
+	 * @return object|false The endpoint object, or false when it is missing or the lookup fails.
+	 */
+	protected function get_webhook_endpoint_by_id( string $webhook_id ) {
+		$response = $this->stripe_api::retrieve( "webhook_endpoints/{$webhook_id}" );
+
+		if ( is_wp_error( $response ) || ! is_object( $response ) || isset( $response->error ) ) {
+			return false;
+		}
+
+		return isset( $response->id ) ? $response : false;
+	}
+
+	/**
 	 * Reconfigures webhooks during plugin update or when admin enables Adaptive Pricing in the settings.
 	 * This ensures webhooks are updated with any new events that may have been added.
 	 * Only reconfigures if there's an existing webhook and its events differ from desired events.
@@ -693,6 +712,20 @@ class WC_Stripe_Account {
 				) {
 					update_option( self::get_webhook_notice_option( self::WEBHOOK_MISSING_NOTICE_OPTION, $mode ), 'yes' );
 					WC_Stripe_Logger::info( "Stored webhook {$stored_webhook_id} for {$mode} mode no longer exists in the Stripe account." );
+				}
+
+				// get_existing_webhook() returns the first endpoint at the site URL, which can be a
+				// merchant's manual endpoint sharing that URL. Compare events/version against the
+				// plugin's own recorded endpoint when it still exists, so an outdated plugin endpoint
+				// isn't skipped just because a merchant endpoint at the same URL is up to date.
+				if (
+					'' !== $stored_webhook_id
+					&& ( ! $existing_webhook || ( $existing_webhook->id ?? '' ) !== $stored_webhook_id )
+				) {
+					$stored_endpoint = $this->get_webhook_endpoint_by_id( $stored_webhook_id );
+					if ( false !== $stored_endpoint ) {
+						$existing_webhook = $stored_endpoint;
+					}
 				}
 
 				if ( ! $existing_webhook ) {

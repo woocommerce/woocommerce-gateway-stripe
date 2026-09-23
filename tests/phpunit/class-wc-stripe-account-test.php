@@ -813,15 +813,59 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 
 		$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
 			->setConstructorArgs( [ $this->mock_connect, WC_Helper_Stripe_Api::class ] )
-			->onlyMethods( [ 'get_existing_webhook', 'configure_webhooks', 'webhook_endpoint_exists' ] )
+			->onlyMethods( [ 'get_existing_webhook', 'configure_webhooks', 'webhook_endpoint_exists', 'get_webhook_endpoint_by_id' ] )
 			->getMock();
 		$this->account->method( 'get_existing_webhook' )->willReturn( $up_to_date_webhook );
 		$this->account->method( 'webhook_endpoint_exists' )->with( 'we_ghost' )->willReturn( false );
+		$this->account->method( 'get_webhook_endpoint_by_id' )->with( 'we_ghost' )->willReturn( false );
 		$this->account->expects( $this->never() )->method( 'configure_webhooks' );
 
 		$this->account->maybe_reconfigure_webhooks_on_update();
 
 		$this->assertSame( 'yes', get_option( WC_Stripe_Account::get_webhook_notice_option( WC_Stripe_Account::WEBHOOK_MISSING_NOTICE_OPTION, 'test' ) ) );
+	}
+
+	/**
+	 * When a merchant's manual endpoint and the plugin's own endpoint share the site URL,
+	 * reconfiguration must compare against the plugin's stored endpoint. An outdated stored
+	 * endpoint reconfigures even if the URL-matched merchant endpoint is up to date.
+	 */
+	public function test_reconfigure_webhooks_uses_stored_endpoint_over_url_match() {
+		$settings                        = WC_Stripe_Helper::get_stripe_settings();
+		$settings['test_webhook_secret'] = 'whsec_auto';
+		$settings['test_webhook_data']   = [
+			'id'             => 'we_plugin',
+			'secret'         => 'sk_test_key',
+			'signing_secret' => 'whsec_auto',
+		];
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$api_version_method = new ReflectionMethod( WC_Stripe_Account::class, 'get_webhooks_api_version' );
+		$api_version_method->setAccessible( true );
+
+		// The URL-matched endpoint is the merchant's and is up to date; the plugin's own
+		// stored endpoint is outdated and must still drive reconfiguration.
+		$merchant_webhook        = (object) [
+			'id'             => 'we_merchant',
+			'url'            => WC_Stripe_Helper::get_webhook_url(),
+			'enabled_events' => WC_Stripe_Account::WEBHOOK_EVENTS,
+			'api_version'    => $api_version_method->invoke( null ),
+			'status'         => 'enabled',
+		];
+		$outdated_plugin_webhook = $this->build_outdated_webhook( 'we_plugin' );
+
+		$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->setConstructorArgs( [ $this->mock_connect, WC_Helper_Stripe_Api::class ] )
+			->onlyMethods( [ 'get_existing_webhook', 'configure_webhooks', 'webhook_endpoint_exists', 'get_webhook_endpoint_by_id' ] )
+			->getMock();
+		$this->account->method( 'get_existing_webhook' )->willReturn( $merchant_webhook );
+		$this->account->method( 'webhook_endpoint_exists' )->with( 'we_plugin' )->willReturn( true );
+		$this->account->method( 'get_webhook_endpoint_by_id' )->with( 'we_plugin' )->willReturn( $outdated_plugin_webhook );
+		$this->account->expects( $this->once() )->method( 'configure_webhooks' )->with( 'test' );
+
+		$this->account->maybe_reconfigure_webhooks_on_update();
+
+		$this->assertFalse( get_option( WC_Stripe_Account::get_webhook_notice_option( WC_Stripe_Account::WEBHOOK_MISSING_NOTICE_OPTION, 'test' ) ) );
 	}
 
 	/**
