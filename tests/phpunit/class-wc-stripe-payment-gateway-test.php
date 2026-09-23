@@ -409,7 +409,11 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					'brand' => 'mastercard',
 					'last4' => '1234',
 				],
-				'expected_result'       => 'Via MasterCard card ending in 1234',
+				// Derive the brand label from WooCommerce so the assertion tracks
+				// the running WC version (it relabelled 'mastercard' from
+				// 'MasterCard' to 'Mastercard'), matching the plugin's own use of
+				// wc_get_credit_card_type_label() to render the title.
+				'expected_result'       => sprintf( 'Via %s card ending in 1234', wc_get_credit_card_type_label( 'mastercard' ) ),
 			],
 			'American Express card ending in 5678'    => [
 				'payment_method_type'   => 'card',
@@ -451,7 +455,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					'last4'  => '4444',
 					'wallet' => [ 'type' => 'apple_pay' ],
 				],
-				'expected_result'       => 'Via Apple Pay (MasterCard) ending in 4444',
+				'expected_result'       => sprintf( 'Via Apple Pay (%s) ending in 4444', wc_get_credit_card_type_label( 'mastercard' ) ),
 			],
 			'Link wallet card stays bare'             => [
 				'payment_method_type'   => 'card',
