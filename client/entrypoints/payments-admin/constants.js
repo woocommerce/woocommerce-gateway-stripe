@@ -13,19 +13,19 @@ export const DEFAULT_PER_PAGE = 25;
  * Chip colours, limited to the palette the shared Chip component supports.
  */
 export const PAYOUT_STATUS_COLORS = {
-	paid: 'green',
-	pending: 'blue',
-	incomplete: 'yellow',
-	upcoming: 'yellow',
+	paid: 'white',
+	pending: 'yellow',
+	in_transit: 'blue',
 	canceled: 'gray',
+	failed: 'red',
 };
 
 export const PAYOUT_STATUS_LABELS = {
 	paid: __( 'Paid', 'woocommerce-gateway-stripe' ),
 	pending: __( 'Pending', 'woocommerce-gateway-stripe' ),
-	incomplete: __( 'Incomplete', 'woocommerce-gateway-stripe' ),
-	upcoming: __( 'Upcoming', 'woocommerce-gateway-stripe' ),
+	in_transit: __( 'In transit', 'woocommerce-gateway-stripe' ),
 	canceled: __( 'Canceled', 'woocommerce-gateway-stripe' ),
+	failed: __( 'Failed', 'woocommerce-gateway-stripe' ),
 };
 
 /**
