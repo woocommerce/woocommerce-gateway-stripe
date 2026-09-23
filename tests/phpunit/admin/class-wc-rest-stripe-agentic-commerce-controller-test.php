@@ -1314,7 +1314,9 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * GET /settings reports the add-on auto-handling toggles, defaulting to off.
+	 * GET /settings reports the add-on auto-handling toggles. Auto-exclude
+	 * defaults on (add-on/configurator products can't be priced in the feed),
+	 * while the redirect toggle defaults off.
 	 */
 	public function test_get_settings_reflects_addon_toggles(): void {
 		$request = new WP_REST_Request( 'GET', self::REST_BASE . '/settings' );
@@ -1322,7 +1324,7 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$data = rest_do_request( $request )->get_data();
 		$this->assertArrayHasKey( 'auto_exclude_addons', $data );
 		$this->assertArrayHasKey( 'auto_redirect_checkout_addons', $data );
-		$this->assertFalse( $data['auto_exclude_addons'] );
+		$this->assertTrue( $data['auto_exclude_addons'] );
 		$this->assertFalse( $data['auto_redirect_checkout_addons'] );
 
 		update_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION, 'yes' );

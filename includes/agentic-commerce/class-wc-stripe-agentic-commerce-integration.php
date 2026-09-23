@@ -102,8 +102,10 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	public const DISABLE_CHECKOUT_OPTION = 'wc_stripe_agentic_commerce_disable_checkout';
 
 	/**
-	 * Option key ('yes'/'no', default off) for auto-excluding detector-flagged
-	 * add-on / configurator products from the feed.
+	 * Option key ('yes'/'no', default on) for auto-excluding detector-flagged
+	 * add-on / configurator products from the feed. Their price depends on
+	 * shopper choices the feed can't represent, so they are excluded by default
+	 * to keep agents from checking out at a wrong price; merchants can opt in.
 	 *
 	 * @see WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product()
 	 *
@@ -686,7 +688,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @return bool
 	 */
 	public static function is_auto_exclude_addons_enabled(): bool {
-		return 'yes' === get_option( self::AUTO_EXCLUDE_ADDONS_OPTION, 'no' );
+		return 'yes' === get_option( self::AUTO_EXCLUDE_ADDONS_OPTION, 'yes' );
 	}
 
 	/**

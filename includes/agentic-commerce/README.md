@@ -445,16 +445,16 @@ or higher (the agentic webhooks use it; see `class-wc-stripe-api.php`).
 
 Configurator products carry runtime-variable pricing the static feed can't
 represent, and the order-creation path rejects any line whose live price drifts
-from what Stripe charged. Two opt-in toggles (both default **off**) handle them
-without code, under **Stripe settings → Agentic commerce**:
+from what Stripe charged. Two toggles handle them without code, under
+**Stripe settings → Agentic commerce**:
 
-| Toggle | Option key | Effect |
-| --- | --- | --- |
-| **Exclude products with add-ons or configurators from the feed** | `wc_stripe_agentic_commerce_auto_exclude_addons` | Detected products never enter the catalog. Use when configurator SKUs should not appear in agents at all. |
-| **Redirect shoppers to my store for products with add-ons or configurators** | `wc_stripe_agentic_commerce_auto_redirect_checkout_addons` | Detected products stay discoverable but agents send shoppers to the store to configure and buy (`disable_checkout=true`). Use to keep discoverability while moving the actual purchase on-site. |
+| Toggle | Option key | Default | Effect |
+| --- | --- | --- | --- |
+| **Exclude products with add-ons or configurators from the feed** | `wc_stripe_agentic_commerce_auto_exclude_addons` | **on** | Detected products never enter the catalog. On by default so a shopper-priced product never reaches an agent at a wrong price; turn off to let these SKUs appear in agents. |
+| **Redirect shoppers to my store for products with add-ons or configurators** | `wc_stripe_agentic_commerce_auto_redirect_checkout_addons` | off | Detected products stay discoverable but agents send shoppers to the store to configure and buy (`disable_checkout=true`). Use to keep discoverability while moving the actual purchase on-site. |
 
 Exclude wins over redirect (an excluded product is never in the feed, so its
-checkout mode is moot). Both are **defaults** — a custom filter still wins.
+checkout mode is moot). Both only set **defaults** — a custom filter still wins.
 
 Detection is per-product postmeta (resolved on the parent for variations).
 Out of the box it covers `_product_addons`, `tm_meta_cpf_options`,

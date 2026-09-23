@@ -1683,22 +1683,45 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * With the auto-exclude toggle off (default), an add-on product still syncs —
-	 * preserving backward-compatible behavior.
+	 * With no stored preference, add-on/configurator products are excluded by
+	 * default: their price depends on shopper choices the feed can't represent,
+	 * so they must not reach agents at a wrong price.
 	 *
 	 * @return void
 	 */
-	public function test_should_sync_addon_product_synced_when_toggle_off() {
+	public function test_should_sync_addon_product_excluded_by_default() {
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION );
 
 		$product = WC_Helper_Product::create_simple_product();
 		$product->update_meta_data( '_product_addons', [ [ 'name' => 'Engraving' ] ] );
 		$product->save();
 
-		$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
-		$this->assertNull( WC_Stripe_Agentic_Commerce_Product_Mapper::get_sync_exclusion_reason( $product ) );
+		$this->assertFalse( WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+		$this->assertSame( 'addons', WC_Stripe_Agentic_Commerce_Product_Mapper::get_sync_exclusion_reason( $product ) );
 
 		$product->delete( true );
+	}
+
+	/**
+	 * With the auto-exclude toggle explicitly off, an add-on product still syncs,
+	 * so merchants can opt these products back into the feed.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_addon_product_synced_when_toggle_off() {
+		update_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION, 'no' );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->update_meta_data( '_product_addons', [ [ 'name' => 'Engraving' ] ] );
+		$product->save();
+
+		try {
+			$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+			$this->assertNull( WC_Stripe_Agentic_Commerce_Product_Mapper::get_sync_exclusion_reason( $product ) );
+		} finally {
+			delete_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION );
+			$product->delete( true );
+		}
 	}
 
 	/**
@@ -1757,6 +1780,9 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	 */
 	public function test_disable_checkout_auto_default_for_addon_products() {
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
+		// Redirect only applies to products that reach the feed, so opt the add-on
+		// product back in past the exclude-by-default before testing the redirect.
+		update_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION, 'no' );
 		update_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_REDIRECT_CHECKOUT_ADDONS_OPTION, 'yes' );
 
 		$addon = WC_Helper_Product::create_simple_product();
@@ -1773,6 +1799,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 			$this->assertSame( 'false', $mapper->map_product( $plain )['disable_checkout'] );
 		} finally {
 			delete_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_REDIRECT_CHECKOUT_ADDONS_OPTION );
+			delete_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION );
 			$addon->delete( true );
 			$plain->delete( true );
 		}
