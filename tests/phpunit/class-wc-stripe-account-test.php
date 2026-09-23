@@ -372,8 +372,10 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	 * Tests for delete_previously_configured_webhooks() with an excluded webhook.
 	 */
 	public function test_delete_previously_configured_webhooks_with_exclusion() {
-		$webhook_url = WC_Stripe_Helper::get_webhook_url();
-		$plugin_meta = (object) [ 'created_by' => 'woocommerce_gateway_stripe' ];
+		$webhook_url      = WC_Stripe_Helper::get_webhook_url();
+		$created_by_key   = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_METADATA_CREATED_BY_KEY', 'string' );
+		$created_by_value = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_METADATA_CREATED_BY_VALUE', 'string' );
+		$plugin_meta      = (object) [ $created_by_key => $created_by_value ];
 
 		// Mock the API retrieve.
 		WC_Helper_Stripe_Api::$retrieve_response = (object) [
@@ -439,8 +441,10 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	 * Tests for delete_previously_configured_webhooks()
 	 */
 	public function test_delete_previously_configured_webhooks_without_exclusion() {
-		$webhook_url = WC_Stripe_Helper::get_webhook_url();
-		$plugin_meta = (object) [ 'created_by' => 'woocommerce_gateway_stripe' ];
+		$webhook_url      = WC_Stripe_Helper::get_webhook_url();
+		$created_by_key   = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_METADATA_CREATED_BY_KEY', 'string' );
+		$created_by_value = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_METADATA_CREATED_BY_VALUE', 'string' );
+		$plugin_meta      = (object) [ $created_by_key => $created_by_value ];
 
 		// A settings-recorded endpoint predating the metadata stamp stays eligible for cleanup.
 		$settings                 = WC_Stripe_Helper::get_stripe_settings();
@@ -861,11 +865,9 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			parse_str( $captured_body, $captured_body );
 		}
 
-		// Literals pin the exact wire contract stamped on the endpoint (the
-		// constants are protected on WC_Stripe_Account).
 		$this->assertSame(
-			'woocommerce_gateway_stripe',
-			$captured_body['metadata']['created_by'] ?? null
+			WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_METADATA_CREATED_BY_VALUE', 'string' ),
+			$captured_body['metadata'][ WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_METADATA_CREATED_BY_KEY', 'string' ) ] ?? null
 		);
 
 		$settings = WC_Stripe_Helper::get_stripe_settings();
