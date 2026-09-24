@@ -1723,9 +1723,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$redundant_order->update_status(
 				OrderStatus::CANCELLED,
 				sprintf(
-					/* translators: %d: order number that was already paid for this cart. */
-					__( 'Cancelled to avoid a duplicate charge: this cart was already paid by order #%d.', 'woocommerce-gateway-stripe' ),
-					$paid_order->get_id()
+					/* translators: %s: order number that was already paid for this cart. */
+					__( 'Cancelled to avoid a duplicate charge: this cart was already paid by order #%s.', 'woocommerce-gateway-stripe' ),
+					$paid_order->get_order_number()
 				)
 			);
 		}
