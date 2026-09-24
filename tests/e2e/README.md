@@ -151,7 +151,7 @@ You can also run the e2e tests using QIT (the Quality Insights Toolkit).
 - Copy the file `/tests/e2e/qit/qit.env.example` to `/tests/e2e/qit/qit.env`.
 - Edit the variables in the `qit.env` file and replace the values with your Stripe test keys.
 
-If you want to run the Becs Direct Debit or BLIKS e2e tests, you need to have Stripe test keys for an Australian account (for Becs) or a Polish account (for BLIK). In these cases, you need to copy `/tests/e2e/qit/qit.au.env.example` to `/tests/e2e/qit/qit.au.env` for Becs or `/tests/e2e/qit/qit.pl.env.example` to `/tests/e2e/qit/qit.pl.env` for BLIK, and then replace the key values with your test keys.
+If you want to run the Becs Direct Debit or BLIK e2e tests, you need to have Stripe test keys for an Australian account (for Becs) or a Polish account (for BLIK). In these cases, you need to copy `/tests/e2e/qit/qit.au.env.example` to `/tests/e2e/qit/qit.au.env` for Becs or `/tests/e2e/qit/qit.pl.env.example` to `/tests/e2e/qit/qit.pl.env` for BLIK, and then replace the key values with your test keys.
 
 ### Running QIT tests
 
