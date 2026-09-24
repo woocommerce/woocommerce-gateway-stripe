@@ -8123,9 +8123,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * A BLIK retry reuses the intent, so while the new attempt awaits the shopper's approval the
-	 * intent's latest charge is the failed one from the earlier attempt. That stale charge must not
-	 * fail the order; the result arrives through webhooks.
+	 * On a BLIK retry, the earlier failed charge must not fail the order.
 	 *
 	 * @return void
 	 */

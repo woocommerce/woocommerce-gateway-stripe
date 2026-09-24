@@ -1963,9 +1963,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A retry of a non-deferred payment (BLIK, ACSS) submits a new intent while the order still
-	 * stores the first one. The retry must go through only when the stored intent took no money and
-	 * is cancelled first, and the new one is unconfirmed and not linked to another order.
+	 * A retry with a new intent replaces the stored one only when that is safe.
 	 *
 	 * @dataProvider provide_update_intent_retry_cases
 	 *
@@ -1981,7 +1979,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 			$new_intent['metadata']['order_key'] = $this->order->get_order_key();
 		}
 
-		// Give the shopper a Stripe customer, so update_intent() fetches it instead of creating one.
+		// Avoids creating a Stripe customer in update_intent().
 		$user_id = self::factory()->user->create();
 		update_user_option( $user_id, '_stripe_customer_id', 'cus_mock', false );
 		wp_set_current_user( $user_id );
@@ -2047,9 +2045,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A retry that reuses the intent must keep the customer set on it by the first attempt: Stripe
-	 * rejects a different one. Guests get a new Stripe customer on every attempt, so for them the
-	 * intent's customer is reused and not sent again; logged-in shoppers keep their stored customer.
+	 * A retry that reuses the intent keeps its customer, since Stripe can't change it.
 	 *
 	 * @dataProvider provide_update_intent_customer_cases
 	 *

@@ -567,9 +567,7 @@ class WC_Stripe_Intent_Controller {
 		$currency = $order->get_currency();
 		$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
 
-		// A guest has no stored Stripe customer, so every attempt would create a new one. Stripe does
-		// not allow changing the customer of an intent, so a retry that reuses the intent must keep the
-		// customer set by the first attempt.
+		// Guests get a new Stripe customer per attempt, but Stripe can't change an intent's customer.
 		$intent_customer_id = 0 === $customer->get_user_id() && ! empty( $intent_id )
 			? $this->get_intent_customer_id( (string) $intent_id )
 			: '';
@@ -687,14 +685,10 @@ class WC_Stripe_Intent_Controller {
 	}
 
 	/**
-	 * Lets a retry of a non-deferred payment use its new intent.
+	 * Releases the order's stored intent so a retry of a non-deferred payment can use a new one.
 	 *
-	 * Non-deferred methods (BLIK, ACSS) create a new intent each time the element mounts, but a retry
-	 * after a failed attempt reuses the same order, which still stores the first intent. The intent
-	 * ID check in validate_intent_for_order() would then reject every retry. The stored intent is
-	 * removed only when that is safe: the new intent is unconfirmed and not linked to another order,
-	 * and the stored one has taken no money and is cancelled first, so the shopper cannot pay both.
-	 * In any other case the stored intent stays, and validation rejects the request as before.
+	 * Only when the new intent is unconfirmed and not linked to another order, and the stored one
+	 * took no money and is cancelled first, so the shopper cannot pay both.
 	 *
 	 * @param WC_Order $order     The order being paid.
 	 * @param string   $intent_id The intent submitted for this attempt.
@@ -707,7 +701,6 @@ class WC_Stripe_Intent_Controller {
 			return;
 		}
 
-		// Only replace an intent with one of the same kind.
 		$is_setup_intent = 0 === strpos( $intent_id, 'seti_' );
 		if ( ( 0 === strpos( $order_intent_id, 'seti_' ) ) !== $is_setup_intent ) {
 			return;
@@ -730,7 +723,7 @@ class WC_Stripe_Intent_Controller {
 
 		$old_status = $old_intent->status ?? '';
 		if ( WC_Stripe_Intent_Status::CANCELED !== $old_status ) {
-			// Succeeded, processing, or authorized intents hold the shopper's money, so keep them.
+			// Keep intents that hold the shopper's money.
 			$cancellable_statuses = [
 				WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD,
 				WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION,
