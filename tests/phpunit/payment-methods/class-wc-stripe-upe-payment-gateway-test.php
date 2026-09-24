@@ -8271,20 +8271,31 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * A submission turned away because the same cart is already being charged must show its message
-	 * on both checkouts: Blocks reads `errorMessage`, classic reads the notice.
+	 * A submission turned away because the same cart or order is already being charged must show its
+	 * message on both checkouts: Blocks reads `errorMessage`, classic reads the notice.
 	 *
-	 * @dataProvider provide_is_store_api_request
+	 * @dataProvider provide_lock_contention_cases
 	 *
-	 * @param bool $is_store_api_request Whether the request is a Store API (Blocks) checkout.
+	 * @param string $lock                 Which lock is held: `cart` (duplicate-charge guard) or `order`.
+	 * @param bool   $is_store_api_request Whether the request is a Store API (Blocks) checkout.
 	 *
 	 * @return void
 	 */
-	public function test_process_payment_lock_contention_response_matches_checkout_type( bool $is_store_api_request ): void {
-		$order    = $this->create_order_for_live_cart();
-		$cart_key = WC_Stripe_Duplicate_Payment_Prevention::get_cart_key( $order );
-		$owner    = WC_Stripe_Duplicate_Payment_Prevention::acquire_lock( $cart_key );
-		$this->assertNotNull( $owner );
+	public function test_process_payment_lock_contention_response_matches_checkout_type( string $lock, bool $is_store_api_request ): void {
+		$cart_key = '';
+		$owner    = null;
+		if ( 'cart' === $lock ) {
+			$order    = $this->create_order_for_live_cart();
+			$cart_key = WC_Stripe_Duplicate_Payment_Prevention::get_cart_key( $order );
+			$owner    = WC_Stripe_Duplicate_Payment_Prevention::acquire_lock( $cart_key );
+			$this->assertNotNull( $owner );
+		} else {
+			$order        = WC_Helper_Order::create_order();
+			$order_helper = $this->createPartialMock( WC_Stripe_Order_Helper::class, [ 'lock_order_payment', 'unlock_order_payment' ] );
+			$order_helper->method( 'lock_order_payment' )->willReturn( true );
+			WC_Stripe_Order_Helper::set_instance( $order_helper );
+			$this->mock_gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_mock' );
+		}
 
 		$_POST = [
 			'payment_method'           => 'stripe',
@@ -8302,7 +8313,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		try {
 			$response = $this->mock_gateway->process_payment( $order->get_id() );
 		} finally {
-			WC_Stripe_Duplicate_Payment_Prevention::release_lock( $cart_key, $owner );
+			if ( null !== $owner ) {
+				WC_Stripe_Duplicate_Payment_Prevention::release_lock( $cart_key, $owner );
+			}
 			if ( null === $original_request_uri ) {
 				unset( $_SERVER['REQUEST_URI'] );
 			} else {
@@ -8324,12 +8337,14 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	/**
 	 * Data provider for `test_process_payment_lock_contention_response_matches_checkout_type`.
 	 *
-	 * @return array<string, array{0: bool}>
+	 * @return array<string, array{0: string, 1: bool}>
 	 */
-	public function provide_is_store_api_request(): array {
+	public function provide_lock_contention_cases(): array {
 		return [
-			'store api' => [ true ],
-			'classic'   => [ false ],
+			'cart lock, store api'  => [ 'cart', true ],
+			'cart lock, classic'    => [ 'cart', false ],
+			'order lock, store api' => [ 'order', true ],
+			'order lock, classic'   => [ 'order', false ],
 		];
 	}
 }
