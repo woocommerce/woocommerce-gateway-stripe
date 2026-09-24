@@ -196,5 +196,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Remove - Stop offering Sofort at checkout (discontinued by Stripe on March 31, 2025); refunds and subscription renewals for existing Sofort orders keep working
 * Dev - Mark the Sofort and giropay payment method classes and constants as deprecated ahead of their removal
 * Fix - Link to checkout when missing required custom fields block express checkout on other pages
+* Fix - Stop refusing express checkout orders over required classic custom checkout fields on stores whose checkout page uses the checkout block and cannot render them
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
