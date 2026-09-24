@@ -1,7 +1,7 @@
 import { getAjaxUrl } from './core';
 import { getStripe } from './stripe';
 import { __ } from '@wordpress/i18n';
-import { getStripeServerData } from 'wcstripe/stripe-utils';
+import { getStripeServerData } from 'wcstripe/stripe-utils/get-stripe-server-data';
 import {
 	PAYMENT_INTENT_STATUS_REQUIRES_ACTION,
 	PAYMENT_METHOD_CASHAPP,

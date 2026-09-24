@@ -232,10 +232,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$this->payment_methods = [];
 		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-			/** Show Sofort if it's already enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
-			 * Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
-			 */
-			if ( WC_Stripe_UPE_Payment_Method_Sofort::class === $payment_method_class && ! $is_sofort_enabled ) {
+			// Sofort is discontinued and never offered at checkout. Keep it instantiated for
+			// stores that still have it enabled (preserves subscription renewal hooks) and on
+			// the order details page / refund requests so old Sofort orders can be refunded.
+			if ( WC_Stripe_UPE_Payment_Method_Sofort::class === $payment_method_class && ! $is_sofort_enabled && ! $this->is_order_details_page() && ! $this->is_refund_request() ) {
 				continue;
 			}
 
@@ -1147,6 +1147,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * Updates the enabled payment methods.
 	 *
 	 * @param string[] $payment_method_ids_to_enable
+	 * @return true|\WP_Error True on success, WP_Error on failure.
 	 */
 	public function update_enabled_payment_methods( $payment_method_ids_to_enable ) {
 		// If the payment method configurations API is not enabled, we fallback to store the enabled payment methods in the DB.
@@ -1166,7 +1167,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$newly_disabled_methods = array_diff( $currently_enabled_payment_method_ids, $payment_method_ids_to_enable );
 			WC_Stripe_Payment_Method_Configurations::record_payment_method_settings_event( $newly_enabled_methods, $newly_disabled_methods );
 
-			return;
+			return true;
 		}
 
 		$payment_method_ids_to_update = array_merge(
@@ -1174,7 +1175,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			[ WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ]
 		);
 
-		WC_Stripe_Payment_Method_Configurations::update_payment_method_configuration(
+		return WC_Stripe_Payment_Method_Configurations::update_payment_method_configuration(
 			$payment_method_ids_to_enable,
 			$payment_method_ids_to_update
 		);

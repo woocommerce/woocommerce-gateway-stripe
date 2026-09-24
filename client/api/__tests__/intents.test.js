@@ -8,8 +8,11 @@ import {
 } from '../intents';
 
 jest.mock( 'wcstripe/stripe-utils', () => ( {
-	getStripeServerData: jest.fn(),
 	getStripeDevWidgetOptions: jest.fn( () => ( {} ) ),
+} ) );
+
+jest.mock( 'wcstripe/stripe-utils/get-stripe-server-data', () => ( {
+	getStripeServerData: jest.fn(),
 } ) );
 
 describe( 'wcstripe/api/intents', () => {
