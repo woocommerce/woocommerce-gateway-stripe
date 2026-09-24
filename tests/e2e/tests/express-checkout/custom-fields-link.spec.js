@@ -17,6 +17,12 @@ const CUSTOM_FIELD_COOKIE = 'wc_stripe_e2e_required_custom_field';
 const CUSTOM_FIELD_KEY = 'billing_e2e_custom_field';
 const CUSTOM_FIELD_LABEL = 'E2E custom field';
 
+// 4 minutes. The Link popup flow far exceeds the suite-default test timeout:
+// opening the popup retries with backoff, and the signup, OTP, and close steps
+// each carry long waits (close alone allows 90 seconds). Same budget as the
+// other Link specs.
+const LINK_TEST_TIMEOUT = 240 * 1000;
+
 test.describe( 'express checkout with a required classic custom checkout field', () => {
 	test.beforeEach( async ( { context, page, baseURL } ) => {
 		await context.addCookies( [
@@ -57,7 +63,7 @@ test.describe( 'express checkout with a required classic custom checkout field',
 	test( 'completes the purchase on the block checkout, which cannot render the field @blocks @express-checkout', async ( {
 		page,
 	} ) => {
-		test.setTimeout( 240 * 1000 );
+		test.setTimeout( LINK_TEST_TIMEOUT );
 		await addProductToCart( page );
 		await page.goto( '/checkout' );
 
@@ -72,7 +78,7 @@ test.describe( 'express checkout with a required classic custom checkout field',
 	test( 'refuses the purchase on the classic checkout while the field is empty @express-checkout', async ( {
 		page,
 	} ) => {
-		test.setTimeout( 240 * 1000 );
+		test.setTimeout( LINK_TEST_TIMEOUT );
 		await addProductToCart( page );
 		await page.goto( '/checkout-shortcode' );
 
@@ -89,7 +95,7 @@ test.describe( 'express checkout with a required classic custom checkout field',
 	test( 'records the field value on the order placed from the classic checkout @express-checkout', async ( {
 		page,
 	} ) => {
-		test.setTimeout( 240 * 1000 );
+		test.setTimeout( LINK_TEST_TIMEOUT );
 		const fieldValue = `e2e-value-${ randomUUID() }`;
 		await addProductToCart( page );
 		await page.goto( '/checkout-shortcode' );
