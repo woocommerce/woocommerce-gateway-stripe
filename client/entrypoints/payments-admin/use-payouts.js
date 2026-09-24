@@ -10,10 +10,13 @@ import { NAMESPACE } from 'wcstripe/data/constants';
  * Stripe pages by cursor, so callers pass the id of the last row of the
  * previous page rather than an offset.
  *
+ * We return `cursor` and `perPage` in the result to allow callers to know which
+ * inputs were used to fetch the current data.
+ *
  * @param {Object}  args         Query arguments.
  * @param {number}  args.perPage Rows per page; the endpoint caps this at 100.
  * @param {?string} args.cursor  Payout ID to start after, or null for the first page.
- * @return {{data: Array, hasMore: boolean, isLoading: boolean, error: ?string}} Fetch state.
+ * @return {{data: Array, hasMore: boolean, isLoading: boolean, error: ?string, cursor: (?string|undefined), perPage: (number|undefined)}} Fetch state.
  */
 const usePayouts = ( { perPage, cursor } ) => {
 	const [ state, setState ] = useState( {
@@ -24,8 +27,8 @@ const usePayouts = ( { perPage, cursor } ) => {
 	} );
 
 	// Cursor paging means requests are not interchangeable: a slow response for
-	// an earlier page must not overwrite a later one. Only the newest request
-	// is allowed to commit.
+	// an earlier page must not overwrite a later one. Only the most recent request
+	// is allowed to update the data we return.
 	const requestIdRef = useRef( 0 );
 
 	useEffect( () => {
@@ -54,6 +57,8 @@ const usePayouts = ( { perPage, cursor } ) => {
 					hasMore: Boolean( response?.has_more ),
 					isLoading: false,
 					error: null,
+					cursor,
+					perPage,
 				} );
 			} )
 			.catch( ( error ) => {

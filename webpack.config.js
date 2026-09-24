@@ -168,6 +168,6 @@ module.exports = {
 		'link-settings': './client/entrypoints/link-settings/index.js',
 		'plugins-page': './client/entrypoints/plugins-page/index.js',
 		'command-palette': './client/entrypoints/command-palette/index.js',
-		finance: './client/entrypoints/finance/index.js',
+		'payments-admin': './client/entrypoints/payments-admin/index.js',
 	},
 };

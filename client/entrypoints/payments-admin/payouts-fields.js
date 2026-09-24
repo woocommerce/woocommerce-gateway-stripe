@@ -24,21 +24,11 @@ const fields = [
 	{
 		id: 'arrival_date',
 		label: __( 'Arrival date', 'woocommerce-gateway-stripe' ),
-		type: 'datetime',
+		type: 'date',
 		enableSorting: false,
 		enableHiding: false,
 		filterBy: false,
 		getValue: ( { item } ) => formatStripeTimestamp( item.arrival_date ),
-	},
-	{
-		id: 'amount',
-		label: __( 'Amount', 'woocommerce-gateway-stripe' ),
-		enableSorting: false,
-		enableHiding: false,
-		filterBy: false,
-		getValue: ( { item } ) => item.amount,
-		render: ( { item } ) =>
-			formatStripeAmount( item.amount, item.currency ),
 	},
 	{
 		id: 'status',
@@ -58,34 +48,58 @@ const fields = [
 			),
 	},
 	{
+		id: 'bank_details',
+		label: __( 'Bank details', 'woocommerce-gateway-stripe' ),
+		enableSorting: false,
+		enableHiding: true,
+		filterBy: false,
+		getValue: ( { item } ) => {
+			if ( ( item.destination?.bank_name ?? '' ) === '' ) {
+				return '';
+			}
+			return [ item.destination.bank_name, item.destination?.last4 ?? '' ]
+				.filter( ( value ) => value !== '' )
+				.join( ' ' );
+		},
+		render: ( { item } ) => {
+			if ( ( item.destination?.bank_name ?? '' ) === '' ) {
+				return <EmptyCell />;
+			}
+			if ( ( item.destination?.last4 ?? '' ) === '' ) {
+				return item.destination.bank_name;
+			}
+			return sprintf(
+				'%1$s (%2$s)',
+				item.destination.bank_name,
+				item.destination.last4
+			);
+		},
+	},
+	{
 		id: 'id',
 		label: __( 'Payout ID', 'woocommerce-gateway-stripe' ),
 		enableSorting: false,
 		enableHiding: true,
 		filterBy: false,
 		getValue: ( { item } ) => item.id,
-		render: ( { item } ) => (
-			<ExternalLink
-				href={ `https://dashboard.stripe.com/payouts/${ encodeURIComponent(
-					item.id
-				) }` }
-			>
-				{ item.id }
-			</ExternalLink>
-		),
+		render: ( { item } ) => {
+			const url =
+				'https://dashboard.stripe.com/' +
+				( item.livemode ? '' : 'test/' ) +
+				'payouts/' +
+				encodeURIComponent( item.id );
+			return <ExternalLink href={ url }>{ item.id }</ExternalLink>;
+		},
 	},
 	{
-		id: 'bank_details',
-		label: __( 'Bank details', 'woocommerce-gateway-stripe' ),
+		id: 'amount',
+		label: __( 'Amount', 'woocommerce-gateway-stripe' ),
 		enableSorting: false,
-		enableHiding: true,
+		enableHiding: false,
 		filterBy: false,
-		getValue: ( { item } ) =>
-			sprintf(
-				'%1$s (%2%s)',
-				item.destination?.bank_name ?? '',
-				item.destination?.last4 ?? ''
-			),
+		getValue: ( { item } ) => item.amount,
+		render: ( { item } ) =>
+			formatStripeAmount( item.amount, item.currency ),
 	},
 ];
 

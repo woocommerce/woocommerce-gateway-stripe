@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import PayoutsTable from './payouts-table';
-import BalanceBanner from './balance-banner';
+import InstantPayoutsPromotionBanner from './instant-payouts-promotion-banner';
 import { TabPanel } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import '@wordpress/dataviews/build-style/style.css';
@@ -28,7 +28,7 @@ const PaymentsPage = () => {
 	return (
 		<div className="wc-stripe-payments">
 			<h1 className="wc-stripe-payments__heading">{ title }</h1>
-			<BalanceBanner />
+			<InstantPayoutsPromotionBanner />
 			<TabPanel tabs={ tabs } className="wc-stripe-payments__tabs">
 				{ renderTabContent }
 			</TabPanel>

@@ -39,10 +39,10 @@ export const DEFAULT_PAYOUTS_VIEW = {
 	fields: [
 		'created',
 		'arrival_date',
-		'amount',
 		'status',
 		'bank_details',
 		'id',
+		'amount',
 	],
 	layout: {
 		density: 'balanced',
@@ -54,5 +54,9 @@ export const DEFAULT_PAYOUTS_VIEW = {
 			status: { width: '15%' },
 			bank_details: { width: '40%' },
 		},
+	},
+	sort: {
+		field: 'created',
+		direction: 'desc',
 	},
 };
