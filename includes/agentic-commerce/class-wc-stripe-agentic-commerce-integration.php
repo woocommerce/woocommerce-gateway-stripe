@@ -110,7 +110,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @see WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product()
 	 *
 	 * @var string
-	 * @since 10.9.0
+	 * @since 11.1.0
 	 */
 	public const AUTO_EXCLUDE_ADDONS_OPTION = 'wc_stripe_agentic_commerce_auto_exclude_addons';
 
@@ -120,7 +120,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * to the store for these products.
 	 *
 	 * @var string
-	 * @since 10.9.0
+	 * @since 11.1.0
 	 */
 	public const AUTO_REDIRECT_CHECKOUT_ADDONS_OPTION = 'wc_stripe_agentic_commerce_auto_redirect_checkout_addons';
 
