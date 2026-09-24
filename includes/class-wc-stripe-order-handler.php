@@ -15,7 +15,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Singleton instance of the class.
 	 *
-	 * @var WC_Stripe_Order_Handler
+	 * @var WC_Stripe_Order_Handler|null
 	 */
 	private static $_this;
 
@@ -55,7 +55,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @return WC_Stripe_Order_Handler
+	 * @return WC_Stripe_Order_Handler|null
 	 */
 	public static function get_instance() {
 		return self::$_this;
