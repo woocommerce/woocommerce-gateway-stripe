@@ -88,9 +88,10 @@ reviews:
         `includes/agentic-commerce/`); flag changes to those implementations that could break compatibility with the
         supported WooCommerce range.
         Request PHPUnit coverage when behavior changes.
-        `@since x.x.x` and `@version x.x.x` are intentional: woorelease replaces them with the release version, so do not
-        ask for a concrete version. Flag a new `@since`/`@version` with a concrete, not yet released version (ask for
-        `x.x.x`), and flag `x.x.x` in `@deprecated` tags or deprecation function arguments, which are not replaced.
+        `@since x.x.x`, `@version x.x.x`, `@deprecated x.x.x`, and `'x.x.x'` as a deprecation function's version argument
+        are intentional: woorelease replaces them with the release version, so do not ask for a concrete version. Flag a
+        new tag or deprecation version with a concrete, not yet released version (ask for `x.x.x`), and flag an unquoted
+        `x.x.x`, which is not replaced.
     - path: "client/**/*.{js,jsx,ts,tsx}"
       instructions: |
         Ensure async checkout/admin payment flows handle failures and retries safely.
