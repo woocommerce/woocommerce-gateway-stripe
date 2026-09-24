@@ -557,6 +557,9 @@ class WC_Stripe_Intent_Controller {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		$selected_payment_type = '' !== $selected_upe_payment_type && is_string( $selected_upe_payment_type ) ? $selected_upe_payment_type : null;
+		if ( is_string( $intent_id ) && '' !== $intent_id ) {
+			$this->maybe_release_stale_order_intent( $order, $intent_id );
+		}
 		$order_helper->validate_intent_for_order( $order, $intent_id, $selected_payment_type );
 
 		$gateway  = $this->get_upe_gateway();
@@ -654,6 +657,79 @@ class WC_Stripe_Intent_Controller {
 		return [
 			'success' => true,
 		];
+	}
+
+	/**
+	 * Lets a retry of a non-deferred payment use its new intent.
+	 *
+	 * Non-deferred methods (BLIK, ACSS) create a new intent each time the element mounts, but a retry
+	 * after a failed attempt reuses the same order, which still stores the first intent. The intent
+	 * ID check in validate_intent_for_order() would then reject every retry. The stored intent is
+	 * removed only when that is safe: the new intent is unconfirmed and not linked to another order,
+	 * and the stored one has taken no money and is cancelled first, so the shopper cannot pay both.
+	 * In any other case the stored intent stays, and validation rejects the request as before.
+	 *
+	 * @param WC_Order $order     The order being paid.
+	 * @param string   $intent_id The intent submitted for this attempt.
+	 * @return void
+	 */
+	private function maybe_release_stale_order_intent( WC_Order $order, string $intent_id ): void {
+		$order_helper    = WC_Stripe_Order_Helper::get_instance();
+		$order_intent_id = $order_helper->get_stripe_intent_id( $order );
+		if ( ! is_string( $order_intent_id ) || '' === $order_intent_id || $order_intent_id === $intent_id ) {
+			return;
+		}
+
+		// Only replace an intent with one of the same kind.
+		$is_setup_intent = 0 === strpos( $intent_id, 'seti_' );
+		if ( ( 0 === strpos( $order_intent_id, 'seti_' ) ) !== $is_setup_intent ) {
+			return;
+		}
+		$endpoint = $is_setup_intent ? 'setup_intents' : 'payment_intents';
+
+		$new_intent = WC_Stripe_API::retrieve( "{$endpoint}/{$intent_id}" );
+		if ( ! is_object( $new_intent ) || ! empty( $new_intent->error ) || WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD !== ( $new_intent->status ?? '' ) ) {
+			return;
+		}
+		$new_intent_order_key = $new_intent->metadata->order_key ?? '';
+		if ( '' !== $new_intent_order_key && $new_intent_order_key !== $order->get_order_key() ) {
+			return;
+		}
+
+		$old_intent = WC_Stripe_API::retrieve( "{$endpoint}/{$order_intent_id}" );
+		if ( ! is_object( $old_intent ) || ! empty( $old_intent->error ) ) {
+			return;
+		}
+
+		$old_status = $old_intent->status ?? '';
+		if ( WC_Stripe_Intent_Status::CANCELED !== $old_status ) {
+			// Succeeded, processing, or authorized intents hold the shopper's money, so keep them.
+			$cancellable_statuses = [
+				WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD,
+				WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION,
+				WC_Stripe_Intent_Status::REQUIRES_ACTION,
+			];
+			if ( ! in_array( $old_status, $cancellable_statuses, true ) ) {
+				return;
+			}
+
+			$cancelled_intent = WC_Stripe_API::request( [], "{$endpoint}/{$order_intent_id}/cancel" );
+			if ( ! is_object( $cancelled_intent ) || ! empty( $cancelled_intent->error ) || WC_Stripe_Intent_Status::CANCELED !== ( $cancelled_intent->status ?? '' ) ) {
+				return;
+			}
+		}
+
+		$order_helper->delete_stripe_intent_id( $order );
+		$order->save();
+
+		WC_Stripe_Logger::info(
+			'Replaced the stored intent on retry of a non-deferred payment',
+			[
+				'order_id'      => $order->get_id(),
+				'old_intent_id' => $order_intent_id,
+				'new_intent_id' => $intent_id,
+			]
+		);
 	}
 
 	/**
