@@ -1,5 +1,11 @@
 import jQuery from 'jquery';
-import WCStripeAPI from '../../api';
+import { createApiClient } from '../../api/core';
+import {
+	confirmIntent,
+	processCheckout,
+	updateFailedOrder,
+} from '../../api/intents';
+import { getStripe } from '../../api/stripe';
 import {
 	getStripeServerData,
 	getUPETerms,
@@ -27,15 +33,7 @@ jQuery( function ( $ ) {
 	}
 
 	// Create an API object, which will be used throughout the checkout.
-	const api = new WCStripeAPI(
-		getStripeServerData(),
-		// A promise-based interface to jQuery.post.
-		( url, args ) => {
-			return new Promise( ( resolve, reject ) => {
-				jQuery.post( url, args ).then( resolve ).fail( reject );
-			} );
-		}
-	);
+	const api = createApiClient( getStripeServerData() );
 
 	const elements = null;
 	const upeElement = null;
@@ -145,7 +143,7 @@ jQuery( function ( $ ) {
 		}
 		if ( ! isUPEComplete ) {
 			// If UPE fields are not filled, confirm payment to trigger validation errors
-			const { error } = await api.getStripe().confirmPayment( {
+			const { error } = await getStripe( api ).confirmPayment( {
 				elements,
 				confirmParams: {
 					return_url: '#',
@@ -178,7 +176,8 @@ jQuery( function ( $ ) {
 			return obj;
 		}, {} );
 		try {
-			const response = await api.processCheckout(
+			const response = await processCheckout(
+				api,
 				paymentIntentId,
 				formFields
 			);
@@ -194,11 +193,11 @@ jQuery( function ( $ ) {
 			};
 			let error;
 			if ( response.payment_needed ) {
-				( { error } = await api
-					.getStripe()
-					.confirmPayment( upeConfig ) );
+				( { error } =
+					await getStripe( api ).confirmPayment( upeConfig ) );
 			} else {
-				( { error } = await api.getStripe().confirmSetup( upeConfig ) );
+				( { error } =
+					await getStripe( api ).confirmSetup( upeConfig ) );
 			}
 
 			if ( error ) {
@@ -209,7 +208,8 @@ jQuery( function ( $ ) {
 					upeType !== PAYMENT_METHOD_OXXO &&
 					upeType !== PAYMENT_METHOD_MULTIBANCO
 				) {
-					await api.updateFailedOrder(
+					await updateFailedOrder(
+						api,
 						paymentIntentId,
 						response.order_id
 					);
@@ -232,7 +232,8 @@ jQuery( function ( $ ) {
 		const savePaymentMethod = $( '#wc-stripe-new-payment-method' ).is(
 			':checked'
 		);
-		const confirmation = api.confirmIntent(
+		const confirmation = confirmIntent(
+			api,
 			window.location.href,
 			savePaymentMethod ? paymentMethodId : null
 		);

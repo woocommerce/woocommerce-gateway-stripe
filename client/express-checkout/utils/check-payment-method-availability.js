@@ -2,6 +2,7 @@ import { Component } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ExpressCheckoutElement, Elements } from '@stripe/react-stripe-js';
 import { memoize } from 'lodash';
+import { loadStripe } from 'wcstripe/api/stripe';
 import {
 	getExpressCheckoutData,
 	getPaymentMethodTypesForExpressMethod,
@@ -44,7 +45,7 @@ class ProbeErrorBoundary extends Component {
  * event to learn whether the given express payment method is available.
  *
  * @param {string} paymentMethod The express payment method identifier (e.g. 'googlePay', 'applePay').
- * @param {Object} api           The WCStripeAPI instance used to load Stripe.
+ * @param {Object} api           The API client used to load Stripe.
  * @param {Object} cart          The WooCommerce cart object containing totals and currency info.
  * @return {Promise<boolean>} Promise that resolves to true if the payment method is available, false otherwise.
  */
@@ -84,7 +85,7 @@ const checkPaymentMethodAvailability = memoize(
 			root.render(
 				<ProbeErrorBoundary onError={ failProbe }>
 					<Elements
-						stripe={ api.loadStripe() }
+						stripe={ loadStripe( api ) }
 						options={ {
 							mode: hasFreeTrial ? 'subscription' : 'payment',
 							...( isManualPaymentMethodCreation(
@@ -156,7 +157,7 @@ const checkPaymentMethodAvailability = memoize(
  * method. Failed probes are not cached, so a later call retries.
  *
  * @param {string} paymentMethod The express payment method identifier (e.g. 'googlePay', 'applePay').
- * @param {Object} api           The WCStripeAPI instance used to load Stripe.
+ * @param {Object} api           The API client used to load Stripe.
  * @param {Object} cart          The WooCommerce cart object containing totals and currency info.
  * @return {Promise<boolean>} Promise that resolves to true if the payment method is available, false otherwise.
  */

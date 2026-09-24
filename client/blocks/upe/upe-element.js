@@ -13,8 +13,12 @@ import {
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import Icons from 'wcstripe/payment-method-icons';
 import { initializeCheckoutIcons } from 'wcstripe/blocks/upe/checkout-icons';
-import WCStripeAPI from 'wcstripe/api';
+import { getStripe } from 'wcstripe/api/stripe';
 import 'wcstripe/stripe-utils/copy-test-number';
+
+/**
+ * @typedef {import('wcstripe/api/core').WCStripeApiClient} WCStripeApiClient
+ */
 
 // Initialize checkout icons
 const isAdmin = getBlocksConfiguration()?.isAdmin ?? false;
@@ -51,9 +55,9 @@ const getUpeElementIcon = ( paymentMethod ) => {
 /**
  * Returns the UPE payment method element for registration.
  *
- * @param {string}      paymentMethod The payment method name.
- * @param {WCStripeAPI} api           The Stripe API object.
- * @param {Object}      upeConfig     The UPE configuration.
+ * @param {string}            paymentMethod The payment method name.
+ * @param {WCStripeApiClient} api           The Stripe API object.
+ * @param {Object}            upeConfig     The UPE configuration.
  * @return {Object} The UPE payment method configuration.
  */
 export const upeElement = ( paymentMethod, api, upeConfig ) => {
@@ -125,7 +129,7 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
 				return false;
 			}
 
-			return isAvailableInTheCountry && !! api.getStripe();
+			return isAvailableInTheCountry && !! getStripe( api );
 		},
 		// see .wc-block-checkout__payment-method styles in blocks/style.scss
 		label: (

@@ -6,8 +6,24 @@ import {
 	handleManualPaymentMethodFlow,
 	handleConfirmationTokenFlow,
 } from '../payment-flow';
+import {
+	expressCheckoutECECreateOrder,
+	expressCheckoutECEPayForOrder,
+	expressCheckoutNormalizeAddress,
+} from 'wcstripe/api/express-checkout';
+import { confirmIntent } from 'wcstripe/api/intents';
 
 jest.mock( '@woocommerce/blocks-checkout', () => {}, { virtual: true } );
+
+jest.mock( 'wcstripe/api/express-checkout', () => ( {
+	expressCheckoutECECreateOrder: jest.fn(),
+	expressCheckoutECEPayForOrder: jest.fn(),
+	expressCheckoutNormalizeAddress: jest.fn(),
+} ) );
+
+jest.mock( 'wcstripe/api/intents', () => ( {
+	confirmIntent: jest.fn(),
+} ) );
 
 // Transitively required: a jQuery submit handler bound by modules pulled in via
 // payment-flow.js's import graph calls getStripeServerData() when form.trigger('submit')
@@ -261,14 +277,11 @@ describe( 'handleManualPaymentMethodFlow', () => {
 	let event;
 
 	beforeEach( () => {
-		api = {
-			expressCheckoutECECreateOrder: jest.fn(),
-			expressCheckoutECEPayForOrder: jest.fn(),
-			expressCheckoutNormalizeAddress: jest
-				.fn()
-				.mockResolvedValue( null ),
-			confirmIntent: jest.fn(),
-		};
+		api = {};
+		expressCheckoutECECreateOrder.mockReset();
+		expressCheckoutECEPayForOrder.mockReset();
+		expressCheckoutNormalizeAddress.mockReset().mockResolvedValue( null );
+		confirmIntent.mockReset();
 		stripe = {
 			createPaymentMethod: jest.fn(),
 		};
@@ -375,13 +388,13 @@ describe( 'handleManualPaymentMethodFlow', () => {
 		stripe.createPaymentMethod.mockResolvedValue( {
 			paymentMethod: { id: 'pm_test_123' },
 		} );
-		api.expressCheckoutECECreateOrder.mockResolvedValue( {
+		expressCheckoutECECreateOrder.mockResolvedValue( {
 			payment_result: {
 				payment_status: 'success',
 				redirect_url: 'https://example.com/order-received',
 			},
 		} );
-		api.confirmIntent.mockReturnValue( true );
+		confirmIntent.mockReturnValue( true );
 
 		await handleManualPaymentMethodFlow( {
 			api,
@@ -405,7 +418,7 @@ describe( 'handleManualPaymentMethodFlow', () => {
 		stripe.createPaymentMethod.mockResolvedValue( {
 			paymentMethod: { id: 'pm_test_123' },
 		} );
-		api.expressCheckoutECECreateOrder.mockResolvedValue( {
+		expressCheckoutECECreateOrder.mockResolvedValue( {
 			payment_result: { payment_status: '' },
 		} );
 
@@ -429,7 +442,7 @@ describe( 'handleManualPaymentMethodFlow', () => {
 		stripe.createPaymentMethod.mockResolvedValue( {
 			paymentMethod: { id: 'pm_test_123' },
 		} );
-		api.expressCheckoutECECreateOrder.mockResolvedValue( {
+		expressCheckoutECECreateOrder.mockResolvedValue( {
 			payment_result: {
 				payment_status: 'failure',
 				payment_details: [
@@ -461,14 +474,11 @@ describe( 'handleConfirmationTokenFlow', () => {
 	let event;
 
 	beforeEach( () => {
-		api = {
-			expressCheckoutECECreateOrder: jest.fn(),
-			expressCheckoutECEPayForOrder: jest.fn(),
-			expressCheckoutNormalizeAddress: jest
-				.fn()
-				.mockResolvedValue( null ),
-			confirmIntent: jest.fn(),
-		};
+		api = {};
+		expressCheckoutECECreateOrder.mockReset();
+		expressCheckoutECEPayForOrder.mockReset();
+		expressCheckoutNormalizeAddress.mockReset().mockResolvedValue( null );
+		confirmIntent.mockReset();
 		stripe = {
 			createConfirmationToken: jest.fn(),
 		};
@@ -550,13 +560,13 @@ describe( 'handleConfirmationTokenFlow', () => {
 		stripe.createConfirmationToken.mockResolvedValue( {
 			confirmationToken: { id: 'ct_test_456' },
 		} );
-		api.expressCheckoutECECreateOrder.mockResolvedValue( {
+		expressCheckoutECECreateOrder.mockResolvedValue( {
 			payment_result: {
 				payment_status: 'success',
 				redirect_url: 'https://example.com/order-received',
 			},
 		} );
-		api.confirmIntent.mockReturnValue( true );
+		confirmIntent.mockReturnValue( true );
 
 		await handleConfirmationTokenFlow( {
 			api,
@@ -611,7 +621,7 @@ describe( 'address normalization', () => {
 	};
 
 	const getCreateOrderPayload = () =>
-		api.expressCheckoutECECreateOrder.mock.calls[ 0 ][ 0 ];
+		expressCheckoutECECreateOrder.mock.calls[ 0 ][ 0 ];
 
 	beforeEach( () => {
 		const paymentResult = {
@@ -620,16 +630,15 @@ describe( 'address normalization', () => {
 				redirect_url: 'https://example.com/order-received',
 			},
 		};
-		api = {
-			expressCheckoutECECreateOrder: jest
-				.fn()
-				.mockResolvedValue( paymentResult ),
-			expressCheckoutECEPayForOrder: jest
-				.fn()
-				.mockResolvedValue( paymentResult ),
-			expressCheckoutNormalizeAddress: jest.fn(),
-			confirmIntent: jest.fn().mockReturnValue( true ),
-		};
+		api = {};
+		expressCheckoutECECreateOrder
+			.mockReset()
+			.mockResolvedValue( paymentResult );
+		expressCheckoutECEPayForOrder
+			.mockReset()
+			.mockResolvedValue( paymentResult );
+		expressCheckoutNormalizeAddress.mockReset();
+		confirmIntent.mockReset().mockReturnValue( true );
 		stripe = {
 			createPaymentMethod: jest
 				.fn()
@@ -708,7 +717,7 @@ describe( 'address normalization', () => {
 			'%s on missing-required-field errors',
 			async ( _case, data, linkToCheckout ) => {
 				const message = 'Size <XL> is a required field.';
-				api.expressCheckoutECECreateOrder.mockRejectedValue( {
+				expressCheckoutECECreateOrder.mockRejectedValue( {
 					code: 'wc_stripe_express_checkout_missing_required_fields',
 					message,
 					data,
@@ -771,9 +780,7 @@ describe( 'address normalization', () => {
 		] )(
 			'keeps the wallet addresses when normalization responds with %s',
 			async ( _label, response ) => {
-				api.expressCheckoutNormalizeAddress.mockResolvedValue(
-					response
-				);
+				expressCheckoutNormalizeAddress.mockResolvedValue( response );
 
 				await flow();
 
@@ -792,7 +799,7 @@ describe( 'address normalization', () => {
 		test( 'applies the normalized addresses when the response provides them', async () => {
 			// Puerto Rico: the wallet reports it as a US state, and normalization
 			// promotes it to a country.
-			api.expressCheckoutNormalizeAddress.mockResolvedValue( {
+			expressCheckoutNormalizeAddress.mockResolvedValue( {
 				billing_address: { country: 'PR', state: '' },
 				shipping_address: { country: 'PR', state: '' },
 			} );
@@ -813,7 +820,7 @@ describe( 'address normalization', () => {
 		} );
 
 		test( 'keeps the wallet fields the response omits', async () => {
-			api.expressCheckoutNormalizeAddress.mockResolvedValue( {
+			expressCheckoutNormalizeAddress.mockResolvedValue( {
 				billing_address: { country: 'PR' },
 			} );
 
@@ -828,7 +835,7 @@ describe( 'address normalization', () => {
 		} );
 
 		test( 'keeps the wallet billing address when paying for an existing order', async () => {
-			api.expressCheckoutNormalizeAddress.mockResolvedValue(
+			expressCheckoutNormalizeAddress.mockResolvedValue(
 				'<!DOCTYPE html>'
 			);
 
@@ -841,8 +848,7 @@ describe( 'address normalization', () => {
 				},
 			} );
 
-			const payload =
-				api.expressCheckoutECEPayForOrder.mock.calls[ 0 ][ 2 ];
+			const payload = expressCheckoutECEPayForOrder.mock.calls[ 0 ][ 2 ];
 			expect( payload.billing_address ).toEqual( walletBillingAddress );
 		} );
 	} );

@@ -9,7 +9,8 @@ import { useEffect, useState } from '@wordpress/element';
 /**
  * Internal dependencies
  */
-import WCStripeAPI from 'wcstripe/api';
+import { createIntent, initSetupIntent } from 'wcstripe/api/intents';
+import { getStripe } from 'wcstripe/api/stripe';
 import {
 	getPaymentMethodTypes,
 	getExcludedPaymentMethodTypes,
@@ -21,6 +22,10 @@ import {
 } from 'wcstripe/blocks/utils';
 import { getFontRulesFromPage } from 'wcstripe/styles/upe';
 import { CheckoutContainer } from 'wcstripe/blocks/checkout-sessions/checkout-container';
+
+/**
+ * @typedef {import('wcstripe/api/core').WCStripeApiClient} WCStripeApiClient
+ */
 
 /**
  * Renders a Stripe Elements component for payment processing.
@@ -56,16 +61,17 @@ const ElementsContainer = ( props ) => {
 		 *
 		 * @return {Promise<void>}
 		 */
-		async function createIntent() {
+		async function requestIntent() {
 			try {
 				const paymentNeeded = stripeServerData?.isPaymentNeeded;
 				const response = paymentNeeded
-					? await api.createIntent(
+					? await createIntent(
+							api,
 							stripeServerData?.orderId,
 							paymentMethodId,
 							stripeServerData?.orderKey
 					  )
-					: await api.initSetupIntent( paymentMethodId );
+					: await initSetupIntent( api, paymentMethodId );
 
 				setClientSecret( response.client_secret );
 				setPaymentIntentId( response.id );
@@ -88,7 +94,7 @@ const ElementsContainer = ( props ) => {
 		}
 
 		setHasRequestedIntent( true );
-		createIntent();
+		requestIntent();
 	}, [
 		api,
 		hasRequestedIntent,
@@ -125,7 +131,7 @@ const ElementsContainer = ( props ) => {
 		fonts: getFontRulesFromPage(),
 	};
 
-	const stripe = api.getStripe();
+	const stripe = getStripe( api );
 	const amount = Number( stripeServerData?.cartTotal );
 
 	if ( supportsDeferredIntent ) {
@@ -195,11 +201,11 @@ const ElementsContainer = ( props ) => {
 /**
  * Renders a Stripe Payment elements component.
  *
- * @param {*}           props                        Additional props for payment processing.
- * @param {WCStripeAPI} props.api                    Object containing methods for interacting with Stripe.
- * @param {string}      props.paymentMethodId        The ID of the payment method.
- * @param {boolean}     props.supportsDeferredIntent Whether the payment method supports deferred intent creation.
- * @param {Object}      props.components             Object containing components for rendering.
+ * @param {*}                 props                        Additional props for payment processing.
+ * @param {WCStripeApiClient} props.api                    Object containing methods for interacting with Stripe.
+ * @param {string}            props.paymentMethodId        The ID of the payment method.
+ * @param {boolean}           props.supportsDeferredIntent Whether the payment method supports deferred intent creation.
+ * @param {Object}            props.components             Object containing components for rendering.
  *
  * @return {JSX.Element} Rendered Payment elements.
  */
@@ -215,7 +221,7 @@ const PaymentElements = ( {
 	// Older versions of Stripe.js do not support initCheckoutElementsSdk, so we check for it and
 	// fall back to the standard elements flow before the provider mounts.
 	const stripeSupportsInitCheckout =
-		typeof api.getStripe()?.initCheckoutElementsSdk === 'function';
+		typeof getStripe( api )?.initCheckoutElementsSdk === 'function';
 	const isAdaptivePricingSupported =
 		stripeServerData?.isAdaptivePricingEnabled &&
 		stripeSupportsInitCheckout;
@@ -288,13 +294,13 @@ const PaymentElements = ( {
  *
  * TODO: Remove this middle function and use PaymentElements directly (exporting it).
  *
- * @param {string}      paymentMethodId
- * @param {Array}       upeMethods
- * @param {WCStripeAPI} api
- * @param {string}      description
- * @param {string}      testingInstructions
- * @param {boolean}     showSaveOption
- * @param {boolean}     supportsDeferredIntent
+ * @param {string}            paymentMethodId
+ * @param {Array}             upeMethods
+ * @param {WCStripeApiClient} api
+ * @param {string}            description
+ * @param {string}            testingInstructions
+ * @param {boolean}           showSaveOption
+ * @param {boolean}           supportsDeferredIntent
  *
  * @return {JSX.Element} Rendered Payment elements.
  */
