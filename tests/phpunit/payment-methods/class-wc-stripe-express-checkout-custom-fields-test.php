@@ -579,6 +579,7 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 			WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
 			remove_action( 'wc_stripe_express_checkout_update_order_meta', $meta_handler );
 			update_option( 'woocommerce_checkout_page_id', $original_checkout_page_id );
+			wp_delete_post( $block_checkout_page_id, true );
 			remove_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
 			WC()->checkout()->checkout_fields = null;
 			WC()->checkout()->get_checkout_fields();
@@ -638,6 +639,7 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 			$this->assertStringNotContainsString( 'go to the checkout page', $e->getMessage() );
 		} finally {
 			update_option( 'woocommerce_checkout_page_id', $original_checkout_page_id );
+			wp_delete_post( $block_checkout_page_id, true );
 			remove_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
 			WC()->checkout()->checkout_fields = null;
 			WC()->checkout()->get_checkout_fields();
