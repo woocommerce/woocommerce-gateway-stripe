@@ -220,3 +220,66 @@ describe( 'PaymentProcessor billing-country exclusions', () => {
 		).not.toHaveBeenCalled();
 	} );
 } );
+
+describe( 'PaymentProcessor save checkbox', () => {
+	let checkbox;
+
+	beforeEach( () => {
+		useStripe.mockReturnValue( {} );
+		// The Blocks store-level save checkbox, shared by every Stripe entry.
+		const wrapper = document.createElement( 'div' );
+		wrapper.className =
+			'wc-block-components-payment-methods__save-card-info';
+		checkbox = document.createElement( 'input' );
+		checkbox.type = 'checkbox';
+		wrapper.appendChild( checkbox );
+		document.body.appendChild( wrapper );
+	} );
+
+	afterEach( () => {
+		checkbox.parentElement.remove();
+		jest.clearAllMocks();
+	} );
+
+	const toggleSaveCheckbox = () => {
+		checkbox.checked = true;
+		checkbox.dispatchEvent( new Event( 'change' ) );
+	};
+
+	it( 'sets setupFutureUsage on the Optimized Checkout element', () => {
+		getBlocksConfiguration.mockReturnValue( {
+			shouldShowOptimizedCheckout: true,
+			paymentMethodsConfig: {
+				card: { isReusable: true, supportsDeferredIntent: true },
+			},
+		} );
+		const elements = { update: jest.fn() };
+		useElements.mockReturnValue( elements );
+
+		renderProcessor();
+		toggleSaveCheckbox();
+
+		expect( elements.update ).toHaveBeenCalledWith( {
+			setupFutureUsage: 'off_session',
+		} );
+	} );
+
+	it( 'does not set setupFutureUsage on a non-deferred element, which has no mode', () => {
+		// ACSS renders its own element from a client secret, without a `mode`;
+		// Stripe rejects setupFutureUsage there, and the method is saved through
+		// the server instead.
+		getBlocksConfiguration.mockReturnValue( {
+			shouldShowOptimizedCheckout: true,
+			paymentMethodsConfig: {
+				acss_debit: { isReusable: true, supportsDeferredIntent: false },
+			},
+		} );
+		const elements = { update: jest.fn() };
+		useElements.mockReturnValue( elements );
+
+		renderProcessor( { paymentMethodId: 'acss_debit' } );
+		toggleSaveCheckbox();
+
+		expect( elements.update ).not.toHaveBeenCalled();
+	} );
+} );

@@ -288,6 +288,13 @@ const PaymentProcessor = ( {
 		]
 	);
 
+	// Non-deferred methods (BLIK, ACSS) render their own Payment Element, created
+	// without a `mode`. `excludedPaymentMethodTypes` and `setupFutureUsage` are
+	// only valid on the deferred-intent (mode-based) OC element, so calling
+	// update() with them for these methods throws a Stripe IntegrationError.
+	const supportsDeferredIntent =
+		paymentMethodsConfig?.[ paymentMethodId ]?.supportsDeferredIntent;
+
 	useEffect( () => {
 		// Show the Cash App limit notice if the payment method is selected and the cart amount is higher than 2000 USD.
 		if ( selectedPaymentMethodType === PAYMENT_METHOD_CASHAPP ) {
@@ -321,7 +328,11 @@ const PaymentProcessor = ( {
 					// not a client-side Elements update.
 					// We check for the existence of the `update` function here instead of the 'isAdaptivePricingEnabled' flag
 					// because we might be using the payment element as a fallback though the flag is set to true.
-					if ( typeof elements.update === 'function' ) {
+					// Non-deferred methods save through the server instead.
+					if (
+						typeof elements.update === 'function' &&
+						supportsDeferredIntent
+					) {
 						elements.update( {
 							setupFutureUsage:
 								stripeServerData?.cartContainsSubscription ||
@@ -338,14 +349,8 @@ const PaymentProcessor = ( {
 		elements,
 		stripeServerData,
 		paymentMethodsConfig,
+		supportsDeferredIntent,
 	] );
-
-	// Non-deferred methods (BLIK, ACSS) render their own Payment Element, created
-	// without a `mode`. `excludedPaymentMethodTypes` is only valid on the
-	// deferred-intent (mode-based) OC element, so calling update() below for them
-	// throws a Stripe IntegrationError that crashes the checkout React tree.
-	const supportsDeferredIntent =
-		paymentMethodsConfig?.[ paymentMethodId ]?.supportsDeferredIntent;
 
 	// Refresh the OC element's country-restricted exclusions on billing-country
 	// changes; Adaptive Pricing's initCheckout() has no update(), so it's skipped.
