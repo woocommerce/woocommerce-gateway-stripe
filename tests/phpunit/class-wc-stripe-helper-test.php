@@ -39,13 +39,13 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		};
 
 		add_filter( 'woocommerce_currency', $store_currency_filter );
-		add_filter( 'wc_stripe_supported_store_currencies', $available_currencies_filter );
+		add_filter( 'wc_stripe_available_store_currencies', $available_currencies_filter );
 
 		try {
 			$this->assertSame( $expected_currencies, WC_Stripe_Helper::get_available_store_currencies() );
 		} finally {
 			remove_filter( 'woocommerce_currency', $store_currency_filter );
-			remove_filter( 'wc_stripe_supported_store_currencies', $available_currencies_filter );
+			remove_filter( 'wc_stripe_available_store_currencies', $available_currencies_filter );
 		}
 	}
 

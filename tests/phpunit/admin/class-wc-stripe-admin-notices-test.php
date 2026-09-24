@@ -661,7 +661,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			return array_merge( $currencies, $additional_store_currencies );
 		};
 		add_filter( 'woocommerce_currency', $currency_filter );
-		add_filter( 'wc_stripe_supported_store_currencies', $available_currencies_filter );
+		add_filter( 'wc_stripe_available_store_currencies', $available_currencies_filter );
 
 		// Force a fresh gateway so it picks up the mocked payment method configuration.
 		$this->set_main_stripe_gateway( null );
@@ -689,7 +689,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		} finally {
 			$this->set_main_stripe_gateway( null );
 			remove_filter( 'woocommerce_currency', $currency_filter );
-			remove_filter( 'wc_stripe_supported_store_currencies', $available_currencies_filter );
+			remove_filter( 'wc_stripe_available_store_currencies', $available_currencies_filter );
 			WC_Stripe::get_instance()->account = $account_backup;
 			$_GET                              = $original_get;
 			delete_option( 'wc_stripe_show_upe_payment_methods_notice' );
@@ -716,7 +716,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		foreach ( $expected_payment_method_ids_in_notice as $payment_method_id ) {
 			$payment_method = $gateway->payment_methods[ $payment_method_id ];
 			$message       .= sprintf(
-				'%1$s is enabled - it requires store currency to be set to %2$s<br>',
+				'%1$s is enabled - it requires store currency to be %2$s<br>',
 				$payment_method->get_label(),
 				implode( ', ', $payment_method->get_supported_currencies() )
 			);
