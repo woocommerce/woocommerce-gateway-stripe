@@ -55,9 +55,12 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @return WC_Stripe_Order_Handler|null
+	 * @return WC_Stripe_Order_Handler
 	 */
 	public static function get_instance() {
+		if ( null === self::$_this ) {
+			self::$_this = new self();
+		}
 		return self::$_this;
 	}
 
