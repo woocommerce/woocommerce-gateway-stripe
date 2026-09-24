@@ -566,7 +566,18 @@ class WC_Stripe_Intent_Controller {
 		$amount   = $order->get_total();
 		$currency = $order->get_currency();
 		$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
-		$customer->maybe_create_customer();
+
+		// A guest has no stored Stripe customer, so every attempt would create a new one. Stripe does
+		// not allow changing the customer of an intent, so a retry that reuses the intent must keep the
+		// customer set by the first attempt.
+		$intent_customer_id = 0 === $customer->get_user_id() && ! empty( $intent_id )
+			? $this->get_intent_customer_id( (string) $intent_id )
+			: '';
+		if ( '' !== $intent_customer_id ) {
+			$customer->set_id( $intent_customer_id );
+		} else {
+			$customer->maybe_create_customer();
+		}
 
 		if ( $intent_id ) {
 			$request = [
@@ -599,7 +610,7 @@ class WC_Stripe_Intent_Controller {
 				}
 				$order_helper->update_stripe_upe_payment_type( $order, $selected_upe_payment_type );
 			}
-			if ( ! empty( $customer ) && $customer->get_id() ) {
+			if ( '' === $intent_customer_id && ! empty( $customer ) && $customer->get_id() ) {
 				$request['customer'] = $customer->get_id();
 			}
 			if ( $save_payment_method ) {
@@ -657,6 +668,22 @@ class WC_Stripe_Intent_Controller {
 		return [
 			'success' => true,
 		];
+	}
+
+	/**
+	 * Returns the customer already set on an intent, or '' when it has none or cannot be fetched.
+	 *
+	 * @param string $intent_id The payment or setup intent ID.
+	 * @return string The Stripe customer ID.
+	 */
+	private function get_intent_customer_id( string $intent_id ): string {
+		$endpoint = 0 === strpos( $intent_id, 'seti_' ) ? 'setup_intents' : 'payment_intents';
+		$intent   = WC_Stripe_API::retrieve( "{$endpoint}/{$intent_id}" );
+		if ( ! is_object( $intent ) || ! empty( $intent->error ) ) {
+			return '';
+		}
+
+		return is_string( $intent->customer ?? null ) ? $intent->customer : '';
 	}
 
 	/**

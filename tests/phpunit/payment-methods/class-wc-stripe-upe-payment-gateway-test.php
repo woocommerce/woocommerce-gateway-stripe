@@ -8121,4 +8121,53 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			'not eligible: cashapp delayed confirm' => [ true, 'yes', WC_Stripe_Payment_Methods::CASHAPP_PAY, false, false, null, false ],
 		];
 	}
+
+	/**
+	 * A BLIK retry reuses the intent, so while the new attempt awaits the shopper's approval the
+	 * intent's latest charge is the failed one from the earlier attempt. That stale charge must not
+	 * fail the order; the result arrives through webhooks.
+	 *
+	 * @return void
+	 */
+	public function test_process_payment_blik_ignores_stale_charge_while_awaiting_approval(): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( WC_Stripe_Currency_Code::POLISH_ZLOTY );
+		$order->set_billing_country( WC_Stripe_Country_Code::POLAND );
+		$order->save();
+
+		$_POST = [
+			'payment_method'           => 'stripe_blik',
+			'wc-stripe-payment-method' => 'pm_mock',
+			'wc-stripe-blik-code'      => '654321',
+		];
+
+		$mock_intent  = (object) wp_parse_args(
+			[
+				'status'               => WC_Stripe_Intent_Status::REQUIRES_ACTION,
+				'payment_method'       => 'pm_mock',
+				'payment_method_types' => [ WC_Stripe_Payment_Methods::BLIK ],
+				'currency'             => 'pln',
+				'latest_charge'        => 'py_failed_earlier_attempt',
+			],
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
+		);
+		$stale_charge = (object) [
+			'id'              => 'py_failed_earlier_attempt',
+			'status'          => 'failed',
+			'captured'        => true,
+			'paid'            => false,
+			'failure_message' => 'The code passed wasn’t a valid BLIK code.',
+		];
+
+		$this->mock_gateway->intent_controller
+			->method( 'create_and_confirm_payment_intent' )
+			->willReturn( $mock_intent );
+		$this->mock_gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_mock' );
+		$this->mock_gateway->method( 'get_latest_charge_from_intent' )->willReturn( $stale_charge );
+
+		$response = $this->mock_gateway->process_payment( $order->get_id() );
+
+		$this->assertSame( 'success', $response['result'] );
+		$this->assertTrue( wc_get_order( $order->get_id() )->has_status( OrderStatus::PENDING ) );
+	}
 }

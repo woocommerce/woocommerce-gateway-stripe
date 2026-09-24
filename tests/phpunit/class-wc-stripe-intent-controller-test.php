@@ -2045,4 +2045,82 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 			],
 		];
 	}
+
+	/**
+	 * A retry that reuses the intent must keep the customer set on it by the first attempt: Stripe
+	 * rejects a different one. Guests get a new Stripe customer on every attempt, so for them the
+	 * intent's customer is reused and not sent again; logged-in shoppers keep their stored customer.
+	 *
+	 * @dataProvider provide_update_intent_customer_cases
+	 *
+	 * @param bool $is_guest               Whether the shopper is a guest.
+	 * @param bool $expect_customer_param  Whether the update request sends `customer`.
+	 * @param bool $expect_create_customer Whether a new Stripe customer is created.
+	 * @return void
+	 */
+	public function test_update_intent_keeps_customer_already_on_intent( bool $is_guest, bool $expect_customer_param, bool $expect_create_customer ): void {
+		if ( ! $is_guest ) {
+			$user_id = self::factory()->user->create();
+			update_user_option( $user_id, '_stripe_customer_id', 'cus_mock', false );
+			wp_set_current_user( $user_id );
+		} else {
+			wp_set_current_user( 0 );
+		}
+
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $this->order, 'pi_same' );
+		$this->order->save();
+
+		$intent = [
+			'id'                   => 'pi_same',
+			'object'               => 'payment_intent',
+			'status'               => WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD,
+			'currency'             => strtolower( $this->order->get_currency() ),
+			'amount'               => WC_Stripe_Helper::get_stripe_amount( $this->order->get_total(), $this->order->get_currency() ),
+			'payment_method_types' => [ WC_Stripe_Payment_Methods::BLIK ],
+			'customer'             => $is_guest ? 'cus_first_attempt' : 'cus_mock',
+		];
+
+		$update_body      = null;
+		$created_customer = false;
+		add_filter(
+			'pre_http_request',
+			function ( $preempt, $parsed_args, $url ) use ( $intent, &$update_body, &$created_customer ) {
+				$path = (string) wp_parse_url( $url, PHP_URL_PATH );
+				if ( 'POST' === $parsed_args['method'] && '/v1/payment_intents/pi_same' === $path ) {
+					$update_body = $parsed_args['body'];
+				}
+				if ( 'POST' === $parsed_args['method'] && '/v1/customers' === $path ) {
+					$created_customer = true;
+				}
+				$body = false !== strpos( $path, 'payment_intents/pi_same' ) ? $intent : [ 'id' => 'cus_new' ];
+
+				return [
+					'response' => [ 'code' => 200 ],
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode( $body ),
+				];
+			},
+			10,
+			3
+		);
+
+		$result = $this->mock_controller->update_intent( 'pi_same', $this->order->get_id(), false, WC_Stripe_Payment_Methods::BLIK );
+
+		$this->assertTrue( $result['success'] );
+		$this->assertIsArray( $update_body );
+		$this->assertSame( $expect_customer_param, isset( $update_body['customer'] ) );
+		$this->assertSame( $expect_create_customer, $created_customer );
+	}
+
+	/**
+	 * Data provider for `test_update_intent_keeps_customer_already_on_intent`.
+	 *
+	 * @return array
+	 */
+	public function provide_update_intent_customer_cases(): array {
+		return [
+			'guest reuses the intent customer'    => [ true, false, false ],
+			'logged-in keeps the stored customer' => [ false, true, false ],
+		];
+	}
 }
