@@ -67,7 +67,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Shows a warning message about editing uncaptured orders.
 	 *
-	 * @param int $order_id
+	 * @param int $order_id The order ID to show the warning for (if warranted).
 	 * @return void
 	 */
 	public function show_warning_for_uncaptured_orders( $order_id ) {
@@ -108,9 +108,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @since 4.1.8 Add $previous_error parameter.
-	 * @param int  $order_id
-	 * @param bool $retry
-	 * @param mixed  $previous_error Any error message from previous request.
+	 * @param int   $order_id       The order ID to process the payment for.
+	 * @param bool  $retry          Whether to retry the payment.
+	 * @param mixed $previous_error Any error message from previous request. Defaults to false.
 	 * @return void
 	 */
 	public function process_redirect_payment( $order_id, $retry = true, $previous_error = false ) {
@@ -329,7 +329,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 3.1.0
 	 * @version 4.0.0
-	 * @param  int|WC_Order $order_id
+	 * @param  int|WC_Order $order_id The order ID or WC_Order object to capture the payment for.
 	 * @return stdClass|void Result of payment capture.
 	 */
 	public function capture_payment( $order_id ) {
@@ -447,7 +447,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 3.1.0
 	 * @version 4.2.2
-	 * @param  int $order_id
+	 * @param  int $order_id The order ID to cancel the payment for.
 	 * @return void
 	 */
 	public function cancel_payment( $order_id ) {
