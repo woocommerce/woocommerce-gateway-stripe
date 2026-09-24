@@ -573,6 +573,19 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	}
 
 	/**
+	 * Sofort is discontinued: disabled even with an active capability and supported currency.
+	 */
+	public function test_sofort_is_never_enabled_at_checkout() {
+		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE, true );
+		$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', WC_Stripe_Currency_Code::EURO );
+		$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', false );
+
+		$sofort_method = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::SOFORT ];
+
+		$this->assertFalse( $sofort_method->is_enabled_at_checkout( null, WC_Stripe_Currency_Code::EURO ) );
+	}
+
+	/**
 	 * Payment method is only enabled when capability response contains active for payment method.
 	 */
 	public function test_payment_methods_are_only_enabled_when_capability_is_active() {
@@ -583,9 +596,16 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 		WC_Stripe::get_instance()->get_main_stripe_gateway()->init_settings();
 
-		$payment_method_ids = array_map( [ $this, 'get_id' ], $this->mock_payment_methods );
+		$payment_method_ids      = array_map( [ $this, 'get_id' ], $this->mock_payment_methods );
+		$payment_methods_to_skip = [
+			WC_Stripe_Payment_Methods::CARD,
+			WC_Stripe_Payment_Methods::BOLETO,
+			WC_Stripe_Payment_Methods::OXXO,
+			WC_Stripe_Payment_Methods::GIROPAY,
+			WC_Stripe_Payment_Methods::SOFORT,
+		];
 		foreach ( $payment_method_ids as $id ) {
-			if ( WC_Stripe_Payment_Methods::CARD === $id || WC_Stripe_Payment_Methods::BOLETO === $id || WC_Stripe_Payment_Methods::OXXO === $id || WC_Stripe_Payment_Methods::GIROPAY === $id ) {
+			if ( in_array( $id, $payment_methods_to_skip, true ) ) {
 				continue;
 			}
 
@@ -630,7 +650,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 
 		$payment_method_ids = array_map( [ $this, 'get_id' ], $this->mock_payment_methods );
 		foreach ( $payment_method_ids as $id ) {
-			if ( WC_Stripe_Payment_Methods::GIROPAY === $id ) {
+			if ( WC_Stripe_Payment_Methods::GIROPAY === $id || WC_Stripe_Payment_Methods::SOFORT === $id ) {
 				continue;
 			}
 
@@ -760,6 +780,11 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
 
 		foreach ( $this->mock_payment_methods as $payment_method_id => $payment_method ) {
+			// Sofort is reusable but discontinued, so it's never enabled at checkout.
+			if ( WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID === $payment_method_id ) {
+				continue;
+			}
+
 			$store_currency = 'EUR';
 			if ( in_array(
 				$payment_method_id,
@@ -1291,5 +1316,51 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 
 		$this->assertTrue( $method->is_allowed_on_country( 'US' ) );
 		$this->assertFalse( $method->is_allowed_on_country( 'GB' ) );
+	}
+
+	/**
+	 * Locks the fieldset > p.woocommerce-SavedPaymentMethods-saveNew structure the
+	 * empty-box hide rule in client/classic/upe/style.scss depends on.
+	 *
+	 * @param bool $force_checked Whether saving is mandatory (e.g. subscription in cart):
+	 *                            the checkbox renders pre-checked and its wrapper hidden
+	 *                            so the shopper cannot opt out.
+	 * @dataProvider provide_test_save_payment_method_checkbox
+	 */
+	public function test_save_payment_method_checkbox_renders_hideable_fieldset_wrapper( bool $force_checked ): void {
+		$method = new WC_Stripe_UPE_Payment_Method_CC();
+
+		// The guest-row assertion below depends on being logged out.
+		wp_set_current_user( 0 );
+
+		ob_start();
+		$method->save_payment_method_checkbox( $force_checked );
+		$output = ob_get_clean();
+
+		$this->assertMatchesRegularExpression( '/^\s*<fieldset[^>]*>\s*<p class="form-row woocommerce-SavedPaymentMethods-saveNew/', $output );
+
+		// Tests run logged out: the guest render must hide the row with the exact
+		// spaced serialization the stylesheet hide rule matches.
+		$this->assertStringContainsString( '<p class="form-row woocommerce-SavedPaymentMethods-saveNew" style="display: none;">', $output );
+
+		if ( $force_checked ) {
+			$this->assertStringContainsString( '<fieldset style="display: none;">', $output );
+			$this->assertStringContainsString( 'checked', $output );
+		} else {
+			$this->assertStringNotContainsString( '<fieldset style="display: none;">', $output );
+			$this->assertStringNotContainsString( 'checked', $output );
+		}
+	}
+
+	/**
+	 * Data provider for test_save_payment_method_checkbox_renders_hideable_fieldset_wrapper.
+	 *
+	 * @return array
+	 */
+	public function provide_test_save_payment_method_checkbox(): array {
+		return [
+			'default'      => [ false ],
+			'force saving' => [ true ],
+		];
 	}
 }

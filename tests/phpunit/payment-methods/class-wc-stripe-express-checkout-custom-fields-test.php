@@ -349,45 +349,83 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Provides missing-required-field scenarios: whether the request carries the
-	 * custom-data payload, and whether the error should direct the buyer to the
-	 * checkout page.
+	 * Missing-field payloads and logging opt-out scenarios.
 	 *
 	 * @return array[]
 	 */
 	public function provide_missing_required_field_scenarios() {
-		return [
-			'payload present (checkout page flow)' => [
+		$both_fields_missing = [ 'billing_custom_field1', 'shipping_custom_field' ];
+		$payload_scenarios   = [
+			'payload present (checkout page flow)'  => [
 				[
 					'wc-stripe/express-checkout' => [
 						'custom_checkout_data' => '{}',
 					],
 				],
 				false,
+				$both_fields_missing,
 			],
-			'payload absent (product/cart flow)'   => [
+			'payload with an optional field value'  => [
+				[
+					'wc-stripe/express-checkout' => [
+						'custom_checkout_data' => '{"order_custom_field":"private-value"}',
+					],
+				],
+				false,
+				$both_fields_missing,
+			],
+			'payload with one required field value' => [
+				[
+					'wc-stripe/express-checkout' => [
+						'custom_checkout_data' => '{"billing_custom_field1":"private-value"}',
+					],
+				],
+				false,
+				[ 'shipping_custom_field' ],
+			],
+			'payload absent (product/cart flow)'    => [
 				[],
 				true,
+				$both_fields_missing,
 			],
 		];
+		$scenarios           = [];
+		foreach ( $payload_scenarios as $name => $args ) {
+			$scenarios[ $name . ', default logging' ]     = array_merge( $args, [ null, true ] );
+			$scenarios[ $name . ', logging disabled' ]    = array_merge( $args, [ '__return_false', false ] );
+			$scenarios[ $name . ', falsy filter return' ] = array_merge( $args, [ '__return_null', false ] );
+		}
+		return $scenarios;
 	}
 
 	/**
-	 * A missing required field throws; when the request carries no custom-data
-	 * payload (the flow started on a page without the classic checkout form),
-	 * the error also directs the buyer to the checkout page.
+	 * Missing required fields still throw when logging is disabled by a filter.
+	 * Requests without a classic form payload are also flagged so the client can link to the checkout page.
 	 *
 	 * @dataProvider provide_missing_required_field_scenarios
 	 * @param array $extensions Extensions param to set on the request.
-	 * @param bool  $expects_checkout_page_guidance Whether the error should include the go-to-checkout recommendation.
+	 * @param bool  $expects_link_to_checkout Whether the error should flag the client to link to the checkout page.
+	 * @param array $expected_missing_field_keys Keys of the required fields left empty by the payload.
+	 * @param string|null $logging_filter Callback overriding the logging decision, or null for the default.
+	 * @param bool $expects_logging Whether an error should be logged.
 	 * @return void
 	 */
-	public function test_process_custom_checkout_data_missing_data( $extensions, $expects_checkout_page_guidance ) {
+	public function test_process_custom_checkout_data_missing_data( $extensions, $expects_link_to_checkout, $expected_missing_field_keys, $logging_filter, $expects_logging ) {
 		$custom_checkout_fields = function ( $fields ) {
-			$fields['billing']['billing_custom_field1'] = [
+			$fields['billing']['billing_custom_field1']  = [
 				'type'     => 'text',
 				'label'    => 'Billing Custom Field 1',
 				'required' => true,
+			];
+			$fields['shipping']['shipping_custom_field'] = [
+				'type'     => 'text',
+				'label'    => 'Shipping Custom Field',
+				'required' => true,
+			];
+			$fields['order']['order_custom_field']       = [
+				'type'     => 'text',
+				'label'    => 'Optional custom field',
+				'required' => false,
 			];
 			return $fields;
 		};
@@ -401,23 +439,252 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 		$order                 = WC_Helper_Order::create_order();
 		$custom_fields_support = $this->get_custom_fields_support();
 
+		$original_logger   = WC_Stripe_Logger::$logger;
+		$original_settings = WC_Stripe_Helper::get_stripe_settings();
+		WC_Stripe_Helper::update_main_stripe_settings( array_merge( $original_settings, [ 'logging' => 'no' ] ) );
+
+		if ( null !== $logging_filter ) {
+			add_filter( 'wc_stripe_express_checkout_log_missing_required_fields', $logging_filter );
+		}
+
+		$logged_context = null;
+		$logger         = $this->createMock( WC_Logger::class );
+		$logger->expects( $expects_logging ? $this->once() : $this->never() )
+			->method( 'error' )
+			->with(
+				'Missing required custom fields in express checkout.',
+				$this->callback(
+					static function ( $context ) use ( &$logged_context ) {
+						$logged_context = $context;
+						return WC_Stripe_Logger::WC_LOG_FILENAME === $context['source'];
+					}
+				)
+			);
+		WC_Stripe_Logger::$logger = $logger;
+
 		try {
 			$custom_fields_support->process_custom_checkout_data( $order, $request );
 			$this->fail( 'Expected RouteException for a missing required field.' );
 		} catch ( RouteException $e ) {
 			$message = $e->getMessage();
-			$this->assertStringContainsString( 'Billing Custom Field 1 is a required field.', $message );
-			if ( $expects_checkout_page_guidance ) {
-				$this->assertStringContainsString( 'go to the checkout page', $message );
-			} else {
-				$this->assertStringNotContainsString( 'go to the checkout page', $message );
-			}
-		}
+			$this->assertSame( 'wc_stripe_express_checkout_missing_required_fields', $e->getErrorCode() );
+			$this->assertSame( 400, $e->getCode() );
+			$this->assertSame( $expects_logging ? $message : null, $logged_context['error_message'] ?? null );
+			$this->assertSame(
+				$expects_logging ? $expected_missing_field_keys : null,
+				$logged_context['missing_field_keys'] ?? null
+			);
+			$this->assertStringNotContainsString( 'private-value', wp_json_encode( $logged_context ) );
 
-		// Remove filters and reset checkout fields.
-		remove_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
+			// Fields the payload filled in must not be reported as missing.
+			$required_field_labels = [
+				'billing_custom_field1' => 'Billing Custom Field 1',
+				'shipping_custom_field' => 'Shipping Custom Field',
+			];
+			foreach ( $required_field_labels as $key => $label ) {
+				$field_error = $label . ' is a required field.';
+				if ( in_array( $key, $expected_missing_field_keys, true ) ) {
+					$this->assertStringContainsString( $field_error, $message );
+				} else {
+					$this->assertStringNotContainsString( $field_error, $message );
+				}
+			}
+			$this->assertSame(
+				$expects_link_to_checkout ? [ 'link_to_checkout' => true ] : [],
+				$e->getAdditionalData()
+			);
+			$this->assertSame(
+				$expects_logging ? $expects_link_to_checkout : null,
+				$logged_context['link_to_checkout'] ?? null
+			);
+		} finally {
+			if ( null !== $logging_filter ) {
+				remove_filter( 'wc_stripe_express_checkout_log_missing_required_fields', $logging_filter );
+			}
+			WC_Stripe_Logger::$logger = $original_logger;
+			WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
+			remove_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
+			WC()->checkout()->checkout_fields = null;
+			WC()->checkout()->get_checkout_fields();
+		}
+	}
+
+	/**
+	 * Merchant-supplied labels reach the Blocks notice unescaped, so markup in a label
+	 * must not survive into the error message.
+	 *
+	 * @return void
+	 */
+	public function test_process_custom_checkout_data_strips_markup_from_field_labels() {
+		$custom_checkout_fields = function ( $fields ) {
+			$fields['billing']['billing_custom_field1'] = [
+				'type'     => 'text',
+				'label'    => 'Size <XL> <a href="https://example.com/gift">free gift</a>',
+				'required' => true,
+			];
+			return $fields;
+		};
+		add_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
 		WC()->checkout()->checkout_fields = null;
 		WC()->checkout()->get_checkout_fields();
+
+		$request = new \WP_REST_Request( 'POST', '/wc/stripe-ece/v1/test-request' );
+		$request->set_param( 'extensions', [] );
+
+		$order                 = WC_Helper_Order::create_order();
+		$custom_fields_support = $this->get_custom_fields_support();
+
+		try {
+			$custom_fields_support->process_custom_checkout_data( $order, $request );
+			$this->fail( 'Expected RouteException for a missing required field.' );
+		} catch ( RouteException $e ) {
+			$this->assertSame( 'Size  free gift is a required field.', $e->getMessage() );
+			$this->assertStringNotContainsString( '<', $e->getMessage() );
+		} finally {
+			remove_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
+			WC()->checkout()->checkout_fields = null;
+			WC()->checkout()->get_checkout_fields();
+		}
+	}
+
+	/**
+	 * On a store whose checkout page uses the checkout block, a request without
+	 * the classic-form payload must not be refused for required classic fields:
+	 * no page in the buyer's flow renders them, so the refusal would be permanent.
+	 * The third-party stand-in actions must still fire for such requests, and the
+	 * bypassed required fields must leave a debug-level trace for support, since
+	 * the order completes without values the merchant marked required.
+	 *
+	 * @return void
+	 */
+	public function test_process_custom_checkout_data_skips_required_field_enforcement_on_block_checkout_store() {
+		$custom_checkout_fields = function ( $fields ) {
+			$fields['billing']['billing_custom_field1'] = [
+				'type'     => 'text',
+				'label'    => 'Billing Custom Field 1',
+				'required' => true,
+			];
+			return $fields;
+		};
+		add_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
+		WC()->checkout()->checkout_fields = null;
+		WC()->checkout()->get_checkout_fields();
+
+		$original_checkout_page_id = get_option( 'woocommerce_checkout_page_id' );
+		$block_checkout_page_id    = $this->factory->post->create(
+			[
+				'post_type'    => 'page',
+				'post_content' => '<!-- wp:woocommerce/checkout /-->',
+			]
+		);
+		update_option( 'woocommerce_checkout_page_id', $block_checkout_page_id );
+
+		// Requests from a block checkout page carry no custom-data payload,
+		// since the client can only collect values from a classic form.
+		$request = new \WP_REST_Request( 'POST', '/wc/stripe-ece/v1/test-request' );
+		$request->set_param( 'extensions', [] );
+
+		$update_order_meta_calls = 0;
+		$meta_handler            = function () use ( &$update_order_meta_calls ) {
+			++$update_order_meta_calls;
+		};
+		add_action( 'wc_stripe_express_checkout_update_order_meta', $meta_handler );
+
+		$order                 = WC_Helper_Order::create_order();
+		$custom_fields_support = $this->get_custom_fields_support();
+
+		$original_logger   = WC_Stripe_Logger::$logger;
+		$original_settings = WC_Stripe_Helper::get_stripe_settings();
+		WC_Stripe_Helper::update_main_stripe_settings( array_merge( $original_settings, [ 'logging' => 'yes' ] ) );
+
+		$logger = $this->createMock( WC_Logger::class );
+		$logger->expects( $this->once() )
+			->method( 'debug' )
+			->with(
+				'Skipped enforcing required classic custom fields for an express checkout order; the block checkout cannot render them.',
+				$this->callback(
+					static function ( $context ) {
+						return [ 'billing_custom_field1' ] === $context['missing_field_keys'];
+					}
+				)
+			);
+		WC_Stripe_Logger::$logger = $logger;
+
+		try {
+			$custom_fields_support->process_custom_checkout_data( $order, $request );
+			$this->assertSame( 1, $update_order_meta_calls );
+		} catch ( Exception $e ) {
+			$this->fail( 'Block-checkout stores must not be blocked on classic required fields, but got: ' . $e->getMessage() );
+		} finally {
+			WC_Stripe_Logger::$logger = $original_logger;
+			WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
+			remove_action( 'wc_stripe_express_checkout_update_order_meta', $meta_handler );
+			update_option( 'woocommerce_checkout_page_id', $original_checkout_page_id );
+			wp_delete_post( $block_checkout_page_id, true );
+			remove_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
+			WC()->checkout()->checkout_fields = null;
+			WC()->checkout()->get_checkout_fields();
+		}
+	}
+
+	/**
+	 * A site can serve a classic (shortcode) checkout alongside a block checkout
+	 * page. When the request carries the classic-form payload, the buyer was on
+	 * a page with the classic form, so required fields stay enforced even though
+	 * the configured checkout page is block-based — without the link-to-checkout
+	 * flag, which only applies when the payload is absent.
+	 *
+	 * @return void
+	 */
+	public function test_process_custom_checkout_data_enforces_required_fields_on_block_checkout_store_with_classic_payload() {
+		$custom_checkout_fields = function ( $fields ) {
+			$fields['billing']['billing_custom_field1'] = [
+				'type'     => 'text',
+				'label'    => 'Billing Custom Field 1',
+				'required' => true,
+			];
+			return $fields;
+		};
+		add_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
+		WC()->checkout()->checkout_fields = null;
+		WC()->checkout()->get_checkout_fields();
+
+		$original_checkout_page_id = get_option( 'woocommerce_checkout_page_id' );
+		$block_checkout_page_id    = $this->factory->post->create(
+			[
+				'post_type'    => 'page',
+				'post_content' => '<!-- wp:woocommerce/checkout /-->',
+			]
+		);
+		update_option( 'woocommerce_checkout_page_id', $block_checkout_page_id );
+
+		$request = new \WP_REST_Request( 'POST', '/wc/stripe-ece/v1/test-request' );
+		$request->set_param(
+			'extensions',
+			[
+				'wc-stripe/express-checkout' => [
+					'custom_checkout_data' => '{}',
+				],
+			]
+		);
+
+		$order                 = WC_Helper_Order::create_order();
+		$custom_fields_support = $this->get_custom_fields_support();
+
+		try {
+			$custom_fields_support->process_custom_checkout_data( $order, $request );
+			$this->fail( 'Expected RouteException for a missing required field.' );
+		} catch ( RouteException $e ) {
+			$this->assertSame( 'wc_stripe_express_checkout_missing_required_fields', $e->getErrorCode() );
+			$this->assertStringContainsString( 'Billing Custom Field 1 is a required field.', $e->getMessage() );
+			$this->assertArrayNotHasKey( 'link_to_checkout', $e->getAdditionalData() );
+		} finally {
+			update_option( 'woocommerce_checkout_page_id', $original_checkout_page_id );
+			wp_delete_post( $block_checkout_page_id, true );
+			remove_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
+			WC()->checkout()->checkout_fields = null;
+			WC()->checkout()->get_checkout_fields();
+		}
 	}
 
 	/**
@@ -457,5 +724,70 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 		remove_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
 		WC()->checkout()->checkout_fields = null;
 		WC()->checkout()->get_checkout_fields();
+	}
+
+	/**
+	 * Core account fields are not custom fields; merchant fields still are.
+	 *
+	 * @return void
+	 */
+	public function test_get_custom_checkout_fields_classic_excludes_core_account_fields() {
+		update_option( 'woocommerce_registration_generate_username', 'no' );
+		update_option( 'woocommerce_registration_generate_password', 'no' );
+
+		$custom_checkout_fields = function ( $fields ) {
+			$fields['billing']['billing_custom_field1'] = [
+				'type'     => 'text',
+				'label'    => 'Billing Custom Field 1',
+				'required' => true,
+			];
+			return $fields;
+		};
+		add_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
+		WC()->checkout()->checkout_fields = null;
+		WC()->checkout()->get_checkout_fields();
+
+		try {
+			$fields = $this->get_custom_fields_support()->get_custom_checkout_fields( 'classic' );
+
+			$this->assertArrayNotHasKey( 'account_username', $fields );
+			$this->assertArrayNotHasKey( 'account_password', $fields );
+			$this->assertArrayHasKey( 'billing_custom_field1', $fields );
+		} finally {
+			remove_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
+			update_option( 'woocommerce_registration_generate_username', 'yes' );
+			update_option( 'woocommerce_registration_generate_password', 'yes' );
+			WC()->checkout()->checkout_fields = null;
+			WC()->checkout()->get_checkout_fields();
+		}
+	}
+
+	/**
+	 * Regression: express payments must not require account_password when
+	 * auto-generated passwords are disabled.
+	 *
+	 * @return void
+	 */
+	public function test_process_custom_checkout_data_allows_express_payment_when_password_generation_disabled() {
+		update_option( 'woocommerce_registration_generate_password', 'no' );
+		WC()->checkout()->checkout_fields = null;
+		WC()->checkout()->get_checkout_fields();
+
+		$request = new \WP_REST_Request( 'POST', '/wc/stripe-ece/v1/test-request' );
+		$request->set_param( 'extensions', [] );
+
+		$order                 = WC_Helper_Order::create_order();
+		$custom_fields_support = $this->get_custom_fields_support();
+
+		try {
+			$custom_fields_support->process_custom_checkout_data( $order, $request );
+			$this->assertTrue( true );
+		} catch ( Exception $e ) {
+			$this->fail( 'Express payment must not require account_password, but got: ' . $e->getMessage() );
+		} finally {
+			update_option( 'woocommerce_registration_generate_password', 'yes' );
+			WC()->checkout()->checkout_fields = null;
+			WC()->checkout()->get_checkout_fields();
+		}
 	}
 }

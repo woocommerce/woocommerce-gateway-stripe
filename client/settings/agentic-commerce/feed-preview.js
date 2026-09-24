@@ -49,6 +49,9 @@ const SummaryStat = styled.div`
 	}
 
 	.wc-stripe-agentic-preview__excluded-details-toggle {
+		/* Own line under the label; inline it would sit beside "Excluded" and
+		   stretch that stat's label row taller than its siblings'. */
+		display: flex;
 		height: auto;
 		margin-top: 4px;
 		padding: 0;
@@ -106,6 +109,13 @@ const IntroDescription = styled.p`
 	margin-top: 16px;
 `;
 
+const ShippingWarningList = styled.ul`
+	/* wp-admin strips list markers; reinstate them so zones scan as a list. */
+	list-style: disc;
+	padding-left: 20px;
+	margin: 8px 0 0;
+`;
+
 const ExcludedDetails = styled.div`
 	margin: 8px 0 16px;
 `;
@@ -157,9 +167,14 @@ const AgenticCommerceFeedPreview = () => {
 		validation_errors: validationErrors,
 		truncated,
 		scan_limited: scanLimited,
+		shipping_warnings: shippingWarnings = [],
+		shipping_warnings_severity: shippingWarningsSeverity = 'warning',
 	} = data ?? {};
 
 	const excludedSubscriptions = excludedBreakdown?.subscriptions ?? 0;
+	const excludedPasswordProtected =
+		excludedBreakdown?.password_protected ?? 0;
+	const excludedHidden = excludedBreakdown?.hidden ?? 0;
 	const excludedFiltered = excludedBreakdown?.filtered ?? 0;
 
 	return (
@@ -208,7 +223,70 @@ const AgenticCommerceFeedPreview = () => {
 							</Notice>
 						) }
 
-						<SummaryRow justify="flex-start">
+						{ shippingWarnings.length > 0 && (
+							<Notice
+								status={ shippingWarningsSeverity }
+								isDismissible={ false }
+							>
+								{ /* Expanded by default so the zones are not missed;
+								     collapsible so a long list can be folded away while
+								     debugging. The collapse is per-render DOM state:
+								     nothing is persisted or shared between users. */ }
+								<details open>
+									<summary>
+										<strong>
+											{ sprintf(
+												/* translators: %d: number of shipping zones the warning covers. */
+												_n(
+													'%d shipping zone will have no shipping prices in the feed.',
+													'%d shipping zones will have no shipping prices in the feed.',
+													shippingWarnings.length,
+													'woocommerce-gateway-stripe'
+												),
+												shippingWarnings.length
+											) }
+										</strong>
+									</summary>
+									{ shippingWarningsSeverity === 'info' && (
+										<p>
+											{ __(
+												'Agentic shoppers are redirected to your WooCommerce checkout, where shipping is computed as usual. The agent won’t be able to show shipping prices for these zones.',
+												'woocommerce-gateway-stripe'
+											) }
+										</p>
+									) }
+									<ShippingWarningList>
+										{ shippingWarnings.map(
+											( warning, i ) => (
+												<li key={ i }>
+													{ warning.message }
+													{ warning.edit_link && (
+														<>
+															{ ' ' }
+															<a
+																href={
+																	warning.edit_link
+																}
+															>
+																{ __(
+																	'Edit shipping zone',
+																	'woocommerce-gateway-stripe'
+																) }
+															</a>
+														</>
+													) }
+												</li>
+											)
+										) }
+									</ShippingWarningList>
+								</details>
+							</Notice>
+						) }
+
+						{ /* Top-align via the prop: Flex's own emotion class wins
+						     over styled() CSS, and its default centering floats the
+						     taller Excluded stat's value above its siblings. */ }
+						<SummaryRow justify="flex-start" align="flex-start">
 							<SummaryStat className="is-included">
 								<span className="wc-stripe-agentic-preview__stat-value">
 									{ includedCount.toLocaleString() }
@@ -281,6 +359,34 @@ const AgenticCommerceFeedPreview = () => {
 													'woocommerce-gateway-stripe'
 												),
 												excludedSubscriptions.toLocaleString()
+											) }
+										</li>
+									) }
+									{ excludedPasswordProtected > 0 && (
+										<li>
+											{ sprintf(
+												/* translators: %s: number of password-protected products. */
+												_n(
+													'%s password-protected product — agents can’t show products behind a password.',
+													'%s password-protected products — agents can’t show products behind a password.',
+													excludedPasswordProtected,
+													'woocommerce-gateway-stripe'
+												),
+												excludedPasswordProtected.toLocaleString()
+											) }
+										</li>
+									) }
+									{ excludedHidden > 0 && (
+										<li>
+											{ sprintf(
+												/* translators: %s: number of products hidden from the catalog. */
+												_n(
+													'%s product hidden from your catalog and search results.',
+													'%s products hidden from your catalog and search results.',
+													excludedHidden,
+													'woocommerce-gateway-stripe'
+												),
+												excludedHidden.toLocaleString()
 											) }
 										</li>
 									) }

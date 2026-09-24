@@ -13,6 +13,7 @@ run-name: Format release notes for ${{ inputs.branch }}
 jobs:
   format-release-notes:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: write
       pull-requests: write
@@ -20,12 +21,12 @@ jobs:
 
     steps:
       - name: Checkout branch
-        uses: actions/checkout@v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.branch }}
 
       - name: Format release notes with Claude
-        uses: anthropics/claude-code-action@12531344451323133b0493233c759991ac61da12 # v1.0.174
+        uses: anthropics/claude-code-action@51db78a4b844e144f8d02425cb280435c04a3474 # v1.0.224
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |

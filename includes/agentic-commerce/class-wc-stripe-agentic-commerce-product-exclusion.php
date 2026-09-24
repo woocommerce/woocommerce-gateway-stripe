@@ -3,7 +3,7 @@
  * Per-product Agentic Commerce sync exclusion flag.
  *
  * Owns storage and retrieval of the per-product exclude flag, and ensures the exclusion flag
- * is applied through the `woocommerce_agentic_commerce_should_sync_product` filter.
+ * is applied through the `wc_stripe_agentic_commerce_should_sync_product` filter.
  *
  * @internal Not part of the plugin's public API; may change without notice.
  * @package WooCommerce_Stripe
@@ -11,6 +11,8 @@
  */
 
 declare(strict_types=1);
+
+use Automattic\WooCommerce\Enums\ProductType;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -30,6 +32,13 @@ class WC_Stripe_Agentic_Commerce_Product_Exclusion {
 	protected const META_KEY = '_wc_stripe_agentic_commerce_exclude';
 
 	/**
+	 * Product types the exclude flag applies to. The feed syncs `simple` and
+	 * `variation`; a variation's parent is `variable`, which is where the flag
+	 * lives (see {@see self::is_excluded()}).
+	 */
+	protected const SUPPORTED_TYPES = [ ProductType::SIMPLE, ProductType::VARIABLE ];
+
+	/**
 	 * The exclude-flag meta key.
 	 *
 	 * @since 10.9.0
@@ -40,6 +49,36 @@ class WC_Stripe_Agentic_Commerce_Product_Exclusion {
 	}
 
 	/**
+	 * Product types the exclude flag applies to. Editor surfaces (meta box,
+	 * list table) must share this list so a save through one surface can't
+	 * clobber a flag another surface would have refused to touch.
+	 *
+	 * @since 10.9.0
+	 * @return string[]
+	 */
+	public static function get_supported_types(): array {
+		return self::SUPPORTED_TYPES;
+	}
+
+	/**
+	 * Whether the exclude flag applies to this product.
+	 *
+	 * Single gate for every editor surface (meta box, bulk edit, quick edit,
+	 * column) so a save through one surface can't clobber a flag another
+	 * surface would have refused to touch.
+	 *
+	 * @since 10.9.0
+	 * @param mixed $product Candidate product; anything but a supported WC_Product fails.
+	 * @return bool
+	 *
+	 * @phpstan-assert-if-true WC_Product $product
+	 */
+	public static function supports( $product ): bool {
+		return $product instanceof WC_Product
+			&& in_array( $product->get_type(), self::SUPPORTED_TYPES, true );
+	}
+
+	/**
 	 * Register the should-sync filter. Runs in every context (cron/CLI included)
 	 * so sync honors the flag regardless of how it was triggered.
 	 *
@@ -47,7 +86,7 @@ class WC_Stripe_Agentic_Commerce_Product_Exclusion {
 	 * @return void
 	 */
 	public function init(): void {
-		add_filter( 'woocommerce_agentic_commerce_should_sync_product', [ $this, 'filter_should_sync_product' ], 10, 2 );
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', [ $this, 'filter_should_sync_product' ], 10, 2 );
 	}
 
 	/**

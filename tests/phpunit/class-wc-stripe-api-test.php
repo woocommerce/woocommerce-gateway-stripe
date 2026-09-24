@@ -20,10 +20,19 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	const LIVE_SECRET_KEY = 'sk_live_key_123';
 
 	/**
+	 * The Stripe Connect instance in place before a test swaps in a mock.
+	 *
+	 * @var WC_Stripe_Connect|null
+	 */
+	private $original_connect;
+
+	/**
 	 * Setup environment for tests.
 	 */
 	public function set_up() {
 		parent::set_up();
+
+		$this->original_connect = woocommerce_gateway_stripe()->connect;
 
 		$stripe_settings                    = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['enabled']         = 'yes';
@@ -32,22 +41,26 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$stripe_settings['test_secret_key'] = self::TEST_SECRET_KEY;
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		// Reset the invalid API keys count cache.
-		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
+		$this->clear_mode_caches();
 	}
 
 	/**
 	 * Tear down environment after tests.
 	 */
 	public function tear_down() {
-		// Reset the invalid API keys count cache.
-		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
+		$this->clear_mode_caches();
 
 		// Clear any outage state recorded during the test run.
 		delete_transient( WC_Stripe_API_Outage_Status::OUTAGE_TRANSIENT_KEY );
 
+		// Clear any level3 rejection state recorded during the test run.
+		delete_transient( 'wc_stripe_level3_not_allowed' );
+
 		WC_Stripe_Helper::delete_main_stripe_settings();
 		WC_Stripe_API::set_secret_key( null );
+
+		woocommerce_gateway_stripe()->connect = $this->original_connect;
+		WC_Stripe_Logger::$logger             = null;
 
 		parent::tear_down();
 	}
@@ -127,14 +140,12 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	public function test_retrieve_returns_null_without_api_call_after_threshold() {
 		$call_count = 0;
 
+		$mock_unauthorized_filter = function () use ( &$call_count ) {
+			$call_count++;
+			return $this->mock_unauthorized_response();
+		};
 		// Mock HTTP to always return 401 and increment the counter.
-		add_filter(
-			'pre_http_request',
-			function () use ( &$call_count ) {
-				$call_count++;
-				return $this->mock_unauthorized_response();
-			}
-		);
+		add_filter( 'pre_http_request', $mock_unauthorized_filter );
 
 		$stripe_api_class = new ReflectionClass( WC_Stripe_API::class );
 		$threshold        = $stripe_api_class->getConstant( 'INVALID_API_KEY_ERROR_COUNT_THRESHOLD' );
@@ -150,7 +161,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$this->assertNull( $result, 'Expected null after reaching invalid API key threshold.' );
 		$this->assertEquals( $threshold, $call_count, 'Should not make another HTTP call after threshold is reached.' );
 
-		remove_all_filters( 'pre_http_request' );
+		remove_filter( 'pre_http_request', $mock_unauthorized_filter );
 		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 	}
 
@@ -166,7 +177,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$count = WC_Stripe_Database_Cache::get( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 		$this->assertEquals( 1, $count, 'Cache count should be 1 after first 401.' );
 
-		remove_all_filters( 'pre_http_request' );
+		remove_filter( 'pre_http_request', [ $this, 'mock_unauthorized_response' ] );
 
 		// 2. Mock a 200 response for the second call.
 		add_filter( 'pre_http_request', [ $this, 'mock_successful_response' ] );
@@ -176,7 +187,73 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$count = WC_Stripe_Database_Cache::get( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 		$this->assertNull( $count, 'Cache should be deleted after a successful response.' );
 
-		remove_all_filters( 'pre_http_request' );
+		remove_filter( 'pre_http_request', [ $this, 'mock_successful_response' ] );
+	}
+
+	/**
+	 * Provide active and requested modes for invalid-key isolation tests.
+	 *
+	 * @return array
+	 */
+	public function provide_invalid_key_mode_test_cases(): array {
+		return [
+			'live request while test mode is active' => [ 'yes', 'live', 'test' ],
+			'test request while live mode is active' => [ 'no', 'test', 'live' ],
+		];
+	}
+
+	/**
+	 * Invalid-key rate limiting and account invalidation must stay within the requested key's mode.
+	 *
+	 * @param string $testmode       The active test mode setting.
+	 * @param string $requested_mode The mode whose key is used for the request.
+	 * @param string $other_mode     The mode that must remain unaffected.
+	 *
+	 * @dataProvider provide_invalid_key_mode_test_cases
+	 */
+	public function test_retrieve_scopes_invalid_key_state_to_active_secret_key( string $testmode, string $requested_mode, string $other_mode ) {
+		$stripe_settings             = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['testmode'] = $testmode;
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$requested_account = [ 'id' => "acct_$requested_mode" ];
+		$other_account     = [ 'id' => "acct_$other_mode" ];
+		WC_Stripe_Database_Cache::set_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $requested_account, HOUR_IN_SECONDS, $requested_mode );
+		WC_Stripe_Database_Cache::set_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $other_account, HOUR_IN_SECONDS, $other_mode );
+		WC_Stripe_API::set_secret_key_for_mode( $requested_mode );
+
+		$unauthorized_response = [ $this, 'mock_unauthorized_response' ];
+		add_filter( 'pre_http_request', $unauthorized_response );
+
+		$stripe_api_class = new ReflectionClass( WC_Stripe_API::class );
+		$threshold        = $stripe_api_class->getConstant( 'INVALID_API_KEY_ERROR_COUNT_THRESHOLD' );
+		for ( $i = 0; $i < $threshold; $i++ ) {
+			WC_Stripe_API::retrieve( 'test_endpoint' );
+		}
+
+		remove_filter( 'pre_http_request', $unauthorized_response );
+
+		$this->assertSame( $threshold, WC_Stripe_Database_Cache::get_with_mode( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY, $requested_mode ) );
+		$this->assertNull( WC_Stripe_Database_Cache::get_with_mode( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY, $other_mode ) );
+		$this->assertNull( WC_Stripe_Database_Cache::get_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $requested_mode ) );
+		$this->assertSame( $other_account, WC_Stripe_Database_Cache::get_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $other_mode ) );
+
+		WC_Stripe_API::set_secret_key_for_mode( $other_mode );
+		add_filter( 'pre_http_request', [ $this, 'mock_successful_response' ] );
+		$result = WC_Stripe_API::retrieve( 'test_endpoint' );
+		remove_filter( 'pre_http_request', [ $this, 'mock_successful_response' ] );
+
+		$this->assertSame( 'success', $result );
+	}
+
+	/**
+	 * Clear mode-specific caches used by these tests.
+	 */
+	private function clear_mode_caches(): void {
+		foreach ( [ 'test', 'live' ] as $mode ) {
+			WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY, $mode );
+			WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $mode );
+		}
 	}
 
 	/**
@@ -255,6 +332,179 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 			$captured_args['reject_unsafe_urls'] ?? false,
 			'Stripe API GET requests must not set reject_unsafe_urls.'
 		);
+	}
+
+	/**
+	 * Captures the outbound HTTP request (URL + args) made during $callback, without hitting Stripe.
+	 *
+	 * @param callable $callback Invokes the WC_Stripe_API method under test.
+	 * @return array{url:?string,args:?array} The captured request.
+	 */
+	private function capture_stripe_request( callable $callback ): array {
+		$captured = [
+			'url'  => null,
+			'args' => null,
+		];
+
+		$capture_filter = function ( $return_value, $parsed_args, $url ) use ( &$captured ) {
+			$captured['url']  = $url;
+			$captured['args'] = $parsed_args;
+			return $this->mock_successful_response();
+		};
+		add_filter( 'pre_http_request', $capture_filter, 10, 3 );
+
+		try {
+			$callback();
+		} finally {
+			remove_filter( 'pre_http_request', $capture_filter, 10 );
+		}
+
+		return $captured;
+	}
+
+	/**
+	 * Prefix-compatible values whose structural delimiters must be percent-encoded when concatenated
+	 * into a Stripe API path, alongside valid IDs that must pass through unchanged (encoding no-op).
+	 *
+	 * All values take the default (payment_methods) branch, so a single provider drives every helper.
+	 *
+	 * @return array<string, array{string, string}>
+	 */
+	public function provide_path_segment_encoding_ids(): array {
+		return [
+			'valid pm (encoding is a no-op)'          => [ 'pm_1MqLiJLkdIwHu7ixUEgbFdYF', 'pm_1MqLiJLkdIwHu7ixUEgbFdYF' ],
+			'valid legacy card (encoding is a no-op)' => [ 'card_1AbCdEfGhIjKlMnO', 'card_1AbCdEfGhIjKlMnO' ],
+			'path traversal to another API'           => [ 'pm_1AbC/../setup_intents', 'pm_1AbC%2F..%2Fsetup_intents' ],
+			'extra path segment'                      => [ 'pm_1AbC/extra', 'pm_1AbC%2Fextra' ],
+			'query delimiter'                         => [ 'pm_1AbC?foo=bar', 'pm_1AbC%3Ffoo%3Dbar' ],
+			'ampersand and equals'                    => [ 'pm_1AbC&usage=on_session=1', 'pm_1AbC%26usage%3Don_session%3D1' ],
+			'fragment'                                => [ 'pm_1AbC#/attach', 'pm_1AbC%23%2Fattach' ],
+			'brackets'                                => [ 'pm_1AbC[0]', 'pm_1AbC%5B0%5D' ],
+			'space (rawurlencode not urlencode)'      => [ 'pm_a b', 'pm_a%20b' ],
+			'prefixless retargeting payload'          => [ '../setup_intents?payment_method_types[]=card&usage=on_session#', '..%2Fsetup_intents%3Fpayment_method_types%5B%5D%3Dcard%26usage%3Don_session%23' ],
+		];
+	}
+
+	/**
+	 * A payment method ID is concatenated into the Stripe path, so it must be encoded as a single
+	 * segment: structural delimiters percent-encoded, valid IDs left byte-for-byte identical.
+	 *
+	 * @dataProvider provide_path_segment_encoding_ids
+	 */
+	public function test_get_payment_method_encodes_id_as_single_path_segment( string $id, string $encoded_id ) {
+		$captured = $this->capture_stripe_request(
+			function () use ( $id ) {
+				WC_Stripe_API::get_payment_method( $id );
+			}
+		);
+
+		$this->assertSame( WC_Stripe_API::ENDPOINT . 'payment_methods/' . $encoded_id, $captured['url'] );
+	}
+
+	/**
+	 * get_payment_method routes src_ IDs to the Sources API, which must also encode them as one segment.
+	 */
+	public function test_get_payment_method_encodes_source_id_as_single_path_segment() {
+		$captured = $this->capture_stripe_request(
+			function () {
+				WC_Stripe_API::get_payment_method( 'src_1AbC/../charges' );
+			}
+		);
+
+		$this->assertSame( WC_Stripe_API::ENDPOINT . 'sources/src_1AbC%2F..%2Fcharges', $captured['url'] );
+	}
+
+	/**
+	 * A pre-encoded value is treated as literal path data, not decoded: an embedded %2F becomes %252F,
+	 * so it can never be re-interpreted as a path separator downstream.
+	 */
+	public function test_get_payment_method_does_not_decode_pre_encoded_input() {
+		$captured = $this->capture_stripe_request(
+			function () {
+				WC_Stripe_API::get_payment_method( 'pm_a%2Fb' );
+			}
+		);
+
+		$this->assertSame( WC_Stripe_API::ENDPOINT . 'payment_methods/pm_a%252Fb', $captured['url'] );
+	}
+
+	/**
+	 * The update path — `payment_methods/{id}`.
+	 *
+	 * @dataProvider provide_path_segment_encoding_ids
+	 */
+	public function test_update_payment_method_encodes_id_as_single_path_segment( string $id, string $encoded_id ) {
+		$captured = $this->capture_stripe_request(
+			function () use ( $id ) {
+				WC_Stripe_API::update_payment_method( $id );
+			}
+		);
+
+		$this->assertSame( WC_Stripe_API::ENDPOINT . 'payment_methods/' . $encoded_id, $captured['url'] );
+	}
+
+	/**
+	 * The default (PaymentMethod) attach path — `payment_methods/{id}/attach`. The src_ branch, which
+	 * sends the value in the request body instead, is covered by the test below.
+	 *
+	 * @dataProvider provide_path_segment_encoding_ids
+	 */
+	public function test_attach_payment_method_to_customer_encodes_id_as_single_path_segment( string $id, string $encoded_id ) {
+		$captured = $this->capture_stripe_request(
+			function () use ( $id ) {
+				WC_Stripe_API::attach_payment_method_to_customer( 'cus_123', $id );
+			}
+		);
+
+		$this->assertSame( WC_Stripe_API::ENDPOINT . 'payment_methods/' . $encoded_id . '/attach', $captured['url'] );
+	}
+
+	/**
+	 * For src_ IDs, attach sends the value in the request body (source=), not the path — so there is
+	 * nothing to path-encode. Assert the ID never lands in the URL and is preserved intact in the body.
+	 */
+	public function test_attach_payment_method_to_customer_keeps_source_id_out_of_the_path() {
+		$captured = $this->capture_stripe_request(
+			function () {
+				WC_Stripe_API::attach_payment_method_to_customer( 'cus_123', 'src_1AbC' );
+			}
+		);
+
+		$this->assertSame( WC_Stripe_API::ENDPOINT . 'customers/cus_123/sources', $captured['url'] );
+
+		$body        = $captured['args']['body'];
+		$body_string = is_array( $body ) ? http_build_query( $body ) : (string) $body;
+		$this->assertStringContainsString( 'src_1AbC', $body_string );
+	}
+
+	/**
+	 * The default (PaymentMethod) detach path — `payment_methods/{id}/detach`. The src_ branch, which
+	 * uses the Sources API instead, is covered by the test below.
+	 *
+	 * @dataProvider provide_path_segment_encoding_ids
+	 */
+	public function test_detach_payment_method_from_customer_encodes_id_as_single_path_segment( string $id, string $encoded_id ) {
+		$captured = $this->capture_stripe_request(
+			function () use ( $id ) {
+				WC_Stripe_API::detach_payment_method_from_customer( 'cus_123', $id );
+			}
+		);
+
+		$this->assertSame( WC_Stripe_API::ENDPOINT . 'payment_methods/' . $encoded_id . '/detach', $captured['url'] );
+	}
+
+	/**
+	 * detach_payment_method_from_customer routes src_ IDs to the Sources API (DELETE) and encodes them.
+	 */
+	public function test_detach_payment_method_from_customer_encodes_source_id_as_single_path_segment() {
+		$captured = $this->capture_stripe_request(
+			function () {
+				WC_Stripe_API::detach_payment_method_from_customer( 'cus_123', 'src_1AbC/../charges' );
+			}
+		);
+
+		$this->assertSame( WC_Stripe_API::ENDPOINT . 'customers/cus_123/sources/src_1AbC%2F..%2Fcharges', $captured['url'] );
+		$this->assertSame( 'DELETE', $captured['args']['method'] );
 	}
 
 	/**
@@ -682,5 +932,295 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 			$caught->getLocalizedMessage()
 		);
 		$this->assertTrue( WC_Stripe_API_Outage_Status::is_in_outage() );
+	}
+
+	/**
+	 * A level3 rejection is cached account-wide (3-month transient) as before, EXCEPT when
+	 * the request itself declares only non-level3 payment method types — there the rejection
+	 * reflects that one request, and caching it would disable level3 for card payments too.
+	 * The payment must go through either way, via the retry without level3.
+	 *
+	 * @param string[]|null $request_types    The payment_method_types the request carries, or null for none.
+	 * @param string        $order_meta_type  The Stripe UPE payment type stored on the order, or '' for none.
+	 * @param bool          $expect_transient Whether the rejection should set the account-wide transient.
+	 * @dataProvider provide_test_request_with_level3_data_rejection_transient
+	 */
+	public function test_request_with_level3_data_skips_rejection_caching_for_non_level3_requests( $request_types, $order_meta_type, $expect_transient ) {
+		// The level3 gate only applies to US-based stores.
+		update_option( 'woocommerce_default_country', 'US:CA' );
+		delete_transient( 'wc_stripe_level3_not_allowed' );
+
+		$order = WC_Helper_Order::create_order();
+		if ( '' !== $order_meta_type ) {
+			WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_payment_type( $order, $order_meta_type );
+			$order->save_meta_data();
+		}
+
+		$request = [ 'amount' => 100 ];
+		if ( null !== $request_types ) {
+			$request['payment_method_types'] = $request_types;
+		}
+
+		$bodies_seen = [];
+		$mock        = function ( $preempt, $parsed_args ) use ( &$bodies_seen ) {
+			$bodies_seen[] = $parsed_args['body'];
+
+			$body = isset( $parsed_args['body']['level3'] )
+				? '{"error":{"code":"parameter_unknown","param":"level3","type":"invalid_request_error","message":"Received unknown parameter: level3"}}'
+				: '{"id":"pi_mock"}';
+
+			return [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => $body,
+			];
+		};
+		add_filter( 'pre_http_request', $mock, 10, 2 );
+
+		$result = WC_Stripe_API::request_with_level3_data( $request, 'payment_intents', [ 'merchant_reference' => (string) $order->get_id() ], $order );
+
+		remove_filter( 'pre_http_request', $mock, 10 );
+
+		// The rejection must always trigger a retry without level3 so the payment goes through.
+		$this->assertCount( 2, $bodies_seen );
+		$this->assertArrayHasKey( 'level3', $bodies_seen[0] );
+		$this->assertArrayNotHasKey( 'level3', $bodies_seen[1] );
+		$this->assertSame( 'pi_mock', $result->id );
+
+		$this->assertSame( $expect_transient, (bool) get_transient( 'wc_stripe_level3_not_allowed' ) );
+	}
+
+	/**
+	 * Provider for {@see test_request_with_level3_data_skips_rejection_caching_for_non_level3_requests()}.
+	 *
+	 * Only combinations where the meta gate attaches level3 (card or absent meta) can reach
+	 * the rejection.
+	 *
+	 * @return array
+	 */
+	public function provide_test_request_with_level3_data_rejection_transient() {
+		return [
+			'card request caches the rejection'          => [ [ WC_Stripe_Payment_Methods::CARD ], '', true ],
+			'mixed types with card cache the rejection'  => [ [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::KLARNA ], '', true ],
+			'card meta caches the rejection'             => [ null, WC_Stripe_Payment_Methods::CARD, true ],
+			// No declared types: ambiguous rejection keeps the pre-existing caching behavior.
+			'no declared types cache the rejection'      => [ null, '', true ],
+			'empty declared types cache the rejection'   => [ [], '', true ],
+			'card-present request caches the rejection'  => [ [ WC_Stripe_Payment_Methods::CARD_PRESENT ], '', true ],
+			// The fix: a mismatched flow that sent level3 for a request Stripe knows is
+			// non-card must not disable level3 account-wide.
+			'non-card request does not cache'            => [ [ WC_Stripe_Payment_Methods::SEPA_DEBIT ], '', false ],
+			'non-card request with card meta skips too'  => [ [ WC_Stripe_Payment_Methods::AMAZON_PAY ], WC_Stripe_Payment_Methods::CARD, false ],
+			// Filters run on the request before this point: unexpected non-string entries must
+			// not count as declared types, so the rejection stays ambiguous and caches.
+			'malformed types count as no declared types' => [ [ null, [ 'nested' ] ], '', true ],
+		];
+	}
+
+	/**
+	 * @param string   $testmode              The store's testmode setting.
+	 * @param string[] $oauth_connected_modes The modes ('test' and/or 'live') connected via OAuth.
+	 * @param string   $method                The HTTP method.
+	 * @param string   $api                   The Stripe API endpoint.
+	 * @param bool     $expect_stripped       Whether the fee fields should be removed from the sent body.
+	 * @dataProvider provide_platform_fee_field_stripping_cases
+	 */
+	public function test_request_strips_platform_fee_fields( string $testmode, array $oauth_connected_modes, string $method, string $api, bool $expect_stripped ) {
+		$this->update_stripe_setting( 'testmode', $testmode );
+		$this->mock_oauth_connected_modes( $oauth_connected_modes );
+
+		$non_fee_fields = [
+			'amount'   => 1000,
+			'currency' => 'usd',
+			'metadata' => [ 'order_id' => '123' ],
+		];
+		$request        = array_merge(
+			$non_fee_fields,
+			[
+				'application_fee_amount' => 100,
+				'application_fee'        => 100,
+			]
+		);
+
+		$captured = $this->capture_stripe_request(
+			function () use ( $request, $api, $method ) {
+				WC_Stripe_API::request( $request, $api, $method );
+			}
+		);
+
+		$this->assertSame( $expect_stripped ? $non_fee_fields : $request, $captured['args']['body'] );
+	}
+
+	/**
+	 * Provider for {@see test_request_strips_platform_fee_fields()}.
+	 *
+	 * @return array
+	 */
+	public function provide_platform_fee_field_stripping_cases(): array {
+		return [
+			'create intent, OAuth in test mode'  => [ 'yes', [ 'test' ], 'POST', 'payment_intents', true ],
+			'update intent, OAuth in test mode'  => [ 'yes', [ 'test' ], 'POST', 'payment_intents/pi_123', true ],
+			'confirm intent, OAuth in test mode' => [ 'yes', [ 'test' ], 'POST', 'payment_intents/pi_123/confirm', true ],
+			'capture intent, OAuth in test mode' => [ 'yes', [ 'test' ], 'POST', 'payment_intents/pi_123/capture', true ],
+			'create intent, OAuth in live mode'  => [ 'no', [ 'live' ], 'POST', 'payment_intents', true ],
+			// The OAuth check must follow the store's active mode, not whichever mode happens to be OAuth-connected.
+			'test mode, OAuth only in live mode' => [ 'yes', [ 'live' ], 'POST', 'payment_intents', false ],
+			'live mode, OAuth only in test mode' => [ 'no', [ 'test' ], 'POST', 'payment_intents', false ],
+			'not connected via OAuth'            => [ 'yes', [], 'POST', 'payment_intents', false ],
+			'non-POST payment intent request'    => [ 'yes', [ 'test', 'live' ], 'GET', 'payment_intents/pi_123', false ],
+			'setup intent request'               => [ 'yes', [ 'test', 'live' ], 'POST', 'setup_intents', false ],
+			'charge request'                     => [ 'yes', [ 'test', 'live' ], 'POST', 'charges', false ],
+		];
+	}
+
+	/**
+	 * The plugin never sets fee fields itself, so they arrive through callers or the request body
+	 * filters; stripping has to run after those filters or filter-added fields would reach Stripe.
+	 */
+	public function test_request_strips_platform_fee_fields_added_by_request_body_filter() {
+		$this->mock_oauth_connected_modes( [ 'test' ] );
+
+		$add_fee_field = function ( $request ) {
+			$request['application_fee_amount'] = 250;
+			return $request;
+		};
+		add_filter( 'wc_stripe_request_body', $add_fee_field );
+
+		try {
+			$captured = $this->capture_stripe_request(
+				function () {
+					WC_Stripe_API::request( [ 'amount' => 1000 ], 'payment_intents' );
+				}
+			);
+		} finally {
+			remove_filter( 'wc_stripe_request_body', $add_fee_field );
+		}
+
+		$this->assertSame( [ 'amount' => 1000 ], $captured['args']['body'] );
+	}
+
+	/**
+	 * Without a Connect instance the OAuth state is unknown, so the request must be sent as-is
+	 * rather than fataling.
+	 */
+	public function test_request_leaves_platform_fee_fields_when_connect_is_unavailable() {
+		woocommerce_gateway_stripe()->connect = null;
+
+		$request = [
+			'amount'                 => 1000,
+			'application_fee_amount' => 100,
+		];
+
+		$captured = $this->capture_stripe_request(
+			function () use ( $request ) {
+				WC_Stripe_API::request( $request, 'payment_intents' );
+			}
+		);
+
+		$this->assertSame( $request, $captured['args']['body'] );
+	}
+
+	/**
+	 * @param array    $fee_fields              The fee fields included in the request.
+	 * @param string[] $expected_removed_fields The fields expected in the warning context.
+	 * @dataProvider provide_platform_fee_field_warning_cases
+	 */
+	public function test_request_logs_warning_listing_removed_platform_fee_fields( array $fee_fields, array $expected_removed_fields ) {
+		$this->update_stripe_setting( 'logging', 'yes' );
+		$this->mock_oauth_connected_modes( [ 'test' ] );
+
+		$mock_logger              = $this->createMock( WC_Logger::class );
+		WC_Stripe_Logger::$logger = $mock_logger;
+		$mock_logger->expects( $this->once() )
+			->method( 'warning' )
+			->with(
+				'Platform fee fields removed from Stripe API request',
+				$this->callback(
+					function ( $context ) use ( $expected_removed_fields ) {
+						$this->assertSame( 'payment_intents/pi_123', $context['api'] ?? null );
+						$this->assertSame( 'POST', $context['method'] ?? null );
+						$this->assertSame( $expected_removed_fields, $context['removed_fields'] ?? null );
+						return true;
+					}
+				)
+			);
+
+		$captured = $this->capture_stripe_request(
+			function () use ( $fee_fields ) {
+				WC_Stripe_API::request( array_merge( [ 'amount' => 1000 ], $fee_fields ), 'payment_intents/pi_123' );
+			}
+		);
+
+		$this->assertSame( [ 'amount' => 1000 ], $captured['args']['body'] );
+	}
+
+	/**
+	 * Provider for {@see test_request_logs_warning_listing_removed_platform_fee_fields()}.
+	 *
+	 * @return array
+	 */
+	public function provide_platform_fee_field_warning_cases(): array {
+		return [
+			'both fee fields'             => [
+				[
+					'application_fee_amount' => 100,
+					'application_fee'        => 100,
+				],
+				[ 'application_fee_amount', 'application_fee' ],
+			],
+			'only application_fee_amount' => [ [ 'application_fee_amount' => 100 ], [ 'application_fee_amount' ] ],
+			'only application_fee'        => [ [ 'application_fee' => 100 ], [ 'application_fee' ] ],
+			// A falsy fee is still a fee field and must not slip past the presence check.
+			'zero application_fee_amount' => [ [ 'application_fee_amount' => 0 ], [ 'application_fee_amount' ] ],
+		];
+	}
+
+	/**
+	 * OAuth-connected stores send payment intent requests constantly, so only requests that actually
+	 * carried fee fields should produce a warning.
+	 */
+	public function test_request_does_not_log_warning_when_no_platform_fee_fields_are_present() {
+		$this->update_stripe_setting( 'logging', 'yes' );
+		$this->mock_oauth_connected_modes( [ 'test' ] );
+
+		$mock_logger              = $this->createMock( WC_Logger::class );
+		WC_Stripe_Logger::$logger = $mock_logger;
+		$mock_logger->expects( $this->never() )->method( 'warning' );
+
+		$this->capture_stripe_request(
+			function () {
+				WC_Stripe_API::request( [ 'amount' => 1000 ], 'payment_intents' );
+			}
+		);
+	}
+
+	/**
+	 * Replaces the Stripe Connect instance with one that reports an OAuth connection only for the given modes.
+	 *
+	 * @param string[] $oauth_connected_modes The modes ('test' and/or 'live') connected via OAuth.
+	 */
+	private function mock_oauth_connected_modes( array $oauth_connected_modes ): void {
+		$connect_mock = $this->createPartialMock( WC_Stripe_Connect::class, [ 'is_connected_via_oauth' ] );
+		$connect_mock->method( 'is_connected_via_oauth' )
+			->willReturnCallback(
+				function ( $mode ) use ( $oauth_connected_modes ) {
+					return in_array( $mode, $oauth_connected_modes, true );
+				}
+			);
+
+		woocommerce_gateway_stripe()->connect = $connect_mock;
+	}
+
+	/**
+	 * @param string $key   The setting key.
+	 * @param string $value The setting value.
+	 */
+	private function update_stripe_setting( string $key, string $value ): void {
+		$stripe_settings         = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings[ $key ] = $value;
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 	}
 }

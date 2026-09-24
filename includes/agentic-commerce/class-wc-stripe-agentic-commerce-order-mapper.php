@@ -8,6 +8,8 @@
  * @since   10.6.0
  */
 
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -31,6 +33,15 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * agentic orders can complete payment.
 	 */
 	public const CREATED_VIA = 'stripe-agentic-commerce';
+
+	/**
+	 * Minutes to hold reserved stock while payment completes. Passed explicitly
+	 * so a blank `woocommerce_hold_stock_minutes` cannot disable the guard;
+	 * payment_complete()'s stock reduction releases the hold.
+	 *
+	 * @var int
+	 */
+	private const STOCK_HOLD_MINUTES = 10;
 
 	/**
 	 * Creates a WooCommerce order from a Stripe checkout session.
@@ -59,11 +70,14 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			$this->map_line_items( $order, $session );
 			$this->map_addresses( $order, $session );
 			$this->store_stripe_metadata( $order, $session );
+			$this->store_order_attribution( $order, $session );
 
 			// Save everything we've got so far.
 			$order->save();
 
-			// Map shipping data and save again.
+			// Must run after map_line_items(): map_shipping() builds the shipping
+			// package from the order's resolved line items, so the items have to be
+			// on the order before shipping is calculated.
 			$this->map_shipping( $order, $session );
 
 			// Confirm everything is right.
@@ -71,6 +85,20 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		} catch ( Throwable $e ) {
 			$order->delete( true );
 			throw $e;
+		}
+
+		// The only point that serializes concurrent agentic sessions on stock —
+		// finalize_checkout validates without reserving, so N sessions can all
+		// pass for the same last units. ReserveStock either claims them or throws.
+		// Throwable, not just ReserveStockException: third-party callbacks can
+		// throw anything from inside the reservation, and payment is already
+		// captured — every failure must land on the parked-order path rather
+		// than escape with neither payment_complete() nor the fallback run.
+		try {
+			$this->reserve_stock( $order );
+		} catch ( \Throwable $e ) {
+			$this->hold_order_for_insufficient_stock( $order, $session, $e );
+			return $order;
 		}
 
 		// Complete payment outside the delete-on-failure block, since
@@ -121,6 +149,21 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 					'Checkout session %s has unsupported currency: %s.',
 					$session->get_id(),
 					$currency
+				)
+			);
+		}
+
+		// WooCommerce coupons don't participate in delegated checkout, so a
+		// Stripe-side discount can't be represented on the order — WC
+		// recalculates full catalog prices, and the total verification would
+		// reject the order anyway after it was built. Fail fast with an
+		// explicit reason instead of an opaque total mismatch.
+		if ( $session->get_amount_discount() > 0 ) {
+			throw new Exception(
+				sprintf(
+					'Checkout session %s includes a discount (%d): discounts are not supported for agentic checkout orders.',
+					$session->get_id(),
+					$session->get_amount_discount()
 				)
 			);
 		}
@@ -206,7 +249,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * @since 10.6.0
 	 * @param WC_Order                           $order   The WooCommerce order.
 	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
-	 * @throws Exception When a product cannot be found for a line item.
+	 * @throws Exception When a product cannot be found for a line item, or a line item has a non-positive quantity.
 	 */
 	private function map_line_items( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session ): void {
 		$currency   = $session->get_currency() ?? '';
@@ -234,7 +277,21 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 
 			$product = WC_Stripe_Agentic_Commerce_Product_Resolver::resolve_product( $product_id );
 
-			$quantity   = $line_item->get_quantity();
+			$quantity = $line_item->get_quantity();
+
+			// The getter only casts to int, and the line-total reconciliation
+			// below can't catch a payload that is internally consistent with a
+			// non-positive quantity (e.g. quantity 0 with amount_total 0).
+			if ( $quantity < 1 ) {
+				throw new Exception(
+					sprintf(
+						'Line item %s has an invalid quantity (%d).',
+						$line_item->get_id(),
+						$quantity
+					)
+				);
+			}
+
 			$line_total = WC_Stripe_Helper::convert_from_stripe_amount(
 				$line_item->get_amount_total() - $line_item->get_amount_tax(),
 				$currency
@@ -292,6 +349,65 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 		}
 
 		return $item;
+	}
+
+	/**
+	 * Places an atomic stock hold for the order's managed-stock items;
+	 * ReserveStock itself skips backorder-enabled products.
+	 *
+	 * @since 10.9.0
+	 * @param WC_Order $order The order with mapped line items.
+	 * @throws \Automattic\WooCommerce\Checkout\Helpers\ReserveStockException When stock cannot be secured.
+	 */
+	private function reserve_stock( WC_Order $order ): void {
+		$reserve_stock = new \Automattic\WooCommerce\Checkout\Helpers\ReserveStock();
+		$reserve_stock->reserve_stock_for_order( $order, self::STOCK_HOLD_MINUTES );
+	}
+
+	/**
+	 * Parks a paid order that lost the stock race instead of overselling.
+	 *
+	 * Payment is already captured, so the order can't be declined or deleted:
+	 * keep it on-hold with the transaction id and suppress the on-hold stock
+	 * reduction that would drive the oversold product negative.
+	 *
+	 * @since 10.9.0
+	 * @param WC_Order                           $order   The created order.
+	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
+	 * @param Throwable                          $e       The reservation failure.
+	 */
+	private function hold_order_for_insufficient_stock( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session, Throwable $e ): void {
+		$order->set_transaction_id( $session->get_payment_intent_id() ?? '' );
+
+		// Not woocommerce_can_reduce_order_stock: that still marks the order
+		// stock-reduced, so a later cancel/refund would restock units never taken.
+		$order_id        = $order->get_id();
+		$block_reduction = static function ( $trigger_reduce, $target_order_id ) use ( $order_id ) {
+			return (int) $target_order_id === $order_id ? false : $trigger_reduce;
+		};
+		add_filter( 'woocommerce_payment_complete_reduce_order_stock', $block_reduction, 10, 2 );
+
+		try {
+			$order->update_status(
+				OrderStatus::ON_HOLD,
+				sprintf(
+					/* translators: %s: reason stock could not be secured */
+					__( 'Stripe captured the payment, but stock could not be secured for every item. Review stock, then process or refund this order manually. Reason: %s', 'woocommerce-gateway-stripe' ),
+					$e->getMessage()
+				)
+			);
+		} finally {
+			remove_filter( 'woocommerce_payment_complete_reduce_order_stock', $block_reduction );
+		}
+
+		WC_Stripe_Logger::error(
+			'Agentic order mapper: stock could not be secured at completion; order placed on hold.',
+			[
+				'session_id' => $session->get_id(),
+				'order_id'   => $order_id,
+				'reason'     => $e->getMessage(),
+			]
+		);
 	}
 
 	/**
@@ -413,6 +529,34 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	}
 
 	/**
+	 * Writes WooCommerce Order Attribution meta so agentic orders show their
+	 * originating agent in the admin Origin column instead of "Unknown".
+	 *
+	 * Order Attribution meta is normally written from checkout-page JavaScript,
+	 * which never runs for webhook-created orders. WooCommerce Core does not
+	 * support a dedicated agent source/type, so we use the `referral` type with the
+	 * name of the agent as the `utm_source`.
+	 *
+	 * @since 11.1.0
+	 * @param WC_Order                           $order   The WooCommerce order.
+	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
+	 */
+	private function store_order_attribution( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session ): void {
+		$agent_source = $session->get_agent_source();
+		if ( null === $agent_source ) {
+			return;
+		}
+
+		$sanitized_agent_source = sanitize_text_field( $agent_source );
+		if ( '' === $sanitized_agent_source ) {
+			return;
+		}
+
+		$order->update_meta_data( '_wc_order_attribution_source_type', 'referral' );
+		$order->update_meta_data( '_wc_order_attribution_utm_source', $sanitized_agent_source );
+	}
+
+	/**
 	 * Maps the chosen shipping rate from the checkout session to the order.
 	 *
 	 * Re-runs WooCommerce shipping calculation for the order's destination and
@@ -440,22 +584,14 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 
 		$address = $session->get_shipping_address() ?? $session->get_billing_address();
 
-		// Populate contents with resolved products for content-dependent
-		// shipping methods (table rate, weight-based). See STRIPE-986.
-		$package = [
-			'contents'        => [],
-			'contents_cost'   => 0,
-			'applied_coupons' => [],
-			'user'            => [ 'ID' => 0 ],
-			'destination'     => [
-				'country'  => $address->get_country() ?? '',
-				'state'    => $address->get_state() ?? '',
-				'postcode' => $address->get_postal_code() ?? '',
-				'city'     => $address->get_city() ?? '',
-				'address'  => '',
-			],
-			'cart_subtotal'   => 0,
-		];
+		// User ID 0 on purpose: the rate Stripe charged was quoted by the customization
+		// webhook, which has no logged-in user, so matching it needs the same guest context
+		// even when the order belongs to a customer.
+		$package = WC_Stripe_Agentic_Shipping_Package_Builder::build_package(
+			WC_Stripe_Agentic_Shipping_Package_Builder::build_contents_from_order( $order ),
+			$address,
+			0
+		);
 
 		$wc_shipping = WC()->shipping();
 
@@ -475,9 +611,8 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 				WC()->initialize_session();
 			}
 
-			$wc_shipping->calculate_shipping( [ $package ] );
-			$packages = $wc_shipping->get_packages();
-			$rates    = $packages[0]['rates'] ?? [];
+			$wc_shipping->calculate_shipping( WC_Stripe_Agentic_Shipping_Package_Builder::get_filtered_packages( $package ) );
+			$rates = WC_Stripe_Agentic_Shipping_Package_Builder::combine_package_rates( $wc_shipping->get_packages() );
 		} catch ( Throwable $e ) {
 			WC_Stripe_Logger::warning(
 				'Agentic order mapper: WC shipping calculation failed; will use free-form shipping line.',
@@ -518,7 +653,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			$shipping_item = new WC_Order_Item_Shipping();
 			$shipping_item->set_method_title( $matched_rate->get_label() );
 			$shipping_item->set_method_id( $matched_rate->get_method_id() );
-			$shipping_item->set_instance_id( $matched_rate->get_instance_id() );
+			$shipping_item->set_instance_id( (string) $matched_rate->get_instance_id() );
 			$shipping_item->set_total( $matched_rate->get_cost() );
 			$order->add_item( $shipping_item );
 			return;

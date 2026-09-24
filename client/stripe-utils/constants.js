@@ -28,6 +28,8 @@ export const PAYMENT_METHOD_BACS = 'bacs_debit';
 export const PAYMENT_METHOD_BECS = 'au_becs_debit';
 export const PAYMENT_METHOD_APPLE_PAY_GOOGLE_PAY = 'apple_pay_google_pay';
 
+export const CHECKOUT_SESSION_INPUT_ID = 'wc_stripe_checkout_session_id';
+
 /**
  * Payment method names constants with the `stripe` prefix
  */

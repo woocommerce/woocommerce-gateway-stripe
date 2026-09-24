@@ -1,17 +1,22 @@
-/* global wc_stripe_upe_params, wc_stripe_express_checkout_params */
-import { getSetting } from '@woocommerce/settings';
 import React from 'react';
 import { createPortal } from 'react-dom';
+import { getStripeServerData } from './get-stripe-server-data';
+import { isLinkEnabled } from './is-link-enabled';
 import {
 	errorTypes,
 	errorCodes,
 	getPaymentMethodsConstants,
 	PAYMENT_METHOD_LINK,
 	PAYMENT_METHOD_CARD,
+	CHECKOUT_SESSION_INPUT_ID,
 } from './constants';
 import { __ } from '@wordpress/i18n';
 import { dispatch } from '@wordpress/data';
 import { PAYMENT_METHOD_AMAZON_PAY } from 'wcstripe/stripe-utils/constants';
+
+export { getStripeServerData } from './get-stripe-server-data';
+export { isAmazonPayEnabled } from './is-amazon-pay-enabled';
+export { isLinkEnabled } from './is-link-enabled';
 
 /**
  * @typedef {import('./type-defs').StripeServerData} StripeServerData
@@ -19,25 +24,6 @@ import { PAYMENT_METHOD_AMAZON_PAY } from 'wcstripe/stripe-utils/constants';
  * @typedef {import('./type-defs').StripePaymentRequest} StripePaymentRequest
  * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').PreparedCartTotalItem} CartTotalItem
  */
-
-/**
- * Stripe data comes form the server passed on a global object.
- *
- * @return  {StripeServerData|null} Stripe server data, or null when it isn't localized on the page.
- */
-const getStripeServerData = () => {
-	let data = null;
-
-	// eslint-disable-next-line camelcase
-	if ( typeof wc_stripe_upe_params !== 'undefined' ) {
-		data = wc_stripe_upe_params; // eslint-disable-line camelcase
-	} else {
-		// 'stripe_data' is available via wc-settings on block checkout only.
-		data = getSetting( 'stripe_data', null );
-	}
-
-	return data || null;
-};
 
 /**
  * Determines whether the given error type is considered non-friendly (i.e. not directly
@@ -155,6 +141,8 @@ const getErrorMessageForTypeAndCode = ( type, code = '' ) => {
 	return null;
 };
 
+export { getErrorMessageForTypeAndCode };
+
 /**
  * Generates terms parameter for UPE, with value set for reusable payment methods
  *
@@ -216,34 +204,7 @@ export const getStorageWithExpiration = ( key ) => {
 	return item.value;
 };
 
-export { getStripeServerData, getErrorMessageForTypeAndCode };
-
 // Used by dPE.
-
-/**
- * Check whether Stripe Link is enabled.
- *
- * @param {Object} paymentMethodsConfig Checkout payment methods configuration settings object.
- * @return {boolean} True, if enabled; false otherwise.
- */
-export const isLinkEnabled = ( paymentMethodsConfig ) => {
-	paymentMethodsConfig =
-		paymentMethodsConfig || getStripeServerData()?.paymentMethodsConfig;
-	return (
-		paymentMethodsConfig?.link !== undefined &&
-		paymentMethodsConfig?.card !== undefined
-	);
-};
-
-/**
- * Check whether Amazon Pay is enabled.
- *
- * @return {boolean} True, if enabled; false otherwise.
- */
-export const isAmazonPayEnabled = () => {
-	// eslint-disable-next-line camelcase, no-undef
-	return !! wc_stripe_express_checkout_params?.stripe?.is_amazon_pay_enabled;
-};
 
 /**
  * Get array of payment method types to use with intent.
@@ -501,7 +462,7 @@ export const getUpeSettings = () => {
 };
 
 export const appendCheckoutSessionIdToForm = ( form, checkoutSessionId ) => {
-	const existingElement = form.find( 'input#wc_stripe_checkout_session_id' );
+	const existingElement = form.find( `input#${ CHECKOUT_SESSION_INPUT_ID }` );
 	if ( existingElement.length ) {
 		existingElement.val( checkoutSessionId );
 		return;
@@ -509,10 +470,14 @@ export const appendCheckoutSessionIdToForm = ( form, checkoutSessionId ) => {
 
 	const hiddenInput = document.createElement( 'input' );
 	hiddenInput.type = 'hidden';
-	hiddenInput.id = 'wc_stripe_checkout_session_id';
-	hiddenInput.name = 'wc_stripe_checkout_session_id';
+	hiddenInput.id = CHECKOUT_SESSION_INPUT_ID;
+	hiddenInput.name = CHECKOUT_SESSION_INPUT_ID;
 	hiddenInput.value = checkoutSessionId;
 	form.append( hiddenInput );
+};
+
+export const removeCheckoutSessionIdFromForm = ( form ) => {
+	form.find( `input#${ CHECKOUT_SESSION_INPUT_ID }` ).remove();
 };
 
 /**
@@ -681,7 +646,7 @@ const normalizeCountryForStripe = ( country ) => {
  * form and returns to use in Stripe Custom Checkout `confirm()` args.
  *
  * @param {Object} currentSession The current session object.
- * @return {Object} Partial confirm args: `billingAddress`, optional `shippingAddress`, optional `email`, optional `phoneNumber`.
+ * @return {Object} Partial confirm args: optional `billingAddress`, `shippingAddress`, `email`, and `phoneNumber`.
  */
 export const getUserDataForCheckoutSession = ( currentSession = null ) => {
 	const result = {};
@@ -700,18 +665,21 @@ export const getUserDataForCheckoutSession = ( currentSession = null ) => {
 			getFieldValue( 'billing_country' )
 		);
 
-		const billingAddress = {
-			name: billingName,
-			address: {
-				country: billingCountry || undefined,
-				line1: getFieldValue( 'billing_address_1' ) || undefined,
-				line2: getFieldValue( 'billing_address_2' ) || undefined,
-				state: getFieldValue( 'billing_state' ) || undefined,
-				city: getFieldValue( 'billing_city' ) || undefined,
-				postal_code: getFieldValue( 'billing_postcode' ) || undefined,
-			},
-		};
-		result.billingAddress = billingAddress;
+		if ( billingCountry ) {
+			const billingAddress = {
+				name: billingName,
+				address: {
+					country: billingCountry,
+					line1: getFieldValue( 'billing_address_1' ) || undefined,
+					line2: getFieldValue( 'billing_address_2' ) || undefined,
+					state: getFieldValue( 'billing_state' ) || undefined,
+					city: getFieldValue( 'billing_city' ) || undefined,
+					postal_code:
+						getFieldValue( 'billing_postcode' ) || undefined,
+				},
+			};
+			result.billingAddress = billingAddress;
+		}
 	}
 
 	if ( ! currentSession?.shippingAddress ) {
@@ -788,6 +756,48 @@ export const getExcludedPaymentMethodTypes = () => {
 };
 
 /**
+ * Returns the OC excluded payment method types for a billing country, combining
+ * the server-seeded list with the per-method `countriesByMethod` map.
+ *
+ * @param {string} billingCountry Two-letter ISO billing country (may be empty when unknown).
+ * @return {Array<string>} Payment method types to exclude for the country.
+ */
+export const getExcludedPaymentMethodTypesForBillingCountry = (
+	billingCountry
+) => {
+	const countriesByMethod =
+		getStripeServerData()?.paymentMethodsConfig?.[ PAYMENT_METHOD_CARD ]
+			?.countriesByMethod || {};
+	const isCountryRestricted = ( countries ) =>
+		Array.isArray( countries ) && countries.length > 0;
+	// `countriesByMethod` values are uppercase ISO codes; normalize in case a
+	// caller hands us a lowercase form value.
+	const country = ( billingCountry || '' ).toUpperCase();
+
+	// The server exposes its country-derived exclusions separately, so the
+	// recompute subtracts exactly that portion from the seed — anything else in
+	// the seed (unsupported methods, third-party `wc_stripe_upe_params`
+	// additions) is preserved rather than dropped and re-derived.
+	const countryExcludedSeed =
+		getStripeServerData()?.countryExcludedPaymentMethodTypes || [];
+	const excluded = getExcludedPaymentMethodTypes().filter(
+		( method ) => ! countryExcludedSeed.includes( method )
+	);
+
+	Object.entries( countriesByMethod ).forEach( ( [ method, countries ] ) => {
+		// Empty list = no restriction; an unknown country can't confirm a restricted method.
+		if (
+			isCountryRestricted( countries ) &&
+			! countries.includes( country )
+		) {
+			excluded.push( method );
+		}
+	} );
+
+	return [ ...new Set( excluded ) ];
+};
+
+/**
  * Notice shown when the Adaptive Pricing Checkout Session total can't be resynced
  * with the cart.
  *
@@ -820,9 +830,15 @@ export const clearStaleCheckoutTotalNotice = () => {
  * @param {string} errorMessage
  */
 export const showErrorCheckout = ( errorMessage ) => {
-	const $container = jQuery( '.woocommerce-notices-wrapper' ).first();
+	let $container = jQuery( '.woocommerce-notices-wrapper' ).first();
 	const isMyAccountPage =
 		jQuery( '.woocommerce-MyAccount-content' ).length > 0;
+
+	// Some custom checkout templates omit the standard notices wrapper. The form
+	// is the same fallback WooCommerce uses for checkout AJAX errors.
+	if ( ! $container.length ) {
+		$container = jQuery( 'form.checkout' ).first();
+	}
 
 	if ( ! $container.length ) {
 		return;
@@ -982,6 +998,17 @@ export const paymentMethodSupportsDeferredIntent = ( upeElement ) => {
 };
 
 /**
+ * Returns the shopper's billing country for classic checkout, falling back to
+ * server customer data on "pay for order" (no billing input).
+ *
+ * @return {string} Two-letter ISO billing country, or empty when unknown.
+ */
+export const getCurrentBillingCountry = () =>
+	document.getElementById( 'billing_country' )?.value ||
+	getStripeServerData()?.customerData?.billing_country ||
+	'';
+
+/**
  * @param {Object} upeElement The selector of the DOM element of particular payment method to mount the UPE element to.
  */
 export const togglePaymentMethodForCountry = ( upeElement ) => {
@@ -991,11 +1018,7 @@ export const togglePaymentMethodForCountry = ( upeElement ) => {
 	const supportedCountries =
 		paymentMethodsConfig[ paymentMethodType ].countries;
 
-	// in the case of "pay for order", there is no "billing country" input, so we need to rely on backend data.
-	const billingCountry =
-		document.getElementById( 'billing_country' )?.value ||
-		getStripeServerData()?.customerData?.billing_country ||
-		'';
+	const billingCountry = getCurrentBillingCountry();
 
 	const upeContainer = document.querySelector(
 		'.payment_method_stripe_' + paymentMethodType
