@@ -537,7 +537,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	 * support a dedicated agent source/type, so we use the `referral` type with the
 	 * name of the agent as the `utm_source`.
 	 *
-	 * @since x.x.x
+	 * @since 11.1.0
 	 * @param WC_Order                           $order   The WooCommerce order.
 	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
 	 */

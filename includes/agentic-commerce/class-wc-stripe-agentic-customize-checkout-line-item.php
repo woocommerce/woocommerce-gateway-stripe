@@ -87,7 +87,7 @@ class WC_Stripe_Agentic_Customize_Checkout_Line_Item {
 	/**
 	 * Returns the unit amount in the smallest currency unit, or null when absent.
 	 *
-	 * @since x.x.x
+	 * @since 11.1.0
 	 * @return int|null
 	 */
 	public function get_unit_amount(): ?int {

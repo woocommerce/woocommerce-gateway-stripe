@@ -326,7 +326,7 @@ class WC_Stripe_Agentic_Checkout_Session {
 	 * agent_details includes name and display_name fields as well as the profile
 	 * field, but the profile is an opaque ID which is not meaningful to merchants.
 	 *
-	 * @since x.x.x
+	 * @since 11.1.0
 	 * @return string|null
 	 */
 	public function get_agent_source(): ?string {
