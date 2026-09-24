@@ -358,12 +358,16 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 							/* translators: error message */
 							$order->update_status( OrderStatus::FAILED, sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $result->error->message ) );
 						} else {
-							$is_stripe_captured = true;
-							$result             = $this->get_latest_charge_from_intent( $result );
+							$result = $this->get_latest_charge_from_intent( $result );
+
+							// Check that we have a valid charge object.
+							$is_stripe_captured = $this->handle_capture_charge_response( $result, $order );
 						}
 					} elseif ( WC_Stripe_Intent_Status::SUCCEEDED === $intent->status ) {
-						$is_stripe_captured = true;
-						$result             = $this->get_latest_charge_from_intent( $intent );
+						$result = $this->get_latest_charge_from_intent( $intent );
+
+						// Check that we have a valid charge object.
+						$is_stripe_captured = $this->handle_capture_charge_response( $result, $order );
 					}
 				} else {
 					// The order doesn't have a Payment Intent, fall back to capturing the Charge directly
@@ -604,5 +608,45 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		 * @param WC_Order $order The paid order whose cancellation was prevented.
 		 */
 		do_action( 'wc_stripe_paid_order_cancellation_prevented', $order );
+	}
+
+	/**
+	 * Check whether we have a valid, non-error charge response for a capture request.
+	 * If we have a valid charge response, return true.
+	 * Otherwise add an order note and return false.
+	 *
+	 * @param object|string $charge_response The charge response from the capture request.
+	 * @param WC_Order      $order           The order.
+	 * @return bool True if the charge has been captured, false otherwise.
+	 */
+	private function handle_capture_charge_response( $charge_response, WC_Order $order ): bool {
+		$default_note = __( 'Unable to verify whether charge has been captured.', 'woocommerce-gateway-stripe' );
+
+		if ( empty( $charge_response ) || ! is_object( $charge_response ) ) {
+			$order->add_order_note( $default_note );
+			return false;
+		}
+
+		if ( ! empty( $charge_response->error ) ) {
+			if ( is_string( $charge_response->error->message ?? null ) ) {
+				$order->add_order_note(
+					sprintf(
+						/* translators: %s is an error message from Stripe */
+						__( 'Unable to verify whether charge has been captured: %s', 'woocommerce-gateway-stripe' ),
+						$charge_response->error->message
+					)
+				);
+			} else {
+				$order->add_order_note( $default_note );
+			}
+			return false;
+		}
+
+		if ( 'charge' !== ( $charge_response->object ?? '' ) ) {
+			$order->add_order_note( $default_note );
+			return false;
+		}
+
+		return true;
 	}
 }

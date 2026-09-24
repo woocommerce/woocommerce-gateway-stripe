@@ -517,6 +517,228 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * An intent that doesn't have a charge must not be recorded as captured.
+	 *
+	 * @param string $status        Status of the intent returned for the order.
+	 * @param array  $charge_fields Charge-related fields on the intent or on the capture response.
+	 * @param array  $expected_urls Stripe URLs expected to be requested.
+	 *
+	 * @dataProvider provide_intents_without_a_charge
+	 */
+	public function test_capture_payment_does_not_record_capture_when_intent_has_no_charge( string $status, array $charge_fields, array $expected_urls ) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( 'stripe' );
+		$order->set_transaction_id( 'ch_123' );
+		$order->update_meta_data( '_stripe_charge_captured', 'no' );
+		$order->save();
+
+		$intent = [
+			'id'     => 'pi_123',
+			'object' => 'payment_intent',
+			'status' => $status,
+		];
+
+		if ( WC_Stripe_Intent_Status::SUCCEEDED === $status ) {
+			$intent = array_merge( $intent, $charge_fields );
+		}
+
+		$this->order_handler
+			->expects( $this->any() )
+			->method( 'get_intent_from_order' )
+			->willReturn( json_decode( wp_json_encode( $intent ) ) );
+
+		$requested_urls = [];
+		$http_callback  = function ( $preempt, $request_args, $url ) use ( &$requested_urls, $charge_fields ) {
+			$requested_urls[] = $url;
+
+			if ( 'https://api.stripe.com/v1/payment_intents/pi_123/capture' === $url ) {
+				return $this->build_stripe_response(
+					array_merge(
+						[
+							'id'     => 'pi_123',
+							'object' => 'payment_intent',
+							'status' => WC_Stripe_Intent_Status::SUCCEEDED,
+						],
+						$charge_fields
+					)
+				);
+			}
+
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $http_callback, 10, 3 );
+
+		$hook_fired      = false;
+		$captured_result = 'not-set';
+		$capture_action  = function ( $hooked_order, $result ) use ( &$hook_fired, &$captured_result ) {
+			$hook_fired      = true;
+			$captured_result = $result;
+		};
+		add_action( 'woocommerce_stripe_process_manual_capture', $capture_action, 10, 2 );
+
+		$result = $this->order_handler->capture_payment( $order->get_id() );
+
+		remove_action( 'woocommerce_stripe_process_manual_capture', $capture_action, 10 );
+		remove_filter( 'pre_http_request', $http_callback );
+
+		$this->assertSame( $expected_urls, $requested_urls );
+
+		$this->assertNull( $result, 'No charge could be resolved from the intent.' );
+		$this->assertTrue( $hook_fired, 'The manual capture hook should still fire.' );
+		$this->assertNull( $captured_result, 'The manual capture hook should receive the unresolved charge.' );
+
+		$order = wc_get_order( $order->get_id() );
+		$notes = implode( "\n", wp_list_pluck( wc_get_order_notes( [ 'order_id' => $order->get_id() ] ), 'content' ) );
+
+		$this->assertSame( 'ch_123', $order->get_transaction_id(), 'The transaction ID must survive the capture attempt.' );
+		$this->assertSame( 'no', $order->get_meta( '_stripe_charge_captured' ), 'An unverified capture must not be recorded.' );
+		$this->assertStringContainsString( 'Unable to verify whether charge has been captured.', $notes );
+		$this->assertStringNotContainsString( 'Stripe charge complete', $notes );
+
+		// Confirm that no fees are recorded when there is no charge.
+		$this->assertSame( '', $order->get_meta( '_stripe_fee' ) );
+		$this->assertSame( '', $order->get_meta( '_stripe_net' ) );
+	}
+
+	/**
+	 * Data provider for {@see test_capture_payment_does_not_record_capture_when_intent_has_no_charge()}.
+	 *
+	 * @return array[]
+	 */
+	public function provide_intents_without_a_charge(): array {
+		$capture_url = [ 'https://api.stripe.com/v1/payment_intents/pi_123/capture' ];
+		$shapes      = [
+			'no charge fields at all'  => [],
+			'null latest_charge'       => [ 'latest_charge' => null ],
+			'empty charges collection' => [ 'charges' => [ 'data' => [] ] ],
+		];
+
+		$cases = [];
+		foreach ( $shapes as $label => $charge_fields ) {
+			// The intent is already captured at Stripe, so nothing is requested to reach that conclusion.
+			$cases[ "succeeded intent, {$label}" ] = [ WC_Stripe_Intent_Status::SUCCEEDED, $charge_fields, [] ];
+			$cases[ "capture response, {$label}" ] = [ WC_Stripe_Intent_Status::REQUIRES_CAPTURE, $charge_fields, $capture_url ];
+		}
+
+		return $cases;
+	}
+
+	/**
+	 * A charge with an error must not be recorded as captured.
+	 *
+	 * @param string $status        Status of the intent returned for the order.
+	 * @param object $error         The error carried on the resolved charge.
+	 * @param string $expected_note The order note expected to explain the failure.
+	 * @param array  $expected_urls Stripe URLs expected to be requested.
+	 *
+	 * @dataProvider provide_charge_errors
+	 */
+	public function test_capture_payment_does_not_record_capture_when_charge_has_error( string $status, $error, string $expected_note, array $expected_urls ) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( 'stripe' );
+		$order->set_transaction_id( 'ch_123' );
+		$order->update_meta_data( '_stripe_charge_captured', 'no' );
+		$order->save();
+
+		$charges = [
+			'charges' => [
+				'data' => [
+					[
+						'id'     => 'ch_123',
+						'object' => 'charge',
+						'error'  => $error,
+					],
+				],
+			],
+		];
+
+		$intent = [
+			'id'     => 'pi_123',
+			'object' => 'payment_intent',
+			'status' => $status,
+		];
+
+		if ( WC_Stripe_Intent_Status::SUCCEEDED === $status ) {
+			$intent = array_merge( $intent, $charges );
+		}
+
+		$this->order_handler
+			->expects( $this->any() )
+			->method( 'get_intent_from_order' )
+			->willReturn( json_decode( wp_json_encode( $intent ) ) );
+
+		$requested_urls = [];
+		$http_callback  = function ( $preempt, $request_args, $url ) use ( &$requested_urls, $charges ) {
+			$requested_urls[] = $url;
+
+			if ( 'https://api.stripe.com/v1/payment_intents/pi_123/capture' === $url ) {
+				return $this->build_stripe_response(
+					array_merge(
+						[
+							'id'     => 'pi_123',
+							'object' => 'payment_intent',
+							'status' => WC_Stripe_Intent_Status::SUCCEEDED,
+						],
+						$charges
+					)
+				);
+			}
+
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $http_callback, 10, 3 );
+
+		$hook_fired     = false;
+		$capture_action = function () use ( &$hook_fired ) {
+			$hook_fired = true;
+		};
+		add_action( 'woocommerce_stripe_process_manual_capture', $capture_action );
+
+		$result = $this->order_handler->capture_payment( $order->get_id() );
+
+		remove_action( 'woocommerce_stripe_process_manual_capture', $capture_action );
+		remove_filter( 'pre_http_request', $http_callback );
+
+		$this->assertSame( $expected_urls, $requested_urls );
+		$this->assertSame( 'ch_123', $result->id ?? null, 'The errored charge should be returned as-is.' );
+		$this->assertTrue( $hook_fired, 'The manual capture hook should still fire.' );
+
+		$order = wc_get_order( $order->get_id() );
+		$notes = wp_list_pluck( wc_get_order_notes( [ 'order_id' => $order->get_id() ] ), 'content' );
+
+		$this->assertSame( 'ch_123', $order->get_transaction_id(), 'The transaction ID must survive the capture attempt.' );
+		$this->assertSame( 'no', $order->get_meta( '_stripe_charge_captured' ), 'An errored capture must not be recorded.' );
+		$this->assertContains( $expected_note, $notes );
+		$this->assertStringNotContainsString( 'Stripe charge complete', implode( "\n", $notes ) );
+		$this->assertSame( '', $order->get_meta( '_stripe_fee' ) );
+	}
+
+	/**
+	 * Data provider for {@see test_capture_payment_does_not_record_capture_when_charge_has_error()}.
+	 *
+	 * Only a charge embedded in the intent's `charges` collection can reach the error check: a
+	 * `latest_charge` reference is fetched via get_charge_object(), which throws on an API error.
+	 *
+	 * @return array[]
+	 */
+	public function provide_charge_errors(): array {
+		$capture_url    = [ 'https://api.stripe.com/v1/payment_intents/pi_123/capture' ];
+		$string_error   = [ 'message' => 'Charge lookup failed.' ];
+		$no_message     = [ 'type' => 'api_error' ];
+		$string_note    = 'Unable to verify whether charge has been captured: Charge lookup failed.';
+		$no_detail_note = 'Unable to verify whether charge has been captured.';
+
+		return [
+			'succeeded intent, string message'     => [ WC_Stripe_Intent_Status::SUCCEEDED, $string_error, $string_note, [] ],
+			'succeeded intent, no message'         => [ WC_Stripe_Intent_Status::SUCCEEDED, $no_message, $no_detail_note, [] ],
+			'succeeded intent, non-string message' => [ WC_Stripe_Intent_Status::SUCCEEDED, [ 'message' => [ 'nested' ] ], $no_detail_note, [] ],
+			'capture response, string message'     => [ WC_Stripe_Intent_Status::REQUIRES_CAPTURE, $string_error, $string_note, $capture_url ],
+			'capture response, no message'         => [ WC_Stripe_Intent_Status::REQUIRES_CAPTURE, $no_message, $no_detail_note, $capture_url ],
+			'capture response, non-string message' => [ WC_Stripe_Intent_Status::REQUIRES_CAPTURE, [ 'message' => [ 'nested' ] ], $no_detail_note, $capture_url ],
+		];
+	}
+
+	/**
 	 * Builds a `pre_http_request` return value carrying a Stripe API payload.
 	 *
 	 * @param array $body The response body to encode.
