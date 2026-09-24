@@ -874,7 +874,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @return string[] Non-deferred-intent payment method types.
 	 */
-	protected function get_non_deferred_payment_method_types(): array {
+	private function get_non_deferred_payment_method_types(): array {
 		$non_deferred = [];
 
 		foreach ( $this->get_upe_enabled_at_checkout_payment_method_ids() as $method_id ) {
