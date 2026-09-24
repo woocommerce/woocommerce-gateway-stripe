@@ -124,12 +124,11 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 	/**
 	 * Refuse the order when the request leaves required classic custom fields unfilled.
 	 *
-	 * When enforcement doesn't apply to the request (see
-	 * should_enforce_required_fields()), the bypassed field keys are logged at
-	 * debug level instead — the order completes without values the merchant
-	 * marked required, and support needs a trace of that. Only enforcement is
-	 * skipped; the caller's third-party validation and persistence hooks still
-	 * run.
+	 * When enforcement doesn't apply to the request,
+	 * {@see should_enforce_required_fields()}, the bypassed field keys are
+	 * logged at debug level instead — the order completes without values the
+	 * merchant marked required. Only enforcement is skipped; the caller's
+	 * third-party validation and persistence hooks still run.
 	 *
 	 * @param WP_REST_Request $request The request object.
 	 * @param array $custom_checkout_fields Classic custom checkout fields.
