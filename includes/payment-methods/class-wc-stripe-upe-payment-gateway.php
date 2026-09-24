@@ -1608,17 +1608,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// tokens). The Adaptive Pricing Checkout Session path above returns first and has its own guard.
 		$duplicate_guard_key   = $this->get_duplicate_charge_guard_key( $order );
 		$duplicate_guard_owner = null;
-		if ( '' !== $duplicate_guard_key ) {
+		if ( '' !== $duplicate_guard_key && $order instanceof WC_Order ) {
 			$duplicate_guard_owner = WC_Stripe_Duplicate_Payment_Prevention::acquire_lock( $duplicate_guard_key );
 
 			// A concurrent submission of the same cart holds the lock and is charging it. Turn this
 			// one away without charging; its order stays pending so a retry can resume it.
 			if ( null === $duplicate_guard_owner ) {
-				return [
-					'result'   => 'failure',
-					'redirect' => '',
-					'message'  => __( 'Your payment is already being processed. Please wait.', 'woocommerce-gateway-stripe' ),
-				];
+				return $this->get_checkout_failure_response( __( 'Your payment is already being processed. Please wait.', 'woocommerce-gateway-stripe' ) );
 			}
 
 			// A resubmit that landed after the first attempt already paid this cart is redirected to
@@ -1644,20 +1640,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				}
 			}
 
-			$result = $this->process_payment_with_deferred_intent( $order_id );
-
-			// Record the paid cart so a resubmit cannot charge again. 3DS/redirect methods are not paid
-			// here and are recorded on the async return (see process_order_for_confirmed_intent()).
-			if ( is_array( $result ) && 'success' === ( $result['result'] ?? '' ) ) {
-				$paid_order = wc_get_order( $order_id );
-				if ( $paid_order instanceof WC_Order ) {
-					WC_Stripe_Duplicate_Payment_Prevention::record_paid_order( $paid_order );
-				}
-			}
-
-			return $result;
+			return $this->process_payment_with_deferred_intent( $order_id );
 		} finally {
 			if ( null !== $duplicate_guard_owner ) {
+				// Record in finally, not only on success: code after payment_complete() (for example a
+				// wc_gateway_stripe_process_response callback) can throw or fail the order after the
+				// charge, and a resubmit would then charge again. record_paid_order() skips unpaid
+				// orders; 3DS/redirect methods are recorded on the async return instead.
+				$maybe_paid_order = wc_get_order( $order_id );
+				if ( $maybe_paid_order instanceof WC_Order ) {
+					WC_Stripe_Duplicate_Payment_Prevention::record_paid_order( $maybe_paid_order );
+				}
 				WC_Stripe_Duplicate_Payment_Prevention::release_lock( $duplicate_guard_key, $duplicate_guard_owner );
 			}
 		}
@@ -1705,6 +1698,30 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		return $cart_key;
+	}
+
+	/**
+	 * Builds a checkout failure response that shows the message on both checkouts.
+	 *
+	 * The Store API (Blocks) reads `errorMessage` and ignores notices; classic checkout reads the notice.
+	 *
+	 * @param string $message The message to show the shopper.
+	 * @return array The failure response.
+	 */
+	private function get_checkout_failure_response( string $message ): array {
+		$response = [
+			'result'   => 'failure',
+			'redirect' => '',
+		];
+
+		if ( WC()->is_store_api_request() ) {
+			$response['errorMessage'] = $message;
+		} else {
+			wc_add_notice( $message, 'error' );
+			$response['message'] = $message;
+		}
+
+		return $response;
 	}
 
 	/**
@@ -1758,7 +1775,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// order-received URL always carries; otherwise anyone could clear another shopper's record.
 		$order_key = isset( $_GET['key'] ) ? wc_clean( wp_unslash( $_GET['key'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$order     = wc_get_order( $order_id );
-		if ( $order instanceof WC_Order && '' !== $order_key && $order->key_is_valid( $order_key ) ) {
+		if ( $order instanceof WC_Order && is_string( $order_key ) && '' !== $order_key && $order->key_is_valid( $order_key ) ) {
 			WC_Stripe_Duplicate_Payment_Prevention::clear_paid_record( $order );
 		}
 	}
@@ -1883,20 +1900,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			);
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error( 'Checkout Session validation failed before order linking.', [ 'error_message' => $e->getMessage() ] );
-			$is_store_api_request = WC()->is_store_api_request();
-			$response             = [
-				'result'   => 'failure',
-				'redirect' => '',
-			];
-
-			if ( $is_store_api_request ) {
-				$response['errorMessage'] = $e->getMessage();
-			} else {
-				wc_add_notice( $e->getMessage(), 'error' );
-				$response['message'] = $e->getMessage();
-			}
-
-			return $response;
+			return $this->get_checkout_failure_response( $e->getMessage() );
 		}
 
 		// Resolve the method the customer actually picked: for Optimized Checkout the gateway type is

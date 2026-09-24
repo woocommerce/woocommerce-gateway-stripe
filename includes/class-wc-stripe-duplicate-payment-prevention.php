@@ -146,9 +146,10 @@ final class WC_Stripe_Duplicate_Payment_Prevention {
 			return null;
 		}
 
-		// Cancelled/refunded/failed orders keep date_paid, so a status check is also needed to let a
-		// genuine repurchase through.
-		if ( $paid_order->has_status( [ OrderStatus::CANCELLED, OrderStatus::REFUNDED, OrderStatus::FAILED, OrderStatus::PENDING ] ) ) {
+		// Cancelled/refunded/pending orders keep date_paid, so a status check is also needed to let a
+		// genuine repurchase through. Failed is not excluded: a paid order marked failed after the
+		// charge (for example by an error in later processing) still holds the shopper's money.
+		if ( $paid_order->has_status( [ OrderStatus::CANCELLED, OrderStatus::REFUNDED, OrderStatus::PENDING ] ) ) {
 			return null;
 		}
 

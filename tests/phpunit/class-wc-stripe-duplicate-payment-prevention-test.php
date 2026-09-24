@@ -136,8 +136,9 @@ class WC_Stripe_Duplicate_Payment_Prevention_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A recorded order that later lost its paid standing (cancelled, refunded, failed, pending, all
-	 * of which keep date_paid) must not block a repurchase; a still-paid one must.
+	 * A recorded order that later lost its paid standing (cancelled, refunded, pending, all of which
+	 * keep date_paid) must not block a repurchase; a still-paid one must. A paid order later marked
+	 * failed was still charged, so it blocks too.
 	 *
 	 * @param string $status   The status the recorded order ends in.
 	 * @param bool   $expected Whether it should still be returned as a duplicate.
@@ -173,7 +174,7 @@ class WC_Stripe_Duplicate_Payment_Prevention_Test extends WP_UnitTestCase {
 			'on-hold blocks'    => [ OrderStatus::ON_HOLD, true ],
 			'cancelled allows'  => [ OrderStatus::CANCELLED, false ],
 			'refunded allows'   => [ OrderStatus::REFUNDED, false ],
-			'failed allows'     => [ OrderStatus::FAILED, false ],
+			'failed blocks'     => [ OrderStatus::FAILED, true ],
 			'pending allows'    => [ OrderStatus::PENDING, false ],
 		];
 	}

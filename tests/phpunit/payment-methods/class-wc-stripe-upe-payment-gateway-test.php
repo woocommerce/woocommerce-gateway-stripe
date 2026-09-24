@@ -8186,4 +8186,150 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			'missing key' => [ null, false ],
 		];
 	}
+
+	/**
+	 * Builds a checkout order that matches the live session cart, so the duplicate-charge guard applies.
+	 *
+	 * @return WC_Order
+	 */
+	private function create_order_for_live_cart(): WC_Order {
+		if ( is_null( WC()->cart ) ) {
+			wc_load_cart();
+		}
+		WC()->cart->empty_cart();
+		WC()->cart->add_to_cart( WC_Helper_Product::create_simple_product()->get_id() );
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_created_via( 'checkout' );
+		$order->set_cart_hash( WC()->cart->get_cart_hash() );
+		$order->set_billing_email( 'shopper@example.com' );
+		$order->save();
+
+		return $order;
+	}
+
+	/**
+	 * A charge that succeeds but is followed by an exception (here from a third-party callback) must
+	 * still record the paid cart, so a resubmit of the same cart is not charged again.
+	 *
+	 * @return void
+	 */
+	public function test_process_payment_records_paid_cart_when_later_processing_throws(): void {
+		$order    = $this->create_order_for_live_cart();
+		$order_id = $order->get_id();
+
+		$mock_intent = (object) wp_parse_args(
+			[ 'payment_method' => 'pm_mock' ],
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
+		);
+		$mock_charge = (object) [
+			'id'                  => 'ch_mock',
+			'captured'            => true,
+			'status'              => 'succeeded',
+			'paid'                => true,
+			'currency'            => strtolower( $order->get_currency() ),
+			'balance_transaction' => null,
+		];
+
+		$_POST = [
+			'payment_method'               => 'stripe',
+			'wc-stripe-payment-method'     => 'pm_mock',
+			'wc-stripe-confirmation-token' => '',
+		];
+
+		$this->mock_gateway->intent_controller
+			->method( 'create_and_confirm_payment_intent' )
+			->willReturn( $mock_intent );
+		$this->mock_gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_mock' );
+		$this->mock_gateway->method( 'get_latest_charge_from_intent' )->willReturn( $mock_charge );
+
+		$throw_after_payment = static function () {
+			throw new Exception( 'Third-party callback failed.' );
+		};
+		add_action( 'wc_gateway_stripe_process_response', $throw_after_payment );
+
+		try {
+			$this->mock_gateway->process_payment( $order_id );
+			$this->fail( 'Expected the callback exception to escape process_payment().' );
+		} catch ( Exception $e ) {
+			$this->assertSame( 'Third-party callback failed.', $e->getMessage() );
+		} finally {
+			remove_action( 'wc_gateway_stripe_process_response', $throw_after_payment );
+		}
+
+		$this->assertNotNull( wc_get_order( $order_id )->get_date_paid() );
+
+		$resend = WC_Helper_Order::create_order();
+		$resend->set_created_via( 'checkout' );
+		$resend->set_cart_hash( WC()->cart->get_cart_hash() );
+		$resend->set_billing_email( 'shopper@example.com' );
+		$resend->save();
+
+		$found = WC_Stripe_Duplicate_Payment_Prevention::get_recent_paid_order( $resend );
+		$this->assertInstanceOf( WC_Order::class, $found );
+		$this->assertSame( $order_id, $found->get_id() );
+	}
+
+	/**
+	 * A submission turned away because the same cart is already being charged must show its message
+	 * on both checkouts: Blocks reads `errorMessage`, classic reads the notice.
+	 *
+	 * @dataProvider provide_is_store_api_request
+	 *
+	 * @param bool $is_store_api_request Whether the request is a Store API (Blocks) checkout.
+	 *
+	 * @return void
+	 */
+	public function test_process_payment_lock_contention_response_matches_checkout_type( bool $is_store_api_request ): void {
+		$order    = $this->create_order_for_live_cart();
+		$cart_key = WC_Stripe_Duplicate_Payment_Prevention::get_cart_key( $order );
+		$owner    = WC_Stripe_Duplicate_Payment_Prevention::acquire_lock( $cart_key );
+		$this->assertNotNull( $owner );
+
+		$_POST = [
+			'payment_method'           => 'stripe',
+			'wc-stripe-payment-method' => 'pm_mock',
+		];
+
+		$original_request_uri   = $_SERVER['REQUEST_URI'] ?? null; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		$_SERVER['REQUEST_URI'] = $is_store_api_request ? '/wp-json/wc/store/v1/checkout' : '/checkout/';
+		wc_clear_notices();
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->never() )
+			->method( 'create_and_confirm_payment_intent' );
+
+		try {
+			$response = $this->mock_gateway->process_payment( $order->get_id() );
+		} finally {
+			WC_Stripe_Duplicate_Payment_Prevention::release_lock( $cart_key, $owner );
+			if ( null === $original_request_uri ) {
+				unset( $_SERVER['REQUEST_URI'] );
+			} else {
+				$_SERVER['REQUEST_URI'] = $original_request_uri;
+			}
+		}
+
+		$this->assertSame( 'failure', $response['result'] );
+		if ( $is_store_api_request ) {
+			$this->assertNotEmpty( $response['errorMessage'] ?? '' );
+			$this->assertSame( 0, wc_notice_count( 'error' ) );
+		} else {
+			$this->assertNotEmpty( $response['message'] ?? '' );
+			$this->assertSame( 1, wc_notice_count( 'error' ) );
+		}
+		wc_clear_notices();
+	}
+
+	/**
+	 * Data provider for `test_process_payment_lock_contention_response_matches_checkout_type`.
+	 *
+	 * @return array<string, array{0: bool}>
+	 */
+	public function provide_is_store_api_request(): array {
+		return [
+			'store api' => [ true ],
+			'classic'   => [ false ],
+		];
+	}
 }
