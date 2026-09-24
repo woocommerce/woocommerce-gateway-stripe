@@ -93,19 +93,17 @@ export default async function globalSetup( config ) {
 			console.log( '\u2714 Created Stripe webhook successfully.' );
 
 			const envId = process.env.QIT_ENV_ID;
-			if ( envId ) {
-				execSync(
-					`qit env:exec "wp option patch update woocommerce_stripe_settings test_webhook_secret '${ webhookEndpoint.secret }'"`,
-					{ stdio: 'inherit' }
-				);
-				console.log(
-					'\u2714 Updated Stripe webhook secret successfully.'
-				);
-			} else {
-				console.error(
+			if ( ! envId ) {
+				throw new Error(
 					'QIT_ENV_ID not set — cannot update webhook secret via WP-CLI.'
 				);
 			}
+
+			execSync(
+				`qit env:exec "wp option patch update woocommerce_stripe_settings test_webhook_secret '${ webhookEndpoint.secret }'"`,
+				{ stdio: 'inherit' }
+			);
+			console.log( '\u2714 Updated Stripe webhook secret successfully.' );
 		} catch ( e ) {
 			console.error( 'Failed to set up Stripe webhook:', e );
 			console.error(
