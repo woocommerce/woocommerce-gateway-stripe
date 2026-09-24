@@ -5,7 +5,7 @@
  * Builds WC shipping packages with resolved product contents for agentic checkout.
  *
  * @package WooCommerce_Stripe/Agentic_Commerce
- * @since   11.1.0
+ * @since   x.x.x
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * `contents` entries — product data, quantities, and line totals — so the
  * entries mirror WC_Cart's cart item format.
  *
- * @since 11.1.0
+ * @since x.x.x
  */
 class WC_Stripe_Agentic_Shipping_Package_Builder {
 
@@ -31,7 +31,7 @@ class WC_Stripe_Agentic_Shipping_Package_Builder {
 	 * `contents_cost` and `cart_subtotal` are derived from the entries' line
 	 * totals, matching how WC_Cart::get_shipping_packages() sums shippable items.
 	 *
-	 * @since 11.1.0
+	 * @since x.x.x
 	 * @param array                 $contents Cart-item-format entries from the build_contents_* methods.
 	 * @param WC_Stripe_API_Address $address  The destination address.
 	 * @param int                   $user_id  The WordPress user ID, or 0 for guests.
@@ -72,7 +72,7 @@ class WC_Stripe_Agentic_Shipping_Package_Builder {
 	 * filter, so a rate quoted from split packages can be matched again when
 	 * the order is created.
 	 *
-	 * @since 11.1.0
+	 * @since x.x.x
 	 * @param array $package The package built by build_package().
 	 * @return array The packages to pass to WC_Shipping::calculate_shipping().
 	 */
@@ -84,7 +84,7 @@ class WC_Stripe_Agentic_Shipping_Package_Builder {
 		 * offered to the agent are those available for every package, with
 		 * costs summed across packages.
 		 *
-		 * @since 11.1.0
+		 * @since x.x.x
 		 * @param array $packages Array containing the single built package.
 		 */
 		$packages = apply_filters( 'wc_stripe_agentic_shipping_packages', [ $package ] );
@@ -103,7 +103,7 @@ class WC_Stripe_Agentic_Shipping_Package_Builder {
 	 * When packages were split, combined rates are clones, so the objects held
 	 * by WC_Shipping stay untouched.
 	 *
-	 * @since 11.1.0
+	 * @since x.x.x
 	 * @param array $packages The packages returned by WC_Shipping::get_packages() after calculation.
 	 * @return array<string, WC_Shipping_Rate> Rates keyed by rate ID.
 	 */
@@ -144,7 +144,7 @@ class WC_Stripe_Agentic_Shipping_Package_Builder {
 	 * shippable products. Line totals come from the event's unit_amount when
 	 * present, falling back to the catalog price otherwise.
 	 *
-	 * @since 11.1.0
+	 * @since x.x.x
 	 * @param WC_Stripe_Agentic_Customize_Checkout_Event $event                    The customization hook event.
 	 * @param string                                     $currency                 The three-letter currency code.
 	 * @param array<string,int>                          $product_ids_by_line_item Product IDs already resolved for the event's line items, keyed by line item ID; a supplied ID is trusted so the SKU lookup is not repeated.
@@ -231,7 +231,7 @@ class WC_Stripe_Agentic_Shipping_Package_Builder {
 	 * already been resolved and added to the order. Keeps only shippable
 	 * products.
 	 *
-	 * @since 11.1.0
+	 * @since x.x.x
 	 * @param WC_Order $order The order with mapped product line items.
 	 * @return array Cart-item-format entries keyed by order item ID.
 	 */
@@ -267,7 +267,7 @@ class WC_Stripe_Agentic_Shipping_Package_Builder {
 	 * `line_total`, and `line_subtotal`; tax fields are zeroed because tax is
 	 * calculated separately in both agentic flows.
 	 *
-	 * @since 11.1.0
+	 * @since x.x.x
 	 * @param WC_Product $product       The resolved product (simple or variation).
 	 * @param int        $quantity      The line item quantity.
 	 * @param float      $line_total    The line total after discounts, excluding tax.

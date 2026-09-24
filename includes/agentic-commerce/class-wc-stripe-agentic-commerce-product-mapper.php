@@ -853,7 +853,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * `shipping` column, or null when it has no static cost (live-rate /
 	 * calculated methods price at checkout and can't be a fixed feed value).
 	 *
-	 * @since 11.1.0
+	 * @since x.x.x
 	 * @param \WC_Shipping_Method $method Shipping method instance.
 	 * @return string|null Formatted price (e.g. "5.00"), or null when not flat-rate.
 	 */
@@ -875,7 +875,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * without emitting log lines. Each entry carries the zone id so the preview
 	 * can deep-link to the zone's shipping settings.
 	 *
-	 * @since 11.1.0
+	 * @since x.x.x
 	 * @return array{zones_without_flat_rate: array<int, array{id: int, name: string}>}
 	 */
 	public function get_shipping_diagnostics(): array {
