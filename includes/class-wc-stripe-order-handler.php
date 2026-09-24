@@ -479,9 +479,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * Note that this filter is only called if WC_Site_Tracking::is_tracking_enabled.
 	 *
 	 * @since 4.5.1
-	 * @param array  $properties          Properties to be appended to.
+	 * @param mixed  $properties          Properties to be appended to.
 	 * @param string $prefixed_event_name Event name, e.g. orders_edit_status_change.
-	 * @return array
+	 * @return mixed
 	 */
 	public function woocommerce_tracks_event_properties( $properties, $prefixed_event_name ) {
 		// Not the desired event? Bail.
