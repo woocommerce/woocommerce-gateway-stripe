@@ -717,7 +717,7 @@ describe( 'address normalization', () => {
 			'%s on missing-required-field errors',
 			async ( _case, data, linkToCheckout ) => {
 				const message = 'Size <XL> is a required field.';
-				api.expressCheckoutECECreateOrder.mockRejectedValue( {
+				expressCheckoutECECreateOrder.mockRejectedValue( {
 					code: 'wc_stripe_express_checkout_missing_required_fields',
 					message,
 					data,
