@@ -8,7 +8,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * REST controller exposing Stripe payment intent details to the admin UI.
  *
- * @since 10.9.0
+ * @since 11.1.0
  */
 abstract class WC_Stripe_REST_API_Abstract_Client {
 	/**

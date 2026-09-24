@@ -1,9 +1,6 @@
 <?php
 /**
  * Class WC_Stripe_REST_Payment_Intents_Controller_Test
- *
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 	private const SINGLE_INTENT_ENDPOINT_URL = '/wc/v3/wc_stripe/payment_intents/pi_test_9876543210';
@@ -320,6 +317,44 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		$this->assertSame( 400, $response->get_status() );
 	}
 
+	/**
+	 * @dataProvider provide_intent_list_filtering_test_data
+	*/
+	public function test_intent_list_response_filtering( string $response_as_string, string $response_allowed_part ) {
+		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
+
+		$http_code_401_mock = function ( $pre, $parsed_args, $url ) use ( $response_as_string ) {
+			return [
+				'headers'  => [],
+				'body'     => $response_as_string,
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+			];
+		};
+
+		add_filter(
+			'pre_http_request',
+			$http_code_401_mock,
+			10,
+			3
+		);
+
+		$response               = $this->send_request( self::ALL_INTENTS_ENDPOINT_URL );
+		$expected_response_data = json_decode( $response_allowed_part );
+
+		remove_filter(
+			'pre_http_request',
+			$http_code_401_mock,
+			10,
+			3
+		);
+
+		$this->assertEquals( $expected_response_data, $response->data );
+	}
+
 	public static function provide_intent_list_filtering_test_data(): Generator {
 		$test_data_directory = __DIR__ . '/stripe-api-test-response-payloads';
 
@@ -498,43 +533,5 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 				array_diff_key( $pre_http_request_params['search_params'], $rest_params )
 			);
 		}
-	}
-
-	/**
-	 * @dataProvider provide_intent_list_filtering_test_data
-	*/
-	public function test_intent_list_response_filtering( string $response_as_string, string $response_allowed_part ) {
-		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
-		wp_set_current_user( $admin_id );
-
-		$http_code_401_mock = function ( $pre, $parsed_args, $url ) use ( $response_as_string ) {
-			return [
-				'headers'  => [],
-				'body'     => $response_as_string,
-				'response' => [
-					'code'    => 200,
-					'message' => 'OK',
-				],
-			];
-		};
-
-		add_filter(
-			'pre_http_request',
-			$http_code_401_mock,
-			10,
-			3
-		);
-
-		$response               = $this->send_request( self::ALL_INTENTS_ENDPOINT_URL );
-		$expected_response_data = json_decode( $response_allowed_part );
-
-		remove_filter(
-			'pre_http_request',
-			$http_code_401_mock,
-			10,
-			3
-		);
-
-		$this->assertEquals( $expected_response_data, $response->data );
 	}
 }
