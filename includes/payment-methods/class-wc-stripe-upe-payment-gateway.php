@@ -1754,8 +1754,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order = wc_get_order( $order_id );
-		if ( $order instanceof WC_Order ) {
+		// The order ID in the URL is guessable, so require the order key that the shopper's own
+		// order-received URL always carries; otherwise anyone could clear another shopper's record.
+		$order_key = isset( $_GET['key'] ) ? wc_clean( wp_unslash( $_GET['key'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$order     = wc_get_order( $order_id );
+		if ( $order instanceof WC_Order && '' !== $order_key && $order->key_is_valid( $order_key ) ) {
 			WC_Stripe_Duplicate_Payment_Prevention::clear_paid_record( $order );
 		}
 	}

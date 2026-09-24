@@ -8121,4 +8121,69 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			'not eligible: cashapp delayed confirm' => [ true, 'yes', WC_Stripe_Payment_Methods::CASHAPP_PAY, false, false, null, false ],
 		];
 	}
+
+	/**
+	 * The order-received page may only clear the duplicate-charge record for the shopper holding the
+	 * order key: the order ID in the URL is guessable, so a missing or wrong key must leave it intact.
+	 *
+	 * @dataProvider provide_order_received_keys
+	 *
+	 * @param string|null $key            The `key` query arg, `valid` for the order's own key, or null when absent.
+	 * @param bool        $expect_cleared Whether the record should be cleared.
+	 *
+	 * @return void
+	 */
+	public function test_maybe_clear_duplicate_payment_record_requires_order_key( ?string $key, bool $expect_cleared ): void {
+		global $wp;
+
+		$make_order = static function (): WC_Order {
+			$order = new WC_Order();
+			// WC 10.8+ blocks payment_complete() without checkout evidence.
+			$order->set_created_via( 'checkout' );
+			$order->set_cart_hash( 'cart-hash-order-received' );
+			$order->set_billing_email( 'shopper@example.com' );
+			$order->save();
+
+			return $order;
+		};
+
+		$paid = $make_order();
+		$paid->payment_complete();
+		$paid = wc_get_order( $paid->get_id() );
+		WC_Stripe_Duplicate_Payment_Prevention::record_paid_order( $paid );
+		$resend = $make_order();
+
+		$wp->query_vars['order-received'] = (string) $paid->get_id();
+		if ( null !== $key ) {
+			$_GET['key'] = 'valid' === $key ? $paid->get_order_key() : $key;
+		}
+		add_filter( 'woocommerce_is_order_received_page', '__return_true' );
+
+		try {
+			( new WC_Stripe_UPE_Payment_Gateway() )->maybe_clear_duplicate_payment_record();
+
+			$record = WC_Stripe_Duplicate_Payment_Prevention::get_recent_paid_order( $resend );
+			if ( $expect_cleared ) {
+				$this->assertNull( $record );
+			} else {
+				$this->assertInstanceOf( WC_Order::class, $record );
+			}
+		} finally {
+			remove_filter( 'woocommerce_is_order_received_page', '__return_true' );
+			unset( $wp->query_vars['order-received'], $_GET['key'] );
+		}
+	}
+
+	/**
+	 * Data provider for `test_maybe_clear_duplicate_payment_record_requires_order_key`.
+	 *
+	 * @return array<string, array{0: string|null, 1: bool}>
+	 */
+	public function provide_order_received_keys(): array {
+		return [
+			'valid key'   => [ 'valid', true ],
+			'wrong key'   => [ 'wc_order_wrongkey', false ],
+			'missing key' => [ null, false ],
+		];
+	}
 }
