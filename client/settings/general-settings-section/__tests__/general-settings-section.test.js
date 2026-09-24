@@ -406,6 +406,44 @@ describe( 'GeneralSettingsSection', () => {
 		).not.toBeInTheDocument();
 	} );
 
+	it( 'should disable a payment method and show the currency notice when no available currency is supported', () => {
+		const actual = jest.requireActual(
+			'../../../utils/get-payment-method-unavailable-reason'
+		).default;
+		getPaymentMethodUnavailableReason.mockImplementation( ( ctx ) =>
+			actual( ctx )
+		);
+		global.wc_stripe_settings_params = {
+			...globalSettingsParams,
+			available_store_currencies: [ 'USD' ],
+		};
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ PAYMENT_METHOD_CARD ],
+		] );
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			PAYMENT_METHOD_CARD,
+			PAYMENT_METHOD_SEPA,
+		] );
+		useGetOrderedPaymentMethodIds.mockReturnValue( {
+			orderedPaymentMethodIds: [
+				PAYMENT_METHOD_CARD,
+				PAYMENT_METHOD_SEPA,
+			],
+			setOrderedPaymentMethodIds: jest.fn(),
+			saveOrderedPaymentMethodIds: jest.fn(),
+		} );
+		mockCurrencyCode( 'USD' );
+		render( <GeneralSettingsSection /> );
+
+		expect(
+			screen.queryByRole( 'checkbox', {
+				name: 'Direct debit payment',
+			} )
+		).toBeDisabled();
+
+		expect( screen.queryByText( 'Requires currency' ) ).toBeVisible();
+	} );
+
 	it( 'should enable the payment method checkbox and not show the requires currency notice when currency is supported', () => {
 		mockCurrencyCode( 'USD' );
 		render( <GeneralSettingsSection /> );

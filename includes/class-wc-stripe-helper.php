@@ -394,8 +394,8 @@ class WC_Stripe_Helper {
 	/**
 	 * Returns the currencies that may be used as the store currency at checkout.
 	 *
-	 * Multi-currency plugins can add their configured currencies so Stripe's admin
-	 * availability checks are not limited to the WooCommerce base currency.
+	 * Admin availability checks need the complete list because a multi-currency store
+	 * can offer checkout currencies other than its WooCommerce base currency.
 	 *
 	 * @since 11.1.0
 	 *
@@ -415,7 +415,7 @@ class WC_Stripe_Helper {
 		 *
 		 * @param string[] $available_store_currencies Available currency codes.
 		 */
-		$filtered_currencies = apply_filters( 'wc_stripe_supported_store_currencies', $available_store_currencies );
+		$filtered_currencies = apply_filters( 'wc_stripe_available_store_currencies', $available_store_currencies );
 
 		if ( ! is_array( $filtered_currencies ) ) {
 			return $available_store_currencies;

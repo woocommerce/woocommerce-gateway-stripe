@@ -504,7 +504,7 @@ class WC_Stripe_Admin_Notices {
 
 			if ( empty( array_intersect( $available_store_currencies, $supported_currencies ) ) ) {
 				/* translators: %1$s Payment method, %2$s List of supported currencies */
-				$currency_messages .= sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s<br>', 'woocommerce-gateway-stripe' ), $upe_method->get_label(), implode( ', ', $supported_currencies ) );
+				$currency_messages .= sprintf( __( '%1$s is enabled - it requires store currency to be %2$s<br>', 'woocommerce-gateway-stripe' ), $upe_method->get_label(), implode( ', ', $supported_currencies ) );
 			}
 		}
 

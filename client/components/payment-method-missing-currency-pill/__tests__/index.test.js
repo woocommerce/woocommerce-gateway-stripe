@@ -36,10 +36,8 @@ describe( 'PaymentMethodMissingCurrencyPill', () => {
 			);
 		} );
 
-		expect(
-			screen.queryByText(
-				'Bancontact will only be shown at checkout when the customer pays in EUR'
-			)
-		).toBeInTheDocument();
+		expect( document.body ).toHaveTextContent(
+			'Bancontact requires store currency to be EUR. Set currency'
+		);
 	} );
 } );
