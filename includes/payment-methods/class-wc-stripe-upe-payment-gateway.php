@@ -232,10 +232,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$this->payment_methods = [];
 		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-			/** Show Sofort if it's already enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
-			 * Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
-			 */
-			if ( WC_Stripe_UPE_Payment_Method_Sofort::class === $payment_method_class && ! $is_sofort_enabled ) {
+			// Sofort is discontinued and never offered at checkout. Keep it instantiated for
+			// stores that still have it enabled (preserves subscription renewal hooks) and on
+			// the order details page / refund requests so old Sofort orders can be refunded.
+			if ( WC_Stripe_UPE_Payment_Method_Sofort::class === $payment_method_class && ! $is_sofort_enabled && ! $this->is_order_details_page() && ! $this->is_refund_request() ) {
 				continue;
 			}
 

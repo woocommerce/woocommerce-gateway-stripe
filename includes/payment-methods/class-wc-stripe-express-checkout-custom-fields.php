@@ -145,7 +145,9 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 				$required_field_errors[] = sprintf(
 					/* translators: %s: field name */
 					__( '%s is a required field.', 'woocommerce-gateway-stripe' ),
-					empty( $field['label'] ) ? $key : $field['label']
+					// Labels are merchant-supplied and render unescaped in the Blocks notice,
+					// so strip markup here rather than relying on either checkout to escape it.
+					wp_strip_all_tags( empty( $field['label'] ) ? $key : $field['label'] )
 				);
 			}
 		}
@@ -165,10 +167,9 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 		// Only the classic checkout form can collect these values, so a request
 		// without the custom-data payload came from a page without that form
 		// (e.g. product or cart), where the buyer has no way to fill the fields in.
-		if ( ! $this->request_has_custom_checkout_data( $request ) ) {
-			$required_field_errors[] = __( 'Please go to the checkout page, fill in the required fields, and complete your order from there.', 'woocommerce-gateway-stripe' );
-		}
-		$error_messages = implode( "\n", $required_field_errors );
+		// The client turns this flag into a checkout link; the message stays plain text.
+		$link_to_checkout = ! $this->request_has_custom_checkout_data( $request );
+		$error_messages   = implode( "\n", $required_field_errors );
 		/**
 		 * Whether to log missing required custom fields during express checkout.
 		 *
@@ -180,11 +181,18 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 				'Missing required custom fields in express checkout.',
 				[
 					'missing_field_keys' => $missing_field_keys,
+					'link_to_checkout'   => $link_to_checkout,
 					'error_message'      => $error_messages,
 				]
 			);
 		}
-		throw new RouteException( 'wc_stripe_express_checkout_missing_required_fields', $error_messages, 400 );
+		// Only send the flag when set: older Store API versions array_filter() this data and would drop a false.
+		throw new RouteException(
+			'wc_stripe_express_checkout_missing_required_fields',
+			$error_messages,
+			400,
+			$link_to_checkout ? [ 'link_to_checkout' => true ] : []
+		);
 	}
 
 	/**
