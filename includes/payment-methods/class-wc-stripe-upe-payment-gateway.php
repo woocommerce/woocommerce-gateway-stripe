@@ -1608,7 +1608,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// tokens). The Adaptive Pricing Checkout Session path above returns first and has its own guard.
 		$duplicate_guard_key   = $this->get_duplicate_charge_guard_key( $order );
 		$duplicate_guard_owner = null;
-		if ( '' !== $duplicate_guard_key && $order instanceof WC_Order ) {
+		if ( '' !== $duplicate_guard_key ) {
 			$duplicate_guard_owner = WC_Stripe_Duplicate_Payment_Prevention::acquire_lock( $duplicate_guard_key );
 
 			// A concurrent submission of the same cart holds the lock and is charging it. Turn this
