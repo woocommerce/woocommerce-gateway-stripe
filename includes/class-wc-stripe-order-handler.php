@@ -67,7 +67,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param int $order_id
 	 * @return void
 	 */
-	public function show_warning_for_uncaptured_orders( $order_id ): void {
+	public function show_warning_for_uncaptured_orders( $order_id ) {
 		$order = wc_get_order( $order_id );
 		if ( ! $order instanceof WC_Order ) {
 			return;
@@ -110,7 +110,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param mixed  $previous_error Any error message from previous request.
 	 * @return void
 	 */
-	public function process_redirect_payment( $order_id, $retry = true, $previous_error = false ): void {
+	public function process_redirect_payment( $order_id, $retry = true, $previous_error = false ) {
 		$order = null;
 		try {
 			$source = isset( $_GET['source'] ) ? wc_clean( wp_unslash( $_GET['source'] ) ) : '';
@@ -291,7 +291,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * @version 4.0.0
 	 * @return void
 	 */
-	public function maybe_process_redirect_order(): void {
+	public function maybe_process_redirect_order() {
 		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
 
 		if ( is_a( $gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
@@ -311,7 +311,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * @since 8.3.0
 	 * @return void
 	 */
-	private function maybe_process_legacy_redirect(): void {
+	private function maybe_process_legacy_redirect() {
 		if ( ! is_order_received_page() || empty( $_GET['client_secret'] ) || empty( $_GET['source'] ) ) {
 			return;
 		}
@@ -447,7 +447,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param  int $order_id
 	 * @return void
 	 */
-	public function cancel_payment( $order_id ): void {
+	public function cancel_payment( $order_id ) {
 		$order = wc_get_order( $order_id );
 
 		if ( ! $order instanceof WC_Order ) {
