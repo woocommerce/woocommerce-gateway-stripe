@@ -850,6 +850,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			<?php
 			if ( $display_tokenization ) {
 				$this->tokenization_script();
+			}
+			if ( $this->should_list_saved_payment_methods( $display_tokenization ) ) {
 				$this->saved_payment_methods();
 			}
 			?>
@@ -884,6 +886,26 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			</div>
 			<?php
 		}
+	}
+
+	/**
+	 * Whether this method's own entry should list its saved payment methods.
+	 *
+	 * With Optimized Checkout active, the main `stripe` entry already lists every reusable
+	 * method's saved tokens (see WC_Stripe_OCS_Payment_Gateway::get_tokens()) and pays them
+	 * through the same process_payment(), so listing them here too would show each twice.
+	 *
+	 * @param bool $display_tokenization Whether tokenization applies to this entry at all.
+	 * @return bool
+	 */
+	protected function should_list_saved_payment_methods( bool $display_tokenization ): bool {
+		if ( ! $display_tokenization ) {
+			return false;
+		}
+
+		$main_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+
+		return ! ( $main_gateway instanceof WC_Stripe_UPE_Payment_Gateway && $main_gateway->is_optimized_checkout_active() );
 	}
 
 	/**

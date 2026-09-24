@@ -78,6 +78,8 @@ class WC_Stripe_UPE_Payment_Method_ACSS extends WC_Stripe_UPE_Payment_Method {
 			<?php
 			if ( $display_tokenization ) {
 				$this->tokenization_script();
+			}
+			if ( $this->should_list_saved_payment_methods( $display_tokenization ) ) {
 				$this->saved_payment_methods();
 			}
 			?>

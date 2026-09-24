@@ -1282,6 +1282,67 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	}
 
 	/**
+	 * With Optimized Checkout active, the main `stripe` entry already lists every reusable
+	 * method's saved tokens, so a method's own entry must not list them again: a saved ACSS
+	 * account showed up twice in classic checkout.
+	 *
+	 * @dataProvider provide_saved_methods_display_by_optimized_checkout
+	 *
+	 * @param string $payment_method_class      A reusable method class; ACSS overrides payment_fields(), SEPA uses the base one.
+	 * @param string $optimized_checkout        Value of the `optimized_checkout_element` setting.
+	 * @param int    $expected_saved_list_calls How many times the saved methods list renders.
+	 *
+	 * @return void
+	 */
+	public function test_payment_fields_lists_saved_methods_only_outside_optimized_checkout( string $payment_method_class, string $optimized_checkout, int $expected_saved_list_calls ): void {
+		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['pmc_enabled']                = 'yes';
+		$stripe_settings['optimized_checkout_element'] = $optimized_checkout;
+		$stripe_settings['enabled']                    = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		// Rebuild the main gateway so it resolves to the variant for this setting.
+		$reset_stripe_gateway = Closure::bind(
+			function () {
+				$this->stripe_gateway = null;
+			},
+			WC_Stripe::get_instance(),
+			WC_Stripe::class
+		);
+		$reset_stripe_gateway();
+
+		$payment_method = $this->getMockBuilder( $payment_method_class )
+			->onlyMethods( [ 'saved_payment_methods', 'tokenization_script' ] )
+			->getMock();
+		$payment_method->expects( $this->exactly( $expected_saved_list_calls ) )->method( 'saved_payment_methods' );
+
+		add_filter( 'woocommerce_is_checkout', '__return_true' );
+		ob_start();
+		try {
+			$payment_method->payment_fields();
+		} finally {
+			ob_end_clean();
+			remove_filter( 'woocommerce_is_checkout', '__return_true' );
+			// Don't leak the Optimized Checkout gateway into later tests.
+			$reset_stripe_gateway();
+		}
+	}
+
+	/**
+	 * Data provider for `test_payment_fields_lists_saved_methods_only_outside_optimized_checkout`.
+	 *
+	 * @return array<string, array{0: string, 1: string, 2: int}>
+	 */
+	public function provide_saved_methods_display_by_optimized_checkout(): array {
+		return [
+			'ACSS, Optimized Checkout on'  => [ WC_Stripe_UPE_Payment_Method_ACSS::class, 'yes', 0 ],
+			'ACSS, Optimized Checkout off' => [ WC_Stripe_UPE_Payment_Method_ACSS::class, 'no', 1 ],
+			'SEPA, Optimized Checkout on'  => [ WC_Stripe_UPE_Payment_Method_Sepa::class, 'yes', 0 ],
+			'SEPA, Optimized Checkout off' => [ WC_Stripe_UPE_Payment_Method_Sepa::class, 'no', 1 ],
+		];
+	}
+
+	/**
 	 * Non-deferred-intent methods (e.g. BLIK, ACSS) can't render inside the OC
 	 * Payment Element, so in OC mode they must stay available via their own
 	 * entry instead of being folded into the OC-container availability check.
