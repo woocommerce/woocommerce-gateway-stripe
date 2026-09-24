@@ -1,6 +1,9 @@
 <?php
 /**
  * Class WC_Stripe_REST_Payment_Intents_Controller_Test
+ *
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 	private const SINGLE_INTENT_ENDPOINT_URL = '/wc/v3/wc_stripe/payment_intents/pi_test_9876543210';
@@ -317,87 +320,6 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 		$this->assertSame( 400, $response->get_status() );
 	}
 
-	/**
-	 * @dataProvider provide_intent_list_filtering_test_data
-	*/
-	public function test_intent_list_response_filtering( string $response_as_string, string $response_allowed_part ) {
-		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
-		wp_set_current_user( $admin_id );
-
-		$http_code_401_mock = function ( $pre, $parsed_args, $url ) use ( $response_as_string ) {
-			return [
-				'headers'  => [],
-				'body'     => $response_as_string,
-				'response' => [
-					'code'    => 200,
-					'message' => 'OK',
-				],
-			];
-		};
-
-		add_filter(
-			'pre_http_request',
-			$http_code_401_mock,
-			10,
-			3
-		);
-
-		$response               = $this->send_request( self::ALL_INTENTS_ENDPOINT_URL );
-		$expected_response_data = json_decode( $response_allowed_part );
-
-		remove_filter(
-			'pre_http_request',
-			$http_code_401_mock,
-			10,
-			3
-		);
-
-		$this->assertEquals( $expected_response_data, $response->data );
-	}
-
-	public static function provide_intent_list_filtering_test_data(): Generator {
-		$test_data_directory = __DIR__ . '/stripe-api-test-response-payloads';
-
-		$test_data_files = glob( $test_data_directory . '/*.json' );
-
-		$test_data_groups = [];
-
-		foreach ( $test_data_files as $test_data_file ) {
-			$name = basename( $test_data_file );
-
-			if ( ! preg_match( '/^(\d+)-/', $name, $matches ) ) {
-				continue;
-			}
-
-			$test_data_groups[ $matches[1] ][] = $test_data_file;
-		}
-
-		ksort( $test_data_groups, SORT_NUMERIC );
-
-		foreach ( $test_data_groups as $id => $files ) {
-			$test_file     = null;
-			$expected_file = null;
-
-			foreach ( $files as $file ) {
-				if ( str_contains( basename( $file ), 'expected' ) ) {
-					$expected_file = $file;
-				} else {
-					$test_file = $file;
-				}
-			}
-
-			$test_file_description     = str_replace( [ '-', '_', '.json' ], ' ', preg_replace( '/^[0-9]+/', '', basename( $test_file ) ) );
-			$expected_file_description = str_replace( [ '-', '_', '.json' ], ' ', preg_replace( '/^[0-9]+/', '', basename( $expected_file ) ) );
-
-			$test_description = 'Received: ' . ucfirst( trim( $test_file_description ) ) . PHP_EOL . 'Expected: ' . ucfirst( trim( $expected_file_description ) );
-
-			yield "case {$test_description}" => [
-				file_get_contents( $test_file ),
-				file_get_contents( $expected_file ),
-			];
-		}
-	}
-
 	public static function provide_intent_list_params(): array {
 		return [
 			[
@@ -533,5 +455,86 @@ class WC_Stripe_REST_Payment_Intents_Controller_Test extends WP_UnitTestCase {
 				array_diff_key( $pre_http_request_params['search_params'], $rest_params )
 			);
 		}
+	}
+
+	public static function provide_intent_list_filtering_test_data(): Generator {
+		$test_data_directory = __DIR__ . '/stripe-api-test-response-payloads';
+
+		$test_data_files = glob( $test_data_directory . '/*.json' );
+
+		$test_data_groups = [];
+
+		foreach ( $test_data_files as $test_data_file ) {
+			$name = basename( $test_data_file );
+
+			if ( ! preg_match( '/^(\d+)-/', $name, $matches ) ) {
+				continue;
+			}
+
+			$test_data_groups[ $matches[1] ][] = $test_data_file;
+		}
+
+		ksort( $test_data_groups, SORT_NUMERIC );
+
+		foreach ( $test_data_groups as $id => $files ) {
+			$test_file     = null;
+			$expected_file = null;
+
+			foreach ( $files as $file ) {
+				if ( str_contains( basename( $file ), 'expected' ) ) {
+					$expected_file = $file;
+				} else {
+					$test_file = $file;
+				}
+			}
+
+			$test_file_description     = str_replace( [ '-', '_', '.json' ], ' ', preg_replace( '/^[0-9]+/', '', basename( $test_file ) ) );
+			$expected_file_description = str_replace( [ '-', '_', '.json' ], ' ', preg_replace( '/^[0-9]+/', '', basename( $expected_file ) ) );
+
+			$test_description = 'Received: ' . ucfirst( trim( $test_file_description ) ) . PHP_EOL . 'Expected: ' . ucfirst( trim( $expected_file_description ) );
+
+			yield "case {$test_description}" => [
+				file_get_contents( $test_file ),
+				file_get_contents( $expected_file ),
+			];
+		}
+	}
+
+	/**
+	 * @dataProvider provide_intent_list_filtering_test_data
+	*/
+	public function test_intent_list_response_filtering( string $response_as_string, string $response_allowed_part ) {
+		$admin_id = $this->factory()->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $admin_id );
+
+		$http_code_401_mock = function ( $pre, $parsed_args, $url ) use ( $response_as_string ) {
+			return [
+				'headers'  => [],
+				'body'     => $response_as_string,
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+			];
+		};
+
+		add_filter(
+			'pre_http_request',
+			$http_code_401_mock,
+			10,
+			3
+		);
+
+		$response               = $this->send_request( self::ALL_INTENTS_ENDPOINT_URL );
+		$expected_response_data = json_decode( $response_allowed_part );
+
+		remove_filter(
+			'pre_http_request',
+			$http_code_401_mock,
+			10,
+			3
+		);
+
+		$this->assertEquals( $expected_response_data, $response->data );
 	}
 }
