@@ -1911,4 +1911,212 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		WC_Subscriptions::set_wcs_get_subscription( null );
 		Ajax_Test_Helper::remove_hooks();
 	}
+
+	/**
+	 * Mocks the Stripe API for update_intent() with a stored intent and a new one submitted on retry.
+	 *
+	 * @param array      $old_intent    The stored intent's fields.
+	 * @param array      $new_intent    The submitted intent's fields.
+	 * @param array|null $cancel_result The cancel response, or null to echo a cancelled intent.
+	 * @return ArrayObject Log of requests as "METHOD path" strings, filled in as requests are made.
+	 */
+	private function mock_retry_intents( array $old_intent, array $new_intent, ?array $cancel_result = null ): ArrayObject {
+		$requests = new ArrayObject();
+		$amount   = WC_Stripe_Helper::get_stripe_amount( $this->order->get_total(), $this->order->get_currency() );
+		$defaults = [
+			'object'               => 'payment_intent',
+			'currency'             => strtolower( $this->order->get_currency() ),
+			'amount'               => $amount,
+			'payment_method_types' => [ WC_Stripe_Payment_Methods::BLIK ],
+			'metadata'             => new stdClass(),
+		];
+		$old      = array_merge( $defaults, [ 'id' => 'pi_old' ], $old_intent );
+		$new      = array_merge( $defaults, [ 'id' => 'pi_new' ], $new_intent );
+
+		add_filter(
+			'pre_http_request',
+			function ( $preempt, $parsed_args, $url ) use ( $requests, $old, $new, $cancel_result ) {
+				$path = (string) wp_parse_url( $url, PHP_URL_PATH );
+				$requests->append( $parsed_args['method'] . ' ' . $path );
+
+				if ( false !== strpos( $path, 'payment_intents/pi_old/cancel' ) ) {
+					$body = $cancel_result ?? array_merge( $old, [ 'status' => WC_Stripe_Intent_Status::CANCELED ] );
+				} elseif ( false !== strpos( $path, 'payment_intents/pi_old' ) ) {
+					$body = $old;
+				} elseif ( false !== strpos( $path, 'payment_intents/pi_new' ) ) {
+					$body = $new;
+				} else {
+					$body = [ 'id' => 'cus_mock' ];
+				}
+
+				return [
+					'response' => [ 'code' => 200 ],
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode( $body ),
+				];
+			},
+			10,
+			3
+		);
+
+		return $requests;
+	}
+
+	/**
+	 * A retry with a new intent replaces the stored one only when that is safe.
+	 *
+	 * @dataProvider provide_update_intent_retry_cases
+	 *
+	 * @param array      $old_intent       The stored intent's fields.
+	 * @param array      $new_intent       The submitted intent's fields (`order_key` of `self` means this order).
+	 * @param array|null $cancel_result    The cancel response, or null for a successful cancel.
+	 * @param bool       $expect_replaced  Whether the order ends up with the new intent.
+	 * @param bool       $expect_cancelled Whether the stored intent is cancelled.
+	 * @return void
+	 */
+	public function test_update_intent_replaces_stale_intent_on_retry( array $old_intent, array $new_intent, ?array $cancel_result, bool $expect_replaced, bool $expect_cancelled ): void {
+		if ( 'self' === ( $new_intent['metadata']['order_key'] ?? '' ) ) {
+			$new_intent['metadata']['order_key'] = $this->order->get_order_key();
+		}
+
+		// Avoids creating a Stripe customer in update_intent().
+		$user_id = self::factory()->user->create();
+		update_user_option( $user_id, '_stripe_customer_id', 'cus_mock', false );
+		wp_set_current_user( $user_id );
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->update_stripe_intent_id( $this->order, 'pi_old' );
+		$this->order->save();
+
+		$requests = $this->mock_retry_intents( $old_intent, $new_intent, $cancel_result );
+
+		$thrown = false;
+		try {
+			$result = $this->mock_controller->update_intent( 'pi_new', $this->order->get_id(), false, WC_Stripe_Payment_Methods::BLIK );
+			$this->assertTrue( $result['success'] );
+		} catch ( Exception $e ) {
+			$thrown = true;
+		}
+
+		$this->assertSame( ! $expect_replaced, $thrown );
+		$stored = $order_helper->get_stripe_intent_id( wc_get_order( $this->order->get_id() ) );
+		$this->assertSame( $expect_replaced ? 'pi_new' : 'pi_old', $stored );
+		$this->assertSame( $expect_cancelled, in_array( 'POST /v1/payment_intents/pi_old/cancel', $requests->getArrayCopy(), true ) );
+	}
+
+	/**
+	 * Data provider for `test_update_intent_replaces_stale_intent_on_retry`.
+	 *
+	 * @return array
+	 */
+	public function provide_update_intent_retry_cases(): array {
+		$unconfirmed = [ 'status' => WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD ];
+
+		return [
+			'failed attempt is cancelled and replaced' => [ [ 'status' => WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD ], $unconfirmed, null, true, true ],
+			'pending action is cancelled and replaced' => [ [ 'status' => WC_Stripe_Intent_Status::REQUIRES_ACTION ], $unconfirmed, null, true, true ],
+			'already cancelled is replaced'            => [ [ 'status' => WC_Stripe_Intent_Status::CANCELED ], $unconfirmed, null, true, false ],
+			'new intent for this order is replaced'    => [
+				[ 'status' => WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD ],
+				array_merge( $unconfirmed, [ 'metadata' => [ 'order_key' => 'self' ] ] ),
+				null,
+				true,
+				true,
+			],
+			'succeeded intent is kept'                 => [ [ 'status' => WC_Stripe_Intent_Status::SUCCEEDED ], $unconfirmed, null, false, false ],
+			'processing intent is kept'                => [ [ 'status' => WC_Stripe_Intent_Status::PROCESSING ], $unconfirmed, null, false, false ],
+			'authorized intent is kept'                => [ [ 'status' => WC_Stripe_Intent_Status::REQUIRES_CAPTURE ], $unconfirmed, null, false, false ],
+			'failed cancel keeps the stored intent'    => [
+				[ 'status' => WC_Stripe_Intent_Status::REQUIRES_ACTION ],
+				$unconfirmed,
+				[ 'error' => [ 'message' => 'Cannot cancel.' ] ],
+				false,
+				true,
+			],
+			'confirmed new intent is rejected'         => [ [ 'status' => WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD ], [ 'status' => WC_Stripe_Intent_Status::REQUIRES_ACTION ], null, false, false ],
+			'new intent of another order is rejected'  => [
+				[ 'status' => WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD ],
+				array_merge( $unconfirmed, [ 'metadata' => [ 'order_key' => 'wc_order_other' ] ] ),
+				null,
+				false,
+				false,
+			],
+		];
+	}
+
+	/**
+	 * A retry that reuses the intent keeps its customer, since Stripe can't change it.
+	 *
+	 * @dataProvider provide_update_intent_customer_cases
+	 *
+	 * @param bool $is_guest               Whether the shopper is a guest.
+	 * @param bool $expect_customer_param  Whether the update request sends `customer`.
+	 * @param bool $expect_create_customer Whether a new Stripe customer is created.
+	 * @return void
+	 */
+	public function test_update_intent_keeps_customer_already_on_intent( bool $is_guest, bool $expect_customer_param, bool $expect_create_customer ): void {
+		if ( ! $is_guest ) {
+			$user_id = self::factory()->user->create();
+			update_user_option( $user_id, '_stripe_customer_id', 'cus_mock', false );
+			wp_set_current_user( $user_id );
+		} else {
+			wp_set_current_user( 0 );
+		}
+
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $this->order, 'pi_same' );
+		$this->order->save();
+
+		$intent = [
+			'id'                   => 'pi_same',
+			'object'               => 'payment_intent',
+			'status'               => WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD,
+			'currency'             => strtolower( $this->order->get_currency() ),
+			'amount'               => WC_Stripe_Helper::get_stripe_amount( $this->order->get_total(), $this->order->get_currency() ),
+			'payment_method_types' => [ WC_Stripe_Payment_Methods::BLIK ],
+			'customer'             => $is_guest ? 'cus_first_attempt' : 'cus_mock',
+		];
+
+		$update_body      = null;
+		$created_customer = false;
+		add_filter(
+			'pre_http_request',
+			function ( $preempt, $parsed_args, $url ) use ( $intent, &$update_body, &$created_customer ) {
+				$path = (string) wp_parse_url( $url, PHP_URL_PATH );
+				if ( 'POST' === $parsed_args['method'] && '/v1/payment_intents/pi_same' === $path ) {
+					$update_body = $parsed_args['body'];
+				}
+				if ( 'POST' === $parsed_args['method'] && '/v1/customers' === $path ) {
+					$created_customer = true;
+				}
+				$body = false !== strpos( $path, 'payment_intents/pi_same' ) ? $intent : [ 'id' => 'cus_new' ];
+
+				return [
+					'response' => [ 'code' => 200 ],
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode( $body ),
+				];
+			},
+			10,
+			3
+		);
+
+		$result = $this->mock_controller->update_intent( 'pi_same', $this->order->get_id(), false, WC_Stripe_Payment_Methods::BLIK );
+
+		$this->assertTrue( $result['success'] );
+		$this->assertIsArray( $update_body );
+		$this->assertSame( $expect_customer_param, isset( $update_body['customer'] ) );
+		$this->assertSame( $expect_create_customer, $created_customer );
+	}
+
+	/**
+	 * Data provider for `test_update_intent_keeps_customer_already_on_intent`.
+	 *
+	 * @return array
+	 */
+	public function provide_update_intent_customer_cases(): array {
+		return [
+			'guest reuses the intent customer'    => [ true, false, false ],
+			'logged-in keeps the stored customer' => [ false, true, false ],
+		];
+	}
 }

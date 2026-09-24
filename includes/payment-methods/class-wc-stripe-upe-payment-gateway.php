@@ -1934,7 +1934,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 				$redirect = $this->get_redirect_url( $this->get_return_url( $order ), $payment_intent, $payment_information, $order, $payment_needed );
 			} else {
-				if ( $payment_needed ) {
+				// On a BLIK retry the latest charge is the earlier failed one; the webhook reports this attempt.
+				$is_awaiting_customer = in_array( $payment_intent->status, WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION_OR_ACTION_STATUSES, true );
+				if ( $payment_needed && ! $is_awaiting_customer ) {
 					// Use the last charge within the intent to proceed.
 					$charge = $this->get_latest_charge_from_intent( $payment_intent );
 
