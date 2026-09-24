@@ -1696,10 +1696,12 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$product->update_meta_data( '_product_addons', [ [ 'name' => 'Engraving' ] ] );
 		$product->save();
 
-		$this->assertFalse( WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
-		$this->assertSame( 'addons', WC_Stripe_Agentic_Commerce_Product_Mapper::get_sync_exclusion_reason( $product ) );
-
-		$product->delete( true );
+		try {
+			$this->assertFalse( WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+			$this->assertSame( 'addons', WC_Stripe_Agentic_Commerce_Product_Mapper::get_sync_exclusion_reason( $product ) );
+		} finally {
+			$product->delete( true );
+		}
 	}
 
 	/**
