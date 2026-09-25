@@ -27,42 +27,58 @@ function formatStripeAmountList( amounts ) {
 }
 
 const InstantPayoutsPromotionBanner = () => {
-	const [ data, setData ] = useState( null );
-	const [ isLoading, setIsLoading ] = useState( true );
-	const [ isDismissed, setIsDismissed ] = useState( false );
+	const [ state, setState ] = useState( {
+		data: null,
+		isLoading: true,
+		isDismissed: false,
+	} );
+	const { data, isLoading, isDismissed } = state;
+	const showBannerIfNoInstantPayoutsAvailable = true;
 
 	useEffect( () => {
 		apiFetch( {
 			path: `${ NAMESPACE }/balance`,
 		} )
 			.then( ( response ) => {
-				response.instant_available = [
-					{
-						amount: 40000,
-						currency: 'usd',
-					},
-					{
-						amount: 30000,
-						currency: 'eur',
-					},
-					{
-						amount: 25000,
-						currency: 'ron',
-					},
-				];
-				response.instantAvailableAmountMessage = sprintf(
-					__(
-						'You currently have %1$s available.',
+				if ( ! response.instant_available ) {
+					response.instantAvailableAmountMessage = __(
+						'You currently have no instant payouts available.',
 						'woocommerce-gateway-stripe'
-					),
-					formatStripeAmountList( response.instant_available )
-				);
-				setData( response );
+					);
+				} else {
+					response.instantAvailableAmountMessage = sprintf(
+						__(
+							'You currently have %1$s available.',
+							'woocommerce-gateway-stripe'
+						),
+						formatStripeAmountList( response.instant_available )
+					);
+				}
+
+				setState( ( previous ) => ( {
+					...previous,
+					data: response,
+				} ) );
 			} )
-			.finally( () => setIsLoading( false ) );
+			.finally( () => {
+				setState( ( previous ) => ( {
+					...previous,
+					isLoading: false,
+				} ) );
+			} );
 	}, [] );
 
 	if ( isDismissed ) {
+		return null;
+	}
+
+	if ( ! showBannerIfNoInstantPayoutsAvailable && isLoading ) {
+		return null;
+	}
+	if (
+		! showBannerIfNoInstantPayoutsAvailable &&
+		( ! data || ! data.instant_available )
+	) {
 		return null;
 	}
 
@@ -109,7 +125,12 @@ const InstantPayoutsPromotionBanner = () => {
 						/>
 						<Button
 							variant="tertiary"
-							onClick={ () => setIsDismissed( true ) }
+							onClick={ () =>
+								setState( ( previous ) => ( {
+									...previous,
+									isDismissed: true,
+								} ) )
+							}
 							__next40pxDefaultSize
 						>
 							{ __( 'Dismiss', 'woocommerce-gateway-stripe' ) }
