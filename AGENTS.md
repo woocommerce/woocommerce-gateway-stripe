@@ -156,6 +156,7 @@ Good comments explain intent; they do not restate the code. The CRITICAL rule ab
 - For version/release changes, update `changelog.txt`, `readme.txt` stable tag, and related version references together.
 - `changelog.txt` and `readme.txt` use **different version header formats**: `changelog.txt` uses `YYYY-MM-DD - version X.Y.Z` (WooCommerce.com parser format); `readme.txt` uses `= X.Y.Z - YYYY-MM-DD =` (WordPress.org format). Do not convert one to the other. `bin/changelog.js` handles both formats.
 - For WooCommerce version resolution logic, include explicit cases for stable, RC, and beta semantics.
+- **MUST:** New PHP docblocks use `@since x.x.x` (a space, not a tab), never a guessed version: woorelease replaces the placeholder with the real version at release, in the paths listed under `config.version_replace_paths` in `package.json`. It only replaces `@since` and `@version` there, so `@deprecated` tags and deprecation function arguments (`_deprecated_function()`, `apply_filters_deprecated()`, ...) still need a concrete version. The `Version placeholders` lint job flags both mistakes.
 
 ## Version Support
 

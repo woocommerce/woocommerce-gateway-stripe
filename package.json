@@ -198,7 +198,8 @@
     "version_replace_paths": [
       "includes",
       "templates",
-      "woocommerce-gateway-stripe.php"
+      "woocommerce-gateway-stripe.php",
+      "uninstall.php"
     ],
     "assets": {
       "js": {

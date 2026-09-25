@@ -70,3 +70,21 @@ jobs:
       - run: npm ci
       - run: npm run lint:js
       - run: npm run lint:css
+  version_placeholders:
+    name: Version placeholders
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # full history, for the merge base with the target branch
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: '.nvmrc'
+      # the script has no dependencies, so no npm ci
+      - run: node bin/check-version-placeholders.js "origin/${BASE_REF}"
+        env:
+          BASE_REF: ${{ github.base_ref }}
