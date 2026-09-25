@@ -570,7 +570,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * — the same path a webhook would take. If a concurrent process holds the payment lock,
 	 * nothing is processed here; blocking the cancellation is enough and the lock holder finishes.
 	 *
-	 * @since 11.1.0
+	 * @since x.x.x
 	 *
 	 * @param WC_Order $order  The pending order about to be cancelled as unpaid.
 	 * @param object   $intent The PaymentIntent fetched from Stripe.
