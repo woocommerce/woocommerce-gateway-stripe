@@ -594,6 +594,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @param string      $store_currency                         The store currency.
 	 * @param string[]    $enabled_payment_method_ids             The IDs of the enabled payment methods.
 	 * @param string[]    $expected_payment_method_ids_in_notice  The IDs of the payment methods that are expected in the notice.
+	 * @param string[]    $additional_store_currencies             Additional currencies supplied by a multi-currency plugin.
 	 *
 	 * @dataProvider provide_test_currency_notices_scenarios
 	 *
@@ -608,7 +609,8 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		string $account_country,
 		string $store_currency,
 		array $enabled_payment_method_ids,
-		array $expected_payment_method_ids_in_notice
+		array $expected_payment_method_ids_in_notice,
+		array $additional_store_currencies = []
 	): void {
 		$this->mock_payment_method_configurations( $enabled_payment_method_ids );
 
@@ -652,10 +654,14 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$account->method( 'get_cached_account_data' )->willReturn( [ 'country' => $account_country ] );
 		WC_Stripe::get_instance()->account = $account;
 
-		$currency_filter = static function () use ( $store_currency ) {
+		$currency_filter             = static function () use ( $store_currency ) {
 			return $store_currency;
 		};
+		$available_currencies_filter = static function ( $currencies ) use ( $additional_store_currencies ) {
+			return array_merge( $currencies, $additional_store_currencies );
+		};
 		add_filter( 'woocommerce_currency', $currency_filter );
+		add_filter( 'wc_stripe_available_store_currencies', $available_currencies_filter );
 
 		// Force a fresh gateway so it picks up the mocked payment method configuration.
 		$this->set_main_stripe_gateway( null );
@@ -683,6 +689,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		} finally {
 			$this->set_main_stripe_gateway( null );
 			remove_filter( 'woocommerce_currency', $currency_filter );
+			remove_filter( 'wc_stripe_available_store_currencies', $available_currencies_filter );
 			WC_Stripe::get_instance()->account = $account_backup;
 			$_GET                              = $original_get;
 			delete_option( 'wc_stripe_show_upe_payment_methods_notice' );
@@ -709,7 +716,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		foreach ( $expected_payment_method_ids_in_notice as $payment_method_id ) {
 			$payment_method = $gateway->payment_methods[ $payment_method_id ];
 			$message       .= sprintf(
-				'%1$s is enabled - it requires store currency to be set to %2$s<br>',
+				'%1$s is enabled - it requires store currency to be %2$s<br>',
 				$payment_method->get_label(),
 				implode( ', ', $payment_method->get_supported_currencies() )
 			);
@@ -764,6 +771,22 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					WC_Stripe_Payment_Methods::BANCONTACT,
 					WC_Stripe_Payment_Methods::KLARNA,
 				],
+			],
+			'additional store currencies prevent false notices'                            => [
+				'is stripe settings page'               => false,
+				'is gateway enabled'                    => true,
+				'dismiss option'                        => null,
+				'checkout sessions available'           => true,
+				'adaptive pricing'                      => 'no',
+				'account country'                       => 'US',
+				'store currency'                        => 'USD',
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+				],
+				'expected payment method IDs in notice' => [],
+				'additional store currencies'           => [ 'EUR' ],
 			],
 			'no notice when the store currency is empty'                                   => [
 				'is stripe settings page'               => false,
