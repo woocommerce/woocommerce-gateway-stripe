@@ -186,6 +186,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Ensure that application fees are not sent to Stripe for OAuth-connected accounts
 * Fix - When checking if unpaid orders should be cancelled, get the Stripe payment status, and update orders with Stripe payment details
 * Dev - Block outbound HTTP requests from unit tests
+* Fix - Preserve manually configured webhooks during automatic reconfiguration and warn when the configured webhook no longer exists
 * Fix - Retry matching a completed Adaptive Pricing checkout session to its order instead of giving up after the first attempt
 * Add - Show the originating AI agent in the WooCommerce order Origin column for Agentic Commerce orders
 * Update - Reduce the size of the express checkout JS bundle
