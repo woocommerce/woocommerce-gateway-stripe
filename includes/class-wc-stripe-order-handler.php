@@ -537,10 +537,23 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			return false;
 		}
 
-		// Bail if the order doesn't have an intent yet.
 		$intent = $this->get_intent_from_order( $order );
+
+		// Bail if the order doesn't have an intent yet.
 		if ( ! $intent ) {
 			return $cancel_order;
+		}
+
+		// Before cancelling, check with Stripe if the payment intent has already been paid or
+		// is still being processed (which is common for async methods like ACH and Cash App Pay).
+		// Capture state doesn't matter here: an authorized-but-uncaptured payment
+		// (requires_capture) must also settle the order rather than be cancelled.
+		// For those cases, we want to mimic the processing from webhooks.
+		if ( 'payment_intent' === ( $intent->object ?? '' )
+			&& in_array( $intent->status ?? '', WC_Stripe_Intent_Status::SUCCESSFUL_STATUSES, true )
+		) {
+			$this->maybe_process_paid_order_instead_of_cancelling( $order, $intent );
+			return false;
 		}
 
 		// A SetupIntent still awaiting verification outlives the one-day window below: bank
@@ -557,6 +570,65 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		return $cancel_order;
+	}
+
+	/**
+	 * Processes a pending order whose PaymentIntent Stripe reports as paid (or as an async
+	 * payment still processing), via process_response()
+	 * — the same path a webhook would take. If a concurrent process holds the payment lock,
+	 * nothing is processed here; blocking the cancellation is enough and the lock holder finishes.
+	 *
+	 * @since 11.1.0
+	 *
+	 * @param WC_Order $order  The pending order about to be cancelled as unpaid.
+	 * @param object   $intent The PaymentIntent fetched from Stripe.
+	 */
+	private function maybe_process_paid_order_instead_of_cancelling( $order, $intent ): void {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		if ( $order_helper->lock_order_payment( $order ) ) {
+			return;
+		}
+
+		$intent_id     = $intent->id ?? '';
+		$intent_status = $intent->status ?? '';
+
+		try {
+			$charge = $this->get_latest_charge_from_intent( $intent );
+
+			if ( ! is_object( $charge ) ) {
+				WC_Stripe_Logger::warning(
+					"PaymentIntent {$intent_id} reports status {$intent_status} but has no charge; order cancellation blocked for order {$order->get_id()}, but order status was not updated from {$order->get_status()}.",
+					[
+						'order_id'      => $order->get_id(),
+						'order_status'  => $order->get_status( 'edit' ),
+						'intent_id'     => $intent_id,
+						'intent_status' => $intent_status,
+						'charge'        => $charge,
+					]
+				);
+				return;
+			}
+
+			WC_Stripe_Logger::info(
+				"Processing order {$order->get_id()} from PaymentIntent {$intent_id} ({$intent_status}) instead of cancelling it as unpaid.",
+				[
+					'order_id'      => $order->get_id(),
+					'order_status'  => $order->get_status( 'edit' ),
+					'intent_id'     => $intent_id,
+					'intent_status' => $intent_status,
+					'charge_id'     => $charge->id ?? '(no id)',
+				]
+			);
+
+			$order->add_order_note( __( 'Stripe reports this payment as successful or still processing, but the payment confirmation never reached this site (e.g. a missed webhook). The order was updated from Stripe instead of being auto-cancelled as unpaid.', 'woocommerce-gateway-stripe' ) );
+
+			$this->process_response( $charge, $order );
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::error( "Failed to update order {$order->get_id()} from its PaymentIntent before cancellation: " . $e->getMessage() );
+		} finally {
+			$order_helper->unlock_order_payment( $order );
+		}
 	}
 
 	/**

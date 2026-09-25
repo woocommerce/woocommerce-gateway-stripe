@@ -985,6 +985,57 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * `use_stripe_sdk` from the payment information must be forwarded on the payment intent
+	 * request: without it, an intent confirmed with a return_url (the Dynamic Payment Methods
+	 * shape) gets a hosted redirect next action for 3DS instead of the SDK-handled modal.
+	 *
+	 * @param string|null $use_stripe_sdk The value in the payment information, null when not set.
+	 *
+	 * @dataProvider provide_create_and_confirm_payment_intent_use_stripe_sdk
+	 */
+	public function test_create_and_confirm_payment_intent_forwards_use_stripe_sdk( $use_stripe_sdk ) {
+		$payment_information                              = $this->get_base_payment_information();
+		$payment_information['automatic_payment_methods'] = true;
+		$payment_information['return_url']                = 'https://example.com/return';
+
+		if ( null !== $use_stripe_sdk ) {
+			$payment_information['use_stripe_sdk'] = $use_stripe_sdk;
+		}
+
+		$test_request = function ( $preempt, $parsed_args, $url ) use ( $use_stripe_sdk ) {
+			$body = $parsed_args['body'];
+
+			if ( null === $use_stripe_sdk ) {
+				$this->assertArrayNotHasKey( 'use_stripe_sdk', $body );
+			} else {
+				$this->assertSame( $use_stripe_sdk, $body['use_stripe_sdk'] );
+			}
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode( [] ),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$this->mock_controller->create_and_confirm_payment_intent( $payment_information );
+	}
+
+	/**
+	 * Provider for `test_create_and_confirm_payment_intent_forwards_use_stripe_sdk`.
+	 *
+	 * @return array
+	 */
+	public function provide_create_and_confirm_payment_intent_use_stripe_sdk() {
+		return [
+			'forwarded when set'   => [ 'true' ],
+			'omitted when not set' => [ null ],
+		];
+	}
+
+	/**
 	 * Minimal valid payment information for a card create_and_confirm_payment_intent request.
 	 *
 	 * @return array
@@ -1601,6 +1652,71 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		// The winner's lock must survive this losing request.
 		$this->assertNotEmpty( $order_helper->get_order_existing_payment_lock( wc_get_order( $order_id ) ) );
+
+		Ajax_Test_Helper::remove_hooks();
+	}
+
+	/**
+	 * The post-lock re-check must catch a concurrent request that settled the order
+	 * between the initial settled-check and the lock acquisition, and skip processing.
+	 */
+	public function test_update_order_status_ajax_rechecks_settlement_after_locking() {
+		Ajax_Test_Helper::init_hooks();
+
+		$order     = WC_Helper_Order::create_order();
+		$intent_id = 'pi_toctou';
+		$order->update_meta_data( '_stripe_intent_id', $intent_id );
+		$order->set_status( 'pending' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		// Settle the order from "another request" at the seam between the two checks.
+		$order_helper = $this->createPartialMock(
+			WC_Stripe_Order_Helper::class,
+			[ 'lock_order_payment' ]
+		);
+		$order_helper->expects( $this->once() )
+			->method( 'lock_order_payment' )
+			->willReturnCallback(
+				function () use ( $order_id ) {
+					$concurrent = wc_get_order( $order_id );
+					$concurrent->set_status( 'processing' );
+					$concurrent->save();
+
+					return false; // Lock acquired.
+				}
+			);
+		WC_Stripe_Order_Helper::set_instance( $order_helper );
+
+		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'process_order_for_confirmed_intent' ] )
+			->getMock();
+
+		// The fresh post-lock read must see the settlement and skip re-processing.
+		$gateway->expects( $this->never() )
+			->method( 'process_order_for_confirmed_intent' );
+
+		$controller = $this->build_controller_with_gateway( $gateway );
+
+		$_POST['order_id']       = $order_id;
+		$_POST['intent_id']      = $intent_id;
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_update_order_status_nonce' );
+
+		try {
+			ob_start();
+			$controller->update_order_status_ajax();
+			$response = json_decode( ob_get_clean(), true );
+		} finally {
+			WC_Stripe_Order_Helper::set_instance( null );
+		}
+
+		$this->assertIsArray( $response );
+		$this->assertTrue( $response['success'] );
+		$this->assertArrayHasKey( 'return_url', $response['data'] );
+
+		// The re-check path must release the lock it acquired.
+		$this->assertEmpty( WC_Stripe_Order_Helper::get_instance()->get_order_existing_payment_lock( wc_get_order( $order_id ) ) );
 
 		Ajax_Test_Helper::remove_hooks();
 	}

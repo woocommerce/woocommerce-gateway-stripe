@@ -8,6 +8,7 @@ import { __ } from '@wordpress/i18n';
 import {
 	displayExpressCheckoutNotice,
 	displayLoginConfirmation,
+	getDefaultShippingOptions,
 	getExpressCheckoutButtonAppearance,
 	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
@@ -93,12 +94,6 @@ jQuery( function ( $ ) {
 	const useLegacyDisplayItems = hasVariationForm || hasBookingForm;
 
 	const resolveClickEvent = ( event, options ) => {
-		const getDefaultShippingRates = () => {
-			// Return a default shipping option when shipping is required but no rates are provided
-			const defaultShippingOption =
-				getExpressCheckoutData( 'checkout' )?.default_shipping_option;
-			return defaultShippingOption ? [ defaultShippingOption ] : [];
-		};
 		const allowedShippingCountries = getExpressCheckoutData(
 			'allowed_shipping_countries'
 		);
@@ -123,7 +118,7 @@ jQuery( function ( $ ) {
 				shippingRates:
 					options.shippingRates?.length > 0
 						? options.shippingRates
-						: getDefaultShippingRates(),
+						: getDefaultShippingOptions(),
 			} ),
 			...( options.requestShipping &&
 				Array.isArray( allowedShippingCountries ) && {
@@ -603,7 +598,8 @@ jQuery( function ( $ ) {
 					appearance: getExpressCheckoutButtonAppearance(),
 					locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
 					displayItems: transformLabeledDisplayItems(
-						displayItems ?? []
+						displayItems ?? [],
+						total
 					),
 					order,
 					orderDetails,
@@ -645,7 +641,8 @@ jQuery( function ( $ ) {
 						requestShipping: cartBootstrap.requestShipping,
 						requestPhone: cartBootstrap.requestPhone,
 						displayItems: transformLabeledDisplayItems(
-							cartBootstrap.displayItems ?? []
+							cartBootstrap.displayItems ?? [],
+							cartBootstrap.total
 						),
 					} );
 
@@ -872,10 +869,16 @@ jQuery( function ( $ ) {
 		 *
 		 * @param {PaymentResponse} payment Payment response instance.
 		 * @param {string}          message Error message to display.
+		 * @param {Object}          options Set `linkToCheckout` to link to the checkout page.
 		 */
-		abortPayment: ( payment, message ) => {
+		abortPayment: ( payment, message, options = {} ) => {
 			onAbortPaymentHandler( payment, message );
-			displayExpressCheckoutNotice( message, 'error' );
+			displayExpressCheckoutNotice(
+				message,
+				'error',
+				undefined,
+				options
+			);
 
 			// The wallet sheet only closes once the confirm event gets a terminal
 			// result, so order errors must fail it too. A late call rejects an
