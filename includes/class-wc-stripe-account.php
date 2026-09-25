@@ -723,7 +723,12 @@ class WC_Stripe_Account {
 					&& ( ! $existing_webhook || ( $existing_webhook->id ?? '' ) !== $stored_webhook_id )
 				) {
 					$stored_endpoint = $this->get_webhook_endpoint_by_id( $stored_webhook_id );
-					if ( false !== $stored_endpoint ) {
+					// A staging clone keeps production's stored ID; its endpoint belongs to another site.
+					if (
+						false !== $stored_endpoint
+						&& isset( $stored_endpoint->url )
+						&& WC_Stripe_Helper::is_webhook_url( $stored_endpoint->url )
+					) {
 						$existing_webhook = $stored_endpoint;
 					}
 				}

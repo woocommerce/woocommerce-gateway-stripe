@@ -869,6 +869,35 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A stored endpoint for another site URL (a staging clone with production's settings) must not
+	 * drive reconfiguration.
+	 */
+	public function test_reconfigure_webhooks_ignores_stored_endpoint_for_another_site() {
+		$settings                        = WC_Stripe_Helper::get_stripe_settings();
+		$settings['test_webhook_secret'] = 'whsec_auto';
+		$settings['test_webhook_data']   = [
+			'id'             => 'we_production',
+			'secret'         => 'sk_test_key',
+			'signing_secret' => 'whsec_auto',
+		];
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$production_webhook      = $this->build_outdated_webhook( 'we_production' );
+		$production_webhook->url = 'https://production.example.com/?wc-api=wc_stripe';
+
+		$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->setConstructorArgs( [ $this->mock_connect, WC_Helper_Stripe_Api::class ] )
+			->onlyMethods( [ 'get_existing_webhook', 'configure_webhooks', 'webhook_endpoint_exists', 'get_webhook_endpoint_by_id' ] )
+			->getMock();
+		$this->account->method( 'get_existing_webhook' )->willReturn( false );
+		$this->account->method( 'webhook_endpoint_exists' )->with( 'we_production' )->willReturn( true );
+		$this->account->method( 'get_webhook_endpoint_by_id' )->with( 'we_production' )->willReturn( $production_webhook );
+		$this->account->expects( $this->never() )->method( 'configure_webhooks' );
+
+		$this->account->maybe_reconfigure_webhooks_on_update();
+	}
+
+	/**
 	 * configure_webhooks() must stamp the endpoint, record the signing secret, and clear notices.
 	 */
 	public function test_configure_webhooks_records_signing_secret_and_stamps_endpoint() {
