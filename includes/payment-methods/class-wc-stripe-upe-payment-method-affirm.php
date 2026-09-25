@@ -11,6 +11,11 @@ class WC_Stripe_UPE_Payment_Method_Affirm extends WC_Stripe_UPE_Payment_Method {
 	public const STRIPE_ID = WC_Stripe_Payment_Methods::AFFIRM;
 
 	/**
+	 * Refund window is 120 days.
+	 */
+	protected const REFUND_WINDOW_DATE_EXPRESSION = '+120 days';
+
+	/**
 	 * Stripe account countries that may enable Affirm.
 	 *
 	 * @var string[]

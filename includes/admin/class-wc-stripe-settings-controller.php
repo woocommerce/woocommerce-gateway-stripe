@@ -38,7 +38,7 @@ class WC_Stripe_Settings_Controller {
 
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts' ] );
 		add_action( 'wc_stripe_gateway_admin_options_wrapper', [ $this, 'admin_options' ] );
-		add_action( 'woocommerce_order_item_add_action_buttons', [ $this, 'hide_refund_button_for_uncaptured_orders' ] );
+		add_action( 'woocommerce_order_item_add_action_buttons', [ $this, 'maybe_hide_refund_button' ] );
 
 		// Priority 5 so we can manipulate the registered gateways before they are shown.
 		add_action( 'woocommerce_admin_field_payment_gateways', [ $this, 'hide_gateways_on_settings_page' ], 5 );
@@ -59,25 +59,114 @@ class WC_Stripe_Settings_Controller {
 	}
 
 	/**
-	* This replaces the refund button with a disabled 'Refunding unavailable' button in the same place for orders that have been authorized but not captured.
-	*
-	* A help tooltip explains that refunds are not available for orders which have not been captured yet.
-	*
-	* @param WC_Order $order The order that is being viewed.
-	*/
+	 * Replaces the refund button with a disabled 'Refund unavailable' button with an explanatory
+	 * tooltip when Stripe won't accept a refund for the order being viewed.
+	 *
+	 * At present, there are two such reasons:
+	 * 1. Payment for an order has been authorized, but not captured yet.
+	 * 2. Payment has been completed, but the refund window for the payment method has been exceeded.
+	 *
+	 * @param WC_Order $order The order that is being viewed.
+	 */
+	public function maybe_hide_refund_button( $order ): void {
+		if ( ! ( $order instanceof WC_Order ) ) {
+			return;
+		}
+
+		$notice = $this->get_uncaptured_order_refund_notice( $order );
+
+		if ( null === $notice ) {
+			$notice = $this->get_expired_refund_window_notice( $order );
+		}
+
+		if ( null === $notice ) {
+			return;
+		}
+
+		$locale = get_locale();
+		// Fall back on existing translation for 'Refunding unavailable' when newer 'Refund unavailable' text is not translated.
+		if ( str_starts_with( $locale, 'en' ) || has_translation( 'Refund unavailable', 'woocommerce-gateway-stripe' ) ) {
+			$button_text = __( 'Refund unavailable', 'woocommerce-gateway-stripe' );
+		} else {
+			$button_text = __( 'Refunding unavailable', 'woocommerce-gateway-stripe' );
+		}
+
+		echo '<style>.button.refund-items { display: none; }</style>';
+		echo '<span class="button button-disabled">' . esc_html( $button_text ) . wp_kses_post( wc_help_tip( $notice ) ) . '</span>';
+	}
+
+	/**
+	 * Kept for backward compatibility: this used to render the uncaptured-order refund notice
+	 * directly and may be called by third parties. It now calls {@see maybe_hide_refund_button()}.
+	 *
+	 * @param WC_Order $order The order that is being viewed.
+	 * @deprecated 10.9.0 Use {@see maybe_hide_refund_button()} instead.
+	 */
 	public function hide_refund_button_for_uncaptured_orders( $order ) {
+		wc_deprecated_function( __METHOD__, '10.9.0', 'WC_Stripe_Settings_Controller::maybe_hide_refund_button' );
+
+		$this->maybe_hide_refund_button( $order );
+	}
+
+	/**
+	 * When payment for an order has been authorized, but not captured yet, return a tooltip to
+	 * explain why a refund is unavailable. If the order has been captured, return null.
+	 *
+	 * @param WC_Order $order The order that is being viewed.
+	 * @return string|null A tooltip explaining why a refund is unavailable, or null otherwise.
+	 */
+	private function get_uncaptured_order_refund_notice( WC_Order $order ): ?string {
 		try {
 			$intent = $this->get_gateway()->get_intent_from_order( $order );
-
-			if ( $intent && WC_Stripe_Intent_Status::REQUIRES_CAPTURE === $intent->status ) {
-				$no_refunds_button  = __( 'Refunding unavailable', 'woocommerce-gateway-stripe' );
-				$no_refunds_tooltip = __( 'Refunding via Stripe is unavailable because funds have not been captured for this order. Process order to take payment, or cancel to remove the pre-authorization.', 'woocommerce-gateway-stripe' );
-				echo '<style>.button.refund-items { display: none; }</style>';
-				echo '<span class="button button-disabled">' . esc_html( $no_refunds_button ) . wp_kses_post( wc_help_tip( $no_refunds_tooltip ) ) . '</span>';
-			}
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error( 'Error getting intent from order: ' . $order->get_id(), [ 'error_message' => $e->getMessage() ] );
+			return null;
 		}
+
+		if ( ! $intent || WC_Stripe_Intent_Status::REQUIRES_CAPTURE !== $intent->status ) {
+			return null;
+		}
+
+		return __( 'Refunding via Stripe is unavailable because funds have not been captured for this order. Process order to take payment, or cancel to remove the pre-authorization.', 'woocommerce-gateway-stripe' );
+	}
+
+	/**
+	 * When payment has been completed, but the refund window for the payment method has been exceeded, return a tooltip to
+	 * explain why a refund is unavailable. If the refund window is still open or cannot be determined, return null.
+	 *
+	 * The window is measured from the order's paid date only; orders with no paid date are ignored.
+	 *
+	 * @param WC_Order $order The order that is being viewed.
+	 * @return string|null A tooltip explaining why a refund is unavailable, or null otherwise.
+	 */
+	private function get_expired_refund_window_notice( WC_Order $order ): ?string {
+		$payment_type = WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order );
+		if ( ! $payment_type ) {
+			return null;
+		}
+
+		$payment_methods = $this->get_gateway()->payment_methods;
+		if ( ! isset( $payment_methods[ $payment_type ] ) ) {
+			return null;
+		}
+
+		$payment_method = $payment_methods[ $payment_type ];
+		if ( ! $payment_method->has_refund_window_expired( $order ) ) {
+			return null;
+		}
+
+		// has_refund_window_expired() only returns true when a deadline exists, but
+		// get_refund_window_deadline() can return null, so guard against the null return value.
+		$deadline = $payment_method->get_refund_window_deadline( $order );
+		if ( ! $deadline ) {
+			return null;
+		}
+
+		return sprintf(
+			/* translators: %s: the date after which Stripe no longer accepts a refund for this payment method. */
+			__( 'Refunding via Stripe is unavailable because this payment was refundable until %s.', 'woocommerce-gateway-stripe' ),
+			wc_format_datetime( $deadline )
+		);
 	}
 
 	/**

@@ -14,6 +14,11 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 	public const STRIPE_ID = WC_Stripe_Payment_Methods::MULTIBANCO;
 
 	/**
+	 * Refund window is 365 days.
+	 */
+	protected const REFUND_WINDOW_DATE_EXPRESSION = '+365 days';
+
+	/**
 	 * Stripe account countries that may enable Multibanco.
 	 *
 	 * @var string[]

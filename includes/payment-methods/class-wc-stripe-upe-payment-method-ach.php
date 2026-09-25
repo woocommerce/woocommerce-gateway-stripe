@@ -20,6 +20,11 @@ class WC_Stripe_UPE_Payment_Method_ACH extends WC_Stripe_UPE_Payment_Method {
 	public const STRIPE_ID = WC_Stripe_Payment_Methods::ACH;
 
 	/**
+	 * Refund window is 180 days.
+	 */
+	protected const REFUND_WINDOW_DATE_EXPRESSION = '+180 days';
+
+	/**
 	 * Stripe account countries that may enable ACH Direct Debit. ACH itself only debits US
 	 * bank accounts, but Stripe permits the connected merchant account to live in many countries.
 	 *
