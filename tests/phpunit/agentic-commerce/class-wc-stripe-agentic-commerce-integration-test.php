@@ -282,7 +282,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 
 		$excluded_id = $excluded->get_id();
 		$filter      = static fn( $sync, $candidate ) => $candidate->get_id() !== $excluded_id;
-		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $filter, 10, 2 );
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $filter, 10, 2 );
 
 		// Scope the walk to these two products so other tests' leftovers don't
 		// skew the counts.
@@ -323,7 +323,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			$this->assertSame( 1, (int) $last_sync['products'], 'Only the kept product belongs in the feed; the excluded one is dropped.' );
 			$this->assertNotSame( 'succeeded_with_errors', $last_sync['status'], 'A pure exclusion must not flip the sync to Partial success.' );
 		} finally {
-			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $filter, 10 );
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $filter, 10 );
 			remove_filter( 'wc_stripe_agentic_commerce_product_query_args', $scope );
 			remove_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_stub, 10 );
 			remove_filter( 'pre_http_request', $http_stub, 10 );
@@ -391,7 +391,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			update_option( 'woocommerce_stripe_settings', $settings );
 			return $sync;
 		};
-		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $flip );
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $flip );
 
 		$files_stub = fn() => [ 'id' => 'file_stub' ];
 		add_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_stub, 10, 2 );
@@ -430,7 +430,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			}
 		} finally {
 			remove_filter( 'wc_stripe_agentic_commerce_product_query_args', $scope );
-			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $flip );
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $flip );
 			remove_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_stub, 10 );
 			remove_filter( 'pre_http_request', $http_stub, 10 );
 			delete_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME );
@@ -860,7 +860,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			'The teardown push must not upload a checkout-disabled catalog once the merchant has re-enabled.'
 		);
 		$this->assertFalse(
-			apply_filters( 'woocommerce_agentic_commerce_disable_checkout', false ),
+			apply_filters( 'wc_stripe_agentic_commerce_disable_checkout', false ),
 			'Bailing early must not leave the disable-checkout filter attached.'
 		);
 	}
@@ -912,7 +912,7 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			$captured = $disabled;
 			return $disabled;
 		};
-		add_filter( 'woocommerce_agentic_commerce_disable_checkout', $spy, 100000 );
+		add_filter( 'wc_stripe_agentic_commerce_disable_checkout', $spy, 100000 );
 
 		$files_stub = static fn() => [ 'id' => 'file_stub' ];
 		add_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_stub, 10, 2 );
@@ -940,13 +940,13 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 			$this->assertSame( 1, (int) $last_sync['products'], 'Push must run and upload the catalog despite the merchant toggle being off.' );
 			$this->assertTrue( $captured, 'Push must force in-agent checkout off for every product.' );
 
-			remove_filter( 'woocommerce_agentic_commerce_disable_checkout', $spy, 100000 );
+			remove_filter( 'wc_stripe_agentic_commerce_disable_checkout', $spy, 100000 );
 			$this->assertFalse(
-				apply_filters( 'woocommerce_agentic_commerce_disable_checkout', false, $product ),
+				apply_filters( 'wc_stripe_agentic_commerce_disable_checkout', false, $product ),
 				'Push must remove its forcing filter so it does not leak into later feed generation.'
 			);
 		} finally {
-			remove_filter( 'woocommerce_agentic_commerce_disable_checkout', $spy, 100000 );
+			remove_filter( 'wc_stripe_agentic_commerce_disable_checkout', $spy, 100000 );
 			remove_filter( 'wc_stripe_agentic_commerce_product_query_args', $scope );
 			remove_filter( 'wc_stripe_agentic_commerce_files_api_pre_request', $files_stub, 10 );
 			remove_filter( 'pre_http_request', $http_stub, 10 );
