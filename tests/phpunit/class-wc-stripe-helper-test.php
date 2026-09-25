@@ -22,6 +22,48 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * The available store currencies always contain the normalized base currency
+	 * and only valid strings added through the public filter.
+	 *
+	 * @param mixed    $filtered_currencies Filter return value.
+	 * @param string[] $expected_currencies Expected normalized currencies.
+	 * @return void
+	 * @dataProvider provide_available_store_currencies
+	 */
+	public function test_get_available_store_currencies( $filtered_currencies, array $expected_currencies ): void {
+		$store_currency_filter       = static function () {
+			return 'USD';
+		};
+		$available_currencies_filter = static function ( $currencies ) use ( $filtered_currencies ) {
+			return null === $filtered_currencies ? $currencies : $filtered_currencies;
+		};
+
+		add_filter( 'woocommerce_currency', $store_currency_filter );
+		add_filter( 'wc_stripe_available_store_currencies', $available_currencies_filter );
+
+		try {
+			$this->assertSame( $expected_currencies, WC_Stripe_Helper::get_available_store_currencies() );
+		} finally {
+			remove_filter( 'woocommerce_currency', $store_currency_filter );
+			remove_filter( 'wc_stripe_available_store_currencies', $available_currencies_filter );
+		}
+	}
+
+	/**
+	 * Data provider for test_get_available_store_currencies().
+	 *
+	 * @return array<string, array{mixed, string[]}>
+	 */
+	public function provide_available_store_currencies(): array {
+		return [
+			'normalizes and deduplicates currencies'  => [ [ 'eur', ' usd ', '', null, 123 ], [ 'USD', 'EUR' ] ],
+			'keeps the base currency'                 => [ [ 'EUR' ], [ 'USD', 'EUR' ] ],
+			'falls back when the filter is invalid'   => [ false, [ 'USD' ] ],
+			'keeps the supplied value when unchanged' => [ null, [ 'USD' ] ],
+		];
+	}
+
+	/**
 	 * Test for `get_transaction_url_for_id`.
 	 *
 	 * @param string $id           The Stripe object ID.

@@ -81,6 +81,25 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	protected $locked_order_retry_delay = 10;
 
 	/**
+	 * How many times to re-queue a completed Adaptive Pricing checkout session whose order
+	 * cannot be found yet. Bounded so a session that will never gain an order stops retrying.
+	 *
+	 * @var int
+	 */
+	protected $adaptive_pricing_order_lookup_max_retries = 3;
+
+	/**
+	 * Retry count for the deferred Adaptive Pricing session lookup currently being handled.
+	 *
+	 * Carried on the instance rather than as a handle_checkout_session_success() parameter:
+	 * that method is protected and third-party subclasses may override it, and adding a
+	 * parameter to the parent fatals such a subclass on PHP 8+ when it kept the old signature.
+	 *
+	 * @var int
+	 */
+	private $adaptive_pricing_order_lookup_retry_count = 0;
+
+	/**
 	 * The Action Scheduler hook to use when retrying a webhook.
 	 *
 	 * @var string
@@ -1655,7 +1674,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * Each Webhook type which is deferred should be supported by @see process_deferred_webhook().
 	 *
-	 * @param stdClass $webhook_notification The webhook payload received from Stripe.
+	 * @param object   $webhook_notification The webhook payload received from Stripe.
 	 * @param array    $additional_data      Additional data to pass to the scheduled job.
 	 * @param int|null $delay                Seconds to wait before retrying. Defaults to $deferred_webhook_delay.
 	 */
@@ -1772,10 +1791,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					break;
 				case 'checkout.session.completed':
 				case 'checkout.session.async_payment_succeeded':
-					// If the order is still locked, this re-queues itself again; don't fire the
-					// action now — the next retry fires it once settlement actually runs.
-					if ( $this->handle_checkout_session_success( $notification ) ) {
-						return;
+					// If the order is still locked or not created yet, this re-queues itself again;
+					// don't fire the action now — the retry that settles the payment fires it.
+					// The retry count rides on the instance so handle_checkout_session_success()
+					// keeps its one-parameter protected signature (subclasses may override it).
+					$this->adaptive_pricing_order_lookup_retry_count = (int) ( $additional_data['retry_count'] ?? 0 );
+					try {
+						if ( $this->handle_checkout_session_success( $notification ) ) {
+							return;
+						}
+					} finally {
+						$this->adaptive_pricing_order_lookup_retry_count = 0;
 					}
 					break;
 				case 'checkout.session.expired':
@@ -2266,10 +2292,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Handles a deferred checkout session success event.
 	 *
-	 * @param object        $notification The Stripe notification containing the checkout session data.
+	 * The deferred retry count is read from $this->adaptive_pricing_order_lookup_retry_count
+	 * rather than a parameter, to keep this protected signature stable for subclasses.
+	 *
+	 * @param object $notification The Stripe notification containing the checkout session data.
 	 * @return bool True if the event was re-queued for async processing, false if handled inline.
 	 */
 	protected function handle_checkout_session_success( object $notification ): bool {
+		$retry_count      = $this->adaptive_pricing_order_lookup_retry_count;
 		$checkout_session = $notification->data->object;
 
 		$session_id = $checkout_session->id;
@@ -2297,10 +2327,32 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			// paid session whenever agentic commerce is disabled.
 			$checkout_type = $checkout_session->metadata->checkout_type ?? '';
 			if ( WC_Stripe_Checkout_Sessions_Ajax_Handler::ADAPTIVE_PRICING_CHECKOUT_TYPE === $checkout_type ) {
-				WC_Stripe_Logger::warning(
-					'Completed Adaptive Pricing checkout session has no matching order: ' . $checkout_session->id
-				);
 				WC_Stripe_Database_Cache::delete( $lock_key );
+
+				// The order is created and linked by the shopper's browser via the Store API,
+				// which can outlast a single deferred window — re-queue before conceding.
+				if ( $retry_count < $this->adaptive_pricing_order_lookup_max_retries ) {
+					$next_retry_count = $retry_count + 1;
+					WC_Stripe_Logger::info(
+						'Completed Adaptive Pricing checkout session has no matching order yet; re-queueing.',
+						[
+							'session_id'  => $session_id,
+							'retry_count' => $next_retry_count,
+						]
+					);
+					$this->defer_webhook_processing(
+						$notification,
+						[
+							'session_id'  => $session_id,
+							'retry_count' => $next_retry_count,
+						]
+					);
+					return true;
+				}
+
+				WC_Stripe_Logger::warning(
+					'Completed Adaptive Pricing checkout session has no matching order after ' . $retry_count . ' retries: ' . $checkout_session->id
+				);
 				return false;
 			}
 
