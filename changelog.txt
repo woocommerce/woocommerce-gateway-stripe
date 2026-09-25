@@ -26,6 +26,7 @@ xxxx-xx-xx - version 11.1.0
 * Fix - Retry matching a completed Adaptive Pricing checkout session to its order instead of giving up after the first attempt
 * Add - Show the originating AI agent in the WooCommerce order Origin column for Agentic Commerce orders
 * Update - Reduce the size of the express checkout JS bundle
+* Dev - Build admin and shopper Javascript separately, and reduce admin bundle sizes by aligning with WP-supported browser versions
 * Fix - Show the on-page 3D Secure authentication modal instead of a full-page redirect for card payments under Optimized Checkout with Dynamic Payment Methods
 * Tweak - Agentic Commerce: surface shipping zones with no flat-rate method (which contribute no shipping to the feed) in the feed preview and logs
 * Dev - Reduce blocks Javascript by moving payment method icon styles into CSS
