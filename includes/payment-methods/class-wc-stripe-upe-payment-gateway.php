@@ -855,12 +855,37 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// accepted as the safer failure mode. Other OCS flows recompute it on country change.
 		$excluded_methods = array_merge( $excluded_methods, $this->get_country_excluded_payment_method_types() );
 
+		// Non-deferred-intent methods (e.g. BLIK, ACSS) can't render inside the Payment Element,
+		// so exclude them here; they surface as their own entries in get_enabled_payment_method_config().
+		$excluded_methods = array_merge( $excluded_methods, $this->get_non_deferred_payment_method_types() );
+
 		// Always exclude Amazon Pay, as it is shown via Express Checkout and not in the standard Payment Element.
 		if ( ! in_array( WC_Stripe_Payment_Methods::AMAZON_PAY, $excluded_methods, true ) ) {
 			$excluded_methods[] = WC_Stripe_Payment_Methods::AMAZON_PAY;
 		}
 
 		return array_values( array_unique( $excluded_methods ) );
+	}
+
+	/**
+	 * Returns the enabled-at-checkout methods that don't support deferred intent
+	 * (e.g. BLIK, ACSS). These can't render inside the Optimized Checkout Payment
+	 * Element, so they are excluded from it and shown as their own entries.
+	 *
+	 * @return string[] Non-deferred-intent payment method types.
+	 */
+	private function get_non_deferred_payment_method_types(): array {
+		$non_deferred = [];
+
+		foreach ( $this->get_upe_enabled_at_checkout_payment_method_ids() as $method_id ) {
+			$payment_method = $this->payment_methods[ $method_id ] ?? null;
+
+			if ( $payment_method instanceof WC_Stripe_UPE_Payment_Method && ! $payment_method->supports_deferred_intent() ) {
+				$non_deferred[] = $method_id;
+			}
+		}
+
+		return $non_deferred;
 	}
 
 	/**
@@ -3706,8 +3731,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		// The exclusion list keeps plugin-unsupported PMC methods off the intent, mirroring the client Payment Element.
 		if ( $this->is_automatic_payment_methods_eligible( $selected_payment_type, $is_using_saved_payment_method, (bool) $payment_information['has_subscription'], $express_payment_type ) ) {
-			$payment_information['automatic_payment_methods']     = true;
-			$payment_information['excluded_payment_method_types'] = $this->get_excluded_payment_method_types();
+			$payment_information['automatic_payment_methods'] = true;
+
+			// A non-deferred method (BLIK, ACSS) is excluded from the Payment Element for display,
+			// but when the shopper submits its own standalone entry the intent must still allow it,
+			// or Stripe rejects the confirmation of a method its own exclusion list forbids.
+			$payment_information['excluded_payment_method_types'] = array_values(
+				array_diff( $this->get_excluded_payment_method_types(), [ $selected_payment_type ] )
+			);
 		}
 
 		if ( WC_Stripe_Payment_Methods::ACH === $selected_payment_type ) {
@@ -3715,11 +3746,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Use the dynamic + short statement descriptor if enabled and it's a card payment.
-		// For APMs, always use the full bank statement descriptor.
+		// For APMs, always use the full bank statement descriptor — except on Dynamic Payment
+		// Methods intents: those always include `card` in their types, and Stripe rejects a
+		// full `statement_descriptor` on any card-inclusive intent.
 		$is_short_statement_descriptor_enabled = 'yes' === $this->get_option( 'is_short_statement_descriptor_enabled', 'no' );
 		if ( WC_Stripe_Payment_Methods::CARD === $selected_payment_type && $is_short_statement_descriptor_enabled ) {
 			$payment_information['statement_descriptor_suffix'] = WC_Stripe_Helper::get_dynamic_statement_descriptor_suffix( $order );
-		} elseif ( WC_Stripe_Payment_Methods::CARD !== $selected_payment_type ) {
+		} elseif ( WC_Stripe_Payment_Methods::CARD !== $selected_payment_type && empty( $payment_information['automatic_payment_methods'] ) ) {
 			$full_statement_descriptor = $this->get_full_statement_descriptor();
 			if ( ! empty( $full_statement_descriptor ) ) {
 				$payment_information['statement_descriptor'] = $full_statement_descriptor;

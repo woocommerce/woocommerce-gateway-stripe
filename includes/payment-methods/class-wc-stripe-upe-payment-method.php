@@ -332,6 +332,13 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 
 		// When OC is enabled _and_ we are on a page where OC is permitted, we use the OC payment container to render all the methods.
 		if ( $main_stripe_gateway->is_optimized_checkout_active() ) {
+			// Non-deferred-intent methods (e.g. BLIK, ACSS) cannot be rendered inside the OC Payment
+			// Element, so they surface as their own payment method entry alongside the OC container
+			// and keep their normal availability instead of being folded into the OC container check.
+			if ( ! $this->supports_deferred_intent() ) {
+				return $this->is_enabled_at_checkout() && parent::is_available();
+			}
+
 			$enabled_methods     = $main_stripe_gateway->get_upe_enabled_at_checkout_payment_method_ids();
 			$non_express_methods = array_filter(
 				$enabled_methods,
@@ -843,6 +850,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			<?php
 			if ( $display_tokenization ) {
 				$this->tokenization_script();
+			}
+			if ( $this->should_list_saved_payment_methods( $display_tokenization ) ) {
 				$this->saved_payment_methods();
 			}
 			?>
@@ -877,6 +886,26 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			</div>
 			<?php
 		}
+	}
+
+	/**
+	 * Whether this method's own entry should list its saved payment methods.
+	 *
+	 * With Optimized Checkout active, the main `stripe` entry already lists every reusable
+	 * method's saved tokens (see WC_Stripe_OCS_Payment_Gateway::get_tokens()) and pays them
+	 * through the same process_payment(), so listing them here too would show each twice.
+	 *
+	 * @param bool $display_tokenization Whether tokenization applies to this entry at all.
+	 * @return bool
+	 */
+	protected function should_list_saved_payment_methods( bool $display_tokenization ): bool {
+		if ( ! $display_tokenization ) {
+			return false;
+		}
+
+		$main_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+
+		return ! ( $main_gateway instanceof WC_Stripe_UPE_Payment_Gateway && $main_gateway->is_optimized_checkout_active() );
 	}
 
 	/**

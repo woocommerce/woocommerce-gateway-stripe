@@ -141,12 +141,24 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 		$payment_methods         = $this->payment_methods;
 
 		if ( $this->should_render_optimized_checkout() ) {
-			$oc_method_id                     = WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID;
-			$enabled_express_methods          = array_intersect(
+			$oc_method_id            = WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID;
+			$enabled_express_methods = array_intersect(
 				$enabled_payment_methods,
 				WC_Stripe_Payment_Methods::EXPRESS_PAYMENT_METHODS
 			);
-			$enabled_payment_methods          = array_merge( [ $oc_method_id ], $enabled_express_methods );
+
+			// Non-deferred-intent methods (e.g. BLIK, ACSS) can't render inside the OC Payment
+			// Element, so they keep their own entries in the config alongside the OC container.
+			$non_deferred_methods = array_filter(
+				$enabled_payment_methods,
+				function ( $method_id ) use ( $payment_methods ) {
+					return isset( $payment_methods[ $method_id ] ) && ! $payment_methods[ $method_id ]->supports_deferred_intent();
+				}
+			);
+
+			// Dedupe defensively: a future method that is both express and non-deferred would
+			// otherwise appear twice. Harmless downstream (settings are keyed by id), but avoided.
+			$enabled_payment_methods          = array_values( array_unique( array_merge( [ $oc_method_id ], $enabled_express_methods, $non_deferred_methods ) ) );
 			$payment_methods[ $oc_method_id ] = new WC_Stripe_UPE_Payment_Method_OC();
 		}
 

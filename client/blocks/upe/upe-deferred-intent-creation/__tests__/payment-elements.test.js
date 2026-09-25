@@ -126,6 +126,47 @@ describe( 'PaymentElements adaptive pricing selection', () => {
 		expect( CheckoutContainer ).not.toHaveBeenCalled();
 		expect( PaymentProcessor ).toHaveBeenCalled();
 	} );
+
+	it.each( [ 'blik', 'acss_debit' ] )(
+		'uses the standard elements flow for %s even when Adaptive Pricing is enabled',
+		async ( paymentMethodId ) => {
+			// Non-deferred methods can't render in the Checkout Session element, so
+			// their own entry keeps the standard flow, as classic checkout does.
+			getBlocksConfiguration.mockReturnValue( {
+				isAdaptivePricingEnabled: true,
+				isPaymentNeeded: true,
+				orderId: 123,
+				orderKey: 'wc_order_test_key',
+				paymentMethodsConfig: {
+					[ paymentMethodId ]: {
+						isReusable: false,
+						title: paymentMethodId,
+						supportsDeferredIntent: false,
+					},
+				},
+				cartTotal: 1000,
+				currency: 'USD',
+				shouldShowOptimizedCheckout: true,
+				isAdmin: false,
+			} );
+
+			const api = buildApi( STRIPE );
+			api.createIntent.mockResolvedValue( {
+				id: 'pi_test',
+				client_secret: 'pi_test_secret',
+			} );
+
+			renderFields( api, {
+				paymentMethodId,
+				supportsDeferredIntent: false,
+			} );
+
+			await waitFor( () => {
+				expect( api.createIntent ).toHaveBeenCalled();
+			} );
+			expect( CheckoutContainer ).not.toHaveBeenCalled();
+		}
+	);
 } );
 
 describe( 'PaymentElements non-deferred intent creation', () => {
