@@ -2,6 +2,7 @@
 
 set -e
 . ./tests/e2e/bin/common.sh
+. ./bin/wc-version.sh
 
 load_e2e_local_env
 
@@ -178,7 +179,16 @@ if [[ -n "$WC_VERSION" && $WC_VERSION != 'latest' ]]; then
 	fi
 
 	step "Installing WooCommerce ${WC_VERSION}"
-	redirect_output cli wp plugin install woocommerce --version="$WC_VERSION" --activate
+
+	WC_DOWNLOAD_URL=$(resolve_wc_download_url "$WC_VERSION")
+	if [[ -n $WC_DOWNLOAD_URL ]]; then
+		# Only this branch needs --force: the tags it serves are rebuilt in place, so an
+		# environment reused across runs can already hold an older build of the same
+		# version string and wp-cli would otherwise keep it.
+		redirect_output cli wp plugin install "$WC_DOWNLOAD_URL" --activate --force
+	else
+		redirect_output cli wp plugin install woocommerce --version="$WC_VERSION" --activate
+	fi
 else
 	step "Installing WooCommerce"
 	redirect_output cli wp plugin install woocommerce --activate
