@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { arrowUp } from '@wordpress/icons';
 import { formatStripeAmount } from './utils';
 import { NAMESPACE } from 'wcstripe/data/constants';
+import InlineNotice from 'wcstripe/components/inline-notice';
 import apiFetch from '@wordpress/api-fetch';
 import { Button, Card, CardBody, Spinner } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
@@ -26,14 +27,16 @@ function formatStripeAmountList( amounts ) {
 	return amountListAsString;
 }
 
-const InstantPayoutsPromotionBanner = () => {
+const InstantPayoutsPromotionBanner = ( {
+	showBannerIfNoInstantPayoutsAvailable = true,
+} ) => {
 	const [ state, setState ] = useState( {
 		data: null,
 		isLoading: true,
 		isDismissed: false,
+		error: null,
 	} );
-	const { data, isLoading, isDismissed } = state;
-	const showBannerIfNoInstantPayoutsAvailable = true;
+	const { data, isLoading, isDismissed, error } = state;
 
 	useEffect( () => {
 		apiFetch( {
@@ -58,6 +61,13 @@ const InstantPayoutsPromotionBanner = () => {
 				setState( ( previous ) => ( {
 					...previous,
 					data: response,
+					error: null,
+				} ) );
+			} )
+			.catch( ( fetchError ) => {
+				setState( ( previous ) => ( {
+					...previous,
+					error: fetchError?.message ?? null,
 				} ) );
 			} )
 			.finally( () => {
@@ -85,6 +95,20 @@ const InstantPayoutsPromotionBanner = () => {
 	return (
 		<Card className="wc-stripe-instant-payouts-promotion-card">
 			<CardBody className="wc-stripe-instant-payouts-promotion-card__body">
+				{ error && (
+					<InlineNotice
+						status="error"
+						isDismissible
+						onRemove={ () =>
+							setState( ( previous ) => ( {
+								...previous,
+								error: null,
+							} ) )
+						}
+					>
+						{ error }
+					</InlineNotice>
+				) }
 				<div className="wc-stripe-instant-payouts-promotion-card__content">
 					<h2 className="wc-stripe-instant-payouts-promotion-card__title">
 						{ __(
