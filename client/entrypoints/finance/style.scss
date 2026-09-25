@@ -1,0 +1,96 @@
+@use '../../styles/abstracts/styles';
+
+.wc-stripe-payments {
+	.wc-stripe-payments__tabs .components-tab-panel__tabs-item {
+		font-weight: 600;
+	}
+	.wc-stripe-payouts__pagination {
+		margin-top: 1em;
+	}
+}
+
+.wc-stripe-balance-card {
+	margin-bottom: 24px;
+
+	.wc-stripe-balance-card__header {
+		gap: 16px;
+
+		h2 {
+			margin: 0;
+			font-size: 16px;
+			font-weight: 600;
+			line-height: 24px;
+		}
+	}
+
+	.wc-stripe-balance-card__body {
+		padding: 0;
+	}
+
+	.wc-stripe-balance-card__loading {
+		display: flex;
+		min-height: 128px;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.wc-stripe-balance-card__section {
+		min-width: 0;
+		padding: 20px 24px;
+		border-bottom: 1px solid #e0e0e0;
+
+		&:last-child {
+			border-bottom: 0;
+		}
+	}
+
+	.wc-stripe-balance-card__label {
+		margin: 0 0 8px;
+		color: #757575;
+		font-size: 12px;
+		font-weight: 500;
+		line-height: 16px;
+		text-transform: uppercase;
+	}
+
+	.wc-stripe-balance-card__content {
+		display: flex;
+		gap: 16px;
+		align-items: center;
+		min-width: 0;
+		min-height: 40px;
+	}
+
+	.wc-stripe-balance-card__amounts {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px 24px;
+		justify-content: flex-start;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.wc-stripe-balance-card__amount {
+		min-width: 120px;
+		margin: 0;
+		color: #1e1e1e;
+		font-size: 20px;
+		font-weight: 500;
+		font-variant-numeric: tabular-nums;
+		line-height: 28px;
+		text-align: right;
+
+		&.wc-stripe-balance-card__amount--empty {
+			color: #949494;
+		}
+	}
+}
+
+@media ( max-width: 782px ) {
+	.wc-stripe-balance-card {
+		.wc-stripe-balance-card__content {
+			flex-wrap: wrap;
+		}
+	}
+}
