@@ -11,6 +11,8 @@
  * @return array
  */
 function wcs_get_subscriptions_for_order( $order, $args = [] ) {
+	WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order_args = $args;
+
 	if ( ! WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order ) {
 		return [];
 	}
@@ -70,6 +72,13 @@ class WC_Subscriptions_Helpers {
 	 * @var array
 	 */
 	public static $wcs_get_subscriptions_for_order = null;
+
+	/**
+	 * Arguments the last wcs_get_subscriptions_for_order() call received.
+	 *
+	 * @var array|null
+	 */
+	public static $wcs_get_subscriptions_for_order_args = null;
 
 	/**
 	 * Mock for wcs_get_subscriptions_for_renewal_order.
