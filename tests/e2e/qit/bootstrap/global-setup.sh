@@ -75,8 +75,8 @@ fi
 # Stripe base settings (webhook secret is set later by the Playwright global-setup.js on the host)
 echo " - Configuring Stripe plugin settings"
 wp option update woocommerce_stripe_settings --format=json '{"enabled":"yes","title":"Credit Card (Stripe)","description":"Pay with your credit card via Stripe.","api_credentials":"","testmode":"yes","publishable_key":"","secret_key":"","webhook":"","test_webhook_secret":"","webhook_secret":"","inline_cc_form":"no","statement_descriptor":"","short_statement_descriptor":"","capture":"yes","payment_request":"yes","payment_request_button_type":"buy","payment_request_button_theme":"dark","payment_request_button_locations":["product","cart","checkout"],"payment_request_button_size":"default","saved_cards":"yes","logging":"no","upe_checkout_experience_enabled":"yes","test_connection_type":"connect"}'
-echo "$STRIPE_PUB_KEY" | wp option patch woocommerce_stripe_settings test_publishable_key
-echo "$STRIPE_SECRET_KEY" | wp option patch woocommerce_stripe_settings test_secret_key
+echo "$STRIPE_PUB_KEY" | wp option patch insert woocommerce_stripe_settings test_publishable_key
+echo "$STRIPE_SECRET_KEY" | wp option patch insert woocommerce_stripe_settings test_secret_key
 
 # Feature flags
 echo " - Enabling feature flags"
