@@ -197,5 +197,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Mark the Sofort and giropay payment method classes and constants as deprecated ahead of their removal
 * Fix - Link to checkout when missing required custom fields block express checkout on other pages
 * Fix - Claim an atomic owner row before writing an order payment lock, and only release locks this request acquired
+* Dev - Delete expired payment lock owner rows in a daily scheduled sweep
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
