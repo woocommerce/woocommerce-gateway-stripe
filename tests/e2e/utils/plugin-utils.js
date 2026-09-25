@@ -11,6 +11,11 @@ dotenv.config( {
 const { GITHUB_TOKEN } = process.env;
 
 export const isPluginInstalled = async ( pluginSlug ) => {
+	// QIT pre-installs all plugins declared in qit-test.json.
+	if ( process.env.QIT_SITE_URL ) {
+		return true;
+	}
+
 	const browser = await chromium.launch();
 	const adminContext = await browser.newContext( {
 		storageState: process.env.ADMINSTATE,

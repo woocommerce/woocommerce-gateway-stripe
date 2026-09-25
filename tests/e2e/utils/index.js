@@ -1,13 +1,5 @@
-import * as api from './api';
-import * as payments from './payments';
-import * as products from './products';
-import * as user from './user';
-import * as admin from './admin';
-
-module.exports = {
-	admin,
-	api,
-	payments,
-	products,
-	user,
-};
+export * as api from './api.js';
+export * as payments from './payments.js';
+export * as products from './products.js';
+export * as user from './user.js';
+export * as admin from './admin.js';

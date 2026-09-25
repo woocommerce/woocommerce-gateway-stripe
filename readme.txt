@@ -199,5 +199,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Mark the Sofort and giropay payment method classes and constants as deprecated ahead of their removal
 * Fix - Link to checkout when missing required custom fields block express checkout on other pages
 * Fix - Stop refusing express checkout orders over required classic custom checkout fields on stores whose checkout page uses the checkout block and cannot render them
+* Dev - Make e2e tests runnable from Quality Insights Toolkit (QIT)
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
