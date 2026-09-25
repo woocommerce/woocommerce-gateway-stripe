@@ -2443,12 +2443,6 @@ parameters:
 			path: includes/class-wc-stripe-order-helper.php
 
 		-
-			message: '#^Parameter \#2 \$value of method WC_Data\:\:update_meta_data\(\) expects array\|string, int\<301, max\> given\.$#'
-			identifier: argument.type
-			count: 2
-			path: includes/class-wc-stripe-order-helper.php
-
-		-
 			message: '#^Variable \$name in empty\(\) always exists and is not falsy\.$#'
 			identifier: empty.variable
 			count: 1
