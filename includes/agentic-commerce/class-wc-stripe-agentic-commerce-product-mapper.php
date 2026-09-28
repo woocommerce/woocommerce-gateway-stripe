@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use Automattic\WooCommerce\Enums\ProductStatus;
 use Automattic\WooCommerce\Enums\ProductStockStatus;
 use Automattic\WooCommerce\Enums\ProductType;
 use Automattic\WooCommerce\Internal\ProductFeed\Feed\ProductMapperInterface;
@@ -107,14 +108,12 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * @throws RuntimeException When a variation's parent product no longer exists.
 	 */
 	public function map_product_with_diagnostics( \WC_Product $product ): array {
-		// Per-product visibility gate. Returning an empty row causes the validator's
-		// required-field check to reject it, so the walker skips the entry. Adapters
-		// (e.g. WC AI Storefront) that want to scope the catalog at query time should
-		// prefer the `wc_stripe_agentic_commerce_product_query_args` filter so excluded
-		// products aren't iterated at all; this hook is the per-product safety net.
+		// Stripe imports run in upsert mode, so omission never removes a product —
+		// ineligible products map to an explicit `delete=true` row instead.
+		// Re-emitted every sync: deletes are idempotent and self-heal a lost upload.
 		if ( ! self::should_sync_product( $product ) ) {
 			return [
-				'row'                     => [],
+				'row'                     => $this->map_delete_row( $product ),
 				'excluded'                => true,
 				// should_sync_product() is already false here, so classify directly
 				// instead of get_sync_exclusion_reason() to avoid re-firing the sync
@@ -161,6 +160,9 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		/**
 		 * Filter mapped product data before validation.
 		 *
+		 * Not applied to delete rows: excluded products never reached this
+		 * filter, and its callbacks expect full rows.
+		 *
 		 * @since 10.5.0
 		 * @param array            $row             Mapped product data.
 		 * @param \WC_Product      $product         Product object.
@@ -174,6 +176,34 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 			'exclusion_reason'        => null,
 			'disable_checkout_source' => $disable_checkout_source,
 		];
+	}
+
+	/**
+	 * Build a `delete=true` removal row for an ineligible product.
+	 *
+	 * Stripe reads only `id` and `delete`; the other columns stay null just to
+	 * keep the CSV aligned with the feed headers.
+	 *
+	 * @since 11.1.0
+	 * @param \WC_Product $product Product to remove from Stripe's catalog.
+	 * @return array Full-width row with only `id` and `delete` populated.
+	 */
+	protected function map_delete_row( \WC_Product $product ): array {
+		$row           = array_fill_keys( array_keys( $this->schema ), null );
+		$row['id']     = self::get_feed_id( $product );
+		$row['delete'] = 'true';
+		return $row;
+	}
+
+	/**
+	 * Whether a mapped row is a `delete=true` removal signal.
+	 *
+	 * @since 11.1.0
+	 * @param array $row Mapped row.
+	 * @return bool
+	 */
+	public static function is_delete_row( array $row ): bool {
+		return isset( $row['delete'] ) && in_array( $row['delete'], [ 'true', true ], true );
 	}
 
 	/**
@@ -247,6 +277,19 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * @return string SKU when present, otherwise the product ID as a string.
 	 */
 	protected function get_id( \WC_Product $product ): string {
+		return self::get_feed_id( $product );
+	}
+
+	/**
+	 * The catalog row id for a product: SKU when present, product ID otherwise.
+	 *
+	 * Static so removal paths queued outside a feed walk target the exported id.
+	 *
+	 * @since 11.1.0
+	 * @param \WC_Product $product Product object.
+	 * @return string SKU when present, otherwise the product ID as a string.
+	 */
+	public static function get_feed_id( \WC_Product $product ): string {
 		$sku = $product->get_sku();
 		if ( '' !== $sku ) {
 			return $sku;
@@ -1257,11 +1300,51 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	}
 
 	/**
+	 * Whether the product, or a variation's parent, is not published.
+	 *
+	 * The feed query checks `publish` only on the row itself, so variations of
+	 * a draft or private parent would otherwise keep syncing with a dead link.
+	 *
+	 * @since 11.1.0
+	 * @param \WC_Product $product Product to check.
+	 * @return bool
+	 */
+	public static function is_unpublished( \WC_Product $product ): bool {
+		if ( ProductStatus::PUBLISH !== $product->get_status() ) {
+			return true;
+		}
+
+		$parent_id = $product->get_parent_id();
+		return $parent_id > 0 && ProductStatus::PUBLISH !== get_post_status( $parent_id );
+	}
+
+	/**
+	 * Whether the variation's parent is missing or no longer a variable product.
+	 *
+	 * Switching a variable product to another type keeps its variation posts,
+	 * and the feed query still selects them; without this check those stale
+	 * rows would keep syncing (or, for a deleted parent, hard-fail the walk).
+	 *
+	 * @since 11.1.0
+	 * @param \WC_Product $product Product to check.
+	 * @return bool
+	 */
+	public static function is_orphaned_variation( \WC_Product $product ): bool {
+		if ( ProductType::VARIATION !== $product->get_type() ) {
+			return false;
+		}
+
+		$parent = wc_get_product( $product->get_parent_id() );
+		return ! $parent instanceof \WC_Product || ! $parent->is_type( ProductType::VARIABLE );
+	}
+
+	/**
 	 * Whether the given product should be included in any Agentic Commerce sync
 	 * (full feed, inventory updates, archive events).
 	 *
 	 * Defaults to true, minus the built-in exclusions: subscriptions,
-	 * password-protected products, and products hidden from catalog and search.
+	 * password-protected products, products hidden from catalog and search, and
+	 * unpublished products (including variations of an unpublished parent).
 	 * Integrations such as WC AI Storefront can return false to exclude a product,
 	 * or true to re-include one the defaults dropped.
 	 *
@@ -1275,11 +1358,14 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		// they fail validation and downgrade every sync to a partial success.
 		// Excluded by default, still overridable via the filters below.
 		//
-		// The other two express intent the query cannot: it selects on status and
-		// type only, so a protected or hidden product is still `publish`.
+		// The others express intent the query cannot: it selects on status and
+		// type of the row itself, so a protected or hidden product is still
+		// `publish`, and a variation of an unpublished parent still matches.
 		$default_should_sync = ! self::is_subscription_product( $product )
 			&& ! self::is_password_protected( $product )
-			&& ! self::is_hidden_from_catalog( $product );
+			&& ! self::is_hidden_from_catalog( $product )
+			&& ! self::is_unpublished( $product )
+			&& ! self::is_orphaned_variation( $product );
 
 		// Opt-in default: drop detector-flagged configurator products, whose
 		// runtime-variable pricing the static feed can't honour. A filter below
@@ -1312,22 +1398,20 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 		 * to scope the full-feed query — that avoids loading the product at all
 		 * and keeps the validator's skipped-product log unpolluted.
 		 *
-		 * Lifecycle contract: this filter only governs what gets *sent* to Stripe.
-		 * A product that was previously exported and is now excluded stays in
-		 * Stripe's catalog until the next full feed replacement overwrites it —
-		 * the inventory tracker intentionally drops delta events for excluded
-		 * products. Adapters that want immediate convergence when their filter
-		 * outcome changes (e.g. a merchant flips a visibility setting) MUST fire
-		 * `do_action( 'wc_stripe_agentic_commerce_schedule_full_resync' )` to
-		 * enqueue an immediate full-catalog sync.
+		 * Lifecycle contract: an excluded product is exported as a `delete=true`
+		 * row, removing it from Stripe's catalog on the next full sync (upsert
+		 * mode ignores mere omission); the inventory tracker still drops delta
+		 * events for it. Adapters whose filter outcome changes MUST fire
+		 * `do_action( 'wc_stripe_agentic_commerce_schedule_full_resync' )` for
+		 * immediate convergence.
 		 *
 		 * Also runs per row on the admin Products list (sync-status column),
 		 * so callbacks must be fast.
 		 *
 		 * @since 10.8.0
 		 * @param bool        $should_sync Whether to include the product. Default true, except for
-		 *                                 subscriptions, password-protected products, and products
-		 *                                 hidden from catalog and search.
+		 *                                 subscriptions, password-protected products, products
+		 *                                 hidden from catalog and search, and unpublished products.
 		 * @param \WC_Product $product     Product being evaluated.
 		 */
 		$should_sync = apply_filters( 'wc_stripe_agentic_commerce_should_sync_product', $should_sync, $product );

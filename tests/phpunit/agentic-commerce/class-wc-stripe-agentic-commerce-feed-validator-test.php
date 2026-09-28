@@ -760,4 +760,51 @@ class WC_Stripe_Agentic_Commerce_Feed_Validator_Test extends WP_UnitTestCase {
 
 		$product->delete( true );
 	}
+
+	/**
+	 * A `delete=true` row with an id validates clean despite its null-filled
+	 * required columns: Stripe reads only `id` and `delete` from it, and it must
+	 * enter the feed to remove the product from the catalog. Counted as removed,
+	 * not excluded and not failed.
+	 *
+	 * @return void
+	 */
+	public function test_validate_entry_admits_delete_row_and_counts_it_removed() {
+		$product = WC_Helper_Product::create_simple_product();
+
+		$row           = array_fill_keys( WC_Stripe_Agentic_Commerce_Feed_Schema::get_csv_headers(), null );
+		$row['id']     = (string) $product->get_id();
+		$row['delete'] = 'true';
+
+		$validator = new \WC_Stripe_Agentic_Commerce_Feed_Validator();
+		$errors    = $validator->validate_entry( $row, $product );
+
+		$this->assertSame( [], $errors, 'A delete row with an id must pass validation.' );
+		$this->assertSame( 1, $validator->get_removed_count() );
+		$this->assertSame( 0, $validator->get_excluded_count() );
+		$this->assertSame( [], $validator->get_collected_errors()['products'] );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * A `delete=true` row without an id cannot target anything on Stripe, so it
+	 * falls through to normal validation and fails like any malformed row.
+	 *
+	 * @return void
+	 */
+	public function test_validate_entry_rejects_delete_row_without_id() {
+		$product = WC_Helper_Product::create_simple_product();
+
+		$row           = array_fill_keys( WC_Stripe_Agentic_Commerce_Feed_Schema::get_csv_headers(), null );
+		$row['delete'] = 'true';
+
+		$validator = new \WC_Stripe_Agentic_Commerce_Feed_Validator();
+		$errors    = $validator->validate_entry( $row, $product );
+
+		$this->assertNotEmpty( $errors, 'A delete row without an id is a validation failure.' );
+		$this->assertSame( 0, $validator->get_removed_count() );
+
+		$product->delete( true );
+	}
 }

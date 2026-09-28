@@ -238,16 +238,18 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview {
 
 				$errors = $validator->validate_entry( $row, $product );
 
-				// An empty row means should_sync_product() excluded it. Attribute it
-				// to the reason the merchant can act on, so the UI can say which
-				// setting hid the product rather than just "a store rule".
+				// An excluded product surfaces as a `delete=true` removal row
+				// (which validates clean) or, from external mappers, as the legacy
+				// empty-row skip signal. Attribute it to the reason the merchant can
+				// act on, so the UI can say which setting hid the product rather than
+				// just "a store rule".
 				//
 				// First match wins, so the buckets always sum to $excluded_count
 				// even when a product trips several. The per-product toggle and
 				// third-party filters share the generic bucket: the toggle is
 				// already a deliberate act, and a filter's reason is unknowable
 				// from here.
-				$excluded = empty( $row );
+				$excluded = empty( $row ) || WC_Stripe_Agentic_Commerce_Product_Mapper::is_delete_row( $row );
 
 				if ( $excluded ) {
 					++$excluded_count;
