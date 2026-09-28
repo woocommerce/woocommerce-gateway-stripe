@@ -44,12 +44,15 @@ final class WC_Stripe_Duplicate_Payment_Prevention {
 	private const DEFAULT_WINDOW = 120;
 
 	/**
-	 * Lock TTL, in seconds. Longer than a create-and-confirm round trip so a slow charge does not
-	 * release the lock to a concurrent resubmit.
+	 * Lock TTL, in seconds. Covers the worst case of the charge retry loop while the lock is held:
+	 * five attempts at the 70-second API timeout plus 10 seconds of backoff. A shorter TTL lets a
+	 * concurrent resubmit reclaim the lock mid-charge and create a second intent. The cost is that
+	 * a lock left behind by a request that died before its finally block blocks this cart for up to
+	 * this long, which is safer than a second charge.
 	 *
 	 * @var int
 	 */
-	private const LOCK_TTL = 90;
+	private const LOCK_TTL = 6 * MINUTE_IN_SECONDS;
 
 	/**
 	 * Returns the detection window in seconds; 0 disables the guard.

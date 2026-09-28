@@ -229,6 +229,41 @@ class WC_Stripe_Duplicate_Payment_Prevention_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The lock must outlive the charge retry loop (five 70-second API attempts plus backoff), or a
+	 * concurrent resubmit could reclaim it mid-charge. Once past that, an abandoned lock is reclaimed.
+	 *
+	 * @dataProvider provide_lock_age
+	 */
+	public function test_lock_is_held_for_the_worst_case_charge_duration( int $age, bool $reclaimable ): void {
+		$order = $this->make_order( self::CART_HASH, self::EMAIL );
+		$key   = WC_Stripe_Duplicate_Payment_Prevention::get_cart_key( $order );
+
+		$owner = WC_Stripe_Duplicate_Payment_Prevention::acquire_lock( $key );
+		$this->assertIsString( $owner );
+
+		global $wpdb;
+		$wpdb->update(
+			$wpdb->options,
+			[ 'option_value' => ( time() - $age ) . ':stale-owner' ],
+			[ 'option_name' => 'wc_stripe_checkout_charge_lock_' . $key ]
+		);
+
+		$this->assertSame( $reclaimable, is_string( WC_Stripe_Duplicate_Payment_Prevention::acquire_lock( $key ) ) );
+	}
+
+	/**
+	 * Lock ages, in seconds, and whether a new request may reclaim the lock at that age.
+	 *
+	 * @return array<string, array{int, bool}>
+	 */
+	public function provide_lock_age(): array {
+		return [
+			'held during the retry loop' => [ 5 * 70 + 5, false ],
+			'reclaimed once abandoned'   => [ 7 * MINUTE_IN_SECONDS, true ],
+		];
+	}
+
+	/**
 	 * Builds an order carrying a given cart hash and billing email.
 	 *
 	 * @param string $cart_hash The cart hash to store on the order.
