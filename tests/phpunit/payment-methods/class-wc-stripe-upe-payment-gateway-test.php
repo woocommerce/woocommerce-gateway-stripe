@@ -1029,6 +1029,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 	/**
 	 * Test SCA/3DS checkout process_payment flow with deferred intent.
+	 *
+	 * The confirm hash also carries the order's redirect return URL, because the client confirms the
+	 * intent again and Stripe rejects a confirm that must redirect the shopper without a return_url.
+	 *
+	 * @return void
 	 */
 	public function test_process_payment_deferred_intent_with_required_action_returns_valid_response() {
 		$customer_id = 'cus_mock';
@@ -1082,7 +1087,14 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$response = $this->mock_gateway->process_payment( $order_id );
 
 		$this->assertEquals( 'success', $response['result'] );
-		$this->assertMatchesRegularExpression( "/#wc-stripe-confirm-pi:{$order_id}:{$mock_intent->client_secret}/", $response['redirect'] );
+		$this->assertMatchesRegularExpression( "/#wc-stripe-confirm-pi:{$order_id}:{$mock_intent->client_secret}:[^:]+:[^:]+$/", $response['redirect'] );
+
+		$parts      = explode( ':', $response['redirect'] );
+		$return_url = rawurldecode( end( $parts ) );
+		wp_parse_str( (string) wp_parse_url( $return_url, PHP_URL_QUERY ), $query );
+		$this->assertSame( (string) $order_id, $query['order_id'] ?? null );
+		$this->assertSame( WC_Stripe_UPE_Payment_Gateway::ID, $query['wc_payment_method'] ?? null );
+		$this->assertNotEmpty( $query['_wpnonce'] ?? null );
 	}
 
 	/**
