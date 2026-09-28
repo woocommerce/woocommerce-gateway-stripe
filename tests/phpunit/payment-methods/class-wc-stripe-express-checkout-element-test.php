@@ -161,6 +161,79 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The notice is injected without a sanitizer, so a translation must not be able to
+	 * introduce anything but the checkout link, and a store with no resolvable checkout
+	 * URL must not get a self-linking empty anchor.
+	 *
+	 * @dataProvider provide_go_to_checkout_hardening
+	 * @param string $checkout_url What the checkout URL filter returns.
+	 * @param string $translation  What the translation filter returns for the sentence.
+	 * @param string $expected     The expected notice.
+	 * @return void
+	 */
+	public function test_javascript_params_hardens_the_go_to_checkout_notice( $checkout_url, $translation, $expected ) {
+		$ajax_handler = $this->getMockBuilder( WC_Stripe_Express_Checkout_Ajax_Handler::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $gateway ] )
+			->getMock();
+
+		$checkout_url_filter = static function () use ( $checkout_url ) {
+			return $checkout_url;
+		};
+		$translation_filter  = static function ( $translated, $text, $domain ) use ( $translation ) {
+			if ( 'woocommerce-gateway-stripe' === $domain && 0 === strpos( $text, 'Please go to the %1$s' ) ) {
+				return $translation;
+			}
+			return $translated;
+		};
+		add_filter( 'woocommerce_get_checkout_url', $checkout_url_filter );
+		add_filter( 'gettext', $translation_filter, 10, 3 );
+
+		try {
+			$element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
+			$this->assertSame( $expected, $element->javascript_params()['i18n']['go_to_checkout'] );
+		} finally {
+			remove_filter( 'gettext', $translation_filter, 10 );
+			remove_filter( 'woocommerce_get_checkout_url', $checkout_url_filter );
+		}
+	}
+
+	/**
+	 * Data provider for {@see test_javascript_params_hardens_the_go_to_checkout_notice()}.
+	 *
+	 * @return array[]
+	 */
+	public function provide_go_to_checkout_hardening() {
+		$sentence = 'Please go to the %1$scheckout page%2$s, fill in the required fields, and complete your order from there.';
+
+		return [
+			// kses re-encodes esc_url's &#038; as &amp;; both decode to a literal &.
+			'links to the filtered checkout URL' => [
+				'https://example.com/store/custom-checkout/?one=1&two=2',
+				$sentence,
+				'Please go to the <a href="https://example.com/store/custom-checkout/?one=1&amp;two=2">checkout page</a>, fill in the required fields, and complete your order from there.',
+			],
+			'no anchor without a checkout URL'   => [
+				'',
+				$sentence,
+				'Please go to the checkout page, fill in the required fields, and complete your order from there.',
+			],
+			'hostile translation is stripped'    => [
+				'https://example.com/checkout/',
+				'Go %1$shere%2$s <img src=x onerror="alert(1)"><script>alert(1)</script>',
+				'Go <a href="https://example.com/checkout/">here</a> alert(1)',
+			],
+		];
+	}
+
+	/**
 	 * Test for `scripts`.
 	 *
 	 * @return void

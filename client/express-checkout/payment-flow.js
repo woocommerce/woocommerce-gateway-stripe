@@ -34,6 +34,20 @@ const handlePaymentFlowException = ( event, exception, abortPayment ) => {
 		}
 	}
 
+	if (
+		exception.code === 'wc_stripe_express_checkout_missing_required_fields'
+	) {
+		// Field labels are plain text, not a notice: parsing them as HTML would
+		// truncate the message at anything tag-like in a label.
+		return abortPayment(
+			event,
+			getExpressCheckoutErrorMessage( errorMessage ),
+			{
+				linkToCheckout: exception.data?.link_to_checkout === true,
+			}
+		);
+	}
+
 	return abortPayment(
 		event,
 		getExpressCheckoutErrorMessage(
