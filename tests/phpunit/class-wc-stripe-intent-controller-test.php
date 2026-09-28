@@ -2002,6 +2002,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		$stored = $order_helper->get_stripe_intent_id( wc_get_order( $this->order->get_id() ) );
 		$this->assertSame( $expect_replaced ? 'pi_new' : 'pi_old', $stored );
 		$this->assertSame( $expect_cancelled, in_array( 'POST /v1/payment_intents/pi_old/cancel', $requests->getArrayCopy(), true ) );
+		$this->assertCount( 1, array_keys( $requests->getArrayCopy(), 'GET /v1/payment_intents/pi_new', true ) );
 	}
 
 	/**
@@ -2013,30 +2014,44 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		$unconfirmed = [ 'status' => WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD ];
 
 		return [
-			'failed attempt is cancelled and replaced' => [ [ 'status' => WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD ], $unconfirmed, null, true, true ],
-			'pending action is cancelled and replaced' => [ [ 'status' => WC_Stripe_Intent_Status::REQUIRES_ACTION ], $unconfirmed, null, true, true ],
-			'already cancelled is replaced'            => [ [ 'status' => WC_Stripe_Intent_Status::CANCELED ], $unconfirmed, null, true, false ],
-			'new intent for this order is replaced'    => [
+			'failed attempt is cancelled and replaced'   => [ [ 'status' => WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD ], $unconfirmed, null, true, true ],
+			'pending action is cancelled and replaced'   => [ [ 'status' => WC_Stripe_Intent_Status::REQUIRES_ACTION ], $unconfirmed, null, true, true ],
+			'already cancelled is replaced'              => [ [ 'status' => WC_Stripe_Intent_Status::CANCELED ], $unconfirmed, null, true, false ],
+			'new intent for this order is replaced'      => [
 				[ 'status' => WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD ],
 				array_merge( $unconfirmed, [ 'metadata' => [ 'order_key' => 'self' ] ] ),
 				null,
 				true,
 				true,
 			],
-			'succeeded intent is kept'                 => [ [ 'status' => WC_Stripe_Intent_Status::SUCCEEDED ], $unconfirmed, null, false, false ],
-			'processing intent is kept'                => [ [ 'status' => WC_Stripe_Intent_Status::PROCESSING ], $unconfirmed, null, false, false ],
-			'authorized intent is kept'                => [ [ 'status' => WC_Stripe_Intent_Status::REQUIRES_CAPTURE ], $unconfirmed, null, false, false ],
-			'failed cancel keeps the stored intent'    => [
+			'succeeded intent is kept'                   => [ [ 'status' => WC_Stripe_Intent_Status::SUCCEEDED ], $unconfirmed, null, false, false ],
+			'processing intent is kept'                  => [ [ 'status' => WC_Stripe_Intent_Status::PROCESSING ], $unconfirmed, null, false, false ],
+			'authorized intent is kept'                  => [ [ 'status' => WC_Stripe_Intent_Status::REQUIRES_CAPTURE ], $unconfirmed, null, false, false ],
+			'failed cancel keeps the stored intent'      => [
 				[ 'status' => WC_Stripe_Intent_Status::REQUIRES_ACTION ],
 				$unconfirmed,
 				[ 'error' => [ 'message' => 'Cannot cancel.' ] ],
 				false,
 				true,
 			],
-			'confirmed new intent is rejected'         => [ [ 'status' => WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD ], [ 'status' => WC_Stripe_Intent_Status::REQUIRES_ACTION ], null, false, false ],
-			'new intent of another order is rejected'  => [
+			'confirmed new intent is rejected'           => [ [ 'status' => WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD ], [ 'status' => WC_Stripe_Intent_Status::REQUIRES_ACTION ], null, false, false ],
+			'new intent of another order is rejected'    => [
 				[ 'status' => WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD ],
 				array_merge( $unconfirmed, [ 'metadata' => [ 'order_key' => 'wc_order_other' ] ] ),
+				null,
+				false,
+				false,
+			],
+			'new intent with another amount is rejected' => [
+				[ 'status' => WC_Stripe_Intent_Status::REQUIRES_ACTION ],
+				array_merge( $unconfirmed, [ 'amount' => 1 ] ),
+				null,
+				false,
+				false,
+			],
+			'new intent for another type is rejected'    => [
+				[ 'status' => WC_Stripe_Intent_Status::REQUIRES_ACTION ],
+				array_merge( $unconfirmed, [ 'payment_method_types' => [ WC_Stripe_Payment_Methods::CARD ] ] ),
 				null,
 				false,
 				false,
