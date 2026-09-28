@@ -1184,7 +1184,7 @@ class WC_Stripe_Helper {
 		$disallowed_characters = [ '<', '>', '\\', '*', '"', "'", '/', '(', ')', '{', '}' ];
 
 		// Strip any tags.
-		$statement_descriptor = strip_tags( $statement_descriptor );
+		$statement_descriptor = wp_strip_all_tags( $statement_descriptor );
 
 		// Strip any HTML entities.
 		// Props https://stackoverflow.com/questions/657643/how-to-remove-html-special-chars .
