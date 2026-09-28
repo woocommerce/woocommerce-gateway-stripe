@@ -5,7 +5,7 @@ import { useEffect } from '@wordpress/element';
  * Handles the Block Checkout onCheckoutSuccess event.
  *
  * Confirms the payment intent which was created on server and is now ready to be confirmed. The intent ID is passed in the paymentDetails object via the
- * redirect arg which will be in the following format: #wc-stripe-confirm-pi/si:{order_id}:{client_secret}:{nonce}:{encoded_return_url}
+ * redirect arg which will be in the following format: #wc-stripe-confirm-pi/si:{order_id}:{client_secret}:{nonce}
  *
  * @param {*} api               The api object.
  * @param {*} stripe            The Stripe object.

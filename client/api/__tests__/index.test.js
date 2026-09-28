@@ -267,81 +267,79 @@ describe( 'WCStripeAPI', () => {
 		it.each( [
 			[
 				'payment intent with a return URL',
-				`#wc-stripe-confirm-pi:123:pi_test_secret_abc:nonce1:${ encodeURIComponent(
-					returnUrl
-				) }`,
+				'#wc-stripe-confirm-pi:123:pi_test_secret_abc:nonce1',
+				returnUrl,
 				'confirmPayment',
 				{ return_url: returnUrl },
 			],
 			[
 				'setup intent with a return URL',
-				`#wc-stripe-confirm-si:123:seti_test_secret_abc:nonce1:${ encodeURIComponent(
-					returnUrl
-				) }`,
+				'#wc-stripe-confirm-si:123:seti_test_secret_abc:nonce1',
+				returnUrl,
 				'confirmSetup',
 				{ return_url: returnUrl },
 			],
 			[
 				'full page URL with a return URL',
-				`https://example.com/checkout/#wc-stripe-confirm-pi:123:pi_test_secret_abc:nonce1:${ encodeURIComponent(
-					returnUrl
-				) }`,
+				'https://example.com/checkout/#wc-stripe-confirm-pi:123:pi_test_secret_abc:nonce1',
+				returnUrl,
 				'confirmPayment',
 				{ return_url: returnUrl },
 			],
 			[
-				'hash without a return URL',
+				'payment intent without a return URL',
 				'#wc-stripe-confirm-pi:123:pi_test_secret_abc:nonce1',
+				undefined,
+				'confirmPayment',
+				undefined,
+			],
+			[
+				'payment intent with a return URL on another origin',
+				'#wc-stripe-confirm-pi:123:pi_test_secret_abc:nonce1',
+				'https://attacker.example/phish',
 				'confirmPayment',
 				undefined,
 			],
 		] )(
 			'confirms a %s',
-			async ( _, redirectUrl, confirmMethod, confirmParams ) => {
+			async (
+				_,
+				redirectUrl,
+				givenReturnUrl,
+				confirmMethod,
+				confirmParams
+			) => {
 				const { api, stripe } = setUp();
 
-				const { request } = api.confirmIntent( redirectUrl );
+				const { request } = api.confirmIntent(
+					redirectUrl,
+					null,
+					givenReturnUrl
+				);
 
 				await expect( request ).resolves.toBe(
 					'https://example.com/thank-you'
 				);
 				expect( stripe[ confirmMethod ] ).toHaveBeenCalledTimes( 1 );
 				const [ args ] = stripe[ confirmMethod ].mock.calls[ 0 ];
-				expect( args.clientSecret ).toMatch( /_secret_abc$/ );
+				expect( args.clientSecret ).toBe(
+					redirectUrl.split( ':' ).slice( -2 )[ 0 ]
+				);
 				expect( args.redirect ).toBe( 'if_required' );
 				expect( args.confirmParams ).toEqual( confirmParams );
-			}
-		);
-
-		it.each( [
-			[
-				'another origin',
-				encodeURIComponent( 'https://attacker.example/phish' ),
-			],
-			[ 'a malformed encoding', '%E0%A4%A' ],
-		] )(
-			'confirms without a return URL when the URL is %s',
-			async ( _, encodedReturnUrl ) => {
-				const { api, stripe } = setUp();
-
-				const { request } = api.confirmIntent(
-					`#wc-stripe-confirm-pi:123:pi_test_secret_abc:nonce1:${ encodedReturnUrl }`
-				);
-
-				await expect( request ).resolves.toBe(
-					'https://example.com/thank-you'
-				);
-				const [ args ] = stripe.confirmPayment.mock.calls[ 0 ];
-				expect( args.confirmParams ).toBeUndefined();
 			}
 		);
 
 		it( 'returns true when there is no intent to confirm', () => {
 			const { api, stripe } = setUp();
 
-			expect( api.confirmIntent( 'https://example.com/thank-you' ) ).toBe(
-				true
-			);
+			expect(
+				api.confirmIntent(
+					'https://example.com/thank-you',
+					null,
+					returnUrl
+				)
+			).toBe( true );
 			expect( stripe.confirmPayment ).not.toHaveBeenCalled();
 		} );
 	} );

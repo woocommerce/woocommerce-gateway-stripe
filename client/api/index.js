@@ -317,13 +317,13 @@ export default class WCStripeAPI {
 	 *
 	 * @param {string} redirectUrl         The redirect URL, returned from the server.
 	 * @param {string} paymentMethodToSave The ID of a Payment Method if it should be saved (optional).
+	 * @param {string} returnUrl           The URL Stripe returns the shopper to if the confirm redirects (optional).
 	 * @return {Object|true} An object containing the redirect URL on success and a flag indicating
 	 *   if the page is the Pay for order page, or `true` if no confirmation is needed.
 	 */
-	confirmIntent( redirectUrl, paymentMethodToSave ) {
-		// The return URL part is optional, for hashes built by older server code.
+	confirmIntent( redirectUrl, paymentMethodToSave, returnUrl = null ) {
 		const partials = redirectUrl.match(
-			/#wc-stripe-confirm-(pi|si):([^:]+):([^:]+):([^:]+)(?::([^:]+))?$/
+			/#wc-stripe-confirm-(pi|si):(.+):(.+):(.+)$/
 		);
 
 		if ( ! partials ) {
@@ -353,16 +353,10 @@ export default class WCStripeAPI {
 			redirect: 'if_required',
 		};
 
-		// Stripe needs a return_url when the confirm redirects. The hash can come from the page URL,
-		// so only a same-origin URL is sent, to avoid an open redirect.
-		let returnUrl = null;
-		try {
-			returnUrl = normalizeReturnUrl(
-				decodeURIComponent( partials[ 5 ] || '' )
-			);
-		} catch ( e ) {}
-		if ( returnUrl ) {
-			confirmArgs.confirmParams = { return_url: returnUrl };
+		// Stripe needs a return_url when the confirm redirects. Only a same-origin URL is sent, to avoid an open redirect.
+		const safeReturnUrl = normalizeReturnUrl( returnUrl );
+		if ( safeReturnUrl ) {
+			confirmArgs.confirmParams = { return_url: safeReturnUrl };
 		}
 
 		const confirmAction = isSetupIntent
