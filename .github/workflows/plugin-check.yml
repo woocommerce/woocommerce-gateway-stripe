@@ -1,0 +1,46 @@
+name: Plugin Check
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: plugin-check-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Run the Plugin Check against a plugin zip to avoid noise from code that will not be in the release.
+  build:
+    name: Build release
+    uses: ./.github/workflows/build-upload-zip.yml
+    with:
+      artifact: plugin-check-zip
+
+  plugin-check:
+    name: Run Plugin Check
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # The action writes a .wp-env.json into the workspace, so it needs a checkout to run from.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Download release build
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: plugin-check-zip
+          path: plugin-check-build
+
+      - name: Unzip release build
+        working-directory: plugin-check-build
+        run: unzip -q woocommerce-gateway-stripe.zip
+
+      - name: Run Plugin Check
+        uses: wordpress/plugin-check-action@10857da14b6c2246d15402b3e69f777edcf8c12e # v1.1.9
+        with:
+          build-dir: './plugin-check-build/woocommerce-gateway-stripe'
+          slug: 'woocommerce-gateway-stripe'
