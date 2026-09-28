@@ -1,11 +1,11 @@
 import React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import InstantPayoutsPromotionBanner from '../instant-payouts-promotion-banner';
+import InstantPayoutsPromotionNotice from '../instant-payouts-promotion-notice';
 import apiFetch from '@wordpress/api-fetch';
 
 jest.mock( '@wordpress/api-fetch' );
 
-describe( 'InstantPayoutsPromotionBanner', () => {
+describe( 'InstantPayoutsPromotionNotice', () => {
 	beforeEach( () => {
 		global.window.wc_stripe_admin_payments_params = {
 			locale: 'en-US',
@@ -46,18 +46,18 @@ describe( 'InstantPayoutsPromotionBanner', () => {
 		async ( _, amounts, expected ) => {
 			apiFetch.mockResolvedValue( { instant_available: amounts } );
 
-			render( <InstantPayoutsPromotionBanner /> );
+			render( <InstantPayoutsPromotionNotice /> );
 
 			expect( await screen.findByText( expected ) ).toBeInTheDocument();
 		}
 	);
 
-	it( 'shows the banner without instant payouts when the flag is enabled', async () => {
+	it( 'shows the notice without instant payouts when the flag is enabled', async () => {
 		apiFetch.mockResolvedValue( {} );
 
 		render(
-			<InstantPayoutsPromotionBanner
-				showBannerIfNoInstantPayoutsAvailable
+			<InstantPayoutsPromotionNotice
+				showNoticeIfNoInstantPayoutsAvailable
 			/>
 		);
 
@@ -68,7 +68,7 @@ describe( 'InstantPayoutsPromotionBanner', () => {
 		).toBeInTheDocument();
 	} );
 
-	it( 'hides the banner without instant payouts when the flag is disabled', async () => {
+	it( 'hides the notice without instant payouts when the flag is disabled', async () => {
 		let resolveRequest;
 		apiFetch.mockReturnValue(
 			new Promise( ( resolve ) => {
@@ -77,8 +77,8 @@ describe( 'InstantPayoutsPromotionBanner', () => {
 		);
 
 		const { container } = render(
-			<InstantPayoutsPromotionBanner
-				showBannerIfNoInstantPayoutsAvailable={ false }
+			<InstantPayoutsPromotionNotice
+				showNoticeIfNoInstantPayoutsAvailable={ false }
 			/>
 		);
 
@@ -94,7 +94,7 @@ describe( 'InstantPayoutsPromotionBanner', () => {
 			new Error( 'Unable to load instant payouts.' )
 		);
 
-		const { container } = render( <InstantPayoutsPromotionBanner /> );
+		const { container } = render( <InstantPayoutsPromotionNotice /> );
 		await screen.findByRole( 'button', { name: 'Close' } );
 
 		expect(
@@ -107,7 +107,7 @@ describe( 'InstantPayoutsPromotionBanner', () => {
 			new Error( 'Unable to load instant payouts.' )
 		);
 
-		const { container } = render( <InstantPayoutsPromotionBanner /> );
+		const { container } = render( <InstantPayoutsPromotionNotice /> );
 		const closeButton = await screen.findByRole( 'button', {
 			name: 'Close',
 		} );
@@ -119,6 +119,24 @@ describe( 'InstantPayoutsPromotionBanner', () => {
 		).not.toBeInTheDocument();
 	} );
 
+	it( 'links to test payouts when the balance payload is not live', async () => {
+		apiFetch.mockResolvedValue( {
+			livemode: false,
+			instant_available: [ { amount: 10000, currency: 'usd' } ],
+		} );
+
+		render( <InstantPayoutsPromotionNotice /> );
+
+		await screen.findByText( 'You currently have $100.00 available.' );
+
+		expect(
+			screen.getByRole( 'link', { name: 'Pay out instantly' } )
+		).toHaveAttribute(
+			'href',
+			'https://dashboard.stripe.com/test/payouts/'
+		);
+	} );
+
 	it( 'shows the formatted instant payout amounts returned by the API', async () => {
 		apiFetch.mockResolvedValue( {
 			instant_available: [
@@ -127,7 +145,7 @@ describe( 'InstantPayoutsPromotionBanner', () => {
 			],
 		} );
 
-		render( <InstantPayoutsPromotionBanner /> );
+		render( <InstantPayoutsPromotionNotice /> );
 
 		expect(
 			await screen.findByText(

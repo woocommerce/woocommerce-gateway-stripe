@@ -1,7 +1,10 @@
 @use '@wordpress/base-styles/variables';
 @use '../../styles/abstracts/styles';
 
-$stripe-payments-background-color: var(--wpds-color-background-surface-neutral, #fcfcfc);
+$stripe-payments-background-color: var(
+	--wpds-color-background-surface-neutral,
+	#fcfcfc
+);
 
 .wc-stripe-payments {
 	.wc-stripe-payments__tabs {
@@ -9,7 +12,8 @@ $stripe-payments-background-color: var(--wpds-color-background-surface-neutral, 
 		margin-right: -20px;
 
 		.components-tab-panel__tabs {
-			border-bottom: 1px solid var(--wpds-color-stroke-surface-neutral, #dbdbdb);
+			border-bottom: 1px solid
+				var( --wpds-color-stroke-surface-neutral, #dbdbdb );
 		}
 
 		.components-tab-panel__tabs-item {
@@ -21,12 +25,15 @@ $stripe-payments-background-color: var(--wpds-color-background-surface-neutral, 
 		}
 	}
 
-	.wc-stripe-instant-payouts-promotion-card {
+	.wc-stripe-instant-payouts-promotion-notice {
 		margin-bottom: 24px;
+		border-left: 0;
 		border-radius: variables.$radius-medium;
+		padding: 24px;
 
-		&__body {
-			padding: 24px;
+		> .components-notice__content {
+			width: 100%;
+			margin: 0;
 		}
 
 		&__content {
