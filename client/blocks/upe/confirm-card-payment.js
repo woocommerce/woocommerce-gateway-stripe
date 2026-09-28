@@ -1,3 +1,5 @@
+import { confirmIntent } from 'wcstripe/api/intents';
+
 /**
  * Handles the confirmation of card payments (3DSv2 modals/SCA challenge).
  *
@@ -16,7 +18,8 @@ export default async function confirmCardPayment(
 	const { redirect, payment_method: paymentMethod } = paymentDetails;
 
 	try {
-		const confirmation = api.confirmIntent(
+		const confirmation = confirmIntent(
+			api,
 			redirect,
 			shouldSavePayment ? paymentMethod : null
 		);

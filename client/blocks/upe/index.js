@@ -15,7 +15,7 @@ import {
 	expressCheckoutElementGooglePay,
 	expressCheckoutElementStripeLink,
 } from 'wcstripe/blocks/express-checkout';
-import WCStripeAPI from 'wcstripe/api';
+import { createApiClient } from 'wcstripe/api/core';
 import {
 	addOrderAttributionInputsIfNotExists,
 	getBlocksConfiguration,
@@ -25,15 +25,7 @@ import './styles.scss';
 import 'wcstripe/blocks/express-checkout/styles.scss';
 import { upeElement } from 'wcstripe/blocks/upe/upe-element';
 
-const api = new WCStripeAPI(
-	getBlocksConfiguration(),
-	// A promise-based interface to jQuery.post.
-	( url, args ) => {
-		return new Promise( ( resolve, reject ) => {
-			jQuery.post( url, args ).then( resolve ).fail( reject );
-		} );
-	}
-);
+const api = createApiClient( getBlocksConfiguration() );
 
 const paymentMethodsConfig =
 	getBlocksConfiguration()?.paymentMethodsConfig ?? {};

@@ -88,6 +88,28 @@ module.exports = {
 			'@wordpress/data',
 		],
 	},
+	overrides: [
+		{
+			// Classic checkout makes no Store API requests. Importing these here would put
+			// the wp-api-fetch and wp-hooks scripts back on every classic checkout page.
+			files: [
+				'client/classic/**',
+				'client/api/core.js',
+				'client/api/stripe.js',
+				'client/api/intents.js',
+			],
+			excludedFiles: [ '**/__tests__/**' ],
+			rules: {
+				'no-restricted-imports': [
+					'error',
+					{
+						paths: [ '@wordpress/api-fetch' ],
+						patterns: [ '**/api/express-checkout' ],
+					},
+				],
+			},
+		},
+	],
 	ignorePatterns: [
 		'build/**',
 		'node_modules/**',

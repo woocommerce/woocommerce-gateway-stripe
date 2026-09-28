@@ -8,8 +8,24 @@ import {
 	shippingRateChangeHandler,
 	setCartApiHandler,
 } from 'wcstripe/express-checkout/event-handler';
+import {
+	expressCheckoutECECreateOrder,
+	expressCheckoutECEPayForOrder,
+	expressCheckoutNormalizeAddress,
+} from 'wcstripe/api/express-checkout';
+import { confirmIntent } from 'wcstripe/api/intents';
 
 jest.mock( '@woocommerce/blocks-checkout', () => {}, { virtual: true } );
+
+jest.mock( 'wcstripe/api/express-checkout', () => ( {
+	expressCheckoutECECreateOrder: jest.fn(),
+	expressCheckoutECEPayForOrder: jest.fn(),
+	expressCheckoutNormalizeAddress: jest.fn(),
+} ) );
+
+jest.mock( 'wcstripe/api/intents', () => ( {
+	confirmIntent: jest.fn(),
+} ) );
 
 jest.mock( 'wcstripe/stripe-utils/get-stripe-server-data', () => ( {
 	getStripeServerData: jest.fn( () => ( {
@@ -312,12 +328,11 @@ describe( 'Express checkout event handlers', () => {
 				blockUI: jest.fn(),
 				unblockUI: jest.fn(),
 			};
-			api = {
-				expressCheckoutNormalizeAddress: jest.fn(),
-				expressCheckoutECECreateOrder: jest.fn(),
-				expressCheckoutECEPayForOrder: jest.fn(),
-				confirmIntent: jest.fn(),
-			};
+			api = {};
+			expressCheckoutECECreateOrder.mockReset();
+			expressCheckoutECEPayForOrder.mockReset();
+			expressCheckoutNormalizeAddress.mockReset();
+			confirmIntent.mockReset();
 			stripe = {
 				createPaymentMethod: jest.fn(),
 			};
@@ -435,7 +450,7 @@ describe( 'Express checkout event handlers', () => {
 			stripe.createPaymentMethod.mockResolvedValue( {
 				paymentMethod: { id: 'pm_123' },
 			} );
-			api.expressCheckoutECECreateOrder.mockResolvedValue( {
+			expressCheckoutECECreateOrder.mockResolvedValue( {
 				payment_result: {
 					payment_status: 'error',
 					payment_details: [
@@ -460,7 +475,7 @@ describe( 'Express checkout event handlers', () => {
 				event,
 				paymentMethodId: 'pm_123',
 			} );
-			expect( api.expressCheckoutECECreateOrder ).toHaveBeenCalledWith(
+			expect( expressCheckoutECECreateOrder ).toHaveBeenCalledWith(
 				expectedOrderData
 			);
 			expect( abortPayment ).toHaveBeenCalledWith(
@@ -475,13 +490,13 @@ describe( 'Express checkout event handlers', () => {
 			stripe.createPaymentMethod.mockResolvedValue( {
 				paymentMethod: { id: 'pm_123' },
 			} );
-			api.expressCheckoutECECreateOrder.mockResolvedValue( {
+			expressCheckoutECECreateOrder.mockResolvedValue( {
 				payment_result: {
 					payment_status: 'success',
 					redirect_url: 'https://example.com/redirect',
 				},
 			} );
-			api.confirmIntent.mockReturnValue( true );
+			confirmIntent.mockReturnValue( true );
 
 			await onConfirmHandler( {
 				api,
@@ -492,7 +507,8 @@ describe( 'Express checkout event handlers', () => {
 				event,
 			} );
 
-			expect( api.confirmIntent ).toHaveBeenCalledWith(
+			expect( confirmIntent ).toHaveBeenCalledWith(
+				api,
 				'https://example.com/redirect'
 			);
 			expect( completePayment ).toHaveBeenCalledWith(
@@ -506,13 +522,13 @@ describe( 'Express checkout event handlers', () => {
 			stripe.createPaymentMethod.mockResolvedValue( {
 				paymentMethod: { id: 'pm_123' },
 			} );
-			api.expressCheckoutECECreateOrder.mockResolvedValue( {
+			expressCheckoutECECreateOrder.mockResolvedValue( {
 				payment_result: {
 					payment_status: 'success',
 					redirect_url: 'https://example.com/redirect',
 				},
 			} );
-			api.confirmIntent.mockReturnValue( {
+			confirmIntent.mockReturnValue( {
 				request: Promise.resolve(
 					'https://example.com/confirmation_redirect'
 				),
@@ -527,7 +543,8 @@ describe( 'Express checkout event handlers', () => {
 				event,
 			} );
 
-			expect( api.confirmIntent ).toHaveBeenCalledWith(
+			expect( confirmIntent ).toHaveBeenCalledWith(
+				api,
 				'https://example.com/redirect'
 			);
 			expect( completePayment ).toHaveBeenCalledWith(
@@ -541,13 +558,13 @@ describe( 'Express checkout event handlers', () => {
 			stripe.createPaymentMethod.mockResolvedValue( {
 				paymentMethod: { id: 'pm_123' },
 			} );
-			api.expressCheckoutECECreateOrder.mockResolvedValue( {
+			expressCheckoutECECreateOrder.mockResolvedValue( {
 				payment_result: {
 					payment_status: 'success',
 					redirect_url: 'https://example.com/redirect',
 				},
 			} );
-			api.confirmIntent.mockReturnValue( {
+			confirmIntent.mockReturnValue( {
 				request: Promise.reject(
 					new Error( 'Intent confirmation error' )
 				),
@@ -562,7 +579,8 @@ describe( 'Express checkout event handlers', () => {
 				event,
 			} );
 
-			expect( api.confirmIntent ).toHaveBeenCalledWith(
+			expect( confirmIntent ).toHaveBeenCalledWith(
+				api,
 				'https://example.com/redirect'
 			);
 			expect( abortPayment ).toHaveBeenCalledWith(
@@ -577,7 +595,7 @@ describe( 'Express checkout event handlers', () => {
 			stripe.createPaymentMethod.mockResolvedValue( {
 				paymentMethod: { id: 'pm_123' },
 			} );
-			api.expressCheckoutECEPayForOrder.mockResolvedValue( {
+			expressCheckoutECEPayForOrder.mockResolvedValue( {
 				payment_result: {
 					payment_status: 'error',
 					payment_details: [
@@ -603,7 +621,7 @@ describe( 'Express checkout event handlers', () => {
 				event,
 				paymentMethodId: 'pm_123',
 			} );
-			expect( api.expressCheckoutECEPayForOrder ).toHaveBeenCalledWith(
+			expect( expressCheckoutECEPayForOrder ).toHaveBeenCalledWith(
 				123,
 				{},
 				expectedOrderData
@@ -620,13 +638,13 @@ describe( 'Express checkout event handlers', () => {
 			stripe.createPaymentMethod.mockResolvedValue( {
 				paymentMethod: { id: 'pm_123' },
 			} );
-			api.expressCheckoutECEPayForOrder.mockResolvedValue( {
+			expressCheckoutECEPayForOrder.mockResolvedValue( {
 				payment_result: {
 					payment_status: 'success',
 					redirect_url: 'https://example.com/redirect',
 				},
 			} );
-			api.confirmIntent.mockReturnValue( true );
+			confirmIntent.mockReturnValue( true );
 
 			await onConfirmHandler( {
 				api,
@@ -638,7 +656,8 @@ describe( 'Express checkout event handlers', () => {
 				order,
 			} );
 
-			expect( api.confirmIntent ).toHaveBeenCalledWith(
+			expect( confirmIntent ).toHaveBeenCalledWith(
+				api,
 				'https://example.com/redirect'
 			);
 			expect( completePayment ).toHaveBeenCalledWith(
@@ -652,13 +671,13 @@ describe( 'Express checkout event handlers', () => {
 			stripe.createPaymentMethod.mockResolvedValue( {
 				paymentMethod: { id: 'pm_123' },
 			} );
-			api.expressCheckoutECEPayForOrder.mockResolvedValue( {
+			expressCheckoutECEPayForOrder.mockResolvedValue( {
 				payment_result: {
 					payment_status: 'success',
 					redirect_url: 'https://example.com/redirect',
 				},
 			} );
-			api.confirmIntent.mockReturnValue( {
+			confirmIntent.mockReturnValue( {
 				request: Promise.resolve(
 					'https://example.com/confirmation_redirect'
 				),
@@ -674,7 +693,8 @@ describe( 'Express checkout event handlers', () => {
 				order,
 			} );
 
-			expect( api.confirmIntent ).toHaveBeenCalledWith(
+			expect( confirmIntent ).toHaveBeenCalledWith(
+				api,
 				'https://example.com/redirect'
 			);
 			expect( completePayment ).toHaveBeenCalledWith(
@@ -688,13 +708,13 @@ describe( 'Express checkout event handlers', () => {
 			stripe.createPaymentMethod.mockResolvedValue( {
 				paymentMethod: { id: 'pm_123' },
 			} );
-			api.expressCheckoutECEPayForOrder.mockResolvedValue( {
+			expressCheckoutECEPayForOrder.mockResolvedValue( {
 				payment_result: {
 					payment_status: 'success',
 					redirect_url: 'https://example.com/redirect',
 				},
 			} );
-			api.confirmIntent.mockReturnValue( {
+			confirmIntent.mockReturnValue( {
 				request: Promise.reject(
 					new Error( 'Intent confirmation error' )
 				),
@@ -710,7 +730,8 @@ describe( 'Express checkout event handlers', () => {
 				order,
 			} );
 
-			expect( api.confirmIntent ).toHaveBeenCalledWith(
+			expect( confirmIntent ).toHaveBeenCalledWith(
+				api,
 				'https://example.com/redirect'
 			);
 			expect( abortPayment ).toHaveBeenCalledWith(
@@ -728,7 +749,7 @@ describe( 'Express checkout event handlers', () => {
 			stripe.createPaymentMethod.mockResolvedValue( {
 				paymentMethod: { id: 'pm_123' },
 			} );
-			api.expressCheckoutECECreateOrder.mockResolvedValue( {
+			expressCheckoutECECreateOrder.mockResolvedValue( {
 				payment_result: {
 					payment_status: 'success',
 					payment_details: [
@@ -749,7 +770,7 @@ describe( 'Express checkout event handlers', () => {
 				},
 			} );
 
-			api.confirmIntent.mockReturnValue( true );
+			confirmIntent.mockReturnValue( true );
 
 			await onConfirmHandler( {
 				api,
@@ -760,8 +781,9 @@ describe( 'Express checkout event handlers', () => {
 				event,
 			} );
 
-			expect( api.expressCheckoutECECreateOrder ).toHaveBeenCalled();
-			expect( api.confirmIntent ).toHaveBeenCalledWith(
+			expect( expressCheckoutECECreateOrder ).toHaveBeenCalled();
+			expect( confirmIntent ).toHaveBeenCalledWith(
+				api,
 				threeDSRedirectUrl
 			);
 			expect( completePayment ).toHaveBeenCalledWith(

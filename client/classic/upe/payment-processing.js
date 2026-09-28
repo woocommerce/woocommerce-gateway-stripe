@@ -1,4 +1,12 @@
 import jQuery from 'jquery';
+import { getAjaxUrl } from '../../api/core';
+import {
+	confirmChangePayment,
+	createIntent,
+	initSetupIntent,
+	setupIntent,
+} from '../../api/intents';
+import { getStripe } from '../../api/stripe';
 import {
 	appendPaymentMethodIdToForm,
 	appendPaymentIntentIdToForm,
@@ -389,9 +397,9 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				stripeServerData?.isChangingPayment;
 
 			if ( isSetupIntent ) {
-				intent = await api.initSetupIntent( paymentMethodType );
+				intent = await initSetupIntent( api, paymentMethodType );
 			} else {
-				intent = await api.createIntent( null, paymentMethodType );
+				intent = await createIntent( api, null, paymentMethodType );
 			}
 		} catch ( error ) {
 			showErrorPaymentMethod(
@@ -457,7 +465,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		}
 	}
 
-	const stripe = api.getStripe();
+	const stripe = getStripe( api );
 	let elements;
 	let shouldLoadStripeElements = true;
 	// If Adaptive Pricing is enabled, use the Checkout Session API to load the elements.
@@ -754,8 +762,7 @@ function createStripePaymentMethod(
 			  }
 			: { elements, params };
 
-	return api
-		.getStripe( paymentMethodType )
+	return getStripe( api )
 		.createPaymentMethod( paymentMethodData )
 		.then( ( paymentMethod ) => {
 			if ( paymentMethod.error ) {
@@ -1281,7 +1288,7 @@ export const processPayment = (
 				// order-received page (not the checkout page).
 				appendCheckoutSessionIdToForm( jQueryForm, sessionId );
 
-				const checkoutUrl = api.getAjaxUrl( 'checkout', '' );
+				const checkoutUrl = getAjaxUrl( api, 'checkout', '' );
 				const checkoutResponse = await jQuery.ajax( {
 					type: 'POST',
 					url: checkoutUrl,
@@ -1421,9 +1428,8 @@ export const createAndConfirmSetupIntent = (
 	setStopFormSubmission
 ) => {
 	const additionalData = getAdditionalSetupIntentData( jQueryForm );
-	return api
-		.setupIntent( paymentMethod, additionalData )
-		.then( function ( confirmedSetupIntent ) {
+	return setupIntent( api, paymentMethod, additionalData ).then(
+		function ( confirmedSetupIntent ) {
 			switch ( confirmedSetupIntent ) {
 				case 'incomplete':
 					// When the set up wasn't completed, we need to unlock the form and stop the process.
@@ -1436,7 +1442,8 @@ export const createAndConfirmSetupIntent = (
 					appendSetupIntentToForm( jQueryForm, confirmedSetupIntent );
 					return confirmedSetupIntent;
 			}
-		} );
+		}
+	);
 };
 
 /**
@@ -1493,19 +1500,23 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
 
 	try {
 		// Confirm the payment to tell Stripe to display the voucher to the customer.
+		const stripe = getStripe( api );
 		let confirmPayment;
 		if ( paymentMethodType === PAYMENT_METHOD_BOLETO ) {
-			confirmPayment = await api
-				.getStripe()
-				.confirmBoletoPayment( clientSecret, {} );
+			confirmPayment = await stripe.confirmBoletoPayment(
+				clientSecret,
+				{}
+			);
 		} else if ( paymentMethodType === PAYMENT_METHOD_MULTIBANCO ) {
-			confirmPayment = await api
-				.getStripe()
-				.confirmMultibancoPayment( clientSecret, {} );
+			confirmPayment = await stripe.confirmMultibancoPayment(
+				clientSecret,
+				{}
+			);
 		} else {
-			confirmPayment = await api
-				.getStripe()
-				.confirmOxxoPayment( clientSecret, {} );
+			confirmPayment = await stripe.confirmOxxoPayment(
+				clientSecret,
+				{}
+			);
 		}
 
 		if ( confirmPayment.error ) {
@@ -1616,31 +1627,36 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 		let confirmPayment;
 		switch ( paymentMethodType ) {
 			case PAYMENT_METHOD_WECHAT_PAY:
-				confirmPayment = await api
-					.getStripe()
-					.confirmWechatPayPayment( clientSecret, {
+				confirmPayment = await getStripe( api ).confirmWechatPayPayment(
+					clientSecret,
+					{
 						payment_method_options: {
 							wechat_pay: {
 								client: 'web',
 							},
 						},
-					} );
+					}
+				);
 				break;
-			case PAYMENT_METHOD_CASHAPP:
+			case PAYMENT_METHOD_CASHAPP: {
+				const stripe = getStripe( api );
 				if ( intentType === 'setup_intent' ) {
-					confirmPayment = await api
-						.getStripe()
-						.confirmCashappSetup( clientSecret, {
+					confirmPayment = await stripe.confirmCashappSetup(
+						clientSecret,
+						{
 							return_url: returnURL,
-						} );
+						}
+					);
 				} else {
-					confirmPayment = await api
-						.getStripe()
-						.confirmCashappPayment( clientSecret, {
+					confirmPayment = await stripe.confirmCashappPayment(
+						clientSecret,
+						{
 							return_url: returnURL,
-						} );
+						}
+					);
 				}
 				break;
+			}
 			default:
 				// eslint-disable-next-line no-console
 				console.error( 'Invalid wallet type:', paymentMethodType );
@@ -1669,15 +1685,12 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 
 			// If we're changing a subscription's payment method, there's an extra step needed.
 			// We need to confirm the change payment intent via the confirm_change_payment AJAX request and then redirect to the return URL.
-			const response = await api.request(
-				api.getAjaxUrl( 'confirm_change_payment' ),
-				{
-					order_id: orderId,
-					intent_id: intentObject.id,
-					payment_method_id: intentObject.payment_method || null,
-					_ajax_nonce: partials[ 6 ],
-				}
-			);
+			const response = await confirmChangePayment( api, {
+				orderId,
+				intentId: intentObject.id,
+				paymentMethodId: intentObject.payment_method,
+				nonce: partials[ 6 ],
+			} );
 
 			if ( response.success ) {
 				window.location.href = response.data.return_url;
