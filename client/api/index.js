@@ -320,7 +320,7 @@ export default class WCStripeAPI {
 	 *   if the page is the Pay for order page, or `true` if no confirmation is needed.
 	 */
 	confirmIntent( redirectUrl, paymentMethodToSave ) {
-		// The fifth part (the encoded return URL) is optional so hashes built by older server code still work.
+		// The return URL part is optional, for hashes built by older server code.
 		const partials = redirectUrl.match(
 			/#wc-stripe-confirm-(pi|si):([^:]+):([^:]+):([^:]+)(?::([^:]+))?$/
 		);
@@ -352,7 +352,7 @@ export default class WCStripeAPI {
 			redirect: 'if_required',
 		};
 
-		// Stripe rejects a confirm that must redirect the shopper when it has no return_url.
+		// Stripe needs a return_url when the confirm redirects.
 		if ( partials[ 5 ] ) {
 			confirmArgs.confirmParams = {
 				return_url: decodeURIComponent( partials[ 5 ] ),

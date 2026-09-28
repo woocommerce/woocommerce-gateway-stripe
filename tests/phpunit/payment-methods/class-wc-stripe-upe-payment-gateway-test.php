@@ -1030,8 +1030,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	/**
 	 * Test SCA/3DS checkout process_payment flow with deferred intent.
 	 *
-	 * The confirm hash also carries the order's redirect return URL, because the client confirms the
-	 * intent again and Stripe rejects a confirm that must redirect the shopper without a return_url.
+	 * The confirm hash also carries the return URL for the client confirm.
 	 *
 	 * @return void
 	 */

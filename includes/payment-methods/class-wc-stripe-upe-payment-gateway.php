@@ -4544,8 +4544,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return $payment_intent->next_action->{$payment_intent->next_action->type}->url;
 		}
 
-		// The client confirms this intent again, and Stripe needs a return_url if that confirm redirects
-		// the shopper. The redirect URL carries the nonce that maybe_process_upe_redirect() checks.
+		// Stripe needs a return_url if the client confirm redirects. This URL has the nonce maybe_process_upe_redirect() checks.
 		$confirm_return_url = is_string( $payment_information['return_url'] ?? null ) && '' !== $payment_information['return_url']
 			? $payment_information['return_url']
 			: $return_url;
