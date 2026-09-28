@@ -156,6 +156,7 @@ Good comments explain intent; they do not restate the code. The CRITICAL rule ab
 - For version/release changes, update `changelog.txt`, `readme.txt` stable tag, and related version references together.
 - `changelog.txt` and `readme.txt` use **different version header formats**: `changelog.txt` uses `YYYY-MM-DD - version X.Y.Z` (WooCommerce.com parser format); `readme.txt` uses `= X.Y.Z - YYYY-MM-DD =` (WordPress.org format). Do not convert one to the other. `bin/changelog.js` handles both formats.
 - For WooCommerce version resolution logic, include explicit cases for stable, RC, and beta semantics.
+- For same-repo PRs targeting `develop`, the `Auto-resolve changelog conflicts` workflow merges `develop` in when the only conflicts are in `changelog.txt`/`readme.txt`, appending the PR's entries to the upcoming section (`bin/resolve-changelog-conflicts.js`). It refuses edited lines, version headers, and readme metadata; resolve those by hand.
 
 ## Version Support
 
