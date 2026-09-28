@@ -53,8 +53,8 @@ class WC_Stripe_Test_Suite_Loader implements TestSuiteLoader {
 				throw new Exception(
 					sprintf(
 						'Class %s could not be found in %s',
-						$suite_class_name,
-						$suite_class_file
+						$suite_class_name, // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+						$suite_class_file // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 					)
 				);
 			}
@@ -65,7 +65,7 @@ class WC_Stripe_Test_Suite_Loader implements TestSuiteLoader {
 		try {
 			$class = new ReflectionClass( $suite_class_name );
 		} catch ( ReflectionException $e ) {
-			throw new Exception( $e->getMessage(), (int) $e->getCode(), $e );
+			throw new Exception( $e->getMessage(), (int) $e->getCode(), $e ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		$this->validate_resolved_class( $class, $suite_class_name, $suite_class_file );
@@ -168,8 +168,8 @@ class WC_Stripe_Test_Suite_Loader implements TestSuiteLoader {
 				throw new Exception(
 					sprintf(
 						'Class %s declared in %s is abstract',
-						$suite_class_name,
-						$suite_class_file
+						$suite_class_name, // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+						$suite_class_file // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 					)
 				);
 			}
@@ -184,18 +184,18 @@ class WC_Stripe_Test_Suite_Loader implements TestSuiteLoader {
 				throw new Exception(
 					sprintf(
 						'Method %s::suite() declared in %s is abstract',
-						$suite_class_name,
-						$suite_class_file
+						$suite_class_name, // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+						$suite_class_file // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 					)
 				);
 			}
 
 			if ( ! $method->isPublic() ) {
-				throw new Exception(
+				throw new Exception( // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 					sprintf(
 						'Method %s::suite() declared in %s is not public',
-						$suite_class_name,
-						$suite_class_file
+						$suite_class_name, // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+						$suite_class_file // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 					)
 				);
 			}
@@ -204,8 +204,8 @@ class WC_Stripe_Test_Suite_Loader implements TestSuiteLoader {
 				throw new Exception(
 					sprintf(
 						'Method %s::suite() declared in %s is not static',
-						$suite_class_name,
-						$suite_class_file
+						$suite_class_name, // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+						$suite_class_file // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 					)
 				);
 			}
