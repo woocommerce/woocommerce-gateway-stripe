@@ -147,7 +147,7 @@ jobs:
 
           check_file() {
             local file="$1" header_re="$2"
-            local added block
+            local added content block
 
             added="$(git diff "${TARGET_SHA}" "${PR_SHA}" -- "$file" | grep '^+\*' | sed 's/^+//' || true)"
             if [ -z "$added" ]; then
@@ -155,11 +155,16 @@ jobs:
             fi
 
             # The milestone's block: everything between its header and the next one.
-            block="$(git show "${PR_SHA}:${file}" | awk -v re="$header_re" '
+            # Use a here-string rather than piping git show into awk, as in the
+            # trailing-period step: awk exits at the next header, and with pipefail
+            # git show then fails with SIGPIPE (exit 141) whenever the file is larger
+            # than the pipe buffer and the milestone block sits near the top.
+            content="$(git show "${PR_SHA}:${file}")"
+            block="$(awk -v re="$header_re" '
               $0 ~ re { inside = 1; next }
               inside && /^([0-9x]+-[0-9x]+-[0-9x]+ - version |= [0-9])/ { exit }
               inside { print }
-            ')"
+            ' <<< "$content")"
 
             if [ -z "$block" ]; then
               echo "::error file=${file}::No version ${MILESTONE} section found in ${file}."

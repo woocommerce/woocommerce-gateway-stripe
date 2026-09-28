@@ -89,6 +89,21 @@ describe( 'getPaymentMethodUnavailableReason', () => {
 		).toBe( PAYMENT_METHOD_UNAVAILABLE_REASONS.UNSUPPORTED_CURRENCY );
 	} );
 
+	it( 'should return null when a payment method supports a currency supplied by a multi-currency plugin', () => {
+		global.wc_stripe_settings_params.available_store_currencies = [
+			'USD',
+			'EUR',
+		];
+
+		expect(
+			getPaymentMethodUnavailableReason( {
+				paymentMethodId: PAYMENT_METHOD_SEPA,
+				storeCurrencyCode: 'USD',
+				isAdaptivePricingSupported: false,
+			} )
+		).toBeNull();
+	} );
+
 	it( 'should return null for unsupported currency when Adaptive Pricing is supported', () => {
 		expect(
 			getPaymentMethodUnavailableReason( {

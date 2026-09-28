@@ -26,7 +26,7 @@ class WC_Stripe_Payment_Methods {
 	/**
 	 * The giropay method ID.
 	 *
-	 * @deprecated 11.0.0 giropay is discontinued; still needed to read historical order data.
+	 * @deprecated 11.1.0 giropay is discontinued; still needed to read historical order data.
 	 */
 	public const GIROPAY    = 'giropay';
 	public const IDEAL      = 'ideal';
@@ -39,7 +39,7 @@ class WC_Stripe_Payment_Methods {
 	/**
 	 * The Sofort method ID.
 	 *
-	 * @deprecated 11.0.0 Sofort is discontinued; still needed to read historical order data.
+	 * @deprecated 11.1.0 Sofort is discontinued; still needed to read historical order data.
 	 */
 	public const SOFORT     = 'sofort';
 	public const WECHAT_PAY = 'wechat_pay';

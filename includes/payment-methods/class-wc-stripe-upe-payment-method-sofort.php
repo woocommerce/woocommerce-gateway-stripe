@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Sofort Payment Method class extending UPE base class
  *
- * @deprecated 11.0.0 Discontinued by Stripe on 2025-03-31; kept only for refunds and
+ * @deprecated 11.1.0 Discontinued by Stripe on 2025-03-31; kept only for refunds and
  * SEPA-mandate subscription renewals on existing orders.
  */
 class WC_Stripe_UPE_Payment_Method_Sofort extends WC_Stripe_UPE_Payment_Method {
