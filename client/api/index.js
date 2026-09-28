@@ -9,6 +9,7 @@ import {
 import { getStripeDevWidgetOptions } from 'wcstripe/stripe-utils';
 import { getStripeServerData } from 'wcstripe/stripe-utils/get-stripe-server-data';
 import { getSharedStripeInstance } from 'wcstripe/stripe-utils/shared-stripe-instance';
+import { normalizeReturnUrl } from 'wcstripe/stripe-utils/normalize-return-url';
 import {
 	PAYMENT_INTENT_STATUS_REQUIRES_ACTION,
 	PAYMENT_METHOD_CASHAPP,
@@ -352,11 +353,16 @@ export default class WCStripeAPI {
 			redirect: 'if_required',
 		};
 
-		// Stripe needs a return_url when the confirm redirects.
-		if ( partials[ 5 ] ) {
-			confirmArgs.confirmParams = {
-				return_url: decodeURIComponent( partials[ 5 ] ),
-			};
+		// Stripe needs a return_url when the confirm redirects. The hash can come from the page URL,
+		// so only a same-origin URL is sent, to avoid an open redirect.
+		let returnUrl = null;
+		try {
+			returnUrl = normalizeReturnUrl(
+				decodeURIComponent( partials[ 5 ] || '' )
+			);
+		} catch ( e ) {}
+		if ( returnUrl ) {
+			confirmArgs.confirmParams = { return_url: returnUrl };
 		}
 
 		const confirmAction = isSetupIntent

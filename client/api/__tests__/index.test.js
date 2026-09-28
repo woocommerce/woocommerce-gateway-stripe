@@ -240,8 +240,7 @@ describe( 'WCStripeAPI', () => {
 	} );
 
 	describe( 'confirmIntent', () => {
-		const returnUrl =
-			'https://example.com/checkout/order-received/123/?key=wc_order_abc&order_id=123&wc_payment_method=stripe&_wpnonce=n1';
+		const returnUrl = `${ window.location.origin }/checkout/order-received/123/?key=wc_order_abc&order_id=123&wc_payment_method=stripe&_wpnonce=n1`;
 
 		const setUp = () => {
 			const stripe = {
@@ -311,6 +310,29 @@ describe( 'WCStripeAPI', () => {
 				expect( args.clientSecret ).toMatch( /_secret_abc$/ );
 				expect( args.redirect ).toBe( 'if_required' );
 				expect( args.confirmParams ).toEqual( confirmParams );
+			}
+		);
+
+		it.each( [
+			[
+				'another origin',
+				encodeURIComponent( 'https://attacker.example/phish' ),
+			],
+			[ 'a malformed encoding', '%E0%A4%A' ],
+		] )(
+			'confirms without a return URL when the URL is %s',
+			async ( _, encodedReturnUrl ) => {
+				const { api, stripe } = setUp();
+
+				const { request } = api.confirmIntent(
+					`#wc-stripe-confirm-pi:123:pi_test_secret_abc:nonce1:${ encodedReturnUrl }`
+				);
+
+				await expect( request ).resolves.toBe(
+					'https://example.com/thank-you'
+				);
+				const [ args ] = stripe.confirmPayment.mock.calls[ 0 ];
+				expect( args.confirmParams ).toBeUndefined();
 			}
 		);
 
