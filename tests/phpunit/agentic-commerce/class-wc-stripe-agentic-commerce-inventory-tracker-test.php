@@ -52,7 +52,6 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		WC_Stripe_API::set_secret_key( '' );
 		remove_all_filters( 'wc_stripe_agentic_commerce_files_api_pre_request' );
 		remove_all_filters( 'wc_stripe_agentic_commerce_import_set_pre_request' );
-		remove_all_filters( 'pre_http_request' );
 
 		// Remove any action hooks registered by this test's sut to prevent leaking into subsequent tests.
 		if ( isset( $this->sut ) ) {
@@ -410,7 +409,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 
 	/**
 	 * Test that `track_stock_change` skips products an adapter excluded via
-	 * `woocommerce_agentic_commerce_should_sync_product`. Guards the contract that
+	 * `wc_stripe_agentic_commerce_should_sync_product`. Guards the contract that
 	 * a product excluded from the catalog must not generate inventory deltas
 	 * either — otherwise Stripe would receive stock updates for SKUs it doesn't
 	 * know about.
@@ -420,14 +419,14 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	public function test_track_stock_change_skips_excluded_product() {
 		$product  = $this->create_simple_product_with_stock( 10 );
 		$callback = static fn( $sync, $candidate ) => $candidate->get_id() !== $product->get_id();
-		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10, 2 );
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10, 2 );
 
 		try {
 			$this->sut->track_stock_change( $product );
 
 			$this->assertSame( [], get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION, [] ) );
 		} finally {
-			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10 );
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10 );
 		}
 	}
 
@@ -449,14 +448,14 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 
 		// Flip the filter to exclude this product, then trigger another stock change.
 		$callback = static fn( $sync, $candidate ) => $candidate->get_id() !== $product->get_id();
-		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10, 2 );
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10, 2 );
 
 		try {
 			$this->sut->track_stock_change( $product );
 
 			$this->assertSame( [], get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION, [] ) );
 		} finally {
-			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10 );
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10 );
 		}
 	}
 
@@ -746,7 +745,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		// and no further event fires for it before the flush.
 		$flipped_id = $flipped_product->get_id();
 		$callback   = static fn( $sync, $candidate ) => $candidate->get_id() !== $flipped_id;
-		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10, 2 );
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10, 2 );
 
 		// Capture the file path passed to the Files API request so we can read
 		// the uploaded CSV content and prove what was actually sent. Asserting
@@ -773,7 +772,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		try {
 			$this->sut->sync_inventory();
 		} finally {
-			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10 );
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10 );
 		}
 
 		$this->assertNotNull( $uploaded_skus, 'A feed should have been uploaded for the kept product.' );
@@ -938,7 +937,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	public function test_track_product_archive_queues_delete_for_excluded_product() {
 		$product  = $this->create_simple_product_with_stock( 3 );
 		$callback = static fn( $sync, $candidate ) => $candidate->get_id() !== $product->get_id();
-		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10, 2 );
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10, 2 );
 
 		try {
 			$this->sut->track_product_archive( $product );
@@ -947,7 +946,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 			$this->assertArrayHasKey( $product->get_id(), $pending );
 			$this->assertEquals( 'true', $pending[ $product->get_id() ]['delete'] );
 		} finally {
-			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10 );
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10 );
 		}
 	}
 
@@ -967,7 +966,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 
 		// Flip the filter, then trigger an archive event.
 		$callback = static fn( $sync, $candidate ) => $candidate->get_id() !== $product->get_id();
-		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10, 2 );
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10, 2 );
 
 		try {
 			$this->sut->track_product_archive( $product );
@@ -975,7 +974,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 			$this->assertSame( [], get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION, [] ) );
 			$this->assertArrayHasKey( $product->get_id(), get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] ) );
 		} finally {
-			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10 );
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10 );
 		}
 	}
 
@@ -1289,31 +1288,32 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 			}
 		);
 
+		$mock_successful_response_filter = function ( $pre, $args, $url ) {
+			if ( false !== strpos( $url, 'import_sets' ) ) {
+				return [
+					'response' => [ 'code' => 200 ],
+					'body'     => wp_json_encode(
+						[
+							'id'     => 'impset_test_arc_456',
+							'status' => 'pending',
+						]
+					),
+				];
+			}
+			return $pre;
+		};
+
 		// Short-circuit the ImportSet creation.
-		add_filter(
-			'pre_http_request',
-			function ( $pre, $args, $url ) {
-				if ( false !== strpos( $url, 'import_sets' ) ) {
-					return [
-						'response' => [ 'code' => 200 ],
-						'body'     => wp_json_encode(
-							[
-								'id'     => 'impset_test_arc_456',
-								'status' => 'pending',
-							]
-						),
-					];
-				}
-				return $pre;
-			},
-			10,
-			3
-		);
+		add_filter( 'pre_http_request', $mock_successful_response_filter, 10, 3 );
 
-		$this->sut->sync_archives();
+		try {
+			$this->sut->sync_archives();
 
-		$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
-		$this->assertEmpty( $pending );
+			$pending = get_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION, [] );
+			$this->assertEmpty( $pending );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_successful_response_filter );
+		}
 	}
 
 	/**
@@ -1339,7 +1339,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 
 		$flipped_id = $flipped_product->get_id();
 		$callback   = static fn( $sync, $candidate ) => $candidate->get_id() !== $flipped_id;
-		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10, 2 );
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10, 2 );
 
 		$uploaded_ids = null;
 		add_filter(
@@ -1362,7 +1362,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		try {
 			$this->sut->sync_archives();
 		} finally {
-			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10 );
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10 );
 		}
 
 		$this->assertNotNull( $uploaded_ids, 'A feed should have been uploaded.' );
@@ -1447,7 +1447,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 		// event while still resolvable (mirrors before_delete_post) and is
 		// permanently deleted.
 		$callback = static fn( $sync, $candidate ) => $candidate->get_id() !== $id;
-		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10, 2 );
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10, 2 );
 
 		$uploaded_ids = null;
 		add_filter(
@@ -1473,7 +1473,7 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 
 			$this->sut->sync_archives();
 		} finally {
-			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10 );
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10 );
 		}
 
 		$this->assertNotNull( $uploaded_ids, 'The removal must upload despite the exclusion and permanent delete.' );

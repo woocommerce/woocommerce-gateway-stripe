@@ -161,6 +161,79 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The notice is injected without a sanitizer, so a translation must not be able to
+	 * introduce anything but the checkout link, and a store with no resolvable checkout
+	 * URL must not get a self-linking empty anchor.
+	 *
+	 * @dataProvider provide_go_to_checkout_hardening
+	 * @param string $checkout_url What the checkout URL filter returns.
+	 * @param string $translation  What the translation filter returns for the sentence.
+	 * @param string $expected     The expected notice.
+	 * @return void
+	 */
+	public function test_javascript_params_hardens_the_go_to_checkout_notice( $checkout_url, $translation, $expected ) {
+		$ajax_handler = $this->getMockBuilder( WC_Stripe_Express_Checkout_Ajax_Handler::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $gateway ] )
+			->getMock();
+
+		$checkout_url_filter = static function () use ( $checkout_url ) {
+			return $checkout_url;
+		};
+		$translation_filter  = static function ( $translated, $text, $domain ) use ( $translation ) {
+			if ( 'woocommerce-gateway-stripe' === $domain && 0 === strpos( $text, 'Please go to the %1$s' ) ) {
+				return $translation;
+			}
+			return $translated;
+		};
+		add_filter( 'woocommerce_get_checkout_url', $checkout_url_filter );
+		add_filter( 'gettext', $translation_filter, 10, 3 );
+
+		try {
+			$element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
+			$this->assertSame( $expected, $element->javascript_params()['i18n']['go_to_checkout'] );
+		} finally {
+			remove_filter( 'gettext', $translation_filter, 10 );
+			remove_filter( 'woocommerce_get_checkout_url', $checkout_url_filter );
+		}
+	}
+
+	/**
+	 * Data provider for {@see test_javascript_params_hardens_the_go_to_checkout_notice()}.
+	 *
+	 * @return array[]
+	 */
+	public function provide_go_to_checkout_hardening() {
+		$sentence = 'Please go to the %1$scheckout page%2$s, fill in the required fields, and complete your order from there.';
+
+		return [
+			// kses re-encodes esc_url's &#038; as &amp;; both decode to a literal &.
+			'links to the filtered checkout URL' => [
+				'https://example.com/store/custom-checkout/?one=1&two=2',
+				$sentence,
+				'Please go to the <a href="https://example.com/store/custom-checkout/?one=1&amp;two=2">checkout page</a>, fill in the required fields, and complete your order from there.',
+			],
+			'no anchor without a checkout URL'   => [
+				'',
+				$sentence,
+				'Please go to the checkout page, fill in the required fields, and complete your order from there.',
+			],
+			'hostile translation is stripped'    => [
+				'https://example.com/checkout/',
+				'Go %1$shere%2$s <img src=x onerror="alert(1)"><script>alert(1)</script>',
+				'Go <a href="https://example.com/checkout/">here</a> alert(1)',
+			],
+		];
+	}
+
+	/**
 	 * Test for `scripts`.
 	 *
 	 * @return void
@@ -1068,6 +1141,91 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 				'store_currency'  => 'USD',
 				'order_currency'  => 'USD',
 				'expected_amount' => 5000,
+			],
+		];
+	}
+
+	/**
+	 * Negative order fees must carry the `total_discount` key so the client re-applies the
+	 * sign; otherwise the display items sum to more than the total and Stripe rejects the sheet.
+	 *
+	 * @param float $fee_amount    Fee total (and amount, when $set_amount) to add to the order.
+	 * @param array $expected_item Expected display item for the fee.
+	 * @param bool  $set_amount    Whether to also set the fee's amount prop.
+	 *
+	 * @return void
+	 * @dataProvider provide_test_localize_pay_for_order_fee_display_items
+	 */
+	public function test_localize_pay_for_order_fee_display_items( $fee_amount, $expected_item, $set_amount = true ) {
+		// Start from a clean script registration so we read only this call's localized data.
+		wp_deregister_script( 'wc_stripe_express_checkout' );
+
+		$order = WC_Helper_Order::create_order();
+
+		$fee = new WC_Order_Item_Fee();
+		$fee->set_name( 'Test fee' );
+		if ( $set_amount ) {
+			$fee->set_amount( $fee_amount );
+		}
+		$fee->set_total( $fee_amount );
+		$order->add_item( $fee );
+		$order->calculate_totals();
+		$order->save();
+
+		$this->element->localize_pay_for_order_page_scripts( $order );
+
+		$params = $this->get_localized_pay_for_order_params();
+
+		$fee_items = array_values(
+			array_filter(
+				$params['displayItems'],
+				function ( $item ) {
+					return 'Test fee' === $item['label'];
+				}
+			)
+		);
+		$this->assertCount( 1, $fee_items );
+		$this->assertSame( $expected_item, $fee_items[0] );
+
+		// With the client-side negation applied, the items must sum to the validated total.
+		$signed_sum = 0;
+		foreach ( $params['displayItems'] as $item ) {
+			$signed_sum += 'total_discount' === ( $item['key'] ?? '' ) ? -$item['amount'] : $item['amount'];
+		}
+		$this->assertSame( $params['total']['amount'], $signed_sum );
+	}
+
+	/**
+	 * Data provider for `test_localize_pay_for_order_fee_display_items`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_localize_pay_for_order_fee_display_items() {
+		return [
+			'negative fee is tagged as a discount' => [
+				'fee_amount'    => -5.00,
+				'expected_item' => [
+					'key'    => 'total_discount',
+					'label'  => 'Test fee',
+					'amount' => 500,
+				],
+			],
+			'positive fee is emitted as-is'        => [
+				'fee_amount'    => 5.00,
+				'expected_item' => [
+					'label'  => 'Test fee',
+					'amount' => 500,
+				],
+			],
+			// Amount never set (REST/admin-edit flows): the builder must key off the total.
+			'negative fee with only total set'     => [
+				'fee_amount'    => -5.00,
+				'expected_item' => [
+					'key'    => 'total_discount',
+					'label'  => 'Test fee',
+					'amount' => 500,
+				],
+				'set_amount'    => false,
 			],
 		];
 	}

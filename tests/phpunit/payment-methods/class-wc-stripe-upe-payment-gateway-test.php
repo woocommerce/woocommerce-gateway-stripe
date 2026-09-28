@@ -5821,35 +5821,32 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$api_called    = false;
 		$captured_args = null;
 
-		add_filter(
-			'pre_http_request',
-			function ( $preempt, $parsed_args, $url ) use ( &$api_called, &$captured_args, $expected_customer_data, $api_url_pattern, $expected_customer_id ) {
-				if ( preg_match( $api_url_pattern, $url ) ) {
-					$api_called    = true;
-					$captured_args = $parsed_args;
+		$mock_http_filter = function ( $preempt, $parsed_args, $url ) use ( &$api_called, &$captured_args, $expected_customer_data, $api_url_pattern, $expected_customer_id ) {
+			if ( preg_match( $api_url_pattern, $url ) ) {
+				$api_called    = true;
+				$captured_args = $parsed_args;
 
-					// Return a mock successful response.
-					return [
-						'response' => [
-							'code'    => 200,
-							'message' => 'OK',
-						],
-						'headers'  => [ 'Content-Type' => 'application/json' ],
-						'body'     => wp_json_encode(
-							[
-								'id'    => $expected_customer_id,
-								'email' => $expected_customer_data['email'],
-								'name'  => $expected_customer_data['name'],
-							]
-						),
-					];
-				}
+				// Return a mock successful response.
+				return [
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode(
+						[
+							'id'    => $expected_customer_id,
+							'email' => $expected_customer_data['email'],
+							'name'  => $expected_customer_data['name'],
+						]
+					),
+				];
+			}
 
-				return $preempt;
-			},
-			10,
-			3
-		);
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $mock_http_filter, 10, 3 );
 
 		// Create a mock gateway instance with specific methods mocked.
 		// The mock inherits all methods from WC_Stripe_UPE_Payment_Gateway, including the private method we'll test.
@@ -5884,51 +5881,53 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			->method( 'is_valid_pay_for_order_endpoint' )
 			->willReturn( false );
 
-		// Call the method.
-		$result_customer_id = $method->invoke( $gateway, $order );
+		try {
+			// Call the method.
+			$result_customer_id = $method->invoke( $gateway, $order );
 
-		// Verify the API was called and billing details were used.
-		$this->assertTrue( $api_called, "Stripe API should have been called to {$scenario_name}." );
-		$this->assertEquals( $expected_customer_id, $result_customer_id );
+			// Verify the API was called and billing details were used.
+			$this->assertTrue( $api_called, "Stripe API should have been called to {$scenario_name}." );
+			$this->assertEquals( $expected_customer_id, $result_customer_id );
 
-		// Verify the request body contains the expected billing details.
-		// The body is passed as an array to wp_safe_remote_post, so we check it directly.
-		if ( $captured_args && isset( $captured_args['body'] ) ) {
-			$request_body = $captured_args['body'];
-			// Ensure we have an array (wp_safe_remote_post receives body as array).
-			$this->assertIsArray( $request_body, 'Request body should be an array.' );
+			// Verify the request body contains the expected billing details.
+			// The body is passed as an array to wp_safe_remote_post, so we check it directly.
+			if ( $captured_args && isset( $captured_args['body'] ) ) {
+				$request_body = $captured_args['body'];
+				// Ensure we have an array (wp_safe_remote_post receives body as array).
+				$this->assertIsArray( $request_body, 'Request body should be an array.' );
 
-			// Verify that the order object is NOT included in the API request (main purpose of this PR).
-			$this->assertArrayNotHasKey( 'order', $request_body, 'Order object should not be included in the API request.' );
+				// Verify that the order object is NOT included in the API request (main purpose of this PR).
+				$this->assertArrayNotHasKey( 'order', $request_body, 'Order object should not be included in the API request.' );
 
-			// Verify billing details from the order are used in the customer creation/update request.
-			$this->assertEquals( $expected_customer_data['email'], $request_body['email'] ?? '', 'Billing email should match order billing email.' );
-			$this->assertEquals( $expected_customer_data['name'], $request_body['name'] ?? '', 'Billing name should match order billing name.' );
+				// Verify billing details from the order are used in the customer creation/update request.
+				$this->assertEquals( $expected_customer_data['email'], $request_body['email'] ?? '', 'Billing email should match order billing email.' );
+				$this->assertEquals( $expected_customer_data['name'], $request_body['name'] ?? '', 'Billing name should match order billing name.' );
 
-			// Verify address details are present and match the order.
-			$this->assertArrayHasKey( 'address', $request_body, 'Request should include address data.' );
-			$this->assertEquals( $expected_customer_data['address']['line1'], $request_body['address']['line1'] ?? '', 'Billing address line1 should match order.' );
-			if ( ! empty( $expected_customer_data['address']['line2'] ) ) {
-				$this->assertEquals( $expected_customer_data['address']['line2'], $request_body['address']['line2'] ?? '', 'Billing address line2 should match order.' );
-			} else {
-				// When line2 is empty, verify it's either not present or empty in the request body.
-				$this->assertTrue(
-					null === $request_body['address']['line2'] || '' === $request_body['address']['line2'],
-					'Billing address line2 should be empty or not present when order has no line2.'
-				);
+				// Verify address details are present and match the order.
+				$this->assertArrayHasKey( 'address', $request_body, 'Request should include address data.' );
+				$this->assertEquals( $expected_customer_data['address']['line1'], $request_body['address']['line1'] ?? '', 'Billing address line1 should match order.' );
+				if ( ! empty( $expected_customer_data['address']['line2'] ) ) {
+					$this->assertEquals( $expected_customer_data['address']['line2'], $request_body['address']['line2'] ?? '', 'Billing address line2 should match order.' );
+				} else {
+					// When line2 is empty, verify it's either not present or empty in the request body.
+					$this->assertTrue(
+						null === $request_body['address']['line2'] || '' === $request_body['address']['line2'],
+						'Billing address line2 should be empty or not present when order has no line2.'
+					);
+				}
+
+				$this->assertEquals( $expected_customer_data['address']['city'], $request_body['address']['city'] ?? '', 'Billing city should match order.' );
+				$this->assertEquals( $expected_customer_data['address']['state'], $request_body['address']['state'] ?? '', 'Billing state should match order.' );
+				$this->assertEquals( $expected_customer_data['address']['postal_code'], $request_body['address']['postal_code'] ?? '', 'Billing postal code should match order.' );
+				$this->assertEquals( $expected_customer_data['address']['country'], $request_body['address']['country'] ?? '', 'Billing country should match order.' );
 			}
+		} finally {
+			remove_filter( 'pre_http_request', $mock_http_filter );
 
-			$this->assertEquals( $expected_customer_data['address']['city'], $request_body['address']['city'] ?? '', 'Billing city should match order.' );
-			$this->assertEquals( $expected_customer_data['address']['state'], $request_body['address']['state'] ?? '', 'Billing state should match order.' );
-			$this->assertEquals( $expected_customer_data['address']['postal_code'], $request_body['address']['postal_code'] ?? '', 'Billing postal code should match order.' );
-			$this->assertEquals( $expected_customer_data['address']['country'], $request_body['address']['country'] ?? '', 'Billing country should match order.' );
+			if ( $user_id > 0 ) {
+				wp_delete_user( $user_id );
+			}
 		}
-
-		// Cleanup.
-		if ( $user_id > 0 ) {
-			wp_delete_user( $user_id );
-		}
-		remove_all_filters( 'pre_http_request' );
 	}
 
 	/**

@@ -237,6 +237,7 @@ class WC_Stripe_Express_Checkout_Element {
 				'no_prepaid_card'  => __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' ),
 				/* translators: Do not translate the [option] placeholder */
 				'unknown_shipping' => __( 'Unknown shipping option "[option]".', 'woocommerce-gateway-stripe' ),
+				'go_to_checkout'   => $this->get_go_to_checkout_notice(),
 			],
 			'checkout'                   => $this->express_checkout_helper->get_checkout_data(),
 			'button'                     => $this->express_checkout_helper->get_button_settings(),
@@ -359,10 +360,20 @@ class WC_Stripe_Express_Checkout_Element {
 		}
 
 		foreach ( $order->get_fees() as $fee ) {
-			$items[] = [
-				'label'  => $fee->get_name(),
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $fee->get_amount(), $currency ),
-			];
+			// get_total() feeds $order->get_total(); get_amount() can be empty or stale.
+			$fee_total = (float) $fee->get_total();
+			$item      = [];
+
+			// get_stripe_amount() is always non-negative, so tag negative fees for the client
+			// to re-apply the sign; otherwise the items exceed the total and Stripe rejects the sheet.
+			if ( $fee_total < 0 ) {
+				$item['key'] = WC_Stripe_Helper::EXPRESS_CHECKOUT_DISCOUNT_ITEM_KEY;
+			}
+
+			$item['label']  = $fee->get_name();
+			$item['amount'] = WC_Stripe_Helper::get_stripe_amount( abs( $fee_total ), $currency );
+
+			$items[] = $item;
 		}
 
 		$data['order']          = $order->get_id();
@@ -435,6 +446,30 @@ class WC_Stripe_Express_Checkout_Element {
 			array_merge( [ 'jquery', 'stripe' ], $asset_data['dependencies'] ),
 			$asset_data['version'],
 			true
+		);
+	}
+
+	/**
+	 * The guidance shown when required custom fields block an express checkout started
+	 * off the checkout page.
+	 *
+	 * Returned as ready-to-render HTML because the notice is injected without a sanitizer:
+	 * kses keeps a translation from introducing anything but the checkout link, and a store
+	 * whose checkout URL resolves to nothing degrades to the same sentence without a link.
+	 *
+	 * @return string
+	 */
+	private function get_go_to_checkout_notice() {
+		$checkout_url = wc_get_checkout_url();
+
+		return wp_kses(
+			sprintf(
+				/* translators: 1: opening checkout link, 2: closing checkout link */
+				__( 'Please go to the %1$scheckout page%2$s, fill in the required fields, and complete your order from there.', 'woocommerce-gateway-stripe' ),
+				$checkout_url ? '<a href="' . esc_url( $checkout_url ) . '">' : '',
+				$checkout_url ? '</a>' : ''
+			),
+			[ 'a' => [ 'href' => [] ] ]
 		);
 	}
 
