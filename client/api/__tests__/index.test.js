@@ -238,4 +238,89 @@ describe( 'WCStripeAPI', () => {
 			);
 		} );
 	} );
+
+	describe( 'confirmIntent', () => {
+		const returnUrl =
+			'https://example.com/checkout/order-received/123/?key=wc_order_abc&order_id=123&wc_payment_method=stripe&_wpnonce=n1';
+
+		const setUp = () => {
+			const stripe = {
+				confirmPayment: jest.fn().mockResolvedValue( {
+					paymentIntent: { id: 'pi_test' },
+				} ),
+				confirmSetup: jest.fn().mockResolvedValue( {
+					setupIntent: { id: 'seti_test' },
+				} ),
+			};
+			const request = jest.fn().mockResolvedValue( {
+				success: true,
+				data: { return_url: 'https://example.com/thank-you' },
+			} );
+			const api = new WCStripeAPI(
+				{ ajax_url: '/?wc-ajax=%%endpoint%%' },
+				request
+			);
+			jest.spyOn( api, 'getStripe' ).mockReturnValue( stripe );
+
+			return { api, stripe };
+		};
+
+		it.each( [
+			[
+				'payment intent with a return URL',
+				`#wc-stripe-confirm-pi:123:pi_test_secret_abc:nonce1:${ encodeURIComponent(
+					returnUrl
+				) }`,
+				'confirmPayment',
+				{ return_url: returnUrl },
+			],
+			[
+				'setup intent with a return URL',
+				`#wc-stripe-confirm-si:123:seti_test_secret_abc:nonce1:${ encodeURIComponent(
+					returnUrl
+				) }`,
+				'confirmSetup',
+				{ return_url: returnUrl },
+			],
+			[
+				'full page URL with a return URL',
+				`https://example.com/checkout/#wc-stripe-confirm-pi:123:pi_test_secret_abc:nonce1:${ encodeURIComponent(
+					returnUrl
+				) }`,
+				'confirmPayment',
+				{ return_url: returnUrl },
+			],
+			[
+				'hash without a return URL',
+				'#wc-stripe-confirm-pi:123:pi_test_secret_abc:nonce1',
+				'confirmPayment',
+				undefined,
+			],
+		] )(
+			'confirms a %s',
+			async ( _, redirectUrl, confirmMethod, confirmParams ) => {
+				const { api, stripe } = setUp();
+
+				const { request } = api.confirmIntent( redirectUrl );
+
+				await expect( request ).resolves.toBe(
+					'https://example.com/thank-you'
+				);
+				expect( stripe[ confirmMethod ] ).toHaveBeenCalledTimes( 1 );
+				const [ args ] = stripe[ confirmMethod ].mock.calls[ 0 ];
+				expect( args.clientSecret ).toMatch( /_secret_abc$/ );
+				expect( args.redirect ).toBe( 'if_required' );
+				expect( args.confirmParams ).toEqual( confirmParams );
+			}
+		);
+
+		it( 'returns true when there is no intent to confirm', () => {
+			const { api, stripe } = setUp();
+
+			expect( api.confirmIntent( 'https://example.com/thank-you' ) ).toBe(
+				true
+			);
+			expect( stripe.confirmPayment ).not.toHaveBeenCalled();
+		} );
+	} );
 } );
