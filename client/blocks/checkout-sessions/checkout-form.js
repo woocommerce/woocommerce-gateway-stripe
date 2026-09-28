@@ -32,7 +32,6 @@ import {
  * @param {string}                 props.errorMessage                Error message to display if loading the checkout session fails.
  * @param {EventRegistrationProps} props.eventRegistration           Object containing event registration functions for payment setup, checkout success, and checkout failure.
  * @param {Object}                 props.billing                     Billing information for the checkout session.
- * @param {boolean}                props.isLoggedIn                  Whether the customer is logged-in.
  * @param {boolean}                props.isPayerPhoneRequired        Whether the payer phone information is required.
  * @param {Object}                 props.shippingData                Shipping information for the checkout session.
  * @param {Object}                 props.cartData                    Cart data containing Store API extensions.
@@ -47,7 +46,6 @@ const CheckoutForm = ( {
 	errorMessage,
 	eventRegistration: { onPaymentSetup, onCheckoutSuccess, onCheckoutFail },
 	billing,
-	isLoggedIn,
 	isPayerPhoneRequired,
 	shippingData,
 	cartData,
@@ -89,7 +87,7 @@ const CheckoutForm = ( {
 		checkoutState,
 		onCheckoutSuccess,
 		billing,
-		isLoggedIn,
+		!! checkoutSessionData?.save_payment_method_enabled,
 		isPayerPhoneRequired,
 		shippingData
 	);

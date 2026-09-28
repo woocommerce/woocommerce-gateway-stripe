@@ -1284,6 +1284,38 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Core collaborator constructors must not register hooks — only their
+	 * register_hooks() method may, and the bootstrap calls it exactly once.
+	 * A hook-registering constructor turns every stray instantiation into
+	 * duplicated callbacks.
+	 *
+	 * @return void
+	 */
+	public function test_core_collaborator_constructors_do_not_register_hooks(): void {
+		$cases = [
+			'webhook handler'        => [ new WC_Stripe_Webhook_Handler(), 'woocommerce_api_wc_stripe', 'check_for_webhook' ],
+			'order handler'          => [ new WC_Stripe_Order_Handler(), 'wp', 'maybe_process_redirect_order' ],
+			'payment tokens'         => [ new WC_Stripe_Payment_Tokens(), 'woocommerce_payment_methods_list_item', 'get_account_saved_payment_methods_list_item' ],
+			'apple pay registration' => [ new WC_Stripe_Apple_Pay_Registration(), 'admin_init', 'register_domain_on_domain_name_change' ],
+			'connect'                => [ new WC_Stripe_Connect( new WC_Stripe_Connect_API() ), 'wc_stripe_refresh_connection', 'refresh_connection' ],
+		];
+
+		foreach ( $cases as $label => [ $instance, $hook, $callback ] ) {
+			$this->assertFalse(
+				has_action( $hook, [ $instance, $callback ] ),
+				"{$label}: constructor must not register {$hook}"
+			);
+
+			$instance->register_hooks();
+
+			$this->assertNotFalse(
+				has_action( $hook, [ $instance, $callback ] ),
+				"{$label}: register_hooks() must register {$hook}"
+			);
+		}
+	}
+
+	/**
 	 * Helper: count callbacks registered on `$hook` at `$priority`.
 	 *
 	 * @param string $hook     Hook name.

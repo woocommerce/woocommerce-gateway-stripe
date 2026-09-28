@@ -3,9 +3,7 @@
 set -e
 . ./tests/e2e/bin/common.sh
 
-if [[ -f "$E2E_ROOT/config/local.env" ]]; then
-	. "$E2E_ROOT/config/local.env"
-fi
+load_e2e_local_env
 
 # If --base_url argument is present use the remote server setup.
 if [[ "$*" == *"--base_url"* ]]; then
@@ -38,6 +36,11 @@ fi
 
 TEST_ENV="$TEST_ENV DOCKER=true E2E_ROOT=${E2E_ROOT} BASE_URL='http://localhost:8088'"
 TEST_ENV="$TEST_ENV ADMIN_USER='admin' ADMIN_PASSWORD='admin'"
+
+# Cookie-gated checkout-fields mu-plugin, used by adaptive-pricing and
+# express-checkout specs. Installed for every project: it is inert unless a
+# spec opts in with its cookies.
+cli sh -c "mkdir -p /var/www/html/wp-content/mu-plugins && cp /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/env/mu-plugins/wc-stripe-e2e-checkout-fields.php /var/www/html/wp-content/mu-plugins/"
 
 # The docker site can't receive real webhooks (no tunnel), so seed what the
 # Adaptive Pricing availability checks read: webhook data, the cached status

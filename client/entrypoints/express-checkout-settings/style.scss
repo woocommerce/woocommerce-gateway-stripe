@@ -5,10 +5,6 @@
 		margin-bottom: 40px;
 	}
 
-	&__option-muted-text {
-		color: styles.$gray-700;
-	}
-
 	&__cta-selection {
 		.components-base-control__label {
 			// hack until the `hideLabelFromVision` is fixed for radio controls in Gutenberg

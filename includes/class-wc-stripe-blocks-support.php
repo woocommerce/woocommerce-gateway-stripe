@@ -2,6 +2,7 @@
 use Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType;
 use Automattic\WooCommerce\StoreApi\Payments\PaymentResult;
 use Automattic\WooCommerce\StoreApi\Payments\PaymentContext;
+use Automattic\WooCommerce\StoreApi\Utilities\PaymentUtils;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -63,6 +64,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 
 		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'add_express_checkout_order_meta' ], 8, 2 );
 		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'add_stripe_intents' ], 9999, 2 );
+		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'fail_unprocessed_payment' ], 10000, 2 );
 
 		if ( null === $express_checkout_configuration ) {
 			$helper                         = new WC_Stripe_Express_Checkout_Helper();
@@ -80,11 +82,78 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	public function initialize() {
 		$this->settings = WC_Stripe_Helper::get_stripe_settings();
 
+		add_filter( 'woocommerce_hydration_request_after_callbacks', [ $this, 'clear_hydrated_payment_method_for_default_token' ], 10, 3 );
+
 		// Hooks to manually enqueue the block CSS, as WooCommerce doesn't have an API for styles.
 		add_filter( 'render_block_woocommerce/checkout', [ $this, 'maybe_enqueue_blocks_style' ] );
 		add_filter( 'render_block_woocommerce/cart', [ $this, 'maybe_enqueue_blocks_style' ] );
 		// Note that this is hooked at priority 20 so we run after WooCommerce has registered and enqueued the Cart and Checkout editor scripts.
 		add_action( 'enqueue_block_editor_assets', [ $this, 'maybe_enqueue_blocks_style_for_editor' ], 20 );
+	}
+
+	/**
+	 * Lets Blocks select the visible default Stripe token instead of an earlier token for the same gateway.
+	 *
+	 * @param mixed $response Hydrated Store API response.
+	 * @param mixed $handler  Store API route handler.
+	 * @param mixed $request  Store API request.
+	 *
+	 * @return mixed
+	 */
+	public function clear_hydrated_payment_method_for_default_token( $response, $handler, $request ) {
+		if (
+			! $response instanceof WP_REST_Response
+			|| ! $request instanceof WP_REST_Request
+			|| '/wc/store/v1/checkout' !== $request->get_route()
+			|| ! is_user_logged_in()
+		) {
+			return $response;
+		}
+
+		$data = $response->get_data();
+		if (
+			! is_array( $data )
+			|| ! in_array( $data['payment_method'] ?? null, WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true )
+		) {
+			return $response;
+		}
+
+		$saved_payment_methods = PaymentUtils::get_saved_payment_methods();
+		$enabled_methods       = $saved_payment_methods['enabled'] ?? null;
+		if ( ! is_array( $enabled_methods ) ) {
+			return $response;
+		}
+
+		$has_earlier_gateway_token = false;
+		foreach ( $enabled_methods as $methods ) {
+			if ( ! is_array( $methods ) ) {
+				continue;
+			}
+
+			foreach ( $methods as $method ) {
+				if (
+					! is_array( $method )
+					|| ( $method['method']['gateway'] ?? null ) !== $data['payment_method']
+				) {
+					continue;
+				}
+
+				if ( true === ( $method['is_default'] ?? null ) ) {
+					if ( ! $has_earlier_gateway_token ) {
+						return $response;
+					}
+
+					$data['payment_method'] = '';
+					$response->set_data( $data );
+
+					return $response;
+				}
+
+				$has_earlier_gateway_token = true;
+			}
+		}
+
+		return $response;
 	}
 
 	/**
@@ -498,18 +567,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			$this->add_order_meta( $context->order, $data['express_checkout_type'] );
 		}
 
-		$is_stripe_payment_method = $this->name === $context->payment_method;
-		$main_gateway             = WC_Stripe::get_instance()->get_main_stripe_gateway();
-		$is_upe                   = $main_gateway instanceof WC_Stripe_UPE_Payment_Gateway;
-
-		// Check if the payment method is a UPE payment method. UPE methods start with `stripe_`.
-		if ( $is_upe && ! $is_stripe_payment_method && 0 === strpos( $context->payment_method, "{$this->name}_" ) ) {
-			// Strip "Stripe_" from the payment method name to get the payment method type.
-			$payment_method_type      = substr( $context->payment_method, strlen( $this->name ) + 1 );
-			$is_stripe_payment_method = isset( $main_gateway->payment_methods[ $payment_method_type ] );
-		}
-
-		if ( ! $is_stripe_payment_method ) {
+		if ( ! $this->is_stripe_payment_method( (string) $context->payment_method ) ) {
 			return;
 		}
 
@@ -582,6 +640,75 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			$result->set_payment_details( $payment_details );
 			$result->set_status( 'success' );
 		}
+	}
+
+	/**
+	 * Whether the given Store API payment method id belongs to this gateway.
+	 *
+	 * A bare `stripe_` prefix test is not enough: other vendors register gateways under
+	 * that prefix too, so split UPE ids are matched against the methods this gateway
+	 * actually registers.
+	 *
+	 * @param string $payment_method The payment method id from the payment context.
+	 *
+	 * @return bool
+	 */
+	private function is_stripe_payment_method( string $payment_method ): bool {
+		if ( $this->name === $payment_method ) {
+			return true;
+		}
+
+		$prefix = $this->name . '_';
+		if ( 0 !== strpos( $payment_method, $prefix ) ) {
+			return false;
+		}
+
+		$main_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		if ( ! $main_gateway instanceof WC_Stripe_UPE_Payment_Gateway ) {
+			return false;
+		}
+
+		return isset( $main_gateway->payment_methods[ substr( $payment_method, strlen( $prefix ) ) ] );
+	}
+
+	/**
+	 * Fails the payment when WooCommerce never handed it to the gateway.
+	 *
+	 * Every path through `Legacy::process_legacy_payment()` sets a status once the gateway
+	 * runs, so an empty one here means the gateway was never invoked and no charge was
+	 * attempted. The Store API would otherwise answer 200 with an empty payment status,
+	 * leaving an unpaid order with its stock still reserved and nothing logged. Throwing
+	 * gives the shopper an error and lets WooCommerce release the stock it held.
+	 *
+	 * @param PaymentContext $context Holds context for the payment.
+	 * @param PaymentResult  $result  Result object for the payment.
+	 *
+	 * @throws Exception When the payment was never processed.
+	 *
+	 * @return void
+	 */
+	public function fail_unprocessed_payment( PaymentContext $context, PaymentResult &$result ) {
+		if ( '' !== (string) $result->status ) {
+			return;
+		}
+
+		$payment_method = (string) $context->payment_method;
+		if ( ! $this->is_stripe_payment_method( $payment_method ) ) {
+			return;
+		}
+
+		// The context is hook-derived, so don't let the log line itself be what fatals.
+		$order_id = $context->order instanceof WC_Order ? $context->order->get_id() : 0;
+
+		WC_Stripe_Logger::error(
+			'Payment was never processed for order: ' . $order_id,
+			[
+				'payment_method' => $payment_method,
+				'reason'         => 'WooCommerce set no payment result status, so the gateway was never invoked.',
+			]
+		);
+
+		throw new Exception( __( 'This payment method is not available right now. Please try again or use a different one.', 'woocommerce-gateway-stripe' ) );
 	}
 
 	/**

@@ -12,6 +12,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.0.0
  */
 class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
+	/**
+	 * Singleton instance of the class.
+	 *
+	 * @var WC_Stripe_Order_Handler|null
+	 */
 	private static $_this;
 
 	/**
@@ -22,7 +27,17 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function __construct() {
 		self::$_this = $this;
+	}
 
+	/**
+	 * Registers the handler's hooks. Kept out of the constructor so
+	 * instantiating the class never stacks duplicate callbacks; the bootstrap
+	 * calls this exactly once.
+	 *
+	 * @since 11.0.0
+	 * @return void
+	 */
+	public function register_hooks(): void {
 		add_action( 'wp', [ $this, 'maybe_process_redirect_order' ] );
 		add_action( 'woocommerce_order_status_processing', [ $this, 'capture_payment' ] );
 		add_action( 'woocommerce_order_status_completed', [ $this, 'capture_payment' ] );
@@ -40,18 +55,27 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
+	 * @return WC_Stripe_Order_Handler
 	 */
 	public static function get_instance() {
+		if ( null === self::$_this ) {
+			self::$_this = new self();
+		}
 		return self::$_this;
 	}
 
 	/**
 	 * Shows a warning message about editing uncaptured orders.
 	 *
-	 * @param $order_id
+	 * @param int $order_id The order ID to show the warning for (if warranted).
+	 * @return void
 	 */
 	public function show_warning_for_uncaptured_orders( $order_id ) {
 		$order = wc_get_order( $order_id );
+		if ( ! $order instanceof WC_Order ) {
+			return;
+		}
+
 		// Bail if payment method is not manual capture supporting stripe method.
 		if ( ! WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
 			return;
@@ -84,9 +108,10 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @since 4.1.8 Add $previous_error parameter.
-	 * @param int  $order_id
-	 * @param bool $retry
-	 * @param mix  $previous_error Any error message from previous request.
+	 * @param int   $order_id       The order ID to process the payment for.
+	 * @param bool  $retry          Whether to retry the payment.
+	 * @param mixed $previous_error Any error message from previous request. Defaults to false.
+	 * @return void
 	 */
 	public function process_redirect_payment( $order_id, $retry = true, $previous_error = false ) {
 		$order = null;
@@ -192,13 +217,15 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					if ( $retry ) {
 						// Don't do anymore retries after this.
 						if ( 5 <= $this->retry_interval ) {
-							return $this->process_redirect_payment( $order_id, false, $response->error );
+							$this->process_redirect_payment( $order_id, false, $response->error );
+							return;
 						}
 
 						sleep( $this->retry_interval );
 
 						++$this->retry_interval;
-						return $this->process_redirect_payment( $order_id, true, $response->error );
+						$this->process_redirect_payment( $order_id, true, $response->error );
+						return;
 					} else {
 						$localized_message = __( 'Sorry, we are unable to process your payment at this time. Please retry later.', 'woocommerce-gateway-stripe' );
 						$order->add_order_note( $localized_message );
@@ -265,6 +292,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
+	 * @return void
 	 */
 	public function maybe_process_redirect_order() {
 		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
@@ -284,6 +312,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * Processes redirect payment for stores with legacy checkout experience enabled.
 	 *
 	 * @since 8.3.0
+	 * @return void
 	 */
 	private function maybe_process_legacy_redirect() {
 		if ( ! is_order_received_page() || empty( $_GET['client_secret'] ) || empty( $_GET['source'] ) ) {
@@ -300,7 +329,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 3.1.0
 	 * @version 4.0.0
-	 * @param  int $order_id
+	 * @param  int|WC_Order $order_id The order ID or WC_Order object to capture the payment for.
 	 * @return stdClass|void Result of payment capture.
 	 */
 	public function capture_payment( $order_id ) {
@@ -316,7 +345,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			$charge             = $order->get_transaction_id();
 			$is_stripe_captured = false;
 
-			if ( $charge && 'no' === $order_helper->get_stripe_charge_captured( $order ) ) { // Strictly checking for 'no' value.
+			if ( $charge && $order_helper->is_stripe_charge_authorized_only( $order ) ) {
 				$order_total = $order->get_total();
 
 				if ( 0 < $order->get_total_refunded() ) {
@@ -418,7 +447,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 3.1.0
 	 * @version 4.2.2
-	 * @param  int $order_id
+	 * @param  int $order_id The order ID to cancel the payment for.
+	 * @return void
 	 */
 	public function cancel_payment( $order_id ) {
 		$order = wc_get_order( $order_id );
@@ -428,9 +458,11 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
-			$captured = WC_Stripe_Order_Helper::get_instance()->is_stripe_charge_captured( $order );
-
-			if ( ! $captured ) {
+			// Only a known authorize-only charge is voided: this hook also fires on transitions
+			// made without wanting a gateway refund (e.g. "Refund manually"). With the flag merely
+			// missing, process_refund() would resolve it from Stripe and, if the charge turns out
+			// to be captured, issue a full refund nobody asked for.
+			if ( WC_Stripe_Order_Helper::get_instance()->is_stripe_charge_authorized_only( $order ) ) {
 				// To cancel a pre-auth, we need to refund the charge.
 				$this->process_refund( $order_id );
 			}
@@ -450,8 +482,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * Note that this filter is only called if WC_Site_Tracking::is_tracking_enabled.
 	 *
 	 * @since 4.5.1
-	 * @param array Properties to be appended to.
-	 * @param string Event name, e.g. orders_edit_status_change.
+	 * @param mixed  $properties          Properties to be appended to.
+	 * @param string $prefixed_event_name Event name, e.g. orders_edit_status_change.
+	 * @return mixed
 	 */
 	public function woocommerce_tracks_event_properties( $properties, $prefixed_event_name ) {
 		// Not the desired event? Bail.
@@ -517,10 +550,23 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			return false;
 		}
 
-		// Bail if the order doesn't have an intent yet.
 		$intent = $this->get_intent_from_order( $order );
+
+		// Bail if the order doesn't have an intent yet.
 		if ( ! $intent ) {
 			return $cancel_order;
+		}
+
+		// Before cancelling, check with Stripe if the payment intent has already been paid or
+		// is still being processed (which is common for async methods like ACH and Cash App Pay).
+		// Capture state doesn't matter here: an authorized-but-uncaptured payment
+		// (requires_capture) must also settle the order rather than be cancelled.
+		// For those cases, we want to mimic the processing from webhooks.
+		if ( 'payment_intent' === ( $intent->object ?? '' )
+			&& in_array( $intent->status ?? '', WC_Stripe_Intent_Status::SUCCESSFUL_STATUSES, true )
+		) {
+			$this->maybe_process_paid_order_instead_of_cancelling( $order, $intent );
+			return false;
 		}
 
 		// A SetupIntent still awaiting verification outlives the one-day window below: bank
@@ -537,6 +583,65 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		return $cancel_order;
+	}
+
+	/**
+	 * Processes a pending order whose PaymentIntent Stripe reports as paid (or as an async
+	 * payment still processing), via process_response()
+	 * — the same path a webhook would take. If a concurrent process holds the payment lock,
+	 * nothing is processed here; blocking the cancellation is enough and the lock holder finishes.
+	 *
+	 * @since 11.1.0
+	 *
+	 * @param WC_Order $order  The pending order about to be cancelled as unpaid.
+	 * @param object   $intent The PaymentIntent fetched from Stripe.
+	 */
+	private function maybe_process_paid_order_instead_of_cancelling( $order, $intent ): void {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		if ( $order_helper->lock_order_payment( $order ) ) {
+			return;
+		}
+
+		$intent_id     = $intent->id ?? '';
+		$intent_status = $intent->status ?? '';
+
+		try {
+			$charge = $this->get_latest_charge_from_intent( $intent );
+
+			if ( ! is_object( $charge ) ) {
+				WC_Stripe_Logger::warning(
+					"PaymentIntent {$intent_id} reports status {$intent_status} but has no charge; order cancellation blocked for order {$order->get_id()}, but order status was not updated from {$order->get_status()}.",
+					[
+						'order_id'      => $order->get_id(),
+						'order_status'  => $order->get_status( 'edit' ),
+						'intent_id'     => $intent_id,
+						'intent_status' => $intent_status,
+						'charge'        => $charge,
+					]
+				);
+				return;
+			}
+
+			WC_Stripe_Logger::info(
+				"Processing order {$order->get_id()} from PaymentIntent {$intent_id} ({$intent_status}) instead of cancelling it as unpaid.",
+				[
+					'order_id'      => $order->get_id(),
+					'order_status'  => $order->get_status( 'edit' ),
+					'intent_id'     => $intent_id,
+					'intent_status' => $intent_status,
+					'charge_id'     => $charge->id ?? '(no id)',
+				]
+			);
+
+			$order->add_order_note( __( 'Stripe reports this payment as successful or still processing, but the payment confirmation never reached this site (e.g. a missed webhook). The order was updated from Stripe instead of being auto-cancelled as unpaid.', 'woocommerce-gateway-stripe' ) );
+
+			$this->process_response( $charge, $order );
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::error( "Failed to update order {$order->get_id()} from its PaymentIntent before cancellation: " . $e->getMessage() );
+		} finally {
+			$order_helper->unlock_order_payment( $order );
+		}
 	}
 
 	/**

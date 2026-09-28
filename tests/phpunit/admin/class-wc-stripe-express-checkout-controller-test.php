@@ -48,6 +48,22 @@ class WC_Stripe_Express_Checkout_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The settings page simulator relies on these gate params being localized; assert they ship.
+	 *
+	 * @return void
+	 */
+	public function test_admin_scripts_localizes_simulator_gate_params(): void {
+		$this->controller->admin_scripts();
+
+		$data = wp_scripts()->get_data( 'wc-stripe-express-checkout-settings', 'data' );
+
+		$this->assertIsString( $data );
+		$this->assertStringContainsString( 'is_account_connected', $data );
+		$this->assertStringContainsString( 'is_https', $data );
+		$this->assertStringContainsString( 'is_test_mode', $data );
+	}
+
+	/**
 	 * Tests for `admin_options` method.
 	 *
 	 * @return void

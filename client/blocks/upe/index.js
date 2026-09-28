@@ -58,8 +58,13 @@ Object.entries( paymentMethodsConfig )
 if ( getBlocksConfiguration()?.isAmazonPayEnabled ) {
 	registerExpressPaymentMethod( expressCheckoutElementAmazonPay( api ) );
 }
-if ( getBlocksConfiguration()?.isExpressCheckoutEnabled ) {
+// Not `isExpressCheckoutEnabled`: that aggregate is true when any wallet's locations
+// cover this page, which would register Apple/Google Pay on pages where only another
+// wallet (e.g. Amazon Pay) is enabled.
+if ( getBlocksConfiguration()?.isApplePayEnabled ) {
 	registerExpressPaymentMethod( expressCheckoutElementApplePay( api ) );
+}
+if ( getBlocksConfiguration()?.isGooglePayEnabled ) {
 	registerExpressPaymentMethod( expressCheckoutElementGooglePay( api ) );
 }
 if ( getBlocksConfiguration()?.isLinkEnabled ) {

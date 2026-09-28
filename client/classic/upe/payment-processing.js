@@ -65,6 +65,14 @@ const gatewayUPEComponents = {};
 let hasCheckoutCompleted = false;
 
 /**
+ * Clears the one-shot completion flag when a later checkout check blocks the
+ * programmatic submit before processPayment can consume it.
+ */
+export function resetCheckoutCompletionState() {
+	hasCheckoutCompleted = false;
+}
+
+/**
  * OC exclusions last applied to each Elements instance (as a sorted key), so
  * redundant `elements.update()` calls can be skipped. Keyed by instance: a
  * re-mounted element starts fresh and stale state can't leak across mounts.
@@ -1163,17 +1171,19 @@ export const processPayment = (
 		return;
 	}
 
+	const genericErrorMessage = __(
+		'Payment failed. Please try again.',
+		'woocommerce-gateway-stripe'
+	);
+
 	if ( ! gatewayUPEComponents[ paymentMethodType ] ) {
-		return;
+		showErrorCheckout( genericErrorMessage );
+		return false;
 	}
 
 	blockUI( jQueryForm );
 
 	const getErrorMessage = ( err ) => {
-		const genericErrorMessage = __(
-			'Payment failed. Please try again.',
-			'woocommerce-gateway-stripe'
-		);
 		if ( ! err ) {
 			return genericErrorMessage;
 		}
@@ -1309,7 +1319,12 @@ export const processPayment = (
 					redirect: 'if_required',
 				};
 
-				if ( getStripeServerData()?.isLoggedIn ) {
+				// Stripe rejects savePaymentMethod when the session was created
+				// without save support (e.g. as a guest), so gate on the session,
+				// not the login state.
+				if (
+					getNativeCheckoutSessionData()?.save_payment_method_enabled
+				) {
 					confirmArgs.savePaymentMethod = jQueryForm
 						.find( '#wc-stripe-new-payment-method' )
 						.is( ':checked' );
@@ -1693,18 +1708,48 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
  */
 export const hasEmptyRequiredFields = ( requiredWrappers ) => {
 	for ( const wrapper of requiredWrappers ) {
-		const input = wrapper.querySelector(
-			'input.input-text, select, input[type="checkbox"]'
-		);
-		if ( ! input ) {
+		const inputs = [
+			...wrapper.querySelectorAll(
+				'input.input-text, textarea.input-text, select, input[type="checkbox"]'
+			),
+		];
+		if ( ! inputs.length ) {
 			continue;
 		}
 
-		if ( input.type === 'checkbox' ) {
-			if ( ! input.checked ) {
-				return true;
-			}
-		} else if ( ! input.value || input.value.trim() === '' ) {
+		const first = inputs[ 0 ];
+		let hasValue;
+
+		if ( first.type === 'checkbox' ) {
+			// A required wrapper can hold a "tick at least one" checkbox group, so the
+			// first box being unchecked does not mean the group is incomplete.
+			hasValue = inputs.some(
+				( input ) => input.type === 'checkbox' && input.checked
+			);
+		} else if ( first.type === 'select-multiple' ) {
+			// `first.value` is only the first selected option, so a selected empty
+			// placeholder would hide the real selections behind it.
+			hasValue = [ ...first.selectedOptions ].some(
+				( option ) => option.value.trim() !== ''
+			);
+		} else {
+			hasValue = first.value.trim() !== '';
+		}
+
+		if ( hasValue ) {
+			continue;
+		}
+
+		// Radios are not matched by the selector above, so a wrapper holding only
+		// radios is skipped entirely, as it is by WooCommerce core. A checked radio can
+		// still satisfy a wrapper: it is not proof the other controls are filled, but
+		// it is reason enough to let the server validate the submission rather than
+		// block it here.
+		const hasCheckedRadio = !! wrapper.querySelector(
+			'input[type="radio"]:checked'
+		);
+
+		if ( ! hasCheckedRadio ) {
 			return true;
 		}
 	}

@@ -222,19 +222,14 @@ class WC_Stripe_Express_Checkout_Element {
 				'is_link_enabled'             => $this->express_checkout_helper->is_link_enabled(),
 				'is_express_checkout_enabled' => $this->express_checkout_helper->is_express_checkout_enabled(),
 				'is_amazon_pay_enabled'       => $this->express_checkout_helper->is_amazon_pay_enabled(),
+				// `is_express_checkout_enabled` aggregates all methods, so Apple/Google Pay need their
+				// own flags; per-wallet keys keep the contract stable if the shared setting ever splits.
+				'is_apple_pay_enabled'        => $this->express_checkout_helper->is_apple_google_pay_enabled(),
+				'is_google_pay_enabled'       => $this->express_checkout_helper->is_apple_google_pay_enabled(),
 			],
+			// The wc-ajax nonces are fetched on demand (see
+			// ajax_get_express_checkout_nonces) so page caches can't serve expired copies.
 			'nonce'                      => [
-				'payment'                       => wp_create_nonce( 'wc-stripe-express-checkout' ),
-				'shipping'                      => wp_create_nonce( 'wc-stripe-express-checkout-shipping' ),
-				'normalize_address'             => wp_create_nonce( 'wc-stripe-express-checkout-normalize-address' ),
-				'get_cart_details'              => wp_create_nonce( 'wc-stripe-get-cart-details' ),
-				'update_shipping'               => wp_create_nonce( 'wc-stripe-update-shipping-method' ),
-				'checkout'                      => wp_create_nonce( 'woocommerce-process_checkout' ),
-				'add_to_cart'                   => wp_create_nonce( 'wc-stripe-add-to-cart' ),
-				'get_selected_product_data'     => wp_create_nonce( 'wc-stripe-get-selected-product-data' ),
-				'log_errors'                    => wp_create_nonce( 'wc-stripe-log-errors' ),
-				'clear_cart'                    => wp_create_nonce( 'wc-stripe-clear-cart' ),
-				'pay_for_order'                 => wp_create_nonce( 'wc-stripe-pay-for-order' ),
 				'wc_store_api'                  => wp_create_nonce( 'wc_store_api' ),
 				'wc_store_api_express_checkout' => wp_create_nonce( 'wc_store_api_express_checkout' ),
 			],
@@ -242,6 +237,7 @@ class WC_Stripe_Express_Checkout_Element {
 				'no_prepaid_card'  => __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' ),
 				/* translators: Do not translate the [option] placeholder */
 				'unknown_shipping' => __( 'Unknown shipping option "[option]".', 'woocommerce-gateway-stripe' ),
+				'go_to_checkout'   => $this->get_go_to_checkout_notice(),
 			],
 			'checkout'                   => $this->express_checkout_helper->get_checkout_data(),
 			'button'                     => $this->express_checkout_helper->get_button_settings(),
@@ -364,10 +360,20 @@ class WC_Stripe_Express_Checkout_Element {
 		}
 
 		foreach ( $order->get_fees() as $fee ) {
-			$items[] = [
-				'label'  => $fee->get_name(),
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $fee->get_amount(), $currency ),
-			];
+			// get_total() feeds $order->get_total(); get_amount() can be empty or stale.
+			$fee_total = (float) $fee->get_total();
+			$item      = [];
+
+			// get_stripe_amount() is always non-negative, so tag negative fees for the client
+			// to re-apply the sign; otherwise the items exceed the total and Stripe rejects the sheet.
+			if ( $fee_total < 0 ) {
+				$item['key'] = WC_Stripe_Helper::EXPRESS_CHECKOUT_DISCOUNT_ITEM_KEY;
+			}
+
+			$item['label']  = $fee->get_name();
+			$item['amount'] = WC_Stripe_Helper::get_stripe_amount( abs( $fee_total ), $currency );
+
+			$items[] = $item;
 		}
 
 		$data['order']          = $order->get_id();
@@ -440,6 +446,30 @@ class WC_Stripe_Express_Checkout_Element {
 			array_merge( [ 'jquery', 'stripe' ], $asset_data['dependencies'] ),
 			$asset_data['version'],
 			true
+		);
+	}
+
+	/**
+	 * The guidance shown when required custom fields block an express checkout started
+	 * off the checkout page.
+	 *
+	 * Returned as ready-to-render HTML because the notice is injected without a sanitizer:
+	 * kses keeps a translation from introducing anything but the checkout link, and a store
+	 * whose checkout URL resolves to nothing degrades to the same sentence without a link.
+	 *
+	 * @return string
+	 */
+	private function get_go_to_checkout_notice() {
+		$checkout_url = wc_get_checkout_url();
+
+		return wp_kses(
+			sprintf(
+				/* translators: 1: opening checkout link, 2: closing checkout link */
+				__( 'Please go to the %1$scheckout page%2$s, fill in the required fields, and complete your order from there.', 'woocommerce-gateway-stripe' ),
+				$checkout_url ? '<a href="' . esc_url( $checkout_url ) . '">' : '',
+				$checkout_url ? '</a>' : ''
+			),
+			[ 'a' => [ 'href' => [] ] ]
 		);
 	}
 
