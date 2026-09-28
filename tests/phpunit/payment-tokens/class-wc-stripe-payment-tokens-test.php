@@ -683,7 +683,10 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 		return [
 			'Apple Pay + visa'                           => [ 'Apple Pay (visa)', 'Apple Pay (Visa)' ],
 			'Google Pay + visa'                          => [ 'Google Pay (visa)', 'Google Pay (Visa)' ],
-			'Google Pay + mastercard'                    => [ 'Google Pay (mastercard)', 'Google Pay (MasterCard)' ],
+			// Expected label comes from WooCommerce (via the normalize helper's own
+			// wc_get_credit_card_type_label() call) so it survives WC relabelling
+			// 'mastercard' from 'MasterCard' to 'Mastercard'.
+			'Google Pay + mastercard'                    => [ 'Google Pay (mastercard)', sprintf( 'Google Pay (%s)', wc_get_credit_card_type_label( 'mastercard' ) ) ],
 			'Apple Pay + amex'                           => [ 'Apple Pay (american express)', 'Apple Pay (American Express)' ],
 			// Multi-word brands: ucwords leaves the first inner letter lowercase
 			// (because `(` isn't a word boundary) but capitalizes the second word.

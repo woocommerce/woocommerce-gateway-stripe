@@ -1,7 +1,7 @@
 import { select } from '@wordpress/data';
 import { applyFilters } from '@wordpress/hooks';
 import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
-import { getStripeServerData } from 'wcstripe/stripe-utils';
+import { getStripeServerData } from 'wcstripe/stripe-utils/get-stripe-server-data';
 
 /**
  * Normalizes incoming cart total items for use as a displayItems with the Stripe api.
