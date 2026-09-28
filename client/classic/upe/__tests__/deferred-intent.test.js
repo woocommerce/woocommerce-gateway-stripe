@@ -1,112 +1,173 @@
-jest.mock( 'wcstripe/api', () => jest.fn() );
-
-jest.mock( 'wcstripe/classic/upe/payment-processing', () => ( {
-	confirmVoucherPayment: jest.fn(),
-	confirmWalletPayment: jest.fn(),
-	createAndConfirmSetupIntent: jest.fn(),
-	getMountedUPEComponent: jest.fn(),
-	hasActiveCheckoutSession: jest.fn().mockReturnValue( false ),
-	hasEmptyRequiredFields: jest.fn().mockReturnValue( false ),
-	initializeUPEComponents: jest.fn(),
-	maybeUpdateAdaptivePricingCheckoutSession: jest.fn(),
-	maybeUpdateOptimizedCheckoutExclusions: jest.fn(),
-	mountStripePaymentElement: jest.fn(),
-	processPayment: jest.fn(),
-	trackMountInProgress: jest.fn(),
-} ) );
-
-jest.mock( 'wcstripe/stripe-utils', () => ( {
-	generateCheckoutEventNames: jest
-		.fn()
-		.mockReturnValue( 'checkout_place_order_stripe' ),
-	getAdaptivePricingSavedTokenPaymentMethod: jest
-		.fn()
-		.mockReturnValue( null ),
-	getSelectedUPEGatewayPaymentMethod: jest.fn().mockReturnValue( 'card' ),
-	getStripeServerData: jest.fn().mockReturnValue( {} ),
-	isPaymentMethodRestrictedToLocation: jest.fn().mockReturnValue( false ),
-	isUsingSavedPaymentMethod: jest.fn().mockReturnValue( false ),
-	paymentMethodSupportsDeferredIntent: jest.fn().mockReturnValue( true ),
-	removeCheckoutSessionIdFromForm: jest.requireActual(
-		'wcstripe/stripe-utils/utils'
-	).removeCheckoutSessionIdFromForm,
-	togglePaymentMethodForCountry: jest.fn(),
-} ) );
-
-const STALE_SESSION_ID = 'cs_test_stale';
-
 /**
- * Renders a checkout form still carrying the Checkout Session id of an earlier attempt, loads the
- * classic checkout script against it and places the order.
- *
- * The module registry is reset first so every case gets a script instance bound to the jQuery
- * instance and the DOM used here, rather than to a previous case's.
- *
- * @param {boolean}  usingSavedToken Whether the customer picked a saved payment method.
- * @param {Function} configureMocks  Optional hook to adjust the freshly reset mocks before the order is placed.
- * @return {Promise<Object>} The mocked payment-processing module the script was loaded against.
+ * The classic checkout handler's RETURN VALUE is the contract with WooCommerce core:
+ * core submits the form unless a `checkout_place_order_*` handler returns exactly false.
+ * Returning early without false lets the form POST with no payment method, which creates
+ * an order and then fails it. These tests pin the return value, not just the side effects.
  */
-const placeOrderWithStaleSessionId = async (
-	usingSavedToken,
-	configureMocks = () => {}
-) => {
-	document.body.innerHTML = `
-		<form class="checkout">
-			<input type="hidden" id="wc_stripe_checkout_session_id" name="wc_stripe_checkout_session_id" value="${ STALE_SESSION_ID }" />
-		</form>`;
+const mockProcessPayment = jest.fn();
+const mockResetCheckoutCompletionState = jest.fn();
+const mockShowErrorCheckout = jest.fn();
+let mockIsEmpty = false;
+let mockUsingSavedMethod = false;
+let mockHasActiveCheckoutSession = false;
+let mockAdaptivePricingSavedTokenPaymentMethod = null;
 
-	jest.resetModules();
+jest.mock( '../../../api', () => jest.fn() );
 
-	require( 'wcstripe/stripe-utils' ).isUsingSavedPaymentMethod.mockReturnValue(
-		usingSavedToken
-	);
-	const paymentProcessing = require( 'wcstripe/classic/upe/payment-processing' );
-	configureMocks( paymentProcessing );
+jest.mock( '../../../stripe-utils', () => ( {
+	generateCheckoutEventNames: () => 'checkout_place_order_stripe',
+	getAdaptivePricingSavedTokenPaymentMethod: () =>
+		mockAdaptivePricingSavedTokenPaymentMethod,
+	getSelectedUPEGatewayPaymentMethod: () => 'card',
+	getStripeServerData: () => ( {} ),
+	isPaymentMethodRestrictedToLocation: () => false,
+	isUsingSavedPaymentMethod: () => mockUsingSavedMethod,
+	paymentMethodSupportsDeferredIntent: () => true,
+	removeCheckoutSessionIdFromForm: jest.requireActual(
+		'../../../stripe-utils/utils'
+	).removeCheckoutSessionIdFromForm,
+	showErrorCheckout: ( ...args ) => mockShowErrorCheckout( ...args ),
+	togglePaymentMethodForCountry: () => {},
+} ) );
 
-	const jQuery = require( 'jquery' );
-	require( '../deferred-intent' );
-	// The script binds its handlers from a jQuery ready callback. Ours is queued behind it.
-	await new Promise( ( resolve ) => jQuery( resolve ) );
+jest.mock( '../payment-processing', () => ( {
+	confirmVoucherPayment: () => {},
+	confirmWalletPayment: () => {},
+	createAndConfirmSetupIntent: () => {},
+	getMountedUPEComponent: () => null,
+	hasActiveCheckoutSession: () => mockHasActiveCheckoutSession,
+	hasEmptyRequiredFields: () => mockIsEmpty,
+	initializeUPEComponents: () => {},
+	maybeUpdateAdaptivePricingCheckoutSession: () => Promise.resolve(),
+	maybeUpdateOptimizedCheckoutExclusions: () => {},
+	mountStripePaymentElement: () => Promise.resolve(),
+	processPayment: ( ...args ) => mockProcessPayment( ...args ),
+	relocateCurrencySelector: () => {},
+	resetCheckoutCompletionState: ( ...args ) =>
+		mockResetCheckoutCompletionState( ...args ),
+	trackMountInProgress: () => {},
+} ) );
 
-	jQuery( 'form.checkout' ).trigger( 'checkout_place_order_stripe' );
-
-	return paymentProcessing;
+// jQuery defers its ready callback through setTimeout and then resolves it through a
+// promise chain, so binding needs several turns of the loop, not a single flush.
+const flushReady = async () => {
+	for ( let i = 0; i < 5; i++ ) {
+		await new Promise( ( resolve ) => setTimeout( resolve, 1 ) );
+	}
 };
 
-describe( 'classic checkout submission', () => {
-	it( 'drops a stale Checkout Session id when retrying with a saved token', async () => {
-		const { processPayment } = await placeOrderWithStaleSessionId( true );
+// The module under test binds its handler with the jQuery from its own module
+// registry, so the test has to trigger through that same instance.
+let $;
+
+const placeOrder = () =>
+	$( 'form.checkout' ).triggerHandler( 'checkout_place_order_stripe' );
+
+describe( 'classic checkout place-order handler', () => {
+	beforeEach( async () => {
+		mockIsEmpty = false;
+		mockUsingSavedMethod = false;
+		mockHasActiveCheckoutSession = false;
+		mockAdaptivePricingSavedTokenPaymentMethod = null;
+		mockProcessPayment.mockReset();
+		mockProcessPayment.mockReturnValue( false );
+		mockResetCheckoutCompletionState.mockReset();
+		mockShowErrorCheckout.mockReset();
+
+		document.body.innerHTML = '<form class="checkout"></form>';
+
+		await jest.isolateModulesAsync( async () => {
+			$ = require( 'jquery' );
+			require( '../deferred-intent' );
+			await flushReady();
+		} );
+	} );
+
+	afterEach( () => {
+		document.body.innerHTML = '';
+		jest.resetModules();
+	} );
+
+	it( 'returns false so core does not submit when a required field is empty', () => {
+		mockIsEmpty = true;
+
+		expect( placeOrder() ).toBe( false );
+		expect( mockProcessPayment ).not.toHaveBeenCalled();
+		expect( mockResetCheckoutCompletionState ).toHaveBeenCalledTimes( 1 );
+		expect( mockShowErrorCheckout ).toHaveBeenCalledWith(
+			'Please fill in all required fields.'
+		);
+	} );
+
+	it( 'delegates to processPayment when the required fields are filled', () => {
+		placeOrder();
+
+		expect( mockProcessPayment ).toHaveBeenCalled();
+		expect( mockResetCheckoutCompletionState ).not.toHaveBeenCalled();
+		expect( mockShowErrorCheckout ).not.toHaveBeenCalled();
+	} );
+
+	it( 'blocks a saved-token checkout when a required field is empty', () => {
+		mockIsEmpty = true;
+		mockUsingSavedMethod = true;
+
+		expect( placeOrder() ).toBe( false );
+		expect( mockProcessPayment ).not.toHaveBeenCalled();
+		expect( mockResetCheckoutCompletionState ).toHaveBeenCalledTimes( 1 );
+		expect( mockShowErrorCheckout ).toHaveBeenCalledWith(
+			'Please fill in all required fields.'
+		);
+	} );
+
+	it( 'lets core submit a saved token when required fields are filled', () => {
+		mockUsingSavedMethod = true;
+
+		expect( placeOrder() ).toBeUndefined();
+		expect( mockProcessPayment ).not.toHaveBeenCalled();
+		expect( mockResetCheckoutCompletionState ).not.toHaveBeenCalled();
+		expect( mockShowErrorCheckout ).not.toHaveBeenCalled();
+	} );
+
+	// A saved token bypasses Checkout Session confirmation, so a stale Session id
+	// left in the form by an earlier Adaptive Pricing attempt must be dropped
+	// before core submits; new payment methods keep it for the Session flow.
+	const appendStaleSessionId = () =>
+		$( 'form.checkout' ).append(
+			'<input type="hidden" id="wc_stripe_checkout_session_id" name="wc_stripe_checkout_session_id" value="cs_test_stale" />'
+		);
+
+	it( 'drops a stale Checkout Session id when retrying with a saved token', () => {
+		mockUsingSavedMethod = true;
+		appendStaleSessionId();
+
+		placeOrder();
 
 		expect(
 			document.getElementById( 'wc_stripe_checkout_session_id' )
 		).toBeNull();
 		// The saved token is charged through the deferred intent, not the Checkout Session.
-		expect( processPayment ).not.toHaveBeenCalled();
+		expect( mockProcessPayment ).not.toHaveBeenCalled();
 	} );
 
-	it( 'keeps the Checkout Session id when retrying with a new payment method', async () => {
-		const { processPayment } = await placeOrderWithStaleSessionId( false );
+	it( 'keeps the Checkout Session id when retrying with a new payment method', () => {
+		appendStaleSessionId();
+
+		placeOrder();
 
 		expect(
 			document.getElementById( 'wc_stripe_checkout_session_id' )
 		).not.toBeNull();
-		expect( processPayment ).toHaveBeenCalled();
+		expect( mockProcessPayment ).toHaveBeenCalled();
 	} );
 
-	it( 'pays through the live Checkout Session when an Adaptive Pricing saved card is selected', async () => {
-		const { processPayment } = await placeOrderWithStaleSessionId(
-			true,
-			( paymentProcessing ) => {
-				paymentProcessing.hasActiveCheckoutSession.mockReturnValue(
-					true
-				);
-				require( 'wcstripe/stripe-utils' ).getAdaptivePricingSavedTokenPaymentMethod.mockReturnValue(
-					'pm_saved_ap_123'
-				);
-			}
-		);
+	it( 'pays through the live Checkout Session when an Adaptive Pricing saved card is selected', () => {
+		mockUsingSavedMethod = true;
+		mockHasActiveCheckoutSession = true;
+		mockAdaptivePricingSavedTokenPaymentMethod = 'pm_saved_ap_123';
+
+		placeOrder();
 
 		// The saved card pays the mounted session via confirm( { paymentMethod } ).
-		expect( processPayment ).toHaveBeenCalled();
+		expect( mockProcessPayment ).toHaveBeenCalled();
 	} );
 } );
