@@ -71,6 +71,7 @@ class WC_Stripe_Account {
 		'checkout.session.expired',
 		'checkout.session.async_payment_succeeded',
 		'checkout.session.async_payment_failed',
+		'mandate.updated',
 	];
 
 	/**
