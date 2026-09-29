@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# shellcheck source=bin/wc-version.sh
+. "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/wc-version.sh"
+
 if [ $# -lt 3 ] && [ -z $WC_STRIPE_DIR ]; then
 	echo "usage: $0 <db-name> <db-user> <db-pass> [db-host] [wp-version] [wc-version] [skip-database-creation]"
 	exit 1
@@ -253,6 +256,16 @@ install_woocommerce() {
 			echo "No WooCommerce pre-release version found, using latest stable."
 			WC_VERSION="latest"
 		fi
+	fi
+
+	WC_DOWNLOAD_URL=$(resolve_wc_download_url "$WC_VERSION")
+
+	if [[ -n $WC_DOWNLOAD_URL ]]; then
+		# --force because these tags are rebuilt in place: a cached test environment
+		# (see the wp-testenv-* cache in php-tests.yml) can hold an older build of the
+		# same version string, and without it wp-cli would keep that stale copy.
+		wp plugin install "$WC_DOWNLOAD_URL" --activate --force
+		return
 	fi
 
 	if [[ -n $INSTALLED_WC_VERSION ]] && [[ $WC_VERSION == 'latest' ]]; then
