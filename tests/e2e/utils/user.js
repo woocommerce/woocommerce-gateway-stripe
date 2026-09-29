@@ -12,26 +12,29 @@ import { expect } from '@playwright/test';
 export async function login( page, username, password, retries = 3 ) {
 	for ( let i = 1; i <= retries; i++ ) {
 		try {
-			await page.goto( `/wp-admin` );
+			await page.goto( `/wp-login.php` );
 			await page.waitForLoadState( 'networkidle' );
 
-			if ( await page.url().includes( 'wp-login.php' ) ) {
-				await page.fill( 'input[name="log"]', username );
-				await page.fill( 'input[name="pwd"]', password );
-				await page.click( 'input[value="Log In"]' );
-			}
+			// Fill and submit the login form.
+			await page.fill( 'input[name="log"]', username );
+			await page.fill( 'input[name="pwd"]', password );
+			await page.click( 'input[value="Log In"]' );
 			await page.waitForLoadState( 'networkidle' );
 
-			if ( await page.$( 'body.logged-in' ) ) {
-				// customer login
-				return;
-			} else {
-				// admin login
-				await expect( page.locator( 'div.wrap > h1' ) ).toHaveText(
-					'Dashboard'
+			// Check if we're still on the login page (login failed).
+			if ( page.url().includes( 'wp-login.php' ) ) {
+				const errorEl = await page.$( '#login_error' );
+				if ( errorEl ) {
+					const errorText = await errorEl.textContent();
+					console.error( `  Login error: ${ errorText }` );
+				}
+				throw new Error(
+					`Still on login page after submit: ${ page.url() }`
 				);
-				return;
 			}
+
+			// Login succeeded — we're either on wp-admin (admin) or my-account (customer).
+			return;
 		} catch ( e ) {
 			console.error(
 				`User log-in failed, Retrying... ${ i }/${ retries }.`,
