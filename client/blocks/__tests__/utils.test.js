@@ -150,6 +150,26 @@ describe( 'Blocks Utils', () => {
 			).toHaveBeenCalledTimes( 1 );
 		} );
 
+		test( 'cancels a pending retry once tracking is set successfully', () => {
+			window.wc_order_attribution = { params: { allowTracking: true } };
+
+			populateOrderAttributionInputs();
+
+			window.wc_order_attribution.setOrderTracking = jest.fn();
+
+			populateOrderAttributionInputs();
+
+			expect(
+				window.wc_order_attribution.setOrderTracking
+			).toHaveBeenCalledTimes( 1 );
+
+			jest.runAllTimers();
+
+			expect(
+				window.wc_order_attribution.setOrderTracking
+			).toHaveBeenCalledTimes( 1 );
+		} );
+
 		test( 'does not throw when the order attribution script never loads', () => {
 			expect( () => {
 				populateOrderAttributionInputs();

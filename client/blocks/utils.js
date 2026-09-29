@@ -131,6 +131,8 @@ export const extractOrderAttributionData = () => {
  */
 export const populateOrderAttributionInputs = () => {
 	if ( internalSetOrderAttributionTracking() ) {
+		// Cancel any debounced attempts.
+		debouncedSetOrderAttributionTracking.cancel();
 		return;
 	}
 
