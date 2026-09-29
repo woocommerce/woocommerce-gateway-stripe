@@ -70,7 +70,11 @@ module.exports = {
 			// `build-style` stylesheet, which would otherwise be mangled into
 			// a bogus script handle.
 			requestToExternal( request ) {
-				if ( request.startsWith( '@wordpress/dataviews' ) ) {
+				if (
+					request.startsWith( '@wordpress/dataviews' ) ||
+					request.startsWith( '@wordpress/admin-ui' ) ||
+					request.startsWith( '@wordpress/ui' )
+				) {
 					return null;
 				}
 			},

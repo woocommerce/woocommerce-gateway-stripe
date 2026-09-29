@@ -142,7 +142,7 @@ final class WC_Stripe_Payments_UI_Controller {
 	 * @return void
 	 */
 	public function render_page(): void {
-		echo '<div class="wrap"><div id="wc-stripe-payments-container"></div></div>';
+		echo '<div id="wc-stripe-payments-container"></div>';
 	}
 
 	/**
