@@ -1,10 +1,10 @@
 import React from 'react';
-import { PAYOUT_STATUS_COLORS, PAYOUT_STATUS_LABELS } from './constants';
+import { PAYOUT_STATUS_BADGE_INTENTS, PAYOUT_STATUS_LABELS } from './constants';
 import EmptyCell from './empty-cell';
 import { formatStripeAmount, formatStripeTimestamp } from './utils';
 import { ExternalLink } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
-import Chip from 'wcstripe/components/chip';
+import { Badge } from '@wordpress/ui';
 
 /**
  * The list endpoint exposes no sort parameter, so every field pins
@@ -39,10 +39,13 @@ const fields = [
 		getValue: ( { item } ) => item.status ?? '',
 		render: ( { item } ) =>
 			item.status ? (
-				<Chip
-					text={ PAYOUT_STATUS_LABELS[ item.status ] ?? item.status }
-					color={ PAYOUT_STATUS_COLORS[ item.status ] ?? 'gray' }
-				/>
+				<Badge
+					intent={
+						PAYOUT_STATUS_BADGE_INTENTS[ item.status ] ?? 'draft'
+					}
+				>
+					{ PAYOUT_STATUS_LABELS[ item.status ] ?? item.status }
+				</Badge>
 			) : (
 				<EmptyCell />
 			),
