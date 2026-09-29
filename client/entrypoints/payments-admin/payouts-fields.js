@@ -2,9 +2,8 @@ import React from 'react';
 import { PAYOUT_STATUS_BADGE_INTENTS, PAYOUT_STATUS_LABELS } from './constants';
 import EmptyCell from './empty-cell';
 import { formatStripeAmount, formatStripeTimestamp } from './utils';
-import { ExternalLink } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
-import { Badge } from '@wordpress/ui';
+import { Badge, Link } from '@wordpress/ui';
 
 /**
  * The list endpoint exposes no sort parameter, so every field pins
@@ -91,7 +90,11 @@ const fields = [
 				( item.livemode ? '' : 'test/' ) +
 				'payouts/' +
 				encodeURIComponent( item.id );
-			return <ExternalLink href={ url }>{ item.id }</ExternalLink>;
+			return (
+				<Link href={ url } openInNewTab={ true }>
+					{ item.id }
+				</Link>
+			);
 		},
 	},
 	{
