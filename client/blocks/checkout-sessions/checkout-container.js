@@ -1,5 +1,6 @@
+import { extensionCartUpdate } from '@woocommerce/blocks-checkout';
 import { CheckoutElementsProvider } from '@stripe/react-stripe-js/checkout';
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import CheckoutForm from 'wcstripe/blocks/checkout-sessions/checkout-form';
 import { loadStripe } from 'wcstripe/blocks/load-stripe';
 import { initializeUPEAppearance } from 'wcstripe/stripe-utils/upe-appearance';
@@ -15,24 +16,65 @@ const stripePromise = loadStripe();
  * @return {JSX.Element} The Checkout Sessions Container component.
  */
 export const CheckoutContainer = ( props ) => {
-	const {
-		api,
-		setPaymentProcessorLoadErrorMessage,
-		setShouldLoadStripeElements,
-	} = props;
+	const { setPaymentProcessorLoadErrorMessage, setShouldLoadStripeElements } =
+		props;
 
-	const checkoutSessionPromise = useMemo( async () => {
-		const response = await api.checkoutSessionsCreateSession();
-		const clientSecret = response?.data?.client_secret;
-		if ( ! clientSecret ) {
-			setShouldLoadStripeElements( true );
-			// eslint-disable-next-line no-console
-			console.error(
-				'Unable to initialize a checkout session. Please refresh the page and try again.'
-			);
-		}
-		return clientSecret;
-	}, [ api, setShouldLoadStripeElements ] );
+	// Create a promise wrapper for the client secret during render,
+	// but use an effect to ensure that we correctly make API calls
+	// and clean up state for the component.
+	const [ checkoutSessionDeferred ] = useState( () => {
+		let resolve;
+		const promise = new Promise( ( res ) => {
+			resolve = res;
+		} );
+		return { promise, resolve };
+	} );
+
+	useEffect( () => {
+		let cancelled = false;
+
+		const synchronize = async () => {
+			let clientSecret = null;
+			let error = null;
+
+			try {
+				const response = await extensionCartUpdate( {
+					namespace: 'wc-stripe/checkout-session',
+					data: { action: 'sync' },
+				} );
+				const sessionData =
+					response?.extensions?.[ 'wc-stripe/checkout-session' ];
+				clientSecret =
+					sessionData?.status === 'success'
+						? sessionData?.client_secret
+						: null;
+			} catch ( e ) {
+				error = e;
+			}
+
+			// If the component has been unmounted, cancelled will be true,
+			// and we should stop processing the response.
+			if ( cancelled ) {
+				return;
+			}
+
+			if ( ! clientSecret ) {
+				setShouldLoadStripeElements( true );
+				// eslint-disable-next-line no-console
+				console.error(
+					'Unable to initialize a checkout session. Please refresh the page and try again.',
+					...( error ? [ error ] : [] )
+				);
+			}
+			checkoutSessionDeferred.resolve( clientSecret );
+		};
+
+		synchronize();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [ checkoutSessionDeferred, setShouldLoadStripeElements ] );
 
 	// Render an editor-safe appearance in the block editor preview, where the
 	// checkout DOM does not reflect the live storefront. See STRIPE-1061.
@@ -40,7 +82,7 @@ export const CheckoutContainer = ( props ) => {
 
 	const providerOptions = useMemo(
 		() => ( {
-			clientSecret: checkoutSessionPromise,
+			clientSecret: checkoutSessionDeferred.promise,
 			adaptivePricing: { allowed: true },
 			elementsOptions: {
 				appearance: initializeUPEAppearance( 'true', false, isEditor ),
@@ -53,7 +95,7 @@ export const CheckoutContainer = ( props ) => {
 				},
 			},
 		} ),
-		[ checkoutSessionPromise, isEditor ]
+		[ checkoutSessionDeferred, isEditor ]
 	);
 
 	return (

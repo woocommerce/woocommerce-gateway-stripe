@@ -129,18 +129,23 @@ class WC_Stripe_Agentic_Commerce_Manual_Approval {
 			];
 		}
 
-		if ( $product->managing_stock() ) {
+		if ( $product->managing_stock() && ! $product->backorders_allowed() ) {
 			$stock_quantity = $product->get_stock_quantity();
 			$quantity       = $line_item->get_quantity();
 
-			if ( null === $stock_quantity || $quantity > $stock_quantity ) {
+			// Subtract stock held by concurrent checkouts. Advisory only — the
+			// atomic guard is the reservation placed at order creation.
+			$held      = function_exists( 'wc_get_held_stock_quantity' ) ? (int) wc_get_held_stock_quantity( $product ) : 0;
+			$available = null === $stock_quantity ? null : $stock_quantity - $held;
+
+			if ( null === $available || $quantity > $available ) {
 				return [
 					'code'   => 'insufficient_stock',
 					'reason' => sprintf(
 						/* translators: 1: product name, 2: available quantity */
 						__( 'Insufficient stock for %1$s. Only %2$d available.', 'woocommerce-gateway-stripe' ),
 						$product->get_name(),
-						(int) $stock_quantity
+						max( 0, (int) $available )
 					),
 				];
 			}

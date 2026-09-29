@@ -62,7 +62,8 @@ const ElementsContainer = ( props ) => {
 				const response = paymentNeeded
 					? await api.createIntent(
 							stripeServerData?.orderId,
-							paymentMethodId
+							paymentMethodId,
+							stripeServerData?.orderKey
 					  )
 					: await api.initSetupIntent( paymentMethodId );
 
@@ -243,7 +244,6 @@ const PaymentElements = ( {
 		containerComponent = (
 			<CheckoutContainer
 				api={ api }
-				isLoggedIn={ stripeServerData?.isLoggedIn }
 				isPayerPhoneRequired={ stripeServerData?.isPayerPhoneRequired }
 				setPaymentProcessorLoadErrorMessage={
 					setPaymentProcessorLoadErrorMessage

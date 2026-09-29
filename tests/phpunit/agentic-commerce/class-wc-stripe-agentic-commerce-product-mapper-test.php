@@ -993,12 +993,134 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$product->method( 'get_type' )->willReturn( 'subscription_variation' );
 
 		$callback = static fn() => true;
-		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback );
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback );
 
 		try {
 			$this->assertTrue( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
 		} finally {
-			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback );
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback );
+		}
+	}
+
+	/**
+	 * The exported `link` for a protected product only renders a password prompt.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_product_excludes_password_protected_products() {
+		$product = WC_Helper_Product::create_simple_product();
+		wp_update_post(
+			[
+				'ID'            => $product->get_id(),
+				'post_password' => 'secret',
+			]
+		);
+		$product = wc_get_product( $product->get_id() );
+
+		$this->assertFalse( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * A variation does NOT inherit the parent's `post_password`. Variations are
+	 * what the feed exports, so the predicate must resolve to the parent.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_product_excludes_variations_of_password_protected_parent() {
+		$parent     = WC_Helper_Product::create_variation_product();
+		$variations = $parent->get_children();
+		$variation  = wc_get_product( $variations[0] );
+
+		$this->assertTrue(
+			\WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $variation ),
+			'The variation should sync before the parent is password-protected.'
+		);
+
+		wp_update_post(
+			[
+				'ID'            => $parent->get_id(),
+				'post_password' => 'secret',
+			]
+		);
+		$variation = wc_get_product( $variations[0] );
+
+		$this->assertSame( '', $variation->get_post_password(), 'Guards the inheritance assumption this predicate is built on.' );
+		$this->assertFalse( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $variation ) );
+
+		$parent->delete( true );
+	}
+
+	/**
+	 * `hidden` removes the product from both catalog and search.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_product_excludes_products_hidden_from_catalog() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_catalog_visibility( 'hidden' );
+		$product->save();
+
+		$this->assertFalse( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Catalog visibility values that hide a product from only one surface.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public function provide_partial_catalog_visibility_values(): array {
+		return [
+			'excluded from search only'  => [ 'catalog' ],
+			'excluded from catalog only' => [ 'search' ],
+		];
+	}
+
+	/**
+	 * The partial values leave the product reachable by the other route, so
+	 * excluding it would overreach.
+	 *
+	 * @dataProvider provide_partial_catalog_visibility_values
+	 * @param string $visibility Catalog visibility value.
+	 * @return void
+	 */
+	public function test_should_sync_product_keeps_partially_visible_products( string $visibility ) {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_catalog_visibility( $visibility );
+		$product->save();
+
+		$this->assertTrue( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * The new exclusions are defaults, not hard blocks — matching the
+	 * subscription contract.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_product_filter_can_re_include_password_protected_products() {
+		$product = WC_Helper_Product::create_simple_product();
+		wp_update_post(
+			[
+				'ID'            => $product->get_id(),
+				'post_password' => 'secret',
+			]
+		);
+		$product = wc_get_product( $product->get_id() );
+
+		$callback = static fn() => true;
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback );
+
+		try {
+			$this->assertTrue( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback );
+			$product->delete( true );
 		}
 	}
 
@@ -1052,12 +1174,12 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$product->save();
 
 		$callback = static fn() => $filtered_value;
-		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback );
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback );
 
 		try {
 			$this->assertFalse( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
 		} finally {
-			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback );
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback );
 			$product->delete( true );
 		}
 	}
@@ -1077,7 +1199,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$product->save();
 
 		$callback = static fn( $sync, $candidate ) => $candidate->get_id() !== $product->get_id();
-		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10, 2 );
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10, 2 );
 
 		try {
 			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
@@ -1085,7 +1207,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 
 			$this->assertSame( [], $result );
 		} finally {
-			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10 );
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10 );
 			$product->delete( true );
 		}
 	}
@@ -1107,67 +1229,67 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$excluded->save();
 
 		$callback = static fn( $sync, $candidate ) => $candidate->get_id() !== $excluded->get_id();
-		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10, 2 );
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10, 2 );
 
 		try {
 			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
 			$this->assertNotEmpty( $mapper->map_product( $included ) );
 			$this->assertSame( [], $mapper->map_product( $excluded ) );
 		} finally {
-			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback, 10 );
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback, 10 );
 			$included->delete( true );
 			$excluded->delete( true );
 		}
 	}
 
 	/**
-	 * Test that the deprecated `wc_stripe_agentic_commerce_should_sync_product`
+	 * Test that the deprecated `woocommerce_agentic_commerce_should_sync_product`
 	 * filter is still honoured for backward compatibility, and that hooking it
-	 * surfaces a deprecation notice pointing adapters at the WooCommerce-core
-	 * prefixed replacement.
+	 * surfaces a deprecation notice pointing adapters at the Stripe-prefixed
+	 * replacement.
 	 *
 	 * @return void
 	 */
 	public function test_should_sync_product_honours_deprecated_filter() {
-		$this->setExpectedDeprecated( 'wc_stripe_agentic_commerce_should_sync_product' );
+		$this->setExpectedDeprecated( 'woocommerce_agentic_commerce_should_sync_product' );
 
 		$product = WC_Helper_Product::create_simple_product();
 		$product->save();
 
 		$callback = static fn() => false;
-		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback );
+		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback );
 
 		try {
 			$this->assertFalse( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
 		} finally {
-			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback );
+			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $callback );
 			$product->delete( true );
 		}
 	}
 
 	/**
 	 * Test that the canonical filter takes precedence over the deprecated one:
-	 * a value from the new `woocommerce_`-prefixed hook overrides the result the
+	 * a value from the `wc_stripe_`-prefixed hook overrides the result the
 	 * deprecated hook seeded as its default.
 	 *
 	 * @return void
 	 */
 	public function test_should_sync_product_new_filter_overrides_deprecated() {
-		$this->setExpectedDeprecated( 'wc_stripe_agentic_commerce_should_sync_product' );
+		$this->setExpectedDeprecated( 'woocommerce_agentic_commerce_should_sync_product' );
 
 		$product = WC_Helper_Product::create_simple_product();
 		$product->save();
 
 		$deprecated = static fn() => false;
 		$canonical  = static fn() => true;
-		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $deprecated );
-		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $canonical );
+		add_filter( 'woocommerce_agentic_commerce_should_sync_product', $deprecated );
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $canonical );
 
 		try {
 			$this->assertTrue( \WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
 		} finally {
-			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $deprecated );
-			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $canonical );
+			remove_filter( 'woocommerce_agentic_commerce_should_sync_product', $deprecated );
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $canonical );
 			$product->delete( true );
 		}
 	}
@@ -1214,66 +1336,11 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The `woocommerce_agentic_commerce_disable_checkout` filter overrides the store-wide default.
+	 * The `wc_stripe_agentic_commerce_disable_checkout` filter overrides the store-wide default.
 	 *
 	 * @return void
 	 */
 	public function test_disable_checkout_filter_overrides_store_wide_default() {
-		delete_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
-
-		$product = WC_Helper_Product::create_simple_product();
-		$product->save();
-
-		$callback = static fn() => true;
-		add_filter( 'woocommerce_agentic_commerce_disable_checkout', $callback );
-
-		try {
-			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
-			$result = $mapper->map_product( $product );
-
-			$this->assertSame( 'true', $result['disable_checkout'] );
-		} finally {
-			remove_filter( 'woocommerce_agentic_commerce_disable_checkout', $callback );
-			$product->delete( true );
-		}
-	}
-
-	/**
-	 * The canonical filter can also override the store-wide redirect default
-	 * *down* — when the store-wide setting forces redirect on, a filter returning
-	 * false restores embedded checkout for that product.
-	 *
-	 * @return void
-	 */
-	public function test_disable_checkout_filter_overrides_store_wide_default_down() {
-		update_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION, 'yes' );
-
-		$product = WC_Helper_Product::create_simple_product();
-		$product->save();
-
-		$callback = static fn() => false;
-		add_filter( 'woocommerce_agentic_commerce_disable_checkout', $callback );
-
-		try {
-			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
-			$result = $mapper->map_product( $product );
-
-			$this->assertSame( 'false', $result['disable_checkout'] );
-		} finally {
-			remove_filter( 'woocommerce_agentic_commerce_disable_checkout', $callback );
-			delete_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
-			$product->delete( true );
-		}
-	}
-
-	/**
-	 * The deprecated `wc_stripe_agentic_commerce_disable_checkout` filter still
-	 * seeds the canonical filter's default, so existing hooks keep working.
-	 *
-	 * @return void
-	 */
-	public function test_disable_checkout_deprecated_filter_still_applies() {
-		$this->setExpectedDeprecated( 'wc_stripe_agentic_commerce_disable_checkout' );
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
 
 		$product = WC_Helper_Product::create_simple_product();
@@ -1294,6 +1361,61 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The canonical filter can also override the store-wide redirect default
+	 * *down* — when the store-wide setting forces redirect on, a filter returning
+	 * false restores embedded checkout for that product.
+	 *
+	 * @return void
+	 */
+	public function test_disable_checkout_filter_overrides_store_wide_default_down() {
+		update_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION, 'yes' );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$callback = static fn() => false;
+		add_filter( 'wc_stripe_agentic_commerce_disable_checkout', $callback );
+
+		try {
+			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+			$result = $mapper->map_product( $product );
+
+			$this->assertSame( 'false', $result['disable_checkout'] );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_disable_checkout', $callback );
+			delete_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * The deprecated `woocommerce_agentic_commerce_disable_checkout` filter still
+	 * seeds the canonical filter's default, so existing hooks keep working.
+	 *
+	 * @return void
+	 */
+	public function test_disable_checkout_deprecated_filter_still_applies() {
+		$this->setExpectedDeprecated( 'woocommerce_agentic_commerce_disable_checkout' );
+		delete_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$callback = static fn() => true;
+		add_filter( 'woocommerce_agentic_commerce_disable_checkout', $callback );
+
+		try {
+			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+			$result = $mapper->map_product( $product );
+
+			$this->assertSame( 'true', $result['disable_checkout'] );
+		} finally {
+			remove_filter( 'woocommerce_agentic_commerce_disable_checkout', $callback );
+			$product->delete( true );
+		}
+	}
+
+	/**
 	 * The filter result is normalised with wp_validate_boolean(), so a string
 	 * 'false' (and other falsy strings) returned by a callback must resolve to
 	 * false rather than being truthy under a plain (bool) cast.
@@ -1309,7 +1431,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 		$product->save();
 
 		$callback = static fn() => $filter_value;
-		add_filter( 'woocommerce_agentic_commerce_disable_checkout', $callback );
+		add_filter( 'wc_stripe_agentic_commerce_disable_checkout', $callback );
 
 		try {
 			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
@@ -1317,7 +1439,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 
 			$this->assertSame( 'false', $result['disable_checkout'] );
 		} finally {
-			remove_filter( 'woocommerce_agentic_commerce_disable_checkout', $callback );
+			remove_filter( 'wc_stripe_agentic_commerce_disable_checkout', $callback );
 			$product->delete( true );
 		}
 	}
@@ -1362,7 +1484,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 			}
 			return $disabled;
 		};
-		add_filter( 'woocommerce_agentic_commerce_disable_checkout', $callback, 10, 3 );
+		add_filter( 'wc_stripe_agentic_commerce_disable_checkout', $callback, 10, 3 );
 
 		try {
 			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
@@ -1370,8 +1492,404 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 
 			$this->assertSame( 'true', $result['disable_checkout'] );
 		} finally {
-			remove_filter( 'woocommerce_agentic_commerce_disable_checkout', $callback, 10 );
+			remove_filter( 'wc_stripe_agentic_commerce_disable_checkout', $callback, 10 );
 			$parent->delete( true );
+		}
+	}
+
+	/**
+	 * product_has_addons() flags a product carrying any of the built-in
+	 * configurator meta keys, not only WooCommerce Product Add-Ons.
+	 *
+	 * @dataProvider provider_addon_detection_meta_keys
+	 * @param string $meta_key   Configurator meta key under test.
+	 * @param mixed  $meta_value Representative non-empty value for that key.
+	 * @return void
+	 */
+	public function test_product_has_addons_detects_configurator_meta( string $meta_key, $meta_value ) {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->update_meta_data( $meta_key, $meta_value );
+		$product->save();
+
+		try {
+			$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ) );
+		} finally {
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * Built-in configurator meta keys, each with a representative non-empty value.
+	 *
+	 * @return array<string, array{0: string, 1: mixed}>
+	 */
+	public function provider_addon_detection_meta_keys(): array {
+		return [
+			'WooCommerce Product Add-Ons' => [ '_product_addons', [ [ 'name' => 'Engraving' ] ] ],
+			'TM Extra Product Options'    => [ 'tm_meta_cpf_options', [ 'enabled' => 'yes' ] ],
+			'Composite Products'          => [ 'composite_data', [ 'component_1' => [ 'title' => 'Frame' ] ] ],
+		];
+	}
+
+	/**
+	 * A plain product carrying no configurator metadata is not flagged.
+	 *
+	 * @return void
+	 */
+	public function test_product_has_addons_false_for_plain_product() {
+		$product = WC_Helper_Product::create_simple_product();
+
+		try {
+			$this->assertFalse( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ) );
+		} finally {
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * A Product Bundle is flagged only when priced individually; a fixed-price
+	 * bundle stays eligible.
+	 *
+	 * @return void
+	 */
+	public function test_product_has_addons_bundle_only_when_priced_individually() {
+		$fixed = WC_Helper_Product::create_simple_product();
+		$fixed->update_meta_data( '_wc_pb_priced_individually', 'no' );
+		$fixed->save();
+		try {
+			$this->assertFalse( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $fixed ) );
+		} finally {
+			$fixed->delete( true );
+		}
+
+		$dynamic = WC_Helper_Product::create_simple_product();
+		$dynamic->update_meta_data( '_wc_pb_priced_individually', 'yes' );
+		$dynamic->save();
+		try {
+			$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $dynamic ) );
+		} finally {
+			$dynamic->delete( true );
+		}
+	}
+
+	/**
+	 * Variations inherit their parent's add-on metadata (configurator options
+	 * live on the parent).
+	 *
+	 * @return void
+	 */
+	public function test_product_has_addons_variation_inherits_parent() {
+		$parent = WC_Helper_Product::create_variation_product();
+		$parent->update_meta_data( '_product_addons', [ [ 'name' => 'Gift wrap' ] ] );
+		$parent->save();
+
+		$variation = wc_get_product( $parent->get_children()[0] );
+
+		try {
+			$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $variation ) );
+		} finally {
+			$parent->delete( true );
+		}
+	}
+
+	/**
+	 * The detection meta-key set is filterable so merchants can register signals
+	 * for configurator plugins not covered out of the box.
+	 *
+	 * @return void
+	 */
+	public function test_product_has_addons_meta_keys_are_filterable() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->update_meta_data( '_my_custom_configurator', 'on' );
+		$product->save();
+
+		$callback = static function ( $keys ) {
+			$keys[] = '_my_custom_configurator';
+			return $keys;
+		};
+
+		try {
+			$this->assertFalse( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ) );
+
+			add_filter( 'wc_stripe_agentic_commerce_addon_detection_meta_keys', $callback );
+			try {
+				$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ) );
+			} finally {
+				remove_filter( 'wc_stripe_agentic_commerce_addon_detection_meta_keys', $callback );
+			}
+		} finally {
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * The final add-on verdict is filterable so a plugin can flag a configurator
+	 * that stores nothing in a detectable meta key, or clear a false positive.
+	 *
+	 * @return void
+	 */
+	public function test_product_has_addons_verdict_is_filterable() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->save();
+
+		$force_true = static fn() => true;
+
+		try {
+			$this->assertFalse( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ) );
+
+			add_filter( 'wc_stripe_agentic_commerce_product_has_addon', $force_true );
+			try {
+				$this->assertTrue(
+					WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ),
+					'The filter must be able to mark an otherwise-plain product as configurable.'
+				);
+			} finally {
+				remove_filter( 'wc_stripe_agentic_commerce_product_has_addon', $force_true );
+			}
+		} finally {
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * A filter callback returning the string 'false' must clear the verdict, not
+	 * cast to true. Guards the wp_validate_boolean() normalization of the hook
+	 * result against a plain (bool) cast.
+	 *
+	 * @return void
+	 */
+	public function test_product_has_addons_verdict_filter_string_false_is_falsey() {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->update_meta_data( '_product_addons', [ [ 'name' => 'Engraving' ] ] );
+		$product->save();
+
+		$force_string_false = static fn() => 'false';
+
+		try {
+			$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ) );
+
+			add_filter( 'wc_stripe_agentic_commerce_product_has_addon', $force_string_false );
+			try {
+				$this->assertFalse(
+					WC_Stripe_Agentic_Commerce_Product_Mapper::product_has_addons( $product ),
+					"A callback returning the string 'false' must be treated as false, not cast to true."
+				);
+			} finally {
+				remove_filter( 'wc_stripe_agentic_commerce_product_has_addon', $force_string_false );
+			}
+		} finally {
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * With no stored preference, add-on/configurator products are excluded by
+	 * default: their price depends on shopper choices the feed can't represent,
+	 * so they must not reach agents at a wrong price.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_addon_product_excluded_by_default() {
+		delete_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->update_meta_data( '_product_addons', [ [ 'name' => 'Engraving' ] ] );
+		$product->save();
+
+		try {
+			$this->assertFalse( WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+			$this->assertSame( 'addons', WC_Stripe_Agentic_Commerce_Product_Mapper::get_sync_exclusion_reason( $product ) );
+		} finally {
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * With the auto-exclude toggle explicitly off, an add-on product still syncs,
+	 * so merchants can opt these products back into the feed.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_addon_product_synced_when_toggle_off() {
+		update_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION, 'no' );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->update_meta_data( '_product_addons', [ [ 'name' => 'Engraving' ] ] );
+		$product->save();
+
+		try {
+			$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+			$this->assertNull( WC_Stripe_Agentic_Commerce_Product_Mapper::get_sync_exclusion_reason( $product ) );
+		} finally {
+			delete_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION );
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * With the auto-exclude toggle on, an add-on product is excluded from the
+	 * feed and the exclusion reason is reported as 'addons'.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_addon_product_excluded_when_toggle_on() {
+		update_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION, 'yes' );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->update_meta_data( '_product_addons', [ [ 'name' => 'Engraving' ] ] );
+		$product->save();
+
+		try {
+			$this->assertFalse( WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+			$this->assertSame( 'addons', WC_Stripe_Agentic_Commerce_Product_Mapper::get_sync_exclusion_reason( $product ) );
+		} finally {
+			delete_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION );
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * A custom should_sync filter still wins over the auto-exclude default,
+	 * keeping add-on detection an opt-in default rather than a hard override.
+	 *
+	 * @return void
+	 */
+	public function test_should_sync_filter_wins_over_auto_exclude() {
+		update_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION, 'yes' );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->update_meta_data( '_product_addons', [ [ 'name' => 'Engraving' ] ] );
+		$product->save();
+
+		$callback = static fn() => true;
+		add_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback );
+
+		try {
+			$this->assertTrue( WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product( $product ) );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_should_sync_product', $callback );
+			delete_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION );
+			$product->delete( true );
+		}
+	}
+
+	/**
+	 * With the auto-redirect toggle on, an add-on product defaults to
+	 * disable_checkout=true (sourced from 'addons'), while a plain product stays
+	 * embedded.
+	 *
+	 * @return void
+	 */
+	public function test_disable_checkout_auto_default_for_addon_products() {
+		delete_option( WC_Stripe_Agentic_Commerce_Integration::DISABLE_CHECKOUT_OPTION );
+		// Redirect only applies to products that reach the feed, so opt the add-on
+		// product back in past the exclude-by-default before testing the redirect.
+		update_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION, 'no' );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_REDIRECT_CHECKOUT_ADDONS_OPTION, 'yes' );
+
+		$addon = WC_Helper_Product::create_simple_product();
+		$addon->update_meta_data( '_product_addons', [ [ 'name' => 'Engraving' ] ] );
+		$addon->save();
+
+		$plain = WC_Helper_Product::create_simple_product();
+
+		try {
+			$mapper = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+
+			$this->assertSame( 'true', $mapper->map_product( $addon )['disable_checkout'] );
+			$this->assertSame( 'addons', $mapper->resolve_disable_checkout( $addon )['source'] );
+			$this->assertSame( 'false', $mapper->map_product( $plain )['disable_checkout'] );
+		} finally {
+			delete_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_REDIRECT_CHECKOUT_ADDONS_OPTION );
+			delete_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION );
+			$addon->delete( true );
+			$plain->delete( true );
+		}
+	}
+
+	/**
+	 * get_shipping_diagnostics() flags a zone with no flat-rate method as
+	 * contributing no shipping to the feed.
+	 *
+	 * @return void
+	 */
+	public function test_get_shipping_diagnostics_flags_zone_without_flat_rate() {
+		$zone = new WC_Shipping_Zone();
+		$zone->set_zone_name( 'Diagnostics Test Zone' );
+		$zone->save();
+
+		try {
+			$mapper      = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+			$diagnostics = $mapper->get_shipping_diagnostics();
+
+			$this->assertArrayHasKey( 'zones_without_flat_rate', $diagnostics );
+			$by_id = array_column( $diagnostics['zones_without_flat_rate'], 'name', 'id' );
+			// Entries carry the zone id so the preview can deep-link to its settings.
+			$this->assertArrayHasKey( $zone->get_id(), $by_id );
+			$this->assertSame( 'Diagnostics Test Zone', $by_id[ $zone->get_id() ] );
+		} finally {
+			$zone->delete();
+		}
+	}
+
+	/**
+	 * The built-in catch-all zone 0 ("Locations not covered by your other zones")
+	 * is diagnosed alongside named zones, not only when a store has none — so a
+	 * shipping-capable named zone is not flagged while zone 0's missing flat rate
+	 * still is.
+	 *
+	 * @return void
+	 */
+	public function test_get_shipping_diagnostics_includes_default_zone_alongside_named_zones() {
+		$named = new WC_Shipping_Zone();
+		$named->set_zone_name( 'Covered Zone' );
+		$named->save();
+		// Free shipping counts as a static (flat) cost, so this zone ships.
+		$named->add_shipping_method( 'free_shipping' );
+
+		try {
+			$mapper      = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+			$diagnostics = $mapper->get_shipping_diagnostics();
+
+			$flagged_names = array_column( $diagnostics['zones_without_flat_rate'], 'name' );
+			$this->assertNotContains(
+				'Covered Zone',
+				$flagged_names,
+				'A named zone with a flat-cost method must not be flagged.'
+			);
+			$this->assertContains(
+				'Locations not covered by your other zones',
+				$flagged_names,
+				'Zone 0 must still be diagnosed when named zones exist.'
+			);
+		} finally {
+			$named->delete();
+		}
+	}
+
+	/**
+	 * A disabled flat rate on the catch-all zone must not count as feed shipping:
+	 * WooCommerce never offers it at checkout, so the zone stays flagged.
+	 *
+	 * @return void
+	 */
+	public function test_get_shipping_diagnostics_ignores_disabled_methods_on_default_zone() {
+		global $wpdb;
+
+		$zone        = WC_Shipping_Zones::get_zone( 0 );
+		$instance_id = $zone->add_shipping_method( 'flat_rate' );
+		$wpdb->update( $wpdb->prefix . 'woocommerce_shipping_zone_methods', [ 'is_enabled' => 0 ], [ 'instance_id' => $instance_id ] );
+
+		try {
+			$diagnostics = ( new \WC_Stripe_Agentic_Commerce_Product_Mapper() )->get_shipping_diagnostics();
+
+			$this->assertContains(
+				'Locations not covered by your other zones',
+				array_column( $diagnostics['zones_without_flat_rate'], 'name' ),
+				'A disabled flat rate must not satisfy the zone.'
+			);
+		} finally {
+			$zone->delete_shipping_method( $instance_id );
 		}
 	}
 }

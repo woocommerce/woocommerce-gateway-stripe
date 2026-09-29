@@ -86,6 +86,15 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	];
 
 	/**
+	 * Reset the fetch cooldown between tests. The parent already clears the PMC cache, but not this
+	 * option, which `refresh_pmc_availability()` writes — leaving it set would leak into later tests.
+	 */
+	public function tear_down() {
+		parent::tear_down();
+		delete_option( WC_Stripe_Payment_Method_Configurations::FETCH_COOLDOWN_OPTION_KEY );
+	}
+
+	/**
 	 * Tests for `get_parent_configuration_id`.
 	 *
 	 * @return void
@@ -1011,5 +1020,301 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 				'expect_empty'          => true,
 			],
 		];
+	}
+
+	/**
+	 * Sets up the API instance mock and returns the reflection property used to reset it.
+	 *
+	 * @param mixed $configurations_response Value to return from get_payment_method_configurations().
+	 * @return ReflectionProperty The instance property so the caller can reset it after assertions.
+	 */
+	private function mock_get_payment_method_configurations_response( $configurations_response ): ReflectionProperty {
+		$mock_api = $this->getMockBuilder( WC_Stripe_API::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$mock_api->expects( $this->once() )
+			->method( 'get_payment_method_configurations' )
+			->willReturn( $configurations_response );
+
+		$reflection        = new ReflectionClass( WC_Stripe_API::class );
+		$instance_property = $reflection->getProperty( 'instance' );
+		$instance_property->setAccessible( true );
+		$instance_property->setValue( null, $mock_api );
+
+		return $instance_property;
+	}
+
+	/**
+	 * Builds a settings array that satisfies WC_Stripe_Helper::is_connected() in test mode.
+	 */
+	private function build_connected_test_mode_settings( $pmc_enabled = null ): array {
+		$settings = array_merge(
+			WC_Stripe_Helper::get_stripe_settings(),
+			[
+				'testmode'             => 'yes',
+				'test_publishable_key' => 'pk_test_1234567890',
+				'test_secret_key'      => 'sk_test_1234567890',
+				'test_connection_type' => 'connect',
+			]
+		);
+
+		if ( null === $pmc_enabled ) {
+			unset( $settings['pmc_enabled'] );
+		} else {
+			$settings['pmc_enabled'] = $pmc_enabled;
+		}
+
+		return $settings;
+	}
+
+	/**
+	 * Provider for {@see test_refresh_pmc_availability_leaves_pmc_enabled_untouched_on_api_failure()}.
+	 */
+	public function provide_refresh_pmc_availability_api_failures(): array {
+		return [
+			'wp_error_response' => [ new WP_Error( 'stripe_error', 'boom' ) ],
+			'null_response'     => [ null ],
+			'stripe_error_body' => [ (object) [ 'error' => (object) [ 'message' => 'something failed' ] ] ],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_refresh_pmc_availability_api_failures
+	 */
+	public function test_refresh_pmc_availability_leaves_pmc_enabled_untouched_on_api_failure( $api_response ) {
+		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+		WC_Stripe_Helper::update_main_stripe_settings( $this->build_connected_test_mode_settings( 'yes' ) );
+
+		$instance_property = $this->mock_get_payment_method_configurations_response( $api_response );
+
+		WC_Stripe_Payment_Method_Configurations::refresh_pmc_availability();
+
+		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		$instance_property->setValue( null, null );
+		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+
+		$this->assertEquals( 'yes', $updated_settings['pmc_enabled'] );
+	}
+
+	/**
+	 * No usable PMC returned: pmc_enabled is set to 'no'.
+	 */
+	public function test_refresh_pmc_availability_disables_when_no_usable_pmc() {
+		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+		WC_Stripe_Helper::update_main_stripe_settings( $this->build_connected_test_mode_settings( 'yes' ) );
+
+		$instance_property = $this->mock_get_payment_method_configurations_response( (object) [ 'data' => [] ] );
+
+		WC_Stripe_Payment_Method_Configurations::refresh_pmc_availability();
+
+		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		$instance_property->setValue( null, null );
+		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+
+		$this->assertEquals( 'no', $updated_settings['pmc_enabled'] );
+	}
+
+	/**
+	 * Usable PMC returned with pmc_enabled empty: migration runs and ends 'yes'.
+	 */
+	public function test_refresh_pmc_availability_runs_migration_when_flag_empty() {
+		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+		WC_Stripe_Helper::update_main_stripe_settings( $this->build_connected_test_mode_settings( null ) );
+
+		$instance_property = $this->mock_get_payment_method_configurations_response(
+			(object) [ 'data' => [ (object) self::MOCK_CHILD_TEST_PMC ] ]
+		);
+
+		WC_Stripe_Payment_Method_Configurations::refresh_pmc_availability();
+
+		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		$instance_property->setValue( null, null );
+		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+
+		$this->assertEquals( 'yes', $updated_settings['pmc_enabled'] );
+	}
+
+	/**
+	 * Usable PMC returned with pmc_enabled='no': flag flips back to 'yes' (recovery path).
+	 */
+	public function test_refresh_pmc_availability_recovers_from_no_state() {
+		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+		WC_Stripe_Helper::update_main_stripe_settings( $this->build_connected_test_mode_settings( 'no' ) );
+
+		$instance_property = $this->mock_get_payment_method_configurations_response(
+			(object) [ 'data' => [ (object) self::MOCK_CHILD_TEST_PMC ] ]
+		);
+
+		WC_Stripe_Payment_Method_Configurations::refresh_pmc_availability();
+
+		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		$instance_property->setValue( null, null );
+		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+
+		$this->assertEquals( 'yes', $updated_settings['pmc_enabled'] );
+	}
+
+	/**
+	 * Usable PMC returned with pmc_enabled='yes': no-op (still 'yes').
+	 */
+	public function test_refresh_pmc_availability_noop_when_already_yes() {
+		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+		WC_Stripe_Helper::update_main_stripe_settings( $this->build_connected_test_mode_settings( 'yes' ) );
+
+		$instance_property = $this->mock_get_payment_method_configurations_response(
+			(object) [ 'data' => [ (object) self::MOCK_CHILD_TEST_PMC ] ]
+		);
+
+		WC_Stripe_Payment_Method_Configurations::refresh_pmc_availability();
+
+		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		$instance_property->setValue( null, null );
+		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+
+		$this->assertEquals( 'yes', $updated_settings['pmc_enabled'] );
+	}
+
+	/**
+	 * When `wc_stripe_preselect_payment_method_configuration` resolves to a usable PMC,
+	 * `refresh_pmc_availability()` uses it directly: it bypasses the bulk
+	 * `get_payment_method_configurations()` call and ends with `pmc_enabled` set to 'yes'.
+	 */
+	public function test_refresh_pmc_availability_honors_preselect_filter() {
+		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+		WC_Stripe_Helper::update_main_stripe_settings( $this->build_connected_test_mode_settings( null ) );
+
+		// Assert the bulk listing is never queried when the preselect filter resolves a usable PMC.
+		$mock_api = $this->getMockBuilder( WC_Stripe_API::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$mock_api->expects( $this->never() )->method( 'get_payment_method_configurations' );
+
+		$reflection        = new ReflectionClass( WC_Stripe_API::class );
+		$instance_property = $reflection->getProperty( 'instance' );
+		$instance_property->setAccessible( true );
+		$instance_property->setValue( null, $mock_api );
+
+		$preselected_pmc_id = 'pmc_preselected_for_test';
+		$preselected_pmc    = (object) array_merge( self::MOCK_CHILD_TEST_PMC, [ 'id' => $preselected_pmc_id ] );
+
+		$preselect_filter = function () use ( $preselected_pmc_id ) {
+			return $preselected_pmc_id;
+		};
+		add_filter( 'wc_stripe_preselect_payment_method_configuration', $preselect_filter );
+
+		$http_filter = function ( $preempt, $args, $url ) use ( $preselected_pmc_id, $preselected_pmc ) {
+			if ( false !== strpos( $url, 'payment_method_configurations/' . $preselected_pmc_id ) ) {
+				return [
+					'response' => [ 'code' => 200 ],
+					'body'     => wp_json_encode( $preselected_pmc ),
+				];
+			}
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $http_filter, 10, 3 );
+
+		WC_Stripe_Payment_Method_Configurations::refresh_pmc_availability();
+
+		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		remove_filter( 'wc_stripe_preselect_payment_method_configuration', $preselect_filter );
+		remove_filter( 'pre_http_request', $http_filter );
+		$instance_property->setValue( null, null );
+		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+
+		$this->assertEquals( 'yes', $updated_settings['pmc_enabled'] );
+	}
+
+	/**
+	 * When `wc_stripe_preselect_payment_method_configuration` is set but the preselected PMC
+	 * lookup fails (transient Stripe/transport error), `refresh_pmc_availability()` leaves
+	 * `pmc_enabled` untouched and does not fall through to the bulk listing / disable path.
+	 */
+	public function test_refresh_pmc_availability_leaves_pmc_enabled_untouched_on_preselect_error() {
+		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+		WC_Stripe_Helper::update_main_stripe_settings( $this->build_connected_test_mode_settings( 'yes' ) );
+
+		// The preselected PMC is authoritative, so a failed lookup must not trigger the bulk listing.
+		$mock_api = $this->getMockBuilder( WC_Stripe_API::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$mock_api->expects( $this->never() )->method( 'get_payment_method_configurations' );
+
+		$reflection        = new ReflectionClass( WC_Stripe_API::class );
+		$instance_property = $reflection->getProperty( 'instance' );
+		$instance_property->setAccessible( true );
+		$instance_property->setValue( null, $mock_api );
+
+		$preselected_pmc_id = 'pmc_preselected_for_test';
+
+		$preselect_filter = function () use ( $preselected_pmc_id ) {
+			return $preselected_pmc_id;
+		};
+		add_filter( 'wc_stripe_preselect_payment_method_configuration', $preselect_filter );
+
+		// Return a Stripe error body for the preselected PMC lookup.
+		$http_filter = function ( $preempt, $args, $url ) use ( $preselected_pmc_id ) {
+			if ( false !== strpos( $url, 'payment_method_configurations/' . $preselected_pmc_id ) ) {
+				return [
+					'response' => [ 'code' => 200 ],
+					'body'     => wp_json_encode( [ 'error' => [ 'message' => 'No such payment_method_configuration' ] ] ),
+				];
+			}
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $http_filter, 10, 3 );
+
+		WC_Stripe_Payment_Method_Configurations::refresh_pmc_availability();
+
+		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		remove_filter( 'wc_stripe_preselect_payment_method_configuration', $preselect_filter );
+		remove_filter( 'pre_http_request', $http_filter );
+		$instance_property->setValue( null, null );
+		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+
+		$this->assertEquals( 'yes', $updated_settings['pmc_enabled'] );
+	}
+
+	/**
+	 * A transient Stripe failure during refresh must not flip pmc_enabled to 'no' through the forced
+	 * settings re-fetch that follows it. refresh_pmc_availability() arms the fetch cooldown, so the
+	 * subsequent get_upe_enabled_payment_method_ids( true ) reuses the last-known-good cached PMC
+	 * instead of re-hitting Stripe — a repeat call that would fail again and disable sync.
+	 *
+	 * The mock asserts get_payment_method_configurations() runs exactly once (the refresh itself);
+	 * a second call would mean the forced re-fetch bypassed the cache.
+	 */
+	public function test_refresh_pmc_availability_survives_transient_failure_through_forced_settings_refetch() {
+		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+		WC_Stripe_Helper::update_main_stripe_settings( $this->build_connected_test_mode_settings( 'yes' ) );
+
+		// Seed a last-known-good PMC in the cache: the merchant was working before the outage.
+		WC_Stripe_Database_Cache::set(
+			WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY,
+			(object) self::MOCK_CHILD_TEST_PMC,
+			WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_EXPIRATION
+		);
+
+		$instance_property = $this->mock_get_payment_method_configurations_response( new WP_Error( 'stripe_error', 'boom' ) );
+
+		WC_Stripe_Payment_Method_Configurations::refresh_pmc_availability();
+
+		// Simulate the frontend's forced settings re-fetch triggered by the account refresh.
+		WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids( true );
+
+		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		$instance_property->setValue( null, null );
+		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+
+		$this->assertEquals( 'yes', $updated_settings['pmc_enabled'] );
 	}
 }

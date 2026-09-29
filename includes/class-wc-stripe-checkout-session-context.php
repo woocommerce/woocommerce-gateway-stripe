@@ -23,11 +23,12 @@ class WC_Stripe_Checkout_Session_Context {
 	private const MUTATION_LOCK_OPTION_PREFIX = 'wc_stripe_checkout_session_lock_';
 
 	/**
-	 * Stable marker for support/admin code to distinguish an automatic safety disable from a manual setting change.
+	 * WC session key flagging that this customer hit a Checkout Session amount mismatch, so their
+	 * later checkouts use the standard intent flow instead of Adaptive Pricing.
 	 *
 	 * @var string
 	 */
-	private const ADAPTIVE_PRICING_AMOUNT_MISMATCH_OPTION = 'wc_stripe_adaptive_pricing_session_amount_mismatch_detected';
+	private const AMOUNT_MISMATCH_SESSION_KEY = 'wc_stripe_checkout_session_amount_mismatch';
 
 	/**
 	 * WooCommerce rewrites the session customer ID when checkout creates an account.
@@ -86,12 +87,16 @@ class WC_Stripe_Checkout_Session_Context {
 	}
 
 	/**
-	 * Check if an amount mismatch was detected.
+	 * Check if the current customer session previously hit a Checkout Session amount mismatch.
 	 *
 	 * @return bool
 	 */
 	public static function was_amount_mismatch_detected(): bool {
-		return 'yes' === get_option( self::ADAPTIVE_PRICING_AMOUNT_MISMATCH_OPTION, 'no' );
+		if ( ! WC()->session || ! is_callable( [ WC()->session, 'get' ] ) ) {
+			return false;
+		}
+
+		return 'yes' === WC()->session->get( self::AMOUNT_MISMATCH_SESSION_KEY );
 	}
 
 	/**
@@ -208,14 +213,15 @@ class WC_Stripe_Checkout_Session_Context {
 	 * @throws Exception When the Checkout Session is currently locked.
 	 */
 	public static function with_mutation_lock( string $session_id, callable $callback ) {
-		if ( ! self::acquire_mutation_lock( $session_id ) ) {
+		$lock_owner = self::acquire_mutation_lock( $session_id );
+		if ( null === $lock_owner ) {
 			throw new Exception( self::get_unavailable_message() );
 		}
 
 		try {
 			return $callback();
 		} finally {
-			self::release_mutation_lock( $session_id );
+			self::release_mutation_lock( $session_id, $lock_owner );
 		}
 	}
 
@@ -272,7 +278,7 @@ class WC_Stripe_Checkout_Session_Context {
 			(int) ( $context['amount'] ?? 0 ) !== $order_amount
 			|| strtolower( (string) ( $context['currency'] ?? '' ) ) !== $order_currency
 		) {
-			self::disable_adaptive_pricing_after_amount_mismatch( $session_id, $order, $context, $order_amount, $order_currency );
+			self::invalidate_session_after_amount_mismatch( $session_id, $order, $context, $order_amount, $order_currency );
 
 			throw new Exception( __( 'The payment amount no longer matches the order total. Please refresh the page and try again.', 'woocommerce-gateway-stripe' ) );
 		}
@@ -302,44 +308,38 @@ class WC_Stripe_Checkout_Session_Context {
 	/**
 	 * Attempt to acquire the Checkout Session mutation lock.
 	 *
-	 * Best-effort: the lock only serializes the short update/link window so a stale validation
-	 * result cannot race a concurrent cart update or order submission. The authoritative guard
-	 * against amount manipulation is the order-id and amount/currency checks, so the rare race
-	 * where two requests reclaim the same expired lock is acceptable.
-	 *
-	 * `add_option()` is atomic on the option name, so the common (uncrashed) path is race-free.
-	 * A lock abandoned by a crashed request is reclaimed once MUTATION_LOCK_TTL has elapsed.
+	 * The lock only serializes the short update/link window so a stale validation result cannot
+	 * race a concurrent cart update or order submission. The authoritative guard against amount
+	 * manipulation is the order-id and amount/currency checks. A lock abandoned by a crashed
+	 * request is reclaimed once MUTATION_LOCK_TTL has elapsed.
 	 *
 	 * @param string $session_id Stripe Checkout Session ID.
-	 * @return bool True when the caller acquired the lock.
+	 * @return string|null The owner value to release the lock with, or null when another request holds it.
 	 */
-	private static function acquire_mutation_lock( string $session_id ): bool {
-		$option_name = self::get_mutation_lock_option_name( $session_id );
-		$now         = time();
-
-		if ( add_option( $option_name, $now, '', false ) ) {
-			return true;
-		}
-
-		$existing = (int) get_option( $option_name, 0 );
-		if ( $existing > 0 && ( $now - $existing ) < self::MUTATION_LOCK_TTL ) {
-			return false;
-		}
-
-		// Reclaim a lock abandoned by a crashed request; the loser of a concurrent
-		// reclaim is rejected by add_option()'s atomic insert. Still best-effort.
-		delete_option( $option_name );
-		return add_option( $option_name, $now, '', false );
+	private static function acquire_mutation_lock( string $session_id ): ?string {
+		return WC_Stripe_Option_Lock::acquire( self::get_mutation_lock_option_name( $session_id ), self::MUTATION_LOCK_TTL );
 	}
 
 	/**
 	 * Release the Checkout Session mutation lock.
 	 *
-	 * @param string $session_id Stripe Checkout Session ID.
+	 * Without an owner the lock is removed whoever holds it. That is only safe once the context
+	 * is gone, because no holder can act on the session any more; on a live session it would hand
+	 * the lock to the next caller while the holder is still working.
+	 *
+	 * @param string      $session_id Stripe Checkout Session ID.
+	 * @param string|null $lock_owner The owner value returned by `acquire_mutation_lock()`, or null to remove the lock regardless of owner.
 	 * @return void
 	 */
-	private static function release_mutation_lock( string $session_id ): void {
-		delete_option( self::get_mutation_lock_option_name( $session_id ) );
+	private static function release_mutation_lock( string $session_id, ?string $lock_owner = null ): void {
+		$option_name = self::get_mutation_lock_option_name( $session_id );
+
+		if ( null === $lock_owner ) {
+			WC_Stripe_Option_Lock::force_release( $option_name );
+			return;
+		}
+
+		WC_Stripe_Option_Lock::release( $option_name, $lock_owner );
 	}
 
 	/**
@@ -366,7 +366,7 @@ class WC_Stripe_Checkout_Session_Context {
 
 	/**
 	 * A stored Checkout Session total that disagrees with the order means the store may have an
-	 * incompatible totals integration, so future shoppers should use the standard intent flow.
+	 * incompatible totals integration; invalidate the session to use the standard intent flow.
 	 *
 	 * @param string   $session_id Stripe Checkout Session ID.
 	 * @param WC_Order $order WooCommerce order.
@@ -375,22 +375,19 @@ class WC_Stripe_Checkout_Session_Context {
 	 * @param string   $order_currency Order currency.
 	 * @return void
 	 */
-	private static function disable_adaptive_pricing_after_amount_mismatch( string $session_id, WC_Order $order, array $context, $order_amount, string $order_currency ): void {
-		update_option( self::ADAPTIVE_PRICING_AMOUNT_MISMATCH_OPTION, 'yes', false );
-
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		if ( 'no' !== ( $stripe_settings['adaptive_pricing'] ?? 'no' ) ) {
-			$stripe_settings['adaptive_pricing'] = 'no';
-			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+	private static function invalidate_session_after_amount_mismatch( string $session_id, WC_Order $order, array $context, $order_amount, string $order_currency ): void {
+		if ( WC()->session && is_callable( [ WC()->session, 'set' ] ) ) {
+			WC()->session->set( self::AMOUNT_MISMATCH_SESSION_KEY, 'yes' );
 		}
 
 		self::delete_context( $session_id );
 
-		WC_Stripe_Logger::warning(
-			'Adaptive Pricing disabled after Checkout Session amount mismatch.',
+		WC_Stripe_Logger::error(
+			'Checkout Session amount mismatch; Session invalidated.',
 			[
 				'checkout_session_id' => $session_id,
 				'order_id'            => $order->get_id(),
+				'customer_id'         => $order->get_customer_id(),
 				'session_amount'      => $context['amount'],
 				'order_amount'        => $order_amount,
 				'session_currency'    => $context['currency'],
