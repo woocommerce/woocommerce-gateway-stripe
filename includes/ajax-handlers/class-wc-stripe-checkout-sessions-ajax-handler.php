@@ -108,7 +108,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 			);
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error( 'Create checkout session error.', [ 'error_message' => $e->getMessage() ] );
-			wp_send_json_error( [ 'message' => $e->getMessage() ] );
+			$this->send_json_error( $e );
 		}
 	}
 
@@ -161,8 +161,23 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error( 'Update checkout session error.', [ 'error_message' => $e->getMessage() ] );
-			wp_send_json_error( [ 'message' => $e->getMessage() ] );
+			$this->send_json_error( $e );
 		}
+	}
+
+	/**
+	 * Send a JSON error response when an exception has been caught.
+	 *
+	 * @param Exception $e The exception to send.
+	 * @return void
+	 */
+	private function send_json_error( Exception $e ): void {
+		if ( $e instanceof WC_Stripe_Exception ) {
+			$message = $e->getLocalizedMessage();
+		} else {
+			$message = $e->getMessage();
+		}
+		wp_send_json_error( [ 'message' => wp_strip_all_tags( $message ) ] );
 	}
 
 	/**

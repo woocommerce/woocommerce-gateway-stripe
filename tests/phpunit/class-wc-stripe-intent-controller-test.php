@@ -1911,4 +1911,59 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		WC_Subscriptions::set_wcs_get_subscription( null );
 		Ajax_Test_Helper::remove_hooks();
 	}
+
+	/**
+	 * AJAX error responses must include only customer-facing text and not internal
+	 * details from WC_Stripe_Exception instances.
+	 *
+	 * @param Exception $exception        The exception the handler should catch.
+	 * @param string    $expected_message The message expected in the JSON response.
+	 * @dataProvider provide_ajax_error_response_messages
+	 */
+	public function test_init_setup_intent_ajax_sends_only_customer_facing_message( Exception $exception, string $expected_message ): void {
+		Ajax_Test_Helper::init_hooks();
+		wp_set_current_user( 1 );
+
+		$controller = $this->getMockBuilder( WC_Stripe_Intent_Controller::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'init_setup_intent' ] )
+			->getMock();
+		$controller->method( 'init_setup_intent' )->willThrowException( $exception );
+
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_create_setup_intent_nonce' );
+
+		ob_start();
+		$controller->init_setup_intent_ajax();
+		$output = ob_get_clean();
+
+		unset( $_REQUEST['_ajax_nonce'] );
+		wp_set_current_user( 0 );
+		Ajax_Test_Helper::remove_hooks();
+
+		$response = json_decode( $output, true );
+		$this->assertFalse( $response['success'] );
+		$this->assertSame( $expected_message, $response['data']['error']['message'] );
+	}
+
+	/**
+	 * Data provider for test_init_setup_intent_ajax_sends_only_customer_facing_message.
+	 *
+	 * @return array[]
+	 */
+	public function provide_ajax_error_response_messages(): array {
+		return [
+			'WC_Stripe_Exception exposes the localized message, not the API dump' => [
+				new WC_Stripe_Exception( 'Array ( [error] => Array ( [code] => card_declined ) )', 'Your card was declined.' ),
+				'Your card was declined.',
+			],
+			'markup is stripped from a plain exception message'                   => [
+				new Exception( '<strong>Invalid</strong> request <script>alert(1)</script>' ),
+				'Invalid request',
+			],
+			'markup is stripped from a localized message'                         => [
+				new WC_Stripe_Exception( 'raw', '<a href="https://example.com">Retry</a> later' ),
+				'Retry later',
+			],
+		];
+	}
 }

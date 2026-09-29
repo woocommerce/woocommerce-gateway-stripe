@@ -225,6 +225,21 @@ class WC_Stripe_Intent_Controller {
 	}
 
 	/**
+	 * Builds and sanitises the message an AJAX error response will return.
+	 *
+	 * @param Exception $e The caught exception.
+	 * @return string
+	 */
+	private function get_customer_facing_error_message( Exception $e ): string {
+		if ( $e instanceof WC_Stripe_Exception ) {
+			$message = $e->getLocalizedMessage();
+		} else {
+			$message = $e->getMessage();
+		}
+		return wp_strip_all_tags( (string) $message );
+	}
+
+	/**
 	 * Creates a Setup Intent through AJAX while adding cards.
 	 *
 	 * @return void
@@ -333,7 +348,7 @@ class WC_Stripe_Intent_Controller {
 				'status' => 'error',
 				'error'  => [
 					'type'    => 'setup_intent_error',
-					'message' => $e->getMessage(),
+					'message' => $this->get_customer_facing_error_message( $e ),
 				],
 			];
 		}
@@ -376,7 +391,7 @@ class WC_Stripe_Intent_Controller {
 			wp_send_json_error(
 				[
 					'error' => [
-						'message' => $e->getMessage(),
+						'message' => $this->get_customer_facing_error_message( $e ),
 					],
 				]
 			);
@@ -523,7 +538,7 @@ class WC_Stripe_Intent_Controller {
 			wp_send_json_error(
 				[
 					'error' => [
-						'message' => $e->getMessage(),
+						'message' => $this->get_customer_facing_error_message( $e ),
 					],
 				]
 			);
@@ -679,7 +694,7 @@ class WC_Stripe_Intent_Controller {
 			wp_send_json_error(
 				[
 					'error' => [
-						'message' => $e->getMessage(),
+						'message' => $this->get_customer_facing_error_message( $e ),
 					],
 				]
 			);
@@ -869,7 +884,7 @@ class WC_Stripe_Intent_Controller {
 			wp_send_json_error(
 				[
 					'error' => [
-						'message' => $e->getLocalizedMessage(),
+						'message' => $this->get_customer_facing_error_message( $e ),
 					],
 				]
 			);
@@ -1495,7 +1510,7 @@ class WC_Stripe_Intent_Controller {
 			wp_send_json_error(
 				[
 					'error' => [
-						'message' => $e->getLocalizedMessage(),
+						'message' => $this->get_customer_facing_error_message( $e ),
 					],
 				]
 			);
@@ -1589,7 +1604,7 @@ class WC_Stripe_Intent_Controller {
 			wp_send_json_error(
 				[
 					'error' => [
-						'message' => $e->getLocalizedMessage(),
+						'message' => $this->get_customer_facing_error_message( $e ),
 					],
 				]
 			);
