@@ -2212,7 +2212,7 @@ class WC_Stripe_Helper {
 		}
 
 		if ( ! is_object( $intent ) ) {
-			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		if ( null === $intent_id ) {
@@ -2228,7 +2228,7 @@ class WC_Stripe_Helper {
 					'error'     => $intent->error,
 				]
 			);
-			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		if ( null === $selected_payment_type ) {
@@ -2274,7 +2274,7 @@ class WC_Stripe_Helper {
 			]
 		);
 
-		throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+		throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 	}
 
 	/**
