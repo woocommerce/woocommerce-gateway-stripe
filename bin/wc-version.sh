@@ -3,12 +3,10 @@
 # Maps a WooCommerce version selector to a download URL when WordPress.org cannot
 # serve it.
 #
-# WordPress.org only hosts released tags, but the pre-release builds WooCommerce
-# asks partners to test against exist solely as GitHub release assets: the rolling
-# `nightly` build and the `X.Y.Z-dev` tags announced in the canonical-extensions
-# testing posts. Passing one of those to `wp plugin install woocommerce --version=`
-# resolves to a downloads.wordpress.org URL that 404s, so callers install the URL
-# returned here positionally instead.
+# WordPress.org only hosts released tags, but we need to be able to run tests
+# against development versions of WooCommerce that are hosted on GitHub.
+# This function returns a URL when the plugin zip needs to be downloaded
+# from GitHub, as it won't be available from WordPress.org.
 #
 # Echoes an empty string for every selector WordPress.org does serve, including
 # explicit beta/RC tags such as 11.2.0-beta.1, which are published there.
