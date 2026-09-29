@@ -308,6 +308,10 @@ class WC_Stripe {
 				new WC_Stripe_Command_Palette_Controller();
 			}
 
+			if ( self::$instance === $this ) {
+				( new WC_Stripe_Payments_UI_Controller() )->init();
+			}
+
 			if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-subscription-detached-bulk-action.php';
 
@@ -963,17 +967,23 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-orders-controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-tokens-controller.php';
 
-		$connection_tokens_controller = new WC_REST_Stripe_Connection_Tokens_Controller( $this->get_main_stripe_gateway() );
-		$locations_controller         = new WC_REST_Stripe_Locations_Controller();
-		$orders_controller            = new WC_REST_Stripe_Orders_Controller( $this->get_main_stripe_gateway() );
-		$stripe_tokens_controller     = new WC_REST_Stripe_Tokens_Controller();
-		$stripe_account_controller    = new WC_REST_Stripe_Account_Controller( $this->get_main_stripe_gateway(), $this->account );
+		$connection_tokens_controller      = new WC_REST_Stripe_Connection_Tokens_Controller( $this->get_main_stripe_gateway() );
+		$locations_controller              = new WC_REST_Stripe_Locations_Controller();
+		$orders_controller                 = new WC_REST_Stripe_Orders_Controller( $this->get_main_stripe_gateway() );
+		$stripe_tokens_controller          = new WC_REST_Stripe_Tokens_Controller();
+		$stripe_account_controller         = new WC_REST_Stripe_Account_Controller( $this->get_main_stripe_gateway(), $this->account );
+		$stripe_payment_intents_controller = new WC_Stripe_REST_Payment_Intents_Controller();
+		$stripe_payouts_controller         = new WC_Stripe_REST_Payouts_Controller();
+		$stripe_balance_controller         = new WC_Stripe_REST_Balance_Controller();
 
 		$connection_tokens_controller->register_routes();
 		$locations_controller->register_routes();
 		$orders_controller->register_routes();
 		$stripe_tokens_controller->register_routes();
 		$stripe_account_controller->register_routes();
+		$stripe_payment_intents_controller->register_routes();
+		$stripe_payouts_controller->register_routes();
+		$stripe_balance_controller->register_routes();
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-settings-controller.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-keys-controller.php';

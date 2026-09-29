@@ -1,6 +1,7 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 11.1.0
+* Add - Add an admin REST API endpoint for retrieving Stripe payment intents
 * Fix - Return an error response when a Payment Method Configuration update fails in settings, so the frontend correctly displays an error instead of a false success notice
 * Update - Show the specific Stripe error reason in the settings save notice when a Payment Method Configuration update is rejected
 * Fix - Show the correct guidance when a subscription renewal fails because its Stripe mandate is invalid
@@ -22,6 +23,7 @@ xxxx-xx-xx - version 11.1.0
 * Fix - Prevent express checkout wallets from failing when rounded display items exceed the payment total
 * Fix - Accept shipping addresses in the express checkout wallet sheet for free-trial subscription carts whose shipping is charged with the recurring payments
 * Update - Ensure that application fees are not sent to Stripe for OAuth-connected accounts
+* Add - Show Payouts in a new Payments -> Stripe screen
 * Fix - When checking if unpaid orders should be cancelled, get the Stripe payment status, and update orders with Stripe payment details
 * Dev - Block outbound HTTP requests from unit tests
 * Fix - Point a saved Stripe Link payment method at the newest card selection when the customer re-enrolls through Link, so subscription renewals stop charging the replaced card
