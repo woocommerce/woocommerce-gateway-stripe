@@ -191,7 +191,7 @@ class WC_Stripe_Test_Suite_Loader implements TestSuiteLoader {
 			}
 
 			if ( ! $method->isPublic() ) {
-				throw new Exception( // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+				throw new Exception(
 					sprintf(
 						'Method %s::suite() declared in %s is not public',
 						$suite_class_name, // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
