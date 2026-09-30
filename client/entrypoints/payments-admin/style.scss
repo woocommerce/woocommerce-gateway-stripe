@@ -8,6 +8,12 @@
 	}
 
 	.wc-stripe-instant-payouts-promotion-notice {
-		margin: 24px;
+		margin: var(--wp-ui-card-padding, 24px);
+
+		.wc-stripe-instant-payouts-promotion-notice__content {
+			display: flex;
+			flex-direction: column;
+			gap: var(--wpds-dimension-gap-lg, 16px);
+		}
 	}
 }

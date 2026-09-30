@@ -103,8 +103,8 @@ const InstantPayoutsPromotionNotice = () => {
 					) }
 				</Card.Title>
 			</Card.Header>
-			<Card.Content>
-				<p>
+			<Card.Content className="wc-stripe-instant-payouts-promotion-notice__content">
+				<div>
 					{ __(
 						'With Instant Payouts, get access to your balance within minutes — even on weekends and holidays.',
 						'woocommerce-gateway-stripe'
@@ -115,7 +115,7 @@ const InstantPayoutsPromotionNotice = () => {
 					>
 						{ userMessage }
 					</span>
-				</p>
+				</div>
 				<Stack direction="row" gap="lg">
 					<LinkButton
 						variant="outline"
