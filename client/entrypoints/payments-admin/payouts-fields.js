@@ -71,7 +71,7 @@ const fields = [
 				return item.destination.bank_name;
 			}
 			return sprintf(
-				'%1$s (%2$s)',
+				'%1$s ∙∙∙∙%2$s',
 				item.destination.bank_name,
 				item.destination.last4
 			);
