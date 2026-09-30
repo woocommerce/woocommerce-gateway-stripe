@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { formatStripeAmount } from './utils';
+import { formatStripeAmount, getDefaultAccountCurrency } from './utils';
 import { NAMESPACE } from 'wcstripe/data/constants';
 import apiFetch from '@wordpress/api-fetch';
 import { __, sprintf } from '@wordpress/i18n';
@@ -13,15 +13,17 @@ import { Button, Card, LinkButton, Stack } from '@wordpress/ui';
  * @return {string|null} The user message.
  */
 const getUserMessage = ( response ) => {
-	if (
-		! response?.default_account_currency?.length ||
-		! response?.instant_available?.length
-	) {
+	if ( ! response?.instant_available?.length ) {
+		return null;
+	}
+
+	const defaultAccountCurrency = getDefaultAccountCurrency();
+	if ( ! defaultAccountCurrency ) {
 		return null;
 	}
 
 	const defaultCurrencyInstantAvailable = response?.instant_available?.find(
-		( amount ) => amount?.currency === response.default_account_currency
+		( amount ) => amount?.currency === defaultAccountCurrency
 	);
 	if (
 		! defaultCurrencyInstantAvailable ||
@@ -87,12 +89,7 @@ const InstantPayoutsPromotionNotice = () => {
 	if ( isDismissed || isLoading || error ) {
 		return null;
 	}
-	if (
-		! data ||
-		! data.instant_available ||
-		! data.default_account_currency?.length ||
-		! userMessage
-	) {
+	if ( ! data || ! data.instant_available || ! userMessage ) {
 		return null;
 	}
 

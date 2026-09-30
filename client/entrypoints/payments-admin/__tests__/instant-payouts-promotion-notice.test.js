@@ -29,6 +29,7 @@ describe( 'InstantPayoutsPromotionNotice', () => {
 			locale: 'en-US',
 			noDecimalCurrencies: [],
 			threeDecimalCurrencies: [],
+			defaultAccountCurrency: 'usd',
 		};
 	} );
 
@@ -67,8 +68,10 @@ describe( 'InstantPayoutsPromotionNotice', () => {
 		async ( _, amounts, defaultCurrency, expected ) => {
 			apiFetch.mockResolvedValue( {
 				instant_available: amounts,
-				default_account_currency: defaultCurrency,
 			} );
+
+			global.window.wc_stripe_admin_payments_params.defaultAccountCurrency =
+				defaultCurrency;
 
 			await act( async () => {
 				render( <InstantPayoutsPromotionNotice /> );
@@ -98,9 +101,11 @@ describe( 'InstantPayoutsPromotionNotice', () => {
 	] )(
 		'does not render an available message with %s',
 		async ( _, amounts, defaultCurrency ) => {
+			global.window.wc_stripe_admin_payments_params.defaultAccountCurrency =
+				defaultCurrency;
+
 			apiFetch.mockResolvedValue( {
 				instant_available: amounts,
-				default_account_currency: defaultCurrency,
 			} );
 
 			await act( async () => {
@@ -134,7 +139,6 @@ describe( 'InstantPayoutsPromotionNotice', () => {
 		apiFetch.mockResolvedValue( {
 			livemode: false,
 			instant_available: [ { amount: 10000, currency: 'usd' } ],
-			default_account_currency: 'usd',
 		} );
 
 		await act( async () => {
@@ -155,7 +159,6 @@ describe( 'InstantPayoutsPromotionNotice', () => {
 		apiFetch.mockResolvedValue( {
 			livemode: true,
 			instant_available: [ { amount: 10000, currency: 'usd' } ],
-			default_account_currency: 'usd',
 		} );
 
 		await act( async () => {
@@ -167,13 +170,12 @@ describe( 'InstantPayoutsPromotionNotice', () => {
 		).toHaveAttribute( 'href', 'https://dashboard.stripe.com/payouts/' );
 	} );
 
-	it( 'shows the instant payout amount for the default account currency returned by the API', async () => {
+	it( 'shows the instant payout amount for the account currency', async () => {
 		apiFetch.mockResolvedValue( {
 			instant_available: [
 				{ amount: 40000, currency: 'usd' },
 				{ amount: 30000, currency: 'eur' },
 			],
-			default_account_currency: 'usd',
 		} );
 
 		await act( async () => {
@@ -185,10 +187,29 @@ describe( 'InstantPayoutsPromotionNotice', () => {
 		).toBeInTheDocument();
 	} );
 
+	it( 'shows the instant payout amount for a non-USD account currency', async () => {
+		global.window.wc_stripe_admin_payments_params.defaultAccountCurrency =
+			'eur';
+
+		apiFetch.mockResolvedValue( {
+			instant_available: [
+				{ amount: 40000, currency: 'usd' },
+				{ amount: 32198, currency: 'eur' },
+			],
+		} );
+
+		await act( async () => {
+			render( <InstantPayoutsPromotionNotice /> );
+		} );
+
+		expect(
+			await screen.findByText( 'You currently have €321.98 available.' )
+		).toBeInTheDocument();
+	} );
+
 	it( 'hides the notice when the Dismiss button is clicked', async () => {
 		apiFetch.mockResolvedValue( {
 			instant_available: [ { amount: 10000, currency: 'usd' } ],
-			default_account_currency: 'usd',
 		} );
 
 		const { container } = render( <InstantPayoutsPromotionNotice /> );

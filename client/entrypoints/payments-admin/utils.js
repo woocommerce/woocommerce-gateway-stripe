@@ -87,6 +87,12 @@ export const formatStripeAmount = ( amount, currency ) => {
 	}
 };
 
+/**
+ * Formats a Stripe timestamp for display.
+ *
+ * @param {number} timestamp A Unix timestamp in milliseconds.
+ * @return {string} A ISO string representation of the timestamp. Returns '' if the timestamp is invalid.
+ */
 export const formatStripeTimestamp = ( timestamp ) => {
 	if (
 		timestamp &&
@@ -98,3 +104,11 @@ export const formatStripeTimestamp = ( timestamp ) => {
 
 	return '';
 };
+
+/**
+ * Gets the default account currency from the localized parameters.
+ *
+ * @return {string} The default account currency.
+ */
+export const getDefaultAccountCurrency = () =>
+	getParam( 'defaultAccountCurrency', '' );
