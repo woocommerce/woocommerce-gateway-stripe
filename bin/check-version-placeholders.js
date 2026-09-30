@@ -30,16 +30,20 @@ const REPLACEABLE_TAG = /@(?:since|version) +x\.x\.x/g;
 const CONCRETE_TAG = /@(since|version)\s+(\d+\.\d+\.\d+)/g;
 const RELEASED_HEADER = /^\d{4}-\d{2}-\d{2} - version (\d+\.\d+\.\d+)\s*$/m;
 const CODE_FILE = /\.(?:php|jsx?|tsx?)$/i;
-// Not shipped in the plugin zip (export-ignore), so a stray placeholder there is
-// harmless; this script, its tests, and docs also mention x.x.x on purpose.
-const UNSHIPPED_DIRS = ['bin/', 'tests/', 'docs/', '.github/', '.claude/', 'phpstan-stubs/', 'vendor/', 'node_modules/'];
+// Source folders that ship in the plugin zip. An include list, so new unshipped
+// folders (docker/, release/, ...) are skipped without editing it. Files outside
+// it can mention x.x.x on purpose, like this script and its tests.
+const SHIPPED_DIRS = ['includes/', 'templates/', 'client/', 'assets/js/'];
+// Root PHP files ship too. Checking all of them catches a new one that is
+// missing from version_replace_paths.
+const ROOT_PHP_FILE = /^[^/]+\.php$/i;
 
 /**
  * @param {string} file Repository-relative path.
  * @return {boolean} Whether the file is shipped code this check applies to.
  */
 function isChecked(file) {
-    return CODE_FILE.test(file) && !UNSHIPPED_DIRS.some((dir) => file.startsWith(dir));
+    return ROOT_PHP_FILE.test(file) || (CODE_FILE.test(file) && SHIPPED_DIRS.some((dir) => file.startsWith(dir)));
 }
 
 /**

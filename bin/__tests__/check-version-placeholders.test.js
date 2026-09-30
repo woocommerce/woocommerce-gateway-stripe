@@ -31,7 +31,7 @@ describe('check-version-placeholders', () => {
         ['a deprecation function argument', 'includes/class-foo.php', "		_deprecated_function( __METHOD__, 'x.x.x' );"],
         ['a tab between the tag and x.x.x', 'includes/class-foo.php', '	 * @since	x.x.x'],
         ['JS, which woorelease does not scan', 'client/foo.js', ' * @since x.x.x'],
-        ['a PHP file outside the replace paths', 'lib/foo.php', ' * @since x.x.x'],
+        ['a PHP file outside the replace paths', 'bootstrap.php', ' * @since x.x.x'],
     ])('errors on %s', (description, file, line) => {
         expect(levels(diffFor(file, [line]))).toEqual(['error']);
     });
@@ -106,6 +106,9 @@ describe('check-version-placeholders', () => {
         ['tests/phpunit/foo.php', false],
         ['.github/workflows/foo.yml', false],
         ['readme.txt', false],
+        ['woocommerce-gateway-stripe.php', true],
+        ['docker/bin/foo.php', false],
+        ['release/woocommerce-gateway-stripe/includes/foo.php', false],
     ])('isChecked(%s) is %s', (file, expected) => {
         expect(isChecked(file)).toBe(expected);
     });
