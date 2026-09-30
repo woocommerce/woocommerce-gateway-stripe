@@ -276,7 +276,7 @@ class WC_Stripe_Admin_Notices {
 				}
 
 				$message = sprintf(
-					/* translators: 1) live/test mode 2) HTML anchor open tag 3) HTML anchor closing tag */
+					/* translators: 1) mode, either 'live' or 'test' 2) HTML anchor open tag 3) HTML anchor closing tag */
 					__( 'WooCommerce Stripe - Your %1$s-mode webhook endpoint saved in your settings no longer exists in your Stripe account, so %1$s order updates from Stripe are not being received. Please %2$sre-configure your webhooks%3$s.', 'woocommerce-gateway-stripe' ),
 					esc_html( $mode ),
 					'<a href="' . $this->get_setting_link() . '">',
