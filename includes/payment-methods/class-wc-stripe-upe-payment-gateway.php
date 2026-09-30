@@ -2466,10 +2466,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$order_helper->unlock_order_payment( $order );
 
 			WC_Stripe_Logger::error( 'Error processing UPE redirect payment for order: ' . $order_id, [ 'error_message' => $e->getMessage() ] );
-			/* translators: localized exception message */
-			$order->update_status( OrderStatus::FAILED, sprintf( __( 'UPE payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
 
-			wc_add_notice( $e->getMessage(), 'error' );
+			$message = WC_Stripe_Helper::get_sanitized_error_message_from_exception(
+				$e,
+				__( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' )
+			);
+			/* translators: localized exception message */
+			$order->update_status( OrderStatus::FAILED, sprintf( __( 'UPE payment failed: %s', 'woocommerce-gateway-stripe' ), $message ) );
+
+			wc_add_notice( $message, 'error' );
 
 			$redirect_url = '';
 			if ( $is_pay_for_order ) {
@@ -2719,7 +2724,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			) {
 				throw new WC_Stripe_Payment_Cancelled_Exception( $error_message );
 			}
-			throw new WC_Stripe_Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			$generic_message = __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' );
+			throw new WC_Stripe_Exception( $generic_message, $generic_message );
 		}
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
@@ -3357,7 +3363,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$setup_intent = $this->stripe_request( 'setup_intents/' . $setup_intent_id . '?&expand[]=latest_attempt' );
 			if ( ! empty( $setup_intent->last_payment_error ) ) {
 				WC_Stripe_Logger::error( 'Setup intent has payment error, cannot create token.', [ 'error' => $setup_intent->last_payment_error ] );
-				throw new WC_Stripe_Exception( __( "We're not able to add this payment method. Please try again later.", 'woocommerce-gateway-stripe' ) );
+				$generic_message = __( "We're not able to add this payment method. Please try again later.", 'woocommerce-gateway-stripe' );
+				throw new WC_Stripe_Exception( $generic_message, $generic_message );
 			}
 
 			list( $payment_method_type, $payment_method_details ) = $this->get_payment_method_data_from_intent( $setup_intent );
@@ -3367,7 +3374,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$payment_method = $this->resolve_payment_method_for_setup_intent( $payment_method_type, $payment_method_details );
 
 			if ( ! $payment_method ) {
-				throw new WC_Stripe_Exception( __( "We're not able to add this payment method. Please try again later.", 'woocommerce-gateway-stripe' ) );
+				$generic_message = __( "We're not able to add this payment method. Please try again later.", 'woocommerce-gateway-stripe' );
+				throw new WC_Stripe_Exception( $generic_message, $generic_message );
 			}
 
 			// Redirect methods store their generated SEPA token under the type key; the array-cast
@@ -3383,7 +3391,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			return $payment_method->create_payment_token_for_user( $user->ID, $payment_method_object );
 		} catch ( Exception $e ) {
-			wc_add_notice( $e->getMessage(), 'error', [ 'icon' => 'error' ] );
+			$message = WC_Stripe_Helper::get_sanitized_error_message_from_exception(
+				$e,
+				__( "We're not able to add this payment method. Please try again later.", 'woocommerce-gateway-stripe' )
+			);
+			wc_add_notice( $message, 'error', [ 'icon' => 'error' ] );
 			WC_Stripe_Logger::error( 'Error in creating token from setup intent.', [ 'error_message' => $e->getMessage() ] );
 			return null;
 		}

@@ -1952,15 +1952,15 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function provide_ajax_error_response_messages(): array {
 		return [
-			'WC_Stripe_Exception exposes the localized message, not the API dump' => [
+			'WC_Stripe_Exception exposes the localized message, not the internal data' => [
 				new WC_Stripe_Exception( 'Array ( [error] => Array ( [code] => card_declined ) )', 'Your card was declined.' ),
 				'Your card was declined.',
 			],
-			'markup is stripped from a plain exception message'                   => [
+			'markup is stripped from a plain exception message'                        => [
 				new Exception( '<strong>Invalid</strong> request <script>alert(1)</script>' ),
 				'Invalid request',
 			],
-			'markup is stripped from a localized message'                         => [
+			'markup is stripped from a localized message'                              => [
 				new WC_Stripe_Exception( 'raw', '<a href="https://example.com">Retry</a> later' ),
 				'Retry later',
 			],
