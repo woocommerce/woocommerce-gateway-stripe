@@ -364,10 +364,13 @@ class WC_Stripe_Helper {
 		}
 
 		if ( '' !== $fallback ) {
-			return $fallback;
+			$fallback = wp_strip_all_tags( $fallback );
+			if ( '' !== $fallback ) {
+				return $fallback;
+			}
 		}
 
-		return __( 'An error occurred.', 'woocommerce-gateway-stripe' );
+		return wp_strip_all_tags( __( 'An error occurred.', 'woocommerce-gateway-stripe' ) );
 	}
 
 	/**
