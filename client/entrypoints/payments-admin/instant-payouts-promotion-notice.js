@@ -121,9 +121,9 @@ const InstantPayoutsPromotionNotice = () => {
 						variant="outline"
 						openInNewTab
 						href={
-							data?.livemode === false
-								? 'https://dashboard.stripe.com/test/payouts/'
-								: 'https://dashboard.stripe.com/payouts/'
+							data?.livemode === true
+								? 'https://dashboard.stripe.com/payouts/'
+								: 'https://dashboard.stripe.com/test/payouts/'
 						}
 						rel="noreferrer"
 					>
