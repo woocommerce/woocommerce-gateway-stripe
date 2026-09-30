@@ -959,6 +959,60 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Dynamic Payment Methods intents always include `card`, and Stripe rejects a full
+	 * statement_descriptor on them, so it is dropped there and kept otherwise.
+	 *
+	 * @param bool $automatic_payment_methods Whether the intent uses Dynamic Payment Methods.
+	 * @param bool $expect_descriptor         Whether statement_descriptor must be sent.
+	 *
+	 * @dataProvider provide_statement_descriptor_with_automatic_payment_methods_data
+	 *
+	 * @return void
+	 */
+	public function test_create_and_confirm_payment_intent_statement_descriptor_with_automatic_payment_methods( bool $automatic_payment_methods, bool $expect_descriptor ): void {
+		$payment_information                          = $this->get_base_payment_information();
+		$payment_information['selected_payment_type'] = WC_Stripe_Payment_Methods::KLARNA;
+		$payment_information['payment_method_types']  = [ WC_Stripe_Payment_Methods::KLARNA ];
+		$payment_information['statement_descriptor']  = 'MY STORE';
+		$payment_information['return_url']            = 'https://example.com/return';
+		if ( $automatic_payment_methods ) {
+			$payment_information['automatic_payment_methods'] = true;
+		}
+
+		$test_request = function ( $preempt, $parsed_args, $url ) use ( $expect_descriptor ) {
+			$body = $parsed_args['body'];
+
+			if ( $expect_descriptor ) {
+				$this->assertSame( 'MY STORE', $body['statement_descriptor'] );
+			} else {
+				$this->assertArrayNotHasKey( 'statement_descriptor', $body );
+			}
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode( [] ),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$this->mock_controller->create_and_confirm_payment_intent( $payment_information );
+	}
+
+	/**
+	 * Data provider for test_create_and_confirm_payment_intent_statement_descriptor_with_automatic_payment_methods.
+	 *
+	 * @return array<string, array{0: bool, 1: bool}>
+	 */
+	public function provide_statement_descriptor_with_automatic_payment_methods_data(): array {
+		return [
+			'dynamic payment methods' => [ true, false ],
+			'explicit method types'   => [ false, true ],
+		];
+	}
+
+	/**
 	 * Without the flag, the request keeps the explicit payment_method_types list and sends no
 	 * automatic_payment_methods.
 	 */
