@@ -1,9 +1,27 @@
-import React from 'react';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import React, { act } from 'react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import InstantPayoutsPromotionNotice from '../instant-payouts-promotion-notice';
 import apiFetch from '@wordpress/api-fetch';
 
 jest.mock( '@wordpress/api-fetch' );
+
+// Mock @wordpress/ui components as Jest currently can't process some *.mjs files
+// from the @wordpress/theme package.
+const passthroughDiv = ( { children } ) => <div>{ children }</div>;
+
+jest.mock( '@wordpress/ui', () => ( {
+	Button: ( { children, onClick } ) => (
+		<button onClick={ onClick }>{ children }</button>
+	),
+	Card: {
+		Root: passthroughDiv,
+		Header: passthroughDiv,
+		Title: passthroughDiv,
+		Content: passthroughDiv,
+	},
+	LinkButton: ( { href, children } ) => <a href={ href }>{ children }</a>,
+	Stack: passthroughDiv,
+} ) );
 
 describe( 'InstantPayoutsPromotionNotice', () => {
 	beforeEach( () => {
@@ -20,55 +38,82 @@ describe( 'InstantPayoutsPromotionNotice', () => {
 
 	it.each( [
 		[
-			'one amount',
+			'one amount from default currency',
 			[ { amount: 10000, currency: 'usd' } ],
+			'usd',
 			'You currently have $100.00 available.',
 		],
 		[
-			'two amounts',
+			'two amounts, one from default currency',
 			[
-				{ amount: 10000, currency: 'usd' },
+				{ amount: 10000, currency: 'eur' },
 				{ amount: 20000, currency: 'usd' },
 			],
-			'You currently have $100.00 and $200.00 available.',
+			'usd',
+			'You currently have $200.00 available.',
 		],
 		[
-			'three amounts',
+			'three amounts, one from default currency',
 			[
-				{ amount: 10000, currency: 'usd' },
-				{ amount: 20000, currency: 'usd' },
+				{ amount: 10000, currency: 'eur' },
+				{ amount: 20000, currency: 'cad' },
 				{ amount: 30000, currency: 'usd' },
 			],
-			'You currently have $100.00, $200.00 and $300.00 available.',
+			'usd',
+			'You currently have $300.00 available.',
 		],
 	] )(
-		'formats %s with the correct separators',
-		async ( _, amounts, expected ) => {
-			apiFetch.mockResolvedValue( { instant_available: amounts } );
+		'renders the expected amount with %s',
+		async ( _, amounts, defaultCurrency, expected ) => {
+			apiFetch.mockResolvedValue( {
+				instant_available: amounts,
+				default_account_currency: defaultCurrency,
+			} );
 
-			render( <InstantPayoutsPromotionNotice /> );
+			await act( async () => {
+				render( <InstantPayoutsPromotionNotice /> );
+			} );
 
 			expect( await screen.findByText( expected ) ).toBeInTheDocument();
 		}
 	);
 
-	it( 'shows the notice without instant payouts when the flag is enabled', async () => {
-		apiFetch.mockResolvedValue( {} );
+	it.each( [
+		[
+			'two amounts, none from default currency',
+			[
+				{ amount: 10000, currency: 'eur' },
+				{ amount: 20000, currency: 'cad' },
+			],
+			'usd',
+		],
+		[
+			'two amounts, no default currency',
+			[
+				{ amount: 10000, currency: 'eur' },
+				{ amount: 20000, currency: 'cad' },
+			],
+			'',
+		],
+	] )(
+		'does not render an available message with %s',
+		async ( _, amounts, defaultCurrency ) => {
+			apiFetch.mockResolvedValue( {
+				instant_available: amounts,
+				default_account_currency: defaultCurrency,
+			} );
 
-		render(
-			<InstantPayoutsPromotionNotice
-				showNoticeIfNoInstantPayoutsAvailable
-			/>
-		);
+			await act( async () => {
+				render( <InstantPayoutsPromotionNotice /> );
+			} );
 
-		expect(
-			await screen.findByText(
-				'You currently have no instant payouts available.'
-			)
-		).toBeInTheDocument();
-	} );
+			expect(
+				screen.queryByText( 'You currently have' )
+			).not.toBeInTheDocument();
+		}
+	);
 
-	it( 'hides the notice without instant payouts when the flag is disabled', async () => {
+	it( 'hides the notice without instant payouts', async () => {
 		let resolveRequest;
 		apiFetch.mockReturnValue(
 			new Promise( ( resolve ) => {
@@ -76,11 +121,7 @@ describe( 'InstantPayoutsPromotionNotice', () => {
 			} )
 		);
 
-		const { container } = render(
-			<InstantPayoutsPromotionNotice
-				showNoticeIfNoInstantPayoutsAvailable={ false }
-			/>
-		);
+		const { container } = render( <InstantPayoutsPromotionNotice /> );
 
 		expect( container ).toBeEmptyDOMElement();
 
@@ -89,43 +130,16 @@ describe( 'InstantPayoutsPromotionNotice', () => {
 		expect( container ).toBeEmptyDOMElement();
 	} );
 
-	it( 'shows the REST API error message', async () => {
-		apiFetch.mockRejectedValue(
-			new Error( 'Unable to load instant payouts.' )
-		);
-
-		const { container } = render( <InstantPayoutsPromotionNotice /> );
-		await screen.findByRole( 'button', { name: 'Close' } );
-
-		expect(
-			container.querySelector( '.wcstripe-inline-notice' )
-		).toHaveTextContent( 'Unable to load instant payouts.' );
-	} );
-
-	it( 'dismisses the REST API error message', async () => {
-		apiFetch.mockRejectedValue(
-			new Error( 'Unable to load instant payouts.' )
-		);
-
-		const { container } = render( <InstantPayoutsPromotionNotice /> );
-		const closeButton = await screen.findByRole( 'button', {
-			name: 'Close',
-		} );
-
-		fireEvent.click( closeButton );
-
-		expect(
-			container.querySelector( '.wcstripe-inline-notice' )
-		).not.toBeInTheDocument();
-	} );
-
 	it( 'links to test payouts when the balance payload is not live', async () => {
 		apiFetch.mockResolvedValue( {
 			livemode: false,
 			instant_available: [ { amount: 10000, currency: 'usd' } ],
+			default_account_currency: 'usd',
 		} );
 
-		render( <InstantPayoutsPromotionNotice /> );
+		await act( async () => {
+			render( <InstantPayoutsPromotionNotice /> );
+		} );
 
 		await screen.findByText( 'You currently have $100.00 available.' );
 
@@ -137,20 +151,54 @@ describe( 'InstantPayoutsPromotionNotice', () => {
 		);
 	} );
 
-	it( 'shows the formatted instant payout amounts returned by the API', async () => {
+	it( 'links to the live payouts UI when the balance payload is live', async () => {
+		apiFetch.mockResolvedValue( {
+			livemode: true,
+			instant_available: [ { amount: 10000, currency: 'usd' } ],
+			default_account_currency: 'usd',
+		} );
+
+		await act( async () => {
+			render( <InstantPayoutsPromotionNotice /> );
+		} );
+
+		expect(
+			screen.getByRole( 'link', { name: 'Pay out instantly' } )
+		).toHaveAttribute( 'href', 'https://dashboard.stripe.com/payouts/' );
+	} );
+
+	it( 'shows the instant payout amount for the default account currency returned by the API', async () => {
 		apiFetch.mockResolvedValue( {
 			instant_available: [
 				{ amount: 40000, currency: 'usd' },
 				{ amount: 30000, currency: 'eur' },
 			],
+			default_account_currency: 'usd',
 		} );
 
-		render( <InstantPayoutsPromotionNotice /> );
+		await act( async () => {
+			render( <InstantPayoutsPromotionNotice /> );
+		} );
 
 		expect(
-			await screen.findByText(
-				'You currently have $400.00 and €300.00 available.'
-			)
+			await screen.findByText( 'You currently have $400.00 available.' )
 		).toBeInTheDocument();
+	} );
+
+	it( 'hides the notice when the Dismiss button is clicked', async () => {
+		apiFetch.mockResolvedValue( {
+			instant_available: [ { amount: 10000, currency: 'usd' } ],
+			default_account_currency: 'usd',
+		} );
+
+		const { container } = render( <InstantPayoutsPromotionNotice /> );
+
+		expect(
+			await screen.findByText( 'Improve your cash flow' )
+		).toBeInTheDocument();
+
+		fireEvent.click( screen.getByRole( 'button', { name: 'Dismiss' } ) );
+
+		expect( container ).toBeEmptyDOMElement();
 	} );
 } );

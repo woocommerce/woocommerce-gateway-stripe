@@ -3,53 +3,11 @@
 .wc-stripe-payments {
 	margin-left: -20px;
 
+	.dataviews-wrapper {
+		background-color: inherit;
+	}
+
 	.wc-stripe-instant-payouts-promotion-notice {
-		margin-bottom: 24px;
-		border-left: 0;
-		border-radius: styles.$radius-medium;
-		padding: 24px;
-
-		> .components-notice__content {
-			width: 100%;
-			margin: 0;
-		}
-
-		.wc-stripe-instant-payouts-promotion-notice__content {
-			max-width: 720px;
-		}
-
-		.wc-stripe-instant-payouts-promotion-notice__title {
-			margin: 0 0 8px;
-			font-size: 16px;
-			font-weight: 400;
-			line-height: 24px;
-		}
-
-		.wc-stripe-instant-payouts-promotion-notice__description {
-			margin: 0;
-			color: var( --wpds-color-text-neutral-subtle, #50575e );
-			font-size: 13px;
-			line-height: 20px;
-		}
-
-		.wc-stripe-instant-payouts-promotion-notice__availability {
-			.components-spinner {
-				display: inline-block;
-				margin: 0;
-				vertical-align: text-bottom;
-			}
-		}
-
-		.wc-stripe-instant-payouts-promotion-notice__actions {
-			display: flex;
-			flex-wrap: wrap;
-			align-items: center;
-			gap: 8px;
-			margin-top: 16px;
-		}
-
-		.wc-stripe-instant-payouts-promotion-notice__payout-button > svg {
-			transform: rotate( 45deg );
-		}
+		margin: 24px;
 	}
 }

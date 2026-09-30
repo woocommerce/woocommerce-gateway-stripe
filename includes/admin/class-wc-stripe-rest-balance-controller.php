@@ -60,6 +60,15 @@ class WC_Stripe_REST_Balance_Controller extends WC_Stripe_REST_Base_Controller {
 
 		$filtered_response = WC_Stripe_REST_Response_Filter::filter_response( $response, self::STRIPE_SINGLE_RESPONSE_ALLOWED_FIELDS );
 
+		// Include the default account currency, as we only want to promote Instant Payouts for the default account currency.
+		$default_account_currency = WC_Stripe::get_instance()->account->get_account_default_currency();
+
+		if ( is_array( $filtered_response ) ) {
+			$filtered_response['default_account_currency'] = $default_account_currency;
+		} elseif ( is_object( $filtered_response ) ) {
+			$filtered_response->default_account_currency = $default_account_currency;
+		}
+
 		return rest_ensure_response( $filtered_response );
 	}
 

@@ -1,74 +1,79 @@
 import React, { useEffect, useState } from 'react';
-import { arrowUp } from '@wordpress/icons';
 import { formatStripeAmount } from './utils';
 import { NAMESPACE } from 'wcstripe/data/constants';
-import InlineNotice from 'wcstripe/components/inline-notice';
 import apiFetch from '@wordpress/api-fetch';
-import { Button, Notice, Spinner } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
+import { Button, Card, LinkButton, Stack } from '@wordpress/ui';
 
-function formatStripeAmountList( amounts ) {
-	let amountListAsString = '';
-	const numAmounts = amounts.length;
-	for ( let i = 0; i < numAmounts; i++ ) {
-		const amount = amounts[ i ];
-
-		if ( i > 0 ) {
-			amountListAsString +=
-				i === numAmounts - 1
-					? __( ' and ', 'woocommerce-gateway-stripe' )
-					: ', ';
-		}
-		amountListAsString += formatStripeAmount(
-			amount.amount,
-			amount.currency
-		);
+/**
+ * Get the user message for the Instant Payouts promotion notice.
+ * Note that we only promote Instant Payouts for the default account currency.
+ *
+ * @param {Object} response - The response from the API.
+ * @return {string|null} The user message.
+ */
+const getUserMessage = ( response ) => {
+	if (
+		! response?.default_account_currency?.length ||
+		! response?.instant_available?.length
+	) {
+		return null;
 	}
-	return amountListAsString;
-}
 
-const InstantPayoutsPromotionNotice = ( {
-	showNoticeIfNoInstantPayoutsAvailable = true,
-} ) => {
+	const defaultCurrencyInstantAvailable = response?.instant_available?.find(
+		( amount ) => amount?.currency === response.default_account_currency
+	);
+	if (
+		! defaultCurrencyInstantAvailable ||
+		! defaultCurrencyInstantAvailable.amount ||
+		! Number.isInteger( defaultCurrencyInstantAvailable.amount )
+	) {
+		return null;
+	}
+
+	return sprintf(
+		/* translators: %1$s: The amount of money available for an instant payout. e.g. $123.45, €123.45 */
+		__(
+			'You currently have %1$s available.',
+			'woocommerce-gateway-stripe'
+		),
+		formatStripeAmount(
+			defaultCurrencyInstantAvailable.amount,
+			defaultCurrencyInstantAvailable.currency
+		)
+	);
+};
+
+const InstantPayoutsPromotionNotice = () => {
 	const [ state, setState ] = useState( {
 		data: null,
 		isLoading: true,
 		isDismissed: false,
 		error: null,
+		userMessage: null,
 	} );
-	const { data, isLoading, isDismissed, error } = state;
+	const { data, isLoading, isDismissed, error, userMessage } = state;
 
 	useEffect( () => {
 		apiFetch( {
 			path: `${ NAMESPACE }/balance`,
 		} )
 			.then( ( response ) => {
-				const instantAvailableAmountMessage =
-					response.instant_available?.length > 0
-						? sprintf(
-								__(
-									'You currently have %1$s available.',
-									'woocommerce-gateway-stripe'
-								),
-								formatStripeAmountList(
-									response.instant_available
-								)
-						  )
-						: __(
-								'You currently have no instant payouts available.',
-								'woocommerce-gateway-stripe'
-						  );
+				const newUserMessage = getUserMessage( response );
 
 				setState( ( previous ) => ( {
 					...previous,
-					data: { ...response, instantAvailableAmountMessage },
+					data: response,
 					error: null,
+					userMessage: newUserMessage,
 				} ) );
 			} )
 			.catch( ( fetchError ) => {
 				setState( ( previous ) => ( {
 					...previous,
+					data: null,
 					error: fetchError?.message ?? null,
+					userMessage: null,
 				} ) );
 			} )
 			.finally( () => {
@@ -79,101 +84,71 @@ const InstantPayoutsPromotionNotice = ( {
 			} );
 	}, [] );
 
-	if ( isDismissed ) {
-		return null;
-	}
-
-	if ( ! showNoticeIfNoInstantPayoutsAvailable && isLoading ) {
+	if ( isDismissed || isLoading || error ) {
 		return null;
 	}
 	if (
-		! showNoticeIfNoInstantPayoutsAvailable &&
-		( ! data || ! data.instant_available )
+		! data ||
+		! data.instant_available ||
+		! data.default_account_currency?.length ||
+		! userMessage
 	) {
 		return null;
 	}
 
 	return (
-		<Notice
-			className="wc-stripe-instant-payouts-promotion-notice"
-			status="info"
-			spokenMessage={ __(
-				'Improve your cash flow',
-				'woocommerce-gateway-stripe'
-			) }
-			isDismissible={ false }
-		>
-			{ error && (
-				<InlineNotice
-					status="error"
-					isDismissible
-					onRemove={ () =>
-						setState( ( previous ) => ( {
-							...previous,
-							error: null,
-						} ) )
-					}
-				>
-					{ error }
-				</InlineNotice>
-			) }
-			<div className="wc-stripe-instant-payouts-promotion-notice__content">
-				<h2 className="wc-stripe-instant-payouts-promotion-notice__title">
+		<Card.Root className="wc-stripe-instant-payouts-promotion-notice">
+			<Card.Header>
+				<Card.Title>
 					{ __(
 						'Improve your cash flow',
 						'woocommerce-gateway-stripe'
 					) }
-				</h2>
-				<p className="wc-stripe-instant-payouts-promotion-notice__description">
+				</Card.Title>
+			</Card.Header>
+			<Card.Content>
+				<p>
 					{ __(
-						'With Instant Payouts, get access to your balance within minutes—even on weekends and holidays.',
+						'With Instant Payouts, get access to your balance within minutes — even on weekends and holidays.',
 						'woocommerce-gateway-stripe'
 					) }{ ' ' }
 					<span
 						className="wc-stripe-instant-payouts-promotion-notice__availability"
 						aria-live="polite"
 					>
-						{ isLoading ? (
-							<Spinner />
-						) : (
-							data?.instantAvailableAmountMessage
-						) }
+						{ userMessage }
 					</span>
 				</p>
-				<div className="wc-stripe-instant-payouts-promotion-notice__actions">
-					<Button
-						className="wc-stripe-instant-payouts-promotion-notice__payout-button"
-						variant="secondary"
+				<Stack direction="row" gap="lg">
+					<LinkButton
+						variant="outline"
+						openInNewTab
 						href={
 							data?.livemode === false
 								? 'https://dashboard.stripe.com/test/payouts/'
 								: 'https://dashboard.stripe.com/payouts/'
 						}
-						target="_blank"
 						rel="noreferrer"
-						icon={ arrowUp }
-						iconPosition="right"
-						text={ __(
+					>
+						{ __(
 							'Pay out instantly',
 							'woocommerce-gateway-stripe'
 						) }
-						__next40pxDefaultSize
-					/>
+					</LinkButton>
 					<Button
-						variant="tertiary"
+						variant="minimal"
 						onClick={ () =>
 							setState( ( previous ) => ( {
 								...previous,
 								isDismissed: true,
 							} ) )
 						}
-						__next40pxDefaultSize
 					>
 						{ __( 'Dismiss', 'woocommerce-gateway-stripe' ) }
 					</Button>
-				</div>
-			</div>
-		</Notice>
+				</Stack>
+			</Card.Content>
+		</Card.Root>
 	);
 };
 
