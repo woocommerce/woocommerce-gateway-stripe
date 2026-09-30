@@ -1,12 +1,3 @@
-@use '../../styles/abstracts/styles';
-
-$stripe-payments-background-color: var(--wpds-color-background-surface-neutral, #fcfcfc);
-
 .wc-stripe-payments {
-	margin-left: -22px;
-	margin-right: -20px;
-}
-
-body.wp-admin.wc-stripe-payments-admin {
-	background-color: $stripe-payments-background-color;
+	margin-left: -20px;
 }
