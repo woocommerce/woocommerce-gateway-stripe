@@ -3613,15 +3613,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Returns the full bank statement descriptor to use for non-card payments.
 	 *
-	 * Uses the locally configured statement descriptor, falling back to the Stripe account-level descriptor.
+	 * Uses the locally configured statement descriptor, falling back to the Stripe account-level descriptor,
+	 * and then to the store name. New accounts can have no descriptor yet, and without one shoppers
+	 * see a generic name on their bank statement.
 	 *
-	 * @return string The cleaned statement descriptor, or an empty string when none is configured.
+	 * @return string The cleaned statement descriptor, or an empty string when none is available.
 	 */
 	public function get_full_statement_descriptor() {
 		$full_statement_descriptor = WC_Stripe_Helper::clean_statement_descriptor( (string) $this->statement_descriptor );
 		if ( empty( $full_statement_descriptor ) ) {
 			$account_data              = WC_Stripe::get_instance()->account->get_cached_account_data();
 			$full_statement_descriptor = WC_Stripe_Helper::clean_statement_descriptor( $account_data['settings']['payments']['statement_descriptor'] ?? '' );
+		}
+		if ( empty( $full_statement_descriptor ) ) {
+			$full_statement_descriptor = WC_Stripe_Helper::get_store_name_statement_descriptor();
 		}
 
 		return $full_statement_descriptor;

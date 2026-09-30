@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import PaymentsAndTransactionsSection from '..';
 import { useAccount } from 'wcstripe/data/account';
 import {
@@ -70,6 +70,52 @@ describe( 'PaymentsAndTransactionsSection', () => {
 				'.full-bank-statement .transaction-detail.description'
 			)
 		).toHaveTextContent( 'WOOTESTING, LTD' );
+	} );
+
+	it( 'shows the store name when the Stripe account has no statement descriptor', () => {
+		useAccount.mockReturnValue( {
+			data: {
+				account: { settings: { payments: {}, card_payments: {} } },
+				default_statement_descriptor: 'My Woo Store',
+			},
+		} );
+
+		render( <PaymentsAndTransactionsSection /> );
+
+		expect( screen.getByLabelText( 'Full bank statement' ) ).toHaveValue(
+			'My Woo Store'
+		);
+		expect(
+			document.querySelector(
+				'.full-bank-statement .transaction-detail.description'
+			)
+		).toHaveTextContent( 'My Woo Store' );
+		expect(
+			screen.getByText( /so your store name is used/ )
+		).toBeInTheDocument();
+	} );
+
+	it( 'prefers the Stripe account statement descriptor over the store name', () => {
+		useAccount.mockReturnValue( {
+			data: {
+				account: {
+					settings: {
+						payments: { statement_descriptor: 'WOOTESTING, LTD' },
+						card_payments: {},
+					},
+				},
+				default_statement_descriptor: 'My Woo Store',
+			},
+		} );
+
+		render( <PaymentsAndTransactionsSection /> );
+
+		expect( screen.getByLabelText( 'Full bank statement' ) ).toHaveValue(
+			'WOOTESTING, LTD'
+		);
+		expect(
+			screen.queryByText( /so your store name is used/ )
+		).not.toBeInTheDocument();
 	} );
 
 	it( 'shows the shortened customer bank statement preview when useIsShortAccountStatementEnabled is true', () => {
