@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { DEFAULT_PAYOUTS_VIEW, PER_PAGE_SIZES } from './constants';
 import fields from './payouts-fields';
 import usePayouts from './use-payouts';
@@ -15,7 +16,7 @@ const EmptyState = () => (
 	<p>{ __( 'No payouts found.', 'woocommerce-gateway-stripe' ) }</p>
 );
 
-const PayoutsTable = () => {
+const PayoutsTable = ( { actionDivRef } ) => {
 	const [ view, setView ] = useState( DEFAULT_PAYOUTS_VIEW );
 
 	// Track the cursors for the pages that have been loaded.
@@ -128,7 +129,15 @@ const PayoutsTable = () => {
 					config={ { perPageSizes: PER_PAGE_SIZES } }
 					empty={ <EmptyState /> }
 					search={ false }
-				/>
+				>
+					{ actionDivRef?.current &&
+						createPortal(
+							<DataViews.ViewConfig />,
+							actionDivRef.current
+						) }
+					<DataViews.Layout />
+					<DataViews.Footer />
+				</DataViews>
 			) }
 		</>
 	);
