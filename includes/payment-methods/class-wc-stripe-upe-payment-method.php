@@ -331,14 +331,9 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		}
 
 		// When OC is enabled _and_ we are on a page where OC is permitted, we use the OC payment container to render all the methods.
-		if ( $main_stripe_gateway->is_optimized_checkout_active() ) {
-			// Non-deferred-intent methods (e.g. BLIK, ACSS) cannot be rendered inside the OC Payment
-			// Element, so they surface as their own payment method entry alongside the OC container
-			// and keep their normal availability instead of being folded into the OC container check.
-			if ( ! $this->supports_deferred_intent() ) {
-				return $this->is_enabled_at_checkout() && parent::is_available();
-			}
-
+		// Non-deferred-intent methods (e.g. BLIK, ACSS) cannot render inside the OC Payment Element,
+		// so they skip this check and keep their normal availability as their own entries.
+		if ( $main_stripe_gateway->is_optimized_checkout_active() && $this->supports_deferred_intent() ) {
 			$enabled_methods     = $main_stripe_gateway->get_upe_enabled_at_checkout_payment_method_ids();
 			$non_express_methods = array_filter(
 				$enabled_methods,
