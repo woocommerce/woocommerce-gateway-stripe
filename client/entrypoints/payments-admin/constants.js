@@ -10,14 +10,14 @@ export const PER_PAGE_SIZES = [ 10, 25, 50, 100 ];
 export const DEFAULT_PER_PAGE = 25;
 
 /**
- * Chip colours, limited to the palette the shared Chip component supports.
+ * Badge intents, limited to the values the WordPress UI Badge component supports.
  */
-export const PAYOUT_STATUS_COLORS = {
-	paid: 'white',
-	pending: 'yellow',
-	in_transit: 'blue',
-	canceled: 'gray',
-	failed: 'red',
+export const PAYOUT_STATUS_BADGE_INTENTS = {
+	paid: 'none',
+	pending: 'medium',
+	in_transit: 'informational',
+	canceled: 'draft',
+	failed: 'high',
 };
 
 export const PAYOUT_STATUS_LABELS = {

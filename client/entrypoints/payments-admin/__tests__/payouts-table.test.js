@@ -6,6 +6,14 @@ import { getQueryArg } from '@wordpress/url';
 
 jest.mock( '@wordpress/api-fetch' );
 
+// Stub the @wordpress/ui components as the code pulls in @wordpress/theme's
+// ESM-only build, which Jest is not currently parsing.
+// For now, this is OK, as the tests below don't render field cells.
+jest.mock( '@wordpress/ui', () => ( {
+	Badge: () => null,
+	Link: () => null,
+} ) );
+
 // The real DataViews renders a page <select>; this stub exposes one button per
 // page it would offer, so the tests can drive multi-page jumps directly.
 jest.mock( '@wordpress/dataviews/wp', () => ( {

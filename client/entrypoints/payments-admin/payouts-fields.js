@@ -1,10 +1,9 @@
 import React from 'react';
-import { PAYOUT_STATUS_COLORS, PAYOUT_STATUS_LABELS } from './constants';
+import { PAYOUT_STATUS_BADGE_INTENTS, PAYOUT_STATUS_LABELS } from './constants';
 import EmptyCell from './empty-cell';
 import { formatStripeAmount, formatStripeTimestamp } from './utils';
-import { ExternalLink } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
-import Chip from 'wcstripe/components/chip';
+import { Badge, Link } from '@wordpress/ui';
 
 /**
  * The list endpoint exposes no sort parameter, so every field pins
@@ -39,10 +38,13 @@ const fields = [
 		getValue: ( { item } ) => item.status ?? '',
 		render: ( { item } ) =>
 			item.status ? (
-				<Chip
-					text={ PAYOUT_STATUS_LABELS[ item.status ] ?? item.status }
-					color={ PAYOUT_STATUS_COLORS[ item.status ] ?? 'gray' }
-				/>
+				<Badge
+					intent={
+						PAYOUT_STATUS_BADGE_INTENTS[ item.status ] ?? 'draft'
+					}
+				>
+					{ PAYOUT_STATUS_LABELS[ item.status ] ?? item.status }
+				</Badge>
 			) : (
 				<EmptyCell />
 			),
@@ -69,7 +71,7 @@ const fields = [
 				return item.destination.bank_name;
 			}
 			return sprintf(
-				'%1$s (%2$s)',
+				'%1$s ∙∙∙∙%2$s',
 				item.destination.bank_name,
 				item.destination.last4
 			);
@@ -88,7 +90,11 @@ const fields = [
 				( item.livemode ? '' : 'test/' ) +
 				'payouts/' +
 				encodeURIComponent( item.id );
-			return <ExternalLink href={ url }>{ item.id }</ExternalLink>;
+			return (
+				<Link href={ url } openInNewTab={ true }>
+					{ item.id }
+				</Link>
+			);
 		},
 	},
 	{
