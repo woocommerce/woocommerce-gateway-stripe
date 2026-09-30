@@ -2146,6 +2146,83 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test {@see WC_Stripe_Helper::get_sanitized_error_message_from_exception()}.
+	 *
+	 * @dataProvider provide_test_get_sanitized_error_message_from_exception
+	 * @param Exception $exception        The exception to build the message from.
+	 * @param string    $fallback         The fallback message.
+	 * @param string    $expected_message The expected message.
+	 */
+	public function test_get_sanitized_error_message_from_exception( Exception $exception, string $fallback, string $expected_message ): void {
+		$this->assertSame( $expected_message, WC_Stripe_Helper::get_sanitized_error_message_from_exception( $exception, $fallback ) );
+	}
+
+	/**
+	 * Data provider for {@see test_get_sanitized_error_message_from_exception()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_sanitized_error_message_from_exception(): array {
+		return [
+			'WC_Stripe_Exception uses localized message'                 => [
+				'exception'        => new WC_Stripe_Exception( 'Internal error', 'Your card was declined.' ),
+				'fallback'         => 'Fallback message',
+				'expected_message' => 'Your card was declined.',
+			],
+			'WC_Stripe_Exception does not expose raw message'            => [
+				'exception'        => new WC_Stripe_Exception( 'Raw internal error' ),
+				'fallback'         => 'Fallback message',
+				'expected_message' => 'Fallback message',
+			],
+			'WC_Stripe_Exception returns generic fallback message'       => [
+				'exception'        => new WC_Stripe_Exception( 'Raw internal error' ),
+				'fallback'         => '',
+				'expected_message' => 'An error occurred.',
+			],
+			'WC_Stripe_Exception strips tags from localized message'     => [
+				'exception'        => new WC_Stripe_Exception( 'Raw internal error', '<strong>Declined</strong><script>alert(1)</script>' ),
+				'fallback'         => '',
+				'expected_message' => 'Declined',
+			],
+			'WC_Stripe_Exception with markup-only message uses fallback' => [
+				'exception'        => new WC_Stripe_Exception( '<script>alert(1)</script>' ),
+				'fallback'         => 'Fallback message',
+				'expected_message' => 'Fallback message',
+			],
+			'Generic exception uses its message'                         => [
+				'exception'        => new Exception( 'Something went wrong.' ),
+				'fallback'         => 'Fallback message',
+				'expected_message' => 'Something went wrong.',
+			],
+			'Generic exception strips tags from message'                 => [
+				'exception'        => new Exception( '<a href="https://example.com">Something</a> went <em>wrong</em>.<script>alert(1)</script>' ),
+				'fallback'         => '',
+				'expected_message' => 'Something went wrong.',
+			],
+			'Generic exception with markup-only message uses fallback'   => [
+				'exception'        => new Exception( '<script>alert(1)</script>' ),
+				'fallback'         => 'Fallback message',
+				'expected_message' => 'Fallback message',
+			],
+			'Generic exception with whitespace-only message'             => [
+				'exception'        => new Exception( "  \n\t " ),
+				'fallback'         => 'Fallback message',
+				'expected_message' => 'Fallback message',
+			],
+			'Generic exception with empty message uses fallback'         => [
+				'exception'        => new Exception( '' ),
+				'fallback'         => 'Fallback message',
+				'expected_message' => 'Fallback message',
+			],
+			'Generic exception without message or fallback'              => [
+				'exception'        => new Exception( '' ),
+				'fallback'         => '',
+				'expected_message' => 'An error occurred.',
+			],
+		];
+	}
+
+	/**
 	 * Test for `is_adaptive_pricing_supported` – cart content and preconditions.
 	 *
 	 * @param bool   $is_checkout        Whether is classic checkout page.

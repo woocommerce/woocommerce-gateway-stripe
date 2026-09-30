@@ -341,6 +341,36 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Builds a sanitized error message from an exception.
+	 *
+	 * @since 11.1.0
+	 *
+	 * @param Exception $exception The caught exception.
+	 * @param string    $fallback  Message to use when the exception carries no shopper-facing text.
+	 *
+	 * @return string
+	 */
+	public static function get_sanitized_error_message_from_exception( Exception $exception, string $fallback = '' ): string {
+		if ( $exception instanceof WC_Stripe_Exception ) {
+			$message = $exception->getLocalizedMessage();
+		} else {
+			$message = $exception->getMessage();
+		}
+
+		$message = wp_strip_all_tags( (string) $message );
+
+		if ( '' !== $message ) {
+			return $message;
+		}
+
+		if ( '' !== $fallback ) {
+			return $fallback;
+		}
+
+		return __( 'An error occurred.', 'woocommerce-gateway-stripe' );
+	}
+
+	/**
 	 * List of currencies supported by Stripe that has no decimals
 	 * https://docs.stripe.com/currencies#zero-decimal from https://docs.stripe.com/currencies#presentment-currencies
 	 * ugx is an exception and not in this list for being a special cases in Stripe https://docs.stripe.com/currencies#special-cases
