@@ -52,8 +52,8 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 
 		WC_Helper_Stripe_Api::reset();
 		foreach ( [ 'live', 'test' ] as $mode ) {
-			delete_option( WC_Stripe_Account::get_webhook_notice_option( WC_Stripe_Account::WEBHOOK_MANUAL_SECRET_NOTICE_OPTION, $mode ) );
-			delete_option( WC_Stripe_Account::get_webhook_notice_option( WC_Stripe_Account::WEBHOOK_MISSING_NOTICE_OPTION, $mode ) );
+			delete_option( WC_Stripe_Account::get_webhook_manual_secret_notice_option( $mode ) );
+			delete_option( WC_Stripe_Account::get_webhook_missing_notice_option( $mode ) );
 		}
 
 		parent::tear_down();
@@ -714,7 +714,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 
 		$this->account->maybe_reconfigure_webhooks_on_update();
 
-		$this->assertSame( 'yes', get_option( WC_Stripe_Account::get_webhook_notice_option( WC_Stripe_Account::WEBHOOK_MANUAL_SECRET_NOTICE_OPTION, 'test' ) ) );
+		$this->assertSame( 'yes', get_option( WC_Stripe_Account::get_webhook_manual_secret_notice_option( 'test' ) ) );
 	}
 
 	/**
@@ -758,7 +758,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 
 		$this->account->maybe_reconfigure_webhooks_on_update();
 
-		$this->assertFalse( get_option( WC_Stripe_Account::get_webhook_notice_option( WC_Stripe_Account::WEBHOOK_MANUAL_SECRET_NOTICE_OPTION, 'test' ) ) );
+		$this->assertFalse( get_option( WC_Stripe_Account::get_webhook_manual_secret_notice_option( 'test' ) ) );
 	}
 
 	/**
@@ -783,7 +783,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 
 		$this->account->maybe_reconfigure_webhooks_on_update();
 
-		$this->assertFalse( get_option( WC_Stripe_Account::get_webhook_notice_option( WC_Stripe_Account::WEBHOOK_MANUAL_SECRET_NOTICE_OPTION, 'test' ) ) );
+		$this->assertFalse( get_option( WC_Stripe_Account::get_webhook_manual_secret_notice_option( 'test' ) ) );
 	}
 
 	/**
@@ -822,7 +822,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 
 		$this->account->maybe_reconfigure_webhooks_on_update();
 
-		$this->assertSame( 'yes', get_option( WC_Stripe_Account::get_webhook_notice_option( WC_Stripe_Account::WEBHOOK_MISSING_NOTICE_OPTION, 'test' ) ) );
+		$this->assertSame( 'yes', get_option( WC_Stripe_Account::get_webhook_missing_notice_option( 'test' ) ) );
 	}
 
 	/**
@@ -865,7 +865,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 
 		$this->account->maybe_reconfigure_webhooks_on_update();
 
-		$this->assertFalse( get_option( WC_Stripe_Account::get_webhook_notice_option( WC_Stripe_Account::WEBHOOK_MISSING_NOTICE_OPTION, 'test' ) ) );
+		$this->assertFalse( get_option( WC_Stripe_Account::get_webhook_missing_notice_option( 'test' ) ) );
 	}
 
 	/**
@@ -901,8 +901,8 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	 * configure_webhooks() must stamp the endpoint, record the signing secret, and clear notices.
 	 */
 	public function test_configure_webhooks_records_signing_secret_and_stamps_endpoint() {
-		update_option( WC_Stripe_Account::get_webhook_notice_option( WC_Stripe_Account::WEBHOOK_MANUAL_SECRET_NOTICE_OPTION, 'test' ), 'yes' );
-		update_option( WC_Stripe_Account::get_webhook_notice_option( WC_Stripe_Account::WEBHOOK_MISSING_NOTICE_OPTION, 'test' ), 'yes' );
+		update_option( WC_Stripe_Account::get_webhook_manual_secret_notice_option( 'test' ), 'yes' );
+		update_option( WC_Stripe_Account::get_webhook_missing_notice_option( 'test' ), 'yes' );
 
 		// No pre-existing endpoints for the post-create cleanup pass.
 		WC_Helper_Stripe_Api::$retrieve_response = (object) [ 'data' => [] ];
@@ -948,8 +948,8 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$this->assertSame( 'whsec_new', $settings['test_webhook_data']['signing_secret'] );
 		$this->assertSame( 'we_new', $settings['test_webhook_data']['id'] );
 
-		$this->assertFalse( get_option( WC_Stripe_Account::get_webhook_notice_option( WC_Stripe_Account::WEBHOOK_MANUAL_SECRET_NOTICE_OPTION, 'test' ) ) );
-		$this->assertFalse( get_option( WC_Stripe_Account::get_webhook_notice_option( WC_Stripe_Account::WEBHOOK_MISSING_NOTICE_OPTION, 'test' ) ) );
+		$this->assertFalse( get_option( WC_Stripe_Account::get_webhook_manual_secret_notice_option( 'test' ) ) );
+		$this->assertFalse( get_option( WC_Stripe_Account::get_webhook_missing_notice_option( 'test' ) ) );
 	}
 
 	/**
@@ -957,8 +957,8 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	 * live-mode notice that is still outstanding.
 	 */
 	public function test_configure_webhooks_does_not_clear_other_mode_notice() {
-		$live_missing = WC_Stripe_Account::get_webhook_notice_option( WC_Stripe_Account::WEBHOOK_MISSING_NOTICE_OPTION, 'live' );
-		$test_missing = WC_Stripe_Account::get_webhook_notice_option( WC_Stripe_Account::WEBHOOK_MISSING_NOTICE_OPTION, 'test' );
+		$live_missing = WC_Stripe_Account::get_webhook_missing_notice_option( 'live' );
+		$test_missing = WC_Stripe_Account::get_webhook_missing_notice_option( 'test' );
 		update_option( $live_missing, 'yes' );
 		update_option( $test_missing, 'yes' );
 

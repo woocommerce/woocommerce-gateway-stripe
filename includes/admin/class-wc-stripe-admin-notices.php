@@ -270,15 +270,21 @@ class WC_Stripe_Admin_Notices {
 			// about a missing live webhook than a test one, and a mode-agnostic
 			// notice would push them to reconfigure whichever mode they happen to
 			// be in, which may not be the affected one.
-			foreach ( [ 'live', 'test' ] as $mode ) {
-				if ( 'yes' !== get_option( WC_Stripe_Account::get_webhook_notice_option( WC_Stripe_Account::WEBHOOK_MISSING_NOTICE_OPTION, $mode ) ) ) {
+			// One full string per mode, so translators never see an untranslated mode name.
+			$webhook_missing_messages = [
+				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
+				'live' => __( 'WooCommerce Stripe - Your live-mode webhook endpoint saved in your settings no longer exists in your Stripe account, so live order updates from Stripe are not being received. Please %1$sre-configure your webhooks%2$s.', 'woocommerce-gateway-stripe' ),
+				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
+				'test' => __( 'WooCommerce Stripe - Your test-mode webhook endpoint saved in your settings no longer exists in your Stripe account, so test order updates from Stripe are not being received. Please %1$sre-configure your webhooks%2$s.', 'woocommerce-gateway-stripe' ),
+			];
+
+			foreach ( $webhook_missing_messages as $mode => $message_format ) {
+				if ( 'yes' !== get_option( WC_Stripe_Account::get_webhook_missing_notice_option( $mode ) ) ) {
 					continue;
 				}
 
 				$message = sprintf(
-					/* translators: 1) mode, either 'live' or 'test' 2) HTML anchor open tag 3) HTML anchor closing tag */
-					__( 'WooCommerce Stripe - Your %1$s-mode webhook endpoint saved in your settings no longer exists in your Stripe account, so %1$s order updates from Stripe are not being received. Please %2$sre-configure your webhooks%3$s.', 'woocommerce-gateway-stripe' ),
-					esc_html( $mode ),
+					$message_format,
 					'<a href="' . $this->get_setting_link() . '">',
 					'</a>'
 				);
@@ -286,15 +292,20 @@ class WC_Stripe_Admin_Notices {
 				$this->add_admin_notice( 'webhook_missing_' . $mode, 'notice notice-error', $message, true );
 			}
 
-			foreach ( [ 'live', 'test' ] as $mode ) {
-				if ( 'yes' !== get_option( WC_Stripe_Account::get_webhook_notice_option( WC_Stripe_Account::WEBHOOK_MANUAL_SECRET_NOTICE_OPTION, $mode ) ) ) {
+			$webhook_manual_secret_messages = [
+				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
+				'live' => __( 'WooCommerce Stripe - Automatic reconfiguration of your live-mode webhook was skipped because its signing secret in your settings was set manually. Please verify your live webhook configuration in the Stripe Dashboard, or %1$sre-configure your webhooks%2$s to let the plugin manage them.', 'woocommerce-gateway-stripe' ),
+				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
+				'test' => __( 'WooCommerce Stripe - Automatic reconfiguration of your test-mode webhook was skipped because its signing secret in your settings was set manually. Please verify your test webhook configuration in the Stripe Dashboard, or %1$sre-configure your webhooks%2$s to let the plugin manage them.', 'woocommerce-gateway-stripe' ),
+			];
+
+			foreach ( $webhook_manual_secret_messages as $mode => $message_format ) {
+				if ( 'yes' !== get_option( WC_Stripe_Account::get_webhook_manual_secret_notice_option( $mode ) ) ) {
 					continue;
 				}
 
 				$message = sprintf(
-					/* translators: 1) live/test mode 2) HTML anchor open tag 3) HTML anchor closing tag */
-					__( 'WooCommerce Stripe - Automatic reconfiguration of your %1$s-mode webhook was skipped because its signing secret in your settings was set manually. Please verify your %1$s webhook configuration in the Stripe Dashboard, or %2$sre-configure your webhooks%3$s to let the plugin manage them.', 'woocommerce-gateway-stripe' ),
-					esc_html( $mode ),
+					$message_format,
 					'<a href="' . $this->get_setting_link() . '">',
 					'</a>'
 				);
@@ -880,16 +891,16 @@ class WC_Stripe_Admin_Notices {
 					update_option( 'wc_stripe_show_changed_keys_notice', 'no' );
 					break;
 				case 'webhook_missing_live':
-					delete_option( WC_Stripe_Account::get_webhook_notice_option( WC_Stripe_Account::WEBHOOK_MISSING_NOTICE_OPTION, 'live' ) );
+					delete_option( WC_Stripe_Account::get_webhook_missing_notice_option( 'live' ) );
 					break;
 				case 'webhook_missing_test':
-					delete_option( WC_Stripe_Account::get_webhook_notice_option( WC_Stripe_Account::WEBHOOK_MISSING_NOTICE_OPTION, 'test' ) );
+					delete_option( WC_Stripe_Account::get_webhook_missing_notice_option( 'test' ) );
 					break;
 				case 'webhook_manual_secret_live':
-					delete_option( WC_Stripe_Account::get_webhook_notice_option( WC_Stripe_Account::WEBHOOK_MANUAL_SECRET_NOTICE_OPTION, 'live' ) );
+					delete_option( WC_Stripe_Account::get_webhook_manual_secret_notice_option( 'live' ) );
 					break;
 				case 'webhook_manual_secret_test':
-					delete_option( WC_Stripe_Account::get_webhook_notice_option( WC_Stripe_Account::WEBHOOK_MANUAL_SECRET_NOTICE_OPTION, 'test' ) );
+					delete_option( WC_Stripe_Account::get_webhook_manual_secret_notice_option( 'test' ) );
 					break;
 				case 'legacy_deprecation':
 					update_option( 'wc_stripe_show_legacy_deprecation_notice', 'no' );
