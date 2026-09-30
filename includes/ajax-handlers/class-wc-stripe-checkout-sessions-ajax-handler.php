@@ -168,16 +168,11 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 	/**
 	 * Send a JSON error response when an exception has been caught.
 	 *
-	 * @param Exception $e The exception to send.
+	 * @param Exception $exception The exception that we need to report to the caller.
 	 * @return void
 	 */
-	private function send_json_error( Exception $e ): void {
-		if ( $e instanceof WC_Stripe_Exception ) {
-			$message = $e->getLocalizedMessage();
-		} else {
-			$message = $e->getMessage();
-		}
-		wp_send_json_error( [ 'message' => wp_strip_all_tags( $message ) ] );
+	private function send_json_error( Exception $exception ): void {
+		wp_send_json_error( [ 'message' => WC_Stripe_Helper::get_sanitized_error_message_from_exception( $exception ) ] );
 	}
 
 	/**
