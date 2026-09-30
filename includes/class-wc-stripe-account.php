@@ -338,10 +338,6 @@ class WC_Stripe_Account {
 	/**
 	 * Per-mode option name for a webhook notice flag.
 	 *
-	 * Webhook detection is per mode ('live'/'test'), so the notice flags must be
-	 * too: a global flag lets a successful reconfigure of one mode clear the other
-	 * mode's outstanding notice, silently hiding that a live endpoint is still gone.
-	 *
 	 * @param string $base One of the WEBHOOK_*_NOTICE_OPTION constants.
 	 * @param string $mode 'live' or 'test'.
 	 * @return string
