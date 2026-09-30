@@ -77,7 +77,7 @@ class WC_Stripe_REST_Balance_Controller extends WC_Stripe_REST_Base_Controller {
 	 *
 	 * @param string $endpoint The Stripe endpoint.
 	 *
-	 * @return StdClass|WP_Error
+	 * @return stdClass|WP_Error
 	 */
 	protected function fetch_from_stripe( $endpoint ) {
 		$response = WC_Stripe_API::retrieve( $endpoint );

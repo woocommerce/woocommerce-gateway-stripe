@@ -5,26 +5,26 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Filter a Stripe API response by a given allowed properties list.
  *
- * @since 10.9.0
+ * @since 11.1.0
  */
 abstract class WC_Stripe_REST_Response_Filter {
-	public const IDX_PATH = 'path';
+	private const IDX_PATH = 'path';
 
 	/**
 	 * Filter a API response by a given allowed property list.
 	 *
-	 * @param object $response The response object.
-	 * @param array $allowed_properties The property white list.
+	 * @param stdClass $response           The response object.
+	 * @param array    $allowed_properties The property white list.
 	 *
-	 * @return object|array
+	 * @return stdClass
 	 */
-	public static function filter_response( object $response, array $allowed_properties ) {
+	public static function filter_response( stdClass $response, array $allowed_properties ) {
 		$expanded_allowed_properties = static::expand_allowed_property_paths( $allowed_properties );
 
 		return static::filter_value( $response, $expanded_allowed_properties );
 	}
 
-	protected static function expand_allowed_property_paths( array $allowed_property_paths ): array {
+	private static function expand_allowed_property_paths( array $allowed_property_paths ): array {
 		$expanded_allowed_properties = [];
 
 		foreach ( $allowed_property_paths as $path_as_string ) {
@@ -47,50 +47,39 @@ abstract class WC_Stripe_REST_Response_Filter {
 	/**
 	 * Filter a value by a given allowed property list.
 	 *
-	 * @param mixed $value The object.
-	 * @param array $allowed_properties The property white list.
+	 * @param stdClass $value              The object.
+	 * @param array    $allowed_properties The property white list.
 	 *
-	 * @return mixed
+	 * @return stdClass
 	 */
-	protected static function filter_value( $value, array $allowed_properties ) {
-		if ( is_object( $value ) ) {
-			$property_path = isset( $allowed_properties[ static::IDX_PATH ] ) ? $allowed_properties[ static::IDX_PATH ] : null;
+	private static function filter_value( stdClass $value, array $allowed_properties ) {
+		$property_path = isset( $allowed_properties[ static::IDX_PATH ] ) ? $allowed_properties[ static::IDX_PATH ] : null;
 
-			$filtered_object = new stdClass();
+		$filtered_object = new stdClass();
 
-			if ( ! $property_path ) {
-				return $filtered_object;
-			}
-
-			foreach ( $property_path as $property => $rule ) {
-				if ( ! property_exists( $value, $property ) ) {
-					continue;
-				}
-
-				$property_value = $value->{$property};
-
-				if ( ! isset( $rule[ static::IDX_PATH ] ) || ! is_array( $rule[ static::IDX_PATH ] ) ) {
-					if ( is_object( $property_value ) ) {
-						$property_value = self::deep_clone( $property_value );
-					}
-
-					$filtered_object->{$property} = $property_value;
-				} else {
-					$filtered_object->{$property} = static::filter_value( $property_value, $rule );
-				}
-			}
-
+		if ( ! $property_path ) {
 			return $filtered_object;
 		}
 
-		if ( is_array( $value ) ) {
-			return array_map(
-				static fn ( $item ) => static::filter_value( $item, $allowed_properties ),
-				$value
-			);
+		foreach ( $property_path as $property => $rule ) {
+			if ( ! property_exists( $value, $property ) ) {
+				continue;
+			}
+
+			$property_value = $value->{$property};
+
+			if ( ! isset( $rule[ static::IDX_PATH ] ) || ! is_array( $rule[ static::IDX_PATH ] ) ) {
+				if ( is_object( $property_value ) ) {
+					$property_value = self::deep_clone( $property_value );
+				}
+
+				$filtered_object->{$property} = $property_value;
+			} else {
+				$filtered_object->{$property} = static::filter_value( $property_value, $rule );
+			}
 		}
 
-		return $value;
+		return $filtered_object;
 	}
 
 	/**
