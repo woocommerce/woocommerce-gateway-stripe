@@ -39,7 +39,11 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 			'Link'
 		);
 
-		add_filter( 'woocommerce_gateway_title', [ $this, 'filter_gateway_title' ], 10, 2 );
+		$this->register_instance_hooks_once(
+			function () {
+				add_filter( 'woocommerce_gateway_title', [ $this, 'filter_gateway_title' ], 10, 2 );
+			}
+		);
 	}
 
 	/**

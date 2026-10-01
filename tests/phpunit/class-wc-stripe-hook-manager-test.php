@@ -7,6 +7,8 @@
  */
 class WC_Stripe_Hook_Manager_Test extends WP_UnitTestCase {
 
+	use WC_Stripe_Hook_Manager_Reset_Trait;
+
 	/**
 	 * A second arbitrary hook category used to assert category isolation.
 	 *
@@ -16,33 +18,6 @@ class WC_Stripe_Hook_Manager_Test extends WP_UnitTestCase {
 	 * @var string
 	 */
 	const OTHER_CATEGORY = 'pre_orders';
-
-	/**
-	 * @inheritDoc
-	 */
-	public function set_up() {
-		parent::set_up();
-		$this->reset_hook_manager_singleton();
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	public function tear_down() {
-		$this->reset_hook_manager_singleton();
-		parent::tear_down();
-	}
-
-	/**
-	 * Resets the private static singleton so each test starts from a clean slate.
-	 *
-	 * @return void
-	 */
-	private function reset_hook_manager_singleton() {
-		$reflection = new ReflectionProperty( WC_Stripe_Hook_Manager::class, 'instance' );
-		$reflection->setAccessible( true );
-		$reflection->setValue( null, null );
-	}
 
 	/**
 	 * `get_instance()` always returns the same instance.

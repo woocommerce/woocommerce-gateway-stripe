@@ -14,8 +14,65 @@ class WC_Stripe_Database_Cache_Prefetch_Test extends \WP_UnitTestCase {
 	 */
 	public function tearDown(): void {
 		\WC_Stripe_Database_Cache_Prefetch::get_instance()->reset_pending_prefetches();
+		delete_option( 'wcstripe_prefetch_' . \WC_Stripe_Account::ACCOUNT_CACHE_KEY );
+		\WC_Stripe_Database_Cache::delete_with_mode( \WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'test' );
+		\WC_Stripe_Database_Cache::delete_with_mode( \WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'live' );
 
 		parent::tearDown();
+	}
+
+	/**
+	 * Provide active and requested modes for cache-read prefetch tests.
+	 *
+	 * @return array
+	 */
+	public function provide_cache_read_prefetch_mode_test_cases(): array {
+		return [
+			'active test cache'     => [ 'yes', 'test', true ],
+			'non-active live cache' => [ 'yes', 'live', false ],
+			'active live cache'     => [ 'no', 'live', true ],
+			'non-active test cache' => [ 'no', 'test', false ],
+		];
+	}
+
+	/**
+	 * Explicit reads may only queue prefetches for the active mode.
+	 *
+	 * @param string $testmode      The active test mode setting.
+	 * @param string $requested_mode The cache mode to read.
+	 * @param bool   $should_enqueue Whether a prefetch should be queued.
+	 *
+	 * @dataProvider provide_cache_read_prefetch_mode_test_cases
+	 */
+	public function test_cache_read_only_prefetches_active_mode( string $testmode, string $requested_mode, bool $should_enqueue ): void {
+		$stripe_settings             = \WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['testmode'] = $testmode;
+		\WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$key  = \WC_Stripe_Account::ACCOUNT_CACHE_KEY;
+		$data = [ 'id' => "acct_$requested_mode" ];
+		\WC_Stripe_Database_Cache::set_with_mode( $key, $data, 5, $requested_mode );
+		delete_option( 'wcstripe_prefetch_' . $key );
+
+		$mock_class = $this->getMockBuilder( \stdClass::class )
+			->addMethods( [ 'test_stub_callback' ] )
+			->getMock();
+		$mock_class->expects( $should_enqueue ? $this->once() : $this->never() )
+			->method( 'test_stub_callback' )
+			->with( null, \WC_Stripe_Database_Cache_Prefetch::ASYNC_PREFETCH_ACTION, [ $key ], 'woocommerce-gateway-stripe' )
+			->willReturn( 1 );
+
+		$prefetch_window = static function ( $window, $cache_key ) use ( $key ) {
+			return $key === $cache_key ? 20 : $window;
+		};
+		add_filter( 'pre_as_enqueue_async_action', [ $mock_class, 'test_stub_callback' ], 10, 4 );
+		add_filter( 'wc_stripe_database_cache_prefetch_window', $prefetch_window, 10, 2 );
+
+		$result = \WC_Stripe_Database_Cache::get_with_mode( $key, $requested_mode );
+
+		remove_filter( 'pre_as_enqueue_async_action', [ $mock_class, 'test_stub_callback' ], 10 );
+		remove_filter( 'wc_stripe_database_cache_prefetch_window', $prefetch_window, 10 );
+		$this->assertSame( $data, $result );
 	}
 
 	/**

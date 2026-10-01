@@ -78,6 +78,8 @@ class WC_Stripe_UPE_Payment_Method_ACSS extends WC_Stripe_UPE_Payment_Method {
 			<?php
 			if ( $display_tokenization ) {
 				$this->tokenization_script();
+			}
+			if ( $this->should_list_saved_payment_methods( $display_tokenization ) ) {
 				$this->saved_payment_methods();
 			}
 			?>
@@ -95,9 +97,7 @@ class WC_Stripe_UPE_Payment_Method_ACSS extends WC_Stripe_UPE_Payment_Method {
 			</fieldset>
 			<?php
 			if ( $this->should_show_save_option() ) {
-				/**
-				 * This filter is documented in includes/class-wc-stripe-blocks-support.php.
-				 */
+				/** This filter is documented in includes/class-wc-stripe-blocks-support.php. */
 				$force_save_payment = ( $display_tokenization && ! apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) ) || is_add_payment_method_page() || WC_Stripe_Helper::should_force_save_payment_method();
 				if ( is_user_logged_in() ) {
 					$this->save_payment_method_checkbox( $force_save_payment );

@@ -1,7 +1,10 @@
 import { __ } from '@wordpress/i18n';
 import { applyFilters } from '@wordpress/hooks';
 import { decodeEntities } from '@wordpress/html-entities';
-import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
+import {
+	getExpressCheckoutData,
+	normalizeLineItems,
+} from 'wcstripe/express-checkout/utils';
 import { SHIPPING_RATES_UPPER_LIMIT_COUNT } from 'wcstripe/stripe-utils/constants';
 
 /**
@@ -40,6 +43,21 @@ export const transformPriceWithMinorUnits = ( price, wooMinorUnits ) => {
 	}
 
 	return price * 10 ** ( currencyDecimals - wooMinorUnits );
+};
+
+const getDisplayItemsForTotal = ( displayItems, totalAmount ) => {
+	// Existing callers that only need normalization can omit the total.
+	if ( ! Number.isFinite( totalAmount ) ) {
+		return displayItems;
+	}
+
+	const displayItemsTotal = displayItems.reduce(
+		( total, { amount } ) => total + amount,
+		0
+	);
+
+	// Stripe rejects line items whose independently rounded sum exceeds the total.
+	return totalAmount < displayItemsTotal ? [] : displayItems;
 };
 
 /**
@@ -126,33 +144,21 @@ export const transformCartDataForDisplayItems = ( rawCartData ) => {
 			parseInt( cartData.totals.total_refund || 0, 10 ),
 		cartData.totals
 	);
-	const totalAmountOfDisplayItems = displayItems.reduce(
-		( acc, { amount } ) => acc + amount,
-		0
-	);
-
-	// if `totalAmount` is less than the total of `displayItems`, Stripe throws an error
-	// it can sometimes happen that the total is _slightly_ less, due to rounding errors on individual items/taxes/shipping
-	// (or with the `woocommerce_tax_round_at_subtotal` setting).
-	// if that happens, let's just not return any of the line items. This way, just the total amount will be displayed to the customer.
-	if ( totalAmount < totalAmountOfDisplayItems ) {
-		return [];
-	}
-
-	return displayItems;
+	return getDisplayItemsForTotal( displayItems, totalAmount );
 };
 
 /**
- * Transforms the `displayItems` from the Stripe ECE to the format expected by the Store API.
+ * Transforms labeled display items to the format expected by Stripe ECE.
  *
- * @param {Array} displayItems
+ * @param {Array}  displayItems
+ * @param {number} [totalAmount] Authoritative total in the currency's smallest unit.
  * @return {Array} The transformed display items.
  */
-export const transformLabeledDisplayItems = ( displayItems ) => {
-	return ( displayItems ?? [] ).map( ( { label, amount } ) => ( {
-		name: label,
-		amount,
-	} ) );
+export const transformLabeledDisplayItems = ( displayItems, totalAmount ) => {
+	return getDisplayItemsForTotal(
+		normalizeLineItems( displayItems ?? [] ),
+		totalAmount
+	);
 };
 
 /**

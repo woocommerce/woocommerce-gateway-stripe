@@ -62,7 +62,8 @@ const ElementsContainer = ( props ) => {
 				const response = paymentNeeded
 					? await api.createIntent(
 							stripeServerData?.orderId,
-							paymentMethodId
+							paymentMethodId,
+							stripeServerData?.orderKey
 					  )
 					: await api.initSetupIntent( paymentMethodId );
 
@@ -215,8 +216,11 @@ const PaymentElements = ( {
 	// fall back to the standard elements flow before the provider mounts.
 	const stripeSupportsInitCheckout =
 		typeof api.getStripe()?.initCheckoutElementsSdk === 'function';
+	// Non-deferred methods (BLIK, ACSS) can't render in the Checkout Session
+	// element, so their own entry keeps the standard flow, as in classic checkout.
 	const isAdaptivePricingSupported =
 		stripeServerData?.isAdaptivePricingEnabled &&
+		supportsDeferredIntent &&
 		stripeSupportsInitCheckout;
 
 	const [ errorMessage, setErrorMessage ] = useState( null );
@@ -243,7 +247,6 @@ const PaymentElements = ( {
 		containerComponent = (
 			<CheckoutContainer
 				api={ api }
-				isLoggedIn={ stripeServerData?.isLoggedIn }
 				isPayerPhoneRequired={ stripeServerData?.isPayerPhoneRequired }
 				setPaymentProcessorLoadErrorMessage={
 					setPaymentProcessorLoadErrorMessage

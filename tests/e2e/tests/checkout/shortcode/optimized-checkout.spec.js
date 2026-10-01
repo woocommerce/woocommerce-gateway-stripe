@@ -78,6 +78,13 @@ test.describe( 'Optimized Checkout payment tests @shortcode', () => {
 					'#wc-stripe-new-payment-method'
 				);
 				await expect( savePaymentMethodCheckbox ).toBeAttached();
+				// The fieldset wrapping the save checkbox must be visible while the
+				// checkbox row is shown (Link is disabled in this test).
+				await expect(
+					page.locator(
+						'.payment_box.payment_method_stripe fieldset:has(.woocommerce-SavedPaymentMethods-saveNew)'
+					)
+				).toBeVisible();
 				await page
 					.locator( "label[for='wc-stripe-new-payment-method']" )
 					.click();
@@ -115,6 +122,15 @@ test.describe( 'Optimized Checkout payment tests @shortcode', () => {
 				await expect( savedTokenRadio ).toBeVisible();
 				await savedTokenRadio.click();
 
+				// With the saved method selected the save-checkbox row is hidden, and
+				// the fieldset wrapping it must be hidden too — a bare fieldset renders
+				// as an empty box on themes that keep the default fieldset border.
+				const hiddenWrapper = page.locator(
+					'.payment_box.payment_method_stripe fieldset:has(.woocommerce-SavedPaymentMethods-saveNew)'
+				);
+				await expect( hiddenWrapper ).toBeAttached();
+				await expect( hiddenWrapper ).toBeHidden();
+
 				const expectedTotal = await getCartTotal( page );
 
 				await clickPlaceOrder( page );
@@ -129,5 +145,48 @@ test.describe( 'Optimized Checkout payment tests @shortcode', () => {
 			// Re-enable Link after the test.
 			await admin.togglePaymentMethod( browser, 'Link by Stripe', true );
 		}
+	} );
+
+	test( 'hides the save checkbox wrapper when Link handles save consent', async ( {
+		page,
+		browser,
+	} ) => {
+		// Enable Link explicitly so the test is deterministic regardless of the
+		// previous test's cleanup. With Link enabled the store-level save
+		// checkbox is suppressed via the wc-stripe-hide-save-checkbox body
+		// class, and the fieldset wrapping it must be hidden along with it.
+		await admin.togglePaymentMethod( browser, 'Link by Stripe', true );
+
+		// A dedicated token-less customer keeps this test self-contained (no
+		// dependency on the preceding serial test) and isolates the body-class
+		// path: with no saved tokens there is no token radio list, so nothing
+		// applies an inline hide to the checkbox row.
+		const randomString = randomUUID();
+		const linkUsername =
+			randomString + '.' + config.get( 'users.customer.username' );
+		await api.create.customer( {
+			...config.get( 'users.customer' ),
+			...config.get( 'addresses.customer' ),
+			email: randomString + '+' + config.get( 'users.customer.email' ),
+			username: linkUsername,
+		} );
+
+		await user.login(
+			page,
+			linkUsername,
+			config.get( 'users.customer.password' )
+		);
+		await emptyCart( page );
+		await setupCart( page );
+		await setupShortcodeCheckout(
+			page,
+			config.get( 'addresses.customer.billing' )
+		);
+
+		const saveCheckboxWrapper = page.locator(
+			'.payment_box.payment_method_stripe fieldset:has(.woocommerce-SavedPaymentMethods-saveNew)'
+		);
+		await expect( saveCheckboxWrapper ).toBeAttached();
+		await expect( saveCheckboxWrapper ).toBeHidden();
 	} );
 } );

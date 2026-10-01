@@ -40,12 +40,19 @@ class WC_Stripe_Amazon_Pay_Controller {
 		wp_enqueue_script( 'wc-stripe-amazon-pay-settings' );
 
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$params          = [
-			'key'                        => WC_Stripe_Mode::is_test() ? $stripe_settings['test_publishable_key'] : $stripe_settings['publishable_key'],
-			'locale'                     => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
-			'taxes_based_on_billing'     => wc_tax_enabled() && 'billing' === get_option( 'woocommerce_tax_based_on' ),
-			'is_button_style_overridden' => WC_Stripe_Helper::is_express_checkout_button_style_overridden(),
-		];
+		$params          = array_merge(
+			[
+				'key'                          => WC_Stripe_Mode::is_test() ? $stripe_settings['test_publishable_key'] : $stripe_settings['publishable_key'],
+				'locale'                       => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
+				'taxes_based_on_billing'       => wc_tax_enabled() && 'billing' === get_option( 'woocommerce_tax_based_on' ),
+				'is_button_style_overridden'   => WC_Stripe_Helper::is_express_checkout_button_style_overridden(),
+				// Computed server-side so the simulator doesn't need a client-side copy of the
+				// account-country and currency eligibility rules.
+				'is_account_country_supported' => WC_Stripe_UPE_Payment_Method_Amazon_Pay::is_amazon_pay_available_for_account_country(),
+				'supported_currencies'         => WC_Stripe_UPE_Payment_Method_Amazon_Pay::get_amazon_pay_supported_currencies(),
+			],
+			WC_Stripe_Helper::get_express_checkout_simulator_gate_params()
+		);
 		wp_localize_script(
 			'wc-stripe-amazon-pay-settings',
 			'wc_stripe_amazon_pay_settings_params',

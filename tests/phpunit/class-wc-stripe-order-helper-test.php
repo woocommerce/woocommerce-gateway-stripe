@@ -27,6 +27,41 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A paid status or the redirect-processed flag both count as settled.
+	 *
+	 * @param string $status             Order status.
+	 * @param bool   $redirect_processed Whether the redirect-processed flag is set.
+	 * @param bool   $expected           Expected result.
+	 * @dataProvider provide_order_payment_settled_cases
+	 */
+	public function test_is_order_payment_settled( string $status, bool $redirect_processed, bool $expected ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( $status );
+		$order->save();
+		if ( $redirect_processed ) {
+			$this->helper->update_stripe_upe_redirect_processed( $order, true );
+		}
+
+		$this->assertSame( $expected, $this->helper->is_order_payment_settled( $order ) );
+	}
+
+	/**
+	 * Data provider for `test_is_order_payment_settled`.
+	 *
+	 * @return array
+	 */
+	public function provide_order_payment_settled_cases(): array {
+		return [
+			'pending'                     => [ 'pending', false, false ],
+			'failed'                      => [ 'failed', false, false ],
+			'pending, redirect processed' => [ 'pending', true, true ],
+			'processing'                  => [ 'processing', false, true ],
+			'completed'                   => [ 'completed', false, true ],
+			'on-hold'                     => [ 'on-hold', false, true ],
+		];
+	}
+
+	/**
 	 * Tests for getters and setters.
 	 *
 	 * @return void
@@ -260,5 +295,72 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		// Test with an empty order.
 		$order = new WC_Order();
 		$this->assertFalse( $this->helper->is_stripe_gateway_order( $order ) );
+	}
+
+	/**
+	 * Tests for `sync_stripe_charge_captured`.
+	 *
+	 * @param object|string|null $charge          The observed charge value.
+	 * @param bool|null          $expected_return The expected return value.
+	 * @param string             $expected_meta   The expected stored meta value.
+	 *
+	 * @dataProvider provide_test_sync_stripe_charge_captured
+	 */
+	public function test_sync_stripe_charge_captured( $charge, $expected_return, $expected_meta ): void {
+		$order = WC_Helper_Order::create_order();
+
+		$this->assertSame( $expected_return, $this->helper->sync_stripe_charge_captured( $order, $charge ) );
+		$this->assertSame( $expected_meta, $this->helper->get_stripe_charge_captured( $order ) );
+
+		// The helper must not persist: the recorded state lives only on the in-memory
+		// order until the caller saves, so a fresh read still sees the stored value.
+		$this->assertSame( '', wc_get_order( $order->get_id() )->get_meta( '_stripe_charge_captured' ) );
+	}
+
+	/**
+	 * Provider for `test_sync_stripe_charge_captured`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_sync_stripe_charge_captured(): array {
+		return [
+			'captured charge'          => [ (object) [ 'captured' => true ], true, 'yes' ],
+			'uncaptured charge'        => [ (object) [ 'captured' => false ], false, 'no' ],
+			'charge without captured'  => [ (object) [ 'id' => 'ch_123' ], null, '' ],
+			'string instead of charge' => [ 'ch_123', null, '' ],
+			'null charge'              => [ null, null, '' ],
+		];
+	}
+
+	/**
+	 * Tests for `is_stripe_charge_authorized_only`.
+	 *
+	 * @param bool|null $captured Recorded captured state, or null to leave the flag unwritten.
+	 * @param bool      $expected The expected result.
+	 *
+	 * @dataProvider provide_test_is_stripe_charge_authorized_only
+	 */
+	public function test_is_stripe_charge_authorized_only( $captured, $expected ): void {
+		$order = WC_Helper_Order::create_order();
+
+		if ( null !== $captured ) {
+			$this->helper->set_stripe_charge_captured( $order, $captured );
+		}
+
+		$this->assertSame( $expected, $this->helper->is_stripe_charge_authorized_only( $order ) );
+	}
+
+	/**
+	 * Provider for `test_is_stripe_charge_authorized_only`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_is_stripe_charge_authorized_only(): array {
+		return [
+			'recorded uncaptured' => [ false, true ],
+			'recorded captured'   => [ true, false ],
+			// Never recorded is unknown, not authorize-only: capture/void flows must not act on it.
+			'flag never recorded' => [ null, false ],
+		];
 	}
 }
