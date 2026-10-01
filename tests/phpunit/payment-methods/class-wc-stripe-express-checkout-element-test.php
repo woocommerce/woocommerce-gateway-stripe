@@ -128,6 +128,64 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Product and cart pages get the Link flag from the enabled method IDs (card and Link
+	 * both required), since they don't load the classic checkout params.
+	 *
+	 * @param bool     $is_product  Whether the helper reports a product page (including a [product_page] shortcode).
+	 * @param bool     $is_cart     Whether the helper reports a cart page.
+	 * @param string[] $enabled_ids Enabled payment method IDs at checkout.
+	 * @param bool     $expected    Expected flag.
+	 *
+	 * @dataProvider provide_link_in_payment_methods
+	 */
+	public function test_javascript_params_link_in_payment_methods( bool $is_product, bool $is_cart, array $enabled_ids, bool $expected ) {
+		$ajax_handler = $this->getMockBuilder( WC_Stripe_Express_Checkout_Ajax_Handler::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		// Built before the gateway swap so its other checks keep the real gateway.
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->onlyMethods( [ 'is_product', 'is_cart' ] )
+			->getMock();
+		$helper->method( 'is_product' )->willReturn( $is_product );
+		$helper->method( 'is_cart' )->willReturn( $is_cart );
+
+		$element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_upe_enabled_at_checkout_payment_method_ids' ] )
+			->getMock();
+		$gateway->method( 'get_upe_enabled_at_checkout_payment_method_ids' )->willReturn( $enabled_ids );
+
+		$gateway_property = new ReflectionProperty( WC_Stripe::class, 'stripe_gateway' );
+		$gateway_property->setAccessible( true );
+		$original_gateway = $gateway_property->getValue( WC_Stripe::get_instance() );
+		$gateway_property->setValue( WC_Stripe::get_instance(), $gateway );
+
+		try {
+			$this->assertSame( $expected, $element->javascript_params()['stripe']['is_link_in_payment_methods'] );
+		} finally {
+			$gateway_property->setValue( WC_Stripe::get_instance(), $original_gateway );
+		}
+	}
+
+	/**
+	 * Data provider for {@see test_javascript_params_link_in_payment_methods()}.
+	 *
+	 * @return array<string, array{0: bool, 1: bool, 2: string[], 3: bool}>
+	 */
+	public function provide_link_in_payment_methods() {
+		return [
+			'product page, card and link' => [ true, false, [ 'card', 'link' ], true ],
+			'cart page, card and link'    => [ false, true, [ 'card', 'link' ], true ],
+			'product page, link only'     => [ true, false, [ 'link' ], false ],
+			'product page, card only'     => [ true, false, [ 'card' ], false ],
+			'other page, card and link'   => [ false, false, [ 'card', 'link' ], false ],
+		];
+	}
+
+	/**
 	 * Only the Store API nonces may be minted at render time; the wc-ajax
 	 * nonces are served on demand so cached pages can't embed expired copies.
 	 *

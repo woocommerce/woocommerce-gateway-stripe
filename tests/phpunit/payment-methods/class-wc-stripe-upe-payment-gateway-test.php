@@ -6460,51 +6460,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * Link counts as enabled only when the client config holds both Link and card,
-	 * matching the client's `isLinkEnabled()`.
-	 *
-	 * @dataProvider provide_link_in_enabled_payment_method_config
-	 *
-	 * @param array $config   The enabled payment method config.
-	 * @param bool  $expected Expected result.
-	 */
-	public function test_is_link_in_enabled_payment_method_config( array $config, bool $expected ): void {
-		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
-			->disableOriginalConstructor()
-			->onlyMethods( [ 'get_enabled_payment_method_config' ] )
-			->getMock();
-		$gateway->method( 'get_enabled_payment_method_config' )->willReturn( $config );
-
-		$this->assertSame( $expected, $gateway->is_link_in_enabled_payment_method_config() );
-	}
-
-	/**
-	 * Data provider for {@see test_is_link_in_enabled_payment_method_config()}.
-	 *
-	 * @return array<string, array{0: array, 1: bool}>
-	 */
-	public function provide_link_in_enabled_payment_method_config(): array {
-		return [
-			'card and link'      => [
-				[
-					'card' => [],
-					'link' => [],
-				],
-				true,
-			],
-			'link without card'  => [
-				[
-					'oc'   => [],
-					'link' => [],
-				],
-				false,
-			],
-			'card without link'  => [ [ 'card' => [] ], false ],
-			'no payment methods' => [ [], false ],
-		];
-	}
-
-	/**
 	 * Build a minimal gateway mock suitable for exercising `javascript_params()`.
 	 *
 	 * All instance methods that reach out to Stripe or WooCommerce infrastructure are
