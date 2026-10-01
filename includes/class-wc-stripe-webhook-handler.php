@@ -2290,6 +2290,19 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Builds the option name for the lock that serializes processing of a checkout session.
+	 *
+	 * Distinct from the checkout session mutation lock in WC_Stripe_Checkout_Session_Context; this
+	 * one guards the completion webhook against creating duplicate orders for the same session.
+	 *
+	 * @param string $session_id The Stripe checkout session id.
+	 * @return string The lock option name.
+	 */
+	private static function get_checkout_session_processing_lock_option( string $session_id ): string {
+		return 'wc_stripe_checkout_session_processing_lock_' . $session_id;
+	}
+
+	/**
 	 * Handles a deferred checkout session success event.
 	 *
 	 * The deferred retry count is read from $this->adaptive_pricing_order_lookup_retry_count
@@ -2308,16 +2321,18 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		// subsequent reads (e.g. presentment details on the order page) reflect the final state.
 		WC_Stripe_Database_Cache::set( 'checkout_session_' . $session_id, $checkout_session, HOUR_IN_SECONDS );
 
-		// Acquire a lock to prevent duplicate order creation from concurrent agentic sessions.
-		$lock_key = 'checkout_session_lock_' . $session_id;
-		if ( null !== WC_Stripe_Database_Cache::get( $lock_key ) ) {
+		// Acquire a lock to prevent duplicate order creation from concurrent checkout session webhooks.
+		// The options-table lock is atomic, so of two webhooks that arrive together only one acquires
+		// it; a plain read-then-write let both pass and create duplicate orders.
+		$lock_option = self::get_checkout_session_processing_lock_option( $session_id );
+		$lock_owner  = WC_Stripe_Option_Lock::acquire( $lock_option, 5 * MINUTE_IN_SECONDS );
+		if ( null === $lock_owner ) {
 			WC_Stripe_Logger::info(
 				'Checkout session is already being processed.',
 				[ 'session_id' => $session_id ]
 			);
 			return false;
 		}
-		WC_Stripe_Database_Cache::set( $lock_key, time(), 5 * MINUTE_IN_SECONDS );
 
 		// Look for an order. If one does not exists, this is probably an agentic hook.
 		$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $checkout_session->id );
@@ -2327,7 +2342,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			// paid session whenever agentic commerce is disabled.
 			$checkout_type = $checkout_session->metadata->checkout_type ?? '';
 			if ( WC_Stripe_Checkout_Sessions_Ajax_Handler::ADAPTIVE_PRICING_CHECKOUT_TYPE === $checkout_type ) {
-				WC_Stripe_Database_Cache::delete( $lock_key );
+				WC_Stripe_Option_Lock::release( $lock_option, $lock_owner );
 
 				// The order is created and linked by the shopper's browser via the Store API,
 				// which can outlast a single deferred window — re-queue before conceding.
@@ -2361,12 +2376,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					$this->handle_agentic_checkout_session( $notification );
 				}
 			} finally {
-				WC_Stripe_Database_Cache::delete( $lock_key );
+				WC_Stripe_Option_Lock::release( $lock_option, $lock_owner );
 			}
 			return false;
 		}
 
-		WC_Stripe_Database_Cache::delete( $lock_key );
+		WC_Stripe_Option_Lock::release( $lock_option, $lock_owner );
 
 		/**
 		 * Filters the valid order statuses for payment processing.
