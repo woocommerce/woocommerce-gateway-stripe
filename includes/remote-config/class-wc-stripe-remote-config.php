@@ -153,6 +153,7 @@ class WC_Stripe_Remote_Config {
 	/**
 	 * Validate a remote-config payload.
 	 *
+	 * @param array $payload The payload to validate.
 	 * @return string|null Null on success, or a short reason describing the
 	 *                     first failure (intended for the rejection log).
 	 */
