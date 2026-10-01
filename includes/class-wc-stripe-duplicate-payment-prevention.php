@@ -152,7 +152,7 @@ final class WC_Stripe_Duplicate_Payment_Prevention {
 		}
 
 		$paid_order = wc_get_order( $recorded_order_id );
-		if ( ! $paid_order instanceof WC_Order || ! $paid_order->get_date_paid() ) {
+		if ( ! $paid_order instanceof WC_Order || ! self::has_been_charged( $paid_order ) ) {
 			return null;
 		}
 
@@ -164,6 +164,21 @@ final class WC_Stripe_Duplicate_Payment_Prevention {
 		}
 
 		return $paid_order;
+	}
+
+	/**
+	 * Whether Stripe holds the shopper's money for this order.
+	 *
+	 * A captured charge sets date_paid. An authorization (manual capture) or a charge Stripe still
+	 * reports as pending only puts the order on-hold with the charge as its transaction ID. The
+	 * transaction ID keeps out on-hold orders that were never charged, like BACS or cheque.
+	 *
+	 * @param WC_Order $order The order to check.
+	 * @return bool
+	 */
+	private static function has_been_charged( WC_Order $order ): bool {
+		return (bool) $order->get_date_paid()
+			|| ( $order->has_status( OrderStatus::ON_HOLD ) && '' !== (string) $order->get_transaction_id() );
 	}
 
 	/**
@@ -188,14 +203,14 @@ final class WC_Stripe_Duplicate_Payment_Prevention {
 	/**
 	 * Records that this cart produced a paid order.
 	 *
-	 * A no-op unless the order is paid, so authorize-only orders are not covered. Safe on both the
-	 * sync charge and the async return; it reads the order's stored cart hash, not the live cart.
+	 * A no-op unless the order was charged or authorized. Safe on both the sync charge and the async
+	 * return; it reads the order's stored cart hash, not the live cart.
 	 *
 	 * @param WC_Order $order The order that was paid.
 	 * @return void
 	 */
 	public static function record_paid_order( WC_Order $order ): void {
-		if ( ! $order->get_date_paid() ) {
+		if ( ! self::has_been_charged( $order ) ) {
 			return;
 		}
 

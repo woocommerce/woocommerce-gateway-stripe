@@ -136,6 +136,48 @@ class WC_Stripe_Duplicate_Payment_Prevention_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * An authorized charge (manual capture) puts the order on-hold with the charge ID but no paid
+	 * date, and must block a resubmit like a captured one. An on-hold order with no charge, such
+	 * as BACS, must not.
+	 *
+	 * @param string $transaction_id The transaction ID on the on-hold order.
+	 * @param bool   $expected       Whether a resubmit is blocked.
+	 *
+	 * @dataProvider provide_on_hold_orders
+	 *
+	 * @return void
+	 */
+	public function test_on_hold_order_blocks_resubmit_only_when_charged( string $transaction_id, bool $expected ): void {
+		$authorized = $this->make_order( self::CART_HASH, self::EMAIL );
+		$authorized->set_transaction_id( $transaction_id );
+		$authorized->set_status( OrderStatus::ON_HOLD );
+		$authorized->save();
+		$this->assertNull( $authorized->get_date_paid(), 'On-hold must not set a paid date for this test to mean anything.' );
+
+		WC_Stripe_Duplicate_Payment_Prevention::record_paid_order( $authorized );
+
+		$found = WC_Stripe_Duplicate_Payment_Prevention::get_recent_paid_order( $this->make_order( self::CART_HASH, self::EMAIL ) );
+		if ( $expected ) {
+			$this->assertInstanceOf( WC_Order::class, $found );
+			$this->assertSame( $authorized->get_id(), $found->get_id() );
+		} else {
+			$this->assertNull( $found );
+		}
+	}
+
+	/**
+	 * Data provider for test_on_hold_order_blocks_resubmit_only_when_charged.
+	 *
+	 * @return array<string, array{0: string, 1: bool}>
+	 */
+	public function provide_on_hold_orders(): array {
+		return [
+			'authorized charge'  => [ 'ch_authorized', true ],
+			'no charge, as BACS' => [ '', false ],
+		];
+	}
+
+	/**
 	 * A recorded order that later lost its paid standing (cancelled, refunded, pending, all of which
 	 * keep date_paid) must not block a repurchase; a still-paid one must. A paid order later marked
 	 * failed was still charged, so it blocks too.
