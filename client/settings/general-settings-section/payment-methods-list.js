@@ -119,8 +119,8 @@ const PaymentMethodWrapper = styled.div`
 `;
 
 /**
- * Hook to sort the payment methods based on whether the payment method is supported by the store currency.
- * Unsupported payment methods are placed at the end of the list so irrelevant payment methods don't clutter the screen.
+ * Hook to group the payment methods based on whether the payment method is supported by the store currency.
+ * The list shows unsupported payment methods at the end so irrelevant payment methods don't clutter the screen.
  *
  * @param {string[]} orderedPaymentMethodIds Ordered payment method IDs.
  * @return {string[][]} Payment method IDs grouped as available, plugin conflict and unavailable, in that order.
@@ -213,7 +213,7 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 			return;
 		}
 
-		const next = [ ...sortedPaymentMethodIds ];
+		const next = [ ...orderedPaymentMethodIds ];
 		const from = next.indexOf( method );
 		const to = next.indexOf( neighbour );
 		[ next[ from ], next[ to ] ] = [ next[ to ], next[ from ] ];

@@ -39,17 +39,19 @@ const isDisabled = ( button ) =>
 
 describe( 'PaymentMethodsList when changing the display order', () => {
 	let setOrderedPaymentMethodIds;
+	let storedOrder;
 
 	beforeEach( () => {
 		setOrderedPaymentMethodIds = jest.fn();
+		storedOrder = [
+			PAYMENT_METHOD_CARD,
+			PAYMENT_METHOD_EPS,
+			PAYMENT_METHOD_KLARNA,
+			// Unmapped IDs are not rendered and must not count as an end.
+			'unmapped_method',
+		];
 		useGetOrderedPaymentMethodIds.mockImplementation( () => {
-			const [ ids, setIds ] = useState( [
-				PAYMENT_METHOD_CARD,
-				PAYMENT_METHOD_EPS,
-				PAYMENT_METHOD_KLARNA,
-				// Unmapped IDs are not rendered and must not count as an end.
-				'unmapped_method',
-			] );
+			const [ ids, setIds ] = useState( storedOrder );
 			return {
 				orderedPaymentMethodIds: ids,
 				setOrderedPaymentMethodIds: ( next ) => {
@@ -146,6 +148,31 @@ describe( 'PaymentMethodsList when changing the display order', () => {
 		await userEvent.click( getButton( 'Move Klarna up' ) );
 
 		expect( setOrderedPaymentMethodIds ).not.toHaveBeenCalled();
+	} );
+
+	it( 'keeps the stored position of other payment methods when moving one', async () => {
+		storedOrder = [
+			PAYMENT_METHOD_KLARNA,
+			PAYMENT_METHOD_CARD,
+			'unmapped_method',
+			PAYMENT_METHOD_EPS,
+		];
+		getPaymentMethodUnavailableReason.mockImplementation(
+			( { paymentMethodId } ) =>
+				paymentMethodId === PAYMENT_METHOD_KLARNA
+					? PAYMENT_METHOD_UNAVAILABLE_REASONS.UNSUPPORTED_CURRENCY
+					: null
+		);
+		render( <PaymentMethodsList isChangingDisplayOrder /> );
+
+		await userEvent.click( getButton( 'Move EPS up' ) );
+
+		expect( setOrderedPaymentMethodIds ).toHaveBeenCalledWith( [
+			'klarna',
+			'eps',
+			'unmapped_method',
+			'card',
+		] );
 	} );
 
 	it( 'reorders with the keyboard only', async () => {
