@@ -2284,7 +2284,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 	/**
 	 * A remote disable of Optimized Checkout must also sever Adaptive Pricing,
-	 * which rides the checkout-sessions flow outside the OC element gates.
+	 * A remote disable of Optimized Checkout must also disable Adaptive Pricing.
 	 *
 	 * @return void
 	 */
