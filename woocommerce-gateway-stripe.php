@@ -174,6 +174,9 @@ function wcstripe_deactivated(): void {
 
 	WC_Stripe_Database_Cache::unschedule_daily_async_cleanup();
 
+	require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-option-lock.php';
+	WC_Stripe_Option_Lock::unschedule_daily_cleanup();
+
 	// Cancel scheduled Agentic Commerce feed syncs.
 	if ( interface_exists( 'Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedInterface' ) ) {
 		$integration = new WC_Stripe_Agentic_Commerce_Integration();
