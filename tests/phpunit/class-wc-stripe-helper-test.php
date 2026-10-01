@@ -2331,7 +2331,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				]
 			);
 
-			$this->assertFalse( WC_Stripe_Helper::is_adaptive_pricing_supported(), 'AP must be severed by the remote OC disable' );
+			$this->assertFalse( WC_Stripe_Helper::is_adaptive_pricing_supported(), 'AP must be disabled by the remote OC disable' );
 		} finally {
 			remove_filter( 'woocommerce_is_checkout', '__return_true' );
 			delete_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION );
