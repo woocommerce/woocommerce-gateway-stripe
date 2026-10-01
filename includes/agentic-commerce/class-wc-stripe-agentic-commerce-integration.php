@@ -102,6 +102,29 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	public const DISABLE_CHECKOUT_OPTION = 'wc_stripe_agentic_commerce_disable_checkout';
 
 	/**
+	 * Option key ('yes'/'no', default on) for auto-excluding detector-flagged
+	 * add-on / configurator products from the feed. Their price depends on
+	 * shopper choices the feed can't represent, so they are excluded by default
+	 * to keep agents from checking out at a wrong price; merchants can opt in.
+	 *
+	 * @see WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product()
+	 *
+	 * @var string
+	 * @since 11.1.0
+	 */
+	public const AUTO_EXCLUDE_ADDONS_OPTION = 'wc_stripe_agentic_commerce_auto_exclude_addons';
+
+	/**
+	 * Option key ('yes'/'no', default off) for defaulting `disable_checkout=true`
+	 * on detected add-on/configurator products, so shoppers will be redirected
+	 * to the store for these products.
+	 *
+	 * @var string
+	 * @since 11.1.0
+	 */
+	public const AUTO_REDIRECT_CHECKOUT_ADDONS_OPTION = 'wc_stripe_agentic_commerce_auto_redirect_checkout_addons';
+
+	/**
 	 * Option key storing the content hash, upload timestamp, and Stripe file id
 	 * of the most recent successful full-catalog upload. Used to skip the Stripe
 	 * Files API upload when the regenerated catalog is byte-identical to the
@@ -209,7 +232,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		add_action( self::IMMEDIATE_SYNC_ACTION, [ $this, 'sync_feed' ] ); // @phpstan-ignore return.void (sync_feed returns bool for manual callers; WP ignores the return value when invoked via action hook)
 
 		// Adapter-fired hook for converging Stripe's catalog when the
-		// `woocommerce_agentic_commerce_should_sync_product` filter outcome changes.
+		// `wc_stripe_agentic_commerce_should_sync_product` filter outcome changes.
 		// See the filter docblock for the contract — without this, a previously
 		// exported product that becomes excluded would only drop out of Stripe's
 		// catalog on the next scheduled full sync.
@@ -353,12 +376,12 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		$force_disable_checkout = static function () {
 			return true;
 		};
-		add_filter( 'woocommerce_agentic_commerce_disable_checkout', $force_disable_checkout, 99999 );
+		add_filter( 'wc_stripe_agentic_commerce_disable_checkout', $force_disable_checkout, 99999 );
 
 		try {
 			$this->run_feed_sync( true );
 		} finally {
-			remove_filter( 'woocommerce_agentic_commerce_disable_checkout', $force_disable_checkout, 99999 );
+			remove_filter( 'wc_stripe_agentic_commerce_disable_checkout', $force_disable_checkout, 99999 );
 		}
 	}
 
@@ -633,6 +656,19 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	}
 
 	/**
+	 * Whether the merchant has completed Agentic Commerce onboarding: the feature
+	 * is enabled in settings and the webhook signing secret has been saved. Both
+	 * are set by the settings UI; a catalog sync should not push before they are.
+	 *
+	 * @since 10.9.0
+	 * @return bool True once onboarding is complete.
+	 */
+	public static function is_onboarding_complete(): bool {
+		return self::is_merchant_enabled()
+			&& '' !== (string) get_option( self::WEBHOOK_SECRET_OPTION, '' );
+	}
+
+	/**
 	 * Whether the store-wide default disables in-agent checkout (feed-only / redirect).
 	 * Per-product overrides live in the mapper's filter.
 	 *
@@ -641,6 +677,30 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 */
 	public static function is_checkout_disabled(): bool {
 		return 'yes' === get_option( self::DISABLE_CHECKOUT_OPTION, 'no' );
+	}
+
+	/**
+	 * Whether the merchant has opted to auto-exclude add-on / configurator
+	 * products from the feed entirely.
+	 *
+	 * @see WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product()
+	 * @since 11.1.0
+	 * @return bool
+	 */
+	public static function is_auto_exclude_addons_enabled(): bool {
+		return 'yes' === get_option( self::AUTO_EXCLUDE_ADDONS_OPTION, 'yes' );
+	}
+
+	/**
+	 * Whether the merchant has opted to set `disable_checkout` for add-on /
+	 * configurator products so they redirect to the local checkout.
+	 *
+	 * @see WC_Stripe_Agentic_Commerce_Product_Mapper::get_disable_checkout()
+	 * @since 11.1.0
+	 * @return bool
+	 */
+	public static function is_auto_redirect_checkout_addons_enabled(): bool {
+		return 'yes' === get_option( self::AUTO_REDIRECT_CHECKOUT_ADDONS_OPTION, 'no' );
 	}
 
 	/**
@@ -665,9 +725,10 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return false;
 		}
 
-		// Skip the sync if Agentic Commerce is disabled.
-		if ( ! self::is_merchant_enabled() ) {
-			WC_Stripe_Logger::info( 'Agentic Commerce: Sync skipped - merchant toggle disabled' );
+		// Don't push until onboarding is complete. The teardown push bypasses
+		// this via run_feed_sync().
+		if ( ! self::is_onboarding_complete() ) {
+			WC_Stripe_Logger::info( 'Agentic Commerce: Sync skipped - onboarding incomplete' );
 			return false;
 		}
 

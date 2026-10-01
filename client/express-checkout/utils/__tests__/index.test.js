@@ -3,7 +3,9 @@
  */
 import { screen, render } from '@testing-library/react';
 import {
+	appendCheckoutLink,
 	displayExpressCheckoutNotice,
+	getDefaultShippingOptions,
 	getErrorMessageFromNotice,
 	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
@@ -17,10 +19,13 @@ import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_LINK,
 } from 'wcstripe/stripe-utils/constants';
-import { isAmazonPayEnabled, isLinkEnabled } from 'wcstripe/stripe-utils';
+import { isAmazonPayEnabled } from 'wcstripe/stripe-utils/is-amazon-pay-enabled';
+import { isLinkEnabled } from 'wcstripe/stripe-utils/is-link-enabled';
 
-jest.mock( 'wcstripe/stripe-utils', () => ( {
+jest.mock( 'wcstripe/stripe-utils/is-amazon-pay-enabled', () => ( {
 	isAmazonPayEnabled: jest.fn(),
+} ) );
+jest.mock( 'wcstripe/stripe-utils/is-link-enabled', () => ( {
 	isLinkEnabled: jest.fn(),
 } ) );
 
@@ -44,6 +49,33 @@ describe( 'Express checkout utils', () => {
 		expect( getExpressCheckoutData( 'ajax_url' ) ).toBe( 'test' );
 	} );
 
+	describe( 'getDefaultShippingOptions', () => {
+		afterEach( () => {
+			window.wc_stripe_express_checkout_params = {};
+		} );
+
+		test( 'returns the server-provided default option wrapped in an array', () => {
+			const defaultShippingOption = {
+				id: 'pending',
+				displayName: 'Pending',
+				amount: 0,
+			};
+			window.wc_stripe_express_checkout_params = {
+				checkout: { default_shipping_option: defaultShippingOption },
+			};
+
+			expect( getDefaultShippingOptions() ).toEqual( [
+				defaultShippingOption,
+			] );
+		} );
+
+		test( 'returns an empty array when no default option is configured', () => {
+			window.wc_stripe_express_checkout_params = { checkout: {} };
+
+			expect( getDefaultShippingOptions() ).toEqual( [] );
+		} );
+	} );
+
 	test( 'getErrorMessageFromNotice strips formatting', () => {
 		const notice = '<p><b>Error:</b> Payment failed.</p>';
 		expect( getErrorMessageFromNotice( notice ) ).toBe(
@@ -62,6 +94,7 @@ describe( 'Express checkout utils', () => {
 	describe( 'displayExpressCheckoutNotice', () => {
 		afterEach( () => {
 			document.getElementsByTagName( 'body' )[ 0 ].innerHTML = '';
+			window.wc_stripe_express_checkout_params = {};
 		} );
 
 		const additionalClasses = [ 'class-2', 'class-3' ];
@@ -70,6 +103,40 @@ describe( 'Express checkout utils', () => {
 			wrapper.classList.add( 'woocommerce-notices-wrapper' );
 			document.body.appendChild( wrapper );
 		};
+
+		const goToCheckout =
+			'Please go to the <a href="https://example.com/store/checkout/">checkout page</a>, fill in the required fields, and complete your order from there.';
+
+		test.each( [ false, true ] )(
+			'appends the checkout link with block layout %s',
+			( hasBlock ) => {
+				window.wc_stripe_express_checkout_params = {
+					has_block: hasBlock,
+					i18n: { go_to_checkout: goToCheckout },
+				};
+				document.body.innerHTML =
+					'<div class="woocommerce-notices-wrapper wc-block-components-main"></div>';
+				displayExpressCheckoutNotice(
+					'Size <XL> is a required field.',
+					'error',
+					undefined,
+					{ linkToCheckout: true }
+				);
+				expect(
+					screen.getByRole( 'link', { name: 'checkout page' } )
+				).toHaveAttribute(
+					'href',
+					'https://example.com/store/checkout/'
+				);
+				// Labels stay text even when they look like markup.
+				expect( screen.getByRole( 'note' ) ).toHaveTextContent(
+					'Size <XL> is a required field.'
+				);
+				expect( screen.getByRole( 'note' ) ).toHaveTextContent(
+					'complete your order from there.'
+				);
+			}
+		);
 
 		test( 'with info', async () => {
 			function App() {
@@ -116,6 +183,30 @@ describe( 'Express checkout utils', () => {
 			displayExpressCheckoutNotice( 'Test message', 'error' );
 
 			expect( screen.queryByRole( 'note' ) ).not.toBeInTheDocument();
+		} );
+	} );
+
+	describe( 'appendCheckoutLink', () => {
+		afterEach( () => {
+			window.wc_stripe_express_checkout_params = {};
+		} );
+
+		test( 'appends the localized sentence after a line break', () => {
+			window.wc_stripe_express_checkout_params = {
+				i18n: {
+					go_to_checkout:
+						'Go to the <a href="https://example.com/checkout/">checkout page</a>.',
+				},
+			};
+			expect( appendCheckoutLink( 'Required field.' ) ).toBe(
+				'Required field.<br>Go to the <a href="https://example.com/checkout/">checkout page</a>.'
+			);
+		} );
+
+		test( 'leaves the notice unchanged when the sentence is not localized', () => {
+			expect( appendCheckoutLink( 'Required field.' ) ).toBe(
+				'Required field.'
+			);
 		} );
 	} );
 

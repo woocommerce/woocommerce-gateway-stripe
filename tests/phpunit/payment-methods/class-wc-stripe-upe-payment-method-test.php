@@ -573,6 +573,19 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	}
 
 	/**
+	 * Sofort is discontinued: disabled even with an active capability and supported currency.
+	 */
+	public function test_sofort_is_never_enabled_at_checkout() {
+		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE, true );
+		$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', WC_Stripe_Currency_Code::EURO );
+		$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', false );
+
+		$sofort_method = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::SOFORT ];
+
+		$this->assertFalse( $sofort_method->is_enabled_at_checkout( null, WC_Stripe_Currency_Code::EURO ) );
+	}
+
+	/**
 	 * Payment method is only enabled when capability response contains active for payment method.
 	 */
 	public function test_payment_methods_are_only_enabled_when_capability_is_active() {
@@ -583,9 +596,16 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 		WC_Stripe::get_instance()->get_main_stripe_gateway()->init_settings();
 
-		$payment_method_ids = array_map( [ $this, 'get_id' ], $this->mock_payment_methods );
+		$payment_method_ids      = array_map( [ $this, 'get_id' ], $this->mock_payment_methods );
+		$payment_methods_to_skip = [
+			WC_Stripe_Payment_Methods::CARD,
+			WC_Stripe_Payment_Methods::BOLETO,
+			WC_Stripe_Payment_Methods::OXXO,
+			WC_Stripe_Payment_Methods::GIROPAY,
+			WC_Stripe_Payment_Methods::SOFORT,
+		];
 		foreach ( $payment_method_ids as $id ) {
-			if ( WC_Stripe_Payment_Methods::CARD === $id || WC_Stripe_Payment_Methods::BOLETO === $id || WC_Stripe_Payment_Methods::OXXO === $id || WC_Stripe_Payment_Methods::GIROPAY === $id ) {
+			if ( in_array( $id, $payment_methods_to_skip, true ) ) {
 				continue;
 			}
 
@@ -630,7 +650,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 
 		$payment_method_ids = array_map( [ $this, 'get_id' ], $this->mock_payment_methods );
 		foreach ( $payment_method_ids as $id ) {
-			if ( WC_Stripe_Payment_Methods::GIROPAY === $id ) {
+			if ( WC_Stripe_Payment_Methods::GIROPAY === $id || WC_Stripe_Payment_Methods::SOFORT === $id ) {
 				continue;
 			}
 
@@ -760,6 +780,11 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
 
 		foreach ( $this->mock_payment_methods as $payment_method_id => $payment_method ) {
+			// Sofort is reusable but discontinued, so it's never enabled at checkout.
+			if ( WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID === $payment_method_id ) {
+				continue;
+			}
+
 			$store_currency = 'EUR';
 			if ( in_array(
 				$payment_method_id,
@@ -1277,6 +1302,141 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 				[ 'US' ],
 				'us',
 				true,
+			],
+		];
+	}
+
+	/**
+	 * With Optimized Checkout active, the main `stripe` entry already lists every reusable
+	 * method's saved tokens, so a method's own entry must not list them again: a saved ACSS
+	 * account showed up twice in classic checkout.
+	 *
+	 * @dataProvider provide_saved_methods_display_by_optimized_checkout
+	 *
+	 * @param string $payment_method_class      A reusable method class; ACSS overrides payment_fields(), SEPA uses the base one.
+	 * @param string $optimized_checkout        Value of the `optimized_checkout_element` setting.
+	 * @param int    $expected_saved_list_calls How many times the saved methods list renders.
+	 *
+	 * @return void
+	 */
+	public function test_payment_fields_lists_saved_methods_only_outside_optimized_checkout( string $payment_method_class, string $optimized_checkout, int $expected_saved_list_calls ): void {
+		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['pmc_enabled']                = 'yes';
+		$stripe_settings['optimized_checkout_element'] = $optimized_checkout;
+		$stripe_settings['enabled']                    = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		// Rebuild the main gateway so it resolves to the variant for this setting.
+		$reset_stripe_gateway = Closure::bind(
+			function () {
+				$this->stripe_gateway = null;
+			},
+			WC_Stripe::get_instance(),
+			WC_Stripe::class
+		);
+		$reset_stripe_gateway();
+
+		$payment_method = $this->getMockBuilder( $payment_method_class )
+			->onlyMethods( [ 'saved_payment_methods', 'tokenization_script' ] )
+			->getMock();
+		$payment_method->expects( $this->exactly( $expected_saved_list_calls ) )->method( 'saved_payment_methods' );
+
+		add_filter( 'woocommerce_is_checkout', '__return_true' );
+		ob_start();
+		try {
+			$payment_method->payment_fields();
+		} finally {
+			ob_end_clean();
+			remove_filter( 'woocommerce_is_checkout', '__return_true' );
+			// Don't leak the Optimized Checkout gateway into later tests.
+			$reset_stripe_gateway();
+		}
+	}
+
+	/**
+	 * Data provider for `test_payment_fields_lists_saved_methods_only_outside_optimized_checkout`.
+	 *
+	 * @return array<string, array{0: string, 1: string, 2: int}>
+	 */
+	public function provide_saved_methods_display_by_optimized_checkout(): array {
+		return [
+			'ACSS, Optimized Checkout on'  => [ WC_Stripe_UPE_Payment_Method_ACSS::class, 'yes', 0 ],
+			'ACSS, Optimized Checkout off' => [ WC_Stripe_UPE_Payment_Method_ACSS::class, 'no', 1 ],
+			'SEPA, Optimized Checkout on'  => [ WC_Stripe_UPE_Payment_Method_Sepa::class, 'yes', 0 ],
+			'SEPA, Optimized Checkout off' => [ WC_Stripe_UPE_Payment_Method_Sepa::class, 'no', 1 ],
+		];
+	}
+
+	/**
+	 * Non-deferred-intent methods (e.g. BLIK, ACSS) can't render inside the OC
+	 * Payment Element, so in OC mode they must stay available via their own
+	 * entry instead of being folded into the OC-container availability check.
+	 *
+	 * @dataProvider provide_non_deferred_intent_methods_available_in_oc_mode
+	 *
+	 * @param string $payment_method_class The non-deferred payment method class.
+	 * @param string $currency             A currency the method supports.
+	 */
+	public function test_non_deferred_intent_methods_are_available_in_oc_mode( $payment_method_class, $currency ) {
+		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['pmc_enabled']                = 'yes';
+		$stripe_settings['optimized_checkout_element'] = 'yes';
+		$stripe_settings['enabled']                    = 'yes';
+		$stripe_settings['upe_checkout_experience_accepted_payments'] = [
+			WC_Stripe_Payment_Methods::CARD,
+			WC_Stripe_Payment_Methods::BLIK,
+			WC_Stripe_Payment_Methods::ACSS_DEBIT,
+		];
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		// Rebuild the main gateway so it resolves to the Optimized Checkout variant.
+		$reset_stripe_gateway = Closure::bind(
+			function () {
+				$this->stripe_gateway = null;
+			},
+			WC_Stripe::get_instance(),
+			WC_Stripe::class
+		);
+		$reset_stripe_gateway();
+
+		$mocked_payment_method = $this->getMockBuilder( $payment_method_class )
+			->onlyMethods(
+				[
+					'get_capabilities_response',
+					'get_woocommerce_currency',
+					'is_subscription_item_in_cart',
+					'get_current_order_amount',
+					'is_inside_currency_limits',
+				]
+			)
+			->getMock();
+
+		$mocked_payment_method->method( 'get_capabilities_response' )->willReturn( self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
+		$mocked_payment_method->method( 'get_woocommerce_currency' )->willReturn( $currency );
+		$mocked_payment_method->method( 'is_subscription_item_in_cart' )->willReturn( false );
+		$mocked_payment_method->method( 'get_current_order_amount' )->willReturn( 150 );
+		$mocked_payment_method->method( 'is_inside_currency_limits' )->willReturn( true );
+
+		$this->assertFalse( $mocked_payment_method->supports_deferred_intent() );
+		$this->assertTrue( $mocked_payment_method->is_available() );
+
+		$reset_stripe_gateway();
+	}
+
+	/**
+	 * Data provider for test_non_deferred_intent_methods_are_available_in_oc_mode.
+	 *
+	 * @return array
+	 */
+	public function provide_non_deferred_intent_methods_available_in_oc_mode() {
+		return [
+			'BLIK with PLN currency' => [
+				'payment_method_class' => WC_Stripe_UPE_Payment_Method_BLIK::class,
+				'currency'             => WC_Stripe_Currency_Code::POLISH_ZLOTY,
+			],
+			'ACSS with CAD currency' => [
+				'payment_method_class' => WC_Stripe_UPE_Payment_Method_ACSS::class,
+				'currency'             => WC_Stripe_Currency_Code::CANADIAN_DOLLAR,
 			],
 		];
 	}

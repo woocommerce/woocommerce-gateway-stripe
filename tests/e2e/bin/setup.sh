@@ -2,13 +2,9 @@
 
 set -e
 . ./tests/e2e/bin/common.sh
+. ./bin/wc-version.sh
 
-if [[ -f "$E2E_ROOT/config/local.env" ]]; then
-	# Unreplaced <placeholder> values from local.env.example are not valid shell:
-	# sourcing one aborts the rest of the file, silently dropping every variable
-	# below it. Blank them out so only the values actually filled in take effect.
-	eval "$(sed -E 's/=<[^>]*>[[:space:]]*$/=/' "$E2E_ROOT/config/local.env")"
-fi
+load_e2e_local_env
 
 # If --base_url argument is present use the remote server setup.
 if [[ "$*" == *"--base_url"* ]]; then
@@ -107,6 +103,8 @@ if [[ -z "$STRIPE_PUB_KEY" || -z "$STRIPE_SECRET_KEY" ]]; then
 	exit 1
 fi
 
+validate_stripe_listener_credentials
+
 # Resolve both plugins before building the environment.
 step "Fetching plugin dependencies"
 fetch_plugin_zip "woocommerce/woocommerce-subscriptions" "woocommerce-subscriptions.zip"
@@ -181,7 +179,16 @@ if [[ -n "$WC_VERSION" && $WC_VERSION != 'latest' ]]; then
 	fi
 
 	step "Installing WooCommerce ${WC_VERSION}"
-	redirect_output cli wp plugin install woocommerce --version="$WC_VERSION" --activate
+
+	WC_DOWNLOAD_URL=$(resolve_wc_download_url "$WC_VERSION")
+	if [[ -n $WC_DOWNLOAD_URL ]]; then
+		# Only this branch needs --force: the tags it serves are rebuilt in place, so an
+		# environment reused across runs can already hold an older build of the same
+		# version string and wp-cli would otherwise keep it.
+		redirect_output cli wp plugin install "$WC_DOWNLOAD_URL" --activate --force
+	else
+		redirect_output cli wp plugin install woocommerce --version="$WC_VERSION" --activate
+	fi
 else
 	step "Installing WooCommerce"
 	redirect_output cli wp plugin install woocommerce --activate

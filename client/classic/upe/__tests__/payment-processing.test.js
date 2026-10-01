@@ -310,6 +310,23 @@ describe( 'payment-processing', () => {
 		} );
 
 		describe( 'processPayment', () => {
+			it( 'blocks submission when the selected payment component is unavailable', () => {
+				const api = createMockApi( createMockElements() );
+				const form = createMockForm();
+
+				const result = paymentProcessing.processPayment(
+					api,
+					form,
+					'unknown'
+				);
+
+				expect( result ).toBe( false );
+				expect( stripeUtils.showErrorCheckout ).toHaveBeenCalledWith(
+					'Payment failed. Please try again.'
+				);
+				expect( form.trigger ).not.toHaveBeenCalled();
+			} );
+
 			it( 'validates elements, creates a payment method, and submits form', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
@@ -331,6 +348,32 @@ describe( 'payment-processing', () => {
 					stripeUtils.appendPaymentMethodIdToForm
 				).toHaveBeenCalledWith( form, 'pm_test_123' );
 				expect( form.trigger ).toHaveBeenCalledWith( 'submit' );
+			} );
+
+			it( 'can reset completed state when the programmatic submit is blocked', async () => {
+				const api = createMockApi( createMockElements() );
+				api._stripe.elements.mockReturnValue( api._standardElements );
+
+				const dom = document.createElement( 'div' );
+				dom.dataset.paymentMethodType = 'card';
+				await paymentProcessing.mountStripePaymentElement( api, dom );
+
+				const form = createMockForm();
+				paymentProcessing.processPayment( api, form, 'card' );
+				await flushPromises();
+
+				paymentProcessing.resetCheckoutCompletionState();
+				const retryResult = paymentProcessing.processPayment(
+					api,
+					form,
+					'card'
+				);
+				await flushPromises();
+
+				expect( retryResult ).toBe( false );
+				expect( api._standardElements.submit ).toHaveBeenCalledTimes(
+					2
+				);
 			} );
 
 			it( 'waits for an in-flight re-mount before validating and submitting', async () => {
@@ -1733,6 +1776,26 @@ describe( 'payment-processing', () => {
 				'</p>';
 			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
 				true
+			);
+		} );
+
+		it( 'returns true when a required textarea is empty', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<textarea class="input-text"></textarea>' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				true
+			);
+		} );
+
+		it( 'returns false when a required textarea has a value', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<textarea class="input-text">Details</textarea>' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				false
 			);
 		} );
 

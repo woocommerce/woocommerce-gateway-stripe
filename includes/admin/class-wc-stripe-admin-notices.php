@@ -148,6 +148,7 @@ class WC_Stripe_Admin_Notices {
 				[
 					'a'      => [
 						'href'   => [],
+						'rel'    => [],
 						'target' => [],
 					],
 					'strong' => [],
@@ -169,6 +170,7 @@ class WC_Stripe_Admin_Notices {
 							'a' => [
 								'class'  => [],
 								'href'   => [],
+								'rel'    => [],
 								'style'  => [],
 								'target' => [],
 							],
@@ -478,8 +480,8 @@ class WC_Stripe_Admin_Notices {
 			return;
 		}
 
-		$store_currency = get_woocommerce_currency();
-		if ( empty( $store_currency ) ) {
+		$available_store_currencies = WC_Stripe_Helper::get_available_store_currencies();
+		if ( empty( $available_store_currencies ) ) {
 			return;
 		}
 
@@ -500,9 +502,9 @@ class WC_Stripe_Admin_Notices {
 				continue;
 			}
 
-			if ( ! in_array( $store_currency, $supported_currencies, true ) ) {
+			if ( empty( array_intersect( $available_store_currencies, $supported_currencies ) ) ) {
 				/* translators: %1$s Payment method, %2$s List of supported currencies */
-				$currency_messages .= sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s<br>', 'woocommerce-gateway-stripe' ), $upe_method->get_label(), implode( ', ', $supported_currencies ) );
+				$currency_messages .= sprintf( __( '%1$s is enabled - it requires store currency to be %2$s<br>', 'woocommerce-gateway-stripe' ), $upe_method->get_label(), implode( ', ', $supported_currencies ) );
 			}
 		}
 
@@ -724,13 +726,10 @@ class WC_Stripe_Admin_Notices {
 				__( 'Payment method page &rarr;', 'woocommerce-gateway-stripe' )
 			)
 		);
-		$customer_stripe_page = sprintf(
-			'<a href="%s">%s</a>',
-			esc_url( WC_Stripe_Subscriptions_Helper::STRIPE_CUSTOMER_PAGE_BASE_URL . WC_Stripe_Order_Helper::get_instance()->get_stripe_customer_id( $subscription ) ),
-			esc_html(
-				/* translators: this is a text for a link pointing to the customer's page on Stripe */
-				__( 'Stripe customer page &rarr;', 'woocommerce-gateway-stripe' )
-			)
+		$customer_stripe_page = WC_Stripe_Helper::get_external_link(
+			WC_Stripe_Subscriptions_Helper::STRIPE_CUSTOMER_PAGE_BASE_URL . WC_Stripe_Order_Helper::get_instance()->get_stripe_customer_id( $subscription ),
+			/* translators: this is a text for a link pointing to the customer's page on Stripe */
+			__( 'Stripe customer page &rarr;', 'woocommerce-gateway-stripe' )
 		);
 
 		$detached_message  = __( 'The payment method for this subscription has been detached, <strong>preventing renewals</strong>. ', 'woocommerce-gateway-stripe' );
@@ -777,6 +776,7 @@ class WC_Stripe_Admin_Notices {
 						[
 							'a'      => [
 								'href'   => [],
+								'rel'    => [],
 								'target' => [],
 							],
 							'strong' => [],

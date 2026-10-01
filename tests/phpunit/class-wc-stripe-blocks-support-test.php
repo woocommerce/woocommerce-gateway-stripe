@@ -76,6 +76,7 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 		remove_all_actions( 'woocommerce_rest_checkout_process_payment_with_context', 10000 );
 
 		foreach ( $this->initialized_blocks_support as $blocks_support ) {
+			remove_filter( 'woocommerce_hydration_request_after_callbacks', [ $blocks_support, 'clear_hydrated_payment_method_for_default_token' ] );
 			remove_filter( 'render_block_woocommerce/checkout', [ $blocks_support, 'maybe_enqueue_blocks_style' ] );
 			remove_filter( 'render_block_woocommerce/cart', [ $blocks_support, 'maybe_enqueue_blocks_style' ] );
 			remove_action( 'enqueue_block_editor_assets', [ $blocks_support, 'maybe_enqueue_blocks_style_for_editor' ], 20 );
@@ -315,9 +316,174 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 	 */
 	public function provider_render_time_hooks(): array {
 		return [
-			'checkout block render' => [ 'render_block_woocommerce/checkout', 'maybe_enqueue_blocks_style', 10 ],
-			'cart block render'     => [ 'render_block_woocommerce/cart', 'maybe_enqueue_blocks_style', 10 ],
-			'block editor assets'   => [ 'enqueue_block_editor_assets', 'maybe_enqueue_blocks_style_for_editor', 20 ],
+			'checkout data hydration' => [ 'woocommerce_hydration_request_after_callbacks', 'clear_hydrated_payment_method_for_default_token', 10 ],
+			'checkout block render'   => [ 'render_block_woocommerce/checkout', 'maybe_enqueue_blocks_style', 10 ],
+			'cart block render'       => [ 'render_block_woocommerce/cart', 'maybe_enqueue_blocks_style', 10 ],
+			'block editor assets'     => [ 'enqueue_block_editor_assets', 'maybe_enqueue_blocks_style_for_editor', 20 ],
+		];
+	}
+
+	/**
+	 * Blocks must choose the token marked as default when several Stripe tokens exist.
+	 */
+	public function test_checkout_hydration_defers_default_stripe_token_selection_to_blocks(): void {
+		$user_id = $this->factory->user->create();
+		wp_set_current_user( $user_id );
+		$this->create_saved_card( $user_id, 'pm_first' );
+		$this->create_saved_card( $user_id, 'pm_default', WC_Stripe_UPE_Payment_Gateway::ID, true );
+
+		$response = new WP_REST_Response(
+			[
+				'payment_method' => WC_Stripe_UPE_Payment_Gateway::ID,
+				'customer_id'    => $user_id,
+			]
+		);
+		$request  = new WP_REST_Request( 'GET', '/wc/store/v1/checkout' );
+
+		$result = $this->filter_checkout_hydration( $response, $request );
+
+		$this->assertSame( $response, $result );
+		$this->assertSame(
+			[
+				'payment_method' => '',
+				'customer_id'    => $user_id,
+			],
+			$result->get_data()
+		);
+	}
+
+	/**
+	 * Hydration remains unchanged when Blocks already sees the default token first.
+	 */
+	public function test_checkout_hydration_keeps_gateway_when_default_token_is_first(): void {
+		$user_id = $this->factory->user->create();
+		wp_set_current_user( $user_id );
+		$this->create_saved_card( $user_id, 'pm_default', WC_Stripe_UPE_Payment_Gateway::ID, true );
+		$this->create_saved_card( $user_id, 'pm_second' );
+
+		$response = new WP_REST_Response( [ 'payment_method' => WC_Stripe_UPE_Payment_Gateway::ID ] );
+		$request  = new WP_REST_Request( 'GET', '/wc/store/v1/checkout' );
+
+		$result = $this->filter_checkout_hydration( $response, $request );
+
+		$this->assertSame( WC_Stripe_UPE_Payment_Gateway::ID, $result->get_data()['payment_method'] );
+	}
+
+	/**
+	 * A token from another gateway does not prevent Blocks from finding the default.
+	 */
+	public function test_checkout_hydration_keeps_gateway_when_default_is_first_matching_token(): void {
+		$user_id = $this->factory->user->create();
+		wp_set_current_user( $user_id );
+		$this->create_saved_card( $user_id, 'pm_card' );
+		$this->create_saved_sepa_token( $user_id, 'pm_sepa_default', true );
+
+		$sepa_gateway = WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ WC_Stripe_Payment_Methods::SEPA_DEBIT ];
+		$response     = new WP_REST_Response( [ 'payment_method' => $sepa_gateway ] );
+		$request      = new WP_REST_Request( 'GET', '/wc/store/v1/checkout' );
+
+		$result = $this->filter_checkout_hydration( $response, $request );
+
+		$this->assertSame( $sepa_gateway, $result->get_data()['payment_method'] );
+	}
+
+	/**
+	 * A default token hidden from Blocks must not affect the hydrated gateway.
+	 */
+	public function test_checkout_hydration_ignores_hidden_default_token(): void {
+		$user_id = $this->factory->user->create();
+		wp_set_current_user( $user_id );
+		$this->create_saved_card( $user_id, 'pm_default', WC_Stripe_UPE_Payment_Gateway::ID, true );
+
+		$response = new WP_REST_Response( [ 'payment_method' => WC_Stripe_UPE_Payment_Gateway::ID ] );
+		$request  = new WP_REST_Request( 'GET', '/wc/store/v1/checkout' );
+
+		add_filter( 'woocommerce_saved_payment_methods_list', '__return_empty_array', PHP_INT_MAX );
+		try {
+			$result = $this->filter_checkout_hydration( $response, $request );
+		} finally {
+			remove_filter( 'woocommerce_saved_payment_methods_list', '__return_empty_array', PHP_INT_MAX );
+		}
+
+		$this->assertSame( WC_Stripe_UPE_Payment_Gateway::ID, $result->get_data()['payment_method'] );
+	}
+
+	/**
+	 * Checkout hydration must remain unchanged outside the matching Stripe case.
+	 *
+	 * @dataProvider provider_checkout_hydration_passthrough_cases
+	 *
+	 * @param string $route          Store API route.
+	 * @param string $payment_method Hydrated payment method.
+	 * @param bool   $logged_in      Whether a customer is logged in.
+	 * @param bool   $has_token      Whether the customer has a default Stripe token.
+	 */
+	public function test_checkout_hydration_leaves_unrelated_responses_unchanged( string $route, string $payment_method, bool $logged_in, bool $has_token ): void {
+		$user_id = $this->factory->user->create();
+		wp_set_current_user( $user_id );
+		if ( $has_token ) {
+			$this->create_saved_card( $user_id, 'pm_default' );
+		}
+		wp_set_current_user( $logged_in ? $user_id : 0 );
+
+		$response = new WP_REST_Response( [ 'payment_method' => $payment_method ] );
+		$request  = new WP_REST_Request( 'GET', $route );
+
+		$result = $this->filter_checkout_hydration( $response, $request );
+
+		$this->assertSame( $payment_method, $result->get_data()['payment_method'] );
+	}
+
+	/**
+	 * @return array[]
+	 */
+	public function provider_checkout_hydration_passthrough_cases(): array {
+		return [
+			'cart hydration'         => [ '/wc/store/v1/cart', WC_Stripe_UPE_Payment_Gateway::ID, true, true ],
+			'another payment method' => [ '/wc/store/v1/checkout', 'cheque', true, true ],
+			'another Stripe gateway' => [ '/wc/store/v1/checkout', WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_Payment_Methods::SEPA_DEBIT, true, true ],
+			'logged-out customer'    => [ '/wc/store/v1/checkout', WC_Stripe_UPE_Payment_Gateway::ID, false, true ],
+			'no default token'       => [ '/wc/store/v1/checkout', WC_Stripe_UPE_Payment_Gateway::ID, true, false ],
+		];
+	}
+
+	/**
+	 * A default token owned by another gateway must not affect Stripe selection.
+	 */
+	public function test_checkout_hydration_leaves_non_stripe_default_token_unchanged(): void {
+		$user_id = $this->factory->user->create();
+		wp_set_current_user( $user_id );
+		$this->create_saved_card( $user_id, 'other_default', 'cheque' );
+
+		$response = new WP_REST_Response( [ 'payment_method' => WC_Stripe_UPE_Payment_Gateway::ID ] );
+		$request  = new WP_REST_Request( 'GET', '/wc/store/v1/checkout' );
+
+		$result = $this->filter_checkout_hydration( $response, $request );
+
+		$this->assertSame( WC_Stripe_UPE_Payment_Gateway::ID, $result->get_data()['payment_method'] );
+	}
+
+	/**
+	 * Hook values from other extensions must not cause type errors.
+	 *
+	 * @dataProvider provider_unexpected_checkout_hydration_values
+	 *
+	 * @param mixed $response Hydrated Store API response.
+	 * @param mixed $request  Store API request.
+	 */
+	public function test_checkout_hydration_accepts_unexpected_hook_values( $response, $request ): void {
+		$result = ( new WC_Stripe_Blocks_Support() )->clear_hydrated_payment_method_for_default_token( $response, [], $request );
+
+		$this->assertSame( $response, $result );
+	}
+
+	/**
+	 * @return array[]
+	 */
+	public function provider_unexpected_checkout_hydration_values(): array {
+		return [
+			'unexpected response' => [ new WP_Error( 'test_error' ), new WP_REST_Request( 'GET', '/wc/store/v1/checkout' ) ],
+			'unexpected request'  => [ new WP_REST_Response( [ 'payment_method' => WC_Stripe_UPE_Payment_Gateway::ID ] ), null ],
 		];
 	}
 
@@ -407,6 +573,92 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 			'lookalike method id' => [ 'stripey', '' ],
 			'unregistered split'  => [ 'stripe_not_a_payment_method', '' ],
 		];
+	}
+
+	private function create_saved_card( int $user_id, string $payment_method_id, string $gateway_id = WC_Stripe_UPE_Payment_Gateway::ID, bool $is_default = false ): WC_Stripe_Payment_Token_CC {
+		$token = new WC_Stripe_Payment_Token_CC();
+		$token->set_token( $payment_method_id );
+		$token->set_gateway_id( $gateway_id );
+		$token->set_card_type( 'visa' );
+		$token->set_last4( '4242' );
+		$token->set_expiry_month( '4' );
+		$token->set_expiry_year( '2050' );
+		$token->set_user_id( $user_id );
+		$token->set_default( $is_default );
+		$this->save_payment_token( $token );
+
+		return $token;
+	}
+
+	private function create_saved_sepa_token( int $user_id, string $payment_method_id = 'pm_sepa_default', bool $is_default = false ): WC_Payment_Token_SEPA {
+		$token = new WC_Payment_Token_SEPA();
+		$token->set_token( $payment_method_id );
+		$token->set_gateway_id( WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ WC_Stripe_Payment_Methods::SEPA_DEBIT ] );
+		$token->set_last4( '1234' );
+		$token->set_user_id( $user_id );
+		$token->set_default( $is_default );
+		$this->save_payment_token( $token );
+
+		return $token;
+	}
+
+	private function filter_checkout_hydration( WP_REST_Response $response, WP_REST_Request $request ): WP_REST_Response {
+		$gateways        = WC()->payment_gateways->payment_gateways();
+		$enabled_states  = [];
+		$gateway_ids     = array_unique( WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD );
+		$payment_tokens  = WC_Stripe_Payment_Tokens::get_instance();
+		$sync_callback   = [ $payment_tokens, 'woocommerce_get_customer_payment_tokens' ];
+		$sync_was_hooked = $payment_tokens instanceof WC_Stripe_Payment_Tokens && false !== has_filter( 'woocommerce_get_customer_payment_tokens', $sync_callback );
+
+		foreach ( $gateway_ids as $gateway_id ) {
+			if ( isset( $gateways[ $gateway_id ] ) ) {
+				$enabled_states[ $gateway_id ]    = $gateways[ $gateway_id ]->enabled;
+				$gateways[ $gateway_id ]->enabled = 'yes';
+			}
+		}
+
+		if ( $sync_was_hooked ) {
+			// These fixtures exist only in WooCommerce, so remote reconciliation would remove them.
+			remove_filter( 'woocommerce_get_customer_payment_tokens', $sync_callback, 10 );
+		}
+
+		try {
+			return ( new WC_Stripe_Blocks_Support() )->clear_hydrated_payment_method_for_default_token( $response, [], $request );
+		} finally {
+			foreach ( $enabled_states as $gateway_id => $enabled ) {
+				$gateways[ $gateway_id ]->enabled = $enabled;
+			}
+			if ( $sync_was_hooked ) {
+				add_filter( 'woocommerce_get_customer_payment_tokens', $sync_callback, 10, 3 );
+			}
+		}
+	}
+
+	private function save_payment_token( WC_Payment_Token $token ): void {
+		$payment_tokens = WC_Stripe_Payment_Tokens::get_instance();
+		if ( ! $payment_tokens instanceof WC_Stripe_Payment_Tokens ) {
+			$token->save();
+			return;
+		}
+
+		$sync_callback = [ $payment_tokens, 'woocommerce_get_customer_payment_tokens' ];
+		$save_callback = [ $payment_tokens, 'woocommerce_payment_token_set_default' ];
+		$sync_hooked   = false !== has_filter( 'woocommerce_get_customer_payment_tokens', $sync_callback );
+		$save_hooked   = false !== has_filter( 'woocommerce_payment_token_set_default', $save_callback );
+
+		remove_filter( 'woocommerce_get_customer_payment_tokens', $sync_callback, 10 );
+		remove_action( 'woocommerce_payment_token_set_default', $save_callback, 10 );
+
+		try {
+			$token->save();
+		} finally {
+			if ( $sync_hooked ) {
+				add_filter( 'woocommerce_get_customer_payment_tokens', $sync_callback, 10, 3 );
+			}
+			if ( $save_hooked ) {
+				add_action( 'woocommerce_payment_token_set_default', $save_callback, 10 );
+			}
+		}
 	}
 
 	private function get_block_script_handle(): string {
