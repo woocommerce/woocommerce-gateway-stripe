@@ -1,5 +1,3 @@
-/* global wc_stripe_express_checkout_params */
-
 import { PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT } from './constants';
 import { ExpressCheckoutContainer } from './express-checkout-container';
 import {
@@ -18,6 +16,7 @@ import {
 	EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 } from 'wcstripe/stripe-utils/constants';
 import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
+import { getExpressCheckoutParams } from 'wcstripe/stripe-utils/get-express-checkout-params';
 
 /** @typedef {import('react')} React */
 
@@ -84,8 +83,7 @@ const expressCheckoutElement = ( expressPaymentMethod, api ) => {
 	);
 	const edit = getEditorElement( expressPaymentMethod );
 	const canMakePayment = ( { cart } ) => {
-		// eslint-disable-next-line camelcase
-		if ( typeof wc_stripe_express_checkout_params === 'undefined' ) {
+		if ( ! getExpressCheckoutParams() ) {
 			return false;
 		}
 

@@ -537,6 +537,10 @@ class WC_Stripe_Express_Checkout_Element {
 			return $preload_resources;
 		}
 
+		if ( $this->is_blocks_cart_or_checkout_page() ) {
+			return $preload_resources;
+		}
+
 		$asset_data = $this->get_asset_data();
 
 		if ( is_array( $asset_data ) && isset( $asset_data['version'] ) ) {
@@ -568,6 +572,10 @@ class WC_Stripe_Express_Checkout_Element {
 			return;
 		}
 
+		if ( $this->is_blocks_cart_or_checkout_page() ) {
+			return;
+		}
+
 		// Register the script if not already registered
 		if ( ! wp_script_is( 'wc_stripe_express_checkout', 'registered' ) ) {
 			$this->register_express_checkout_script();
@@ -593,6 +601,20 @@ class WC_Stripe_Express_Checkout_Element {
 		);
 
 		wp_enqueue_script( 'wc_stripe_express_checkout' );
+	}
+
+	/**
+	 * Whether the current page renders express checkout from the Cart or Checkout block.
+	 *
+	 * The blocks bundle reads the same filtered params from the `stripe_data` setting, and
+	 * the classic bundle exits straight away on these pages, so loading it is wasted bytes.
+	 * Pay for Order keeps the classic form even when the checkout page is a block.
+	 *
+	 * @return bool
+	 */
+	private function is_blocks_cart_or_checkout_page() {
+		return ( has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' ) )
+			&& ! $this->express_checkout_helper->is_pay_for_order_page();
 	}
 
 	/**

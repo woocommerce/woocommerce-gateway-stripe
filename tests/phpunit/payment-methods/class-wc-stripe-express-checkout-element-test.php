@@ -38,6 +38,17 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tear down test.
+	 *
+	 * @return void
+	 */
+	public function tear_down() {
+		unset( $GLOBALS['post'] );
+
+		parent::tear_down();
+	}
+
+	/**
 	 * Test for `get_login_redirect_url`.
 	 *
 	 * @return void
@@ -495,6 +506,78 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 				'page supported' => true,
 				'should show'    => true,
 				'expect entry'   => true,
+			],
+		];
+	}
+
+	/**
+	 * Test that the classic bundle, its style and its preload stay off Cart and Checkout block pages.
+	 *
+	 * @param string $post_content     Content of the current page.
+	 * @param bool   $is_pay_for_order Return value for is_pay_for_order_page().
+	 * @param bool   $expect_classic   Whether the classic bundle should load.
+	 *
+	 * @return void
+	 * @dataProvider provide_test_classic_bundle_on_block_pages
+	 */
+	public function test_classic_bundle_on_block_pages( $post_content, $is_pay_for_order, $expect_classic ) {
+		$GLOBALS['post'] = self::factory()->post->create_and_get( [ 'post_content' => $post_content ] );
+
+		wp_dequeue_script( 'wc_stripe_express_checkout' );
+		wp_dequeue_style( 'wc_stripe_express_checkout_style' );
+
+		$ajax_handler = $this->getMockBuilder( WC_Stripe_Express_Checkout_Ajax_Handler::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $gateway ] )
+			->setMethods( [ 'is_page_supported', 'should_show_express_checkout_button', 'is_pay_for_order_page' ] )
+			->getMock();
+		$helper->method( 'is_page_supported' )->willReturn( true );
+		$helper->method( 'should_show_express_checkout_button' )->willReturn( true );
+		$helper->method( 'is_pay_for_order_page' )->willReturn( $is_pay_for_order );
+
+		$element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
+
+		$element->scripts();
+		$preload = $element->add_preload_resources( [] );
+
+		$this->assertSame( $expect_classic, wp_script_is( 'wc_stripe_express_checkout', 'enqueued' ) );
+		$this->assertSame( $expect_classic, wp_style_is( 'wc_stripe_express_checkout_style', 'enqueued' ) );
+		$this->assertCount( $expect_classic ? 1 : 0, $preload );
+	}
+
+	/**
+	 * Provider for `test_classic_bundle_on_block_pages`.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_classic_bundle_on_block_pages() {
+		return [
+			'checkout block'                  => [
+				'post content'     => '<!-- wp:woocommerce/checkout /-->',
+				'is pay for order' => false,
+				'expect classic'   => false,
+			],
+			'cart block'                      => [
+				'post content'     => '<!-- wp:woocommerce/cart /-->',
+				'is pay for order' => false,
+				'expect classic'   => false,
+			],
+			'pay for order on checkout block' => [
+				'post content'     => '<!-- wp:woocommerce/checkout /-->',
+				'is pay for order' => true,
+				'expect classic'   => true,
+			],
+			'checkout shortcode'              => [
+				'post content'     => '[woocommerce_checkout]',
+				'is pay for order' => false,
+				'expect classic'   => true,
 			],
 		];
 	}

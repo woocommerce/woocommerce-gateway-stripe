@@ -1,7 +1,7 @@
-/* global wc_stripe_express_checkout_params */
 import jQuery from 'jquery';
 import { __ } from '@wordpress/i18n';
 import { isAmazonPayEnabled } from 'wcstripe/stripe-utils/is-amazon-pay-enabled';
+import { getExpressCheckoutParams } from 'wcstripe/stripe-utils/get-express-checkout-params';
 import { isLinkEnabled } from 'wcstripe/stripe-utils/is-link-enabled';
 import { EXPRESS_CHECKOUT_NOTICE_DELAY } from 'wcstripe/data/constants';
 import {
@@ -56,14 +56,13 @@ export const getExpressCheckoutErrorMessage = ( message ) =>
 		  );
 
 /**
- * Retrieves express checkout data from global variable.
+ * Retrieves a value from the Express Checkout params.
  *
  * @param {string} key The object property key.
  * @return {*|null} Value of the object prop or null.
  */
 export const getExpressCheckoutData = ( key ) =>
-	// eslint-disable-next-line camelcase
-	wc_stripe_express_checkout_params?.[ key ] ?? null;
+	getExpressCheckoutParams()?.[ key ] ?? null;
 
 /**
  * Returns the server-provided default shipping option as a single-element rates
