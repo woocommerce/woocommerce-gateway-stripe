@@ -141,7 +141,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$call_count = 0;
 
 		$mock_unauthorized_filter = function () use ( &$call_count ) {
-			$call_count++;
+			++$call_count;
 			return $this->mock_unauthorized_response();
 		};
 		// Mock HTTP to always return 401 and increment the counter.
