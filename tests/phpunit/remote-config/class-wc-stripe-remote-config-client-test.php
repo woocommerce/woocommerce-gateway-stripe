@@ -80,8 +80,15 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 		$args = $this->captured_requests[0]['args'];
 
 		$this->assertStringStartsWith( 'https://public-api.wordpress.com/wpcom/v2/woocommerce/stripe/remote-config', $url );
-		$this->assertStringContainsString( 'mode=all', $url );
-		$this->assertStringContainsString( 'plugin_version=' . WC_STRIPE_VERSION, $url );
+		$parsed_url = parse_url( $url );
+		$this->assertSame( '/wpcom/v2/woocommerce/stripe/remote-config', $parsed_url['path'] );
+		
+		$query_args = [];
+		parse_str( $parsed_url['query'], $query_args );
+		$this->assertArrayKeyExists( 'mode', $query_args );
+		$this->assertSame( 'all', $query_args['mode'] );
+		$this->assertArrayKeyExists( 'plugin_version', $query_args );
+		$this->assertSame( WC_STRIPE_VERSION, $query_args['plugin_version'] );
 		$this->assertTrue( $args['sslverify'] );
 		$this->assertSame( 'GET', $args['method'] );
 		$this->assertSame( 10, $args['timeout'] );
