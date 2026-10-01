@@ -1412,9 +1412,8 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		// Adaptive Pricing rides the checkout-sessions flow, so a remote disable
-		// of Optimized Checkout must sever this path too: it renders through
-		// checkout sessions even when the OC element gates are off.
+		// If Optimized Checkout is not available to shoppers, we should ensure that
+		// Adaptive Pricing is also disabled.
 		if ( ! WC_Stripe_Feature_Flags::is_oc_offered() ) {
 			return false;
 		}
