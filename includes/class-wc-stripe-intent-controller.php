@@ -807,21 +807,34 @@ class WC_Stripe_Intent_Controller {
 					// fresh read in case a concurrent request settled in between. Without
 					// a persistent object cache, wc_get_order() would hand back the object
 					// this request already loaded, so drop it from the cache first.
-					clean_post_cache( $order->get_id() );
-					if ( class_exists( \Automattic\WooCommerce\Caches\OrderCache::class ) ) {
-						wc_get_container()->get( \Automattic\WooCommerce\Caches\OrderCache::class )->remove( $order->get_id() );
-					}
-					$fresh_order = wc_get_order( $order->get_id() );
-					if ( $fresh_order instanceof WC_Order ) {
-						$order = $fresh_order;
-					}
+					$order = $this->get_fresh_order( $order );
 
 					try {
 						if ( $order_helper->is_order_payment_settled( $order ) ) {
 							WC_Stripe_Logger::info( "Skipping update_order_status_ajax for order $order_id; order was settled by a concurrent request." );
 						} else {
 							$processing_started = true; // Past validation; a failure from here on is a genuine payment failure.
-							$gateway->process_order_for_confirmed_intent( $order, $intent_id_received, $save_payment_method );
+							try {
+								$gateway->process_order_for_confirmed_intent( $order, $intent_id_received, $save_payment_method );
+							} catch ( Throwable $e ) {
+								// An error after the charge (for example from a callback on the charge
+								// hooks) must not show the shopper an error for a payment that worked:
+								// they would place the order again and pay twice.
+								$order = $this->get_fresh_order( $order );
+								if ( $order_helper->is_order_payment_settled( $order ) ) {
+									WC_Stripe_Logger::error(
+										"Order $order_id was paid, but processing after the payment failed.",
+										[ 'error_message' => $e->getMessage() ]
+									);
+								} elseif ( $e instanceof WC_Stripe_Exception ) {
+									throw $e;
+								} else {
+									// Other exceptions used to end the request with a fatal error and leave
+									// the order pending. Keep the order as it is, and show a message instead.
+									$processing_started = false;
+									throw new WC_Stripe_Exception( $e->getMessage(), __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
+								}
+							}
 						}
 					} finally {
 						// This request owns the lock (we just acquired it above), so it must release it.
@@ -874,6 +887,25 @@ class WC_Stripe_Intent_Controller {
 				]
 			);
 		}
+	}
+
+	/**
+	 * Reloads an order from storage, skipping the copy this request already loaded.
+	 *
+	 * Without a persistent object cache, wc_get_order() would return the object this request
+	 * already holds, so a change made by a concurrent request would not be seen.
+	 *
+	 * @param WC_Order $order The order to reload.
+	 * @return WC_Order The fresh order, or the given one if it could not be loaded.
+	 */
+	private function get_fresh_order( WC_Order $order ): WC_Order {
+		clean_post_cache( $order->get_id() );
+		if ( class_exists( \Automattic\WooCommerce\Caches\OrderCache::class ) ) {
+			wc_get_container()->get( \Automattic\WooCommerce\Caches\OrderCache::class )->remove( $order->get_id() );
+		}
+		$fresh_order = wc_get_order( $order->get_id() );
+
+		return $fresh_order instanceof WC_Order ? $fresh_order : $order;
 	}
 
 	/**
