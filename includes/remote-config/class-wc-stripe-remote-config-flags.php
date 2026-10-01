@@ -55,7 +55,7 @@ class WC_Stripe_Remote_Config_Flags {
 	 * Option that force-enables ('yes') or force-disables ('no') the
 	 * remote-config feature on this site.
 	 */
-	public const ENABLED_OVERRIDE_OPTION = '_wcstripe_remote_config_enabled';
+	private const ENABLED_OVERRIDE_OPTION = '_wcstripe_remote_config_enabled';
 
 	/**
 	 * Whether the remote-config feature is enabled on this site.
