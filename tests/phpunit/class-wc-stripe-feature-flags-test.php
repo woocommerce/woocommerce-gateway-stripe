@@ -97,6 +97,10 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Test that is_oc_offered routes its result through the remote-config resolver.
 	 *
+	 * is_oc_available() must stay independent of remote-config: the merchant
+	 * can still edit the settings whatever the remote flag says. Only the
+	 * runtime predicate is_oc_offered() follows the remote flag.
+	 *
 	 * @dataProvider provide_test_is_oc_offered_with_remote_config
 	 */
 	public function test_is_oc_offered_routes_through_remote_config(
@@ -104,7 +108,7 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		?bool $remote_value,
 		bool $expected
 	): void {
-		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'yes' );
+		update_option( '_wcstripe_remote_config_enabled', 'yes' );
 		PMC_Test_Helper::cache_mocked_configuration();
 		if ( $pmc_enabled ) {
 			PMC_Test_Helper::enable_pmc();
@@ -130,16 +134,18 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			);
 		}
 
-		$actual = WC_Stripe_Feature_Flags::is_oc_offered();
+		$actual       = WC_Stripe_Feature_Flags::is_oc_offered();
+		$is_available = WC_Stripe_Feature_Flags::is_oc_available();
 
 		// Cleanup
-		delete_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION );
+		delete_option( '_wcstripe_remote_config_enabled' );
 		PMC_Test_Helper::disable_pmc();
 		PMC_Test_Helper::delete_cached_configuration();
 		WC_Stripe_Remote_Config::reset_in_memory_cache();
 		delete_option( '_wcstripe_remote_config_live' );
 
 		$this->assertSame( $expected, $actual );
+		$this->assertSame( $pmc_enabled, $is_available, 'is_oc_available() must ignore the remote config flag' );
 	}
 
 	public function provide_test_is_oc_offered_with_remote_config(): array {
@@ -165,45 +171,6 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected'     => false,
 			],
 		];
-	}
-
-	/**
-	 * is_oc_available() must stay independent of remote-config: a feature is still
-	 * "available" to the merchant (settings remain editable) regardless of the remote
-	 * flag value — the runtime predicate is_oc_offered() is the one that flips.
-	 */
-	public function test_is_oc_available_ignores_remote_flag(): void {
-		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'yes' );
-		PMC_Test_Helper::cache_mocked_configuration();
-		PMC_Test_Helper::enable_pmc();
-
-		WC_Stripe_Remote_Config::reset_in_memory_cache();
-		delete_option( '_wcstripe_remote_config_live' );
-
-		$settings             = WC_Stripe_Helper::get_stripe_settings();
-		$settings['testmode'] = 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
-
-		( new WC_Stripe_Remote_Config() )->apply(
-			'live',
-			[
-				'flags'        => [ 'optimized_checkout' => [ 'value' => false ] ],
-				'generated_at' => '2026-05-09T12:00:00Z',
-			]
-		);
-
-		$is_available = WC_Stripe_Feature_Flags::is_oc_available();
-		$is_offered   = WC_Stripe_Feature_Flags::is_oc_offered();
-
-		// Cleanup
-		delete_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION );
-		PMC_Test_Helper::disable_pmc();
-		PMC_Test_Helper::delete_cached_configuration();
-		WC_Stripe_Remote_Config::reset_in_memory_cache();
-		delete_option( '_wcstripe_remote_config_live' );
-
-		$this->assertTrue( $is_available, 'is_oc_available() must ignore the remote config flag' );
-		$this->assertFalse( $is_offered, 'is_oc_offered() must reflect the remote config flag' );
 	}
 
 	/**

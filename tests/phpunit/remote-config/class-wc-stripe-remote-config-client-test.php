@@ -11,17 +11,66 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 	/** @var array Captured `pre_http_request` invocations. */
 	private $captured_requests;
 
+	/**
+	 * `pre_http_request` stubs added by the current test, removed in tear_down().
+	 *
+	 * Removed one by one instead of with remove_all_filters(), so the bootstrap
+	 * filter that blocks real HTTP requests stays in place for later tests.
+	 *
+	 * @var array<int, array{callback: callable, priority: int}>
+	 */
+	private $http_stubs = [];
+
 	public function set_up(): void {
 		parent::set_up();
-		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'yes' );
+		update_option( '_wcstripe_remote_config_enabled', 'yes' );
 		$this->client            = new WC_Stripe_Remote_Config_Client();
 		$this->captured_requests = [];
 	}
 
 	public function tear_down(): void {
-		delete_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION );
-		remove_all_filters( 'pre_http_request' );
+		delete_option( '_wcstripe_remote_config_enabled' );
+		foreach ( $this->http_stubs as $stub ) {
+			remove_filter( 'pre_http_request', $stub['callback'], $stub['priority'] );
+		}
+		$this->http_stubs = [];
 		parent::tear_down();
+	}
+
+	/**
+	 * Adds a `pre_http_request` stub and records it for removal in tear_down().
+	 *
+	 * @param callable $callback Filter callback.
+	 * @param int      $priority Filter priority.
+	 * @return void
+	 */
+	private function add_http_stub( callable $callback, int $priority = 10 ): void {
+		add_filter( 'pre_http_request', $callback, $priority, 3 );
+		$this->http_stubs[] = [
+			'callback' => $callback,
+			'priority' => $priority,
+		];
+	}
+
+	/**
+	 * Combined envelope returned by stub_successful_response().
+	 *
+	 * @return array
+	 */
+	private function get_successful_envelope(): array {
+		return [
+			'modes'        => [
+				'live' => [
+					'flags'        => [ 'optimized_checkout' => [ 'value' => false ] ],
+					'generated_at' => '2026-05-09T12:00:00Z',
+				],
+				'test' => [
+					'flags'        => [ 'optimized_checkout' => [ 'value' => true ] ],
+					'generated_at' => '2026-05-09T12:00:00Z',
+				],
+			],
+			'generated_at' => '2026-05-09T12:00:00Z',
+		];
 	}
 
 	/**
@@ -31,9 +80,9 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 	 * the HTTP behaviour it needs explicitly.
 	 */
 	private function stub_successful_response(): void {
-		add_filter(
-			'pre_http_request',
-			function ( $preempt, $args, $url ) {
+		$body = wp_json_encode( $this->get_successful_envelope() );
+		$this->add_http_stub(
+			function ( $preempt, $args, $url ) use ( $body ) {
 				$this->captured_requests[] = [
 					'url'  => $url,
 					'args' => $args,
@@ -43,26 +92,10 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 						'code'    => 200,
 						'message' => 'OK',
 					],
-					'body'     => wp_json_encode(
-						[
-							'modes'        => [
-								'live' => [
-									'flags'        => [ 'optimized_checkout' => [ 'value' => false ] ],
-									'generated_at' => '2026-05-09T12:00:00Z',
-								],
-								'test' => [
-									'flags'        => [ 'optimized_checkout' => [ 'value' => true ] ],
-									'generated_at' => '2026-05-09T12:00:00Z',
-								],
-							],
-							'generated_at' => '2026-05-09T12:00:00Z',
-						]
-					),
+					'body'     => $body,
 					'headers'  => [],
 				];
-			},
-			10,
-			3
+			}
 		);
 	}
 
@@ -71,23 +104,21 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 
 		$result = $this->client->fetch_all();
 
-		$this->assertIsArray( $result );
-		$this->assertSame( false, $result['modes']['live']['flags']['optimized_checkout']['value'] );
-		$this->assertSame( true, $result['modes']['test']['flags']['optimized_checkout']['value'] );
+		$this->assertSame( $this->get_successful_envelope(), $result );
 
 		$this->assertCount( 1, $this->captured_requests );
 		$url  = $this->captured_requests[0]['url'];
 		$args = $this->captured_requests[0]['args'];
 
 		$this->assertStringStartsWith( 'https://public-api.wordpress.com/wpcom/v2/woocommerce/stripe/remote-config', $url );
-		$parsed_url = parse_url( $url );
+		$parsed_url = wp_parse_url( $url );
 		$this->assertSame( '/wpcom/v2/woocommerce/stripe/remote-config', $parsed_url['path'] );
-		
+
 		$query_args = [];
 		parse_str( $parsed_url['query'], $query_args );
-		$this->assertArrayKeyExists( 'mode', $query_args );
+		$this->assertArrayHasKey( 'mode', $query_args );
 		$this->assertSame( 'all', $query_args['mode'] );
-		$this->assertArrayKeyExists( 'plugin_version', $query_args );
+		$this->assertArrayHasKey( 'plugin_version', $query_args );
 		$this->assertSame( WC_STRIPE_VERSION, $query_args['plugin_version'] );
 		$this->assertTrue( $args['sslverify'] );
 		$this->assertSame( 'GET', $args['method'] );
@@ -95,12 +126,12 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 	}
 
 	public function test_fetch_short_circuits_when_disabled_by_override(): void {
-		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'no' );
+		update_option( '_wcstripe_remote_config_enabled', 'no' );
 
 		$result = $this->client->fetch_all();
 
 		// Clean up before asserting so a failed assertion can't leak the override into later tests.
-		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'yes' );
+		update_option( '_wcstripe_remote_config_enabled', 'yes' );
 
 		$this->assertWPError( $result );
 		$this->assertSame( 'wc_stripe_remote_config_disabled', $result->get_error_code() );
@@ -108,12 +139,56 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A pretty-printed body can be more than twice MAX_PAYLOAD_BYTES on the
+	 * wire while each mode stays under the limit once decoded. The client must
+	 * still decode it, so apply() can do the exact per-mode check.
+	 *
+	 * @return void
+	 */
+	public function test_fetch_all_accepts_pretty_printed_body_over_twice_the_payload_limit(): void {
+		$payload = [
+			'flags'        => [ 'optimized_checkout' => [ 'value' => true ] ],
+			'generated_at' => '2026-05-09T12:00:00Z',
+			'_padding'     => array_fill( 0, 4000, 'a' ),
+		];
+		$body    = wp_json_encode(
+			[
+				'modes'        => [
+					'live' => $payload,
+					'test' => $payload,
+				],
+				'generated_at' => '2026-05-09T12:00:00Z',
+			],
+			JSON_PRETTY_PRINT
+		);
+		$this->assertGreaterThan( 2 * WC_Stripe_Remote_Config_Flags::MAX_PAYLOAD_BYTES, strlen( $body ) );
+		$this->assertLessThan( WC_Stripe_Remote_Config_Flags::MAX_PAYLOAD_BYTES, strlen( wp_json_encode( $payload ) ) );
+
+		$this->add_http_stub(
+			static function () use ( $body ) {
+				return [
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'body'     => $body,
+					'headers'  => [],
+				];
+			}
+		);
+
+		$result = $this->client->fetch_all();
+
+		$this->assertIsArray( $result );
+		$this->assertSame( $payload, $result['modes']['live'] );
+		$this->assertSame( $payload, $result['modes']['test'] );
+	}
+
+	/**
 	 * @dataProvider provide_failure_responses
 	 */
 	public function test_fetch_returns_wp_error_on_failure( $stub, ?string $expected_code ): void {
-		remove_all_filters( 'pre_http_request' );
-		add_filter(
-			'pre_http_request',
+		$this->add_http_stub(
 			static function () use ( $stub ) {
 				return is_callable( $stub ) ? $stub() : $stub;
 			}
@@ -162,7 +237,7 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 							'code'    => 200,
 							'message' => 'OK',
 						],
-						'body'     => str_repeat( 'a', 2 * WC_Stripe_Remote_Config_Flags::MAX_PAYLOAD_BYTES + 1 ),
+						'body'     => str_repeat( 'a', 4 * WC_Stripe_Remote_Config_Flags::MAX_PAYLOAD_BYTES + 1 ),
 						'headers'  => [],
 					];
 				},

@@ -8,9 +8,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Adding a new remotely-controllable flag = add a row to FLAGS and route the
  * call site through WC_Stripe_Remote_Config::resolve().
- *
- * The `reader` field is informational only (greppable pointer to which code
- * reads the flag); the resolver does not invoke it.
  */
 class WC_Stripe_Remote_Config_Flags {
 
@@ -28,14 +25,14 @@ class WC_Stripe_Remote_Config_Flags {
 	 * Schema of remotely-controllable flags.
 	 *
 	 * Each entry maps a flag name to:
-	 *  - `type`:   declared PHP type used by validate_value() to reject
+	 *  - `type`: declared PHP type used by validate_value() to reject
 	 *    payloads whose value does not match.
 	 *
 	 * @var array<string, array{type: string}>
 	 */
 	private const FLAGS = [
 		'optimized_checkout' => [ // reader=WC_Stripe_Feature_Flags::is_oc_offered
-			'type'   => 'bool',
+			'type' => 'bool',
 		],
 	];
 

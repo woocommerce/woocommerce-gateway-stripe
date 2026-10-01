@@ -10,9 +10,16 @@
 
 class WC_Stripe_Remote_Config_Integration_Test extends WP_UnitTestCase {
 
+	/**
+	 * `pre_http_request` stub added by the test, removed in tear_down().
+	 *
+	 * @var callable|null
+	 */
+	private $http_stub = null;
+
 	public function set_up(): void {
 		parent::set_up();
-		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'yes' );
+		update_option( '_wcstripe_remote_config_enabled', 'yes' );
 		WC_Stripe_Remote_Config::reset_in_memory_cache();
 		delete_option( '_wcstripe_remote_config_live' );
 		delete_option( '_wcstripe_remote_config_test' );
@@ -27,7 +34,11 @@ class WC_Stripe_Remote_Config_Integration_Test extends WP_UnitTestCase {
 	}
 
 	public function tear_down(): void {
-		delete_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION );
+		if ( null !== $this->http_stub ) {
+			remove_filter( 'pre_http_request', $this->http_stub );
+			$this->http_stub = null;
+		}
+		delete_option( '_wcstripe_remote_config_enabled' );
 		WC_Stripe_Remote_Config::reset_in_memory_cache();
 		delete_option( '_wcstripe_remote_config_live' );
 		delete_option( '_wcstripe_remote_config_test' );
@@ -35,9 +46,7 @@ class WC_Stripe_Remote_Config_Integration_Test extends WP_UnitTestCase {
 	}
 
 	public function test_full_pull_validate_store_resolve_cycle(): void {
-		add_filter(
-			'pre_http_request',
-			static function () {
+		$this->http_stub = static function () {
 				return [
 					'response' => [
 						'code'    => 200,
@@ -60,10 +69,8 @@ class WC_Stripe_Remote_Config_Integration_Test extends WP_UnitTestCase {
 					),
 					'headers'  => [],
 				];
-			},
-			10,
-			3
-		);
+		};
+		add_filter( 'pre_http_request', $this->http_stub );
 
 		$rc        = new WC_Stripe_Remote_Config();
 		$scheduler = new WC_Stripe_Remote_Config_Scheduler( new WC_Stripe_Remote_Config_Client(), $rc );

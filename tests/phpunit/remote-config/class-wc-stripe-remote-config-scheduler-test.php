@@ -14,7 +14,7 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 
 	public function set_up(): void {
 		parent::set_up();
-		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'yes' );
+		update_option( '_wcstripe_remote_config_enabled', 'yes' );
 		$this->original_stripe_settings = get_option( 'woocommerce_stripe_settings' );
 		WC_Stripe_Remote_Config::reset_in_memory_cache();
 		delete_option( '_wcstripe_remote_config_live' );
@@ -25,10 +25,7 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 	}
 
 	public function tear_down(): void {
-		delete_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION );
-		if ( function_exists( 'as_unschedule_all_actions' ) ) {
-			as_unschedule_all_actions( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [], WC_Stripe_Remote_Config_Scheduler::SCHEDULER_GROUP );
-		}
+		delete_option( '_wcstripe_remote_config_enabled' );
 		WC_Stripe_Remote_Config::reset_in_memory_cache();
 		delete_option( '_wcstripe_remote_config_live' );
 		delete_option( '_wcstripe_remote_config_test' );
@@ -36,6 +33,11 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 			delete_option( 'woocommerce_stripe_settings' );
 		} else {
 			update_option( 'woocommerce_stripe_settings', $this->original_stripe_settings );
+		}
+		// Unschedule after restoring the settings: the restore runs the
+		// connection-change hook, which can enqueue a new sync.
+		if ( function_exists( 'as_unschedule_all_actions' ) ) {
+			as_unschedule_all_actions( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [], WC_Stripe_Remote_Config_Scheduler::SCHEDULER_GROUP );
 		}
 		parent::tear_down();
 	}
@@ -125,6 +127,34 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 				[ 'secret_key' => 'sk_live_xx' ],
 				true,
 			],
+			'live secret key changed'   => [
+				[ 'secret_key' => 'sk_live_old' ],
+				[ 'secret_key' => 'sk_live_new' ],
+				true,
+			],
+			'live secret key removed'   => [
+				[ 'secret_key' => 'sk_live_xx' ],
+				[ 'secret_key' => '' ],
+				false,
+			],
+			'test secret key removed'   => [
+				[ 'test_secret_key' => 'sk_test_xx' ],
+				[],
+				false,
+			],
+			'account disconnected'      => [
+				[
+					'testmode'        => 'no',
+					'secret_key'      => 'sk_live_xx',
+					'test_secret_key' => 'sk_test_xx',
+				],
+				[
+					'testmode'        => 'no',
+					'secret_key'      => '',
+					'test_secret_key' => '',
+				],
+				false,
+			],
 			'unrelated setting changed' => [
 				[
 					'title'      => 'Cards',
@@ -184,11 +214,11 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 		$this->configure_modes( true, false );
 
 		// Disabled by override: client must not be called.
-		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'no' );
+		update_option( '_wcstripe_remote_config_enabled', 'no' );
 		$disabled_client = $this->createMock( WC_Stripe_Remote_Config_Client::class );
 		$disabled_client->expects( $this->never() )->method( 'fetch_all' );
 		( new WC_Stripe_Remote_Config_Scheduler( $disabled_client, new WC_Stripe_Remote_Config() ) )->run();
-		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'yes' );
+		update_option( '_wcstripe_remote_config_enabled', 'yes' );
 
 		// Enabled but client returns WP_Error: must not throw, cache stays empty.
 		$err_client = $this->createMock( WC_Stripe_Remote_Config_Client::class );
