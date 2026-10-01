@@ -66,6 +66,10 @@ class WC_Stripe_Remote_Config {
 	 *
 	 * Returns true on success, false on validation failure (in which case the
 	 * existing cache is preserved).
+	 *
+	 * @param string $mode    The mode to apply the configuration to.
+	 * @param array  $payload The configuration to apply.
+	 * @return bool True on success, false when the configuration was not applied.
 	 */
 	public function apply( string $mode, array $payload ): bool {
 		$rejection_reason = $this->validate_payload( $payload );
