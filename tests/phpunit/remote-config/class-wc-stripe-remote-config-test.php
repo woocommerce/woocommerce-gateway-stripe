@@ -7,14 +7,14 @@ class WC_Stripe_Remote_Config_Test extends WP_UnitTestCase {
 
 	public function set_up(): void {
 		parent::set_up();
-		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'yes' );
+		update_option( '_wcstripe_remote_config_enabled', 'yes' );
 		WC_Stripe_Remote_Config::reset_in_memory_cache();
 		delete_option( '_wcstripe_remote_config_live' );
 		delete_option( '_wcstripe_remote_config_test' );
 	}
 
 	public function tear_down(): void {
-		delete_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION );
+		delete_option( '_wcstripe_remote_config_enabled' );
 		WC_Stripe_Remote_Config::reset_in_memory_cache();
 		delete_option( '_wcstripe_remote_config_live' );
 		delete_option( '_wcstripe_remote_config_test' );
@@ -53,27 +53,92 @@ class WC_Stripe_Remote_Config_Test extends WP_UnitTestCase {
 
 	public function provide_invalid_payloads(): array {
 		return [
-			'missing generated_at' => [
+			'missing generated_at'      => [
 				static function ( array &$p ): void {
 					unset( $p['generated_at'] );
 				},
 			],
-			'non-iso generated_at' => [
+			'non-iso generated_at'      => [
 				static function ( array &$p ): void {
 					$p['generated_at'] = 'not-a-date';
 				},
 			],
-			'wrong flag type'      => [
+			'relative generated_at'     => [
+				static function ( array &$p ): void {
+					$p['generated_at'] = 'tomorrow 12:00';
+				},
+			],
+			'date-only generated_at'    => [
+				static function ( array &$p ): void {
+					$p['generated_at'] = '2026-05-09';
+				},
+			],
+			'out-of-range generated_at' => [
+				static function ( array &$p ): void {
+					$p['generated_at'] = '2026-13-45T12:00:00Z';
+				},
+			],
+			'wrong flag type'           => [
 				static function ( array &$p ): void {
 					$p['flags']['optimized_checkout']['value'] = 'true';
 				},
 			],
-			'oversized payload'    => [
+			'oversized payload'         => [
 				static function ( array &$p ): void {
 					$p['_padding'] = str_repeat( 'a', WC_Stripe_Remote_Config_Flags::MAX_PAYLOAD_BYTES + 1 );
 				},
 			],
 		];
+	}
+
+	/**
+	 * ISO-8601 timestamps with a timezone offset or fractional seconds are valid.
+	 *
+	 * @param string $generated_at The generated_at value to apply.
+	 * @return void
+	 *
+	 * @dataProvider provide_valid_generated_at_values
+	 */
+	public function test_apply_accepts_iso_8601_generated_at( string $generated_at ): void {
+		$payload                 = $this->get_valid_payload();
+		$payload['generated_at'] = $generated_at;
+
+		$this->assertTrue( ( new WC_Stripe_Remote_Config() )->apply( 'live', $payload ) );
+	}
+
+	/**
+	 * Data provider for {@see test_apply_accepts_iso_8601_generated_at()}.
+	 *
+	 * @return array
+	 */
+	public function provide_valid_generated_at_values(): array {
+		return [
+			'UTC'                => [ '2026-05-09T12:00:00Z' ],
+			'offset'             => [ '2026-05-09T12:00:00+02:00' ],
+			'fractional seconds' => [ '2026-05-09T12:00:00.123Z' ],
+		];
+	}
+
+	/**
+	 * A mode other than live or test must be rejected, not mapped to the
+	 * current mode, and must not write or read any cache.
+	 *
+	 * @return void
+	 */
+	public function test_unknown_mode_is_rejected(): void {
+		$rc = new WC_Stripe_Remote_Config();
+
+		$this->assertFalse( $rc->apply( 'staging', $this->get_valid_payload( false ) ) );
+		$this->assertFalse( get_option( '_wcstripe_remote_config_staging' ) );
+		$this->assertFalse( get_option( '_wcstripe_remote_config_live' ) );
+		$this->assertFalse( get_option( '_wcstripe_remote_config_test' ) );
+
+		// Cached values for real modes must not leak to an unknown mode.
+		$rc->apply( 'live', $this->get_valid_payload( false ) );
+		$rc->apply( 'test', $this->get_valid_payload( false ) );
+		$this->assertNull( $rc->get_flag( 'optimized_checkout', 'staging' ) );
+		$this->assertTrue( $rc->resolve( 'optimized_checkout', true, 'staging' ) );
+		$this->assertNull( $rc->get_cache_snapshot( 'staging' ) );
 	}
 
 	public function test_apply_drops_unknown_flag_names_silently(): void {
@@ -113,7 +178,8 @@ class WC_Stripe_Remote_Config_Test extends WP_UnitTestCase {
 
 		$snapshot = $rc->get_cache_snapshot( 'live' );
 		$this->assertIsArray( $snapshot );
-		$this->assertSame( [ 'fetched_at', 'flags' ], array_keys( $snapshot ) );
+		$this->assertSame( [ 'fetched_at', 'generated_at', 'flags' ], array_keys( $snapshot ) );
+		$this->assertSame( '2026-05-09T12:00:00Z', $snapshot['generated_at'] );
 		$this->assertGreaterThanOrEqual( $before, $snapshot['fetched_at'] );
 		$this->assertLessThanOrEqual( $after, $snapshot['fetched_at'] );
 		$this->assertSame( [ 'optimized_checkout' => [ 'value' => false ] ], $snapshot['flags'] );

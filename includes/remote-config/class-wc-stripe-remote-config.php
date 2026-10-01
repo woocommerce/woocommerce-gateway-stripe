@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   {
  *       schema_version: int,            // cache-layout version, plugin-owned
  *       fetched_at:     int,            // unix timestamp of last successful fetch
+ *       generated_at:   string,         // server ISO-8601 time the payload was built
  *       flags:          { name: { value: <typed> } }
  *   }
  *
@@ -22,6 +23,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_Remote_Config {
 
 	private const SCHEMA_VERSION = 1;
+
+	/**
+	 * Modes that have their own cache.
+	 *
+	 * @var string[]
+	 */
+	private const MODES = [ 'live', 'test' ];
 
 	/**
 	 * Memoized shared instance.
@@ -72,7 +80,7 @@ class WC_Stripe_Remote_Config {
 	 * @return bool True on success, false when the configuration was not applied.
 	 */
 	public function apply( string $mode, array $payload ): bool {
-		$rejection_reason = $this->validate_payload( $payload );
+		$rejection_reason = $this->is_valid_mode( $mode ) ? $this->validate_payload( $payload ) : 'unknown mode';
 		if ( null !== $rejection_reason ) {
 			WC_Stripe_Logger::warning(
 				'Stripe remote-config: payload rejected; keeping previous cache.',
@@ -96,6 +104,7 @@ class WC_Stripe_Remote_Config {
 		$cache_entry = [
 			'schema_version' => self::SCHEMA_VERSION,
 			'fetched_at'     => time(),
+			'generated_at'   => $payload['generated_at'],
 			'flags'          => $known_flags,
 		];
 
@@ -110,7 +119,7 @@ class WC_Stripe_Remote_Config {
 	 *
 	 * @param string      $flag        Flag name as declared in WC_Stripe_Remote_Config_Flags::FLAGS.
 	 * @param mixed       $local_value Caller-computed local value (the existing logic's result).
-	 * @param string|null $mode        'live'/'test'/null (auto-derive).
+	 * @param string|null $mode        'live'/'test'/null (current mode). Unknown modes use the local value.
 	 *
 	 * @return mixed
 	 */
@@ -137,7 +146,11 @@ class WC_Stripe_Remote_Config {
 		}
 
 		$resolved_mode = $this->resolve_mode( $mode );
-		$cache         = $this->get_cache( $resolved_mode );
+		if ( null === $resolved_mode ) {
+			return null;
+		}
+
+		$cache = $this->get_cache( $resolved_mode );
 
 		if ( null === $cache ) {
 			return null;
@@ -172,8 +185,12 @@ class WC_Stripe_Remote_Config {
 		if ( ! isset( $payload['generated_at'] ) || ! is_string( $payload['generated_at'] ) ) {
 			return 'missing or non-string generated_at';
 		}
-		// ISO-8601 sanity check (e.g. "2026-05-09T12:00:00Z" or with timezone offset).
-		if ( false === strtotime( $payload['generated_at'] ) ) {
+		// strtotime() alone accepts relative values like "tomorrow 12:00", so
+		// require the ISO-8601 shape first (e.g. "2026-05-09T12:00:00Z" or with
+		// a timezone offset). strtotime() then rejects out-of-range dates.
+		if ( 1 !== preg_match( '/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/', $payload['generated_at'] )
+			|| false === strtotime( $payload['generated_at'] )
+		) {
 			return 'unparseable generated_at';
 		}
 
@@ -208,8 +225,9 @@ class WC_Stripe_Remote_Config {
 			return null;
 		}
 		return [
-			'fetched_at' => (int) $cache['fetched_at'],
-			'flags'      => $cache['flags'],
+			'fetched_at'   => (int) $cache['fetched_at'],
+			'generated_at' => $cache['generated_at'] ?? null,
+			'flags'        => $cache['flags'],
 		];
 	}
 
@@ -219,6 +237,11 @@ class WC_Stripe_Remote_Config {
 	 * @return array|null Cache entry (or null if no cache / corrupt / wrong schema_version).
 	 */
 	private function get_cache( string $mode ): ?array {
+		// Keeps unknown modes out of the in-memory cache and away from get_option().
+		if ( ! $this->is_valid_mode( $mode ) ) {
+			return null;
+		}
+
 		if ( array_key_exists( $mode, self::$in_memory_cache ) ) {
 			return self::$in_memory_cache[ $mode ];
 		}
@@ -244,14 +267,26 @@ class WC_Stripe_Remote_Config {
 	}
 
 	private function option_name( string $mode ): string {
-		$mode = $this->resolve_mode( $mode );
 		return '_wcstripe_remote_config_' . $mode;
 	}
 
-	private function resolve_mode( ?string $mode ): string {
-		if ( 'live' === $mode || 'test' === $mode ) {
-			return $mode;
+	private function is_valid_mode( string $mode ): bool {
+		return in_array( $mode, self::MODES, true );
+	}
+
+	/**
+	 * Maps a null mode to the current Stripe mode.
+	 *
+	 * Unknown modes return null instead of the current mode, so a bad value
+	 * never reads the wrong cache.
+	 *
+	 * @param string|null $mode 'live', 'test', or null for the current mode.
+	 * @return string|null The mode to use, or null when $mode is unknown.
+	 */
+	private function resolve_mode( ?string $mode ): ?string {
+		if ( null === $mode ) {
+			return WC_Stripe_Mode::is_test() ? 'test' : 'live';
 		}
-		return WC_Stripe_Mode::is_test() ? 'test' : 'live';
+		return $this->is_valid_mode( $mode ) ? $mode : null;
 	}
 }
