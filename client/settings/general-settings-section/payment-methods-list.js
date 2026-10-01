@@ -1,12 +1,13 @@
 import { getSetting } from '@woocommerce/settings';
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styled from '@emotion/styled';
 import clsx from 'clsx';
-import { Icon as IconComponent, dragHandle } from '@wordpress/icons';
-import { Reorder } from 'framer-motion';
+import { chevronDown, chevronUp } from '@wordpress/icons';
 import PaymentMethodsMap from '../../payment-methods-map';
 import PaymentMethodDescription from './payment-method-description';
 import PaymentMethod from './payment-method';
+import { Button } from '@wordpress/components';
+import { __, sprintf } from '@wordpress/i18n';
 import getPaymentMethodUnavailableReason from 'utils/get-payment-method-unavailable-reason';
 import {
 	useGetOrderedPaymentMethodIds,
@@ -53,14 +54,13 @@ const List = styled.ul`
 	}
 `;
 
-const DraggableList = styled( Reorder.Group )`
+const ReorderableList = styled.ul`
 	margin: 0;
 
 	> li {
 		margin: 0;
 		padding: 16px 24px 14px 24px;
 		background-color: #fff;
-		cursor: grab;
 
 		@media ( min-width: 660px ) {
 			padding: 24px 24px 24px 24px;
@@ -72,7 +72,7 @@ const DraggableList = styled( Reorder.Group )`
 	}
 `;
 
-const DraggableListElement = styled( Reorder.Item )`
+const ReorderableListElement = styled.li`
 	display: flex;
 	flex-wrap: nowrap;
 	gap: 16px;
@@ -99,8 +99,10 @@ const DraggableListElement = styled( Reorder.Item )`
 		}
 	}
 
-	svg.drag-handle {
-		transform: rotate( 90deg );
+	.move-buttons {
+		display: flex;
+		flex-direction: column;
+		flex-shrink: 0;
 	}
 `;
 
@@ -121,15 +123,15 @@ const PaymentMethodWrapper = styled.div`
  * Unsupported payment methods are placed at the end of the list so irrelevant payment methods don't clutter the screen.
  *
  * @param {string[]} orderedPaymentMethodIds Ordered payment method IDs.
- * @return {string[]} Sorted payment method IDs.
+ * @return {string[][]} Payment method IDs grouped as available, plugin conflict and unavailable, in that order.
  */
-const usePaymentMethodsSortedByAvailability = ( orderedPaymentMethodIds ) => {
+const usePaymentMethodsGroupedByAvailability = ( orderedPaymentMethodIds ) => {
 	const [ isAdaptivePricingEnabled ] = useIsAdaptivePricingEnabled();
 	const [ isOCEnabled ] = useIsOCEnabled();
 	const storeCurrencyCode = getSetting( 'currency' )?.code;
 	const isAdaptivePricingSupported = isOCEnabled && isAdaptivePricingEnabled;
 
-	const sortedPaymentMethodIds = useMemo( () => {
+	return useMemo( () => {
 		const availablePaymentMethodIds = [];
 		const pluginConflictPaymentMethodIds = [];
 		const unavailablePaymentMethodIds = [];
@@ -153,17 +155,15 @@ const usePaymentMethodsSortedByAvailability = ( orderedPaymentMethodIds ) => {
 		} );
 
 		return [
-			...availablePaymentMethodIds,
-			...pluginConflictPaymentMethodIds,
-			...unavailablePaymentMethodIds,
+			availablePaymentMethodIds,
+			pluginConflictPaymentMethodIds,
+			unavailablePaymentMethodIds,
 		];
 	}, [
 		isAdaptivePricingSupported,
 		orderedPaymentMethodIds,
 		storeCurrencyCode,
 	] );
-
-	return sortedPaymentMethodIds;
 };
 
 const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
@@ -174,48 +174,110 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 
 	const availablePaymentMethods = orderedPaymentMethodIds;
 
-	const onReorder = ( newOrderedPaymentMethodIds ) => {
-		setOrderedPaymentMethodIds( newOrderedPaymentMethodIds );
-	};
-
-	const sortedPaymentMethodIds = usePaymentMethodsSortedByAvailability(
+	const paymentMethodGroups = usePaymentMethodsGroupedByAvailability(
 		availablePaymentMethods
 	);
+	const sortedPaymentMethodIds = paymentMethodGroups.flat();
+
+	// Unavailable methods always render after available ones, so a move can
+	// only swap within a group. Methods without a mapped icon and label aren't
+	// shown, so they're skipped or a move would look like a no-op.
+	const visibleGroups = paymentMethodGroups.map( ( group ) =>
+		group.filter(
+			( method ) =>
+				PaymentMethodsMap[ method ]?.Icon &&
+				PaymentMethodsMap[ method ]?.label
+		)
+	);
+	const getVisibleGroup = ( method ) =>
+		visibleGroups.find( ( group ) => group.includes( method ) );
+
+	const listRef = useRef();
+	const [ focusAfterMove, setFocusAfterMove ] = useState( null );
+
+	// React moves the row's DOM node on re-render, which can drop focus
+	// from the button that was just pressed.
+	useEffect( () => {
+		if ( focusAfterMove ) {
+			listRef.current
+				?.querySelector( `[data-move="${ focusAfterMove }"]` )
+				?.focus();
+			setFocusAfterMove( null );
+		}
+	}, [ focusAfterMove ] );
+
+	const moveMethod = ( method, offset ) => {
+		const group = getVisibleGroup( method );
+		const neighbour = group[ group.indexOf( method ) + offset ];
+		if ( ! neighbour ) {
+			return;
+		}
+
+		const next = [ ...sortedPaymentMethodIds ];
+		const from = next.indexOf( method );
+		const to = next.indexOf( neighbour );
+		[ next[ from ], next[ to ] ] = [ next[ to ], next[ from ] ];
+		setOrderedPaymentMethodIds( next );
+		setFocusAfterMove( `${ method }-${ offset < 0 ? 'up' : 'down' }` );
+	};
 
 	return isChangingDisplayOrder ? (
-		<DraggableList
-			axis="y"
-			values={ sortedPaymentMethodIds }
-			onReorder={ onReorder }
-		>
-			{ sortedPaymentMethodIds.map( ( method ) => {
+		<ReorderableList ref={ listRef }>
+			{ visibleGroups.flat().map( ( method ) => {
 				const {
 					Icon,
 					label,
 					allows_manual_capture: isAllowingManualCapture,
 					supportsRecurring,
-				} = PaymentMethodsMap[ method ] || {};
-
-				// Skip if there are no mapped fields for the payment method.
-				if ( ! Icon || ! label ) {
-					return null;
-				}
+				} = PaymentMethodsMap[ method ];
+				const group = getVisibleGroup( method );
+				const isFirst = group[ 0 ] === method;
+				const isLast = group[ group.length - 1 ] === method;
 
 				return (
-					<DraggableListElement
+					<ReorderableListElement
 						key={ method }
-						value={ method }
 						className={ clsx( {
 							'has-overlay':
 								! isAllowingManualCapture &&
 								isManualCaptureEnabled,
 						} ) }
 					>
-						<IconComponent
-							className="drag-handle"
-							icon={ dragHandle }
-							size="10"
-						/>
+						<div className="move-buttons">
+							<Button
+								icon={ chevronUp }
+								size="small"
+								data-move={ `${ method }-up` }
+								label={ sprintf(
+									/* translators: %s: payment method name, e.g. "Credit card / debit card". */
+									__(
+										'Move %s up',
+										'woocommerce-gateway-stripe'
+									),
+									label
+								) }
+								disabled={ isFirst }
+								// Keeps focus on the button when a row reaches either end.
+								accessibleWhenDisabled
+								onClick={ () => moveMethod( method, -1 ) }
+							/>
+							<Button
+								icon={ chevronDown }
+								size="small"
+								data-move={ `${ method }-down` }
+								label={ sprintf(
+									/* translators: %s: payment method name, e.g. "Credit card / debit card". */
+									__(
+										'Move %s down',
+										'woocommerce-gateway-stripe'
+									),
+									label
+								) }
+								disabled={ isLast }
+								accessibleWhenDisabled
+								onClick={ () => moveMethod( method, 1 ) }
+							/>
+						</div>
 						<PaymentMethodWrapper>
 							<PaymentMethodDescription
 								id={ method }
@@ -228,10 +290,10 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 								supportsRecurring={ supportsRecurring }
 							/>
 						</PaymentMethodWrapper>
-					</DraggableListElement>
+					</ReorderableListElement>
 				);
 			} ) }
-		</DraggableList>
+		</ReorderableList>
 	) : (
 		<List>
 			{ sortedPaymentMethodIds.map( ( method ) => (
