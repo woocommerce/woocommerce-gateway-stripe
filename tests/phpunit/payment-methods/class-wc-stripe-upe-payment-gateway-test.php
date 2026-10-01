@@ -6305,11 +6305,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @return array[]
 	 */
 	public function provider_payment_scripts_enqueue_scenarios() {
-		/*
-		 * NOTE: The Amazon Pay payment method MUST be enabled for the express payment method to be detected as available.
-		 */
 		return [
-			'Product page with ECE off, no Amazon Pay'            => [
+			'Product page with ECE off, no Amazon Pay'      => [
 				'page_type'                                 => 'product',
 				'express_checkout'                          => 'no',
 				'express_checkout_button_locations'         => [],
@@ -6318,7 +6315,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'expected_stripe'                           => true,
 				'expected_upe_classic'                      => false,
 			],
-			'Cart page with ECE off, no Amazon Pay'               => [
+			'Cart page with ECE off, no Amazon Pay'         => [
 				'page_type'                                 => 'cart',
 				'express_checkout'                          => 'no',
 				'express_checkout_button_locations'         => [],
@@ -6327,26 +6324,26 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'expected_stripe'                           => true,
 				'expected_upe_classic'                      => false,
 			],
-			'Cart page with ECE on at cart'                       => [
+			'Cart page with ECE on at cart'                 => [
 				'page_type'                                 => 'cart',
 				'express_checkout'                          => 'yes',
 				'express_checkout_button_locations'         => [ 'cart' ],
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
 				'amazon_pay_button_locations'               => [],
 				'expected_stripe'                           => true,
-				'expected_upe_classic'                      => true,
+				'expected_upe_classic'                      => false,
 			],
-			'Cart page with ECE off, Amazon Pay on at cart'       => [
-				'page_type'                                 => 'cart',
-				'express_checkout'                          => 'no',
-				'express_checkout_button_locations'         => [],
-				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::AMAZON_PAY ],
-				'amazon_pay_button_locations'               => [ 'cart' ],
-				'expected_stripe'                           => true,
-				'expected_upe_classic'                      => true,
-			],
-			'Product page with ECE on at product'                 => [
+			'Product page with ECE on at product'           => [
 				'page_type'                                 => 'product',
+				'express_checkout'                          => 'yes',
+				'express_checkout_button_locations'         => [ 'product' ],
+				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
+				'amazon_pay_button_locations'               => [],
+				'expected_stripe'                           => true,
+				'expected_upe_classic'                      => false,
+			],
+			'Product page that also renders the checkout'   => [
+				'page_type'                                 => 'product_with_checkout',
 				'express_checkout'                          => 'yes',
 				'express_checkout_button_locations'         => [ 'product' ],
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
@@ -6354,19 +6351,19 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'expected_stripe'                           => true,
 				'expected_upe_classic'                      => true,
 			],
-			'Product page with ECE off, Amazon Pay on at product' => [
-				'page_type'                                 => 'product',
-				'express_checkout'                          => 'no',
-				'express_checkout_button_locations'         => [],
-				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::AMAZON_PAY ],
-				'amazon_pay_button_locations'               => [ 'product' ],
-				'expected_stripe'                           => true,
-				'expected_upe_classic'                      => true,
-			],
-			'Checkout page with ECE off and Amazon Pay off'       => [
+			'Checkout page with ECE off and Amazon Pay off' => [
 				'page_type'                                 => 'checkout',
 				'express_checkout'                          => 'no',
 				'express_checkout_button_locations'         => [],
+				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
+				'amazon_pay_button_locations'               => [],
+				'expected_stripe'                           => true,
+				'expected_upe_classic'                      => true,
+			],
+			'Checkout page with ECE on at checkout'         => [
+				'page_type'                                 => 'checkout',
+				'express_checkout'                          => 'yes',
+				'express_checkout_button_locations'         => [ 'checkout' ],
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
 				'amazon_pay_button_locations'               => [],
 				'expected_stripe'                           => true,
@@ -6380,7 +6377,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 *
 	 * @dataProvider provider_payment_scripts_enqueue_scenarios
 	 *
-	 * @param string $page_type                                 Page type: 'product', 'cart', or 'checkout'.
+	 * @param string $page_type                                 Page type: 'product', 'product_with_checkout', 'cart', or 'checkout'.
 	 * @param string $express_checkout                          Express checkout enabled: 'yes' or 'no'.
 	 * @param array  $express_checkout_button_locations         Express checkout button locations.
 	 * @param array  $upe_checkout_experience_accepted_payments Enabled UPE payment methods.
@@ -6396,6 +6393,15 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		if ( 'product' === $page_type ) {
 			$product = WC_Helper_Product::create_simple_product();
 			$this->go_to( get_permalink( $product->get_id() ) );
+		} elseif ( 'product_with_checkout' === $page_type ) {
+			// Stands in for a [woocommerce_checkout] shortcode in the product content. WooCommerce
+			// caches its own shortcode detection per request, so the filter keeps this case isolated.
+			$product = WC_Helper_Product::create_simple_product();
+			$this->go_to( get_permalink( $product->get_id() ) );
+			$is_checkout_filter = function () {
+				return true;
+			};
+			add_filter( 'woocommerce_is_checkout', $is_checkout_filter );
 		} elseif ( 'cart' === $page_type ) {
 			$is_cart_filter = function () {
 				return true;
@@ -6451,6 +6457,51 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				remove_filter( 'woocommerce_is_cart', $is_cart_filter );
 			}
 		}
+	}
+
+	/**
+	 * Link counts as enabled only when the client config holds both Link and card,
+	 * matching the client's `isLinkEnabled()`.
+	 *
+	 * @dataProvider provide_link_in_enabled_payment_method_config
+	 *
+	 * @param array $config   The enabled payment method config.
+	 * @param bool  $expected Expected result.
+	 */
+	public function test_is_link_in_enabled_payment_method_config( array $config, bool $expected ): void {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_enabled_payment_method_config' ] )
+			->getMock();
+		$gateway->method( 'get_enabled_payment_method_config' )->willReturn( $config );
+
+		$this->assertSame( $expected, $gateway->is_link_in_enabled_payment_method_config() );
+	}
+
+	/**
+	 * Data provider for {@see test_is_link_in_enabled_payment_method_config()}.
+	 *
+	 * @return array<string, array{0: array, 1: bool}>
+	 */
+	public function provide_link_in_enabled_payment_method_config(): array {
+		return [
+			'card and link'      => [
+				[
+					'card' => [],
+					'link' => [],
+				],
+				true,
+			],
+			'link without card'  => [
+				[
+					'oc'   => [],
+					'link' => [],
+				],
+				false,
+			],
+			'card without link'  => [ [ 'card' => [] ], false ],
+			'no payment methods' => [ [], false ],
+		];
 	}
 
 	/**

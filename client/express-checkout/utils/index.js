@@ -3,6 +3,7 @@ import jQuery from 'jquery';
 import { __ } from '@wordpress/i18n';
 import { isAmazonPayEnabled } from 'wcstripe/stripe-utils/is-amazon-pay-enabled';
 import { isLinkEnabled } from 'wcstripe/stripe-utils/is-link-enabled';
+import { getStripeServerData } from 'wcstripe/stripe-utils/get-stripe-server-data';
 import { EXPRESS_CHECKOUT_NOTICE_DELAY } from 'wcstripe/data/constants';
 import {
 	EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
@@ -373,6 +374,15 @@ export const getRequiredFieldDataFromCheckoutForm = ( data ) => {
 		: getRequiredFieldDataFromShortcodeCheckoutForm( data );
 };
 
+// Classic product and cart pages don't localize the checkout params that hold
+// `paymentMethodsConfig`; the server applies the same rule for them instead.
+const isLinkEnabledForExpressCheckout = () => {
+	const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
+	return paymentMethodsConfig
+		? isLinkEnabled( paymentMethodsConfig )
+		: !! getExpressCheckoutData( 'stripe' )?.is_link_in_payment_methods;
+};
+
 /**
  * Fetches the payment method types required to process a payment for an Express method.
  *
@@ -389,7 +399,7 @@ export const getPaymentMethodTypesForExpressMethod = ( paymentMethodType ) => {
 	// Add 'link' payment method type if enabled and requested.
 	if (
 		paymentMethodType === EXPRESS_PAYMENT_METHOD_SETTING_LINK &&
-		isLinkEnabled()
+		isLinkEnabledForExpressCheckout()
 	) {
 		paymentMethodTypes.push( PAYMENT_METHOD_LINK );
 	}

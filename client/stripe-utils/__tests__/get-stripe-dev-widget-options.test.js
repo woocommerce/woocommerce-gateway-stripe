@@ -46,6 +46,30 @@ describe( 'getStripeDevWidgetOptions', () => {
 		expect( getStripeDevWidgetOptions() ).toEqual( DISABLED_OPTIONS );
 	} );
 
+	describe( 'without classic checkout params', () => {
+		afterEach( () => {
+			delete window.wc_stripe_express_checkout_params;
+		} );
+
+		it( 'returns enabled options when the express checkout flag is true', () => {
+			getStripeServerData.mockReturnValue( null );
+			window.wc_stripe_express_checkout_params = {
+				stripe: { show_developer_widget: true },
+			};
+
+			expect( getStripeDevWidgetOptions() ).toEqual( ENABLED_OPTIONS );
+		} );
+
+		it( 'returns disabled options when the express checkout flag is false', () => {
+			getStripeServerData.mockReturnValue( null );
+			window.wc_stripe_express_checkout_params = {
+				stripe: { show_developer_widget: false },
+			};
+
+			expect( getStripeDevWidgetOptions() ).toEqual( DISABLED_OPTIONS );
+		} );
+	} );
+
 	it( 'returns enabled options when showStripeDeveloperWidget is true', () => {
 		getStripeServerData.mockReturnValue( {
 			showStripeDeveloperWidget: true,

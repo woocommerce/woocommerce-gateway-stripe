@@ -2471,8 +2471,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Whether to skip loading the full payment gateway bundle on the current page.
 	 *
-	 * On product/cart pages where no express checkout method is enabled,
-	 * the full bundle is unnecessary — only Stripe JS is needed.
+	 * Product and cart pages render no payment form, so they only need Stripe JS.
+	 * Express checkout buttons there load their own bundle and settings.
 	 *
 	 * @return bool True if the caller should return after enqueuing Stripe JS only.
 	 */
@@ -2494,7 +2494,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return false;
 		}
 
-		return ! $express_checkout_helper->is_express_checkout_enabled();
+		return true;
 	}
 
 	/**

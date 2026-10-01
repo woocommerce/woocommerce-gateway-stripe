@@ -221,17 +221,70 @@ describe( 'Express checkout utils', () => {
 				getPaymentMethodTypesForExpressMethod( PAYMENT_METHOD_LINK );
 			expect( paymentMethodTypes ).toEqual( [ PAYMENT_METHOD_CARD ] );
 		} );
+		test( 'Link, without card in the config (Optimized Checkout)', () => {
+			window.wc_stripe_upe_params = {
+				paymentMethodsConfig: { oc: {}, link: {} },
+			};
+			isLinkEnabled.mockImplementation(
+				jest.requireActual( 'wcstripe/stripe-utils/is-link-enabled' )
+					.isLinkEnabled
+			);
+			const paymentMethodTypes =
+				getPaymentMethodTypesForExpressMethod( PAYMENT_METHOD_LINK );
+			delete window.wc_stripe_upe_params;
+			isLinkEnabled.mockReset();
+
+			expect( paymentMethodTypes ).toEqual( [ 'card' ] );
+		} );
 		test( 'Link, enabled', () => {
-			isLinkEnabled.mockReturnValue( {
+			window.wc_stripe_upe_params = {
+				paymentMethodsConfig: { card: {}, link: {} },
+			};
+			isLinkEnabled.mockReturnValue( true );
+			const paymentMethodTypes =
+				getPaymentMethodTypesForExpressMethod( PAYMENT_METHOD_LINK );
+			delete window.wc_stripe_upe_params;
+
+			expect( isLinkEnabled ).toHaveBeenCalledWith( {
 				card: {},
 				link: {},
 			} );
-			const paymentMethodTypes =
-				getPaymentMethodTypesForExpressMethod( PAYMENT_METHOD_LINK );
-			expect( paymentMethodTypes ).toEqual( [
-				PAYMENT_METHOD_CARD,
-				PAYMENT_METHOD_LINK,
-			] );
+			expect( paymentMethodTypes ).toEqual( [ 'card', 'link' ] );
+		} );
+		describe( 'Link, without classic checkout params', () => {
+			beforeEach( () => {
+				isLinkEnabled.mockReset();
+			} );
+
+			afterEach( () => {
+				delete window.wc_stripe_express_checkout_params;
+			} );
+
+			test( 'reads the server flag when Link is in the config', () => {
+				window.wc_stripe_express_checkout_params = {
+					stripe: { is_link_in_payment_methods: true },
+				};
+
+				const paymentMethodTypes =
+					getPaymentMethodTypesForExpressMethod(
+						PAYMENT_METHOD_LINK
+					);
+
+				expect( paymentMethodTypes ).toEqual( [ 'card', 'link' ] );
+			} );
+
+			test( 'reads the server flag when Link is not in the config', () => {
+				window.wc_stripe_express_checkout_params = {
+					stripe: { is_link_in_payment_methods: false },
+				};
+
+				const paymentMethodTypes =
+					getPaymentMethodTypesForExpressMethod(
+						PAYMENT_METHOD_LINK
+					);
+
+				expect( paymentMethodTypes ).toEqual( [ 'card' ] );
+			} );
 		} );
 		test( 'Amazon Pay, disabled', () => {
 			const paymentMethodTypes = getPaymentMethodTypesForExpressMethod(

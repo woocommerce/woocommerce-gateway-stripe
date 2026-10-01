@@ -212,6 +212,8 @@ class WC_Stripe_Express_Checkout_Element {
 			? ( $this->stripe_settings['test_publishable_key'] ?? '' )
 			: ( $this->stripe_settings['publishable_key'] ?? '' );
 
+		$is_product_or_cart = is_product() || is_cart();
+
 		return [
 			'ajax_url'                   => WC_AJAX::get_endpoint( '%%endpoint%%' ),
 			'stripe'                     => [
@@ -222,6 +224,12 @@ class WC_Stripe_Express_Checkout_Element {
 				'is_link_enabled'             => $this->express_checkout_helper->is_link_enabled(),
 				'is_express_checkout_enabled' => $this->express_checkout_helper->is_express_checkout_enabled(),
 				'is_amazon_pay_enabled'       => $this->express_checkout_helper->is_amazon_pay_enabled(),
+				// The client reads these from the classic checkout params when they exist,
+				// so only product and cart pages need them computed here.
+				'is_link_in_payment_methods'  => $is_product_or_cart && WC_Stripe::get_instance()->get_main_stripe_gateway()->is_link_in_enabled_payment_method_config(),
+				'show_developer_widget'       => $is_product_or_cart && WC_Stripe_Mode::is_test()
+					/** This filter is documented in includes/payment-methods/class-wc-stripe-upe-payment-gateway.php. */
+					&& (bool) apply_filters( 'wc_stripe_show_stripe_developer_widget', false ),
 				// `is_express_checkout_enabled` aggregates all methods, so Apple/Google Pay need their
 				// own flags; per-wallet keys keep the contract stable if the shared setting ever splits.
 				'is_apple_pay_enabled'        => $this->express_checkout_helper->is_apple_google_pay_enabled(),

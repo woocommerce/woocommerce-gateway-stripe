@@ -1071,6 +1071,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Whether the client payment method config enables Link, using the same rule as the
+	 * client's `isLinkEnabled()`: both Link and card must be present.
+	 *
+	 * Lets pages without the classic checkout params reach the same answer.
+	 *
+	 * @return bool
+	 */
+	public function is_link_in_enabled_payment_method_config(): bool {
+		$config = $this->get_enabled_payment_method_config();
+
+		return isset( $config[ WC_Stripe_Payment_Methods::LINK ], $config[ WC_Stripe_Payment_Methods::CARD ] );
+	}
+
+	/**
 	 * Gets payment method settings to pass to client scripts
 	 *
 	 * @return array

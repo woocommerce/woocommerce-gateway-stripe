@@ -1,3 +1,4 @@
+/* global wc_stripe_express_checkout_params */
 import { getStripeServerData } from './get-stripe-server-data';
 import { STRIPE_JS_OPTIONS_DISABLE_TESTING_ASSISTANT } from 'wcstripe/stripe-utils/constants';
 
@@ -9,9 +10,13 @@ import { STRIPE_JS_OPTIONS_DISABLE_TESTING_ASSISTANT } from 'wcstripe/stripe-uti
 export const getStripeDevWidgetOptions = () => {
 	const options = STRIPE_JS_OPTIONS_DISABLE_TESTING_ASSISTANT;
 
-	const stripeServerData = getStripeServerData();
+	// Product and cart pages only localize the express checkout params.
+	const showWidget =
+		getStripeServerData()?.showStripeDeveloperWidget ||
+		( typeof wc_stripe_express_checkout_params !== 'undefined' && // eslint-disable-line camelcase
+			wc_stripe_express_checkout_params?.stripe?.show_developer_widget ); // eslint-disable-line camelcase
 
-	if ( ! stripeServerData?.showStripeDeveloperWidget ) {
+	if ( ! showWidget ) {
 		return options;
 	}
 
