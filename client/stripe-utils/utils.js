@@ -1,5 +1,3 @@
-import React from 'react';
-import { createPortal } from 'react-dom';
 import { getStripeServerData } from './get-stripe-server-data';
 import { isLinkEnabled } from './is-link-enabled';
 import {
@@ -11,8 +9,12 @@ import {
 	CHECKOUT_SESSION_INPUT_ID,
 } from './constants';
 import { __ } from '@wordpress/i18n';
-import { dispatch } from '@wordpress/data';
 import { PAYMENT_METHOD_AMAZON_PAY } from 'wcstripe/stripe-utils/constants';
+
+// Read wp.data at call time instead of importing it: an import makes every
+// bundle that uses these helpers (including classic checkout) declare wp-data,
+// and with it React, as a script dependency.
+const dispatch = ( store ) => window.wp?.data?.dispatch( store );
 
 export { getStripeServerData } from './get-stripe-server-data';
 export { isAmazonPayEnabled } from './is-amazon-pay-enabled';
@@ -836,6 +838,8 @@ export const clearStaleCheckoutTotalNotice = () => {
 		.remove();
 };
 
+let blockNoticeRoot;
+
 /**
  * Show error notice at top of checkout form.
  * Will try to use a translatable message using the message code if available.
@@ -890,18 +894,24 @@ export const showErrorCheckout = ( errorMessage ) => {
 	let messageWrapper = '';
 	const StoreNotice = window.wc?.blocksCheckout?.StoreNotice;
 	if ( inBlockContext && StoreNotice ) {
-		const NoticeComponent = () => (
-			<StoreNotice status="error" isDismissible={ true }>
-				{ errorMessage }
-			</StoreNotice>
-		);
+		// wp.element comes from the page (wc-blocks-checkout depends on it), so the
+		// classic bundle doesn't have to declare React to render this notice.
+		const { createElement, createRoot } = window.wp.element;
 		const wrapper = document.createElement( 'div' );
 		wrapper.className = 'wc-block-components-notices';
 
+		blockNoticeRoot?.unmount();
 		$container.find( '.wc-block-components-notices' ).remove();
 
 		$container.prepend( wrapper );
-		createPortal( <NoticeComponent />, wrapper );
+		blockNoticeRoot = createRoot( wrapper );
+		blockNoticeRoot.render(
+			createElement(
+				StoreNotice,
+				{ status: 'error', isDismissible: true },
+				errorMessage
+			)
+		);
 	} else {
 		if ( errorMessage.includes( 'woocommerce-error' ) ) {
 			messageWrapper = errorMessage;

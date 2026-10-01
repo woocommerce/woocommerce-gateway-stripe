@@ -6,7 +6,7 @@ import {
 	getExpressCheckoutData,
 	getExpressCheckoutAjaxURL,
 } from 'wcstripe/express-checkout/utils';
-import { getStripeDevWidgetOptions } from 'wcstripe/stripe-utils';
+import { getStripeDevWidgetOptions } from 'wcstripe/stripe-utils/get-stripe-dev-widget-options';
 import { getStripeServerData } from 'wcstripe/stripe-utils/get-stripe-server-data';
 import { getSharedStripeInstance } from 'wcstripe/stripe-utils/shared-stripe-instance';
 import {

@@ -1,4 +1,8 @@
 import { getSetting } from '@woocommerce/settings';
+import { act } from '@testing-library/react';
+import { createElement } from 'react';
+import { createRoot } from 'react-dom/client';
+import { initializeUPEAppearance } from '../upe-appearance';
 import {
 	getFontSizeBase,
 	getDefaultValues,
@@ -9,9 +13,7 @@ import {
 	showErrorCheckout,
 	getExcludedPaymentMethodTypesForBillingCountry,
 } from '../utils';
-import { initializeUPEAppearance } from '../upe-appearance';
 import { getAppearance } from '../../styles/upe';
-import { dispatch } from '@wordpress/data';
 
 jest.mock( '../../styles/upe', () => ( {
 	getAppearance: jest.fn(),
@@ -22,10 +24,8 @@ jest.mock( '@woocommerce/settings', () => ( {
 	getSetting: jest.fn(),
 } ) );
 
-jest.mock( '@wordpress/data', () => ( {
-	...jest.requireActual( '@wordpress/data' ),
-	dispatch: jest.fn(),
-} ) );
+const dispatch = jest.fn();
+window.wp = { data: { dispatch } };
 
 describe( 'utils', () => {
 	describe( 'getFontSizeBase', () => {
@@ -816,12 +816,14 @@ describe( 'showErrorCheckout', () => {
 	let container;
 	let checkoutForm;
 	let hasNoticesWrapper;
+	let isMyAccountPage;
 	const originalJQuery = global.jQuery;
 	const originalWcSettings = global.wcSettings;
 	const originalWc = global.wc;
 
 	beforeEach( () => {
 		hasNoticesWrapper = true;
+		isMyAccountPage = false;
 		container = {
 			length: 1,
 			find: jest.fn().mockReturnThis(),
@@ -842,7 +844,7 @@ describe( 'showErrorCheckout', () => {
 				};
 			}
 			if ( selector === '.woocommerce-MyAccount-content' ) {
-				return { length: 0 };
+				return { length: isMyAccountPage ? 1 : 0 };
 			}
 			if ( selector === 'form.checkout' ) {
 				return {
@@ -863,7 +865,49 @@ describe( 'showErrorCheckout', () => {
 		global.jQuery = originalJQuery;
 		global.wcSettings = originalWcSettings;
 		global.wc = originalWc;
+		window.wp = { data: { dispatch } };
 		dispatch.mockReset();
+	} );
+
+	describe( 'on the My Account page of a block theme', () => {
+		beforeEach( () => {
+			isMyAccountPage = true;
+			window.wp = {
+				data: { dispatch },
+				element: { createElement, createRoot },
+			};
+			global.wcSettings = { wcBlocksConfig: { foo: true } };
+			global.wc = {
+				blocksCheckout: {
+					StoreNotice: ( { status, children } ) =>
+						createElement(
+							'div',
+							{ 'data-status': status },
+							children
+						),
+				},
+			};
+		} );
+
+		it( 'renders the error in a StoreNotice', () => {
+			act( () => showErrorCheckout( 'Your card was declined.' ) );
+
+			const wrapper = container.prepend.mock.calls[ 0 ][ 0 ];
+			expect( wrapper.className ).toBe( 'wc-block-components-notices' );
+			expect( wrapper.innerHTML ).toBe(
+				'<div data-status="error">Your card was declined.</div>'
+			);
+		} );
+
+		it( 'unmounts the previous notice when a new error is shown', () => {
+			act( () => showErrorCheckout( 'First error.' ) );
+			act( () => showErrorCheckout( 'Second error.' ) );
+
+			const [ [ firstWrapper ], [ secondWrapper ] ] =
+				container.prepend.mock.calls;
+			expect( firstWrapper.innerHTML ).toBe( '' );
+			expect( secondWrapper.textContent ).toBe( 'Second error.' );
+		} );
 	} );
 
 	it( 'uses the WC Blocks notices store when it is registered', () => {

@@ -4,10 +4,10 @@ import {
 	normalizeShippingAddress,
 	transformVariationAttributesForStoreApi,
 } from '../normalize';
-import { select } from '@wordpress/data';
 import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
 
-jest.mock( '@wordpress/data' );
+const select = jest.fn();
+window.wp = { data: { select } };
 
 jest.mock( 'wcstripe/express-checkout/utils', () => ( {
 	getExpressCheckoutData: jest.fn(),

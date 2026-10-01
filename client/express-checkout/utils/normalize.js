@@ -1,7 +1,10 @@
-import { select } from '@wordpress/data';
 import { applyFilters } from '@wordpress/hooks';
 import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
 import { getStripeServerData } from 'wcstripe/stripe-utils/get-stripe-server-data';
+
+// The block stores only exist where wp.data is already loaded; importing it
+// would make the classic express checkout bundle declare wp-data and React.
+const select = ( store ) => window.wp?.data?.select( store );
 
 /**
  * Normalizes incoming cart total items for use as a displayItems with the Stripe api.
