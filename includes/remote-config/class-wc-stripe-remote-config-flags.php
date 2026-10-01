@@ -62,8 +62,7 @@ class WC_Stripe_Remote_Config_Flags {
 	 *
 	 * Disabled by default while the rollout is in phase 1; the
 	 * ENABLED_OVERRIDE_OPTION option force-enables ('yes') or force-disables
-	 * ('no') an individual site. There is intentionally no public filter or
-	 * constant.
+	 * ('no') an individual site.
 	 */
 	public static function is_remote_config_enabled(): bool {
 		$override = get_option( self::ENABLED_OVERRIDE_OPTION, '' );
