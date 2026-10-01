@@ -3493,10 +3493,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Check if the order has a payment intent that is compatible with the current payment method types.
-		// A Dynamic Payment Methods intent is never reused: `automatic_payment_methods` can only be set
-		// when the intent is created, and Stripe populates the intent's `payment_method_types` from the
-		// merchant's configuration — so the compatibility check below would match and the retry would
-		// then send `payment_method_types` to an intent that was never created with them.
+		// A Dynamic Payment Methods attempt never reuses an intent: `automatic_payment_methods` can only
+		// be set when the intent is created, so confirming a stored explicit-types intent would silently
+		// drop DPM for this attempt. (The reverse — a non-DPM attempt finding a stored DPM intent — is
+		// rejected inside get_existing_compatible_payment_intent().)
 		$payment_intent = empty( $payment_information['automatic_payment_methods'] )
 			? $this->get_existing_compatible_payment_intent( $order, $payment_information['payment_method_types'] )
 			: null;
@@ -4374,6 +4374,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$order  = wc_get_order( $order->get_id() );
 		$intent = $this->get_intent_from_order( $order );
 		if ( ! $intent ) {
+			return null;
+		}
+
+		// Only non-DPM attempts reach here, and their confirm sends no `return_url`, which a Dynamic
+		// Payment Methods intent (`allow_redirects: always`) requires. Its types always include `card`,
+		// so the type check below would wrongly accept it.
+		if ( ! empty( $intent->automatic_payment_methods->enabled ) ) {
 			return null;
 		}
 
