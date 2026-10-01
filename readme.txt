@@ -204,5 +204,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Stop refusing express checkout orders over required classic custom checkout fields on stores whose checkout page uses the checkout block and cannot render them
 * Dev - Make e2e tests runnable from Quality Insights Toolkit (QIT)
 * Update - Link the WooCommerce POS page from the in-person payments description in the readme
+* Dev - Update is_available_for_billing_country() to use dynamic billing country checks from get_available_billing_countries()
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
