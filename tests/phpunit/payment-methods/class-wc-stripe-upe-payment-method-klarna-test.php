@@ -127,7 +127,7 @@ class WC_Stripe_UPE_Payment_Method_Klarna_Test extends WC_Stripe_UPE_Payment_Met
 				'account_country' => WC_Stripe_Country_Code::UNITED_STATES,
 				'currency'        => WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
 				'country_code'    => WC_Stripe_Country_Code::CANADA,
-				'expected_result' => true,
+				'expected_result' => false,
 			],
 			'GB shopper is supported for GB/GBP'     => [
 				'account_country' => WC_Stripe_Country_Code::UNITED_KINGDOM,
