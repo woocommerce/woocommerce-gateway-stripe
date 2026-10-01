@@ -1,7 +1,15 @@
 import { expect } from '@playwright/test';
+import { user } from './index.js';
+
+const ADMIN_USER =
+	process.env.QIT_ADMIN_USERNAME || process.env.ADMIN_USER || 'admin';
+const ADMIN_PASSWORD =
+	process.env.QIT_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || 'password';
 
 /**
  * Get a new admin page with admin context.
+ * If in a QIT tunnel environment and the stored session is stale,
+ * re-authenticates automatically.
  * @param {Browser} browser Playwright browser fixture.
  * @returns {Promise<{context: BrowserContext, page: Page}>} The admin context and page.
  */
@@ -10,6 +18,15 @@ export const getAdminPage = async ( browser ) => {
 		storageState: process.env.ADMINSTATE,
 	} );
 	const page = await context.newPage();
+
+	// In QIT tunnel environments, auth cookies can expire between tests.
+	if ( process.env.QIT_SITE_URL ) {
+		await page.goto( '/wp-admin/' );
+		if ( page.url().includes( 'wp-login.php' ) ) {
+			await user.login( page, ADMIN_USER, ADMIN_PASSWORD );
+		}
+	}
+
 	return { context, page };
 };
 

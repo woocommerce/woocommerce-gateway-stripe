@@ -216,8 +216,11 @@ const PaymentElements = ( {
 	// fall back to the standard elements flow before the provider mounts.
 	const stripeSupportsInitCheckout =
 		typeof api.getStripe()?.initCheckoutElementsSdk === 'function';
+	// Non-deferred methods (BLIK, ACSS) can't render in the Checkout Session
+	// element, so their own entry keeps the standard flow, as in classic checkout.
 	const isAdaptivePricingSupported =
 		stripeServerData?.isAdaptivePricingEnabled &&
+		supportsDeferredIntent &&
 		stripeSupportsInitCheckout;
 
 	const [ errorMessage, setErrorMessage ] = useState( null );
