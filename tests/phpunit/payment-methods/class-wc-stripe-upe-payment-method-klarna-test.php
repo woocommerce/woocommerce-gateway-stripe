@@ -85,4 +85,128 @@ class WC_Stripe_UPE_Payment_Method_Klarna_Test extends WC_Stripe_UPE_Payment_Met
 			'ZZ is not supported' => [ 'ZZ', false ],
 		];
 	}
+
+	/**
+	 * Tests for {@see WC_Stripe_UPE_Payment_Method_Klarna::get_available_billing_countries()}.
+	 *
+	 * @dataProvider provide_test_get_available_billing_countries
+	 *
+	 * @param string $account_country The account country.
+	 * @param string $currency        The store currency.
+	 * @param array $expected         The expected billing countries.
+	 */
+	public function test_get_available_billing_countries( string $account_country, string $currency, array $expected ): void {
+		$currency_filter = function () use ( $currency ) {
+			return $currency;
+		};
+		add_filter( 'woocommerce_currency', $currency_filter );
+
+		$mock_account = $this->createMock( WC_Stripe_Account::class );
+		$mock_account->method( 'get_cached_account_data' )
+			->willReturn(
+				[
+					'country' => $account_country,
+				]
+			);
+		$wc_stripe          = WC_Stripe::get_instance();
+		$initial_account    = $wc_stripe->account;
+		$wc_stripe->account = $mock_account;
+
+		try {
+			$payment_method = new WC_Stripe_UPE_Payment_Method_Klarna();
+			$this->assertSame( $expected, $payment_method->get_available_billing_countries() );
+		} finally {
+			remove_filter( 'woocommerce_currency', $currency_filter );
+			$wc_stripe->account = $initial_account;
+		}
+	}
+
+	/**
+	 * Data provider for {@see test_get_available_billing_countries()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_available_billing_countries(): array {
+		$euro_countries = [
+			WC_Stripe_Country_Code::AUSTRIA,
+			WC_Stripe_Country_Code::BELGIUM,
+			WC_Stripe_Country_Code::FINLAND,
+			WC_Stripe_Country_Code::FRANCE,
+			WC_Stripe_Country_Code::GREECE,
+			WC_Stripe_Country_Code::GERMANY,
+			WC_Stripe_Country_Code::IRELAND,
+			WC_Stripe_Country_Code::ITALY,
+			WC_Stripe_Country_Code::NETHERLANDS,
+			WC_Stripe_Country_Code::PORTUGAL,
+			WC_Stripe_Country_Code::SPAIN,
+		];
+
+		return [
+			'US and PR are supported for US accounts'            => [
+				'account_country' => WC_Stripe_Country_Code::UNITED_STATES,
+				'currency'        => WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
+				'expected'        => [ WC_Stripe_Country_Code::UNITED_STATES, WC_Stripe_Country_Code::PUERTO_RICO ],
+			],
+			'US and PR are supported for PR accounts'            => [
+				'account_country' => WC_Stripe_Country_Code::PUERTO_RICO,
+				'currency'        => WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
+				'expected'        => [ WC_Stripe_Country_Code::UNITED_STATES, WC_Stripe_Country_Code::PUERTO_RICO ],
+			],
+			'GB is supported for GB accounts using GBP'          => [
+				'account_country' => WC_Stripe_Country_Code::UNITED_KINGDOM,
+				'currency'        => WC_Stripe_Currency_Code::POUND_STERLING,
+				'expected'        => [ WC_Stripe_Country_Code::UNITED_KINGDOM ],
+			],
+			'AU is supported for AU accounts using AUD'          => [
+				'account_country' => WC_Stripe_Country_Code::AUSTRALIA,
+				'currency'        => WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR,
+				'expected'        => [ WC_Stripe_Country_Code::AUSTRALIA ],
+			],
+			'CA is supported for CA accounts using CAD'          => [
+				'account_country' => WC_Stripe_Country_Code::CANADA,
+				'currency'        => WC_Stripe_Currency_Code::CANADIAN_DOLLAR,
+				'expected'        => [ WC_Stripe_Country_Code::CANADA ],
+			],
+			'CA is supported for CA accounts using USD'          => [
+				'account_country' => WC_Stripe_Country_Code::CANADA,
+				'currency'        => WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
+				'expected'        => [ WC_Stripe_Country_Code::CANADA ],
+			],
+			'GB is supported for NL accounts using GBP'          => [
+				'account_country' => WC_Stripe_Country_Code::NETHERLANDS,
+				'currency'        => WC_Stripe_Currency_Code::POUND_STERLING,
+				'expected'        => [ WC_Stripe_Country_Code::UNITED_KINGDOM ],
+			],
+			'Euro countries supported for AT accounts using EUR' => [
+				'account_country' => WC_Stripe_Country_Code::AUSTRIA,
+				'currency'        => WC_Stripe_Currency_Code::EURO,
+				'expected'        => $euro_countries,
+			],
+			'Euro countries supported for NL accounts using EUR' => [
+				'account_country' => WC_Stripe_Country_Code::NETHERLANDS,
+				'currency'        => WC_Stripe_Currency_Code::EURO,
+				'expected'        => $euro_countries,
+			],
+			'CH supported for CH accounts using CHF'             => [
+				'account_country' => WC_Stripe_Country_Code::SWITZERLAND,
+				'currency'        => WC_Stripe_Currency_Code::SWISS_FRANC,
+				'expected'        => [ WC_Stripe_Country_Code::SWITZERLAND ],
+			],
+			'CH supported for FR accounts using CHF'             => [
+				'account_country' => WC_Stripe_Country_Code::FRANCE,
+				'currency'        => WC_Stripe_Currency_Code::SWISS_FRANC,
+				'expected'        => [ WC_Stripe_Country_Code::SWITZERLAND ],
+			],
+			'PL supported for PL accounts using PLN'             => [
+				'account_country' => WC_Stripe_Country_Code::POLAND,
+				'currency'        => WC_Stripe_Currency_Code::POLISH_ZLOTY,
+				'expected'        => [ WC_Stripe_Country_Code::POLAND ],
+			],
+			'PL supported for DE accounts using PLN'             => [
+				'account_country' => WC_Stripe_Country_Code::GERMANY,
+				'currency'        => WC_Stripe_Currency_Code::POLISH_ZLOTY,
+				'expected'        => [ WC_Stripe_Country_Code::POLAND ],
+			],
+		];
+	}
 }
