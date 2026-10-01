@@ -2,6 +2,9 @@
 /* eslint no-process-exit: 0, no-undef: 0, strict: 0 */
 'use strict';
 require( 'shelljs/global' );
+// shelljs only warns on a failed command, so without this a failed copy or
+// Composer install would still produce a zip and exit 0.
+config.fatal = true;
 const colors = require( 'colors' );
 const archiver = require( 'archiver' );
 const fs = require( 'fs' );
@@ -33,7 +36,7 @@ mkdir( releaseFolder );
 mkdir( targetFolder );
 
 // remove the 'hidden' source maps; they are used to generate the POT file and are not referenced in the source files.
-rm( 'build/*.map' );
+rm( '-f', 'build/*.map' );
 
 // copy the directories to the release folder
 cp( '-Rf', filesToCopy, targetFolder );
@@ -47,9 +50,27 @@ find( targetFolder )
 // Install production-only Composer dependencies in the release folder
 cp( 'composer.json', targetFolder );
 cp( 'composer.lock', targetFolder );
-exec(
+// With `fatal` on, exec throws on a non-zero exit (and shelljs 0.8 ignores a
+// per-call `fatal` option), so turn it off to check the result and print a
+// clear message below.
+config.fatal = false;
+const composerInstall = exec(
 	`composer install --no-dev --classmap-authoritative --working-dir=${ targetFolder }`
 );
+config.fatal = true;
+// Without vendor/autoload.php the plugin skips the autoloader and fatals on the
+// first classmap-only class it loads.
+if (
+	composerInstall.code !== 0 ||
+	! fs.existsSync( targetFolder + '/vendor/autoload.php' )
+) {
+	console.error(
+		colors.red(
+			'The Composer install failed or produced no autoloader; nothing was packaged.'
+		)
+	);
+	process.exit( composerInstall.code || 1 );
+}
 rm( targetFolder + '/composer.json' );
 rm( targetFolder + '/composer.lock' );
 
@@ -67,6 +88,7 @@ output.on( 'close', () => {
 } );
 
 archive.on( 'error', ( err ) => {
+	process.exitCode = 1;
 	console.error(
 		colors.red(
 			'An error occured while creating the zip: ' +
