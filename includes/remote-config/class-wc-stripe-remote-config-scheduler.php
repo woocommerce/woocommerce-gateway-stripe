@@ -146,7 +146,7 @@ class WC_Stripe_Remote_Config_Scheduler {
 		$new = is_array( $value ) ? $value : [];
 
 		foreach ( [ 'testmode', 'secret_key', 'test_secret_key' ] as $field ) {
-			if ( ( $old[ $field ] ?? '' ) !== ( $new[ $field ] ?? '' ) ) {
+			if ( ( $new[ $field ] ?? '' ) !== '' && ( $old[ $field ] ?? '' ) !== ( $new[ $field ] ?? '' ) ) {
 				as_enqueue_async_action( self::SYNC_ACTION, [], self::SCHEDULER_GROUP );
 				return;
 			}
