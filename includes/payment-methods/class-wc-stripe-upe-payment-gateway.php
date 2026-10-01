@@ -1754,9 +1754,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Cancels the redundant order core minted for a resubmit and empties the cart.
 	 *
-	 * Only cancels a pending or failed order, so a paid order is never touched. The pending/failed
-	 * to cancelled transition does not trigger the core cancellation email (that fires only from
-	 * processing/on-hold).
+	 * Only cancels a pending or failed order, so a paid order is never touched. WooCommerce 11.0+
+	 * sends the admin "Cancelled order" email on pending to cancelled too, so that email is turned
+	 * off here: the order only existed because the shopper submitted the same cart twice.
 	 *
 	 * @param WC_Order $redundant_order The order core created for the resubmit.
 	 * @param WC_Order $paid_order      The order already paid for this cart.
@@ -1764,14 +1764,23 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	private function cancel_order_superseded_by_paid_cart( WC_Order $redundant_order, WC_Order $paid_order ): void {
 		if ( $redundant_order->has_status( [ OrderStatus::PENDING, OrderStatus::FAILED ] ) ) {
-			$redundant_order->update_status(
-				OrderStatus::CANCELLED,
-				sprintf(
-					/* translators: %s: order number that was already paid for this cart. */
-					__( 'Cancelled to avoid a duplicate charge: this cart was already paid by order #%s.', 'woocommerce-gateway-stripe' ),
-					$paid_order->get_order_number()
-				)
-			);
+			// A closure of our own, so remove_filter() cannot remove another plugin's callback.
+			$suppress_email = static function () {
+				return false;
+			};
+			add_filter( 'woocommerce_email_enabled_cancelled_order', $suppress_email );
+			try {
+				$redundant_order->update_status(
+					OrderStatus::CANCELLED,
+					sprintf(
+						/* translators: %s: order number that was already paid for this cart. */
+						__( 'Cancelled to avoid a duplicate charge: this cart was already paid by order #%s.', 'woocommerce-gateway-stripe' ),
+						$paid_order->get_order_number()
+					)
+				);
+			} finally {
+				remove_filter( 'woocommerce_email_enabled_cancelled_order', $suppress_email );
+			}
 		}
 
 		if ( WC()->cart instanceof WC_Cart ) {

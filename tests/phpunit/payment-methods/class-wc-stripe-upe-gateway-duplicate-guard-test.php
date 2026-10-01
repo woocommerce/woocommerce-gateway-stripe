@@ -122,6 +122,39 @@ class WC_Stripe_UPE_Gateway_Duplicate_Guard_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Cancelling the redundant order must not send the admin "Cancelled order" email, which
+	 * WooCommerce 11.0+ also sends on pending to cancelled.
+	 *
+	 * @return void
+	 */
+	public function test_cancel_superseded_order_sends_no_cancelled_email(): void {
+		$paid      = $this->make_order( 'hash', 'shopper@example.com' );
+		$redundant = $this->make_order( 'hash', 'shopper@example.com' );
+		$redundant->set_status( OrderStatus::PENDING );
+		$redundant->save();
+
+		// Loads the email classes, so their status-transition triggers are hooked.
+		WC()->mailer();
+
+		$subjects = [];
+		$capture  = static function ( $return, $atts ) use ( &$subjects ) {
+			$subjects[] = $atts['subject'];
+			return true;
+		};
+		add_filter( 'pre_wp_mail', $capture, 10, 2 );
+
+		try {
+			$this->invoke( 'cancel_order_superseded_by_paid_cart', [ $redundant, $paid ] );
+		} finally {
+			remove_filter( 'pre_wp_mail', $capture, 10 );
+		}
+
+		$this->assertTrue( wc_get_order( $redundant->get_id() )->has_status( OrderStatus::CANCELLED ) );
+		$this->assertSame( [], preg_grep( '/cancel/i', $subjects ), 'No cancellation email should be sent.' );
+		$this->assertFalse( has_filter( 'woocommerce_email_enabled_cancelled_order' ), 'The email must be re-enabled afterwards.' );
+	}
+
+	/**
 	 * A superseded order that is not pending or failed (for example, one already paid) is left
 	 * untouched, so the guard never cancels a real order.
 	 */
