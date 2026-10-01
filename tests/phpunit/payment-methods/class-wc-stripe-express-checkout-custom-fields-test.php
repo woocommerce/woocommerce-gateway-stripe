@@ -548,6 +548,146 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * On a store whose checkout page uses the checkout block, a request without
+	 * the classic-form payload must not be refused for required classic fields:
+	 * no page in the buyer's flow renders them, so the refusal would be permanent.
+	 * The third-party stand-in actions must still fire for such requests, and the
+	 * bypassed required fields must leave a debug-level trace for support, since
+	 * the order completes without values the merchant marked required.
+	 *
+	 * @return void
+	 */
+	public function test_process_custom_checkout_data_skips_required_field_enforcement_on_block_checkout_store() {
+		$custom_checkout_fields = function ( $fields ) {
+			$fields['billing']['billing_custom_field1'] = [
+				'type'     => 'text',
+				'label'    => 'Billing Custom Field 1',
+				'required' => true,
+			];
+			return $fields;
+		};
+		add_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
+		WC()->checkout()->checkout_fields = null;
+		WC()->checkout()->get_checkout_fields();
+
+		$original_checkout_page_id = get_option( 'woocommerce_checkout_page_id' );
+		$block_checkout_page_id    = $this->factory->post->create(
+			[
+				'post_type'    => 'page',
+				'post_content' => '<!-- wp:woocommerce/checkout /-->',
+			]
+		);
+		update_option( 'woocommerce_checkout_page_id', $block_checkout_page_id );
+
+		// Requests from a block checkout page carry no custom-data payload,
+		// since the client can only collect values from a classic form.
+		$request = new \WP_REST_Request( 'POST', '/wc/stripe-ece/v1/test-request' );
+		$request->set_param( 'extensions', [] );
+
+		$update_order_meta_calls = 0;
+		$meta_handler            = function () use ( &$update_order_meta_calls ) {
+			++$update_order_meta_calls;
+		};
+		add_action( 'wc_stripe_express_checkout_update_order_meta', $meta_handler );
+
+		$order                 = WC_Helper_Order::create_order();
+		$custom_fields_support = $this->get_custom_fields_support();
+
+		$original_logger   = WC_Stripe_Logger::$logger;
+		$original_settings = WC_Stripe_Helper::get_stripe_settings();
+		WC_Stripe_Helper::update_main_stripe_settings( array_merge( $original_settings, [ 'logging' => 'yes' ] ) );
+
+		$logger = $this->createMock( WC_Logger::class );
+		$logger->expects( $this->once() )
+			->method( 'debug' )
+			->with(
+				'Skipped enforcing required classic custom fields for an express checkout order; the block checkout cannot render them.',
+				$this->callback(
+					static function ( $context ) {
+						return [ 'billing_custom_field1' ] === $context['missing_field_keys'];
+					}
+				)
+			);
+		WC_Stripe_Logger::$logger = $logger;
+
+		try {
+			$custom_fields_support->process_custom_checkout_data( $order, $request );
+			$this->assertSame( 1, $update_order_meta_calls );
+		} catch ( Exception $e ) {
+			$this->fail( 'Block-checkout stores must not be blocked on classic required fields, but got: ' . $e->getMessage() );
+		} finally {
+			WC_Stripe_Logger::$logger = $original_logger;
+			WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
+			remove_action( 'wc_stripe_express_checkout_update_order_meta', $meta_handler );
+			update_option( 'woocommerce_checkout_page_id', $original_checkout_page_id );
+			wp_delete_post( $block_checkout_page_id, true );
+			remove_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
+			WC()->checkout()->checkout_fields = null;
+			WC()->checkout()->get_checkout_fields();
+		}
+	}
+
+	/**
+	 * A site can serve a classic (shortcode) checkout alongside a block checkout
+	 * page. When the request carries the classic-form payload, the buyer was on
+	 * a page with the classic form, so required fields stay enforced even though
+	 * the configured checkout page is block-based — without the link-to-checkout
+	 * flag, which only applies when the payload is absent.
+	 *
+	 * @return void
+	 */
+	public function test_process_custom_checkout_data_enforces_required_fields_on_block_checkout_store_with_classic_payload() {
+		$custom_checkout_fields = function ( $fields ) {
+			$fields['billing']['billing_custom_field1'] = [
+				'type'     => 'text',
+				'label'    => 'Billing Custom Field 1',
+				'required' => true,
+			];
+			return $fields;
+		};
+		add_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
+		WC()->checkout()->checkout_fields = null;
+		WC()->checkout()->get_checkout_fields();
+
+		$original_checkout_page_id = get_option( 'woocommerce_checkout_page_id' );
+		$block_checkout_page_id    = $this->factory->post->create(
+			[
+				'post_type'    => 'page',
+				'post_content' => '<!-- wp:woocommerce/checkout /-->',
+			]
+		);
+		update_option( 'woocommerce_checkout_page_id', $block_checkout_page_id );
+
+		$request = new \WP_REST_Request( 'POST', '/wc/stripe-ece/v1/test-request' );
+		$request->set_param(
+			'extensions',
+			[
+				'wc-stripe/express-checkout' => [
+					'custom_checkout_data' => '{}',
+				],
+			]
+		);
+
+		$order                 = WC_Helper_Order::create_order();
+		$custom_fields_support = $this->get_custom_fields_support();
+
+		try {
+			$custom_fields_support->process_custom_checkout_data( $order, $request );
+			$this->fail( 'Expected RouteException for a missing required field.' );
+		} catch ( RouteException $e ) {
+			$this->assertSame( 'wc_stripe_express_checkout_missing_required_fields', $e->getErrorCode() );
+			$this->assertStringContainsString( 'Billing Custom Field 1 is a required field.', $e->getMessage() );
+			$this->assertArrayNotHasKey( 'link_to_checkout', $e->getAdditionalData() );
+		} finally {
+			update_option( 'woocommerce_checkout_page_id', $original_checkout_page_id );
+			wp_delete_post( $block_checkout_page_id, true );
+			remove_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
+			WC()->checkout()->checkout_fields = null;
+			WC()->checkout()->get_checkout_fields();
+		}
+	}
+
+	/**
 	 * Non-express-checkout Store API requests are skipped entirely, so a missing required custom field does not block them.
 	 *
 	 * @return void
