@@ -20,7 +20,7 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 		delete_option( '_wcstripe_remote_config_live' );
 		delete_option( '_wcstripe_remote_config_test' );
 		if ( function_exists( 'as_unschedule_all_actions' ) ) {
-			as_unschedule_all_actions( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [], 'woocommerce-gateway-stripe' );
+			as_unschedule_all_actions( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [], WC_Stripe_Remote_Config_Scheduler::SCHEDULER_GROUP );
 		}
 	}
 
