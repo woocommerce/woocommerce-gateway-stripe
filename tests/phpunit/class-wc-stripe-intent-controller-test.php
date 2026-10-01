@@ -501,10 +501,13 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	 * @param string      $local_descriptor    The locally configured statement descriptor.
 	 * @param array       $account_data        The Stripe account data to mock.
 	 * @param string|null $expected_descriptor The expected statement_descriptor in the request, or null if it must not be set.
+	 * @param string      $store_name          The store name, used when no other descriptor is available.
 	 *
 	 * @dataProvider provide_create_payment_intent_statement_descriptor_data
 	 */
-	public function test_create_payment_intent_statement_descriptor( $payment_method_type, $local_descriptor, $account_data, $expected_descriptor ) {
+	public function test_create_payment_intent_statement_descriptor( $payment_method_type, $local_descriptor, $account_data, $expected_descriptor, $store_name = 'Test Blog' ) {
+		update_option( 'blogname', $store_name );
+
 		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['statement_descriptor'] = $local_descriptor;
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
@@ -552,7 +555,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	/**
 	 * Data provider for test_create_payment_intent_statement_descriptor.
 	 *
-	 * @return array[] [ payment_method_type, local_descriptor, account_data, expected_descriptor ]
+	 * @return array[] [ payment_method_type, local_descriptor, account_data, expected_descriptor, store_name? ]
 	 */
 	public function provide_create_payment_intent_statement_descriptor_data() {
 		$account_with_descriptor = [
@@ -566,7 +569,8 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		return [
 			'blik uses the local descriptor'          => [ WC_Stripe_UPE_Payment_Method_BLIK::STRIPE_ID, 'WOO STORE', $account_with_descriptor, 'WOO STORE' ],
 			'acss falls back to account descriptor'   => [ WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID, '', $account_with_descriptor, 'ACCOUNT DESCRIPTOR' ],
-			'no descriptor available leaves it unset' => [ WC_Stripe_UPE_Payment_Method_BLIK::STRIPE_ID, '', [], null ],
+			'falls back to the store name'            => [ WC_Stripe_UPE_Payment_Method_BLIK::STRIPE_ID, '', [], 'Test Blog' ],
+			'no descriptor available leaves it unset' => [ WC_Stripe_UPE_Payment_Method_BLIK::STRIPE_ID, '', [], null, 'Shop' ],
 		];
 	}
 

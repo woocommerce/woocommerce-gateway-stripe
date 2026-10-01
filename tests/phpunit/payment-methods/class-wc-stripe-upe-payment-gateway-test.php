@@ -7639,6 +7639,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @param bool   $expect_full           Whether statement_descriptor should be set.
 	 * @param bool   $expect_suffix         Whether statement_descriptor_suffix should be set.
 	 * @param string $expected_value        The expected statement_descriptor value (if applicable).
+	 * @param string $store_name            The store name, used when no other descriptor is available.
 	 */
 	public function test_statement_descriptor_for_payment_types(
 		string $payment_method_post,
@@ -7647,8 +7648,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		bool $short_descriptor_on,
 		bool $expect_full,
 		bool $expect_suffix,
-		string $expected_value
+		string $expected_value,
+		string $store_name = 'Test Blog'
 	) {
+		update_option( 'blogname', $store_name );
+
 		$order       = WC_Helper_Order::create_order();
 		$order_id    = $order->get_id();
 		$customer_id = 'cus_mock';
@@ -7995,7 +7999,17 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'expect_suffix'       => false,
 				'expected_value'      => 'ACME FROM STRIPE',
 			],
-			'APM with no descriptor anywhere'              => [
+			'APM falls back to the store name'             => [
+				'payment_method_post' => 'stripe_sepa_debit',
+				'local_descriptor'    => '',
+				'account_data'        => $account_without_descriptor,
+				'short_descriptor_on' => false,
+				'expect_full'         => true,
+				'expect_suffix'       => false,
+				'expected_value'      => 'My Woo Store',
+				'store_name'          => 'My Woo Store',
+			],
+			'APM with no valid descriptor anywhere'        => [
 				'payment_method_post' => 'stripe_sepa_debit',
 				'local_descriptor'    => '',
 				'account_data'        => $account_without_descriptor,
@@ -8003,6 +8017,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'expect_full'         => false,
 				'expect_suffix'       => false,
 				'expected_value'      => '',
+				'store_name'          => 'Shop',
 			],
 			'Card with short descriptor enabled'           => [
 				'payment_method_post' => 'stripe',
