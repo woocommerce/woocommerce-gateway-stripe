@@ -164,6 +164,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 11.1.0 - xxxx-xx-xx =
+* Fix - Send shoppers to the order confirmation page instead of showing an error when processing fails after a 3D Secure payment has already succeeded
 * Fix - Show BLIK and ACSS payment methods at checkout when Optimized Checkout Suite is enabled
 * Fix - Prevent non-card payment methods from failing under Optimized Checkout with Dynamic Payment Methods when the store has a statement descriptor set
 * Fix - Return an error response when a Payment Method Configuration update fails in settings, so the frontend correctly displays an error instead of a false success notice
