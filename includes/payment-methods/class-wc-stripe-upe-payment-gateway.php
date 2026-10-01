@@ -317,6 +317,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		// Clear the duplicate-charge record once the shopper reaches the order-received page.
 		add_action( 'template_redirect', [ $this, 'maybe_clear_duplicate_payment_record' ] );
+		add_filter( 'woocommerce_thankyou_order_received_text', [ WC_Stripe_Duplicate_Payment_Prevention::class, 'filter_order_received_text' ] );
 
 		// Hide action buttons for pending orders if they take a while to be confirmed.
 		add_filter( 'woocommerce_my_account_my_orders_actions', [ $this, 'filter_my_account_my_orders_actions' ], 10, 2 );
@@ -1625,7 +1626,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				WC_Stripe_Duplicate_Payment_Prevention::release_lock( $duplicate_guard_key, $duplicate_guard_owner );
 				return [
 					'result'   => 'success',
-					'redirect' => $this->get_return_url( $already_paid_order ),
+					// Flagged so the order-received page can explain the earlier order number.
+					'redirect' => add_query_arg( WC_Stripe_Duplicate_Payment_Prevention::REDIRECT_QUERY_ARG, '1', $this->get_return_url( $already_paid_order ) ),
 				];
 			}
 		}

@@ -44,6 +44,13 @@ final class WC_Stripe_Duplicate_Payment_Prevention {
 	private const DEFAULT_WINDOW = 120;
 
 	/**
+	 * Query flag on the redirect to the already-paid order.
+	 *
+	 * @var string
+	 */
+	public const REDIRECT_QUERY_ARG = 'wc_stripe_duplicate_prevented';
+
+	/**
 	 * Lock TTL, in seconds. Covers the worst case of the charge retry loop while the lock is held:
 	 * five attempts at the 70-second API timeout plus 10 seconds of backoff. A shorter TTL lets a
 	 * concurrent resubmit reclaim the lock mid-charge and create a second intent. The cost is that
@@ -157,6 +164,25 @@ final class WC_Stripe_Duplicate_Payment_Prevention {
 		}
 
 		return $paid_order;
+	}
+
+	/**
+	 * Explains on the order-received page why a resubmit landed on an earlier order.
+	 *
+	 * Only text changes, and the page itself still requires the order key, so the query flag
+	 * needs no further checks. A Store API notice would not work here: it clears notices after
+	 * process_payment().
+	 *
+	 * @param mixed $text The order-received text from the filter.
+	 * @return mixed
+	 */
+	public static function filter_order_received_text( $text ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( ! is_string( $text ) || empty( $_GET[ self::REDIRECT_QUERY_ARG ] ) ) {
+			return $text;
+		}
+
+		return __( 'We already received your payment for this cart, so you were not charged again. Here are your order details.', 'woocommerce-gateway-stripe' );
 	}
 
 	/**

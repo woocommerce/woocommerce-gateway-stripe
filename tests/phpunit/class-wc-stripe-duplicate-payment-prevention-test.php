@@ -282,6 +282,49 @@ class WC_Stripe_Duplicate_Payment_Prevention_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The order-received text explains a blocked resubmit only when the redirect carries the flag,
+	 * and leaves other filter values alone.
+	 *
+	 * @param mixed  $text     The incoming filter value.
+	 * @param bool   $flagged  Whether the request has the redirect flag.
+	 * @param string $expected 'explained' or 'unchanged'.
+	 *
+	 * @dataProvider provide_order_received_texts
+	 *
+	 * @return void
+	 */
+	public function test_filter_order_received_text( $text, bool $flagged, string $expected ): void {
+		if ( $flagged ) {
+			$_GET[ WC_Stripe_Duplicate_Payment_Prevention::REDIRECT_QUERY_ARG ] = '1';
+		}
+
+		try {
+			$result = WC_Stripe_Duplicate_Payment_Prevention::filter_order_received_text( $text );
+		} finally {
+			unset( $_GET[ WC_Stripe_Duplicate_Payment_Prevention::REDIRECT_QUERY_ARG ] );
+		}
+
+		if ( 'explained' === $expected ) {
+			$this->assertStringContainsString( 'you were not charged again', $result );
+		} else {
+			$this->assertSame( $text, $result );
+		}
+	}
+
+	/**
+	 * Data provider for test_filter_order_received_text.
+	 *
+	 * @return array<string, array{0: mixed, 1: bool, 2: string}>
+	 */
+	public function provide_order_received_texts(): array {
+		return [
+			'flagged redirect'           => [ 'Thank you. Your order has been received.', true, 'explained' ],
+			'normal order received'      => [ 'Thank you. Your order has been received.', false, 'unchanged' ],
+			'non-string from a callback' => [ null, true, 'unchanged' ],
+		];
+	}
+
+	/**
 	 * Builds a paid order carrying a given cart hash and billing email.
 	 *
 	 * @param string $cart_hash The cart hash to store on the order.
