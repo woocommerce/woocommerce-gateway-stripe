@@ -53,11 +53,7 @@ class WC_Stripe_Remote_Config_Flags {
 
 	/**
 	 * Option that force-enables ('yes') or force-disables ('no') the
-	 * remote-config channel on this site; any other value falls through to
-	 * the environment default. Internal tooling seam (wp-cli, phased rollout,
-	 * support) — deliberately not a merchant-facing opt-out: a public escape
-	 * hatch would fragment incident coverage and force a patch release for
-	 * exactly the sites a remote disable needs to reach.
+	 * remote-config feature on this site.
 	 */
 	public const ENABLED_OVERRIDE_OPTION = '_wcstripe_remote_config_enabled';
 
