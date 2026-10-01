@@ -73,11 +73,9 @@ class WC_Stripe_Remote_Config_Flags {
 			return false;
 		}
 
-		// Phase 1 of the phased rollout: the code ships with the channel
-		// globally disabled and our test sites are enabled by hand via the
-		// override option. Later phases flip this default via patch releases —
-		// test-mode sites first, then a progressive live ramp — and must
-		// re-exclude development environments when they do.
+		// Phase 1 of the phased rollout: the code ships with the feature
+		// globally disabled, with test and development sites managed via the
+		// override option. Later phases will change the defaults.
 		return false;
 	}
 
