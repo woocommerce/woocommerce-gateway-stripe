@@ -273,7 +273,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$type\.$#'
 			identifier: property.notFound
-			count: 7
+			count: 6
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
@@ -4525,12 +4525,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:need_update_idempotency_key\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:prepare_order_source\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -4652,12 +4646,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_ACH\), ''change_idempotency…''\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
@@ -4843,12 +4831,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:need_update_idempotency_key\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:prepare_order_source\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -4964,12 +4946,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_ACSS\), ''change_idempotency…''\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
@@ -5161,12 +5137,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:need_update_idempotency_key\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:prepare_order_source\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -5282,12 +5252,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Amazon_Pay\), ''change_idempotency…''\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
@@ -5479,12 +5443,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:need_update_idempotency_key\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:prepare_order_source\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -5606,12 +5564,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Bacs_Debit\), ''change_idempotency…''\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
@@ -5791,12 +5743,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:need_update_idempotency_key\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:prepare_order_source\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -5912,12 +5858,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Bancontact\), ''change_idempotency…''\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
@@ -6097,12 +6037,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:need_update_idempotency_key\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:prepare_order_source\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -6224,12 +6158,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Becs_Debit\), ''change_idempotency…''\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
@@ -6433,12 +6361,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:need_update_idempotency_key\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:prepare_order_source\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -6554,12 +6476,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Cash_App_Pay\), ''change_idempotency…''\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
@@ -6745,12 +6661,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:need_update_idempotency_key\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:prepare_order_source\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -6878,12 +6788,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$user_id of method WC_Payment_Token\:\:set_user_id\(\) expects int, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_CC\), ''change_idempotency…''\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
@@ -7069,12 +6973,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:need_update_idempotency_key\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:prepare_order_source\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -7190,12 +7088,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Ideal\), ''change_idempotency…''\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
@@ -7375,12 +7267,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:need_update_idempotency_key\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:prepare_order_source\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -7496,12 +7382,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Klarna\), ''change_idempotency…''\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
@@ -7735,12 +7615,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:need_update_idempotency_key\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:prepare_order_source\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -7868,12 +7742,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_OC\), ''change_idempotency…''\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
@@ -8065,12 +7933,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:need_update_idempotency_key\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:prepare_order_source\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -8192,12 +8054,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Sepa\), ''change_idempotency…''\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
@@ -8377,12 +8233,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:need_update_idempotency_key\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:prepare_order_source\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -8498,12 +8348,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Sofort\), ''change_idempotency…''\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
@@ -8855,3 +8699,4 @@ parameters:
 			identifier: missingType.return
 			count: 1
 			path: woocommerce-gateway-stripe.php
+

@@ -195,7 +195,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'api_error',
 		];
 
-		return in_array( $error->type, $retryable_types, true );
+		// A malformed error response can omit the type.
+		return isset( $error->type ) && in_array( $error->type, $retryable_types, true );
 	}
 
 	/**
@@ -1638,6 +1639,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param array  $request
 	 */
 	public function change_idempotency_key( $idempotency_key, $request ) {
+		// Only order requests get a retry key.
+		if ( ! is_array( $request ) || empty( $request['metadata']['order_id'] ) ) {
+			return $idempotency_key;
+		}
+
 		$customer = ! empty( $request['customer'] ) ? $request['customer'] : '';
 		$source   = ! empty( $request['source'] ) ? $request['source'] : $customer;
 		$count    = $this->retry_interval;

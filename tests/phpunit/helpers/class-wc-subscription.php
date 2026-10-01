@@ -119,6 +119,15 @@ class WC_Subscription extends WC_Order {
 	}
 
 	/**
+	 * Get related orders.
+	 *
+	 * @return array
+	 */
+	public function get_related_orders( $return_fields = 'ids', $order_type = 'any' ) {
+		return [];
+	}
+
+	/**
 	 * Generates a URL to add or change the subscription's payment method from the my account page.
 	 *
 	 * @return string
