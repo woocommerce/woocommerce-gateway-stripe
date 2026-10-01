@@ -4577,23 +4577,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	public function test_process_payment_intent_for_order_does_not_reuse_a_stored_dynamic_payment_methods_intent_for_a_non_dpm_retry( array $payment_information ) {
 		$order                        = WC_Helper_Order::create_order();
 		$payment_information['order'] = $order;
-
-		// The intent left behind by a declined DPM card attempt: `card` is in its types and the amount
-		// matches, so the type/amount/status checks alone would accept it for reuse.
-		$existing_intent = (object) wp_parse_args(
-			[
-				'id'                        => 'pi_dpm_existing',
-				'payment_method'            => 'pm_mock',
-				'payment_method_types'      => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ],
-				'automatic_payment_methods' => (object) [
-					'enabled'         => true,
-					'allow_redirects' => 'always',
-				],
-				'status'                    => WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD,
-				'amount'                    => WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ),
-			],
-			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
-		);
+		$existing_intent              = $this->get_declined_card_intent_fixture( $order, true );
 
 		$new_intent = (object) wp_parse_args(
 			[
@@ -4644,6 +4628,68 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				],
 			],
 		];
+	}
+
+	/**
+	 * Control for the test above: the same declined intent without Dynamic Payment Methods is still
+	 * reused, so `automatic_payment_methods.enabled` is what blocks the reuse, not the fixture's shape.
+	 */
+	public function test_process_payment_intent_for_order_reuses_a_compatible_non_dynamic_payment_methods_intent() {
+		$order           = WC_Helper_Order::create_order();
+		$existing_intent = $this->get_declined_card_intent_fixture( $order, false );
+
+		$payment_information = [
+			'payment_method_types'          => [ WC_Stripe_Payment_Methods::CARD ],
+			'selected_payment_type'         => WC_Stripe_Payment_Methods::CARD,
+			'is_using_saved_payment_method' => false,
+			'order'                         => $order,
+		];
+
+		$this->mock_gateway->method( 'get_intent_from_order' )->willReturn( $existing_intent );
+		$this->mock_gateway->method( 'stripe_request' )->willReturn( $existing_intent );
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->never() )
+			->method( 'create_and_confirm_payment_intent' );
+		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
+			->method( 'update_and_confirm_payment_intent' )
+			->with( $existing_intent, $this->anything() )
+			->willReturn( $existing_intent );
+
+		$method = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'process_payment_intent_for_order' );
+		$method->setAccessible( true );
+		$result = $method->invoke( $this->mock_gateway, $order, $payment_information );
+
+		$this->assertSame( 'pi_declined_card', $result->id );
+	}
+
+	/**
+	 * The intent a declined card attempt leaves on the order: `card` is in its types, the amount
+	 * matches and the status still allows confirmation, so the reuse checks accept it unless it is
+	 * a Dynamic Payment Methods intent.
+	 *
+	 * @param WC_Order $order                   The order the intent belongs to.
+	 * @param bool     $dynamic_payment_methods Whether the intent was created with `automatic_payment_methods`.
+	 * @return stdClass
+	 */
+	private function get_declined_card_intent_fixture( WC_Order $order, bool $dynamic_payment_methods ): stdClass {
+		return (object) wp_parse_args(
+			[
+				'id'                        => 'pi_declined_card',
+				'payment_method'            => 'pm_mock',
+				'payment_method_types'      => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ],
+				'automatic_payment_methods' => $dynamic_payment_methods
+					? (object) [
+						'enabled'         => true,
+						'allow_redirects' => 'always',
+					]
+					: null,
+				'status'                    => WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD,
+				'amount'                    => WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ),
+			],
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
+		);
 	}
 
 	/**
