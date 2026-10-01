@@ -529,7 +529,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		$lock_expiry = (int) $our_lock;
 
-    // A retry can reuse its idempotency key only if it sends the same request; the mandate start date must not move.
+		// A retry can reuse its idempotency key only if it sends the same request; the mandate start date must not move.
 		self::$subscription_renewal_mandate_start_date = time();
 
 		try {
@@ -671,9 +671,9 @@ trait WC_Stripe_Subscriptions_Trait {
 				if ( $this->is_retryable_error( $response->error ) && false === $radar_reason ) {
 					// Stop retrying once the lock lapses; a concurrent renewal may hold its own lock by then.
 					$lock_expired = $this->is_order_payment_lock_expired( $lock_expiry );
-          if ( $retry && ! $lock_expired ) {
-            if ( 5 <= $this->retry_interval ) { // @phpstan-ignore-line (retry_interval is defined in classes using this class)
-              $this->process_subscription_payment_attempt( $amount, $renewal_order, false, $response->error, $lock_expiry, $keyed_requests );
+					if ( $retry && ! $lock_expired ) {
+						if ( 5 <= $this->retry_interval ) { // @phpstan-ignore-line (retry_interval is defined in classes using this class)
+							$this->process_subscription_payment_attempt( $amount, $renewal_order, false, $response->error, $lock_expiry, $keyed_requests );
 							return;
 						}
 
@@ -962,18 +962,6 @@ trait WC_Stripe_Subscriptions_Trait {
 		if ( $add_order_note ) {
 			$renewal_order->add_order_note( __( 'Stripe: abandoned renewal payment retries because the payment lock has expired.', 'woocommerce-gateway-stripe' ) );
 		}
-
-		/**
-		 * The API layer decodes responses to stdClass.
-		 *
-		 * @var stdClass $response
-		 */
-		$response = $this->create_and_confirm_intent_for_off_session( $renewal_order, $prepared_source, $amount );
-
-		return [
-			'response'                   => $response,
-			'is_authentication_required' => $this->is_authentication_required_for_payment( $response ),
-		];
 	}
 
 	/**
