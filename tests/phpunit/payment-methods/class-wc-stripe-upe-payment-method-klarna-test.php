@@ -101,23 +101,10 @@ class WC_Stripe_UPE_Payment_Method_Klarna_Test extends WC_Stripe_UPE_Payment_Met
 		};
 		add_filter( 'woocommerce_currency', $currency_filter );
 
-		$mock_account = $this->createMock( WC_Stripe_Account::class );
-		$mock_account->method( 'get_cached_account_data' )
-			->willReturn(
-				[
-					'country' => $account_country,
-				]
-			);
-		$wc_stripe          = WC_Stripe::get_instance();
-		$initial_account    = $wc_stripe->account;
-		$wc_stripe->account = $mock_account;
-
 		try {
-			$payment_method = new WC_Stripe_UPE_Payment_Method_Klarna();
-			$this->assertSame( $expected, $payment_method->get_available_billing_countries() );
+			$this->run_get_available_billing_countries_test( WC_Stripe_UPE_Payment_Method_Klarna::class, $account_country, $expected );
 		} finally {
 			remove_filter( 'woocommerce_currency', $currency_filter );
-			$wc_stripe->account = $initial_account;
 		}
 	}
 
