@@ -28,16 +28,13 @@ class WC_Stripe_Remote_Config_Flags {
 	 * Schema of remotely-controllable flags.
 	 *
 	 * Each entry maps a flag name to:
-	 *  - `reader`: informational pointer (greppable) to the call site that
-	 *    reads this flag; not invoked by the resolver.
 	 *  - `type`:   declared PHP type used by validate_value() to reject
 	 *    payloads whose value does not match.
 	 *
-	 * @var array<string, array{reader: string, type: string}>
+	 * @var array<string, array{type: string}>
 	 */
 	private const FLAGS = [
-		'optimized_checkout' => [
-			'reader' => 'WC_Stripe_Feature_Flags::is_oc_offered',
+		'optimized_checkout' => [ // reader=WC_Stripe_Feature_Flags::is_oc_offered
 			'type'   => 'bool',
 		],
 	];
