@@ -2130,6 +2130,66 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * A callback that throws after a 3DS or redirect charge must not stop the paid cart from
+	 * being recorded, or the shopper's resubmit would charge the card again.
+	 *
+	 * @return void
+	 */
+	public function test_process_order_for_confirmed_intent_records_paid_cart_when_a_callback_throws(): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_cart_hash( 'confirmed-intent-cart' );
+		$order->save();
+
+		list( $amount ) = $this->get_order_details( $order );
+
+		$payment_intent_mock             = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$payment_intent_mock['amount']   = $amount;
+		$payment_intent_mock['currency'] = strtolower( $order->get_currency() );
+
+		$charge = $this->array_to_object(
+			[
+				'id'                     => 'ch_confirmed_intent_callback_throws',
+				'captured'               => true,
+				'status'                 => 'succeeded',
+				'payment_method_details' => [ 'type' => WC_Stripe_Payment_Methods::CARD ],
+			]
+		);
+
+		$this->mock_gateway->method( 'stripe_request' )->willReturn( $this->array_to_object( $payment_intent_mock ) );
+		$this->mock_gateway->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
+
+		$throw_after_charge = static function () {
+			throw new Exception( 'simulated lost response' );
+		};
+		add_action( 'wc_gateway_stripe_process_response', $throw_after_charge );
+
+		$exception = null;
+		try {
+			$this->mock_gateway->process_order_for_confirmed_intent( $order, 'pi_mock', false );
+		} catch ( Exception $e ) {
+			$exception = $e;
+		} finally {
+			remove_action( 'wc_gateway_stripe_process_response', $throw_after_charge );
+		}
+
+		$resubmit = WC_Helper_Order::create_order( $order->get_customer_id() );
+		$resubmit->set_cart_hash( 'confirmed-intent-cart' );
+		$resubmit->set_billing_email( $order->get_billing_email() );
+		$resubmit->save();
+
+		try {
+			$this->assertNotNull( $exception, 'The callback exception must still reach the caller.' );
+			$this->assertSame( 'simulated lost response', $exception->getMessage() );
+
+			$paid_order = WC_Stripe_Duplicate_Payment_Prevention::get_recent_paid_order( $resubmit );
+			$this->assertInstanceOf( WC_Order::class, $paid_order );
+			$this->assertSame( $order->get_id(), $paid_order->get_id() );
+		} finally {
+			WC_Stripe_Duplicate_Payment_Prevention::clear_paid_record( $order );
+		}
+	}
+
+	/**
 	 * Test that customer-cancelled redirects throw WC_Stripe_Payment_Cancelled_Exception so
 	 * the order is not permanently failed.
 	 *

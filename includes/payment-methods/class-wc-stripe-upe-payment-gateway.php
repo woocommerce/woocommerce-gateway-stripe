@@ -2931,48 +2931,51 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			do_action( 'woocommerce_stripe_add_payment_method', $customer->get_user_id(), $payment_method_object );
 		}
 
-		if ( ! $is_pre_order ) {
-			if ( $payment_needed ) {
-				// Use the last charge within the intent to proceed.
-				$this->process_response( $this->get_latest_charge_from_intent( $intent ), $order );
-			} else {
-				$order->payment_complete();
+		// Record the paid cart even if a step after the charge throws (for example a
+		// wc_gateway_stripe_process_response callback), or a resubmit would charge again.
+		// Covers the async return (3DS/SCA and redirect APMs). No-op unless the order is paid.
+		try {
+			if ( ! $is_pre_order ) {
+				if ( $payment_needed ) {
+					// Use the last charge within the intent to proceed.
+					$this->process_response( $this->get_latest_charge_from_intent( $intent ), $order );
+				} else {
+					$order->payment_complete();
+				}
 			}
+
+			$this->save_intent_to_order( $order, $intent );
+			$this->set_payment_method_title_for_order( $order, $payment_method_type );
+
+			/**
+			 * Fires after the payment method title is set on a confirmed intent, allowing
+			 * extensions (e.g. express checkout) to override the title for special cases.
+			 *
+			 * @since 10.8.0
+			 *
+			 * @param WC_Order $order               The order or subscription being processed.
+			 * @param string   $payment_method_type The Stripe payment method type.
+			 */
+			do_action( 'wc_stripe_after_set_payment_method_title_for_confirmed_intent', $order, $payment_method_type );
+
+			$order_helper->update_stripe_upe_redirect_processed( $order, true );
+
+			// TODO: This is a stop-gap to fix a critical issue, see
+			// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/2536. It would
+			// be better if we removed the need for additional meta data in favor of refactoring
+			// this part of the payment processing.
+			$order_helper->delete_stripe_upe_waiting_for_redirect( $order );
+
+			/**
+			 * This meta is to prevent stores with short hold stock settings from cancelling orders while waiting for payment to be finalised by Stripe or the customer (i.e. completing 3DS or payment redirects).
+			 * Now that payment is confirmed, we can remove this meta.
+			 */
+			$order_helper->remove_payment_awaiting_action( $order, false );
+
+			$order->save();
+		} finally {
+			WC_Stripe_Duplicate_Payment_Prevention::record_paid_order( $order );
 		}
-
-		$this->save_intent_to_order( $order, $intent );
-		$this->set_payment_method_title_for_order( $order, $payment_method_type );
-
-		/**
-		 * Fires after the payment method title is set on a confirmed intent, allowing
-		 * extensions (e.g. express checkout) to override the title for special cases.
-		 *
-		 * @since 10.8.0
-		 *
-		 * @param WC_Order $order               The order or subscription being processed.
-		 * @param string   $payment_method_type The Stripe payment method type.
-		 */
-		do_action( 'wc_stripe_after_set_payment_method_title_for_confirmed_intent', $order, $payment_method_type );
-
-		$order_helper->update_stripe_upe_redirect_processed( $order, true );
-
-		// TODO: This is a stop-gap to fix a critical issue, see
-		// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/2536. It would
-		// be better if we removed the need for additional meta data in favor of refactoring
-		// this part of the payment processing.
-		$order_helper->delete_stripe_upe_waiting_for_redirect( $order );
-
-		/**
-		 * This meta is to prevent stores with short hold stock settings from cancelling orders while waiting for payment to be finalised by Stripe or the customer (i.e. completing 3DS or payment redirects).
-		 * Now that payment is confirmed, we can remove this meta.
-		 */
-		$order_helper->remove_payment_awaiting_action( $order, false );
-
-		$order->save();
-
-		// Record the paid cart on the async return (3DS/SCA and redirect APMs) so a resubmit cannot
-		// charge again. No-op unless the order is paid.
-		WC_Stripe_Duplicate_Payment_Prevention::record_paid_order( $order );
 	}
 
 	/**
