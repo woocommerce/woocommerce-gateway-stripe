@@ -54,6 +54,8 @@ class WC_Stripe_Remote_Config {
 
 	/**
 	 * Reset the in-memory cache. Test-only helper.
+	 *
+	 * @internal
 	 */
 	public static function reset_in_memory_cache(): void {
 		self::$in_memory_cache = [];
