@@ -555,6 +555,55 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * New webhook metadata must not contain an API key.
+	 *
+	 * @dataProvider provide_webhook_modes
+	 */
+	public function test_configure_webhooks_does_not_store_api_key( $mode ) {
+		$prefix = 'test' === $mode ? 'test_' : '';
+		WC_Stripe_API::set_secret_key( 'sk_' . $mode . '_key' );
+		$filter = function ( $preempt, $args, $url ) {
+			if ( 'https://api.stripe.com/v1/webhook_endpoints' === $url ) {
+				return [
+					'response' => [ 'code' => 200 ],
+					'body'     => wp_json_encode(
+						[
+							'id'     => 'we_new',
+							'url'    => 'https://example.com',
+							'secret' => 'whsec_new',
+						]
+					),
+				];
+			}
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $filter, 10, 3 );
+		try {
+			$this->account->configure_webhooks( $mode );
+		} finally {
+			remove_filter( 'pre_http_request', $filter );
+			WC_Stripe_API::set_secret_key( '' );
+		}
+
+		$settings = get_option( 'woocommerce_stripe_settings' );
+		$this->assertSame(
+			[
+				'id'  => 'we_new',
+				'url' => 'https://example.com',
+			],
+			$settings[ $prefix . 'webhook_data' ]
+		);
+		$this->assertSame( 'whsec_new', $settings[ $prefix . 'webhook_secret' ] );
+	}
+
+	public function provide_webhook_modes() {
+		return [
+			'live' => [ 'live' ],
+			'test' => [ 'test' ],
+		];
+	}
+
+	/**
 	 * Status checks use the matching account key, including legacy webhook credentials.
 	 *
 	 * @dataProvider provide_webhook_status_credentials
