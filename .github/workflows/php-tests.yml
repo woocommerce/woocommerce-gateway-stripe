@@ -108,7 +108,7 @@ jobs:
           path: |
             /tmp/wordpress
             /tmp/wordpress-tests-lib
-          key: wp-testenv-${{ runner.os }}-${{ matrix.wordpress }}-wc-${{ matrix.woocommerce }}-${{ hashFiles('bin/install-wp-tests.sh', 'bin/run-ci-tests.bash') }}
+          key: wp-testenv-${{ runner.os }}-${{ matrix.wordpress }}-wc-${{ matrix.woocommerce }}-${{ hashFiles('bin/install-wp-tests.sh', 'bin/run-ci-tests.bash', 'bin/wc-version.sh') }}
           restore-keys: |
             wp-testenv-${{ runner.os }}-${{ matrix.wordpress }}-wc-${{ matrix.woocommerce }}-
             wp-testenv-${{ runner.os }}-${{ matrix.wordpress }}-
