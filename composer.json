@@ -38,7 +38,6 @@
         "includes/admin/class-wc-stripe-plugins-page-controller.php",
 		"includes/admin/class-wc-stripe-rest-args-validator.php",
         "includes/admin/class-wc-stripe-rest-balance-controller.php",
-        "includes/admin/class-wc-stripe-rest-payment-intents-controller.php",
         "includes/admin/class-wc-stripe-rest-payouts-controller.php",
         "includes/admin/class-wc-stripe-rest-response-filter.php",
         "includes/admin/class-wc-stripe-rest-upe-flag-toggle-controller.php",
