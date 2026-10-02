@@ -596,6 +596,12 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 			],
 		];
 
+		$checkout_session_markup_error = (object) [
+			'error' => (object) [
+				'message' => '<strong>Simulated</strong> update error <script>alert(1)</script>',
+			],
+		];
+
 		$checkout_session_success = (object) [
 			'id' => 'cs_test_updated',
 		];
@@ -646,6 +652,18 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 					'success' => false,
 					'data'    => (object) [
 						'message' => $mocked_error_message,
+					],
+				],
+			],
+			'error with markup in message' => [
+				'is valid nonce'            => true,
+				'set checkout session id'   => true,
+				'checkout session id'       => 'cs_test_123',
+				'checkout session response' => $checkout_session_markup_error,
+				'expected response'         => (object) [
+					'success' => false,
+					'data'    => (object) [
+						'message' => 'Simulated update error',
 					],
 				],
 			],
@@ -914,6 +932,12 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 			],
 		];
 
+		$checkout_session_markup_error = (object) [
+			'error' => (object) [
+				'message' => '<strong>Simulated</strong> error <script>alert(1)</script>',
+			],
+		];
+
 		$checkout_session_missing_secret = (object) [];
 
 		$checkout_session_success = (object) [
@@ -974,6 +998,19 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 					'success' => false,
 					'data'    => (object) [
 						'message' => $mocked_error_message,
+					],
+				],
+			],
+			'error creating session with markup'           => [
+				'user is logged-in'         => true,
+				'is valid nonce'            => true,
+				'customer data'             => $customer_data,
+				'is cart empty'             => false,
+				'checkout session response' => $checkout_session_markup_error,
+				'expected response'         => (object) [
+					'success' => false,
+					'data'    => (object) [
+						'message' => 'Simulated error',
 					],
 				],
 			],

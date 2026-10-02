@@ -8121,4 +8121,118 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			'not eligible: cashapp delayed confirm' => [ true, 'yes', WC_Stripe_Payment_Methods::CASHAPP_PAY, false, false, null, false ],
 		];
 	}
+
+	/**
+	 * A failed redirect must return sanitized text and not the internal data from WC_Stripe_Exception::get_message().
+	 *
+	 * @param Exception $exception        The exception stripe_request() throws.
+	 * @param string    $expected_message The message expected in the notice and the order note.
+	 * @dataProvider provide_redirect_payment_error_messages
+	 */
+	public function test_process_upe_redirect_payment_returns_sanitized_message( Exception $exception, string $expected_message ) {
+		$order    = WC_Helper_Order::create_order();
+		$order_id = $order->get_id();
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'stripe_request' )
+			->willThrowException( $exception );
+
+		// Throw an exception from wp_safe_redirect so that exit() is never reached and we can run assertions.
+		$custom_redirect = function () {
+			throw new \RuntimeException( 'redirect_intercepted' );
+		};
+		add_filter( 'wp_redirect', $custom_redirect );
+
+		try {
+			$this->mock_gateway->process_upe_redirect_payment( $order_id, 'pi_mock', false );
+			$this->fail( 'Expected redirect to be triggered' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirect_intercepted', $e->getMessage() );
+		} finally {
+			remove_filter( 'wp_redirect', $custom_redirect );
+		}
+
+		try {
+			$notices = wc_get_notices( 'error' );
+			$this->assertCount( 1, $notices );
+			$this->assertSame( $expected_message, $notices[0]['notice'] );
+
+			$final_order = wc_get_order( $order_id );
+			$this->assertSame( OrderStatus::FAILED, $final_order->get_status() );
+
+			// The status-change note is not necessarily the newest one (WooCommerce adds a
+			// "failed order email sent" note after it), so inspect all notes on the order.
+			$note_contents = wp_list_pluck( wc_get_order_notes( [ 'order_id' => $order_id ] ), 'content' );
+			$this->assertNotEmpty( $note_contents );
+			$this->assertStringContainsString( 'UPE payment failed: ' . $expected_message, implode( "\n", $note_contents ) );
+			$this->assertStringNotContainsString( 'Array (', implode( "\n", $note_contents ) );
+		} finally {
+			$order->delete( true );
+		}
+	}
+
+	/**
+	 * Data provider for {@see test_process_upe_redirect_payment_returns_sanitized_message()}.
+	 *
+	 * @return array[]
+	 */
+	public function provide_redirect_payment_error_messages(): array {
+		return [
+			'WC_Stripe_Exception exposes the localized message, not the internal data' => [
+				new WC_Stripe_Exception( 'Array ( [error] => Array ( [code] => card_declined ) )', 'Your card was declined.' ),
+				'Your card was declined.',
+			],
+			'markup is stripped from a plain exception message'                        => [
+				new Exception( '<strong>Invalid</strong> request <script>alert(1)</script>' ),
+				'Invalid request',
+			],
+			'missing localized message falls back to generic text'                     => [
+				new WC_Stripe_Exception( 'Array ( raw only )' ),
+				"We're not able to process this payment. Please try again later.",
+			],
+		];
+	}
+
+	/**
+	 * A failed token creation exception must return sanitized text and not the internal data from WC_Stripe_Exception::get_message().
+	 *
+	 * @param Exception $exception        The exception create_token_from_setup_intent() throws.
+	 * @param string    $expected_message The message expected in the notice.
+	 * @dataProvider provide_setup_intent_token_error_messages
+	 */
+	public function test_create_token_from_setup_intent_returns_sanitized_message( Exception $exception, string $expected_message ) {
+		$user = $this->factory->user->create_and_get();
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'stripe_request' )
+			->willThrowException( $exception );
+
+		$this->assertNull( $this->mock_gateway->create_token_from_setup_intent( 'seti_mock', $user ) );
+
+		$notices = wc_get_notices( 'error' );
+		$this->assertCount( 1, $notices );
+		$this->assertSame( $expected_message, $notices[0]['notice'] );
+	}
+
+	/**
+	 * Data provider for {@see test_create_token_from_setup_intent_returns_sanitized_message()}.
+	 *
+	 * @return array[]
+	 */
+	public function provide_setup_intent_token_error_messages(): array {
+		return [
+			'WC_Stripe_Exception exposes the localized message, not the internal data' => [
+				new WC_Stripe_Exception( 'Array ( [error] => Array ( [code] => resource_missing ) )', 'No such setup intent.' ),
+				'No such setup intent.',
+			],
+			'markup is stripped from a plain exception message'                        => [
+				new Exception( '<a href="https://example.com">Retry</a> later' ),
+				'Retry later',
+			],
+			'missing localized message falls back to generic text'                     => [
+				new WC_Stripe_Exception( 'Array ( raw only )' ),
+				"We're not able to add this payment method. Please try again later.",
+			],
+		];
+	}
 }

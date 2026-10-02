@@ -333,7 +333,7 @@ class WC_Stripe_Intent_Controller {
 				'status' => 'error',
 				'error'  => [
 					'type'    => 'setup_intent_error',
-					'message' => $e->getMessage(),
+					'message' => WC_Stripe_Helper::get_sanitized_error_message_from_exception( $e ),
 				],
 			];
 		}
@@ -376,7 +376,7 @@ class WC_Stripe_Intent_Controller {
 			wp_send_json_error(
 				[
 					'error' => [
-						'message' => $e->getMessage(),
+						'message' => WC_Stripe_Helper::get_sanitized_error_message_from_exception( $e ),
 					],
 				]
 			);
@@ -523,7 +523,7 @@ class WC_Stripe_Intent_Controller {
 			wp_send_json_error(
 				[
 					'error' => [
-						'message' => $e->getMessage(),
+						'message' => WC_Stripe_Helper::get_sanitized_error_message_from_exception( $e ),
 					],
 				]
 			);
@@ -679,7 +679,7 @@ class WC_Stripe_Intent_Controller {
 			wp_send_json_error(
 				[
 					'error' => [
-						'message' => $e->getMessage(),
+						'message' => WC_Stripe_Helper::get_sanitized_error_message_from_exception( $e ),
 					],
 				]
 			);
@@ -869,7 +869,7 @@ class WC_Stripe_Intent_Controller {
 			wp_send_json_error(
 				[
 					'error' => [
-						'message' => $e->getLocalizedMessage(),
+						'message' => WC_Stripe_Helper::get_sanitized_error_message_from_exception( $e ),
 					],
 				]
 			);
@@ -1497,7 +1497,7 @@ class WC_Stripe_Intent_Controller {
 			wp_send_json_error(
 				[
 					'error' => [
-						'message' => $e->getLocalizedMessage(),
+						'message' => WC_Stripe_Helper::get_sanitized_error_message_from_exception( $e ),
 					],
 				]
 			);
@@ -1591,7 +1591,7 @@ class WC_Stripe_Intent_Controller {
 			wp_send_json_error(
 				[
 					'error' => [
-						'message' => $e->getLocalizedMessage(),
+						'message' => WC_Stripe_Helper::get_sanitized_error_message_from_exception( $e ),
 					],
 				]
 			);
