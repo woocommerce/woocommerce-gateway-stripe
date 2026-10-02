@@ -95,6 +95,85 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test that is_oc_offered routes its result through the remote-config resolver.
+	 *
+	 * is_oc_available() must stay independent of remote-config: the merchant
+	 * can still edit the settings whatever the remote flag says. Only the
+	 * runtime predicate is_oc_offered() follows the remote flag.
+	 *
+	 * @dataProvider provide_test_is_oc_offered_with_remote_config
+	 */
+	public function test_is_oc_offered_routes_through_remote_config(
+		bool $pmc_enabled,
+		?bool $remote_value,
+		bool $expected
+	): void {
+		update_option( '_wcstripe_remote_config_enabled', 'yes' );
+		PMC_Test_Helper::cache_mocked_configuration();
+		if ( $pmc_enabled ) {
+			PMC_Test_Helper::enable_pmc();
+		} else {
+			PMC_Test_Helper::disable_pmc();
+		}
+
+		WC_Stripe_Remote_Config::reset_in_memory_cache();
+		delete_option( '_wcstripe_remote_config_live' );
+
+		// Force live mode so we hit the live cache.
+		$settings             = WC_Stripe_Helper::get_stripe_settings();
+		$settings['testmode'] = 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		if ( null !== $remote_value ) {
+			( new WC_Stripe_Remote_Config() )->apply(
+				'live',
+				[
+					'flags'        => [ 'optimized_checkout' => [ 'value' => $remote_value ] ],
+					'generated_at' => '2026-05-09T12:00:00Z',
+				]
+			);
+		}
+
+		$actual       = WC_Stripe_Feature_Flags::is_oc_offered();
+		$is_available = WC_Stripe_Feature_Flags::is_oc_available();
+
+		// Cleanup
+		delete_option( '_wcstripe_remote_config_enabled' );
+		PMC_Test_Helper::disable_pmc();
+		PMC_Test_Helper::delete_cached_configuration();
+		WC_Stripe_Remote_Config::reset_in_memory_cache();
+		delete_option( '_wcstripe_remote_config_live' );
+
+		$this->assertSame( $expected, $actual );
+		$this->assertSame( $pmc_enabled, $is_available, 'is_oc_available() must ignore the remote config flag' );
+	}
+
+	public function provide_test_is_oc_offered_with_remote_config(): array {
+		return [
+			'no remote, PMC enabled -> local true'                   => [
+				'PMC enabled'  => true,
+				'remote value' => null,
+				'expected'     => true,
+			],
+			'no remote, PMC disabled -> local false'                 => [
+				'PMC enabled'  => false,
+				'remote value' => null,
+				'expected'     => false,
+			],
+			'remote false disables when locally enabled'             => [
+				'PMC enabled'  => true,
+				'remote value' => false,
+				'expected'     => false,
+			],
+			'remote true cannot force-enable when PMC gate disables' => [
+				'PMC enabled'  => false,
+				'remote value' => true,
+				'expected'     => false,
+			],
+		];
+	}
+
+	/**
 	 * Test for `is_abilities_enabled`.
 	 *
 	 * @param string|null $option_value     The value to set on `_wcstripe_feature_abilities`, or null to delete.

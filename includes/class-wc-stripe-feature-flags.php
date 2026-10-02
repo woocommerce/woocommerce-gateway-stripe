@@ -149,7 +149,7 @@ class WC_Stripe_Feature_Flags {
 	 * @since 10.6.0
 	 */
 	public static function should_expand_ocs_in_legacy_checkout(): bool {
-		if ( ! self::is_oc_available() ) {
+		if ( ! self::is_oc_offered() ) {
 			return false;
 		}
 
@@ -171,13 +171,18 @@ class WC_Stripe_Feature_Flags {
 	}
 
 	/**
-	 * Whether the Optimized Checkout (OC) feature flag is enabled.
+	 * Whether the Optimized Checkout (OC) feature is available for this merchant.
+	 *
+	 * Reflects the local feature-flag/checks only. Deliberately does
+	 * NOT consult remote-config. Returning false here means the feature is hidden
+	 * entirely.
 	 *
 	 * @return bool
 	 */
 	public static function is_oc_available() {
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$pmc_enabled     = $stripe_settings['pmc_enabled'] ?? 'no';
+
 		if ( 'yes' !== $pmc_enabled ) {
 			return false;
 		}
@@ -197,6 +202,26 @@ class WC_Stripe_Feature_Flags {
 			'yes',
 			$pmc_enabled
 		);
+	}
+
+	/**
+	 * Whether the OC feature is currently offered to shoppers / operational at runtime.
+	 *
+	 * False when {@see self::is_oc_available()} is false, OR when a high-severity
+	 * issue warrants disabling Optimized Checkout remotely. When this returns false
+	 * but `is_oc_available()` returns true, the feature has been remotely disabled.
+	 *
+	 * Use for: customer-facing checkout rendering, payment-method registration,
+	 * runtime path gating. Do NOT use for admin settings UI rendering - use
+	 * `is_oc_available()` so remotely-disabled features still show their settings
+	 * section in a disabled state.
+	 */
+	public static function is_oc_offered(): bool {
+		if ( ! self::is_oc_available() ) {
+			return false;
+		}
+
+		return (bool) WC_Stripe_Remote_Config::get_instance()->resolve( 'optimized_checkout', true );
 	}
 
 	/**
