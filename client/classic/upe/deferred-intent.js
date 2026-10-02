@@ -2,6 +2,7 @@ import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
 import {
 	generateCheckoutEventNames,
+	getAdaptivePricingSavedTokenPaymentMethod,
 	getSelectedUPEGatewayPaymentMethod,
 	getStripeServerData,
 	isPaymentMethodRestrictedToLocation,
@@ -17,12 +18,14 @@ import {
 	confirmWalletPayment,
 	createAndConfirmSetupIntent,
 	getMountedUPEComponent,
+	hasActiveCheckoutSession,
 	hasEmptyRequiredFields,
 	initializeUPEComponents,
 	maybeUpdateAdaptivePricingCheckoutSession,
 	maybeUpdateOptimizedCheckoutExclusions,
 	mountStripePaymentElement,
 	processPayment,
+	relocateCurrencySelector,
 	resetCheckoutCompletionState,
 	trackMountInProgress,
 } from './payment-processing';
@@ -127,6 +130,17 @@ jQuery( function ( $ ) {
 
 		const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
 		if ( ! isUsingSavedPaymentMethod( paymentMethodType ) ) {
+			return processPayment( api, $form, paymentMethodType );
+		}
+
+		// An Adaptive Pricing-eligible saved card pays the live Checkout
+		// Session via confirm( { paymentMethod } ). Without a live session
+		// (mount fell back to classic Elements) the native submit proceeds
+		// and the server charges the store currency as before.
+		if (
+			hasActiveCheckoutSession( paymentMethodType ) &&
+			getAdaptivePricingSavedTokenPaymentMethod( paymentMethodType )
+		) {
 			return processPayment( api, $form, paymentMethodType );
 		}
 	}
@@ -268,9 +282,10 @@ jQuery( function ( $ ) {
 			}
 		} );
 
-		// TODO: Remove this once we support saved payment methods with adaptive pricing.
-		// Hide the Adaptive Pricing currency selector when a saved payment method is selected,
-		// since no new Checkout Session is created in that flow.
+		// Hide the Adaptive Pricing currency selector when the selected saved
+		// method can't pay the Checkout Session (non-card tokens stay on the
+		// store-currency flow, where no conversion applies). For an eligible
+		// saved card, nest the selector inside the selected token's row.
 		const maybeShowCurrencySelector = () => {
 			const currencySelector = document.getElementById(
 				'wc-stripe-currency-selector'
@@ -278,13 +293,20 @@ jQuery( function ( $ ) {
 			if ( ! currencySelector ) {
 				return;
 			}
-			if (
-				isUsingSavedPaymentMethod(
-					getSelectedUPEGatewayPaymentMethod()
-				)
-			) {
+			const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
+			const usingSavedMethod =
+				isUsingSavedPaymentMethod( paymentMethodType );
+			const isEligibleToken =
+				usingSavedMethod &&
+				Boolean(
+					getAdaptivePricingSavedTokenPaymentMethod(
+						paymentMethodType
+					)
+				);
+			if ( usingSavedMethod && ! isEligibleToken ) {
 				$( currencySelector ).hide();
 			} else {
+				relocateCurrencySelector( isEligibleToken );
 				$( currencySelector ).show();
 			}
 		};
