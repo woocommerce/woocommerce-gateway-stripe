@@ -266,6 +266,53 @@ class WC_Stripe_Admin_Notices {
 				$this->add_admin_notice( '3ds', 'notice notice-warning', $message, true );
 			}
 
+			// Notices are raised and dismissed per mode: a merchant cares far more
+			// about a missing live webhook than a test one, and a mode-agnostic
+			// notice would push them to reconfigure whichever mode they happen to
+			// be in, which may not be the affected one.
+			// One full string per mode, so translators never see an untranslated mode name.
+			$webhook_missing_messages = [
+				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
+				'live' => __( 'WooCommerce Stripe - Your live-mode webhook endpoint saved in your settings no longer exists in your Stripe account, so live order updates from Stripe are not being received. Please %1$sre-configure your webhooks%2$s.', 'woocommerce-gateway-stripe' ),
+				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
+				'test' => __( 'WooCommerce Stripe - Your test-mode webhook endpoint saved in your settings no longer exists in your Stripe account, so test order updates from Stripe are not being received. Please %1$sre-configure your webhooks%2$s.', 'woocommerce-gateway-stripe' ),
+			];
+
+			foreach ( $webhook_missing_messages as $mode => $message_format ) {
+				if ( 'yes' !== get_option( WC_Stripe_Account::get_webhook_missing_notice_option( $mode ) ) ) {
+					continue;
+				}
+
+				$message = sprintf(
+					$message_format,
+					'<a href="' . $this->get_setting_link() . '">',
+					'</a>'
+				);
+
+				$this->add_admin_notice( 'webhook_missing_' . $mode, 'notice notice-error', $message, true );
+			}
+
+			$webhook_manual_secret_messages = [
+				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
+				'live' => __( 'WooCommerce Stripe - Automatic reconfiguration of your live-mode webhook was skipped because its signing secret in your settings was set manually. Please verify your live webhook configuration in the Stripe Dashboard, or %1$sre-configure your webhooks%2$s to let the plugin manage them.', 'woocommerce-gateway-stripe' ),
+				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
+				'test' => __( 'WooCommerce Stripe - Automatic reconfiguration of your test-mode webhook was skipped because its signing secret in your settings was set manually. Please verify your test webhook configuration in the Stripe Dashboard, or %1$sre-configure your webhooks%2$s to let the plugin manage them.', 'woocommerce-gateway-stripe' ),
+			];
+
+			foreach ( $webhook_manual_secret_messages as $mode => $message_format ) {
+				if ( 'yes' !== get_option( WC_Stripe_Account::get_webhook_manual_secret_notice_option( $mode ) ) ) {
+					continue;
+				}
+
+				$message = sprintf(
+					$message_format,
+					'<a href="' . $this->get_setting_link() . '">',
+					'</a>'
+				);
+
+				$this->add_admin_notice( 'webhook_manual_secret_' . $mode, 'notice notice-warning', $message, true );
+			}
+
 			if ( empty( $show_style_notice ) ) {
 				$message = sprintf(
 				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
@@ -842,6 +889,18 @@ class WC_Stripe_Admin_Notices {
 					break;
 				case 'changed_keys':
 					update_option( 'wc_stripe_show_changed_keys_notice', 'no' );
+					break;
+				case 'webhook_missing_live':
+					delete_option( WC_Stripe_Account::get_webhook_missing_notice_option( 'live' ) );
+					break;
+				case 'webhook_missing_test':
+					delete_option( WC_Stripe_Account::get_webhook_missing_notice_option( 'test' ) );
+					break;
+				case 'webhook_manual_secret_live':
+					delete_option( WC_Stripe_Account::get_webhook_manual_secret_notice_option( 'live' ) );
+					break;
+				case 'webhook_manual_secret_test':
+					delete_option( WC_Stripe_Account::get_webhook_manual_secret_notice_option( 'test' ) );
 					break;
 				case 'legacy_deprecation':
 					update_option( 'wc_stripe_show_legacy_deprecation_notice', 'no' );
