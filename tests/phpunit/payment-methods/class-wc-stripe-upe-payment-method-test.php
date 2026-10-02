@@ -1233,12 +1233,21 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 *
 	 * @return WC_Stripe_UPE_Payment_Method
 	 */
-	private function make_method_with_billing_countries( array $billing_countries ): WC_Stripe_UPE_Payment_Method {
-		return new class( $billing_countries ) extends WC_Stripe_UPE_Payment_Method {
+	private function make_method_with_billing_countries( array $billing_countries, ?array $available_billing_countries = null ): WC_Stripe_UPE_Payment_Method {
+		return new class( $billing_countries, $available_billing_countries ) extends WC_Stripe_UPE_Payment_Method {
 			const STRIPE_ID = 'test_billing_country_method';
-			public function __construct( array $billing_countries ) {
+			/** @var array|null */
+			private $test_available_billing_countries = null;
+			public function __construct( array $billing_countries, ?array $available_billing_countries = null ) {
 				parent::__construct();
-				$this->supported_billing_countries = $billing_countries;
+				$this->supported_billing_countries      = $billing_countries;
+				$this->test_available_billing_countries = $available_billing_countries;
+			}
+			public function get_available_billing_countries() {
+				if ( is_array( $this->test_available_billing_countries ) ) {
+					return $this->test_available_billing_countries;
+				}
+				return parent::get_available_billing_countries();
 			}
 		};
 	}
@@ -1246,12 +1255,13 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	/**
 	 * @dataProvider provide_test_is_available_for_billing_country
 	 *
-	 * @param string[]    $supported_billing_countries Supported billing countries to seed on the method.
+	 * @param string[]    $supported_billing_countries Supported billing countries to set for the method.
+	 * @param array|null  $available_billing_countries Available billing countries to set for the method.
 	 * @param string|null $country_code                Billing country to check.
 	 * @param bool        $expected                    Expected return value.
 	 */
-	public function test_is_available_for_billing_country( array $supported_billing_countries, ?string $country_code, bool $expected ): void {
-		$method = $this->make_method_with_billing_countries( $supported_billing_countries );
+	public function test_is_available_for_billing_country( array $supported_billing_countries, ?array $available_billing_countries, ?string $country_code, bool $expected ): void {
+		$method = $this->make_method_with_billing_countries( $supported_billing_countries, $available_billing_countries );
 
 		$this->assertSame( $expected, $method->is_available_for_billing_country( $country_code ) );
 	}
@@ -1259,49 +1269,64 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	public function provide_test_is_available_for_billing_country(): array {
 		return [
 			'empty list permits any country (US)'    => [
-				[],
-				'US',
-				true,
+				'supported_billing_countries' => [],
+				'available_billing_countries' => null,
+				'country_code'                => WC_Stripe_Country_Code::UNITED_STATES,
+				'expected'                    => true,
 			],
 			'empty list permits any country (ZZ)'    => [
-				[],
-				'ZZ',
-				true,
+				'supported_billing_countries' => [],
+				'available_billing_countries' => null,
+				'country_code'                => 'ZZ',
+				'expected'                    => true,
 			],
 			'empty list permits unknown country'     => [
-				[],
-				'',
-				true,
+				'supported_billing_countries' => [],
+				'available_billing_countries' => null,
+				'country_code'                => '',
+				'expected'                    => true,
 			],
 			'populated list rejects unknown country' => [
-				[ 'US', 'CA' ],
-				'',
-				false,
+				'supported_billing_countries' => [ WC_Stripe_Country_Code::UNITED_STATES, WC_Stripe_Country_Code::CANADA ],
+				'available_billing_countries' => null,
+				'country_code'                => '',
+				'expected'                    => false,
 			],
 			'empty list permits null country'        => [
-				[],
-				null,
-				true,
+				'supported_billing_countries' => [],
+				'available_billing_countries' => null,
+				'country_code'                => null,
+				'expected'                    => true,
 			],
 			'populated list rejects null country'    => [
-				[ 'US', 'CA', 'GB' ],
-				null,
-				false,
+				'supported_billing_countries' => [ WC_Stripe_Country_Code::UNITED_STATES, WC_Stripe_Country_Code::CANADA, WC_Stripe_Country_Code::UNITED_KINGDOM ],
+				'available_billing_countries' => null,
+				'country_code'                => null,
+				'expected'                    => false,
 			],
 			'populated list matches'                 => [
-				[ 'US', 'CA' ],
-				'CA',
-				true,
+				'supported_billing_countries' => [ WC_Stripe_Country_Code::UNITED_STATES, WC_Stripe_Country_Code::CANADA ],
+				'available_billing_countries' => null,
+				'country_code'                => WC_Stripe_Country_Code::CANADA,
+				'expected'                    => true,
 			],
 			'populated list rejects miss'            => [
-				[ 'US', 'CA' ],
-				'GB',
-				false,
+				'supported_billing_countries' => [ WC_Stripe_Country_Code::UNITED_STATES, WC_Stripe_Country_Code::CANADA ],
+				'available_billing_countries' => null,
+				'country_code'                => WC_Stripe_Country_Code::UNITED_KINGDOM,
+				'expected'                    => false,
 			],
 			'case-sensitive comparison'              => [
-				[ 'US' ],
-				'us',
-				true,
+				'supported_billing_countries' => [ WC_Stripe_Country_Code::UNITED_STATES ],
+				'available_billing_countries' => null,
+				'country_code'                => 'us',
+				'expected'                    => true,
+			],
+			'custom get_available_billing_countries' => [
+				'supported_billing_countries' => [ WC_Stripe_Country_Code::UNITED_STATES, WC_Stripe_Country_Code::CANADA, WC_Stripe_Country_Code::UNITED_KINGDOM ],
+				'available_billing_countries' => [ WC_Stripe_Country_Code::UNITED_STATES ],
+				'country_code'                => WC_Stripe_Country_Code::UNITED_KINGDOM,
+				'expected'                    => false,
 			],
 		];
 	}

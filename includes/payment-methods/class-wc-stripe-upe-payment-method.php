@@ -492,6 +492,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 
 	/**
 	 * Whether the given billing country for a shopper is permitted to use this payment method.
+	 * Note that this may depend on the store currency and the account country as it calls
+	 * {@see get_available_billing_countries()}.
 	 *
 	 * @param string $country_code Two-letter ISO country code.
 	 *
@@ -501,7 +503,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		// Methods with no country restriction (e.g. card, Link) are available everywhere,
 		// including when the billing country is unknown — an empty country must not block
 		// them, or checkout fails for orders that carry no billing country.
-		if ( [] === $this->supported_billing_countries ) {
+		$available_billing_countries = $this->get_available_billing_countries();
+		if ( [] === $available_billing_countries ) {
 			return true;
 		}
 
@@ -511,7 +514,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			return false;
 		}
 
-		return in_array( $country_code, $this->supported_billing_countries, true );
+		return in_array( $country_code, $available_billing_countries, true );
 	}
 
 	/**

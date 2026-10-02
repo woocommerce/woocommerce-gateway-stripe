@@ -1269,7 +1269,23 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			->expects( $saved_token ? $this->once() : $this->never() )
 			->method( 'update_saved_payment_method' );
 
-		$response   = $this->mock_gateway->process_payment( $order_id );
+		$wc_stripe       = WC_Stripe::get_instance();
+		$initial_account = null;
+		if ( WC_Stripe_Payment_Methods::CASHAPP_PAY === $payment_method ) {
+			$initial_account    = $wc_stripe->account;
+			$wc_stripe->account = $this->createMock( WC_Stripe_Account::class );
+			$wc_stripe->account->method( 'get_cached_account_data' )
+				->willReturn( [ 'country' => WC_Stripe_Country_Code::UNITED_STATES ] );
+		}
+
+		try {
+			$response = $this->mock_gateway->process_payment( $order_id );
+		} finally {
+			if ( $initial_account ) {
+				$wc_stripe->account = $initial_account;
+			}
+		}
+
 		$return_url = self::MOCK_RETURN_URL;
 
 		if ( $saved_token ) {
