@@ -108,8 +108,8 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 				throw new \Exception(
 					sprintf(
 						/* translators: %d: column index */
-						__( 'CSV header at index %d must be a non-empty string.', 'woocommerce-gateway-stripe' ),
-						$index
+						__( 'CSV header at index %d must be a non-empty string.', 'woocommerce-gateway-stripe' ), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+						$index // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 					)
 				);
 			}
@@ -154,8 +154,8 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 			throw new Exception(
 				sprintf(
 					/* translators: %s: directory path */
-					__( 'Unable to create feed directory: %s', 'woocommerce-gateway-stripe' ),
-					$directory_path
+					__( 'Unable to create feed directory: %s', 'woocommerce-gateway-stripe' ), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+					$directory_path // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				)
 			);
 		}
@@ -182,11 +182,11 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	public function start(): void {
 		if ( $this->started ) {
 			WC_Stripe_Logger::error( 'Feed generation already started.' );
-			throw new Exception( __( 'Feed generation already started.', 'woocommerce-gateway-stripe' ) );
+			throw new Exception( __( 'Feed generation already started.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		if ( empty( $this->headers ) ) {
-			throw new Exception( __( 'CSV headers must be set via set_columns() before calling start().', 'woocommerce-gateway-stripe' ) );
+			throw new Exception( __( 'CSV headers must be set via set_columns() before calling start().', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		try {
@@ -248,12 +248,12 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	public function add_entry( array $entry ): void {
 		if ( ! $this->started ) {
 			WC_Stripe_Logger::error( 'Cannot add entry: feed not started.' );
-			throw new Exception( __( 'Cannot add entry: feed not started.', 'woocommerce-gateway-stripe' ) );
+			throw new Exception( __( 'Cannot add entry: feed not started.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		if ( $this->finalized ) {
 			WC_Stripe_Logger::error( 'Cannot add entry: feed already finalized.' );
-			throw new Exception( __( 'Cannot add entry: feed already finalized.', 'woocommerce-gateway-stripe' ) );
+			throw new Exception( __( 'Cannot add entry: feed already finalized.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		if ( count( $entry ) !== count( $this->headers ) ) {
@@ -263,7 +263,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 				count( $this->headers )
 			);
 			WC_Stripe_Logger::error( $message );
-			throw new Exception( $message );
+			throw new Exception( $message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		try {
@@ -333,8 +333,8 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 			throw new Exception(
 				sprintf(
 					/* translators: %s: column key */
-					__( 'CSV entry at column "%s" contains an array or object. Please format complex data as strings before passing to add_entry().', 'woocommerce-gateway-stripe' ),
-					$key
+					__( 'CSV entry at column "%s" contains an array or object. Please format complex data as strings before passing to add_entry().', 'woocommerce-gateway-stripe' ), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+					$key // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				)
 			);
 		}
@@ -416,7 +416,7 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed implements FeedInterface {
 	 * @return string|null Public URL, or null if not finalized.
 	 */
 	public function get_file_url(): ?string {
-		throw new Exception( __( 'Stripe\'s feeds will always be pushed, the URL is not needed.', 'woocommerce-gateway-stripe' ) );
+		throw new Exception( __( 'Stripe\'s feeds will always be pushed, the URL is not needed.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 	}
 
 	/**

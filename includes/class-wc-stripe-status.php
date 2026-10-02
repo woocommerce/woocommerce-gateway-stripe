@@ -77,19 +77,19 @@ class WC_Stripe_Status {
 				<td class="help">
 					<?php
 					/* translators: %s: WooCommerce Stripe Payment Gateway */
-					echo wc_help_tip( sprintf( esc_html__( 'The current version of the %s extension.', 'woocommerce-gateway-stripe' ), 'WooCommerce Stripe Payment Gateway' ) ); /* phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped, WordPress.Security.EscapeOutput.OutputNotEscaped */
+					echo wc_help_tip( sprintf( esc_html__( 'The current version of the %s extension.', 'woocommerce-gateway-stripe' ), 'WooCommerce Stripe Payment Gateway' ) ); /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */
 					?>
 				</td>
 				<td><?php echo esc_html( WC_STRIPE_VERSION ); ?></td>
 			</tr>
 			<tr>
 				<td data-export-label="Account ID"><?php esc_html_e( 'Account ID', 'woocommerce-gateway-stripe' ); ?>:</td>
-				<td class="help"><?php echo wc_help_tip( esc_html__( 'The Stripe account identifier.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped, WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></td>
+				<td class="help"><?php echo wc_help_tip( esc_html__( 'The Stripe account identifier.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></td>
 				<td><?php echo esc_html( $account_data['id'] ?? '' ); ?></td>
 			</tr>
 			<tr>
 				<td data-export-label="Test Mode Enabled"><?php esc_html_e( 'Test Mode Enabled', 'woocommerce-gateway-stripe' ); ?>:</td>
-				<td class="help"><?php echo wc_help_tip( esc_html__( 'Whether the payment gateway has test payments enabled.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped, WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></td>
+				<td class="help"><?php echo wc_help_tip( esc_html__( 'Whether the payment gateway has test payments enabled.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></td>
 				<td>
 					<?php
 					$is_test = WC_Stripe_Mode::is_test();
@@ -105,7 +105,7 @@ class WC_Stripe_Status {
 			</tr>
 			<tr>
 				<td data-export-label="OAuth Connected"><?php esc_html_e( 'OAuth Connected', 'woocommerce-gateway-stripe' ); ?>:</td>
-				<td class="help"><?php echo wc_help_tip( esc_html__( 'Whether the Stripe account is connected via OAuth.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped, WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></td>
+				<td class="help"><?php echo wc_help_tip( esc_html__( 'Whether the Stripe account is connected via OAuth.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></td>
 				<td>
 					<?php
 					$stripe_connect  = woocommerce_gateway_stripe()->connect;
@@ -120,7 +120,7 @@ class WC_Stripe_Status {
 			</tr>
 			<tr>
 				<td data-export-label="Sync Enabled"><?php esc_html_e( 'Sync Enabled', 'woocommerce-gateway-stripe' ); ?>:</td>
-				<td class="help"><?php echo wc_help_tip( esc_html__( 'Whether the payment methods are synced between Stripe dashboard and the plugin.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped, WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></td>
+				<td class="help"><?php echo wc_help_tip( esc_html__( 'Whether the payment methods are synced between Stripe dashboard and the plugin.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></td>
 				<td>
 					<?php
 					$is_pmc_enabled = 'yes' === $this->gateway->get_option( 'pmc_enabled', 'no' );
@@ -134,7 +134,7 @@ class WC_Stripe_Status {
 			</tr>
 			<tr>
 				<td data-export-label="Optimized Checkout Enabled"><?php esc_html_e( 'Optimized Checkout Enabled', 'woocommerce-gateway-stripe' ); ?>:</td>
-				<td class="help"><?php echo wc_help_tip( esc_html__( 'Whether the Optimized Checkout Suite is enabled.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped, WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></td>
+				<td class="help"><?php echo wc_help_tip( esc_html__( 'Whether the Optimized Checkout Suite is enabled.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></td>
 				<td>
 					<?php
 					$is_oc_enabled = 'yes' === $this->gateway->get_option( 'optimized_checkout_element', 'no' );
@@ -148,12 +148,12 @@ class WC_Stripe_Status {
 			</tr>
 			<tr>
 				<td data-export-label="Enabled Payment Methods"><?php esc_html_e( 'Enabled Payment Methods', 'woocommerce-gateway-stripe' ); ?>:</td>
-				<td class="help"><?php echo wc_help_tip( esc_html__( 'What payment methods are enabled for the store.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped, WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></td>
+				<td class="help"><?php echo wc_help_tip( esc_html__( 'What payment methods are enabled for the store.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></td>
 				<td><?php echo esc_html( implode( ',', $this->gateway->get_upe_enabled_payment_method_ids() ) ); ?></td>
 			</tr>
 			<tr>
 				<td data-export-label="Express Checkout"><?php esc_html_e( 'Express Checkout', 'woocommerce-gateway-stripe' ); ?>:</td>
-				<td class="help"><?php echo wc_help_tip( esc_html__( 'Whether Express Checkout is enabled.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped, WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></td>
+				<td class="help"><?php echo wc_help_tip( esc_html__( 'Whether Express Checkout is enabled.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></td>
 				<td>
 					<mark class="yes"><span class="dashicons dashicons-yes"></span>
 					<?php
@@ -179,7 +179,7 @@ class WC_Stripe_Status {
 			</tr>
 			<tr>
 				<td data-export-label="Auth and Capture"><?php esc_html_e( 'Auth and Capture Enabled', 'woocommerce-gateway-stripe' ); ?>:</td>
-				<td class="help"><?php echo wc_help_tip( esc_html__( 'Whether the store has the Auth & Capture feature enabled.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped, WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></td>
+				<td class="help"><?php echo wc_help_tip( esc_html__( 'Whether the store has the Auth & Capture feature enabled.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></td>
 				<td>
 					<?php
 					$auth_capture_enabled = $this->gateway->is_automatic_capture_enabled();
@@ -194,7 +194,7 @@ class WC_Stripe_Status {
 			</tr>
 			<tr>
 				<td data-export-label="Logging"><?php esc_html_e( 'Logging Enabled', 'woocommerce-gateway-stripe' ); ?>:</td>
-				<td class="help"><?php echo wc_help_tip( esc_html__( 'Whether debug logging is enabled and working or not.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped, WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></td>
+				<td class="help"><?php echo wc_help_tip( esc_html__( 'Whether debug logging is enabled and working or not.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></td>
 				<td>
 					<?php
 					$can_log = WC_Stripe_Logger::can_log();
