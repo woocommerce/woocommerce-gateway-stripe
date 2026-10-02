@@ -1139,69 +1139,165 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Without a type, the Apple Pay / Google Pay locations are returned,
+	 * preserving the pre-unification no-argument behavior.
+	 *
+	 * @return void
+	 */
+	public function test_get_button_locations_defaults_to_payment_request(): void {
+		$helper                  = new WC_Stripe_Express_Checkout_Helper();
+		$helper->stripe_settings = [
+			'express_checkout_button_locations' => [ 'product' ],
+			'link_button_locations'             => [ 'checkout' ],
+		];
+
+		$this->assertSame( [ 'product' ], $helper->get_button_locations() );
+	}
+
+	/**
+	 * Non-string entries are skipped and repeated locations deduplicated, so stored
+	 * values with junk in them cannot fatal.
+	 *
+	 * @return void
+	 */
+	public function test_get_button_locations_skips_malformed_entries(): void {
+		$helper                  = new WC_Stripe_Express_Checkout_Helper();
+		$helper->stripe_settings = [
+			'express_checkout_button_locations' => [ 'product', 'product', '', 5, [ 'cart' ] ],
+		];
+
+		$this->assertSame( [ 'product' ], $helper->get_button_locations( 'payment_request' ) );
+	}
+
+	/**
+	 * A method whose option was never saved keeps the default placement, while one
+	 * whose option is present but empty stays disabled everywhere, without affecting
+	 * the other methods.
+	 *
+	 * @param array $settings Per-method location options.
+	 * @param array $expected Expected locations per method.
+	 * @return void
+	 *
+	 * @dataProvider provide_get_button_locations_partial_settings
+	 */
+	public function test_get_button_locations_with_partial_settings( array $settings, array $expected ): void {
+		$helper                  = new WC_Stripe_Express_Checkout_Helper();
+		$helper->stripe_settings = $settings;
+
+		foreach ( $expected as $method => $locations ) {
+			$this->assertSame( $locations, $helper->get_button_locations( $method ), $method );
+		}
+	}
+
+	/**
+	 * Provider for `test_get_button_locations_with_partial_settings`.
+	 *
+	 * @return array
+	 */
+	public function provide_get_button_locations_partial_settings(): array {
+		return [
+			'nothing saved: every method on the default locations'                     => [
+				'settings' => [],
+				'expected' => [
+					'payment_request' => [ 'product', 'cart' ],
+					'link'            => [ 'product', 'cart' ],
+					'amazon_pay'      => [ 'product', 'cart' ],
+				],
+			],
+			'only Link saved: the other methods keep their defaults'                   => [
+				'settings' => [ 'link_button_locations' => [ 'checkout' ] ],
+				'expected' => [
+					'payment_request' => [ 'product', 'cart' ],
+					'link'            => [ 'checkout' ],
+					'amazon_pay'      => [ 'product', 'cart' ],
+				],
+			],
+			'empty array disables only that method'                                    => [
+				'settings' => [
+					'express_checkout_button_locations' => [],
+					'link_button_locations'             => [ 'cart' ],
+				],
+				'expected' => [
+					'payment_request' => [],
+					'link'            => [ 'cart' ],
+					'amazon_pay'      => [ 'product', 'cart' ],
+				],
+			],
+			'empty string (WooCommerce emptied multiselect) disables only that method' => [
+				'settings' => [
+					'express_checkout_button_locations' => '',
+					'amazon_pay_button_locations'       => '',
+				],
+				'expected' => [
+					'payment_request' => [],
+					'link'            => [ 'product', 'cart' ],
+					'amazon_pay'      => [],
+				],
+			],
+		];
+	}
+
+	/**
 	 * Provider for `test_get_button_locations`.
 	 *
 	 * @return array
 	 */
 	public function provide_test_get_button_locations(): array {
+		$per_method = [
+			'express_checkout_button_locations' => [ 'product', 'cart' ],
+			'link_button_locations'             => [ 'product', 'cart', 'checkout' ],
+			'amazon_pay_button_locations'       => [ 'product' ],
+		];
+
 		return [
-			'payment request, settings exists'                        => [
+			'all methods saved: payment_request locations'       => [
+				'express checkout type' => 'payment_request',
+				'settings'              => $per_method,
+				'expected'              => [ 'product', 'cart' ],
+			],
+			'all methods saved: link locations'                  => [
+				'express checkout type' => 'link',
+				'settings'              => $per_method,
+				'expected'              => [ 'product', 'cart', 'checkout' ],
+			],
+			'all methods saved: amazon_pay locations'            => [
+				'express checkout type' => 'amazon_pay',
+				'settings'              => $per_method,
+				'expected'              => [ 'product' ],
+			],
+			'express_checkout alias resolves to payment_request' => [
+				'express checkout type' => 'express_checkout',
+				'settings'              => $per_method,
+				'expected'              => [ 'product', 'cart' ],
+			],
+			// Each method falls back to the default placement until its own option is saved.
+			'payment request, settings exists'                   => [
 				'express checkout type' => 'payment_request',
 				'settings'              => [ 'express_checkout_button_locations' => [ 'checkout', 'cart' ] ],
 				'expected'              => [ 'checkout', 'cart' ],
 			],
-			'payment request, settings exists, but not a valid array' => [
+			'payment request, settings exists, invalid array'    => [
 				'express checkout type' => 'payment_request',
 				'settings'              => [ 'express_checkout_button_locations' => 'invalid_value' ],
 				'expected'              => [],
 			],
-			'payment request, settings do not exist'                  => [
+			'payment request, settings do not exist'             => [
 				'express checkout type' => 'payment_request',
 				'settings'              => [],
 				'expected'              => [ 'product', 'cart' ],
 			],
-			'link, settings exists'                                   => [
+			'link, settings exists'                              => [
 				'express checkout type' => 'link',
 				'settings'              => [ 'link_button_locations' => [ 'cart' ] ],
 				'expected'              => [ 'cart' ],
 			],
-			'link, settings exists, but not a valid array'            => [
-				'express checkout type' => 'link',
-				'settings'              => [ 'link_button_locations' => 'invalid_value' ],
-				'expected'              => [],
-			],
-			'link, settings do not exist'                             => [
-				'express checkout type' => 'link',
-				'settings'              => [],
-				'expected'              => [ 'product', 'cart' ],
-			],
-			'amazon pay, settings exists'                             => [
+			'amazon pay, settings exists'                        => [
 				'express checkout type' => 'amazon_pay',
 				'settings'              => [ 'amazon_pay_button_locations' => [ 'checkout' ] ],
 				'expected'              => [ 'checkout' ],
 			],
-			'amazon pay, settings exists, but not a valid array'      => [
-				'express checkout type' => 'amazon_pay',
-				'settings'              => [ 'amazon_pay_button_locations' => 'invalid_value' ],
-				'expected'              => [],
-			],
-			'amazon pay, settings do not exist'                       => [
-				'express checkout type' => 'amazon_pay',
-				'settings'              => [],
-				'expected'              => [ 'product', 'cart' ],
-			],
-			'default, settings exists'                                => [
-				'express checkout type' => 'default',
-				'settings'              => [ 'express_checkout_button_locations' => [ 'checkout', 'cart' ] ],
-				'expected'              => [ 'checkout', 'cart' ],
-			],
-			'default, settings exists, but not a valid array'         => [
-				'express checkout type' => 'default',
-				'settings'              => [ 'express_checkout_button_locations' => 'invalid_value' ],
-				'expected'              => [],
-			],
-			'default, settings do not exist'                          => [
-				'express checkout type' => 'default',
+			'link, settings do not exist'                        => [
+				'express checkout type' => 'link',
 				'settings'              => [],
 				'expected'              => [ 'product', 'cart' ],
 			],
@@ -1223,6 +1319,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$stripe_settings                                      = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['express_checkout_button_locations'] = $button_locations;
 		$stripe_settings['amazon_pay_button_locations']       = $button_locations;
+		$stripe_settings['link_button_locations']             = $button_locations;
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
@@ -1948,26 +2045,34 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * @return array
 	 */
 	public function provide_test_get_link_button_height(): array {
+		// Link shares the single express checkout button size.
 		return [
-			'small'         => [
-				'settings' => [ 'link_button_size' => 'small' ],
+			'small'                          => [
+				'settings' => [ 'express_checkout_button_size' => 'small' ],
 				'expected' => '40',
 			],
-			'default'       => [
-				'settings' => [ 'link_button_size' => 'default' ],
+			'default'                        => [
+				'settings' => [ 'express_checkout_button_size' => 'default' ],
 				'expected' => '48',
 			],
-			'large'         => [
-				'settings' => [ 'link_button_size' => 'large' ],
+			'large'                          => [
+				'settings' => [ 'express_checkout_button_size' => 'large' ],
 				'expected' => '56',
 			],
-			'not set'       => [
+			'not set'                        => [
 				'settings' => [],
 				'expected' => '48',
 			],
-			'unknown value' => [
-				'settings' => [ 'link_button_size' => 'unknown' ],
+			'unknown value'                  => [
+				'settings' => [ 'express_checkout_button_size' => 'unknown' ],
 				'expected' => '48',
+			],
+			'ignores legacy per-method size' => [
+				'settings' => [
+					'express_checkout_button_size' => 'large',
+					'link_button_size'             => 'small',
+				],
+				'expected' => '56',
 			],
 		];
 	}
@@ -1996,26 +2101,34 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * @return array
 	 */
 	public function provide_test_get_amazon_pay_button_height(): array {
+		// Amazon Pay shares the single express checkout button size.
 		return [
-			'small'         => [
-				'settings' => [ 'amazon_pay_button_size' => 'small' ],
+			'small'                          => [
+				'settings' => [ 'express_checkout_button_size' => 'small' ],
 				'expected' => '40',
 			],
-			'default'       => [
-				'settings' => [ 'amazon_pay_button_size' => 'default' ],
+			'default'                        => [
+				'settings' => [ 'express_checkout_button_size' => 'default' ],
 				'expected' => '48',
 			],
-			'large'         => [
-				'settings' => [ 'amazon_pay_button_size' => 'large' ],
+			'large'                          => [
+				'settings' => [ 'express_checkout_button_size' => 'large' ],
 				'expected' => '56',
 			],
-			'not set'       => [
+			'not set'                        => [
 				'settings' => [],
 				'expected' => '48',
 			],
-			'unknown value' => [
-				'settings' => [ 'amazon_pay_button_size' => 'unknown' ],
+			'unknown value'                  => [
+				'settings' => [ 'express_checkout_button_size' => 'unknown' ],
 				'expected' => '48',
+			],
+			'ignores legacy per-method size' => [
+				'settings' => [
+					'express_checkout_button_size' => 'small',
+					'amazon_pay_button_size'       => 'large',
+				],
+				'expected' => '40',
 			],
 		];
 	}

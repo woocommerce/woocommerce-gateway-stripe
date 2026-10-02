@@ -37,6 +37,7 @@ The following items note specific versions that include important changes, featu
 
 * 11.1.0
    - Sofort is no longer offered at checkout, since Stripe discontinued it on March 31, 2025; existing Sofort orders can still be refunded and Sofort-initiated subscriptions keep renewing
+   - Express checkout buttons now share one location setting and one size setting in the settings UI. The per-method options (`link_button_locations`, `amazon_pay_button_locations`, `link_button_size`, `amazon_pay_button_size`) are still stored and kept in sync so a rollback keeps working; they will be removed in a future version
 * 11.0.0
    - Express checkout merges the wc_stripe_express_checkout_normalize_address filter result over the address it sent; removing a field no longer clears it, return an empty string instead
 * 10.9.1
@@ -205,5 +206,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Stop refusing express checkout orders over required classic custom checkout fields on stores whose checkout page uses the checkout block and cannot render them
 * Dev - Make e2e tests runnable from Quality Insights Toolkit (QIT)
 * Update - Link the WooCommerce POS page from the in-person payments description in the readme
+* Update - Unify express checkout button locations and sizing across Apple Pay / Google Pay, Link, and Amazon Pay
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
