@@ -162,6 +162,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 11.0.1 - xxxx-xx-xx =
+* Fix - Prevent non-card payment methods from failing under Optimized Checkout with Dynamic Payment Methods when the store has a statement descriptor set
 
 = 11.0.0 - 2026-09-08 =
 
