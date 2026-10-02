@@ -554,6 +554,104 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$this->assertSame( '', $wc_stripe_api_secret_key_reflection->getValue( null ) );
 	}
 
+	/**
+	 * New webhook metadata must not contain an API key.
+	 *
+	 * @dataProvider provide_webhook_modes
+	 */
+	public function test_configure_webhooks_does_not_store_api_key( $mode ) {
+		$prefix = 'test' === $mode ? 'test_' : '';
+		WC_Stripe_API::set_secret_key( 'sk_' . $mode . '_key' );
+		$filter = function ( $preempt, $args, $url ) {
+			if ( 'https://api.stripe.com/v1/webhook_endpoints' === $url ) {
+				return [
+					'response' => [ 'code' => 200 ],
+					'body'     => wp_json_encode(
+						[
+							'id'     => 'we_new',
+							'url'    => 'https://example.com',
+							'secret' => 'whsec_new',
+						]
+					),
+				];
+			}
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $filter, 10, 3 );
+		try {
+			$this->account->configure_webhooks( $mode );
+		} finally {
+			remove_filter( 'pre_http_request', $filter );
+			WC_Stripe_API::set_secret_key( '' );
+		}
+
+		$settings = get_option( 'woocommerce_stripe_settings' );
+		$this->assertSame(
+			[
+				'id'  => 'we_new',
+				'url' => 'https://example.com',
+			],
+			$settings[ $prefix . 'webhook_data' ]
+		);
+		$this->assertSame( 'whsec_new', $settings[ $prefix . 'webhook_secret' ] );
+	}
+
+	public function provide_webhook_modes() {
+		return [
+			'live' => [ 'live' ],
+			'test' => [ 'test' ],
+		];
+	}
+
+	/**
+	 * Status checks use the matching account key, including legacy webhook credentials.
+	 *
+	 * @dataProvider provide_webhook_status_credentials
+	 */
+	public function test_webhook_status_authentication( $mode, $legacy_secret, $account_secret, $expected_secret ) {
+		$prefix                               = 'test' === $mode ? 'test_' : '';
+		$settings                             = WC_Stripe_Helper::get_stripe_settings();
+		$settings['testmode']                 = 'test' === $mode ? 'yes' : 'no';
+		$settings[ $prefix . 'secret_key' ]   = $account_secret;
+		$settings[ $prefix . 'webhook_data' ] = [ 'id' => 'we_status' ];
+		if ( null !== $legacy_secret ) {
+			$settings[ $prefix . 'webhook_data' ]['secret'] = $legacy_secret;
+		}
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		$this->clear_webhook_status_cache();
+		WC_Stripe_API::set_secret_key( '' );
+		$headers = [];
+		$filter  = function ( $preempt, $args, $url ) use ( &$headers ) {
+			$headers[] = $args['headers']['Authorization'];
+			return [
+				'response' => [ 'code' => 200 ],
+				'body'     => wp_json_encode( [ 'status' => 'enabled' ] ),
+			];
+		};
+		add_filter( 'pre_http_request', $filter, 10, 3 );
+		try {
+			$account = new WC_Stripe_Account( $this->mock_connect, WC_Stripe_API::class );
+			$this->assertSame( '' !== $expected_secret, $account->is_webhook_enabled() );
+			$this->assertSame( '' !== $expected_secret, $account->is_webhook_enabled() );
+		} finally {
+			remove_filter( 'pre_http_request', $filter );
+		}
+		$this->assertSame( '' === $expected_secret ? [] : [ 'Basic ' . base64_encode( $expected_secret . ':' ) ], $headers );
+		$this->assertSame( $account_secret, WC_Stripe_API::get_secret_key() );
+		WC_Stripe_API::set_secret_key( '' );
+	}
+
+	public function provide_webhook_status_credentials() {
+		return [
+			'live account key' => [ 'live', null, 'sk_live_current', 'sk_live_current' ],
+			'test account key' => [ 'test', null, 'sk_test_current', 'sk_test_current' ],
+			'legacy live key'  => [ 'live', 'sk_live_old', 'sk_live_current', 'sk_live_old' ],
+			'legacy test key'  => [ 'test', 'sk_test_old', 'sk_test_current', 'sk_test_old' ],
+			'missing live key' => [ 'live', null, '', '' ],
+			'missing test key' => [ 'test', null, '', '' ],
+		];
+	}
+
 	private function clear_webhook_status_cache() {
 		$webhook_status_cache_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_STATUS_CACHE_KEY', 'string' );
 		WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'test' );

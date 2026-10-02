@@ -335,4 +335,131 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$this->assertSame( [], $settings['webhook_data'] );
 		$this->assertSame( '', $settings['webhook_secret'] );
 	}
+	/**
+	 * Key changes must authenticate cleanup before the old account key is overwritten.
+	 *
+	 * @dataProvider provide_key_change_cleanup
+	 */
+	public function test_key_change_cleanup_authentication( $mode, $change, $legacy_secret, $fails ) {
+		$prefix  = 'test' === $mode ? 'test_' : '';
+		$old_key = 'sk_' . $mode . '_old';
+		$new_key = 'same' === $change ? $old_key : ( 'remove' === $change ? '' : 'sk_' . $mode . '_new' );
+		$data    = [
+			'id'  => 'we_old',
+			'url' => 'https://example.com',
+		];
+		if ( null !== $legacy_secret ) {
+			$data['secret'] = $legacy_secret;
+		}
+		$settings                               = WC_Stripe_Helper::get_stripe_settings();
+		$settings[ $prefix . 'secret_key' ]     = $old_key;
+		$settings[ $prefix . 'webhook_data' ]   = $data;
+		$settings[ $prefix . 'webhook_secret' ] = 'whsec_old';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		$requests   = [];
+		$filter     = function ( $preempt, $args, $url ) use ( &$requests, $prefix, &$fails ) {
+			if ( 'https://api.stripe.com/v1/webhook_endpoints/we_old' !== $url ) {
+				return $preempt;
+			}
+			$requests[] = [ $args['method'], $args['headers']['Authorization'], WC_Stripe_Helper::get_stripe_settings()[ $prefix . 'secret_key' ] ];
+			if ( $fails ) {
+				throw new Exception( 'Network error' );
+			}
+			return [
+				'response' => [ 'code' => 200 ],
+				'body'     => wp_json_encode( [ 'deleted' => true ] ),
+			];
+		};
+		$account    = $this->getMockBuilder( WC_Stripe_Account::class )
+			->setConstructorArgs( [ WC_Stripe::get_instance()->connect, WC_Stripe_API::class ] )
+			->onlyMethods( [ 'get_cached_account_data', 'clear_cache' ] )->getMock();
+		$controller = new WC_REST_Stripe_Account_Keys_Controller( $account );
+		$request    = new WP_REST_Request( 'POST', self::ROUTE );
+		$request->set_param( $prefix . 'secret_key', $new_key );
+		add_filter( 'pre_http_request', $filter, 10, 3 );
+		try {
+			$response = $controller->set_account_keys( $request );
+		} finally {
+			remove_filter( 'pre_http_request', $filter );
+			WC_Stripe_API::set_secret_key( '' );
+		}
+		$auth_key       = $legacy_secret ?? $old_key;
+		$decommissioned = $new_key !== $auth_key;
+		$this->assertSame( $decommissioned ? [ [ 'DELETE', 'Basic ' . base64_encode( $auth_key . ':' ), $old_key ] ] : [], $requests );
+		if ( $fails && $decommissioned ) {
+			$data['secret'] = $auth_key;
+		}
+		$stored = get_option( 'woocommerce_stripe_settings' );
+		$this->assertSame( $new_key, $stored[ $prefix . 'secret_key' ] );
+		$this->assertSame( $decommissioned && ! $fails ? [] : $data, $stored[ $prefix . 'webhook_data' ] );
+		$this->assertSame( $decommissioned && ! $fails ? '' : 'whsec_old', $stored[ $prefix . 'webhook_secret' ] );
+		$this->assertSame( 200, $response->get_status() );
+
+		if ( $fails ) {
+			$fails = false;
+			add_filter( 'pre_http_request', $filter, 10, 3 );
+			try {
+				$controller->set_account_keys( $request );
+			} finally {
+				remove_filter( 'pre_http_request', $filter );
+				WC_Stripe_API::set_secret_key( '' );
+			}
+			$this->assertCount( 2, $requests );
+			$this->assertSame( 'Basic ' . base64_encode( $auth_key . ':' ), $requests[1][1] );
+			$this->assertSame( [], get_option( 'woocommerce_stripe_settings' )[ $prefix . 'webhook_data' ] );
+		}
+	}
+
+	public function provide_key_change_cleanup() {
+		$cases = [];
+		foreach ( [ 'live', 'test' ] as $mode ) {
+			$cases[ $mode . ' replacement' ]       = [ $mode, 'replace', null, false ];
+			$cases[ $mode . ' disconnect' ]        = [ $mode, 'remove', null, false ];
+			$cases[ $mode . ' unchanged' ]         = [ $mode, 'same', null, false ];
+			$cases[ $mode . ' failed disconnect' ] = [ $mode, 'remove', null, true ];
+			$cases[ $mode . ' failed cleanup' ]    = [ $mode, 'replace', null, true ];
+			$cases[ $mode . ' legacy key' ]        = [ $mode, 'replace', 'sk_' . $mode . '_original', false ];
+		}
+		return $cases;
+	}
+	/**
+	 * Manual setup must use the requested mode even when checkout uses the other mode.
+	 *
+	 * @dataProvider provide_webhook_setup_modes
+	 */
+	public function test_webhook_setup_uses_requested_mode( $mode ) {
+		$settings                    = WC_Stripe_Helper::get_stripe_settings();
+		$settings['testmode']        = 'live' === $mode ? 'yes' : 'no';
+		$settings['secret_key']      = 'sk_live_current';
+		$settings['test_secret_key'] = 'sk_test_current';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		WC_Stripe_API::set_secret_key( '' );
+		$used_key = null;
+		$account  = $this->createMock( WC_Stripe_Account::class );
+		$account->expects( $this->once() )->method( 'configure_webhooks' )->with( $mode )
+			->willReturnCallback(
+				function () use ( &$used_key ) {
+					$used_key = WC_Stripe_API::get_secret_key();
+					return (object) [
+						'url'    => 'https://example.com',
+						'secret' => 'whsec_new',
+					];
+				}
+			);
+		$request = new WP_REST_Request( 'POST', self::ROUTE . '/webhook' );
+		$request->set_param( 'live_mode', 'live' === $mode );
+		$controller = new WC_REST_Stripe_Account_Keys_Controller( $account );
+		$response   = $controller->configure_webhooks( $request );
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( 'sk_' . $mode . '_current', $used_key );
+		$this->assertSame( 'live' === $mode ? 'sk_test_current' : 'sk_live_current', WC_Stripe_API::get_secret_key() );
+		WC_Stripe_API::set_secret_key( '' );
+	}
+
+	public function provide_webhook_setup_modes() {
+		return [
+			'live' => [ 'live' ],
+			'test' => [ 'test' ],
+		];
+	}
 }

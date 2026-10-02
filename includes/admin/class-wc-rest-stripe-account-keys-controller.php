@@ -423,6 +423,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		WC_Rate_Limiter::set_rate_limit( $rate_limit_key, 60 );
 
 		try {
+			WC_Stripe_API::set_secret_key_for_mode( $environment );
 			$response = $this->account->configure_webhooks( $environment );
 		} catch ( Exception $e ) {
 			return new WP_REST_Response( [ 'message' => $e->getMessage() ], 400 );
@@ -464,9 +465,12 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		];
 
 		foreach ( $key_data as $mode => $keys ) {
-			// If there's no webhook ID or secret key, we can skip.
-			if ( empty( $keys['webhook_data'] ) || empty( $keys['current_secret'] ) ) {
+			if ( empty( $keys['webhook_data'] ) ) {
 				continue;
+			}
+
+			if ( is_array( $keys['webhook_data'] ) ) {
+				$keys['webhook_data']['secret'] = $keys['webhook_data']['secret'] ?? $keys['current_secret'];
 			}
 
 			// If the user is removing or changing their secret key, decommission the
@@ -475,6 +479,9 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 				// Update the webhook settings now that the webhook has been decommissioned.
 				$settings[ 'live' === $mode ? 'webhook_data' : 'test_webhook_data' ]     = [];
 				$settings[ 'live' === $mode ? 'webhook_secret' : 'test_webhook_secret' ] = '';
+			} elseif ( ! empty( $keys['webhook_data']['id'] ) && ! empty( $keys['webhook_data']['secret'] ) && $keys['secret_key'] !== $keys['webhook_data']['secret'] ) {
+				// Keep access to the old endpoint if cleanup failed while replacing its account key.
+				$settings[ 'live' === $mode ? 'webhook_data' : 'test_webhook_data' ] = $keys['webhook_data'];
 			}
 		}
 
