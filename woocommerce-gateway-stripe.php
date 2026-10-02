@@ -11,6 +11,8 @@
  * Tested up to: 7.1
  * WC requires at least: 10.9
  * WC tested up to: 11.1
+ * License: GPLv3
+ * License URI: https://www.gnu.org/licenses/gpl-3.0.html
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  */
