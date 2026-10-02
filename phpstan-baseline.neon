@@ -415,54 +415,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Cannot call method get_billing_address_1\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method get_billing_address_2\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method get_billing_city\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method get_billing_country\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method get_billing_email\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method get_billing_phone\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method get_billing_postcode\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method get_billing_state\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Cannot call method get_checkout_payment_url\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -476,12 +428,6 @@ parameters:
 
 		-
 			message: '#^Cannot call method get_customer_id\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method get_formatted_billing_full_name\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
@@ -3628,12 +3574,6 @@ parameters:
 			message: '#^Cannot call method get_billing_country\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method get_billing_email\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
-			identifier: method.nonObject
-			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
