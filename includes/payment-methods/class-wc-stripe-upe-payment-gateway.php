@@ -315,6 +315,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// Add a notice about currency conversion in the order confirmation emails when the order currency is different from the store currency.
 		add_action( 'woocommerce_email_after_order_table', [ $this, 'add_email_currency_conversion_notice' ], 10, 3 );
 
+		// Clear the duplicate-charge record once the shopper reaches the order-received page.
+		add_action( 'template_redirect', [ $this, 'maybe_clear_duplicate_payment_record' ] );
+		add_filter( 'woocommerce_thankyou_order_received_text', [ WC_Stripe_Duplicate_Payment_Prevention::class, 'filter_order_received_text' ] );
+
 		// Hide action buttons for pending orders if they take a while to be confirmed.
 		add_filter( 'woocommerce_my_account_my_orders_actions', [ $this, 'filter_my_account_my_orders_actions' ], 10, 2 );
 
@@ -1626,16 +1630,190 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return $this->process_payment_with_checkout_session( $order_id, $checkout_session_id, $save_payment_method, $selected_payment_type );
 		}
 
-		if ( $this->is_using_saved_payment_method() && $order instanceof WC_Order ) {
-			try {
-				$this->retire_checkout_session_for_saved_payment( $order );
-			} catch ( WC_Stripe_Exception $e ) {
-				// Keep the order pending so the existing Session can still reconcile if retirement failed.
-				return $this->handle_process_payment_error( $e, $order, false );
+		// Duplicate-charge guard for the standard checkout charge path (deferred intent and saved
+		// tokens). The Adaptive Pricing Checkout Session path above returns first and has its own guard.
+		$duplicate_guard_key   = $this->get_duplicate_charge_guard_key( $order );
+		$duplicate_guard_owner = null;
+		if ( '' !== $duplicate_guard_key && $order instanceof WC_Order ) {
+			$duplicate_guard_owner = WC_Stripe_Duplicate_Payment_Prevention::acquire_lock( $duplicate_guard_key );
+
+			// A concurrent submission of the same cart holds the lock and is charging it. Turn this
+			// one away without charging; its order stays pending so a retry can resume it.
+			if ( null === $duplicate_guard_owner ) {
+				return $this->get_checkout_failure_response( __( 'Your payment is already being processed. Please wait.', 'woocommerce-gateway-stripe' ) );
+			}
+
+			// A resubmit that landed after the first attempt already paid this cart is redirected to
+			// that order instead of charging again.
+			$already_paid_order = WC_Stripe_Duplicate_Payment_Prevention::get_recent_paid_order( $order );
+			if ( $already_paid_order instanceof WC_Order ) {
+				$this->cancel_order_superseded_by_paid_cart( $order, $already_paid_order );
+				WC_Stripe_Duplicate_Payment_Prevention::release_lock( $duplicate_guard_key, $duplicate_guard_owner );
+				return [
+					'result'   => 'success',
+					// Flagged so the order-received page can explain the earlier order number.
+					'redirect' => add_query_arg( WC_Stripe_Duplicate_Payment_Prevention::REDIRECT_QUERY_ARG, '1', $this->get_return_url( $already_paid_order ) ),
+				];
 			}
 		}
 
-		return $this->process_payment_with_deferred_intent( $order_id );
+		try {
+			if ( $this->is_using_saved_payment_method() && $order instanceof WC_Order ) {
+				try {
+					$this->retire_checkout_session_for_saved_payment( $order );
+				} catch ( WC_Stripe_Exception $e ) {
+					// Keep the order pending so the existing Session can still reconcile if retirement failed.
+					return $this->handle_process_payment_error( $e, $order, false );
+				}
+			}
+
+			return $this->process_payment_with_deferred_intent( $order_id );
+		} finally {
+			if ( null !== $duplicate_guard_owner ) {
+				// Record in finally, not only on success: code after payment_complete() (for example a
+				// wc_gateway_stripe_process_response callback) can throw or fail the order after the
+				// charge, and a resubmit would then charge again. record_paid_order() skips unpaid
+				// orders; 3DS/redirect methods are recorded on the async return instead.
+				$maybe_paid_order = wc_get_order( $order_id );
+				if ( $maybe_paid_order instanceof WC_Order ) {
+					WC_Stripe_Duplicate_Payment_Prevention::record_paid_order( $maybe_paid_order );
+				}
+				WC_Stripe_Duplicate_Payment_Prevention::release_lock( $duplicate_guard_key, $duplicate_guard_owner );
+			}
+		}
+	}
+
+	/**
+	 * Builds the per-cart guard key, or '' when the guard should not apply.
+	 *
+	 * Covers only a genuine "pay the session cart" checkout: pay-for-order, subscription
+	 * payment-method changes, and add-payment-method are skipped, and the order must represent the
+	 * live cart, so a resubmit of an interrupted checkout is covered but paying an unrelated order is
+	 * not.
+	 *
+	 * @param WC_Order|WC_Order_Refund|bool $order The order being processed.
+	 * @return string The md5 cart key, or '' when the guard does not apply.
+	 */
+	private function get_duplicate_charge_guard_key( $order ): string {
+		if ( ! $order instanceof WC_Order ) {
+			return '';
+		}
+
+		if (
+			$this->is_changing_payment_method_for_subscription()
+			|| $this->is_on_add_payment_method_page()
+			|| did_action( 'woocommerce_before_pay_action' )
+			|| is_wc_endpoint_url( 'order-pay' )
+		) {
+			return '';
+		}
+
+		$cart_key = WC_Stripe_Duplicate_Payment_Prevention::get_cart_key( $order );
+		if ( '' === $cart_key ) {
+			return '';
+		}
+
+		$cart = WC()->cart;
+		if ( ! $cart instanceof WC_Cart || $cart->is_empty() ) {
+			return '';
+		}
+
+		// A resubmit still holds the same items, so its order's cart hash matches the live cart;
+		// paying a pre-existing order does not.
+		if ( ! hash_equals( (string) $order->get_cart_hash(), (string) $cart->get_cart_hash() ) ) {
+			return '';
+		}
+
+		return $cart_key;
+	}
+
+	/**
+	 * Builds a checkout failure response that shows the message on both checkouts.
+	 *
+	 * The Store API (Blocks) reads `errorMessage` and ignores notices; classic checkout reads the notice.
+	 *
+	 * @param string $message The message to show the shopper.
+	 * @return array The failure response.
+	 */
+	private function get_checkout_failure_response( string $message ): array {
+		$response = [
+			'result'   => 'failure',
+			'redirect' => '',
+		];
+
+		if ( WC()->is_store_api_request() ) {
+			$response['errorMessage'] = $message;
+		} else {
+			wc_add_notice( $message, 'error' );
+			$response['message'] = $message;
+		}
+
+		return $response;
+	}
+
+	/**
+	 * Cancels the redundant order core minted for a resubmit and empties the cart.
+	 *
+	 * Only cancels a pending or failed order, so a paid order is never touched. WooCommerce 11.0+
+	 * sends the admin "Cancelled order" email on pending to cancelled too, so that email is turned
+	 * off here: the order only existed because the shopper submitted the same cart twice.
+	 *
+	 * @param WC_Order $redundant_order The order core created for the resubmit.
+	 * @param WC_Order $paid_order      The order already paid for this cart.
+	 * @return void
+	 */
+	private function cancel_order_superseded_by_paid_cart( WC_Order $redundant_order, WC_Order $paid_order ): void {
+		if ( $redundant_order->has_status( [ OrderStatus::PENDING, OrderStatus::FAILED ] ) ) {
+			// A closure of our own, so remove_filter() cannot remove another plugin's callback.
+			$suppress_email = static function () {
+				return false;
+			};
+			add_filter( 'woocommerce_email_enabled_cancelled_order', $suppress_email );
+			try {
+				$redundant_order->update_status(
+					OrderStatus::CANCELLED,
+					sprintf(
+						/* translators: %s: order number that was already paid for this cart. */
+						__( 'Cancelled to avoid a duplicate charge: this cart was already paid by order #%s.', 'woocommerce-gateway-stripe' ),
+						$paid_order->get_order_number()
+					)
+				);
+			} finally {
+				remove_filter( 'woocommerce_email_enabled_cancelled_order', $suppress_email );
+			}
+		}
+
+		if ( WC()->cart instanceof WC_Cart ) {
+			WC()->cart->empty_cart();
+		}
+	}
+
+	/**
+	 * Clears the duplicate-charge record once the shopper reaches the order-received page.
+	 *
+	 * Hooked on `template_redirect` rather than `woocommerce_thankyou` so it does not depend on the
+	 * confirmation template rendering a particular block.
+	 *
+	 * @return void
+	 */
+	public function maybe_clear_duplicate_payment_record(): void {
+		if ( ! function_exists( 'is_order_received_page' ) || ! is_order_received_page() ) {
+			return;
+		}
+
+		global $wp;
+		$order_id = isset( $wp->query_vars['order-received'] ) ? absint( $wp->query_vars['order-received'] ) : 0;
+		if ( $order_id <= 0 ) {
+			return;
+		}
+
+		// The order ID in the URL is guessable, so require the order key that the shopper's own
+		// order-received URL always carries; otherwise anyone could clear another shopper's record.
+		$order_key = isset( $_GET['key'] ) ? wc_clean( wp_unslash( $_GET['key'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$order     = wc_get_order( $order_id );
+		if ( $order instanceof WC_Order && is_string( $order_key ) && '' !== $order_key && $order->key_is_valid( $order_key ) ) {
+			WC_Stripe_Duplicate_Payment_Prevention::clear_paid_record( $order );
+		}
 	}
 
 	/**
@@ -1758,20 +1936,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			);
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error( 'Checkout Session validation failed before order linking.', [ 'error_message' => $e->getMessage() ] );
-			$is_store_api_request = WC()->is_store_api_request();
-			$response             = [
-				'result'   => 'failure',
-				'redirect' => '',
-			];
-
-			if ( $is_store_api_request ) {
-				$response['errorMessage'] = $e->getMessage();
-			} else {
-				wc_add_notice( $e->getMessage(), 'error' );
-				$response['message'] = $e->getMessage();
-			}
-
-			return $response;
+			return $this->get_checkout_failure_response( $e->getMessage() );
 		}
 
 		// Resolve the method the customer actually picked: for Optimized Checkout the gateway type is
@@ -1840,11 +2005,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$is_order_payment_locked = $order_helper->lock_order_payment( $order );
 			if ( $is_order_payment_locked ) {
 				// If the request is already being processed, return an error.
-				return [
-					'result'   => 'failure',
-					'redirect' => '',
-					'message'  => __( 'Your payment is already being processed. Please wait.', 'woocommerce-gateway-stripe' ),
-				];
+				return $this->get_checkout_failure_response( __( 'Your payment is already being processed. Please wait.', 'woocommerce-gateway-stripe' ) );
 			}
 
 			$payment_needed                = $this->is_payment_needed( $order->get_id() );
@@ -2806,44 +2967,51 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			do_action( 'woocommerce_stripe_add_payment_method', $customer->get_user_id(), $payment_method_object );
 		}
 
-		if ( ! $is_pre_order ) {
-			if ( $payment_needed ) {
-				// Use the last charge within the intent to proceed.
-				$this->process_response( $this->get_latest_charge_from_intent( $intent ), $order );
-			} else {
-				$order->payment_complete();
+		// Record the paid cart even if a step after the charge throws (for example a
+		// wc_gateway_stripe_process_response callback), or a resubmit would charge again.
+		// Covers the async return (3DS/SCA and redirect APMs). No-op unless the order is paid.
+		try {
+			if ( ! $is_pre_order ) {
+				if ( $payment_needed ) {
+					// Use the last charge within the intent to proceed.
+					$this->process_response( $this->get_latest_charge_from_intent( $intent ), $order );
+				} else {
+					$order->payment_complete();
+				}
 			}
+
+			$this->save_intent_to_order( $order, $intent );
+			$this->set_payment_method_title_for_order( $order, $payment_method_type );
+
+			/**
+			 * Fires after the payment method title is set on a confirmed intent, allowing
+			 * extensions (e.g. express checkout) to override the title for special cases.
+			 *
+			 * @since 10.8.0
+			 *
+			 * @param WC_Order $order               The order or subscription being processed.
+			 * @param string   $payment_method_type The Stripe payment method type.
+			 */
+			do_action( 'wc_stripe_after_set_payment_method_title_for_confirmed_intent', $order, $payment_method_type );
+
+			$order_helper->update_stripe_upe_redirect_processed( $order, true );
+
+			// TODO: This is a stop-gap to fix a critical issue, see
+			// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/2536. It would
+			// be better if we removed the need for additional meta data in favor of refactoring
+			// this part of the payment processing.
+			$order_helper->delete_stripe_upe_waiting_for_redirect( $order );
+
+			/**
+			 * This meta is to prevent stores with short hold stock settings from cancelling orders while waiting for payment to be finalised by Stripe or the customer (i.e. completing 3DS or payment redirects).
+			 * Now that payment is confirmed, we can remove this meta.
+			 */
+			$order_helper->remove_payment_awaiting_action( $order, false );
+
+			$order->save();
+		} finally {
+			WC_Stripe_Duplicate_Payment_Prevention::record_paid_order( $order );
 		}
-
-		$this->save_intent_to_order( $order, $intent );
-		$this->set_payment_method_title_for_order( $order, $payment_method_type );
-
-		/**
-		 * Fires after the payment method title is set on a confirmed intent, allowing
-		 * extensions (e.g. express checkout) to override the title for special cases.
-		 *
-		 * @since 10.8.0
-		 *
-		 * @param WC_Order $order               The order or subscription being processed.
-		 * @param string   $payment_method_type The Stripe payment method type.
-		 */
-		do_action( 'wc_stripe_after_set_payment_method_title_for_confirmed_intent', $order, $payment_method_type );
-
-		$order_helper->update_stripe_upe_redirect_processed( $order, true );
-
-		// TODO: This is a stop-gap to fix a critical issue, see
-		// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/2536. It would
-		// be better if we removed the need for additional meta data in favor of refactoring
-		// this part of the payment processing.
-		$order_helper->delete_stripe_upe_waiting_for_redirect( $order );
-
-		/**
-		 * This meta is to prevent stores with short hold stock settings from cancelling orders while waiting for payment to be finalised by Stripe or the customer (i.e. completing 3DS or payment redirects).
-		 * Now that payment is confirmed, we can remove this meta.
-		 */
-		$order_helper->remove_payment_awaiting_action( $order, false );
-
-		$order->save();
 	}
 
 	/**
