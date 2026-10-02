@@ -630,8 +630,7 @@ class WC_Stripe_Intent_Controller {
 
 			$level3_data = $gateway->get_level3_data_from_order( $order );
 
-			// Use "setup_intents" endpoint if `$intent_id` starts with `seti_`.
-			$endpoint = $is_setup_intent ? 'setup_intents' : 'payment_intents';
+			$endpoint = $this->intent_endpoint( $intent_id );
 			$result   = WC_Stripe_API::request_with_level3_data(
 				$request,
 				"{$endpoint}/{$intent_id}",
@@ -687,9 +686,20 @@ class WC_Stripe_Intent_Controller {
 	 * @param string $intent_id The payment or setup intent ID.
 	 * @return stdClass|null The intent, an error object, or null.
 	 */
-	private function retrieve_intent( string $intent_id ) {
-		$endpoint = 0 === strpos( $intent_id, 'seti' ) ? 'setup_intents' : 'payment_intents';
-		return WC_Stripe_API::retrieve( "{$endpoint}/{$intent_id}?expand[]=payment_method" );
+	private function retrieve_intent( string $intent_id, bool $expand_payment_method = true ) {
+		$query = $expand_payment_method ? '?expand[]=payment_method' : '';
+		return WC_Stripe_API::retrieve( $this->intent_endpoint( $intent_id ) . "/{$intent_id}{$query}" );
+	}
+
+	/**
+	 * Returns the API endpoint for an intent id. Setup intents start with `seti_`; everything else
+	 * is a payment intent.
+	 *
+	 * @param string $intent_id The intent id.
+	 * @return string The endpoint, `setup_intents` or `payment_intents`.
+	 */
+	private function intent_endpoint( string $intent_id ): string {
+		return 0 === strpos( $intent_id, 'seti_' ) ? 'setup_intents' : 'payment_intents';
 	}
 
 	/**
@@ -716,7 +726,7 @@ class WC_Stripe_Intent_Controller {
 		if ( ( 0 === strpos( $order_intent_id, 'seti_' ) ) !== $is_setup_intent ) {
 			return;
 		}
-		$endpoint = $is_setup_intent ? 'setup_intents' : 'payment_intents';
+		$endpoint = $this->intent_endpoint( $intent_id );
 
 		if ( WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD !== ( $new_intent->status ?? '' ) ) {
 			return;
@@ -743,7 +753,7 @@ class WC_Stripe_Intent_Controller {
 			}
 		}
 
-		$old_intent = WC_Stripe_API::retrieve( "{$endpoint}/{$order_intent_id}" );
+		$old_intent = $this->retrieve_intent( $order_intent_id, false );
 		if ( ! is_object( $old_intent ) || ! empty( $old_intent->error ) ) {
 			return;
 		}
