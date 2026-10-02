@@ -363,9 +363,8 @@ class WC_Stripe_Account {
 		// Save the Webhook secret and ID.
 		$settings[ $webhook_secret_setting ] = wc_clean( $response->secret );
 		$settings[ $webhook_data_setting ]   = [
-			'id'     => wc_clean( $response->id ),
-			'url'    => wc_clean( $response->url ),
-			'secret' => WC_Stripe_API::get_secret_key(),
+			'id'  => wc_clean( $response->id ),
+			'url' => wc_clean( $response->url ),
 		];
 
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
