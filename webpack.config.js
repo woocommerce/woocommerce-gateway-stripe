@@ -79,6 +79,18 @@ module.exports = {
 		...defaultConfig.module,
 		rules: [
 			...defaultConfig.module.rules.map( ( rule ) => {
+				if (
+					rule?.test.test( 'test.svg' ) &&
+					rule?.issuer?.test( 'test.jsx' ) &&
+					rule.type === 'javascript/auto'
+				) {
+					return {
+						...rule,
+						use: undefined,
+						type: 'asset/resource',
+					};
+				}
+
 				// If the rule doesn't apply to SCSS files, return the rule as is.
 				if ( ! rule.test.test( 'test.scss' ) ) {
 					return rule;
