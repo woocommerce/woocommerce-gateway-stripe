@@ -1,4 +1,5 @@
 import React from 'react';
+import InstantPayoutsPromotionNotice from './instant-payouts-promotion-notice';
 import PayoutsTable from './payouts-table';
 import { Page } from '@wordpress/admin-ui';
 import { __ } from '@wordpress/i18n';
@@ -11,6 +12,7 @@ const PaymentsPage = () => {
 			title={ __( 'Stripe Payouts', 'woocommerce-gateway-stripe' ) }
 			className="wc-stripe-payments"
 		>
+			<InstantPayoutsPromotionNotice />
 			<PayoutsTable />
 		</Page>
 	);

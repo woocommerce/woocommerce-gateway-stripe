@@ -1,3 +1,19 @@
+@use '../../styles/abstracts/styles';
+
 .wc-stripe-payments {
 	margin-left: -20px;
+
+	.dataviews-wrapper {
+		background-color: inherit;
+	}
+
+	.wc-stripe-instant-payouts-promotion-notice {
+		margin: var(--wp-ui-card-padding, 24px);
+
+		.wc-stripe-instant-payouts-promotion-notice__content {
+			display: flex;
+			flex-direction: column;
+			gap: var(--wpds-dimension-gap-lg, 16px);
+		}
+	}
 }

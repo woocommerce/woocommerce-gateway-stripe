@@ -214,6 +214,7 @@ final class WC_Stripe_Payments_UI_Controller {
 			'locale'                 => str_replace( '_', '-', get_user_locale() ),
 			'noDecimalCurrencies'    => WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES,
 			'threeDecimalCurrencies' => WC_Stripe_Currency_Code::THREE_DECIMAL_CURRENCY_CODES,
+			'defaultAccountCurrency' => WC_Stripe::get_instance()->account->get_account_default_currency(),
 		];
 	}
 }
