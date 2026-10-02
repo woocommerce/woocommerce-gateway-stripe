@@ -2118,18 +2118,22 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	 *
 	 * @dataProvider provide_update_intent_customer_cases
 	 *
-	 * @param bool $is_guest               Whether the shopper is a guest.
-	 * @param bool $expect_customer_param  Whether the update request sends `customer`.
-	 * @param bool $expect_create_customer Whether a new Stripe customer is created.
+	 * @param bool   $is_guest               Whether the shopper is a guest.
+	 * @param string $intent_order_key       The order_key in the intent metadata: 'self' for this order, 'foreign' for another.
+	 * @param bool   $expect_customer_param  Whether the update request sends `customer`.
+	 * @param bool   $expect_create_customer Whether a new Stripe customer is created.
 	 * @return void
 	 */
-	public function test_update_intent_keeps_customer_already_on_intent( bool $is_guest, bool $expect_customer_param, bool $expect_create_customer ): void {
+	public function test_update_intent_keeps_customer_already_on_intent( bool $is_guest, string $intent_order_key, bool $expect_customer_param, bool $expect_create_customer ): void {
 		if ( ! $is_guest ) {
 			$user_id = self::factory()->user->create();
 			update_user_option( $user_id, '_stripe_customer_id', 'cus_mock', false );
 			wp_set_current_user( $user_id );
 		} else {
 			wp_set_current_user( 0 );
+			// The foreign-key case falls through to creating a fresh guest customer; relax the required
+			// billing fields so that path runs without a full checkout billing set in the test.
+			add_filter( 'wc_stripe_create_customer_required_fields', '__return_empty_array' );
 		}
 
 		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $this->order, 'pi_same' );
@@ -2143,6 +2147,9 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 			'amount'               => WC_Stripe_Helper::get_stripe_amount( $this->order->get_total(), $this->order->get_currency() ),
 			'payment_method_types' => [ WC_Stripe_Payment_Methods::BLIK ],
 			'customer'             => $is_guest ? 'cus_first_attempt' : 'cus_mock',
+			'metadata'             => [
+				'order_key' => 'self' === $intent_order_key ? $this->order->get_order_key() : 'wc_order_foreign_key',
+			],
 		];
 
 		$update_body      = null;
@@ -2184,8 +2191,9 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function provide_update_intent_customer_cases(): array {
 		return [
-			'guest reuses the intent customer'    => [ true, false, false ],
-			'logged-in keeps the stored customer' => [ false, true, false ],
+			'guest reuses the intent customer when the order_key matches'    => [ true, 'self', false, false ],
+			'guest gets a new customer when the intent order_key is foreign' => [ true, 'foreign', true, true ],
+			'logged-in keeps the stored customer'                            => [ false, 'self', true, false ],
 		];
 	}
 }

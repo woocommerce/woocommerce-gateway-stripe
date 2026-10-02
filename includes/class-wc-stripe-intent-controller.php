@@ -571,10 +571,19 @@ class WC_Stripe_Intent_Controller {
 		$currency = $order->get_currency();
 		$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
 
-		// Guests get a new Stripe customer per attempt, but Stripe can't change an intent's customer.
-		$intent_customer_id = 0 === $customer->get_user_id() && is_object( $intent ) && is_string( $intent->customer ?? null )
-			? $intent->customer
-			: '';
+		// Guests get a new Stripe customer per attempt, but Stripe can't change an intent's customer,
+		// so a retry must reuse the one the intent already has. The intent id comes from the request and
+		// process_payment() does not bind it to this order, so only reuse the customer when the intent's
+		// metadata order_key matches this order. That stops a foreign same-amount intent from pulling
+		// another order's customer into this checkout.
+		$intent_customer_id = '';
+		if ( 0 === $customer->get_user_id()
+			&& is_object( $intent )
+			&& is_string( $intent->customer ?? null ) && '' !== $intent->customer
+			&& hash_equals( $order->get_order_key(), (string) ( $intent->metadata->order_key ?? '' ) )
+		) {
+			$intent_customer_id = $intent->customer;
+		}
 		if ( '' !== $intent_customer_id ) {
 			$customer->set_id( $intent_customer_id );
 		} else {
