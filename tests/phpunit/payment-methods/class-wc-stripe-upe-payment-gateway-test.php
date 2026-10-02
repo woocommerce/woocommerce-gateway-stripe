@@ -8168,4 +8168,46 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertSame( 'success', $response['result'] );
 		$this->assertTrue( wc_get_order( $order->get_id() )->has_status( OrderStatus::PENDING ) );
 	}
+
+	/**
+	 * A BLIK retry on an order the earlier attempt left FAILED is returned to PENDING while the new
+	 * intent waits for the shopper, so classic checkout does not keep showing a failed order.
+	 *
+	 * @return void
+	 */
+	public function test_process_payment_blik_retry_resets_failed_order_to_pending(): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( WC_Stripe_Currency_Code::POLISH_ZLOTY );
+		$order->set_billing_country( WC_Stripe_Country_Code::POLAND );
+		$order->set_status( OrderStatus::FAILED );
+		$order->save();
+
+		$_POST = [
+			'payment_method'           => 'stripe_blik',
+			'wc-stripe-payment-method' => 'pm_mock',
+			'wc-stripe-blik-code'      => '654321',
+		];
+
+		$mock_intent = (object) wp_parse_args(
+			[
+				'status'               => WC_Stripe_Intent_Status::REQUIRES_ACTION,
+				'payment_method'       => 'pm_mock',
+				'payment_method_types' => [ WC_Stripe_Payment_Methods::BLIK ],
+				'currency'             => 'pln',
+				'latest_charge'        => '',
+			],
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
+		);
+
+		$this->mock_gateway->intent_controller
+			->method( 'create_and_confirm_payment_intent' )
+			->willReturn( $mock_intent );
+		$this->mock_gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_mock' );
+		$this->mock_gateway->method( 'get_latest_charge_from_intent' )->willReturn( null );
+
+		$response = $this->mock_gateway->process_payment( $order->get_id() );
+
+		$this->assertSame( 'success', $response['result'] );
+		$this->assertTrue( wc_get_order( $order->get_id() )->has_status( OrderStatus::PENDING ) );
+	}
 }
