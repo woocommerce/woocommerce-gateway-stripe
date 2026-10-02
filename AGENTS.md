@@ -60,6 +60,7 @@ Use the smallest command set needed for the task:
 
 ## Common Pitfalls
 
+- Test-only WordPress containers **MUST** keep their working directory at `/var/www/html`; the image entrypoint copies WordPress into the working directory and can overwrite plugin files if it points at the repository.
 - Running PHP tests without Docker: `npm run test:php` fails unless containers are up.
 - Running `npm run infra:up` from a worktree: prefer the main checkout. The script warns interactively if you do it from a worktree.
 - Forgetting `npm run worktree:cleanup` before `git worktree remove`: leaves orphan containers and test databases behind. Run `npm run worktree:status` to find orphans.
