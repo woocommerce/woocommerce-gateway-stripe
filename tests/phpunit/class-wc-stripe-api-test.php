@@ -508,6 +508,88 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @dataProvider provide_should_log_response_body_cases
+	 */
+	public function test_should_log_response_body( string $api, string $method, bool $expected ) {
+		$this->assertSame( $expected, WC_Stripe_API::should_log_response_body( $api, $method ) );
+	}
+
+	/**
+	 * @return array<string, array{string, string, bool}>
+	 */
+	public function provide_should_log_response_body_cases(): array {
+		return [
+			'GET balance is redacted'                   => [ 'balance', 'GET', false ],
+			'GET balance with query string is redacted' => [ 'balance?expand[]=available', 'GET', false ],
+			'GET payouts is redacted'                   => [ 'payouts', 'GET', false ],
+			'GET payouts with query string is redacted' => [ 'payouts?limit=25&starting_after=po_123', 'GET', false ],
+			'POST balance is logged'                    => [ 'balance', 'POST', true ],
+			'POST payouts is logged'                    => [ 'payouts', 'POST', true ],
+			'unrelated GET endpoint is logged'          => [ 'payment_intents', 'GET', true ],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_response_body_logging_cases
+	 */
+	public function test_response_body_logging_uses_redaction_policy( string $call_type, string $api, string $method, bool $should_redact ) {
+		$this->update_stripe_setting( 'logging', 'yes' );
+
+		$response_body   = (object) [ 'id' => 'sensitive_response' ];
+		$mock_response   = [
+			'response' => [
+				'code'    => 200,
+				'message' => 'OK',
+			],
+			'body'     => wp_json_encode( $response_body ),
+		];
+		$logged_response = null;
+		$mock_logger     = $this->createMock( WC_Logger::class );
+
+		$mock_logger->method( 'debug' )->willReturnCallback(
+			function ( $message, $context ) use ( &$logged_response ) {
+				if ( 0 === strpos( $message, 'Stripe API response:' ) ) {
+					$logged_response = $context['response'] ?? null;
+				}
+			}
+		);
+		WC_Stripe_Logger::$logger = $mock_logger;
+
+		$pre_http_filter = function () use ( $mock_response ) {
+			return $mock_response;
+		};
+		add_filter( 'pre_http_request', $pre_http_filter );
+
+		try {
+			if ( 'retrieve' === $call_type ) {
+				WC_Stripe_API::retrieve( $api );
+			} else {
+				WC_Stripe_API::request( [], $api, $method );
+			}
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_filter );
+		}
+
+		if ( $should_redact ) {
+			$this->assertSame( '[REDACTED]', $logged_response );
+		} else {
+			$this->assertEquals( $response_body, $logged_response );
+		}
+	}
+
+	/**
+	 * @return array<string, array{string, string, string, bool}>
+	 */
+	public function provide_response_body_logging_cases(): array {
+		return [
+			'retrieve redacts a payouts response with query parameters' => [ 'retrieve', 'payouts?limit=25', 'GET', true ],
+			'request redacts a GET balance response'                    => [ 'request', 'balance', 'GET', true ],
+			'retrieve logs an unrelated response'                       => [ 'retrieve', 'payment_intents', 'GET', false ],
+			'request logs a POST payouts response'                      => [ 'request', 'payouts', 'POST', false ],
+		];
+	}
+
+	/**
 	 * Test WC_Stripe_API::log_error_response() as called from WC_Stripe_API::request() and WC_Stripe_API::retrieve().
 	 *
 	 * @param array|WP_Error $response     The mock response.
