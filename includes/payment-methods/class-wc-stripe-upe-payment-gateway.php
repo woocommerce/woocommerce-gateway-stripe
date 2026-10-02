@@ -1948,6 +1948,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				if ( ! $contains_wallet_or_voucher_method && ! $contains_redirect_next_action ) {
 					// Return the payment method used to process the payment so the block checkout can save the payment method.
 					$response_args['payment_method'] = $payment_information['payment_method'];
+
+					// Stripe needs a return_url if the client confirm redirects. It is sent next to the confirm hash,
+					// not inside it, so a page still running older JS can parse the hash.
+					$response_args['stripe_confirm_return_url'] = $payment_information['return_url'];
 				}
 
 				// If the order requires some action from the customer, add meta to the order to prevent it from being cancelled by WooCommerce's hold stock settings.
