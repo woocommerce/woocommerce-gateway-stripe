@@ -1936,10 +1936,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			// Save the preferred card brand on the order.
 			$this->maybe_set_preferred_card_brand_for_order( $order, $payment_method );
 
+			// Whether the intent now needs the customer to confirm or act (for example a BLIK push or a
+			// redirect). Shared by the redirect branch below and the retry status fix in the else.
+			$is_awaiting_customer = in_array( $payment_intent->status, WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION_OR_ACTION_STATUSES, true );
+
 			// Updates the redirect URL and add extra meta data to the order if the payment intent requires confirmation or action.
 			// Note: BLIK falls into this condition, but we want to skip this logic for it because from this point on,
 			// the confirming action is done by the customer and the confirmation comes through webhooks.
-			if ( in_array( $payment_intent->status, WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION_OR_ACTION_STATUSES, true )
+			if ( $is_awaiting_customer
 				&& WC_Stripe_Payment_Methods::BLIK !== $selected_payment_type ) {
 				$wallet_and_voucher_methods        = array_merge( WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS );
 				$contains_wallet_or_voucher_method = $this->is_payment_using_method_types( $wallet_and_voucher_methods, $selected_payment_type, $payment_intent );
@@ -1959,7 +1963,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 				$redirect = $this->get_redirect_url( $this->get_return_url( $order ), $payment_intent, $payment_information, $order, $payment_needed );
 			} else {
-				if ( $payment_needed ) {
+				// On a BLIK retry the latest charge is the earlier failed one; the webhook reports this attempt.
+				if ( $is_awaiting_customer && $order instanceof WC_Order && $order->has_status( OrderStatus::FAILED ) ) {
+					$order->update_status( OrderStatus::PENDING, __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
+				}
+				if ( $payment_needed && ! $is_awaiting_customer ) {
 					// Use the last charge within the intent to proceed.
 					$charge = $this->get_latest_charge_from_intent( $payment_intent );
 

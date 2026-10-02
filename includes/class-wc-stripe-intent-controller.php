@@ -557,13 +557,38 @@ class WC_Stripe_Intent_Controller {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		$selected_payment_type = '' !== $selected_upe_payment_type && is_string( $selected_upe_payment_type ) ? $selected_upe_payment_type : null;
-		$order_helper->validate_intent_for_order( $order, $intent_id, $selected_payment_type );
+		$intent                = $intent_id;
+		if ( is_string( $intent_id ) && '' !== $intent_id ) {
+			$intent = $this->retrieve_intent( $intent_id ) ?? $intent_id;
+			if ( is_object( $intent ) && empty( $intent->error ) ) {
+				$this->maybe_release_stale_order_intent( $order, $intent, $selected_payment_type );
+			}
+		}
+		$order_helper->validate_intent_for_order( $order, $intent, $selected_payment_type );
 
 		$gateway  = $this->get_upe_gateway();
 		$amount   = $order->get_total();
 		$currency = $order->get_currency();
 		$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
-		$customer->maybe_create_customer();
+
+		// Guests get a new Stripe customer per attempt, but Stripe can't change an intent's customer,
+		// so a retry must reuse the one the intent already has. The intent id comes from the request and
+		// process_payment() does not bind it to this order, so only reuse the customer when the intent's
+		// metadata order_key matches this order. That stops a foreign same-amount intent from pulling
+		// another order's customer into this checkout.
+		$intent_customer_id = '';
+		if ( 0 === $customer->get_user_id()
+			&& is_object( $intent )
+			&& is_string( $intent->customer ?? null ) && '' !== $intent->customer
+			&& hash_equals( $order->get_order_key(), (string) ( $intent->metadata->order_key ?? '' ) )
+		) {
+			$intent_customer_id = $intent->customer;
+		}
+		if ( '' !== $intent_customer_id ) {
+			$customer->set_id( $intent_customer_id );
+		} else {
+			$customer->maybe_create_customer();
+		}
 
 		if ( $intent_id ) {
 			$request = [
@@ -596,7 +621,7 @@ class WC_Stripe_Intent_Controller {
 				}
 				$order_helper->update_stripe_upe_payment_type( $order, $selected_upe_payment_type );
 			}
-			if ( ! empty( $customer ) && $customer->get_id() ) {
+			if ( '' === $intent_customer_id && ! empty( $customer ) && $customer->get_id() ) {
 				$request['customer'] = $customer->get_id();
 			}
 			if ( $save_payment_method ) {
@@ -605,8 +630,7 @@ class WC_Stripe_Intent_Controller {
 
 			$level3_data = $gateway->get_level3_data_from_order( $order );
 
-			// Use "setup_intents" endpoint if `$intent_id` starts with `seti_`.
-			$endpoint = $is_setup_intent ? 'setup_intents' : 'payment_intents';
+			$endpoint = $this->intent_endpoint( $intent_id );
 			$result   = WC_Stripe_API::request_with_level3_data(
 				$request,
 				"{$endpoint}/{$intent_id}",
@@ -654,6 +678,115 @@ class WC_Stripe_Intent_Controller {
 		return [
 			'success' => true,
 		];
+	}
+
+	/**
+	 * Fetches a payment or setup intent the same way validate_intent_for_order() does.
+	 *
+	 * @param string $intent_id The payment or setup intent ID.
+	 * @return stdClass|null The intent, an error object, or null.
+	 */
+	private function retrieve_intent( string $intent_id, bool $expand_payment_method = true ) {
+		$query = $expand_payment_method ? '?expand[]=payment_method' : '';
+		return WC_Stripe_API::retrieve( $this->intent_endpoint( $intent_id ) . "/{$intent_id}{$query}" );
+	}
+
+	/**
+	 * Returns the API endpoint for an intent id. Setup intents start with `seti_`; everything else
+	 * is a payment intent.
+	 *
+	 * @param string $intent_id The intent id.
+	 * @return string The endpoint, `setup_intents` or `payment_intents`.
+	 */
+	private function intent_endpoint( string $intent_id ): string {
+		return 0 === strpos( $intent_id, 'seti_' ) ? 'setup_intents' : 'payment_intents';
+	}
+
+	/**
+	 * Releases the order's stored intent so a retry of a non-deferred payment can use a new one.
+	 *
+	 * Only when the new intent is unconfirmed, not linked to another order, and would pass
+	 * validate_intent_for_order(), and the stored one took no money and is cancelled first,
+	 * so the shopper cannot pay both.
+	 *
+	 * @param WC_Order    $order                 The order being paid.
+	 * @param object      $new_intent            The intent submitted for this attempt.
+	 * @param string|null $selected_payment_type The payment type the shopper selected, or null.
+	 * @return void
+	 */
+	private function maybe_release_stale_order_intent( WC_Order $order, object $new_intent, ?string $selected_payment_type ): void {
+		$order_helper    = WC_Stripe_Order_Helper::get_instance();
+		$intent_id       = is_string( $new_intent->id ?? null ) ? $new_intent->id : '';
+		$order_intent_id = $order_helper->get_stripe_intent_id( $order );
+		if ( '' === $intent_id || ! is_string( $order_intent_id ) || '' === $order_intent_id || $order_intent_id === $intent_id ) {
+			return;
+		}
+
+		$is_setup_intent = 0 === strpos( $intent_id, 'seti_' );
+		if ( ( 0 === strpos( $order_intent_id, 'seti_' ) ) !== $is_setup_intent ) {
+			return;
+		}
+		$endpoint = $this->intent_endpoint( $intent_id );
+
+		if ( WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD !== ( $new_intent->status ?? '' ) ) {
+			return;
+		}
+		$new_intent_order_key = $new_intent->metadata->order_key ?? '';
+		if ( '' !== $new_intent_order_key && $new_intent_order_key !== $order->get_order_key() ) {
+			return;
+		}
+
+		// The release cannot be undone, so an intent that validate_intent_for_order() will reject
+		// must not cost the shopper the stored one (for example, a BLIK code still waiting for approval).
+		if ( null === $selected_payment_type ) {
+			$selected_payment_type = $order_helper->get_stripe_upe_payment_type( $order );
+		}
+		if ( ! empty( $selected_payment_type ) && ! in_array( $selected_payment_type, (array) ( $new_intent->payment_method_types ?? [] ), true ) ) {
+			return;
+		}
+		if ( ! $is_setup_intent ) {
+			$order_amount    = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
+			$intent_currency = $new_intent->currency ?? '';
+			$intent_amount   = $new_intent->amount ?? null;
+			if ( strtolower( $order->get_currency() ) !== $intent_currency || $intent_amount !== $order_amount ) {
+				return;
+			}
+		}
+
+		$old_intent = $this->retrieve_intent( $order_intent_id, false );
+		if ( ! is_object( $old_intent ) || ! empty( $old_intent->error ) ) {
+			return;
+		}
+
+		$old_status = $old_intent->status ?? '';
+		if ( WC_Stripe_Intent_Status::CANCELED !== $old_status ) {
+			// Keep intents that hold the shopper's money.
+			$cancellable_statuses = [
+				WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD,
+				WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION,
+				WC_Stripe_Intent_Status::REQUIRES_ACTION,
+			];
+			if ( ! in_array( $old_status, $cancellable_statuses, true ) ) {
+				return;
+			}
+
+			$cancelled_intent = WC_Stripe_API::request( [], "{$endpoint}/{$order_intent_id}/cancel" );
+			if ( ! is_object( $cancelled_intent ) || ! empty( $cancelled_intent->error ) || WC_Stripe_Intent_Status::CANCELED !== ( $cancelled_intent->status ?? '' ) ) {
+				return;
+			}
+		}
+
+		$order_helper->delete_stripe_intent_id( $order );
+		$order->save();
+
+		WC_Stripe_Logger::info(
+			'Replaced the stored intent on retry of a non-deferred payment',
+			[
+				'order_id'      => $order->get_id(),
+				'old_intent_id' => $order_intent_id,
+				'new_intent_id' => $intent_id,
+			]
+		);
 	}
 
 	/**
