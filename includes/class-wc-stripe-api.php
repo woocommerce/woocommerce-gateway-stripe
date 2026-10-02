@@ -340,12 +340,14 @@ class WC_Stripe_API {
 
 		$response_body = json_decode( $response_body_raw );
 
+		$response_body_to_log = self::should_log_response_body( $api, $method ) ? $response_body : '[' . __( 'REDACTED', 'woocommerce-gateway-stripe' ) . ']';
+
 		WC_Stripe_Logger::debug(
 			"Stripe API response: {$method} {$api}",
 			[
 				'stripe_api_key'    => $masked_secret_key,
 				'stripe_request_id' => self::get_stripe_request_id( $response ),
-				'response'          => $response_body,
+				'response'          => $response_body_to_log,
 			]
 		);
 
@@ -466,16 +468,36 @@ class WC_Stripe_API {
 
 		$response_body = json_decode( $response_body_raw );
 
+		$response_body_to_log = self::should_log_response_body( $api, 'GET' ) ? $response_body : '[' . __( 'REDACTED', 'woocommerce-gateway-stripe' ) . ']';
+
 		WC_Stripe_Logger::debug(
 			"Stripe API response: GET {$api}",
 			[
 				'stripe_api_key'    => $masked_secret_key,
 				'stripe_request_id' => self::get_stripe_request_id( $response ),
-				'response'          => $response_body,
+				'response'          => $response_body_to_log,
 			]
 		);
 
 		return $response_body;
+	}
+
+	/**
+	 * Determines whether a Stripe API request response body should be logged.
+	 *
+	 * @param string $api    The request URL path.
+	 * @param string $method The request HTTP method.
+	 *
+	 * @return bool Whether response body should be logged.
+	 */
+	public static function should_log_response_body( $api, $method ) {
+		$api_path = wp_parse_url( $api, PHP_URL_PATH );
+
+		if ( 'GET' === $method && in_array( $api_path, [ 'balance', 'payouts' ], true ) ) {
+			return false;
+		}
+
+		return true;
 	}
 
 	/**
