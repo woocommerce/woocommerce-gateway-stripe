@@ -75,6 +75,12 @@ class WC_Stripe_Checkout_Session_Manager {
 			],
 		];
 
+		// We should have a valid configuration ID, but we make sure we don't create an invalid request.
+		$payment_method_configuration_id = WC_Stripe_Payment_Method_Configurations::get_configuration_id();
+		if ( null !== $payment_method_configuration_id ) {
+			$request['payment_method_configuration'] = $payment_method_configuration_id;
+		}
+
 		if ( 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ) ) {
 			$request['phone_number_collection'] = [ 'enabled' => 'true' ];
 		}

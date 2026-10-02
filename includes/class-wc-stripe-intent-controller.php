@@ -1045,6 +1045,12 @@ class WC_Stripe_Intent_Controller {
 				'allow_redirects' => 'always',
 			];
 
+			// We should have a valid configuration ID, but we should check to make sure we don't create an invalid request.
+			$payment_method_configuration_id = WC_Stripe_Payment_Method_Configurations::get_configuration_id();
+			if ( null !== $payment_method_configuration_id ) {
+				$request['payment_method_configuration'] = $payment_method_configuration_id;
+			}
+
 			// Mirror the client Payment Element's exclusion list so PMC methods the plugin doesn't support are never accepted by the intent.
 			if ( ! empty( $payment_information['excluded_payment_method_types'] ) ) {
 				$request['excluded_payment_method_types'] = $payment_information['excluded_payment_method_types'];

@@ -191,6 +191,84 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * We must create checkout sessions using the merchant's Payment Method Configuration ID.
+	 *
+	 * @param string|null $configuration_id The cached PMC ID, or null when PMC is disabled or unavailable.
+	 *
+	 * @dataProvider provide_create_session_payment_method_configuration_data
+	 */
+	public function test_create_session_with_payment_method_configuration( ?string $configuration_id ): void {
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 12.34 ] );
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		PMC_Test_Helper::delete_cached_configuration();
+		if ( null === $configuration_id ) {
+			PMC_Test_Helper::disable_pmc();
+		} else {
+			PMC_Test_Helper::enable_pmc( true );
+			PMC_Test_Helper::cache_mocked_configuration( $configuration_id );
+		}
+
+		$captured_create = null;
+		$capture_body    = static function ( $request, $api ) use ( &$captured_create ) {
+			if ( 'checkout/sessions' === $api ) {
+				$captured_create = $request;
+			}
+			return $request;
+		};
+		$mock_response   = static function ( $return_value, $parsed_args, $url ) {
+			if ( 'https://api.stripe.com/v1/checkout/sessions' !== $url ) {
+				return $return_value;
+			}
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					(object) [
+						'id'            => 'cs_test_pmc',
+						'client_secret' => 'cs_test_pmc_secret',
+					]
+				),
+			];
+		};
+		add_filter( 'wc_stripe_request_body', $capture_body, 10, 2 );
+		add_filter( 'pre_http_request', $mock_response, 10, 3 );
+
+		try {
+			( new WC_Stripe_Checkout_Session_Manager() )->create_session();
+		} finally {
+			remove_filter( 'wc_stripe_request_body', $capture_body, 10 );
+			remove_filter( 'pre_http_request', $mock_response, 10 );
+			WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+			PMC_Test_Helper::delete_cached_configuration();
+			$product->delete( true );
+			WC()->cart->empty_cart();
+		}
+
+		$this->assertIsArray( $captured_create );
+		if ( null === $configuration_id ) {
+			$this->assertArrayNotHasKey( 'payment_method_configuration', $captured_create );
+		} else {
+			$this->assertArrayHasKey( 'payment_method_configuration', $captured_create );
+			$this->assertSame( $configuration_id, $captured_create['payment_method_configuration'] );
+		}
+	}
+
+	/**
+	 * Data provider for {@see test_create_session_with_payment_method_configuration()}.
+	 *
+	 * @return array
+	 */
+	public function provide_create_session_payment_method_configuration_data(): array {
+		return [
+			'configuration available'   => [ 'pmc_test_123' ],
+			'configuration unavailable' => [ null ],
+		];
+	}
+
+	/**
 	 * A later native cart total updates the server-owned session and increments its embedded revision.
 	 */
 	public function test_synchronize_updates_existing_session_after_cart_total_changes(): void {
