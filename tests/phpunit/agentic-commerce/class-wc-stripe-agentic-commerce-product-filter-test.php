@@ -476,10 +476,24 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$product_brand_exists = taxonomy_exists( 'product_brand' );
 
 		$normal_product_args = [
-			'status' => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
-			'type'   => [
+			'status'     => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
+			'type'       => [
 				\Automattic\WooCommerce\Enums\ProductType::SIMPLE,
 				\Automattic\WooCommerce\Enums\ProductType::VARIATION,
+			],
+			'meta_query' => [
+				[
+					'relation' => 'OR',
+					[
+						'key'     => '_wc_stripe_agentic_commerce_exclude',
+						'compare' => 'NOT EXISTS',
+					],
+					[
+						'key'     => '_wc_stripe_agentic_commerce_exclude',
+						'compare' => '!=',
+						'value'   => 'yes',
+					],
+				],
 			],
 		];
 
