@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { noop } from 'lodash';
 import TooltipBase from './tooltip-base';
+
+const noop = () => undefined;
 
 const Tooltip = ( { isVisible, onHide = noop, ...props } ) => {
 	const [ isHovered, setIsHovered ] = useState( false );
