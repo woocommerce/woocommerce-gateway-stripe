@@ -70,7 +70,7 @@ class WC_Stripe_Intent_Controller {
 		$gateway = $this->get_gateway();
 		if ( ! $gateway instanceof WC_Stripe_UPE_Payment_Gateway ) {
 			WC_Stripe_Logger::error( 'Error instantiating the UPE Payment Gateway, UPE is not enabled.' );
-			throw new WC_Stripe_Exception( __( "We're not able to process this payment.", 'woocommerce-gateway-stripe' ) );
+			throw new WC_Stripe_Exception( __( "We're not able to process this payment.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 		return $gateway;
 	}
@@ -84,7 +84,7 @@ class WC_Stripe_Intent_Controller {
 	 */
 	private function get_order_from_request() {
 		if ( ! isset( $_GET['nonce'] ) || ! wp_verify_nonce( sanitize_key( $_GET['nonce'] ), 'wc_stripe_confirm_pi' ) ) {
-			throw new WC_Stripe_Exception( 'missing-nonce', __( 'CSRF verification failed.', 'woocommerce-gateway-stripe' ) );
+			throw new WC_Stripe_Exception( 'missing-nonce', __( 'CSRF verification failed.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		// Load the order ID.
@@ -97,7 +97,7 @@ class WC_Stripe_Intent_Controller {
 		$order = wc_get_order( $order_id );
 
 		if ( ! $order instanceof WC_Order ) {
-			throw new WC_Stripe_Exception( 'missing-order', __( 'Missing order ID for payment confirmation', 'woocommerce-gateway-stripe' ) );
+			throw new WC_Stripe_Exception( 'missing-order', __( 'Missing order ID for payment confirmation', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		return $order;
@@ -448,7 +448,7 @@ class WC_Stripe_Intent_Controller {
 		);
 
 		if ( empty( $enabled_payment_methods ) ) {
-			throw new Exception( __( 'Unable to process your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) );
+			throw new Exception( __( 'Unable to process your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		$capture = $gateway->is_automatic_capture_enabled();
@@ -471,7 +471,7 @@ class WC_Stripe_Intent_Controller {
 		$payment_intent = WC_Stripe_API::request( $request, 'payment_intents' );
 
 		if ( ! empty( $payment_intent->error ) ) {
-			throw new Exception( $payment_intent->error->message );
+			throw new Exception( $payment_intent->error->message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		return [
@@ -625,7 +625,7 @@ class WC_Stripe_Intent_Controller {
 						]
 					);
 
-					throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+					throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				}
 
 				WC_Stripe_Logger::error(
@@ -715,7 +715,7 @@ class WC_Stripe_Intent_Controller {
 		);
 
 		if ( empty( $enabled_payment_methods ) ) {
-			throw new Exception( __( 'Unable to process your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) );
+			throw new Exception( __( 'Unable to process your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		$user     = wp_get_current_user();
@@ -738,7 +738,7 @@ class WC_Stripe_Intent_Controller {
 		$setup_intent = WC_Stripe_API::request( $request, 'setup_intents' );
 
 		if ( ! empty( $setup_intent->error ) ) {
-			throw new Exception( $setup_intent->error->message );
+			throw new Exception( $setup_intent->error->message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		return [
@@ -1036,7 +1036,8 @@ class WC_Stripe_Intent_Controller {
 		// eligibility decision is made in WC_Stripe_UPE_Payment_Gateway::prepare_payment_information_from_request(),
 		// here we only apply it to the request.
 		if ( ! empty( $payment_information['automatic_payment_methods'] ) ) {
-			unset( $request['payment_method_types'] );
+			// DPM intents always include `card`, and Stripe rejects statement_descriptor on card-inclusive intents.
+			unset( $request['payment_method_types'], $request['statement_descriptor'] );
 
 			$request['automatic_payment_methods'] = [
 				'enabled'         => 'true',
@@ -1231,11 +1232,11 @@ class WC_Stripe_Intent_Controller {
 			throw new WC_Stripe_Exception(
 				sprintf(
 					'The information for creating and confirming the intent is missing the following data: %s. Payment information received: %s. Calling method: %s',
-					implode( ', ', $missing_params ),
+					implode( ', ', $missing_params ), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 					wp_json_encode( $payment_information ),
-					$calling_method
+					$calling_method // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				),
-				$shopper_error_message
+				$shopper_error_message // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			);
 		}
 
@@ -1245,10 +1246,10 @@ class WC_Stripe_Intent_Controller {
 				throw new WC_Stripe_Exception(
 					sprintf(
 						'The provided value for the "%s" parameter is not a %s.',
-						$param,
-						$type
+						$param, // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+						$type // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 					),
-					__( 'Please reach out to us if the problem persists.', 'woocommerce-gateway-stripe' )
+					__( 'Please reach out to us if the problem persists.', 'woocommerce-gateway-stripe' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				);
 			}
 		}
@@ -1392,7 +1393,7 @@ class WC_Stripe_Intent_Controller {
 		$setup_intent = WC_Stripe_API::request( $request, 'setup_intents' );
 
 		if ( ! empty( $setup_intent->error ) ) {
-			throw new WC_Stripe_Exception( print_r( $setup_intent->error, true ), $setup_intent->error->message );
+			throw new WC_Stripe_Exception( print_r( $setup_intent->error, true ), $setup_intent->error->message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		return $setup_intent;

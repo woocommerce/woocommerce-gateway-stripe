@@ -1,0 +1,28 @@
+{
+	"sut": {
+		"type": "plugin",
+		"slug": "woocommerce-gateway-stripe",
+		"source": {
+			"type": "local",
+			"path": ".",
+			"build": "npm run build:webpack"
+		}
+	},
+	"test_types": {
+		"e2e": {
+			"main": {
+				"test_packages": [
+					"./tests/e2e"
+				]
+			}
+		}
+	},
+	"groups": {
+		"ci-quick": {
+			"e2e": [ "main" ]
+		},
+		"ci-full": {
+			"e2e": [ "main" ]
+		}
+	}
+}
