@@ -41,7 +41,7 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 				throw new Exception(
 					sprintf(
 						'Line item %s has no sku_id.',
-						$line_item->get_id()
+						$line_item->get_id() // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 					)
 				);
 			}
@@ -51,8 +51,8 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator {
 				throw new Exception(
 					sprintf(
 						'Product not found for line item %s with sku_id "%s" (no SKU or legacy product-ID match).',
-						$line_item->get_id(),
-						$sku
+						$line_item->get_id(), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+						$sku // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 					)
 				);
 			}

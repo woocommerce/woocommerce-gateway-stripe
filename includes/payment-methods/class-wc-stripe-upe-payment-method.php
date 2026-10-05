@@ -285,7 +285,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 
 		if ( $is_dev_environment ) {
 			$message = method_exists( $upe_gateway_instance, $method ) ? 'Call to private method ' : 'Call to undefined method ';
-			throw new \Error( $message . get_class( $this ) . '::' . $method );
+			throw new \Error( $message . get_class( $this ) . '::' . $method ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		WC_Stripe_Logger::error( 'Call to undefined method ' . get_class( $this ) . '::' . $method );
@@ -588,8 +588,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$sepa_debit = $payment_method->sepa_debit ?? null;
 		if ( ! is_object( $sepa_debit ) || ! isset( $sepa_debit->fingerprint ) ) {
 			throw new WC_Stripe_Exception(
-				sprintf( 'Cannot create a SEPA payment token from payment method %s: missing sepa_debit fingerprint.', $payment_method->id ?? 'unknown' ),
-				__( "We're not able to save this payment method. Please try again.", 'woocommerce-gateway-stripe' )
+				sprintf( 'Cannot create a SEPA payment token from payment method %s: missing sepa_debit fingerprint.', $payment_method->id ?? 'unknown' ), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+				__( "We're not able to save this payment method. Please try again.", 'woocommerce-gateway-stripe' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			);
 		}
 
