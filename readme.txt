@@ -207,5 +207,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Link the WooCommerce POS page from the in-person payments description in the readme
 * Update - Reduce the size of the Stripe settings JS bundles by loading only the Gridicons they use
 * Dev - Update PHPCS rules and improve alignment with WordPress plugin rules
+* Fix - Remove the duplicated period in the webhook status message when webhooks are pending
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
