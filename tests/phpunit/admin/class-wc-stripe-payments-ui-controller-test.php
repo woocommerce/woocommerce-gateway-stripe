@@ -62,7 +62,7 @@ class WC_Stripe_Payments_UI_Controller_Test extends WP_UnitTestCase {
 	private function register_menu_as_admin(): WC_Stripe_Payments_UI_Controller {
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
 
-		$this->register_parent_menus( [ $this->get_controller_const( 'WOOCOMMERCE_CORE_PAYMENTS_OVERVIEW_MENU_SLUG' ) ] );
+		$this->register_parent_menus( [ $this->get_controller_const( 'WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG' ) ] );
 
 		$controller = new WC_Stripe_Payments_UI_Controller();
 		$controller->register_stripe_payments_menu();
@@ -78,7 +78,7 @@ class WC_Stripe_Payments_UI_Controller_Test extends WP_UnitTestCase {
 	private function get_own_screen_hook_suffix(): string {
 		return get_plugin_page_hookname(
 			$this->get_controller_const( 'PAYMENTS_MENU_SLUG' ),
-			$this->get_controller_const( 'WOOCOMMERCE_CORE_PAYMENTS_OVERVIEW_MENU_SLUG' )
+			$this->get_controller_const( 'WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG' )
 		);
 	}
 
@@ -139,36 +139,36 @@ class WC_Stripe_Payments_UI_Controller_Test extends WP_UnitTestCase {
 	public function provide_active_payments_menus(): array {
 		return [
 			'woocommerce core overview only'                   => [
-				[ 'WOOCOMMERCE_CORE_PAYMENTS_OVERVIEW_MENU_SLUG' ],
-				'WOOCOMMERCE_CORE_PAYMENTS_OVERVIEW_MENU_SLUG',
+				[ 'WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG' ],
+				'WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG',
 			],
 			'woocommerce core connect only'                    => [
-				[ 'WOOCOMMERCE_CORE_PAYMENTS_CONNECT_MENU_SLUG' ],
-				'WOOCOMMERCE_CORE_PAYMENTS_CONNECT_MENU_SLUG',
+				[ 'WOOPAYMENTS_PAYMENTS_CONNECT_MENU_SLUG' ],
+				'WOOPAYMENTS_PAYMENTS_CONNECT_MENU_SLUG',
 			],
 			'woopayments only'                                 => [
-				[ 'WOOPAYMENTS_PAYMENTS_MENU_SLUG' ],
-				'WOOPAYMENTS_PAYMENTS_MENU_SLUG',
+				[ 'WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG' ],
+				'WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG',
 			],
 			'overview takes precedence over connect'           => [
-				[ 'WOOCOMMERCE_CORE_PAYMENTS_CONNECT_MENU_SLUG', 'WOOCOMMERCE_CORE_PAYMENTS_OVERVIEW_MENU_SLUG' ],
-				'WOOCOMMERCE_CORE_PAYMENTS_OVERVIEW_MENU_SLUG',
+				[ 'WOOPAYMENTS_PAYMENTS_CONNECT_MENU_SLUG', 'WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG' ],
+				'WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG',
 			],
 			'overview takes precedence over woopayments'       => [
-				[ 'WOOPAYMENTS_PAYMENTS_MENU_SLUG', 'WOOCOMMERCE_CORE_PAYMENTS_OVERVIEW_MENU_SLUG' ],
-				'WOOCOMMERCE_CORE_PAYMENTS_OVERVIEW_MENU_SLUG',
+				[ 'WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG', 'WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG' ],
+				'WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG',
 			],
 			'connect takes precedence over woopayments'        => [
-				[ 'WOOPAYMENTS_PAYMENTS_MENU_SLUG', 'WOOCOMMERCE_CORE_PAYMENTS_CONNECT_MENU_SLUG' ],
-				'WOOCOMMERCE_CORE_PAYMENTS_CONNECT_MENU_SLUG',
+				[ 'WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG', 'WOOPAYMENTS_PAYMENTS_CONNECT_MENU_SLUG' ],
+				'WOOPAYMENTS_PAYMENTS_CONNECT_MENU_SLUG',
 			],
 			'overview takes precedence when all are available' => [
 				[
-					'WOOPAYMENTS_PAYMENTS_MENU_SLUG',
-					'WOOCOMMERCE_CORE_PAYMENTS_CONNECT_MENU_SLUG',
-					'WOOCOMMERCE_CORE_PAYMENTS_OVERVIEW_MENU_SLUG',
+					'WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG',
+					'WOOPAYMENTS_PAYMENTS_CONNECT_MENU_SLUG',
+					'WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG',
 				],
-				'WOOCOMMERCE_CORE_PAYMENTS_OVERVIEW_MENU_SLUG',
+				'WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG',
 			],
 		];
 	}
@@ -200,9 +200,9 @@ class WC_Stripe_Payments_UI_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function provide_parent_menu_submenu_titles(): array {
 		return [
-			'woocommerce core overview menu' => [ 'WOOCOMMERCE_CORE_PAYMENTS_OVERVIEW_MENU_SLUG', [ 'Add a provider', 'Stripe Payouts' ] ],
-			'woocommerce core connect menu'  => [ 'WOOCOMMERCE_CORE_PAYMENTS_CONNECT_MENU_SLUG', [ 'Add a provider', 'Stripe Payouts' ] ],
-			'woopayments menu'               => [ 'WOOPAYMENTS_PAYMENTS_MENU_SLUG', [ 'Payments', 'Stripe Payouts' ] ],
+			'woocommerce core overview menu' => [ 'WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG', [ 'Add a provider', 'Stripe Payouts' ] ],
+			'woocommerce core connect menu'  => [ 'WOOPAYMENTS_PAYMENTS_CONNECT_MENU_SLUG', [ 'Add a provider', 'Stripe Payouts' ] ],
+			'woopayments menu'               => [ 'WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG', [ 'Add a provider', 'Stripe Payouts' ] ],
 		];
 	}
 
@@ -240,8 +240,8 @@ class WC_Stripe_Payments_UI_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function provide_core_payments_menu_constants(): array {
 		return [
-			'overview menu' => [ 'WOOCOMMERCE_CORE_PAYMENTS_OVERVIEW_MENU_SLUG' ],
-			'connect menu'  => [ 'WOOCOMMERCE_CORE_PAYMENTS_CONNECT_MENU_SLUG' ],
+			'overview menu' => [ 'WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG' ],
+			'connect menu'  => [ 'WOOPAYMENTS_PAYMENTS_CONNECT_MENU_SLUG' ],
 		];
 	}
 
@@ -262,7 +262,7 @@ class WC_Stripe_Payments_UI_Controller_Test extends WP_UnitTestCase {
 	public function test_register_menu_sets_the_submenu_capability(): void {
 		$this->register_menu_as_admin();
 
-		$stripe_item = $this->find_stripe_submenu_item( $this->get_controller_const( 'WOOCOMMERCE_CORE_PAYMENTS_OVERVIEW_MENU_SLUG' ) );
+		$stripe_item = $this->find_stripe_submenu_item( $this->get_controller_const( 'WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG' ) );
 
 		$this->assertNotNull( $stripe_item );
 		$this->assertSame( $this->get_controller_const( 'CAPABILITY' ), $stripe_item[1] );
@@ -274,7 +274,7 @@ class WC_Stripe_Payments_UI_Controller_Test extends WP_UnitTestCase {
 	public function test_register_menu_without_capability_adds_nothing_and_enqueues_nothing(): void {
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'subscriber' ] ) );
 
-		$core_menu_slug = $this->get_controller_const( 'WOOCOMMERCE_CORE_PAYMENTS_OVERVIEW_MENU_SLUG' );
+		$core_menu_slug = $this->get_controller_const( 'WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG' );
 		$this->register_parent_menus( [ $core_menu_slug ] );
 
 		$logged = null;
@@ -382,9 +382,9 @@ class WC_Stripe_Payments_UI_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function provide_supported_payments_menu_constants(): array {
 		return [
-			'overview menu'    => [ 'WOOCOMMERCE_CORE_PAYMENTS_OVERVIEW_MENU_SLUG' ],
-			'connect menu'     => [ 'WOOCOMMERCE_CORE_PAYMENTS_CONNECT_MENU_SLUG' ],
-			'woopayments menu' => [ 'WOOPAYMENTS_PAYMENTS_MENU_SLUG' ],
+			'overview menu'    => [ 'WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG' ],
+			'connect menu'     => [ 'WOOPAYMENTS_PAYMENTS_CONNECT_MENU_SLUG' ],
+			'woopayments menu' => [ 'WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG' ],
 		];
 	}
 
