@@ -192,6 +192,13 @@ final class WC_Stripe_Option_Lock {
 		// A full batch may have left more rows behind; continue soon instead of waiting a day.
 		if ( $deleted >= self::CLEANUP_BATCH_SIZE && function_exists( 'as_enqueue_async_action' ) ) {
 			as_enqueue_async_action( self::CLEANUP_ACTION, [], 'woocommerce-gateway-stripe' );
+			WC_Stripe_Logger::info(
+				'Scheduling additional option lock cleanup batch.',
+				[
+					'deleted'    => $deleted,
+					'batch_size' => self::CLEANUP_BATCH_SIZE,
+				]
+			);
 		}
 	}
 
