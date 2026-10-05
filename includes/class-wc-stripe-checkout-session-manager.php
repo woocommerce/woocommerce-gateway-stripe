@@ -86,7 +86,7 @@ class WC_Stripe_Checkout_Session_Manager {
 				$stripe_customer = new WC_Stripe_Customer( WC()->customer->get_id() );
 				$stripe_customer->maybe_create_customer( WC_Stripe_Customer::CUSTOMER_CONTEXT_CHECKOUT_SESSION );
 			} catch ( Exception $e ) {
-				throw new WC_Stripe_Exception( $e->getMessage(), __( 'Unable to create or retrieve Stripe customer.', 'woocommerce-gateway-stripe' ) );
+				throw new WC_Stripe_Exception( $e->getMessage(), __( 'Unable to create or retrieve Stripe customer.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			}
 
 			$request['customer']                     = $stripe_customer->get_id();
@@ -113,11 +113,11 @@ class WC_Stripe_Checkout_Session_Manager {
 		$checkout_session = WC_Stripe_API::request( $request, 'checkout/sessions' );
 		if ( ! empty( $checkout_session->error ) ) {
 			$message = empty( $checkout_session->error->message ) ? '(No error message returned from Stripe)' : $checkout_session->error->message;
-			throw new WC_Stripe_Exception( $message, self::get_runtime_error_message() );
+			throw new WC_Stripe_Exception( $message, self::get_runtime_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		if ( empty( $checkout_session->client_secret ) || empty( $checkout_session->id ) ) {
-			throw new WC_Stripe_Exception( 'Failed to create Stripe Checkout Session.', self::get_runtime_error_message() );
+			throw new WC_Stripe_Exception( 'Failed to create Stripe Checkout Session.', self::get_runtime_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		WC_Stripe_Checkout_Session_Context::store_for_cart( $checkout_session->id, $cart_context );
@@ -149,7 +149,7 @@ class WC_Stripe_Checkout_Session_Manager {
 		$this->validate_cart();
 
 		if ( '' === $session_id ) {
-			throw new WC_Stripe_Exception( 'Checkout session ID is required.', self::get_runtime_error_message() );
+			throw new WC_Stripe_Exception( 'Checkout session ID is required.', self::get_runtime_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		WC_Stripe_Checkout_Session_Context::with_mutation_lock(
@@ -169,7 +169,7 @@ class WC_Stripe_Checkout_Session_Manager {
 
 				if ( ! empty( $checkout_session->error ) ) {
 					$message = empty( $checkout_session->error->message ) ? '(No error message returned from Stripe)' : $checkout_session->error->message;
-					throw new WC_Stripe_Exception( $message, self::get_runtime_error_message() );
+					throw new WC_Stripe_Exception( $message, self::get_runtime_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				}
 
 				WC_Stripe_Checkout_Session_Context::store_for_cart( $session_id, $cart_context );
@@ -346,11 +346,11 @@ class WC_Stripe_Checkout_Session_Manager {
 	 */
 	private function validate_cart(): void {
 		if ( ! WC()->session ) {
-			throw new WC_Stripe_Exception( 'No WooCommerce session found.', self::get_runtime_error_message() );
+			throw new WC_Stripe_Exception( 'No WooCommerce session found.', self::get_runtime_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		if ( ! WC()->cart || WC()->cart->is_empty() ) {
-			throw new WC_Stripe_Exception( 'Cart is empty.', __( 'Your cart is currently empty.', 'woocommerce-gateway-stripe' ) );
+			throw new WC_Stripe_Exception( 'Cart is empty.', __( 'Your cart is currently empty.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 	}
 

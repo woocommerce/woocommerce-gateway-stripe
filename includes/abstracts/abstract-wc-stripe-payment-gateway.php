@@ -420,7 +420,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		if ( $order->get_total() * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
 			/* translators: 1) amount (including currency symbol) */
-			throw new WC_Stripe_Exception( 'Did not meet minimum amount', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
+			throw new WC_Stripe_Exception( 'Did not meet minimum amount', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 	}
 
@@ -611,7 +611,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( $potential_order && $potential_order->get_id() !== $order->get_id() ) {
 			WC_Stripe_Logger::error( 'Aborting, transaction already consumed by another order.' );
 			$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
-			throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
+			throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		/**
@@ -707,7 +707,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 						: $localized_message
 				);
 
-				throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
+				throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			}
 		} else {
 			$order->set_transaction_id( $response->id );
@@ -859,7 +859,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$source_object = WC_Stripe_API::get_payment_method( $source_id );
 
 		if ( ! empty( $source_object->error ) ) {
-			throw new WC_Stripe_Exception( print_r( $source_object, true ), $source_object->error->message );
+			throw new WC_Stripe_Exception( print_r( $source_object, true ), $source_object->error->message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		return $source_object;
@@ -883,7 +883,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$charge_object = WC_Stripe_API::request( $params, 'charges/' . $charge_id, 'GET' );
 
 		if ( ! empty( $charge_object->error ) ) {
-			throw new WC_Stripe_Exception( print_r( $charge_object, true ), $charge_object->error->message );
+			throw new WC_Stripe_Exception( print_r( $charge_object, true ), $charge_object->error->message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		return $charge_object;
@@ -947,7 +947,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		$localized_message = __( 'Sorry, we\'re not accepting prepaid cards at this time. Your credit card has not been charged. Please try with alternative payment method.', 'woocommerce-gateway-stripe' );
-		throw new WC_Stripe_Exception( print_r( $payment_method, true ), $localized_message );
+		throw new WC_Stripe_Exception( print_r( $payment_method, true ), $localized_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 	}
 
 	/**
@@ -1033,7 +1033,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			if ( ! $wc_token || $wc_token->get_user_id() !== get_current_user_id() ) {
 				WC()->session->set( 'refresh_totals', true );
-				throw new WC_Stripe_Exception( 'Invalid payment method', __( 'Invalid payment method. Please input a new card number.', 'woocommerce-gateway-stripe' ) );
+				throw new WC_Stripe_Exception( 'Invalid payment method', __( 'Invalid payment method. Please input a new card number.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			}
 
 			$source_id = $wc_token->get_token();
@@ -1050,10 +1050,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$response = $customer->attach_source( $stripe_token );
 
 				if ( ! empty( $response->error ) ) {
-					throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
+					throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				}
 				if ( is_wp_error( $response ) ) {
-					throw new WC_Stripe_Exception( $response->get_error_message(), $response->get_error_message() );
+					throw new WC_Stripe_Exception( $response->get_error_message(), $response->get_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				}
 				$source_id = $response->id;
 			} else {
@@ -1156,7 +1156,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function check_source( $prepared_source ) {
 		if ( empty( $prepared_source->source ) ) {
 			$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
-			throw new WC_Stripe_Exception( print_r( $prepared_source, true ), $localized_message );
+			throw new WC_Stripe_Exception( print_r( $prepared_source, true ), $localized_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 	}
 
@@ -1415,7 +1415,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				// If amount is set, that means this function was called from the manual refund form.
 				if ( ! is_null( $amount ) ) {
 					// Throw an exception to provide a custom message on why the refund failed.
-					throw new Exception( __( 'The authorization was voided and the order cancelled. Click okay to continue, then refresh the page.', 'woocommerce-gateway-stripe' ) );
+					throw new Exception( __( 'The authorization was voided and the order cancelled. Click okay to continue, then refresh the page.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				} else {
 					// If refund was initiaded by changing order status, prevent refund without errors.
 					return false;
@@ -1536,8 +1536,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		if ( null === $synced ) {
 			throw new WC_Stripe_Exception(
-				"Charge {$charge_id} carries no captured state.",
-				__( 'The captured state of the charge could not be determined from Stripe.', 'woocommerce-gateway-stripe' )
+				"Charge {$charge_id} carries no captured state.", // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+				__( 'The captured state of the charge could not be determined from Stripe.', 'woocommerce-gateway-stripe' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			);
 		}
 
@@ -1751,7 +1751,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				if ( ! $quantity ) {
 					$error_msg = "Stripe Level 3 data: Order item with ID {$item->get_id()} from order ID {$order_id} has no quantity set.";
 					WC_Stripe_Logger::error( $error_msg );
-					throw new WC_Stripe_Exception( $error_msg );
+					throw new WC_Stripe_Exception( $error_msg ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				}
 				$total_tax  = $item->get_total_tax();
 				$item_total = $item->get_total();
@@ -2010,7 +2010,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	private function get_intent( $intent_type, $intent_id ) {
 		if ( ! in_array( $intent_type, [ 'payment_intents', 'setup_intents' ], true ) ) {
-			throw new Exception( "Failed to get intent of type $intent_type. Type is not allowed" );
+			throw new Exception( "Failed to get intent of type $intent_type. Type is not allowed" ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		$response = WC_Stripe_API::request( [], "$intent_type/$intent_id?expand[]=payment_method", 'GET' );
@@ -2378,7 +2378,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$order->add_order_note( $localized_message );
 
-		throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
+		throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 	}
 
 	/**
@@ -2512,11 +2512,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			if ( ! empty( $response->error ) ) {
 				// Formatting the response for the debug log entry.
-				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
-				throw new WC_Stripe_Exception( print_r( $response, true ), $this->get_localized_error_message_from_response( $response ) );
+				throw new WC_Stripe_Exception( print_r( $response, true ), $this->get_localized_error_message_from_response( $response ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r, WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			}
 			if ( is_wp_error( $response ) ) {
-				throw new WC_Stripe_Exception( $response->get_error_message(), $response->get_error_message() );
+				throw new WC_Stripe_Exception( $response->get_error_message(), $response->get_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			}
 		}
 	}
@@ -2644,7 +2643,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			// We better make get_source_object() handle wp_errors to reduce redundancy here.
 			if ( is_wp_error( $source_object ) ) {
-				throw new WC_Stripe_Exception( $source_object->get_error_message() . ' Code: ' . $source_object->get_error_code() );
+				throw new WC_Stripe_Exception( $source_object->get_error_message() . ' Code: ' . $source_object->get_error_code() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			}
 
 			return $source_object;
@@ -2658,7 +2657,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			// We better make get_source_object() handle wp_errors to reduce redundancy here.
 			if ( is_wp_error( $source_object ) ) {
-				throw new WC_Stripe_Exception( $source_object->get_error_message() . ' Code: ' . $source_object->get_error_code() );
+				throw new WC_Stripe_Exception( $source_object->get_error_message() . ' Code: ' . $source_object->get_error_code() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			}
 
 			return $source_object;
@@ -2692,7 +2691,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$meta_key = '_stripe_status_before_refund';
 		} else {
 			// Handle unsupported target_status values.
-			throw new InvalidArgumentException( sprintf( 'Unsupported target_status: %s', $target_status ) );
+			throw new InvalidArgumentException( sprintf( 'Unsupported target_status: %s', $target_status ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		$status = $order->get_meta( $meta_key );
@@ -2880,11 +2879,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$response = $customer->attach_source( $source->id );
 
 		if ( ! empty( $response->error ) ) {
-			throw new WC_Stripe_Exception( print_r( $response, true ), $this->get_localized_error_message_from_response( $response ) );
+			throw new WC_Stripe_Exception( print_r( $response, true ), $this->get_localized_error_message_from_response( $response ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		if ( is_wp_error( $response ) ) {
-			throw new WC_Stripe_Exception( $response->get_error_message(), $response->get_error_message() );
+			throw new WC_Stripe_Exception( $response->get_error_message(), $response->get_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		return true;
