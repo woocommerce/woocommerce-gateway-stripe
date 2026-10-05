@@ -43,6 +43,11 @@ xxxx-xx-xx - version 11.1.0
 * Dev - Make e2e tests runnable from Quality Insights Toolkit (QIT)
 * Update - Link the WooCommerce POS page from the in-person payments description in the readme
 * Fix - Ensure that exceptions in some AJAX endpoints are handled correctly
+* Update - Reduce the size of the Stripe settings JS bundles by loading only the Gridicons they use
+* Dev - Update PHPCS rules and improve alignment with WordPress plugin rules
+
+2026-10-05 - version 11.0.1
+* Fix - Prevent non-card payment methods from failing under Optimized Checkout with Dynamic Payment Methods when the store has a statement descriptor set
 
 2026-09-08 - version 11.0.0
 * Fix - Allow express checkout payments when a wallet provides a one-word shipping name
