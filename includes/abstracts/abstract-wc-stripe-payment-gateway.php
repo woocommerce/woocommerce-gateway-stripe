@@ -2850,8 +2850,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 					'Skipped saved payment method address update because the customer for the order does not match the payment method.',
 					[
 						'payment_method_id'       => $payment_method_id,
-						'payment_method_customer' => is_string( $payment_method_customer ) ? $payment_method_customer : null;
-						'order_customer'            => is_string( $order_customer ) ? $order_customer : null;
+						'payment_method_customer' => is_string( $payment_method_customer ) ? $payment_method_customer : null,
+						'order_customer'          => is_string( $order_customer ) ? $order_customer : null,
 					]
 				);
 				return;
