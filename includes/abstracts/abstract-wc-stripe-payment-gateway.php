@@ -2846,7 +2846,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			// Stripe is authoritative here because public callers are not required to enter through the saved-token ownership checks.
 			if ( ! is_string( $payment_method_customer ) || ! is_string( $order_customer ) || $payment_method_customer !== $order_customer ) {
-				WC_Stripe_Logger::warning( 'Skipped saved payment method address update because its Stripe customer does not match the order.' );
+				WC_Stripe_Logger::warning(
+					'Skipped saved payment method address update because the customer for the order does not match the payment method.',
+					[
+						'payment_method_id'       => $payment_method_id,
+						'payment_method_customer' => is_string( $payment_method_customer ) ? $payment_method_customer : null;
+						'order_customer'            => is_string( $order_customer ) ? $order_customer : null;
+					]
+				);
 				return;
 			}
 
