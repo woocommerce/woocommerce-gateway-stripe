@@ -185,9 +185,11 @@ final class WC_Stripe_Option_Lock {
 	public static function cleanup_stale_locks(): void {
 		$deleted = self::delete_stale_locks( self::CLEANUP_BATCH_SIZE );
 
-		if ( $deleted > 0 ) {
-			WC_Stripe_Logger::info( "Removed {$deleted} expired option lock rows." );
+		if ( 0 === $deleted ) {
+			return;
 		}
+
+		WC_Stripe_Logger::info( "Removed {$deleted} abandoned option lock rows." );
 
 		// A full batch may have left more rows behind; continue soon instead of waiting a day.
 		if ( $deleted >= self::CLEANUP_BATCH_SIZE && function_exists( 'as_enqueue_async_action' ) ) {
