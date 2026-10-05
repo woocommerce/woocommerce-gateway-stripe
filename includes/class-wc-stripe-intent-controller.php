@@ -1036,8 +1036,7 @@ class WC_Stripe_Intent_Controller {
 		// eligibility decision is made in WC_Stripe_UPE_Payment_Gateway::prepare_payment_information_from_request(),
 		// here we only apply it to the request.
 		if ( ! empty( $payment_information['automatic_payment_methods'] ) ) {
-			// Dynamic Payment Methods intents always include `card`, and Stripe rejects a full
-			// `statement_descriptor` on any card-inclusive intent.
+			// DPM intents always include `card`, and Stripe rejects statement_descriptor on card-inclusive intents.
 			unset( $request['payment_method_types'], $request['statement_descriptor'] );
 
 			$request['automatic_payment_methods'] = [
