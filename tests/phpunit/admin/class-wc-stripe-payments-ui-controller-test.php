@@ -121,7 +121,7 @@ class WC_Stripe_Payments_UI_Controller_Test extends WP_UnitTestCase {
 		$stripe_item = $this->find_stripe_submenu_item( $this->get_controller_const( $expected_parent_const ) );
 
 		$this->assertNotNull( $stripe_item );
-		$this->assertSame( 'Stripe', $stripe_item[0] );
+		$this->assertSame( 'Stripe Payouts', $stripe_item[0] );
 
 		foreach ( array_diff( $registered_parent_consts, [ $expected_parent_const ] ) as $other_parent_const ) {
 			$this->assertNull( $this->find_stripe_submenu_item( $this->get_controller_const( $other_parent_const ) ) );
@@ -169,7 +169,7 @@ class WC_Stripe_Payments_UI_Controller_Test extends WP_UnitTestCase {
 	public function provide_parent_menu_submenu_titles(): array {
 		return [
 			'woocommerce core menu' => [ 'WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG', [ 'Add a provider', 'Stripe' ] ],
-			'woopayments menu'      => [ 'WOOPAYMENTS_PAYMENTS_MENU_SLUG', [ 'Payments', 'Stripe' ] ],
+			'woopayments menu'      => [ 'WOOPAYMENTS_PAYMENTS_MENU_SLUG', [ 'Payments', 'Stripe Payouts' ] ],
 		];
 	}
 
