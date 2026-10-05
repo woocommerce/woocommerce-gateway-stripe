@@ -64,7 +64,7 @@ final class WC_Stripe_Payments_UI_Controller {
 	 */
 	public function init(): void {
 		// Register menus late so we can pick up which Payments menu is active.
-		add_action( 'admin_menu', [ $this, 'register_stripe_payments_menu' ], 120 );
+		add_action( 'admin_menu', [ $this, 'register_stripe_payments_menu' ], 20 );
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_scripts' ] );
 	}
 
