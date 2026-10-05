@@ -178,7 +178,7 @@ final class WC_Stripe_Option_Lock {
 	}
 
 	/**
-	 * Removes abandoned lock rows. Runs from the {@see self::CLEANUP_ACTION} action.
+	 * Removes expired lock rows. Runs from the {@see self::CLEANUP_ACTION} action.
 	 *
 	 * @return void
 	 */
@@ -186,7 +186,7 @@ final class WC_Stripe_Option_Lock {
 		$deleted = self::delete_stale_locks( self::CLEANUP_BATCH_SIZE );
 
 		if ( $deleted > 0 ) {
-			WC_Stripe_Logger::info( "Removed {$deleted} abandoned option lock rows." );
+			WC_Stripe_Logger::info( "Removed {$deleted} expired option lock rows." );
 		}
 
 		// A full batch may have left more rows behind; continue soon instead of waiting a day.
