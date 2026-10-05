@@ -146,7 +146,7 @@ The checkout flow (classic, Blocks, OCS, ECE) is the critical path. Code added t
 - [ ] `changelog.txt` uses `YYYY-MM-DD - version X.Y.Z`; `readme.txt` uses `= X.Y.Z - YYYY-MM-DD =` — different formats, do not convert
 - [ ] Public-surface removals classified as `Update`, not `Dev`
 - [ ] Major behavior changes (default flips, removed classes, version bumps) appear under `== Compatibility Notes ==` in `readme.txt`
-- [ ] New PHP `@since`/`@version` tags use the `x.x.x` placeholder, which woorelease replaces at release; do not ask for a concrete version. Flag a concrete unreleased version there, and flag `x.x.x` in `@deprecated` tags or deprecation function arguments (woorelease does not replace those). Existing symbols keep their original `@since`.
+- [ ] New PHP `@since`/`@version`/`@deprecated` tags and deprecation function version arguments (`'x.x.x'`) use the `x.x.x` placeholder, which woorelease replaces at release; do not ask for a concrete version. Flag a concrete unreleased version in those places, and flag an unquoted `x.x.x` or one in JS (not replaced). Existing symbols keep their original `@since`.
 
 ---
 

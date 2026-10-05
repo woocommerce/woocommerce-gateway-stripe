@@ -202,6 +202,7 @@
       "woocommerce-gateway-stripe.php",
       "uninstall.php"
     ],
+    "version_replace_strings": true,
     "assets": {
       "js": {
         "min": "assets/js/*.min.js",
