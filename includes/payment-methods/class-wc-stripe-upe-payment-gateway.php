@@ -1886,6 +1886,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			if ( $is_using_saved_payment_method ) {
 				$payment_method_lock_owner = WC_Stripe_Option_Lock::acquire( $this->get_payment_method_lock_name( $payment_method_id ), self::PAYMENT_METHOD_LOCK_TTL );
 				if ( null === $payment_method_lock_owner ) {
+					WC_Stripe_Logger::warning(
+						'Saved payment method is already being processed by another checkout; turning this request away.',
+						[
+							'payment_method_id' => $payment_method_id,
+							'order_id'          => $order instanceof WC_Order ? $order->get_id() : null,
+						]
+					);
+
 					if ( $order instanceof WC_Order ) {
 						$order_helper->unlock_order_payment( $order );
 					}

@@ -3975,6 +3975,115 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * When intent creation throws, the saved PaymentMethod lock must still be released.
+	 */
+	public function test_process_payment_with_saved_method_releases_lock_when_intent_creation_throws() {
+		$token = $this->set_postvars_for_saved_payment_method();
+
+		$_POST['payment_method']           = 'stripe';
+		$_POST['wc-stripe-payment-method'] = 'pm_mock';
+
+		$order             = WC_Helper_Order::create_order();
+		$payment_method_id = $token->get_token();
+		$lock_option       = $this->get_payment_method_lock_option_name( $payment_method_id );
+
+		$this->mock_gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_mock' );
+		$this->mock_gateway->method( 'update_saved_payment_method' );
+		$this->mock_gateway->intent_controller
+			->method( 'create_and_confirm_payment_intent' )
+			->willThrowException( new WC_Stripe_Exception( 'intent failed', 'intent failed' ) );
+
+		$response = $this->mock_gateway->process_payment( $order->get_id() );
+
+		$this->assertSame( 'failure', $response['result'] );
+		$this->assertFalse( get_option( $lock_option, false ) );
+	}
+
+	/**
+	 * The saved payment method address update must run before intent creation, so Stripe has the
+	 * address before the charge is confirmed.
+	 */
+	public function test_process_payment_with_saved_method_updates_address_before_intent_creation() {
+		$token = $this->set_postvars_for_saved_payment_method();
+
+		$_POST['payment_method']           = 'stripe';
+		$_POST['wc-stripe-payment-method'] = 'pm_mock';
+
+		$order             = WC_Helper_Order::create_order();
+		$payment_method_id = $token->get_token();
+		list( $amount )    = $this->get_order_details( $order );
+
+		$calls = [];
+
+		$this->mock_gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_mock' );
+		$this->mock_gateway
+			->method( 'update_saved_payment_method' )
+			->willReturnCallback(
+				function () use ( &$calls ) {
+					$calls[] = 'update_saved_payment_method';
+				}
+			);
+
+		$payment_intent_mock = (object) array_merge(
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE,
+			[
+				'amount'         => $amount,
+				'payment_method' => $payment_method_id,
+				'charges'        => (object) [
+					'data' => [
+						(object) [
+							'id'       => 'ch_mock',
+							'captured' => true,
+							'status'   => 'succeeded',
+						],
+					],
+				],
+			]
+		);
+
+		$this->mock_gateway->intent_controller
+			->method( 'create_and_confirm_payment_intent' )
+			->willReturnCallback(
+				function () use ( &$calls, $payment_intent_mock ) {
+					$calls[] = 'create_and_confirm_payment_intent';
+					return $payment_intent_mock;
+				}
+			);
+
+		$this->mock_gateway
+			->method( 'get_latest_charge_from_intent' )
+			->willReturn(
+				(object) [
+					'id'       => 'ch_mock',
+					'captured' => true,
+					'status'   => 'succeeded',
+				]
+			);
+
+		$response = $this->mock_gateway->process_payment( $order->get_id() );
+
+		$this->assertSame( 'success', $response['result'] );
+		$this->assertSame( [ 'update_saved_payment_method', 'create_and_confirm_payment_intent' ], $calls );
+	}
+
+	/**
+	 * Renewal cleanup must strip the Stripe setup intent, so it is not reused on renewal orders
+	 * where get_order_by_setup_intent_id() could otherwise match the renewal.
+	 */
+	public function test_delete_renewal_meta_removes_setup_intent_id() {
+		$order        = WC_Helper_Order::create_order();
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->update_stripe_intent_id( $order, 'pi_mock' );
+		$order_helper->update_stripe_setup_intent_id( $order, 'seti_mock' );
+		$order->save();
+
+		$this->mock_gateway->delete_renewal_meta( $order );
+
+		$this->assertEmpty( $order_helper->get_stripe_intent_id( $order ) );
+		$this->assertEmpty( $order_helper->get_stripe_setup_intent_id( $order ) );
+	}
+
+	/**
 	 * Test SCA 3DS flow with saved payment method.
 	 */
 	public function test_sca_checkout_with_saved_payment_method_redirects_client() {

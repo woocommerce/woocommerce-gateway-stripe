@@ -1016,8 +1016,9 @@ trait WC_Stripe_Subscriptions_Trait {
 		$order_helper->delete_stripe_customer_id( $resubscribe_order );
 		// For BW compat will remove in future.
 		$order_helper->delete_stripe_card_id( $resubscribe_order );
-		// Delete payment intent ID.
+		// Delete payment and setup intent IDs.
 		$order_helper->delete_stripe_intent_id( $resubscribe_order );
+		$order_helper->delete_stripe_setup_intent_id( $resubscribe_order );
 		$this->delete_renewal_meta( $resubscribe_order );
 		$resubscribe_order->save();
 	}
@@ -1037,8 +1038,11 @@ trait WC_Stripe_Subscriptions_Trait {
 		$order_helper->delete_stripe_fee( $renewal_order );
 		$order_helper->delete_stripe_net( $renewal_order );
 
-		// Delete payment intent ID.
+		// Delete payment and setup intent IDs so they are not reused on the renewal. The setup intent
+		// is written to the subscription for redirect validation and would otherwise be copied here,
+		// where get_order_by_setup_intent_id() could match the renewal instead of the subscription.
 		$order_helper->delete_stripe_intent_id( $renewal_order );
+		$order_helper->delete_stripe_setup_intent_id( $renewal_order );
 
 		return $renewal_order;
 	}
