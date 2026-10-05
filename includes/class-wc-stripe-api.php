@@ -340,7 +340,7 @@ class WC_Stripe_API {
 
 		$response_body = json_decode( $response_body_raw );
 
-		$response_body_to_log = self::should_log_response_body( $api, $method ) ? $response_body : '[' . __( 'REDACTED', 'woocommerce-gateway-stripe' ) . ']';
+		$response_body_to_log = self::should_log_response_body( $api, $method ) ? $response_body : '[REDACTED]';
 
 		WC_Stripe_Logger::debug(
 			"Stripe API response: {$method} {$api}",
@@ -468,7 +468,7 @@ class WC_Stripe_API {
 
 		$response_body = json_decode( $response_body_raw );
 
-		$response_body_to_log = self::should_log_response_body( $api, 'GET' ) ? $response_body : '[' . __( 'REDACTED', 'woocommerce-gateway-stripe' ) . ']';
+		$response_body_to_log = self::should_log_response_body( $api, 'GET' ) ? $response_body : '[REDACTED]';
 
 		WC_Stripe_Logger::debug(
 			"Stripe API response: GET {$api}",
@@ -490,10 +490,12 @@ class WC_Stripe_API {
 	 *
 	 * @return bool Whether response body should be logged.
 	 */
-	public static function should_log_response_body( $api, $method ) {
-		$api_path = wp_parse_url( $api, PHP_URL_PATH );
+	private static function should_log_response_body( string $api, string $method ) {
+		if ( 'GET' !== $method ) {
+			return true;
+		}
 
-		if ( 'GET' === $method && in_array( $api_path, [ 'balance', 'payouts' ], true ) ) {
+		if ( str_starts_with( $api, 'balance' ) || str_starts_with( $api, 'payouts' ) ) {
 			return false;
 		}
 

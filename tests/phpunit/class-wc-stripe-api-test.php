@@ -511,7 +511,11 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_should_log_response_body_cases
 	 */
 	public function test_should_log_response_body( string $api, string $method, bool $expected ) {
-		$this->assertSame( $expected, WC_Stripe_API::should_log_response_body( $api, $method ) );
+		$rc = new ReflectionClass( WC_Stripe_API::class );
+		$rm = $rc->getMethod( 'should_log_response_body' );
+		$rm->setAccessible( true );
+
+		$this->assertSame( $expected, $rm->invoke( null, $api, $method ) );
 	}
 
 	/**
@@ -568,6 +572,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 			}
 		} finally {
 			remove_filter( 'pre_http_request', $pre_http_filter );
+			WC_Stripe_Logger::$logger = null;
 		}
 
 		if ( $should_redact ) {
