@@ -33,6 +33,6 @@ class WC_Stripe_Test_Helper {
 			return (float) $value;
 		}
 
-		throw new Exception( 'Invalid expected type: ' . $expected_type );
+		throw new Exception( 'Invalid expected type: ' . $expected_type ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 	}
 }
