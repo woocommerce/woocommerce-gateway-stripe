@@ -32,7 +32,7 @@ final class WC_Stripe_Payments_UI_Controller {
 	private const WOOCOMMERCE_CORE_PAYMENTS_OVERVIEW_MENU_SLUG = 'wc-admin&path=/payments/overview';
 	private const WOOCOMMERCE_CORE_PAYMENTS_CONNECT_MENU_SLUG  = 'wc-admin&path=/payments/connect';
 
-	private $active_payments_menu_slug = '';
+	private string $active_payments_menu_slug = '';
 
 	/**
 	 * 'Add a provider' submenu position in the Payments menu.
