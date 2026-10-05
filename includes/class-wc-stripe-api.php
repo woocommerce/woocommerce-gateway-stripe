@@ -485,6 +485,8 @@ class WC_Stripe_API {
 	/**
 	 * Determines whether a Stripe API request response body should be logged.
 	 *
+	 * @since 11.1.0
+	 *
 	 * @param string $api    The request URL path.
 	 * @param string $method The request HTTP method.
 	 *
