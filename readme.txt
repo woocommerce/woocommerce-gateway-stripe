@@ -36,7 +36,6 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 The following items note specific versions that include important changes, features, or deprecations.
 
 * 11.1.0
-   - The secret field in webhook_data and test_webhook_data is deprecated. Integrations must use the matching account API key when this field is absent. A different legacy key may remain for cleanup of an old endpoint.
    - Sofort is no longer offered at checkout, since Stripe discontinued it on March 31, 2025; existing Sofort orders can still be refunded and Sofort-initiated subscriptions keep renewing
 * 11.0.0
    - Express checkout merges the wc_stripe_express_checkout_normalize_address filter result over the address it sent; removing a field no longer clears it, return an empty string instead
@@ -167,6 +166,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 = 11.1.0 - xxxx-xx-xx =
 * Update - Remove duplicate account API keys from webhook settings
 * Dev - Support webhook settings without duplicate account API keys ahead of their removal
+* Fix - Use the account API key for webhook status, cleanup, and manual setup
 * Add - Automatically configure test-mode when onboarding to a live account
 * Fix - Show BLIK and ACSS payment methods at checkout when Optimized Checkout Suite is enabled
 * Fix - Prevent non-card payment methods from failing under Optimized Checkout with Dynamic Payment Methods when the store has a statement descriptor set
@@ -208,7 +208,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Stop refusing express checkout orders over required classic custom checkout fields on stores whose checkout page uses the checkout block and cannot render them
 * Dev - Make e2e tests runnable from Quality Insights Toolkit (QIT)
 * Update - Link the WooCommerce POS page from the in-person payments description in the readme
+* Fix - Ensure the current Payment Method Configuration is specified for Optimized Checkout Suite and Adaptive Pricing
+* Fix - Allow Klarna purchases for Puerto Rico shoppers, and refine billing country availability logic
 * Update - Reduce the size of the Stripe settings JS bundles by loading only the Gridicons they use
 * Dev - Update PHPCS rules and improve alignment with WordPress plugin rules
+* Fix - Remove the duplicated period in the webhook status message when webhooks are pending
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

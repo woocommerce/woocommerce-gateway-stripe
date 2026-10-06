@@ -890,4 +890,33 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 
 		$this->assertFalse( $result );
 	}
+
+	/**
+	 * A rejected DELETE must retain the endpoint for retry, while an already missing endpoint needs no retry.
+	 *
+	 * @dataProvider provide_webhook_deletion_responses
+	 */
+	public function test_maybe_decommission_webhook_handles_api_responses( $response, $expected_result ) {
+		WC_Helper_Stripe_Api::$request_response             = $response;
+		WC_Helper_Stripe_Api::$expected_request_call_params = [ [ [], 'webhook_endpoints/wh_old', 'DELETE' ] ];
+
+		$result = $this->account->maybe_decommission_webhook(
+			[
+				'id'     => 'wh_old',
+				'secret' => 'rk_live_old',
+			],
+			'rk_live_new'
+		);
+
+		$this->assertSame( $expected_result, $result );
+		$this->assertEmpty( WC_Helper_Stripe_Api::$expected_request_call_params );
+	}
+
+	public function provide_webhook_deletion_responses() {
+		return [
+			'rate limited'             => [ (object) [ 'error' => (object) [ 'code' => 'rate_limit' ] ], false ],
+			'endpoint already missing' => [ (object) [ 'error' => (object) [ 'code' => 'resource_missing' ] ], true ],
+			'deleted'                  => [ (object) [ 'deleted' => true ], true ],
+		];
+	}
 }

@@ -448,7 +448,16 @@ class WC_Stripe_Account {
 			// Authenticate with the secret key that created the webhook so the deletion
 			// hits the originally connected account.
 			WC_Stripe_API::set_secret_key( $webhook_data['secret'] );
-			$this->stripe_api::request( [], 'webhook_endpoints/' . $webhook_data['id'], 'DELETE' );
+			$response = $this->stripe_api::request( [], 'webhook_endpoints/' . $webhook_data['id'], 'DELETE' );
+
+			if ( isset( $response->error ) && 'resource_missing' !== ( $response->error->code ?? '' ) ) {
+				// Stripe returns failed DELETE requests as objects; only an already missing endpoint needs no retry.
+				WC_Stripe_Logger::error(
+					"Failed to decommission previously configured webhook {$webhook_data['id']}.",
+					[ 'error_code' => is_string( $response->error->code ?? null ) ? $response->error->code : 'unknown' ]
+				);
+				return false;
+			}
 
 			WC_Stripe_Logger::info( "Decommissioned previously configured webhook {$webhook_data['id']} before saving new keys." );
 		} catch ( Exception $e ) {
