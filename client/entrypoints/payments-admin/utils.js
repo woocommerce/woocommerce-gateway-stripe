@@ -1,3 +1,5 @@
+import { __, sprintf } from '@wordpress/i18n';
+
 /**
  * Reads the params localized by WC_Stripe_Payments_UI_Controller.
  *
@@ -112,3 +114,53 @@ export const formatStripeTimestamp = ( timestamp ) => {
  */
 export const getDefaultAccountCurrency = () =>
 	getParam( 'defaultAccountCurrency', '' );
+
+/**
+ * Whether the current user dismissed the Instant Payouts banner.
+ *
+ * @return {boolean} True when the banner is dismissed.
+ */
+export const isInstantPayoutsBannerDismissed = () =>
+	getParam( 'isInstantPayoutsBannerDismissed', 'no' ) === 'yes';
+
+/**
+ * Builds the Instant Payouts availability message from a Stripe balance.
+ * Only the default account currency is promoted.
+ *
+ * @param {?Object} balance The Stripe balance object.
+ * @return {?string} The message, or null when no instant payout is available.
+ */
+export const getInstantPayoutsMessage = ( balance ) => {
+	const defaultAccountCurrency = getDefaultAccountCurrency();
+	if ( ! defaultAccountCurrency || ! balance?.instant_available?.length ) {
+		return null;
+	}
+
+	const available = balance.instant_available.find(
+		( entry ) => entry?.currency === defaultAccountCurrency
+	);
+	if ( ! available?.amount || ! Number.isInteger( available.amount ) ) {
+		return null;
+	}
+
+	return sprintf(
+		/* translators: %1$s: The amount of money available for an instant payout. e.g. $123.45, €123.45 */
+		__(
+			'You currently have %1$s available.',
+			'woocommerce-gateway-stripe'
+		),
+		formatStripeAmount( available.amount, available.currency )
+	);
+};
+
+/**
+ * Gets the Stripe Dashboard payouts URL for the balance's mode.
+ * Falls back to the test Dashboard unless the balance is explicitly live.
+ *
+ * @param {?Object} balance The Stripe balance object.
+ * @return {string} The payouts URL.
+ */
+export const getPayoutsDashboardUrl = ( balance ) =>
+	balance?.livemode === true
+		? 'https://dashboard.stripe.com/payouts/'
+		: 'https://dashboard.stripe.com/test/payouts/';
