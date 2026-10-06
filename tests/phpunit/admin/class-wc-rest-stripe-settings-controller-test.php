@@ -775,6 +775,9 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 
 			$response = rest_do_request( $request );
 
+			// The clock can move to the next second during the request, so the upper bound uses the time after it.
+			$end_time = time();
+
 			$this->assertSame( 200, $response->get_status() );
 			$this->assertSame( [ 'result' => 'notice dismissed' ], $response->get_data() );
 			$this->assertSame( $expected_global_options, $updated_stripe_options );
@@ -783,8 +786,8 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 				$option_value = get_user_option( $option_name, $requesting_user_id );
 				$this->assertTrue( is_int( $option_value ) || ( is_string( $option_value ) && ctype_digit( $option_value ) ) );
 				$option_value = intval( $option_value );
-				$this->assertGreaterThanOrEqual( $start_time, $option_value );
-				$this->assertLessThanOrEqual( $start_time + $option_time_range, $option_value );
+				$this->assertGreaterThanOrEqual( $start_time + $option_time_range, $option_value );
+				$this->assertLessThanOrEqual( $end_time + $option_time_range, $option_value );
 				$this->assertFalse( get_user_option( $option_name, $other_user_id ) );
 			}
 		} finally {
