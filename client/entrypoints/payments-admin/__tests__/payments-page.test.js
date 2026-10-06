@@ -182,7 +182,7 @@ describe( 'PaymentsPage', () => {
 		);
 		expect( screen.queryByTestId( 'banner' ) ).not.toBeInTheDocument();
 		expect(
-			screen.getByRole( 'link', { name: 'Pay out instantly' } )
+			screen.getByRole( 'link', { name: 'View Instant Payouts' } )
 		).toHaveAttribute(
 			'href',
 			'https://dashboard.stripe.com/test/payouts/'
@@ -200,7 +200,7 @@ describe( 'PaymentsPage', () => {
 
 		expect( screen.queryByTestId( 'banner' ) ).not.toBeInTheDocument();
 		expect(
-			screen.getByRole( 'link', { name: 'Pay out instantly' } )
+			screen.getByRole( 'link', { name: 'View Instant Payouts' } )
 		).toBeInTheDocument();
 	} );
 } );

@@ -43,7 +43,7 @@ const PaymentsPage = () => {
 	const actions =
 		instantPayoutsMessage && isBannerDismissed ? (
 			<LinkButton variant="outline" href={ payoutsUrl } openInNewTab>
-				{ __( 'Pay out instantly', 'woocommerce-gateway-stripe' ) }
+				{ __( 'View Instant Payouts', 'woocommerce-gateway-stripe' ) }
 			</LinkButton>
 		) : null;
 
