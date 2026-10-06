@@ -323,6 +323,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 			->method( 'maybe_decommission_webhook' )
 			->with( $previous_webhook_data, 'sk_live_new-12345' )
 			->willReturn( true );
+		$mock_account->expects( $this->never() )->method( 'should_decommission_webhook' );
 
 		$controller = new WC_REST_Stripe_Account_Keys_Controller( $mock_account );
 

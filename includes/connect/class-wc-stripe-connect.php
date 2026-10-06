@@ -304,10 +304,11 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			if ( is_array( $previous_webhook_data ) && empty( $previous_webhook_data['secret'] ) ) {
 				$previous_webhook_data['secret'] = $current_options[ $prefix . 'secret_key' ] ?? '';
 			}
-			if ( WC_Stripe::get_instance()->account->maybe_decommission_webhook( $previous_webhook_data, $secret_key ) ) {
+			$account = WC_Stripe::get_instance()->account;
+			if ( $account->maybe_decommission_webhook( $previous_webhook_data, $secret_key ) ) {
 				$options[ $prefix . 'webhook_data' ]   = [];
 				$options[ $prefix . 'webhook_secret' ] = '';
-			} elseif ( ! empty( $previous_webhook_data['id'] ) && ! empty( $previous_webhook_data['secret'] ) && $secret_key !== $previous_webhook_data['secret'] ) {
+			} elseif ( $account->should_decommission_webhook( $previous_webhook_data, $secret_key ) ) {
 				$options[ $prefix . 'webhook_data' ] = $previous_webhook_data;
 			}
 
@@ -417,10 +418,11 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			if ( is_array( $previous_webhook_data ) && empty( $previous_webhook_data['secret'] ) ) {
 				$previous_webhook_data['secret'] = $previous_secret;
 			}
-			if ( WC_Stripe::get_instance()->account->maybe_decommission_webhook( $previous_webhook_data, $test_secret_key ) ) {
+			$account = WC_Stripe::get_instance()->account;
+			if ( $account->maybe_decommission_webhook( $previous_webhook_data, $test_secret_key ) ) {
 				$settings['test_webhook_data']   = [];
 				$settings['test_webhook_secret'] = '';
-			} elseif ( ! empty( $previous_webhook_data['id'] ) && ! empty( $previous_webhook_data['secret'] ) && $test_secret_key !== $previous_webhook_data['secret'] ) {
+			} elseif ( $account->should_decommission_webhook( $previous_webhook_data, $test_secret_key ) ) {
 				$settings['test_webhook_data'] = $previous_webhook_data;
 			}
 

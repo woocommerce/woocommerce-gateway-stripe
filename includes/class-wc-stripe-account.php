@@ -417,6 +417,21 @@ class WC_Stripe_Account {
 	}
 
 	/**
+	 * Shares eligibility between deletion and retention after a failed attempt.
+	 *
+	 * @internal
+	 * @param mixed  $webhook_data Stored endpoint data.
+	 * @param string $new_secret_key Account API key being saved, or empty when disconnecting.
+	 */
+	public function should_decommission_webhook( $webhook_data, $new_secret_key ): bool {
+		if ( ! is_array( $webhook_data ) || empty( $webhook_data['id'] ) || empty( $webhook_data['secret'] ) ) {
+			return false;
+		}
+
+		return empty( $new_secret_key ) || $new_secret_key !== $webhook_data['secret'];
+	}
+
+	/**
 	 * Decommissions a previously configured webhook endpoint when the secret key that
 	 * created it is being removed or replaced.
 	 *
@@ -426,13 +441,7 @@ class WC_Stripe_Account {
 	 * @return bool True if a webhook was decommissioned, false otherwise.
 	 */
 	public function maybe_decommission_webhook( $webhook_data, $new_secret_key ): bool {
-		// Nothing to delete unless we have a stored webhook ID and the secret key that created it.
-		if ( ! is_array( $webhook_data ) || empty( $webhook_data['id'] ) || empty( $webhook_data['secret'] ) ) {
-			return false;
-		}
-
-		// Only decommission when the secret key is being removed or has changed.
-		if ( ! empty( $new_secret_key ) && $new_secret_key === $webhook_data['secret'] ) {
+		if ( ! $this->should_decommission_webhook( $webhook_data, $new_secret_key ) ) {
 			return false;
 		}
 
