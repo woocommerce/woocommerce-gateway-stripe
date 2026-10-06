@@ -341,7 +341,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 	 *
 	 * @dataProvider provide_key_change_cleanup
 	 */
-	public function test_key_change_cleanup_authentication( $mode, $change, $legacy_secret, $fails ) {
+	public function test_key_change_cleanup_authentication( $mode, $change, $legacy_secret, $failure ) {
 		$prefix  = 'test' === $mode ? 'test_' : '';
 		$old_key = 'sk_' . $mode . '_old';
 		$new_key = 'same' === $change ? $old_key : ( 'remove' === $change ? '' : 'sk_' . $mode . '_new' );
@@ -358,13 +358,19 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$settings[ $prefix . 'webhook_secret' ] = 'whsec_old';
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 		$requests   = [];
-		$filter     = function ( $preempt, $args, $url ) use ( &$requests, $prefix, &$fails ) {
+		$filter     = function ( $preempt, $args, $url ) use ( &$requests, $prefix, &$failure ) {
 			if ( 'https://api.stripe.com/v1/webhook_endpoints/we_old' !== $url ) {
 				return $preempt;
 			}
 			$requests[] = [ $args['method'], $args['headers']['Authorization'], WC_Stripe_Helper::get_stripe_settings()[ $prefix . 'secret_key' ] ];
-			if ( $fails ) {
+			if ( 'exception' === $failure ) {
 				throw new Exception( 'Network error' );
+			}
+			if ( 'rate_limit' === $failure ) {
+				return [
+					'response' => [ 'code' => 429 ],
+					'body'     => wp_json_encode( [ 'error' => [ 'code' => 'rate_limit' ] ] ),
+				];
 			}
 			return [
 				'response' => [ 'code' => 200 ],
@@ -387,17 +393,17 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$auth_key       = ! empty( $legacy_secret ) ? $legacy_secret : $old_key;
 		$decommissioned = $new_key !== $auth_key;
 		$this->assertSame( $decommissioned ? [ [ 'DELETE', 'Basic ' . base64_encode( $auth_key . ':' ), $old_key ] ] : [], $requests );
-		if ( $fails && $decommissioned ) {
+		if ( $failure && $decommissioned ) {
 			$data['secret'] = $auth_key;
 		}
 		$stored = get_option( 'woocommerce_stripe_settings' );
 		$this->assertSame( $new_key, $stored[ $prefix . 'secret_key' ] );
-		$this->assertSame( $decommissioned && ! $fails ? [] : $data, $stored[ $prefix . 'webhook_data' ] );
-		$this->assertSame( $decommissioned && ! $fails ? '' : 'whsec_old', $stored[ $prefix . 'webhook_secret' ] );
+		$this->assertSame( $decommissioned && ! $failure ? [] : $data, $stored[ $prefix . 'webhook_data' ] );
+		$this->assertSame( $decommissioned && ! $failure ? '' : 'whsec_old', $stored[ $prefix . 'webhook_secret' ] );
 		$this->assertSame( 200, $response->get_status() );
 
-		if ( $fails ) {
-			$fails = false;
+		if ( $failure ) {
+			$failure = false;
 			add_filter( 'pre_http_request', $filter, 10, 3 );
 			try {
 				$controller->set_account_keys( $request );
@@ -414,14 +420,16 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 	public function provide_key_change_cleanup() {
 		$cases = [];
 		foreach ( [ 'live', 'test' ] as $mode ) {
-			$cases[ $mode . ' replacement' ]       = [ $mode, 'replace', null, false ];
-			$cases[ $mode . ' disconnect' ]        = [ $mode, 'remove', null, false ];
-			$cases[ $mode . ' unchanged' ]         = [ $mode, 'same', null, false ];
-			$cases[ $mode . ' failed disconnect' ] = [ $mode, 'remove', null, true ];
-			$cases[ $mode . ' failed cleanup' ]    = [ $mode, 'replace', null, true ];
-			$cases[ $mode . ' legacy key' ]        = [ $mode, 'replace', 'sk_' . $mode . '_original', false ];
-			$cases[ $mode . ' empty stored key' ]  = [ $mode, 'replace', '', false ];
-			$cases[ $mode . ' empty key failure' ] = [ $mode, 'replace', '', true ];
+			$cases[ $mode . ' replacement' ]             = [ $mode, 'replace', null, false ];
+			$cases[ $mode . ' disconnect' ]              = [ $mode, 'remove', null, false ];
+			$cases[ $mode . ' unchanged' ]               = [ $mode, 'same', null, false ];
+			$cases[ $mode . ' failed disconnect' ]       = [ $mode, 'remove', null, 'exception' ];
+			$cases[ $mode . ' failed cleanup' ]          = [ $mode, 'replace', null, 'exception' ];
+			$cases[ $mode . ' legacy key' ]              = [ $mode, 'replace', 'sk_' . $mode . '_original', false ];
+			$cases[ $mode . ' empty stored key' ]        = [ $mode, 'replace', '', false ];
+			$cases[ $mode . ' empty key failure' ]       = [ $mode, 'replace', '', 'exception' ];
+			$cases[ $mode . ' API rejection' ]           = [ $mode, 'replace', null, 'rate_limit' ];
+			$cases[ $mode . ' empty key API rejection' ] = [ $mode, 'replace', '', 'rate_limit' ];
 		}
 		return $cases;
 	}
