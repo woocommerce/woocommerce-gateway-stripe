@@ -230,15 +230,20 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 			\Automattic\WooCommerce\Enums\ProductType::VARIATION,
 		];
 
+		// Ensure that we filter out products that have the _wc_stripe_agentic_commerce_exclude meta key set to 'yes'.
+		$meta_query = $this->get_default_meta_query();
+
 		if ( [] !== $filters['product_ids'] ) {
 			return [
-				'status'  => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
-				'type'    => $standard_product_types,
-				'include' => $filters['product_ids'],
+				'status'     => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
+				'type'       => $standard_product_types,
+				'include'    => $filters['product_ids'],
+				'meta_query' => $meta_query,
 			];
 		}
 
 		if ( [] !== $filters['variable_product_ids'] ) {
+			// TODO: Add meta query for the variable product parents.
 			return [
 				'status'          => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
 				'type'            => \Automattic\WooCommerce\Enums\ProductType::VARIATION,
@@ -276,14 +281,39 @@ class WC_Stripe_Agentic_Commerce_Product_Filter {
 			}
 
 			return [
-				'type'      => $standard_product_types,
-				'status'    => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
+				'type'       => $standard_product_types,
+				'status'     => [ \Automattic\WooCommerce\Enums\ProductStatus::PUBLISH ],
 				// Use a nested array to ensure our OR is properly encapsulated.
-				'tax_query' => [ $tax_query_clauses ], // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
+				'tax_query'  => [ $tax_query_clauses ], // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
+				'meta_query' => $meta_query,
 			];
 		}
 
 		return null;
+	}
+
+	/**
+	 * Get the default meta query to use so we exclude products that have
+	 * been individually excluded.
+	 *
+	 * @since 10.9.0
+	 * @return array Meta query clauses.
+	 */
+	public function get_default_meta_query(): array {
+		return [
+			[
+				'relation' => 'OR',
+				[
+					'key'     => '_wc_stripe_agentic_commerce_exclude',
+					'compare' => 'NOT EXISTS',
+				],
+				[
+					'key'     => '_wc_stripe_agentic_commerce_exclude',
+					'compare' => '!=',
+					'value'   => 'yes',
+				],
+			],
+		];
 	}
 
 	/**
