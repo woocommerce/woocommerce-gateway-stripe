@@ -2020,6 +2020,120 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Saving a reissued card at checkout (same number, new expiry) reuses the saved token,
+	 * so the token must take the new card details or My Account keeps showing the old expiry.
+	 */
+	public function test_handle_saving_payment_method_refreshes_card_details_on_reused_token() {
+		$this->mock_gateway->oc_enabled = true;
+
+		$user_id  = $this->factory()->user->create();
+		$order    = WC_Helper_Order::create_order( $user_id );
+		$existing = $this->create_reissued_card_seed_token( $user_id );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		$this->mock_gateway->expects( $this->any() )
+			->method( 'get_stripe_customer_id' )
+			->willReturn( 'cus_mock' );
+
+		$this->mock_gateway->handle_saving_payment_method( $order, $this->get_reissued_card_payment_method(), WC_Stripe_Payment_Methods::CARD );
+
+		$this->assert_reissued_card_details_refreshed( $existing->get_id() );
+	}
+
+	/**
+	 * Adding a reissued card from My Account > Payment methods reuses the saved token,
+	 * so the token must take the new card details or My Account keeps showing the old expiry.
+	 */
+	public function test_add_payment_method_refreshes_card_details_on_reused_token() {
+		// The fixture token exists only in WooCommerce, so the sync with Stripe would delete it.
+		$sync_callback = [ WC_Stripe_Payment_Tokens::get_instance(), 'woocommerce_get_customer_payment_tokens' ];
+		remove_filter( 'woocommerce_get_customer_payment_tokens', $sync_callback, 10 );
+
+		$user_id  = $this->factory()->user->create();
+		$existing = $this->create_reissued_card_seed_token( $user_id );
+		wp_set_current_user( $user_id );
+
+		$_POST['wc-stripe-setup-intent'] = 'seti_mock';
+
+		$this->mock_gateway->expects( $this->exactly( 2 ) )
+			->method( 'stripe_request' )
+			->willReturnOnConsecutiveCalls(
+				(object) [
+					'id'             => 'seti_mock',
+					'object'         => 'setup_intent',
+					'payment_method' => 'pm_reissued',
+				],
+				$this->get_reissued_card_payment_method()
+			);
+
+		try {
+			$result = $this->mock_gateway->add_payment_method();
+		} finally {
+			unset( $_POST['wc-stripe-setup-intent'] );
+			add_filter( 'woocommerce_get_customer_payment_tokens', $sync_callback, 10, 3 );
+		}
+
+		$this->assertSame( 'success', $result['result'] );
+		$this->assert_reissued_card_details_refreshed( $existing->get_id() );
+	}
+
+	/**
+	 * Saves a card token with expiry 01/2027, as the card was before its bank reissued it.
+	 *
+	 * @param int $user_id The token owner.
+	 * @return WC_Stripe_Payment_Token_CC
+	 */
+	private function create_reissued_card_seed_token( int $user_id ): WC_Stripe_Payment_Token_CC {
+		$token = new WC_Stripe_Payment_Token_CC();
+		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$token->set_token( 'pm_original' );
+		$token->set_card_type( 'visa' );
+		$token->set_last4( '4242' );
+		$token->set_expiry_month( '01' );
+		$token->set_expiry_year( '2027' );
+		$token->set_fingerprint( 'fp_reissued' );
+		$token->set_user_id( $user_id );
+		$token->save();
+
+		return $token;
+	}
+
+	/**
+	 * The reissued card: same fingerprint as the seed token, new expiry 02/2028.
+	 *
+	 * @return object
+	 */
+	private function get_reissued_card_payment_method() {
+		return (object) [
+			'id'       => 'pm_reissued',
+			'object'   => 'payment_method',
+			'type'     => WC_Stripe_Payment_Methods::CARD,
+			'customer' => 'cus_mock',
+			'card'     => (object) [
+				'exp_month'   => 2,
+				'exp_year'    => 2028,
+				'brand'       => 'visa',
+				'last4'       => '4242',
+				'fingerprint' => 'fp_reissued',
+			],
+		];
+	}
+
+	/**
+	 * Asserts the saved token now points at the reissued card and shows its expiry.
+	 *
+	 * @param int $token_id The seed token ID.
+	 */
+	private function assert_reissued_card_details_refreshed( int $token_id ): void {
+		$token = WC_Payment_Tokens::get( $token_id );
+		$this->assertInstanceOf( WC_Stripe_Payment_Token_CC::class, $token );
+		$this->assertSame( 'pm_reissued', $token->get_token() );
+		$this->assertSame( '02', $token->get_expiry_month() );
+		$this->assertSame( '2028', $token->get_expiry_year() );
+	}
+
+	/**
 	 * Test checkout flow while saving payment method with SEPA generated payment method AND setup intents.
 	 */
 	public function test_setup_intent_checkout_saves_sepa_generated_payment_method_to_order() {

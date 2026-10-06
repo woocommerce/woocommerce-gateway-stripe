@@ -4038,6 +4038,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		if ( $found_token ) {
 			// `wallet_type` is create-time state — not refreshed on reuse, so a saved
 			// card never flips to a wallet brand (#5477). The subscription row reads the live PM instead.
+			WC_Stripe_Payment_Tokens::refresh_card_token_details( $found_token, $payment_method_object );
 			$payment_method_instance->update_payment_token( $found_token, $payment_method_object->id );
 		} else {
 			// Create a payment token for the user in the store.
@@ -4272,6 +4273,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			// If we have a token found, update it and return.
 			if ( $found_token ) {
+				WC_Stripe_Payment_Tokens::refresh_card_token_details( $found_token, $payment_method_object );
 				$token = $payment_method->update_payment_token( $found_token, $payment_method_object->id );
 			} else {
 				// Create a new token if not.
