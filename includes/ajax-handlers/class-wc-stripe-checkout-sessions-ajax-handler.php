@@ -108,7 +108,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 			);
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error( 'Create checkout session error.', [ 'error_message' => $e->getMessage() ] );
-			wp_send_json_error( [ 'message' => $e->getMessage() ] );
+			$this->send_json_error( $e );
 		}
 	}
 
@@ -161,8 +161,18 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error( 'Update checkout session error.', [ 'error_message' => $e->getMessage() ] );
-			wp_send_json_error( [ 'message' => $e->getMessage() ] );
+			$this->send_json_error( $e );
 		}
+	}
+
+	/**
+	 * Send a JSON error response when an exception has been caught.
+	 *
+	 * @param Exception $exception The exception that we need to report to the caller.
+	 * @return void
+	 */
+	private function send_json_error( Exception $exception ): void {
+		wp_send_json_error( [ 'message' => WC_Stripe_Helper::get_sanitized_error_message_from_exception( $exception ) ] );
 	}
 
 	/**
