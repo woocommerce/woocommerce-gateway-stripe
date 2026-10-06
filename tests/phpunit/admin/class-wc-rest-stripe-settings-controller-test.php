@@ -741,6 +741,95 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	/**
+	 * Per-user notices must be stored against the requesting user only, never as a global option.
+	 *
+	 * @param array $request_params          The request parameters.
+	 * @param array $expected_user_options   The user options expected for the requesting user.
+	 * @param array $expected_global_options The global options expected to have been updated.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_dismiss_user_notice
+	 */
+	public function test_dismiss_user_notice( array $request_params, array $expected_user_options, array $expected_global_options ) {
+		$requesting_user_id = $this->factory->user->create( [ 'role' => 'administrator' ] );
+		$other_user_id      = $this->factory->user->create( [ 'role' => 'administrator' ] );
+		wp_set_current_user( $requesting_user_id );
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE . '/notice' );
+		foreach ( $request_params as $key => $value ) {
+			$request->set_param( $key, $value );
+		}
+
+		$updated_stripe_options = [];
+
+		$pre_update_filter = function ( $value, $option_name ) use ( &$updated_stripe_options ) {
+			if ( str_starts_with( $option_name, 'wc_stripe_' ) ) {
+				$updated_stripe_options[ $option_name ] = $value;
+			}
+			return $value;
+		};
+		add_filter( 'pre_update_option', $pre_update_filter, 10, 2 );
+
+		try {
+			$start_time = time();
+
+			$response = rest_do_request( $request );
+
+			$this->assertSame( 200, $response->get_status() );
+			$this->assertSame( [ 'result' => 'notice dismissed' ], $response->get_data() );
+			$this->assertSame( $expected_global_options, $updated_stripe_options );
+
+			foreach ( $expected_user_options as $option_name => $option_time_range ) {
+				$option_value = get_user_option( $option_name, $requesting_user_id );
+				$this->assertTrue( is_int( $option_value ) || ( is_string( $option_value ) && ctype_digit( $option_value ) ) );
+				$option_value = intval( $option_value );
+				$this->assertGreaterThanOrEqual( $start_time, $option_value );
+				$this->assertLessThanOrEqual( $start_time + $option_time_range, $option_value );
+				$this->assertFalse( get_user_option( $option_name, $other_user_id ) );
+			}
+		} finally {
+			remove_filter( 'pre_update_option', $pre_update_filter, 10 );
+			foreach ( array_keys( $expected_user_options ) as $option_name ) {
+				delete_user_option( $requesting_user_id, $option_name );
+			}
+			foreach ( array_keys( $expected_global_options ) as $option_name ) {
+				delete_option( $option_name );
+			}
+		}
+	}
+
+	/**
+	 * Provider for {@see test_dismiss_user_notice()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_dismiss_user_notice() {
+		$instant_payouts_banner_option_name = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_User_Banners::class, 'INSTANT_PAYOUTS_BANNER_OPTION', 'string' );
+		$expected_instant_payout_options    = [ $instant_payouts_banner_option_name => 3 * WEEK_IN_SECONDS ];
+
+		return [
+			'instant payouts banner'                         => [
+				'request params'          => [ 'wc_stripe_show_instant_payouts_banner' => 'no' ],
+				'expected user options'   => $expected_instant_payout_options,
+				'expected global options' => [],
+			],
+			'instant payouts banner with empty parameter'    => [
+				'request params'          => [ 'wc_stripe_show_instant_payouts_banner' => '' ],
+				'expected user options'   => $expected_instant_payout_options,
+				'expected global options' => [],
+			],
+			'instant payouts banner alongside global notice' => [
+				'request params'          => [
+					'wc_stripe_show_instant_payouts_banner' => 'no',
+					'wc_stripe_show_customization_notice'   => 'no',
+				],
+				'expected user options'   => $expected_instant_payout_options,
+				'expected global options' => [ 'wc_stripe_show_customization_notice' => 'no' ],
+			],
+		];
+	}
+
+	/**
 	 * Tests for moving Stripe gateways to the top via REST endpoint.
 	 */
 	public function test_set_stripe_gateways_first() {

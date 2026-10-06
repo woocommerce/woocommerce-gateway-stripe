@@ -743,6 +743,10 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			'wc_stripe_show_stripe_tax_banner'          => 'wc_stripe_show_stripe_tax_banner',
 		];
 
+		$user_notice_parameters = [
+			'wc_stripe_show_instant_payouts_banner' => 'dismiss_instant_payouts_banner',
+		];
+
 		// Loop through the supported request parameters once and perform any requested updates.
 		$has_any_parameter = false;
 		foreach ( $notice_parameters as $parameter_name => $option_name ) {
@@ -750,6 +754,17 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				$has_any_parameter = true;
 
 				update_option( $option_name, 'no' );
+			}
+		}
+
+		$user_id = get_current_user_id();
+		foreach ( $user_notice_parameters as $parameter_name => $user_banner_method ) {
+			if ( $user_id && $request->has_param( $parameter_name ) ) {
+				$has_any_parameter = true;
+
+				if ( method_exists( WC_Stripe_User_Banners::class, $user_banner_method ) ) {
+					WC_Stripe_User_Banners::$user_banner_method();
+				}
 			}
 		}
 
