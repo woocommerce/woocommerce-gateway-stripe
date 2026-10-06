@@ -505,7 +505,7 @@ class WC_Stripe_API {
 		}
 
 		/**
-		 * GET requests to endpoint1 and endpoint2 should not be logged.
+		 * The response bodies of GET requests to /balance  and /payouts should not be logged because they can be large and may contain sensitive data.
 		 */
 		if ( str_starts_with( $api, 'balance' ) || str_starts_with( $api, 'payouts' ) ) {
 			return false;
