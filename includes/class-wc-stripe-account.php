@@ -115,8 +115,8 @@ class WC_Stripe_Account {
 	 * @return array Account data or empty if failed to retrieve account data.
 	 */
 	public function get_cached_account_data( $mode = null, bool $force_refresh = false ) {
-		if ( ! in_array( $mode, [ 'test', 'live' ], true ) ) {
-			$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
+		if ( ! WC_Stripe_Mode::is_valid_mode( $mode ) ) {
+			$mode = WC_Stripe_Mode::get_current_mode();
 		}
 
 		if ( ! $this->connect->is_connected( $mode ) ) {

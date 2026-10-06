@@ -342,10 +342,14 @@ class WC_Stripe_Database_Cache {
 	 */
 	private static function resolve_mode( ?string $mode = null ): string {
 		if ( null === $mode ) {
-			return WC_Stripe_Mode::is_test() ? 'test' : 'live';
+			return WC_Stripe_Mode::get_current_mode();
 		}
 
-		return in_array( $mode, [ 'test', 'live' ], true ) ? $mode : 'test';
+		if ( WC_Stripe_Mode::is_valid_mode( $mode ) ) {
+			return $mode;
+		}
+
+		return WC_Stripe_Mode::MODE_TEST;
 	}
 
 	/**
