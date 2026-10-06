@@ -66,8 +66,10 @@ class WC_Stripe_Remove_Duplicate_Webhook_Keys_Test extends WP_UnitTestCase {
 	}
 	/**
 	 * A failed settings write must leave the migration eligible for another attempt.
+	 *
+	 * @dataProvider provide_failed_writes
 	 */
-	public function test_failed_write_can_be_retried() {
+	public function test_failed_write_can_be_retried( $change_unrelated_setting ) {
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[
 				'secret_key'        => 'sk_live_current',
@@ -82,7 +84,10 @@ class WC_Stripe_Remove_Duplicate_Webhook_Keys_Test extends WP_UnitTestCase {
 				],
 			]
 		);
-		$filter = function ( $value, $old_value ) {
+		$filter = function ( $value, $old_value ) use ( $change_unrelated_setting ) {
+			if ( $change_unrelated_setting ) {
+				$old_value['title'] = 'Filtered title';
+			}
 			return $old_value;
 		};
 		add_filter( 'pre_update_option_woocommerce_stripe_settings', $filter, PHP_INT_MAX, 2 );
@@ -103,6 +108,39 @@ class WC_Stripe_Remove_Duplicate_Webhook_Keys_Test extends WP_UnitTestCase {
 			],
 			$stored['test_webhook_data']
 		);
+		$this->assertSame( 'yes', get_option( 'wc_stripe_removed_duplicate_webhook_keys' ) );
+	}
+
+	public function provide_failed_writes() {
+		return [
+			'write rejected'           => [ false ],
+			'only another field saved' => [ true ],
+		];
+	}
+
+	public function test_migration_completes_when_filter_changes_unrelated_setting() {
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'secret_key'   => 'sk_current',
+				'webhook_data' => [
+					'id'     => 'we_old',
+					'secret' => 'sk_current',
+				],
+			]
+		);
+		$filter = function ( $value ) {
+			$value['title'] = 'Filtered title';
+			return $value;
+		};
+		add_filter( 'pre_update_option_woocommerce_stripe_settings', $filter );
+		try {
+			( new WC_Stripe_Remove_Duplicate_Webhook_Keys() )->maybe_migrate();
+		} finally {
+			remove_filter( 'pre_update_option_woocommerce_stripe_settings', $filter );
+		}
+		$stored = get_option( 'woocommerce_stripe_settings' );
+		$this->assertSame( [ 'id' => 'we_old' ], $stored['webhook_data'] );
+		$this->assertSame( 'Filtered title', $stored['title'] );
 		$this->assertSame( 'yes', get_option( 'wc_stripe_removed_duplicate_webhook_keys' ) );
 	}
 }

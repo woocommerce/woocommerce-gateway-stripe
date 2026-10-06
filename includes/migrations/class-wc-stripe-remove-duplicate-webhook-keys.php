@@ -10,8 +10,9 @@ class WC_Stripe_Remove_Duplicate_Webhook_Keys {
 			return;
 		}
 
-		$settings = WC_Stripe::get_instance()->get_settings();
-		$updated  = $settings;
+		$settings     = WC_Stripe::get_instance()->get_settings();
+		$updated      = $settings;
+		$removed_keys = [];
 		foreach ( [ '', 'test_' ] as $prefix ) {
 			$data = $settings[ $prefix . 'webhook_data' ] ?? null;
 			if ( ! is_array( $data ) || ! isset( $data['secret'] ) ) {
@@ -21,13 +22,19 @@ class WC_Stripe_Remove_Duplicate_Webhook_Keys {
 			// A different legacy key may be the only credential that can delete the old endpoint.
 			if ( ( $settings[ $prefix . 'secret_key' ] ?? '' ) === $data['secret'] ) {
 				unset( $updated[ $prefix . 'webhook_data' ]['secret'] );
+				$removed_keys[] = $prefix . 'webhook_data';
 			}
 		}
 
-		if ( $updated !== $settings ) {
+		if ( $removed_keys ) {
 			WC_Stripe::get_instance()->update_settings( $updated );
-			if ( WC_Stripe::get_instance()->get_settings() !== $updated ) {
-				return;
+			$stored = WC_Stripe::get_instance()->get_settings();
+			foreach ( $removed_keys as $key ) {
+				$data = $stored[ $key ] ?? [];
+				if ( ! is_array( $data ) || array_key_exists( 'secret', $data ) ) {
+					WC_Stripe_Logger::error( 'Could not remove duplicate account API keys from webhook settings.' );
+					return;
+				}
 			}
 		}
 
