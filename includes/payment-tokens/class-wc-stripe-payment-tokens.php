@@ -1080,17 +1080,15 @@ class WC_Stripe_Payment_Tokens {
 	}
 
 	/**
-	 * Copies the mutable card details from a card PaymentMethod onto the saved token that is being reused for it.
+	 * Copies the card details (expiry, brand, last4) from the new PaymentMethod onto a reused card token.
 	 *
-	 * Card tokens are matched by fingerprint, which hashes the card number only. A reissued card keeps its
-	 * number but can carry a new expiry or brand, so a reused token must take those from the new PaymentMethod
-	 * or My Account keeps showing the old card. `wallet_type` is left as-is so a later wallet use doesn't
-	 * re-badge a saved card. The token is not saved; callers save it after any other changes.
+	 * Tokens match by fingerprint (card number only), so a reissued card can have a new expiry.
+	 * `wallet_type` is kept, and the token is not saved.
 	 *
 	 * @since 11.1.0
 	 *
-	 * @param WC_Payment_Token $token          The saved token being reused.
-	 * @param object           $payment_method The Stripe PaymentMethod the token now points to.
+	 * @param WC_Payment_Token $token          The reused token.
+	 * @param object           $payment_method The new Stripe PaymentMethod.
 	 * @return void
 	 */
 	public static function refresh_card_token_details( $token, $payment_method ): void {
