@@ -762,7 +762,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			if ( $user_id && $request->has_param( $parameter_name ) ) {
 				$has_any_parameter = true;
 
-				if ( method_exists( WC_Stripe_User_Banners::class, $user_banner_method ) ) {
+				if ( method_exists( WC_Stripe_User_Banners::class, $user_banner_method ) ) { // @phpstan-ignore function.alreadyNarrowedType (This is a safety check to make sure we don't have runtime fatals.)
 					WC_Stripe_User_Banners::$user_banner_method();
 				}
 			}
