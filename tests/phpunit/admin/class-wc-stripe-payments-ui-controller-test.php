@@ -138,15 +138,15 @@ class WC_Stripe_Payments_UI_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function provide_active_payments_menus(): array {
 		return [
-			'woopayments core overview only'                   => [
+			'woopayments overview only'                        => [
 				[ 'WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG' ],
 				'WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG',
 			],
-			'woopayments core connect only'                    => [
+			'woopayments connect only'                         => [
 				[ 'WOOPAYMENTS_PAYMENTS_CONNECT_MENU_SLUG' ],
 				'WOOPAYMENTS_PAYMENTS_CONNECT_MENU_SLUG',
 			],
-			'woocommerce only'                                 => [
+			'woocommerce core only'                            => [
 				[ 'WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG' ],
 				'WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG',
 			],
