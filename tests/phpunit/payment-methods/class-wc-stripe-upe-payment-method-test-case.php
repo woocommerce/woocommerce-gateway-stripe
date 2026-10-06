@@ -31,4 +31,31 @@ abstract class WC_Stripe_UPE_Payment_Method_Test_Case extends WP_UnitTestCase {
 			$wc_stripe->account = $initial_account;
 		}
 	}
+
+	/**
+	 * Run a test for `get_available_billing_countries()` method.
+	 *
+	 * @param string   $payment_method_class The payment method class to test.
+	 * @param string   $account_country      The account country to test.
+	 * @param string[] $expected_result      The expected result.
+	 * @return void
+	 */
+	public function run_get_available_billing_countries_test( string $payment_method_class, string $account_country, array $expected_result ): void {
+		$mock_account = $this->createMock( WC_Stripe_Account::class );
+		$mock_account->method( 'get_cached_account_data' )
+			->willReturn( [ 'country' => $account_country ] );
+
+		$wc_stripe = WC_Stripe::get_instance();
+
+		$initial_account = $wc_stripe->account;
+		try {
+			$wc_stripe->account = $mock_account;
+
+			$payment_method = new $payment_method_class();
+
+			$this->assertSame( $expected_result, $payment_method->get_available_billing_countries() );
+		} finally {
+			$wc_stripe->account = $initial_account;
+		}
+	}
 }
