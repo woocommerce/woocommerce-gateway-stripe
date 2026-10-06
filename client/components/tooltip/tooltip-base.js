@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState, memo } from 'react';
 import { createPortal } from 'react-dom';
 import clsx from 'clsx';
-import { debounce, noop } from 'lodash';
+import debounce from 'wcstripe/utils/debounce';
 
 import './style.scss';
+
+const noop = () => undefined;
 
 const rootElement =
 	document.getElementById( 'wpbody-content' ) || document.body;
