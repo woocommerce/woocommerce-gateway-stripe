@@ -1101,6 +1101,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_create_and_confirm_payment_intent_payment_method_configuration( bool $automatic_payment_methods, ?string $configuration_id, ?string $expected_configuration_id ): void {
+		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
 		if ( null === $configuration_id ) {
 			PMC_Test_Helper::disable_pmc();
 		} else {
@@ -1133,7 +1134,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 			$this->mock_controller->create_and_confirm_payment_intent( $payment_information );
 		} finally {
 			remove_filter( 'pre_http_request', $test_request, 10 );
-			PMC_Test_Helper::delete_cached_configuration();
+			WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
 		}
 
 		$this->assertIsArray( $captured_body );

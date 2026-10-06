@@ -202,7 +202,7 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 		WC()->cart->add_to_cart( $product->get_id(), 1 );
 		WC()->cart->calculate_totals();
 
-		PMC_Test_Helper::delete_cached_configuration();
+		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
 		if ( null === $configuration_id ) {
 			PMC_Test_Helper::disable_pmc();
 		} else {
@@ -242,7 +242,6 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 			remove_filter( 'wc_stripe_request_body', $capture_body, 10 );
 			remove_filter( 'pre_http_request', $mock_response, 10 );
 			WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
-			PMC_Test_Helper::delete_cached_configuration();
 			$product->delete( true );
 			WC()->cart->empty_cart();
 		}
