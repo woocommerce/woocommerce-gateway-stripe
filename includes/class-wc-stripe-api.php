@@ -54,6 +54,13 @@ class WC_Stripe_API {
 	private static $instance;
 
 	/**
+	 * The text used to replace the response body of requests that should not be logged.
+	 *
+	 * @var string
+	 */
+	private const REDACTED_RESPONSE_BODY_PLACEHOLDER = '[REDACTED]';
+
+	/**
 	 * Get instance of WC_Stripe_API.
 	 *
 	 * @return WC_Stripe_API
@@ -340,7 +347,7 @@ class WC_Stripe_API {
 
 		$response_body = json_decode( $response_body_raw );
 
-		$response_body_to_log = self::should_log_response_body( $api, $method ) ? $response_body : '[REDACTED]';
+		$response_body_to_log = self::should_log_response_body( $api, $method ) ? $response_body : self::REDACTED_RESPONSE_BODY_PLACEHOLDER;
 
 		WC_Stripe_Logger::debug(
 			"Stripe API response: {$method} {$api}",
@@ -468,7 +475,7 @@ class WC_Stripe_API {
 
 		$response_body = json_decode( $response_body_raw );
 
-		$response_body_to_log = self::should_log_response_body( $api, 'GET' ) ? $response_body : '[REDACTED]';
+		$response_body_to_log = self::should_log_response_body( $api, 'GET' ) ? $response_body : self::REDACTED_RESPONSE_BODY_PLACEHOLDER;
 
 		WC_Stripe_Logger::debug(
 			"Stripe API response: GET {$api}",
@@ -497,6 +504,9 @@ class WC_Stripe_API {
 			return true;
 		}
 
+		/**
+		 * GET requests to endpoint1 and endpoint2 should not be logged.
+		 */
 		if ( str_starts_with( $api, 'balance' ) || str_starts_with( $api, 'payouts' ) ) {
 			return false;
 		}
