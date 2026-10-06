@@ -20,6 +20,11 @@ class WC_Stripe_UPE_Payment_Method_Becs_Debit extends WC_Stripe_UPE_Payment_Meth
 	public const STRIPE_ID = WC_Stripe_Payment_Methods::BECS_DEBIT;
 
 	/**
+	 * Refund window is 90 days.
+	 */
+	protected const REFUND_WINDOW_DATE_EXPRESSION = '+90 days';
+
+	/**
 	 * Stripe account countries that may enable BECS Direct Debit.
 	 *
 	 * @var string[]
