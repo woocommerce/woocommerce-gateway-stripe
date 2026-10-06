@@ -469,8 +469,8 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 				continue;
 			}
 
-			if ( is_array( $keys['webhook_data'] ) ) {
-				$keys['webhook_data']['secret'] = $keys['webhook_data']['secret'] ?? $keys['current_secret'];
+			if ( is_array( $keys['webhook_data'] ) && empty( $keys['webhook_data']['secret'] ) ) {
+				$keys['webhook_data']['secret'] = $keys['current_secret'];
 			}
 
 			// If the user is removing or changing their secret key, decommission the

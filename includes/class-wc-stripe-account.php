@@ -464,12 +464,16 @@ class WC_Stripe_Account {
 	 * @return bool
 	 */
 	public function is_webhook_enabled() {
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$is_testmode     = ( ! empty( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'] ) ? true : false;
-		$key             = $is_testmode ? 'test_webhook_data' : 'webhook_data';
-		$secret_key      = $stripe_settings[ $key ]['secret'] ?? $stripe_settings[ $is_testmode ? 'test_secret_key' : 'secret_key' ] ?? '';
+		$stripe_settings  = WC_Stripe_Helper::get_stripe_settings();
+		$is_testmode      = ( ! empty( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'] ) ? true : false;
+		$webhook_data_key = $is_testmode ? 'test_webhook_data' : 'webhook_data';
+		$webhook_data     = $stripe_settings[ $webhook_data_key ] ?? [];
+		$secret_key       = $stripe_settings[ $is_testmode ? 'test_secret_key' : 'secret_key' ] ?? '';
+		if ( ! empty( $webhook_data['secret'] ) ) {
+			$secret_key = $webhook_data['secret'];
+		}
 
-		if ( empty( $stripe_settings[ $key ]['id'] ) || empty( $secret_key ) ) {
+		if ( empty( $webhook_data['id'] ) || empty( $secret_key ) ) {
 			return false;
 		}
 
@@ -480,7 +484,7 @@ class WC_Stripe_Account {
 		}
 
 		try {
-			$webhook_id = $stripe_settings[ $key ]['id'];
+			$webhook_id = $webhook_data['id'];
 			WC_Stripe_API::set_secret_key( $secret_key );
 			$webhook = $this->stripe_api::request( [], 'webhook_endpoints/' . $webhook_id, 'GET' );
 

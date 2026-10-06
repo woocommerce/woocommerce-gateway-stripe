@@ -383,7 +383,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 			remove_filter( 'pre_http_request', $filter );
 			WC_Stripe_API::set_secret_key( '' );
 		}
-		$auth_key       = $legacy_secret ?? $old_key;
+		$auth_key       = ! empty( $legacy_secret ) ? $legacy_secret : $old_key;
 		$decommissioned = $new_key !== $auth_key;
 		$this->assertSame( $decommissioned ? [ [ 'DELETE', 'Basic ' . base64_encode( $auth_key . ':' ), $old_key ] ] : [], $requests );
 		if ( $fails && $decommissioned ) {
@@ -419,6 +419,8 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 			$cases[ $mode . ' failed disconnect' ] = [ $mode, 'remove', null, true ];
 			$cases[ $mode . ' failed cleanup' ]    = [ $mode, 'replace', null, true ];
 			$cases[ $mode . ' legacy key' ]        = [ $mode, 'replace', 'sk_' . $mode . '_original', false ];
+			$cases[ $mode . ' empty stored key' ]  = [ $mode, 'replace', '', false ];
+			$cases[ $mode . ' empty key failure' ] = [ $mode, 'replace', '', true ];
 		}
 		return $cases;
 	}

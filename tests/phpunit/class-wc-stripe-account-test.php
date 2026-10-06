@@ -479,15 +479,18 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$wc_stripe_api_secret_key_reflection->setAccessible( true );
 		$wc_stripe_api_secret_key_reflection->setValue( '', '' );
 
-		// False if webhook secrets are not set.
-		$stripe_settings['testmode']          = 'yes';
-		$stripe_settings['test_webhook_data'] = [
+		$stripe_settings['testmode']                        = 'yes';
+		$stripe_settings['test_webhook_data']               = [
 			'id'     => 'wh_123_test',
 			'secret' => '',
 		];
+		WC_Helper_Stripe_Api::$expected_request_call_params = [
+			[ [], 'webhook_endpoints/wh_123_test', 'GET' ],
+		];
+		WC_Helper_Stripe_Api::$request_response             = (object) [ 'status' => 'enabled' ];
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 		$this->clear_webhook_status_cache();
-		$this->assertFalse( $this->account->is_webhook_enabled() );
+		$this->assertTrue( $this->account->is_webhook_enabled() );
 		$this->assertSame( '', $wc_stripe_api_secret_key_reflection->getValue( null ) );
 
 		$stripe_settings['test_webhook_data'] = [];
@@ -596,10 +599,14 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		return [
 			'live account key' => [ 'live', null, 'sk_live_current', 'sk_live_current' ],
 			'test account key' => [ 'test', null, 'sk_test_current', 'sk_test_current' ],
+			'empty live copy'  => [ 'live', '', 'sk_live_current', 'sk_live_current' ],
+			'empty test copy'  => [ 'test', '', 'sk_test_current', 'sk_test_current' ],
 			'legacy live key'  => [ 'live', 'sk_live_old', 'sk_live_current', 'sk_live_old' ],
 			'legacy test key'  => [ 'test', 'sk_test_old', 'sk_test_current', 'sk_test_old' ],
 			'missing live key' => [ 'live', null, '', '' ],
 			'missing test key' => [ 'test', null, '', '' ],
+			'empty live keys'  => [ 'live', '', '', '' ],
+			'empty test keys'  => [ 'test', '', '', '' ],
 		];
 	}
 
