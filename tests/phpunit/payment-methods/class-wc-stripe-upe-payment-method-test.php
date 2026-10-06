@@ -1227,18 +1227,20 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	}
 
 	/**
-	 * Returns an anonymous subclass with $supported_billing_countries set to the given list.
+	 * Returns an anonymous subclass with the supplied configuration.
 	 *
-	 * @param string[] $billing_countries Billing-country list to seed.
+	 * @param string[] $billing_countries            Billing-country list to seed.
+	 * @param bool     $accept_only_domestic_payment Whether to only accept domestic payments.
 	 *
 	 * @return WC_Stripe_UPE_Payment_Method
 	 */
-	private function make_method_with_billing_countries( array $billing_countries ): WC_Stripe_UPE_Payment_Method {
-		return new class( $billing_countries ) extends WC_Stripe_UPE_Payment_Method {
+	private function make_method_with_billing_countries( array $billing_countries, bool $accept_only_domestic_payment = false ): WC_Stripe_UPE_Payment_Method {
+		return new class( $billing_countries, $accept_only_domestic_payment ) extends WC_Stripe_UPE_Payment_Method {
 			const STRIPE_ID = 'test_billing_country_method';
-			public function __construct( array $billing_countries ) {
+			public function __construct( array $billing_countries, bool $accept_only_domestic_payment = false ) {
 				parent::__construct();
-				$this->supported_billing_countries = $billing_countries;
+				$this->supported_billing_countries  = $billing_countries;
+				$this->accept_only_domestic_payment = $accept_only_domestic_payment;
 			}
 		};
 	}
@@ -1302,6 +1304,73 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 				[ 'US' ],
 				'us',
 				true,
+			],
+		];
+	}
+
+	/**
+	 * Tests for get_available_billing_countries().
+	 *
+	 * @dataProvider provide_test_get_available_billing_countries
+	 *
+	 * @param string[]    $supported_billing_countries  Supported billing countries to set on the payment method.
+	 * @param bool        $accept_only_domestic_payment Whether to only accept domestic payments.
+	 * @param string      $account_country              The account country.
+	 * @param string[]    $expected                     Expected available billing countries.
+	 */
+	public function test_get_available_billing_countries( array $supported_billing_countries, bool $accept_only_domestic_payment, string $account_country, array $expected ): void {
+		$mock_account = $this->createMock( WC_Stripe_Account::class );
+		$mock_account->method( 'get_cached_account_data' )
+			->willReturn( [ 'country' => $account_country ] );
+
+		$wc_stripe = WC_Stripe::get_instance();
+
+		$initial_account = $wc_stripe->account;
+		try {
+			$wc_stripe->account = $mock_account;
+
+			$payment_method = $this->make_method_with_billing_countries( $supported_billing_countries, $accept_only_domestic_payment );
+
+			$this->assertSame( $expected, $payment_method->get_available_billing_countries() );
+		} finally {
+			$wc_stripe->account = $initial_account;
+		}
+	}
+
+	/**
+	 * Data provider for {@see test_get_available_billing_countries()}.
+	 */
+	public function provide_test_get_available_billing_countries(): array {
+		return [
+			'empty country list allows all countries'                                   => [
+				'supported_billing_countries'  => [],
+				'accept_only_domestic_payment' => false,
+				'account_country'              => 'US',
+				'expected'                     => [],
+			],
+			'empty country list with only domestic payment allows account country'      => [
+				'supported_billing_countries'  => [],
+				'accept_only_domestic_payment' => true,
+				'account_country'              => 'GB',
+				'expected'                     => [ 'GB' ],
+			],
+			'country list with only domestic payment returns account country'           => [
+				'supported_billing_countries'  => [ 'CA', 'GB', 'US' ],
+				'accept_only_domestic_payment' => true,
+				'account_country'              => 'US',
+				'expected'                     => [ 'US' ],
+			],
+			'country list with only domestic payment skips unsupported account country' => [
+				'supported_billing_countries'  => [ 'CA', 'US' ],
+				'accept_only_domestic_payment' => true,
+				'account_country'              => 'GB',
+				'expected'                     => [ '' ],
+			],
+			'country list with only domestic payment skips missing account country'     => [
+				'supported_billing_countries'  => [ 'CA', 'GB', 'US' ],
+				'accept_only_domestic_payment' => true,
+				'account_country'              => '',
+				'expected'                     => [ '' ],
 			],
 		];
 	}
