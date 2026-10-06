@@ -80,7 +80,7 @@ final class WC_Stripe_Payments_UI_Controller {
 
 		$admin_page_hook = add_submenu_page(
 			$payments_menu_slug,
-			'Stripe',
+			__( 'Stripe Payouts', 'woocommerce-gateway-stripe' ),
 			__( 'Stripe Payouts', 'woocommerce-gateway-stripe' ),
 			self::CAPABILITY,
 			self::PAYMENTS_MENU_SLUG,
@@ -91,7 +91,10 @@ final class WC_Stripe_Payments_UI_Controller {
 			$this->admin_page_hook = $admin_page_hook;
 
 			// Only try to override the submenu if we successfully added our own submenu.
-			$this->shift_and_rename_payments_payments_submenu_item( $payments_menu_slug );
+			if ( self::WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG !== $payments_menu_slug &&
+				self::WOOPAYMENTS_PAYMENTS_CONNECT_MENU_SLUG !== $payments_menu_slug ) {
+				$this->shift_and_rename_payments_payments_submenu_item( $payments_menu_slug );
+			}
 		}
 	}
 
@@ -102,21 +105,21 @@ final class WC_Stripe_Payments_UI_Controller {
 	 * @return string|null
 	 */
 	private function get_payments_menu_slug(): ?string {
-		$woo_core_payments_menu_url = menu_page_url( self::WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG, false );
+		$woo_payments_menu_url = menu_page_url( self::WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG, false );
 
-		if ( '' !== $woo_core_payments_menu_url ) {
+		if ( '' !== $woo_payments_menu_url ) {
 			return self::WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG;
 		}
 
-		$woo_core_payments_menu_url = menu_page_url( self::WOOPAYMENTS_PAYMENTS_CONNECT_MENU_SLUG, false );
+		$woo_payments_menu_url = menu_page_url( self::WOOPAYMENTS_PAYMENTS_CONNECT_MENU_SLUG, false );
 
-		if ( '' !== $woo_core_payments_menu_url ) {
+		if ( '' !== $woo_payments_menu_url ) {
 			return self::WOOPAYMENTS_PAYMENTS_CONNECT_MENU_SLUG;
 		}
 
-		$woo_payments_menu_url = menu_page_url( self::WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG, false );
+		$woo_core_payments_menu_url = menu_page_url( self::WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG, false );
 
-		if ( '' !== $woo_payments_menu_url ) {
+		if ( '' !== $woo_core_payments_menu_url ) {
 			return self::WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG;
 		}
 
