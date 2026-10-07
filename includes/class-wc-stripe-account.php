@@ -44,6 +44,13 @@ class WC_Stripe_Account {
 	public const STATUS_RESTRICTED      = 'restricted';
 
 	/**
+	 * Retained for callers that read webhook events from the account class.
+	 *
+	 * @deprecated x.x.x Use WC_Stripe_Webhook_Settings::WEBHOOK_EVENTS instead.
+	 */
+	public const WEBHOOK_EVENTS = WC_Stripe_Webhook_Settings::WEBHOOK_EVENTS;
+
+	/**
 	 * The Stripe connect instance.
 	 *
 	 * @var WC_Stripe_Connect
