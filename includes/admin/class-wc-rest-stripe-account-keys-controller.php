@@ -310,7 +310,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		}
 
 		// Before saving the settings, decommission any previously automatically configured webhook endpoint.
-		$settings = $this->decommission_configured_webhook_after_key_update( $settings, $current_account_keys );
+		$settings = WC_Stripe::get_instance()->webhook_settings->decommission_for_key_change( $current_account_keys, $settings, [ 'live', 'test' ] );
 
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
@@ -424,7 +424,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 
 		try {
 			WC_Stripe_API::set_secret_key_for_mode( $environment );
-			$response = $this->account->configure_webhooks( $environment );
+			$response = WC_Stripe::get_instance()->webhook_settings->maybe_autoconfigure_webhooks( $environment, true );
 		} catch ( Exception $e ) {
 			return new WP_REST_Response( [ 'message' => $e->getMessage() ], 400 );
 		} finally {
@@ -439,53 +439,6 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 				'webhookSecret' => $this->mask_key_value( $response->secret ),
 			]
 		);
-	}
-
-	/**
-	 * Decommissions the configured Webhook if the user is removing their secret key.
-	 * This is to avoid leaving orphaned Webhooks in the Stripe account.
-	 *
-	 * @param array $settings             The current settings.
-	 * @param array $current_account_keys The current account keys.
-	 *
-	 * @return array The updated settings. The webhook data will be removed if the webhook was decommissioned.
-	 */
-	private function decommission_configured_webhook_after_key_update( $settings, $current_account_keys ) {
-		$key_data = [
-			'live' => [
-				'secret_key'     => $settings['secret_key'] ?? '',
-				'webhook_data'   => $settings['webhook_data'] ?? '',
-				'current_secret' => $current_account_keys['secret_key'] ?? '',
-			],
-			'test' => [
-				'secret_key'     => $settings['test_secret_key'] ?? '',
-				'webhook_data'   => $settings['test_webhook_data'] ?? '',
-				'current_secret' => $current_account_keys['test_secret_key'] ?? '',
-			],
-		];
-
-		foreach ( $key_data as $mode => $keys ) {
-			if ( empty( $keys['webhook_data'] ) ) {
-				continue;
-			}
-
-			if ( is_array( $keys['webhook_data'] ) && empty( $keys['webhook_data']['secret'] ) ) {
-				$keys['webhook_data']['secret'] = $keys['current_secret'];
-			}
-
-			// If the user is removing or changing their secret key, decommission the
-			// webhook on the previously connected account to avoid leaving orphaned webhooks in Stripe.
-			if ( $this->account->maybe_decommission_webhook( $keys['webhook_data'], $keys['secret_key'] ) ) {
-				// Update the webhook settings now that the webhook has been decommissioned.
-				$settings[ 'live' === $mode ? 'webhook_data' : 'test_webhook_data' ]     = [];
-				$settings[ 'live' === $mode ? 'webhook_secret' : 'test_webhook_secret' ] = '';
-			} elseif ( $this->account->should_decommission_webhook( $keys['webhook_data'], $keys['secret_key'] ) ) {
-				// Keep access to the old endpoint if cleanup failed while replacing its account key.
-				$settings[ 'live' === $mode ? 'webhook_data' : 'test_webhook_data' ] = $keys['webhook_data'];
-			}
-		}
-
-		return $settings;
 	}
 
 	/**

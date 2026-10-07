@@ -36,6 +36,7 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 The following items note specific versions that include important changes, features, or deprecations.
 
 * 11.1.0
+   - Webhook configuration methods and the WEBHOOK_EVENTS constant have been removed from WC_Stripe_Account; webhook settings are now managed by WC_Stripe::get_instance()->webhook_settings
    - Sofort is no longer offered at checkout, since Stripe discontinued it on March 31, 2025; existing Sofort orders can still be refunded and Sofort-initiated subscriptions keep renewing
 * 11.0.0
    - Express checkout merges the wc_stripe_express_checkout_normalize_address filter result over the address it sent; removing a field no longer clears it, return an empty string instead
@@ -164,6 +165,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 11.1.0 - xxxx-xx-xx =
+* Update - Extract webhook settings from WC_Stripe_Account and unify automatic webhook configuration
 * Update - Remove duplicate account API keys from webhook settings
 * Dev - Support webhook settings without duplicate account API keys ahead of their removal
 * Fix - Use the account API key for webhook status, cleanup, and manual setup

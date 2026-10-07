@@ -98,6 +98,13 @@ class WC_Stripe {
 	public $account;
 
 	/**
+	 * Webhook settings.
+	 *
+	 * @var WC_Stripe_Webhook_Settings
+	 */
+	public $webhook_settings;
+
+	/**
 	 * The main Stripe gateway instance. Use get_main_stripe_gateway() to access it.
 	 *
 	 * @var null|WC_Stripe_Payment_Gateway
@@ -234,10 +241,12 @@ class WC_Stripe {
 		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-account.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-settings.php';
 
-		$this->api     = new WC_Stripe_Connect_API();
-		$this->connect = new WC_Stripe_Connect( $this->api );
-		$this->account = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
+		$this->api              = new WC_Stripe_Connect_API();
+		$this->connect          = new WC_Stripe_Connect( $this->api );
+		$this->account          = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
+		$this->webhook_settings = new WC_Stripe_Webhook_Settings( 'WC_Stripe_API' );
 
 		// Guarded unlike the assignment above: the property must exist on every
 		// instance, but only the first may register the connection hooks.
@@ -446,9 +455,7 @@ class WC_Stripe {
 		add_woocommerce_inbox_variant();
 		$this->update_plugin_version();
 
-		// Add webhook reconfiguration
-		$account = self::get_instance()->account;
-		$account->maybe_reconfigure_webhooks_on_update();
+		$this->maybe_autoconfigure_webhooks();
 
 		// TODO: Remove this when we're reasonably sure most merchants have had their
 		// settings updated like this. ~80% of merchants is a good threshold.
@@ -833,7 +840,17 @@ class WC_Stripe {
 			return;
 		}
 
-		$this->account->maybe_reconfigure_webhooks_on_update( 'settings' );
+		$this->maybe_autoconfigure_webhooks();
+	}
+
+	private function maybe_autoconfigure_webhooks(): void {
+		foreach ( [ 'live', 'test' ] as $mode ) {
+			try {
+				$this->webhook_settings->maybe_autoconfigure_webhooks( $mode );
+			} catch ( Exception $e ) {
+				WC_Stripe_Logger::error( "Failed to check/reconfigure webhooks for {$mode} mode", [ 'error_message' => $e->getMessage() ] );
+			}
+		}
 	}
 
 	/**
