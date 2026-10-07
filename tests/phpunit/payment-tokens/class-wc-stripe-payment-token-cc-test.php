@@ -24,7 +24,7 @@ class WC_Stripe_Payment_Token_CC_Test extends WP_UnitTestCase {
 	 * Test default token properties upon instantiation.
 	 */
 	public function test_default_properties(): void {
-		$this->assertSame( 'cc', $this->token->get_type(), 'The token "type" property should match "cc".' );
+		$this->assertSame( 'CC', $this->token->get_type(), 'The token "type" property should match "CC".' );
 		$this->assertSame( '', $this->token->get_wallet_type(), 'The default wallet_type should be an empty string.' );
 		$this->assertSame( '', $this->token->get_fingerprint(), 'The default fingerprint should be an empty string.' );
 	}
