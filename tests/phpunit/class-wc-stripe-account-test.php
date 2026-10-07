@@ -842,6 +842,40 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$this->assertFalse( $result );
 	}
 
+	public function test_maybe_decommission_webhook_logs_authentication_failure() {
+		WC_Helper_Stripe_Api::$request_response             = (object) [ 'error' => (object) [ 'code' => 'api_key_expired' ] ];
+		WC_Helper_Stripe_Api::$expected_request_call_params = [ [ [], 'webhook_endpoints/wh_old', 'DELETE' ] ];
+
+		$previous_logger = WC_Stripe_Logger::$logger;
+		$logger          = $this->createMock( WC_Logger::class );
+		$logger->expects( $this->once() )
+			->method( 'error' )
+			->with(
+				'Failed to decommission previously configured webhook wh_old.',
+				$this->callback(
+					static function ( $context ) {
+						return 'api_key_expired' === ( $context['error_code'] ?? null );
+					}
+				)
+			);
+		WC_Stripe_Logger::$logger = $logger;
+
+		try {
+			$result = $this->account->maybe_decommission_webhook(
+				[
+					'id'     => 'wh_old',
+					'secret' => 'rk_live_old',
+				],
+				'rk_live_new'
+			);
+		} finally {
+			WC_Stripe_Logger::$logger = $previous_logger;
+		}
+
+		$this->assertFalse( $result );
+		$this->assertEmpty( WC_Helper_Stripe_Api::$expected_request_call_params );
+	}
+
 	/**
 	 * A rejected DELETE must retain the endpoint for retry, while an already missing endpoint needs no retry.
 	 *
