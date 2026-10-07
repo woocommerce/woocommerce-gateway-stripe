@@ -1356,11 +1356,24 @@ export const processPayment = (
 				// order-received page (not the checkout page).
 				appendCheckoutSessionIdToForm( jQueryForm, sessionId );
 
+				const savedTokenPaymentMethod =
+					getAdaptivePricingSavedTokenPaymentMethod(
+						paymentMethodType
+					);
+
+				// The flag tells the server this session will be confirmed with
+				// the saved card below. It is sent only with this request, so a
+				// later submission on the same form does not reuse it.
+				let checkoutData = jQueryForm.serialize();
+				if ( savedTokenPaymentMethod ) {
+					checkoutData += '&wc_stripe_saved_token_confirms_session=1';
+				}
+
 				const checkoutUrl = api.getAjaxUrl( 'checkout', '' );
 				const checkoutResponse = await jQuery.ajax( {
 					type: 'POST',
 					url: checkoutUrl,
-					data: jQueryForm.serialize(),
+					data: checkoutData,
 					dataType: 'json',
 				} );
 
@@ -1399,13 +1412,11 @@ export const processPayment = (
 				// method must not request saving again. Stripe also rejects
 				// savePaymentMethod when the session was created without save
 				// support (e.g. as a guest), so gate on the session, not the
-				// login state.
-				const savedTokenPaymentMethod =
-					getAdaptivePricingSavedTokenPaymentMethod(
-						paymentMethodType
-					);
+				// login state. Stripe also rejects `billingAddress` together with
+				// `paymentMethod`; the saved method has its own.
 				if ( savedTokenPaymentMethod ) {
 					confirmArgs.paymentMethod = savedTokenPaymentMethod;
+					delete confirmArgs.billingAddress;
 				} else if (
 					getNativeCheckoutSessionData()?.save_payment_method_enabled
 				) {

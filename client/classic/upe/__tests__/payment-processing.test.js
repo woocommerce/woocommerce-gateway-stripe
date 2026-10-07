@@ -1027,7 +1027,7 @@ describe( 'payment-processing', () => {
 				} );
 			} );
 
-			it( 'confirms with the saved token PaymentMethod id and never re-requests saving', async () => {
+			it( 'confirms with the saved token PaymentMethod id, without the billing address, and never re-requests saving', async () => {
 				const orderReceivedUrl =
 					'https://shop.com/checkout/order-received/123/';
 				const mockActions = {
@@ -1057,6 +1057,12 @@ describe( 'payment-processing', () => {
 				stripeUtils.getAdaptivePricingSavedTokenPaymentMethod.mockReturnValue(
 					'pm_saved_card_12'
 				);
+				stripeUtils.getUserDataForCheckoutSession.mockReturnValue( {
+					billingAddress: {
+						name: 'John Doe',
+						address: { country: 'US' },
+					},
+				} );
 
 				try {
 					const form = createMockForm( {
@@ -1065,6 +1071,11 @@ describe( 'payment-processing', () => {
 					paymentProcessing.processPayment( api, form, 'card' );
 					await flushPromises();
 
+					expect( mockJQueryAjax ).toHaveBeenCalledWith(
+						expect.objectContaining( {
+							data: 'billing_first_name=John&wc_stripe_saved_token_confirms_session=1',
+						} )
+					);
 					expect( mockActions.confirm ).toHaveBeenCalledWith( {
 						returnUrl: orderReceivedUrl,
 						redirect: 'if_required',
@@ -1073,6 +1084,9 @@ describe( 'payment-processing', () => {
 				} finally {
 					stripeUtils.getAdaptivePricingSavedTokenPaymentMethod.mockReturnValue(
 						null
+					);
+					stripeUtils.getUserDataForCheckoutSession.mockReturnValue(
+						{}
 					);
 				}
 			} );

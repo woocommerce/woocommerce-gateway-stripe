@@ -203,9 +203,12 @@ export const useCheckoutSuccessHandler = (
 					// makes confirm() ignore the Payment Element, and an
 					// already-saved method must not request saving again.
 					// Stripe also rejects savePaymentMethod when the session
-					// was created without save support (e.g. as a guest).
+					// was created without save support (e.g. as a guest), and
+					// rejects `billingAddress` together with `paymentMethod`
+					// (the saved method has its own).
 					if ( savedPaymentMethodId ) {
 						confirmArgs.paymentMethod = savedPaymentMethodId;
+						delete confirmArgs.billingAddress;
 					} else if ( savePaymentMethodEnabled ) {
 						confirmArgs.savePaymentMethod =
 							isSavePaymentMethodCheckboxChecked();
@@ -359,6 +362,7 @@ export const useSavedTokenPaymentSetupHandler = (
 							'wc-stripe-payment-token': String( tokenId ),
 							isSavedToken: true,
 							wc_stripe_checkout_session_id: checkoutSessionId,
+							wc_stripe_saved_token_confirms_session: '1',
 						},
 					},
 				};

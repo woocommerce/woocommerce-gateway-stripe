@@ -5,6 +5,7 @@ import {
 	useCheckoutSuccessHandler,
 	usePaymentFailHandler,
 	useCheckoutSessionTotalsSync,
+	useSavedTokenPaymentSetupHandler,
 } from 'wcstripe/blocks/checkout-sessions/hooks';
 import { useEffect } from '@wordpress/element';
 import { dispatch, select } from '@wordpress/data';
@@ -651,6 +652,55 @@ describe( 'CheckoutSessions hook tests', () => {
 			expect( confirm.mock.calls[ 0 ][ 0 ] ).not.toHaveProperty(
 				'savePaymentMethod'
 			);
+		} );
+
+		it( 'confirms a saved token with its PaymentMethod id and without the billing address', async () => {
+			const confirm = jest.fn().mockResolvedValue( {
+				type: 'success',
+			} );
+			const checkoutState = {
+				type: 'success',
+				checkout: { email: 'john@example.com', confirm },
+			};
+			useCheckoutSuccessHandler(
+				checkoutState,
+				onCheckoutSuccess,
+				billing,
+				true,
+				false,
+				shippingData,
+				'pm_saved_card_12'
+			);
+			await onCheckoutSuccessResultPromise;
+			expect( confirm ).toHaveBeenCalledTimes( 1 );
+			const confirmArgs = confirm.mock.calls[ 0 ][ 0 ];
+			expect( confirmArgs.paymentMethod ).toBe( 'pm_saved_card_12' );
+			expect( confirmArgs ).not.toHaveProperty( 'billingAddress' );
+			expect( confirmArgs ).not.toHaveProperty( 'savePaymentMethod' );
+		} );
+	} );
+
+	describe( 'useSavedTokenPaymentSetupHandler hook', () => {
+		it( 'tells the server the saved token will confirm the session', async () => {
+			let result;
+			const onPaymentSetup = jest.fn( ( fn ) => {
+				result = fn();
+			} );
+			useSavedTokenPaymentSetupHandler(
+				onPaymentSetup,
+				'cs_test_123',
+				{ current: false },
+				12
+			);
+			expect( await result ).toEqual( {
+				type: 'success',
+				meta: {
+					paymentMethodData: expect.objectContaining( {
+						wc_stripe_checkout_session_id: 'cs_test_123',
+						wc_stripe_saved_token_confirms_session: '1',
+					} ),
+				},
+			} );
 		} );
 	} );
 

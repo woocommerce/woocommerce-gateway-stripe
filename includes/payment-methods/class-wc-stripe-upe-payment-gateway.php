@@ -1598,13 +1598,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				return $this->process_payment_with_checkout_session( $order_id, $checkout_session_id, $save_payment_method, $selected_payment_type );
 			}
 
-			// A saved card pays the live session client-side via confirm( { paymentMethod } )
-			// before this request, so a completed session takes the session path. Any other
-			// status means the id is stale from a failed Adaptive Pricing attempt: the token
-			// has to win, because routing an unpaid session to the session path would return
-			// success for an order nothing ever charged. Fall through so the stale session is
-			// retired and the saved token charges through the deferred intent.
-			if ( $this->is_checkout_session_completed( $checkout_session_id ) ) {
+			// The client posts the order before it confirms the session with the saved card, so
+			// the session is still open here; the flag tells this case apart from an id left in
+			// the form by an earlier failed Adaptive Pricing attempt. Without the flag, only a
+			// completed session takes the session path. Any other id is stale: the token has to
+			// win, because routing an unpaid session to the session path would return success
+			// for an order nothing ever charged. Fall through so the stale session is retired
+			// and the saved token charges through the deferred intent.
+			if ( $this->is_saved_token_confirming_checkout_session() || $this->is_checkout_session_completed( $checkout_session_id ) ) {
 				return $this->process_payment_with_checkout_session( $order_id, $checkout_session_id, $save_payment_method, $selected_payment_type );
 			}
 		}
@@ -1619,6 +1620,19 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		return $this->process_payment_with_deferred_intent( $order_id );
+	}
+
+	/**
+	 * Whether the client will confirm the submitted Checkout Session with the selected saved token.
+	 *
+	 * Only the Adaptive Pricing saved-token flow sends this flag. It does not mark anything paid: the
+	 * session path only links the order, and the order is paid when the session completes.
+	 *
+	 * @return bool
+	 */
+	private function is_saved_token_confirming_checkout_session(): bool {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		return isset( $_POST['wc_stripe_saved_token_confirms_session'] ) && '1' === wc_clean( wp_unslash( $_POST['wc_stripe_saved_token_confirms_session'] ) );
 	}
 
 	/**

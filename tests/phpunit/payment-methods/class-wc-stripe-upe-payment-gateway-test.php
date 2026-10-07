@@ -2472,9 +2472,15 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * A saved card token pays the Checkout Session: the order links to the session,
 	 * records the token's PaymentMethod id (which the client passes to
 	 * `confirm( { paymentMethod } )`), attaches the token, and never requests
-	 * saving an already-saved method.
+	 * saving an already-saved method. The client posts the order before it
+	 * confirms, so an open session with the flag must take this path too.
+	 *
+	 * @dataProvider provide_saved_card_token_checkout_session_states
+	 *
+	 * @param string $session_status The status returned by the Checkout Session retrieval.
+	 * @param bool   $confirms_flag  Whether the client sends the saved-token confirm flag.
 	 */
-	public function test_process_payment_with_checkout_session_accepts_saved_card_token() {
+	public function test_process_payment_with_checkout_session_accepts_saved_card_token( string $session_status, bool $confirms_flag ) {
 		$session_id = 'cs_test_saved_token';
 		$user_id    = $this->factory->user->create();
 		wp_set_current_user( $user_id );
@@ -2498,9 +2504,27 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->store_checkout_session_context_for_order( $session_id, $order );
 
-		// A saved token only takes the session path once the client has completed
-		// the session via confirm( { paymentMethod } ).
-		$this->mock_completed_checkout_session( $session_id );
+		if ( $confirms_flag ) {
+			$_POST['wc_stripe_saved_token_confirms_session'] = '1';
+		}
+
+		$this->mock_gateway->method( 'stripe_request' )->willReturnCallback(
+			function ( $path ) use ( $session_id, $session_status ) {
+				if ( 'checkout/sessions/' . $session_id === $path ) {
+					return (object) [
+						'id'     => $session_id,
+						'status' => $session_status,
+					];
+				}
+
+				return null;
+			}
+		);
+
+		// The session path must not charge the token itself; the client confirms the session.
+		$this->mock_gateway->intent_controller
+			->expects( $this->never() )
+			->method( 'create_and_confirm_payment_intent' );
 
 		// The session payment path ensures a Stripe customer for the logged-in
 		// user; the bootstrap blocks outbound HTTP, so serve the creation here.
@@ -2512,7 +2536,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		} finally {
 			remove_filter( 'pre_http_request', $pre_http_filter );
 			WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
-			unset( $_POST['wc_stripe_checkout_session_id'], $_POST['payment_method'], $_POST['wc-stripe-payment-method'], $_POST['wc-stripe-payment-token'] );
+			unset( $_POST['wc_stripe_checkout_session_id'], $_POST['payment_method'], $_POST['wc-stripe-payment-method'], $_POST['wc-stripe-payment-token'], $_POST['wc_stripe_saved_token_confirms_session'] );
 			add_filter( 'woocommerce_get_customer_payment_tokens', [ $stripe_payment_tokens, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
 			wp_set_current_user( 0 );
 		}
@@ -2525,6 +2549,16 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertSame( 'pm_saved_ap_123', $order_helper->get_stripe_source_id( $fresh_order ) );
 		$this->assertContains( $token->get_id(), $fresh_order->get_payment_tokens() );
 		$this->assertFalse( $order_helper->get_should_save_stripe_payment_method( $fresh_order ) );
+	}
+
+	/**
+	 * @return array<string,array{string,bool}>
+	 */
+	public function provide_saved_card_token_checkout_session_states(): array {
+		return [
+			'completed session'                    => [ 'complete', false ],
+			'open session the client will confirm' => [ 'open', true ],
+		];
 	}
 
 	/**
