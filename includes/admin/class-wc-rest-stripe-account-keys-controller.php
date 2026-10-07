@@ -414,6 +414,13 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		$live_mode      = wc_clean( wp_unslash( $request->get_param( 'live_mode' ) ) );
 		$environment    = $live_mode ? 'live' : 'test';
 		$rate_limit_key = "wc-stripe-configure-{$environment}-webhooks-" . get_current_user_id();
+		$settings       = WC_Stripe_Helper::get_stripe_settings();
+		$secret_key     = $settings[ 'live' === $environment ? 'secret_key' : 'test_secret_key' ] ?? '';
+
+		// Without a key for this mode, get_secret_key() would use the active mode's key and target the wrong account.
+		if ( ! is_string( $secret_key ) || empty( $secret_key ) ) {
+			return new WP_REST_Response( [ 'message' => __( 'A Stripe API secret key is required to configure webhooks for this mode.', 'woocommerce-gateway-stripe' ) ], 400 );
+		}
 
 		// Prevent users from setting up webhooks too frequently.
 		if ( WC_Rate_Limiter::retried_too_soon( $rate_limit_key ) ) {
@@ -423,7 +430,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		WC_Rate_Limiter::set_rate_limit( $rate_limit_key, 60 );
 
 		try {
-			WC_Stripe_API::set_secret_key_for_mode( $environment );
+			WC_Stripe_API::set_secret_key( $secret_key );
 			$response = $this->account->configure_webhooks( $environment );
 		} catch ( Exception $e ) {
 			return new WP_REST_Response( [ 'message' => $e->getMessage() ], 400 );

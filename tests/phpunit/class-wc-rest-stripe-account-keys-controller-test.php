@@ -473,4 +473,27 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 			'test' => [ 'test' ],
 		];
 	}
+
+	/**
+	 * A missing requested-mode key must not cause setup to use the active mode's key.
+	 *
+	 * @dataProvider provide_webhook_setup_modes
+	 */
+	public function test_webhook_setup_rejects_missing_requested_mode_key( $mode ) {
+		$settings                    = WC_Stripe_Helper::get_stripe_settings();
+		$settings['testmode']        = 'live' === $mode ? 'yes' : 'no';
+		$settings['secret_key']      = 'live' === $mode ? '' : 'sk_live_current';
+		$settings['test_secret_key'] = 'test' === $mode ? '' : 'sk_test_current';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$account = $this->createMock( WC_Stripe_Account::class );
+		$account->expects( $this->never() )->method( 'configure_webhooks' );
+		$request = new WP_REST_Request( 'POST', self::ROUTE . '/webhook' );
+		$request->set_param( 'live_mode', 'live' === $mode );
+
+		$controller = new WC_REST_Stripe_Account_Keys_Controller( $account );
+		$response   = $controller->configure_webhooks( $request );
+
+		$this->assertSame( 400, $response->get_status() );
+	}
 }
