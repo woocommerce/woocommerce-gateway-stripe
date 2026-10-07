@@ -175,6 +175,8 @@ function wcstripe_deactivated(): void {
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-database-cache.php';
 
 	WC_Stripe_Database_Cache::unschedule_daily_async_cleanup();
+	require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-order-reconciliation.php';
+	WC_Stripe_Order_Reconciliation::unschedule();
 
 	// Cancel scheduled Agentic Commerce feed syncs.
 	if ( interface_exists( 'Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedInterface' ) ) {
