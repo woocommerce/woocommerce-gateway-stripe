@@ -113,9 +113,10 @@ class WC_Stripe_Remote_Config_Test extends WP_UnitTestCase {
 	 */
 	public function provide_valid_generated_at_values(): array {
 		return [
-			'UTC'                => [ '2026-05-09T12:00:00Z' ],
-			'offset'             => [ '2026-05-09T12:00:00+02:00' ],
-			'fractional seconds' => [ '2026-05-09T12:00:00.123Z' ],
+			'UTC'                            => [ '2026-05-09T12:00:00Z' ],
+			'offset'                         => [ '2026-05-09T12:00:00+02:00' ],
+			'fractional seconds'             => [ '2026-05-09T12:00:00.123Z' ],
+			'offset with fractional seconds' => [ '2026-05-09T12:00:00.123+02:00' ],
 		];
 	}
 

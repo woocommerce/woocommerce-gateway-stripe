@@ -21,15 +21,23 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 	 */
 	private $http_stubs = [];
 
+	/**
+	 * Name of the remote-config enable override option, read from the class constant.
+	 *
+	 * @var string
+	 */
+	private $enabled_option;
+
 	public function set_up(): void {
 		parent::set_up();
-		update_option( '_wcstripe_remote_config_enabled', 'yes' );
+		$this->enabled_option = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Remote_Config_Flags::class, 'ENABLED_OVERRIDE_OPTION', 'string' );
+		update_option( $this->enabled_option, 'yes' );
 		$this->client            = new WC_Stripe_Remote_Config_Client();
 		$this->captured_requests = [];
 	}
 
 	public function tear_down(): void {
-		delete_option( '_wcstripe_remote_config_enabled' );
+		delete_option( $this->enabled_option );
 		foreach ( $this->http_stubs as $stub ) {
 			remove_filter( 'pre_http_request', $stub['callback'], $stub['priority'] );
 		}
@@ -126,12 +134,15 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 	}
 
 	public function test_fetch_short_circuits_when_disabled_by_override(): void {
-		update_option( '_wcstripe_remote_config_enabled', 'no' );
+		update_option( $this->enabled_option, 'no' );
 
-		$result = $this->client->fetch_all();
-
-		// Clean up before asserting so a failed assertion can't leak the override into later tests.
-		update_option( '_wcstripe_remote_config_enabled', 'yes' );
+		// Restore in finally so a throw from fetch_all(), or a later failed assertion,
+		// can't leak the override into other tests.
+		try {
+			$result = $this->client->fetch_all();
+		} finally {
+			update_option( $this->enabled_option, 'yes' );
+		}
 
 		$this->assertWPError( $result );
 		$this->assertSame( 'wc_stripe_remote_config_disabled', $result->get_error_code() );

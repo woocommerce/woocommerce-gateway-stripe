@@ -6,7 +6,8 @@
 class WC_Stripe_Remote_Config_Flags_Test extends WP_UnitTestCase {
 
 	public function tear_down(): void {
-		delete_option( '_wcstripe_remote_config_enabled' );
+		$option = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Remote_Config_Flags::class, 'ENABLED_OVERRIDE_OPTION', 'string' );
+		delete_option( $option );
 		parent::tear_down();
 	}
 
@@ -20,7 +21,8 @@ class WC_Stripe_Remote_Config_Flags_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_override_values
 	 */
 	public function test_enabled_override_option( string $override, bool $expected ): void {
-		update_option( '_wcstripe_remote_config_enabled', $override );
+		$option = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Remote_Config_Flags::class, 'ENABLED_OVERRIDE_OPTION', 'string' );
+		update_option( $option, $override );
 
 		$this->assertSame( $expected, WC_Stripe_Remote_Config_Flags::is_remote_config_enabled() );
 	}
@@ -45,7 +47,8 @@ class WC_Stripe_Remote_Config_Flags_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_disabled_by_default(): void {
-		delete_option( '_wcstripe_remote_config_enabled' );
+		$option = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Remote_Config_Flags::class, 'ENABLED_OVERRIDE_OPTION', 'string' );
+		delete_option( $option );
 
 		$this->assertFalse( WC_Stripe_Remote_Config_Flags::is_remote_config_enabled() );
 	}
