@@ -683,6 +683,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				'secretKey',
 				'testSecretKey',
 				'refreshToken',
+				'secret',
 				'secret_key',
 				'test_secret_key',
 				'webhook_secret',

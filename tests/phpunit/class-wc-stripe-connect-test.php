@@ -252,6 +252,74 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * A failed cleanup retains the old key for retry, but verbose OAuth logs must mask it.
+	 *
+	 * @dataProvider provide_webhook_log_modes
+	 */
+	public function test_failed_webhook_cleanup_redacts_retained_key_in_verbose_log( $mode ) {
+		$prefix  = 'test' === $mode ? 'test_' : '';
+		$old_key = 'sk_' . $mode . '_old_account';
+		$new_key = 'sk_' . $mode . '_new_account';
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'testmode'               => 'test' === $mode ? 'yes' : 'no',
+				$prefix . 'secret_key'   => $old_key,
+				$prefix . 'webhook_data' => [
+					'id'     => 'we_old',
+					'secret' => '',
+				],
+				'pmc_enabled'            => 'yes',
+			]
+		);
+
+		$account = $this->mock_stripe_account();
+		$account->expects( $this->once() )->method( 'maybe_decommission_webhook' )
+			->with(
+				[
+					'id'     => 'we_old',
+					'secret' => $old_key,
+				],
+				$new_key
+			)
+			->willReturn( false );
+		$account->method( 'configure_webhooks' )->willThrowException( new Exception( 'Network error' ) );
+
+		$logged_options = [];
+		$logger         = $this->createMock( WC_Logger::class );
+		$logger->method( 'debug' )->willReturnCallback(
+			function ( $message, $context ) use ( &$logged_options ) {
+				if ( 'OAuth: Plugin settings updated' === $message ) {
+					$logged_options[] = $context['options'];
+				}
+			}
+		);
+		$previous_logger          = WC_Stripe_Logger::$logger;
+		WC_Stripe_Logger::$logger = $logger;
+		add_filter( 'wc_stripe_is_verbose_debug_mode_enabled', '__return_true' );
+
+		try {
+			$this->invoke_save_stripe_keys( 'pk_' . $mode . '_new_account', $new_key, $mode );
+		} finally {
+			remove_filter( 'wc_stripe_is_verbose_debug_mode_enabled', '__return_true' );
+			WC_Stripe_Logger::$logger = $previous_logger;
+			WC_Stripe_API::set_secret_key( '' );
+		}
+
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame( $old_key, $settings[ $prefix . 'webhook_data' ]['secret'] );
+		$this->assertCount( 1, $logged_options );
+		$this->assertSame( WC_Stripe_Connect::redact_string( $old_key ), $logged_options[0][ $prefix . 'webhook_data' ]['secret'] );
+		$this->assertStringNotContainsString( $old_key, wp_json_encode( $logged_options[0] ) );
+	}
+
+	public function provide_webhook_log_modes() {
+		return [
+			'live' => [ 'live' ],
+			'test' => [ 'test' ],
+		];
+	}
+
+	/**
 	 * Live onboarding must delete the old test webhook with the old test key.
 	 *
 	 * @dataProvider provide_cleanup_failures
@@ -572,18 +640,19 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Invokes the private save_stripe_keys() with a minimal OAuth result for test mode.
+	 * Invokes the private save_stripe_keys() with a minimal OAuth result.
 	 *
 	 * @param string $publishable_key The publishable key to save.
 	 * @param string $secret_key      The secret key to save.
+	 * @param string $mode            The mode to connect to.
 	 */
-	private function invoke_save_stripe_keys( $publishable_key, $secret_key ) {
+	private function invoke_save_stripe_keys( $publishable_key, $secret_key, $mode = 'test' ) {
 		$result                 = new stdClass();
 		$result->publishableKey = $publishable_key; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 		$result->secretKey      = $secret_key; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 
 		$method = new ReflectionMethod( WC_Stripe_Connect::class, 'save_stripe_keys' );
 		$method->setAccessible( true );
-		$method->invoke( $this->connect, $result, 'connect', 'test' );
+		$method->invoke( $this->connect, $result, 'connect', $mode );
 	}
 }
