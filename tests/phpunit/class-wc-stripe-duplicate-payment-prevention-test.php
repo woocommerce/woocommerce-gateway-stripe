@@ -124,6 +124,74 @@ class WC_Stripe_Duplicate_Payment_Prevention_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Only the shopper who paid may be sent to the paid order. Guests share a cart key when the
+	 * email and cart match, so a guest must also be in the session that paid; a logged-in
+	 * customer is already scoped by customer ID.
+	 *
+	 * @param string $paid_session    WC session customer ID when the order was paid ('' for none).
+	 * @param string $current_session WC session customer ID of the resubmit ('' for none).
+	 * @param int    $customer_id     Customer ID on both orders.
+	 * @param bool   $expected        Whether the resubmit counts as the same shopper.
+	 * @dataProvider provide_paying_shoppers
+	 */
+	public function test_is_paid_by_current_shopper( string $paid_session, string $current_session, int $customer_id, bool $expected ): void {
+		$original_session = WC()->session;
+
+		try {
+			$paid = $this->make_order( self::CART_HASH, self::EMAIL );
+			$paid->set_customer_id( $customer_id );
+			$paid->payment_complete();
+
+			$this->set_session_customer_id( $paid_session );
+			WC_Stripe_Duplicate_Payment_Prevention::record_paid_order( wc_get_order( $paid->get_id() ) );
+
+			$resend = $this->make_order( self::CART_HASH, self::EMAIL );
+			$resend->set_customer_id( $customer_id );
+			$resend->save();
+
+			$this->set_session_customer_id( $current_session );
+			$this->assertSame( $expected, WC_Stripe_Duplicate_Payment_Prevention::is_paid_by_current_shopper( $resend ) );
+		} finally {
+			WC()->session = $original_session;
+		}
+	}
+
+	/**
+	 * Data provider for test_is_paid_by_current_shopper.
+	 *
+	 * @return array
+	 */
+	public function provide_paying_shoppers(): array {
+		return [
+			'guest in the same session'             => [ 't_guest_a', 't_guest_a', 0, true ],
+			'guest in another session'              => [ 't_guest_a', 't_guest_b', 0, false ],
+			'guest, paid without a session'         => [ '', 't_guest_a', 0, false ],
+			'guest, resubmit without a session'     => [ 't_guest_a', '', 0, false ],
+			'logged-in customer in another session' => [ 't_guest_a', 't_guest_b', 7, true ],
+		];
+	}
+
+	/**
+	 * Sets the WC session customer ID, or removes the session when empty.
+	 *
+	 * @param string $customer_id The session customer ID.
+	 * @return void
+	 */
+	private function set_session_customer_id( string $customer_id ): void {
+		if ( '' === $customer_id ) {
+			WC()->session = null;
+			return;
+		}
+
+		$session    = new WC_Session_Handler();
+		$reflection = new ReflectionClass( $session );
+		$property   = $reflection->getProperty( '_customer_id' );
+		$property->setAccessible( true );
+		$property->setValue( $session, $customer_id );
+		WC()->session = $session;
+	}
+
+	/**
 	 * An unpaid order is never recorded, so a resubmit is not blocked.
 	 */
 	public function test_record_paid_order_ignores_unpaid_order(): void {

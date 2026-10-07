@@ -136,8 +136,8 @@ final class WC_Stripe_Duplicate_Payment_Prevention {
 			return null;
 		}
 
-		$record = get_transient( self::RECORD_PREFIX . $cart_key );
-		if ( ! is_array( $record ) || empty( $record['order_id'] ) ) {
+		$record = self::get_record( $cart_key );
+		if ( null === $record ) {
 			return null;
 		}
 
@@ -164,6 +164,66 @@ final class WC_Stripe_Duplicate_Payment_Prevention {
 		}
 
 		return $paid_order;
+	}
+
+	/**
+	 * Whether the current request comes from the shopper who paid the recorded order for this cart.
+	 *
+	 * The cart key only holds the cart, email, and customer ID, so two guests with the same email
+	 * and cart share it. Redirecting a different guest to the paid order would show them its
+	 * details, so a guest must also be in the browser session that paid. A logged-in customer is
+	 * already scoped by customer ID.
+	 *
+	 * @param WC_Order $order The order being processed.
+	 * @return bool
+	 */
+	public static function is_paid_by_current_shopper( WC_Order $order ): bool {
+		if ( $order->get_customer_id() > 0 ) {
+			return true;
+		}
+
+		$record = self::get_record( self::get_cart_key( $order ) );
+		if ( null === $record ) {
+			return false;
+		}
+
+		$current_session = self::get_current_session_id();
+
+		return '' !== $current_session && hash_equals( (string) ( $record['session'] ?? '' ), $current_session );
+	}
+
+	/**
+	 * Returns the paid-cart record for a cart key, or null when there is none.
+	 *
+	 * @param string $cart_key The key from {@see get_cart_key()}.
+	 * @return array|null
+	 */
+	private static function get_record( string $cart_key ): ?array {
+		if ( '' === $cart_key ) {
+			return null;
+		}
+
+		$record = get_transient( self::RECORD_PREFIX . $cart_key );
+		if ( ! is_array( $record ) || empty( $record['order_id'] ) ) {
+			return null;
+		}
+
+		return $record;
+	}
+
+	/**
+	 * Returns the WooCommerce session customer ID of the current request, or '' without a session.
+	 *
+	 * Webhooks and other server-side contexts have no session; their records then never match a guest.
+	 *
+	 * @return string
+	 */
+	private static function get_current_session_id(): string {
+		if ( ! function_exists( 'WC' ) || ! WC()->session instanceof WC_Session || ! is_callable( [ WC()->session, 'get_customer_id' ] ) ) {
+			return '';
+		}
+
+		return (string) WC()->session->get_customer_id();
 	}
 
 	/**
@@ -224,6 +284,7 @@ final class WC_Stripe_Duplicate_Payment_Prevention {
 			[
 				'order_id' => $order->get_id(),
 				'paid_at'  => time(),
+				'session'  => self::get_current_session_id(),
 			],
 			self::get_detection_window()
 		);

@@ -8331,6 +8331,83 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * A guest resubmit of a paid cart goes to the paid order only from the session that paid it. A
+	 * guest in another session with the same email and cart is turned away without a charge and
+	 * without the paid order's details, and their order is left as it is.
+	 *
+	 * @dataProvider provide_guest_resubmit_sessions
+	 *
+	 * @param string $current_session WC session customer ID of the resubmit.
+	 * @param bool   $expect_redirect Whether the resubmit is redirected to the paid order.
+	 *
+	 * @return void
+	 */
+	public function test_process_payment_redirects_guest_resubmit_only_from_the_paying_session( string $current_session, bool $expect_redirect ): void {
+		$original_session = WC()->session;
+		$set_session_id   = static function ( string $customer_id ): void {
+			$reflection = new ReflectionClass( WC()->session );
+			$property   = $reflection->getProperty( '_customer_id' );
+			$property->setAccessible( true );
+			$property->setValue( WC()->session, $customer_id );
+		};
+
+		$paid = $this->create_order_for_live_cart();
+		$paid->set_customer_id( 0 );
+		$paid->payment_complete( 'ch_first' );
+		$set_session_id( 't_guest_paid' );
+		WC_Stripe_Duplicate_Payment_Prevention::record_paid_order( wc_get_order( $paid->get_id() ) );
+
+		$resend = WC_Helper_Order::create_order( 0 );
+		$resend->set_created_via( 'checkout' );
+		$resend->set_cart_hash( WC()->cart->get_cart_hash() );
+		$resend->set_billing_email( 'shopper@example.com' );
+		$resend->set_status( OrderStatus::PENDING );
+		$resend->save();
+
+		$_POST = [
+			'payment_method'               => 'stripe',
+			'wc-stripe-payment-method'     => 'pm_mock',
+			'wc-stripe-confirmation-token' => '',
+		];
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->never() )
+			->method( 'create_and_confirm_payment_intent' );
+
+		try {
+			$set_session_id( $current_session );
+			$result = $this->mock_gateway->process_payment( $resend->get_id() );
+		} finally {
+			$set_session_id( (string) $original_session->get_customer_id() );
+			$_POST = [];
+			wc_clear_notices();
+		}
+
+		$resend = wc_get_order( $resend->get_id() );
+		if ( $expect_redirect ) {
+			$this->assertSame( 'success', $result['result'] );
+			$this->assertStringContainsString( WC_Stripe_Duplicate_Payment_Prevention::REDIRECT_QUERY_ARG, $result['redirect'] );
+			$this->assertTrue( $resend->has_status( OrderStatus::CANCELLED ) );
+		} else {
+			$this->assertSame( 'failure', $result['result'] );
+			$this->assertStringNotContainsString( WC_Stripe_Duplicate_Payment_Prevention::REDIRECT_QUERY_ARG, (string) ( $result['redirect'] ?? '' ) );
+			$this->assertTrue( $resend->has_status( OrderStatus::PENDING ) );
+		}
+	}
+
+	/**
+	 * Data provider for `test_process_payment_redirects_guest_resubmit_only_from_the_paying_session`.
+	 *
+	 * @return array<string, array{0: string, 1: bool}>
+	 */
+	public function provide_guest_resubmit_sessions(): array {
+		return [
+			'same guest session'  => [ 't_guest_paid', true ],
+			'other guest session' => [ 't_guest_other', false ],
+		];
+	}
+
+	/**
 	 * A submission turned away because the same cart or order is already being charged must show its
 	 * message on both checkouts: Blocks reads `errorMessage`, classic reads the notice.
 	 *

@@ -1647,6 +1647,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			// that order instead of charging again.
 			$already_paid_order = WC_Stripe_Duplicate_Payment_Prevention::get_recent_paid_order( $order );
 			if ( $already_paid_order instanceof WC_Order ) {
+				// A guest in another browser session with the same email and cart may be someone
+				// else: turn them away without charging and without the paid order's details.
+				if ( ! WC_Stripe_Duplicate_Payment_Prevention::is_paid_by_current_shopper( $order ) ) {
+					WC_Stripe_Duplicate_Payment_Prevention::release_lock( $duplicate_guard_key, $duplicate_guard_owner );
+					return $this->get_checkout_failure_response( __( 'We already received a payment for this cart. Please check your email for the order confirmation.', 'woocommerce-gateway-stripe' ) );
+				}
+
 				$this->cancel_order_superseded_by_paid_cart( $order, $already_paid_order );
 				WC_Stripe_Duplicate_Payment_Prevention::release_lock( $duplicate_guard_key, $duplicate_guard_owner );
 				return [
