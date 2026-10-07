@@ -2386,6 +2386,67 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return false;
 		}
 
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		// Lock the order. The order-received redirect handler briefly holds this same lock across a
+		// Stripe API call without settling; dropping the event here would leave a paid order stuck
+		// pending. Re-queue instead so settlement runs once the lock is released — the lock's 5-minute
+		// TTL guarantees a wedged holder clears, so the retry terminates. Return the deferred signal so
+		// the caller skips firing `wc_stripe_webhook_received` now: settlement hasn't happened yet, and
+		// the retry fires the action itself once it does.
+		if ( $order_helper->lock_order_payment( $order ) ) {
+			$this->defer_webhook_processing( $notification, [ 'session_id' => $session_id ], $this->locked_order_retry_delay );
+			return true;
+		}
+
+		try {
+			$this->process_checkout_session_payment(
+				$order,
+				$checkout_session,
+				isset( $notification->api_version ) ? (string) $notification->api_version : ''
+			);
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::error(
+				'Error processing checkout session for order: ' . $order->get_id(),
+				[ 'error_message' => $e->getMessage() ]
+			);
+
+			/**
+			 * This action is documented in includes/class-wc-stripe-webhook-handler.php.
+			 */
+			do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification, $e );
+
+			$status_update = [];
+			if ( ! $order_helper->is_stripe_status_final( $order ) ) {
+				/* translators: 1) Error message from the exception */
+				$message               = sprintf( __( 'Checkout session could not be processed. %s', 'woocommerce-gateway-stripe' ), $e->getMessage() );
+				$status_update['from'] = $order->get_status();
+				$status_update['to']   = OrderStatus::FAILED;
+				$order->update_status( OrderStatus::FAILED, $message );
+			} else {
+				$order->add_order_note(
+					sprintf(
+						/* translators: 1) Error message from the exception */
+						__( 'Checkout session processing error: %s', 'woocommerce-gateway-stripe' ),
+						$e->getMessage()
+					)
+				);
+			}
+
+			$this->send_failed_order_email( $order->get_id(), $status_update );
+		} finally {
+			// Unlock the order
+			$order_helper->unlock_order_payment( $order );
+		}
+
+		return false;
+	}
+
+	/** The caller must hold the order payment lock while this method settles the session. */
+	public function process_checkout_session_payment( WC_Order $order, object $checkout_session, string $api_version = '', ?object $intent = null, ?object $charge = null ): void {
+		$session_id   = $checkout_session->id;
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
 		$order_currency = strtolower( $order->get_currency() );
 		$order_amount   = WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $order_currency );
 
@@ -2412,7 +2473,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					'order_amount'        => $order_amount,
 					'settlement_currency' => $settlement_currency,
 					'order_currency'      => $order_currency,
-					'api_version'         => isset( $notification->api_version ) ? (string) $notification->api_version : '',
+					'api_version'         => $api_version,
 				]
 			);
 
@@ -2456,161 +2517,128 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$order->update_status( OrderStatus::ON_HOLD );
 			}
 
-			return false;
+			return;
 		}
 
 		// Set the order being processed for the `wc_stripe_webhook_received` action later.
 		$this->resolved_order = $order;
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$intent_id = isset( $checkout_session->payment_intent ) ? $checkout_session->payment_intent : null;
 
-		// Lock the order. The order-received redirect handler briefly holds this same lock across a
-		// Stripe API call without settling; dropping the event here would leave a paid order stuck
-		// pending. Re-queue instead so settlement runs once the lock is released — the lock's 5-minute
-		// TTL guarantees a wedged holder clears, so the retry terminates. Return the deferred signal so
-		// the caller skips firing `wc_stripe_webhook_received` now: settlement hasn't happened yet, and
-		// the retry fires the action itself once it does.
-		if ( $order_helper->lock_order_payment( $order ) ) {
-			$this->defer_webhook_processing( $notification, [ 'session_id' => $session_id ], $this->locked_order_retry_delay );
-			return true;
+		// Store the payment intent ID on the order.
+		if ( ! empty( $intent_id ) ) {
+			$order_helper->add_payment_intent_to_order( $intent_id, $order );
 		}
 
-		try {
+		// Add presentment details if available.
+		$presentment_details = $checkout_session->presentment_details ?? null;
+		if ( $presentment_details && isset( $presentment_details->presentment_currency, $presentment_details->presentment_amount ) ) {
+			$order_helper->update_stripe_presentment_currency( $order, $presentment_details->presentment_currency );
+			$order_helper->update_stripe_presentment_amount( $order, $presentment_details->presentment_amount );
 
-			$intent_id = isset( $checkout_session->payment_intent ) ? $checkout_session->payment_intent : null;
-
-			// Store the payment intent ID on the order.
-			if ( ! empty( $intent_id ) ) {
-				$order_helper->add_payment_intent_to_order( $intent_id, $order );
-			}
-
-			// Add presentment details if available.
-			$presentment_details = $checkout_session->presentment_details ?? null;
-			if ( $presentment_details && isset( $presentment_details->presentment_currency, $presentment_details->presentment_amount ) ) {
-				$order_helper->update_stripe_presentment_currency( $order, $presentment_details->presentment_currency );
-				$order_helper->update_stripe_presentment_amount( $order, $presentment_details->presentment_amount );
-
-				$amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
-					$presentment_details->presentment_amount,
-					$presentment_details->presentment_currency
-				);
-
-				$order->add_order_note(
-					sprintf(
-						/* translators: 1) presentment currency 2) presentment amount */
-						__( 'Local currency purchase via Adaptive Pricing. Amount paid was: %1$s %2$s', 'woocommerce-gateway-stripe' ),
-						strtoupper( $presentment_details->presentment_currency ),
-						$amount
-					)
-				);
-			}
-
-			$intent = $this->get_intent_from_order( $order );
-
-			if ( ! $intent ) {
-				WC_Stripe_Logger::error( 'Could not find intent for order: ' . $order->get_id() );
-				return false;
-			}
-
-			$payment_method_id = is_object( $intent->payment_method ) ? $intent->payment_method->id : $intent->payment_method;
-
-			// Update the order with the payment method ID if it's not already set.
-			if ( ! $order_helper->get_stripe_source_id( $order ) && ! empty( $payment_method_id ) ) {
-				$order_helper->update_stripe_source_id( $order, $payment_method_id );
-			}
-
-			$this->maybe_attach_checkout_session_customer( $checkout_session, $order );
-
-			// Fetch the charge once; reused below.
-			$charge = $this->get_latest_charge_from_intent( $intent );
-
-			// Save payment method to store if the customer requested it during checkout.
-			if ( $order_helper->get_should_save_stripe_payment_method( $order ) && ! empty( $payment_method_id ) ) {
-				$upe_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
-
-				$payment_method_object = is_object( $intent->payment_method ) ? $intent->payment_method : WC_Stripe_API::retrieve( 'payment_methods/' . $payment_method_id );
-				if ( $upe_gateway instanceof WC_Stripe_UPE_Payment_Gateway && ! is_wp_error( $payment_method_object ) && empty( $payment_method_object->error ) && ! empty( $payment_method_object ) ) {
-					// Get the payment method details that should be saved. That may be different from the
-					// original payment method, e.g. for Bancontact and iDEAL/Wero, which are saved as SEPA.
-					$payment_method_to_save = $upe_gateway->get_reusable_payment_method_for_saving( $payment_method_object, $charge );
-
-					if ( is_object( $payment_method_to_save ) && ! empty( $payment_method_to_save->type ) ) {
-						$upe_gateway->handle_saving_payment_method( $order, $payment_method_to_save, $payment_method_to_save->type );
-					}
-
-					// Clear the flag so retries don't re-run this, even when nothing was saved.
-					$order_helper->delete_should_save_stripe_payment_method( $order );
-				}
-			}
-
-			// Set the payment method title on the order based on the actual payment method used.
-			$upe_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
-			if ( $upe_gateway instanceof WC_Stripe_UPE_Payment_Gateway ) {
-				$payment_method_type = is_object( $intent->payment_method ) && isset( $intent->payment_method->type ) ? $intent->payment_method->type : '';
-				if ( ! empty( $payment_method_type ) ) {
-					$upe_gateway->set_payment_method_title_for_order( $order, $payment_method_type, $intent->payment_method ?? false );
-				}
-			}
-
-			$order->save();
-
-			$charge->is_webhook_response = true;
-			$this->process_response( $charge, $order );
-
-			// The checkout session is created from the cart before the order exists, so the intent starts
-			// without order description or metadata. Backfill them here with the same values the standard
-			// non-session flow attaches at intent creation, so Adaptive Pricing transactions aren't missing
-			// the order/customer identifiers merchants rely on.
-			if ( ! empty( $intent_id ) ) {
-				$this->action_scheduler_service->schedule_job(
-					time() + $this->process_payment_intent_metadata_delay,
-					$this->process_payment_intent_metadata_action,
-					[
-						'payment_intent_id' => $intent_id,
-						'request'           => [
-							'description' => WC_Stripe_Helper::get_payment_intent_description( $order ),
-							'metadata'    => $this->get_metadata_from_order( $order ),
-						],
-					]
-				);
-			} else {
-				WC_Stripe_Logger::error( 'Empty intent ID, so cannot add order details and metadata.' );
-			}
-		} catch ( Exception $e ) {
-			WC_Stripe_Logger::error(
-				'Error processing checkout session for order: ' . $order->get_id(),
-				[ 'error_message' => $e->getMessage() ]
+			$amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
+				$presentment_details->presentment_amount,
+				$presentment_details->presentment_currency
 			);
 
-			/**
-			 * This action is documented in includes/class-wc-stripe-webhook-handler.php.
-			 */
-			do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification, $e );
-
-			$status_update = [];
-			if ( ! $order_helper->is_stripe_status_final( $order ) ) {
-				/* translators: 1) Error message from the exception */
-				$message               = sprintf( __( 'Checkout session could not be processed. %s', 'woocommerce-gateway-stripe' ), $e->getMessage() );
-				$status_update['from'] = $order->get_status();
-				$status_update['to']   = OrderStatus::FAILED;
-				$order->update_status( OrderStatus::FAILED, $message );
-			} else {
-				$order->add_order_note(
-					sprintf(
-						/* translators: 1) Error message from the exception */
-						__( 'Checkout session processing error: %s', 'woocommerce-gateway-stripe' ),
-						$e->getMessage()
-					)
-				);
-			}
-
-			$this->send_failed_order_email( $order->get_id(), $status_update );
-		} finally {
-			// Unlock the order
-			$order_helper->unlock_order_payment( $order );
+			$order->add_order_note(
+				sprintf(
+					/* translators: 1) presentment currency 2) presentment amount */
+					__( 'Local currency purchase via Adaptive Pricing. Amount paid was: %1$s %2$s', 'woocommerce-gateway-stripe' ),
+					strtoupper( $presentment_details->presentment_currency ),
+					$amount
+				)
+			);
 		}
 
-		return false;
+		$intent = $intent ?? $this->get_intent_from_order( $order );
+
+		if ( ! $intent ) {
+			WC_Stripe_Logger::error( 'Could not find intent for order: ' . $order->get_id() );
+			return;
+		}
+
+		$payment_method    = $intent->payment_method;
+		$payment_method_id = is_object( $payment_method )
+			? ( isset( $payment_method->id ) && is_string( $payment_method->id ) ? $payment_method->id : '' )
+			: ( is_string( $payment_method ) ? $payment_method : '' );
+
+		// Update the order with the payment method ID if it's not already set.
+		if ( ! $order_helper->get_stripe_source_id( $order ) && ! empty( $payment_method_id ) ) {
+			$order_helper->update_stripe_source_id( $order, $payment_method_id );
+		}
+
+		$this->maybe_attach_checkout_session_customer( $checkout_session, $order );
+
+		// Fetch the charge once; reused below.
+		$is_webhook_response = null === $charge;
+		$charge              = $charge ?? $this->get_latest_charge_from_intent( $intent );
+
+		// Save payment method to store if the customer requested it during checkout.
+		if ( $order_helper->get_should_save_stripe_payment_method( $order ) && ! empty( $payment_method_id ) ) {
+			$upe_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+
+			$payment_method_object = is_object( $payment_method ) ? $payment_method : WC_Stripe_API::retrieve( 'payment_methods/' . $payment_method_id );
+			if ( $upe_gateway instanceof WC_Stripe_UPE_Payment_Gateway && ! is_wp_error( $payment_method_object ) && empty( $payment_method_object->error ) && ! empty( $payment_method_object ) ) {
+				// Get the payment method details that should be saved. That may be different from the
+				// original payment method, e.g. for Bancontact and iDEAL/Wero, which are saved as SEPA.
+				$payment_method_to_save = $upe_gateway->get_reusable_payment_method_for_saving( $payment_method_object, $charge );
+
+				if ( is_object( $payment_method_to_save ) && ! empty( $payment_method_to_save->type ) ) {
+					$upe_gateway->handle_saving_payment_method( $order, $payment_method_to_save, $payment_method_to_save->type );
+				}
+
+				// Clear the flag so retries don't re-run this, even when nothing was saved.
+				$order_helper->delete_should_save_stripe_payment_method( $order );
+			}
+		}
+
+		// Set the payment method title on the order based on the actual payment method used.
+		$upe_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		if ( $upe_gateway instanceof WC_Stripe_UPE_Payment_Gateway ) {
+			$payment_method_type = is_object( $payment_method ) && isset( $payment_method->type ) ? $payment_method->type : '';
+			if ( ! empty( $payment_method_type ) ) {
+				$upe_gateway->set_payment_method_title_for_order( $order, $payment_method_type, $payment_method ?? false );
+			}
+		}
+
+		$order->save();
+
+		if ( $is_webhook_response ) {
+			$charge->is_webhook_response = true;
+		}
+		$this->process_response( $charge, $order );
+
+		// The checkout session is created from the cart before the order exists, so the intent starts
+		// without order description or metadata. Backfill them here with the same values the standard
+		// non-session flow attaches at intent creation, so Adaptive Pricing transactions aren't missing
+		// the order/customer identifiers merchants rely on.
+		if ( ! empty( $intent_id ) ) {
+			$this->action_scheduler_service->schedule_job(
+				time() + $this->process_payment_intent_metadata_delay,
+				$this->process_payment_intent_metadata_action,
+				[
+					'payment_intent_id' => $intent_id,
+					'request'           => [
+						'description' => WC_Stripe_Helper::get_payment_intent_description( $order ),
+						'metadata'    => $this->get_metadata_from_order( $order ),
+					],
+				]
+			);
+		} else {
+			WC_Stripe_Logger::error( 'Empty intent ID, so cannot add order details and metadata.' );
+		}
+	}
+
+	/**
+	 * Settle a PaymentIntent found by reconciliation using the same pre-order lifecycle as a webhook.
+	 */
+	public function process_reconciled_payment( WC_Order $order, object $charge ): void {
+		if ( $this->maybe_mark_order_as_pre_ordered( $order, $charge ) ) {
+			return;
+		}
+
+		$this->process_response( $charge, $order );
 	}
 
 	/**

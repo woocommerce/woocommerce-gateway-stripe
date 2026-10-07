@@ -66,6 +66,7 @@ Use the smallest command set needed for the task:
 - Missing E2E config: copy `tests/e2e/config/local.env.example` to `tests/e2e/config/local.env`.
 - E2E specs that mutate global store settings (for example currency) MUST run in a dedicated Playwright project and separate CI matrix job, not in `default`.
 - Forgetting payment method registration: adding a `WC_Stripe_UPE_Payment_Method` class is not enough; it must also be registered in `WC_Stripe::init()` and constants updated.
+- **MUST:** Payment recovery must preserve the pre-order lifecycle. Calling `process_response()` alone can complete an unreleased charged-upfront pre-order; reuse the existing webhook pre-order checks.
 - Updating only backend or frontend for UPE changes: most payment method work spans PHP (`includes/payment-methods/`) and Blocks/UI (`client/blocks/upe/`, icons).
 - Treating PHPStan baseline as a blanket suppressor: fix real type/nullability issues first.
 - Skipping `@dataProvider` for multi-scenario PHPUnit tests: this repository standardizes on data providers for parameterized inputs.
