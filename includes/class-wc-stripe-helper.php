@@ -1359,7 +1359,7 @@ class WC_Stripe_Helper {
 			return 'account-country';
 		}
 
-		if ( ! $stripe_account->is_webhook_enabled() ) {
+		if ( ! WC_Stripe::get_instance()->webhook_settings->is_webhook_enabled() ) {
 			return 'webhooks-disabled';
 		}
 

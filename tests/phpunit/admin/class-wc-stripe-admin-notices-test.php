@@ -647,10 +647,13 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$account_backup = WC_Stripe::get_instance()->account;
 		$account        = $this->getMockBuilder( WC_Stripe_Account::class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'get_account_country', 'is_webhook_enabled', 'get_cached_account_data' ] )
+			->onlyMethods( [ 'get_account_country', 'get_cached_account_data' ] )
 			->getMock();
 		$account->method( 'get_account_country' )->willReturn( $account_country );
-		$account->method( 'is_webhook_enabled' )->willReturn( true );
+		$original_webhook_settings = WC_Stripe::get_instance()->webhook_settings;
+		$webhook_settings          = $this->createMock( WC_Stripe_Webhook_Settings::class );
+		$webhook_settings->method( 'is_webhook_enabled' )->willReturn( true );
+		WC_Stripe::get_instance()->webhook_settings = $webhook_settings;
 		$account->method( 'get_cached_account_data' )->willReturn( [ 'country' => $account_country ] );
 		WC_Stripe::get_instance()->account = $account;
 
@@ -690,8 +693,9 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			$this->set_main_stripe_gateway( null );
 			remove_filter( 'woocommerce_currency', $currency_filter );
 			remove_filter( 'wc_stripe_available_store_currencies', $available_currencies_filter );
-			WC_Stripe::get_instance()->account = $account_backup;
-			$_GET                              = $original_get;
+			WC_Stripe::get_instance()->webhook_settings = $original_webhook_settings;
+			WC_Stripe::get_instance()->account          = $account_backup;
+			$_GET                                       = $original_get;
 			delete_option( 'wc_stripe_show_upe_payment_methods_notice' );
 			WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
 			WC_Stripe_Helper::delete_main_stripe_settings();
@@ -2077,7 +2081,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * leaves the other mode's outstanding notice in place, so a live-mode
 	 * warning is never cleared by dismissing a test-mode one.
 	 *
-	 * @param string $option_getter The WC_Stripe_Account static method that returns the per-mode option name.
+	 * @param string $option_getter The WC_Stripe_Webhook_Settings static method that returns the per-mode option name.
 	 * @param string $slug        The per-mode dismissal slug (e.g. webhook_missing_live).
 	 * @param string $dismissed   The mode being dismissed.
 	 * @param string $retained    The mode whose notice must remain.
@@ -2089,8 +2093,8 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	public function test_hide_notices_dismisses_webhook_notice_per_mode( string $option_getter, string $slug, string $dismissed, string $retained ): void {
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
 
-		$dismissed_option = call_user_func( [ WC_Stripe_Account::class, $option_getter ], $dismissed );
-		$retained_option  = call_user_func( [ WC_Stripe_Account::class, $option_getter ], $retained );
+		$dismissed_option = call_user_func( [ WC_Stripe_Webhook_Settings::class, $option_getter ], $dismissed );
+		$retained_option  = call_user_func( [ WC_Stripe_Webhook_Settings::class, $option_getter ], $retained );
 		update_option( $dismissed_option, 'yes' );
 		update_option( $retained_option, 'yes' );
 
@@ -2128,7 +2132,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * A flagged webhook notice shows only for its own mode, and its message names
 	 * that mode, since each mode has its own translatable string.
 	 *
-	 * @param string $option_getter The WC_Stripe_Account static method that returns the per-mode option name.
+	 * @param string $option_getter The WC_Stripe_Webhook_Settings static method that returns the per-mode option name.
 	 * @param string $slug_prefix   The notice slug without the mode suffix.
 	 * @param string $mode          The flagged mode.
 	 * @param string $other_mode    The mode that is not flagged.
@@ -2139,7 +2143,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function test_webhook_notice_message_names_its_mode( string $option_getter, string $slug_prefix, string $mode, string $other_mode ): void {
 		WC_Stripe_Helper::update_main_stripe_settings( [ 'enabled' => 'yes' ] );
-		$option = call_user_func( [ WC_Stripe_Account::class, $option_getter ], $mode );
+		$option = call_user_func( [ WC_Stripe_Webhook_Settings::class, $option_getter ], $mode );
 		update_option( $option, 'yes' );
 
 		try {

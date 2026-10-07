@@ -294,7 +294,7 @@ class WC_Stripe_Admin_Notices {
 
 			// Show separate per-mode notices so merchants can take the appropriate action.
 			foreach ( [ 'live', 'test' ] as $mode ) {
-				if ( 'yes' !== get_option( WC_Stripe_Account::get_webhook_missing_notice_option( $mode ) ) ) {
+				if ( 'yes' !== get_option( WC_Stripe_Webhook_Settings::get_webhook_missing_notice_option( $mode ) ) ) {
 					continue;
 				}
 
@@ -302,7 +302,7 @@ class WC_Stripe_Admin_Notices {
 			}
 
 			foreach ( [ 'live', 'test' ] as $mode ) {
-				if ( 'yes' !== get_option( WC_Stripe_Account::get_webhook_manual_secret_notice_option( $mode ) ) ) {
+				if ( 'yes' !== get_option( WC_Stripe_Webhook_Settings::get_webhook_manual_secret_notice_option( $mode ) ) ) {
 					continue;
 				}
 
@@ -941,16 +941,16 @@ class WC_Stripe_Admin_Notices {
 					update_option( 'wc_stripe_show_changed_keys_notice', 'no' );
 					break;
 				case 'webhook_missing_live':
-					delete_option( WC_Stripe_Account::get_webhook_missing_notice_option( 'live' ) );
+					delete_option( WC_Stripe_Webhook_Settings::get_webhook_missing_notice_option( 'live' ) );
 					break;
 				case 'webhook_missing_test':
-					delete_option( WC_Stripe_Account::get_webhook_missing_notice_option( 'test' ) );
+					delete_option( WC_Stripe_Webhook_Settings::get_webhook_missing_notice_option( 'test' ) );
 					break;
 				case 'webhook_manual_secret_live':
-					delete_option( WC_Stripe_Account::get_webhook_manual_secret_notice_option( 'live' ) );
+					delete_option( WC_Stripe_Webhook_Settings::get_webhook_manual_secret_notice_option( 'live' ) );
 					break;
 				case 'webhook_manual_secret_test':
-					delete_option( WC_Stripe_Account::get_webhook_manual_secret_notice_option( 'test' ) );
+					delete_option( WC_Stripe_Webhook_Settings::get_webhook_manual_secret_notice_option( 'test' ) );
 					break;
 				case 'legacy_deprecation':
 					update_option( 'wc_stripe_show_legacy_deprecation_notice', 'no' );
