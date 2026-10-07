@@ -181,6 +181,101 @@ class WC_Stripe_Option_Lock_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The cleanup removes lock rows older than a day under the known lock names, and keeps live
+	 * locks and options that only look similar.
+	 *
+	 * @param string $name           The option name.
+	 * @param int    $age            Seconds since the lock was taken.
+	 * @param bool   $bare_timestamp Whether the value is a bare timestamp (older deploys).
+	 * @param bool   $expect_deleted Whether the cleanup removes the row.
+	 *
+	 * @dataProvider provide_cleanup_rows
+	 *
+	 * @return void
+	 */
+	public function test_delete_stale_locks_removes_only_abandoned_lock_rows( string $name, int $age, bool $bare_timestamp, bool $expect_deleted ): void {
+		global $wpdb;
+
+		$locked_at = time() - $age;
+		$wpdb->insert(
+			$wpdb->options,
+			[
+				'option_name'  => $name,
+				'option_value' => $bare_timestamp ? (string) $locked_at : $locked_at . ':' . wp_generate_uuid4(),
+				'autoload'     => 'off',
+			]
+		);
+
+		WC_Stripe_Option_Lock::delete_stale_locks( 50 );
+
+		$exists = (bool) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name = %s", $name ) );
+		$this->assertSame( ! $expect_deleted, $exists );
+	}
+
+	/**
+	 * Data provider for test_delete_stale_locks_removes_only_abandoned_lock_rows.
+	 *
+	 * @return array<string, array{0: string, 1: int, 2: bool, 3: bool}>
+	 */
+	public function provide_cleanup_rows(): array {
+		return [
+			'abandoned session lock'          => [ 'wc_stripe_checkout_session_lock_abc', 2 * DAY_IN_SECONDS, false, true ],
+			'live session lock'               => [ 'wc_stripe_checkout_session_lock_def', 30, false, false ],
+			'abandoned bare-timestamp lock'   => [ 'wc_stripe_user_customer_lock_42', 2 * DAY_IN_SECONDS, true, true ],
+			'abandoned fixed-name lock'       => [ 'wc_stripe_agentic_sync_lock', 2 * DAY_IN_SECONDS, false, true ],
+			'old option outside the prefixes' => [ 'wc_stripe_other_lock_1', 2 * DAY_IN_SECONDS, false, false ],
+			'underscore is not a wildcard'    => [ 'wc_stripe_checkout_sessionXlock_1', 2 * DAY_IN_SECONDS, false, false ],
+		];
+	}
+
+	/**
+	 * The daily cleanup is scheduled once, and unscheduling removes it.
+	 *
+	 * @return void
+	 */
+	public function test_daily_cleanup_is_scheduled_once_and_can_be_unscheduled(): void {
+		WC_Stripe_Option_Lock::unschedule_daily_cleanup();
+
+		WC_Stripe_Option_Lock::maybe_schedule_daily_cleanup();
+		WC_Stripe_Option_Lock::maybe_schedule_daily_cleanup();
+
+		$pending = as_get_scheduled_actions(
+			[
+				'hook'   => WC_Stripe_Option_Lock::CLEANUP_ACTION,
+				'status' => ActionScheduler_Store::STATUS_PENDING,
+			],
+			'ids'
+		);
+		$this->assertCount( 1, $pending );
+
+		WC_Stripe_Option_Lock::unschedule_daily_cleanup();
+		$this->assertFalse( as_has_scheduled_action( WC_Stripe_Option_Lock::CLEANUP_ACTION ) );
+	}
+
+	/**
+	 * The cleanup stops at the limit, so one run cannot delete an unbounded number of rows.
+	 *
+	 * @return void
+	 */
+	public function test_delete_stale_locks_respects_the_limit(): void {
+		global $wpdb;
+
+		foreach ( [ 'a', 'b', 'c' ] as $suffix ) {
+			$wpdb->insert(
+				$wpdb->options,
+				[
+					'option_name'  => 'wc_stripe_checkout_session_lock_' . $suffix,
+					'option_value' => ( time() - 2 * DAY_IN_SECONDS ) . ':owner',
+					'autoload'     => 'off',
+				]
+			);
+		}
+
+		$this->assertSame( 2, WC_Stripe_Option_Lock::delete_stale_locks( 2 ) );
+		$this->assertSame( 1, WC_Stripe_Option_Lock::delete_stale_locks( 2 ) );
+	}
+
+	/**
 	 * Reads the lock row straight from the database.
 	 *
 	 * @return string|null The stored owner value, or null when no lock row exists.

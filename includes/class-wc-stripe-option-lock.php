@@ -19,6 +19,44 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class WC_Stripe_Option_Lock {
 
 	/**
+	 * Action Scheduler hook for the daily removal of abandoned lock rows.
+	 *
+	 * @var string
+	 */
+	public const CLEANUP_ACTION = 'wc_stripe_option_lock_cleanup';
+
+	/**
+	 * Option names, or name prefixes, of every lock that uses this class.
+	 *
+	 * A lock row stays behind when its request dies before `release()` (a fatal error, a timeout, a
+	 * killed process). Locks named per cart, session, or user are never acquired again under the
+	 * same name, so nothing else would ever remove those rows. Add the prefix of any new lock here.
+	 *
+	 * @var string[]
+	 */
+	private const CLEANUP_PREFIXES = [
+		'wc_stripe_agentic_sync_lock',
+		'wc_stripe_checkout_session_lock_',
+		'wc_stripe_user_customer_lock_',
+	];
+
+	/**
+	 * Age in seconds after which a lock row counts as abandoned.
+	 *
+	 * Far above every lock TTL (minutes), so the cleanup can never remove a lock that is still in use.
+	 *
+	 * @var int
+	 */
+	private const CLEANUP_STALE_AFTER = DAY_IN_SECONDS;
+
+	/**
+	 * Maximum rows removed per cleanup run; a full batch queues another run.
+	 *
+	 * @var int
+	 */
+	private const CLEANUP_BATCH_SIZE = 500;
+
+	/**
 	 * Attempts to acquire the lock.
 	 *
 	 * @param string $name The lock option name.
@@ -105,6 +143,115 @@ final class WC_Stripe_Option_Lock {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->delete( $wpdb->options, [ 'option_name' => $name ] );
 		self::forget_cached_option( $name );
+	}
+
+	/**
+	 * Schedules the daily cleanup of abandoned lock rows, if it is not scheduled yet.
+	 *
+	 * @return void
+	 */
+	public static function maybe_schedule_daily_cleanup(): void {
+		if ( ! did_action( 'action_scheduler_init' ) || ! function_exists( 'as_has_scheduled_action' ) || ! function_exists( 'as_schedule_recurring_action' ) ) {
+			return;
+		}
+
+		if ( as_has_scheduled_action( self::CLEANUP_ACTION, null ) ) {
+			return;
+		}
+
+		if ( 0 === as_schedule_recurring_action( strtotime( 'tomorrow 01:30' ), DAY_IN_SECONDS, self::CLEANUP_ACTION, [], 'woocommerce-gateway-stripe' ) ) {
+			WC_Stripe_Logger::error( 'Failed to schedule the daily option lock cleanup.' );
+		}
+	}
+
+	/**
+	 * Unschedules the daily cleanup of abandoned lock rows.
+	 *
+	 * @return void
+	 */
+	public static function unschedule_daily_cleanup(): void {
+		if ( ! did_action( 'action_scheduler_init' ) || ! function_exists( 'as_unschedule_all_actions' ) ) {
+			return;
+		}
+
+		as_unschedule_all_actions( self::CLEANUP_ACTION, [], 'woocommerce-gateway-stripe' );
+	}
+
+	/**
+	 * Removes expired lock rows. Runs from the {@see self::CLEANUP_ACTION} action.
+	 *
+	 * @return void
+	 */
+	public static function cleanup_stale_locks(): void {
+		$deleted = self::delete_stale_locks( self::CLEANUP_BATCH_SIZE );
+
+		if ( 0 === $deleted ) {
+			return;
+		}
+
+		WC_Stripe_Logger::info( "Removed {$deleted} abandoned option lock rows." );
+
+		// A full batch may have left more rows behind; continue soon instead of waiting a day.
+		if ( $deleted >= self::CLEANUP_BATCH_SIZE && function_exists( 'as_enqueue_async_action' ) ) {
+			as_enqueue_async_action( self::CLEANUP_ACTION, [], 'woocommerce-gateway-stripe' );
+			WC_Stripe_Logger::info(
+				'Scheduling additional option lock cleanup batch.',
+				[
+					'deleted'    => $deleted,
+					'batch_size' => self::CLEANUP_BATCH_SIZE,
+				]
+			);
+		}
+	}
+
+	/**
+	 * Deletes lock rows whose timestamp is older than {@see self::CLEANUP_STALE_AFTER}.
+	 *
+	 * Each row is deleted only if it still holds the value that was read, so a lock acquired again
+	 * between the read and the delete is never removed.
+	 *
+	 * @param int $limit The maximum number of rows to delete.
+	 * @return int The number of rows deleted.
+	 */
+	public static function delete_stale_locks( int $limit ): int {
+		global $wpdb;
+
+		$cutoff  = time() - self::CLEANUP_STALE_AFTER;
+		$deleted = 0;
+
+		foreach ( self::CLEANUP_PREFIXES as $prefix ) {
+			if ( $deleted >= $limit ) {
+				break;
+			}
+
+			// The value is `<timestamp>:<token>`, or a bare timestamp from an older deploy.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND CAST( SUBSTRING_INDEX( option_value, ':', 1 ) AS UNSIGNED ) < %d LIMIT %d",
+					$wpdb->esc_like( $prefix ) . '%',
+					$cutoff,
+					$limit - $deleted
+				)
+			);
+
+			foreach ( $rows as $row ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$removed = $wpdb->delete(
+					$wpdb->options,
+					[
+						'option_name'  => $row->option_name,
+						'option_value' => $row->option_value,
+					]
+				);
+				if ( $removed ) {
+					self::forget_cached_option( $row->option_name );
+					++$deleted;
+				}
+			}
+		}
+
+		return $deleted;
 	}
 
 	/**
