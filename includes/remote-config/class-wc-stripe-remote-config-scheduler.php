@@ -69,9 +69,20 @@ class WC_Stripe_Remote_Config_Scheduler {
 			return;
 		}
 
-		$jitter = wp_rand( 0, DAY_IN_SECONDS - 1 );
-		$start  = strtotime( 'tomorrow midnight UTC' ) + $jitter;
+		$start = strtotime( 'tomorrow midnight UTC' ) + $this->get_schedule_jitter();
 		as_schedule_recurring_action( $start, DAY_IN_SECONDS, self::SYNC_ACTION, [], self::SCHEDULER_GROUP );
+	}
+
+	/**
+	 * Random offset, in seconds, into the 24h window for the store's first run.
+	 *
+	 * Isolated behind a method so tests can pin it. The full 0..DAY range is
+	 * what spreads the merchant base across the day.
+	 *
+	 * @return int
+	 */
+	protected function get_schedule_jitter(): int {
+		return wp_rand( 0, DAY_IN_SECONDS - 1 );
 	}
 
 	/**
