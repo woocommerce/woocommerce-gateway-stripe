@@ -178,6 +178,36 @@ class WC_Stripe_Event_Post_Store implements WC_Stripe_Event_Store_Interface {
 	}
 
 	/**
+	 * {@inheritDoc}
+	 */
+	public function delete_all(): int {
+		$deleted = 0;
+
+		do {
+			$post_ids = get_posts(
+				[
+					'post_type'   => self::POST_TYPE,
+					'post_status' => array_values( self::POST_STATUSES ),
+					'fields'      => 'ids',
+					'numberposts' => 100,
+				]
+			);
+
+			$deleted_in_batch = 0;
+			foreach ( $post_ids as $post_id ) {
+				if ( wp_delete_post( (int) $post_id, true ) ) {
+					++$deleted_in_batch;
+				}
+			}
+
+			$deleted += $deleted_in_batch;
+			// Posts that cannot be deleted would be returned again, so stop instead of looping forever.
+		} while ( $post_ids && $deleted_in_batch );
+
+		return $deleted;
+	}
+
+	/**
 	 * Returns the ID of the post recording an event, or 0 when there is none.
 	 *
 	 * @param string $event_id Stripe event ID.

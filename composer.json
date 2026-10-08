@@ -42,6 +42,7 @@
         "includes/class-wc-stripe-checkout-session-lifecycle.php",
         "includes/class-wc-stripe-checkout-session-manager.php",
         "includes/class-wc-stripe-co-branded-cc-compatibility.php",
+        "includes/class-wc-stripe-event-debug-tools.php",
         "includes/class-wc-stripe-event-post-store.php",
         "includes/class-wc-stripe-event-reconciler.php",
         "includes/class-wc-stripe-event-record.php",

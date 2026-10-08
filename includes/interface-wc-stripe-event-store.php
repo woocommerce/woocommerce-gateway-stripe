@@ -38,4 +38,11 @@ interface WC_Stripe_Event_Store_Interface {
 	 * @return bool Whether the record was saved.
 	 */
 	public function save( WC_Stripe_Event_Record $record ): bool;
+
+	/**
+	 * Deletes all stored records.
+	 *
+	 * @return int Number of records deleted.
+	 */
+	public function delete_all(): int;
 }
