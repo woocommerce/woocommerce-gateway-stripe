@@ -2867,6 +2867,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$this->resolved_order = null;
 
+		do_action( 'wc_stripe_before_process_webhook', $notification->type, $notification );
+
 		switch ( $notification->type ) {
 			case 'account.updated':
 				$this->process_account_updated( $notification );

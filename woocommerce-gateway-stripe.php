@@ -236,3 +236,240 @@ add_action(
 		}
 	}
 );
+
+// Temporary debug: dump events Stripe has not delivered successfully. Visit any front-end URL with ?check-failed-webhooks as an admin.
+add_action(
+	'template_redirect',
+	function () {
+		if ( ! isset( $_GET['check-failed-webhooks'] ) || ! current_user_can( 'manage_woocommerce' ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			return;
+		}
+
+		$cursor_option  = 'wc_stripe_events_cursor_' . ( WC_Stripe_Mode::is_test() ? 'test' : 'live' );
+		$cursor         = (int) get_option( $cursor_option, 0 );
+		$max_created    = $cursor;
+		$starting_after = '';
+		$results        = [];
+
+		do {
+			$query = [
+				'delivery_success' => 'false',
+				'limit'            => 100,
+			];
+			// gte, not gt: other events may share the cursor's second. Already-recorded ones are skipped below.
+			if ( $cursor ) {
+				$query['created[gte]'] = $cursor;
+			}
+			if ( $starting_after ) {
+				$query['starting_after'] = $starting_after;
+			}
+
+			$response = WC_Stripe_API::retrieve( 'events?' . http_build_query( $query ) );
+			if ( ! is_object( $response ) || ! empty( $response->error ) ) {
+				// Leave the cursor alone so the next run covers this window again.
+				$max_created = $cursor;
+				break;
+			}
+
+			$events = $response->data ?? [];
+			if ( ! $events ) {
+				break;
+			}
+
+			$statuses = [];
+			$posts    = get_posts(
+				[
+					'post_type'      => 'wc_stripe_event',
+					'post_status'    => [ 'wc_stripe_pending', 'wc_stripe_processing', 'wc_stripe_processed', 'wc_stripe_failed' ],
+					'post_name__in'  => wp_list_pluck( $events, 'id' ),
+					'posts_per_page' => -1,
+				]
+			);
+			// WP_Query lowercases post_name__in, so match case-insensitively like MySQL does.
+			foreach ( $posts as $post ) {
+				$statuses[ strtolower( $post->post_name ) ] = $post->post_status;
+			}
+
+			foreach ( $events as $event ) {
+				$status_before = $statuses[ strtolower( $event->id ) ] ?? null;
+
+				if ( null === $status_before || 'wc_stripe_failed' === $status_before ) {
+					wc_stripe_record_event( $event, 'wc_stripe_pending' );
+					$result = 'queued';
+				} else {
+					$result = 'skipped';
+				}
+
+				$max_created = max( $max_created, (int) $event->created );
+
+				$results[] = [
+					'id'            => $event->id,
+					'type'          => $event->type,
+					'created'       => gmdate( 'Y-m-d H:i:s', $event->created ),
+					'status_before' => $status_before,
+					'result'        => $result,
+				];
+			}
+
+			$starting_after = end( $events )->id;
+		} while ( ! empty( $response->has_more ) );
+
+		if ( $max_created > $cursor ) {
+			update_option( $cursor_option, $max_created, false );
+		}
+
+		wc_stripe_schedule_pending_events();
+
+		header( 'Content-Type: text/json; charset=utf-8' );
+		echo wp_json_encode(
+			[
+				'cursor_before' => $cursor ? gmdate( 'Y-m-d H:i:s', $cursor ) : null,
+				'cursor_after'  => $max_created ? gmdate( 'Y-m-d H:i:s', $max_created ) : null,
+				'events'        => $results,
+			],
+			JSON_PRETTY_PRINT
+		);
+		exit;
+	}
+);
+
+function wc_stripe_schedule_pending_events(): void {
+	if ( ! as_has_scheduled_action( 'wc_stripe_process_pending_events', [], 'woocommerce-gateway-stripe' ) ) {
+		as_enqueue_async_action( 'wc_stripe_process_pending_events', [], 'woocommerce-gateway-stripe' );
+	}
+}
+
+add_action(
+	'wc_stripe_process_pending_events',
+	function () {
+		$post_ids = get_posts(
+			[
+				'post_type'      => 'wc_stripe_event',
+				'post_status'    => 'wc_stripe_pending',
+				'orderby'        => 'date',
+				'order'          => 'ASC',
+				'fields'         => 'ids',
+				'posts_per_page' => 5,
+			]
+		);
+
+		if ( ! $post_ids ) {
+			return;
+		}
+
+		$handler = new WC_Stripe_Webhook_Handler();
+
+		foreach ( $post_ids as $post_id ) {
+			$event_id = get_post_field( 'post_name', $post_id );
+			$event    = WC_Stripe_API::retrieve( 'events/' . $event_id );
+
+			if ( ! is_object( $event ) || ! empty( $event->error ) || empty( $event->id ) ) {
+				wc_stripe_record_event( (object) [ 'id' => $event_id ], 'wc_stripe_failed' );
+				continue;
+			}
+
+			try {
+				$handler->process_webhook( wp_json_encode( $event ) );
+			} catch ( Throwable $e ) {
+				wc_stripe_record_event( $event, 'wc_stripe_failed' );
+			}
+		}
+
+		// The current action is still marked in-progress, so as_has_scheduled_action() would block the next batch.
+		as_enqueue_async_action( 'wc_stripe_process_pending_events', [], 'woocommerce-gateway-stripe' );
+	}
+);
+
+add_action(
+	'init',
+	function () {
+		register_post_type(
+			'wc_stripe_event',
+			[
+				'public'       => false,
+				'show_ui'      => false,
+				'show_in_rest' => false,
+				'can_export'   => false,
+				'query_var'    => false,
+				'rewrite'      => false,
+			]
+		);
+
+		foreach ( [ 'wc_stripe_pending', 'wc_stripe_processing', 'wc_stripe_processed', 'wc_stripe_failed' ] as $status ) {
+			register_post_status( $status, [ 'internal' => true ] );
+		}
+	}
+);
+
+function wc_stripe_record_event( $notification, string $status, $order = null ): void {
+	$event_id = $notification->id ?? '';
+	if ( ! is_string( $event_id ) || '' === $event_id ) {
+		return;
+	}
+
+	$existing = get_posts(
+		[
+			'post_type'   => 'wc_stripe_event',
+			'post_status' => [ 'wc_stripe_pending', 'wc_stripe_processing', 'wc_stripe_processed', 'wc_stripe_failed' ],
+			'name'        => $event_id,
+			'fields'      => 'ids',
+			'numberposts' => 1,
+		]
+	);
+
+	$post = [
+		'post_type'   => 'wc_stripe_event',
+		'post_status' => $status,
+		'post_name'   => $event_id,
+	];
+
+	if ( $order instanceof WC_Order ) {
+		$post['post_parent'] = $order->get_id();
+	}
+
+	if ( $existing ) {
+		$post['ID'] = $existing[0];
+	} else {
+		$created_gmt           = gmdate( 'Y-m-d H:i:s', (int) ( $notification->created ?? time() ) );
+		$post['post_title']    = (string) ( $notification->type ?? '' );
+		$post['post_date']     = get_date_from_gmt( $created_gmt );
+		$post['post_date_gmt'] = $created_gmt;
+	}
+
+	// wp_insert_post() and wp_update_post() run post_name through sanitize_title(), which lowercases the case-sensitive event ID.
+	$keep_event_id = function ( $data ) use ( $event_id ) {
+		if ( 'wc_stripe_event' === ( $data['post_type'] ?? '' ) ) {
+			$data['post_name'] = $event_id;
+		}
+		return $data;
+	};
+
+	add_filter( 'wp_insert_post_data', $keep_event_id );
+	try {
+		if ( isset( $post['ID'] ) ) {
+			wp_update_post( $post );
+		} else {
+			wp_insert_post( $post );
+		}
+	} finally {
+		remove_filter( 'wp_insert_post_data', $keep_event_id );
+	}
+}
+
+add_action(
+	'wc_stripe_before_process_webhook',
+	function ( $webhook_type, $notification ) {
+		wc_stripe_record_event( $notification, 'wc_stripe_processing' );
+	},
+	10,
+	2
+);
+
+add_action(
+	'wc_stripe_webhook_received',
+	function ( $webhook_type, $notification, $order ) {
+		wc_stripe_record_event( $notification, 'wc_stripe_processed', $order );
+	},
+	10,
+	3
+);
