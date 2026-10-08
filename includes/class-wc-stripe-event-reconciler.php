@@ -44,6 +44,50 @@ class WC_Stripe_Event_Reconciler {
 		add_action( 'wc_stripe_before_process_webhook', [ $this, 'mark_processing' ], 10, 2 );
 		add_action( 'wc_stripe_webhook_received', [ $this, 'mark_processed' ], 10, 3 );
 		add_action( self::PROCESS_ACTION, [ $this, 'process_pending_events' ] );
+		add_filter( 'woocommerce_debug_tools', [ $this, 'add_debug_tool' ] );
+	}
+
+	/**
+	 * Adds a tool to WooCommerce > Status > Tools that queues undelivered events for processing.
+	 *
+	 * This is a temporary location for this piece of code. If we want to keep the tool,
+	 * we might want to consider it further, but surely move to a separate file.
+	 *
+	 * @param mixed $tools Registered tools.
+	 * @return mixed
+	 */
+	public function add_debug_tool( $tools ) {
+		if ( ! is_array( $tools ) ) {
+			return $tools;
+		}
+
+		$tools['wc_stripe_queue_undelivered_events'] = [
+			'name'     => __( 'Process undelivered Stripe events', 'woocommerce-gateway-stripe' ),
+			'button'   => __( 'Process events', 'woocommerce-gateway-stripe' ),
+			'desc'     => __( 'Fetches the events Stripe could not deliver to this store through webhooks, and processes them in the background.', 'woocommerce-gateway-stripe' ),
+			'callback' => [ $this, 'run_debug_tool' ],
+		];
+
+		return $tools;
+	}
+
+	/**
+	 * Queues undelivered events and schedules their processing.
+	 *
+	 * @return string Message shown by WooCommerce once the tool has run.
+	 */
+	public function run_debug_tool(): string {
+		$summary = $this->queue_undelivered_events();
+		$this->schedule_processing();
+
+		$queued = count( wp_list_filter( $summary['events'], [ 'result' => 'queued' ] ) );
+
+		return sprintf(
+			/* translators: 1: number of events queued, 2: number of undelivered events found */
+			__( 'Queued %1$d of %2$d undelivered Stripe events for processing.', 'woocommerce-gateway-stripe' ),
+			$queued,
+			count( $summary['events'] )
+		);
 	}
 
 	/**

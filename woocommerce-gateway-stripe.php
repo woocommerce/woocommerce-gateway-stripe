@@ -236,32 +236,3 @@ add_action(
 		}
 	}
 );
-
-// Temporary debug: queue events Stripe has not delivered successfully. Visit any front-end URL with ?check-failed-webhooks as an admin.
-add_action(
-	'template_redirect',
-	function () {
-		if ( ! isset( $_GET['check-failed-webhooks'] ) || ! current_user_can( 'manage_woocommerce' ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			return;
-		}
-
-		$reconciler = new WC_Stripe_Event_Reconciler();
-		$summary    = $reconciler->queue_undelivered_events();
-		$reconciler->schedule_processing();
-
-		$format_time = static function ( $timestamp ) {
-			return $timestamp ? gmdate( 'Y-m-d H:i:s', $timestamp ) : null;
-		};
-
-		$summary['cursor_before'] = $format_time( $summary['cursor_before'] );
-		$summary['cursor_after']  = $format_time( $summary['cursor_after'] );
-		foreach ( $summary['events'] as &$event ) {
-			$event['created'] = $format_time( $event['created'] );
-		}
-		unset( $event );
-
-		header( 'Content-Type: text/json; charset=utf-8' );
-		echo wp_json_encode( $summary, JSON_PRETTY_PRINT );
-		exit;
-	}
-);
