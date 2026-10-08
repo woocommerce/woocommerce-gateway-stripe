@@ -164,6 +164,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 11.1.0 - xxxx-xx-xx =
+* Dev - Autoload plugin classes through the composer classmap instead of requiring them in WC_Stripe::init().
 * Add - Automatically configure test-mode when onboarding to a live account
 * Fix - Show BLIK and ACSS payment methods at checkout when Optimized Checkout Suite is enabled
 * Fix - Prevent non-card payment methods from failing under Optimized Checkout with Dynamic Payment Methods when the store has a statement descriptor set

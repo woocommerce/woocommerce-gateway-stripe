@@ -148,92 +148,24 @@ class WC_Stripe {
 	public function init() {
 
 		if ( is_admin() && self::$instance === $this ) {
-			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-privacy.php';
 			new WC_Stripe_Privacy();
 		}
-
-		if ( file_exists( WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-feature-flags.php' ) ) {
-			require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-feature-flags.php';
-		}
-
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-logger.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-helper.php';
-		include_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-order-helper.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-database-cache.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-option-lock.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-checkout-session-context.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-payment-method-configurations.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-database-cache-prefetch.php';
-		include_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-api.php';
-		include_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-mode.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/class-wc-stripe-subscriptions-helper.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/trait-wc-stripe-subscriptions-utilities.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/trait-wc-stripe-subscriptions.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/trait-wc-stripe-pre-orders.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/class-wc-stripe-subscriptions-legacy-sepa-token-update.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/abstracts/abstract-wc-stripe-payment-gateway.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-state.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-handler.php';
 
 		if ( self::$instance === $this ) {
 			( new WC_Stripe_Webhook_Handler() )->register_hooks();
 		}
 
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-apple-pay-registration.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-status.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-gateway-stripe.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-alipay.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-blik.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-giropay.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-affirm.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-afterpay-clearpay.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-boleto.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-oxxo.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-eps.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-p24.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-multibanco.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-link.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-wechat-pay.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-express-checkout-element.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-express-checkout-helper.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/connect/class-wc-stripe-connect.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/connect/class-wc-stripe-connect-api.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-order-handler.php';
-
 		if ( self::$instance === $this ) {
 			( new WC_Stripe_Order_Handler() )->register_hooks();
 		}
 
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-payment-tokens.php';
 		if ( self::$instance === $this ) {
 			( new WC_Stripe_Payment_Tokens() )->register_hooks();
 		}
 
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-customer.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-intent-controller.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-inbox-notes.php';
 		if ( self::$instance === $this ) {
 			new WC_Stripe_Inbox_Notes();
 		}
-
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-account.php';
 
 		$this->api     = new WC_Stripe_Connect_API();
 		$this->connect = new WC_Stripe_Connect( $this->api );
@@ -267,26 +199,20 @@ class WC_Stripe {
 		}
 
 		if ( is_admin() ) {
-			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-admin-notices.php';
 			if ( self::$instance === $this ) {
 				new WC_Stripe_Admin_Notices();
 			}
 
-			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-settings-controller.php';
-
 			$area = isset( $_GET['area'] ) ? sanitize_key( wp_unslash( $_GET['area'] ) ) : '';
 			if ( in_array( $area, [ 'express_checkout', 'payment_requests' ], true ) ) {
-				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-express-checkout-controller.php';
 				if ( self::$instance === $this ) {
 					new WC_Stripe_Express_Checkout_Controller();
 				}
 			} elseif ( 'amazon_pay' === $area ) {
-				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-amazon-pay-controller.php';
 				if ( self::$instance === $this ) {
 					new WC_Stripe_Amazon_Pay_Controller();
 				}
 			} elseif ( 'link' === $area ) {
-				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-link-controller.php';
 				if ( self::$instance === $this ) {
 					new WC_Stripe_Link_Controller();
 				}
@@ -294,7 +220,6 @@ class WC_Stripe {
 				new WC_Stripe_Settings_Controller( $this->account );
 			}
 
-			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-payment-gateways-controller.php';
 			if ( self::$instance === $this ) {
 				new WC_Stripe_Payment_Gateways_Controller( $this->account );
 			}
@@ -303,13 +228,11 @@ class WC_Stripe {
 				new WC_Stripe_Plugins_Page_Controller( $this->account );
 			}
 
-			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-command-palette-controller.php';
 			if ( self::$instance === $this ) {
 				new WC_Stripe_Command_Palette_Controller();
 			}
 
 			if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
-				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-subscription-detached-bulk-action.php';
 
 				if ( self::$instance === $this ) {
 					new WC_Stripe_Subscription_Detached_Bulk_Action();
@@ -933,11 +856,6 @@ class WC_Stripe {
 			return $email_classes;
 		}
 
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/class-wc-stripe-email-failed-authentication-retry.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/class-wc-stripe-email-failed-refund.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/class-wc-stripe-email-admin-failed-refund.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/class-wc-stripe-email-customer-failed-refund.php';
-
 		// Add all emails, generated by the gateway.
 		$email_classes['WC_Stripe_Email_Failed_Renewal_Authentication']  = new WC_Stripe_Email_Failed_Renewal_Authentication( $email_classes );
 		$email_classes['WC_Stripe_Email_Failed_Preorder_Authentication'] = new WC_Stripe_Email_Failed_Preorder_Authentication( $email_classes );
@@ -955,13 +873,6 @@ class WC_Stripe {
 	 */
 	public function register_routes() {
 		/** API includes */
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-base-controller.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/abstracts/abstract-wc-stripe-connect-rest-controller.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-controller.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-connection-tokens-controller.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-locations-controller.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-orders-controller.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-tokens-controller.php';
 
 		$connection_tokens_controller = new WC_REST_Stripe_Connection_Tokens_Controller( $this->get_main_stripe_gateway() );
 		$locations_controller         = new WC_REST_Stripe_Locations_Controller();
@@ -974,10 +885,6 @@ class WC_Stripe {
 		$orders_controller->register_routes();
 		$stripe_tokens_controller->register_routes();
 		$stripe_account_controller->register_routes();
-
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-settings-controller.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-keys-controller.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-oc-setting-toggle-controller.php';
 
 		$upe_flag_toggle_controller = new WC_Stripe_REST_UPE_Flag_Toggle_Controller();
 		$upe_flag_toggle_controller->register_routes();
@@ -1063,7 +970,6 @@ class WC_Stripe {
 		if ( ! class_exists( 'WCS_Background_Repairer' ) ) {
 			return;
 		}
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php';
 
 		$logger  = wc_get_logger();
 		$updater = new WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens( $logger );
