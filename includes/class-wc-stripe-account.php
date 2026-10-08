@@ -345,11 +345,11 @@ class WC_Stripe_Account {
 
 		if ( isset( $response->error->message ) ) {
 			// Translators: %s is the error message from the Stripe API.
-			throw new Exception( sprintf( __( 'There was a problem setting up your webhooks. %s', 'woocommerce-gateway-stripe' ), $response->error->message ) );
+			throw new Exception( sprintf( __( 'There was a problem setting up your webhooks. %s', 'woocommerce-gateway-stripe' ), $response->error->message ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		if ( ! isset( $response->secret, $response->id ) ) {
-			throw new Exception( __( 'There was a problem setting up your webhooks, please try again later.', 'woocommerce-gateway-stripe' ) );
+			throw new Exception( __( 'There was a problem setting up your webhooks, please try again later.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		// Delete any previously configured webhooks. Exclude the current webhook ID from the deletion.

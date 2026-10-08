@@ -601,7 +601,8 @@ jQuery( function ( $ ) {
 					appearance: getExpressCheckoutButtonAppearance(),
 					locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
 					displayItems: transformLabeledDisplayItems(
-						displayItems ?? []
+						displayItems ?? [],
+						total
 					),
 					order,
 					orderDetails,
@@ -643,7 +644,8 @@ jQuery( function ( $ ) {
 						requestShipping: cartBootstrap.requestShipping,
 						requestPhone: cartBootstrap.requestPhone,
 						displayItems: transformLabeledDisplayItems(
-							cartBootstrap.displayItems ?? []
+							cartBootstrap.displayItems ?? [],
+							cartBootstrap.total
 						),
 					} );
 
@@ -870,10 +872,16 @@ jQuery( function ( $ ) {
 		 *
 		 * @param {PaymentResponse} payment Payment response instance.
 		 * @param {string}          message Error message to display.
+		 * @param {Object}          options Set `linkToCheckout` to link to the checkout page.
 		 */
-		abortPayment: ( payment, message ) => {
+		abortPayment: ( payment, message, options = {} ) => {
 			onAbortPaymentHandler( payment, message );
-			displayExpressCheckoutNotice( message, 'error' );
+			displayExpressCheckoutNotice(
+				message,
+				'error',
+				undefined,
+				options
+			);
 
 			// The wallet sheet only closes once the confirm event gets a terminal
 			// result, so order errors must fail it too. A late call rejects an

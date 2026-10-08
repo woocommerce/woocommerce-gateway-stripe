@@ -1,8 +1,10 @@
 import WCStripeAPI from '..';
 import { REGISTRY_KEY } from 'wcstripe/stripe-utils/shared-stripe-instance';
 
-jest.mock( 'wcstripe/stripe-utils', () => ( {
+jest.mock( 'wcstripe/stripe-utils/get-stripe-server-data', () => ( {
 	getStripeServerData: jest.fn(),
+} ) );
+jest.mock( 'wcstripe/stripe-utils/get-stripe-dev-widget-options', () => ( {
 	getStripeDevWidgetOptions: jest.fn( () => ( {} ) ),
 } ) );
 

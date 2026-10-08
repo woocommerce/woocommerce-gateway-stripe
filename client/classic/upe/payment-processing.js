@@ -65,6 +65,14 @@ const gatewayUPEComponents = {};
 let hasCheckoutCompleted = false;
 
 /**
+ * Clears the one-shot completion flag when a later checkout check blocks the
+ * programmatic submit before processPayment can consume it.
+ */
+export function resetCheckoutCompletionState() {
+	hasCheckoutCompleted = false;
+}
+
+/**
  * OC exclusions last applied to each Elements instance (as a sorted key), so
  * redundant `elements.update()` calls can be skipped. Keyed by instance: a
  * re-mounted element starts fresh and stale state can't leak across mounts.
@@ -1163,17 +1171,19 @@ export const processPayment = (
 		return;
 	}
 
+	const genericErrorMessage = __(
+		'Payment failed. Please try again.',
+		'woocommerce-gateway-stripe'
+	);
+
 	if ( ! gatewayUPEComponents[ paymentMethodType ] ) {
-		return;
+		showErrorCheckout( genericErrorMessage );
+		return false;
 	}
 
 	blockUI( jQueryForm );
 
 	const getErrorMessage = ( err ) => {
-		const genericErrorMessage = __(
-			'Payment failed. Please try again.',
-			'woocommerce-gateway-stripe'
-		);
 		if ( ! err ) {
 			return genericErrorMessage;
 		}
@@ -1700,7 +1710,7 @@ export const hasEmptyRequiredFields = ( requiredWrappers ) => {
 	for ( const wrapper of requiredWrappers ) {
 		const inputs = [
 			...wrapper.querySelectorAll(
-				'input.input-text, select, input[type="checkbox"]'
+				'input.input-text, textarea.input-text, select, input[type="checkbox"]'
 			),
 		];
 		if ( ! inputs.length ) {
