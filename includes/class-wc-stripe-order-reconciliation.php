@@ -14,7 +14,7 @@ class WC_Stripe_Order_Reconciliation {
 	public const PAGE_OPTION      = 'wc_stripe_reconciliation_page';
 	public const ATTEMPT_META     = '_stripe_reconciliation_attempt';
 	public const PAGE_SIZE        = 20;
-	public const COOLDOWN         = 30 * MINUTE_IN_SECONDS;
+	public const COOLDOWN         = 5 * MINUTE_IN_SECONDS;
 	public const LOOKBACK         = 30 * DAY_IN_SECONDS;
 	public const SETTLEMENT_DELAY = 15 * MINUTE_IN_SECONDS;
 	public const ORDER_ACTION     = 'wc_stripe_recheck_payment';

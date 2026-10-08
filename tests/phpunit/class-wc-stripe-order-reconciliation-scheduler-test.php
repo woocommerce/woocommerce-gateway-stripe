@@ -246,6 +246,23 @@ class WC_Stripe_Order_Reconciliation_Scheduler_Test extends WP_UnitTestCase {
 		$this->assertSame( [ $order->get_id() ], $this->queued_order_ids() );
 	}
 
+	/** @dataProvider provide_cooldown_attempt_ages */
+	public function test_enqueue_respects_five_minute_per_order_cooldown( int $attempt_age, bool $expected_to_queue ): void {
+		$order = $this->create_order( 'stripe', 'pi_cooldown_boundary', 20 * MINUTE_IN_SECONDS );
+		$order->update_meta_data( WC_Stripe_Order_Reconciliation::ATTEMPT_META, (string) ( time() - $attempt_age ) );
+		$order->save_meta_data();
+
+		$this->assertSame( $expected_to_queue, $this->reconciliation->enqueue_order( $order->get_id() ) );
+		$this->assertSame( $expected_to_queue ? [ $order->get_id() ] : [], $this->queued_order_ids() );
+	}
+
+	public static function provide_cooldown_attempt_ages(): array {
+		return [
+			'four minutes ago remains in cooldown' => [ 4 * MINUTE_IN_SECONDS, false ],
+			'six minutes ago can be retried'       => [ 6 * MINUTE_IN_SECONDS, true ],
+		];
+	}
+
 	public function test_single_action_adds_a_note_only_when_an_action_is_queued() {
 		$order = $this->create_order( 'stripe', 'pi_single', 20 * MINUTE_IN_SECONDS );
 		$this->reconciliation->handle_order_action( $order );
