@@ -25,12 +25,11 @@ final class WC_Stripe_Payments_UI_Controller {
 	private const WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG = 'admin.php?page=wc-settings&tab=checkout&from=PAYMENTS_MENU_ITEM';
 
 	/**
-	 * The slugs of the Payments menu added by WooPayments.
+	 * The slug of the Payments menu added by WooPayments.
 	 *
 	 * @var string
 	 */
 	private const WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG = 'wc-admin&path=/payments/overview';
-	private const WOOPAYMENTS_PAYMENTS_CONNECT_MENU_SLUG  = 'wc-admin&path=/payments/connect';
 
 	/**
 	 * 'Add a provider' submenu position in the Payments menu.
@@ -91,8 +90,7 @@ final class WC_Stripe_Payments_UI_Controller {
 			$this->admin_page_hook = $admin_page_hook;
 
 			// Only try to override the submenu if we successfully added our own submenu.
-			if ( self::WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG !== $payments_menu_slug &&
-				self::WOOPAYMENTS_PAYMENTS_CONNECT_MENU_SLUG !== $payments_menu_slug ) {
+			if ( self::WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG !== $payments_menu_slug ) {
 				$this->shift_and_rename_payments_payments_submenu_item( $payments_menu_slug );
 			}
 		}
@@ -109,12 +107,6 @@ final class WC_Stripe_Payments_UI_Controller {
 
 		if ( '' !== $woo_payments_menu_url ) {
 			return self::WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG;
-		}
-
-		$woo_payments_menu_url = menu_page_url( self::WOOPAYMENTS_PAYMENTS_CONNECT_MENU_SLUG, false );
-
-		if ( '' !== $woo_payments_menu_url ) {
-			return self::WOOPAYMENTS_PAYMENTS_CONNECT_MENU_SLUG;
 		}
 
 		$woo_core_payments_menu_url = menu_page_url( self::WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG, false );
