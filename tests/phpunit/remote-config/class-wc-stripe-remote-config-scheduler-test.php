@@ -180,15 +180,15 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The first run is anchored at tomorrow 00:00 UTC and offset by the jitter,
+	 * The first run is anchored at tomorrow 00:00 UTC and shifted by the offset,
 	 * so the window spans the whole day: a 0 offset lands at the anchor and the
-	 * maximum offset lands at the far end. Pinning the jitter keeps this
-	 * deterministic; the jitter's own range is covered separately.
+	 * maximum offset lands at the far end. Pinning the offset keeps this
+	 * deterministic; the offset's own range is covered separately.
 	 *
-	 * @dataProvider provide_schedule_jitter_bounds
+	 * @dataProvider provide_schedule_offset_bounds
 	 * @return void
 	 */
-	public function test_maybe_schedule_daily_sync_applies_jitter_across_the_full_day( int $jitter ): void {
+	public function test_maybe_schedule_daily_sync_applies_offset_across_the_full_day( int $offset ): void {
 		if ( ! function_exists( 'as_next_scheduled_action' ) || ! function_exists( 'as_unschedule_all_actions' ) ) {
 			$this->markTestSkipped( 'Action Scheduler not available.' );
 		}
@@ -199,22 +199,22 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 
 		$scheduler = $this->getMockBuilder( WC_Stripe_Remote_Config_Scheduler::class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'get_schedule_jitter' ] )
+			->onlyMethods( [ 'get_schedule_offset' ] )
 			->getMock();
-		$scheduler->method( 'get_schedule_jitter' )->willReturn( $jitter );
+		$scheduler->method( 'get_schedule_offset' )->willReturn( $offset );
 
 		$scheduler->maybe_schedule_daily_sync();
 
 		$next = as_next_scheduled_action( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [], WC_Stripe_Remote_Config_Scheduler::SCHEDULER_GROUP );
-		$this->assertSame( strtotime( 'tomorrow midnight UTC' ) + $jitter, $next );
+		$this->assertSame( strtotime( 'tomorrow midnight UTC' ) + $offset, $next );
 	}
 
 	/**
-	 * Data provider for {@see test_maybe_schedule_daily_sync_applies_jitter_across_the_full_day()}.
+	 * Data provider for {@see test_maybe_schedule_daily_sync_applies_offset_across_the_full_day()}.
 	 *
 	 * @return array
 	 */
-	public function provide_schedule_jitter_bounds(): array {
+	public function provide_schedule_offset_bounds(): array {
 		return [
 			'start of the day' => [ 0 ],
 			'end of the day'   => [ DAY_IN_SECONDS - 1 ],
@@ -222,20 +222,20 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The jitter stays within the 24h window, so the first run never spills into
+	 * The offset stays within the 24h window, so the first run never spills into
 	 * a neighbouring day.
 	 *
 	 * @return void
 	 */
-	public function test_get_schedule_jitter_stays_within_the_day(): void {
-		$method = new ReflectionMethod( WC_Stripe_Remote_Config_Scheduler::class, 'get_schedule_jitter' );
+	public function test_get_schedule_offset_stays_within_the_day(): void {
+		$method = new ReflectionMethod( WC_Stripe_Remote_Config_Scheduler::class, 'get_schedule_offset' );
 		$method->setAccessible( true );
 		$scheduler = new WC_Stripe_Remote_Config_Scheduler();
 
 		for ( $i = 0; $i < 100; $i++ ) {
-			$jitter = $method->invoke( $scheduler );
-			$this->assertGreaterThanOrEqual( 0, $jitter );
-			$this->assertLessThan( DAY_IN_SECONDS, $jitter );
+			$offset = $method->invoke( $scheduler );
+			$this->assertGreaterThanOrEqual( 0, $offset );
+			$this->assertLessThan( DAY_IN_SECONDS, $offset );
 		}
 	}
 

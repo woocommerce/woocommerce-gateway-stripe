@@ -69,7 +69,7 @@ class WC_Stripe_Remote_Config_Scheduler {
 			return;
 		}
 
-		$start = strtotime( 'tomorrow midnight UTC' ) + $this->get_schedule_jitter();
+		$start = strtotime( 'tomorrow midnight UTC' ) + $this->get_schedule_offset();
 		as_schedule_recurring_action( $start, DAY_IN_SECONDS, self::SYNC_ACTION, [], self::SCHEDULER_GROUP );
 	}
 
@@ -81,7 +81,7 @@ class WC_Stripe_Remote_Config_Scheduler {
 	 *
 	 * @return int
 	 */
-	protected function get_schedule_jitter(): int {
+	protected function get_schedule_offset(): int {
 		return wp_rand( 0, DAY_IN_SECONDS - 1 );
 	}
 
