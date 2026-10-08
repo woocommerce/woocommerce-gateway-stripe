@@ -495,5 +495,6 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$response   = $controller->configure_webhooks( $request );
 
 		$this->assertSame( 400, $response->get_status() );
+		$this->assertSame( 'Cannot configure webhooks: no Stripe API secret key is saved for the requested mode.', $response->get_data()['message'] );
 	}
 }

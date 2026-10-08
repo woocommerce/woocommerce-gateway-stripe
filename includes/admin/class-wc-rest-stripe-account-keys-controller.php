@@ -419,7 +419,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 
 		// Without a key for this mode, get_secret_key() would use the active mode's key and target the wrong account.
 		if ( ! is_string( $secret_key ) || empty( $secret_key ) ) {
-			return new WP_REST_Response( [ 'message' => __( 'A Stripe API secret key is required to configure webhooks for this mode.', 'woocommerce-gateway-stripe' ) ], 400 );
+			return new WP_REST_Response( [ 'message' => __( 'Cannot configure webhooks: no Stripe API secret key is saved for the requested mode.', 'woocommerce-gateway-stripe' ) ], 400 );
 		}
 
 		// Prevent users from setting up webhooks too frequently.
