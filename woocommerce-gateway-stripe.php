@@ -276,25 +276,13 @@ add_action(
 				break;
 			}
 
-			$statuses = [];
-			$posts    = get_posts(
-				[
-					'post_type'      => 'wc_stripe_event',
-					'post_status'    => [ 'wc_stripe_pending', 'wc_stripe_processing', 'wc_stripe_processed', 'wc_stripe_failed' ],
-					'post_name__in'  => wp_list_pluck( $events, 'id' ),
-					'posts_per_page' => -1,
-				]
-			);
-			// WP_Query lowercases post_name__in, so match case-insensitively like MySQL does.
-			foreach ( $posts as $post ) {
-				$statuses[ strtolower( $post->post_name ) ] = $post->post_status;
-			}
+			$statuses = wc_stripe_get_event_store()->get_statuses( wp_list_pluck( $events, 'id' ) );
 
 			foreach ( $events as $event ) {
-				$status_before = $statuses[ strtolower( $event->id ) ] ?? null;
+				$status_before = $statuses[ $event->id ] ?? null;
 
-				if ( null === $status_before || 'wc_stripe_failed' === $status_before ) {
-					wc_stripe_record_event( $event, 'wc_stripe_pending' );
+				if ( null === $status_before || WC_Stripe_Event_Store_Interface::STATUS_FAILED === $status_before ) {
+					wc_stripe_record_event( $event, WC_Stripe_Event_Store_Interface::STATUS_PENDING );
 					$result = 'queued';
 				} else {
 					$result = 'skipped';
@@ -342,36 +330,26 @@ function wc_stripe_schedule_pending_events(): void {
 add_action(
 	'wc_stripe_process_pending_events',
 	function () {
-		$post_ids = get_posts(
-			[
-				'post_type'      => 'wc_stripe_event',
-				'post_status'    => 'wc_stripe_pending',
-				'orderby'        => 'date',
-				'order'          => 'ASC',
-				'fields'         => 'ids',
-				'posts_per_page' => 5,
-			]
-		);
+		$event_ids = wc_stripe_get_event_store()->get_event_ids_by_status( WC_Stripe_Event_Store_Interface::STATUS_PENDING, 5 );
 
-		if ( ! $post_ids ) {
+		if ( ! $event_ids ) {
 			return;
 		}
 
 		$handler = new WC_Stripe_Webhook_Handler();
 
-		foreach ( $post_ids as $post_id ) {
-			$event_id = get_post_field( 'post_name', $post_id );
-			$event    = WC_Stripe_API::retrieve( 'events/' . $event_id );
+		foreach ( $event_ids as $event_id ) {
+			$event = WC_Stripe_API::retrieve( 'events/' . $event_id );
 
 			if ( ! is_object( $event ) || ! empty( $event->error ) || empty( $event->id ) ) {
-				wc_stripe_record_event( (object) [ 'id' => $event_id ], 'wc_stripe_failed' );
+				wc_stripe_get_event_store()->save( $event_id, WC_Stripe_Event_Store_Interface::STATUS_FAILED );
 				continue;
 			}
 
 			try {
 				$handler->process_webhook( wp_json_encode( $event ) );
 			} catch ( Throwable $e ) {
-				wc_stripe_record_event( $event, 'wc_stripe_failed' );
+				wc_stripe_record_event( $event, WC_Stripe_Event_Store_Interface::STATUS_FAILED );
 			}
 		}
 
@@ -380,26 +358,9 @@ add_action(
 	}
 );
 
-add_action(
-	'init',
-	function () {
-		register_post_type(
-			'wc_stripe_event',
-			[
-				'public'       => false,
-				'show_ui'      => false,
-				'show_in_rest' => false,
-				'can_export'   => false,
-				'query_var'    => false,
-				'rewrite'      => false,
-			]
-		);
-
-		foreach ( [ 'wc_stripe_pending', 'wc_stripe_processing', 'wc_stripe_processed', 'wc_stripe_failed' ] as $status ) {
-			register_post_status( $status, [ 'internal' => true ] );
-		}
-	}
-);
+function wc_stripe_get_event_store(): WC_Stripe_Event_Store_Interface {
+	return WC_Stripe_Event_Post_Store::get_instance();
+}
 
 function wc_stripe_record_event( $notification, string $status, $order = null ): void {
 	$event_id = $notification->id ?? '';
@@ -407,59 +368,24 @@ function wc_stripe_record_event( $notification, string $status, $order = null ):
 		return;
 	}
 
-	$existing = get_posts(
-		[
-			'post_type'   => 'wc_stripe_event',
-			'post_status' => [ 'wc_stripe_pending', 'wc_stripe_processing', 'wc_stripe_processed', 'wc_stripe_failed' ],
-			'name'        => $event_id,
-			'fields'      => 'ids',
-			'numberposts' => 1,
-		]
-	);
-
-	$post = [
-		'post_type'   => 'wc_stripe_event',
-		'post_status' => $status,
-		'post_name'   => $event_id,
-	];
-
+	$data = [];
+	if ( isset( $notification->type ) ) {
+		$data['type'] = (string) $notification->type;
+	}
+	if ( isset( $notification->created ) ) {
+		$data['created'] = (int) $notification->created;
+	}
 	if ( $order instanceof WC_Order ) {
-		$post['post_parent'] = $order->get_id();
+		$data['order_id'] = $order->get_id();
 	}
 
-	if ( $existing ) {
-		$post['ID'] = $existing[0];
-	} else {
-		$created_gmt           = gmdate( 'Y-m-d H:i:s', (int) ( $notification->created ?? time() ) );
-		$post['post_title']    = (string) ( $notification->type ?? '' );
-		$post['post_date']     = get_date_from_gmt( $created_gmt );
-		$post['post_date_gmt'] = $created_gmt;
-	}
-
-	// wp_insert_post() and wp_update_post() run post_name through sanitize_title(), which lowercases the case-sensitive event ID.
-	$keep_event_id = function ( $data ) use ( $event_id ) {
-		if ( 'wc_stripe_event' === ( $data['post_type'] ?? '' ) ) {
-			$data['post_name'] = $event_id;
-		}
-		return $data;
-	};
-
-	add_filter( 'wp_insert_post_data', $keep_event_id );
-	try {
-		if ( isset( $post['ID'] ) ) {
-			wp_update_post( $post );
-		} else {
-			wp_insert_post( $post );
-		}
-	} finally {
-		remove_filter( 'wp_insert_post_data', $keep_event_id );
-	}
+	wc_stripe_get_event_store()->save( $event_id, $status, $data );
 }
 
 add_action(
 	'wc_stripe_before_process_webhook',
 	function ( $webhook_type, $notification ) {
-		wc_stripe_record_event( $notification, 'wc_stripe_processing' );
+		wc_stripe_record_event( $notification, WC_Stripe_Event_Store_Interface::STATUS_PROCESSING );
 	},
 	10,
 	2
@@ -468,7 +394,7 @@ add_action(
 add_action(
 	'wc_stripe_webhook_received',
 	function ( $webhook_type, $notification, $order ) {
-		wc_stripe_record_event( $notification, 'wc_stripe_processed', $order );
+		wc_stripe_record_event( $notification, WC_Stripe_Event_Store_Interface::STATUS_PROCESSED, $order );
 	},
 	10,
 	3
