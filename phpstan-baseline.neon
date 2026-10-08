@@ -1051,18 +1051,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Access to an undefined property object\:\:\$secret\.$#'
-			identifier: property.notFound
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
-
-		-
-			message: '#^Access to an undefined property object\:\:\$url\.$#'
-			identifier: property.notFound
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-account-keys-controller.php
-
-		-
 			message: '#^Method WC_REST_Stripe_Account_Keys_Controller\:\:mask_key_value\(\) has parameter \$value with no type specified\.$#'
 			identifier: missingType.parameter
 			count: 1
@@ -1327,12 +1315,6 @@ parameters:
 			path: includes/admin/stripe-settings.php
 
 		-
-			message: '#^Access to an undefined property object\:\:\$enabled_events\.$#'
-			identifier: property.notFound
-			count: 1
-			path: includes/class-wc-stripe-account.php
-
-		-
 			message: '#^Method WC_Stripe_Account\:\:cache_account\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -1340,12 +1322,6 @@ parameters:
 
 		-
 			message: '#^Method WC_Stripe_Account\:\:clear_cache\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-account.php
-
-		-
-			message: '#^Method WC_Stripe_Account\:\:delete_previously_configured_webhooks\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
 			path: includes/class-wc-stripe-account.php

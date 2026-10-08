@@ -298,19 +298,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			unset( $options['account_id'] );
 			unset( $options['test_account_id'] );
 
-			// Before saving the new keys, decommission any webhook configured on the
-			// previously connected account.
-			$previous_webhook_data = $options[ $prefix . 'webhook_data' ] ?? '';
-			if ( is_array( $previous_webhook_data ) && empty( $previous_webhook_data['secret'] ) ) {
-				$previous_webhook_data['secret'] = $current_options[ $prefix . 'secret_key' ] ?? '';
-			}
-			$account = WC_Stripe::get_instance()->account;
-			if ( $account->maybe_decommission_webhook( $previous_webhook_data, $secret_key ) ) {
-				$options[ $prefix . 'webhook_data' ]   = [];
-				$options[ $prefix . 'webhook_secret' ] = '';
-			} elseif ( $account->should_decommission_webhook( $previous_webhook_data, $secret_key ) ) {
-				$options[ $prefix . 'webhook_data' ] = $previous_webhook_data;
-			}
+			$options = WC_Stripe::get_instance()->webhook_settings->decommission_for_key_change( $current_options, $options, [ $mode ] );
 
 			WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 			WC_Stripe_Helper::update_main_stripe_settings( $options );
@@ -365,7 +353,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// Configure webhooks last so errors stemming from unreachable test/local sites don't prevent other actions.
 			try {
 				// Automatically configure webhooks for the account now that we have the keys.
-				WC_Stripe::get_instance()->account->configure_webhooks( $is_test ? 'test' : 'live' );
+				WC_Stripe::get_instance()->webhook_settings->maybe_autoconfigure_webhooks( $is_test ? 'test' : 'live' );
 			} catch ( Exception $e ) {
 				return new WP_Error( 'wc_stripe_webhook_error', $e->getMessage() );
 			} finally {
@@ -375,7 +363,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			// Default Adaptive Pricing on for first-time connections, now that webhooks have been
 			// configured above. AP requires a working webhook endpoint, so this decision must run after
-			// configure_webhooks()
+			// maybe_autoconfigure_webhooks()
 			if ( 'connect' === $type && $should_default_optimized_checkout_on ) {
 				if ( WC_Stripe_Helper::is_adaptive_pricing_available_for_account() ) {
 					$settings                     = WC_Stripe_Helper::get_stripe_settings();
@@ -406,25 +394,14 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return;
 			}
 
-			$settings        = WC_Stripe_Helper::get_stripe_settings();
-			$previous_secret = $settings['test_secret_key'] ?? '';
+			$settings          = WC_Stripe_Helper::get_stripe_settings();
+			$previous_settings = $settings;
 
 			$settings['test_publishable_key'] = $test_publishable_key;
 			$settings['test_secret_key']      = $test_secret_key;
 			$settings['test_connection_type'] = 'connect';
 
-			// Decommission any webhook configured on the previously connected test account.
-			$previous_webhook_data = $settings['test_webhook_data'] ?? '';
-			if ( is_array( $previous_webhook_data ) && empty( $previous_webhook_data['secret'] ) ) {
-				$previous_webhook_data['secret'] = $previous_secret;
-			}
-			$account = WC_Stripe::get_instance()->account;
-			if ( $account->maybe_decommission_webhook( $previous_webhook_data, $test_secret_key ) ) {
-				$settings['test_webhook_data']   = [];
-				$settings['test_webhook_secret'] = '';
-			} elseif ( $account->should_decommission_webhook( $previous_webhook_data, $test_secret_key ) ) {
-				$settings['test_webhook_data'] = $previous_webhook_data;
-			}
+			$settings = WC_Stripe::get_instance()->webhook_settings->decommission_for_key_change( $previous_settings, $settings, [ 'test' ] );
 
 			WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
@@ -434,7 +411,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			WC_Stripe_API::set_secret_key( $test_secret_key );
 			try {
-				WC_Stripe::get_instance()->account->configure_webhooks( 'test' );
+				WC_Stripe::get_instance()->webhook_settings->maybe_autoconfigure_webhooks( 'test' );
 			} catch ( Exception $e ) {
 				WC_Stripe_Logger::error( 'OAuth: Failed to configure test webhooks during dual-fetch: ' . $e->getMessage() );
 			} finally {

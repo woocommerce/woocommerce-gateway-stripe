@@ -164,6 +164,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 11.1.0 - xxxx-xx-xx =
+* Update - Extract webhook settings from WC_Stripe_Account and unify automatic webhook configuration
 * Update - Remove duplicate account API keys from webhook settings
 * Dev - Support webhook settings without duplicate account API keys ahead of their removal
 * Fix - Use the account API key for webhook status, cleanup, and manual setup

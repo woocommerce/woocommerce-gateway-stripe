@@ -12,6 +12,9 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	private $connect;
 
+	/** @var WC_Stripe_Webhook_Settings&\PHPUnit\Framework\MockObject\MockObject */
+	private $webhook_settings;
+
 	/**
 	 * REQUEST_URI as the test bootstrap left it, restored in tear_down().
 	 *
@@ -33,8 +36,13 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		// the Connect consumer's explicit writes.
 		remove_filter( 'pre_update_option_woocommerce_stripe_settings', [ WC_Stripe::get_instance(), 'gateway_settings_update' ] );
 
-		$api_mock      = $this->getMockBuilder( WC_Stripe_Connect_API::class )->disableOriginalConstructor()->getMock();
-		$this->connect = new WC_Stripe_Connect( $api_mock );
+		$api_mock               = $this->getMockBuilder( WC_Stripe_Connect_API::class )->disableOriginalConstructor()->getMock();
+		$this->connect          = new WC_Stripe_Connect( $api_mock );
+		$this->webhook_settings = $this->getMockBuilder( WC_Stripe_Webhook_Settings::class )
+			->setConstructorArgs( [ WC_Stripe_API::class ] )
+			->onlyMethods( [ 'maybe_autoconfigure_webhooks', 'is_webhook_enabled' ] )->getMock();
+		$this->webhook_settings->method( 'is_webhook_enabled' )->willReturn( true );
+		WC_Stripe::get_instance()->webhook_settings = $this->webhook_settings;
 
 		delete_option( 'wc_stripe_optimized_checkout_default_on' );
 		WC_Stripe_Helper::update_main_stripe_settings( [] );
@@ -88,11 +96,9 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$account = $this->getMockBuilder( WC_Stripe_Account::class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'get_cached_account_data', 'maybe_decommission_webhook', 'configure_webhooks', 'clear_cache', 'is_webhook_enabled' ] )
+			->onlyMethods( [ 'get_cached_account_data', 'clear_cache' ] )
 			->getMock();
 		$account->method( 'get_cached_account_data' )->willReturn( [ 'country' => $account_country ] );
-		$account->method( 'maybe_decommission_webhook' )->willReturn( false );
-		$account->method( 'is_webhook_enabled' )->willReturn( true );
 		WC_Stripe::get_instance()->account = $account;
 
 		$result                 = new stdClass();
@@ -223,16 +229,15 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$expected_webhook_data           = $previous_webhook_data;
 		$expected_webhook_data['secret'] = $expected_secret;
-		$account                         = $this->mock_stripe_account();
-		$account->expects( $this->once() )
-			->method( 'maybe_decommission_webhook' )
-			->with( $expected_webhook_data, 'sk_test_123' )
-			->willReturn( ! $fails );
+		$this->mock_stripe_account();
+		$requests = $this->capture_webhook_cleanup( $fails );
+
 		if ( $fails ) {
-			$account->method( 'configure_webhooks' )->willThrowException( new Exception( 'Network error' ) );
+			$this->webhook_settings->method( 'maybe_autoconfigure_webhooks' )->willThrowException( new Exception( 'Network error' ) );
 		}
 
 		$this->invoke_save_stripe_keys( 'pk_test_123', 'sk_test_123' );
+		$this->assertSame( [ [ 'wh_old', $expected_secret, 'sk_test_old_account' ] ], $requests->calls );
 
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( $fails ? $expected_webhook_data : [], $settings['test_webhook_data'] );
@@ -268,18 +273,11 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'test_webhook_data' => $webhook_data,
 			]
 		);
-		$account = $this->mock_stripe_account();
-		$account->expects( $this->once() )->method( 'maybe_decommission_webhook' )
-			->with(
-				[
-					'id'     => 'we_old_test',
-					'secret' => 'sk_test_old',
-				],
-				'sk_test_new'
-			)
-			->willReturn( ! $fails );
+		$this->mock_stripe_account();
+		$requests = $this->capture_webhook_cleanup( $fails );
+
 		if ( $fails ) {
-			$account->method( 'configure_webhooks' )->willThrowException( new Exception( 'Network error' ) );
+			$this->webhook_settings->method( 'maybe_autoconfigure_webhooks' )->willThrowException( new Exception( 'Network error' ) );
 		}
 		$result = (object) [
 			'testPublishableKey' => 'pk_test_new',
@@ -288,6 +286,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$method = new ReflectionMethod( WC_Stripe_Connect::class, 'save_oauth_test_keys_alongside_live' );
 		$method->setAccessible( true );
 		$method->invoke( $this->connect, $result );
+		$this->assertSame( [ [ 'we_old_test', 'sk_test_old', 'sk_test_old' ] ], $requests->calls );
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( 'sk_test_new', $settings['test_secret_key'] );
 		$this->assertSame(
@@ -326,18 +325,14 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$account = $this->getMockBuilder( WC_Stripe_Account::class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'get_cached_account_data', 'maybe_decommission_webhook', 'configure_webhooks', 'clear_cache' ] )
+			->onlyMethods( [ 'get_cached_account_data', 'clear_cache' ] )
 			->getMock();
 		$account->method( 'get_cached_account_data' )->willReturn( [ 'country' => 'US' ] );
-		$account->method( 'maybe_decommission_webhook' )->willReturn( false );
-		// Capture the API secret key active at the moment each webhook is configured.
-		// configure_webhooks() authenticates with whatever key is set on WC_Stripe_API,
-		// so the test webhook must be created with the test key — not the live key that
-		// get_secret_key() would otherwise resolve from testmode ('no').
-		$account->method( 'configure_webhooks' )->willReturnCallback(
+		$this->webhook_settings->method( 'maybe_autoconfigure_webhooks' )->willReturnCallback(
 			function ( $mode ) use ( &$configured_modes, &$keys_at_configure ) {
 				$configured_modes[]         = $mode;
-				$keys_at_configure[ $mode ] = WC_Stripe_API::get_secret_key();
+				$settings                   = WC_Stripe_Helper::get_stripe_settings();
+				$keys_at_configure[ $mode ] = $settings[ 'test' === $mode ? 'test_secret_key' : 'secret_key' ];
 			}
 		);
 		WC_Stripe::get_instance()->account = $account;
@@ -459,18 +454,17 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 	/**
 	 * Test-key persistence must not be coupled to live-webhook success. When
-	 * configure_webhooks('live') throws (e.g. Stripe rejects webhook creation on the
+	 * maybe_autoconfigure_webhooks('live') throws (e.g. Stripe rejects webhook creation on the
 	 * connected account), save_stripe_keys() still surfaces the webhook WP_Error, but
 	 * the dual-fetched test keys must already be persisted.
 	 */
 	public function test_save_stripe_keys_persists_test_keys_even_when_live_webhook_fails(): void {
 		$account = $this->getMockBuilder( WC_Stripe_Account::class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'get_cached_account_data', 'maybe_decommission_webhook', 'configure_webhooks', 'clear_cache' ] )
+			->onlyMethods( [ 'get_cached_account_data', 'clear_cache' ] )
 			->getMock();
 		$account->method( 'get_cached_account_data' )->willReturn( [ 'country' => 'US' ] );
-		$account->method( 'maybe_decommission_webhook' )->willReturn( false );
-		$account->method( 'configure_webhooks' )->willReturnCallback(
+		$this->webhook_settings->method( 'maybe_autoconfigure_webhooks' )->willReturnCallback(
 			function ( $mode ) {
 				if ( 'live' === $mode ) {
 					throw new Exception( 'not permitted to configure webhook endpoints on a connected account' );
@@ -501,7 +495,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 	/**
 	 * The test webhook setup during dual-fetch is best-effort: when
-	 * configure_webhooks('test') throws, the failure is swallowed so it cannot abort the
+	 * maybe_autoconfigure_webhooks('test') throws, the failure is swallowed so it cannot abort the
 	 * live onboarding. The live keys, the live webhook, and the dual-fetched test keys
 	 * must all still be persisted, and save_stripe_keys() must not surface a WP_Error.
 	 */
@@ -510,12 +504,11 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$account = $this->getMockBuilder( WC_Stripe_Account::class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'get_cached_account_data', 'maybe_decommission_webhook', 'configure_webhooks', 'clear_cache' ] )
+			->onlyMethods( [ 'get_cached_account_data', 'clear_cache' ] )
 			->getMock();
 		$account->method( 'get_cached_account_data' )->willReturn( [ 'country' => 'US' ] );
-		$account->method( 'maybe_decommission_webhook' )->willReturn( false );
 		// Only the test webhook fails; the live webhook must still be configured.
-		$account->method( 'configure_webhooks' )->willReturnCallback(
+		$this->webhook_settings->method( 'maybe_autoconfigure_webhooks' )->willReturnCallback(
 			function ( $mode ) use ( &$configured_modes ) {
 				$configured_modes[] = $mode;
 				if ( 'test' === $mode ) {
@@ -553,6 +546,30 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertSame( 'connect', $settings['test_connection_type'] );
 	}
 
+
+	private function capture_webhook_cleanup( bool $fails ): object {
+		$requests = (object) [ 'calls' => [] ];
+		add_filter(
+			'pre_http_request',
+			function ( $preempt, $args, $url ) use ( $requests, $fails ) {
+				if ( 'DELETE' !== $args['method'] || false === strpos( $url, '/webhook_endpoints/' ) ) {
+					return $preempt;
+				}
+				$requests->calls[] = [ basename( $url ), WC_Stripe_API::get_secret_key(), WC_Stripe_Helper::get_stripe_settings()['test_secret_key'] ];
+				if ( $fails ) {
+					throw new Exception( 'Network error' );
+				}
+				return [
+					'response' => [ 'code' => 200 ],
+					'body'     => wp_json_encode( [ 'deleted' => true ] ),
+				];
+			},
+			10,
+			3
+		);
+		return $requests;
+	}
+
 	/**
 	 * Builds a WC_Stripe_Account mock with the methods save_stripe_keys() relies on, and
 	 * registers it on the plugin instance.
@@ -562,7 +579,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	private function mock_stripe_account() {
 		$account = $this->getMockBuilder( WC_Stripe_Account::class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'get_cached_account_data', 'maybe_decommission_webhook', 'configure_webhooks', 'clear_cache' ] )
+			->onlyMethods( [ 'get_cached_account_data', 'clear_cache' ] )
 			->getMock();
 		$account->method( 'get_cached_account_data' )->willReturn( [ 'country' => 'US' ] );
 
