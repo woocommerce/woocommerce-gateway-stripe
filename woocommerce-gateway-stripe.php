@@ -276,13 +276,18 @@ add_action(
 				break;
 			}
 
-			$statuses = wc_stripe_get_event_store()->get_statuses( wp_list_pluck( $events, 'id' ) );
+			$records = wc_stripe_get_event_store()->get( wp_list_pluck( $events, 'id' ) );
 
 			foreach ( $events as $event ) {
-				$status_before = $statuses[ $event->id ] ?? null;
+				$record        = $records[ $event->id ] ?? null;
+				$status_before = $record ? $record->status : null;
 
-				if ( null === $status_before || WC_Stripe_Event_Store_Interface::STATUS_FAILED === $status_before ) {
-					wc_stripe_record_event( $event, WC_Stripe_Event_Store_Interface::STATUS_PENDING );
+				if ( ! $record ) {
+					wc_stripe_get_event_store()->save( WC_Stripe_Event_Record::from_stripe_event( $event, WC_Stripe_Event_Store_Interface::STATUS_PENDING ) );
+					$result = 'queued';
+				} elseif ( WC_Stripe_Event_Store_Interface::STATUS_FAILED === $record->status ) {
+					$record->status = WC_Stripe_Event_Store_Interface::STATUS_PENDING;
+					wc_stripe_get_event_store()->save( $record );
 					$result = 'queued';
 				} else {
 					$result = 'skipped';
@@ -330,19 +335,20 @@ function wc_stripe_schedule_pending_events(): void {
 add_action(
 	'wc_stripe_process_pending_events',
 	function () {
-		$event_ids = wc_stripe_get_event_store()->get_event_ids_by_status( WC_Stripe_Event_Store_Interface::STATUS_PENDING, 5 );
+		$records = wc_stripe_get_event_store()->get_by_status( WC_Stripe_Event_Store_Interface::STATUS_PENDING, 5 );
 
-		if ( ! $event_ids ) {
+		if ( ! $records ) {
 			return;
 		}
 
 		$handler = new WC_Stripe_Webhook_Handler();
 
-		foreach ( $event_ids as $event_id ) {
-			$event = WC_Stripe_API::retrieve( 'events/' . $event_id );
+		foreach ( $records as $record ) {
+			$event = WC_Stripe_API::retrieve( 'events/' . $record->id );
 
 			if ( ! is_object( $event ) || ! empty( $event->error ) || empty( $event->id ) ) {
-				wc_stripe_get_event_store()->save( $event_id, WC_Stripe_Event_Store_Interface::STATUS_FAILED );
+				$record->status = WC_Stripe_Event_Store_Interface::STATUS_FAILED;
+				wc_stripe_get_event_store()->save( $record );
 				continue;
 			}
 
@@ -368,18 +374,15 @@ function wc_stripe_record_event( $notification, string $status, $order = null ):
 		return;
 	}
 
-	$data = [];
-	if ( isset( $notification->type ) ) {
-		$data['type'] = (string) $notification->type;
-	}
-	if ( isset( $notification->created ) ) {
-		$data['created'] = (int) $notification->created;
-	}
+	$store  = wc_stripe_get_event_store();
+	$record = $store->get( [ $event_id ] )[ $event_id ] ?? WC_Stripe_Event_Record::from_stripe_event( $notification, $status );
+
+	$record->status = $status;
 	if ( $order instanceof WC_Order ) {
-		$data['order_id'] = $order->get_id();
+		$record->order_id = $order->get_id();
 	}
 
-	wc_stripe_get_event_store()->save( $event_id, $status, $data );
+	$store->save( $record );
 }
 
 add_action(

@@ -74,7 +74,7 @@ class WC_Stripe_Event_Post_Store implements WC_Stripe_Event_Store_Interface {
 	/**
 	 * {@inheritDoc}
 	 */
-	public function get_statuses( array $event_ids ): array {
+	public function get( array $event_ids ): array {
 		if ( ! $event_ids ) {
 			return [];
 		}
@@ -93,24 +93,26 @@ class WC_Stripe_Event_Post_Store implements WC_Stripe_Event_Store_Interface {
 		// WP_Query lowercases post_name__in and MySQL compares case-insensitively, so match the same way.
 		$found = [];
 		foreach ( $posts as $post ) {
-			$found[ strtolower( $post->post_name ) ] = $this->get_store_status( $post->post_status );
-		}
-
-		$statuses = [];
-		foreach ( $event_ids as $event_id ) {
-			$status = $found[ strtolower( $event_id ) ] ?? null;
-			if ( null !== $status ) {
-				$statuses[ $event_id ] = $status;
+			$record = $this->get_record_from_post( $post );
+			if ( $record ) {
+				$found[ strtolower( $post->post_name ) ] = $record;
 			}
 		}
 
-		return $statuses;
+		$records = [];
+		foreach ( $event_ids as $event_id ) {
+			if ( isset( $found[ strtolower( $event_id ) ] ) ) {
+				$records[ $event_id ] = $found[ strtolower( $event_id ) ];
+			}
+		}
+
+		return $records;
 	}
 
 	/**
 	 * {@inheritDoc}
 	 */
-	public function get_event_ids_by_status( string $status, int $limit ): array {
+	public function get_by_status( string $status, int $limit ): array {
 		if ( ! isset( self::POST_STATUSES[ $status ] ) ) {
 			return [];
 		}
@@ -127,33 +129,28 @@ class WC_Stripe_Event_Post_Store implements WC_Stripe_Event_Store_Interface {
 			]
 		);
 
-		return wp_list_pluck( $posts, 'post_name' );
+		return array_values( array_filter( array_map( [ $this, 'get_record_from_post' ], $posts ) ) );
 	}
 
 	/**
 	 * {@inheritDoc}
 	 */
-	public function save( string $event_id, string $status, array $data = [] ): bool {
-		if ( '' === $event_id || ! isset( self::POST_STATUSES[ $status ] ) ) {
+	public function save( WC_Stripe_Event_Record $record ): bool {
+		$event_id = $record->id;
+		if ( '' === $event_id || ! isset( self::POST_STATUSES[ $record->status ] ) ) {
 			return false;
 		}
 
 		$post = [
 			'post_type'   => self::POST_TYPE,
-			'post_status' => self::POST_STATUSES[ $status ],
+			'post_status' => self::POST_STATUSES[ $record->status ],
 			'post_name'   => $event_id,
+			'post_title'  => $record->type,
+			'post_parent' => $record->order_id ?? 0,
 		];
 
-		if ( ! empty( $data['order_id'] ) ) {
-			$post['post_parent'] = (int) $data['order_id'];
-		}
-
-		if ( isset( $data['type'] ) ) {
-			$post['post_title'] = (string) $data['type'];
-		}
-
-		if ( ! empty( $data['created'] ) ) {
-			$post['post_date_gmt'] = gmdate( 'Y-m-d H:i:s', (int) $data['created'] );
+		if ( $record->created > 0 ) {
+			$post['post_date_gmt'] = gmdate( 'Y-m-d H:i:s', $record->created );
 			$post['post_date']     = get_date_from_gmt( $post['post_date_gmt'] );
 		}
 
@@ -201,14 +198,23 @@ class WC_Stripe_Event_Post_Store implements WC_Stripe_Event_Store_Interface {
 	}
 
 	/**
-	 * Maps a post status back to a store status.
+	 * Builds a record from a post of this store's post type.
 	 *
-	 * @param string $post_status Post status.
-	 * @return string|null Store status, or null for a post status this store does not use.
+	 * @param WP_Post $post Event post.
+	 * @return WC_Stripe_Event_Record|null The record, or null for a post status this store does not use.
 	 */
-	private function get_store_status( string $post_status ): ?string {
-		$status = array_search( $post_status, self::POST_STATUSES, true );
+	private function get_record_from_post( WP_Post $post ): ?WC_Stripe_Event_Record {
+		$status = array_search( $post->post_status, self::POST_STATUSES, true );
+		if ( false === $status ) {
+			return null;
+		}
 
-		return false === $status ? null : $status;
+		return new WC_Stripe_Event_Record(
+			$post->post_name,
+			$status,
+			$post->post_title,
+			(int) strtotime( $post->post_date_gmt . ' UTC' ),
+			$post->post_parent ? (int) $post->post_parent : null
+		);
 	}
 }

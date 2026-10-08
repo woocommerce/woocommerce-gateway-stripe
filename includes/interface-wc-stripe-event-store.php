@@ -15,35 +15,27 @@ interface WC_Stripe_Event_Store_Interface {
 	public const STATUS_FAILED     = 'failed';
 
 	/**
-	 * Returns the stored status of each known event.
+	 * Returns the stored records of the given events.
 	 *
 	 * @param string[] $event_ids Stripe event IDs.
-	 * @return array<string, string> Status keyed by event ID, as passed in. Unknown events are omitted.
+	 * @return array<string, WC_Stripe_Event_Record> Records keyed by event ID, as passed in. Unknown events are omitted.
 	 */
-	public function get_statuses( array $event_ids ): array;
+	public function get( array $event_ids ): array;
 
 	/**
-	 * Returns the IDs of events with the given status, oldest event first.
+	 * Returns the records with the given status, oldest event first.
 	 *
 	 * @param string $status One of the STATUS_* constants.
-	 * @param int    $limit  Maximum number of IDs to return.
-	 * @return string[] Stripe event IDs.
+	 * @param int    $limit  Maximum number of records to return.
+	 * @return WC_Stripe_Event_Record[]
 	 */
-	public function get_event_ids_by_status( string $status, int $limit ): array;
+	public function get_by_status( string $status, int $limit ): array;
 
 	/**
-	 * Creates or updates the record of an event.
+	 * Creates the record of an event, or replaces the stored one.
 	 *
-	 * @param string $event_id Stripe event ID.
-	 * @param string $status   One of the STATUS_* constants.
-	 * @param array  $data     {
-	 *     Optional. Event details. Missing keys keep their stored values.
-	 *
-	 *     @type string $type     Stripe event type.
-	 *     @type int    $created  Stripe event creation timestamp.
-	 *     @type int    $order_id ID of the order the event was applied to.
-	 * }
+	 * @param WC_Stripe_Event_Record $record Record to store.
 	 * @return bool Whether the record was saved.
 	 */
-	public function save( string $event_id, string $status, array $data = [] ): bool;
+	public function save( WC_Stripe_Event_Record $record ): bool;
 }
