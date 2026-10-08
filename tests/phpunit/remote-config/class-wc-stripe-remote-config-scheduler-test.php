@@ -180,6 +180,44 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The first run must spread across the full 24h window, so the shared
+	 * endpoint isn't hit by the whole merchant base within one narrow band.
+	 * Each run stays inside the next-day window, and across many stores the
+	 * offsets span far wider than the old 2h band.
+	 *
+	 * @return void
+	 */
+	public function test_maybe_schedule_daily_sync_spreads_first_run_across_the_day(): void {
+		if ( ! function_exists( 'as_next_scheduled_action' ) || ! function_exists( 'as_unschedule_all_actions' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		// Satisfy the action_scheduler_init guard in maybe_schedule_daily_sync().
+		do_action( 'action_scheduler_init' );
+
+		$window_start = strtotime( 'tomorrow midnight UTC' );
+		$offsets      = [];
+
+		// Each iteration stands in for a different store picking its own offset.
+		for ( $i = 0; $i < 30; $i++ ) {
+			as_unschedule_all_actions( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [], WC_Stripe_Remote_Config_Scheduler::SCHEDULER_GROUP );
+			( new WC_Stripe_Remote_Config_Scheduler() )->maybe_schedule_daily_sync();
+
+			$next = as_next_scheduled_action( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [], WC_Stripe_Remote_Config_Scheduler::SCHEDULER_GROUP );
+			$this->assertIsInt( $next );
+			$this->assertGreaterThanOrEqual( $window_start, $next );
+			$this->assertLessThan( $window_start + DAY_IN_SECONDS, $next );
+
+			$offsets[] = $next - $window_start;
+		}
+
+		// Old behaviour clustered every store inside a 2h band. With 30 stores
+		// drawing uniformly across 24h, the span is effectively always far wider.
+		$span = max( $offsets ) - min( $offsets );
+		$this->assertGreaterThan( 6 * HOUR_IN_SECONDS, $span, 'First-run offsets should spread across the day, not cluster in a narrow band.' );
+	}
+
+	/**
 	 * One combined fetch caches both modes' payloads — including the mode
 	 * without keys, so a later go-live starts from a warm cache.
 	 */
