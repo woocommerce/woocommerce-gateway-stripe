@@ -209,6 +209,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Allow Klarna purchases for Puerto Rico shoppers, and refine billing country availability logic
 * Update - Reduce the size of the Stripe settings JS bundles by loading only the Gridicons they use
 * Dev - Update PHPCS rules and improve alignment with WordPress plugin rules
+* Fix - Add robust checks against order attribution Javascript not being fully loaded in block checkout
 * Fix - Remove the duplicated period in the webhook status message when webhooks are pending
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
