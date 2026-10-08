@@ -121,7 +121,10 @@ class WC_Stripe_Payments_UI_Controller_Test extends WP_UnitTestCase {
 		$stripe_item = $this->find_stripe_submenu_item( $this->get_controller_const( $expected_parent_const ) );
 
 		$this->assertNotNull( $stripe_item );
-		$this->assertSame( 'Stripe', $stripe_item[0] );
+		$this->assertSame( 'Stripe Payouts', $stripe_item[0] );
+		$this->assertSame( $this->get_controller_const( 'CAPABILITY' ), $stripe_item[1] );
+		$this->assertSame( $this->get_controller_const( 'PAYMENTS_MENU_SLUG' ), $stripe_item[2] );
+		$this->assertSame( 'Stripe Payouts', $stripe_item[3] );
 
 		foreach ( array_diff( $registered_parent_consts, [ $expected_parent_const ] ) as $other_parent_const ) {
 			$this->assertNull( $this->find_stripe_submenu_item( $this->get_controller_const( $other_parent_const ) ) );
@@ -135,9 +138,25 @@ class WC_Stripe_Payments_UI_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function provide_active_payments_menus(): array {
 		return [
-			'woocommerce core menu only' => [ [ 'WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG' ], 'WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG' ],
-			'woopayments menu only'      => [ [ 'WOOPAYMENTS_PAYMENTS_MENU_SLUG' ], 'WOOPAYMENTS_PAYMENTS_MENU_SLUG' ],
-			'both menus registered'      => [ [ 'WOOPAYMENTS_PAYMENTS_MENU_SLUG', 'WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG' ], 'WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG' ],
+			'woocommerce core menu only'                                  => [
+				[ 'WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG' ],
+				'WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG',
+			],
+			'woopayments overview menu only'                              => [
+				[ 'WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG' ],
+				'WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG',
+			],
+			'woocommerce core takes precedence over woopayments overview' => [
+				[ 'WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG', 'WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG' ],
+				'WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG',
+			],
+			'woocommerce core takes precedence when all are available'    => [
+				[
+					'WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG',
+					'WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG',
+				],
+				'WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG',
+			],
 		];
 	}
 
@@ -168,20 +187,26 @@ class WC_Stripe_Payments_UI_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function provide_parent_menu_submenu_titles(): array {
 		return [
-			'woocommerce core menu' => [ 'WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG', [ 'Add a provider', 'Stripe' ] ],
-			'woopayments menu'      => [ 'WOOPAYMENTS_PAYMENTS_MENU_SLUG', [ 'Payments', 'Stripe' ] ],
+			'woocommerce core menu'     => [ 'WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG', [ 'Add a provider', 'Stripe Payouts' ] ],
+			'woopayments overview menu' => [ 'WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG', [ 'Payments', 'Stripe Payouts' ] ],
 		];
 	}
 
 	/**
 	 * The relabelled entry must still use the same link and capability as the original.
+	 *
+	 * @dataProvider provide_core_payments_menu_constants
+	 *
+	 * @param string $parent_const Constant name of the Core Payments menu to register.
 	 */
-	public function test_relabelled_core_submenu_item_keeps_its_target_and_capability(): void {
-		$this->register_menu_as_admin();
+	public function test_relabelled_core_submenu_item_keeps_its_target_and_capability( string $parent_const ): void {
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+
+		$core_menu_slug = $this->get_controller_const( $parent_const );
+		$this->register_parent_menus( [ $core_menu_slug ] );
+		( new WC_Stripe_Payments_UI_Controller() )->register_stripe_payments_menu();
 
 		global $submenu;
-		$core_menu_slug = $this->get_controller_const( 'WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG' );
-
 		$provider_items = array_values(
 			array_filter(
 				$submenu[ $core_menu_slug ],
@@ -192,8 +217,17 @@ class WC_Stripe_Payments_UI_Controller_Test extends WP_UnitTestCase {
 		);
 
 		$this->assertCount( 1, $provider_items );
-		$this->assertSame( 'Add a provider', $provider_items[0][0] );
+		$this->assertSame( 'Payments', $provider_items[0][0] );
 		$this->assertSame( 'manage_woocommerce', $provider_items[0][1] );
+	}
+
+	/**
+	 * @return array<string, array{string}>
+	 */
+	public function provide_core_payments_menu_constants(): array {
+		return [
+			'overview menu' => [ 'WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG' ],
+		];
 	}
 
 	public function test_register_menu_does_nothing_without_a_payments_menu(): void {
@@ -225,7 +259,7 @@ class WC_Stripe_Payments_UI_Controller_Test extends WP_UnitTestCase {
 	public function test_register_menu_without_capability_adds_nothing_and_enqueues_nothing(): void {
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'subscriber' ] ) );
 
-		$core_menu_slug = $this->get_controller_const( 'WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG' );
+		$core_menu_slug = $this->get_controller_const( 'WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG' );
 		$this->register_parent_menus( [ $core_menu_slug ] );
 
 		$logged = null;
@@ -301,6 +335,40 @@ class WC_Stripe_Payments_UI_Controller_Test extends WP_UnitTestCase {
 			'woocommerce settings' => [ 'woocommerce_page_wc-settings', false ],
 			'null hook suffix'     => [ null, false ],
 			'empty hook suffix'    => [ '', false ],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_supported_payments_menu_constants
+	 *
+	 * @param string $parent_const Constant name of the Payments menu to register.
+	 */
+	public function test_enqueue_scripts_on_each_supported_payments_menu( string $parent_const ): void {
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+
+		$parent_menu_slug = $this->get_controller_const( $parent_const );
+		$this->register_parent_menus( [ $parent_menu_slug ] );
+
+		$controller = new WC_Stripe_Payments_UI_Controller();
+		$controller->register_stripe_payments_menu();
+		$controller->enqueue_scripts(
+			get_plugin_page_hookname(
+				$this->get_controller_const( 'PAYMENTS_MENU_SLUG' ),
+				$parent_menu_slug
+			)
+		);
+
+		$this->assertTrue( wp_script_is( 'wc-stripe-admin-payments', 'enqueued' ) );
+		$this->assertTrue( wp_style_is( 'wc-stripe-admin-payments', 'enqueued' ) );
+	}
+
+	/**
+	 * @return array<string, array{string}>
+	 */
+	public function provide_supported_payments_menu_constants(): array {
+		return [
+			'overview menu'    => [ 'WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG' ],
+			'woopayments menu' => [ 'WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG' ],
 		];
 	}
 

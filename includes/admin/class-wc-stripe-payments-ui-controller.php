@@ -18,18 +18,27 @@ final class WC_Stripe_Payments_UI_Controller {
 	private const PAYMENTS_MENU_SLUG = 'wc-stripe-payments';
 
 	/**
-	 * The slug of the Payments menu added by WooPayments.
-	 *
-	 * @var string
-	 */
-	private const WOOPAYMENTS_PAYMENTS_MENU_SLUG = 'wc-payments';
-
-	/**
 	 * The slug of the Payments menu added by WooCommerce Core.
 	 *
 	 * @var string
 	 */
 	private const WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG = 'admin.php?page=wc-settings&tab=checkout&from=PAYMENTS_MENU_ITEM';
+
+	/**
+	 * The slug of the Payments menu added by WooPayments.
+	 *
+	 * @var string
+	 */
+	private const WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG = 'wc-admin&path=/payments/overview';
+
+	/**
+	 * 'Add a provider' submenu position in the Payments menu.
+	 *
+	 * The top-level Payments link opens whichever submenu item is first, and that must stay the provider list.
+	 *
+	 * @var int
+	 */
+	private const ADD_PROVIDER_SUBMENU_POSITION = 0;
 
 	/**
 	 * Capability required to view the page.
@@ -70,8 +79,8 @@ final class WC_Stripe_Payments_UI_Controller {
 
 		$admin_page_hook = add_submenu_page(
 			$payments_menu_slug,
-			'Stripe',
-			'Stripe',
+			__( 'Stripe Payouts', 'woocommerce-gateway-stripe' ),
+			__( 'Stripe Payouts', 'woocommerce-gateway-stripe' ),
 			self::CAPABILITY,
 			self::PAYMENTS_MENU_SLUG,
 			[ $this, 'render_page' ]
@@ -81,8 +90,8 @@ final class WC_Stripe_Payments_UI_Controller {
 			$this->admin_page_hook = $admin_page_hook;
 
 			// Only try to override the submenu if we successfully added our own submenu.
-			if ( self::WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG === $payments_menu_slug ) {
-				$this->shift_and_rename_payments_payments_submenu_item();
+			if ( self::WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG !== $payments_menu_slug ) {
+				$this->shift_and_rename_payments_payments_submenu_item( $payments_menu_slug );
 			}
 		}
 	}
@@ -100,10 +109,10 @@ final class WC_Stripe_Payments_UI_Controller {
 			return self::WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG;
 		}
 
-		$woo_payments_menu_url = menu_page_url( self::WOOPAYMENTS_PAYMENTS_MENU_SLUG, false );
+		$woo_payments_menu_url = menu_page_url( self::WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG, false );
 
 		if ( '' !== $woo_payments_menu_url ) {
-			return self::WOOPAYMENTS_PAYMENTS_MENU_SLUG;
+			return self::WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG;
 		}
 
 		return null;
@@ -111,9 +120,13 @@ final class WC_Stripe_Payments_UI_Controller {
 
 	/**
 	 * Helper method to remove and re-insert the Payments -> Payments submenu item.
+	 *
+	 * @param string $payments_menu_slug Payments menu slug.
+	 *
+	 * @return void
 	 */
-	private function shift_and_rename_payments_payments_submenu_item(): void {
-		$payments_payments_submenu_item = remove_submenu_page( self::WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG, self::WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG );
+	private function shift_and_rename_payments_payments_submenu_item( string $payments_menu_slug ): void {
+		$payments_payments_submenu_item = remove_submenu_page( $payments_menu_slug, $payments_menu_slug );
 
 		if ( false === $payments_payments_submenu_item ) {
 			return;
@@ -123,14 +136,13 @@ final class WC_Stripe_Payments_UI_Controller {
 			$capability = $payments_payments_submenu_item[1];
 
 			add_submenu_page(
-				self::WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG,
+				$payments_menu_slug,
 				__( 'Add a provider', 'woocommerce-gateway-stripe' ),
 				__( 'Add a provider', 'woocommerce-gateway-stripe' ),
 				$capability,
-				self::WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG,
+				$payments_menu_slug,
 				'',
-				// The top-level Payments link opens whichever submenu item is first, and that must stay the provider list.
-				0
+				self::ADD_PROVIDER_SUBMENU_POSITION
 			);
 		} catch ( Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
 		}
