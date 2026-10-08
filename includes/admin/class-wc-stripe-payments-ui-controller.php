@@ -125,7 +125,7 @@ final class WC_Stripe_Payments_UI_Controller {
 	 *
 	 * @return void
 	 */
-	private function shift_and_rename_payments_payments_submenu_item( $payments_menu_slug ): void {
+	private function shift_and_rename_payments_payments_submenu_item( string $payments_menu_slug ): void {
 		$payments_payments_submenu_item = remove_submenu_page( $payments_menu_slug, $payments_menu_slug );
 
 		if ( false === $payments_payments_submenu_item ) {
