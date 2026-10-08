@@ -237,7 +237,7 @@ add_action(
 	}
 );
 
-// Temporary debug: dump events Stripe has not delivered successfully. Visit any front-end URL with ?check-failed-webhooks as an admin.
+// Temporary debug: queue events Stripe has not delivered successfully. Visit any front-end URL with ?check-failed-webhooks as an admin.
 add_action(
 	'template_redirect',
 	function () {
@@ -245,160 +245,23 @@ add_action(
 			return;
 		}
 
-		$cursor_option  = 'wc_stripe_events_cursor_' . ( WC_Stripe_Mode::is_test() ? 'test' : 'live' );
-		$cursor         = (int) get_option( $cursor_option, 0 );
-		$max_created    = $cursor;
-		$starting_after = '';
-		$results        = [];
+		$reconciler = new WC_Stripe_Event_Reconciler();
+		$summary    = $reconciler->queue_undelivered_events();
+		$reconciler->schedule_processing();
 
-		do {
-			$query = [
-				'delivery_success' => 'false',
-				'limit'            => 100,
-			];
-			// gte, not gt: other events may share the cursor's second. Already-recorded ones are skipped below.
-			if ( $cursor ) {
-				$query['created[gte]'] = $cursor;
-			}
-			if ( $starting_after ) {
-				$query['starting_after'] = $starting_after;
-			}
+		$format_time = static function ( $timestamp ) {
+			return $timestamp ? gmdate( 'Y-m-d H:i:s', $timestamp ) : null;
+		};
 
-			$response = WC_Stripe_API::retrieve( 'events?' . http_build_query( $query ) );
-			if ( ! is_object( $response ) || ! empty( $response->error ) ) {
-				// Leave the cursor alone so the next run covers this window again.
-				$max_created = $cursor;
-				break;
-			}
-
-			$events = $response->data ?? [];
-			if ( ! $events ) {
-				break;
-			}
-
-			$records = wc_stripe_get_event_store()->get( wp_list_pluck( $events, 'id' ) );
-
-			foreach ( $events as $event ) {
-				$record        = $records[ $event->id ] ?? null;
-				$status_before = $record ? $record->status : null;
-
-				if ( ! $record ) {
-					wc_stripe_get_event_store()->save( WC_Stripe_Event_Record::from_stripe_event( $event, WC_Stripe_Event_Store_Interface::STATUS_PENDING ) );
-					$result = 'queued';
-				} elseif ( WC_Stripe_Event_Store_Interface::STATUS_FAILED === $record->status ) {
-					$record->status = WC_Stripe_Event_Store_Interface::STATUS_PENDING;
-					wc_stripe_get_event_store()->save( $record );
-					$result = 'queued';
-				} else {
-					$result = 'skipped';
-				}
-
-				$max_created = max( $max_created, (int) $event->created );
-
-				$results[] = [
-					'id'            => $event->id,
-					'type'          => $event->type,
-					'created'       => gmdate( 'Y-m-d H:i:s', $event->created ),
-					'status_before' => $status_before,
-					'result'        => $result,
-				];
-			}
-
-			$starting_after = end( $events )->id;
-		} while ( ! empty( $response->has_more ) );
-
-		if ( $max_created > $cursor ) {
-			update_option( $cursor_option, $max_created, false );
+		$summary['cursor_before'] = $format_time( $summary['cursor_before'] );
+		$summary['cursor_after']  = $format_time( $summary['cursor_after'] );
+		foreach ( $summary['events'] as &$event ) {
+			$event['created'] = $format_time( $event['created'] );
 		}
-
-		wc_stripe_schedule_pending_events();
+		unset( $event );
 
 		header( 'Content-Type: text/json; charset=utf-8' );
-		echo wp_json_encode(
-			[
-				'cursor_before' => $cursor ? gmdate( 'Y-m-d H:i:s', $cursor ) : null,
-				'cursor_after'  => $max_created ? gmdate( 'Y-m-d H:i:s', $max_created ) : null,
-				'events'        => $results,
-			],
-			JSON_PRETTY_PRINT
-		);
+		echo wp_json_encode( $summary, JSON_PRETTY_PRINT );
 		exit;
 	}
-);
-
-function wc_stripe_schedule_pending_events(): void {
-	if ( ! as_has_scheduled_action( 'wc_stripe_process_pending_events', [], 'woocommerce-gateway-stripe' ) ) {
-		as_enqueue_async_action( 'wc_stripe_process_pending_events', [], 'woocommerce-gateway-stripe' );
-	}
-}
-
-add_action(
-	'wc_stripe_process_pending_events',
-	function () {
-		$records = wc_stripe_get_event_store()->get_by_status( WC_Stripe_Event_Store_Interface::STATUS_PENDING, 5 );
-
-		if ( ! $records ) {
-			return;
-		}
-
-		$handler = new WC_Stripe_Webhook_Handler();
-
-		foreach ( $records as $record ) {
-			$event = WC_Stripe_API::retrieve( 'events/' . $record->id );
-
-			if ( ! is_object( $event ) || ! empty( $event->error ) || empty( $event->id ) ) {
-				$record->status = WC_Stripe_Event_Store_Interface::STATUS_FAILED;
-				wc_stripe_get_event_store()->save( $record );
-				continue;
-			}
-
-			try {
-				$handler->process_webhook( wp_json_encode( $event ) );
-			} catch ( Throwable $e ) {
-				wc_stripe_record_event( $event, WC_Stripe_Event_Store_Interface::STATUS_FAILED );
-			}
-		}
-
-		// The current action is still marked in-progress, so as_has_scheduled_action() would block the next batch.
-		as_enqueue_async_action( 'wc_stripe_process_pending_events', [], 'woocommerce-gateway-stripe' );
-	}
-);
-
-function wc_stripe_get_event_store(): WC_Stripe_Event_Store_Interface {
-	return WC_Stripe_Event_Post_Store::get_instance();
-}
-
-function wc_stripe_record_event( $notification, string $status, $order = null ): void {
-	$event_id = $notification->id ?? '';
-	if ( ! is_string( $event_id ) || '' === $event_id ) {
-		return;
-	}
-
-	$store  = wc_stripe_get_event_store();
-	$record = $store->get( [ $event_id ] )[ $event_id ] ?? WC_Stripe_Event_Record::from_stripe_event( $notification, $status );
-
-	$record->status = $status;
-	if ( $order instanceof WC_Order ) {
-		$record->order_id = $order->get_id();
-	}
-
-	$store->save( $record );
-}
-
-add_action(
-	'wc_stripe_before_process_webhook',
-	function ( $webhook_type, $notification ) {
-		wc_stripe_record_event( $notification, WC_Stripe_Event_Store_Interface::STATUS_PROCESSING );
-	},
-	10,
-	2
-);
-
-add_action(
-	'wc_stripe_webhook_received',
-	function ( $webhook_type, $notification, $order ) {
-		wc_stripe_record_event( $notification, WC_Stripe_Event_Store_Interface::STATUS_PROCESSED, $order );
-	},
-	10,
-	3
 );

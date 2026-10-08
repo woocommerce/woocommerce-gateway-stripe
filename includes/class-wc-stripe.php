@@ -179,6 +179,7 @@ class WC_Stripe {
 		if ( self::$instance === $this ) {
 			( new WC_Stripe_Webhook_Handler() )->register_hooks();
 			WC_Stripe_Event_Post_Store::get_instance()->init();
+			( new WC_Stripe_Event_Reconciler() )->init();
 		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-apple-pay-registration.php';
