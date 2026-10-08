@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1072bd545e743c5d2f9510d772365a15",
+    "content-hash": "11b9456917d74bf761fcc706267f5780",
     "packages": [],
     "packages-dev": [
         {
@@ -445,16 +445,16 @@
         },
         {
             "name": "wp-hooks/generator",
-            "version": "1.0.2",
+            "version": "dev-try/add-support-for-deprecated-actions-and-filters",
             "source": {
                 "type": "git",
-                "url": "https://github.com/wp-hooks/generator.git",
-                "reference": "616dad61a9c50ba27d047035dcc5e8b4a1515d80"
+                "url": "https://github.com/daledupreez/wp-hooks-generator.git",
+                "reference": "3405335054130e575078d947d6663a5764876a07"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/wp-hooks/generator/zipball/616dad61a9c50ba27d047035dcc5e8b4a1515d80",
-                "reference": "616dad61a9c50ba27d047035dcc5e8b4a1515d80",
+                "url": "https://api.github.com/repos/daledupreez/wp-hooks-generator/zipball/3405335054130e575078d947d6663a5764876a07",
+                "reference": "3405335054130e575078d947d6663a5764876a07",
                 "shasum": ""
             },
             "require": {
@@ -475,7 +475,6 @@
                 "bin/wp-hooks-generator"
             ],
             "type": "library",
-            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "GPL-3.0-or-later"
             ],
@@ -487,21 +486,22 @@
             ],
             "description": "Generates a JSON representation of the WordPress actions and filters in your code",
             "support": {
-                "issues": "https://github.com/wp-hooks/generator/issues",
-                "source": "https://github.com/wp-hooks/generator/tree/1.0.2"
+                "source": "https://github.com/daledupreez/wp-hooks-generator/tree/try/add-support-for-deprecated-actions-and-filters"
             },
             "funding": [
                 {
-                    "url": "https://github.com/sponsors/johnbillion",
-                    "type": "github"
+                    "type": "github",
+                    "url": "https://github.com/sponsors/johnbillion"
                 }
             ],
-            "time": "2026-05-22T10:32:18+00:00"
+            "time": "2026-08-04T19:26:38+00:00"
         }
     ],
     "aliases": [],
     "minimum-stability": "beta",
-    "stability-flags": {},
+    "stability-flags": {
+        "wp-hooks/generator": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {},
