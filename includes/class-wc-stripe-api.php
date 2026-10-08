@@ -326,8 +326,8 @@ class WC_Stripe_API {
 			self::log_error_response( $response, $api, $method, $error_data );
 
 			throw new WC_Stripe_Exception(
-				print_r( $response, true ),
-				__( 'The Stripe API is temporarily unavailable. Please try again in a few minutes.', 'woocommerce-gateway-stripe' )
+				print_r( $response, true ), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+				__( 'The Stripe API is temporarily unavailable. Please try again in a few minutes.', 'woocommerce-gateway-stripe' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			);
 		}
 
@@ -342,7 +342,7 @@ class WC_Stripe_API {
 			];
 			self::log_error_response( $response, $api, $method, $error_data );
 
-			throw new WC_Stripe_Exception( print_r( $response, true ), __( 'There was a problem sending a request to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
+			throw new WC_Stripe_Exception( print_r( $response, true ), __( 'There was a problem sending a request to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		$response_body = json_decode( $response_body_raw );

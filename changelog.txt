@@ -2,6 +2,9 @@
 
 xxxx-xx-xx - version 11.1.0
 * Add - Add an admin REST API endpoint for retrieving Stripe payment intents
+* Add - Automatically configure test-mode when onboarding to a live account
+* Fix - Show BLIK and ACSS payment methods at checkout when Optimized Checkout Suite is enabled
+* Fix - Prevent non-card payment methods from failing under Optimized Checkout with Dynamic Payment Methods when the store has a statement descriptor set
 * Fix - Return an error response when a Payment Method Configuration update fails in settings, so the frontend correctly displays an error instead of a false success notice
 * Update - Show the specific Stripe error reason in the settings save notice when a Payment Method Configuration update is rejected
 * Fix - Show the correct guidance when a subscription renewal fails because its Stripe mandate is invalid
@@ -41,6 +44,14 @@ xxxx-xx-xx - version 11.1.0
 * Fix - Stop refusing express checkout orders over required classic custom checkout fields on stores whose checkout page uses the checkout block and cannot render them
 * Dev - Make e2e tests runnable from Quality Insights Toolkit (QIT)
 * Update - Link the WooCommerce POS page from the in-person payments description in the readme
+* Fix - Ensure the current Payment Method Configuration is specified for Optimized Checkout Suite and Adaptive Pricing
+* Fix - Allow Klarna purchases for Puerto Rico shoppers, and refine billing country availability logic
+* Update - Reduce the size of the Stripe settings JS bundles by loading only the Gridicons they use
+* Dev - Update PHPCS rules and improve alignment with WordPress plugin rules
+* Fix - Remove the duplicated period in the webhook status message when webhooks are pending
+
+2026-10-05 - version 11.0.1
+* Fix - Prevent non-card payment methods from failing under Optimized Checkout with Dynamic Payment Methods when the store has a statement descriptor set
 
 2026-09-08 - version 11.0.0
 * Fix - Allow express checkout payments when a wallet provides a one-word shipping name
