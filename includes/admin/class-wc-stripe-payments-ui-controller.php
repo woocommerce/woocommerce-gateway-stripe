@@ -103,16 +103,16 @@ final class WC_Stripe_Payments_UI_Controller {
 	 * @return string|null
 	 */
 	private function get_payments_menu_slug(): ?string {
-		$woo_payments_menu_url = menu_page_url( self::WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG, false );
-
-		if ( '' !== $woo_payments_menu_url ) {
-			return self::WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG;
-		}
-
 		$woo_core_payments_menu_url = menu_page_url( self::WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG, false );
 
 		if ( '' !== $woo_core_payments_menu_url ) {
 			return self::WOOCOMMERCE_CORE_PAYMENTS_MENU_SLUG;
+		}
+
+		$woo_payments_menu_url = menu_page_url( self::WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG, false );
+
+		if ( '' !== $woo_payments_menu_url ) {
+			return self::WOOPAYMENTS_PAYMENTS_OVERVIEW_MENU_SLUG;
 		}
 
 		return null;
