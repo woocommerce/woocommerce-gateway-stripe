@@ -1,0 +1,281 @@
+{
+    "object": "list",
+    "data": [
+        {
+            "id": "pi_test",
+            "object": "payment_intent",
+            "allowed_payment_method_types": null,
+            "amount": 3789,
+            "amount_capturable": 0,
+            "amount_details": {
+                "tip": {}
+            },
+            "amount_received": 3789,
+            "application": "ca_test",
+            "application_fee_amount": null,
+            "automatic_payment_methods": null,
+            "canceled_at": null,
+            "cancellation_reason": null,
+            "capture_method": "automatic",
+            "client_secret": "pi_test",
+            "confirmation_method": "automatic",
+            "created": 1757406094,
+            "currency": "usd",
+            "customer": "cus_test",
+            "customer_account": null,
+            "description": "Test WP (6.7) - Order 517",
+            "excluded_payment_method_types": null,
+            "last_payment_error": null,
+            "latest_charge": {
+                "id": "ch_test",
+                "object": "charge",
+                "amount": 3789,
+                "amount_captured": 3789,
+                "amount_refunded": 0,
+                "application": "ca_abcXYZ",
+                "application_fee": null,
+                "application_fee_amount": null,
+                "balance_transaction": {
+                    "id": "txn_test",
+                    "object": "balance_transaction",
+                    "amount": 3789,
+                    "available_on": 1757980800,
+                    "balance_type": "payments",
+                    "created": 1757406094,
+                    "currency": "usd",
+                    "description": "Test WP (6.7) - Order 517",
+                    "exchange_rate": null,
+                    "fee": 153,
+                    "fee_details": [
+                        {
+                            "amount": 153,
+                            "application": null,
+                            "currency": "usd",
+                            "description": "Stripe processing fees",
+                            "type": "stripe_fee"
+                        }
+                    ],
+                    "net": 3636,
+                    "reporting_category": "charge",
+                    "source": "ch_test",
+                    "status": "available",
+                    "type": "charge"
+                },
+                "billing_details": {
+                    "address": {
+                        "city": "US City",
+                        "country": "US",
+                        "line1": "123 A Blvd",
+                        "line2": null,
+                        "postal_code": "10101",
+                        "state": "TX"
+                    },
+                    "email": "john.doe@email.com",
+                    "name": "J D",
+                    "phone": "512000",
+                    "tax_id": null
+                },
+                "calculated_statement_descriptor": "WERDE",
+                "captured": true,
+                "created": 1757406094,
+                "currency": "usd",
+                "customer": "cus_test",
+                "description": "Test WP (6.7) - Order 517",
+                "destination": null,
+                "dispute": null,
+                "disputed": false,
+                "failure_balance_transaction": null,
+                "failure_code": null,
+                "failure_message": null,
+                "fraud_details": {},
+                "level3": {
+                    "line_items": [
+                        {
+                            "discount_amount": 0,
+                            "product_code": "126",
+                            "product_description": "Product #5",
+                            "quantity": 1,
+                            "tax_amount": 206,
+                            "unit_cost": 2500
+                        }
+                    ],
+                    "merchant_reference": "test",
+                    "shipping_address_zip": "700",
+                    "shipping_amount": 1083
+                },
+                "livemode": false,
+                "metadata": {
+                    "customer_email": "john.doe@email.com",
+                    "customer_name": "J D",
+                    "order_id": "517",
+                    "order_key": "wc_order_test",
+                    "payment_type": "single",
+                    "signature": "517:test",
+                    "site_url": "http://host",
+                    "tax_amount": "289"
+                },
+                "on_behalf_of": null,
+                "order": null,
+                "outcome": {
+                    "advice_code": null,
+                    "network_advice_code": null,
+                    "network_decline_code": null,
+                    "network_status": "approved_by_network",
+                    "reason": null,
+                    "risk_level": "normal",
+                    "risk_score": 18,
+                    "seller_message": "Payment complete.",
+                    "type": "authorized"
+                },
+                "paid": true,
+                "payment_intent": "pi_test",
+                "payment_method": "pm_test",
+                "payment_method_details": {
+                    "card": {
+                        "amount_authorized": 3789,
+                        "authorization_code": "444444",
+                        "brand": "visa",
+                        "checks": {
+                            "address_line1_check": "pass",
+                            "address_postal_code_check": "pass",
+                            "cvc_check": null
+                        },
+                        "country": "US",
+                        "exp_month": 12,
+                        "exp_year": 2030,
+                        "extended_authorization": {
+                            "status": "disabled"
+                        },
+                        "fingerprint": "test",
+                        "funding": "credit",
+                        "incremental_authorization": {
+                            "status": "unavailable"
+                        },
+                        "installments": null,
+                        "last4": "4242",
+                        "mandate": null,
+                        "multicapture": {
+                            "status": "unavailable"
+                        },
+                        "network": "visa",
+                        "network_token": {
+                            "used": false
+                        },
+                        "network_transaction_id": "777777777777777",
+                        "overcapture": {
+                            "maximum_amount_capturable": 3789,
+                            "status": "unavailable"
+                        },
+                        "regulated_status": "unregulated",
+                        "three_d_secure": null,
+                        "transaction_link_id": null,
+                        "wallet": null
+                    },
+                    "type": "card"
+                },
+                "radar_options": {},
+                "receipt_email": null,
+                "receipt_number": null,
+                "receipt_url": "https://stripelink",
+                "refunded": false,
+                "review": null,
+                "shipping": {
+                    "address": {
+                        "city": "A City",
+                        "country": "US",
+                        "line1": "123 Some Street",
+                        "line2": "",
+                        "postal_code": "88888",
+                        "state": "TX"
+                    },
+                    "carrier": null,
+                    "name": "J D",
+                    "phone": null,
+                    "tracking_number": null
+                },
+                "source": null,
+                "source_transfer": null,
+                "statement_descriptor": null,
+                "statement_descriptor_suffix": null,
+                "status": "succeeded",
+                "transfer_data": null,
+                "transfer_group": null
+            },
+            "level3": {
+                "line_items": [
+                    {
+                        "discount_amount": 0,
+                        "product_code": "126",
+                        "product_description": "Product #5",
+                        "quantity": 1,
+                        "tax_amount": 206,
+                        "unit_cost": 2500
+                    }
+                ],
+                "merchant_reference": "123",
+                "shipping_address_zip": "88888",
+                "shipping_amount": 1083
+            },
+            "livemode": false,
+            "managed_payments": {
+                "enabled": false
+            },
+            "metadata": {
+                "customer_email": "john.doe@email.com",
+                "customer_name": "J D",
+                "order_id": "555",
+                "order_key": "wc_order_test",
+                "payment_type": "single",
+                "signature": "517:test",
+                "site_url": "http://host",
+                "tax_amount": "289"
+            },
+            "next_action": null,
+            "on_behalf_of": null,
+            "payment_method": "pm_test",
+            "payment_method_configuration_details": null,
+            "payment_method_options": {
+                "card": {
+                    "installments": null,
+                    "mandate_options": null,
+                    "network": null,
+                    "request_three_d_secure": "automatic"
+                },
+                "link": {
+                    "persistent_token": null
+                }
+            },
+            "payment_method_types": [
+                "card",
+                "link"
+            ],
+            "processing": null,
+            "receipt_email": null,
+            "review": null,
+            "setup_future_usage": null,
+            "shared_payment_granted_token": null,
+            "shipping": {
+                "address": {
+                    "city": "City",
+                    "country": "US",
+                    "line1": "000 N Blvd",
+                    "line2": "",
+                    "postal_code": "77777",
+                    "state": "TX"
+                },
+                "carrier": null,
+                "name": "J D",
+                "phone": null,
+                "tracking_number": null
+            },
+            "source": null,
+            "statement_descriptor": null,
+            "statement_descriptor_suffix": null,
+            "status": "succeeded",
+            "transfer_data": null,
+            "transfer_group": null
+        }
+    ],
+    "has_more": false,
+    "url": "/v1/payment_intents"
+}
