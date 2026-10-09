@@ -589,27 +589,69 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test webhook reconfiguration on update with no existing webhooks.
+	 * With no endpoint at the site URL and no manual secret, the plugin recreates the webhook
+	 * so a deleted or never-created endpoint self-heals.
 	 */
-	public function test_reconfigure_webhooks_on_update_no_existing_webhooks() {
-		// Mock that no existing webhook is found
+	public function test_reconfigure_webhooks_recreates_when_no_existing_webhook() {
 		$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
 			->setConstructorArgs( [ $this->mock_connect, WC_Helper_Stripe_Api::class ] )
-			->onlyMethods( [ 'get_existing_webhook' ] )
+			->onlyMethods( [ 'get_existing_webhook', 'configure_webhooks' ] )
 			->getMock();
 		$this->account->method( 'get_existing_webhook' )->willReturn( false );
+		$this->account->expects( $this->once() )->method( 'configure_webhooks' )->with( 'test' );
 
-		// Set up expectations that no webhook configuration will be attempted
-		WC_Helper_Stripe_Api::$expected_request_call_params = [];
-
-		// Run the update
 		$this->account->maybe_reconfigure_webhooks_on_update();
+	}
 
-		// Verify no webhook configuration was attempted
-		$this->assertEmpty(
-			WC_Helper_Stripe_Api::$expected_request_call_params,
-			'Should not configure webhooks when no existing webhooks found'
-		);
+	/**
+	 * No endpoint at the site URL but a manually managed secret: do not recreate, so the
+	 * merchant's own webhook management is left alone.
+	 */
+	public function test_reconfigure_webhooks_does_not_recreate_when_secret_is_manual() {
+		$settings                        = WC_Stripe_Helper::get_stripe_settings();
+		$settings['test_webhook_secret'] = 'whsec_manual';
+		$settings['test_webhook_data']   = [];
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->setConstructorArgs( [ $this->mock_connect, WC_Helper_Stripe_Api::class ] )
+			->onlyMethods( [ 'get_existing_webhook', 'configure_webhooks' ] )
+			->getMock();
+		$this->account->method( 'get_existing_webhook' )->willReturn( false );
+		$this->account->expects( $this->never() )->method( 'configure_webhooks' );
+
+		$this->account->maybe_reconfigure_webhooks_on_update();
+	}
+
+	/**
+	 * The stored endpoint still exists but belongs to another site (a staging clone keeps
+	 * production's stored ID): do not recreate, or we would register this URL in that account.
+	 */
+	public function test_reconfigure_webhooks_does_not_recreate_for_a_foreign_stored_endpoint() {
+		$settings                        = WC_Stripe_Helper::get_stripe_settings();
+		$settings['test_webhook_secret'] = 'whsec_auto';
+		$settings['test_webhook_data']   = [
+			'id'             => 'we_prod',
+			'secret'         => 'sk_test_key',
+			'signing_secret' => 'whsec_auto',
+		];
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$foreign_endpoint = (object) [
+			'id'  => 'we_prod',
+			'url' => 'https://another-site.example/?wc-api=wc_stripe',
+		];
+
+		$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->setConstructorArgs( [ $this->mock_connect, WC_Helper_Stripe_Api::class ] )
+			->onlyMethods( [ 'get_existing_webhook', 'configure_webhooks', 'webhook_endpoint_exists', 'get_webhook_endpoint_by_id' ] )
+			->getMock();
+		$this->account->method( 'get_existing_webhook' )->willReturn( false );
+		$this->account->method( 'webhook_endpoint_exists' )->willReturn( true );
+		$this->account->method( 'get_webhook_endpoint_by_id' )->willReturn( $foreign_endpoint );
+		$this->account->expects( $this->never() )->method( 'configure_webhooks' );
+
+		$this->account->maybe_reconfigure_webhooks_on_update();
 	}
 
 	/**

@@ -738,22 +738,47 @@ class WC_Stripe_Account {
 				// merchant's manual endpoint sharing that URL. Compare events/version against the
 				// plugin's own recorded endpoint when it still exists, so an outdated plugin endpoint
 				// isn't skipped just because a merchant endpoint at the same URL is up to date.
+				$stored_endpoint_is_foreign = false;
 				if (
 					'' !== $stored_webhook_id
 					&& ( ! $existing_webhook || ( $existing_webhook->id ?? '' ) !== $stored_webhook_id )
 				) {
 					$stored_endpoint = $this->get_webhook_endpoint_by_id( $stored_webhook_id );
-					// A staging clone keeps production's stored ID; its endpoint belongs to another site.
-					if (
-						false !== $stored_endpoint
-						&& isset( $stored_endpoint->url )
-						&& WC_Stripe_Helper::is_webhook_url( $stored_endpoint->url )
-					) {
-						$existing_webhook = $stored_endpoint;
+					if ( false !== $stored_endpoint && isset( $stored_endpoint->url ) ) {
+						if ( WC_Stripe_Helper::is_webhook_url( $stored_endpoint->url ) ) {
+							// The plugin's own endpoint still exists at this site's URL.
+							$existing_webhook = $stored_endpoint;
+						} else {
+							// A staging clone keeps production's stored ID; its endpoint belongs to
+							// another site, so recreating here would register this URL in that account.
+							$stored_endpoint_is_foreign = true;
+						}
 					}
 				}
 
+				// A secret the plugin didn't write was set manually; reconfiguring or recreating
+				// would silently replace it and break the merchant's endpoint, so notify instead.
+				// Legacy webhook_data without signing_secret keeps the pre-existing behavior.
+				$secret_is_manual = '' !== $stored_secret && (
+					'' === $stored_webhook_id
+					|| ( isset( $webhook_data['signing_secret'] ) && $webhook_data['signing_secret'] !== $stored_secret )
+				);
+
 				if ( ! $existing_webhook ) {
+					// No endpoint points at this site. Recreate the plugin's webhook so a deleted
+					// or never-created endpoint self-heals. Skip when the merchant manages the
+					// secret manually, or when the stored endpoint belongs to another site (a
+					// staging clone), where recreating would register this URL in that account.
+					if ( $secret_is_manual || $stored_endpoint_is_foreign ) {
+						continue;
+					}
+
+					// Flag the notice defensively, then recreate. configure_webhooks() clears it on
+					// success; if recreation fails it propagates to the catch below and the notice
+					// stays, so it only surfaces when we could not fix it automatically.
+					update_option( self::get_webhook_missing_notice_option( $mode ), 'yes' );
+					$this->configure_webhooks( $mode );
+					WC_Stripe_Logger::info( "Recreated the missing webhook for {$mode} mode after {$update_type} update." );
 					continue;
 				}
 
@@ -764,14 +789,6 @@ class WC_Stripe_Account {
 				) {
 					continue;
 				}
-
-				// A secret the plugin didn't write was set manually; reconfiguring would silently
-				// replace it and break the merchant's endpoint, so notify instead. Legacy
-				// webhook_data without signing_secret keeps the pre-existing behavior.
-				$secret_is_manual = '' !== $stored_secret && (
-					'' === $stored_webhook_id
-					|| ( isset( $webhook_data['signing_secret'] ) && $webhook_data['signing_secret'] !== $stored_secret )
-				);
 
 				if ( $secret_is_manual ) {
 					update_option( self::get_webhook_manual_secret_notice_option( $mode ), 'yes' );
