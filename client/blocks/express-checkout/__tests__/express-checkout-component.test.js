@@ -1,4 +1,4 @@
-import { act, render } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { ExpressCheckoutElement } from '@stripe/react-stripe-js';
 import ExpressCheckoutComponent from '../express-checkout-component';
 import { useExpressCheckout } from '../hooks';
@@ -146,7 +146,7 @@ describe( 'ExpressCheckoutComponent height clamping', () => {
 } );
 
 describe( 'ExpressCheckoutComponent availability', () => {
-	const renderInBlockSlot = () => {
+	const renderInBlockSlot = ( onAvailabilityChange ) => {
 		useExpressCheckout.mockReturnValue( {
 			buttonOptions: { buttonHeight: 48, buttonTheme: {} },
 			onButtonClick: jest.fn(),
@@ -161,45 +161,45 @@ describe( 'ExpressCheckoutComponent availability', () => {
 		list.appendChild( slot );
 		document.body.appendChild( list );
 
-		const { container } = render(
+		render(
 			<ExpressCheckoutComponent
 				{ ...componentProps }
 				expressPaymentMethod={
 					EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY
 				}
+				onAvailabilityChange={ onAvailabilityChange }
 			/>,
 			{ container: slot }
 		);
 
-		return { list, slot, wrapper: container.firstChild };
+		return { list, slot };
 	};
 
 	const fireReady = ( availablePaymentMethods ) =>
-		act( () => {
-			ExpressCheckoutElement.mock.lastCall[ 0 ].onReady( {
-				availablePaymentMethods,
-			} );
+		ExpressCheckoutElement.mock.lastCall[ 0 ].onReady( {
+			availablePaymentMethods,
 		} );
 
 	afterEach( () => {
 		document.body.innerHTML = '';
 	} );
 
-	it( 'hides itself without removing the block slot when the wallet is unavailable', () => {
-		const { list, slot, wrapper } = renderInBlockSlot();
+	it( 'reports an unavailable wallet without removing the block slot', () => {
+		const onAvailabilityChange = jest.fn();
+		const { list, slot } = renderInBlockSlot( onAvailabilityChange );
 
 		fireReady( { applePay: false } );
 
-		expect( wrapper.hidden ).toBe( true );
+		expect( onAvailabilityChange ).toHaveBeenLastCalledWith( false );
 		expect( list.contains( slot ) ).toBe( true );
 	} );
 
-	it( 'shows itself again when the wallet becomes available', () => {
-		const { wrapper } = renderInBlockSlot();
+	it( 'reports an available wallet', () => {
+		const onAvailabilityChange = jest.fn();
+		renderInBlockSlot( onAvailabilityChange );
 
-		fireReady( { applePay: false } );
 		fireReady( { applePay: true } );
 
-		expect( wrapper.hidden ).toBe( false );
+		expect( onAvailabilityChange ).toHaveBeenLastCalledWith( true );
 	} );
 } );

@@ -1,6 +1,6 @@
 import { ExpressCheckoutElement } from '@stripe/react-stripe-js';
 import { useExpressCheckout } from './hooks';
-import { useCallback, useMemo, useState } from '@wordpress/element';
+import { useCallback, useMemo } from '@wordpress/element';
 import {
 	shippingAddressChangeHandler,
 	shippingRateChangeHandler,
@@ -62,6 +62,7 @@ const ExpressCheckoutComponent = ( {
 	onClick,
 	onClose,
 	expressPaymentMethod = '',
+	onAvailabilityChange,
 } ) => {
 	const { buttonOptions, onButtonClick, onConfirm, onCancel, elements } =
 		useExpressCheckout( {
@@ -74,8 +75,6 @@ const ExpressCheckoutComponent = ( {
 			expressPaymentMethod,
 		} );
 
-	const [ isUnavailable, setIsUnavailable ] = useState( false );
-
 	const onShippingAddressChange = useCallback(
 		( event ) => shippingAddressChangeHandler( event, elements ),
 		[ elements ]
@@ -87,13 +86,13 @@ const ExpressCheckoutComponent = ( {
 	);
 
 	const onElementsReady = useCallback(
-		// Hide our own element rather than removing the block's slot: the block
-		// keeps it mounted across cart updates, so a removed slot never returns.
+		// Let the container hide itself rather than removing the block's slot: the
+		// block keeps it mounted across cart updates, so a removed slot never returns.
 		( event ) =>
-			setIsUnavailable(
-				! event.availablePaymentMethods?.[ expressPaymentMethod ]
+			onAvailabilityChange(
+				!! event.availablePaymentMethods?.[ expressPaymentMethod ]
 			),
-		[ expressPaymentMethod ]
+		[ expressPaymentMethod, onAvailabilityChange ]
 	);
 
 	// Stable across cart ticks; only rebuilds when styling or method changes.
@@ -106,17 +105,15 @@ const ExpressCheckoutComponent = ( {
 	);
 
 	return (
-		<div className="wc-stripe-ece-slot" hidden={ isUnavailable }>
-			<ExpressCheckoutElement
-				options={ elementOptions }
-				onClick={ onButtonClick }
-				onConfirm={ onConfirm }
-				onReady={ onElementsReady }
-				onCancel={ onCancel }
-				onShippingAddressChange={ onShippingAddressChange }
-				onShippingRateChange={ onShippingRateChange }
-			/>
-		</div>
+		<ExpressCheckoutElement
+			options={ elementOptions }
+			onClick={ onButtonClick }
+			onConfirm={ onConfirm }
+			onReady={ onElementsReady }
+			onCancel={ onCancel }
+			onShippingAddressChange={ onShippingAddressChange }
+			onShippingRateChange={ onShippingRateChange }
+		/>
 	);
 };
 
