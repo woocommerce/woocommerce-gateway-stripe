@@ -31,6 +31,10 @@ class WC_Stripe_Event_Debug_Tools {
 	 * Registers the hooks.
 	 */
 	public function init(): void {
+		if ( ! WC_Stripe_Feature_Flags::is_event_reconciliation_enabled() ) {
+			return;
+		}
+
 		add_filter( 'woocommerce_debug_tools', [ $this, 'add_tools' ] );
 	}
 

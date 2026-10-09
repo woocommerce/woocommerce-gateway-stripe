@@ -72,17 +72,27 @@ class WC_Stripe_Event_Reconciler {
 	 * Registers the hooks.
 	 */
 	public function init(): void {
-		add_action( 'wc_stripe_webhook_received', [ $this, 'mark_processed' ], 10, 3 );
+		// Registered even when the feature is disabled: Action Scheduler fails actions that have no callback,
+		// so jobs queued before the feature was disabled need one to stop themselves.
 		add_action( self::PROCESS_ACTION, [ $this, 'process_pending_events' ] );
 		add_action( self::RECONCILE_ACTION, [ $this, 'reconcile' ], 10, 0 );
 		add_action( self::CLEANUP_ACTION, [ $this, 'delete_expired_events' ], 10, 0 );
-		add_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ $this, 'maybe_schedule_reconciliation' ], 10, 0 );
+
+		if ( WC_Stripe_Feature_Flags::is_event_reconciliation_enabled() ) {
+			add_action( 'wc_stripe_webhook_received', [ $this, 'mark_processed' ], 10, 3 );
+			add_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ $this, 'maybe_schedule_reconciliation' ], 10, 0 );
+		}
 	}
 
 	/**
 	 * Schedules the deletion of expired records, then queues undelivered events and schedules their processing.
 	 */
 	public function reconcile(): void {
+		if ( ! WC_Stripe_Feature_Flags::is_event_reconciliation_enabled() ) {
+			self::unschedule();
+			return;
+		}
+
 		$this->schedule_cleanup();
 		$this->queue_undelivered_events();
 		$this->schedule_processing();
@@ -96,7 +106,7 @@ class WC_Stripe_Event_Reconciler {
 			return;
 		}
 
-		if ( as_has_scheduled_action( self::RECONCILE_ACTION, [], self::ACTION_GROUP ) ) {
+		if ( ! WC_Stripe_Feature_Flags::is_event_reconciliation_enabled() || as_has_scheduled_action( self::RECONCILE_ACTION, [], self::ACTION_GROUP ) ) {
 			return;
 		}
 
@@ -232,6 +242,10 @@ class WC_Stripe_Event_Reconciler {
 	 * Deletes a batch of expired records, and schedules the next batch while there may be more.
 	 */
 	public function delete_expired_events(): void {
+		if ( ! WC_Stripe_Feature_Flags::is_event_reconciliation_enabled() ) {
+			return;
+		}
+
 		$deleted = $this->store->delete_older_than( time() - self::RETENTION_PERIOD, self::PAGE_SIZE );
 
 		// A full batch may have left more behind. Enqueued unconditionally, as in process_pending_events().
@@ -253,6 +267,10 @@ class WC_Stripe_Event_Reconciler {
 	 * Processes a batch of pending events, then schedules the next batch.
 	 */
 	public function process_pending_events(): void {
+		if ( ! WC_Stripe_Feature_Flags::is_event_reconciliation_enabled() ) {
+			return;
+		}
+
 		$records = $this->store->get_by_status( WC_Stripe_Event_Store_Interface::STATUS_PENDING, ! WC_Stripe_Mode::is_test(), self::BATCH_SIZE );
 
 		if ( ! $records ) {
@@ -296,9 +314,9 @@ class WC_Stripe_Event_Reconciler {
 	 * @return string One of the CLAIM_* constants.
 	 */
 	public function claim( $notification ): string {
-		// Events without an ID cannot be tracked, so they are processed as before.
+		// Events without an ID cannot be tracked, so they are processed as before. The same goes for every event while the feature is disabled.
 		$event_id = $this->get_event_id( $notification );
-		if ( null === $event_id ) {
+		if ( null === $event_id || ! WC_Stripe_Feature_Flags::is_event_reconciliation_enabled() ) {
 			return self::CLAIM_ACQUIRED;
 		}
 
