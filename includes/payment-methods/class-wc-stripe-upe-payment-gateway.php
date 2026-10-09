@@ -1,5 +1,6 @@
 <?php
 
+use Automattic\WooCommerce\Caches\OrderCache;
 use Automattic\WooCommerce\Enums\OrderStatus;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -2610,12 +2611,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		if ( $locked ) {
 			WC_Stripe_Logger::info( "Skip processing checkout session redirect for order $order_id, order payment is already being processed (locked)" );
 
-			// The settlement webhook holds the lock and marks the order paid a moment later. A retry
-			// after an earlier decline leaves the order Failed until then, so a bare return would show
-			// the failed-order notice. Wait for the webhook, then redirect to the clean order-received
-			// URL; if it does not settle in time, the stripped URL lets a refresh show the settled order.
+			// The settling webhook holds the lock; a retry after a decline is still Failed, so a bare
+			// return would show the failed-order notice. Wait for settlement, then redirect clean.
 			$this->wait_for_checkout_session_settlement( $order_id );
-			// get_return_url() needs only the order id and key, so the in-memory order is fine.
 			wp_safe_redirect( wp_sanitize_redirect( $this->get_return_url( $order ) ) );
 			exit;
 		}
@@ -2753,8 +2751,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return bool
 	 */
 	protected function order_reached_paid_status( int $order_id ): bool {
+		// Clear WooCommerce's order caches so a status the settling webhook wrote in another request
+		// is visible here: OrderCache holds the HPOS object, clean_post_cache covers the posts store.
+		if ( function_exists( 'wc_get_container' ) && class_exists( OrderCache::class ) ) {
+			$order_cache = wc_get_container()->get( OrderCache::class );
+			if ( $order_cache instanceof OrderCache ) {
+				$order_cache->remove( $order_id );
+			}
+		}
 		clean_post_cache( $order_id );
-		wp_cache_delete( $order_id, 'orders' );
 
 		$order = wc_get_order( $order_id );
 
