@@ -243,6 +243,10 @@ class WC_Stripe {
 		// instance, but only the first may register the connection hooks.
 		if ( self::$instance === $this ) {
 			$this->connect->register_hooks();
+
+			// Reconfigure (and recreate when missing) webhooks after the plugin updates.
+			// The install/upgrade routine fires this action via run_update_checks().
+			add_action( 'woocommerce_stripe_updated', [ $this->account, 'maybe_reconfigure_webhooks_on_update' ] );
 		}
 
 		// No-op shim so third parties that register the removed WC_Stripe_Payment_Request methods as
@@ -445,10 +449,6 @@ class WC_Stripe {
 
 		add_woocommerce_inbox_variant();
 		$this->update_plugin_version();
-
-		// Add webhook reconfiguration
-		$account = self::get_instance()->account;
-		$account->maybe_reconfigure_webhooks_on_update();
 
 		// TODO: Remove this when we're reasonably sure most merchants have had their
 		// settings updated like this. ~80% of merchants is a good threshold.

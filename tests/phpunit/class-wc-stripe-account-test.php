@@ -655,6 +655,19 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The reconfigure/recreate runs on plugin update by listening to woocommerce_stripe_updated
+	 * (fired by the install/upgrade routine), not from an inline call.
+	 */
+	public function test_webhook_reconfigure_is_hooked_to_woocommerce_stripe_updated() {
+		$account = WC_Stripe::get_instance()->account;
+
+		$this->assertSame(
+			10,
+			has_action( 'woocommerce_stripe_updated', [ $account, 'maybe_reconfigure_webhooks_on_update' ] )
+		);
+	}
+
+	/**
 	 * Test webhook reconfiguration on update with existing webhooks that need updating.
 	 */
 	public function test_reconfigure_webhooks_on_update_with_outdated_webhooks() {
