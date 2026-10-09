@@ -13,7 +13,6 @@ Temporary file for the draft PR. Remove before marking it ready for review.
 - No attempt counter, and no `abandoned` status for events that cannot be fetched (expired after 30 days, or `resource_missing`).
 - Events left in `processing` are only recovered when the same event arrives again. Nothing sweeps them.
 - The job can spin for up to the lock TTL (10 minutes) when a pending event's lock was left behind by a request that died, fetching the event on every pass. It re-enqueues immediately with no backoff, including during a Stripe outage.
-- No filtering by event type, connected account, or agentic (`v1.delegated_checkout.*`) events.
 
 ### Listing
 - No lookback cap on the first run, and no page cap per run.

@@ -154,7 +154,7 @@ class WC_Stripe_Event_Reconciler {
 	 *
 	 *     @type int|null $cursor_before Creation timestamp the run started from.
 	 *     @type int|null $cursor_after  Creation timestamp the next run will start from.
-	 *     @type array[]  $events        Per event: id, type, created, status_before and result (queued or skipped).
+	 *     @type array[]  $events        Per event: id, type, created, status_before and result (queued, skipped or ignored).
 	 * }
 	 */
 	public function queue_undelivered_events(): array {
@@ -197,7 +197,11 @@ class WC_Stripe_Event_Reconciler {
 				$record        = $registered_events[ $event->id ] ?? null;
 				$status_before = $record ? $record->status : null;
 
-				if ( ! $record ) {
+				if ( ! in_array( $event->type, WC_Stripe_Account::WEBHOOK_EVENTS, true ) ) {
+					// Only process what the plugin's own endpoint subscribes to. The listing also returns events
+					// that failed on other endpoints of the same account, which this store would never receive.
+					$result = 'ignored';
+				} elseif ( ! $record ) {
 					$this->store->save( WC_Stripe_Event_Record::from_stripe_event( $event, WC_Stripe_Event_Store_Interface::STATUS_PENDING ) );
 					$result = 'queued';
 				} else {
