@@ -1,5 +1,6 @@
-import { render } from '@testing-library/react';
+import { act, render } from '@testing-library/react';
 import { ExpressCheckoutContainer } from '../express-checkout-container';
+import ExpressCheckoutComponent from '../express-checkout-component';
 import {
 	getExpressCheckoutButtonAppearance,
 	getExpressCheckoutData,
@@ -10,12 +11,19 @@ import {
 // Capture the options prop handed to <Elements> so we can assert when the
 // memoised object keeps its reference and when it regenerates.
 const capturedOptions = [];
-jest.mock( '@stripe/react-stripe-js', () => ( {
-	Elements: jest.fn( ( { options } ) => {
-		capturedOptions.push( options );
-		return <div />;
-	} ),
-} ) );
+let mockElementsMounts = 0;
+jest.mock( '@stripe/react-stripe-js', () => {
+	const { useEffect } = jest.requireActual( 'react' );
+	return {
+		Elements: jest.fn( ( { options, children } ) => {
+			capturedOptions.push( options );
+			useEffect( () => {
+				mockElementsMounts++;
+			}, [] );
+			return <div>{ children }</div>;
+		} ),
+	};
+} );
 
 jest.mock( '../express-checkout-component', () => jest.fn( () => <div /> ) );
 
@@ -45,6 +53,7 @@ const baseProps = ( overrides = {} ) => ( {
 describe( 'ExpressCheckoutContainer options memoisation', () => {
 	beforeEach( () => {
 		capturedOptions.length = 0;
+		mockElementsMounts = 0;
 		getExpressCheckoutButtonAppearance.mockReturnValue( {} );
 		getExpressCheckoutData.mockImplementation( ( key ) =>
 			key === 'has_free_trial' ? false : undefined
@@ -119,5 +128,85 @@ describe( 'ExpressCheckoutContainer options memoisation', () => {
 		expect( capturedOptions ).toHaveLength( 2 );
 		expect( capturedOptions[ 1 ] ).not.toBe( capturedOptions[ 0 ] );
 		expect( capturedOptions[ 1 ].mode ).toBe( 'subscription' );
+	} );
+
+	it( 'keeps the same Elements group when only the amount changes', () => {
+		const { rerender } = render(
+			<ExpressCheckoutContainer { ...baseProps() } />
+		);
+
+		rerender(
+			<ExpressCheckoutContainer
+				{ ...baseProps( {
+					billing: {
+						cartTotal: { value: 25 },
+						currency: { minorUnit: 2, code: 'USD' },
+					},
+				} ) }
+			/>
+		);
+
+		expect( mockElementsMounts ).toBe( 1 );
+		expect( capturedOptions[ 1 ].amount ).toBe( 2500 );
+	} );
+
+	it( 'starts a new Elements group when the currency changes', () => {
+		const { rerender } = render(
+			<ExpressCheckoutContainer { ...baseProps() } />
+		);
+
+		rerender(
+			<ExpressCheckoutContainer
+				{ ...baseProps( {
+					billing: {
+						cartTotal: { value: 10 },
+						currency: { minorUnit: 2, code: 'EUR' },
+					},
+				} ) }
+			/>
+		);
+
+		expect( mockElementsMounts ).toBe( 2 );
+		expect( capturedOptions[ 1 ].currency ).toBe( 'eur' );
+	} );
+
+	const reportAvailability = ( isAvailable ) =>
+		act( () => {
+			ExpressCheckoutComponent.mock.lastCall[ 0 ].onAvailabilityChange(
+				isAvailable
+			);
+		} );
+
+	it( 'hides the slot when the wallet is unavailable, and shows it again when it becomes available', () => {
+		const { container } = render(
+			<ExpressCheckoutContainer { ...baseProps() } />
+		);
+
+		reportAvailability( false );
+		expect( container.firstChild.hidden ).toBe( true );
+
+		reportAvailability( true );
+		expect( container.firstChild.hidden ).toBe( false );
+	} );
+
+	it( 'keeps an unavailable wallet hidden while the new group loads after a currency change', () => {
+		const { container, rerender } = render(
+			<ExpressCheckoutContainer { ...baseProps() } />
+		);
+
+		reportAvailability( false );
+		rerender(
+			<ExpressCheckoutContainer
+				{ ...baseProps( {
+					billing: {
+						cartTotal: { value: 10 },
+						currency: { minorUnit: 2, code: 'EUR' },
+					},
+				} ) }
+			/>
+		);
+
+		expect( mockElementsMounts ).toBe( 2 );
+		expect( container.firstChild.hidden ).toBe( true );
 	} );
 } );

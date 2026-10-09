@@ -24,6 +24,11 @@
 	}
 }
 
+// Collapse the block's slot when the wallet isn't available, so it leaves no gap.
+.wc-block-components-express-payment__event-buttons > :has( .wc-stripe-ece-slot[hidden] ) {
+	display: none;
+}
+
 // OR separator
 .wc-block-components-express-payment-continue-rule--cart {
 	margin: 24px 0 !important;

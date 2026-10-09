@@ -1,6 +1,5 @@
 import { ExpressCheckoutElement } from '@stripe/react-stripe-js';
 import { useExpressCheckout } from './hooks';
-import { PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT } from './constants';
 import { useCallback, useMemo } from '@wordpress/element';
 import {
 	shippingAddressChangeHandler,
@@ -63,6 +62,7 @@ const ExpressCheckoutComponent = ( {
 	onClick,
 	onClose,
 	expressPaymentMethod = '',
+	onAvailabilityChange,
 } ) => {
 	const { buttonOptions, onButtonClick, onConfirm, onCancel, elements } =
 		useExpressCheckout( {
@@ -86,21 +86,13 @@ const ExpressCheckoutComponent = ( {
 	);
 
 	const onElementsReady = useCallback(
-		( event ) => {
-			const paymentMethodContainer = document.getElementById(
-				`express-payment-method-${ PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT }_${ expressPaymentMethod }`
-			);
-
-			const availablePaymentMethods = event.availablePaymentMethods || {};
-
-			if (
-				paymentMethodContainer &&
-				! availablePaymentMethods[ expressPaymentMethod ]
-			) {
-				paymentMethodContainer.remove();
-			}
-		},
-		[ expressPaymentMethod ]
+		// Let the container hide itself rather than removing the block's slot: the
+		// block keeps it mounted across cart updates, so a removed slot never returns.
+		( event ) =>
+			onAvailabilityChange(
+				!! event.availablePaymentMethods?.[ expressPaymentMethod ]
+			),
+		[ expressPaymentMethod, onAvailabilityChange ]
 	);
 
 	// Stable across cart ticks; only rebuilds when styling or method changes.
