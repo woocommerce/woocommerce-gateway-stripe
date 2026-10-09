@@ -138,12 +138,23 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	protected $resolved_order = null;
 
 	/**
+	 * Tracks events, so the same event is not processed twice.
+	 *
+	 * @var WC_Stripe_Event_Reconciler
+	 */
+	private $event_reconciler;
+
+	/**
 	 * Constructor.
 	 *
 	 * @since 4.0.0
 	 * @version 5.0.0
+	 *
+	 * @param WC_Stripe_Event_Reconciler|null $event_reconciler Event reconciler. Defaults to a new instance.
 	 */
-	public function __construct() {
+	public function __construct( ?WC_Stripe_Event_Reconciler $event_reconciler = null ) {
+		$this->event_reconciler = $event_reconciler ?? new WC_Stripe_Event_Reconciler();
+
 		$this->retry_interval = 2;
 		$stripe_settings      = WC_Stripe_Helper::get_stripe_settings();
 		$this->testmode       = WC_Stripe_Mode::is_test();
@@ -263,7 +274,27 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		WC_Stripe_Webhook_State::set_pending_webhooks_count( $event->pending_webhooks ?? 0 );
 
 		WC_Stripe_Logger::debug( 'Webhook received (' . $event_type . ')', [ 'event' => $event ] );
-		$this->process_webhook( $request_body );
+
+		$claim = $this->event_reconciler->claim( $event );
+
+		if ( WC_Stripe_Event_Reconciler::CLAIM_LOCKED === $claim ) {
+			WC_Stripe_Logger::debug( 'Webhook postponed: the event is already being processed (' . $event_type . ')', [ 'event_id' => $event->id ?? null ] );
+
+			// A non-2xx status makes Stripe deliver the event again later, when it is either processed or free to retry.
+			status_header( 409 );
+			exit;
+		}
+
+		try {
+			if ( WC_Stripe_Event_Reconciler::CLAIM_ACQUIRED === $claim ) {
+				$this->process_webhook( $request_body );
+			} else {
+				WC_Stripe_Logger::debug( 'Webhook skipped: the event was already processed (' . $event_type . ')', [ 'event_id' => $event->id ?? null ] );
+			}
+		} finally {
+			$this->event_reconciler->release( $event );
+		}
+
 		WC_Stripe_Webhook_State::set_last_webhook_success_at( $event->created );
 		status_header( 200 );
 		exit;
