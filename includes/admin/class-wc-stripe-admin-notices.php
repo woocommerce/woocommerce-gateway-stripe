@@ -266,10 +266,7 @@ class WC_Stripe_Admin_Notices {
 				$this->add_admin_notice( '3ds', 'notice notice-warning', $message, true );
 			}
 
-			// Notices are raised and dismissed per mode: a merchant cares far more
-			// about a missing live webhook than a test one, and a mode-agnostic
-			// notice would push them to reconfigure whichever mode they happen to
-			// be in, which may not be the affected one.
+			// Show separate per-mode notices so merchants can take the appropriate action.
 			foreach ( [ 'live', 'test' ] as $mode ) {
 				if ( 'yes' !== get_option( WC_Stripe_Account::get_webhook_missing_notice_option( $mode ) ) ) {
 					continue;
