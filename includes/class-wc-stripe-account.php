@@ -417,6 +417,26 @@ class WC_Stripe_Account {
 	}
 
 	/**
+	 * Checks whether a webhook should be decommissioned.
+	 *
+	 * Webhooks should be decommissioned upon account disconnect (no new secret key)
+	 * or whenever accounts/API keys change, and the webhook belongs to a previous
+	 * account or API key.
+	 *
+	 * @internal
+	 * @param mixed  $webhook_data Stored endpoint data.
+	 * @param string $new_secret_key Account API key being saved, or empty when disconnecting.
+	 * @return bool Whether the stored webhook should be decommissioned.
+	 */
+	public function should_decommission_webhook( $webhook_data, $new_secret_key ): bool {
+		if ( ! is_array( $webhook_data ) || empty( $webhook_data['id'] ) || empty( $webhook_data['secret'] ) ) {
+			return false;
+		}
+
+		return empty( $new_secret_key ) || $new_secret_key !== $webhook_data['secret'];
+	}
+
+	/**
 	 * Decommissions a previously configured webhook endpoint when the secret key that
 	 * created it is being removed or replaced.
 	 *
@@ -426,13 +446,7 @@ class WC_Stripe_Account {
 	 * @return bool True if a webhook was decommissioned, false otherwise.
 	 */
 	public function maybe_decommission_webhook( $webhook_data, $new_secret_key ): bool {
-		// Nothing to delete unless we have a stored webhook ID and the secret key that created it.
-		if ( ! is_array( $webhook_data ) || empty( $webhook_data['id'] ) || empty( $webhook_data['secret'] ) ) {
-			return false;
-		}
-
-		// Only decommission when the secret key is being removed or has changed.
-		if ( ! empty( $new_secret_key ) && $new_secret_key === $webhook_data['secret'] ) {
+		if ( ! $this->should_decommission_webhook( $webhook_data, $new_secret_key ) ) {
 			return false;
 		}
 
@@ -440,7 +454,16 @@ class WC_Stripe_Account {
 			// Authenticate with the secret key that created the webhook so the deletion
 			// hits the originally connected account.
 			WC_Stripe_API::set_secret_key( $webhook_data['secret'] );
-			$this->stripe_api::request( [], 'webhook_endpoints/' . $webhook_data['id'], 'DELETE' );
+			$response = $this->stripe_api::request( [], 'webhook_endpoints/' . $webhook_data['id'], 'DELETE' );
+
+			if ( isset( $response->error ) && 'resource_missing' !== ( $response->error->code ?? '' ) ) {
+				// Stripe returns failed DELETE requests as objects; only an already missing endpoint needs no retry.
+				WC_Stripe_Logger::error(
+					"Failed to decommission previously configured webhook {$webhook_data['id']}.",
+					[ 'error_code' => is_string( $response->error->code ?? null ) ? $response->error->code : 'unknown' ]
+				);
+				return false;
+			}
 
 			WC_Stripe_Logger::info( "Decommissioned previously configured webhook {$webhook_data['id']} before saving new keys." );
 		} catch ( Exception $e ) {
@@ -464,11 +487,16 @@ class WC_Stripe_Account {
 	 * @return bool
 	 */
 	public function is_webhook_enabled() {
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$is_testmode     = ( ! empty( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'] ) ? true : false;
-		$key             = $is_testmode ? 'test_webhook_data' : 'webhook_data';
+		$stripe_settings  = WC_Stripe_Helper::get_stripe_settings();
+		$is_testmode      = ( ! empty( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'] ) ? true : false;
+		$webhook_data_key = $is_testmode ? 'test_webhook_data' : 'webhook_data';
+		$webhook_data     = $stripe_settings[ $webhook_data_key ] ?? [];
+		$secret_key       = $stripe_settings[ $is_testmode ? 'test_secret_key' : 'secret_key' ] ?? '';
+		if ( ! empty( $webhook_data['secret'] ) ) {
+			$secret_key = $webhook_data['secret'];
+		}
 
-		if ( empty( $stripe_settings[ $key ]['id'] ) || empty( $stripe_settings[ $key ]['secret'] ) ) {
+		if ( empty( $webhook_data['id'] ) || empty( $secret_key ) ) {
 			return false;
 		}
 
@@ -479,9 +507,8 @@ class WC_Stripe_Account {
 		}
 
 		try {
-			$webhook_id     = $stripe_settings[ $key ]['id'];
-			$webhook_secret = $stripe_settings[ $key ]['secret'];
-			WC_Stripe_API::set_secret_key( $webhook_secret );
+			$webhook_id = $webhook_data['id'];
+			WC_Stripe_API::set_secret_key( $secret_key );
 			$webhook = $this->stripe_api::request( [], 'webhook_endpoints/' . $webhook_id, 'GET' );
 
 			// Cache the status for 2 hours.

@@ -414,6 +414,13 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		$live_mode      = wc_clean( wp_unslash( $request->get_param( 'live_mode' ) ) );
 		$environment    = $live_mode ? 'live' : 'test';
 		$rate_limit_key = "wc-stripe-configure-{$environment}-webhooks-" . get_current_user_id();
+		$settings       = WC_Stripe_Helper::get_stripe_settings();
+		$secret_key     = $settings[ 'live' === $environment ? 'secret_key' : 'test_secret_key' ] ?? '';
+
+		// Without a key for this mode, get_secret_key() would use the active mode's key and target the wrong account.
+		if ( ! is_string( $secret_key ) || empty( $secret_key ) ) {
+			return new WP_REST_Response( [ 'message' => __( 'Cannot configure webhooks: no Stripe API secret key is saved for the requested mode.', 'woocommerce-gateway-stripe' ) ], 400 );
+		}
 
 		// Prevent users from setting up webhooks too frequently.
 		if ( WC_Rate_Limiter::retried_too_soon( $rate_limit_key ) ) {
@@ -423,6 +430,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		WC_Rate_Limiter::set_rate_limit( $rate_limit_key, 60 );
 
 		try {
+			WC_Stripe_API::set_secret_key( $secret_key );
 			$response = $this->account->configure_webhooks( $environment );
 		} catch ( Exception $e ) {
 			return new WP_REST_Response( [ 'message' => $e->getMessage() ], 400 );
@@ -464,9 +472,12 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		];
 
 		foreach ( $key_data as $mode => $keys ) {
-			// If there's no webhook ID or secret key, we can skip.
-			if ( empty( $keys['webhook_data'] ) || empty( $keys['current_secret'] ) ) {
+			if ( empty( $keys['webhook_data'] ) ) {
 				continue;
+			}
+
+			if ( is_array( $keys['webhook_data'] ) && empty( $keys['webhook_data']['secret'] ) ) {
+				$keys['webhook_data']['secret'] = $keys['current_secret'];
 			}
 
 			// If the user is removing or changing their secret key, decommission the
@@ -475,6 +486,9 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 				// Update the webhook settings now that the webhook has been decommissioned.
 				$settings[ 'live' === $mode ? 'webhook_data' : 'test_webhook_data' ]     = [];
 				$settings[ 'live' === $mode ? 'webhook_secret' : 'test_webhook_secret' ] = '';
+			} elseif ( $this->account->should_decommission_webhook( $keys['webhook_data'], $keys['secret_key'] ) ) {
+				// Keep access to the old endpoint if cleanup failed while replacing its account key.
+				$settings[ 'live' === $mode ? 'webhook_data' : 'test_webhook_data' ] = $keys['webhook_data'];
 			}
 		}
 
