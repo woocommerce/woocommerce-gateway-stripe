@@ -15,6 +15,8 @@ class WC_Stripe_Event_Reconciler {
 
 	public const RECONCILE_ACTION = 'wc_stripe_reconcile_events';
 
+	public const CLEANUP_ACTION = 'wc_stripe_delete_expired_events';
+
 	public const CLAIM_ACQUIRED = 'acquired';
 
 	public const CLAIM_PROCESSED = 'processed';
@@ -26,6 +28,11 @@ class WC_Stripe_Event_Reconciler {
 	private const BATCH_SIZE = 5;
 
 	private const RECONCILE_INTERVAL = 30 * MINUTE_IN_SECONDS;
+
+	/**
+	 * Matches how long Stripe lists events. Older records cannot prevent any duplicate processing.
+	 */
+	private const RETENTION_PERIOD = 30 * DAY_IN_SECONDS;
 
 	private const PAGE_SIZE = 100;
 
@@ -68,13 +75,15 @@ class WC_Stripe_Event_Reconciler {
 		add_action( 'wc_stripe_webhook_received', [ $this, 'mark_processed' ], 10, 3 );
 		add_action( self::PROCESS_ACTION, [ $this, 'process_pending_events' ] );
 		add_action( self::RECONCILE_ACTION, [ $this, 'reconcile' ], 10, 0 );
+		add_action( self::CLEANUP_ACTION, [ $this, 'delete_expired_events' ], 10, 0 );
 		add_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ $this, 'maybe_schedule_reconciliation' ], 10, 0 );
 	}
 
 	/**
-	 * Queues undelivered events and schedules their processing.
+	 * Schedules the deletion of expired records, then queues undelivered events and schedules their processing.
 	 */
 	public function reconcile(): void {
+		$this->schedule_cleanup();
 		$this->queue_undelivered_events();
 		$this->schedule_processing();
 	}
@@ -104,6 +113,7 @@ class WC_Stripe_Event_Reconciler {
 
 		as_unschedule_all_actions( self::RECONCILE_ACTION, [], self::ACTION_GROUP );
 		as_unschedule_all_actions( self::PROCESS_ACTION, [], self::ACTION_GROUP );
+		as_unschedule_all_actions( self::CLEANUP_ACTION, [], self::ACTION_GROUP );
 	}
 
 	/**
@@ -201,6 +211,27 @@ class WC_Stripe_Event_Reconciler {
 			'cursor_after'  => $max_created ? $max_created : null,
 			'events'        => $results,
 		];
+	}
+
+	/**
+	 * Schedules the deletion of expired records, unless it is already scheduled or running.
+	 */
+	public function schedule_cleanup(): void {
+		if ( ! as_has_scheduled_action( self::CLEANUP_ACTION, [], self::ACTION_GROUP ) ) {
+			as_enqueue_async_action( self::CLEANUP_ACTION, [], self::ACTION_GROUP );
+		}
+	}
+
+	/**
+	 * Deletes a batch of expired records, and schedules the next batch while there may be more.
+	 */
+	public function delete_expired_events(): void {
+		$deleted = $this->store->delete_older_than( time() - self::RETENTION_PERIOD, self::PAGE_SIZE );
+
+		// A full batch may have left more behind. Enqueued unconditionally, as in process_pending_events().
+		if ( $deleted >= self::PAGE_SIZE ) {
+			as_enqueue_async_action( self::CLEANUP_ACTION, [], self::ACTION_GROUP );
+		}
 	}
 
 	/**

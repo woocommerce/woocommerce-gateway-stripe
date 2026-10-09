@@ -190,29 +190,59 @@ class WC_Stripe_Event_Post_Store implements WC_Stripe_Event_Store_Interface {
 	/**
 	 * {@inheritDoc}
 	 */
+	public function delete_older_than( int $timestamp, int $limit ): int {
+		return $this->delete_posts(
+			$limit,
+			[
+				[
+					'column' => 'post_date_gmt',
+					'before' => gmdate( 'Y-m-d H:i:s', $timestamp ),
+				],
+			]
+		);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
 	public function delete_all(): int {
 		$deleted = 0;
 
 		do {
-			$post_ids = get_posts(
-				[
-					'post_type'   => self::POST_TYPE,
-					'post_status' => array_values( self::POST_STATUSES ),
-					'fields'      => 'ids',
-					'numberposts' => 100,
-				]
-			);
-
-			$deleted_in_batch = 0;
-			foreach ( $post_ids as $post_id ) {
-				if ( wp_delete_post( (int) $post_id, true ) ) {
-					++$deleted_in_batch;
-				}
-			}
-
-			$deleted += $deleted_in_batch;
+			$deleted_in_batch = $this->delete_posts( 100 );
+			$deleted         += $deleted_in_batch;
 			// Posts that cannot be deleted would be returned again, so stop instead of looping forever.
-		} while ( $post_ids && $deleted_in_batch );
+		} while ( $deleted_in_batch );
+
+		return $deleted;
+	}
+
+	/**
+	 * Deletes one batch of posts of this store's post type, oldest event first.
+	 *
+	 * @param int   $limit      Maximum number of posts to delete.
+	 * @param array $date_query WP_Date_Query clauses limiting which posts are deleted. Empty for no limit.
+	 * @return int Number of posts deleted.
+	 */
+	private function delete_posts( int $limit, array $date_query = [] ): int {
+		$post_ids = get_posts(
+			[
+				'post_type'   => self::POST_TYPE,
+				'post_status' => array_values( self::POST_STATUSES ),
+				'fields'      => 'ids',
+				'orderby'     => 'date',
+				'order'       => 'ASC',
+				'numberposts' => $limit,
+				'date_query'  => $date_query,
+			]
+		);
+
+		$deleted = 0;
+		foreach ( $post_ids as $post_id ) {
+			if ( wp_delete_post( (int) $post_id, true ) ) {
+				++$deleted;
+			}
+		}
 
 		return $deleted;
 	}

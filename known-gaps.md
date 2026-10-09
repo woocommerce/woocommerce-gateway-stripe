@@ -20,7 +20,6 @@ Temporary file for the draft PR. Remove before marking it ready for review.
 - Switching to a different Stripe account in the same mode is not handled: the cursor carries over and hides older events from the new account, and the old account's pending events fail. A lazy account ID check next to the cursor is proposed.
 
 ## Storage
-- No retention. Records grow without limit.
 - No uninstall cleanup for posts, post meta, cursor options, or lock options.
 - Lock rows left by requests that died are reclaimed on the next claim of the same event, but are otherwise never deleted.
 - Records created before the `livemode` meta was added have no mode, and are never picked up by the job.

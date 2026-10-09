@@ -49,6 +49,15 @@ interface WC_Stripe_Event_Store_Interface {
 	public function save( WC_Stripe_Event_Record $record ): bool;
 
 	/**
+	 * Deletes records of events created before the given time, oldest first.
+	 *
+	 * @param int $timestamp Events created before this time are deleted.
+	 * @param int $limit     Maximum number of records to delete.
+	 * @return int Number of records deleted.
+	 */
+	public function delete_older_than( int $timestamp, int $limit ): int;
+
+	/**
 	 * Deletes all stored records.
 	 *
 	 * @return int Number of records deleted.
