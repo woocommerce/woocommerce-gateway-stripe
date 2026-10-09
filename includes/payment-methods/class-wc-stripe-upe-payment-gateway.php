@@ -4379,9 +4379,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return null;
 		}
 
-		// Only non-DPM attempts reach here, and their confirm sends no `return_url`, which a Dynamic
-		// Payment Methods intent (`allow_redirects: always`) requires. Its types always include `card`,
-		// so the type check below would wrongly accept it.
+		// A Dynamic Payment Methods intent needs a `return_url` that this non-DPM confirm does not send,
+		// and its types always include `card`, so the type check below would wrongly accept it.
 		if ( ! empty( $intent->automatic_payment_methods->enabled ) ) {
 			return null;
 		}
