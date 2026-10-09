@@ -205,7 +205,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Stop refusing express checkout orders over required classic custom checkout fields on stores whose checkout page uses the checkout block and cannot render them
 * Dev - Make e2e tests runnable from Quality Insights Toolkit (QIT)
 * Update - Link the WooCommerce POS page from the in-person payments description in the readme
-* Fix - Complete express wallet and saved card retries after a declined card attempt under Optimized Checkout with Dynamic Payment Methods, instead of failing after a long delay
+* Fix - Allow retries with an express wallet or saved card after a declined card under Optimized Checkout with Dynamic Payment Methods
 * Fix - Ensure the current Payment Method Configuration is specified for Optimized Checkout Suite and Adaptive Pricing
 * Fix - Allow Klarna purchases for Puerto Rico shoppers, and refine billing country availability logic
 * Update - Reduce the size of the Stripe settings JS bundles by loading only the Gridicons they use
