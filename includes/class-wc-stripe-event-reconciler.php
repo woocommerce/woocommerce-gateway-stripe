@@ -117,15 +117,21 @@ class WC_Stripe_Event_Reconciler {
 	}
 
 	/**
-	 * Deletes all event records and the listing cursors of both modes.
+	 * Deletes all event records, the listing cursors of both modes, and any event locks left behind.
 	 *
 	 * The cursors go too: without them, the next listing would start after the deleted events and never find them again.
 	 *
 	 * @return int Number of records deleted.
 	 */
 	public function reset(): int {
+		global $wpdb;
+
 		delete_option( self::CURSOR_OPTION_PREFIX . 'test' );
 		delete_option( self::CURSOR_OPTION_PREFIX . 'live' );
+
+		// Lock names include the event ID, so leftover locks can only be found by prefix.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $wpdb->esc_like( self::LOCK_OPTION_PREFIX ) . '%' ) );
 
 		return $this->store->delete_all();
 	}
