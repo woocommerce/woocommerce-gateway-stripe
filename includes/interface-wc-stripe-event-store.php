@@ -15,12 +15,20 @@ interface WC_Stripe_Event_Store_Interface {
 	public const STATUS_FAILED     = 'failed';
 
 	/**
+	 * Returns the stored record of an event.
+	 *
+	 * @param string $event_id Stripe event ID.
+	 * @return WC_Stripe_Event_Record|null The record, or null when the event is unknown.
+	 */
+	public function get( string $event_id ): ?WC_Stripe_Event_Record;
+
+	/**
 	 * Returns the stored records of the given events.
 	 *
 	 * @param string[] $event_ids Stripe event IDs.
 	 * @return array<string, WC_Stripe_Event_Record> Records keyed by event ID, as passed in. Unknown events are omitted.
 	 */
-	public function get( array $event_ids ): array;
+	public function get_many( array $event_ids ): array;
 
 	/**
 	 * Returns the records with the given status, oldest event first.

@@ -74,7 +74,14 @@ class WC_Stripe_Event_Post_Store implements WC_Stripe_Event_Store_Interface {
 	/**
 	 * {@inheritDoc}
 	 */
-	public function get( array $event_ids ): array {
+	public function get( string $event_id ): ?WC_Stripe_Event_Record {
+		return $this->get_many( [ $event_id ] )[ $event_id ] ?? null;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function get_many( array $event_ids ): array {
 		if ( ! $event_ids ) {
 			return [];
 		}

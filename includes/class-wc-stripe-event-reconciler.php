@@ -13,6 +13,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_Event_Reconciler {
 	public const PROCESS_ACTION = 'wc_stripe_process_pending_events';
 
+	public const CLAIM_ACQUIRED = 'acquired';
+
+	public const CLAIM_PROCESSED = 'processed';
+
+	public const CLAIM_LOCKED = 'locked';
+
 	private const ACTION_GROUP = 'woocommerce-gateway-stripe';
 
 	private const BATCH_SIZE = 5;
@@ -20,6 +26,20 @@ class WC_Stripe_Event_Reconciler {
 	private const PAGE_SIZE = 100;
 
 	private const CURSOR_OPTION_PREFIX = 'wc_stripe_events_cursor_';
+
+	private const LOCK_OPTION_PREFIX = 'wc_stripe_event_lock_';
+
+	/**
+	 * Longer than any handler run, so only a lock left behind by a request that died gets reclaimed.
+	 */
+	private const LOCK_TTL = 10 * MINUTE_IN_SECONDS;
+
+	/**
+	 * Owners of the event locks held by this instance, keyed by event ID.
+	 *
+	 * @var array<string, string>
+	 */
+	private $lock_owners = [];
 
 	/**
 	 * Event store.
@@ -41,7 +61,6 @@ class WC_Stripe_Event_Reconciler {
 	 * Registers the hooks.
 	 */
 	public function init(): void {
-		add_action( 'wc_stripe_before_process_webhook', [ $this, 'mark_processing' ], 10, 2 );
 		add_action( 'wc_stripe_webhook_received', [ $this, 'mark_processed' ], 10, 3 );
 		add_action( self::PROCESS_ACTION, [ $this, 'process_pending_events' ] );
 	}
@@ -81,6 +100,7 @@ class WC_Stripe_Event_Reconciler {
 		do {
 			$query = [
 				'delivery_success' => 'false',
+				'created[lte]'     => time() - $this->get_min_event_age(),
 				'limit'            => self::PAGE_SIZE,
 			];
 			// gte, not gt: other events may share the cursor's second. Already-recorded ones are skipped below.
@@ -104,7 +124,7 @@ class WC_Stripe_Event_Reconciler {
 			}
 
 			// Retrieve the event records that are already registered to avoid duplicates.
-			$registered_events = $this->store->get( wp_list_pluck( $events, 'id' ) );
+			$registered_events = $this->store->get_many( wp_list_pluck( $events, 'id' ) );
 
 			foreach ( $events as $event ) {
 				$record        = $registered_events[ $event->id ] ?? null;
@@ -161,7 +181,7 @@ class WC_Stripe_Event_Reconciler {
 			return;
 		}
 
-		$handler = new WC_Stripe_Webhook_Handler();
+		$handler = new WC_Stripe_Webhook_Handler( $this );
 
 		foreach ( $records as $record ) {
 			$event      = WC_Stripe_API::retrieve( 'events/' . $record->id );
@@ -173,10 +193,17 @@ class WC_Stripe_Event_Reconciler {
 				continue;
 			}
 
+			// A late delivery of the same event is being processed right now, and will update the record itself.
+			if ( self::CLAIM_ACQUIRED !== $this->claim( $event ) ) {
+				continue;
+			}
+
 			try {
 				$handler->process_webhook( $event_json );
 			} catch ( Throwable $e ) {
 				$this->record_event( $event, WC_Stripe_Event_Store_Interface::STATUS_FAILED );
+			} finally {
+				$this->release( $event );
 			}
 		}
 
@@ -185,13 +212,51 @@ class WC_Stripe_Event_Reconciler {
 	}
 
 	/**
-	 * Records an event as processing when the webhook handler starts on it.
+	 * Claims an event for processing, so a webhook delivery and the batch job never process it at the same time.
 	 *
-	 * @param mixed $webhook_type Event type.
+	 * @param mixed $notification Stripe event.
+	 * @return string One of the CLAIM_* constants.
+	 */
+	public function claim( $notification ): string {
+		// Events without an ID cannot be tracked, so they are processed as before.
+		$event_id = $this->get_event_id( $notification );
+		if ( null === $event_id ) {
+			return self::CLAIM_ACQUIRED;
+		}
+
+		// Another request is processing the event right now.
+		$owner = WC_Stripe_Option_Lock::acquire( self::LOCK_OPTION_PREFIX . $event_id, self::LOCK_TTL );
+		if ( null === $owner ) {
+			return self::CLAIM_LOCKED;
+		}
+
+		// Only processed events are skipped. Processing ones are either deferred, or their request died.
+		$record = $this->store->get( $event_id );
+		if ( $record && WC_Stripe_Event_Store_Interface::STATUS_PROCESSED === $record->status ) {
+			WC_Stripe_Option_Lock::release( self::LOCK_OPTION_PREFIX . $event_id, $owner );
+			return self::CLAIM_PROCESSED;
+		}
+
+		// Kept until release(), which the caller must call once the event is processed.
+		$this->lock_owners[ $event_id ] = $owner;
+		$this->record_event( $notification, WC_Stripe_Event_Store_Interface::STATUS_PROCESSING );
+
+		return self::CLAIM_ACQUIRED;
+	}
+
+	/**
+	 * Releases the lock taken by claim().
+	 *
 	 * @param mixed $notification Stripe event.
 	 */
-	public function mark_processing( $webhook_type, $notification ): void {
-		$this->record_event( $notification, WC_Stripe_Event_Store_Interface::STATUS_PROCESSING );
+	public function release( $notification ): void {
+		$event_id = $this->get_event_id( $notification );
+		if ( null === $event_id || ! isset( $this->lock_owners[ $event_id ] ) ) {
+			return;
+		}
+
+		WC_Stripe_Option_Lock::release( self::LOCK_OPTION_PREFIX . $event_id, $this->lock_owners[ $event_id ] );
+		unset( $this->lock_owners[ $event_id ] );
 	}
 
 	/**
@@ -213,16 +278,12 @@ class WC_Stripe_Event_Reconciler {
 	 * @param mixed  $order        Order the event was applied to, if any.
 	 */
 	private function record_event( $notification, string $status, $order = null ): void {
-		if ( ! is_object( $notification ) ) {
+		$event_id = $this->get_event_id( $notification );
+		if ( null === $event_id ) {
 			return;
 		}
 
-		$event_id = $notification->id ?? '';
-		if ( ! is_string( $event_id ) || '' === $event_id ) {
-			return;
-		}
-
-		$record = $this->store->get( [ $event_id ] )[ $event_id ] ?? WC_Stripe_Event_Record::from_stripe_event( $notification, $status );
+		$record = $this->store->get( $event_id ) ?? WC_Stripe_Event_Record::from_stripe_event( $notification, $status );
 
 		$record->status = $status;
 		if ( $order instanceof WC_Order ) {
@@ -230,5 +291,32 @@ class WC_Stripe_Event_Reconciler {
 		}
 
 		$this->store->save( $record );
+	}
+
+	/**
+	 * Returns the ID of a Stripe event.
+	 *
+	 * @param mixed $notification Stripe event.
+	 * @return string|null The ID, or null when the value is not an event with an ID.
+	 */
+	private function get_event_id( $notification ): ?string {
+		$event_id = is_object( $notification ) ? ( $notification->id ?? null ) : null;
+
+		return is_string( $event_id ) && '' !== $event_id ? $event_id : null;
+	}
+
+	/**
+	 * Returns how old an event must be before it is listed as undelivered.
+	 *
+	 * Stripe retries failed deliveries on its own, first within minutes. Waiting leaves those retries
+	 * to Stripe, instead of racing them.
+	 *
+	 * @return int Seconds.
+	 */
+	private function get_min_event_age(): int {
+		return in_array( wp_get_environment_type(), [ 'local', 'development' ], true )
+			// Development sites wait less, so the flow can be tested without waiting an hour.
+			? 5 * MINUTE_IN_SECONDS
+			: HOUR_IN_SECONDS;
 	}
 }
