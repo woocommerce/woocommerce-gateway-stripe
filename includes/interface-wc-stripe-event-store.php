@@ -31,13 +31,14 @@ interface WC_Stripe_Event_Store_Interface {
 	public function get_many( array $event_ids ): array;
 
 	/**
-	 * Returns the records with the given status, oldest event first.
+	 * Returns the records with the given status and mode, oldest event first.
 	 *
-	 * @param string $status One of the STATUS_* constants.
-	 * @param int    $limit  Maximum number of records to return.
+	 * @param string $status   One of the STATUS_* constants.
+	 * @param bool   $livemode Whether to return live mode events, rather than test mode ones.
+	 * @param int    $limit    Maximum number of records to return.
 	 * @return WC_Stripe_Event_Record[]
 	 */
-	public function get_by_status( string $status, int $limit ): array;
+	public function get_by_status( string $status, bool $livemode, int $limit ): array;
 
 	/**
 	 * Creates the record of an event, or replaces the stored one.

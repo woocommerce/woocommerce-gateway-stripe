@@ -7,10 +7,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Stores Stripe event processing state as posts of a hidden post type.
  *
  * The event ID is kept in `post_name`, the event type in `post_title`, the event creation time in
- * `post_date`/`post_date_gmt`, and the order the event was applied to in `post_parent`.
+ * `post_date`/`post_date_gmt`, the order the event was applied to in `post_parent`, and the mode in post meta.
  */
 class WC_Stripe_Event_Post_Store implements WC_Stripe_Event_Store_Interface {
 	public const POST_TYPE = 'wc_stripe_event';
+
+	private const LIVEMODE_META_KEY = '_wc_stripe_livemode';
 
 	/**
 	 * Post status for each store status. Prefixed because post statuses are global, and `pending`
@@ -92,7 +94,6 @@ class WC_Stripe_Event_Post_Store implements WC_Stripe_Event_Store_Interface {
 				'post_status'            => array_values( self::POST_STATUSES ),
 				'post_name__in'          => $event_ids,
 				'posts_per_page'         => -1,
-				'update_post_meta_cache' => false,
 				'update_post_term_cache' => false,
 			]
 		);
@@ -119,7 +120,7 @@ class WC_Stripe_Event_Post_Store implements WC_Stripe_Event_Store_Interface {
 	/**
 	 * {@inheritDoc}
 	 */
-	public function get_by_status( string $status, int $limit ): array {
+	public function get_by_status( string $status, bool $livemode, int $limit ): array {
 		if ( ! isset( self::POST_STATUSES[ $status ] ) ) {
 			return [];
 		}
@@ -128,10 +129,11 @@ class WC_Stripe_Event_Post_Store implements WC_Stripe_Event_Store_Interface {
 			[
 				'post_type'              => self::POST_TYPE,
 				'post_status'            => self::POST_STATUSES[ $status ],
+				'meta_key'               => self::LIVEMODE_META_KEY, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+				'meta_value'             => $livemode ? '1' : '0', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
 				'orderby'                => 'date',
 				'order'                  => 'ASC',
 				'posts_per_page'         => $limit,
-				'update_post_meta_cache' => false,
 				'update_post_term_cache' => false,
 			]
 		);
@@ -154,6 +156,7 @@ class WC_Stripe_Event_Post_Store implements WC_Stripe_Event_Store_Interface {
 			'post_name'   => $event_id,
 			'post_title'  => $record->type,
 			'post_parent' => $record->order_id ?? 0,
+			'meta_input'  => [ self::LIVEMODE_META_KEY => $record->livemode ? '1' : '0' ],
 		];
 
 		if ( $record->created > 0 ) {
@@ -251,6 +254,7 @@ class WC_Stripe_Event_Post_Store implements WC_Stripe_Event_Store_Interface {
 			$status,
 			$post->post_title,
 			(int) strtotime( $post->post_date_gmt . ' UTC' ),
+			'1' === get_post_meta( $post->ID, self::LIVEMODE_META_KEY, true ),
 			$post->post_parent ? (int) $post->post_parent : null
 		);
 	}

@@ -175,7 +175,7 @@ class WC_Stripe_Event_Reconciler {
 	 * Processes a batch of pending events, then schedules the next batch.
 	 */
 	public function process_pending_events(): void {
-		$records = $this->store->get_by_status( WC_Stripe_Event_Store_Interface::STATUS_PENDING, self::BATCH_SIZE );
+		$records = $this->store->get_by_status( WC_Stripe_Event_Store_Interface::STATUS_PENDING, ! WC_Stripe_Mode::is_test(), self::BATCH_SIZE );
 
 		if ( ! $records ) {
 			return;

@@ -39,6 +39,13 @@ final class WC_Stripe_Event_Record {
 	public int $created;
 
 	/**
+	 * Whether the event belongs to live mode, rather than test mode.
+	 *
+	 * @var bool
+	 */
+	public bool $livemode;
+
+	/**
 	 * ID of the order the event was applied to, if any.
 	 *
 	 * @var int|null
@@ -52,13 +59,15 @@ final class WC_Stripe_Event_Record {
 	 * @param string   $status   One of the WC_Stripe_Event_Store_Interface::STATUS_* constants.
 	 * @param string   $type     Stripe event type.
 	 * @param int      $created  Stripe event creation timestamp.
+	 * @param bool     $livemode Whether the event belongs to live mode, rather than test mode.
 	 * @param int|null $order_id ID of the order the event was applied to, if any.
 	 */
-	public function __construct( string $id, string $status, string $type, int $created, ?int $order_id = null ) {
+	public function __construct( string $id, string $status, string $type, int $created, bool $livemode, ?int $order_id = null ) {
 		$this->id       = $id;
 		$this->status   = $status;
 		$this->type     = $type;
 		$this->created  = $created;
+		$this->livemode = $livemode;
 		$this->order_id = $order_id;
 	}
 
@@ -74,7 +83,8 @@ final class WC_Stripe_Event_Record {
 			(string) ( $event->id ?? '' ),
 			$status,
 			(string) ( $event->type ?? '' ),
-			(int) ( $event->created ?? time() )
+			(int) ( $event->created ?? time() ),
+			! empty( $event->livemode )
 		);
 	}
 }
