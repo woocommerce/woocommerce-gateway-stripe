@@ -20,6 +20,17 @@ export const getBlocksConfiguration = () => {
 };
 
 /**
+ * Whether the Stripe blocks configuration is available on this page.
+ *
+ * WooCommerce only adds it while a Cart or Checkout block loads its payment methods,
+ * so this bundle can run on a page that does not have it.
+ *
+ * @return {boolean} True when the configuration is available.
+ */
+export const hasBlocksConfiguration = () =>
+	!! getSetting( 'stripe_data', null );
+
+/**
  * Whether manual renewal is required based on the payment method's reusability.
  *
  * It is considered required if:

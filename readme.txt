@@ -213,5 +213,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Add robust checks against order attribution Javascript not being fully loaded in block checkout
 * Fix - Remove the duplicated period in the webhook status message when webhooks are pending
 * Fix - Allow retries with an express wallet or saved card after a declined card under Optimized Checkout with Dynamic Payment Methods
+* Fix - Prevent a "Stripe initialization data is not available" error that stopped Stripe from loading on Blocks checkout pages without Stripe payment data
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
