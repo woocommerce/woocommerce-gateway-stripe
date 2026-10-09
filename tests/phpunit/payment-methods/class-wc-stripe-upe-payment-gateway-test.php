@@ -8164,7 +8164,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'country'  => 'US',
 					'settings' => [
 						'payments' => [
-							'statement_descriptor' => '<script>ACME</script>',
+							'statement_descriptor' => '<div>ACME</div><style>.bad { display: none; }</style><script>alert("bad");</script>',
 						],
 					],
 				],

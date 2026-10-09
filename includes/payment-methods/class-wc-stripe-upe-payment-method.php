@@ -285,7 +285,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 
 		if ( $is_dev_environment ) {
 			$message = method_exists( $upe_gateway_instance, $method ) ? 'Call to private method ' : 'Call to undefined method ';
-			throw new \Error( $message . get_class( $this ) . '::' . $method );
+			throw new \Error( $message . get_class( $this ) . '::' . $method ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		WC_Stripe_Logger::error( 'Call to undefined method ' . get_class( $this ) . '::' . $method );
@@ -469,8 +469,14 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		if ( $this->has_domestic_transactions_restrictions() ) {
 			$account         = WC_Stripe::get_instance()->account->get_cached_account_data();
 			$account_country = isset( $account['country'] ) ? strtoupper( $account['country'] ) : '';
-			// Intentionally return [ '' ] when no account country is known, as [] indicates that all countries are supported.
-			return [ $account_country ];
+			// In the code below, we intentionally return [ '' ] when no account country is known or the account country is not supported, as [] indicates that all countries are supported.
+			if ( [] === $this->supported_billing_countries || '' === $account_country ) {
+				return [ $account_country ];
+			}
+			if ( in_array( $account_country, $this->supported_billing_countries, true ) ) {
+				return [ $account_country ];
+			}
+			return [ '' ];
 		}
 
 		return $this->supported_billing_countries;
@@ -582,8 +588,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$sepa_debit = $payment_method->sepa_debit ?? null;
 		if ( ! is_object( $sepa_debit ) || ! isset( $sepa_debit->fingerprint ) ) {
 			throw new WC_Stripe_Exception(
-				sprintf( 'Cannot create a SEPA payment token from payment method %s: missing sepa_debit fingerprint.', $payment_method->id ?? 'unknown' ),
-				__( "We're not able to save this payment method. Please try again.", 'woocommerce-gateway-stripe' )
+				sprintf( 'Cannot create a SEPA payment token from payment method %s: missing sepa_debit fingerprint.', $payment_method->id ?? 'unknown' ), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+				__( "We're not able to save this payment method. Please try again.", 'woocommerce-gateway-stripe' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			);
 		}
 
