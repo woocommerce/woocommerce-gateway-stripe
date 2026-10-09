@@ -72,6 +72,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 	const [ webhookSecret, setWebhookSecret ] = useState( '' );
 	const [ savedWebhookSecret, setSavedWebhookSecret ] = useState( '' );
 	const [ isLoadingSettings, setIsLoadingSettings ] = useState( true );
+	const [ hasLoadedSettings, setHasLoadedSettings ] = useState( false );
 	const [ settingsNotice, setSettingsNotice ] = useState( null );
 
 	const [ isTestMode ] = useTestMode();
@@ -105,8 +106,10 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			);
 			setWebhookSecret( result.webhook_secret ?? '' );
 			setSavedWebhookSecret( result.webhook_secret ?? '' );
+			setHasLoadedSettings( true );
 		} catch {
 			// Settings fetch failure is non-fatal; defaults remain.
+			setHasLoadedSettings( false );
 		} finally {
 			setIsLoadingSettings( false );
 		}
@@ -125,8 +128,16 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 				data: {
 					is_enabled: isFeatureEnabled,
 					disable_checkout: disableCheckout,
-					auto_exclude_addons: autoExcludeAddons,
-					auto_redirect_checkout_addons: autoRedirectCheckoutAddons,
+					// Omit add-on toggles until settings have been loaded from the server
+					// so a failed initial GET cannot overwrite enabled server options with
+					// the local false defaults on a subsequent save.
+					...( hasLoadedSettings
+						? {
+								auto_exclude_addons: autoExcludeAddons,
+								auto_redirect_checkout_addons:
+									autoRedirectCheckoutAddons,
+						  }
+						: {} ),
 					webhook_secret: webhookSecret,
 				},
 			} );
@@ -138,6 +149,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			);
 			setWebhookSecret( result.webhook_secret ?? '' );
 			setSavedWebhookSecret( result.webhook_secret ?? '' );
+			setHasLoadedSettings( true );
 			// No success notice: the global Save changes flow already shows a page-level toast.
 		} catch ( err ) {
 			setSettingsNotice( {
@@ -155,6 +167,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 		disableCheckout,
 		autoExcludeAddons,
 		autoRedirectCheckoutAddons,
+		hasLoadedSettings,
 		webhookSecret,
 	] );
 
