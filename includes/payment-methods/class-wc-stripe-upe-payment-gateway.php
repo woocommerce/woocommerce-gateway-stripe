@@ -2610,15 +2610,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		if ( $locked ) {
 			WC_Stripe_Logger::info( "Skip processing checkout session redirect for order $order_id, order payment is already being processed (locked)" );
 
-			// The settlement webhook holds the lock and marks the order paid a second or two later.
-			// A retry after an earlier declined attempt leaves the order Failed until then, so a bare
-			// return here would render the failed-order notice on the order-received page. Wait briefly
-			// for the webhook to settle the order, then redirect to the clean order-received URL. If it
-			// does not settle within the budget, still strip the query args so a refresh (which the
-			// webhook will by then have settled) shows the correct page instead of looping on the API.
+			// The settlement webhook holds the lock and marks the order paid a moment later. A retry
+			// after an earlier decline leaves the order Failed until then, so a bare return would show
+			// the failed-order notice. Wait for the webhook, then redirect to the clean order-received
+			// URL; if it does not settle in time, the stripped URL lets a refresh show the settled order.
 			$this->wait_for_checkout_session_settlement( $order_id );
-			// get_return_url() builds the order-received URL from the order id and key, so the
-			// in-memory order is fine here; the page itself reads the now-settled status fresh.
+			// get_return_url() needs only the order id and key, so the in-memory order is fine.
 			wp_safe_redirect( wp_sanitize_redirect( $this->get_return_url( $order ) ) );
 			exit;
 		}
@@ -2723,12 +2720,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Waits for the settlement webhook to mark the order paid, up to a short budget.
 	 *
-	 * The order-received redirect handler and the Checkout Session settlement webhook serialize on
-	 * the order payment lock. When the webhook wins the race it holds the lock while it marks the
-	 * order paid, which takes a second or two. A retry after an earlier declined attempt leaves the
-	 * order Failed in the meantime, so without this wait the order-received page would render the
-	 * failed-order notice before the webhook finishes. Polling for the paid transition keeps the
-	 * shopper on the correct page.
+	 * The redirect handler and the webhook serialize on the order payment lock. When the webhook
+	 * wins, it holds the lock while it settles the order, so polling for the paid transition keeps
+	 * the shopper off the stale failed-order page.
 	 *
 	 * @param int $order_id The order being settled by the webhook.
 	 * @return bool True if the order reached a paid status within the budget.
@@ -2750,10 +2744,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Reads the order fresh from the data store and reports whether it is in a paid status.
+	 * Reports whether the order is in a paid status, read fresh from the data store.
 	 *
-	 * The settling webhook runs in a separate request, so its status write is only visible here
-	 * after the per-request order cache is cleared.
+	 * The settling webhook runs in a separate request, so its write is only visible after the
+	 * per-request order cache is cleared.
 	 *
 	 * @param int $order_id The order id.
 	 * @return bool
@@ -2771,14 +2765,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * How long the redirect handler waits for the settlement webhook, in seconds.
 	 *
-	 * The webhook settles within a second or two, but a slow store can take longer. The default
-	 * keeps the return request short; stores can tune it with the filter.
-	 *
 	 * @return float
 	 */
 	protected function get_checkout_session_settlement_timeout(): float {
 		/**
-		 * Filters how long the order-received redirect handler waits for the settlement webhook.
+		 * Filters the wait for the settlement webhook on the order-received return.
 		 *
 		 * @since 11.1.0
 		 *
