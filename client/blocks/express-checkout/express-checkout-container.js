@@ -42,7 +42,11 @@ export const ExpressCheckoutContainer = ( props ) => {
 
 	return (
 		<div style={ { minHeight: '40px' } }>
-			<Elements stripe={ stripe } options={ options }>
+			{ /*
+			 * Stripe accepts a new currency through elements.update() but doesn't
+			 * re-check which wallets support it, so start over with a fresh group.
+			 */ }
+			<Elements key={ currency } stripe={ stripe } options={ options }>
 				<ExpressCheckoutComponent { ...props } />
 			</Elements>
 		</div>

@@ -10,12 +10,19 @@ import {
 // Capture the options prop handed to <Elements> so we can assert when the
 // memoised object keeps its reference and when it regenerates.
 const capturedOptions = [];
-jest.mock( '@stripe/react-stripe-js', () => ( {
-	Elements: jest.fn( ( { options } ) => {
-		capturedOptions.push( options );
-		return <div />;
-	} ),
-} ) );
+let mockElementsMounts = 0;
+jest.mock( '@stripe/react-stripe-js', () => {
+	const { useEffect } = jest.requireActual( 'react' );
+	return {
+		Elements: jest.fn( ( { options } ) => {
+			capturedOptions.push( options );
+			useEffect( () => {
+				mockElementsMounts++;
+			}, [] );
+			return <div />;
+		} ),
+	};
+} );
 
 jest.mock( '../express-checkout-component', () => jest.fn( () => <div /> ) );
 
@@ -45,6 +52,7 @@ const baseProps = ( overrides = {} ) => ( {
 describe( 'ExpressCheckoutContainer options memoisation', () => {
 	beforeEach( () => {
 		capturedOptions.length = 0;
+		mockElementsMounts = 0;
 		getExpressCheckoutButtonAppearance.mockReturnValue( {} );
 		getExpressCheckoutData.mockImplementation( ( key ) =>
 			key === 'has_free_trial' ? false : undefined
@@ -119,5 +127,45 @@ describe( 'ExpressCheckoutContainer options memoisation', () => {
 		expect( capturedOptions ).toHaveLength( 2 );
 		expect( capturedOptions[ 1 ] ).not.toBe( capturedOptions[ 0 ] );
 		expect( capturedOptions[ 1 ].mode ).toBe( 'subscription' );
+	} );
+
+	it( 'keeps the same Elements group when only the amount changes', () => {
+		const { rerender } = render(
+			<ExpressCheckoutContainer { ...baseProps() } />
+		);
+
+		rerender(
+			<ExpressCheckoutContainer
+				{ ...baseProps( {
+					billing: {
+						cartTotal: { value: 25 },
+						currency: { minorUnit: 2, code: 'USD' },
+					},
+				} ) }
+			/>
+		);
+
+		expect( mockElementsMounts ).toBe( 1 );
+		expect( capturedOptions[ 1 ].amount ).toBe( 2500 );
+	} );
+
+	it( 'starts a new Elements group when the currency changes', () => {
+		const { rerender } = render(
+			<ExpressCheckoutContainer { ...baseProps() } />
+		);
+
+		rerender(
+			<ExpressCheckoutContainer
+				{ ...baseProps( {
+					billing: {
+						cartTotal: { value: 10 },
+						currency: { minorUnit: 2, code: 'EUR' },
+					},
+				} ) }
+			/>
+		);
+
+		expect( mockElementsMounts ).toBe( 2 );
+		expect( capturedOptions[ 1 ].currency ).toBe( 'eur' );
 	} );
 } );

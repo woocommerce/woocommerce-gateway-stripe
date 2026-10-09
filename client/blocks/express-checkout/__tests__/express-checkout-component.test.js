@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { act, render } from '@testing-library/react';
 import { ExpressCheckoutElement } from '@stripe/react-stripe-js';
 import ExpressCheckoutComponent from '../express-checkout-component';
 import { useExpressCheckout } from '../hooks';
@@ -142,5 +142,64 @@ describe( 'ExpressCheckoutComponent height clamping', () => {
 		} );
 
 		expect( options.buttonHeight ).toBe( 40 );
+	} );
+} );
+
+describe( 'ExpressCheckoutComponent availability', () => {
+	const renderInBlockSlot = () => {
+		useExpressCheckout.mockReturnValue( {
+			buttonOptions: { buttonHeight: 48, buttonTheme: {} },
+			onButtonClick: jest.fn(),
+			onConfirm: jest.fn(),
+			onCancel: jest.fn(),
+			elements: {},
+		} );
+
+		const list = document.createElement( 'ul' );
+		const slot = document.createElement( 'li' );
+		slot.id = 'express-payment-method-express_checkout_element_applePay';
+		list.appendChild( slot );
+		document.body.appendChild( list );
+
+		const { container } = render(
+			<ExpressCheckoutComponent
+				{ ...componentProps }
+				expressPaymentMethod={
+					EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY
+				}
+			/>,
+			{ container: slot }
+		);
+
+		return { list, slot, wrapper: container.firstChild };
+	};
+
+	const fireReady = ( availablePaymentMethods ) =>
+		act( () => {
+			ExpressCheckoutElement.mock.lastCall[ 0 ].onReady( {
+				availablePaymentMethods,
+			} );
+		} );
+
+	afterEach( () => {
+		document.body.innerHTML = '';
+	} );
+
+	it( 'hides itself without removing the block slot when the wallet is unavailable', () => {
+		const { list, slot, wrapper } = renderInBlockSlot();
+
+		fireReady( { applePay: false } );
+
+		expect( wrapper.hidden ).toBe( true );
+		expect( list.contains( slot ) ).toBe( true );
+	} );
+
+	it( 'shows itself again when the wallet becomes available', () => {
+		const { wrapper } = renderInBlockSlot();
+
+		fireReady( { applePay: false } );
+		fireReady( { applePay: true } );
+
+		expect( wrapper.hidden ).toBe( false );
 	} );
 } );
