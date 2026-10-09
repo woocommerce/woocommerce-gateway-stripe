@@ -10,14 +10,19 @@ import {
 	PAYMENT_METHOD_CARD,
 	EXPRESS_PAYMENT_METHODS,
 } from 'wcstripe/stripe-utils/constants';
-import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
+import {
+	getBlocksConfiguration,
+	hasBlocksConfiguration,
+} from 'wcstripe/blocks/utils';
 import Icons from 'wcstripe/payment-method-icons';
 import { initializeCheckoutIcons } from 'wcstripe/blocks/upe/checkout-icons';
 import WCStripeAPI from 'wcstripe/api';
 import 'wcstripe/stripe-utils/copy-test-number';
 
-// Initialize checkout icons
-const isAdmin = getBlocksConfiguration()?.isAdmin ?? false;
+// Initialize checkout icons. This runs on import, when the configuration can still be missing.
+const isAdmin = hasBlocksConfiguration()
+	? getBlocksConfiguration()?.isAdmin ?? false
+	: false;
 const checkoutIcons = initializeCheckoutIcons( isAdmin );
 
 const upeMethods = getPaymentMethodsConstants();
