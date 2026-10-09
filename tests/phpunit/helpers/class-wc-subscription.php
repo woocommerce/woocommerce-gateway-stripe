@@ -227,4 +227,32 @@ class WC_Subscription extends WC_Order {
 	public function get_captured_notes() {
 		return $this->captured_notes;
 	}
+
+	/**
+	 * Related order ids returned by get_related_orders().
+	 *
+	 * @var int[]
+	 */
+	private $related_orders = [];
+
+	/**
+	 * Test-only helper to seed the ids get_related_orders() returns.
+	 *
+	 * @param int[] $order_ids Related order ids (parent and renewals).
+	 * @return void
+	 */
+	public function set_mock_related_orders( array $order_ids ) {
+		$this->related_orders = array_map( 'intval', $order_ids );
+	}
+
+	/**
+	 * Mock for WC_Subscription::get_related_orders(). Only the 'ids' return type is supported.
+	 *
+	 * @param string $return_fields Either 'ids' or 'all' (the mock always returns ids).
+	 * @param string|array $order_types Ignored by the mock.
+	 * @return int[]
+	 */
+	public function get_related_orders( $return_fields = 'ids', $order_types = [ 'parent', 'renewal' ] ) {
+		return $this->related_orders;
+	}
 }

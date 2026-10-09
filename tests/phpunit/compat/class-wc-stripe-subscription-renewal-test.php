@@ -1817,4 +1817,77 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			],
 		];
 	}
+
+	/**
+	 * A renewal that fails with payment_intent_mandate_invalid must clear the stored mandate from
+	 * the renewal order, the subscription, and every related order, so the next attempt creates a
+	 * fresh mandate instead of resending the dead one.
+	 */
+	public function test_renewal_clears_stored_mandate_on_mandate_invalid_error() {
+		$renewal_order = WC_Helper_Order::create_order();
+		$parent_order  = WC_Helper_Order::create_order();
+		$order_helper  = WC_Stripe_Order_Helper::get_instance();
+
+		// The renewal order, the parent order, and the subscription all carry the now-inactive mandate.
+		$order_helper->update_stripe_mandate_id( $renewal_order, 'mandate_dead' );
+		$renewal_order->save();
+		$order_helper->update_stripe_mandate_id( $parent_order, 'mandate_dead' );
+		$parent_order->save();
+
+		$mock_subscription = new WC_Subscription();
+		$mock_subscription->set_id( $renewal_order->get_id() + 1000 );
+		$mock_subscription->update_status( OrderStatus::ON_HOLD );
+		$mock_subscription->set_mock_related_orders( [ $renewal_order->get_id(), $parent_order->get_id() ] );
+		$order_helper->update_stripe_mandate_id( $mock_subscription, 'mandate_dead' );
+		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order = [ $mock_subscription ];
+
+		$this->wc_gateway_stripe
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => 'cus_123abc',
+					'source'         => 'src_123abc',
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		$mock_error = (object) [
+			'error' => (object) [
+				'type'    => 'invalid_request_error',
+				'code'    => 'payment_intent_mandate_invalid',
+				'message' => 'Only active mandates can be used with PaymentIntents.',
+			],
+		];
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $mock_error ) {
+			if ( 'https://api.stripe.com/v1/payment_intents' !== $url ) {
+				return $preempt;
+			}
+
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode( $mock_error ),
+				'response' => [
+					'code'    => 400,
+					'message' => 'Bad Request',
+				],
+			];
+		};
+		\add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( $renewal_order->get_total(), $renewal_order, false, false );
+		} finally {
+			\remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order = null;
+		}
+
+		$this->assertEmpty( $order_helper->get_stripe_mandate_id( wc_get_order( $renewal_order->get_id() ) ), 'renewal order mandate should be cleared' );
+		$this->assertEmpty( $order_helper->get_stripe_mandate_id( wc_get_order( $parent_order->get_id() ) ), 'parent order mandate should be cleared' );
+		$this->assertEmpty( $order_helper->get_stripe_mandate_id( $mock_subscription ), 'subscription mandate should be cleared' );
+	}
 }
