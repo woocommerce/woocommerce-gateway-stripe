@@ -435,10 +435,6 @@ class WC_Stripe_Admin_Notices {
 	/**
 	 * Builds the "webhook endpoint no longer exists" notice for a given mode.
 	 *
-	 * Kept out of the notice loop so the translated string is only looked up when the notice is
-	 * actually shown, not on every admin page load. One full string per mode, so translators never
-	 * see an untranslated mode name.
-	 *
 	 * @param string $mode The Stripe mode, 'live' or 'test'.
 	 * @return string The notice message, with the settings link filled in.
 	 */
