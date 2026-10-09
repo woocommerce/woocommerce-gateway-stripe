@@ -756,9 +756,8 @@ class WC_Stripe_Account {
 					}
 				}
 
-				// A secret the plugin didn't write was set manually; reconfiguring or recreating
-				// would silently replace it and break the merchant's endpoint, so notify instead.
-				// Legacy webhook_data without signing_secret keeps the pre-existing behavior.
+				// The webhook secret was written manually, so we don't automate a "fix" that might break things.
+				// Legacy webhook_data (which doesn't have `signing_secret`) is not flagged as a manual edit.
 				$secret_is_manual = '' !== $stored_secret && (
 					'' === $stored_webhook_id
 					|| ( isset( $webhook_data['signing_secret'] ) && $webhook_data['signing_secret'] !== $stored_secret )
