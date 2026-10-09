@@ -7,7 +7,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Stores Stripe event processing state as posts of a hidden post type.
  *
  * The event ID is kept in `post_name`, the event type in `post_title`, the event creation time in
- * `post_date`/`post_date_gmt`, the order the event was applied to in `post_parent`, and the mode in post meta.
+ * `post_date`/`post_date_gmt`, the order the event was applied to in `post_parent`, the number of failed fetches
+ * in `menu_order`, and the mode in post meta.
  */
 class WC_Stripe_Event_Post_Store implements WC_Stripe_Event_Store_Interface {
 	public const POST_TYPE = 'wc_stripe_event';
@@ -23,6 +24,7 @@ class WC_Stripe_Event_Post_Store implements WC_Stripe_Event_Store_Interface {
 		self::STATUS_PROCESSING => 'wc_stripe_processing',
 		self::STATUS_PROCESSED  => 'wc_stripe_processed',
 		self::STATUS_FAILED     => 'wc_stripe_failed',
+		self::STATUS_ABANDONED  => 'wc_stripe_abandoned',
 	];
 
 	/**
@@ -131,8 +133,11 @@ class WC_Stripe_Event_Post_Store implements WC_Stripe_Event_Store_Interface {
 				'post_status'            => self::POST_STATUSES[ $status ],
 				'meta_key'               => self::LIVEMODE_META_KEY, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
 				'meta_value'             => $livemode ? '1' : '0', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
-				'orderby'                => 'date',
-				'order'                  => 'ASC',
+				// Events that keep failing go to the back, so they cannot block the rest.
+				'orderby'                => [
+					'menu_order' => 'ASC',
+					'date'       => 'ASC',
+				],
 				'posts_per_page'         => $limit,
 				'update_post_term_cache' => false,
 			]
@@ -156,6 +161,7 @@ class WC_Stripe_Event_Post_Store implements WC_Stripe_Event_Store_Interface {
 			'post_name'   => $event_id,
 			'post_title'  => $record->type,
 			'post_parent' => $record->order_id ?? 0,
+			'menu_order'  => $record->attempts,
 			'meta_input'  => [ self::LIVEMODE_META_KEY => $record->livemode ? '1' : '0' ],
 		];
 
@@ -225,6 +231,11 @@ class WC_Stripe_Event_Post_Store implements WC_Stripe_Event_Store_Interface {
 	 * @return int Number of posts deleted.
 	 */
 	private function delete_posts( int $limit, array $date_query = [] ): int {
+		// WP_Query treats a limit of 0 as 1.
+		if ( $limit < 1 ) {
+			return 0;
+		}
+
 		$post_ids = get_posts(
 			[
 				'post_type'   => self::POST_TYPE,
@@ -285,7 +296,8 @@ class WC_Stripe_Event_Post_Store implements WC_Stripe_Event_Store_Interface {
 			$post->post_title,
 			(int) strtotime( $post->post_date_gmt . ' UTC' ),
 			'1' === get_post_meta( $post->ID, self::LIVEMODE_META_KEY, true ),
-			$post->post_parent ? (int) $post->post_parent : null
+			$post->post_parent ? (int) $post->post_parent : null,
+			(int) $post->menu_order
 		);
 	}
 }

@@ -53,6 +53,13 @@ final class WC_Stripe_Event_Record {
 	public ?int $order_id;
 
 	/**
+	 * Number of times fetching the event from Stripe failed.
+	 *
+	 * @var int
+	 */
+	public int $attempts;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param string   $id       Stripe event ID.
@@ -61,14 +68,16 @@ final class WC_Stripe_Event_Record {
 	 * @param int      $created  Stripe event creation timestamp.
 	 * @param bool     $livemode Whether the event belongs to live mode, rather than test mode.
 	 * @param int|null $order_id ID of the order the event was applied to, if any.
+	 * @param int      $attempts Number of times fetching the event from Stripe failed.
 	 */
-	public function __construct( string $id, string $status, string $type, int $created, bool $livemode, ?int $order_id = null ) {
+	public function __construct( string $id, string $status, string $type, int $created, bool $livemode, ?int $order_id = null, int $attempts = 0 ) {
 		$this->id       = $id;
 		$this->status   = $status;
 		$this->type     = $type;
 		$this->created  = $created;
 		$this->livemode = $livemode;
 		$this->order_id = $order_id;
+		$this->attempts = $attempts;
 	}
 
 	/**

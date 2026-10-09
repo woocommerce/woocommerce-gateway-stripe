@@ -27,6 +27,11 @@ class WC_Stripe_Event_Reconciler {
 
 	private const BATCH_SIZE = 5;
 
+	/**
+	 * Failed fetches are retried once per reconciliation run, so this gives up after about a day.
+	 */
+	private const MAX_ATTEMPTS = 48;
+
 	private const RECONCILE_INTERVAL = 30 * MINUTE_IN_SECONDS;
 
 	/**
@@ -268,7 +273,9 @@ class WC_Stripe_Event_Reconciler {
 	}
 
 	/**
-	 * Processes a batch of pending events, then schedules the next batch.
+	 * Processes a batch of pending events, then schedules the next batch if this one made progress.
+	 *
+	 * Without progress, for example while Stripe cannot be reached, the next reconciliation run starts the job again.
 	 */
 	public function process_pending_events(): void {
 		if ( ! WC_Stripe_Feature_Flags::is_event_reconciliation_enabled() ) {
@@ -281,15 +288,15 @@ class WC_Stripe_Event_Reconciler {
 			return;
 		}
 
-		$handler = new WC_Stripe_Webhook_Handler( $this );
+		$handler   = new WC_Stripe_Webhook_Handler( $this );
+		$processed = false;
 
 		foreach ( $records as $record ) {
 			$event      = WC_Stripe_API::retrieve( 'events/' . $record->id );
 			$event_json = is_object( $event ) && empty( $event->error ) && ! empty( $event->id ) ? wp_json_encode( $event ) : false;
 
 			if ( false === $event_json ) {
-				$record->status = WC_Stripe_Event_Store_Interface::STATUS_FAILED;
-				$this->store->save( $record );
+				$this->record_fetch_failure( $record, $event );
 				continue;
 			}
 
@@ -297,6 +304,8 @@ class WC_Stripe_Event_Reconciler {
 			if ( self::CLAIM_ACQUIRED !== $this->claim( $event ) ) {
 				continue;
 			}
+
+			$processed = true;
 
 			try {
 				$handler->process_webhook( $event_json );
@@ -308,11 +317,42 @@ class WC_Stripe_Event_Reconciler {
 		}
 
 		// The current action is still marked in-progress, so as_has_scheduled_action() would block the next batch.
-		as_enqueue_async_action( self::PROCESS_ACTION, [], self::ACTION_GROUP );
+		if ( $processed ) {
+			as_enqueue_async_action( self::PROCESS_ACTION, [], self::ACTION_GROUP );
+		}
 	}
 
 	/**
-	 * Claims an event for processing, so a webhook delivery and the batch job never process it at the same time.
+	 * Counts a failed fetch, and gives up on the event when it cannot succeed or has failed too often.
+	 *
+	 * @param WC_Stripe_Event_Record $record   Record of the event.
+	 * @param mixed                  $response Response of the fetch.
+	 */
+	private function record_fetch_failure( WC_Stripe_Event_Record $record, $response ): void {
+		$error_code = is_object( $response ) && isset( $response->error->code ) ? (string) $response->error->code : '';
+
+		++$record->attempts;
+
+		// Stripe only keeps events for 30 days, and only returns those of the account the keys belong to.
+		if ( 'resource_missing' === $error_code || $record->attempts >= self::MAX_ATTEMPTS ) {
+			$record->status = WC_Stripe_Event_Store_Interface::STATUS_ABANDONED;
+
+			WC_Stripe_Logger::warning(
+				'Gave up on processing an undelivered Stripe event.',
+				[
+					'event_id'   => $record->id,
+					'event_type' => $record->type,
+					'attempts'   => $record->attempts,
+					'error_code' => $error_code,
+				]
+			);
+		}
+
+		$this->store->save( $record );
+	}
+
+	/**
+	 * Claims an event for processing, so a webhook delivery and the processing job never process it at the same time.
 	 *
 	 * @param mixed $notification Stripe event.
 	 * @return string One of the CLAIM_* constants.

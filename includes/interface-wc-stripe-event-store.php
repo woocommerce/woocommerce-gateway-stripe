@@ -9,10 +9,30 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Implementations only persist state; deciding what to process and when belongs to the callers.
  */
 interface WC_Stripe_Event_Store_Interface {
-	public const STATUS_PENDING    = 'pending';
+	/**
+	 * Stripe did not deliver the event. It waits for the processing job, including after a failed fetch.
+	 */
+	public const STATUS_PENDING = 'pending';
+
+	/**
+	 * Claimed by a webhook delivery or the processing job, or deferred by the webhook handler.
+	 */
 	public const STATUS_PROCESSING = 'processing';
-	public const STATUS_PROCESSED  = 'processed';
-	public const STATUS_FAILED     = 'failed';
+
+	/**
+	 * The webhook handler finished with the event.
+	 */
+	public const STATUS_PROCESSED = 'processed';
+
+	/**
+	 * Processing threw. Not retried, since it would most likely fail the same way.
+	 */
+	public const STATUS_FAILED = 'failed';
+
+	/**
+	 * The event could not be fetched from Stripe: it no longer exists, or every attempt failed.
+	 */
+	public const STATUS_ABANDONED = 'abandoned';
 
 	/**
 	 * Returns the stored record of an event.
@@ -31,7 +51,7 @@ interface WC_Stripe_Event_Store_Interface {
 	public function get_many( array $event_ids ): array;
 
 	/**
-	 * Returns the records with the given status and mode, oldest event first.
+	 * Returns the records with the given status and mode, fewest attempts first, then oldest event first.
 	 *
 	 * @param string $status   One of the STATUS_* constants.
 	 * @param bool   $livemode Whether to return live mode events, rather than test mode ones.
