@@ -645,6 +645,11 @@ trait WC_Stripe_Subscriptions_Trait {
 				}
 
 				if ( isset( $response->error->code ) && 'payment_intent_mandate_invalid' === $response->error->code ) {
+					// The stored mandate is no longer active, so reusing it will keep failing. Clear it
+					// from the subscription and its related orders so the next renewal attempt falls
+					// through to create a fresh mandate instead of resending this one.
+					$this->clear_stored_mandate_for_renewal( $renewal_order );
+
 					$localized_message = __(
 						'The mandate used for this renewal payment is invalid. You may need to bring the customer back to your store and ask them to resubmit their payment information.',
 						'woocommerce-gateway-stripe'
@@ -1213,6 +1218,46 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		return $request;
+	}
+
+	/**
+	 * Clears the stored Stripe mandate ID from a failed renewal and everywhere it could be reused.
+	 *
+	 * The reuse path in add_subscription_information_to_intent() reads a stored mandate from the
+	 * renewal order, and failing that from any related order via get_mandate_for_subscription().
+	 * New renewal orders are also re-seeded from the subscription by wcs_copy_order_meta(). So to
+	 * make the next attempt create a fresh mandate, the id must be cleared from the renewal order,
+	 * the subscription, and every related order, not just the order that failed.
+	 *
+	 * @param WC_Order $renewal_order The renewal order that failed with payment_intent_mandate_invalid.
+	 * @return void
+	 */
+	private function clear_stored_mandate_for_renewal( $renewal_order ) {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->delete_stripe_mandate_id( $renewal_order );
+
+		$subscriptions = function_exists( 'wcs_get_subscriptions_for_renewal_order' )
+			? wcs_get_subscriptions_for_renewal_order( $renewal_order )
+			: [];
+
+		foreach ( $subscriptions as $subscription ) {
+			if ( ! $subscription instanceof WC_Order ) {
+				continue;
+			}
+
+			$order_helper->delete_stripe_mandate_id( $subscription );
+
+			if ( ! method_exists( $subscription, 'get_related_orders' ) ) {
+				continue;
+			}
+
+			foreach ( $subscription->get_related_orders( 'ids' ) as $related_order_id ) {
+				$related_order = wc_get_order( $related_order_id );
+				if ( $related_order instanceof WC_Order ) {
+					$order_helper->delete_stripe_mandate_id( $related_order );
+				}
+			}
+		}
 	}
 
 	/**

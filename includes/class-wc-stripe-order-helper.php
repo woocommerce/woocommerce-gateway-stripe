@@ -804,6 +804,25 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Deletes the stored Stripe mandate ID from an order and persists the change.
+	 *
+	 * Used when a renewal fails because the stored mandate is no longer active, so the next
+	 * attempt creates a fresh one. Persists immediately because the next attempt runs in a
+	 * separate request.
+	 *
+	 * @param WC_Order|null $order The order (or subscription) to clear the mandate from.
+	 * @return void
+	 */
+	public function delete_stripe_mandate_id( ?WC_Order $order = null ): void {
+		if ( ! $order instanceof WC_Order ) {
+			return;
+		}
+
+		$this->delete_order_meta( $order, self::META_STRIPE_MANDATE_ID );
+		$order->save_meta_data();
+	}
+
+	/**
 	 * Gets the Stripe Multibanco data for order.
 	 *
 	 * @since 10.1.0
