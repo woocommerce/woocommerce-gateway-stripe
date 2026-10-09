@@ -73,6 +73,12 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 	const [ savedWebhookSecret, setSavedWebhookSecret ] = useState( '' );
 	const [ isLoadingSettings, setIsLoadingSettings ] = useState( true );
 	const [ hasLoadedSettings, setHasLoadedSettings ] = useState( false );
+	const [ hasEditedAutoExcludeAddons, setHasEditedAutoExcludeAddons ] =
+		useState( false );
+	const [
+		hasEditedAutoRedirectCheckoutAddons,
+		setHasEditedAutoRedirectCheckoutAddons,
+	] = useState( false );
 	const [ settingsNotice, setSettingsNotice ] = useState( null );
 
 	const [ isTestMode ] = useTestMode();
@@ -128,12 +134,18 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 				data: {
 					is_enabled: isFeatureEnabled,
 					disable_checkout: disableCheckout,
-					// Omit add-on toggles until settings have been loaded from the server
-					// so a failed initial GET cannot overwrite enabled server options with
-					// the local false defaults on a subsequent save.
-					...( hasLoadedSettings
+					// Omit each add-on toggle until settings have loaded from the server
+					// or the merchant has explicitly changed that toggle, so a failed
+					// initial GET cannot overwrite enabled server options with local
+					// false defaults on a subsequent save.
+					...( hasLoadedSettings || hasEditedAutoExcludeAddons
 						? {
 								auto_exclude_addons: autoExcludeAddons,
+						  }
+						: {} ),
+					...( hasLoadedSettings ||
+					hasEditedAutoRedirectCheckoutAddons
+						? {
 								auto_redirect_checkout_addons:
 									autoRedirectCheckoutAddons,
 						  }
@@ -167,6 +179,8 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 		disableCheckout,
 		autoExcludeAddons,
 		autoRedirectCheckoutAddons,
+		hasEditedAutoExcludeAddons,
+		hasEditedAutoRedirectCheckoutAddons,
 		hasLoadedSettings,
 		webhookSecret,
 	] );
@@ -269,7 +283,12 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 											'woocommerce-gateway-stripe'
 										) }
 										checked={ autoExcludeAddons }
-										onChange={ setAutoExcludeAddons }
+										onChange={ ( value ) => {
+											setAutoExcludeAddons( value );
+											setHasEditedAutoExcludeAddons(
+												true
+											);
+										} }
 									/>
 								) }
 
@@ -292,9 +311,14 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 										}
 										checked={ autoRedirectCheckoutAddons }
 										disabled={ autoExcludeAddons }
-										onChange={
-											setAutoRedirectCheckoutAddons
-										}
+										onChange={ ( value ) => {
+											setAutoRedirectCheckoutAddons(
+												value
+											);
+											setHasEditedAutoRedirectCheckoutAddons(
+												true
+											);
+										} }
 									/>
 								) }
 
