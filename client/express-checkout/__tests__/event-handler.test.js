@@ -493,7 +493,9 @@ describe( 'Express checkout event handlers', () => {
 			} );
 
 			expect( api.confirmIntent ).toHaveBeenCalledWith(
-				'https://example.com/redirect'
+				'https://example.com/redirect',
+				null,
+				undefined
 			);
 			expect( completePayment ).toHaveBeenCalledWith(
 				'https://example.com/redirect'
@@ -528,7 +530,9 @@ describe( 'Express checkout event handlers', () => {
 			} );
 
 			expect( api.confirmIntent ).toHaveBeenCalledWith(
-				'https://example.com/redirect'
+				'https://example.com/redirect',
+				null,
+				undefined
 			);
 			expect( completePayment ).toHaveBeenCalledWith(
 				'https://example.com/confirmation_redirect'
@@ -563,7 +567,9 @@ describe( 'Express checkout event handlers', () => {
 			} );
 
 			expect( api.confirmIntent ).toHaveBeenCalledWith(
-				'https://example.com/redirect'
+				'https://example.com/redirect',
+				null,
+				undefined
 			);
 			expect( abortPayment ).toHaveBeenCalledWith(
 				event,
@@ -639,7 +645,9 @@ describe( 'Express checkout event handlers', () => {
 			} );
 
 			expect( api.confirmIntent ).toHaveBeenCalledWith(
-				'https://example.com/redirect'
+				'https://example.com/redirect',
+				null,
+				undefined
 			);
 			expect( completePayment ).toHaveBeenCalledWith(
 				'https://example.com/redirect'
@@ -675,7 +683,9 @@ describe( 'Express checkout event handlers', () => {
 			} );
 
 			expect( api.confirmIntent ).toHaveBeenCalledWith(
-				'https://example.com/redirect'
+				'https://example.com/redirect',
+				null,
+				undefined
 			);
 			expect( completePayment ).toHaveBeenCalledWith(
 				'https://example.com/confirmation_redirect'
@@ -711,7 +721,9 @@ describe( 'Express checkout event handlers', () => {
 			} );
 
 			expect( api.confirmIntent ).toHaveBeenCalledWith(
-				'https://example.com/redirect'
+				'https://example.com/redirect',
+				null,
+				undefined
 			);
 			expect( abortPayment ).toHaveBeenCalledWith(
 				event,
@@ -762,7 +774,9 @@ describe( 'Express checkout event handlers', () => {
 
 			expect( api.expressCheckoutECECreateOrder ).toHaveBeenCalled();
 			expect( api.confirmIntent ).toHaveBeenCalledWith(
-				threeDSRedirectUrl
+				threeDSRedirectUrl,
+				null,
+				undefined
 			);
 			expect( completePayment ).toHaveBeenCalledWith(
 				threeDSRedirectUrl
