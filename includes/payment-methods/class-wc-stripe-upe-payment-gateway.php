@@ -1,5 +1,6 @@
 <?php
 
+use Automattic\WooCommerce\Caches\OrderCache;
 use Automattic\WooCommerce\Enums\OrderStatus;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -2609,7 +2610,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$locked = $order_helper->lock_order_payment( $order );
 		if ( $locked ) {
 			WC_Stripe_Logger::info( "Skip processing checkout session redirect for order $order_id, order payment is already being processed (locked)" );
-			return;
+
+			// The settling webhook holds the lock; a retry after a decline is still Failed, so a bare
+			// return would show the failed-order notice. Wait for settlement, then redirect clean.
+			$this->wait_for_checkout_session_settlement( $order_id );
+			wp_safe_redirect( wp_sanitize_redirect( $this->get_return_url( $order ) ) );
+			exit;
 		}
 
 		try {
@@ -2707,6 +2713,86 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		} finally {
 			$order_helper->unlock_order_payment( $order );
 		}
+	}
+
+	/**
+	 * Waits for the settlement webhook to mark the order paid, up to a short budget.
+	 *
+	 * The redirect handler and the webhook serialize on the order payment lock. When the webhook
+	 * wins, it holds the lock while it settles the order, so polling for the paid transition keeps
+	 * the shopper off the stale failed-order page.
+	 *
+	 * @param int $order_id The order being settled by the webhook.
+	 * @return bool True if the order reached a paid status within the budget.
+	 */
+	protected function wait_for_checkout_session_settlement( int $order_id ): bool {
+		$deadline = microtime( true ) + $this->get_checkout_session_settlement_timeout();
+
+		while ( true ) {
+			if ( $this->order_reached_paid_status( $order_id ) ) {
+				return true;
+			}
+
+			if ( microtime( true ) >= $deadline ) {
+				return false;
+			}
+
+			$this->sleep_between_settlement_checks();
+		}
+	}
+
+	/**
+	 * Reports whether the order is in a paid status, read fresh from the data store.
+	 *
+	 * The settling webhook runs in a separate request, so its write is only visible after the
+	 * per-request order cache is cleared.
+	 *
+	 * @param int $order_id The order id.
+	 * @return bool
+	 */
+	protected function order_reached_paid_status( int $order_id ): bool {
+		// Clear WooCommerce's order caches so a status the settling webhook wrote in another request
+		// is visible here: OrderCache holds the HPOS object, clean_post_cache covers the posts store.
+		if ( function_exists( 'wc_get_container' ) && class_exists( OrderCache::class ) ) {
+			$order_cache = wc_get_container()->get( OrderCache::class );
+			if ( $order_cache instanceof OrderCache ) {
+				$order_cache->remove( $order_id );
+			}
+		}
+		clean_post_cache( $order_id );
+
+		$order = wc_get_order( $order_id );
+
+		return $order instanceof WC_Order
+			&& $order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED, OrderStatus::ON_HOLD ] );
+	}
+
+	/**
+	 * How long the redirect handler waits for the settlement webhook, in seconds.
+	 *
+	 * @return float
+	 */
+	protected function get_checkout_session_settlement_timeout(): float {
+		/**
+		 * Filters the wait for the settlement webhook on the order-received return.
+		 *
+		 * @since 11.1.0
+		 *
+		 * @param float $timeout Seconds to wait. Default 5.
+		 */
+		$timeout = (float) apply_filters( 'wc_stripe_checkout_session_settlement_timeout', 5.0 );
+
+		// Clamp so a filter cannot block the return request for an unreasonable time.
+		return max( 0.0, min( $timeout, 15.0 ) );
+	}
+
+	/**
+	 * Sleeps between settlement checks. Isolated so tests can override it without a real delay.
+	 *
+	 * @return void
+	 */
+	protected function sleep_between_settlement_checks(): void {
+		usleep( 250000 ); // 250ms.
 	}
 
 	/**

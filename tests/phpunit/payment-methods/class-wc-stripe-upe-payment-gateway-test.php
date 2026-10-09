@@ -3022,6 +3022,107 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * When the settlement webhook holds the order payment lock, the redirect handler must not
+	 * leave the shopper on the stale failed-order page. After waiting for the webhook, it redirects
+	 * to the clean order-received URL instead of returning (the pre-fix behaviour, which rendered
+	 * the failed-order notice). The settlement wait is short-circuited here with a zero timeout.
+	 */
+	public function test_process_checkout_session_redirect_redirects_clean_when_webhook_holds_lock() {
+		[ $order ] = $this->create_order_with_checkout_session( 'cs_test_locked' );
+		// A declined earlier attempt leaves the order Failed while the webhook settles the retry.
+		$order->set_status( OrderStatus::FAILED );
+		$order->save();
+
+		// The settlement webhook holds the lock, so lock_order_payment() reports it as locked.
+		$order_helper = $this->createPartialMock( WC_Stripe_Order_Helper::class, [ 'lock_order_payment', 'unlock_order_payment' ] );
+		$order_helper->method( 'lock_order_payment' )->willReturn( true );
+		$order_helper->method( 'unlock_order_payment' );
+		WC_Stripe_Order_Helper::set_instance( $order_helper );
+
+		// Don't actually wait for the webhook in the test.
+		add_filter( 'wc_stripe_checkout_session_settlement_timeout', '__return_zero' );
+
+		// No Stripe API call runs on the locked branch.
+		$this->mock_gateway->expects( $this->never() )->method( 'stripe_request' );
+
+		$captured = null;
+		$this->intercept_wp_redirect( $captured );
+
+		try {
+			$this->mock_gateway->process_checkout_session_redirect( $order->get_id() );
+			$this->fail( 'Expected redirect to be triggered' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirect_intercepted', $e->getMessage() );
+		} finally {
+			remove_all_filters( 'wp_redirect' );
+			remove_filter( 'wc_stripe_checkout_session_settlement_timeout', '__return_zero' );
+		}
+
+		$this->assertSame( self::MOCK_RETURN_URL_AFTER_REDIRECT, $captured );
+	}
+
+	/**
+	 * wait_for_checkout_session_settlement() returns true as soon as the order reaches a paid
+	 * status, sleeping between checks until then.
+	 */
+	public function test_wait_for_checkout_session_settlement_returns_true_when_order_settles() {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'order_reached_paid_status', 'sleep_between_settlement_checks', 'get_checkout_session_settlement_timeout' ] )
+			->getMock();
+		$gateway->method( 'get_checkout_session_settlement_timeout' )->willReturn( 5.0 );
+		// Not paid, not paid, then the webhook marks it paid.
+		$gateway->expects( $this->exactly( 3 ) )->method( 'order_reached_paid_status' )
+			->willReturnOnConsecutiveCalls( false, false, true );
+		$gateway->expects( $this->exactly( 2 ) )->method( 'sleep_between_settlement_checks' );
+
+		$method = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'wait_for_checkout_session_settlement' );
+		$method->setAccessible( true );
+
+		$this->assertTrue( $method->invoke( $gateway, 123 ) );
+	}
+
+	/**
+	 * wait_for_checkout_session_settlement() gives up and returns false when the order does not
+	 * settle within the budget, so the caller still redirects to the clean URL.
+	 */
+	public function test_wait_for_checkout_session_settlement_times_out() {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'order_reached_paid_status', 'sleep_between_settlement_checks', 'get_checkout_session_settlement_timeout' ] )
+			->getMock();
+		// Zero budget: one status check, then the deadline has already passed.
+		$gateway->method( 'get_checkout_session_settlement_timeout' )->willReturn( 0.0 );
+		$gateway->method( 'order_reached_paid_status' )->willReturn( false );
+		$gateway->expects( $this->never() )->method( 'sleep_between_settlement_checks' );
+
+		$method = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'wait_for_checkout_session_settlement' );
+		$method->setAccessible( true );
+
+		$this->assertFalse( $method->invoke( $gateway, 123 ) );
+	}
+
+	/**
+	 * order_reached_paid_status() reports a paid order and rejects a non-paid one, reading the
+	 * current status fresh from the data store.
+	 */
+	public function test_order_reached_paid_status_reflects_current_status() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::FAILED );
+		$order->save();
+
+		$method = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'order_reached_paid_status' );
+		$method->setAccessible( true );
+
+		$this->assertFalse( $method->invoke( $this->mock_gateway, $order->get_id() ) );
+
+		$order->set_status( OrderStatus::PROCESSING );
+		$order->save();
+
+		$this->assertTrue( $method->invoke( $this->mock_gateway, $order->get_id() ) );
+	}
+
+	/**
 	 * Test the success path: a `complete` Stripe Checkout Session must mark the
 	 * replay flag, leave the order pending (the webhook will finalise it), and
 	 * redirect to the clean order-received URL — stripping the disambiguation
