@@ -764,17 +764,15 @@ class WC_Stripe_Account {
 				);
 
 				if ( ! $existing_webhook ) {
-					// No endpoint points at this site. Recreate the plugin's webhook so a deleted
-					// or never-created endpoint self-heals. Skip when the merchant manages the
-					// secret manually, or when the stored endpoint belongs to another site (a
-					// staging clone), where recreating would register this URL in that account.
+					// If the secret was manually edited, we don't want to overwrite the changes.
+					// If the stored webhook points at another site, we assume we are on a staging site.
 					if ( $secret_is_manual || $stored_endpoint_is_foreign ) {
 						continue;
 					}
 
-					// Flag the notice defensively, then recreate. configure_webhooks() clears it on
-					// success; if recreation fails it propagates to the catch below and the notice
-					// stays, so it only surfaces when we could not fix it automatically.
+					// Set up the notice before reconfiguring.
+					// If configure_webhooks() succeeds, we will remove the notice.
+					// If configure_webhooks() fails, the notice will stay visible.
 					update_option( self::get_webhook_missing_notice_option( $mode ), 'yes' );
 					$this->configure_webhooks( $mode );
 					WC_Stripe_Logger::info( "Recreated the missing webhook for {$mode} mode after {$update_type} update." );
