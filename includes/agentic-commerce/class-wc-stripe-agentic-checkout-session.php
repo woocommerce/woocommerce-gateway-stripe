@@ -151,7 +151,7 @@ class WC_Stripe_Agentic_Checkout_Session {
 			throw new Exception(
 				sprintf(
 					'Checkout session %s has no billing address.',
-					$this->get_id()
+					$this->get_id() // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				)
 			);
 		}

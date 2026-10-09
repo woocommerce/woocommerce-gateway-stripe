@@ -1,7 +1,7 @@
 {
   "name": "woocommerce-gateway-stripe",
   "title": "WooCommerce Gateway Stripe",
-  "version": "11.0.0",
+  "version": "11.0.1",
   "license": "GPL-3.0",
   "homepage": "http://wordpress.org/plugins/woocommerce-gateway-stripe/",
   "repository": {
@@ -52,7 +52,7 @@
     "@wordpress/url": "^3.2.1",
     "allure-playwright": "3.7.1",
     "archiver": "^5.0.0",
-    "axios": "^1.18.1",
+    "axios": "^1.20.0",
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
     "clean-css-cli": "^4.1.10",
@@ -145,7 +145,7 @@
     "xdebug:start": "docker compose exec wordpress sh -c 'sed -i \"/xdebug.mode=off/c\\xdebug.mode=debug\" /usr/local/etc/php/php.ini && /etc/init.d/apache2 reload'",
     "xdebug:stop": "docker compose exec wordpress sh -c 'sed -i \"/xdebug.mode=debug/c\\xdebug.mode=off\" /usr/local/etc/php/php.ini && /etc/init.d/apache2 reload'",
     "wp": "bash -c 'source .env 2>/dev/null; CONTAINER=wcstripe_wp_${WORKTREE_ID:-default}; docker run -it --env-file default.env --rm --volumes-from $CONTAINER --network container:$CONTAINER wordpress:cli'",
-    "listen": "bash -c 'source .env 2>/dev/null; stripe listen --forward-to \"http://localhost:${WORDPRESS_PORT:-8072}/?wc-api=wc_stripe\"'",
+    "listen": "./bin/stripe-listen.sh",
     "presass": "rm -f $npm_package_config_assets_styles_css",
     "sass": "node_modules/.bin/sass $npm_package_config_assets_styles_cssfolder:$npm_package_config_assets_styles_cssfolder --style compressed",
     "watchsass": "node_modules/.bin/node-sass $npm_package_config_assets_styles_sass --output $npm_package_config_assets_styles_cssfolder --output-style compressed --watch",
