@@ -59,15 +59,18 @@ jobs:
             4. Each section heading should be on its own line with entries following it
             5. If a section would be empty, omit that section entirely
 
-            After making changes, commit them to the current branch with message:
-            "Reorganize changelog entries for release"
+            Only use the Read and Edit tools on readme.txt. Do not run other commands and do not commit;
+            the next workflow step commits the change and opens the pull request.
 
-          claude_args: "--allowedTools 'Edit,Read,Bash(git status),Bash(git add),Bash(git commit),Bash(git diff)' --max-turns 10"
+          # Each denied tool call uses a turn, so the turn limit leaves room for the edits on a long changelog.
+          claude_args: "--allowedTools 'Read,Edit' --max-turns 25"
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 #v8.1.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          add-paths: readme.txt
+          commit-message: Reorganize changelog entries for release
           branch: format-release-notes/${{ inputs.branch }}
           base: ${{ inputs.branch }}
           title: "Reorganize release notes for ${{ inputs.branch }}"
