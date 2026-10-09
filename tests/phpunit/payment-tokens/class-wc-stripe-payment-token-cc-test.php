@@ -123,12 +123,14 @@ class WC_Stripe_Payment_Token_CC_Test extends WP_UnitTestCase {
 	 *
 	 * @dataProvider provide_wallet_display_name_scenarios
 	 *
-	 * @param string $wallet_type Stored `card.wallet.type` slug.
-	 * @param string $card_type   Stored card type brand.
-	 * @param string $expected    Expected display string.
+	 * @param string $wallet_type     Stored `card.wallet.type` slug.
+	 * @param string $card_type       Stored card type brand.
+	 * @param string $expected_format Expected display string format.
 	 * @return void
 	 */
-	public function test_get_display_name_wraps_wallet_brand( string $wallet_type, string $card_type, string $expected ): void {
+	public function test_get_display_name_wraps_wallet_brand( string $wallet_type, string $card_type, string $expected_format ): void {
+		$card_label = wc_get_credit_card_type_label( $card_type );
+		$expected   = sprintf( $expected_format, $card_label );
 		$this->assertSame( $expected, $this->build_token( $wallet_type, $card_type )->get_display_name() );
 	}
 
@@ -139,11 +141,11 @@ class WC_Stripe_Payment_Token_CC_Test extends WP_UnitTestCase {
 	 */
 	public function provide_wallet_display_name_scenarios(): array {
 		return [
-			'apple_pay wraps visa brand'        => [ 'apple_pay', 'visa', 'Apple Pay (Visa) ending in 4242 (expires 03/27)' ],
-			'google_pay wraps visa brand'       => [ 'google_pay', 'visa', 'Google Pay (Visa) ending in 4242 (expires 03/27)' ],
-			'apple_pay wraps mastercard brand'  => [ 'apple_pay', 'mastercard', 'Apple Pay (MasterCard) ending in 4242 (expires 03/27)' ],
-			'google_pay wraps mastercard brand' => [ 'google_pay', 'mastercard', 'Google Pay (MasterCard) ending in 4242 (expires 03/27)' ],
-			'link falls back to parent'         => [ 'link', 'visa', 'Visa ending in 4242 (expires 03/27)' ],
+			'apple_pay wraps visa brand'        => [ 'apple_pay', 'visa', 'Apple Pay (%s) ending in 4242 (expires 03/27)' ],
+			'google_pay wraps visa brand'       => [ 'google_pay', 'visa', 'Google Pay (%s) ending in 4242 (expires 03/27)' ],
+			'apple_pay wraps mastercard brand'  => [ 'apple_pay', 'mastercard', 'Apple Pay (%s) ending in 4242 (expires 03/27)' ],
+			'google_pay wraps mastercard brand' => [ 'google_pay', 'mastercard', 'Google Pay (%s) ending in 4242 (expires 03/27)' ],
+			'link falls back to parent'         => [ 'link', 'visa', '%s ending in 4242 (expires 03/27)' ],
 		];
 	}
 
