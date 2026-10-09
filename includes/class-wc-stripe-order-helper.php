@@ -630,7 +630,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Deletes the Stripe checkout session ID for an order.
 	 *
-	 * @since 11.1.0
+	 * @since x.x.x
 	 *
 	 * @param WC_Order|null $order
 	 * @return false|void
