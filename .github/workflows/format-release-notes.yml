@@ -17,7 +17,6 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      id-token: write
 
     steps:
       - name: Checkout branch
@@ -29,6 +28,9 @@ jobs:
         uses: anthropics/claude-code-action@cfc3eb22bfed5c26ef66e3223c982af27e4524de # v1.0.231
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Without a token the action exchanges an OIDC token for its app token, and that exchange
+          # skips the run when this file differs from the default branch, so the workflow can't run from a branch.
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           prompt: |
             Please reorganize the changelog entries in readme.txt for the upcoming release.
 
@@ -59,15 +61,26 @@ jobs:
             4. Each section heading should be on its own line with entries following it
             5. If a section would be empty, omit that section entirely
 
-            After making changes, commit them to the current branch with message:
-            "Reorganize changelog entries for release"
+            Only use the Read and Edit tools on readme.txt. Do not run other commands and do not commit;
+            the next workflow step commits the change and opens the pull request.
 
-          claude_args: "--allowedTools 'Edit,Read,Bash(git status),Bash(git add),Bash(git commit),Bash(git diff)' --max-turns 10"
+          # Each denied tool call uses a turn, so the turn limit leaves room for the edits on a long changelog.
+          claude_args: "--allowedTools 'Read,Edit' --max-turns 25"
+
+      # The Claude step can end successfully without editing anything (for example when it is skipped).
+      - name: Check that readme.txt changed
+        run: |
+          if git diff --quiet -- readme.txt; then
+            echo "::error::Claude did not change readme.txt, so there is nothing to open a pull request for."
+            exit 1
+          fi
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 #v8.1.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          add-paths: readme.txt
+          commit-message: Reorganize changelog entries for release
           branch: format-release-notes/${{ inputs.branch }}
           base: ${{ inputs.branch }}
           title: "Reorganize release notes for ${{ inputs.branch }}"
