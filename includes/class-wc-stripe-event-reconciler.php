@@ -13,6 +13,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_Event_Reconciler {
 	public const PROCESS_ACTION = 'wc_stripe_process_pending_events';
 
+	public const RECONCILE_ACTION = 'wc_stripe_reconcile_events';
+
 	public const CLAIM_ACQUIRED = 'acquired';
 
 	public const CLAIM_PROCESSED = 'processed';
@@ -22,6 +24,8 @@ class WC_Stripe_Event_Reconciler {
 	private const ACTION_GROUP = 'woocommerce-gateway-stripe';
 
 	private const BATCH_SIZE = 5;
+
+	private const RECONCILE_INTERVAL = 30 * MINUTE_IN_SECONDS;
 
 	private const PAGE_SIZE = 100;
 
@@ -63,6 +67,43 @@ class WC_Stripe_Event_Reconciler {
 	public function init(): void {
 		add_action( 'wc_stripe_webhook_received', [ $this, 'mark_processed' ], 10, 3 );
 		add_action( self::PROCESS_ACTION, [ $this, 'process_pending_events' ] );
+		add_action( self::RECONCILE_ACTION, [ $this, 'reconcile' ], 10, 0 );
+		add_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ $this, 'maybe_schedule_reconciliation' ], 10, 0 );
+	}
+
+	/**
+	 * Queues undelivered events and schedules their processing.
+	 */
+	public function reconcile(): void {
+		$this->queue_undelivered_events();
+		$this->schedule_processing();
+	}
+
+	/**
+	 * Schedules the recurring reconciliation, unless it is already scheduled.
+	 */
+	public function maybe_schedule_reconciliation(): void {
+		if ( ! did_action( 'action_scheduler_init' ) || ! function_exists( 'as_has_scheduled_action' ) || ! function_exists( 'as_schedule_recurring_action' ) ) {
+			return;
+		}
+
+		if ( as_has_scheduled_action( self::RECONCILE_ACTION, [], self::ACTION_GROUP ) ) {
+			return;
+		}
+
+		as_schedule_recurring_action( time(), self::RECONCILE_INTERVAL, self::RECONCILE_ACTION, [], self::ACTION_GROUP );
+	}
+
+	/**
+	 * Unschedules the recurring reconciliation and any pending processing.
+	 */
+	public static function unschedule(): void {
+		if ( ! did_action( 'action_scheduler_init' ) || ! function_exists( 'as_unschedule_all_actions' ) ) {
+			return;
+		}
+
+		as_unschedule_all_actions( self::RECONCILE_ACTION, [], self::ACTION_GROUP );
+		as_unschedule_all_actions( self::PROCESS_ACTION, [], self::ACTION_GROUP );
 	}
 
 	/**

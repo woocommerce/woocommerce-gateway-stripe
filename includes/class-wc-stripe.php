@@ -472,6 +472,8 @@ class WC_Stripe {
 		// Try to schedule the daily async cleanup of the Stripe database cache.
 		WC_Stripe_Database_Cache::maybe_schedule_daily_async_cleanup();
 
+		( new WC_Stripe_Event_Reconciler() )->maybe_schedule_reconciliation();
+
 		// If we have previously disabled settings synchronization, remove the flag after the upgrade,
 		// just to make sure we are still ineligible for settings synchronization.
 		$stripe_settings = $this->get_settings();

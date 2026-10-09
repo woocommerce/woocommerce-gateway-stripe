@@ -16,7 +16,6 @@ Temporary file for the draft PR. Remove before marking it ready for review.
 - `delivery_success=false` covers every endpoint on the account, so events that failed for another site or service on the same account are processed here too.
 
 ## Listing
-- Triggered manually from WooCommerce > Status > Tools only. No recurring job.
 - No lookback cap on the first run, and no page cap per run.
 - Switching to a different Stripe account in the same mode is not handled: the cursor carries over and hides older events from the new account, and the old account's pending events fail. A lazy account ID check next to the cursor is proposed.
 
