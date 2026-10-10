@@ -72,6 +72,13 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 	const [ webhookSecret, setWebhookSecret ] = useState( '' );
 	const [ savedWebhookSecret, setSavedWebhookSecret ] = useState( '' );
 	const [ isLoadingSettings, setIsLoadingSettings ] = useState( true );
+	const [ hasLoadedSettings, setHasLoadedSettings ] = useState( false );
+	const [ hasEditedAutoExcludeAddons, setHasEditedAutoExcludeAddons ] =
+		useState( false );
+	const [
+		hasEditedAutoRedirectCheckoutAddons,
+		setHasEditedAutoRedirectCheckoutAddons,
+	] = useState( false );
 	const [ settingsNotice, setSettingsNotice ] = useState( null );
 
 	const [ isTestMode ] = useTestMode();
@@ -105,8 +112,10 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			);
 			setWebhookSecret( result.webhook_secret ?? '' );
 			setSavedWebhookSecret( result.webhook_secret ?? '' );
+			setHasLoadedSettings( true );
 		} catch {
 			// Settings fetch failure is non-fatal; defaults remain.
+			setHasLoadedSettings( false );
 		} finally {
 			setIsLoadingSettings( false );
 		}
@@ -125,8 +134,22 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 				data: {
 					is_enabled: isFeatureEnabled,
 					disable_checkout: disableCheckout,
-					auto_exclude_addons: autoExcludeAddons,
-					auto_redirect_checkout_addons: autoRedirectCheckoutAddons,
+					// Omit each add-on toggle until settings have loaded from the server
+					// or the merchant has explicitly changed that toggle, so a failed
+					// initial GET cannot overwrite enabled server options with local
+					// false defaults on a subsequent save.
+					...( hasLoadedSettings || hasEditedAutoExcludeAddons
+						? {
+								auto_exclude_addons: autoExcludeAddons,
+						  }
+						: {} ),
+					...( hasLoadedSettings ||
+					hasEditedAutoRedirectCheckoutAddons
+						? {
+								auto_redirect_checkout_addons:
+									autoRedirectCheckoutAddons,
+						  }
+						: {} ),
 					webhook_secret: webhookSecret,
 				},
 			} );
@@ -138,6 +161,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			);
 			setWebhookSecret( result.webhook_secret ?? '' );
 			setSavedWebhookSecret( result.webhook_secret ?? '' );
+			setHasLoadedSettings( true );
 			// No success notice: the global Save changes flow already shows a page-level toast.
 		} catch ( err ) {
 			setSettingsNotice( {
@@ -155,6 +179,9 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 		disableCheckout,
 		autoExcludeAddons,
 		autoRedirectCheckoutAddons,
+		hasEditedAutoExcludeAddons,
+		hasEditedAutoRedirectCheckoutAddons,
+		hasLoadedSettings,
 		webhookSecret,
 	] );
 
@@ -256,7 +283,12 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 											'woocommerce-gateway-stripe'
 										) }
 										checked={ autoExcludeAddons }
-										onChange={ setAutoExcludeAddons }
+										onChange={ ( value ) => {
+											setAutoExcludeAddons( value );
+											setHasEditedAutoExcludeAddons(
+												true
+											);
+										} }
 									/>
 								) }
 
@@ -279,9 +311,14 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 										}
 										checked={ autoRedirectCheckoutAddons }
 										disabled={ autoExcludeAddons }
-										onChange={
-											setAutoRedirectCheckoutAddons
-										}
+										onChange={ ( value ) => {
+											setAutoRedirectCheckoutAddons(
+												value
+											);
+											setHasEditedAutoRedirectCheckoutAddons(
+												true
+											);
+										} }
 									/>
 								) }
 
