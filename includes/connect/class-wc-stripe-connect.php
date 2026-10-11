@@ -496,7 +496,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		public function is_connected_via_app_oauth( $mode = null ) {
 			// If the mode is not provided, we'll check the current mode.
 			if ( is_null( $mode ) ) {
-				$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
+				$mode = WC_Stripe_Mode::get_current_mode();
 			}
 
 			return 'app' === $this->get_connection_type( $mode );
@@ -580,7 +580,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			}
 
 			$options       = WC_Stripe_Helper::get_stripe_settings();
-			$mode          = WC_Stripe_Mode::is_test() ? 'test' : 'live';
+			$mode          = WC_Stripe_Mode::get_current_mode();
 			$prefix        = 'test' === $mode ? 'test_' : '';
 			$refresh_token = $options[ $prefix . 'refresh_token' ];
 

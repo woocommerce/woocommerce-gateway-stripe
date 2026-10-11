@@ -2286,7 +2286,7 @@ class WC_Stripe_Helper {
 	public static function is_connected( $mode = null ) {
 		// If the mode is not provided, we'll check the current mode.
 		if ( null === $mode ) {
-			$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
+			$mode = WC_Stripe_Mode::get_current_mode();
 		}
 
 		$options = self::get_stripe_settings();
