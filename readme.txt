@@ -203,6 +203,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Mark the Sofort and giropay payment method classes and constants as deprecated ahead of their removal
 * Fix - Link to checkout when missing required custom fields block express checkout on other pages
 * Fix - Stop refusing express checkout orders over required classic custom checkout fields on stores whose checkout page uses the checkout block and cannot render them
+* Fix - Improve handling of manual captures
 * Dev - Make e2e tests runnable from Quality Insights Toolkit (QIT)
 * Update - Link the WooCommerce POS page from the in-person payments description in the readme
 * Fix - Send a return URL when the browser confirms an express checkout (Apple Pay, Google Pay) or 3D Secure card payment, so a payment that needs a redirect can complete
