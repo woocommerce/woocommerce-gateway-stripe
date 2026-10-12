@@ -551,9 +551,11 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 			return;
 		}
 
+		$connection_type = $settings[ 'test' === $mode ? 'test_connection_type' : 'connection_type' ] ?? '';
+
 		$event_props = [
 			'is_test_mode'    => 'test' === $mode,
-			'connection_type' => $settings[ 'test' === $mode ? 'test_connection_type' : 'connection_type' ] ?? '',
+			'connection_type' => is_string( $connection_type ) ? $connection_type : '',
 			'plugin_version'  => WC_STRIPE_VERSION,
 		];
 

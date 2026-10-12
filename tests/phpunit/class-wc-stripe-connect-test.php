@@ -196,8 +196,9 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * The OAuth return handler must report the connected account on success and the error code
-	 * on failure, along with the mode and connection type of the request.
+	 * The OAuth return handler must report the error code on failure and, on success or on a failure
+	 * that left the store connected, the account the store ends up with, along with the mode and
+	 * connection type of the request.
 	 *
 	 * @param bool        $exchange_fails      WCC rejects the OAuth code, so no keys are saved.
 	 * @param bool        $webhook_setup_fails Keys are saved, but configuring the webhook throws.
@@ -242,7 +243,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		return [
 			'connected'                           => [ false, false, 'wcadmin_wcstripe_stripe_connected', 'acct_123', null ],
 			'exchange failed, nothing connected'  => [ true, false, 'wcadmin_wcstripe_stripe_connect_error', null, 'oauth_failed' ],
-			'keys saved but webhook setup failed' => [ false, true, 'wcadmin_wcstripe_stripe_connect_error', null, 'wc_stripe_webhook_error' ],
+			'keys saved but webhook setup failed' => [ false, true, 'wcadmin_wcstripe_stripe_connect_error', 'acct_123', 'wc_stripe_webhook_error' ],
 		];
 	}
 
