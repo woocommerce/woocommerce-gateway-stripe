@@ -500,6 +500,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	private function can_record_tracks_events(): bool {
 		return function_exists( 'wc_admin_record_tracks_event' )
 			&& class_exists( 'WC_Site_Tracking' )
+			&& method_exists( WC_Site_Tracking::class, 'is_tracking_enabled' ) // @phpstan-ignore function.alreadyNarrowedType (Defensive check to make sure the function is available in WooCommerce.)
 			&& WC_Site_Tracking::is_tracking_enabled();
 	}
 

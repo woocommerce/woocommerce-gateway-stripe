@@ -525,11 +525,11 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * @param string          $mode            The connection mode. Either 'live' or 'test'.
 		 */
 		private function record_account_connect_tracks_event( $error_code, string $connection_type, string $mode ): void {
-			if ( ! class_exists( 'WC_Tracks' ) || ! method_exists( 'WC_Tracks', 'record_event' ) ) { // @phpstan-ignore function.alreadyNarrowedType (The function may or may not be defined yet.)
+			if ( ! class_exists( 'WC_Tracks' ) || ! method_exists( 'WC_Tracks', 'record_event' ) ) { // @phpstan-ignore function.alreadyNarrowedType (Defensive check to make sure the function is available in WooCommerce.)
 				return;
 			}
 
-			if ( ! class_exists( 'WC_Site_Tracking' ) || ! WC_Site_Tracking::is_tracking_enabled() ) {
+			if ( ! class_exists( 'WC_Site_Tracking' ) || ! method_exists( WC_Site_Tracking::class, 'is_tracking_enabled' ) || ! WC_Site_Tracking::is_tracking_enabled() ) { // @phpstan-ignore function.alreadyNarrowedType (Defensive check to make sure the function is available in WooCommerce.)
 				return;
 			}
 
