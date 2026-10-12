@@ -298,15 +298,17 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 							&& ! $settings['test_secret_key'];
 
 		if ( $is_deleting_account ) {
+			// The account ID has to be read before the emptied keys are saved below: once they are,
+			// the account lookup reports the store as disconnected and the ID can no longer be recovered.
+			$stripe_account_id = $this->account->get_cached_account_data()['id'] ?? '';
+
 			$settings['enabled']              = 'no';
 			$settings['connection_type']      = '';
 			$settings['pmc_enabled']          = '';
 			$settings['test_connection_type'] = '';
 			$settings['refresh_token']        = '';
 			$settings['test_refresh_token']   = '';
-			$this->record_manual_account_disconnect_track_event( WC_Stripe_Mode::is_test() );
-		} else {
-			$this->record_manual_account_key_update_track_event( WC_Stripe_Mode::is_test() );
+			$this->record_manual_account_keys_track_event( 'wcstripe_stripe_disconnected', WC_Stripe_Mode::is_test(), $stripe_account_id );
 		}
 
 		// Before saving the settings, decommission any previously automatically configured webhook endpoint.
@@ -336,6 +338,11 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 
 		// Gives an instant reply if the connection was successful or not + rebuild the cache for the next request
 		$account = $this->account->get_cached_account_data();
+
+		// Recorded only now so the event carries the account the new keys belong to, not the one they replaced.
+		if ( ! $is_deleting_account ) {
+			$this->record_manual_account_keys_track_event( 'wcstripe_stripe_keys_updated', WC_Stripe_Mode::is_test(), $account['id'] ?? '' );
+		}
 
 		return new WP_REST_Response( $account, 200 );
 	}
@@ -482,30 +489,24 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	}
 
 	/**
-	 * Records a track event when the keys of an account are manually removed (account disconnected).
+	 * Records a track event for a manual account keys change.
 	 *
-	 * @param bool $is_test_mode Whether the keys are test ones.
+	 * @param string $event_name        'wcstripe_stripe_disconnected' when the keys were removed, 'wcstripe_stripe_keys_updated' otherwise.
+	 * @param bool   $is_test_mode      Whether the keys are test ones.
+	 * @param string $stripe_account_id The ID of the account the event is about (the one removed, or the one the new keys belong to), or '' if it could not be resolved.
 	 * @return void
 	 */
-	private function record_manual_account_disconnect_track_event( bool $is_test_mode ) {
+	private function record_manual_account_keys_track_event( string $event_name, bool $is_test_mode, string $stripe_account_id ) {
 		if ( ! function_exists( 'wc_admin_record_tracks_event' ) ) {
 			return;
 		}
 
-		wc_admin_record_tracks_event( 'wcstripe_stripe_disconnected', [ 'is_test_mode' => $is_test_mode ] );
-	}
-
-	/**
-	 * Records a track event when the keys of an account are manually updated.
-	 *
-	 * @param bool $is_test_mode Whether the keys are test ones.
-	 * @return void
-	 */
-	private function record_manual_account_key_update_track_event( bool $is_test_mode ) {
-		if ( ! function_exists( 'wc_admin_record_tracks_event' ) ) {
-			return;
-		}
-
-		wc_admin_record_tracks_event( 'wcstripe_stripe_keys_updated', [ 'is_test_mode' => $is_test_mode ] );
+		wc_admin_record_tracks_event(
+			$event_name,
+			[
+				'is_test_mode'      => $is_test_mode,
+				'stripe_account_id' => $stripe_account_id,
+			]
+		);
 	}
 }

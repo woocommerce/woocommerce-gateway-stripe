@@ -529,7 +529,13 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			// We're recording this directly instead of queueing it because
 			// a queue wouldn't be processed due to the redirect that comes after.
-			WC_Tracks::record_event( $event_name, [ 'is_test_mode' => WC_Stripe_Mode::is_test() ] );
+			WC_Tracks::record_event(
+				$event_name,
+				[
+					'is_test_mode'      => WC_Stripe_Mode::is_test(),
+					'stripe_account_id' => WC_Stripe::get_instance()->account->get_cached_account_data()['id'] ?? '',
+				]
+			);
 		}
 
 		/**
