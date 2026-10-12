@@ -298,8 +298,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 							&& ! $settings['test_secret_key'];
 
 		if ( $is_deleting_account ) {
-			// Recorded before the connection details are blanked and the emptied keys are saved:
-			// once they are, neither the account nor its connection type can be recovered.
+			// Ensure we record the disconnect before we overwrite any settings.
 			$this->record_manual_account_keys_tracks_event( 'wcstripe_stripe_disconnected', WC_Stripe_Mode::is_test() ? 'test' : 'live', $settings );
 
 			$settings['enabled']              = 'no';
@@ -492,9 +491,9 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	/**
 	 * Whether a Tracks event recorded now would actually be sent.
 	 *
-	 * Mirrors the gate wc_admin_record_tracks_event() applies, so callers can skip work that
-	 * only serves the event, such as resolving an account with a cold cache, when the store
-	 * has not opted into usage tracking.
+	 * Checks whether the WooCommerce wc_admin_record_tracks_event() function is available
+	 * and whether WooCommerce usage tracking is enabled. This allows us to skip lookups and
+	 * other expensive operations when usage tracking is disabled.
 	 *
 	 * @return bool
 	 */
@@ -529,17 +528,17 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 			}
 		}
 
-		return $modes ? $modes : [ WC_Stripe_Mode::is_test() ? 'test' : 'live' ];
+		if ( [] !== $modes ) {
+			return $modes;
+		}
+
+		return [ WC_Stripe_Mode::is_test() ? 'test' : 'live' ];
 	}
 
 	/**
 	 * Records a Tracks event for a manual account keys change, describing the given mode: whether
 	 * it is test mode, its connection type as stored in $settings, and the account its keys
 	 * currently resolve to.
-	 *
-	 * Nothing is resolved unless the event would be sent: with the cache cold, looking the account
-	 * up is a synchronous Stripe request, which must not be paid for stores that have not opted
-	 * into usage tracking.
 	 *
 	 * @param string $event_name 'wcstripe_stripe_disconnected' when the keys were removed, 'wcstripe_stripe_keys_updated' otherwise.
 	 * @param string $mode       The mode the event is about, 'live' or 'test'.

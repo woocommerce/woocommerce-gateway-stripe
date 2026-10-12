@@ -539,8 +539,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				'stripe_version'  => WC_STRIPE_VERSION,
 			];
 
-			// Resolved on the error path too: a failure after the keys were saved (e.g. the webhook
-			// could not be registered) still leaves the store connected to a known account.
+			// Include the account ID if we have it, as some errors occur after the keys have been saved.
 			$account_data = WC_Stripe::get_instance()->account->get_cached_account_data( $mode );
 			if ( is_string( $account_data['id'] ?? null ) ) {
 				$event_props['account_id'] = $account_data['id'];
