@@ -339,9 +339,17 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		// Gives an instant reply if the connection was successful or not + rebuild the cache for the next request
 		$account = $this->account->get_cached_account_data();
 
-		// Recorded only now so the event carries the account the new keys belong to, not the one they replaced.
+		// Recorded only now so the event carries the account the new keys belong to, not the one they
+		// replaced. A request may change the keys of a mode other than the active one, so each changed
+		// mode gets its own event reporting that mode and the account its keys resolve to.
 		if ( ! $is_deleting_account ) {
-			$this->record_manual_account_keys_track_event( 'wcstripe_stripe_keys_updated', WC_Stripe_Mode::is_test(), $account['id'] ?? '' );
+			foreach ( $this->get_modes_with_changed_keys( $current_account_keys, $settings ) as $mode ) {
+				$this->record_manual_account_keys_track_event(
+					'wcstripe_stripe_keys_updated',
+					'test' === $mode,
+					$this->account->get_cached_account_data( $mode )['id'] ?? ''
+				);
+			}
 		}
 
 		return new WP_REST_Response( $account, 200 );
@@ -486,6 +494,34 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		}
 
 		return $settings;
+	}
+
+	/**
+	 * Returns the modes whose publishable or secret key differs between two key sets.
+	 *
+	 * Falls back to the active mode when neither mode's keys changed, e.g. when only a webhook
+	 * secret was submitted, so the keys-updated event still describes the account in use.
+	 *
+	 * @param array $keys_before Key settings before the update.
+	 * @param array $keys_after  Key settings after the update.
+	 * @return string[] Any of 'live' and 'test'.
+	 */
+	private function get_modes_with_changed_keys( array $keys_before, array $keys_after ): array {
+		$modes = [];
+
+		foreach ( [
+			'live' => '',
+			'test' => 'test_',
+		] as $mode => $prefix ) {
+			foreach ( [ 'publishable_key', 'secret_key' ] as $key ) {
+				if ( ( $keys_before[ $prefix . $key ] ?? '' ) !== ( $keys_after[ $prefix . $key ] ?? '' ) ) {
+					$modes[] = $mode;
+					break;
+				}
+			}
+		}
+
+		return $modes ? $modes : [ WC_Stripe_Mode::is_test() ? 'test' : 'live' ];
 	}
 
 	/**
