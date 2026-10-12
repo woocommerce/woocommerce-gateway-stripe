@@ -166,9 +166,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 = 11.1.0 - xxxx-xx-xx =
 
 **New Features**
+
 * Add - Automatically configure test-mode when onboarding to a live account
 
 **Important Fixes and Updates**
+
 * Remove - Stop offering Sofort at checkout (discontinued by Stripe on March 31, 2025); refunds and subscription renewals for existing Sofort orders keep working
 * Fix - Show BLIK and ACSS payment methods at checkout when Optimized Checkout Suite is enabled
 * Fix - When checking if unpaid orders should be cancelled, get the Stripe payment status, and update orders with Stripe payment details
@@ -191,6 +193,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Ensure that application fees are not sent to Stripe for OAuth-connected accounts
 
 **Other Fixes and Updates**
+
 * Fix - Return an error response when a Payment Method Configuration update fails in settings, so the frontend correctly displays an error instead of a false success notice
 * Update - Show the specific Stripe error reason in the settings save notice when a Payment Method Configuration update is rejected
 * Fix - Show the correct guidance when a subscription renewal fails because its Stripe mandate is invalid
@@ -212,6 +215,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Link the WooCommerce POS page from the in-person payments description in the readme
 
 **Internal Changes and Upcoming Features**
+
 * Add - Show the originating AI agent in the WooCommerce order Origin column for Agentic Commerce orders
 * Add - Agentic Commerce: add merchant settings to exclude add-on/configurator products from the feed or redirect shoppers to the store to check out, with per-product advisories in the feed preview
 * Fix - Reject agentic checkout line items with a zero or negative quantity, or a negative amount, when building shipping packages, instead of quoting rates from corrupted totals
