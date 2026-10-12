@@ -8,6 +8,8 @@
  * WC_REST_Stripe_Account_Keys_Controller unit tests.
  */
 class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
+	use WC_Stripe_Tracks_Capture_Trait;
+
 	/**
 	 * Tested REST route.
 	 */
@@ -334,5 +336,100 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( [], $settings['webhook_data'] );
 		$this->assertSame( '', $settings['webhook_secret'] );
+	}
+
+	/**
+	 * Disconnecting must report the account that was connected. The ID has to be read before the
+	 * emptied keys are saved, because afterwards the store no longer resolves to any account.
+	 */
+	public function test_disconnecting_records_track_event_with_previously_connected_account_id() {
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'publishable_key'      => 'pk_live_123',
+				'secret_key'           => 'sk_live_123',
+				'test_publishable_key' => '',
+				'test_secret_key'      => '',
+				'testmode'             => 'no',
+			]
+		);
+		$controller = new WC_REST_Stripe_Account_Keys_Controller( $this->mock_account_resolving_by_saved_keys() );
+		$this->start_capturing_tracks_events();
+
+		$request = new WP_REST_Request( 'POST', self::ROUTE );
+		foreach ( [ 'publishable_key', 'secret_key', 'test_publishable_key', 'test_secret_key' ] as $key ) {
+			$request->set_param( $key, '' );
+		}
+		$response = $controller->set_account_keys( $request );
+
+		$this->stop_capturing_tracks_events();
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertFalse( WC_Stripe_Helper::is_connected( 'live' ) );
+
+		$events = $this->get_captured_tracks_event_properties( 'wcadmin_wcstripe_stripe_disconnected' );
+		$this->assertCount( 1, $events );
+		$event_properties = $events[0];
+		$this->assertArrayHasKey( 'stripe_account_id', $event_properties );
+		$this->assertSame( 'acct_live_123', $event_properties['stripe_account_id'] );
+		$this->assertFalse( $event_properties['is_test_mode'] );
+	}
+
+	/**
+	 * Replacing the keys must report the account the new keys belong to, not the one they replaced.
+	 */
+	public function test_updating_keys_records_track_event_with_newly_connected_account_id() {
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'publishable_key'      => 'pk_live_123',
+				'secret_key'           => 'sk_live_123',
+				'test_publishable_key' => '',
+				'test_secret_key'      => '',
+				'testmode'             => 'no',
+			]
+		);
+		$controller = new WC_REST_Stripe_Account_Keys_Controller( $this->mock_account_resolving_by_saved_keys() );
+		$this->start_capturing_tracks_events();
+
+		$request = new WP_REST_Request( 'POST', self::ROUTE );
+		$request->set_param( 'publishable_key', 'pk_live_456' );
+		$request->set_param( 'secret_key', 'sk_live_456' );
+		$response = $controller->set_account_keys( $request );
+
+		$this->stop_capturing_tracks_events();
+
+		$this->assertSame( 200, $response->get_status() );
+
+		$events = $this->get_captured_tracks_event_properties( 'wcadmin_wcstripe_stripe_keys_updated' );
+		$this->assertCount( 1, $events );
+		$event_properties = $events[0];
+		$this->assertArrayHasKey( 'stripe_account_id', $event_properties );
+		$this->assertSame( 'acct_live_456', $event_properties['stripe_account_id'] );
+		$this->assertFalse( $event_properties['is_test_mode'] );
+	}
+
+	/**
+	 * Account mock that, like the real service, resolves nothing once the keys for the mode are
+	 * gone, and resolves 'acct_live_123' for saved secret key 'sk_live_123'.
+	 *
+	 * @return WC_Stripe_Account&\PHPUnit\Framework\MockObject\MockObject
+	 */
+	private function mock_account_resolving_by_saved_keys() {
+		$mock_account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$mock_account->method( 'get_cached_account_data' )->willReturnCallback(
+			function ( $mode = null ) {
+				if ( ! WC_Stripe_Helper::is_connected( $mode ) ) {
+					return [];
+				}
+
+				$settings   = WC_Stripe_Helper::get_stripe_settings();
+				$secret_key = WC_Stripe_Mode::is_test() ? $settings['test_secret_key'] : $settings['secret_key'];
+
+				return [ 'id' => str_replace( 'sk_', 'acct_', $secret_key ) ];
+			}
+		);
+
+		return $mock_account;
 	}
 }

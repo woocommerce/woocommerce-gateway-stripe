@@ -6,6 +6,7 @@
  * @package WooCommerce/Stripe/WC_Stripe_Connect
  */
 class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
+	use WC_Stripe_Tracks_Capture_Trait;
 
 	/**
 	 * @var WC_Stripe_Connect
@@ -192,6 +193,133 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			$_GET['wcs_stripe_mode'],
 			$_GET['_wpnonce']
 		);
+	}
+
+	/**
+	 * The OAuth return handler must report the account the store ends up connected to, on the
+	 * success and the error event alike, and still record the event when none resolves.
+	 *
+	 * @param bool   $exchange_fails      WCC rejects the OAuth code, so no keys are saved.
+	 * @param bool   $webhook_setup_fails Keys are saved, but configuring the webhook throws.
+	 * @param string $expected_event      Expected prefixed Tracks event name.
+	 * @param string $expected_account_id Expected stripe_account_id property.
+	 *
+	 * @dataProvider provide_oauth_return_track_event_scenarios
+	 */
+	public function test_maybe_handle_redirect_records_stripe_account_id_on_track_event( bool $exchange_fails, bool $webhook_setup_fails, string $expected_event, string $expected_account_id ): void {
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+		set_current_screen( 'dashboard' ); // Makes is_admin() return true.
+		$this->mock_account_resolving_by_saved_keys( $webhook_setup_fails );
+		$exchange_result = $exchange_fails ? new WP_Error( 'oauth_failed', 'Exchange failed' ) : $this->oauth_test_keys();
+
+		$this->start_capturing_tracks_events();
+		$redirected_to = $this->handle_oauth_return( $exchange_result );
+		$this->stop_capturing_tracks_events();
+
+		// A redirect proves the real return path ran to completion before the event was captured.
+		$this->assertNotSame( '', $redirected_to );
+		if ( $exchange_fails || $webhook_setup_fails ) {
+			$this->assertStringNotContainsString( 'wc_stripe_connected=true', $redirected_to );
+		} else {
+			$this->assertStringContainsString( 'wc_stripe_connected=true', $redirected_to );
+		}
+
+		$events = $this->get_captured_tracks_event_properties( $expected_event );
+		$this->assertCount( 1, $events );
+		$event_properties = $events[0];
+		$this->assertArrayHasKey( 'stripe_account_id', $event_properties );
+		$this->assertSame( $expected_account_id, $event_properties['stripe_account_id'] );
+		$this->assertArrayHasKey( 'is_test_mode', $event_properties );
+	}
+
+	/**
+	 * @return array
+	 */
+	public function provide_oauth_return_track_event_scenarios(): array {
+		return [
+			'connected'                           => [ false, false, 'wcadmin_wcstripe_stripe_connected', 'acct_123' ],
+			'exchange failed, nothing connected'  => [ true, false, 'wcadmin_wcstripe_stripe_connect_error', '' ],
+			'keys saved but webhook setup failed' => [ false, true, 'wcadmin_wcstripe_stripe_connect_error', 'acct_123' ],
+		];
+	}
+
+	/**
+	 * Installs an account mock that, like the real service, resolves an account only while keys
+	 * for the mode are saved, so the OAuth return can be observed taking the store from
+	 * disconnected to connected.
+	 *
+	 * @param bool $webhook_setup_fails Whether configure_webhooks() should throw.
+	 */
+	private function mock_account_resolving_by_saved_keys( bool $webhook_setup_fails ): void {
+		$account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_cached_account_data', 'maybe_decommission_webhook', 'configure_webhooks', 'clear_cache' ] )
+			->getMock();
+		$account->method( 'get_cached_account_data' )->willReturnCallback(
+			function ( $mode = null ) {
+				return WC_Stripe_Helper::is_connected( $mode ) ? [
+					'id'      => 'acct_123',
+					'country' => 'US',
+				] : [];
+			}
+		);
+		$account->method( 'maybe_decommission_webhook' )->willReturn( false );
+		if ( $webhook_setup_fails ) {
+			$account->method( 'configure_webhooks' )->willThrowException( new Exception( 'Webhook setup failed' ) );
+		}
+
+		WC_Stripe::get_instance()->account = $account;
+	}
+
+	/**
+	 * @return stdClass A minimal successful WCC key-exchange result for test mode.
+	 */
+	private function oauth_test_keys(): stdClass {
+		$keys                 = new stdClass();
+		$keys->publishableKey = 'pk_test_123'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		$keys->secretKey      = 'sk_test_123'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+
+		return $keys;
+	}
+
+	/**
+	 * Runs the OAuth return handler for a test-mode connection whose WCC key exchange yields
+	 * $exchange_result, and returns the URL the handler redirected to.
+	 *
+	 * @param stdClass|WP_Error $exchange_result What get_stripe_oauth_keys() returns.
+	 * @return string
+	 */
+	private function handle_oauth_return( $exchange_result ): string {
+		$api_mock = $this->getMockBuilder( WC_Stripe_Connect_API::class )->disableOriginalConstructor()->getMock();
+		$api_mock->method( 'get_stripe_oauth_keys' )->willReturn( $exchange_result );
+		$connect = new WC_Stripe_Connect( $api_mock );
+
+		WC_Stripe_Database_Cache::set_with_mode( 'oauth_connect_state', 'state_123', HOUR_IN_SECONDS, 'test' );
+		$_GET['wcs_stripe_code']  = 'ac_123';
+		$_GET['wcs_stripe_state'] = 'state_123';
+		$_GET['wcs_stripe_mode']  = 'test';
+		$_GET['_wpnonce']         = wp_create_nonce( 'wcs_stripe_connected' );
+		$_SERVER['REQUEST_URI']   = '/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe';
+
+		$redirected_to      = '';
+		$wp_redirect_filter = function ( string $url ) use ( &$redirected_to ) {
+			$redirected_to = $url;
+
+			// Throw to prevent exit() from being called after wp_safe_redirect().
+			throw new \Exception();
+		};
+		add_filter( 'wp_redirect', $wp_redirect_filter );
+
+		try {
+			$connect->maybe_handle_redirect();
+		} catch ( \Exception $e ) {
+			unset( $e );
+		}
+
+		remove_filter( 'wp_redirect', $wp_redirect_filter );
+		unset( $_GET['wcs_stripe_code'], $_GET['wcs_stripe_state'], $_GET['wcs_stripe_mode'], $_GET['_wpnonce'] );
+
+		return $redirected_to;
 	}
 
 	/**
