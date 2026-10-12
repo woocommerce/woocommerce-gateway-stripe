@@ -411,7 +411,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$this->assertCount( count( $expected_events ), $events );
 		foreach ( $expected_events as $i => list( $expected_is_test_mode, $expected_account_id ) ) {
 			$this->assertSame( $expected_is_test_mode, $events[ $i ]['is_test_mode'] );
-			$this->assertSame( $expected_account_id, $events[ $i ]['stripe_account_id'] );
+			$this->assertSame( $expected_account_id, $events[ $i ]['account_id'] );
 		}
 	}
 
