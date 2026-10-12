@@ -3049,12 +3049,6 @@ parameters:
 			path: includes/connect/class-wc-stripe-connect.php
 
 		-
-			message: '#^Method WC_Stripe_Connect\:\:record_account_connect_track_event\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/connect/class-wc-stripe-connect.php
-
-		-
 			message: '#^Method WC_Stripe_Connect\:\:redact_sensitive_data\(\) should return array\|string but returns string\|null\.$#'
 			identifier: return.type
 			count: 1
