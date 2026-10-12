@@ -98,8 +98,10 @@ class WC_Stripe_Payment_Method_Configurations {
 
 	/**
 	 * Clear the payment method configuration from cache.
+	 *
+	 * @return void
 	 */
-	public static function clear_payment_method_configuration_cache(): void {
+	public static function clear_payment_method_configuration_cache() {
 		self::clear_in_memory_payment_method_configuration_cache();
 		WC_Stripe_Database_Cache::delete( self::CONFIGURATION_CACHE_KEY );
 	}
