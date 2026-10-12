@@ -167,8 +167,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 **New Features**
 * Add - Automatically configure test-mode when onboarding to a live account
-* Add - Show the originating AI agent in the WooCommerce order Origin column for Agentic Commerce orders
-* Add - Agentic Commerce: add merchant settings to exclude add-on/configurator products from the feed or redirect shoppers to the store to check out, with per-product advisories in the feed preview
 
 **Important Fixes and Updates**
 * Fix - Show BLIK and ACSS payment methods at checkout when Optimized Checkout Suite is enabled
@@ -177,7 +175,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Ignore Checkout Session failure webhooks after an order switches to another payment gateway
 * Fix - Prevent dropped webhooks, double processing, and skipped pre-order handling when requests race for the order payment lock
 * Fix - Show an error before submission when required custom checkout fields are empty in classic checkout
-* Fix - Include cart contents in agentic checkout shipping calculations so content-dependent shipping methods such as table rate and weight-based return accurate rates
 * Fix - Prevent express checkout wallets from failing when rounded display items exceed the payment total
 * Fix - Accept shipping addresses in the express checkout wallet sheet for free-trial subscription carts whose shipping is charged with the recurring payments
 * Update - Ensure that application fees are not sent to Stripe for OAuth-connected accounts
@@ -199,7 +196,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Show the correct guidance when a subscription renewal fails because its Stripe mandate is invalid
 * Fix - Preselect the customer's default saved Stripe payment method within the active gateway in Blocks checkout
 * Fix - Stop two requests from reclaiming the same expired Optimized Checkout or Agentic Commerce sync lock
-* Fix - Reject agentic checkout line items with a zero or negative quantity, or a negative amount, when building shipping packages, instead of quoting rates from corrupted totals
+
 * Fix - Show coupon discounts as negative line items in Express Checkout on classic cart and checkout pages
 * Fix - Show negative cart fees (e.g. a discount extension applying its discount as a fee) as negative line items in Express Checkout on classic cart page
 * Fix - Stop disabling Level 3 data account-wide when Stripe rejects it for a request that declares a non-card payment method
@@ -208,7 +205,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Show a useful error when a Stripe connection cannot start
 * Update - Reduce the size of the express checkout JS bundle
 * Update - Include the connected Stripe account ID in the account connection, account disconnection, and key update events sent when usage tracking is enabled
-* Tweak - Agentic Commerce: surface shipping zones with no flat-rate method (which contribute no shipping to the feed) in the feed preview and logs
 * Fix - Show negative order fees as negative line items in Express Checkout on the Pay for Order page
 * Fix - Link to checkout when missing required custom fields block express checkout on other pages
 * Update - Link the WooCommerce POS page from the in-person payments description in the readme
@@ -217,6 +213,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Remove the duplicated period in the webhook status message when webhooks are pending
 
 **Internal Changes and Upcoming Features**
+* Add - Show the originating AI agent in the WooCommerce order Origin column for Agentic Commerce orders
+* Add - Agentic Commerce: add merchant settings to exclude add-on/configurator products from the feed or redirect shoppers to the store to check out, with per-product advisories in the feed preview
+* Fix - Reject agentic checkout line items with a zero or negative quantity, or a negative amount, when building shipping packages, instead of quoting rates from corrupted totals
+* Fix - Include cart contents in agentic checkout shipping calculations so content-dependent shipping methods such as table rate and weight-based return accurate rates
+* Tweak - Agentic Commerce: surface shipping zones with no flat-rate method (which contribute no shipping to the feed) in the feed preview and logs
 * Dev - Add E2E coverage for express checkout with free trial subscriptions, with and without shipping, including completing the purchase with Link
 * Dev - Block outbound HTTP requests from unit tests
 * Dev - Reduce blocks Javascript by moving payment method icon styles into CSS
