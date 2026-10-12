@@ -350,15 +350,12 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		// mode gets its own event reporting that mode and the account its keys resolve to.
 		if ( ! $is_deleting_account && $this->can_record_tracks_events() ) {
 			foreach ( $this->get_modes_with_changed_keys( $current_account_keys, $settings ) as $mode ) {
-				$connection_type_key = 'live' === $mode ? 'connection_type' : 'test_connection_type';
-				$connection_type     = $settings[ $connection_type_key ] ?? '';
-				$account_data        = $this->account->get_cached_account_data( $mode );
-				$account_id          = is_string( $account_data['id'] ?? null ) ? $account_data['id'] : null;
+				$account_data = $this->account->get_cached_account_data( $mode );
 				$this->record_manual_account_keys_tracks_event(
 					'wcstripe_stripe_keys_updated',
 					'test' === $mode,
-					$account_id,
-					$connection_type
+					is_string( $account_data['id'] ?? null ) ? $account_data['id'] : null,
+					$settings[ 'test' === $mode ? 'test_connection_type' : 'connection_type' ] ?? ''
 				);
 			}
 		}
