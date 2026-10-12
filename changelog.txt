@@ -53,6 +53,7 @@ xxxx-xx-xx - version 11.1.0
 * Fix - Allow retries with an express wallet or saved card after a declined card under Optimized Checkout with Dynamic Payment Methods
 * Update - Include the connected Stripe account ID in the account connection, account disconnection, and key update events sent when usage tracking is enabled
 * Fix - Ensure that switching mode doesn't show an incorrect payment method save error
+* Fix - Keep Express Checkout buttons on the Cart and Checkout blocks working when the block stops rebuilding them on every cart update
 
 2026-10-05 - version 11.0.1
 * Fix - Prevent non-card payment methods from failing under Optimized Checkout with Dynamic Payment Methods when the store has a statement descriptor set

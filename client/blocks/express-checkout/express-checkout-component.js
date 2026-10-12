@@ -1,6 +1,5 @@
 import { ExpressCheckoutElement } from '@stripe/react-stripe-js';
 import { useExpressCheckout } from './hooks';
-import { PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT } from './constants';
 import { useCallback, useMemo } from '@wordpress/element';
 import {
 	shippingAddressChangeHandler,
@@ -85,24 +84,6 @@ const ExpressCheckoutComponent = ( {
 		[ elements ]
 	);
 
-	const onElementsReady = useCallback(
-		( event ) => {
-			const paymentMethodContainer = document.getElementById(
-				`express-payment-method-${ PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT }_${ expressPaymentMethod }`
-			);
-
-			const availablePaymentMethods = event.availablePaymentMethods || {};
-
-			if (
-				paymentMethodContainer &&
-				! availablePaymentMethods[ expressPaymentMethod ]
-			) {
-				paymentMethodContainer.remove();
-			}
-		},
-		[ expressPaymentMethod ]
-	);
-
 	// Stable across cart ticks; only rebuilds when styling or method changes.
 	const elementOptions = useMemo(
 		() => ( {
@@ -117,7 +98,6 @@ const ExpressCheckoutComponent = ( {
 			options={ elementOptions }
 			onClick={ onButtonClick }
 			onConfirm={ onConfirm }
-			onReady={ onElementsReady }
 			onCancel={ onCancel }
 			onShippingAddressChange={ onShippingAddressChange }
 			onShippingRateChange={ onShippingRateChange }

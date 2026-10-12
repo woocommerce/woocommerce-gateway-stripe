@@ -44,6 +44,22 @@ test.describe( 'customer can use Link express checkout', () => {
 		await addProductToCart( page );
 		await testLink( page, '/checkout', true );
 	} );
+
+	test( 'inside the cart page (block) after the cart recalculates', async ( {
+		page,
+	} ) => {
+		await addProductToCart( page );
+		await page.goto( '/cart' );
+		await expect( await getLinkButton( page, true ) ).toBeVisible();
+
+		const cartUpdated = page.waitForResponse( ( response ) =>
+			response.url().includes( '/wc/store/v1/cart/update-item' )
+		);
+		await page.getByLabel( 'Increase quantity of Beanie' ).click();
+		await cartUpdated;
+
+		await assertLinkModalLoads( page, true );
+	} );
 } );
 
 test.describe( 'express checkout and variable products', () => {

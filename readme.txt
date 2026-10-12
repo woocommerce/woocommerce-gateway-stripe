@@ -216,5 +216,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Allow retries with an express wallet or saved card after a declined card under Optimized Checkout with Dynamic Payment Methods
 * Update - Include the connected Stripe account ID in the account connection, account disconnection, and key update events sent when usage tracking is enabled
 * Fix - Ensure that switching mode doesn't show an incorrect payment method save error
+* Fix - Keep Express Checkout buttons on the Cart and Checkout blocks working when the block stops rebuilding them on every cart update
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

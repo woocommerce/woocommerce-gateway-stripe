@@ -39,6 +39,11 @@ class ProbeErrorBoundary extends Component {
 	}
 }
 
+// A wallet can support one currency and not another, so probe again when the
+// cart's currency changes.
+const getProbeCacheKey = ( paymentMethod, api, cart ) =>
+	`${ paymentMethod }-${ cart.cartTotals.currency_code }`;
+
 /**
  * Renders an invisible Stripe Express Checkout Element and waits for its ready
  * event to learn whether the given express payment method is available.
@@ -73,7 +78,9 @@ const checkPaymentMethodAvailability = memoize(
 			// is deferred because React forbids unmounting a root from within
 			// its own lifecycle (the error boundary's commit phase).
 			const failProbe = () => {
-				checkPaymentMethodAvailability.cache.delete( paymentMethod );
+				checkPaymentMethodAvailability.cache.delete(
+					getProbeCacheKey( paymentMethod, api, cart )
+				);
 				resolve( false );
 				setTimeout( () => {
 					root.unmount();
@@ -146,14 +153,15 @@ const checkPaymentMethodAvailability = memoize(
 				</ProbeErrorBoundary>
 			);
 		} );
-	}
+	},
+	getProbeCacheKey
 );
 
 /**
  * Checks whether a given express payment method is available in the current context.
  *
  * Results are memoized so the underlying probe runs only once per payment
- * method. Failed probes are not cached, so a later call retries.
+ * method and currency. Failed probes are not cached, so a later call retries.
  *
  * @param {string} paymentMethod The express payment method identifier (e.g. 'googlePay', 'applePay').
  * @param {Object} api           The WCStripeAPI instance used to load Stripe.

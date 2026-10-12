@@ -144,3 +144,40 @@ describe( 'ExpressCheckoutComponent height clamping', () => {
 		expect( options.buttonHeight ).toBe( 40 );
 	} );
 } );
+
+describe( 'ExpressCheckoutComponent block slot', () => {
+	afterEach( () => {
+		document.body.innerHTML = '';
+	} );
+
+	it( 'keeps the block slot when the wallet is unavailable', () => {
+		useExpressCheckout.mockReturnValue( {
+			buttonOptions: { buttonHeight: 48, buttonTheme: {} },
+			onButtonClick: jest.fn(),
+			onConfirm: jest.fn(),
+			onCancel: jest.fn(),
+			elements: {},
+		} );
+
+		const list = document.createElement( 'ul' );
+		const slot = document.createElement( 'li' );
+		slot.id = 'express-payment-method-express_checkout_element_applePay';
+		list.appendChild( slot );
+		document.body.appendChild( list );
+
+		render(
+			<ExpressCheckoutComponent
+				{ ...componentProps }
+				expressPaymentMethod={
+					EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY
+				}
+			/>,
+			{ container: slot }
+		);
+		ExpressCheckoutElement.mock.lastCall[ 0 ].onReady?.( {
+			availablePaymentMethods: { applePay: false },
+		} );
+
+		expect( list.contains( slot ) ).toBe( true );
+	} );
+} );
