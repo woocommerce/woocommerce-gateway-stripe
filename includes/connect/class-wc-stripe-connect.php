@@ -196,7 +196,9 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 				$response = $this->connect_oauth( $state, $code, $type, $mode );
 
-				$this->record_account_connect_track_event( is_wp_error( $response ) ? $response->get_error_code() : null, $type, $mode );
+				$connection_type = is_string( $type ) ? $type : '';
+				$key_mode        = is_string( $mode ) ? $mode : '';
+				$this->record_account_connect_tracks_event( is_wp_error( $response ) ? $response->get_error_code() : null, $connection_type, $key_mode );
 
 				$redirect_url = remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code', 'wcs_stripe_type', 'wcs_stripe_mode' ] );
 				if ( ! is_wp_error( $response ) ) {
@@ -518,12 +520,12 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		/**
 		 * Records a Tracks event after we try to process the keys returned from Stripe.
 		 *
-		 * @param ?string $error_code      The error code if the connection had an error. Null if no error occurred.
-		 * @param string  $connection_type The connection type.
-		 * @param string  $mode            The connection mode. Either 'live' or 'test'.
+		 * @param string|int|null $error_code      The error code if the connection had an error. Null if no error occurred.
+		 * @param string          $connection_type The connection type.
+		 * @param string          $mode            The connection mode. Either 'live' or 'test'.
 		 */
-		private function record_account_connect_track_event( ?string $error_code, string $connection_type, string $mode ): void {
-			if ( ! class_exists( 'WC_Tracks' ) || ! method_exists( 'WC_Tracks', 'record_event' ) ) {
+		private function record_account_connect_tracks_event( $error_code, string $connection_type, string $mode ): void {
+			if ( ! class_exists( 'WC_Tracks' ) || ! method_exists( 'WC_Tracks', 'record_event' ) ) { // @phpstan-ignore function.alreadyNarrowedType (The function may or may not be defined yet.)
 				return;
 			}
 

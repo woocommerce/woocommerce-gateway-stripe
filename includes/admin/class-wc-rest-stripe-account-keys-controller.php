@@ -346,8 +346,6 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		$account    = $this->account->get_cached_account_data();
 		$account_id = is_string( $account['id'] ?? null ) ? $account['id'] : null;
 
-		$this->record_manual_account_key_update_track_event( $is_test_mode, $account_id, $connection_type );
-
 		// Recorded only now so the event carries the account the new keys belong to, not the one they
 		// replaced. A request may change the keys of a mode other than the active one, so each changed
 		// mode gets its own event reporting that mode and the account its keys resolve to.
