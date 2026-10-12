@@ -1,7 +1,7 @@
 import React from 'react';
 import { Elements } from '@stripe/react-stripe-js';
 import ExpressCheckoutComponent from './express-checkout-component';
-import { useMemo, useState } from '@wordpress/element';
+import { useMemo } from '@wordpress/element';
 import {
 	getExpressCheckoutButtonAppearance,
 	getExpressCheckoutData,
@@ -18,7 +18,6 @@ export const ExpressCheckoutContainer = ( props ) => {
 		billing.currency.minorUnit
 	);
 	const currency = billing.currency.code.toLowerCase();
-	const [ isAvailable, setIsAvailable ] = useState( true );
 
 	// Memoise on the values Stripe consumes so <Elements> only updates when the
 	// amount/currency change, not on every cart tick.
@@ -42,20 +41,13 @@ export const ExpressCheckoutContainer = ( props ) => {
 	);
 
 	return (
-		<div
-			className="wc-stripe-ece-slot"
-			style={ { minHeight: '40px' } }
-			hidden={ ! isAvailable }
-		>
+		<div style={ { minHeight: '40px' } }>
 			{ /*
 			 * Stripe accepts a new currency through elements.update() but doesn't
 			 * re-check which wallets support it, so start over with a fresh group.
 			 */ }
 			<Elements key={ currency } stripe={ stripe } options={ options }>
-				<ExpressCheckoutComponent
-					{ ...props }
-					onAvailabilityChange={ setIsAvailable }
-				/>
+				<ExpressCheckoutComponent { ...props } />
 			</Elements>
 		</div>
 	);

@@ -107,6 +107,31 @@ describe( 'checkPaymentMethodIsAvailable', () => {
 		expect( await second ).toBe( true );
 	} );
 
+	it( 'probes again when the cart currency changes', async () => {
+		const inEur = checkPaymentMethodIsAvailable(
+			'applePay',
+			api,
+			hydratedCart( 'EUR' )
+		);
+		getRenderedExpressCheckoutElement().props.onReady( {
+			availablePaymentMethods: { applePay: true },
+		} );
+
+		const inGbp = checkPaymentMethodIsAvailable(
+			'applePay',
+			api,
+			hydratedCart( 'GBP' )
+		);
+		expect( createRoot ).toHaveBeenCalledTimes( 2 );
+		expect( getRenderedElements( 1 ).props.options.currency ).toBe( 'gbp' );
+		getRenderedExpressCheckoutElement( 1 ).props.onReady( {
+			availablePaymentMethods: { applePay: false },
+		} );
+
+		expect( await inEur ).toBe( true );
+		expect( await inGbp ).toBe( false );
+	} );
+
 	it( 'resolves false when the ready event does not report the method as available', async () => {
 		const result = checkPaymentMethodIsAvailable(
 			'link',

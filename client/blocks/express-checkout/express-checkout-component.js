@@ -62,7 +62,6 @@ const ExpressCheckoutComponent = ( {
 	onClick,
 	onClose,
 	expressPaymentMethod = '',
-	onAvailabilityChange,
 } ) => {
 	const { buttonOptions, onButtonClick, onConfirm, onCancel, elements } =
 		useExpressCheckout( {
@@ -85,16 +84,6 @@ const ExpressCheckoutComponent = ( {
 		[ elements ]
 	);
 
-	const onElementsReady = useCallback(
-		// Let the container hide itself rather than removing the block's slot: the
-		// block keeps it mounted across cart updates, so a removed slot never returns.
-		( event ) =>
-			onAvailabilityChange(
-				!! event.availablePaymentMethods?.[ expressPaymentMethod ]
-			),
-		[ expressPaymentMethod, onAvailabilityChange ]
-	);
-
 	// Stable across cart ticks; only rebuilds when styling or method changes.
 	const elementOptions = useMemo(
 		() => ( {
@@ -109,7 +98,6 @@ const ExpressCheckoutComponent = ( {
 			options={ elementOptions }
 			onClick={ onButtonClick }
 			onConfirm={ onConfirm }
-			onReady={ onElementsReady }
 			onCancel={ onCancel }
 			onShippingAddressChange={ onShippingAddressChange }
 			onShippingRateChange={ onShippingRateChange }

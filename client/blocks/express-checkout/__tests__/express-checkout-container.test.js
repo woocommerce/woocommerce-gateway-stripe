@@ -1,6 +1,5 @@
-import { act, render } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { ExpressCheckoutContainer } from '../express-checkout-container';
-import ExpressCheckoutComponent from '../express-checkout-component';
 import {
 	getExpressCheckoutButtonAppearance,
 	getExpressCheckoutData,
@@ -15,12 +14,12 @@ let mockElementsMounts = 0;
 jest.mock( '@stripe/react-stripe-js', () => {
 	const { useEffect } = jest.requireActual( 'react' );
 	return {
-		Elements: jest.fn( ( { options, children } ) => {
+		Elements: jest.fn( ( { options } ) => {
 			capturedOptions.push( options );
 			useEffect( () => {
 				mockElementsMounts++;
 			}, [] );
-			return <div>{ children }</div>;
+			return <div />;
 		} ),
 	};
 } );
@@ -168,45 +167,5 @@ describe( 'ExpressCheckoutContainer options memoisation', () => {
 
 		expect( mockElementsMounts ).toBe( 2 );
 		expect( capturedOptions[ 1 ].currency ).toBe( 'eur' );
-	} );
-
-	const reportAvailability = ( isAvailable ) =>
-		act( () => {
-			ExpressCheckoutComponent.mock.lastCall[ 0 ].onAvailabilityChange(
-				isAvailable
-			);
-		} );
-
-	it( 'hides the slot when the wallet is unavailable, and shows it again when it becomes available', () => {
-		const { container } = render(
-			<ExpressCheckoutContainer { ...baseProps() } />
-		);
-
-		reportAvailability( false );
-		expect( container.firstChild.hidden ).toBe( true );
-
-		reportAvailability( true );
-		expect( container.firstChild.hidden ).toBe( false );
-	} );
-
-	it( 'keeps an unavailable wallet hidden while the new group loads after a currency change', () => {
-		const { container, rerender } = render(
-			<ExpressCheckoutContainer { ...baseProps() } />
-		);
-
-		reportAvailability( false );
-		rerender(
-			<ExpressCheckoutContainer
-				{ ...baseProps( {
-					billing: {
-						cartTotal: { value: 10 },
-						currency: { minorUnit: 2, code: 'EUR' },
-					},
-				} ) }
-			/>
-		);
-
-		expect( mockElementsMounts ).toBe( 2 );
-		expect( container.firstChild.hidden ).toBe( true );
 	} );
 } );
