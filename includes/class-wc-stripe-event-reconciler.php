@@ -152,90 +152,128 @@ class WC_Stripe_Event_Reconciler {
 	}
 
 	/**
-	 * Records events Stripe has not delivered as pending, starting from where the previous call stopped.
+	 * Records one page of events Stripe has not delivered as pending, starting after the previous page.
+	 *
+	 * The cursor is the ID of the last event listed, so pages are listed oldest first. The first call in each mode only
+	 * starts the cursor, so events from before the feature was enabled are not processed.
 	 *
 	 * @return array {
 	 *     Summary of the run.
 	 *
-	 *     @type int|null $cursor_before Creation timestamp the run started from.
-	 *     @type int|null $cursor_after  Creation timestamp the next run will start from.
-	 *     @type array[]  $events        Per event: id, type, created, status_before and result (queued, skipped or ignored).
+	 *     @type string|null $cursor_before ID of the event the run started after.
+	 *     @type string|null $cursor_after  ID of the event the next run will start after.
+	 *     @type array[]     $events        Per event: id, type, created, status_before and result (queued, skipped or ignored).
 	 * }
 	 */
 	public function queue_undelivered_events(): array {
-		$cursor_option  = self::CURSOR_OPTION_PREFIX . ( WC_Stripe_Mode::is_test() ? 'test' : 'live' );
-		$cursor         = (int) get_option( $cursor_option, 0 );
-		$max_created    = $cursor;
-		$starting_after = '';
-		$results        = [];
+		$cursor_option = self::CURSOR_OPTION_PREFIX . ( WC_Stripe_Mode::is_test() ? 'test' : 'live' );
+		$cursor        = get_option( $cursor_option );
+		$cursor        = is_string( $cursor ) && 0 === strpos( $cursor, 'evt_' ) ? $cursor : null;
+		$created_until = time() - $this->get_min_event_age();
 
-		do {
-			$query = [
-				'delivery_success' => 'false',
-				'created[lte]'     => time() - $this->get_min_event_age(),
-				'limit'            => self::PAGE_SIZE,
-			];
-			// gte, not gt: other events may share the cursor's second. Already-recorded ones are skipped below.
-			if ( $cursor ) {
-				$query['created[gte]'] = $cursor;
-			}
-			if ( $starting_after ) {
-				$query['starting_after'] = $starting_after;
-			}
+		$summary = [
+			'cursor_before' => $cursor,
+			'cursor_after'  => $cursor,
+			'events'        => [],
+		];
 
-			$response = WC_Stripe_API::retrieve( 'events?' . http_build_query( $query ) );
-			if ( ! is_object( $response ) || ! empty( $response->error ) ) {
-				// Leave the cursor alone so the next run covers this window again.
-				$max_created = $cursor;
-				break;
-			}
-
-			$events = $response->data ?? [];
-			if ( ! $events ) {
-				break;
-			}
-
-			// Retrieve the event records that are already registered to avoid duplicates.
-			$registered_events = $this->store->get_many( wp_list_pluck( $events, 'id' ) );
-
-			foreach ( $events as $event ) {
-				$record        = $registered_events[ $event->id ] ?? null;
-				$status_before = $record ? $record->status : null;
-
-				if ( ! in_array( $event->type, WC_Stripe_Account::WEBHOOK_EVENTS, true ) ) {
-					// Only process what the plugin's own endpoint subscribes to. The listing also returns events
-					// that failed on other endpoints of the same account, which this store would never receive.
-					$result = 'ignored';
-				} elseif ( ! $record ) {
-					$this->store->save( WC_Stripe_Event_Record::from_stripe_event( $event, WC_Stripe_Event_Store_Interface::STATUS_PENDING ) );
-					$result = 'queued';
-				} else {
-					$result = 'skipped';
-				}
-
-				$max_created = max( $max_created, (int) $event->created );
-
-				$results[] = [
-					'id'            => $event->id,
-					'type'          => $event->type,
-					'created'       => (int) $event->created,
-					'status_before' => $status_before,
-					'result'        => $result,
-				];
-			}
-
-			$starting_after = end( $events )->id;
-		} while ( ! empty( $response->has_more ) );
-
-		if ( $max_created > $cursor ) {
-			update_option( $cursor_option, $max_created, false );
+		// Stripe lists the past 30 days of events, which may be a large backlog of events merchants already handled by hand.
+		if ( null === $cursor ) {
+			$summary['cursor_after'] = $this->move_cursor_to_newest_event( $cursor_option, $created_until );
+			return $summary;
 		}
 
-		return [
-			'cursor_before' => $cursor ? $cursor : null,
-			'cursor_after'  => $max_created ? $max_created : null,
-			'events'        => $results,
-		];
+		$response = WC_Stripe_API::retrieve(
+			'events?' . http_build_query(
+				[
+					'delivery_success' => 'false',
+					// The events right after the cursor, unlike starting_after, which pages towards older events.
+					'ending_before'    => $cursor,
+					'created[lte]'     => $created_until,
+					'limit'            => self::PAGE_SIZE,
+				]
+			)
+		);
+
+		if ( ! is_object( $response ) || ! empty( $response->error ) ) {
+			// Stripe deletes events after 30 days, so the cursor is gone when this mode was not listed for that long.
+			if ( is_object( $response ) && 'resource_missing' === ( $response->error->code ?? '' ) ) {
+				$summary['cursor_after'] = $this->move_cursor_to_newest_event( $cursor_option, $created_until ) ?? $cursor;
+			}
+			return $summary;
+		}
+
+		$events = is_array( $response->data ?? null ) ? $response->data : [];
+
+		// Otherwise a store without undelivered events would keep the cursor until Stripe deletes it.
+		if ( ! $events ) {
+			$summary['cursor_after'] = $this->move_cursor_to_newest_event( $cursor_option, $created_until ) ?? $cursor;
+			return $summary;
+		}
+
+		// Retrieve the event records that are already registered to avoid duplicates.
+		$registered_events = $this->store->get_many( wp_list_pluck( $events, 'id' ) );
+
+		foreach ( $events as $event ) {
+			$record        = $registered_events[ $event->id ] ?? null;
+			$status_before = $record ? $record->status : null;
+
+			if ( ! in_array( $event->type, WC_Stripe_Account::WEBHOOK_EVENTS, true ) ) {
+				// Only process what the plugin's own endpoint subscribes to. The listing also returns events
+				// that failed on other endpoints of the same account, which this store would never receive.
+				$result = 'ignored';
+			} elseif ( ! $record ) {
+				$this->store->save( WC_Stripe_Event_Record::from_stripe_event( $event, WC_Stripe_Event_Store_Interface::STATUS_PENDING ) );
+				$result = 'queued';
+			} else {
+				$result = 'skipped';
+			}
+
+			$summary['events'][] = [
+				'id'            => $event->id,
+				'type'          => $event->type,
+				'created'       => (int) $event->created,
+				'status_before' => $status_before,
+				'result'        => $result,
+			];
+		}
+
+		// Pages are still sorted newest first.
+		$summary['cursor_after'] = $events[0]->id;
+		update_option( $cursor_option, $summary['cursor_after'], false );
+
+		// List the next page right away instead of in the next run, so a backlog does not wait. Enqueued unconditionally,
+		// as in process_pending_events().
+		if ( ! empty( $response->has_more ) ) {
+			as_enqueue_async_action( self::RECONCILE_ACTION, [], self::ACTION_GROUP );
+		}
+
+		return $summary;
+	}
+
+	/**
+	 * Moves the listing cursor to the newest event created up to the given time.
+	 *
+	 * @param string $cursor_option Name of the cursor option.
+	 * @param int    $created_until Creation timestamp of the newest event to consider.
+	 * @return string|null ID of the event, or null when there is none or Stripe could not be reached.
+	 */
+	private function move_cursor_to_newest_event( string $cursor_option, int $created_until ): ?string {
+		$response = WC_Stripe_API::retrieve(
+			'events?' . http_build_query(
+				[
+					'created[lte]' => $created_until,
+					'limit'        => 1,
+				]
+			)
+		);
+
+		$event_id = is_object( $response ) && empty( $response->error ) ? $this->get_event_id( $response->data[0] ?? null ) : null;
+		if ( null !== $event_id ) {
+			update_option( $cursor_option, $event_id, false );
+		}
+
+		return $event_id;
 	}
 
 	/**
