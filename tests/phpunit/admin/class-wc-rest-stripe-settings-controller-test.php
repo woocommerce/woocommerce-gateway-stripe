@@ -294,6 +294,119 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	/**
+	 * When a single request toggles the mode and changes payment methods, the PMC update must
+	 * target the initial mode, i.e. the update should run before the mode is switched.
+	 *
+	 * @param bool $start_in_test_mode Whether the store starts in test mode.
+	 *
+	 * @dataProvider provide_test_live_mode_switches
+	 */
+	public function test_update_settings_updates_pmc_before_switching_mode( bool $start_in_test_mode ): void {
+		$this->get_gateway()->update_option( 'testmode', $start_in_test_mode ? 'yes' : 'no' );
+		$this->mock_payment_method_configurations( [ 'card' ], [ 'amazon_pay' ] );
+
+		$is_test_mode_during_pmc_update = null;
+		$this->stripe_api->expects( $this->once() )
+			->method( 'update_payment_method_configurations' )
+			->with( $this->equalTo( 'pmc_abcdef' ) )
+			->willReturnCallback(
+				function () use ( &$is_test_mode_during_pmc_update ) {
+					$is_test_mode_during_pmc_update = WC_Stripe_Mode::is_test();
+					return (object) [];
+				}
+			);
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'enabled_payment_method_ids', [ 'amazon_pay', 'card' ] );
+		$request->set_param( 'is_upe_enabled', true );
+		$request->set_param( 'is_test_mode_enabled', ! $start_in_test_mode );
+
+		$response = $this->controller->update_settings( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertSame( $start_in_test_mode, $is_test_mode_during_pmc_update );
+		$this->assertSame( ! $start_in_test_mode, WC_Stripe_Mode::is_test() );
+	}
+
+	/**
+	 * Switching mode must drop the in-memory PMC so later reads in the same request resolve the
+	 * new mode's configuration instead of the one loaded for the previous mode.
+	 *
+	 * @param bool $start_in_test_mode Whether the store starts in test mode.
+	 *
+	 * @dataProvider provide_test_live_mode_switches
+	 */
+	public function test_update_settings_clears_in_memory_pmc_when_switching_mode( bool $start_in_test_mode ): void {
+		$this->get_gateway()->update_option( 'testmode', $start_in_test_mode ? 'yes' : 'no' );
+
+		WC_Stripe_Database_Cache::set_with_mode( WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, (object) [ 'id' => 'pmc_test' ], HOUR_IN_SECONDS, 'test' );
+		WC_Stripe_Database_Cache::set_with_mode( WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, (object) [ 'id' => 'pmc_live' ], HOUR_IN_SECONDS, 'live' );
+
+		// Load the starting mode's PMC into memory.
+		$this->assertSame( $start_in_test_mode ? 'pmc_test' : 'pmc_live', WC_Stripe_Payment_Method_Configurations::get_configuration_id() );
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_test_mode_enabled', ! $start_in_test_mode );
+
+		$response = $this->controller->update_settings( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertSame( $start_in_test_mode ? 'pmc_live' : 'pmc_test', WC_Stripe_Payment_Method_Configurations::get_configuration_id() );
+	}
+
+	/**
+	 * Data provider for the mode switch tests.
+	 *
+	 * @see test_update_settings_updates_pmc_before_switching_mode()
+	 * @see test_update_settings_clears_in_memory_pmc_when_switching_mode()
+	 *
+	 * @return array
+	 */
+	public function provide_test_live_mode_switches(): array {
+		return [
+			'test to live' => [ true ],
+			'live to test' => [ false ],
+		];
+	}
+
+	/**
+	 * Sending the current mode back must not touch the in-memory PMC.
+	 *
+	 * @param bool $is_test_mode Whether the store is, and stays, in test mode.
+	 *
+	 * @dataProvider provide_unchanged_modes
+	 */
+	public function test_update_settings_keeps_in_memory_pmc_when_mode_unchanged( bool $is_test_mode ): void {
+		$this->get_gateway()->update_option( 'testmode', $is_test_mode ? 'yes' : 'no' );
+
+		$primary_configuration = new ReflectionProperty( WC_Stripe_Payment_Method_Configurations::class, 'primary_configuration' );
+		$primary_configuration->setAccessible( true );
+		$cached_pmc = (object) [ 'id' => 'pmc_in_memory' ];
+		$primary_configuration->setValue( null, $cached_pmc );
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_test_mode_enabled', $is_test_mode );
+
+		$response = $this->controller->update_settings( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertSame( $is_test_mode, WC_Stripe_Mode::is_test() );
+		$this->assertSame( $cached_pmc, $primary_configuration->getValue() );
+	}
+
+	/**
+	 * Data provider for {@see test_update_settings_keeps_in_memory_pmc_when_mode_unchanged()}.
+	 *
+	 * @return array
+	 */
+	public function provide_unchanged_modes(): array {
+		return [
+			'stays in test mode' => [ true ],
+			'stays in live mode' => [ false ],
+		];
+	}
+
+	/**
 	 * Tests for boolean fields.
 	 *
 	 * @param string $rest_key    REST API key.
