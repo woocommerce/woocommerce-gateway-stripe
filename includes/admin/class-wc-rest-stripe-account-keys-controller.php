@@ -338,9 +338,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		// Gives an instant reply if the connection was successful or not + rebuild the cache for the next request
 		$account = $this->account->get_cached_account_data();
 
-		// Recorded only now so the event carries the account the new keys belong to, not the one they
-		// replaced. A request may change the keys of a mode other than the active one, so each changed
-		// mode gets its own event reporting that mode and the account its keys resolve to.
+		// Record separate events for updated live and test keys after we have the keys in the database.
 		if ( ! $is_deleting_account ) {
 			foreach ( $this->get_modes_with_changed_keys( $current_account_keys, $settings ) as $mode ) {
 				$this->record_manual_account_keys_tracks_event( 'wcstripe_stripe_keys_updated', $mode, $settings );
