@@ -455,6 +455,46 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 	}
 
 	/**
+	 * Resolving an account for an event can be a Stripe request, so when the store has not opted
+	 * into usage tracking the lookup for the changed mode must not happen at all.
+	 */
+	public function test_updating_keys_does_not_resolve_the_account_when_tracking_is_disabled() {
+		delete_option( 'woocommerce_allow_tracking' );
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'publishable_key'      => 'pk_live_123',
+				'secret_key'           => 'sk_live_123',
+				'test_publishable_key' => 'pk_test_123',
+				'test_secret_key'      => 'sk_test_123',
+				'testmode'             => 'no',
+			]
+		);
+
+		$looked_up_modes = [];
+		$mock_account    = $this->getMockBuilder( WC_Stripe_Account::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$mock_account->method( 'get_cached_account_data' )->willReturnCallback(
+			function ( $mode = null ) use ( &$looked_up_modes ) {
+				// A null mode means the active one, as in the real service.
+				$looked_up_modes[] = $mode ?? ( WC_Stripe_Mode::is_test() ? 'test' : 'live' );
+				return [ 'id' => 'acct_123' ];
+			}
+		);
+		$controller = new WC_REST_Stripe_Account_Keys_Controller( $mock_account );
+
+		$request = new WP_REST_Request( 'POST', self::ROUTE );
+		$request->set_param( 'test_publishable_key', 'pk_test_456' );
+		$request->set_param( 'test_secret_key', 'sk_test_456' );
+		$response = $controller->set_account_keys( $request );
+
+		$this->assertSame( 200, $response->get_status() );
+		// The only lookup is the active (live) account the endpoint returns; the event-driven
+		// lookup of the changed (test) mode must not happen.
+		$this->assertSame( [ 'live' ], $looked_up_modes );
+	}
+
+	/**
 	 * Account mock that, like the real service, resolves nothing once the keys for the mode are
 	 * gone, and resolves 'acct_live_123' for saved secret key 'sk_live_123'.
 	 *

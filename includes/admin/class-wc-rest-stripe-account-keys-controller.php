@@ -348,7 +348,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		// Recorded only now so the event carries the account the new keys belong to, not the one they
 		// replaced. A request may change the keys of a mode other than the active one, so each changed
 		// mode gets its own event reporting that mode and the account its keys resolve to.
-		if ( ! $is_deleting_account ) {
+		if ( ! $is_deleting_account && $this->can_record_tracks_events() ) {
 			foreach ( $this->get_modes_with_changed_keys( $current_account_keys, $settings ) as $mode ) {
 				$connection_type_key = 'live' === $mode ? 'connection_type' : 'test_connection_type';
 				$connection_type     = $settings[ $connection_type_key ] ?? '';
@@ -508,6 +508,21 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	}
 
 	/**
+	 * Whether a Tracks event recorded now would actually be sent.
+	 *
+	 * Mirrors the gate wc_admin_record_tracks_event() applies, so callers can skip work that
+	 * only serves the event, such as resolving an account with a cold cache, when the store
+	 * has not opted into usage tracking.
+	 *
+	 * @return bool
+	 */
+	private function can_record_tracks_events(): bool {
+		return function_exists( 'wc_admin_record_tracks_event' )
+			&& class_exists( 'WC_Site_Tracking' )
+			&& WC_Site_Tracking::is_tracking_enabled();
+	}
+
+	/**
 	 * Returns the modes whose publishable or secret key differs between two key sets.
 	 *
 	 * Falls back to the active mode when neither mode's keys changed, e.g. when only a webhook
@@ -545,7 +560,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	 * @return void
 	 */
 	private function record_manual_account_keys_tracks_event( string $event_name, bool $is_test_mode, ?string $stripe_account_id, string $connection_type ) {
-		if ( ! function_exists( 'wc_admin_record_tracks_event' ) ) {
+		if ( ! $this->can_record_tracks_events() ) {
 			return;
 		}
 
