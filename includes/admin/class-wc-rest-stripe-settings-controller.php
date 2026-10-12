@@ -313,6 +313,10 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			$this->update_is_express_checkout_enabled_for_legacy_checkout( $request );
 		}
 		// Ensure we update the test mode flag after the payment methods are updated.
+		// The current UI shows payment methods and test mode in different UI pages,
+		// but the client code bundles all updates in a single API call.
+		// This code therefore ensures that we apply mode-specific payment method updates before we switch the mode,
+		// as the client code presumably loaded the payment method details using the current, pre-change mode.
 		$this->update_is_test_mode_enabled( $request );
 
 		$this->update_express_checkout_settings( $request );
