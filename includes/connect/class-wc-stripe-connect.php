@@ -536,7 +536,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$event_props = [
 				'is_test_mode'    => 'live' !== $mode,
 				'connection_type' => $connection_type,
-				'plugin_version'  => WC_STRIPE_VERSION,
+				'stripe_version'  => WC_STRIPE_VERSION,
 			];
 
 			// Resolved on the error path too: a failure after the keys were saved (e.g. the webhook

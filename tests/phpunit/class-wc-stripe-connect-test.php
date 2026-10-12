@@ -233,7 +233,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertSame( $expected_error_code, $event_properties['error_code'] ?? null );
 		$this->assertTrue( $event_properties['is_test_mode'] );
 		$this->assertSame( 'connect', $event_properties['connection_type'] );
-		$this->assertSame( WC_STRIPE_VERSION, $event_properties['plugin_version'] );
+		$this->assertSame( WC_STRIPE_VERSION, $event_properties['stripe_version'] );
 	}
 
 	/**

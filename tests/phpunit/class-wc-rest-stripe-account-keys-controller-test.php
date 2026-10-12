@@ -374,7 +374,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$this->assertSame( 'acct_live_123', $event_properties['account_id'] );
 		$this->assertFalse( $event_properties['is_test_mode'] );
 		$this->assertSame( 'connect', $event_properties['connection_type'] );
-		$this->assertSame( WC_STRIPE_VERSION, $event_properties['plugin_version'] );
+		$this->assertSame( WC_STRIPE_VERSION, $event_properties['stripe_version'] );
 	}
 
 	/**

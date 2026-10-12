@@ -556,7 +556,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		$event_props = [
 			'is_test_mode'    => 'test' === $mode,
 			'connection_type' => is_string( $connection_type ) ? $connection_type : '',
-			'plugin_version'  => WC_STRIPE_VERSION,
+			'stripe_version'  => WC_STRIPE_VERSION,
 		];
 
 		$account_data = $this->account->get_cached_account_data( $mode );
