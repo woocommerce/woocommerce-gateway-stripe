@@ -265,11 +265,11 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			}
 
 			if ( ! isset( $result->publishableKey, $result->secretKey ) ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-				return new WP_Error( 'Invalid credentials received from WooCommerce Connect server' );
+				return new WP_Error( 'invalid_credentials', 'Invalid credentials received from WooCommerce Connect server' );
 			}
 
 			if ( 'app' === $type && ! isset( $result->refreshToken ) ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-				return new WP_Error( 'Invalid credentials received from WooCommerce Connect server' );
+				return new WP_Error( 'invalid_credentials', 'Invalid credentials received from WooCommerce Connect server' );
 			}
 
 			$publishable_key                            = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
@@ -361,6 +361,14 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				// Automatically configure webhooks for the account now that we have the keys.
 				WC_Stripe::get_instance()->account->configure_webhooks( $is_test ? 'test' : 'live' );
 			} catch ( Exception $e ) {
+				WC_Stripe_Logger::error(
+					'OAuth: Failed to configure webhooks after saving keys',
+					[
+						'exception_message' => $e->getMessage(),
+						'mode'              => $is_test ? 'test' : 'live',
+						'connection_type'   => $type,
+					]
+				);
 				return new WP_Error( 'wc_stripe_webhook_error', $e->getMessage() );
 			} finally {
 				// Ensure we reset the key before we do anything else.

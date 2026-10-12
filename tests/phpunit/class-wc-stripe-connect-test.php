@@ -475,6 +475,127 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Ensure that partial key returns are validated correctly.
+	 *
+	 * @param array  $result_fields OAuth result properties.
+	 * @param string $type          Connection type ('connect' or 'app').
+	 *
+	 * @dataProvider provide_save_stripe_keys_invalid_credentials
+	 */
+	public function test_save_stripe_keys_returns_invalid_credentials_error( array $result_fields, string $type ): void {
+		$wc_stripe       = WC_Stripe::get_instance();
+		$initial_account = $wc_stripe->account;
+
+		$account = $this->mock_stripe_account();
+		$account->expects( $this->never() )->method( 'configure_webhooks' );
+
+		$method = new ReflectionMethod( WC_Stripe_Connect::class, 'save_stripe_keys' );
+		$method->setAccessible( true );
+		$return = $method->invoke( $this->connect, (object) $result_fields, $type, 'test' );
+
+		$wc_stripe->account = $initial_account;
+
+		$this->assertInstanceOf( WP_Error::class, $return );
+		$this->assertSame( 'invalid_credentials', $return->get_error_code() );
+		$this->assertSame( 'Invalid credentials received from WooCommerce Connect server', $return->get_error_message() );
+
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertArrayNotHasKey( 'test_secret_key', $settings );
+	}
+
+	/**
+	 * Data provider for {@see test_save_stripe_keys_returns_invalid_credentials_error()}.
+	 *
+	 * @return array
+	 */
+	public function provide_save_stripe_keys_invalid_credentials(): array {
+		return [
+			'connect, missing publishable key' => [ [ 'secretKey' => 'sk_test_123' ], 'connect' ],
+			'connect, missing secret key'      => [ [ 'publishableKey' => 'pk_test_123' ], 'connect' ],
+			'app, missing refresh token'       => [
+				[
+					'publishableKey' => 'pk_test_123',
+					'secretKey'      => 'sk_test_123',
+				],
+				'app',
+			],
+		];
+	}
+
+	/**
+	 * Ensure that webhook configuration failures are logged correctly.
+	 *
+	 * @param string $type Connection type ('connect' or 'app').
+	 * @param string $mode Connection mode ('live' or 'test').
+	 *
+	 * @dataProvider provide_save_stripe_keys_webhook_failure_cases
+	 */
+	public function test_save_stripe_keys_logs_webhook_configuration_failure( string $type, string $mode ): void {
+		$wc_stripe       = WC_Stripe::get_instance();
+		$initial_account = $wc_stripe->account;
+
+		$account = $this->mock_stripe_account();
+		$account->method( 'maybe_decommission_webhook' )->willReturn( false );
+		$account->method( 'configure_webhooks' )->willThrowException( new Exception( 'webhook endpoint unreachable' ) );
+
+		$logged_errors = [];
+		$mock_logger   = $this->createMock( WC_Logger::class );
+		$mock_logger->method( 'error' )->willReturnCallback(
+			function ( $message, $context ) use ( &$logged_errors ) {
+				$logged_errors[] = [ $message, $context ];
+			}
+		);
+
+		$original_logger          = WC_Stripe_Logger::$logger;
+		WC_Stripe_Logger::$logger = $mock_logger;
+
+		$result                 = new stdClass();
+		$result->publishableKey = 'pk_123'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		$result->secretKey      = 'sk_123'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		$result->refreshToken   = 'rt_123'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+
+		try {
+			$method = new ReflectionMethod( WC_Stripe_Connect::class, 'save_stripe_keys' );
+			$method->setAccessible( true );
+			$return = $method->invoke( $this->connect, $result, $type, $mode );
+		} finally {
+			WC_Stripe_Logger::$logger = $original_logger;
+			$wc_stripe->account       = $initial_account;
+		}
+
+		$this->assertInstanceOf( WP_Error::class, $return );
+		$this->assertSame( 'wc_stripe_webhook_error', $return->get_error_code() );
+		$this->assertSame( 'webhook endpoint unreachable', $return->get_error_message() );
+
+		$webhook_errors = array_values(
+			array_filter(
+				$logged_errors,
+				function ( $entry ) {
+					return 'OAuth: Failed to configure webhooks after saving keys' === $entry[0];
+				}
+			)
+		);
+		$this->assertCount( 1, $webhook_errors );
+
+		$context = $webhook_errors[0][1];
+		$this->assertSame( 'webhook endpoint unreachable', $context['exception_message'] );
+		$this->assertSame( $mode, $context['mode'] );
+		$this->assertSame( $type, $context['connection_type'] );
+	}
+
+	/**
+	 * @return array
+	 */
+	public function provide_save_stripe_keys_webhook_failure_cases(): array {
+		return [
+			'connect, live' => [ 'connect', 'live' ],
+			'connect, test' => [ 'connect', 'test' ],
+			'app, live'     => [ 'app', 'live' ],
+			'app, test'     => [ 'app', 'test' ],
+		];
+	}
+
+	/**
 	 * Builds a WC_Stripe_Account mock with the methods save_stripe_keys() relies on, and
 	 * registers it on the plugin instance.
 	 *
