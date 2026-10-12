@@ -196,7 +196,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 				$response = $this->connect_oauth( $state, $code, $type, $mode );
 
-				$this->record_account_connect_track_event( is_wp_error( $response ) );
+				$this->record_account_connect_track_event( is_wp_error( $response ) ? $response->get_error_code() : null, $type, $mode );
 
 				$redirect_url = remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code', 'wcs_stripe_type', 'wcs_stripe_mode' ] );
 				if ( ! is_wp_error( $response ) ) {
@@ -516,26 +516,37 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		}
 
 		/**
-		 * Records a track event after the user is redirected back to the store from the Stripe UX.
+		 * Records a Tracks event after we try to process the keys returned from Stripe.
 		 *
-		 * @param bool $had_error Whether the Stripe connection had an error.
+		 * @param ?string $error_code      The error code if the connection had an error. Null if no error occurred.
+		 * @param string  $connection_type The connection type.
+		 * @param string  $mode            The connection mode. Either 'live' or 'test'.
 		 */
-		private function record_account_connect_track_event( bool $had_error ) {
-			if ( ! class_exists( 'WC_Tracks' ) ) {
+		private function record_account_connect_track_event( ?string $error_code, string $connection_type, string $mode ): void {
+			if ( ! class_exists( 'WC_Tracks' ) || ! method_exists( 'WC_Tracks', 'record_event' ) ) {
 				return;
 			}
 
-			$event_name = ! $had_error ? 'wcstripe_stripe_connected' : 'wcstripe_stripe_connect_error';
+			$event_props = [
+				'is_test_mode'    => 'live' !== $mode,
+				'connection_type' => $connection_type,
+				'plugin_version'  => WC_STRIPE_VERSION,
+			];
+
+			if ( null === $error_code ) {
+				$account_data = WC_Stripe::get_instance()->account->get_cached_account_data( $mode );
+				if ( is_string( $account_data['id'] ?? null ) ) {
+					$event_props['account_id'] = $account_data['id'];
+				}
+			} else {
+				$event_props['error_code'] = $error_code;
+			}
+
+			$event_name = null === $error_code ? 'wcstripe_stripe_connected' : 'wcstripe_stripe_connect_error';
 
 			// We're recording this directly instead of queueing it because
 			// a queue wouldn't be processed due to the redirect that comes after.
-			WC_Tracks::record_event(
-				$event_name,
-				[
-					'is_test_mode'      => WC_Stripe_Mode::is_test(),
-					'stripe_account_id' => WC_Stripe::get_instance()->account->get_cached_account_data()['id'] ?? '',
-				]
-			);
+			WC_Tracks::record_event( $event_name, $event_props );
 		}
 
 		/**
