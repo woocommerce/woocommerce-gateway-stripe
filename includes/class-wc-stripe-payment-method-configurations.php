@@ -99,9 +99,19 @@ class WC_Stripe_Payment_Method_Configurations {
 	/**
 	 * Clear the payment method configuration from cache.
 	 */
-	public static function clear_payment_method_configuration_cache() {
-		self::$primary_configuration = null;
+	public static function clear_payment_method_configuration_cache(): void {
+		self::clear_in_memory_payment_method_configuration_cache();
 		WC_Stripe_Database_Cache::delete( self::CONFIGURATION_CACHE_KEY );
+	}
+
+	/**
+	 * Clear the in-memory payment method configuration cache.
+	 * Used when we switch between test and live modes, as we
+	 * don't need to invalidate the database cache.
+	 * Most callers should call {@see clear_payment_method_configuration_cache()} instead.
+	 */
+	public static function clear_in_memory_payment_method_configuration_cache(): void {
+		self::$primary_configuration = null;
 	}
 
 	/**
