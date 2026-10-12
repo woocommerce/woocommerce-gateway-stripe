@@ -111,6 +111,8 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * Used when we switch between test and live modes, as we
 	 * don't need to invalidate the database cache.
 	 * Most callers should call {@see clear_payment_method_configuration_cache()} instead.
+	 *
+	 * @since 11.1.0
 	 */
 	public static function clear_in_memory_payment_method_configuration_cache(): void {
 		self::$primary_configuration = null;
