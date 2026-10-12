@@ -355,7 +355,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 				$connection_type     = $settings[ $connection_type_key ] ?? '';
 				$this->record_manual_account_keys_tracks_event(
 					'wcstripe_stripe_keys_updated',
-					$mode,
+					$mode === 'test',
 					$account_id,
 					$connection_type
 				);
