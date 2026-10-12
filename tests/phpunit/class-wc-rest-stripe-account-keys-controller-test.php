@@ -350,6 +350,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 				'test_publishable_key' => '',
 				'test_secret_key'      => '',
 				'testmode'             => 'no',
+				'connection_type'      => 'connect',
 			]
 		);
 		$controller = new WC_REST_Stripe_Account_Keys_Controller( $this->mock_account_resolving_by_saved_keys() );
@@ -369,9 +370,11 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$events = $this->get_captured_tracks_event_properties( 'wcadmin_wcstripe_stripe_disconnected' );
 		$this->assertCount( 1, $events );
 		$event_properties = $events[0];
-		$this->assertArrayHasKey( 'stripe_account_id', $event_properties );
-		$this->assertSame( 'acct_live_123', $event_properties['stripe_account_id'] );
+		$this->assertArrayHasKey( 'account_id', $event_properties );
+		$this->assertSame( 'acct_live_123', $event_properties['account_id'] );
 		$this->assertFalse( $event_properties['is_test_mode'] );
+		$this->assertSame( 'connect', $event_properties['connection_type'] );
+		$this->assertSame( WC_STRIPE_VERSION, $event_properties['plugin_version'] );
 	}
 
 	/**

@@ -196,17 +196,18 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * The OAuth return handler must report the account the store ends up connected to, on the
-	 * success and the error event alike, and still record the event when none resolves.
+	 * The OAuth return handler must report the connected account on success and the error code
+	 * on failure, along with the mode and connection type of the request.
 	 *
-	 * @param bool   $exchange_fails      WCC rejects the OAuth code, so no keys are saved.
-	 * @param bool   $webhook_setup_fails Keys are saved, but configuring the webhook throws.
-	 * @param string $expected_event      Expected prefixed Tracks event name.
-	 * @param string $expected_account_id Expected stripe_account_id property.
+	 * @param bool        $exchange_fails      WCC rejects the OAuth code, so no keys are saved.
+	 * @param bool        $webhook_setup_fails Keys are saved, but configuring the webhook throws.
+	 * @param string      $expected_event      Expected prefixed Tracks event name.
+	 * @param string|null $expected_account_id Expected account_id property, or null when it must be absent.
+	 * @param string|null $expected_error_code Expected error_code property, or null when it must be absent.
 	 *
 	 * @dataProvider provide_oauth_return_track_event_scenarios
 	 */
-	public function test_maybe_handle_redirect_records_stripe_account_id_on_track_event( bool $exchange_fails, bool $webhook_setup_fails, string $expected_event, string $expected_account_id ): void {
+	public function test_maybe_handle_redirect_records_account_on_track_event( bool $exchange_fails, bool $webhook_setup_fails, string $expected_event, ?string $expected_account_id, ?string $expected_error_code ): void {
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
 		set_current_screen( 'dashboard' ); // Makes is_admin() return true.
 		$this->mock_account_resolving_by_saved_keys( $webhook_setup_fails );
@@ -227,9 +228,11 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$events = $this->get_captured_tracks_event_properties( $expected_event );
 		$this->assertCount( 1, $events );
 		$event_properties = $events[0];
-		$this->assertArrayHasKey( 'stripe_account_id', $event_properties );
-		$this->assertSame( $expected_account_id, $event_properties['stripe_account_id'] );
-		$this->assertArrayHasKey( 'is_test_mode', $event_properties );
+		$this->assertSame( $expected_account_id, $event_properties['account_id'] ?? null );
+		$this->assertSame( $expected_error_code, $event_properties['error_code'] ?? null );
+		$this->assertTrue( $event_properties['is_test_mode'] );
+		$this->assertSame( 'connect', $event_properties['connection_type'] );
+		$this->assertSame( WC_STRIPE_VERSION, $event_properties['plugin_version'] );
 	}
 
 	/**
@@ -237,9 +240,9 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_oauth_return_track_event_scenarios(): array {
 		return [
-			'connected'                           => [ false, false, 'wcadmin_wcstripe_stripe_connected', 'acct_123' ],
-			'exchange failed, nothing connected'  => [ true, false, 'wcadmin_wcstripe_stripe_connect_error', '' ],
-			'keys saved but webhook setup failed' => [ false, true, 'wcadmin_wcstripe_stripe_connect_error', 'acct_123' ],
+			'connected'                           => [ false, false, 'wcadmin_wcstripe_stripe_connected', 'acct_123', null ],
+			'exchange failed, nothing connected'  => [ true, false, 'wcadmin_wcstripe_stripe_connect_error', null, 'oauth_failed' ],
+			'keys saved but webhook setup failed' => [ false, true, 'wcadmin_wcstripe_stripe_connect_error', null, 'wc_stripe_webhook_error' ],
 		];
 	}
 
