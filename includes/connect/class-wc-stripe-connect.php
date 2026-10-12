@@ -529,6 +529,10 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return;
 			}
 
+			if ( ! class_exists( 'WC_Site_Tracking' ) || ! WC_Site_Tracking::is_tracking_enabled() ) {
+				return;
+			}
+
 			$event_props = [
 				'is_test_mode'    => 'live' !== $mode,
 				'connection_type' => $connection_type,

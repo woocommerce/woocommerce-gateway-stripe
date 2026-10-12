@@ -237,6 +237,27 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * With tracking off, the OAuth return must not look the account up. A failed key exchange
+	 * is used because nothing else on that path touches the account service.
+	 */
+	public function test_maybe_handle_redirect_does_not_resolve_the_account_when_tracking_is_disabled(): void {
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+		set_current_screen( 'dashboard' ); // Makes is_admin() return true.
+		delete_option( 'woocommerce_allow_tracking' );
+
+		$account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_cached_account_data' ] )
+			->getMock();
+		$account->expects( $this->never() )->method( 'get_cached_account_data' );
+		WC_Stripe::get_instance()->account = $account;
+
+		$redirected_to = $this->handle_oauth_return( new WP_Error( 'oauth_failed', 'Exchange failed' ) );
+
+		$this->assertNotSame( '', $redirected_to );
+	}
+
+	/**
 	 * @return array
 	 */
 	public function provide_oauth_return_track_event_scenarios(): array {
