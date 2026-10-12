@@ -303,12 +303,13 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	 */
 	public function test_update_settings_updates_pmc_before_switching_mode( bool $start_in_test_mode ): void {
 		$this->get_gateway()->update_option( 'testmode', $start_in_test_mode ? 'yes' : 'no' );
-		$this->mock_payment_method_configurations( [ 'card' ], [ 'amazon_pay' ] );
+		$initial_pmc_id = 'pmc_abcdef_' . ( $start_in_test_mode ? 'test' : 'live' );
+		$this->mock_payment_method_configurations( [ 'card' ], [ 'amazon_pay' ], $initial_pmc_id );
 
 		$is_test_mode_during_pmc_update = null;
 		$this->stripe_api->expects( $this->once() )
 			->method( 'update_payment_method_configurations' )
-			->with( $this->equalTo( 'pmc_abcdef' ) )
+			->with( $this->equalTo( $initial_pmc_id ) )
 			->willReturnCallback(
 				function () use ( &$is_test_mode_during_pmc_update ) {
 					$is_test_mode_during_pmc_update = WC_Stripe_Mode::is_test();
