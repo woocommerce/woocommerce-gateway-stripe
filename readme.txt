@@ -172,7 +172,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 **Important Fixes and Updates**
 * Fix - Show BLIK and ACSS payment methods at checkout when Optimized Checkout Suite is enabled
-* Fix - Prevent non-card payment methods from failing under Optimized Checkout with Dynamic Payment Methods when the store has a statement descriptor set
 * Fix - Ensure retry with a saved payment method works after a declined Adaptive Pricing payment attempt on classic checkout
 * Fix - Allow classic checkout payments without a WooCommerce billing country field when Adaptive Pricing is enabled
 * Fix - Ignore Checkout Session failure webhooks after an order switches to another payment gateway
