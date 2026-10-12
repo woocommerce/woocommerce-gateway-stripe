@@ -30,14 +30,14 @@ trait WC_Stripe_Tracks_Capture_Trait {
 		wp_get_current_user()->cap_key = 'wp_capabilities';
 
 		$this->captured_tracks_events = [];
-		add_filter( 'woocommerce_tracks_event_properties', [ $this, 'capture_tracks_event' ], 10, 2 );
+		add_filter( 'woocommerce_tracks_event_properties', [ $this, 'capture_tracks_event' ], 9999, 2 );
 	}
 
 	/**
 	 * Stops recording events and restores the tracking opt-out.
 	 */
 	private function stop_capturing_tracks_events(): void {
-		remove_filter( 'woocommerce_tracks_event_properties', [ $this, 'capture_tracks_event' ], 10 );
+		remove_filter( 'woocommerce_tracks_event_properties', [ $this, 'capture_tracks_event' ], 9999 );
 		delete_option( 'woocommerce_allow_tracking' );
 	}
 

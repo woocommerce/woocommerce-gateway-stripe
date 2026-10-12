@@ -208,15 +208,19 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 *
 	 * @dataProvider provide_oauth_return_track_event_scenarios
 	 */
-	public function test_maybe_handle_redirect_records_account_on_track_event( bool $exchange_fails, bool $webhook_setup_fails, string $expected_event, ?string $expected_account_id, ?string $expected_error_code ): void {
+	public function test_maybe_handle_redirect_records_account_on_tracks_event( bool $exchange_fails, bool $webhook_setup_fails, string $expected_event, ?string $expected_account_id, ?string $expected_error_code ): void {
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
 		set_current_screen( 'dashboard' ); // Makes is_admin() return true.
+		$wc_stripe       = WC_Stripe::get_instance();
+		$initial_account = $wc_stripe->account;
 		$this->mock_account_resolving_by_saved_keys( $webhook_setup_fails );
-		$exchange_result = $exchange_fails ? new WP_Error( 'oauth_failed', 'Exchange failed' ) : $this->oauth_test_keys();
+		$exchange_result = $exchange_fails ? new WP_Error( 'oauth_failed', 'Exchange failed' ) : $this->get_mock_oauth_test_keys();
 
 		$this->start_capturing_tracks_events();
 		$redirected_to = $this->handle_oauth_return( $exchange_result );
 		$this->stop_capturing_tracks_events();
+
+		$wc_stripe->account = $initial_account;
 
 		// A redirect proves the real return path ran to completion before the event was captured.
 		$this->assertNotSame( '', $redirected_to );
@@ -245,14 +249,19 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		set_current_screen( 'dashboard' ); // Makes is_admin() return true.
 		delete_option( 'woocommerce_allow_tracking' );
 
+		$wc_stripe       = WC_Stripe::get_instance();
+		$initial_account = $wc_stripe->account;
+
 		$account = $this->getMockBuilder( WC_Stripe_Account::class )
 			->disableOriginalConstructor()
 			->onlyMethods( [ 'get_cached_account_data' ] )
 			->getMock();
 		$account->expects( $this->never() )->method( 'get_cached_account_data' );
-		WC_Stripe::get_instance()->account = $account;
+		$wc_stripe->account = $account;
 
 		$redirected_to = $this->handle_oauth_return( new WP_Error( 'oauth_failed', 'Exchange failed' ) );
+
+		$wc_stripe->account = $initial_account;
 
 		$this->assertNotSame( '', $redirected_to );
 	}
@@ -299,7 +308,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * @return stdClass A minimal successful WCC key-exchange result for test mode.
 	 */
-	private function oauth_test_keys(): stdClass {
+	private function get_mock_oauth_test_keys(): stdClass {
 		$keys                 = new stdClass();
 		$keys->publishableKey = 'pk_test_123'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 		$keys->secretKey      = 'sk_test_123'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
