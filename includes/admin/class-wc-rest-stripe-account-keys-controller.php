@@ -297,15 +297,10 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 							&& ! $settings['test_publishable_key']
 							&& ! $settings['test_secret_key'];
 
-		$is_test_mode        = WC_Stripe_Mode::is_test();
-		$connection_type_key = $is_test_mode ? 'test_connection_type' : 'connection_type';
-		$connection_type     = $settings[ $connection_type_key ] ?? '';
-
 		if ( $is_deleting_account ) {
-			// The account ID has to be read before the emptied keys are saved below: once they are,
-			// the account lookup reports the store as disconnected and the ID can no longer be recovered.
-			$account_data      = $this->account->get_cached_account_data( $is_test_mode ? 'test' : 'live' );
-			$stripe_account_id = is_string( $account_data['id'] ?? null ) ? $account_data['id'] : null;
+			// Recorded before the connection details are blanked and the emptied keys are saved:
+			// once they are, neither the account nor its connection type can be recovered.
+			$this->record_manual_account_keys_tracks_event( 'wcstripe_stripe_disconnected', WC_Stripe_Mode::is_test() ? 'test' : 'live', $settings );
 
 			$settings['enabled']              = 'no';
 			$settings['connection_type']      = '';
@@ -313,8 +308,6 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 			$settings['test_connection_type'] = '';
 			$settings['refresh_token']        = '';
 			$settings['test_refresh_token']   = '';
-
-			$this->record_manual_account_keys_tracks_event( 'wcstripe_stripe_disconnected', $is_test_mode, $stripe_account_id, $connection_type );
 		}
 
 		// Before saving the settings, decommission any previously automatically configured webhook endpoint.
@@ -348,15 +341,9 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		// Recorded only now so the event carries the account the new keys belong to, not the one they
 		// replaced. A request may change the keys of a mode other than the active one, so each changed
 		// mode gets its own event reporting that mode and the account its keys resolve to.
-		if ( ! $is_deleting_account && $this->can_record_tracks_events() ) {
+		if ( ! $is_deleting_account ) {
 			foreach ( $this->get_modes_with_changed_keys( $current_account_keys, $settings ) as $mode ) {
-				$account_data = $this->account->get_cached_account_data( $mode );
-				$this->record_manual_account_keys_tracks_event(
-					'wcstripe_stripe_keys_updated',
-					'test' === $mode,
-					is_string( $account_data['id'] ?? null ) ? $account_data['id'] : null,
-					$settings[ 'test' === $mode ? 'test_connection_type' : 'connection_type' ] ?? ''
-				);
+				$this->record_manual_account_keys_tracks_event( 'wcstripe_stripe_keys_updated', $mode, $settings );
 			}
 		}
 
@@ -548,27 +535,33 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	}
 
 	/**
-	 * Records a Tracks event for a manual account keys change.
+	 * Records a Tracks event for a manual account keys change, describing the given mode: whether
+	 * it is test mode, its connection type as stored in $settings, and the account its keys
+	 * currently resolve to.
 	 *
-	 * @param string      $event_name        'wcstripe_stripe_disconnected' when the keys were removed, 'wcstripe_stripe_keys_updated' otherwise.
-	 * @param bool        $is_test_mode      Whether the keys are test ones.
-	 * @param string|null $stripe_account_id The ID of the account the event is about (the one removed, or the one the new keys belong to), or null if it could not be resolved.
-	 * @param string      $connection_type   The connection type.
+	 * Nothing is resolved unless the event would be sent: with the cache cold, looking the account
+	 * up is a synchronous Stripe request, which must not be paid for stores that have not opted
+	 * into usage tracking.
+	 *
+	 * @param string $event_name 'wcstripe_stripe_disconnected' when the keys were removed, 'wcstripe_stripe_keys_updated' otherwise.
+	 * @param string $mode       The mode the event is about, 'live' or 'test'.
+	 * @param array  $settings   The Stripe settings holding the connection type for the mode.
 	 * @return void
 	 */
-	private function record_manual_account_keys_tracks_event( string $event_name, bool $is_test_mode, ?string $stripe_account_id, string $connection_type ) {
+	private function record_manual_account_keys_tracks_event( string $event_name, string $mode, array $settings ) {
 		if ( ! $this->can_record_tracks_events() ) {
 			return;
 		}
 
 		$event_props = [
-			'is_test_mode'    => $is_test_mode,
-			'connection_type' => $connection_type,
+			'is_test_mode'    => 'test' === $mode,
+			'connection_type' => $settings[ 'test' === $mode ? 'test_connection_type' : 'connection_type' ] ?? '',
 			'plugin_version'  => WC_STRIPE_VERSION,
 		];
 
-		if ( null !== $stripe_account_id ) {
-			$event_props['account_id'] = $stripe_account_id;
+		$account_data = $this->account->get_cached_account_data( $mode );
+		if ( is_string( $account_data['id'] ?? null ) ) {
+			$event_props['account_id'] = $account_data['id'];
 		}
 
 		wc_admin_record_tracks_event( $event_name, $event_props );
