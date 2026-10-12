@@ -191,6 +191,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Allow Klarna purchases for Puerto Rico shoppers, and refine billing country availability logic
 * Fix - Send a return URL when the browser confirms an express checkout (Apple Pay, Google Pay) or 3D Secure card payment, so a payment that needs a redirect can complete
 * Fix - Allow retries with an express wallet or saved card after a declined card under Optimized Checkout with Dynamic Payment Methods
+* Fix - Preserve manually configured webhooks during automatic reconfiguration and warn when the configured webhook no longer exists
 
 **Other Fixes and Updates**
 * Fix - Return an error response when a Payment Method Configuration update fails in settings, so the frontend correctly displays an error instead of a false success notice
@@ -206,6 +207,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Allow payment methods to be enabled when they support a currency supplied by a multi-currency plugin
 * Fix - Show a useful error when a Stripe connection cannot start
 * Update - Reduce the size of the express checkout JS bundle
+* Update - Include the connected Stripe account ID in the account connection, account disconnection, and key update events sent when usage tracking is enabled
 * Tweak - Agentic Commerce: surface shipping zones with no flat-rate method (which contribute no shipping to the feed) in the feed preview and logs
 * Fix - Show negative order fees as negative line items in Express Checkout on the Pay for Order page
 * Fix - Link to checkout when missing required custom fields block express checkout on other pages
