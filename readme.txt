@@ -42,7 +42,7 @@ The following items note specific versions that include important changes, featu
 * 10.9.1
    - Some express checkout helpers now require the caller to specify whether they are in the WooCommerce Cart context
 * 10.9.0
-   - Express checkout processes classic checkout custom fields by default (opt out via the wc_stripe_express_checkout_enable_classic_checkout_custom_fields filter)
+   - Express checkout processes Classic Checkout custom fields by default (opt out via the wc_stripe_express_checkout_enable_classic_checkout_custom_fields filter)
 * 10.8.0
    - Optimized Checkout Suite enabled by default for eligible existing stores
    - Adaptive Pricing enabled by default for eligible existing stores
@@ -77,7 +77,7 @@ The following items note specific versions that include important changes, featu
   - Legacy checkout deprecated by default
   - Voucher payment methods can be used for subscription purchases when manual renewals are available
   - Include extension data from block checkout for express checkout orders
-  - Add hooks to support custom checkout fields for classic checkout
+  - Add hooks to support custom checkout fields for Classic Checkout
 * 9.5.0
    - Synchronize payment methods with Stripe
    - Support Pre-Authorized Debit (PAD) in Canada and the US
@@ -175,11 +175,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Show BLIK and ACSS payment methods at checkout when Optimized Checkout Suite is enabled
 * Fix - When checking if unpaid orders should be canceled, get the Stripe payment status, and update orders with Stripe payment details
 * Fix - Preserve manually configured webhooks during automatic reconfiguration and warn when the configured webhook no longer exists
-* Fix - Ensure retry with a saved payment method works after a declined Adaptive Pricing payment attempt on classic checkout
-* Fix - Allow classic checkout payments without a WooCommerce billing country field when Adaptive Pricing is enabled
+* Fix - Ensure retry with a saved payment method works after a declined Adaptive Pricing payment attempt on Classic Checkout
+* Fix - Allow Classic Checkout payments without a WooCommerce billing country field when Adaptive Pricing is enabled
 * Fix - Ignore Checkout Session failure webhooks after an order switches to another payment gateway
 * Fix - Prevent dropped webhooks, double processing, and skipped pre-order handling when requests race for the order payment lock
-* Fix - Show an error before submission when required custom checkout fields are empty in classic checkout
+* Fix - Show an error before submission when required custom checkout fields are empty in Classic Checkout
 * Fix - Allow payment methods to be enabled when they support a currency supplied by a multi-currency plugin
 * Fix - Prevent express checkout wallets from failing when rounded display items exceed the payment total
 * Fix - Accept shipping addresses in the express checkout wallet sheet for free trial subscription carts whose shipping is charged with the recurring payments
@@ -224,8 +224,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Agentic Commerce: surface shipping zones with no flat-rate method (which contribute no shipping to the feed) in the feed preview and logs
 * Dev - Add E2E coverage for express checkout with free trial subscriptions, with and without shipping, including completing the purchase with Link
 * Dev - Block outbound HTTP requests from unit tests
-* Dev - Reduce blocks Javascript by moving payment method icon styles into CSS
-* Dev - Mark the Sofort and giropay payment method classes and constants as deprecated ahead of their removal
+* Dev - Reduce Blocks Javascript by moving payment method icon styles into CSS
+* Dev - Mark the Sofort and Giropay payment method classes and constants as deprecated ahead of their removal
 * Dev - Make e2e tests runnable from Quality Insights Toolkit (QIT)
 * Dev - Update PHPCS rules and improve alignment with WordPress plugin rules
 
