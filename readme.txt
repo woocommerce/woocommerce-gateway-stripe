@@ -164,5 +164,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 11.2.0 - xxxx-xx-xx =
+* Dev - Move the styles for the settings pill labels from @emotion/styled into stylesheets
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

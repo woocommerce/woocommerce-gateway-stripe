@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from '@emotion/styled';
+import clsx from 'clsx';
 import { check, close, help, info, pending, warning } from '@wordpress/icons';
 import apiFetch from '@wordpress/api-fetch';
 import { __, _n, sprintf } from '@wordpress/i18n';
@@ -17,6 +18,7 @@ import { dispatch } from '@wordpress/data';
 import CardBody from 'wcstripe/settings/card-body';
 import Pill from 'wcstripe/components/pill';
 import { useTestMode } from 'wcstripe/data';
+import './sync-status.scss';
 
 const DetailsTable = styled.table`
 	border-collapse: collapse;
@@ -102,49 +104,6 @@ const HistoryTable = styled.table`
 	}
 `;
 
-const StatusPill = styled( Pill )`
-	display: inline-flex;
-	align-items: center;
-	gap: 4px;
-	padding: 2px 8px;
-	border-radius: 2px;
-	line-height: 16px;
-
-	&.is-success {
-		background: #edfaef;
-		border-color: #edfaef;
-		color: #005c12;
-	}
-
-	&.is-error {
-		background: #fcf0f1;
-		border-color: #fcf0f1;
-		color: #8a2424;
-	}
-
-	&.is-warning {
-		background: #fcf9e8;
-		border-color: #fcf9e8;
-		color: #674600;
-	}
-
-	&.is-info {
-		background: #f0f6fc;
-		border-color: #f0f6fc;
-		color: #1d4a72;
-	}
-
-	&.is-neutral {
-		background: #f0f0f0;
-		border-color: #f0f0f0;
-		color: #50575e;
-	}
-
-	svg {
-		fill: currentColor;
-	}
-`;
-
 // Focusable, non-interactive container for the inline error tooltip in the
 // recent-syncs table. Stays a <span> (not a <button>) because the only action
 // is revealing the wrapping Tooltip on hover/focus — there is nothing to click.
@@ -199,7 +158,7 @@ const ActionRow = styled( Flex )`
  *
  * @param {string} status ImportSet status as returned by the server.
  * @return {{ label: string, tone: string, icon: object }} Translated label,
- *   StatusPill modifier class, and a @wordpress/icons icon descriptor.
+ *   status badge modifier, and a @wordpress/icons icon descriptor.
  */
 const getStatusConfig = ( status ) => {
 	switch ( status ) {
@@ -208,44 +167,44 @@ const getStatusConfig = ( status ) => {
 		case 'archived':
 			return {
 				label: __( 'Success', 'woocommerce-gateway-stripe' ),
-				tone: 'is-success',
+				tone: 'success',
 				icon: check,
 			};
 		case 'pending':
 			return {
 				label: __( 'Processing', 'woocommerce-gateway-stripe' ),
-				tone: 'is-info',
+				tone: 'info',
 				icon: pending,
 			};
 		case 'creating_records':
 			return {
 				label: __( 'Creating records', 'woocommerce-gateway-stripe' ),
-				tone: 'is-info',
+				tone: 'info',
 				icon: pending,
 			};
 		case 'queued':
 			return {
 				label: __( 'Queued', 'woocommerce-gateway-stripe' ),
-				tone: 'is-info',
+				tone: 'info',
 				icon: pending,
 			};
 		case 'validating':
 		case 'validating_records':
 			return {
 				label: __( 'Validating', 'woocommerce-gateway-stripe' ),
-				tone: 'is-info',
+				tone: 'info',
 				icon: pending,
 			};
 		case 'failed':
 			return {
 				label: __( 'Failed', 'woocommerce-gateway-stripe' ),
-				tone: 'is-error',
+				tone: 'error',
 				icon: close,
 			};
 		case 'succeeded_with_errors':
 			return {
 				label: __( 'Partial success', 'woocommerce-gateway-stripe' ),
-				tone: 'is-warning',
+				tone: 'warning',
 				icon: warning,
 			};
 		default:
@@ -254,7 +213,7 @@ const getStatusConfig = ( status ) => {
 					typeof status === 'string' && status
 						? status
 						: __( 'Unknown', 'woocommerce-gateway-stripe' ),
-				tone: 'is-neutral',
+				tone: 'neutral',
 				icon: help,
 			};
 	}
@@ -280,10 +239,16 @@ const POLL_INTERVAL_MS = 5000;
 const SyncStatusBadge = ( { status } ) => {
 	const { label, tone, icon } = getStatusConfig( status );
 	return (
-		<StatusPill className={ tone }>
+		<Pill
+			className={ clsx(
+				'wc-stripe-agentic-sync-status-badge',
+				`wc-stripe-agentic-sync-status-badge--${ tone }`
+			) }
+			isFlex
+		>
 			<Icon icon={ icon } size={ 14 } />
 			<span>{ label }</span>
-		</StatusPill>
+		</Pill>
 	);
 };
 

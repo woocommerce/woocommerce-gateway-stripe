@@ -1,6 +1,7 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 11.2.0
+* Dev - Move the styles for the settings pill labels from @emotion/styled into stylesheets
 
 2026-10-13 - version 11.1.0
 * Add - Automatically configure test mode when onboarding to a live account
