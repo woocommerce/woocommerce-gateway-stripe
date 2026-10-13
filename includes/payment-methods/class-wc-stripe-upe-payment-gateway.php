@@ -2773,15 +2773,21 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 		$payment_method = $this->payment_methods[ $payment_method_type ];
 
-		$is_pre_order = false;
-		if ( $this->has_pre_order( $order->get_id() ) ) {
+		$is_pre_order_placement = $this->has_pre_order( $order->get_id() );
+
+		// A released pre-order paid from the pay page is a regular payment: marking it as
+		// pre-ordered again would reset its status and reduce stock a second time.
+		if ( $is_pre_order_placement && $payment_needed && $this->is_pre_order_completed( $order->get_id() ) ) {
+			$is_pre_order_placement = false;
+		}
+
+		if ( $is_pre_order_placement ) {
 			// If this is a pre-order, simply mark the order as pre-ordered and allow
 			// the subsequent logic to save the payment method and proceed to complete the order.
 			$this->mark_order_as_pre_ordered( $order->get_id() );
 
 			// We require to save the payment method if the pre-order is charged upon release.
 			$save_payment_method = $save_payment_method || $this->has_pre_order_charged_upon_release( $order );
-			$is_pre_order        = true;
 		}
 
 		if ( $save_payment_method && $payment_method->is_reusable() ) {
@@ -2810,7 +2816,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			do_action( 'woocommerce_stripe_add_payment_method', $customer->get_user_id(), $payment_method_object );
 		}
 
-		if ( ! $is_pre_order ) {
+		if ( ! $is_pre_order_placement ) {
 			if ( $payment_needed ) {
 				// Use the last charge within the intent to proceed.
 				$this->process_response( $this->get_latest_charge_from_intent( $intent ), $order );
