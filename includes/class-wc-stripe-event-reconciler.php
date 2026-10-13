@@ -284,7 +284,18 @@ class WC_Stripe_Event_Reconciler {
 				return 'skipped';
 			}
 
-			return $this->store->save( WC_Stripe_Event_Record::from_stripe_event( $event, WC_Stripe_Event_Store_Interface::STATUS_PENDING ) ) ? 'queued' : 'failed';
+			if ( $this->store->save( WC_Stripe_Event_Record::from_stripe_event( $event, WC_Stripe_Event_Store_Interface::STATUS_PENDING ) ) ) {
+				return 'queued';
+			}
+
+			WC_Stripe_Logger::warning(
+				'Could not save an undelivered Stripe event. Its page will be listed again.',
+				[
+					'event_id'   => $event->id,
+					'event_type' => $event->type,
+				]
+			);
+			return 'failed';
 		} finally {
 			WC_Stripe_Option_Lock::release( $lock_name, $owner );
 		}
