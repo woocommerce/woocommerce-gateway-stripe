@@ -328,7 +328,7 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 		);
 
 		if ( is_wp_error( $response ) ) {
-			throw new Exception( 'ImportSet creation failed: ' . $response->get_error_message() );
+			throw new Exception( 'ImportSet creation failed: ' . $response->get_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		$http_code = wp_remote_retrieve_response_code( $response );
@@ -338,8 +338,8 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 			throw new Exception(
 				sprintf(
 					'Stripe ImportSet API returned HTTP %d: %s',
-					$http_code,
-					$this->parse_stripe_error( $body )
+					$http_code, // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+					$this->parse_stripe_error( $body ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				)
 			);
 		}
@@ -390,7 +390,7 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 		);
 
 		if ( is_wp_error( $response ) ) {
-			throw new Exception( 'ImportSet status check failed: ' . $response->get_error_message() );
+			throw new Exception( 'ImportSet status check failed: ' . $response->get_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		$http_code = wp_remote_retrieve_response_code( $response );
@@ -403,8 +403,8 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 			throw new Exception(
 				sprintf(
 					'Stripe ImportSet status API returned HTTP %d: %s',
-					$http_code,
-					$this->parse_stripe_error( $body )
+					$http_code, // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+					$this->parse_stripe_error( $body ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				),
 				(int) $http_code
 			);
@@ -459,7 +459,7 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 		);
 
 		if ( is_wp_error( $response ) ) {
-			throw new Exception( 'Error report download failed: ' . $response->get_error_message() );
+			throw new Exception( 'Error report download failed: ' . $response->get_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		$http_code = wp_remote_retrieve_response_code( $response );
@@ -469,8 +469,8 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery {
 			throw new Exception(
 				sprintf(
 					'Stripe Files content API returned HTTP %d: %s',
-					$http_code,
-					$this->parse_stripe_error( $body )
+					$http_code, // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+					$this->parse_stripe_error( $body ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				)
 			);
 		}

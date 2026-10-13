@@ -5103,7 +5103,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			if ( 'array' === $value_type ) {
 				return array_merge( [ $mode ], $test_case );
 			}
-			throw new InvalidArgumentException( 'Invalid value type: ' . $value_type );
+			throw new InvalidArgumentException( 'Invalid value type: ' . $value_type ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		};
 
 		foreach ( $test_cases as $description => $test_case ) {
