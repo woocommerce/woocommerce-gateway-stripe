@@ -207,6 +207,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Open testing and payment settings documentation links in new tabs
 * Fix - Show a useful error when a Stripe connection cannot start
 * Fix - Link to checkout when missing required custom fields block express checkout on other pages
+* Fix - Ensure that switching mode doesn't show an incorrect payment method save error
 * Fix - Add robust checks against order attribution Javascript not being fully loaded in block checkout
 * Fix - Remove the duplicated period in the webhook status message when webhooks are pending
 * Update - Reduce the size of the express checkout JS bundle
