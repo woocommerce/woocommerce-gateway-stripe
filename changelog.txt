@@ -1,5 +1,7 @@
 *** Changelog ***
 
+xxxx-xx-xx - version 11.2.0
+
 2026-10-13 - version 11.1.0
 * Add - Automatically configure test mode when onboarding to a live account
 * Fix - Show BLIK and ACSS payment methods at checkout when Optimized Checkout Suite is enabled
