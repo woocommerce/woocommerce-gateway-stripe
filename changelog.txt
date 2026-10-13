@@ -3,6 +3,7 @@
 xxxx-xx-xx - version 11.2.0
 * Dev - Remove expired lock rows from the options table once a day
 * Fix - Keep pending ACH orders open while Stripe is still waiting for bank verification
+* Fix - Show the completed order on order-received after a 3D Secure retry under Adaptive Pricing, instead of a brief failed-order notice
 
 2026-10-13 - version 11.1.0
 * Add - Automatically configure test mode when onboarding to a live account

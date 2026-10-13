@@ -166,5 +166,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 = 11.2.0 - xxxx-xx-xx =
 * Dev - Remove expired lock rows from the options table once a day
 * Fix - Keep pending ACH orders open while Stripe is still waiting for bank verification
+* Fix - Show the completed order on order-received after a 3D Secure retry under Adaptive Pricing, instead of a brief failed-order notice
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
