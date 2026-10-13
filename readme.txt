@@ -187,6 +187,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Retry matching a completed Adaptive Pricing checkout session to its order instead of giving up after the first attempt
 * Fix - Show the on-page 3D Secure authentication modal instead of a full-page redirect for card payments under Optimized Checkout with Dynamic Payment Methods
 * Fix - Stop refusing express checkout orders over required classic custom checkout fields on stores whose checkout page uses the checkout block and cannot render them
+* Fix - Remove account password data that may have been stored in order metadata by express checkout in version 10.9.0
 * Fix - Allow Klarna purchases for Puerto Rico shoppers, and refine billing country availability logic
 * Fix - Send a return URL when the browser confirms an express checkout (Apple Pay, Google Pay) or 3D Secure card payment, so a payment that needs a redirect can complete
 * Fix - Allow retries with an express wallet or saved card after a declined card under Optimized Checkout with Dynamic Payment Methods
