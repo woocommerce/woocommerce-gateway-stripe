@@ -1,7 +1,7 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 11.1.0
-* Add - Automatically configure test-mode when onboarding to a live account
+* Add - Automatically configure test mode when onboarding to a live account
 * Fix - Show BLIK and ACSS payment methods at checkout when Optimized Checkout Suite is enabled
 * Fix - Return an error response when a Payment Method Configuration update fails in settings, so the frontend correctly displays an error instead of a false success notice
 * Update - Show the specific Stripe error reason in the settings save notice when a Payment Method Configuration update is rejected
@@ -22,9 +22,9 @@ xxxx-xx-xx - version 11.1.0
 * Fix - Allow payment methods to be enabled when they support a currency supplied by a multi-currency plugin
 * Fix - Show a useful error when a Stripe connection cannot start
 * Fix - Prevent express checkout wallets from failing when rounded display items exceed the payment total
-* Fix - Accept shipping addresses in the express checkout wallet sheet for free-trial subscription carts whose shipping is charged with the recurring payments
+* Fix - Accept shipping addresses in the express checkout wallet sheet for free trial subscription carts whose shipping is charged with the recurring payments
 * Update - Ensure that application fees are not sent to Stripe for OAuth-connected accounts
-* Fix - When checking if unpaid orders should be cancelled, get the Stripe payment status, and update orders with Stripe payment details
+* Fix - When checking if unpaid orders should be canceled, get the Stripe payment status, and update orders with Stripe payment details
 * Dev - Block outbound HTTP requests from unit tests
 * Fix - Preserve manually configured webhooks during automatic reconfiguration and warn when the configured webhook no longer exists
 * Fix - Point a saved Stripe Link payment method at the newest card selection when the customer re-enrolls through Link, so subscription renewals stop charging the replaced card

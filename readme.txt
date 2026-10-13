@@ -167,13 +167,13 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 **New Features**
 
-* Add - Automatically configure test-mode when onboarding to a live account
+* Add - Automatically configure test mode when onboarding to a live account
 
 **Important Fixes and Updates**
 
 * Remove - Stop offering Sofort at checkout (discontinued by Stripe on March 31, 2025); refunds and subscription renewals for existing Sofort orders keep working
 * Fix - Show BLIK and ACSS payment methods at checkout when Optimized Checkout Suite is enabled
-* Fix - When checking if unpaid orders should be cancelled, get the Stripe payment status, and update orders with Stripe payment details
+* Fix - When checking if unpaid orders should be canceled, get the Stripe payment status, and update orders with Stripe payment details
 * Fix - Preserve manually configured webhooks during automatic reconfiguration and warn when the configured webhook no longer exists
 * Fix - Ensure retry with a saved payment method works after a declined Adaptive Pricing payment attempt on classic checkout
 * Fix - Allow classic checkout payments without a WooCommerce billing country field when Adaptive Pricing is enabled
@@ -182,7 +182,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Show an error before submission when required custom checkout fields are empty in classic checkout
 * Fix - Allow payment methods to be enabled when they support a currency supplied by a multi-currency plugin
 * Fix - Prevent express checkout wallets from failing when rounded display items exceed the payment total
-* Fix - Accept shipping addresses in the express checkout wallet sheet for free-trial subscription carts whose shipping is charged with the recurring payments
+* Fix - Accept shipping addresses in the express checkout wallet sheet for free trial subscription carts whose shipping is charged with the recurring payments
 * Fix - Point a saved Stripe Link payment method at the newest card selection when the customer re-enrolls through Link, so subscription renewals stop charging the replaced card
 * Fix - Retry matching a completed Adaptive Pricing checkout session to its order instead of giving up after the first attempt
 * Fix - Show the on-page 3D Secure authentication modal instead of a full-page redirect for card payments under Optimized Checkout with Dynamic Payment Methods
