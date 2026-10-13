@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import InstantPayoutsPromotionNotice from './instant-payouts-promotion-notice';
 import PayoutsTable from './payouts-table';
 import {
@@ -31,21 +31,34 @@ const PaymentsPage = () => {
 			.catch( () => setBalance( null ) );
 	}, [] );
 
-	const instantPayoutsMessage = getInstantPayoutsMessage( balance );
-	const payoutsUrl = getPayoutsDashboardUrl( balance );
+	const instantPayoutsMessage = useMemo(
+		() => getInstantPayoutsMessage( balance ),
+		[ balance ]
+	);
+	const payoutsUrl = useMemo(
+		() => getPayoutsDashboardUrl( balance ),
+		[ balance ]
+	);
 
-	const handleDismissBanner = () => {
+	const handleDismissBanner = useCallback( () => {
 		setIsBannerDismissed( true );
 		dismissNotice( INSTANT_PAYOUTS_BANNER_NOTICE_KEY );
-	};
+	}, [ setIsBannerDismissed ] );
 
 	// Once the banner is dismissed, Instant Payouts stay reachable from the page header.
-	const actions =
-		instantPayoutsMessage && isBannerDismissed ? (
-			<LinkButton variant="outline" href={ payoutsUrl } openInNewTab>
-				{ __( 'View Instant Payouts', 'woocommerce-gateway-stripe' ) }
-			</LinkButton>
-		) : null;
+	const actions = useMemo( () => {
+		if ( instantPayoutsMessage && isBannerDismissed ) {
+			return (
+				<LinkButton variant="outline" href={ payoutsUrl } openInNewTab>
+					{ __(
+						'View Instant Payouts',
+						'woocommerce-gateway-stripe'
+					) }
+				</LinkButton>
+			);
+		}
+		return null;
+	}, [ instantPayoutsMessage, isBannerDismissed, payoutsUrl ] );
 
 	return (
 		<Page
