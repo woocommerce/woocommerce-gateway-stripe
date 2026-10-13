@@ -2952,8 +2952,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$pre_order_product  = $this->get_pre_order_product_from_order( $order_id );
 			$is_charged_upfront = $this->is_pre_order_product_charged_upfront( $pre_order_product );
 
-			// If the pre-order is set to charge upon release and we're on the pay for order page and the pre-order has completed status, payment is needed.
-			if ( ! $is_charged_upfront && $is_pay_for_order_page && $this->is_pre_order_completed( $order_id ) ) {
+			// A released charge-upon-release pre-order needs payment regardless of the current
+			// request: the post-3DS confirmation runs on wc-ajax, not on the order-pay endpoint.
+			if ( ! $is_charged_upfront && $this->is_pre_order_completed( $order_id ) ) {
 				return true;
 			}
 
