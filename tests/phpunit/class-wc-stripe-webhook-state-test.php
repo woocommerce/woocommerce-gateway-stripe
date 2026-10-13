@@ -167,7 +167,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	// Case 3: Failure after success.
 	public function test_get_webhook_status_message_failure_after_success() {
 		$this->set_valid_request_data();
-		$expected_message = '/Warning: The most recent [mode] webhook, received at (.*), could not be processed. Reason: (.*) \(The last [mode] webhook to process successfully was timestamped (.*).\). There are approximately (\d+) webhooks pending./';
+		$expected_message = '/Warning: The most recent [mode] webhook, received at (.*), could not be processed. Reason: (.*) \(The last [mode] webhook to process successfully was timestamped (.*)\.\) There are approximately (\d+) webhooks pending\.$/';
 		// Live
 		$this->set_testmode( 'no' );
 		// Process successful webhook.
@@ -193,7 +193,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	// Case 4: Failure with no prior success.
 	public function test_get_webhook_status_message_failure_with_no_prior_success() {
 		$this->set_valid_request_data();
-		$expected_message = '/Warning: The most recent [mode] webhook, received at (.*), could not be processed. Reason: (.*) \(No [mode] webhooks have been processed successfully since monitoring began at (.*).\). There are approximately (\d+) webhooks pending./';
+		$expected_message = '/Warning: The most recent [mode] webhook, received at (.*), could not be processed. Reason: (.*) \(No [mode] webhooks have been processed successfully since monitoring began at (.*)\.\) There are approximately (\d+) webhooks pending\.$/';
 		// Live
 		$this->set_testmode( 'no' );
 		// Fail webhook.
@@ -210,10 +210,41 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( str_replace( '[mode]', 'test', $expected_message ), $message );
 
 		// Test that when pending webhooks count is 1 the message is singular.
-		$expected_message = '/Warning: (.*).\). There is at least 1 webhook pending./';
+		$expected_message = '/Warning: (.*)\.\) There is at least 1 webhook pending\.$/';
 		WC_Stripe_Webhook_State::set_pending_webhooks_count( 1 );
 		$message = WC_Stripe_Webhook_State::get_webhook_status_message();
 		$this->assertMatchesRegularExpression( $expected_message, $message );
+	}
+
+	/**
+	 * Every base status message ends with its own period, so the pending
+	 * webhooks sentence must be appended without adding another one.
+	 *
+	 * @dataProvider provide_webhook_status_message_with_pending_webhooks
+	 */
+	public function test_get_webhook_status_message_appends_pending_webhooks_without_extra_period( int $last_success_at, int $last_failure_at, int $pending_webhooks, string $expected_ending ) {
+		$this->set_testmode();
+		WC_Stripe_Webhook_State::get_monitoring_began_at();
+		WC_Stripe_Webhook_State::set_last_webhook_success_at( $last_success_at );
+		WC_Stripe_Webhook_State::set_last_webhook_failure_at( $last_failure_at );
+		WC_Stripe_Webhook_State::set_last_error_reason( WC_Stripe_Webhook_State::VALIDATION_FAILED_EMPTY_HEADERS );
+		WC_Stripe_Webhook_State::set_pending_webhooks_count( $pending_webhooks );
+
+		$message = WC_Stripe_Webhook_State::get_webhook_status_message();
+
+		$this->assertStringEndsWith( $expected_ending, $message );
+		$this->assertStringNotContainsString( '..', $message );
+		$this->assertStringNotContainsString( '.).', $message );
+	}
+
+	public function provide_webhook_status_message_with_pending_webhooks(): array {
+		return [
+			'most recent success'             => [ 200, 100, 2, 'was processed successfully. There are approximately 2 webhooks pending.' ],
+			'no webhooks received'            => [ 0, 0, 2, 'UTC. There are approximately 2 webhooks pending.' ],
+			'failure after success'           => [ 100, 200, 2, 'UTC.) There are approximately 2 webhooks pending.' ],
+			'failure with no prior success'   => [ 0, 200, 2, 'UTC.) There are approximately 2 webhooks pending.' ],
+			'single pending webhook singular' => [ 200, 100, 1, 'was processed successfully. There is at least 1 webhook pending.' ],
+		];
 	}
 
 
