@@ -5,8 +5,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Adds tools for undelivered Stripe events to WooCommerce > Status > Tools.
+ *
+ * @internal Subject to change without notice between releases.
  */
-class WC_Stripe_Event_Debug_Tools {
+final class WC_Stripe_Event_Debug_Tools {
 	/**
 	 * Singleton instance.
 	 *

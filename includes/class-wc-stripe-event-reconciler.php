@@ -9,6 +9,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Received webhooks are recorded as they are processed. Undelivered events are fetched from the
  * Events API, recorded as pending, and processed in small batches through Action Scheduler.
  * Only the event ID is stored, so each pending event is fetched again before it is processed.
+ *
+ * @internal Subject to change without notice between releases.
  */
 class WC_Stripe_Event_Reconciler {
 	public const PROCESS_ACTION = 'wc_stripe_process_pending_events';

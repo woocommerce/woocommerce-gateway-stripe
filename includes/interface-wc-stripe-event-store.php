@@ -7,6 +7,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Storage for the processing state of Stripe events.
  *
  * Implementations only persist state; deciding what to process and when belongs to the callers.
+ *
+ * @internal Subject to change without notice between releases.
  */
 interface WC_Stripe_Event_Store_Interface {
 	/**

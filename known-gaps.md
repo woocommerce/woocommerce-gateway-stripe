@@ -6,7 +6,7 @@ Temporary file for the draft PR. Remove before marking it ready for review.
 
 ### Rollout
 - No tests.
-- No BC note yet for the new public surface: the store interface, the webhook handler's constructor argument, and the 409 response for events another request is processing.
+- No BC note in the PR description yet. The new classes and the interface are marked `@internal`, as is the webhook handler's new optional constructor argument.
 
 ## FYI
 
@@ -16,6 +16,7 @@ Temporary file for the draft PR. Remove before marking it ready for review.
 - `delivery_success=false` covers every endpoint on the account, so events that failed for another site or service on the same account are processed here too.
 - Lock rows left by requests that died are deleted by the cleanup job once they are past the 10-minute lock TTL, up to 100 per batch.
 - Disabling the feature flag stops all processing and cleanup, but keeps the stored records until it is enabled again or the plugin is uninstalled with `WC_REMOVE_ALL_DATA`.
+- A webhook for an event another request is processing right now answers 409, so Stripe delivers it again later. It shows as a failed delivery in the Stripe dashboard and does not update the last webhook success time. Locks last at most 10 minutes, so this cannot add up to Stripe disabling the endpoint.
 - Deferred webhooks stay `processing` until the deferred job completes.
 - Events left in `processing` for an hour (the request died, or a deferred job failed or never ran) go back to `pending` on the next reconciliation run, up to 100 per run. A deferred job that is delayed by more than an hour may then run alongside the processing job, which relies on the handlers' existing checks against double processing.
 - Recovery in each mode starts with its first reconciliation run: events from before are not processed. The cursor is kept when the feature is disabled, so enabling it again catches up on the time in between.

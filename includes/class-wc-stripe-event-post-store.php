@@ -9,6 +9,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * The event ID is kept in `post_name`, the event type in `post_title`, the event creation time in
  * `post_date`/`post_date_gmt`, the order the event was applied to in `post_parent`, the number of failed fetches
  * in `menu_order`, and the mode in post meta.
+ *
+ * @internal Subject to change without notice between releases.
  */
 class WC_Stripe_Event_Post_Store implements WC_Stripe_Event_Store_Interface {
 	public const POST_TYPE = 'wc_stripe_event';
