@@ -2,6 +2,7 @@
 
 xxxx-xx-xx - version 11.2.0
 * Dev - Remove expired lock rows from the options table once a day
+* Tweak - Minor improvement to error logging when saving new keys
 
 2026-10-13 - version 11.1.0
 * Add - Automatically configure test mode when onboarding to a live account
@@ -55,7 +56,6 @@ xxxx-xx-xx - version 11.2.0
 * Fix - Add robust checks against order attribution Javascript not being fully loaded in block checkout
 * Fix - Remove the duplicated period in the webhook status message when webhooks are pending
 * Fix - Allow retries with an express wallet or saved card after a declined card under Optimized Checkout with Dynamic Payment Methods
-* Tweak - Minor improvement to error logging when saving new keys
 * Update - Include the connected Stripe account ID in the account connection, account disconnection, and key update events sent when usage tracking is enabled
 * Fix - Show an error before submission when required custom checkout fields are empty in Classic Checkout
 * Fix - Ensure that switching mode doesn't show an incorrect payment method save error
