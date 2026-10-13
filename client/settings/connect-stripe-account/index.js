@@ -1,4 +1,4 @@
-import { React, useState, useCallback } from 'react';
+import { React, useState } from 'react';
 import styled from '@emotion/styled';
 import interpolateComponents from '@automattic/interpolate-components';
 import { getQuery } from '@woocommerce/navigation';
@@ -60,20 +60,12 @@ const ConnectStripeAccount = () => {
 	const connectErrorMessage =
 		connectError === 'expired_nonce'
 			? __(
-					'Your Stripe connection attempt expired or was interrupted before it could complete. Please try again. For assistance, refer to our {{Link}}documentation{{/Link}}.',
+					'Your Stripe connection attempt expired or was interrupted before it could complete. Please try again.',
 					'woocommerce-gateway-stripe'
 			  )
-			: undefined;
+			: null;
 
-	const [ hasError, setHasError ] = useState(
-		Boolean( connectErrorMessage )
-	);
 	const [ errorMessage, setErrorMessage ] = useState( connectErrorMessage );
-
-	const handleErrorChange = useCallback( ( error ) => {
-		setHasError( !! error );
-		setErrorMessage( undefined );
-	}, [] );
 
 	return (
 		<CardWrapper>
@@ -115,7 +107,7 @@ const ConnectStripeAccount = () => {
 						'woocommerce-gateway-stripe'
 					) }
 				</p>
-				{ hasError && (
+				{ errorMessage !== null && (
 					<ErrorContainer>
 						<ConnectionErrorNotice message={ errorMessage } />
 					</ErrorContainer>
@@ -124,12 +116,12 @@ const ConnectStripeAccount = () => {
 					<ConnectButton
 						testMode={ false }
 						buttonVariant="primary"
-						onErrorChange={ handleErrorChange }
+						onErrorChange={ setErrorMessage }
 					/>
 					<ConnectButton
 						testMode={ true }
 						buttonVariant="secondary"
-						onErrorChange={ handleErrorChange }
+						onErrorChange={ setErrorMessage }
 					/>
 				</ButtonWrapper>
 			</CardBody>

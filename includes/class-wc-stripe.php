@@ -366,6 +366,7 @@ class WC_Stripe {
 			add_action( 'update_option_' . self::SETTINGS_OPTION_NAME, [ $this, 'maybe_reconfigure_webhooks_after_adaptive_pricing_enabled' ], 10, 2 );
 
 			add_action( WC_Stripe_Database_Cache::ASYNC_CLEANUP_ACTION, [ WC_Stripe_Database_Cache::class, 'delete_all_stale_entries_async' ], 10, 2 );
+			add_action( WC_Stripe_Express_Checkout_Password_Cleanup::BATCH_HOOK, [ new WC_Stripe_Express_Checkout_Password_Cleanup(), 'process_batch' ] );
 			add_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ WC_Stripe_Database_Cache::class, 'maybe_schedule_daily_async_cleanup' ], 10, 0 );
 
 			// Handle the async cache prefetch action.
@@ -1198,9 +1199,15 @@ class WC_Stripe {
 			return;
 		}
 
-		$gateway->update_enabled_payment_methods(
+		$result = $gateway->update_enabled_payment_methods(
 			array_diff( $enabled_payment_methods, $payment_method_ids_to_disable )
 		);
+		if ( is_wp_error( $result ) ) {
+			WC_Stripe_Logger::error(
+				'Failed to disable Stripe payment methods that should only be offered via other active plugins',
+				[ 'error' => $result->get_error_message() ]
+			);
+		}
 	}
 
 	/**

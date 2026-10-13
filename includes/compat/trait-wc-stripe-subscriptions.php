@@ -644,7 +644,7 @@ trait WC_Stripe_Subscriptions_Trait {
 					throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 				}
 
-				if ( 'payment_intent_mandate_invalid' === $response->error->type ) {
+				if ( isset( $response->error->code ) && 'payment_intent_mandate_invalid' === $response->error->code ) {
 					$localized_message = __(
 						'The mandate used for this renewal payment is invalid. You may need to bring the customer back to your store and ask them to resubmit their payment information.',
 						'woocommerce-gateway-stripe'
@@ -884,8 +884,8 @@ trait WC_Stripe_Subscriptions_Trait {
 		$this->log_renewal_lock_expired( $renewal_order, true );
 
 		throw new WC_Stripe_Exception(
-			"Failed to process renewal for order {$renewal_order->get_id()}. The payment lock has expired.",
-			__( 'The payment lock has expired.', 'woocommerce-gateway-stripe' )
+			"Failed to process renewal for order {$renewal_order->get_id()}. The payment lock has expired.", // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			__( 'The payment lock has expired.', 'woocommerce-gateway-stripe' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		);
 	}
 
@@ -1125,10 +1125,10 @@ trait WC_Stripe_Subscriptions_Trait {
 
 				// Allow empty stripe customer id during subscription renewal. It will be added when processing payment if required.
 				if ( ! isset( $_POST['wc_order_action'] ) || 'wcs_process_renewal' !== $_POST['wc_order_action'] ) {
-					throw new Exception( __( 'A "Stripe Customer ID" value is required.', 'woocommerce-gateway-stripe' ) );
+					throw new Exception( __( 'A "Stripe Customer ID" value is required.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				}
 			} elseif ( 0 !== strpos( $payment_meta['post_meta']['_stripe_customer_id']['value'], 'cus_' ) ) {
-				throw new Exception( __( 'Invalid customer ID. A valid "Stripe Customer ID" must begin with "cus_".', 'woocommerce-gateway-stripe' ) );
+				throw new Exception( __( 'Invalid customer ID. A valid "Stripe Customer ID" must begin with "cus_".', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			}
 
 			if (
@@ -1138,7 +1138,7 @@ trait WC_Stripe_Subscriptions_Trait {
 					&& 0 !== strpos( $payment_meta['post_meta']['_stripe_source_id']['value'], 'pm_' )
 				)
 			) {
-				throw new Exception( __( 'Invalid payment method ID. A valid "Stripe Payment Method ID" must begin with "src_", "pm_", or "card_".', 'woocommerce-gateway-stripe' ) );
+				throw new Exception( __( 'Invalid payment method ID. A valid "Stripe Payment Method ID" must begin with "src_", "pm_", or "card_".', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			}
 		}
 	}

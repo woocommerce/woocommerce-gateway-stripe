@@ -525,7 +525,7 @@ class WC_Stripe_Database_Cache {
 
 		if ( ! isset( $job_data['run_id'] ) || ! is_int( $job_data['run_id'] ) ) {
 			$job_data = [
-				'run_id'    => rand( 1, 1000000 ),
+				'run_id'    => wp_rand( 1, 1000000 ),
 				'processed' => 0,
 				'deleted'   => 0,
 				'job_runs'  => 1,
