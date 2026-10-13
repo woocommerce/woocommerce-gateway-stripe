@@ -96,11 +96,20 @@ describe( 'buildBaseChecks', () => {
 } );
 
 describe( 'buildCurrencyCheck', () => {
+	const globalSettingsParams = global.wc_stripe_settings_params;
 	const build = ( currencies ) =>
 		buildCurrencyCheck( {
 			currencies,
 			methodLabel: 'Amazon Pay',
 		} );
+
+	beforeEach( () => {
+		global.wc_stripe_settings_params = { ...globalSettingsParams };
+	} );
+
+	afterEach( () => {
+		global.wc_stripe_settings_params = globalSettingsParams;
+	} );
 
 	it( 'returns null when the method supports all currencies', () => {
 		expect( build( [] ) ).toBeNull();
@@ -127,6 +136,18 @@ describe( 'buildCurrencyCheck', () => {
 		expect( check.status ).toBe( STATUS.FAIL );
 		expect( check.blockingText ).toEqual( expect.any( String ) );
 		expect( check.blockingText ).not.toBe( '' );
+	} );
+
+	it( 'passes when a currency supplied by a multi-currency plugin is supported', () => {
+		getSetting.mockReturnValue( { code: 'BRL' } );
+		global.wc_stripe_settings_params.available_store_currencies = [
+			'BRL',
+			'USD',
+		];
+
+		expect( build( [ 'USD' ] ) ).toMatchObject( {
+			status: STATUS.PASS,
+		} );
 	} );
 } );
 

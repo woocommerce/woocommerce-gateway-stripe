@@ -307,6 +307,101 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that Order Attribution meta is written from the session's agent
+	 * details so the admin Origin column shows the originating agent.
+	 *
+	 * @return void
+	 */
+	public function test_order_attribution_meta_is_stored_for_agentic_session() {
+		$session = $this->build_checkout_session(
+			[
+				'payment_intent' => (object) [
+					'id'            => 'pi_test_attribution',
+					'agent_details' => (object) [
+						'network_business_profile' => 'ChatGPT',
+					],
+				],
+			]
+		);
+		$order   = $this->mapper->create_order_from_checkout_session( $session );
+
+		$this->assertEquals( 'referral', $order->get_meta( '_wc_order_attribution_source_type', true ) );
+		$this->assertEquals( 'ChatGPT', $order->get_meta( '_wc_order_attribution_utm_source', true ) );
+
+		$order->delete( true );
+	}
+
+	/**
+	 * Tests that the agent source is sanitized before it is stored: the value
+	 * comes from an external payload and is later rendered in the admin Origin
+	 * column, so tags and control characters must not reach the database.
+	 *
+	 * @return void
+	 */
+	public function test_order_attribution_agent_source_is_sanitized() {
+		$session = $this->build_checkout_session(
+			[
+				'payment_intent' => (object) [
+					'id'            => 'pi_test_attr_sanitize',
+					'agent_details' => (object) [
+						'network_business_profile' => "  <script>alert(1)</script>Agent\tName\n",
+					],
+				],
+			]
+		);
+		$order   = $this->mapper->create_order_from_checkout_session( $session );
+
+		// sanitize_text_field() drops script tags with their contents, strips
+		// the surrounding whitespace, and collapses the tab and newline.
+		$this->assertSame( 'Agent Name', $order->get_meta( '_wc_order_attribution_utm_source', true ) );
+
+		$order->delete( true );
+	}
+
+	/**
+	 * Tests that no Order Attribution meta is written when the agent source
+	 * sanitizes to an empty string, so a dangling "Referral:" with no source
+	 * never reaches the Origin column.
+	 *
+	 * @return void
+	 */
+	public function test_order_attribution_meta_is_not_stored_when_agent_source_sanitizes_to_empty() {
+		$session = $this->build_checkout_session(
+			[
+				'payment_intent' => (object) [
+					'id'            => 'pi_test_attr_empty',
+					'agent_details' => (object) [
+						'network_business_profile' => '<script>alert(1)</script>',
+					],
+				],
+			]
+		);
+		$order   = $this->mapper->create_order_from_checkout_session( $session );
+
+		// A dangling source type without a source must not be written either.
+		$this->assertSame( '', $order->get_meta( '_wc_order_attribution_source_type', true ) );
+		$this->assertSame( '', $order->get_meta( '_wc_order_attribution_utm_source', true ) );
+
+		$order->delete( true );
+	}
+
+	/**
+	 * Tests that no Order Attribution meta is written when the session carries
+	 * no agent details, leaving the Origin column untouched.
+	 *
+	 * @return void
+	 */
+	public function test_order_attribution_meta_is_not_stored_without_agent_details() {
+		$session = $this->build_checkout_session();
+		$order   = $this->mapper->create_order_from_checkout_session( $session );
+
+		$this->assertSame( '', $order->get_meta( '_wc_order_attribution_source_type', true ) );
+		$this->assertSame( '', $order->get_meta( '_wc_order_attribution_utm_source', true ) );
+
+		$order->delete( true );
+	}
+
+	/**
 	 * Test that the order status is set to processing.
 	 *
 	 * @return void
@@ -1209,9 +1304,22 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$order          = $this->mapper->create_order_from_checkout_session( $session );
+		// The webhook quoted the rate as a guest, so the recalculation must too.
+		$captured_packages = [];
+		$capture           = function ( $packages ) use ( &$captured_packages ) {
+			$captured_packages = $packages;
+			return $packages;
+		};
+		add_filter( 'woocommerce_shipping_packages', $capture );
+
+		try {
+			$order = $this->mapper->create_order_from_checkout_session( $session );
+		} finally {
+			remove_filter( 'woocommerce_shipping_packages', $capture );
+		}
 		$shipping_items = $order->get_items( 'shipping' );
 
+		$this->assertSame( 0, $captured_packages[0]['user']['ID'] ?? null );
 		$this->assertCount( 1, $shipping_items );
 
 		$shipping_item = reset( $shipping_items );
@@ -1867,5 +1975,134 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 		}
 
 		return (object) [ 'data' => $data ];
+	}
+
+	/**
+	 * Data provider for non-positive line item quantities whose amounts are
+	 * internally consistent, so the price reconciliation alone would pass.
+	 *
+	 * @return array<string, array{quantity: int, amount: int}>
+	 */
+	public function non_positive_quantity_provider(): array {
+		return [
+			'zero quantity'     => [
+				'quantity' => 0,
+				'amount'   => 0,
+			],
+			'negative quantity' => [
+				'quantity' => -2,
+				'amount'   => -2000,
+			],
+		];
+	}
+
+	/**
+	 * Test that a line item with a non-positive quantity throws even when its
+	 * amounts reconcile with the catalog price.
+	 *
+	 * @dataProvider non_positive_quantity_provider
+	 */
+	public function test_exception_thrown_for_non_positive_quantity( int $quantity, int $amount ) {
+		$session = $this->build_checkout_session(
+			[
+				'amount_total'    => $amount,
+				'amount_subtotal' => $amount,
+				'line_items'      => $this->build_line_items(
+					[
+						[
+							'lookup_key'      => (string) $this->default_product->get_sku(),
+							'quantity'        => $quantity,
+							'unit_amount'     => 1000,
+							'amount_total'    => $amount,
+							'amount_subtotal' => $amount,
+							'amount_tax'      => 0,
+						],
+					]
+				),
+			]
+		);
+
+		$this->expectException( Exception::class );
+		$this->expectExceptionMessage( 'invalid quantity' );
+
+		$this->mapper->create_order_from_checkout_session( $session );
+	}
+
+	/**
+	 * Test that map_shipping's package carries the order's contents, so a
+	 * quantity-based flat rate expression ('2 * [qty]') resolves to the chosen
+	 * WC rate instead of falling back to a free-form shipping line.
+	 */
+	public function test_shipping_rate_cost_uses_package_contents() {
+		$zone = new \WC_Shipping_Zone();
+		$zone->set_zone_name( 'US Shipping' );
+		$zone->set_zone_order( 1 );
+		$zone->save();
+		$zone->add_location( 'US', 'country' );
+
+		$instance_id = $zone->add_shipping_method( 'flat_rate' );
+		$method      = \WC_Shipping_Zones::get_shipping_method( $instance_id );
+
+		update_option(
+			$method->get_instance_option_key(),
+			[
+				'title' => 'US Per-Item Rate',
+				'cost'  => '2 * [qty]',
+			]
+		);
+
+		\WC_Cache_Helper::get_transient_version( 'shipping', true );
+		WC()->shipping()->reset_shipping();
+
+		$wc_rate_id = 'flat_rate:' . $instance_id;
+
+		// 2 × 10.00 items + 2 × 2.00 per-item shipping = 24.00.
+		$session = $this->build_checkout_session(
+			[
+				'amount_total'    => 2400,
+				'amount_subtotal' => 2000,
+				'line_items'      => $this->build_line_items(
+					[
+						[
+							'lookup_key'      => (string) $this->default_product->get_sku(),
+							'description'     => 'Default Product',
+							'quantity'        => 2,
+							'unit_amount'     => 1000,
+							'amount_total'    => 2000,
+							'amount_subtotal' => 2000,
+							'amount_tax'      => 0,
+						],
+					]
+				),
+				'total_details'   => (object) [
+					'amount_shipping' => 400,
+					'amount_tax'      => 0,
+					'amount_discount' => 0,
+				],
+				'shipping_cost'   => (object) [
+					'shipping_rate' => (object) [
+						'display_name' => 'US Per-Item Rate',
+						'metadata'     => (object) [ 'wc_rate_id' => $wc_rate_id ],
+					],
+				],
+			]
+		);
+
+		$order          = $this->mapper->create_order_from_checkout_session( $session );
+		$shipping_items = $order->get_items( 'shipping' );
+
+		$this->assertCount( 1, $shipping_items );
+
+		$shipping_item = reset( $shipping_items );
+		// A matched WC rate keeps its method_id; the free-form fallback would be 'stripe_agentic'.
+		$this->assertEquals( 'flat_rate', $shipping_item->get_method_id() );
+		$this->assertSame( 4.0, (float) $shipping_item->get_total() );
+		$this->assertEquals( '24.00', $order->get_total() );
+
+		$order->delete( true );
+		$zone->delete();
+
+		\WC_Cache_Helper::get_transient_version( 'shipping', true );
+		WC()->shipping()->reset_shipping();
 	}
 }

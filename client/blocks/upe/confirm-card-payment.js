@@ -13,12 +13,17 @@ export default async function confirmCardPayment(
 	emitResponse,
 	shouldSavePayment
 ) {
-	const { redirect, payment_method: paymentMethod } = paymentDetails;
+	const {
+		redirect,
+		payment_method: paymentMethod,
+		stripe_confirm_return_url: returnUrl,
+	} = paymentDetails;
 
 	try {
 		const confirmation = api.confirmIntent(
 			redirect,
-			shouldSavePayment ? paymentMethod : null
+			shouldSavePayment ? paymentMethod : null,
+			returnUrl
 		);
 
 		// `true` means there is no intent to confirm.

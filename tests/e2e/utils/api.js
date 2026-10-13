@@ -1,12 +1,16 @@
-import wcApi from '@woocommerce/woocommerce-rest-api';
-import config from '../config/playwright.config';
+import WooCommerceRestApi from '@woocommerce/woocommerce-rest-api';
+
+// Handle CJS default export in ESM context.
+const wcApi = WooCommerceRestApi.default || WooCommerceRestApi;
+
+const baseURL = process.env.QIT_SITE_URL || process.env.BASE_URL;
 
 let api;
 
 // Ensure that global-setup.js runs before creating api client
 if ( process.env.CONSUMER_KEY && process.env.CONSUMER_SECRET ) {
 	api = new wcApi( {
-		url: config.use.baseURL,
+		url: baseURL,
 		consumerKey: process.env.CONSUMER_KEY,
 		consumerSecret: process.env.CONSUMER_SECRET,
 		version: 'wc/v3',
@@ -162,9 +166,4 @@ const deletePost = {
 	product: deleteProduct,
 };
 
-module.exports = {
-	get,
-	create,
-	update,
-	deletePost,
-};
+export { get, create, update, deletePost };

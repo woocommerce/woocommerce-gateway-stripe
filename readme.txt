@@ -23,7 +23,7 @@ The enhanced checkout experience from Stripe can help customers:
 - **Expand your customer base:** Convert customers who might otherwise abandon their cart with buy now, pay later methods like Klarna, Affirm, and Afterpay/Clearpay, wallets like Apple Pay, Google Pay, Alipay, and WeChat Pay, and local payment methods such as Bancontact in Europe and Alipay in Asia Pacific. Deliver a localized payment experience with out-of-the-box support for localized error messages, right-to-left languages, and automatic adjustment of input fields based on payment method and country.
 - **Meet existing customer demand and localize the experience:** Offer [local payment methods](https://stripe.com/guides/payment-methods-guide), such as ACH Direct Debit, Bacs Direct Debit, Bancontact, BECS Direct Debit, BLIK, Boleto, Cash App Pay, EPS, iDEAL, Multibanco, OXXO, Pre-authorized debit payments, Przelewy 24, and SEPA Direct Debit, and let customers pay in their local currency across 150+ countries with [Adaptive Pricing](https://support.stripe.com/questions/adaptive-pricing).
 - **Fight fraud:** Detect and prevent fraud with [Stripe Radar](https://stripe.com/radar), which offers seamlessly integrated, powerful fraud-detection tools that use machine learning to detect and flag potentially fraudulent transactions.
-- **Accept in-person payments for products and services:** Use the Stripe Terminal M2 card reader or get started with no additional hardware using Tap to Pay on iPhone, or Tap to Pay on Android.
+- **Accept in-person payments for products and services:** Use the Stripe Terminal M2 card reader or get started with no additional hardware using Tap to Pay on iPhone, or Tap to Pay on Android, with [WooCommerce POS](https://woocommerce.com/woocommerce-pos/) in the free WooCommerce mobile app.
 - **Support subscriptions:** Support recurring payments with various payment methods via [WooCommerce Subscriptions](https://woocommerce.com/products/woocommerce-subscriptions/).
 - **Manage cash flow:** Get paid within minutes with Stripe Instant Payouts, if eligible.
 - **Achieve [PCI-DSS](https://docs.stripe.com/security) compliance with [Stripe Elements](https://stripe.com/payments/elements) hosted input fields.**
@@ -35,12 +35,14 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 
 The following items note specific versions that include important changes, features, or deprecations.
 
+* 11.1.0
+   - Sofort is no longer offered at checkout, since Stripe discontinued it on March 31, 2025; existing Sofort orders can still be refunded and Sofort-initiated subscriptions keep renewing
 * 11.0.0
    - Express checkout merges the wc_stripe_express_checkout_normalize_address filter result over the address it sent; removing a field no longer clears it, return an empty string instead
 * 10.9.1
    - Some express checkout helpers now require the caller to specify whether they are in the WooCommerce Cart context
 * 10.9.0
-   - Express checkout processes classic checkout custom fields by default (opt out via the wc_stripe_express_checkout_enable_classic_checkout_custom_fields filter)
+   - Express checkout processes Classic Checkout custom fields by default (opt out via the wc_stripe_express_checkout_enable_classic_checkout_custom_fields filter)
 * 10.8.0
    - Optimized Checkout Suite enabled by default for eligible existing stores
    - Adaptive Pricing enabled by default for eligible existing stores
@@ -75,7 +77,7 @@ The following items note specific versions that include important changes, featu
   - Legacy checkout deprecated by default
   - Voucher payment methods can be used for subscription purchases when manual renewals are available
   - Include extension data from block checkout for express checkout orders
-  - Add hooks to support custom checkout fields for classic checkout
+  - Add hooks to support custom checkout fields for Classic Checkout
 * 9.5.0
    - Synchronize payment methods with Stripe
    - Support Pre-Authorized Debit (PAD) in Canada and the US
@@ -161,65 +163,72 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 11.0.1 - 2026-10-05 =
-* Fix - Prevent non-card payment methods from failing under Optimized Checkout with Dynamic Payment Methods when the store has a statement descriptor set
+= 11.1.0 - 2026-10-13 =
 
-= 11.0.0 - 2026-09-08 =
+**New Features**
+
+* Add - Automatically configure test mode when onboarding to a live account
 
 **Important Fixes and Updates**
 
-* Add - Show a placement simulator on each Customize express checkouts tab that previews where the express checkout button would and wouldn't appear, with the reason
-* Add - Log an error when missing required custom fields block express checkout, with a filter to disable the log
-* Fix - Clear the shopper's cart after a redirect payment method (e.g. Amazon Pay on mobile) completes in a different browser context, preventing duplicate orders
-* Fix - Render classic-checkout card fields when a host optimizer defers render-blocking JavaScript (e.g. SiteGround Speed Optimizer)
-* Fix - Load a single instance of Stripe.js per page
-* Fix - Allow express checkout payments when a wallet provides a one-word shipping name
-* Fix - Hide the Apple Pay and Google Pay express buttons on pages unchecked in their own locations setting, instead of following other wallets' locations
-* Fix - Honor subscription renewal payment locks while preserving retry attempts
-* Update - Fetch express checkout AJAX nonces on demand instead of embedding them in every page
+* Remove - Stop offering Sofort at checkout (discontinued by Stripe on March 31, 2025); refunds and subscription renewals for existing Sofort orders keep working
+* Fix - Show BLIK and ACSS payment methods at checkout when Optimized Checkout Suite is enabled
+* Fix - When checking if unpaid orders should be canceled, get the Stripe payment status, and update orders with Stripe payment details
+* Fix - Preserve manually configured webhooks during automatic reconfiguration and warn when the configured webhook no longer exists
+* Fix - Ensure retry with a saved payment method works after a declined Adaptive Pricing payment attempt on Classic Checkout
+* Fix - Allow Classic Checkout payments without a WooCommerce billing country field when Adaptive Pricing is enabled
+* Fix - Ignore Checkout Session failure webhooks after an order switches to another payment gateway
+* Fix - Prevent dropped webhooks, double processing, and skipped pre-order handling when requests race for the order payment lock
+* Fix - Show an error before submission when required custom checkout fields are empty in Classic Checkout
+* Fix - Allow payment methods to be enabled when they support a currency supplied by a multi-currency plugin
+* Fix - Prevent express checkout wallets from failing when rounded display items exceed the payment total
+* Fix - Accept shipping addresses in the express checkout wallet sheet for free trial subscription carts whose shipping is charged with the recurring payments
+* Fix - Point a saved Stripe Link payment method at the newest card selection when the customer re-enrolls through Link, so subscription renewals stop charging the replaced card
+* Fix - Retry matching a completed Adaptive Pricing checkout session to its order instead of giving up after the first attempt
+* Fix - Show the on-page 3D Secure authentication modal instead of a full-page redirect for card payments under Optimized Checkout with Dynamic Payment Methods
+* Fix - Stop refusing express checkout orders over required classic custom checkout fields on stores whose checkout page uses the checkout block and cannot render them
+* Fix - Remove account password data that may have been stored in order metadata by express checkout in version 10.9.0
+* Fix - Allow Klarna purchases for Puerto Rico shoppers, and refine billing country availability logic
+* Fix - Send a return URL when the browser confirms an express checkout (Apple Pay, Google Pay) or 3D Secure card payment, so a payment that needs a redirect can complete
+* Fix - Allow retries with an express wallet or saved card after a declined card under Optimized Checkout with Dynamic Payment Methods
+* Update - Ensure that application fees are not sent to Stripe for OAuth-connected accounts
 
 **Other Fixes and Updates**
 
-* Fix - Hide country-restricted payment methods (e.g. iDEAL) from Optimized Checkout when the billing country can't use them
-* Fix - Attach a Stripe customer to guest Adaptive Pricing checkouts, linking it to the order and any account created at checkout
-* Fix - Stop sending Level 3 data when paying with a non-card payment method through express checkout (e.g. Amazon Pay), which Stripe rejects and can disable Level 3 data for card payments
-* Fix - Record the charge-captured state for asynchronously confirmed payments (e.g. ACH) so refunds from wp-admin and the Stripe Dashboard behave correctly
-* Fix - Keep the wallet billing and shipping addresses on express checkout orders when the address normalization request returns an unusable response
-* Fix - Register Multibanco, OXXO, Boleto, Link, and Cash App Pay hooks only once per request so email instructions and thank-you page content are not duplicated
-* Fix - Render the Adaptive Pricing payment element in the store's Stripe locale
-* Fix - Prevent test and live Stripe connections from reusing each other's cached account data
-* Fix - Refresh account details re-evaluates Payment Method Configuration availability so a disabled pmc_enabled flag recovers automatically
-* Fix - Reject negative refund amounts with an explicit error instead of silently refunding the absolute value
-* Fix - Complete 3DS card payments on Optimized Checkout when the Stripe Payment Method Configuration also has wallet or voucher methods active
-* Fix - Remove stale saved payment methods at checkout when the Stripe customer no longer exists, and keep valid ones when Stripe returns a transient API error
-* Fix - Hide the save payment method checkbox for Bancontact, iDEAL and Sofort in the Adaptive Pricing checkout on non-EUR stores whose currency excludes them
-* Fix - Don't show currency admin notices for payment methods when Adaptive Pricing is active
-* Fix - Reload the plugin's payment method settings when refreshing account details, so the settings screen no longer keeps showing stale values
-* Fix - Leave the Expires column blank instead of showing "N/A" on My Account → Payment methods for saved payment methods that have no expiry date, such as Link, SEPA and Cash App Pay
-* Fix - Prevent cart from being emptied after My Account registration when Stripe, WooPayments, and Jetpack are all active by scoping the logged-in cookie update to checkout context only
-* Fix - Open all Stripe Dashboard links in admin notices and order notes in a new tab
-* Fix - Remove the empty box shown under "Use a new payment method" on classic checkout when the save-payment-method checkbox is hidden
-* Fix - Ensure webhook status checks reset API key
-* Fix - Keep express checkout and the payment options rendering on the first block checkout load of a free-trial subscription cart
-* Add - Use Stripe Dynamic Payment Methods for on-session Optimized Checkout payments so eligible methods follow your Stripe Payment Method Configuration
-* Tweak - Dim the button size hint on the Amazon Pay and Link customize tabs so it matches the Apple Pay/Google Pay tab
+* Fix - Return an error response when a Payment Method Configuration update fails in settings, so the frontend correctly displays an error instead of a false success notice
+* Update - Show the specific Stripe error reason in the settings save notice when a Payment Method Configuration update is rejected
+* Fix - Show the correct guidance when a subscription renewal fails because its Stripe mandate is invalid
+* Fix - Preselect the customer's default saved Stripe payment method within the active gateway in Blocks checkout
+* Fix - Stop two requests from reclaiming the same expired Optimized Checkout or Agentic Commerce sync lock
+* Fix - Ensure the current Payment Method Configuration is specified for Optimized Checkout Suite and Adaptive Pricing
+* Fix - Show negative order fees as negative line items in Express Checkout on the Pay for Order page
+* Fix - Show coupon discounts as negative line items in Express Checkout on classic cart and checkout pages
+* Fix - Show negative cart fees (e.g. a discount extension applying its discount as a fee) as negative line items in Express Checkout on classic cart page
+* Fix - Stop disabling Level 3 data account-wide when Stripe rejects it for a request that declares a non-card payment method
+* Fix - Open testing and payment settings documentation links in new tabs
+* Fix - Show a useful error when a Stripe connection cannot start
+* Fix - Link to checkout when missing required custom fields block express checkout on other pages
+* Fix - Ensure that switching mode doesn't show an incorrect payment method save error
+* Fix - Add robust checks against order attribution Javascript not being fully loaded in block checkout
+* Fix - Remove the duplicated period in the webhook status message when webhooks are pending
+* Update - Reduce the size of the express checkout JS bundle
+* Update - Reduce the size of the Stripe settings JS bundles by loading only the Gridicons they use
+* Update - Improve checks in the wallet payment confirmation flow
+* Update - Include the connected Stripe account ID in the account connection, account disconnection, and key update events sent when usage tracking is enabled
+* Update - Link the WooCommerce POS page from the in-person payments description in the readme
 
 **Internal Changes and Upcoming Features**
 
-* Update - Take already-synced products out of in-agent checkout when Agentic Commerce is disabled by pushing a final catalog feed, and stop the recurring product sync while it's off
-* Add - Bulk edit, quick edit, and a sync-status column and filter on the Products list for excluding products from the Agentic Commerce catalog sync
-* Add - Show the fuller sync-eligibility verdict in the Products list Agentic Commerce column and link the excluded-products view from the settings page
-* Fix - Only sync the Agentic Commerce catalog, inventory, and archive feeds to Stripe after onboarding is complete (the feature is enabled and the webhook secret is saved)
-* Fix - Resync the Agentic Commerce catalog when switching between test and live mode, and scope the sync status shown in settings to the active mode
-* Fix - Exclude password-protected products and products hidden from the catalog from the Agentic Commerce feed
-* Fix - Name password protection and hidden visibility as their own reasons in the Agentic Commerce feed preview
-* Dev - Extract Optimized Checkout into a dedicated payment gateway class so the classic UPE and Optimized Checkout flows are handled independently
-* Dev - Register Stripe.js through a single shared helper
-* Dev - Move hook registration out of the webhook, order, payment token, Apple Pay registration, and Connect handler constructors so repeated instantiation cannot duplicate callbacks
-* Dev - Add WC_Stripe::get_settings()/update_settings() as the canonical accessors for the main Stripe settings, with the WC_Stripe_Helper shims delegating to them
-* Dev - Remove the deprecated @woocommerce/settings npm package; settings are still read from the wc-settings script WooCommerce provides at runtime
-* Dev - Make GITHUB_TOKEN optional for the local E2E Docker setup by falling back to the GitHub CLI and then to plugin zips placed in tests/e2e/deps
-* Tweak - Use database cache for webhook status tracking
-* Tweak - Disable the Agentic Commerce "Sync now" button until onboarding is complete, with a note explaining the remaining step
+* Add - Show the originating AI agent in the WooCommerce order Origin column for Agentic Commerce orders
+* Add - Agentic Commerce: add merchant settings to exclude add-on/configurator products from the feed or redirect shoppers to the store to check out, with per-product advisories in the feed preview
+* Fix - Reject agentic checkout line items with a zero or negative quantity, or a negative amount, when building shipping packages, instead of quoting rates from corrupted totals
+* Fix - Include cart contents in agentic checkout shipping calculations so content-dependent shipping methods such as table rate and weight-based return accurate rates
+* Tweak - Agentic Commerce: surface shipping zones with no flat-rate method (which contribute no shipping to the feed) in the feed preview and logs
+* Dev - Add E2E coverage for express checkout with free trial subscriptions, with and without shipping, including completing the purchase with Link
+* Dev - Block outbound HTTP requests from unit tests
+* Dev - Reduce Blocks Javascript by moving payment method icon styles into CSS
+* Dev - Mark the Sofort and Giropay payment method classes and constants as deprecated ahead of their removal
+* Dev - Make e2e tests runnable from Quality Insights Toolkit (QIT)
+* Dev - Update PHPCS rules and improve alignment with WordPress plugin rules
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

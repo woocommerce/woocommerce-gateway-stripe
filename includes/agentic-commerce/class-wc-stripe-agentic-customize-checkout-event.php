@@ -131,7 +131,7 @@ class WC_Stripe_Agentic_Customize_Checkout_Event {
 			throw new Exception(
 				sprintf(
 					'Customize checkout hook %s has no billing address.',
-					$this->get_id()
+					$this->get_id() // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				)
 			);
 		}

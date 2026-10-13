@@ -7,6 +7,7 @@ import {
 	PAYMENT_METHOD_UNAVAILABLE_REASONS,
 } from 'wcstripe/stripe-utils/constants';
 import { getPaymentMethodCurrencies } from 'utils/use-payment-method-currencies';
+import getAvailableStoreCurrencies from 'utils/get-available-store-currencies';
 
 /**
  * Returns the reason why a payment method is unavailable, or null if it is available.
@@ -14,7 +15,7 @@ import { getPaymentMethodCurrencies } from 'utils/use-payment-method-currencies'
  *
  * @param {Object}      context
  * @param {string}      context.paymentMethodId              The payment method ID.
- * @param {string|null} context.storeCurrencyCode            The store currency code. If null, the payment method is available.
+ * @param {string|null} context.storeCurrencyCode            The base currency used when no localized currency list is available.
  * @param {boolean}     [context.isAdaptivePricingSupported] When true, store currency mismatch does not block (Adaptive Pricing can settle in shopper-presented currency).
  * @return {string|null} The reason why the payment method is unavailable, or null if it is available. See `PAYMENT_METHOD_UNAVAILABLE_REASONS` for possible values.
  */
@@ -52,7 +53,9 @@ const getPaymentMethodUnavailableReason = ( {
 		return PAYMENT_METHOD_UNAVAILABLE_REASONS.REQUIRES_CARD_METHOD;
 	}
 
-	if ( ! storeCurrencyCode ) {
+	const availableStoreCurrencies =
+		getAvailableStoreCurrencies( storeCurrencyCode );
+	if ( availableStoreCurrencies.length === 0 ) {
 		return null;
 	}
 
@@ -65,7 +68,11 @@ const getPaymentMethodUnavailableReason = ( {
 	if ( paymentMethodCurrencies.length === 0 ) {
 		return null;
 	}
-	if ( paymentMethodCurrencies.includes( storeCurrencyCode ) ) {
+	if (
+		paymentMethodCurrencies.some( ( currency ) =>
+			availableStoreCurrencies.includes( currency )
+		)
+	) {
 		return null;
 	}
 
