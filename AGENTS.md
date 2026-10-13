@@ -6,7 +6,7 @@ This file provides guidance to coding agents working in this repository.
 
 WooCommerce Stripe Payment Gateway is the official plugin for accepting Stripe payments on WooCommerce stores. It supports 20+ payment methods, including cards, Apple Pay, Google Pay, Klarna, Affirm, SEPA, ACH, Alipay, and Boleto.
 
-**Requirements:** PHP 7.4+, WordPress 6.7+, WooCommerce 9.9+, Node 20.18.1+, npm 10.2.3+
+**Requirements:** PHP 7.4+, WordPress 6.7+, WooCommerce 9.9+, Node 20.20.2+, npm 10.2.3+
 
 ## CRITICAL Rules
 

@@ -1,0 +1,112 @@
+import React from 'react';
+import { PAYOUT_STATUS_BADGE_INTENTS, PAYOUT_STATUS_LABELS } from './constants';
+import EmptyCell from './empty-cell';
+import { formatStripeAmount, formatStripeTimestamp } from './utils';
+import { __, sprintf } from '@wordpress/i18n';
+import { Badge, Link } from '@wordpress/ui';
+
+/**
+ * The list endpoint exposes no sort parameter, so every field pins
+ * `enableSorting: false`. Without it DataViews falls back to the field type's
+ * default of `true` and renders sort controls that silently do nothing.
+ */
+const fields = [
+	{
+		id: 'created',
+		label: __( 'Payout date', 'woocommerce-gateway-stripe' ),
+		type: 'datetime',
+		enableSorting: false,
+		enableHiding: true,
+		filterBy: false,
+		getValue: ( { item } ) => formatStripeTimestamp( item.created ),
+	},
+	{
+		id: 'arrival_date',
+		label: __( 'Arrival date', 'woocommerce-gateway-stripe' ),
+		type: 'date',
+		enableSorting: false,
+		enableHiding: false,
+		filterBy: false,
+		getValue: ( { item } ) => formatStripeTimestamp( item.arrival_date ),
+	},
+	{
+		id: 'status',
+		label: __( 'Status', 'woocommerce-gateway-stripe' ),
+		enableSorting: false,
+		enableHiding: true,
+		filterBy: false,
+		getValue: ( { item } ) => item.status ?? '',
+		render: ( { item } ) =>
+			item.status ? (
+				<Badge
+					intent={
+						PAYOUT_STATUS_BADGE_INTENTS[ item.status ] ?? 'draft'
+					}
+				>
+					{ PAYOUT_STATUS_LABELS[ item.status ] ?? item.status }
+				</Badge>
+			) : (
+				<EmptyCell />
+			),
+	},
+	{
+		id: 'bank_details',
+		label: __( 'Bank details', 'woocommerce-gateway-stripe' ),
+		enableSorting: false,
+		enableHiding: true,
+		filterBy: false,
+		getValue: ( { item } ) => {
+			if ( ( item.destination?.bank_name ?? '' ) === '' ) {
+				return '';
+			}
+			return [ item.destination.bank_name, item.destination?.last4 ?? '' ]
+				.filter( ( value ) => value !== '' )
+				.join( ' ' );
+		},
+		render: ( { item } ) => {
+			if ( ( item.destination?.bank_name ?? '' ) === '' ) {
+				return <EmptyCell />;
+			}
+			if ( ( item.destination?.last4 ?? '' ) === '' ) {
+				return item.destination.bank_name;
+			}
+			return sprintf(
+				'%1$s ∙∙∙∙%2$s',
+				item.destination.bank_name,
+				item.destination.last4
+			);
+		},
+	},
+	{
+		id: 'id',
+		label: __( 'Payout ID', 'woocommerce-gateway-stripe' ),
+		enableSorting: false,
+		enableHiding: true,
+		filterBy: false,
+		getValue: ( { item } ) => item.id,
+		render: ( { item } ) => {
+			const url =
+				'https://dashboard.stripe.com/' +
+				( item.livemode ? '' : 'test/' ) +
+				'payouts/' +
+				encodeURIComponent( item.id );
+			return (
+				<Link href={ url } openInNewTab={ true }>
+					{ item.id }
+				</Link>
+			);
+		},
+	},
+	{
+		id: 'amount',
+		label: __( 'Amount', 'woocommerce-gateway-stripe' ),
+		enableSorting: false,
+		enableHiding: false,
+		filterBy: false,
+		getValue: ( { item } ) => item.amount,
+		render: ( { item } ) =>
+			formatStripeAmount( item.amount, item.currency ),
+	},
+];
+
+export default fields;
