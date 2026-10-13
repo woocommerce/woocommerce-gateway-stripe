@@ -169,7 +169,7 @@ class WC_Stripe_Event_Reconciler {
 	 *
 	 *     @type string|null $cursor_before ID of the event the run started after.
 	 *     @type string|null $cursor_after  ID of the event the next run will start after.
-	 *     @type array[]     $events        Per event: id, type, created, status_before and result (queued, skipped or ignored).
+	 *     @type array[]     $events        Per event: id, type, created, status_before and result (queued, skipped, ignored or failed).
 	 * }
 	 */
 	public function queue_undelivered_events(): array {
@@ -245,6 +245,11 @@ class WC_Stripe_Event_Reconciler {
 			];
 		}
 
+		// The next run lists the page again, and only retries the failed events, since the others have records now.
+		if ( in_array( 'failed', wp_list_pluck( $summary['events'], 'result' ), true ) ) {
+			return $summary;
+		}
+
 		// Pages are still sorted newest first.
 		$summary['cursor_after'] = $events[0]->id;
 		update_option( $cursor_option, $summary['cursor_after'], false );
@@ -265,7 +270,7 @@ class WC_Stripe_Event_Reconciler {
 	 * a delivery recorded in the meantime would be reset to pending, or recorded twice when both are inserted at once.
 	 *
 	 * @param stdClass $event Stripe event.
-	 * @return string `queued`, or `skipped` when a delivery holds or has recorded the event.
+	 * @return string `queued`, `skipped` when a delivery holds or has recorded the event, or `failed` when it could not be saved.
 	 */
 	private function queue_event( stdClass $event ): string {
 		$lock_name = self::LOCK_OPTION_PREFIX . $event->id;
@@ -279,8 +284,7 @@ class WC_Stripe_Event_Reconciler {
 				return 'skipped';
 			}
 
-			$this->store->save( WC_Stripe_Event_Record::from_stripe_event( $event, WC_Stripe_Event_Store_Interface::STATUS_PENDING ) );
-			return 'queued';
+			return $this->store->save( WC_Stripe_Event_Record::from_stripe_event( $event, WC_Stripe_Event_Store_Interface::STATUS_PENDING ) ) ? 'queued' : 'failed';
 		} finally {
 			WC_Stripe_Option_Lock::release( $lock_name, $owner );
 		}
