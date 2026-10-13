@@ -223,6 +223,7 @@ class WC_Stripe_Option_Lock_Test extends WP_UnitTestCase {
 			'live session lock'               => [ 'wc_stripe_checkout_session_lock_def', 30, false, false ],
 			'abandoned bare-timestamp lock'   => [ 'wc_stripe_user_customer_lock_42', 2 * DAY_IN_SECONDS, true, true ],
 			'abandoned fixed-name lock'       => [ 'wc_stripe_agentic_sync_lock', 2 * DAY_IN_SECONDS, false, true ],
+			'fixed-name look-alike kept'      => [ 'wc_stripe_agentic_sync_lock_backup', 2 * DAY_IN_SECONDS, false, false ],
 			'old option outside the prefixes' => [ 'wc_stripe_other_lock_1', 2 * DAY_IN_SECONDS, false, false ],
 			'underscore is not a wildcard'    => [ 'wc_stripe_checkout_sessionXlock_1', 2 * DAY_IN_SECONDS, false, false ],
 		];

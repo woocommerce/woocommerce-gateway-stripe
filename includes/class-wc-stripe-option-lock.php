@@ -26,16 +26,28 @@ final class WC_Stripe_Option_Lock {
 	public const CLEANUP_ACTION = 'wc_stripe_option_lock_cleanup';
 
 	/**
-	 * Option names, or name prefixes, of every lock that uses this class.
+	 * Fixed, full option names of locks that use this class.
 	 *
-	 * A lock row stays behind when its request dies before `release()` (a fatal error, a timeout, a
-	 * killed process). Locks named per cart, session, or user are never acquired again under the
-	 * same name, so nothing else would ever remove those rows. Add the prefix of any new lock here.
+	 * Matched by equality, so a look-alike option (e.g. `wc_stripe_agentic_sync_lock_backup`) is
+	 * never touched. Add any new lock with a single, fixed name here.
 	 *
 	 * @var string[]
 	 */
-	private const CLEANUP_PREFIXES = [
+	private const CLEANUP_LOCK_NAMES = [
 		'wc_stripe_agentic_sync_lock',
+	];
+
+	/**
+	 * Name prefixes of locks that use this class.
+	 *
+	 * A lock row stays behind when its request dies before `release()` (a fatal error, a timeout, a
+	 * killed process). Locks named per cart, session, or user are never acquired again under the
+	 * same name, so nothing else would ever remove those rows. Add the prefix of any new per-entity
+	 * lock here; the trailing separator keeps the match scoped to that lock family.
+	 *
+	 * @var string[]
+	 */
+	private const CLEANUP_LOCK_PREFIXES = [
 		'wc_stripe_checkout_session_lock_',
 		'wc_stripe_user_customer_lock_',
 	];
@@ -219,12 +231,32 @@ final class WC_Stripe_Option_Lock {
 		$cutoff  = time() - self::CLEANUP_STALE_AFTER;
 		$deleted = 0;
 
-		foreach ( self::CLEANUP_PREFIXES as $prefix ) {
+		// Fixed names are matched by equality so a look-alike option is never touched.
+		foreach ( self::CLEANUP_LOCK_NAMES as $name ) {
 			if ( $deleted >= $limit ) {
 				break;
 			}
 
 			// The value is `<timestamp>:<token>`, or a bare timestamp from an older deploy.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name = %s AND CAST( SUBSTRING_INDEX( option_value, ':', 1 ) AS UNSIGNED ) < %d LIMIT %d",
+					$name,
+					$cutoff,
+					$limit - $deleted
+				)
+			);
+
+			$deleted += self::delete_lock_rows( is_array( $rows ) ? $rows : [] );
+		}
+
+		// Per-entity locks are matched by prefix with a LIKE wildcard.
+		foreach ( self::CLEANUP_LOCK_PREFIXES as $prefix ) {
+			if ( $deleted >= $limit ) {
+				break;
+			}
+
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$rows = $wpdb->get_results(
 				$wpdb->prepare(
@@ -235,19 +267,36 @@ final class WC_Stripe_Option_Lock {
 				)
 			);
 
-			foreach ( $rows as $row ) {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-				$removed = $wpdb->delete(
-					$wpdb->options,
-					[
-						'option_name'  => $row->option_name,
-						'option_value' => $row->option_value,
-					]
-				);
-				if ( $removed ) {
-					self::forget_cached_option( $row->option_name );
-					++$deleted;
-				}
+			$deleted += self::delete_lock_rows( is_array( $rows ) ? $rows : [] );
+		}
+
+		return $deleted;
+	}
+
+	/**
+	 * Deletes the given lock rows, each only if it still holds the value that was read.
+	 *
+	 * The value check means a lock acquired again between the read and the delete is never removed.
+	 *
+	 * @param \stdClass[] $rows Rows with `option_name` and `option_value`.
+	 * @return int The number of rows deleted.
+	 */
+	private static function delete_lock_rows( array $rows ): int {
+		global $wpdb;
+
+		$deleted = 0;
+		foreach ( $rows as $row ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$removed = $wpdb->delete(
+				$wpdb->options,
+				[
+					'option_name'  => $row->option_name,
+					'option_value' => $row->option_value,
+				]
+			);
+			if ( $removed ) {
+				self::forget_cached_option( $row->option_name );
+				++$deleted;
 			}
 		}
 
