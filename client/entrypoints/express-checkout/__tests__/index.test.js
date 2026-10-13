@@ -564,7 +564,7 @@ describe( 'Express Checkout order failures', () => {
 	] )(
 		'fails the wallet sheet and shows the %s when the order errors',
 		async ( _name, message, options ) => {
-			const handlers = stubStripeButton();
+			const handlers = stubStripeButtonHandlers();
 			loadEntrypoint();
 
 			// Resolve the mocks from the same module registry the entrypoint loaded from;
