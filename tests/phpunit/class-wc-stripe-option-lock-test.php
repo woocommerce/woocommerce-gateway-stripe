@@ -276,6 +276,60 @@ class WC_Stripe_Option_Lock_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * When a full batch is deleted, the cleanup enqueues another batch instead of waiting a day.
+	 *
+	 * @return void
+	 */
+	public function test_cleanup_reenqueues_another_batch_after_a_full_batch(): void {
+		global $wpdb;
+
+		as_unschedule_all_actions( WC_Stripe_Option_Lock::CLEANUP_ACTION, [], 'woocommerce-gateway-stripe' );
+
+		// Seed a full batch of abandoned locks so one run deletes the batch limit and may leave rows behind.
+		$stale  = time() - 2 * DAY_IN_SECONDS;
+		$rows   = [];
+		$params = [];
+		for ( $i = 0; $i < 500; $i++ ) {
+			$rows[]   = '(%s, %s, %s)';
+			$params[] = 'wc_stripe_checkout_session_lock_' . $i;
+			$params[] = $stale . ':owner';
+			$params[] = 'off';
+		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+		$wpdb->query( $wpdb->prepare( "INSERT INTO {$wpdb->options} (option_name, option_value, autoload) VALUES " . implode( ',', $rows ), $params ) );
+
+		WC_Stripe_Option_Lock::cleanup_stale_locks();
+
+		$this->assertTrue( as_has_scheduled_action( WC_Stripe_Option_Lock::CLEANUP_ACTION, [], 'woocommerce-gateway-stripe' ) );
+
+		as_unschedule_all_actions( WC_Stripe_Option_Lock::CLEANUP_ACTION, [], 'woocommerce-gateway-stripe' );
+	}
+
+	/**
+	 * When fewer than a full batch is deleted, the cleanup does not enqueue another batch.
+	 *
+	 * @return void
+	 */
+	public function test_cleanup_does_not_reenqueue_below_a_full_batch(): void {
+		global $wpdb;
+
+		as_unschedule_all_actions( WC_Stripe_Option_Lock::CLEANUP_ACTION, [], 'woocommerce-gateway-stripe' );
+
+		$wpdb->insert(
+			$wpdb->options,
+			[
+				'option_name'  => 'wc_stripe_checkout_session_lock_single',
+				'option_value' => ( time() - 2 * DAY_IN_SECONDS ) . ':owner',
+				'autoload'     => 'off',
+			]
+		);
+
+		WC_Stripe_Option_Lock::cleanup_stale_locks();
+
+		$this->assertFalse( as_has_scheduled_action( WC_Stripe_Option_Lock::CLEANUP_ACTION, [], 'woocommerce-gateway-stripe' ) );
+	}
+
+	/**
 	 * Reads the lock row straight from the database.
 	 *
 	 * @return string|null The stored owner value, or null when no lock row exists.
