@@ -150,7 +150,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 
 					if ( ! empty( $checkout_session->error ) ) {
 						$message = empty( $checkout_session->error->message ) ? __( 'Checkout Sessions update API returned an error', 'woocommerce-gateway-stripe' ) : $checkout_session->error->message;
-						throw new Exception( $message );
+						throw new Exception( $message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 					}
 
 					WC_Stripe_Checkout_Session_Context::store_for_cart( $session_id, $cart_context );

@@ -9,6 +9,7 @@ import {
 import { getStripeDevWidgetOptions } from 'wcstripe/stripe-utils';
 import { getStripeServerData } from 'wcstripe/stripe-utils/get-stripe-server-data';
 import { getSharedStripeInstance } from 'wcstripe/stripe-utils/shared-stripe-instance';
+import { normalizeReturnUrl } from 'wcstripe/stripe-utils/normalize-return-url';
 import {
 	PAYMENT_INTENT_STATUS_REQUIRES_ACTION,
 	PAYMENT_METHOD_CASHAPP,
@@ -316,10 +317,11 @@ export default class WCStripeAPI {
 	 *
 	 * @param {string} redirectUrl         The redirect URL, returned from the server.
 	 * @param {string} paymentMethodToSave The ID of a Payment Method if it should be saved (optional).
+	 * @param {string} returnUrl           The URL Stripe returns the shopper to if the confirm redirects (optional).
 	 * @return {Object|true} An object containing the redirect URL on success and a flag indicating
 	 *   if the page is the Pay for order page, or `true` if no confirmation is needed.
 	 */
-	confirmIntent( redirectUrl, paymentMethodToSave ) {
+	confirmIntent( redirectUrl, paymentMethodToSave, returnUrl = null ) {
 		const partials = redirectUrl.match(
 			/#wc-stripe-confirm-(pi|si):(.+):(.+):(.+)$/
 		);
@@ -350,6 +352,12 @@ export default class WCStripeAPI {
 			clientSecret,
 			redirect: 'if_required',
 		};
+
+		// Stripe needs a return_url when the confirm redirects. Only a same-origin URL is sent, to avoid an open redirect.
+		const safeReturnUrl = normalizeReturnUrl( returnUrl );
+		if ( safeReturnUrl ) {
+			confirmArgs.confirmParams = { return_url: safeReturnUrl };
+		}
 
 		const confirmAction = isSetupIntent
 			? this.getStripe().confirmSetup( confirmArgs )

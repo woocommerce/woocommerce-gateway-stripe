@@ -521,7 +521,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * to be processed to complete the payment.
 	 *
 	 * This function uses the _stripe_payment_awaiting_action meta to determine if the order is waiting for customer action, however if the order has
-	 * been pending for more than a day and still has this meta, we assume it's been abandoned and should be cancelled.
+	 * been pending for more than a day and still has this meta, we assume it's been abandoned and should be cancelled. That one-day cutoff is for
+	 * abandoned card authentication. A US bank PaymentIntent still in requires_action or requires_confirmation is waiting on verification, which
+	 * can take days, so it is kept until Stripe settles it or the verification itself ends.
 	 *
 	 * @since 6.9.0
 	 *
@@ -574,6 +576,13 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		// verified payment method at Stripe and a cancelled order, because the later
 		// setup_intent.succeeded webhook skips orders that are no longer payable.
 		if ( self::is_setup_intent_awaiting_verification( $intent ) ) {
+			return false;
+		}
+
+		// ACH is a slow PaymentIntent, so the one-day cutoff could cancel an order Stripe
+		// can still debit; and Adaptive Pricing never sets _stripe_payment_awaiting_action,
+		// so it misses that cutoff anyway. Settled states are handled above.
+		if ( self::is_payment_intent_awaiting_bank_verification( $intent, $order ) ) {
 			return false;
 		}
 
@@ -666,6 +675,56 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			],
 			true
 		);
+	}
+
+	/**
+	 * Whether a PaymentIntent is still waiting on the customer to verify a US bank account.
+	 *
+	 * Card authentication uses the same requires_action status, but only for a short challenge.
+	 * Bank verification (microdeposits, or a Financial Connections redirect) can stay open for
+	 * days. Do not match payment_method_types: a UPE intent can list card and us_bank_account
+	 * together while the customer is completing 3DS on the card.
+	 *
+	 * @since 11.2.0
+	 *
+	 * @param object   $intent The intent retrieved for the order.
+	 * @param WC_Order $order  The order about to be cancelled.
+	 * @return bool
+	 */
+	private static function is_payment_intent_awaiting_bank_verification( object $intent, WC_Order $order ): bool {
+		if ( 'payment_intent' !== ( $intent->object ?? '' ) ) {
+			return false;
+		}
+
+		if ( ! in_array(
+			$intent->status ?? '',
+			WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION_OR_ACTION_STATUSES,
+			true
+		) ) {
+			return false;
+		}
+
+		if ( 'verify_with_microdeposits' === ( $intent->next_action->type ?? '' ) ) {
+			return true;
+		}
+
+		$payment_method = $intent->payment_method ?? null;
+		if ( is_object( $payment_method ) ) {
+			return WC_Stripe_Payment_Methods::ACH === ( $payment_method->type ?? '' );
+		}
+
+		// get_intent() expands payment_method. A bare id means that expansion is unavailable,
+		// so use the method recorded on the order. An attached card must not take this path.
+		if ( ! is_string( $payment_method ) || '' === $payment_method ) {
+			return false;
+		}
+
+		$ach_gateway_id = WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_Payment_Methods::ACH;
+		if ( $ach_gateway_id === $order->get_payment_method() ) {
+			return true;
+		}
+
+		return WC_Stripe_Payment_Methods::ACH === WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order );
 	}
 
 	/**
