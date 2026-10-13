@@ -231,8 +231,7 @@ class WC_Stripe_Event_Reconciler {
 				// that failed on other endpoints of the same account, which this store would never receive.
 				$result = 'ignored';
 			} elseif ( ! $record ) {
-				$this->store->save( WC_Stripe_Event_Record::from_stripe_event( $event, WC_Stripe_Event_Store_Interface::STATUS_PENDING ) );
-				$result = 'queued';
+				$result = $this->queue_event( $event );
 			} else {
 				$result = 'skipped';
 			}
@@ -257,6 +256,34 @@ class WC_Stripe_Event_Reconciler {
 		}
 
 		return $summary;
+	}
+
+	/**
+	 * Records an undelivered event as pending, unless a delivery of the event recorded it since the page was listed.
+	 *
+	 * Stripe keeps retrying the delivery after the event is listed, and the merchant can resend it. Without the lock,
+	 * a delivery recorded in the meantime would be reset to pending, or recorded twice when both are inserted at once.
+	 *
+	 * @param stdClass $event Stripe event.
+	 * @return string `queued`, or `skipped` when a delivery holds or has recorded the event.
+	 */
+	private function queue_event( stdClass $event ): string {
+		$lock_name = self::LOCK_OPTION_PREFIX . $event->id;
+		$owner     = WC_Stripe_Option_Lock::acquire( $lock_name, self::LOCK_TTL );
+		if ( null === $owner ) {
+			return 'skipped';
+		}
+
+		try {
+			if ( $this->store->get( $event->id ) ) {
+				return 'skipped';
+			}
+
+			$this->store->save( WC_Stripe_Event_Record::from_stripe_event( $event, WC_Stripe_Event_Store_Interface::STATUS_PENDING ) );
+			return 'queued';
+		} finally {
+			WC_Stripe_Option_Lock::release( $lock_name, $owner );
+		}
 	}
 
 	/**
