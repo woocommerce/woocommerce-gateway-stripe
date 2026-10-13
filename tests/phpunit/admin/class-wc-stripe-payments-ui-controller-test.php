@@ -392,6 +392,72 @@ class WC_Stripe_Payments_UI_Controller_Test extends WP_UnitTestCase {
 		}
 	}
 
+	/**
+	 * The dismissal is per user, so only the viewing user's own option may hide the banner.
+	 *
+	 * @dataProvider provide_instant_payouts_banner_dismissal_states
+	 *
+	 * @param int|string|null $own_value     The viewing user's expiration time, or null to leave it unset.
+	 * @param int|null        $other_value   Another user's expiration time, or null to leave it unset.
+	 * @param bool            $expected_flag The expected localized flag.
+	 */
+	public function test_enqueue_scripts_localizes_instant_payouts_banner_dismissal( $own_value, ?int $other_value, bool $expected_flag ): void {
+		$controller = $this->register_menu_as_admin();
+		$own_id     = get_current_user_id();
+		$other_id   = $this->factory->user->create( [ 'role' => 'administrator' ] );
+
+		$instant_payouts_banner_option_name = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_User_Banners::class, 'INSTANT_PAYOUTS_BANNER_OPTION', 'string' );
+
+		$start_time = time();
+		if ( is_int( $own_value ) ) {
+			update_user_option( $own_id, $instant_payouts_banner_option_name, $start_time + $own_value );
+		} elseif ( null !== $own_value ) {
+			update_user_option( $own_id, $instant_payouts_banner_option_name, $own_value );
+		}
+		if ( null !== $other_value ) {
+			update_user_option( $other_id, $instant_payouts_banner_option_name, $start_time + $other_value );
+		}
+
+		$controller->enqueue_scripts( $this->get_own_screen_hook_suffix() );
+
+		$data = (string) wp_scripts()->get_data( 'wc-stripe-admin-payments', 'data' );
+
+		if ( null !== $own_value ) {
+			delete_user_option( $own_id, $instant_payouts_banner_option_name );
+		}
+		if ( null !== $other_value ) {
+			delete_user_option( $other_id, $instant_payouts_banner_option_name );
+		}
+
+		if ( $expected_flag ) {
+			$this->assertStringContainsString(
+				'"isInstantPayoutsBannerDismissed":"yes"',
+				$data
+			);
+		} else {
+			$this->assertStringNotContainsString(
+				'"isInstantPayoutsBannerDismissed"',
+				$data
+			);
+		}
+	}
+
+	/**
+	 * Provider for {@see test_enqueue_scripts_localizes_instant_payouts_banner_dismissal()}.
+	 *
+	 * @return array
+	 */
+	public function provide_instant_payouts_banner_dismissal_states(): array {
+		return [
+			'not dismissed'                                 => [ null, null, false ],
+			'dismissed by viewing user - future expiration' => [ 300, null, true ],
+			'dismissed by viewing user - past expiration'   => [ -60, null, false ],
+			'dismissed by another user - future expiration' => [ null, 300, false ],
+			'dismissed by another user - past expiration'   => [ null, -60, false ],
+			'unexpected stored value'                       => [ 'no', null, false ],
+		];
+	}
+
 	public function test_init_registers_admin_hooks(): void {
 		$controller = new WC_Stripe_Payments_UI_Controller();
 
