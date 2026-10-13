@@ -6,6 +6,20 @@ import { __, sprintf } from '@wordpress/i18n';
 import { Badge, Link } from '@wordpress/ui';
 
 /**
+ * The API we call supports these date filter operators.
+ *
+ * @type {Array<string>}
+ */
+const DATE_FILTER_OPERATORS = [
+	'after',
+	'afterInc',
+	'before',
+	'beforeInc',
+	'between',
+	'on',
+];
+
+/**
  * The list endpoint exposes no sort parameter, so every field pins
  * `enableSorting: false`. Without it DataViews falls back to the field type's
  * default of `true` and renders sort controls that silently do nothing.
@@ -17,7 +31,9 @@ const fields = [
 		type: 'datetime',
 		enableSorting: false,
 		enableHiding: true,
-		filterBy: false,
+		filterBy: {
+			operators: DATE_FILTER_OPERATORS,
+		},
 		getValue: ( { item } ) => formatStripeTimestamp( item.created ),
 	},
 	{
@@ -25,8 +41,10 @@ const fields = [
 		label: __( 'Arrival date', 'woocommerce-gateway-stripe' ),
 		type: 'date',
 		enableSorting: false,
-		enableHiding: false,
-		filterBy: false,
+		enableHiding: true,
+		filterBy: {
+			operators: DATE_FILTER_OPERATORS,
+		},
 		getValue: ( { item } ) => formatStripeTimestamp( item.arrival_date ),
 	},
 	{
@@ -34,7 +52,15 @@ const fields = [
 		label: __( 'Status', 'woocommerce-gateway-stripe' ),
 		enableSorting: false,
 		enableHiding: true,
-		filterBy: false,
+		elements: Object.entries( PAYOUT_STATUS_LABELS ).map(
+			( [ key, value ] ) => ( {
+				value: key,
+				label: value,
+			} )
+		),
+		filterBy: {
+			operators: [ 'is' ],
+		},
 		getValue: ( { item } ) => item.status ?? '',
 		render: ( { item } ) =>
 			item.status ? (

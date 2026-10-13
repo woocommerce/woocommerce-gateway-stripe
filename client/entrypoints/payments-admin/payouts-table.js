@@ -34,6 +34,7 @@ const PayoutsTable = () => {
 	} = usePayouts( {
 		perPage: view.perPage,
 		cursor,
+		filters: view.filters,
 	} );
 
 	const isCurrentPageLoaded =
