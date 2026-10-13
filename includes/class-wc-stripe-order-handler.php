@@ -579,11 +579,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			return false;
 		}
 
-		// ACH charges use a PaymentIntent, not a SetupIntent, but verification takes just as long.
-		// The one-day cutoff below would cancel the order while Stripe can still debit the bank,
-		// and Adaptive Pricing never sets _stripe_payment_awaiting_action, so that cutoff would
-		// not apply at all. Once the intent leaves requires_action / requires_confirmation, a later
-		// cron pass cancels it; processing and succeeded are settled above.
+		// ACH is a slow PaymentIntent, so the one-day cutoff could cancel an order Stripe
+		// can still debit; and Adaptive Pricing never sets _stripe_payment_awaiting_action,
+		// so it misses that cutoff anyway. Settled states are handled above.
 		if ( self::is_payment_intent_awaiting_bank_verification( $intent, $order ) ) {
 			return false;
 		}
@@ -687,13 +685,13 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * days. Do not match payment_method_types: a UPE intent can list card and us_bank_account
 	 * together while the customer is completing 3DS on the card.
 	 *
-	 * @since 11.1.0
+	 * @since 11.2.0
 	 *
 	 * @param object   $intent The intent retrieved for the order.
 	 * @param WC_Order $order  The order about to be cancelled.
 	 * @return bool
 	 */
-	private static function is_payment_intent_awaiting_bank_verification( $intent, $order ): bool {
+	private static function is_payment_intent_awaiting_bank_verification( object $intent, WC_Order $order ): bool {
 		if ( 'payment_intent' !== ( $intent->object ?? '' ) ) {
 			return false;
 		}
