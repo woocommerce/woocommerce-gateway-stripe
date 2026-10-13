@@ -400,7 +400,7 @@ final class Hook_Markdown_Generator {
 			$lines[] = '| --- | --- |';
 			foreach ( $entries as $entry ) {
 				$file     = (string) $entry['file'];
-				$line_num = (int) $entry['line'] ?? -1;
+				$line_num = (int) ( $entry['line'] ?? -1 );
 				$lines[]  = sprintf(
 					'| [%s](%s) | %d |',
 					$this->escape_table_cell( 'includes/' . $file . ( $line_num > 0 ? ' - ' . $line_num : '' ) ),
