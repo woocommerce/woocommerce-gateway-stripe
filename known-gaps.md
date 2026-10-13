@@ -8,9 +8,6 @@ Temporary file for the draft PR. Remove before marking it ready for review.
 - No tests.
 - No BC note yet for the new public surface: the store interface, the webhook handler's constructor argument, and the 409 response for events another request is processing.
 
-### Listing
-- Switching to a different Stripe account in the same mode is not handled: the cursor carries over and hides older events from the new account, and the old account's pending events are abandoned as `resource_missing`. A lazy account ID check next to the cursor is proposed.
-
 ### Storage
 - Lock rows left by requests that died are reclaimed on the next claim of the same event, and deleted by the "Clear stored Stripe events" tool and on uninstall, but nothing sweeps them during normal operation.
 
@@ -26,6 +23,7 @@ Temporary file for the draft PR. Remove before marking it ready for review.
 - Recovery in each mode starts with its first reconciliation run: events from before are not processed. The cursor is kept when the feature is disabled, so enabling it again catches up on the time in between.
 - Each reconciliation run lists one page of up to 100 undelivered events, oldest first, and enqueues the next run right away while there are more.
 - Runs that find no undelivered events make a second request to move the cursor to the newest event, since Stripe deletes events after 30 days. If the cursor event is gone anyway (the mode was not listed for 30 days), listing starts over from the newest event.
+- Switching to a different Stripe account in the same mode starts listing over from the new account's newest event, since the cursor event does not exist there. The old account's pending events are abandoned as `resource_missing`, each with a warning in the log.
 
 ### Scope limits
 These are outside what event replay can fix, and need other work:
