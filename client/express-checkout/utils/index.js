@@ -1,7 +1,8 @@
 /* global wc_stripe_express_checkout_params */
 import jQuery from 'jquery';
 import { __ } from '@wordpress/i18n';
-import { isAmazonPayEnabled, isLinkEnabled } from 'wcstripe/stripe-utils';
+import { isAmazonPayEnabled } from 'wcstripe/stripe-utils/is-amazon-pay-enabled';
+import { isLinkEnabled } from 'wcstripe/stripe-utils/is-link-enabled';
 import { EXPRESS_CHECKOUT_NOTICE_DELAY } from 'wcstripe/data/constants';
 import {
 	EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
@@ -405,16 +406,32 @@ export const getPaymentMethodTypesForExpressMethod = ( paymentMethodType ) => {
 };
 
 /**
+ * Appends the "go to the checkout page" sentence to a notice.
+ *
+ * The sentence is rendered server-side with the page's own checkout URL, so the
+ * client never builds link markup from message text.
+ *
+ * @param {string} noticeHtml The notice as safe HTML.
+ * @return {string} The notice with the linked sentence appended, when available.
+ */
+export const appendCheckoutLink = ( noticeHtml ) => {
+	const sentence = getExpressCheckoutData( 'i18n' )?.go_to_checkout;
+	return sentence ? `${ noticeHtml }<br>${ sentence }` : noticeHtml;
+};
+
+/**
  * Display a notice on the checkout page (for Express Checkout Element).
  *
  * @param {string} message           The message to display.
  * @param {string} type              The type of notice.
  * @param {Array}  additionalClasses Additional classes to add to the notice.
+ * @param {Object} options           Set `linkToCheckout` to append a link to the checkout page.
  */
 export const displayExpressCheckoutNotice = (
 	message,
 	type,
-	additionalClasses
+	additionalClasses,
+	options = {}
 ) => {
 	const isBlockCheckout = getExpressCheckoutData( 'has_block' );
 	const mainNoticeClass = `woocommerce-${ type }`;
@@ -431,10 +448,13 @@ export const displayExpressCheckoutNotice = (
 		: 'woocommerce-notices-wrapper';
 	const $container = jQuery( '.' + containerClass ).first();
 
-	const safeMessage = jQuery( '<div>' )
+	let safeMessage = jQuery( '<div>' )
 		.text( message )
 		.html()
 		.replace( /\n/g, '<br>' );
+	if ( options?.linkToCheckout ) {
+		safeMessage = appendCheckoutLink( safeMessage );
+	}
 	const note = jQuery(
 		`<div class="${ classNames.join( ' ' ) }" role="note" />`
 	).html( safeMessage );

@@ -34,7 +34,7 @@ class WC_Stripe_Agentic_Commerce_Product_Resolver {
 			throw new Exception(
 				sprintf(
 					'Product not found for lookup_key "%d".',
-					$product_id
+					$product_id // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				)
 			);
 		}

@@ -1,7 +1,7 @@
 import { getStripeDevWidgetOptions } from '../get-stripe-dev-widget-options';
-import { getStripeServerData } from '../utils';
+import { getStripeServerData } from '../get-stripe-server-data';
 
-jest.mock( '../utils', () => ( {
+jest.mock( '../get-stripe-server-data', () => ( {
 	getStripeServerData: jest.fn(),
 } ) );
 

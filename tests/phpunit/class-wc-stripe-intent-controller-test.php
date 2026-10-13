@@ -959,6 +959,60 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Dynamic Payment Methods intents always include `card`, and Stripe rejects a full
+	 * statement_descriptor on them, so it is dropped there and kept otherwise.
+	 *
+	 * @param bool $automatic_payment_methods Whether the intent uses Dynamic Payment Methods.
+	 * @param bool $expect_descriptor         Whether statement_descriptor must be sent.
+	 *
+	 * @dataProvider provide_statement_descriptor_with_automatic_payment_methods_data
+	 *
+	 * @return void
+	 */
+	public function test_create_and_confirm_payment_intent_statement_descriptor_with_automatic_payment_methods( bool $automatic_payment_methods, bool $expect_descriptor ): void {
+		$payment_information                          = $this->get_base_payment_information();
+		$payment_information['selected_payment_type'] = WC_Stripe_Payment_Methods::KLARNA;
+		$payment_information['payment_method_types']  = [ WC_Stripe_Payment_Methods::KLARNA ];
+		$payment_information['statement_descriptor']  = 'MY STORE';
+		$payment_information['return_url']            = 'https://example.com/return';
+		if ( $automatic_payment_methods ) {
+			$payment_information['automatic_payment_methods'] = true;
+		}
+
+		$test_request = function ( $preempt, $parsed_args, $url ) use ( $expect_descriptor ) {
+			$body = $parsed_args['body'];
+
+			if ( $expect_descriptor ) {
+				$this->assertSame( 'MY STORE', $body['statement_descriptor'] );
+			} else {
+				$this->assertArrayNotHasKey( 'statement_descriptor', $body );
+			}
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode( [] ),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$this->mock_controller->create_and_confirm_payment_intent( $payment_information );
+	}
+
+	/**
+	 * Data provider for test_create_and_confirm_payment_intent_statement_descriptor_with_automatic_payment_methods.
+	 *
+	 * @return array<string, array{0: bool, 1: bool}>
+	 */
+	public function provide_statement_descriptor_with_automatic_payment_methods_data(): array {
+		return [
+			'dynamic payment methods' => [ true, false ],
+			'explicit method types'   => [ false, true ],
+		];
+	}
+
+	/**
 	 * Without the flag, the request keeps the explicit payment_method_types list and sends no
 	 * automatic_payment_methods.
 	 */
@@ -1032,6 +1086,76 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		return [
 			'forwarded when set'   => [ 'true' ],
 			'omitted when not set' => [ null ],
+		];
+	}
+
+	/**
+	 * When using Dynamic Payment Methods, we must specify the merchant's Payment Method Configuration.
+	 *
+	 * @param bool        $automatic_payment_methods Whether the intent uses Dynamic Payment Methods.
+	 * @param string|null $configuration_id          The cached PMC ID, or null when PMC is disabled or unavailable.
+	 * @param string|null $expected_configuration_id The expected payment_method_configuration, or null when it must be omitted.
+	 *
+	 * @dataProvider provide_create_and_confirm_payment_intent_payment_method_configuration_data
+	 *
+	 * @return void
+	 */
+	public function test_create_and_confirm_payment_intent_payment_method_configuration( bool $automatic_payment_methods, ?string $configuration_id, ?string $expected_configuration_id ): void {
+		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+		if ( null === $configuration_id ) {
+			PMC_Test_Helper::disable_pmc();
+		} else {
+			PMC_Test_Helper::enable_pmc( true );
+			PMC_Test_Helper::cache_mocked_configuration( $configuration_id );
+		}
+
+		$payment_information = $this->get_base_payment_information();
+		if ( $automatic_payment_methods ) {
+			$payment_information['automatic_payment_methods'] = true;
+			$payment_information['return_url']                = 'https://example.com/return';
+		}
+
+		$captured_body = null;
+		$test_request  = function ( $preempt, $parsed_args, $url ) use ( &$captured_body ) {
+			if ( false !== strpos( $url, 'payment_intents' ) ) {
+				$captured_body = $parsed_args['body'];
+			}
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode( [] ),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		try {
+			$this->mock_controller->create_and_confirm_payment_intent( $payment_information );
+		} finally {
+			remove_filter( 'pre_http_request', $test_request, 10 );
+			WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+		}
+
+		$this->assertIsArray( $captured_body );
+		if ( null === $expected_configuration_id ) {
+			$this->assertArrayNotHasKey( 'payment_method_configuration', $captured_body );
+		} else {
+			$this->assertArrayHasKey( 'payment_method_configuration', $captured_body );
+			$this->assertSame( $expected_configuration_id, $captured_body['payment_method_configuration'] );
+		}
+	}
+
+	/**
+	 * Data provider for test_create_and_confirm_payment_intent_payment_method_configuration.
+	 *
+	 * @return array<string, array{0: bool, 1: string|null, 2: string|null}>
+	 */
+	public function provide_create_and_confirm_payment_intent_payment_method_configuration_data(): array {
+		return [
+			'dynamic payment methods with configuration'    => [ true, 'pmc_test_123', 'pmc_test_123' ],
+			'dynamic payment methods without configuration' => [ true, null, null ],
+			'explicit method types with configuration'      => [ false, 'pmc_test_123', null ],
 		];
 	}
 

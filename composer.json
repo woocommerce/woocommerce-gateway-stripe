@@ -23,7 +23,8 @@
         "wp-cli/wp-cli-bundle": "^2.12",
         "yoast/phpunit-polyfills": "^2.0",
         "brianium/paratest": "^6.0",
-        "nikic/php-parser": "^5.7"
+        "nikic/php-parser": "^5.7",
+        "woocommerce/qit-cli": "^1.1"
     },
     "autoload": {
       "classmap": [
@@ -55,6 +56,7 @@
         "includes/migrations/class-migrate-payment-request-data-to-express-checkout-data.php",
         "includes/migrations/class-sepa-tokens-for-other-methods-settings-update.php",
         "includes/migrations/class-wc-stripe-express-checkout-add-change-payment-method-location-update.php",
+        "includes/migrations/class-wc-stripe-express-checkout-password-cleanup.php",
         "includes/migrations/class-wc-stripe-migrate-link-button-locations.php",
         "includes/migrations/class-wc-stripe-ocs-ap-default-on-update.php",
         "includes/migrations/class-wc-stripe-restore-adaptive-pricing-after-amount-mismatch-update.php",
