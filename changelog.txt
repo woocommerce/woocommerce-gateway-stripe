@@ -28,6 +28,7 @@ xxxx-xx-xx - version 11.1.0
 * Update - Ensure that application fees are not sent to Stripe for OAuth-connected accounts
 * Fix - When checking if unpaid orders should be cancelled, get the Stripe payment status, and update orders with Stripe payment details
 * Dev - Block outbound HTTP requests from unit tests
+* Fix - Preserve manually configured webhooks during automatic reconfiguration and warn when the configured webhook no longer exists
 * Fix - Point a saved Stripe Link payment method at the newest card selection when the customer re-enrolls through Link, so subscription renewals stop charging the replaced card
 * Fix - Retry matching a completed Adaptive Pricing checkout session to its order instead of giving up after the first attempt
 * Add - Show the originating AI agent in the WooCommerce order Origin column for Agentic Commerce orders
@@ -51,6 +52,8 @@ xxxx-xx-xx - version 11.1.0
 * Fix - Add robust checks against order attribution Javascript not being fully loaded in block checkout
 * Fix - Remove the duplicated period in the webhook status message when webhooks are pending
 * Fix - Allow retries with an express wallet or saved card after a declined card under Optimized Checkout with Dynamic Payment Methods
+* Update - Include the connected Stripe account ID in the account connection, account disconnection, and key update events sent when usage tracking is enabled
+* Fix - Ensure that switching mode doesn't show an incorrect payment method save error
 
 2026-10-05 - version 11.0.1
 * Fix - Prevent non-card payment methods from failing under Optimized Checkout with Dynamic Payment Methods when the store has a statement descriptor set

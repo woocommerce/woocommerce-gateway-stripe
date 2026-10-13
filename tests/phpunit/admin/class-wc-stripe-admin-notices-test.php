@@ -1978,4 +1978,100 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			'OCS-only' => [ 'ocs_only_banner', 'wc_stripe_show_ocs_only_banner' ],
 		];
 	}
+
+	/**
+	 * Dismissing a webhook notice clears only the dismissed mode's option and
+	 * leaves the other mode's outstanding notice in place, so a live-mode
+	 * warning is never cleared by dismissing a test-mode one.
+	 *
+	 * @param string $option_getter The WC_Stripe_Account static method that returns the per-mode option name.
+	 * @param string $slug        The per-mode dismissal slug (e.g. webhook_missing_live).
+	 * @param string $dismissed   The mode being dismissed.
+	 * @param string $retained    The mode whose notice must remain.
+	 *
+	 * @dataProvider provide_webhook_notice_dismissals
+	 *
+	 * @return void
+	 */
+	public function test_hide_notices_dismisses_webhook_notice_per_mode( string $option_getter, string $slug, string $dismissed, string $retained ): void {
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+
+		$dismissed_option = call_user_func( [ WC_Stripe_Account::class, $option_getter ], $dismissed );
+		$retained_option  = call_user_func( [ WC_Stripe_Account::class, $option_getter ], $retained );
+		update_option( $dismissed_option, 'yes' );
+		update_option( $retained_option, 'yes' );
+
+		$_GET['wc-stripe-hide-notice']   = $slug;
+		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
+
+		try {
+			$notices = new WC_Stripe_Admin_Notices();
+			$notices->hide_notices();
+
+			$this->assertFalse( get_option( $dismissed_option ) );
+			$this->assertSame( 'yes', get_option( $retained_option ) );
+		} finally {
+			unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'] );
+			delete_option( $dismissed_option );
+			delete_option( $retained_option );
+		}
+	}
+
+	/**
+	 * Data provider for `test_hide_notices_dismisses_webhook_notice_per_mode`.
+	 *
+	 * @return array<string, array{0: string, 1: string, 2: string, 3: string}>
+	 */
+	public function provide_webhook_notice_dismissals(): array {
+		return [
+			'missing live'       => [ 'get_webhook_missing_notice_option', 'webhook_missing_live', 'live', 'test' ],
+			'missing test'       => [ 'get_webhook_missing_notice_option', 'webhook_missing_test', 'test', 'live' ],
+			'manual secret live' => [ 'get_webhook_manual_secret_notice_option', 'webhook_manual_secret_live', 'live', 'test' ],
+			'manual secret test' => [ 'get_webhook_manual_secret_notice_option', 'webhook_manual_secret_test', 'test', 'live' ],
+		];
+	}
+
+	/**
+	 * A flagged webhook notice shows only for its own mode, and its message names
+	 * that mode, since each mode has its own translatable string.
+	 *
+	 * @param string $option_getter The WC_Stripe_Account static method that returns the per-mode option name.
+	 * @param string $slug_prefix   The notice slug without the mode suffix.
+	 * @param string $mode          The flagged mode.
+	 * @param string $other_mode    The mode that is not flagged.
+	 *
+	 * @dataProvider provide_webhook_notice_modes
+	 *
+	 * @return void
+	 */
+	public function test_webhook_notice_message_names_its_mode( string $option_getter, string $slug_prefix, string $mode, string $other_mode ): void {
+		WC_Stripe_Helper::update_main_stripe_settings( [ 'enabled' => 'yes' ] );
+		$option = call_user_func( [ WC_Stripe_Account::class, $option_getter ], $mode );
+		update_option( $option, 'yes' );
+
+		try {
+			$notices = new WC_Stripe_Admin_Notices();
+			$notices->stripe_check_environment();
+
+			$this->assertArrayHasKey( $slug_prefix . $mode, $notices->notices );
+			$this->assertArrayNotHasKey( $slug_prefix . $other_mode, $notices->notices );
+			$this->assertStringContainsString( "{$mode}-mode webhook", $notices->notices[ $slug_prefix . $mode ]['message'] );
+		} finally {
+			delete_option( $option );
+		}
+	}
+
+	/**
+	 * Data provider for `test_webhook_notice_message_names_its_mode`.
+	 *
+	 * @return array<string, array{0: string, 1: string, 2: string, 3: string}>
+	 */
+	public function provide_webhook_notice_modes(): array {
+		return [
+			'missing live'       => [ 'get_webhook_missing_notice_option', 'webhook_missing_', 'live', 'test' ],
+			'missing test'       => [ 'get_webhook_missing_notice_option', 'webhook_missing_', 'test', 'live' ],
+			'manual secret live' => [ 'get_webhook_manual_secret_notice_option', 'webhook_manual_secret_', 'live', 'test' ],
+			'manual secret test' => [ 'get_webhook_manual_secret_notice_option', 'webhook_manual_secret_', 'test', 'live' ],
+		];
+	}
 }
