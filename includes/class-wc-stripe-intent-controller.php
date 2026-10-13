@@ -803,10 +803,8 @@ class WC_Stripe_Intent_Controller {
 					// Bail without unlocking — releasing the winner's lock would defeat the mutual exclusion.
 					WC_Stripe_Logger::info( "Skipping update_order_status_ajax for order $order_id; order payment is already locked." );
 				} else {
-					// The settled-check above ran before the lock; re-check against a
-					// fresh read in case a concurrent request settled in between. Without
-					// a persistent object cache, wc_get_order() would hand back the object
-					// this request already loaded, so drop it from the cache first.
+					// Re-check after taking the lock: a concurrent request may have
+					// settled the order between the first check and the lock.
 					$order = $this->get_fresh_order( $order );
 
 					try {
@@ -817,9 +815,8 @@ class WC_Stripe_Intent_Controller {
 							try {
 								$gateway->process_order_for_confirmed_intent( $order, $intent_id_received, $save_payment_method );
 							} catch ( Throwable $e ) {
-								// An error after the charge (for example from a callback on the charge
-								// hooks) must not show the shopper an error for a payment that worked:
-								// they would place the order again and pay twice.
+								// A failure after the charge must not show an error for a payment
+								// that worked, or the shopper would pay again.
 								$order = $this->get_fresh_order( $order );
 								if ( $order_helper->is_order_payment_settled( $order ) ) {
 									WC_Stripe_Logger::error(
@@ -829,8 +826,8 @@ class WC_Stripe_Intent_Controller {
 								} elseif ( $e instanceof WC_Stripe_Exception ) {
 									throw $e;
 								} else {
-									// Other exceptions used to end the request with a fatal error and leave
-									// the order pending. Keep the order as it is, and show a message instead.
+									// Unexpected error with the order still unpaid: show a message
+									// instead of a fatal, and leave the order as it is.
 									$processing_started = false;
 									throw new WC_Stripe_Exception( $e->getMessage(), __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 								}
@@ -890,10 +887,8 @@ class WC_Stripe_Intent_Controller {
 	}
 
 	/**
-	 * Reloads an order from storage, skipping the copy this request already loaded.
-	 *
-	 * Without a persistent object cache, wc_get_order() would return the object this request
-	 * already holds, so a change made by a concurrent request would not be seen.
+	 * Reloads an order from storage, bypassing the copy this request already holds, so a
+	 * change a concurrent request made is visible (wc_get_order() would return the cached copy).
 	 *
 	 * @param WC_Order $order The order to reload.
 	 * @return WC_Order The fresh order, or the given one if it could not be loaded.
