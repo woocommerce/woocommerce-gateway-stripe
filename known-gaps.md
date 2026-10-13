@@ -8,15 +8,13 @@ Temporary file for the draft PR. Remove before marking it ready for review.
 - No tests.
 - No BC note yet for the new public surface: the store interface, the webhook handler's constructor argument, and the 409 response for events another request is processing.
 
-### Storage
-- Lock rows left by requests that died are reclaimed on the next claim of the same event, and deleted by the "Clear stored Stripe events" tool and on uninstall, but nothing sweeps them during normal operation.
-
 ## FYI
 
 ### Behavior
 - Failed fetches are retried on the next reconciliation run (every 30 minutes) rather than with a growing delay, and abandoned after 48 attempts or on `resource_missing`. Interrupted processing counts towards the same 48 attempts. An event can be fetched more than once in a run when other events in its batches succeed.
 - A thrown exception while processing is final (`failed`), since retrying would most likely repeat it.
 - `delivery_success=false` covers every endpoint on the account, so events that failed for another site or service on the same account are processed here too.
+- Lock rows left by requests that died are deleted by the cleanup job once they are past the 10-minute lock TTL, up to 100 per batch.
 - Disabling the feature flag stops all processing and cleanup, but keeps the stored records until it is enabled again or the plugin is uninstalled with `WC_REMOVE_ALL_DATA`.
 - Deferred webhooks stay `processing` until the deferred job completes.
 - Events left in `processing` for an hour (the request died, or a deferred job failed or never ran) go back to `pending` on the next reconciliation run, up to 100 per run. A deferred job that is delayed by more than an hour may then run alongside the processing job, which relies on the handlers' existing checks against double processing.

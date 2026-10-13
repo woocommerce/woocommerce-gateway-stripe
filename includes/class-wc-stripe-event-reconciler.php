@@ -309,19 +309,45 @@ class WC_Stripe_Event_Reconciler {
 	}
 
 	/**
-	 * Deletes a batch of expired records, and schedules the next batch while there may be more.
+	 * Deletes a batch of expired records and event locks, and schedules the next batch while there may be more.
 	 */
 	public function delete_expired_events(): void {
 		if ( ! WC_Stripe_Feature_Flags::is_event_reconciliation_enabled() ) {
 			return;
 		}
 
-		$deleted = $this->store->delete_older_than( time() - self::RETENTION_PERIOD, self::PAGE_SIZE );
+		$deleted_records = $this->store->delete_older_than( time() - self::RETENTION_PERIOD, self::PAGE_SIZE );
+		$deleted_locks   = $this->delete_expired_locks();
 
 		// A full batch may have left more behind. Enqueued unconditionally, as in process_pending_events().
-		if ( $deleted >= self::PAGE_SIZE ) {
+		if ( $deleted_records >= self::PAGE_SIZE || $deleted_locks >= self::PAGE_SIZE ) {
 			as_enqueue_async_action( self::CLEANUP_ACTION, [], self::ACTION_GROUP );
 		}
+	}
+
+	/**
+	 * Deletes a batch of event locks left behind by requests that died before releasing them.
+	 *
+	 * A lock is only reclaimed by the next claim of the same event, which never comes for most events.
+	 *
+	 * @return int Number of locks deleted.
+	 */
+	private function delete_expired_locks(): int {
+		global $wpdb;
+
+		// Matches the lock's own expiry check on the timestamp before the colon, in the same statement as the delete,
+		// so a lock reclaimed in the meantime carries a new timestamp and is kept.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$deleted = $wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s AND CAST( SUBSTRING_INDEX( option_value, ':', 1 ) AS UNSIGNED ) <= %d LIMIT %d",
+				$wpdb->esc_like( self::LOCK_OPTION_PREFIX ) . '%',
+				time() - self::LOCK_TTL,
+				self::PAGE_SIZE
+			)
+		);
+
+		return is_int( $deleted ) ? $deleted : 0;
 	}
 
 	/**
