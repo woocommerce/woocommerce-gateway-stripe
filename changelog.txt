@@ -24,6 +24,7 @@ xxxx-xx-xx - version 11.1.0
 * Fix - Prevent express checkout wallets from failing when rounded display items exceed the payment total
 * Fix - Accept shipping addresses in the express checkout wallet sheet for free trial subscription carts whose shipping is charged with the recurring payments
 * Update - Ensure that application fees are not sent to Stripe for OAuth-connected accounts
+* Update - Improve checks in the wallet payment confirmation flow
 * Fix - When checking if unpaid orders should be canceled, get the Stripe payment status, and update orders with Stripe payment details
 * Dev - Block outbound HTTP requests from unit tests
 * Fix - Preserve manually configured webhooks during automatic reconfiguration and warn when the configured webhook no longer exists

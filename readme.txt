@@ -212,6 +212,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Remove the duplicated period in the webhook status message when webhooks are pending
 * Update - Reduce the size of the express checkout JS bundle
 * Update - Reduce the size of the Stripe settings JS bundles by loading only the Gridicons they use
+* Update - Improve checks in the wallet payment confirmation flow
 * Update - Include the connected Stripe account ID in the account connection, account disconnection, and key update events sent when usage tracking is enabled
 * Update - Link the WooCommerce POS page from the in-person payments description in the readme
 
