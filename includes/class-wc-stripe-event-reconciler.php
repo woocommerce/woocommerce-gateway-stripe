@@ -28,9 +28,14 @@ class WC_Stripe_Event_Reconciler {
 	private const BATCH_SIZE = 5;
 
 	/**
-	 * Failed fetches are retried once per reconciliation run, so this gives up after about a day.
+	 * Failed fetches and interrupted processing are retried once per reconciliation run, so this gives up after about a day.
 	 */
 	private const MAX_ATTEMPTS = 48;
+
+	/**
+	 * Well past the lock TTL and the delay of deferred webhooks, so only events whose processing died are retried.
+	 */
+	private const STUCK_AFTER = HOUR_IN_SECONDS;
 
 	private const RECONCILE_INTERVAL = 30 * MINUTE_IN_SECONDS;
 
@@ -90,7 +95,7 @@ class WC_Stripe_Event_Reconciler {
 	}
 
 	/**
-	 * Schedules the deletion of expired records, then queues undelivered events and schedules their processing.
+	 * Schedules the deletion of expired records, then queues undelivered and stuck events and schedules their processing.
 	 */
 	public function reconcile(): void {
 		if ( ! WC_Stripe_Feature_Flags::is_event_reconciliation_enabled() ) {
@@ -100,6 +105,7 @@ class WC_Stripe_Event_Reconciler {
 
 		$this->schedule_cleanup();
 		$this->queue_undelivered_events();
+		$this->requeue_stuck_events();
 		$this->schedule_processing();
 	}
 
@@ -277,6 +283,23 @@ class WC_Stripe_Event_Reconciler {
 	}
 
 	/**
+	 * Queues events again whose processing never finished, for example because the request died.
+	 */
+	public function requeue_stuck_events(): void {
+		$records = $this->store->get_by_status(
+			WC_Stripe_Event_Store_Interface::STATUS_PROCESSING,
+			! WC_Stripe_Mode::is_test(),
+			self::PAGE_SIZE,
+			time() - self::STUCK_AFTER
+		);
+
+		foreach ( $records as $record ) {
+			$record->status = WC_Stripe_Event_Store_Interface::STATUS_PENDING;
+			$this->record_failed_attempt( $record );
+		}
+	}
+
+	/**
 	 * Schedules the deletion of expired records, unless it is already scheduled or running.
 	 */
 	public function schedule_cleanup(): void {
@@ -334,7 +357,7 @@ class WC_Stripe_Event_Reconciler {
 			$event_json = is_object( $event ) && empty( $event->error ) && ! empty( $event->id ) ? wp_json_encode( $event ) : false;
 
 			if ( false === $event_json ) {
-				$this->record_fetch_failure( $record, $event );
+				$this->record_failed_attempt( $record, is_object( $event ) && isset( $event->error->code ) ? (string) $event->error->code : '' );
 				continue;
 			}
 
@@ -361,14 +384,12 @@ class WC_Stripe_Event_Reconciler {
 	}
 
 	/**
-	 * Counts a failed fetch, and gives up on the event when it cannot succeed or has failed too often.
+	 * Counts a failed fetch or interrupted processing, and gives up on the event when it cannot succeed or has failed too often.
 	 *
-	 * @param WC_Stripe_Event_Record $record   Record of the event.
-	 * @param mixed                  $response Response of the fetch.
+	 * @param WC_Stripe_Event_Record $record     Record of the event.
+	 * @param string                 $error_code Stripe error code of a failed fetch, if any.
 	 */
-	private function record_fetch_failure( WC_Stripe_Event_Record $record, $response ): void {
-		$error_code = is_object( $response ) && isset( $response->error->code ) ? (string) $response->error->code : '';
-
+	private function record_failed_attempt( WC_Stripe_Event_Record $record, string $error_code = '' ): void {
 		++$record->attempts;
 
 		// Stripe only keeps events for 30 days, and only returns those of the account the keys belong to.
@@ -376,7 +397,7 @@ class WC_Stripe_Event_Reconciler {
 			$record->status = WC_Stripe_Event_Store_Interface::STATUS_ABANDONED;
 
 			WC_Stripe_Logger::warning(
-				'Gave up on processing an undelivered Stripe event.',
+				'Gave up on processing a Stripe event.',
 				[
 					'event_id'   => $record->id,
 					'event_type' => $record->type,
@@ -445,6 +466,11 @@ class WC_Stripe_Event_Reconciler {
 	 * @param mixed $order        Order the event was applied to, if any.
 	 */
 	public function mark_processed( $webhook_type, $notification, $order = null ): void {
+		// Also called directly by the webhook handler, not only through the action hooked while the feature is enabled.
+		if ( ! WC_Stripe_Feature_Flags::is_event_reconciliation_enabled() ) {
+			return;
+		}
+
 		$this->record_event( $notification, WC_Stripe_Event_Store_Interface::STATUS_PROCESSED, $order );
 	}
 

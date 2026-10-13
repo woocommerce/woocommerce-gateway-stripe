@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 interface WC_Stripe_Event_Store_Interface {
 	/**
-	 * Stripe did not deliver the event. It waits for the processing job, including after a failed fetch.
+	 * Stripe did not deliver the event, or its processing was interrupted. It waits for the processing job, including after a failed fetch.
 	 */
 	public const STATUS_PENDING = 'pending';
 
@@ -30,7 +30,7 @@ interface WC_Stripe_Event_Store_Interface {
 	public const STATUS_FAILED = 'failed';
 
 	/**
-	 * The event could not be fetched from Stripe: it no longer exists, or every attempt failed.
+	 * The event no longer exists on Stripe, or every attempt to fetch or process it failed.
 	 */
 	public const STATUS_ABANDONED = 'abandoned';
 
@@ -53,12 +53,13 @@ interface WC_Stripe_Event_Store_Interface {
 	/**
 	 * Returns the records with the given status and mode, fewest attempts first, then oldest event first.
 	 *
-	 * @param string $status   One of the STATUS_* constants.
-	 * @param bool   $livemode Whether to return live mode events, rather than test mode ones.
-	 * @param int    $limit    Maximum number of records to return.
+	 * @param string   $status          One of the STATUS_* constants.
+	 * @param bool     $livemode        Whether to return live mode events, rather than test mode ones.
+	 * @param int      $limit           Maximum number of records to return.
+	 * @param int|null $modified_before Only return records last saved before this time. Null for no limit.
 	 * @return WC_Stripe_Event_Record[]
 	 */
-	public function get_by_status( string $status, bool $livemode, int $limit ): array;
+	public function get_by_status( string $status, bool $livemode, int $limit, ?int $modified_before = null ): array;
 
 	/**
 	 * Creates the record of an event, or replaces the stored one.

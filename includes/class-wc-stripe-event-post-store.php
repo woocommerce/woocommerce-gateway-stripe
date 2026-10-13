@@ -122,7 +122,7 @@ class WC_Stripe_Event_Post_Store implements WC_Stripe_Event_Store_Interface {
 	/**
 	 * {@inheritDoc}
 	 */
-	public function get_by_status( string $status, bool $livemode, int $limit ): array {
+	public function get_by_status( string $status, bool $livemode, int $limit, ?int $modified_before = null ): array {
 		if ( ! isset( self::POST_STATUSES[ $status ] ) ) {
 			return [];
 		}
@@ -139,6 +139,12 @@ class WC_Stripe_Event_Post_Store implements WC_Stripe_Event_Store_Interface {
 					'date'       => 'ASC',
 				],
 				'posts_per_page'         => $limit,
+				'date_query'             => null === $modified_before ? [] : [
+					[
+						'column' => 'post_modified_gmt',
+						'before' => gmdate( 'Y-m-d H:i:s', $modified_before ),
+					],
+				],
 				'update_post_term_cache' => false,
 			]
 		);
