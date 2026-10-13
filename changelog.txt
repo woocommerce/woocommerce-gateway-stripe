@@ -1,6 +1,6 @@
 *** Changelog ***
 
-2026-10-13 - version 11.1.0
+xxxx-xx-xx - version 11.1.0
 * Add - Automatically configure test mode when onboarding to a live account
 * Fix - Show BLIK and ACSS payment methods at checkout when Optimized Checkout Suite is enabled
 * Fix - Return an error response when a Payment Method Configuration update fails in settings, so the frontend correctly displays an error instead of a false success notice

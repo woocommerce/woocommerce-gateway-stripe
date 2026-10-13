@@ -163,7 +163,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 11.1.0 - 2026-10-13 =
+= 11.1.0 - xxxx-xx-xx =
 
 **New Features**
 
