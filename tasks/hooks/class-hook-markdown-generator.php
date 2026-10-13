@@ -399,11 +399,12 @@ final class Hook_Markdown_Generator {
 			$lines[] = '| File | Arguments |';
 			$lines[] = '| --- | --- |';
 			foreach ( $entries as $entry ) {
-				$file    = (string) $entry['file'];
-				$lines[] = sprintf(
+				$file     = (string) $entry['file'];
+				$line_num = (int) $entry['line'] ?? -1;
+				$lines[]  = sprintf(
 					'| [%s](%s) | %d |',
-					$this->escape_table_cell( 'includes/' . $file ),
-					$this->get_github_url( $file ),
+					$this->escape_table_cell( 'includes/' . $file . ( $line_num > 0 ? ' - ' . $line_num : '' ) ),
+					$this->get_github_url( $file, $line_num ),
 					(int) $entry['args'],
 				);
 			}
@@ -548,14 +549,20 @@ final class Hook_Markdown_Generator {
 	/**
 	 * Returns the GitHub URL for a file.
 	 *
-	 * @param string $file The file path.
+	 * @param string $file     The file path.
+	 * @param int    $line_num The line number.
 	 * @return string The GitHub URL.
 	 */
-	private function get_github_url( string $file ): string {
+	private function get_github_url( string $file, int $line_num ): string {
 		$path = 'includes/' . ltrim( $file, '/' );
 		$path = implode( '/', array_map( 'rawurlencode', explode( '/', $path ) ) );
 
-		return "{$this->github_base}/{$this->git_ref}/{$path}";
+		$line_suffix = '';
+		if ( $line_num > 0 ) {
+			$line_suffix = '#L' . $line_num;
+		}
+
+		return "{$this->github_base}/{$this->git_ref}/{$path}{$line_suffix}";
 	}
 
 	/**

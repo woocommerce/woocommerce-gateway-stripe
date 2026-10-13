@@ -10,7 +10,7 @@
         }
     },
     "scripts": {
-        "generate:json": "vendor/bin/wp-hooks-generator --input=../../includes --output=tmp --ignore-hooks=woocommerce_cart_item_product,woocommerce_refund_deleted,wc-booking-remove-inactive-cart,woocommerce_is_email_preview,woocommerce_payment_complete_order_status,woocommerce_valid_order_statuses_for_payment_complete,woocommerce_add_to_cart_quantity,woocommerce_cart_shipping_packages,woocommerce_gateway_icon,woocommerce_gateway_description",
+        "generate:json": "vendor/bin/wp-hooks-generator --input=../../includes --output=tmp --ignore-hooks=woocommerce_cart_item_product,woocommerce_refund_deleted,wc-booking-remove-inactive-cart,woocommerce_is_email_preview,woocommerce_payment_complete_order_status,woocommerce_valid_order_statuses_for_payment_complete,woocommerce_add_to_cart_quantity,woocommerce_cart_shipping_packages,woocommerce_gateway_icon,woocommerce_gateway_description,wc_stripe_force_save_source,woocommerce_add_to_cart_validation,woocommerce_agentic_commerce_disable_checkout,woocommerce_agentic_commerce_should_sync_product",
         "generate:markdown": "php class-hook-markdown-generator.php --ref=$(git rev-parse --abbrev-ref HEAD) --commit=$(git rev-parse HEAD)",
         "generate": [
             "@generate:json",
@@ -24,7 +24,7 @@
         }
     ],
     "require-dev": {
-        "wp-hooks/generator": "dev-try/add-support-for-deprecated-actions-and-filters#3405335054130e575078d947d6663a5764876a07"
+        "wp-hooks/generator": "dev-add/line-numbers-to-hook-entries#7b81b62ebf94b4367e67e575f1caea24e7361a84"
     },
     "extra": {
         "wp-hooks": {

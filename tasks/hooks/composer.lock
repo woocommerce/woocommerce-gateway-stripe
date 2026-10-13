@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "11b9456917d74bf761fcc706267f5780",
+    "content-hash": "3e53d4710ef19a4cb94a665b1a941e98",
     "packages": [],
     "packages-dev": [
         {
@@ -445,16 +445,16 @@
         },
         {
             "name": "wp-hooks/generator",
-            "version": "dev-try/add-support-for-deprecated-actions-and-filters",
+            "version": "dev-add/line-numbers-to-hook-entries",
             "source": {
                 "type": "git",
                 "url": "https://github.com/daledupreez/wp-hooks-generator.git",
-                "reference": "3405335054130e575078d947d6663a5764876a07"
+                "reference": "7b81b62ebf94b4367e67e575f1caea24e7361a84"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/daledupreez/wp-hooks-generator/zipball/3405335054130e575078d947d6663a5764876a07",
-                "reference": "3405335054130e575078d947d6663a5764876a07",
+                "url": "https://api.github.com/repos/daledupreez/wp-hooks-generator/zipball/7b81b62ebf94b4367e67e575f1caea24e7361a84",
+                "reference": "7b81b62ebf94b4367e67e575f1caea24e7361a84",
                 "shasum": ""
             },
             "require": {
@@ -486,7 +486,7 @@
             ],
             "description": "Generates a JSON representation of the WordPress actions and filters in your code",
             "support": {
-                "source": "https://github.com/daledupreez/wp-hooks-generator/tree/try/add-support-for-deprecated-actions-and-filters"
+                "source": "https://github.com/daledupreez/wp-hooks-generator/tree/add/line-numbers-to-hook-entries"
             },
             "funding": [
                 {
@@ -494,7 +494,7 @@
                     "url": "https://github.com/sponsors/johnbillion"
                 }
             ],
-            "time": "2026-08-04T19:26:38+00:00"
+            "time": "2026-10-13T13:46:04+00:00"
         }
     ],
     "aliases": [],
