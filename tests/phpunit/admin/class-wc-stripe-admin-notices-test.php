@@ -1630,6 +1630,99 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * The password cleanup notice is visible only to administrators and contains aggregate data.
+	 *
+	 * @dataProvider password_cleanup_count_provider
+	 */
+	public function test_express_checkout_password_cleanup_notice_visibility( int $user_count ): void {
+		$complete_option = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Express_Checkout_Password_Cleanup::class, 'COMPLETE_OPTION', 'string' );
+		$result_option   = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Express_Checkout_Password_Cleanup::class, 'RESULT_OPTION', 'string' );
+
+		update_option( $complete_option, 'yes', false );
+		update_option(
+			$result_option,
+			[
+				'affected'   => true,
+				'user_count' => $user_count,
+			],
+			false
+		);
+
+		try {
+			wp_set_current_user( $this->factory->user->create( [ 'role' => 'shop_manager' ] ) );
+			$notices = $this->create_admin_notices_instance();
+			$notices->check_express_checkout_password_cleanup();
+			$this->assertArrayNotHasKey( 'express_checkout_password_cleanup', $notices->notices );
+
+			wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+			$notices = $this->create_admin_notices_instance();
+			$notices->check_express_checkout_password_cleanup();
+			$this->assertArrayHasKey( 'express_checkout_password_cleanup', $notices->notices );
+			$message = $notices->notices['express_checkout_password_cleanup']['message'];
+			$this->assertStringContainsString( 'removed account password data', $message );
+			if ( $user_count > 0 ) {
+				$this->assertStringContainsString( $user_count . ' customer account', $message );
+			} else {
+				$this->assertStringNotContainsString( 'customer accounts were identified', $message );
+			}
+		} finally {
+			delete_option( $complete_option );
+			delete_option( $result_option );
+		}
+	}
+
+	public function password_cleanup_count_provider(): array {
+		return [
+			'no matching accounts' => [ 0 ],
+			'one account'          => [ 1 ],
+			'multiple accounts'    => [ 2 ],
+		];
+	}
+
+	/**
+	 * Dismissing the notice does not remove the retained cleanup state.
+	 */
+	public function test_hide_notices_dismisses_express_checkout_password_cleanup_notice(): void {
+		$result_option    = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Express_Checkout_Password_Cleanup::class, 'RESULT_OPTION', 'string' );
+		$dismissed_option = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Express_Checkout_Password_Cleanup::class, 'NOTICE_DISMISSED_OPTION', 'string' );
+
+		update_option(
+			$result_option,
+			[
+				'affected'   => true,
+				'user_count' => 1,
+			],
+			false
+		);
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'shop_manager' ] ) );
+		$_GET['wc-stripe-hide-notice']   = 'express_checkout_password_cleanup';
+		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
+
+		try {
+			$notices = $this->create_admin_notices_instance();
+			$notices->hide_notices();
+			$this->assertFalse( get_option( $dismissed_option ) );
+
+			wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+			$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
+			$notices->hide_notices();
+
+			$this->assertSame( 'yes', get_option( $dismissed_option ) );
+			$this->assertSame(
+				[
+					'affected'   => true,
+					'user_count' => 1,
+				],
+				get_option( $result_option )
+			);
+		} finally {
+			delete_option( $result_option );
+			delete_option( $dismissed_option );
+			unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'] );
+		}
+	}
+
+	/**
 	 * The outage notice should be shown when WC_Stripe_API_Outage_Status flags an outage.
 	 */
 	public function test_api_outage_notice_is_shown_when_in_outage() {
