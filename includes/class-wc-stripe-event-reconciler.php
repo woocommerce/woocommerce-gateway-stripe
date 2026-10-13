@@ -27,35 +27,35 @@ class WC_Stripe_Event_Reconciler {
 
 	private const ACTION_GROUP = 'woocommerce-gateway-stripe';
 
-	private const BATCH_SIZE = 5;
+	public const BATCH_SIZE = 5;
 
 	/**
 	 * Failed fetches and interrupted processing are retried once per reconciliation run, so this gives up after about a day.
 	 */
-	private const MAX_ATTEMPTS = 48;
+	public const MAX_ATTEMPTS = 48;
 
 	/**
 	 * Well past the lock TTL and the delay of deferred webhooks, so only events whose processing died are retried.
 	 */
-	private const STUCK_AFTER = HOUR_IN_SECONDS;
+	public const STUCK_AFTER = HOUR_IN_SECONDS;
 
 	private const RECONCILE_INTERVAL = 30 * MINUTE_IN_SECONDS;
 
 	/**
 	 * Matches how long Stripe lists events. Older records cannot prevent any duplicate processing.
 	 */
-	private const RETENTION_PERIOD = 30 * DAY_IN_SECONDS;
+	public const RETENTION_PERIOD = 30 * DAY_IN_SECONDS;
 
-	private const PAGE_SIZE = 100;
+	public const PAGE_SIZE = 100;
 
-	private const CURSOR_OPTION_PREFIX = 'wc_stripe_events_cursor_';
+	public const CURSOR_OPTION_PREFIX = 'wc_stripe_events_cursor_';
 
-	private const LOCK_OPTION_PREFIX = 'wc_stripe_event_lock_';
+	public const LOCK_OPTION_PREFIX = 'wc_stripe_event_lock_';
 
 	/**
 	 * Longer than any handler run, so only a lock left behind by a request that died gets reclaimed.
 	 */
-	private const LOCK_TTL = 10 * MINUTE_IN_SECONDS;
+	public const LOCK_TTL = 10 * MINUTE_IN_SECONDS;
 
 	/**
 	 * Owners of the event locks held by this instance, keyed by event ID.
@@ -91,7 +91,6 @@ class WC_Stripe_Event_Reconciler {
 		add_action( self::CLEANUP_ACTION, [ $this, 'delete_expired_events' ], 10, 0 );
 
 		if ( WC_Stripe_Feature_Flags::is_event_reconciliation_enabled() ) {
-			add_action( 'wc_stripe_webhook_received', [ $this, 'mark_processed' ], 10, 3 );
 			add_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ $this, 'maybe_schedule_reconciliation' ], 10, 0 );
 		}
 	}
@@ -203,7 +202,8 @@ class WC_Stripe_Event_Reconciler {
 			)
 		);
 
-		if ( ! is_object( $response ) || ! empty( $response->error ) ) {
+		// A failed request must not look like an empty page, which would move the cursor past the events it missed.
+		if ( ! $this->is_successful_response( $response ) || ! is_array( $response->data ?? null ) ) {
 			// Stripe deletes events after 30 days, so the cursor is gone when this mode was not listed for that long.
 			if ( is_object( $response ) && 'resource_missing' === ( $response->error->code ?? '' ) ) {
 				$summary['cursor_after'] = $this->move_cursor_to_newest_event( $cursor_option, $created_until ) ?? $cursor;
@@ -211,7 +211,7 @@ class WC_Stripe_Event_Reconciler {
 			return $summary;
 		}
 
-		$events = is_array( $response->data ?? null ) ? $response->data : [];
+		$events = $response->data;
 
 		// Otherwise a store without undelivered events would keep the cursor until Stripe deletes it.
 		if ( ! $events ) {
@@ -276,7 +276,7 @@ class WC_Stripe_Event_Reconciler {
 			)
 		);
 
-		$event_id = is_object( $response ) && empty( $response->error ) ? $this->get_event_id( $response->data[0] ?? null ) : null;
+		$event_id = $this->is_successful_response( $response ) ? $this->get_event_id( $response->data[0] ?? null ) : null;
 		if ( null !== $event_id ) {
 			update_option( $cursor_option, $event_id, false );
 		}
@@ -377,12 +377,12 @@ class WC_Stripe_Event_Reconciler {
 			return;
 		}
 
-		$handler   = new WC_Stripe_Webhook_Handler( $this );
+		$handler   = $this->create_webhook_handler();
 		$processed = false;
 
 		foreach ( $records as $record ) {
 			$event      = WC_Stripe_API::retrieve( 'events/' . $record->id );
-			$event_json = is_object( $event ) && empty( $event->error ) && ! empty( $event->id ) ? wp_json_encode( $event ) : false;
+			$event_json = $this->is_successful_response( $event ) && ! empty( $event->id ) ? wp_json_encode( $event ) : false;
 
 			if ( false === $event_json ) {
 				$this->record_failed_attempt( $record, is_object( $event ) && isset( $event->error->code ) ? (string) $event->error->code : '' );
@@ -409,6 +409,15 @@ class WC_Stripe_Event_Reconciler {
 		if ( $processed ) {
 			as_enqueue_async_action( self::PROCESS_ACTION, [], self::ACTION_GROUP );
 		}
+	}
+
+	/**
+	 * Creates the webhook handler that processes pending events, reporting back to this instance.
+	 *
+	 * @return WC_Stripe_Webhook_Handler
+	 */
+	protected function create_webhook_handler(): WC_Stripe_Webhook_Handler {
+		return new WC_Stripe_Webhook_Handler( $this );
 	}
 
 	/**
@@ -494,7 +503,7 @@ class WC_Stripe_Event_Reconciler {
 	 * @param mixed $order        Order the event was applied to, if any.
 	 */
 	public function mark_processed( $webhook_type, $notification, $order = null ): void {
-		// Also called directly by the webhook handler, not only through the action hooked while the feature is enabled.
+		// Called by the webhook handler whether the feature is enabled or not.
 		if ( ! WC_Stripe_Feature_Flags::is_event_reconciliation_enabled() ) {
 			return;
 		}
@@ -523,6 +532,19 @@ class WC_Stripe_Event_Reconciler {
 		}
 
 		$this->store->save( $record );
+	}
+
+	/**
+	 * Whether a response of WC_Stripe_API::retrieve() is a successful one.
+	 *
+	 * Besides Stripe errors, retrieve() returns null while the API keys are known to be invalid, and a WP_Error when
+	 * Stripe cannot be reached. WP_Error is an object without an `error` property, so it passes a check for one.
+	 *
+	 * @param mixed $response Response of WC_Stripe_API::retrieve().
+	 * @return bool
+	 */
+	private function is_successful_response( $response ): bool {
+		return is_object( $response ) && ! is_wp_error( $response ) && empty( $response->error );
 	}
 
 	/**
