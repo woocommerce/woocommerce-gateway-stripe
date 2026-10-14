@@ -168,5 +168,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Minor improvement to error logging when saving new keys
 * Fix - Keep pending ACH orders open while Stripe is still waiting for bank verification
 * Fix - Complete express checkout payments on the Pay for Order page when the checkout phone field is required, and preserve the order's saved billing phone
+* Fix - Record the Stripe fee and net payout on orders paid through a Stripe Checkout Session, which were sometimes missing from the order details
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

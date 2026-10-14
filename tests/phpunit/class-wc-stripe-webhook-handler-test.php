@@ -3572,8 +3572,11 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->mock_webhook_handler->method( 'get_intent_from_order' )
 			->willReturn( (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'payment_method' => null ] ) );
 
-		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
-			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+		// A normally settled charge already carries its balance transaction, so only the metadata
+		// job is scheduled here, not the fee recording retry.
+		$charge                      = (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0];
+		$charge->balance_transaction = 'txn_mock';
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
 
 		$this->mock_webhook_handler->method( 'process_response' );
 
@@ -4192,8 +4195,11 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->mock_webhook_handler->method( 'get_intent_from_order' )
 			->willReturn( (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'payment_method' => $payment_method_object ] ) );
 
-		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
-			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+		// A normally settled charge already carries its balance transaction, so only the metadata
+		// job is scheduled here, not the fee recording retry.
+		$charge                      = (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0];
+		$charge->balance_transaction = 'txn_mock';
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
 
 		$this->mock_webhook_handler->method( 'process_response' );
 
@@ -4271,10 +4277,12 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		];
 
 		// The charge exposes the reusable mandate (or null) via payment_method_details.<type>.generated_sepa_debit.
+		// A settled charge normally carries its balance transaction, so only the metadata job is scheduled.
 		$charge = (object) [
 			'id'                     => 'ch_mock_' . $payment_method_type,
 			'captured'               => true,
 			'status'                 => 'succeeded',
+			'balance_transaction'    => 'txn_mock_' . $payment_method_type,
 			'payment_method_details' => (object) [
 				$payment_method_type => (object) [
 					'generated_sepa_debit' => $generated_sepa_debit,
@@ -4387,18 +4395,18 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			],
 		];
 
+		// The charge here has no balance transaction yet, so settlement also schedules the fee
+		// recording job. Capture every scheduled job and assert the metadata one is present.
+		$scheduled      = [];
 		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
-		$mock_scheduler->expects( $this->once() )
-			->method( 'schedule_job' )
-			->with(
-				$this->isType( 'int' ),
-				'wc_stripe_process_payment_intent_metadata',
-				$this->callback(
-					function ( $args ) {
-						return isset( $args['payment_intent_id'] ) && isset( $args['request'] ) && is_array( $args['request'] );
-					}
-				)
-			);
+		$mock_scheduler->method( 'schedule_job' )->willReturnCallback(
+			function ( $timestamp, $hook, $args = [] ) use ( &$scheduled ) {
+				$scheduled[] = [
+					'hook' => $hook,
+					'args' => $args,
+				];
+			}
+		);
 
 		$this->mock_webhook_handler->method( 'get_intent_from_order' )
 			->willReturn( (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'payment_method' => null ] ) );
@@ -4411,6 +4419,19 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$prop->setValue( $this->mock_webhook_handler, $mock_scheduler );
 
 		$this->mock_webhook_handler->process_webhook( wp_json_encode( $notification ) );
+
+		$metadata_jobs = array_values(
+			array_filter(
+				$scheduled,
+				static function ( $job ) {
+					return 'wc_stripe_process_payment_intent_metadata' === $job['hook'];
+				}
+			)
+		);
+		$this->assertCount( 1, $metadata_jobs );
+		$this->assertArrayHasKey( 'payment_intent_id', $metadata_jobs[0]['args'] );
+		$this->assertArrayHasKey( 'request', $metadata_jobs[0]['args'] );
+		$this->assertIsArray( $metadata_jobs[0]['args']['request'] );
 
 		$updated_order = wc_get_order( $order->get_id() );
 		$this->assertInstanceOf( WC_Order::class, $updated_order );
@@ -5112,5 +5133,260 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		}
 
 		return $combined_test_cases;
+	}
+
+	/**
+	 * Builds a notification that settles the given order through a Checkout Session, with a
+	 * settlement amount and currency that match the order so settlement is not refused.
+	 *
+	 * @param WC_Order $order               The order to settle.
+	 * @param string   $checkout_session_id The Checkout Session ID.
+	 * @param string   $intent_id           The PaymentIntent ID on the session.
+	 * @return object
+	 */
+	private function build_checkout_session_settlement_notification( WC_Order $order, string $checkout_session_id, string $intent_id ): object {
+		return (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => $intent_id,
+					'amount_total'   => WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $order->get_currency() ),
+					'currency'       => strtolower( $order->get_currency() ),
+				],
+			],
+		];
+	}
+
+	/**
+	 * Settling a card order through a Checkout Session whose charge has no balance transaction yet
+	 * must schedule the deferred fee recording job, so the fee is not lost to the timing race. A
+	 * charge that already carries the balance transaction records its fee inline and schedules no job.
+	 *
+	 * @dataProvider provider_checkout_session_fee_backfill_scheduling
+	 *
+	 * @param bool $has_balance_transaction Whether the settled charge already carries a balance transaction.
+	 * @param bool $expect_fee_job          Whether the fee recording job is expected to be scheduled.
+	 */
+	public function test_handle_checkout_session_success_schedules_fee_recording_when_balance_transaction_missing( bool $has_balance_transaction, bool $expect_fee_job ): void {
+		$checkout_session_id = 'cs_test_fee_backfill';
+		$intent_id           = 'pi_test_fee_backfill';
+		$charge_id           = 'ch_test_fee_backfill';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$intent = (object) [
+			'id'             => $intent_id,
+			'payment_method' => 'pm_test_fee_backfill',
+			'latest_charge'  => $charge_id,
+		];
+
+		$charge = (object) [
+			'id'       => $charge_id,
+			'captured' => true,
+			'status'   => 'succeeded',
+		];
+		if ( $has_balance_transaction ) {
+			$charge->balance_transaction = 'txn_test_fee_backfill';
+		}
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->getMock();
+		$handler->method( 'get_intent_from_order' )->willReturn( $intent );
+		$handler->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
+		$handler->method( 'process_response' );
+
+		// Settlement also schedules the metadata backfill job, so capture every scheduled job and
+		// assert on the fee recording one specifically.
+		$scheduled      = [];
+		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+		$mock_scheduler->method( 'schedule_job' )->willReturnCallback(
+			function ( $timestamp, $hook, $args = [] ) use ( &$scheduled ) {
+				$scheduled[] = [
+					'hook' => $hook,
+					'args' => $args,
+				];
+			}
+		);
+		$prop = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $handler, $mock_scheduler );
+
+		$handler->process_checkout_session_success( $this->build_checkout_session_settlement_notification( $order, $checkout_session_id, $intent_id ) );
+
+		$fee_jobs = array_values(
+			array_filter(
+				$scheduled,
+				static function ( $job ) {
+					return 'wc_stripe_record_order_fees' === $job['hook'];
+				}
+			)
+		);
+
+		if ( $expect_fee_job ) {
+			$this->assertCount( 1, $fee_jobs );
+			$this->assertSame( $order->get_id(), $fee_jobs[0]['args']['order_id'] );
+			$this->assertSame( $charge_id, $fee_jobs[0]['args']['charge_id'] );
+			$this->assertSame( 0, $fee_jobs[0]['args']['retry_count'] );
+		} else {
+			$this->assertCount( 0, $fee_jobs );
+		}
+	}
+
+	/**
+	 * Data provider for the fee recording scheduling test.
+	 *
+	 * @return array
+	 */
+	public function provider_checkout_session_fee_backfill_scheduling(): array {
+		return [
+			'balance transaction missing at settlement' => [ false, true ],
+			'balance transaction already attached'      => [ true, false ],
+		];
+	}
+
+	/**
+	 * The deferred fee recording job records the fee once Stripe has attached the balance transaction
+	 * to the charge, replacing any partial value so a re-run stays correct.
+	 */
+	public function test_record_order_fees_updates_fees_when_balance_transaction_available(): void {
+		$order = WC_Helper_Order::create_order();
+		$order->save();
+
+		$charge = (object) [
+			'id'                  => 'ch_test_record_fees',
+			'balance_transaction' => 'txn_test_record_fees',
+		];
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'get_charge_object', 'update_fees' ] )
+			->getMock();
+		$handler->expects( $this->once() )
+			->method( 'get_charge_object' )
+			->with( 'ch_test_record_fees', [ 'expand' => [ 'balance_transaction' ] ] )
+			->willReturn( $charge );
+		$handler->expects( $this->once() )
+			->method( 'update_fees' )
+			->with( $this->isInstanceOf( WC_Order::class ), 'txn_test_record_fees', true );
+
+		$handler->record_order_fees( $order->get_id(), 'ch_test_record_fees', 0 );
+	}
+
+	/**
+	 * The fee is accounting metadata written only alongside the Stripe currency, so when the currency
+	 * is already stored the job must do nothing: no charge fetch and no fee write.
+	 */
+	public function test_record_order_fees_is_noop_when_fee_already_recorded(): void {
+		$order = WC_Helper_Order::create_order();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_currency( $order, 'USD' );
+		$order->save();
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'get_charge_object', 'update_fees' ] )
+			->getMock();
+		$handler->expects( $this->never() )->method( 'get_charge_object' );
+		$handler->expects( $this->never() )->method( 'update_fees' );
+
+		$handler->record_order_fees( $order->get_id(), 'ch_test_noop', 0 );
+	}
+
+	/**
+	 * While the balance transaction is still unavailable the job re-queues itself with an incremented
+	 * retry count, until the retry cap is reached, after which it stops re-queueing.
+	 *
+	 * @dataProvider provider_record_order_fees_retry
+	 *
+	 * @param int  $retry_count    The retry count the job runs with.
+	 * @param bool $expect_requeue Whether a re-queue is expected at that retry count.
+	 */
+	public function test_record_order_fees_requeues_until_cap( int $retry_count, bool $expect_requeue ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->save();
+
+		$charge = (object) [ 'id' => 'ch_test_requeue' ];
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'get_charge_object', 'update_fees' ] )
+			->getMock();
+		$handler->method( 'get_charge_object' )->willReturn( $charge );
+		$handler->expects( $this->never() )->method( 'update_fees' );
+
+		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+		if ( $expect_requeue ) {
+			$mock_scheduler->expects( $this->once() )
+				->method( 'schedule_job' )
+				->with(
+					$this->isType( 'int' ),
+					'wc_stripe_record_order_fees',
+					$this->callback(
+						function ( $args ) use ( $order, $retry_count ) {
+							return $order->get_id() === $args['order_id']
+								&& 'ch_test_requeue' === $args['charge_id']
+								&& ( $retry_count + 1 ) === $args['retry_count'];
+						}
+					)
+				);
+		} else {
+			$mock_scheduler->expects( $this->never() )->method( 'schedule_job' );
+		}
+		$prop = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $handler, $mock_scheduler );
+
+		$handler->record_order_fees( $order->get_id(), 'ch_test_requeue', $retry_count );
+	}
+
+	/**
+	 * Data provider for the retry behaviour of the fee recording job. The default cap is 3 retries.
+	 *
+	 * @return array
+	 */
+	public function provider_record_order_fees_retry(): array {
+		return [
+			'first attempt re-queues'          => [ 0, true ],
+			'last attempt under cap re-queues' => [ 2, true ],
+			'cap reached, stops re-queueing'   => [ 3, false ],
+		];
+	}
+
+	/**
+	 * A failed charge fetch must not fatal the job; it is treated like a missing balance transaction
+	 * and the job re-queues.
+	 */
+	public function test_record_order_fees_requeues_when_charge_fetch_fails(): void {
+		$order = WC_Helper_Order::create_order();
+		$order->save();
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'get_charge_object', 'update_fees' ] )
+			->getMock();
+		$handler->method( 'get_charge_object' )->willThrowException( new WC_Stripe_Exception( 'boom', 'boom' ) );
+		$handler->expects( $this->never() )->method( 'update_fees' );
+
+		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+		$mock_scheduler->expects( $this->once() )
+			->method( 'schedule_job' )
+			->with(
+				$this->isType( 'int' ),
+				'wc_stripe_record_order_fees',
+				$this->callback(
+					function ( $args ) {
+						return 1 === $args['retry_count'];
+					}
+				)
+			);
+		$prop = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $handler, $mock_scheduler );
+
+		$handler->record_order_fees( $order->get_id(), 'ch_test_fetch_fail', 0 );
 	}
 }
