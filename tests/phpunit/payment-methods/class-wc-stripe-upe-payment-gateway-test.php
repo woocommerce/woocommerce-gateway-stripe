@@ -4319,9 +4319,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			->with( $order_id )
 			->will( $this->returnValue( true ) );
 
-		$this->mock_gateway->expects( $this->once() )
-			->method( 'is_pre_order_item_in_cart' )
-			->will( $this->returnValue( true ) );
+		// An order is supplied on the confirmation path, so the cart is not consulted.
+		$this->mock_gateway->expects( $this->never() )
+			->method( 'is_pre_order_item_in_cart' );
 
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'is_pre_order_product_charged_upfront' )
@@ -4405,13 +4405,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			);
 
 		// Mock order has pre-order product.
-		$this->mock_gateway->expects( $this->once() )
+		$this->mock_gateway->expects( $this->any() )
 			->method( 'has_pre_order' )
 			->will( $this->returnValue( true ) );
 
-		$this->mock_gateway->expects( $this->once() )
-			->method( 'is_pre_order_item_in_cart' )
-			->will( $this->returnValue( true ) );
+		// An order is supplied on the confirmation path, so the cart is not consulted.
+		$this->mock_gateway->expects( $this->never() )
+			->method( 'is_pre_order_item_in_cart' );
 
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'is_pre_order_product_charged_upfront' )
@@ -4500,6 +4500,62 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertEquals( OrderStatus::PROCESSING, $final_order->get_status() );
 		$this->assertEquals( 'ch_mock', $final_order->get_transaction_id() );
 		$this->assertEquals( $payment_intent_id, $order_helper->get_stripe_intent_id( $final_order ) );
+	}
+
+	/**
+	 * Once an order is supplied, payment eligibility comes from that order. The cart only speaks
+	 * on the checkout page, where no order exists yet, and never on the pay-for-order page.
+	 *
+	 * @dataProvider provider_is_payment_needed_cart_precedence
+	 */
+	public function test_is_payment_needed_consults_the_cart_only_without_an_order( $order_kind, $cart_product_charged_upfront, $on_pay_for_order_page, $expected ) {
+		global $wp, $wp_query;
+
+		$order_id = null;
+		if ( null !== $order_kind ) {
+			$order_id = WC_Helper_Order::create_order( 0 )->get_id();
+		}
+
+		$is_released_pre_order = 'released-pre-order' === $order_kind;
+		$this->mock_gateway->method( 'has_pre_order' )->willReturn( $is_released_pre_order );
+		$this->mock_gateway->method( 'is_pre_order_completed' )->willReturn( $is_released_pre_order );
+		$this->mock_gateway->method( 'is_pre_order_item_in_cart' )->willReturn( true );
+		$this->mock_gateway->method( 'is_pre_order_product_charged_upfront' )->willReturn( $cart_product_charged_upfront );
+
+		$original_get             = $_GET;
+		$original_wp_query_vars   = $wp->query_vars;
+		$original_query_vars      = $wp_query->query_vars;
+		$original_current_user_id = get_current_user_id();
+
+		if ( $on_pay_for_order_page ) {
+			// A valid guest pay-for-order request; the order is deliberately not passed to
+			// is_payment_needed() so only the endpoint exclusion keeps the cart out.
+			$endpoint_order              = WC_Helper_Order::create_order( 0 );
+			$wp->query_vars['order-pay'] = $endpoint_order->get_id();
+			$wp_query->set( 'order-pay', $endpoint_order->get_id() );
+			$_GET['pay_for_order'] = 'true';
+			$_GET['key']           = $endpoint_order->get_order_key();
+			wp_set_current_user( 0 );
+		}
+
+		try {
+			$this->assertSame( $expected, $this->mock_gateway->is_payment_needed( $order_id ) );
+		} finally {
+			$_GET                 = $original_get;
+			$wp->query_vars       = $original_wp_query_vars;
+			$wp_query->query_vars = $original_query_vars;
+			wp_set_current_user( $original_current_user_id );
+		}
+	}
+
+	public function provider_is_payment_needed_cart_precedence() {
+		return [
+			'released pre-order, charge-upon-release pre-order in cart' => [ 'released-pre-order', false, false, true ],
+			'regular order, charge-upon-release pre-order in cart'      => [ 'regular', false, false, true ],
+			'no order, charge-upfront pre-order in cart'                => [ null, true, false, true ],
+			'no order, charge-upon-release pre-order in cart'           => [ null, false, false, false ],
+			'pay-for-order request without order id, pre-order in cart' => [ null, true, true, false ],
+		];
 	}
 
 	/**

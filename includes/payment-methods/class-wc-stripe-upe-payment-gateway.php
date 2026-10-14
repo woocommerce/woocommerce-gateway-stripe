@@ -2945,8 +2945,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	public function is_payment_needed( $order_id = null ) {
 		$is_pay_for_order_page = parent::is_valid_pay_for_order_endpoint();
 
-		// Check if the cart contains a pre-order product. Ignore the cart if we're on the Pay for Order page.
-		if ( $this->is_pre_order_item_in_cart() && ! $is_pay_for_order_page ) {
+		// The cart stands in for the order only on the checkout page, where no order exists yet.
+		if ( empty( $order_id ) && $this->is_pre_order_item_in_cart() && ! $is_pay_for_order_page ) {
 			$pre_order_product = $this->get_pre_order_product_from_cart();
 
 			// Only one pre-order product is allowed per cart,
