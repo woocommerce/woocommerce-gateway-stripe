@@ -8,6 +8,8 @@
  * WC_REST_Stripe_Account_Keys_Controller unit tests.
  */
 class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
+	use WC_Stripe_Tracks_Capture_Trait;
+
 	/**
 	 * Tested REST route.
 	 */
@@ -296,6 +298,192 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 	}
 
 	/**
+	 * Disconnecting must report the account that was connected. The ID has to be read before the
+	 * emptied keys are saved, because afterwards the store no longer resolves to any account.
+	 */
+	public function test_disconnecting_records_track_event_with_previously_connected_account_id() {
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'publishable_key'      => 'pk_live_123',
+				'secret_key'           => 'sk_live_123',
+				'test_publishable_key' => '',
+				'test_secret_key'      => '',
+				'testmode'             => 'no',
+				'connection_type'      => 'connect',
+			]
+		);
+		$controller = new WC_REST_Stripe_Account_Keys_Controller( $this->mock_account_resolving_by_saved_keys() );
+		$this->start_capturing_tracks_events();
+
+		$request = new WP_REST_Request( 'POST', self::ROUTE );
+		foreach ( [ 'publishable_key', 'secret_key', 'test_publishable_key', 'test_secret_key' ] as $key ) {
+			$request->set_param( $key, '' );
+		}
+		$response = $controller->set_account_keys( $request );
+
+		$this->stop_capturing_tracks_events();
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertFalse( WC_Stripe_Helper::is_connected( 'live' ) );
+
+		$events = $this->get_captured_tracks_event_properties( 'wcadmin_wcstripe_stripe_disconnected' );
+		$this->assertCount( 1, $events );
+		$event_properties = $events[0];
+		$this->assertArrayHasKey( 'account_id', $event_properties );
+		$this->assertSame( 'acct_live_123', $event_properties['account_id'] );
+		$this->assertFalse( $event_properties['is_test_mode'] );
+		$this->assertSame( 'connect', $event_properties['connection_type'] );
+		$this->assertSame( WC_STRIPE_VERSION, $event_properties['stripe_version'] );
+	}
+
+	/**
+	 * Replacing keys must report the account the new keys belong to, for the mode whose keys
+	 * changed rather than the active mode, with one event per changed mode.
+	 *
+	 * @param string $testmode        Active mode setting before the request, 'yes' or 'no'.
+	 * @param array  $request_params  Key fields submitted.
+	 * @param array  $expected_events Expected [ is_test_mode, stripe_account_id ] pairs, oldest first.
+	 *
+	 * @dataProvider provide_keys_updated_track_event_scenarios
+	 */
+	public function test_updating_keys_records_track_event_with_newly_connected_account_id( string $testmode, array $request_params, array $expected_events ) {
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'publishable_key'      => 'pk_live_123',
+				'secret_key'           => 'sk_live_123',
+				'test_publishable_key' => 'pk_test_123',
+				'test_secret_key'      => 'sk_test_123',
+				'testmode'             => $testmode,
+			]
+		);
+		$controller = new WC_REST_Stripe_Account_Keys_Controller( $this->mock_account_resolving_by_saved_keys() );
+		$this->start_capturing_tracks_events();
+
+		$request = new WP_REST_Request( 'POST', self::ROUTE );
+		foreach ( $request_params as $key => $value ) {
+			$request->set_param( $key, $value );
+		}
+		$response = $controller->set_account_keys( $request );
+
+		$this->stop_capturing_tracks_events();
+
+		$this->assertSame( 200, $response->get_status() );
+
+		$events = $this->get_captured_tracks_event_properties( 'wcadmin_wcstripe_stripe_keys_updated' );
+		$this->assertCount( count( $expected_events ), $events );
+		foreach ( $expected_events as $i => list( $expected_is_test_mode, $expected_account_id ) ) {
+			$this->assertSame( $expected_is_test_mode, $events[ $i ]['is_test_mode'] );
+			$this->assertSame( $expected_account_id, $events[ $i ]['account_id'] );
+		}
+	}
+
+	/**
+	 * @return array
+	 */
+	public function provide_keys_updated_track_event_scenarios(): array {
+		return [
+			'live keys replaced in live mode'              => [
+				'no',
+				[
+					'publishable_key' => 'pk_live_456',
+					'secret_key'      => 'sk_live_456',
+				],
+				[ [ false, 'acct_live_456' ] ],
+			],
+			'test keys replaced while live mode is active' => [
+				'no',
+				[
+					'test_publishable_key' => 'pk_test_456',
+					'test_secret_key'      => 'sk_test_456',
+				],
+				[ [ true, 'acct_test_456' ] ],
+			],
+			'both modes replaced in test mode'             => [
+				'yes',
+				[
+					'publishable_key'      => 'pk_live_456',
+					'secret_key'           => 'sk_live_456',
+					'test_publishable_key' => 'pk_test_456',
+					'test_secret_key'      => 'sk_test_456',
+				],
+				[ [ false, 'acct_live_456' ], [ true, 'acct_test_456' ] ],
+			],
+			'only a webhook secret submitted in test mode' => [
+				'yes',
+				[ 'test_webhook_secret' => 'whsec_test_456' ],
+				[ [ true, 'acct_test_123' ] ],
+			],
+		];
+	}
+
+	/**
+	 * Resolving an account for an event can be a Stripe request, so when the store has not opted
+	 * into usage tracking the lookup for the changed mode must not happen at all.
+	 */
+	public function test_updating_keys_does_not_resolve_the_account_when_tracking_is_disabled() {
+		delete_option( 'woocommerce_allow_tracking' );
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'publishable_key'      => 'pk_live_123',
+				'secret_key'           => 'sk_live_123',
+				'test_publishable_key' => 'pk_test_123',
+				'test_secret_key'      => 'sk_test_123',
+				'testmode'             => 'no',
+			]
+		);
+
+		$looked_up_modes = [];
+		$mock_account    = $this->getMockBuilder( WC_Stripe_Account::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$mock_account->method( 'get_cached_account_data' )->willReturnCallback(
+			function ( $mode = null ) use ( &$looked_up_modes ) {
+				// A null mode means the active one, as in the real service.
+				$looked_up_modes[] = $mode ?? ( WC_Stripe_Mode::is_test() ? 'test' : 'live' );
+				return [ 'id' => 'acct_123' ];
+			}
+		);
+		$controller = new WC_REST_Stripe_Account_Keys_Controller( $mock_account );
+
+		$request = new WP_REST_Request( 'POST', self::ROUTE );
+		$request->set_param( 'test_publishable_key', 'pk_test_456' );
+		$request->set_param( 'test_secret_key', 'sk_test_456' );
+		$response = $controller->set_account_keys( $request );
+
+		$this->assertSame( 200, $response->get_status() );
+		// The only lookup is the active (live) account the endpoint returns; the event-driven
+		// lookup of the changed (test) mode must not happen.
+		$this->assertSame( [ 'live' ], $looked_up_modes );
+	}
+
+	/**
+	 * Account mock that, like the real service, resolves nothing once the keys for the mode are
+	 * gone, and resolves 'acct_live_123' for saved secret key 'sk_live_123'.
+	 *
+	 * @return WC_Stripe_Account&\PHPUnit\Framework\MockObject\MockObject
+	 */
+	private function mock_account_resolving_by_saved_keys() {
+		$mock_account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$mock_account->method( 'get_cached_account_data' )->willReturnCallback(
+			function ( $mode = null ) {
+				if ( ! WC_Stripe_Helper::is_connected( $mode ) ) {
+					return [];
+				}
+
+				$settings   = WC_Stripe_Helper::get_stripe_settings();
+				$mode       = $mode ?? ( WC_Stripe_Mode::is_test() ? 'test' : 'live' );
+				$secret_key = 'test' === $mode ? $settings['test_secret_key'] : $settings['secret_key'];
+
+				return [ 'id' => str_replace( 'sk_', 'acct_', $secret_key ) ];
+			}
+		);
+
+		return $mock_account;
+	}
+
+	/**
 	 * Key changes must authenticate cleanup before the old account key is overwritten.
 	 *
 	 * @dataProvider provide_key_change_cleanup
@@ -433,5 +621,31 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 			'live' => [ 'live' ],
 			'test' => [ 'test' ],
 		];
+	}
+
+	/**
+	 * A missing requested-mode key must not cause setup to use the active mode's key.
+	 *
+	 * @dataProvider provide_webhook_setup_modes
+	 */
+	public function test_webhook_setup_rejects_missing_requested_mode_key( $mode ) {
+		$settings                    = WC_Stripe_Helper::get_stripe_settings();
+		$settings['testmode']        = 'live' === $mode ? 'yes' : 'no';
+		$settings['secret_key']      = 'live' === $mode ? '' : 'sk_live_current';
+		$settings['test_secret_key'] = 'test' === $mode ? '' : 'sk_test_current';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$account          = $this->createMock( WC_Stripe_Account::class );
+		$webhook_settings = $this->createMock( WC_Stripe_Webhook_Settings::class );
+		$webhook_settings->expects( $this->never() )->method( 'maybe_autoconfigure_webhooks' );
+		WC_Stripe::get_instance()->webhook_settings = $webhook_settings;
+		$request                                    = new WP_REST_Request( 'POST', self::ROUTE . '/webhook' );
+		$request->set_param( 'live_mode', 'live' === $mode );
+
+		$controller = new WC_REST_Stripe_Account_Keys_Controller( $account );
+		$response   = $controller->configure_webhooks( $request );
+
+		$this->assertSame( 400, $response->get_status() );
+		$this->assertSame( 'Cannot configure webhooks: no Stripe API secret key is saved for the requested mode.', $response->get_data()['message'] );
 	}
 }

@@ -18,7 +18,6 @@ class WC_Stripe_Webhook_Settings_Test extends WP_UnitTestCase {
 		$this->requests         = [];
 		$this->lookup_error     = null;
 		$this->creation_error   = null;
-		$this->listed_endpoints = [];
 		$this->endpoint         = [
 			'id'             => 'we_old',
 			'url'            => WC_Stripe_Helper::get_webhook_url(),
@@ -26,18 +25,21 @@ class WC_Stripe_Webhook_Settings_Test extends WP_UnitTestCase {
 			'api_version'    => WC_Stripe_API::STRIPE_API_VERSION,
 			'status'         => 'enabled',
 		];
+		$this->listed_endpoints = [ $this->endpoint ];
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[
 				'testmode'            => 'yes',
 				'secret_key'          => 'sk_live_current',
 				'test_secret_key'     => 'sk_test_current',
 				'webhook_data'        => [
-					'id'  => 'we_old',
-					'url' => $this->endpoint['url'],
+					'id'             => 'we_old',
+					'url'            => $this->endpoint['url'],
+					'signing_secret' => 'whsec_old',
 				],
 				'test_webhook_data'   => [
-					'id'  => 'we_old',
-					'url' => $this->endpoint['url'],
+					'id'             => 'we_old',
+					'url'            => $this->endpoint['url'],
+					'signing_secret' => 'whsec_old',
 				],
 				'webhook_secret'      => 'whsec_old',
 				'test_webhook_secret' => 'whsec_old',
@@ -89,6 +91,8 @@ class WC_Stripe_Webhook_Settings_Test extends WP_UnitTestCase {
 		WC_Stripe_API::set_secret_key( '' );
 		foreach ( [ 'live', 'test' ] as $mode ) {
 			WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Webhook_Settings::WEBHOOK_STATUS_CACHE_KEY, $mode );
+			delete_option( WC_Stripe_Webhook_Settings::get_webhook_manual_secret_notice_option( $mode ) );
+			delete_option( WC_Stripe_Webhook_Settings::get_webhook_missing_notice_option( $mode ) );
 		}
 		parent::tear_down();
 	}
@@ -101,12 +105,16 @@ class WC_Stripe_Webhook_Settings_Test extends WP_UnitTestCase {
 		$force        = 'force' === $change;
 		switch ( $change ) {
 			case 'url':
-				$this->endpoint['url'] = 'https://old.example.com/?wc-api=wc_stripe';
+				$this->endpoint['url'] = preg_replace( '/^https?/', 'https' === wp_parse_url( $this->endpoint['url'], PHP_URL_SCHEME ) ? 'http' : 'https', $this->endpoint['url'] );
 				break;
 			case 'query':
 				$this->endpoint['url'] = strtok( $this->endpoint['url'], '?' );
 				break;
 			case 'events':
+				$this->endpoint['enabled_events'] = [ 'charge.succeeded' ];
+				break;
+			case 'legacy':
+				unset( $settings[ $prefix . 'webhook_data' ]['signing_secret'] );
 				$this->endpoint['enabled_events'] = [ 'charge.succeeded' ];
 				break;
 			case 'event order':
@@ -125,10 +133,13 @@ class WC_Stripe_Webhook_Settings_Test extends WP_UnitTestCase {
 				$settings[ $prefix . 'webhook_secret' ] = '';
 				break;
 			case 'unconfigured':
-				$settings[ $prefix . 'webhook_data' ] = [];
+				$this->listed_endpoints                 = [];
+				$settings[ $prefix . 'webhook_data' ]   = [];
+				$settings[ $prefix . 'webhook_secret' ] = '';
 				break;
 			case 'deleted':
-				$this->lookup_error = [
+				$this->listed_endpoints = [];
+				$this->lookup_error     = [
 					'response' => [ 'code' => 404 ],
 					'body'     => wp_json_encode( [ 'error' => [ 'code' => 'resource_missing' ] ] ),
 				];
@@ -147,12 +158,14 @@ class WC_Stripe_Webhook_Settings_Test extends WP_UnitTestCase {
 			$this->assertSame( 'whsec_new', $result->secret );
 			$this->assertSame(
 				[
-					'id'  => 'we_new',
-					'url' => WC_Stripe_Helper::get_webhook_url(),
+					'id'             => 'we_new',
+					'url'            => WC_Stripe_Helper::get_webhook_url(),
+					'signing_secret' => 'whsec_new',
 				],
 				$stored[ $prefix . 'webhook_data' ]
 			);
 			$this->assertSame( 'whsec_new', $stored[ $prefix . 'webhook_secret' ] );
+			$this->assertSame( [ 'created_by' => 'woocommerce_gateway_stripe' ], $this->endpoint['metadata'] );
 			$this->assertNull( WC_Stripe_Database_Cache::get_with_mode( WC_Stripe_Webhook_Settings::WEBHOOK_STATUS_CACHE_KEY, $mode ) );
 		} else {
 			$this->assertNull( $result );
@@ -181,11 +194,133 @@ class WC_Stripe_Webhook_Settings_Test extends WP_UnitTestCase {
 	public function provide_reconciliation_cases() {
 		$cases = [];
 		foreach ( [ 'live', 'test' ] as $mode ) {
-			foreach ( [ 'healthy', 'event order', 'url', 'query', 'events', 'version', 'default version', 'disabled', 'secret', 'unconfigured', 'deleted', 'force' ] as $change ) {
+			foreach ( [ 'healthy', 'event order', 'url', 'query', 'events', 'legacy', 'version', 'default version', 'disabled', 'secret', 'unconfigured', 'deleted', 'force' ] as $change ) {
 				$cases[ $mode . ' ' . $change ] = [ $mode, $change, ! in_array( $change, [ 'healthy', 'event order' ], true ) ];
 			}
 		}
 		return $cases;
+	}
+
+	/**
+	 * Automatic setup must preserve manual secrets; the explicit Configure action may replace them.
+	 *
+	 * @dataProvider provide_manual_configurations
+	 */
+	public function test_manual_configuration_is_preserved( $mode, $configuration, $force ) {
+		$prefix                                 = 'test' === $mode ? 'test_' : '';
+		$settings                               = WC_Stripe_Helper::get_stripe_settings();
+		$settings[ $prefix . 'webhook_secret' ] = 'whsec_manual';
+		$this->endpoint['enabled_events']       = [ 'charge.succeeded' ];
+		if ( 'unrecorded' === $configuration ) {
+			$settings[ $prefix . 'webhook_data' ] = [];
+		} elseif ( 'missing' === $configuration ) {
+			$this->lookup_error     = [
+				'response' => [ 'code' => 404 ],
+				'body'     => wp_json_encode( [ 'error' => [ 'code' => 'resource_missing' ] ] ),
+			];
+			$this->listed_endpoints = [];
+		}
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		$result = $this->webhook_settings->maybe_autoconfigure_webhooks( $mode, $force );
+		if ( $force ) {
+			$this->assertSame( 'whsec_new', $result->secret );
+			$this->assertSame( 'whsec_new', WC_Stripe_Helper::get_stripe_settings()[ $prefix . 'webhook_secret' ] );
+			$this->assertFalse( get_option( WC_Stripe_Webhook_Settings::get_webhook_manual_secret_notice_option( $mode ) ) );
+		} else {
+			$this->assertNull( $result );
+			$this->assertSame( $settings, WC_Stripe_Helper::get_stripe_settings() );
+			$this->assertSame( 'unrecorded' === $configuration ? [] : [ 'GET' ], array_column( $this->requests, 'method' ) );
+			$this->assertSame( 'yes', get_option( WC_Stripe_Webhook_Settings::get_webhook_manual_secret_notice_option( $mode ) ) );
+			$this->assertSame( 'missing' === $configuration ? 'yes' : false, get_option( WC_Stripe_Webhook_Settings::get_webhook_missing_notice_option( $mode ) ) );
+		}
+	}
+
+	public function provide_manual_configurations() {
+		$cases = [];
+		foreach ( [ 'live', 'test' ] as $mode ) {
+			foreach ( [ 'unrecorded', 'edited', 'missing' ] as $configuration ) {
+				foreach ( [ false, true ] as $force ) {
+					$cases[ "$mode $configuration force " . (int) $force ] = [ $mode, $configuration, $force ];
+				}
+			}
+		}
+		return $cases;
+	}
+
+	/**
+	 * Copied endpoint IDs must not delete production webhooks, even if a clone rewrote the stored URL.
+	 *
+	 * @dataProvider provide_foreign_endpoints
+	 */
+	public function test_foreign_endpoint_is_preserved( $mode, $force, $rewritten_url ) {
+		$prefix                 = 'test' === $mode ? 'test_' : '';
+		$settings               = WC_Stripe_Helper::get_stripe_settings();
+		$this->endpoint['url']  = 'https://production.example.com/?wc-api=wc_stripe';
+		$this->listed_endpoints = [ $this->endpoint ];
+		if ( ! $rewritten_url ) {
+			$settings[ $prefix . 'webhook_data' ]['url'] = $this->endpoint['url'];
+		}
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		$result = $this->webhook_settings->maybe_autoconfigure_webhooks( $mode, $force );
+		$this->assertNotContains( 'DELETE', array_column( $this->requests, 'method' ) );
+		if ( $force ) {
+			$this->assertSame( 'we_new', $result->id );
+		} else {
+			$this->assertNull( $result );
+			$this->assertSame( [ 'GET' ], array_column( $this->requests, 'method' ) );
+			$this->assertSame( $settings, WC_Stripe_Helper::get_stripe_settings() );
+		}
+	}
+
+	public function provide_foreign_endpoints() {
+		$cases = [];
+		foreach ( [ 'live', 'test' ] as $mode ) {
+			foreach ( [ false, true ] as $force ) {
+				foreach ( [ false, true ] as $rewritten_url ) {
+					$cases[ "$mode force " . (int) $force . ' rewritten URL ' . (int) $rewritten_url ] = [ $mode, $force, $rewritten_url ];
+				}
+			}
+		}
+		return $cases;
+	}
+
+	/**
+	 * Failed recreation must retain its warning; success must only clear notices for that mode.
+	 *
+	 * @dataProvider provide_recreation_results
+	 */
+	public function test_recreation_notices_are_scoped_to_the_mode( $mode, $failure ) {
+		foreach ( [ 'live', 'test' ] as $notice_mode ) {
+			update_option( WC_Stripe_Webhook_Settings::get_webhook_missing_notice_option( $notice_mode ), 'yes' );
+			update_option( WC_Stripe_Webhook_Settings::get_webhook_manual_secret_notice_option( $notice_mode ), 'yes' );
+		}
+		$this->lookup_error     = [
+			'response' => [ 'code' => 404 ],
+			'body'     => wp_json_encode( [ 'error' => [ 'code' => 'resource_missing' ] ] ),
+		];
+		$this->listed_endpoints = [];
+		if ( $failure ) {
+			$this->creation_error = new WP_Error( 'http_request_failed', 'Network error' );
+			$this->expectException( Exception::class );
+		}
+		try {
+			$this->webhook_settings->maybe_autoconfigure_webhooks( $mode );
+		} finally {
+			$other_mode = 'live' === $mode ? 'test' : 'live';
+			foreach ( [ 'get_webhook_missing_notice_option', 'get_webhook_manual_secret_notice_option' ] as $getter ) {
+				$this->assertSame( $failure ? 'yes' : false, get_option( WC_Stripe_Webhook_Settings::$getter( $mode ) ) );
+				$this->assertSame( 'yes', get_option( WC_Stripe_Webhook_Settings::$getter( $other_mode ) ) );
+			}
+		}
+	}
+
+	public function provide_recreation_results() {
+		return [
+			'live success' => [ 'live', false ],
+			'test success' => [ 'test', false ],
+			'live failure' => [ 'live', true ],
+			'test failure' => [ 'test', true ],
+		];
 	}
 
 	/** @dataProvider provide_api_failures */
@@ -203,6 +338,7 @@ class WC_Stripe_Webhook_Settings_Test extends WP_UnitTestCase {
 			$this->assertSame( $settings, WC_Stripe_Helper::get_stripe_settings() );
 			$this->assertSame( [ $during_creation ? 'POST' : 'GET' ], array_column( $this->requests, 'method' ) );
 			$this->assertSame( 'sk_caller', WC_Stripe_API::get_secret_key() );
+			$this->assertFalse( get_option( WC_Stripe_Webhook_Settings::get_webhook_missing_notice_option( 'test' ) ) );
 		}
 	}
 
@@ -264,9 +400,10 @@ class WC_Stripe_Webhook_Settings_Test extends WP_UnitTestCase {
 
 	public function provide_decommission_responses() {
 		return [
-			'deleted'         => [ [ 'deleted' => true ], true ],
-			'already missing' => [ [ 'error' => [ 'code' => 'resource_missing' ] ], true ],
-			'rate limited'    => [ [ 'error' => [ 'code' => 'rate_limit' ] ], false ],
+			'deleted'                => [ [ 'deleted' => true ], true ],
+			'already missing'        => [ [ 'error' => [ 'code' => 'resource_missing' ] ], true ],
+			'rate limited'           => [ [ 'error' => [ 'code' => 'rate_limit' ] ], false ],
+			'authentication failure' => [ [ 'error' => [ 'code' => 'authentication_error' ] ], false ],
 		];
 	}
 
@@ -332,8 +469,13 @@ class WC_Stripe_Webhook_Settings_Test extends WP_UnitTestCase {
 				'url' => $url,
 			],
 			[
-				'id'  => 'we_duplicate',
-				'url' => $url . '&foo=bar',
+				'id'       => 'we_duplicate',
+				'url'      => $url . '&foo=bar',
+				'metadata' => [ 'created_by' => 'woocommerce_gateway_stripe' ],
+			],
+			[
+				'id'  => 'we_manual',
+				'url' => $url,
 			],
 			[
 				'id'  => 'we_other',
