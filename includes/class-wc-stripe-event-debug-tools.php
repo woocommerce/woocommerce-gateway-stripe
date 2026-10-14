@@ -69,14 +69,13 @@ final class WC_Stripe_Event_Debug_Tools {
 	}
 
 	/**
-	 * Queues undelivered events and schedules their processing.
+	 * Queues undelivered events for processing.
 	 *
 	 * @return string Message shown by WooCommerce once the tool has run.
 	 */
 	public function queue_undelivered_events(): string {
 		$reconciler = new WC_Stripe_Event_Reconciler();
 		$summary    = $reconciler->queue_undelivered_events();
-		$reconciler->schedule_processing();
 
 		$queued = count( wp_list_filter( $summary['events'], [ 'result' => 'queued' ] ) );
 

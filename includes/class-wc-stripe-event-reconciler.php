@@ -7,13 +7,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Tracks the processing state of Stripe events, and processes the events Stripe failed to deliver.
  *
  * Received webhooks are recorded as they are processed. Undelivered events are fetched from the
- * Events API, recorded as pending, and processed in small batches through Action Scheduler.
+ * Events API, recorded as pending, and processed through Action Scheduler, one action per event.
  * Only the event ID is stored, so each pending event is fetched again before it is processed.
  *
  * @internal Subject to change without notice between releases.
  */
 class WC_Stripe_Event_Reconciler {
-	public const PROCESS_ACTION = 'wc_stripe_process_pending_events';
+	public const PROCESS_ACTION = 'wc_stripe_process_event';
 
 	public const RECONCILE_ACTION = 'wc_stripe_reconcile_events';
 
@@ -27,13 +27,17 @@ class WC_Stripe_Event_Reconciler {
 
 	private const ACTION_GROUP = 'woocommerce-gateway-stripe';
 
-	public const BATCH_SIZE = 5;
-
 	/**
-	 * Failed fetches and processing are retried about once per reconciliation run, and interrupted processing once it is
-	 * found stuck, so this gives up after one to three days.
+	 * With retries waiting from 5 minutes up to an hour, this gives up after about two days.
 	 */
 	public const MAX_ATTEMPTS = 48;
+
+	/**
+	 * Wait before the first retry of an event. It doubles with each further attempt.
+	 */
+	public const RETRY_DELAY = 5 * MINUTE_IN_SECONDS;
+
+	public const MAX_RETRY_DELAY = HOUR_IN_SECONDS;
 
 	/**
 	 * Well past the lock TTL and the delay of deferred webhooks, so only events whose processing died are retried.
@@ -87,7 +91,7 @@ class WC_Stripe_Event_Reconciler {
 	public function init(): void {
 		// Registered even when the feature is disabled: Action Scheduler fails actions that have no callback,
 		// so jobs queued before the feature was disabled need one to stop themselves.
-		add_action( self::PROCESS_ACTION, [ $this, 'process_pending_events' ] );
+		add_action( self::PROCESS_ACTION, [ $this, 'process_event' ] );
 		add_action( self::RECONCILE_ACTION, [ $this, 'reconcile' ], 10, 0 );
 		add_action( self::CLEANUP_ACTION, [ $this, 'delete_expired_events' ], 10, 0 );
 
@@ -101,7 +105,7 @@ class WC_Stripe_Event_Reconciler {
 	}
 
 	/**
-	 * Schedules the deletion of expired records, then queues undelivered and stuck events and schedules their processing.
+	 * Schedules the deletion of expired records, then queues undelivered and stuck events for processing.
 	 */
 	public function reconcile(): void {
 		if ( ! WC_Stripe_Feature_Flags::is_event_reconciliation_enabled() ) {
@@ -112,7 +116,6 @@ class WC_Stripe_Event_Reconciler {
 		$this->schedule_cleanup();
 		$this->queue_undelivered_events();
 		$this->requeue_stuck_events();
-		$this->schedule_processing();
 	}
 
 	/**
@@ -139,7 +142,8 @@ class WC_Stripe_Event_Reconciler {
 		}
 
 		as_unschedule_all_actions( self::RECONCILE_ACTION, [], self::ACTION_GROUP );
-		as_unschedule_all_actions( self::PROCESS_ACTION, [], self::ACTION_GROUP );
+		// Without a group, so actions of every event match, not only those without arguments.
+		as_unschedule_all_actions( self::PROCESS_ACTION );
 		as_unschedule_all_actions( self::CLEANUP_ACTION, [], self::ACTION_GROUP );
 	}
 
@@ -260,7 +264,7 @@ class WC_Stripe_Event_Reconciler {
 		update_option( $cursor_option, $summary['cursor_after'], false );
 
 		// List the next page right away instead of in the next run, so a backlog does not wait. Enqueued unconditionally,
-		// as in process_pending_events().
+		// since the running action would count as already scheduled.
 		if ( ! empty( $response->has_more ) ) {
 			as_enqueue_async_action( self::RECONCILE_ACTION, [], self::ACTION_GROUP );
 		}
@@ -290,6 +294,7 @@ class WC_Stripe_Event_Reconciler {
 			}
 
 			if ( $this->store->save( WC_Stripe_Event_Record::from_stripe_event( $event, WC_Stripe_Event_Store_Interface::STATUS_PENDING ) ) ) {
+				$this->enqueue_event( $event->id );
 				return 'queued';
 			}
 
@@ -332,19 +337,22 @@ class WC_Stripe_Event_Reconciler {
 	}
 
 	/**
-	 * Queues events again whose processing never finished, for example because the request died.
+	 * Queues events again whose processing never finished, for example because the request died, or whose processing
+	 * action is gone.
 	 */
 	public function requeue_stuck_events(): void {
-		$records = $this->store->get_by_status(
-			WC_Stripe_Event_Store_Interface::STATUS_PROCESSING,
-			! WC_Stripe_Mode::is_test(),
-			self::PAGE_SIZE,
-			time() - self::STUCK_AFTER
-		);
+		$livemode        = ! WC_Stripe_Mode::is_test();
+		$untouched_since = time() - self::STUCK_AFTER;
 
-		foreach ( $records as $record ) {
+		foreach ( $this->store->get_by_status( WC_Stripe_Event_Store_Interface::STATUS_PROCESSING, $livemode, self::PAGE_SIZE, $untouched_since ) as $record ) {
 			$record->status = WC_Stripe_Event_Store_Interface::STATUS_PENDING;
 			$this->record_failed_attempt( $record );
+		}
+
+		// Pending events wait for their own action, which can still be deleted, fail before it runs, or never be enqueued.
+		// Events that still have one are skipped by the enqueue.
+		foreach ( $this->store->get_by_status( WC_Stripe_Event_Store_Interface::STATUS_PENDING, $livemode, self::PAGE_SIZE, $untouched_since ) as $record ) {
+			$this->enqueue_event( $record->id );
 		}
 	}
 
@@ -376,79 +384,73 @@ class WC_Stripe_Event_Reconciler {
 		// A lock is only reclaimed by the next claim of the same event, which never comes for most events.
 		$deleted_locks = WC_Stripe_Option_Lock::delete_expired_by_prefix( self::LOCK_OPTION_PREFIX, self::LOCK_TTL, self::PAGE_SIZE );
 
-		// A full batch may have left more behind. Enqueued unconditionally, as in process_pending_events().
+		// A full batch may have left more behind. Enqueued unconditionally, since the running action would count as already scheduled.
 		if ( $deleted_records >= self::PAGE_SIZE || $deleted_locks >= self::PAGE_SIZE ) {
 			as_enqueue_async_action( self::CLEANUP_ACTION, [], self::ACTION_GROUP );
 		}
 	}
 
 	/**
-	 * Schedules processing of pending events, unless it is already scheduled or running.
+	 * Enqueues the processing of an event, unless it is already waiting for or running it.
+	 *
+	 * @param string $event_id Stripe event ID.
 	 */
-	public function schedule_processing(): void {
-		if ( ! as_has_scheduled_action( self::PROCESS_ACTION, [], self::ACTION_GROUP ) ) {
-			as_enqueue_async_action( self::PROCESS_ACTION, [], self::ACTION_GROUP );
-		}
+	private function enqueue_event( string $event_id ): void {
+		as_enqueue_async_action( self::PROCESS_ACTION, [ $event_id ], self::ACTION_GROUP, true );
 	}
 
 	/**
-	 * Processes a batch of pending events, then schedules the next batch if this one made progress.
+	 * Fetches a pending event from Stripe and processes it through the webhook handler.
 	 *
-	 * Without progress, for example while Stripe cannot be reached, the next reconciliation run starts the job again.
+	 * @param mixed $event_id Stripe event ID, as stored in the action.
 	 */
-	public function process_pending_events(): void {
-		if ( ! WC_Stripe_Feature_Flags::is_event_reconciliation_enabled() ) {
+	public function process_event( $event_id ): void {
+		if ( ! WC_Stripe_Feature_Flags::is_event_reconciliation_enabled() || ! is_string( $event_id ) || '' === $event_id ) {
 			return;
 		}
 
-		$records = $this->store->get_by_status( WC_Stripe_Event_Store_Interface::STATUS_PENDING, ! WC_Stripe_Mode::is_test(), self::BATCH_SIZE );
-
-		if ( ! $records ) {
+		// A delivery may have processed the event since it was queued.
+		$record = $this->store->get( $event_id );
+		if ( ! $record || WC_Stripe_Event_Store_Interface::STATUS_PENDING !== $record->status ) {
 			return;
 		}
 
-		$handler   = $this->create_webhook_handler();
-		$processed = false;
-
-		foreach ( $records as $record ) {
-			$event      = WC_Stripe_API::retrieve( 'events/' . $record->id );
-			$event_json = $this->is_successful_response( $event ) && ! empty( $event->id ) ? wp_json_encode( $event ) : false;
-
-			if ( false === $event_json ) {
-				$this->record_failed_attempt( $record, is_object( $event ) && isset( $event->error->code ) ? (string) $event->error->code : '' );
-				continue;
-			}
-
-			// A late delivery of the same event is being processed right now, and will update the record itself.
-			if ( self::CLAIM_ACQUIRED !== $this->claim( $event ) ) {
-				continue;
-			}
-
-			try {
-				$handler->process_webhook( $event_json );
-				$processed = true;
-			} catch ( Throwable $e ) {
-				// Retried like a failed fetch, since the cause may be temporary, such as a database or Stripe error.
-				WC_Stripe_Logger::error(
-					'Processing a Stripe event failed.',
-					[
-						'event_id'   => $record->id,
-						'event_type' => $record->type,
-						'attempts'   => $record->attempts + 1,
-						'error'      => get_class( $e ) . ': ' . $e->getMessage(),
-					]
-				);
-
-				$record->status = WC_Stripe_Event_Store_Interface::STATUS_PENDING;
-				$this->record_failed_attempt( $record );
-			} finally {
-				$this->release( $event );
-			}
+		// The keys of the other mode cannot fetch the event. It stays pending until the mode is switched back.
+		if ( WC_Stripe_Mode::is_test() === $record->livemode ) {
+			return;
 		}
 
-		// The current action is still marked in-progress, so as_has_scheduled_action() would block the next batch.
-		if ( $processed ) {
-			as_enqueue_async_action( self::PROCESS_ACTION, [], self::ACTION_GROUP );
+		$event      = WC_Stripe_API::retrieve( 'events/' . $event_id );
+		$event_json = $this->is_successful_response( $event ) && ! empty( $event->id ) ? wp_json_encode( $event ) : false;
+
+		if ( false === $event_json ) {
+			$this->record_failed_attempt( $record, is_object( $event ) && isset( $event->error->code ) ? (string) $event->error->code : '' );
+			return;
+		}
+
+		// A late delivery of the same event is being processed right now, and will update the record itself.
+		if ( self::CLAIM_ACQUIRED !== $this->claim( $event ) ) {
+			return;
+		}
+
+		try {
+			$this->create_webhook_handler()->process_webhook( $event_json );
+		} catch ( Throwable $e ) {
+			// Retried like a failed fetch, since the cause may be temporary, such as a database or Stripe error.
+			WC_Stripe_Logger::error(
+				'Processing a Stripe event failed.',
+				[
+					'event_id'   => $record->id,
+					'event_type' => $record->type,
+					'attempts'   => $record->attempts + 1,
+					'error'      => get_class( $e ) . ': ' . $e->getMessage(),
+				]
+			);
+
+			$record->status = WC_Stripe_Event_Store_Interface::STATUS_PENDING;
+			$this->record_failed_attempt( $record );
+		} finally {
+			$this->release( $event );
 		}
 	}
 
@@ -462,7 +464,7 @@ class WC_Stripe_Event_Reconciler {
 	}
 
 	/**
-	 * Counts a failed fetch, or failed or interrupted processing, and gives up on the event when it cannot succeed or has failed too often.
+	 * Counts a failed fetch, or failed or interrupted processing, and schedules a retry, unless the event cannot succeed or has failed too often.
 	 *
 	 * @param WC_Stripe_Event_Record $record     Record of the event.
 	 * @param string                 $error_code Stripe error code of a failed fetch, if any.
@@ -486,6 +488,13 @@ class WC_Stripe_Event_Reconciler {
 		}
 
 		$this->store->save( $record );
+
+		if ( WC_Stripe_Event_Store_Interface::STATUS_PENDING === $record->status ) {
+			$delay = (int) min( self::RETRY_DELAY * 2 ** min( $record->attempts - 1, 10 ), self::MAX_RETRY_DELAY );
+
+			// Not unique: the action of the failed attempt may still be running, and running actions count as duplicates.
+			as_schedule_single_action( time() + $delay, self::PROCESS_ACTION, [ $record->id ], self::ACTION_GROUP );
+		}
 	}
 
 	/**

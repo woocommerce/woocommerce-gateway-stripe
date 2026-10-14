@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 interface WC_Stripe_Event_Store_Interface {
 	/**
-	 * Stripe did not deliver the event, or its processing failed or was interrupted. It waits for the processing job, including after a failed fetch.
+	 * Stripe did not deliver the event, or its processing failed or was interrupted. It waits for its processing action, including after a failed fetch.
 	 */
 	public const STATUS_PENDING = 'pending';
 

@@ -64,7 +64,6 @@ class WC_Stripe_Event_Reconciler_Test extends WP_UnitTestCase {
 
 	public function tear_down() {
 		remove_filter( 'pre_http_request', [ $this, 'serve_stripe_response' ], 10 );
-		remove_action( 'wc_stripe_webhook_received', [ $this->reconciler, 'mark_processed' ], 10 );
 		$this->unschedule_actions();
 		parent::tear_down();
 	}
@@ -193,7 +192,7 @@ class WC_Stripe_Event_Reconciler_Test extends WP_UnitTestCase {
 		as_schedule_recurring_action( time(), HOUR_IN_SECONDS, WC_Stripe_Event_Reconciler::RECONCILE_ACTION, [], self::GROUP );
 
 		$this->reconciler->reconcile();
-		$this->reconciler->process_pending_events();
+		$this->reconciler->process_event( 'evt_1Pending' );
 		$this->reconciler->delete_expired_events();
 
 		$this->assertSame( [], $this->requests );
@@ -249,6 +248,8 @@ class WC_Stripe_Event_Reconciler_Test extends WP_UnitTestCase {
 		$this->assertSame( WC_Stripe_Event_Store_Interface::STATUS_PENDING, $this->store->get( 'evt_1New' )->status );
 		$this->assertSame( WC_Stripe_Event_Store_Interface::STATUS_PROCESSED, $this->store->get( 'evt_1Known' )->status );
 		$this->assertNull( $this->store->get( 'evt_1Foreign' ) );
+		$this->assertTrue( as_has_scheduled_action( WC_Stripe_Event_Reconciler::PROCESS_ACTION, [ 'evt_1New' ], self::GROUP ) );
+		$this->assertFalse( as_has_scheduled_action( WC_Stripe_Event_Reconciler::PROCESS_ACTION, [ 'evt_1Known' ], self::GROUP ) );
 
 		$query = $this->query_of( $this->requests[0] );
 		$this->assertSame( 'false', $query['delivery_success'] );
@@ -311,42 +312,44 @@ class WC_Stripe_Event_Reconciler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A pending event is fetched and processed through the webhook handler, and the next batch is scheduled.
+	 * A pending event is fetched and processed through the webhook handler, without a retry.
 	 */
-	public function test_process_pending_events_processes_a_fetched_event(): void {
-		// Attached by init() only when the feature is enabled at boot, which is not the case in tests.
-		add_action( 'wc_stripe_webhook_received', [ $this->reconciler, 'mark_processed' ], 10, 3 );
+	public function test_process_event_processes_a_fetched_event(): void {
 		$this->store->seed( $this->make_record( 'evt_1Pending', WC_Stripe_Event_Store_Interface::STATUS_PENDING ) );
 		// process_webhook() has no case for invoice.paid, so it completes without an order or further API calls.
 		$this->queue_response( 'events/evt_1Pending', [ 200, (array) $this->make_event( 'evt_1Pending', 'invoice.paid' ) ] );
 
-		$this->reconciler->process_pending_events();
+		$this->reconciler->process_event( 'evt_1Pending' );
 
 		$this->assertSame( WC_Stripe_Event_Store_Interface::STATUS_PROCESSED, $this->store->get( 'evt_1Pending' )->status );
 		$this->assertFalse( $this->read_lock( 'evt_1Pending' ) );
-		$this->assertTrue( as_has_scheduled_action( WC_Stripe_Event_Reconciler::PROCESS_ACTION, [], self::GROUP ) );
+		$this->assertFalse( as_has_scheduled_action( WC_Stripe_Event_Reconciler::PROCESS_ACTION, [ 'evt_1Pending' ], self::GROUP ) );
 	}
 
 	/**
-	 * A failed fetch counts an attempt, and the event is abandoned when it no longer exists or after too many attempts.
+	 * A failed fetch counts an attempt and schedules a retry, and the event is abandoned when it no longer exists or after too many attempts.
 	 *
 	 * @param array  $response         Response to the event fetch.
 	 * @param int    $attempts_before  Attempts before this run.
 	 * @param string $expected_status  Expected status afterwards.
 	 * @dataProvider provide_failed_fetch_cases
 	 */
-	public function test_process_pending_events_failed_fetch( array $response, int $attempts_before, string $expected_status ): void {
+	public function test_process_event_failed_fetch( array $response, int $attempts_before, string $expected_status ): void {
 		$record           = $this->make_record( 'evt_1Fails', WC_Stripe_Event_Store_Interface::STATUS_PENDING );
 		$record->attempts = $attempts_before;
 		$this->store->seed( $record );
 		$this->queue_response( 'events/evt_1Fails', $response );
 
-		$this->reconciler->process_pending_events();
+		$this->reconciler->process_event( 'evt_1Fails' );
 
 		$after = $this->store->get( 'evt_1Fails' );
 		$this->assertSame( $expected_status, $after->status );
 		$this->assertSame( $attempts_before + 1, $after->attempts );
-		$this->assertFalse( as_has_scheduled_action( WC_Stripe_Event_Reconciler::PROCESS_ACTION, [], self::GROUP ), 'No progress, so no next batch.' );
+		$this->assertSame(
+			WC_Stripe_Event_Store_Interface::STATUS_PENDING === $expected_status,
+			(bool) as_has_scheduled_action( WC_Stripe_Event_Reconciler::PROCESS_ACTION, [ 'evt_1Fails' ], self::GROUP ),
+			'Only an event that is still pending gets a retry.'
+		);
 	}
 
 	/**
@@ -365,18 +368,26 @@ class WC_Stripe_Event_Reconciler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Events left processing for longer than an hour are queued again, with an attempt counted.
+	 * Events left processing for longer than an hour are queued again with an attempt counted, and events left pending
+	 * for longer than an hour get a new action.
 	 */
 	public function test_requeue_stuck_events(): void {
 		$processing = WC_Stripe_Event_Store_Interface::STATUS_PROCESSING;
+		$pending    = WC_Stripe_Event_Store_Interface::STATUS_PENDING;
 		$this->store->seed( $this->make_record( 'evt_1Stuck', $processing ), time() - 2 * HOUR_IN_SECONDS );
 		$this->store->seed( $this->make_record( 'evt_1Deferred', $processing ), time() - 5 * MINUTE_IN_SECONDS );
+		$this->store->seed( $this->make_record( 'evt_1Lost', $pending ), time() - 2 * HOUR_IN_SECONDS );
+		$this->store->seed( $this->make_record( 'evt_1Waiting', $pending ), time() - 5 * MINUTE_IN_SECONDS );
 
 		$this->reconciler->requeue_stuck_events();
 
-		$this->assertSame( WC_Stripe_Event_Store_Interface::STATUS_PENDING, $this->store->get( 'evt_1Stuck' )->status );
+		$this->assertSame( $pending, $this->store->get( 'evt_1Stuck' )->status );
 		$this->assertSame( 1, $this->store->get( 'evt_1Stuck' )->attempts );
+		$this->assertNotFalse( as_has_scheduled_action( WC_Stripe_Event_Reconciler::PROCESS_ACTION, [ 'evt_1Stuck' ], self::GROUP ) );
 		$this->assertSame( $processing, $this->store->get( 'evt_1Deferred' )->status );
+		$this->assertTrue( as_has_scheduled_action( WC_Stripe_Event_Reconciler::PROCESS_ACTION, [ 'evt_1Lost' ], self::GROUP ) );
+		$this->assertSame( 0, $this->store->get( 'evt_1Lost' )->attempts );
+		$this->assertFalse( as_has_scheduled_action( WC_Stripe_Event_Reconciler::PROCESS_ACTION, [ 'evt_1Waiting' ], self::GROUP ) );
 	}
 
 	/**
@@ -485,7 +496,8 @@ class WC_Stripe_Event_Reconciler_Test extends WP_UnitTestCase {
 
 	private function unschedule_actions(): void {
 		foreach ( [ WC_Stripe_Event_Reconciler::RECONCILE_ACTION, WC_Stripe_Event_Reconciler::PROCESS_ACTION, WC_Stripe_Event_Reconciler::CLEANUP_ACTION ] as $hook ) {
-			as_unschedule_all_actions( $hook, [], self::GROUP );
+			// Without a group, so actions with any arguments match.
+			as_unschedule_all_actions( $hook );
 		}
 	}
 }

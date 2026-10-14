@@ -11,14 +11,16 @@ Temporary file for the draft PR. Remove before marking it ready for review.
 ## FYI
 
 ### Behavior
-- Failed fetches are retried on the next reconciliation run (every 30 minutes) rather than with a growing delay, and abandoned after 48 attempts or on `resource_missing`. Interrupted processing counts towards the same 48 attempts. An event can be fetched more than once in a run when other events in its batches succeed.
+- Each queued event gets its own Action Scheduler action. A failed fetch or processing is retried after 5 minutes, doubling up to an hour, and abandoned after 48 attempts (about two days) or on `resource_missing`. Interrupted processing counts towards the same 48 attempts.
+- A few thousand recovered events mean as many actions, the same as the deferred actions their webhooks would have created.
 - A thrown exception while processing is logged and counts as a failed attempt, so an exception that always repeats is retried until the 48 attempts run out.
 - `delivery_success=false` covers every endpoint on the account, so events that failed for another site or service on the same account are processed here too.
 - Lock rows left by requests that died are deleted by the cleanup job once they are past the 10-minute lock TTL, up to 100 per batch.
 - Disabling the feature flag stops all processing and cleanup, but keeps the stored records until it is enabled again or the plugin is uninstalled with `WC_REMOVE_ALL_DATA`.
 - A webhook for an event another request is processing right now answers 409, so Stripe delivers it again later. It shows as a failed delivery in the Stripe dashboard and does not update the last webhook success time. Locks last at most 10 minutes, so this cannot add up to Stripe disabling the endpoint.
 - Deferred webhooks stay `processing` until the deferred job completes.
-- Events left in `processing` for an hour (the request died, or a deferred job failed or never ran) go back to `pending` on the next reconciliation run, up to 100 per run. A deferred job that is delayed by more than an hour may then run alongside the processing job, which relies on the handlers' existing checks against double processing.
+- Events left in `processing` for an hour (the request died, or a deferred job failed or never ran) go back to `pending` on the next reconciliation run, up to 100 per run. A deferred job that is delayed by more than an hour may then run alongside the event's processing action, which relies on the handlers' existing checks against double processing.
+- Events left `pending` for an hour without a processing action (it was deleted, failed before running, or never enqueued) get a new one on the next reconciliation run, up to 100 per run.
 - Recovery in each mode starts with its first reconciliation run: events from before are not processed. The cursor is kept when the feature is disabled, so enabling it again catches up on the time in between.
 - Each reconciliation run lists one page of up to 100 undelivered events, oldest first, and enqueues the next run right away while there are more.
 - Runs that find no undelivered events make a second request to move the cursor to the newest event, since Stripe deletes events after 30 days. If the cursor event is gone anyway (the mode was not listed for 30 days), listing starts over from the newest event.
