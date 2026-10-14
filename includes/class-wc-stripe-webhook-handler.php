@@ -131,6 +131,27 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	protected $process_checkout_session_metadata_action = 'wc_stripe_process_checkout_session_metadata';
 
 	/**
+	 * Delay before re-fetching a charge to record its Stripe fee.
+	 *
+	 * @var int
+	 */
+	protected $record_order_fees_delay = 2 * MINUTE_IN_SECONDS;
+
+	/**
+	 * Action Scheduler hook for the deferred fee recording job.
+	 *
+	 * @var string
+	 */
+	protected $record_order_fees_action = 'wc_stripe_record_order_fees';
+
+	/**
+	 * How many times the fee recording job re-queues itself before giving up.
+	 *
+	 * @var int
+	 */
+	protected $record_order_fees_max_retries = 3;
+
+	/**
 	 * The order object being processed.
 	 *
 	 * @var WC_Order|null
@@ -171,6 +192,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		add_action( $this->deferred_webhook_action, [ $this, 'process_deferred_webhook' ], 10, 3 );
 		add_action( $this->process_payment_intent_metadata_action, [ $this, 'process_payment_intent_metadata' ], 10, 2 );
 		add_action( $this->process_checkout_session_metadata_action, [ $this, 'process_checkout_session_metadata' ], 10, 2 );
+		add_action( $this->record_order_fees_action, [ $this, 'record_order_fees' ], 10, 3 );
 	}
 
 	/**
@@ -2557,6 +2579,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$charge->is_webhook_response = true;
 			$this->process_response( $charge, $order );
 
+			// Stripe attaches the balance transaction (which carries the fee) to the charge a moment
+			// after it is created, so a settlement that wins that race leaves process_response() with no
+			// fee to record. Schedule a re-fetch to record it once Stripe has attached it.
+			$this->maybe_schedule_order_fees_recording( $order, $charge );
+
 			// The checkout session is created from the cart before the order exists, so the intent starts
 			// without order description or metadata. Backfill them here with the same values the standard
 			// non-session flow attaches at intent creation, so Adaptive Pricing transactions aren't missing
@@ -2611,6 +2638,98 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Schedules the deferred fee recording job, unless the charge already carries a balance
+	 * transaction (process_response() will have recorded the fee inline).
+	 *
+	 * @param WC_Order                 $order  The settled order.
+	 * @param object|string|false|null $charge The charge handled during settlement.
+	 * @return void
+	 */
+	protected function maybe_schedule_order_fees_recording( $order, $charge ): void {
+		if ( ! is_object( $charge ) || empty( $charge->id ) || isset( $charge->balance_transaction ) ) {
+			return;
+		}
+
+		$this->action_scheduler_service->schedule_job(
+			time() + $this->record_order_fees_delay,
+			$this->record_order_fees_action,
+			[
+				'order_id'    => $order->get_id(),
+				'charge_id'   => $charge->id,
+				'retry_count' => 0,
+			]
+		);
+	}
+
+	/**
+	 * Deferred job: records the Stripe fee/net on an order once Stripe has attached the balance
+	 * transaction to the charge, re-queueing a bounded number of times while it is still missing.
+	 *
+	 * @param int    $order_id    The order to record the fee on.
+	 * @param string $charge_id   The Stripe charge ID to read the balance transaction from.
+	 * @param int    $retry_count How many times this job has already re-queued itself.
+	 * @return void
+	 */
+	public function record_order_fees( $order_id, $charge_id, $retry_count = 0 ): void {
+		$order = wc_get_order( $order_id );
+		if ( ! $order instanceof WC_Order ) {
+			return;
+		}
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		// The Stripe currency is written only alongside the fee, so its presence means the fee is
+		// already recorded, by process_response() or an earlier run of this job.
+		if ( '' !== (string) $order_helper->get_stripe_currency( $order ) ) {
+			return;
+		}
+
+		$balance_transaction_id = null;
+		try {
+			$charge = $this->get_charge_object( $charge_id, [ 'expand' => [ 'balance_transaction' ] ] );
+			if ( $charge instanceof stdClass ) {
+				$balance_transaction_id = $this->get_balance_transaction_id_from_charge( $charge );
+			}
+		} catch ( WC_Stripe_Exception $e ) {
+			// A failed fetch is treated like a missing balance transaction: re-queue below.
+			WC_Stripe_Logger::warning(
+				'Could not fetch charge while recording Stripe fee.',
+				[
+					'order_id'  => $order_id,
+					'charge_id' => $charge_id,
+					'error'     => $e->getMessage(),
+				]
+			);
+		}
+
+		if ( $balance_transaction_id ) {
+			$this->update_fees( $order, $balance_transaction_id, true );
+			return;
+		}
+
+		if ( $retry_count < $this->record_order_fees_max_retries ) {
+			$this->action_scheduler_service->schedule_job(
+				time() + $this->record_order_fees_delay,
+				$this->record_order_fees_action,
+				[
+					'order_id'    => $order_id,
+					'charge_id'   => $charge_id,
+					'retry_count' => $retry_count + 1,
+				]
+			);
+			return;
+		}
+
+		WC_Stripe_Logger::warning(
+			'Gave up recording Stripe fee: balance transaction still unavailable after retries.',
+			[
+				'order_id'  => $order_id,
+				'charge_id' => $charge_id,
+			]
+		);
 	}
 
 	/**
