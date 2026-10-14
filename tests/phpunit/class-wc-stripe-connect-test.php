@@ -746,6 +746,8 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Data provider for {@see test_save_stripe_keys_logs_webhook_configuration_failure()}.
+	 *
 	 * @return array
 	 */
 	public function provide_save_stripe_keys_webhook_failure_cases(): array {
