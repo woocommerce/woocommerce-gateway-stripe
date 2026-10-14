@@ -3,6 +3,7 @@
 xxxx-xx-xx - version 11.2.0
 * Dev - Remove expired lock rows from the options table once a day
 * Fix - Keep pending ACH orders open while Stripe is still waiting for bank verification
+* Fix - Complete express checkout payments on the Pay for Order page when the checkout phone field is required, and preserve the order's saved billing phone
 
 2026-10-13 - version 11.1.0
 * Add - Automatically configure test mode when onboarding to a live account

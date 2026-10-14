@@ -682,12 +682,37 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutECEPayForOrder( order, orderDetails, paymentData ) {
-		paymentData.shipping_address = orderDetails.shippingAddress;
+		const withPhoneFallback = ( address, phone ) =>
+			address && ! address.phone && phone
+				? { ...address, phone }
+				: address;
+
+		// The order-pay route replaces the saved addresses before validating them, so
+		// an empty wallet phone erases the saved one; fall back to the billing phone.
+		const billingAddress = withPhoneFallback(
+			paymentData.billing_address,
+			orderDetails.billingPhone
+		);
+		const hasSavedShippingAddress = Object.values(
+			orderDetails.shippingAddress ?? {}
+		).some( Boolean );
+
+		const payload = {
+			...paymentData,
+			billing_address: billingAddress,
+			shipping_address:
+				orderDetails.needsShipping && hasSavedShippingAddress
+					? withPhoneFallback(
+							orderDetails.shippingAddress,
+							billingAddress?.phone
+					  )
+					: orderDetails.shippingAddress,
+		};
 
 		const billingEmail = orderDetails.billingEmail ?? '';
 		const key = orderDetails.orderKey ?? '';
 		const url = `/wc/store/v1/checkout/${ order }?key=${ key }&billing_email=${ billingEmail }`;
-		return this.postToStoreApi( url, paymentData );
+		return this.postToStoreApi( url, payload );
 	}
 
 	/**
