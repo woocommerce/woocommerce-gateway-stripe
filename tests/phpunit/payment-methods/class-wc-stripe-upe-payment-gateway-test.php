@@ -4509,6 +4509,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @dataProvider provider_is_payment_needed_cart_precedence
 	 */
 	public function test_is_payment_needed_consults_the_cart_only_without_an_order( $order_kind, $cart_product_charged_upfront, $on_pay_for_order_page, $expected ) {
+		// $cart_product_charged_upfront doubles as the order product's charge timing: at checkout
+		// the order mirrors the cart, which is why the answer is unchanged there.
 		global $wp, $wp_query;
 
 		$order_id = null;
@@ -4516,10 +4518,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$order_id = WC_Helper_Order::create_order( 0 )->get_id();
 		}
 
-		$is_released_pre_order = 'released-pre-order' === $order_kind;
-		$this->mock_gateway->method( 'has_pre_order' )->willReturn( $is_released_pre_order );
-		$this->mock_gateway->method( 'is_pre_order_completed' )->willReturn( $is_released_pre_order );
-		$this->mock_gateway->method( 'is_pre_order_item_in_cart' )->willReturn( true );
+		$this->mock_gateway->method( 'has_pre_order' )->willReturn( in_array( $order_kind, [ 'released-pre-order', 'pre-order-being-placed' ], true ) );
+		$this->mock_gateway->method( 'is_pre_order_completed' )->willReturn( 'released-pre-order' === $order_kind );
+		// With an order supplied the cart must not be read at all; without one it is the only source.
+		$this->mock_gateway->expects( null === $order_kind ? $this->atLeastOnce() : $this->never() )
+			->method( 'is_pre_order_item_in_cart' )
+			->willReturn( true );
 		$this->mock_gateway->method( 'is_pre_order_product_charged_upfront' )->willReturn( $cart_product_charged_upfront );
 
 		$original_get             = $_GET;
@@ -4552,6 +4556,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		return [
 			'released pre-order, charge-upon-release pre-order in cart' => [ 'released-pre-order', false, false, true ],
 			'regular order, charge-upon-release pre-order in cart'      => [ 'regular', false, false, true ],
+			'pre-order being placed at checkout, charge upon release'   => [ 'pre-order-being-placed', false, false, false ],
+			'pre-order being placed at checkout, charge upfront'        => [ 'pre-order-being-placed', true, false, true ],
 			'no order, charge-upfront pre-order in cart'                => [ null, true, false, true ],
 			'no order, charge-upon-release pre-order in cart'           => [ null, false, false, false ],
 			'pay-for-order request without order id, pre-order in cart' => [ null, true, true, false ],
