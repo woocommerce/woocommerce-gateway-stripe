@@ -8,6 +8,7 @@ import React, {
 import interpolateComponents from '@automattic/interpolate-components';
 import styled from '@emotion/styled';
 import SettingsSection from '../settings-section';
+import SaveSettingsSection from '../save-settings-section';
 import CardBody from '../card-body';
 import CopyButton from '../../components/copy-button';
 import AgenticCommerceSyncStatus from './sync-status';
@@ -66,7 +67,6 @@ const AgenticCommerceDescription = () => (
 );
 
 const AgenticCommerceSection = forwardRef( ( props, ref ) => {
-	const { onSettingsLoad } = props;
 	const [ isFeatureEnabled, setIsFeatureEnabled ] = useState( false );
 	const [ disableCheckout, setDisableCheckout ] = useState( false );
 	const [ autoExcludeAddons, setAutoExcludeAddons ] = useState( false );
@@ -99,7 +99,6 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 	const fetchSettings = useCallback( async () => {
 		setIsLoadingSettings( true );
 		setSettingsFetchError( null );
-		onSettingsLoad?.( false );
 		try {
 			const result = await apiFetch( {
 				path: '/wc/v3/wc_stripe/agentic-commerce/settings',
@@ -113,21 +112,27 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			setWebhookSecret( result.webhook_secret ?? '' );
 			setSavedWebhookSecret( result.webhook_secret ?? '' );
 			setHasLoadedSettings( true );
-			onSettingsLoad?.( true );
 		} catch ( err ) {
 			setHasLoadedSettings( false );
 			setSettingsFetchError(
-				err?.message ??
-					__(
-						'Failed to load Agentic Commerce settings.',
-						'woocommerce-gateway-stripe'
-					)
+				err?.message
+					? sprintf(
+							/* translators: %s: detailed error message from the server */
+							__(
+								'Could not load Agentic Commerce settings: %s',
+								'woocommerce-gateway-stripe'
+							),
+							err.message
+					  )
+					: __(
+							'Could not load Agentic Commerce settings.',
+							'woocommerce-gateway-stripe'
+					  )
 			);
-			onSettingsLoad?.( false );
 		} finally {
 			setIsLoadingSettings( false );
 		}
-	}, [ onSettingsLoad ] );
+	}, [] );
 
 	useEffect( () => {
 		fetchSettings();
@@ -158,7 +163,6 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			);
 			setWebhookSecret( result.webhook_secret ?? '' );
 			setSavedWebhookSecret( result.webhook_secret ?? '' );
-			setHasLoadedSettings( true );
 			dispatch( 'core/notices' ).createSuccessNotice(
 				__( 'Settings saved.', 'woocommerce-gateway-stripe' )
 			);
@@ -182,8 +186,8 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 		webhookSecret,
 	] );
 
-	// Expose save function to parent via ref so the global Save changes
-	// button can trigger it alongside the main settings save.
+	// Expose save function to parent via ref so programmatic callers
+	// and existing unit tests can trigger it.
 	useImperativeHandle(
 		ref,
 		() => ( {
@@ -413,37 +417,43 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 	};
 
 	return (
-		<SettingsSection Description={ AgenticCommerceDescription }>
-			<LoadableSettingsSection numLines={ 10 }>
-				<Card>
-					<CardBody>
-						{ settingsNotice && (
-							<Notice
-								status={ settingsNotice.status }
-								onRemove={ () => setSettingsNotice( null ) }
-								isDismissible
-								style={ { marginBottom: '16px' } }
-							>
-								{ settingsNotice.message }
-							</Notice>
-						) }
+		<>
+			<SettingsSection Description={ AgenticCommerceDescription }>
+				<LoadableSettingsSection numLines={ 10 }>
+					<Card>
+						<CardBody>
+							{ settingsNotice && (
+								<Notice
+									status={ settingsNotice.status }
+									onRemove={ () => setSettingsNotice( null ) }
+									isDismissible
+									style={ { marginBottom: '16px' } }
+								>
+									{ settingsNotice.message }
+								</Notice>
+							) }
 
-						{ renderCardContent() }
-					</CardBody>
-				</Card>
-			</LoadableSettingsSection>
+							{ renderCardContent() }
+						</CardBody>
+					</Card>
+				</LoadableSettingsSection>
 
-			{ hasLoadedSettings && isFeatureEnabled && (
-				<AgenticCommerceSyncStatus
-					isOnboardingComplete={ isOnboardingComplete }
-					hasUnsavedWebhookSecret={ hasUnsavedWebhookSecret }
-				/>
+				{ hasLoadedSettings && isFeatureEnabled && (
+					<AgenticCommerceSyncStatus
+						isOnboardingComplete={ isOnboardingComplete }
+						hasUnsavedWebhookSecret={ hasUnsavedWebhookSecret }
+					/>
+				) }
+
+				{ hasLoadedSettings && isFeatureEnabled && (
+					<AgenticCommerceFeedPreview />
+				) }
+			</SettingsSection>
+
+			{ hasLoadedSettings && (
+				<SaveSettingsSection onSave={ handleSaveSettings } />
 			) }
-
-			{ hasLoadedSettings && isFeatureEnabled && (
-				<AgenticCommerceFeedPreview />
-			) }
-		</SettingsSection>
+		</>
 	);
 } );
 

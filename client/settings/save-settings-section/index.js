@@ -9,36 +9,31 @@ const SaveSettingsSectionWrapper = styled( SettingsSection )`
 	text-align: right;
 `;
 
-const SaveSettingsSection = ( { onSettingsSave, agenticSaveRef } ) => {
-	const { saveSettings, isSaving, isLoading } = useSettings();
-	const [ isSavingAgentic, setIsSavingAgentic ] = useState( false );
-
-	const isAgenticTab = Boolean( agenticSaveRef );
+const SaveSettingsSection = ( { onSettingsSave, onSave } ) => {
+	const { saveSettings, isSaving, isLoading } = useSettings?.() || {};
+	const [ isCustomSaving, setIsCustomSaving ] = useState( false );
 
 	const onClickHandler = async () => {
-		if ( isAgenticTab ) {
-			if ( agenticSaveRef?.current?.save ) {
-				setIsSavingAgentic( true );
-				try {
-					await agenticSaveRef.current.save();
-				} finally {
-					setIsSavingAgentic( false );
-				}
-			}
-			if ( onSettingsSave ) {
-				onSettingsSave();
+		if ( onSave ) {
+			setIsCustomSaving( true );
+			try {
+				await onSave();
+			} finally {
+				setIsCustomSaving( false );
 			}
 			return;
 		}
 
-		await saveSettings();
+		if ( saveSettings ) {
+			await saveSettings();
+		}
 		if ( onSettingsSave ) {
 			onSettingsSave();
 		}
 	};
 
-	const isBusy = isAgenticTab ? isSavingAgentic : isSaving;
-	const isDisabled = isAgenticTab ? isSavingAgentic : isSaving || isLoading;
+	const isBusy = onSave ? isCustomSaving : isSaving;
+	const isDisabled = onSave ? isCustomSaving : isSaving || isLoading;
 
 	return (
 		// The 'submit' class is used by WC core to clear unsaved changes warnings.

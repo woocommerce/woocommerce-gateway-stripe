@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { getQuery } from '@woocommerce/navigation';
 import SettingsManager from '..';
 import SaveSettingsSection from '../../save-settings-section';
@@ -8,15 +8,7 @@ jest.mock( '../../payment-settings' );
 
 jest.mock( '../../payment-methods' );
 
-jest.mock( '../../agentic-commerce', () => {
-	const React = require( 'react' );
-	const Mock = jest.fn();
-	const ForwardedMock = React.forwardRef( ( props, ref ) =>
-		Mock( props, ref )
-	);
-	ForwardedMock.mockImplementation = Mock.mockImplementation.bind( Mock );
-	return ForwardedMock;
-} );
+jest.mock( '../../agentic-commerce', () => jest.fn() );
 
 jest.mock( '../../save-settings-section', () => jest.fn() );
 
@@ -99,13 +91,9 @@ describe( 'SettingsManager', () => {
 
 		await waitFor( () => {
 			expect(
-				screen.getByRole( 'tab', { name: /Settings/i } )
-			).toBeInTheDocument();
+				screen.queryByRole( 'tab', { name: /Agentic Commerce/i } )
+			).not.toBeInTheDocument();
 		} );
-
-		expect(
-			screen.queryByRole( 'tab', { name: /Agentic/i } )
-		).not.toBeInTheDocument();
 	} );
 
 	it( 'should open the Agentic Commerce tab when the URL panel matches', async () => {
@@ -119,21 +107,22 @@ describe( 'SettingsManager', () => {
 
 		await waitFor( () => {
 			expect(
-				screen.queryByTestId( 'agentic-commerce-tab' )
+				screen.getByRole( 'tab', {
+					name: /Agentic Commerce/i,
+					selected: true,
+				} )
 			).toBeInTheDocument();
 		} );
 
-		expect( screen.queryByTestId( 'methods-tab' ) ).not.toBeInTheDocument();
+		await waitFor( () => {
+			expect(
+				screen.queryByTestId( 'methods-tab' )
+			).not.toBeInTheDocument();
+		} );
 	} );
 
 	it( 'should render the Stripe payment method tab content by default', async () => {
 		render( <SettingsManager /> );
-
-		await waitFor( () => {
-			expect(
-				screen.queryByTestId( 'settings-tab' )
-			).not.toBeInTheDocument();
-		} );
 
 		await waitFor( () => {
 			expect( screen.queryByTestId( 'methods-tab' ) ).toBeInTheDocument();
@@ -142,6 +131,7 @@ describe( 'SettingsManager', () => {
 
 	it( 'should render the general settings tab content when the URL matches', async () => {
 		getQuery.mockReturnValue( { panel: 'settings' } );
+
 		render( <SettingsManager /> );
 
 		await waitFor( () => {
@@ -167,7 +157,7 @@ describe( 'SettingsManager', () => {
 		} );
 	} );
 
-	it( 'renders SaveSettingsSection on the agentic tab only when onSettingsLoad(true) is fired', async () => {
+	it( 'does not render the shared SaveSettingsSection on the agentic tab', async () => {
 		global.wc_stripe_settings_params = {
 			...BASE_PARAMS,
 			is_agentic_commerce_enabled: true,
@@ -175,28 +165,30 @@ describe( 'SettingsManager', () => {
 		getQuery.mockReturnValue( { panel: 'agentic-commerce' } );
 
 		SaveSettingsSection.mockImplementation( () => (
-			<button>Save changes</button>
+			<button>Shared Save</button>
 		) );
 
-		AgenticCommerceSection.mockImplementation( ( { onSettingsLoad } ) => {
-			return (
-				<div>
-					<button onClick={ () => onSettingsLoad( true ) }>
-						Simulate Load Success
-					</button>
-				</div>
-			);
-		} );
+		AgenticCommerceSection.mockImplementation( () => (
+			<div>Agentic Commerce Content</div>
+		) );
 
 		render( <SettingsManager /> );
 
-		// Initially not loaded, so Save changes button should not be in the document.
-		expect( screen.queryByText( 'Save changes' ) ).not.toBeInTheDocument();
+		expect(
+			screen.getByText( 'Agentic Commerce Content' )
+		).toBeInTheDocument();
+		expect( screen.queryByText( 'Shared Save' ) ).not.toBeInTheDocument();
+	} );
 
-		// Trigger load success.
-		fireEvent.click( screen.getByText( 'Simulate Load Success' ) );
+	it( 'renders the shared SaveSettingsSection on non-agentic tabs', async () => {
+		getQuery.mockReturnValue( { panel: 'methods' } );
 
-		// Now Save changes should be rendered.
-		expect( screen.getByText( 'Save changes' ) ).toBeInTheDocument();
+		SaveSettingsSection.mockImplementation( () => (
+			<button>Shared Save</button>
+		) );
+
+		render( <SettingsManager /> );
+
+		expect( screen.getByText( 'Shared Save' ) ).toBeInTheDocument();
 	} );
 } );

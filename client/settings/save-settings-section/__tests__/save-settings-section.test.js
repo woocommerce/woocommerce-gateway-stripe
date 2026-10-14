@@ -55,22 +55,22 @@ describe( 'SaveSettingsSection', () => {
 		expect( saveSettingsMock ).toHaveBeenCalled();
 	} );
 
-	it( 'calls only `agenticSaveRef.current.save` and does not call `saveSettings` when agenticSaveRef is passed', async () => {
+	it( 'calls custom `onSave` and skips `saveSettings` and `onSettingsSave` when onSave is passed', async () => {
 		const saveSettingsMock = jest.fn();
-		const agenticSaveMock = jest.fn().mockResolvedValue();
+		const onSettingsSaveMock = jest.fn();
+		const customSaveMock = jest.fn().mockResolvedValue();
 		useSettings.mockReturnValue( {
 			isSaving: false,
 			isLoading: false,
 			saveSettings: saveSettingsMock,
 		} );
 
-		const agenticSaveRef = {
-			current: {
-				save: agenticSaveMock,
-			},
-		};
-
-		render( <SaveSettingsSection agenticSaveRef={ agenticSaveRef } /> );
+		render(
+			<SaveSettingsSection
+				onSettingsSave={ onSettingsSaveMock }
+				onSave={ customSaveMock }
+			/>
+		);
 
 		const saveChangesButton = screen.getByText( 'Save changes' );
 
@@ -78,37 +78,40 @@ describe( 'SaveSettingsSection', () => {
 			await userEvent.click( saveChangesButton );
 		} );
 
-		expect( agenticSaveMock ).toHaveBeenCalled();
+		expect( customSaveMock ).toHaveBeenCalled();
 		expect( saveSettingsMock ).not.toHaveBeenCalled();
+		expect( onSettingsSaveMock ).not.toHaveBeenCalled();
 	} );
 
-	it( 'calls onSettingsSave after saving agentic settings', async () => {
-		const agenticSaveMock = jest.fn().mockResolvedValue();
-		const onSettingsSaveMock = jest.fn();
+	it( 'disables the button and sets busy state while custom onSave is executing', async () => {
+		let resolveSave;
+		const customSaveMock = jest.fn(
+			() =>
+				new Promise( ( resolve ) => {
+					resolveSave = resolve;
+				} )
+		);
 		useSettings.mockReturnValue( {
 			isSaving: false,
 			isLoading: false,
 			saveSettings: jest.fn(),
 		} );
 
-		const agenticSaveRef = {
-			current: {
-				save: agenticSaveMock,
-			},
-		};
+		render( <SaveSettingsSection onSave={ customSaveMock } /> );
 
-		render(
-			<SaveSettingsSection
-				agenticSaveRef={ agenticSaveRef }
-				onSettingsSave={ onSettingsSaveMock }
-			/>
-		);
+		const saveChangesButton = screen.getByText( 'Save changes' );
+		expect( saveChangesButton ).not.toBeDisabled();
 
-		await act( async () => {
-			await userEvent.click( screen.getByText( 'Save changes' ) );
+		act( () => {
+			userEvent.click( saveChangesButton );
 		} );
 
-		expect( agenticSaveMock ).toHaveBeenCalled();
-		expect( onSettingsSaveMock ).toHaveBeenCalled();
+		expect( saveChangesButton ).toBeDisabled();
+
+		await act( async () => {
+			resolveSave();
+		} );
+
+		expect( saveChangesButton ).not.toBeDisabled();
 	} );
 } );

@@ -8,7 +8,7 @@ import {
 import AgenticCommerceSection from '..';
 import apiFetch from '@wordpress/api-fetch';
 import { dispatch } from '@wordpress/data';
-import { useTestMode } from 'wcstripe/data';
+import { useSettings, useTestMode } from 'wcstripe/data';
 import { useAccount } from 'wcstripe/data/account';
 
 jest.mock( '@wordpress/api-fetch' );
@@ -25,6 +25,11 @@ jest.mock( '@wordpress/data', () => ( {
 
 jest.mock( 'wcstripe/data', () => ( {
 	useTestMode: jest.fn(),
+	useSettings: jest.fn().mockReturnValue( {
+		saveSettings: jest.fn(),
+		isSaving: false,
+		isLoading: false,
+	} ),
 } ) );
 
 jest.mock( 'wcstripe/settings/loadable-settings-section', () => {
@@ -102,6 +107,11 @@ describe( 'AgenticCommerceSection', () => {
 		} );
 		useTestMode.mockReturnValue( [ false ] );
 		useAccount.mockReturnValue( { data: null } );
+		useSettings.mockReturnValue( {
+			saveSettings: jest.fn(),
+			isSaving: false,
+			isLoading: false,
+		} );
 		global.wc_stripe_settings_params = {
 			agentic_commerce_import_sets_url:
 				'https://dashboard.stripe.com/test/data-management/import-sets',
@@ -1121,9 +1131,7 @@ describe( 'AgenticCommerceSection', () => {
 		);
 	} );
 
-	it( 'shows an error notice with Retry button and hides the form when the initial settings fetch fails', async () => {
-		const onSettingsLoadMock = jest.fn();
-
+	it( 'shows an error notice with Retry button and hides the form and Save button when the initial settings fetch fails', async () => {
 		apiFetch.mockImplementation( ( { path } ) => {
 			if ( path === '/wc/v3/wc_stripe/agentic-commerce/settings' ) {
 				return Promise.reject( {
@@ -1133,13 +1141,11 @@ describe( 'AgenticCommerceSection', () => {
 			return Promise.resolve( EMPTY_RESPONSE );
 		} );
 
-		render(
-			<AgenticCommerceSection onSettingsLoad={ onSettingsLoadMock } />
-		);
+		render( <AgenticCommerceSection /> );
 
 		await waitFor( () => {
 			expect(
-				screen.getAllByText( 'Network error loading settings' ).length
+				screen.getAllByText( /Network error loading settings/i ).length
 			).toBeGreaterThanOrEqual( 1 );
 		} );
 
@@ -1149,7 +1155,9 @@ describe( 'AgenticCommerceSection', () => {
 		expect(
 			screen.queryByLabelText( /Enable Agentic Commerce/i )
 		).not.toBeInTheDocument();
-		expect( onSettingsLoadMock ).toHaveBeenCalledWith( false );
+		expect(
+			screen.queryByRole( 'button', { name: /Save changes/i } )
+		).not.toBeInTheDocument();
 	} );
 
 	it( 'does not post settings via ref.current.save when initial settings fetch has failed', async () => {
@@ -1183,9 +1191,7 @@ describe( 'AgenticCommerceSection', () => {
 		expect( postCalls ).toHaveLength( 0 );
 	} );
 
-	it( 're-fetches settings when Retry button is clicked and shows the form on success', async () => {
-		const onSettingsLoadMock = jest.fn();
-
+	it( 're-fetches settings when Retry button is clicked and shows the form and Save button on success', async () => {
 		let callCount = 0;
 		apiFetch.mockImplementation( ( { path } ) => {
 			if ( path === '/wc/v3/wc_stripe/agentic-commerce/settings' ) {
@@ -1204,9 +1210,7 @@ describe( 'AgenticCommerceSection', () => {
 			return Promise.resolve( EMPTY_RESPONSE );
 		} );
 
-		render(
-			<AgenticCommerceSection onSettingsLoad={ onSettingsLoadMock } />
-		);
+		render( <AgenticCommerceSection /> );
 
 		const retryButton = await screen.findByRole( 'button', {
 			name: /Retry/i,
@@ -1230,12 +1234,12 @@ describe( 'AgenticCommerceSection', () => {
 				/Exclude products with add-ons or configurators from the feed/i
 			)
 		).toBeChecked();
-		expect( onSettingsLoadMock ).toHaveBeenCalledWith( true );
+		expect(
+			screen.getByRole( 'button', { name: /Save changes/i } )
+		).toBeInTheDocument();
 	} );
 
-	it( 'dispatches a success notice and saves all settings when saved after successful load', async () => {
-		const ref = { current: null };
-
+	it( 'dispatches a success notice and saves all settings when saved via Save changes button after successful load', async () => {
 		mockFetchByPath( EMPTY_RESPONSE, {
 			is_enabled: true,
 			disable_checkout: false,
@@ -1244,7 +1248,7 @@ describe( 'AgenticCommerceSection', () => {
 			webhook_secret: 'whsec_test',
 		} );
 
-		render( <AgenticCommerceSection ref={ ref } /> );
+		render( <AgenticCommerceSection /> );
 
 		await screen.findByLabelText( /Enable Agentic Commerce/i );
 
@@ -1270,8 +1274,12 @@ describe( 'AgenticCommerceSection', () => {
 			return Promise.resolve( EMPTY_RESPONSE );
 		} );
 
+		const saveButton = screen.getByRole( 'button', {
+			name: /Save changes/i,
+		} );
+
 		await act( async () => {
-			await ref.current.save();
+			fireEvent.click( saveButton );
 		} );
 
 		const postCall = apiFetch.mock.calls.find(
