@@ -25,6 +25,20 @@ class WC_Stripe_Account {
 	public const ACCOUNT_CACHE_EXPIRATION = 2 * HOUR_IN_SECONDS;
 
 	/**
+	 * Prefix of the transient, per mode, that pauses account requests after one fails.
+	 *
+	 * @var string
+	 */
+	private const ACCOUNT_FETCH_FAILED_TRANSIENT_PREFIX = 'wc_stripe_account_fetch_failed_';
+
+	/**
+	 * How long to wait after a failed account request before sending another one.
+	 *
+	 * @var int
+	 */
+	private const ACCOUNT_FETCH_RETRY_DELAY = MINUTE_IN_SECONDS;
+
+	/**
 	 * The transient key that was previously used to cache the live mode webhook status.
 	 *
 	 * @deprecated 11.0.0
@@ -139,6 +153,12 @@ class WC_Stripe_Account {
 			if ( ! empty( $account ) ) {
 				return $account;
 			}
+
+			// Each payment method reads the account data several times on one page load. Without
+			// this pause, a failing request (outage, timeout) is sent again for each of them.
+			if ( false !== get_transient( self::ACCOUNT_FETCH_FAILED_TRANSIENT_PREFIX . $mode ) ) {
+				return [];
+			}
 		}
 
 		return $this->cache_account( $mode );
@@ -171,8 +191,11 @@ class WC_Stripe_Account {
 		WC_Stripe_API::set_secret_key_for_mode();
 
 		if ( is_wp_error( $account ) || isset( $account->error->message ) ) {
+			set_transient( self::ACCOUNT_FETCH_FAILED_TRANSIENT_PREFIX . $mode, 1, self::ACCOUNT_FETCH_RETRY_DELAY );
 			return [];
 		}
+
+		delete_transient( self::ACCOUNT_FETCH_FAILED_TRANSIENT_PREFIX . $mode );
 
 		// Convert the account data to an array.
 		$account_cache = json_decode( wp_json_encode( $account ), true );
@@ -204,6 +227,8 @@ class WC_Stripe_Account {
 	public function clear_cache() {
 		WC_Stripe_Database_Cache::delete_with_mode( self::ACCOUNT_CACHE_KEY, 'live' );
 		WC_Stripe_Database_Cache::delete_with_mode( self::ACCOUNT_CACHE_KEY, 'test' );
+		delete_transient( self::ACCOUNT_FETCH_FAILED_TRANSIENT_PREFIX . 'live' );
+		delete_transient( self::ACCOUNT_FETCH_FAILED_TRANSIENT_PREFIX . 'test' );
 
 		$this->clear_webhook_status_cache();
 	}
