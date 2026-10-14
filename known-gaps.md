@@ -15,7 +15,7 @@ Temporary file for the draft PR. Remove before marking it ready for review.
 - A few thousand recovered events mean as many actions, the same as the deferred actions their webhooks would have created.
 - A thrown exception while processing is logged and counts as a failed attempt, so an exception that always repeats is retried until the 48 attempts run out.
 - `delivery_success=false` covers every endpoint on the account, so events that failed for another site or service on the same account are processed here too.
-- Lock rows left by requests that died are deleted by the cleanup job once they are past the 10-minute lock TTL, up to 100 per batch.
+- Lock rows left by requests that died are deleted by `WC_Stripe_Option_Lock`'s daily cleanup once they are a day old. Until then they block nothing, since a claim reclaims a lock past its 10-minute TTL.
 - Disabling the feature flag stops all processing and cleanup, but keeps the stored records until it is enabled again or the plugin is uninstalled with `WC_REMOVE_ALL_DATA`.
 - A webhook for an event another request is processing right now answers 409, so Stripe delivers it again later. It shows as a failed delivery in the Stripe dashboard and does not update the last webhook success time. Locks last at most 10 minutes, so this cannot add up to Stripe disabling the endpoint.
 - Deferred webhooks stay `processing` until the deferred job completes.

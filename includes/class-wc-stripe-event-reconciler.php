@@ -357,12 +357,12 @@ class WC_Stripe_Event_Reconciler {
 	}
 
 	/**
-	 * Schedules the deletion of expired records and event locks when there are any, unless it is already scheduled or running.
+	 * Schedules the deletion of expired records when there are any, unless it is already scheduled or running.
 	 *
 	 * Checked first, so runs with nothing to delete do not fill Action Scheduler with empty actions.
 	 */
 	public function schedule_cleanup(): void {
-		if ( ! $this->store->has_older_than( time() - self::RETENTION_PERIOD ) && ! WC_Stripe_Option_Lock::has_expired_by_prefix( self::LOCK_OPTION_PREFIX, self::LOCK_TTL ) ) {
+		if ( ! $this->store->has_older_than( time() - self::RETENTION_PERIOD ) ) {
 			return;
 		}
 
@@ -372,20 +372,19 @@ class WC_Stripe_Event_Reconciler {
 	}
 
 	/**
-	 * Deletes a batch of expired records and event locks, and schedules the next batch while there may be more.
+	 * Deletes a batch of expired records, and schedules the next batch while there may be more.
+	 *
+	 * Event locks left behind by requests that died are removed by WC_Stripe_Option_Lock's own daily cleanup.
 	 */
 	public function delete_expired_events(): void {
 		if ( ! WC_Stripe_Feature_Flags::is_event_reconciliation_enabled() ) {
 			return;
 		}
 
-		$deleted_records = $this->store->delete_older_than( time() - self::RETENTION_PERIOD, self::PAGE_SIZE );
-
-		// A lock is only reclaimed by the next claim of the same event, which never comes for most events.
-		$deleted_locks = WC_Stripe_Option_Lock::delete_expired_by_prefix( self::LOCK_OPTION_PREFIX, self::LOCK_TTL, self::PAGE_SIZE );
+		$deleted = $this->store->delete_older_than( time() - self::RETENTION_PERIOD, self::PAGE_SIZE );
 
 		// A full batch may have left more behind. Enqueued unconditionally, since the running action would count as already scheduled.
-		if ( $deleted_records >= self::PAGE_SIZE || $deleted_locks >= self::PAGE_SIZE ) {
+		if ( $deleted >= self::PAGE_SIZE ) {
 			as_enqueue_async_action( self::CLEANUP_ACTION, [], self::ACTION_GROUP );
 		}
 	}

@@ -19,6 +19,57 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class WC_Stripe_Option_Lock {
 
 	/**
+	 * Action Scheduler hook for the daily removal of abandoned lock rows.
+	 *
+	 * @var string
+	 */
+	public const CLEANUP_ACTION = 'wc_stripe_option_lock_cleanup';
+
+	/**
+	 * Fixed, full option names of locks that use this class.
+	 *
+	 * Matched by equality, so a look-alike option (e.g. `wc_stripe_agentic_sync_lock_backup`) is
+	 * never touched. Add any new lock with a single, fixed name here.
+	 *
+	 * @var string[]
+	 */
+	private const CLEANUP_LOCK_NAMES = [
+		'wc_stripe_agentic_sync_lock',
+	];
+
+	/**
+	 * Name prefixes of locks that use this class.
+	 *
+	 * A lock row stays behind when its request dies before `release()` (a fatal error, a timeout, a
+	 * killed process). Locks named per cart, session, or user are never acquired again under the
+	 * same name, so nothing else would ever remove those rows. Add the prefix of any new per-entity
+	 * lock here; the trailing separator keeps the match scoped to that lock family.
+	 *
+	 * @var string[]
+	 */
+	private const CLEANUP_LOCK_PREFIXES = [
+		'wc_stripe_checkout_session_lock_',
+		'wc_stripe_user_customer_lock_',
+		'wc_stripe_event_lock_',
+	];
+
+	/**
+	 * Age in seconds after which a lock row counts as abandoned.
+	 *
+	 * Far above every lock TTL (minutes), so the cleanup can never remove a lock that is still in use.
+	 *
+	 * @var int
+	 */
+	private const CLEANUP_STALE_AFTER = DAY_IN_SECONDS;
+
+	/**
+	 * Maximum rows removed per cleanup run; a full batch queues another run.
+	 *
+	 * @var int
+	 */
+	private const CLEANUP_BATCH_SIZE = 500;
+
+	/**
 	 * Attempts to acquire the lock.
 	 *
 	 * @param string $name The lock option name.
@@ -108,67 +159,147 @@ final class WC_Stripe_Option_Lock {
 	}
 
 	/**
-	 * Whether any lock whose name starts with the given prefix has been held for longer than the TTL.
+	 * Schedules the daily cleanup of abandoned lock rows, if it is not scheduled yet.
 	 *
-	 * @param string $prefix Start of the lock option names.
-	 * @param int    $ttl    Seconds after which a lock still held is treated as abandoned.
-	 * @return bool
+	 * @return void
 	 */
-	public static function has_expired_by_prefix( string $prefix, int $ttl ): bool {
-		global $wpdb;
+	public static function maybe_schedule_daily_cleanup(): void {
+		if ( ! did_action( 'action_scheduler_init' ) || ! function_exists( 'as_has_scheduled_action' ) || ! function_exists( 'as_schedule_recurring_action' ) ) {
+			return;
+		}
 
-		// The timestamp before the colon is the one acquire() compares with the TTL. A legacy bare timestamp has no colon.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$found = $wpdb->get_var(
-			$wpdb->prepare(
-				"SELECT 1 FROM {$wpdb->options} WHERE option_name LIKE %s AND CAST( SUBSTRING_INDEX( option_value, ':', 1 ) AS UNSIGNED ) <= %d LIMIT 1",
-				$wpdb->esc_like( $prefix ) . '%',
-				time() - $ttl
-			)
-		);
+		if ( as_has_scheduled_action( self::CLEANUP_ACTION, null ) ) {
+			return;
+		}
 
-		return null !== $found;
+		if ( 0 === as_schedule_recurring_action( strtotime( 'tomorrow 01:30' ), DAY_IN_SECONDS, self::CLEANUP_ACTION, [], 'woocommerce-gateway-stripe' ) ) {
+			WC_Stripe_Logger::error( 'Failed to schedule the daily option lock cleanup.' );
+		}
 	}
 
 	/**
-	 * Deletes locks whose name starts with the given prefix and that have been held for longer than the TTL.
+	 * Unschedules the daily cleanup of abandoned lock rows.
 	 *
-	 * For locks that are only reclaimed by the next acquire() of the same name, which may never come.
-	 *
-	 * @param string $prefix Start of the lock option names.
-	 * @param int    $ttl    Seconds after which a lock still held is treated as abandoned.
-	 * @param int    $limit  Maximum number of locks to delete.
-	 * @return int Number of locks deleted.
+	 * @return void
 	 */
-	public static function delete_expired_by_prefix( string $prefix, int $ttl, int $limit ): int {
+	public static function unschedule_daily_cleanup(): void {
+		if ( ! did_action( 'action_scheduler_init' ) || ! function_exists( 'as_unschedule_all_actions' ) ) {
+			return;
+		}
+
+		as_unschedule_all_actions( self::CLEANUP_ACTION, [], 'woocommerce-gateway-stripe' );
+	}
+
+	/**
+	 * Removes expired lock rows. Runs from the {@see self::CLEANUP_ACTION} action.
+	 *
+	 * @return void
+	 */
+	public static function cleanup_stale_locks(): void {
+		$deleted = self::delete_stale_locks( self::CLEANUP_BATCH_SIZE );
+
+		if ( 0 === $deleted ) {
+			return;
+		}
+
+		WC_Stripe_Logger::info( "Removed {$deleted} abandoned option lock rows." );
+
+		// A full batch may have left more rows behind; continue soon instead of waiting a day.
+		if ( $deleted >= self::CLEANUP_BATCH_SIZE && function_exists( 'as_enqueue_async_action' ) ) {
+			as_enqueue_async_action( self::CLEANUP_ACTION, [], 'woocommerce-gateway-stripe' );
+			WC_Stripe_Logger::info(
+				'Scheduling additional option lock cleanup batch.',
+				[
+					'deleted'    => $deleted,
+					'batch_size' => self::CLEANUP_BATCH_SIZE,
+				]
+			);
+		}
+	}
+
+	/**
+	 * Deletes lock rows whose timestamp is older than {@see self::CLEANUP_STALE_AFTER}.
+	 *
+	 * Each row is deleted only if it still holds the value that was read, so a lock acquired again
+	 * between the read and the delete is never removed.
+	 *
+	 * @param int $limit The maximum number of rows to delete.
+	 * @return int The number of rows deleted.
+	 */
+	public static function delete_stale_locks( int $limit ): int {
 		global $wpdb;
 
-		$expired_at = time() - $ttl;
-
-		// The same condition as in has_expired_by_prefix().
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$names = $wpdb->get_col(
-			$wpdb->prepare(
-				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND CAST( SUBSTRING_INDEX( option_value, ':', 1 ) AS UNSIGNED ) <= %d LIMIT %d",
-				$wpdb->esc_like( $prefix ) . '%',
-				$expired_at,
-				$limit
-			)
-		);
-
+		$cutoff  = time() - self::CLEANUP_STALE_AFTER;
 		$deleted = 0;
-		foreach ( $names as $name ) {
-			// Checked again in the delete, so a lock reclaimed since the select carries a new timestamp and is kept.
-			$deleted += (int) $wpdb->query(
+
+		// Fixed names are matched by equality so a look-alike option is never touched.
+		foreach ( self::CLEANUP_LOCK_NAMES as $name ) {
+			if ( $deleted >= $limit ) {
+				break;
+			}
+
+			// The value is `<timestamp>:<token>`, or a bare timestamp from an older deploy.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$rows = $wpdb->get_results(
 				$wpdb->prepare(
-					"DELETE FROM {$wpdb->options} WHERE option_name = %s AND CAST( SUBSTRING_INDEX( option_value, ':', 1 ) AS UNSIGNED ) <= %d",
+					"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name = %s AND CAST( SUBSTRING_INDEX( option_value, ':', 1 ) AS UNSIGNED ) < %d LIMIT %d",
 					$name,
-					$expired_at
+					$cutoff,
+					$limit - $deleted
 				)
 			);
-			self::forget_cached_option( $name );
+
+			$deleted += self::delete_lock_rows( is_array( $rows ) ? $rows : [] );
 		}
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+		// Per-entity locks are matched by prefix with a LIKE wildcard.
+		foreach ( self::CLEANUP_LOCK_PREFIXES as $prefix ) {
+			if ( $deleted >= $limit ) {
+				break;
+			}
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND CAST( SUBSTRING_INDEX( option_value, ':', 1 ) AS UNSIGNED ) < %d LIMIT %d",
+					$wpdb->esc_like( $prefix ) . '%',
+					$cutoff,
+					$limit - $deleted
+				)
+			);
+
+			$deleted += self::delete_lock_rows( is_array( $rows ) ? $rows : [] );
+		}
+
+		return $deleted;
+	}
+
+	/**
+	 * Deletes the given lock rows, each only if it still holds the value that was read.
+	 *
+	 * The value check means a lock acquired again between the read and the delete is never removed.
+	 *
+	 * @param \stdClass[] $rows Rows with `option_name` and `option_value`.
+	 * @return int The number of rows deleted.
+	 */
+	private static function delete_lock_rows( array $rows ): int {
+		global $wpdb;
+
+		$deleted = 0;
+		foreach ( $rows as $row ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$removed = $wpdb->delete(
+				$wpdb->options,
+				[
+					'option_name'  => $row->option_name,
+					'option_value' => $row->option_value,
+				]
+			);
+			if ( $removed ) {
+				self::forget_cached_option( $row->option_name );
+				++$deleted;
+			}
+		}
 
 		return $deleted;
 	}

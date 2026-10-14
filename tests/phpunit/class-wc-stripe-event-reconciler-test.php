@@ -391,20 +391,16 @@ class WC_Stripe_Event_Reconciler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Cleanup deletes records older than 30 days and expired lock rows, and keeps the rest.
+	 * Cleanup deletes records older than 30 days, and keeps the rest.
 	 */
 	public function test_delete_expired_events(): void {
 		$this->store->seed( $this->make_record( 'evt_1Expired', WC_Stripe_Event_Store_Interface::STATUS_PROCESSED, time() - 31 * DAY_IN_SECONDS ) );
 		$this->store->seed( $this->make_record( 'evt_1Recent', WC_Stripe_Event_Store_Interface::STATUS_PROCESSED, time() - DAY_IN_SECONDS ) );
-		add_option( self::LOCK_PREFIX . 'evt_1DeadLock', ( time() - 11 * MINUTE_IN_SECONDS ) . ':dead-request', '', false );
-		add_option( self::LOCK_PREFIX . 'evt_1LiveLock', ( time() - MINUTE_IN_SECONDS ) . ':live-request', '', false );
 
 		$this->reconciler->delete_expired_events();
 
 		$this->assertSame( [ 'evt_1Recent' ], array_keys( $this->store->records ) );
 		$this->assertEqualsWithDelta( time() - 30 * DAY_IN_SECONDS, $this->store->delete_older_than_calls[0][0], 5 );
-		$this->assertFalse( $this->read_lock( 'evt_1DeadLock' ) );
-		$this->assertNotFalse( $this->read_lock( 'evt_1LiveLock' ) );
 		$this->assertFalse( as_has_scheduled_action( WC_Stripe_Event_Reconciler::CLEANUP_ACTION, [], self::GROUP ), 'A partial batch schedules no follow-up.' );
 	}
 
