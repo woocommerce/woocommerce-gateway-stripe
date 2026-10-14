@@ -687,11 +687,8 @@ export default class WCStripeAPI {
 				? { ...address, phone }
 				: address;
 
-		// The order-pay route overwrites the order's saved addresses before
-		// validating them, checking both phones against the single checkout
-		// phone-field option — so an empty wallet phone would erase the saved
-		// one. Reuse the resolved billing phone for shipping, as cart/checkout
-		// do with the one wallet phone.
+		// The order-pay route replaces the saved addresses before validating them, so
+		// an empty wallet phone erases the saved one; fall back to the billing phone.
 		const billingAddress = withPhoneFallback(
 			paymentData.billing_address,
 			orderDetails.billingPhone
