@@ -20,7 +20,9 @@ import {
 	TextControl,
 	ExternalLink,
 	Card,
+	Button,
 } from '@wordpress/components';
+import { dispatch } from '@wordpress/data';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import { useAccount } from 'wcstripe/data/account';
 import { useTestMode } from 'wcstripe/data';
@@ -64,6 +66,7 @@ const AgenticCommerceDescription = () => (
 );
 
 const AgenticCommerceSection = forwardRef( ( props, ref ) => {
+	const { onSettingsLoad } = props;
 	const [ isFeatureEnabled, setIsFeatureEnabled ] = useState( false );
 	const [ disableCheckout, setDisableCheckout ] = useState( false );
 	const [ autoExcludeAddons, setAutoExcludeAddons ] = useState( false );
@@ -73,12 +76,7 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 	const [ savedWebhookSecret, setSavedWebhookSecret ] = useState( '' );
 	const [ isLoadingSettings, setIsLoadingSettings ] = useState( true );
 	const [ hasLoadedSettings, setHasLoadedSettings ] = useState( false );
-	const [ hasEditedAutoExcludeAddons, setHasEditedAutoExcludeAddons ] =
-		useState( false );
-	const [
-		hasEditedAutoRedirectCheckoutAddons,
-		setHasEditedAutoRedirectCheckoutAddons,
-	] = useState( false );
+	const [ settingsFetchError, setSettingsFetchError ] = useState( null );
 	const [ settingsNotice, setSettingsNotice ] = useState( null );
 
 	const [ isTestMode ] = useTestMode();
@@ -100,6 +98,8 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 
 	const fetchSettings = useCallback( async () => {
 		setIsLoadingSettings( true );
+		setSettingsFetchError( null );
+		onSettingsLoad?.( false );
 		try {
 			const result = await apiFetch( {
 				path: '/wc/v3/wc_stripe/agentic-commerce/settings',
@@ -113,19 +113,30 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			setWebhookSecret( result.webhook_secret ?? '' );
 			setSavedWebhookSecret( result.webhook_secret ?? '' );
 			setHasLoadedSettings( true );
-		} catch {
-			// Settings fetch failure is non-fatal; defaults remain.
+			onSettingsLoad?.( true );
+		} catch ( err ) {
 			setHasLoadedSettings( false );
+			setSettingsFetchError(
+				err?.message ??
+					__(
+						'Failed to load Agentic Commerce settings.',
+						'woocommerce-gateway-stripe'
+					)
+			);
+			onSettingsLoad?.( false );
 		} finally {
 			setIsLoadingSettings( false );
 		}
-	}, [] );
+	}, [ onSettingsLoad ] );
 
 	useEffect( () => {
 		fetchSettings();
 	}, [ fetchSettings ] );
 
 	const handleSaveSettings = useCallback( async () => {
+		if ( ! hasLoadedSettings ) {
+			return;
+		}
 		setSettingsNotice( null );
 		try {
 			const result = await apiFetch( {
@@ -134,20 +145,8 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 				data: {
 					is_enabled: isFeatureEnabled,
 					disable_checkout: disableCheckout,
-					// Skip a toggle until it loads or the merchant changes it, so a failed
-					// initial GET can't overwrite enabled server options with false.
-					...( hasLoadedSettings || hasEditedAutoExcludeAddons
-						? {
-								auto_exclude_addons: autoExcludeAddons,
-						  }
-						: {} ),
-					...( hasLoadedSettings ||
-					hasEditedAutoRedirectCheckoutAddons
-						? {
-								auto_redirect_checkout_addons:
-									autoRedirectCheckoutAddons,
-						  }
-						: {} ),
+					auto_exclude_addons: autoExcludeAddons,
+					auto_redirect_checkout_addons: autoRedirectCheckoutAddons,
 					webhook_secret: webhookSecret,
 				},
 			} );
@@ -160,7 +159,9 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			setWebhookSecret( result.webhook_secret ?? '' );
 			setSavedWebhookSecret( result.webhook_secret ?? '' );
 			setHasLoadedSettings( true );
-			// No success notice: the global Save changes flow already shows a page-level toast.
+			dispatch( 'core/notices' ).createSuccessNotice(
+				__( 'Settings saved.', 'woocommerce-gateway-stripe' )
+			);
 		} catch ( err ) {
 			setSettingsNotice( {
 				status: 'error',
@@ -173,13 +174,11 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			} );
 		}
 	}, [
+		hasLoadedSettings,
 		isFeatureEnabled,
 		disableCheckout,
 		autoExcludeAddons,
 		autoRedirectCheckoutAddons,
-		hasEditedAutoExcludeAddons,
-		hasEditedAutoRedirectCheckoutAddons,
-		hasLoadedSettings,
 		webhookSecret,
 	] );
 
@@ -192,6 +191,226 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 		} ),
 		[ handleSaveSettings ]
 	);
+
+	const renderCardContent = () => {
+		if ( isLoadingSettings ) {
+			return (
+				<p>{ __( 'Loading\u2026', 'woocommerce-gateway-stripe' ) }</p>
+			);
+		}
+
+		if ( settingsFetchError ) {
+			return (
+				<>
+					<Notice
+						status="error"
+						isDismissible={ false }
+						style={ { marginBottom: '16px' } }
+					>
+						{ settingsFetchError }
+					</Notice>
+					<Button isSecondary onClick={ fetchSettings }>
+						{ __( 'Retry', 'woocommerce-gateway-stripe' ) }
+					</Button>
+				</>
+			);
+		}
+
+		return (
+			<>
+				<CheckboxControl
+					label={ __(
+						'Enable Agentic Commerce',
+						'woocommerce-gateway-stripe'
+					) }
+					help={ __(
+						'When enabled, your product catalog will be synced to Stripe and AI agents will be able to purchase on behalf of your customers.',
+						'woocommerce-gateway-stripe'
+					) }
+					checked={ isFeatureEnabled }
+					onChange={ setIsFeatureEnabled }
+				/>
+
+				{ isFeatureEnabled && (
+					<CheckboxControl
+						label={ __(
+							'Redirect shoppers to my store to check out',
+							'woocommerce-gateway-stripe'
+						) }
+						help={ __(
+							'When enabled, agents send shoppers to the product page on your store to complete checkout instead of purchasing in the agent. Your products are still discoverable in the agent.',
+							'woocommerce-gateway-stripe'
+						) }
+						checked={ disableCheckout }
+						onChange={ setDisableCheckout }
+					/>
+				) }
+
+				{ isFeatureEnabled && (
+					<p>
+						{ interpolateComponents( {
+							mixedString: __(
+								'To keep specific products out of the catalog, exclude them on the Products screen — individually, via Quick Edit, or with the bulk actions. {{excludedLink}}View excluded products{{/excludedLink}}',
+								'woocommerce-gateway-stripe'
+							),
+							components: {
+								excludedLink: (
+									// eslint-disable-next-line jsx-a11y/anchor-has-content
+									<a
+										href={
+											window.wc_stripe_settings_params
+												?.agentic_commerce_excluded_products_url ||
+											'edit.php?post_type=product&wc_stripe_agentic_sync_status=excluded'
+										}
+									/>
+								),
+							},
+						} ) }
+					</p>
+				) }
+
+				{ isFeatureEnabled && (
+					<CheckboxControl
+						label={ __(
+							'Exclude products with add-ons or configurators from the feed',
+							'woocommerce-gateway-stripe'
+						) }
+						help={ __(
+							"Products built with add-on or configurator plugins (Product Add-Ons, Extra Product Options, Composite Products, individually-priced Bundles) have prices that depend on shopper choices, which the feed can't represent. When this option is enabled, those products are excluded from the Stripe agentic product catalog.",
+							'woocommerce-gateway-stripe'
+						) }
+						checked={ autoExcludeAddons }
+						onChange={ setAutoExcludeAddons }
+					/>
+				) }
+
+				{ isFeatureEnabled && (
+					<CheckboxControl
+						label={ __(
+							'Redirect shoppers to my store for products with add-ons or configurators',
+							'woocommerce-gateway-stripe'
+						) }
+						help={
+							autoExcludeAddons
+								? __(
+										'Add-on / configurator products are excluded from the feed above, so this redirect option does not apply to the excluded products.',
+										'woocommerce-gateway-stripe'
+								  )
+								: __(
+										'For included add-on / configurator products, ensure that Stripe redirects shoppers to your store to configure the products and make purchases.',
+										'woocommerce-gateway-stripe'
+								  )
+						}
+						checked={ autoRedirectCheckoutAddons }
+						disabled={ autoExcludeAddons }
+						onChange={ setAutoRedirectCheckoutAddons }
+					/>
+				) }
+
+				{ isFeatureEnabled && (
+					<>
+						<HorizontalRule
+							className="wcstripe-agentic-commerce-onboarding__separator"
+							style={ { margin: '24px 0' } }
+						/>
+						<p>
+							<strong>
+								{ __(
+									'Getting started',
+									'woocommerce-gateway-stripe'
+								) }
+							</strong>
+						</p>
+
+						<OnboardingSteps>
+							<li>
+								{ interpolateComponents( {
+									mixedString: __(
+										'Log into your {{agenticLink}}Stripe Dashboard{{/agenticLink}} and go to {{strong}}Payments > Agentic commerce{{/strong}}',
+										'woocommerce-gateway-stripe'
+									),
+									components: {
+										agenticLink: (
+											<ExternalLink
+												href={ agenticCommerceUrl }
+											/>
+										),
+										strong: <strong />,
+									},
+								} ) }
+							</li>
+							<li>
+								{ __(
+									'Follow the setup instructions to enable the feature',
+									'woocommerce-gateway-stripe'
+								) }
+							</li>
+							<li>
+								{ webhookURLForDisplay
+									? interpolateComponents( {
+											mixedString: sprintf(
+												/* translators: %s: the site's URL where webhooks will be sent.*/
+												__(
+													'Set endpoint URL as {{webhookURL}}%s{{/webhookURL}} {{copyButton/}}',
+													'woocommerce-gateway-stripe'
+												),
+												decodeURIComponent(
+													webhookURLForDisplay
+												)
+											),
+											components: {
+												webhookURL: <strong />,
+												copyButton: (
+													<CopyButton
+														text={ decodeURIComponent(
+															webhookURLForDisplay
+														) }
+													/>
+												),
+											},
+									  } )
+									: interpolateComponents( {
+											mixedString: __(
+												'Set up webhooks in {{strong}}Account details{{/strong}} on the Settings tab, then set endpoint URL to your webhook URL',
+												'woocommerce-gateway-stripe'
+											),
+											components: {
+												strong: <strong />,
+											},
+									  } ) }
+							</li>
+							<li>
+								{ interpolateComponents( {
+									mixedString: __(
+										'Go to {{strong}}Developers > Webhooks{{/strong}} and copy and paste the webhook secret into the field below',
+										'woocommerce-gateway-stripe'
+									),
+									components: {
+										strong: <strong />,
+									},
+								} ) }
+							</li>
+						</OnboardingSteps>
+
+						<TextControl
+							label={ __(
+								'Agentic Commerce webhook secret',
+								'woocommerce-gateway-stripe'
+							) }
+							help={ __(
+								'Get the webhook signing secret in the Stripe dashboard to enable this feature.',
+								'woocommerce-gateway-stripe'
+							) }
+							type="password"
+							value={ webhookSecret }
+							onChange={ setWebhookSecret }
+							autoComplete="off"
+						/>
+					</>
+				) }
+			</>
+		);
+	};
 
 	return (
 		<SettingsSection Description={ AgenticCommerceDescription }>
@@ -209,239 +428,21 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 							</Notice>
 						) }
 
-						{ isLoadingSettings ? (
-							<p>
-								{ __(
-									'Loading\u2026',
-									'woocommerce-gateway-stripe'
-								) }
-							</p>
-						) : (
-							<>
-								<CheckboxControl
-									label={ __(
-										'Enable Agentic Commerce',
-										'woocommerce-gateway-stripe'
-									) }
-									help={ __(
-										'When enabled, your product catalog will be synced to Stripe and AI agents will be able to purchase on behalf of your customers.',
-										'woocommerce-gateway-stripe'
-									) }
-									checked={ isFeatureEnabled }
-									onChange={ setIsFeatureEnabled }
-								/>
-
-								{ isFeatureEnabled && (
-									<CheckboxControl
-										label={ __(
-											'Redirect shoppers to my store to check out',
-											'woocommerce-gateway-stripe'
-										) }
-										help={ __(
-											'When enabled, agents send shoppers to the product page on your store to complete checkout instead of purchasing in the agent. Your products are still discoverable in the agent.',
-											'woocommerce-gateway-stripe'
-										) }
-										checked={ disableCheckout }
-										onChange={ setDisableCheckout }
-									/>
-								) }
-
-								{ isFeatureEnabled && (
-									<p>
-										{ interpolateComponents( {
-											mixedString: __(
-												'To keep specific products out of the catalog, exclude them on the Products screen — individually, via Quick Edit, or with the bulk actions. {{excludedLink}}View excluded products{{/excludedLink}}',
-												'woocommerce-gateway-stripe'
-											),
-											components: {
-												excludedLink: (
-													// eslint-disable-next-line jsx-a11y/anchor-has-content
-													<a
-														href={
-															window
-																.wc_stripe_settings_params
-																?.agentic_commerce_excluded_products_url ||
-															'edit.php?post_type=product&wc_stripe_agentic_sync_status=excluded'
-														}
-													/>
-												),
-											},
-										} ) }
-									</p>
-								) }
-
-								{ isFeatureEnabled && (
-									<CheckboxControl
-										label={ __(
-											'Exclude products with add-ons or configurators from the feed',
-											'woocommerce-gateway-stripe'
-										) }
-										help={ __(
-											"Products built with add-on or configurator plugins (Product Add-Ons, Extra Product Options, Composite Products, individually-priced Bundles) have prices that depend on shopper choices, which the feed can't represent. When this option is enabled, those products are excluded from the Stripe agentic product catalog.",
-											'woocommerce-gateway-stripe'
-										) }
-										checked={ autoExcludeAddons }
-										onChange={ ( value ) => {
-											setAutoExcludeAddons( value );
-											setHasEditedAutoExcludeAddons(
-												true
-											);
-										} }
-									/>
-								) }
-
-								{ isFeatureEnabled && (
-									<CheckboxControl
-										label={ __(
-											'Redirect shoppers to my store for products with add-ons or configurators',
-											'woocommerce-gateway-stripe'
-										) }
-										help={
-											autoExcludeAddons
-												? __(
-														'Add-on / configurator products are excluded from the feed above, so this redirect option does not apply to the excluded products.',
-														'woocommerce-gateway-stripe'
-												  )
-												: __(
-														'For included add-on / configurator products, ensure that Stripe redirects shoppers to your store to configure the products and make purchases.',
-														'woocommerce-gateway-stripe'
-												  )
-										}
-										checked={ autoRedirectCheckoutAddons }
-										disabled={ autoExcludeAddons }
-										onChange={ ( value ) => {
-											setAutoRedirectCheckoutAddons(
-												value
-											);
-											setHasEditedAutoRedirectCheckoutAddons(
-												true
-											);
-										} }
-									/>
-								) }
-
-								{ isFeatureEnabled && (
-									<>
-										<HorizontalRule
-											className="wcstripe-agentic-commerce-onboarding__separator"
-											style={ { margin: '24px 0' } }
-										/>
-										<p>
-											<strong>
-												{ __(
-													'Getting started',
-													'woocommerce-gateway-stripe'
-												) }
-											</strong>
-										</p>
-
-										<OnboardingSteps>
-											<li>
-												{ interpolateComponents( {
-													mixedString: __(
-														'Log into your {{agenticLink}}Stripe Dashboard{{/agenticLink}} and go to {{strong}}Payments > Agentic commerce{{/strong}}',
-														'woocommerce-gateway-stripe'
-													),
-													components: {
-														agenticLink: (
-															<ExternalLink
-																href={
-																	agenticCommerceUrl
-																}
-															/>
-														),
-														strong: <strong />,
-													},
-												} ) }
-											</li>
-											<li>
-												{ __(
-													'Follow the setup instructions to enable the feature',
-													'woocommerce-gateway-stripe'
-												) }
-											</li>
-											<li>
-												{ webhookURLForDisplay
-													? interpolateComponents( {
-															mixedString:
-																sprintf(
-																	/* translators: %s: the site's URL where webhooks will be sent.*/
-																	__(
-																		'Set endpoint URL as {{webhookURL}}%s{{/webhookURL}} {{copyButton/}}',
-																		'woocommerce-gateway-stripe'
-																	),
-																	decodeURIComponent(
-																		webhookURLForDisplay
-																	)
-																),
-															components: {
-																webhookURL: (
-																	<strong />
-																),
-																copyButton: (
-																	<CopyButton
-																		text={ decodeURIComponent(
-																			webhookURLForDisplay
-																		) }
-																	/>
-																),
-															},
-													  } )
-													: interpolateComponents( {
-															mixedString: __(
-																'Set up webhooks in {{strong}}Account details{{/strong}} on the Settings tab, then set endpoint URL to your webhook URL',
-																'woocommerce-gateway-stripe'
-															),
-															components: {
-																strong: (
-																	<strong />
-																),
-															},
-													  } ) }
-											</li>
-											<li>
-												{ interpolateComponents( {
-													mixedString: __(
-														'Go to {{strong}}Developers > Webhooks{{/strong}} and copy and paste the webhook secret into the field below',
-														'woocommerce-gateway-stripe'
-													),
-													components: {
-														strong: <strong />,
-													},
-												} ) }
-											</li>
-										</OnboardingSteps>
-
-										<TextControl
-											label={ __(
-												'Agentic Commerce webhook secret',
-												'woocommerce-gateway-stripe'
-											) }
-											help={ __(
-												'Get the webhook signing secret in the Stripe dashboard to enable this feature.',
-												'woocommerce-gateway-stripe'
-											) }
-											type="password"
-											value={ webhookSecret }
-											onChange={ setWebhookSecret }
-											autoComplete="off"
-										/>
-									</>
-								) }
-							</>
-						) }
+						{ renderCardContent() }
 					</CardBody>
 				</Card>
 			</LoadableSettingsSection>
 
-			{ isFeatureEnabled && (
+			{ hasLoadedSettings && isFeatureEnabled && (
 				<AgenticCommerceSyncStatus
 					isOnboardingComplete={ isOnboardingComplete }
 					hasUnsavedWebhookSecret={ hasUnsavedWebhookSecret }
 				/>
 			) }
 
-			{ isFeatureEnabled && <AgenticCommerceFeedPreview /> }
+			{ hasLoadedSettings && isFeatureEnabled && (
+				<AgenticCommerceFeedPreview />
+			) }
 		</SettingsSection>
 	);
 } );

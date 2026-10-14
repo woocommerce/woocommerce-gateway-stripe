@@ -813,7 +813,9 @@ describe( 'AgenticCommerceSection', () => {
 		expect( typeof ref.current.save ).toBe( 'function' );
 
 		// Trigger save via ref.
-		await ref.current.save();
+		await act( async () => {
+			await ref.current.save();
+		} );
 
 		expect( apiFetch ).toHaveBeenCalledWith(
 			expect.objectContaining( {
@@ -848,7 +850,9 @@ describe( 'AgenticCommerceSection', () => {
 			expect( ref.current ).not.toBeNull();
 		} );
 
-		await ref.current.save();
+		await act( async () => {
+			await ref.current.save();
+		} );
 
 		await waitFor( () => {
 			expect(
@@ -882,7 +886,9 @@ describe( 'AgenticCommerceSection', () => {
 			expect( ref.current ).not.toBeNull();
 		} );
 
-		await ref.current.save();
+		await act( async () => {
+			await ref.current.save();
+		} );
 
 		await waitFor( () => {
 			expect(
@@ -1115,85 +1121,55 @@ describe( 'AgenticCommerceSection', () => {
 		);
 	} );
 
-	it( 'omits add-on toggles from the save payload when the initial settings fetch fails', async () => {
-		const ref = { current: null };
+	it( 'shows an error notice with Retry button and hides the form when the initial settings fetch fails', async () => {
+		const onSettingsLoadMock = jest.fn();
 
-		apiFetch.mockImplementation( ( { path, method } ) => {
-			if (
-				method === 'POST' &&
-				path === '/wc/v3/wc_stripe/agentic-commerce/settings'
-			) {
-				return Promise.resolve( {
-					is_enabled: false,
-					auto_exclude_addons: true,
-					auto_redirect_checkout_addons: true,
-					webhook_secret: '',
-				} );
-			}
+		apiFetch.mockImplementation( ( { path } ) => {
 			if ( path === '/wc/v3/wc_stripe/agentic-commerce/settings' ) {
-				return Promise.reject( { message: 'Network error' } );
+				return Promise.reject( {
+					message: 'Network error loading settings',
+				} );
 			}
 			return Promise.resolve( EMPTY_RESPONSE );
 		} );
 
-		render( <AgenticCommerceSection ref={ ref } /> );
-
-		await screen.findByLabelText( /Enable Agentic Commerce/i );
-
-		await act( async () => {
-			await ref.current.save();
-		} );
-
-		const postCall = apiFetch.mock.calls.find(
-			( [ call ] ) =>
-				call.method === 'POST' &&
-				call.path === '/wc/v3/wc_stripe/agentic-commerce/settings'
-		)?.[ 0 ];
-
-		expect( postCall ).toBeDefined();
-		expect( postCall.data ).not.toHaveProperty( 'auto_exclude_addons' );
-		expect( postCall.data ).not.toHaveProperty(
-			'auto_redirect_checkout_addons'
+		render(
+			<AgenticCommerceSection onSettingsLoad={ onSettingsLoadMock } />
 		);
-	} );
 
-	it( 'includes add-on toggles on subsequent saves after a save response hydrates settings following a failed initial fetch', async () => {
-		const ref = { current: null };
-
-		apiFetch.mockImplementation( ( { path, method } ) => {
-			if (
-				method === 'POST' &&
-				path === '/wc/v3/wc_stripe/agentic-commerce/settings'
-			) {
-				return Promise.resolve( {
-					is_enabled: true,
-					auto_exclude_addons: true,
-					auto_redirect_checkout_addons: false,
-					webhook_secret: '',
-				} );
-			}
-			if ( path === '/wc/v3/wc_stripe/agentic-commerce/settings' ) {
-				return Promise.reject( { message: 'Network error' } );
-			}
-			return Promise.resolve( EMPTY_RESPONSE );
-		} );
-
-		render( <AgenticCommerceSection ref={ ref } /> );
-
-		await screen.findByLabelText( /Enable Agentic Commerce/i );
-
-		// First save omits add-on toggles and hydrates state from the POST response.
-		await act( async () => {
-			await ref.current.save();
+		await waitFor( () => {
+			expect(
+				screen.getAllByText( 'Network error loading settings' ).length
+			).toBeGreaterThanOrEqual( 1 );
 		} );
 
 		expect(
-			screen.getByLabelText(
-				/Exclude products with add-ons or configurators from the feed/i
-			)
-		).toBeChecked();
+			screen.getByRole( 'button', { name: /Retry/i } )
+		).toBeInTheDocument();
+		expect(
+			screen.queryByLabelText( /Enable Agentic Commerce/i )
+		).not.toBeInTheDocument();
+		expect( onSettingsLoadMock ).toHaveBeenCalledWith( false );
+	} );
 
-		// Second save includes the hydrated add-on toggle state.
+	it( 'does not post settings via ref.current.save when initial settings fetch has failed', async () => {
+		const ref = { current: null };
+
+		apiFetch.mockImplementation( ( { path } ) => {
+			if ( path === '/wc/v3/wc_stripe/agentic-commerce/settings' ) {
+				return Promise.reject( { message: 'Network error' } );
+			}
+			return Promise.resolve( EMPTY_RESPONSE );
+		} );
+
+		render( <AgenticCommerceSection ref={ ref } /> );
+
+		await waitFor( () => {
+			expect(
+				screen.getByRole( 'button', { name: /Retry/i } )
+			).toBeInTheDocument();
+		} );
+
 		await act( async () => {
 			await ref.current.save();
 		} );
@@ -1204,17 +1180,78 @@ describe( 'AgenticCommerceSection', () => {
 				call.path === '/wc/v3/wc_stripe/agentic-commerce/settings'
 		);
 
-		expect( postCalls ).toHaveLength( 2 );
-		expect( postCalls[ 1 ][ 0 ].data ).toEqual(
-			expect.objectContaining( {
-				auto_exclude_addons: true,
-				auto_redirect_checkout_addons: false,
-			} )
-		);
+		expect( postCalls ).toHaveLength( 0 );
 	} );
 
-	it( 'includes an explicitly edited add-on toggle in the first save payload after the initial settings fetch fails and preserves the selection', async () => {
+	it( 're-fetches settings when Retry button is clicked and shows the form on success', async () => {
+		const onSettingsLoadMock = jest.fn();
+
+		let callCount = 0;
+		apiFetch.mockImplementation( ( { path } ) => {
+			if ( path === '/wc/v3/wc_stripe/agentic-commerce/settings' ) {
+				callCount++;
+				if ( callCount === 1 ) {
+					return Promise.reject( { message: 'Server unavailable' } );
+				}
+				return Promise.resolve( {
+					is_enabled: true,
+					disable_checkout: false,
+					auto_exclude_addons: true,
+					auto_redirect_checkout_addons: false,
+					webhook_secret: 'whsec_test',
+				} );
+			}
+			return Promise.resolve( EMPTY_RESPONSE );
+		} );
+
+		render(
+			<AgenticCommerceSection onSettingsLoad={ onSettingsLoadMock } />
+		);
+
+		const retryButton = await screen.findByRole( 'button', {
+			name: /Retry/i,
+		} );
+
+		await act( async () => {
+			fireEvent.click( retryButton );
+		} );
+
+		await waitFor( () => {
+			expect(
+				screen.getByLabelText( /Enable Agentic Commerce/i )
+			).toBeInTheDocument();
+		} );
+
+		expect(
+			screen.queryByRole( 'button', { name: /Retry/i } )
+		).not.toBeInTheDocument();
+		expect(
+			screen.getByLabelText(
+				/Exclude products with add-ons or configurators from the feed/i
+			)
+		).toBeChecked();
+		expect( onSettingsLoadMock ).toHaveBeenCalledWith( true );
+	} );
+
+	it( 'dispatches a success notice and saves all settings when saved after successful load', async () => {
 		const ref = { current: null };
+
+		mockFetchByPath( EMPTY_RESPONSE, {
+			is_enabled: true,
+			disable_checkout: false,
+			auto_exclude_addons: false,
+			auto_redirect_checkout_addons: false,
+			webhook_secret: 'whsec_test',
+		} );
+
+		render( <AgenticCommerceSection ref={ ref } /> );
+
+		await screen.findByLabelText( /Enable Agentic Commerce/i );
+
+		const excludeCheckbox = screen.getByLabelText(
+			/Exclude products with add-ons or configurators from the feed/i
+		);
+		fireEvent.click( excludeCheckbox );
 
 		apiFetch.mockImplementation( ( { path, method, data } ) => {
 			if (
@@ -1223,30 +1260,15 @@ describe( 'AgenticCommerceSection', () => {
 			) {
 				return Promise.resolve( {
 					is_enabled: data.is_enabled,
-					auto_exclude_addons: data.auto_exclude_addons ?? false,
+					disable_checkout: data.disable_checkout,
+					auto_exclude_addons: data.auto_exclude_addons,
 					auto_redirect_checkout_addons:
-						data.auto_redirect_checkout_addons ?? false,
-					webhook_secret: '',
+						data.auto_redirect_checkout_addons,
+					webhook_secret: data.webhook_secret,
 				} );
-			}
-			if ( path === '/wc/v3/wc_stripe/agentic-commerce/settings' ) {
-				return Promise.reject( { message: 'Network error' } );
 			}
 			return Promise.resolve( EMPTY_RESPONSE );
 		} );
-
-		render( <AgenticCommerceSection ref={ ref } /> );
-
-		const enableCheckbox = await screen.findByLabelText(
-			/Enable Agentic Commerce/i
-		);
-		fireEvent.click( enableCheckbox );
-
-		const redirectAddonsCheckbox = screen.getByLabelText(
-			/Redirect shoppers to my store for products with add-ons or configurators/i
-		);
-		fireEvent.click( redirectAddonsCheckbox );
-		expect( redirectAddonsCheckbox ).toBeChecked();
 
 		await act( async () => {
 			await ref.current.save();
@@ -1259,17 +1281,16 @@ describe( 'AgenticCommerceSection', () => {
 		)?.[ 0 ];
 
 		expect( postCall ).toBeDefined();
-		expect( postCall.data ).toEqual(
-			expect.objectContaining( {
-				is_enabled: true,
-				auto_redirect_checkout_addons: true,
-			} )
+		expect( postCall.data ).toEqual( {
+			is_enabled: true,
+			disable_checkout: false,
+			auto_exclude_addons: true,
+			auto_redirect_checkout_addons: false,
+			webhook_secret: 'whsec_test',
+		} );
+
+		expect( mockCreateSuccessNotice ).toHaveBeenCalledWith(
+			'Settings saved.'
 		);
-		expect( postCall.data ).not.toHaveProperty( 'auto_exclude_addons' );
-		expect(
-			screen.getByLabelText(
-				/Redirect shoppers to my store for products with add-ons or configurators/i
-			)
-		).toBeChecked();
 	} );
 } );

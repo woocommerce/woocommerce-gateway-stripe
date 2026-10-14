@@ -1,14 +1,24 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { getQuery } from '@woocommerce/navigation';
 import SettingsManager from '..';
+import SaveSettingsSection from '../../save-settings-section';
+import AgenticCommerceSection from '../../agentic-commerce';
 
 jest.mock( '../../payment-settings' );
 
 jest.mock( '../../payment-methods' );
 
-jest.mock( '../../agentic-commerce' );
+jest.mock( '../../agentic-commerce', () => {
+	const React = require( 'react' );
+	const Mock = jest.fn();
+	const ForwardedMock = React.forwardRef( ( props, ref ) =>
+		Mock( props, ref )
+	);
+	ForwardedMock.mockImplementation = Mock.mockImplementation.bind( Mock );
+	return ForwardedMock;
+} );
 
-jest.mock( '../../save-settings-section' );
+jest.mock( '../../save-settings-section', () => jest.fn() );
 
 jest.mock( 'wcstripe/data', () => ( {
 	useEnabledPaymentMethodIds: jest.fn().mockReturnValue( [ [], jest.fn() ] ),
@@ -155,5 +165,38 @@ describe( 'SettingsManager', () => {
 		await waitFor( () => {
 			expect( screen.queryByTestId( 'methods-tab' ) ).toBeInTheDocument();
 		} );
+	} );
+
+	it( 'renders SaveSettingsSection on the agentic tab only when onSettingsLoad(true) is fired', async () => {
+		global.wc_stripe_settings_params = {
+			...BASE_PARAMS,
+			is_agentic_commerce_enabled: true,
+		};
+		getQuery.mockReturnValue( { panel: 'agentic-commerce' } );
+
+		SaveSettingsSection.mockImplementation( () => (
+			<button>Save changes</button>
+		) );
+
+		AgenticCommerceSection.mockImplementation( ( { onSettingsLoad } ) => {
+			return (
+				<div>
+					<button onClick={ () => onSettingsLoad( true ) }>
+						Simulate Load Success
+					</button>
+				</div>
+			);
+		} );
+
+		render( <SettingsManager /> );
+
+		// Initially not loaded, so Save changes button should not be in the document.
+		expect( screen.queryByText( 'Save changes' ) ).not.toBeInTheDocument();
+
+		// Trigger load success.
+		fireEvent.click( screen.getByText( 'Simulate Load Success' ) );
+
+		// Now Save changes should be rendered.
+		expect( screen.getByText( 'Save changes' ) ).toBeInTheDocument();
 	} );
 } );

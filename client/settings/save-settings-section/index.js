@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from '@emotion/styled';
 import SettingsSection from '../settings-section';
 import { useSettings } from '../../data';
@@ -11,16 +11,34 @@ const SaveSettingsSectionWrapper = styled( SettingsSection )`
 
 const SaveSettingsSection = ( { onSettingsSave, agenticSaveRef } ) => {
 	const { saveSettings, isSaving, isLoading } = useSettings();
+	const [ isSavingAgentic, setIsSavingAgentic ] = useState( false );
+
+	const isAgenticTab = Boolean( agenticSaveRef );
 
 	const onClickHandler = async () => {
-		await saveSettings();
-		if ( agenticSaveRef?.current?.save ) {
-			await agenticSaveRef.current.save();
+		if ( isAgenticTab ) {
+			if ( agenticSaveRef?.current?.save ) {
+				setIsSavingAgentic( true );
+				try {
+					await agenticSaveRef.current.save();
+				} finally {
+					setIsSavingAgentic( false );
+				}
+			}
+			if ( onSettingsSave ) {
+				onSettingsSave();
+			}
+			return;
 		}
+
+		await saveSettings();
 		if ( onSettingsSave ) {
 			onSettingsSave();
 		}
 	};
+
+	const isBusy = isAgenticTab ? isSavingAgentic : isSaving;
+	const isDisabled = isAgenticTab ? isSavingAgentic : isSaving || isLoading;
 
 	return (
 		// The 'submit' class is used by WC core to clear unsaved changes warnings.
@@ -28,8 +46,8 @@ const SaveSettingsSection = ( { onSettingsSave, agenticSaveRef } ) => {
 		<SaveSettingsSectionWrapper className="submit">
 			<Button
 				isPrimary
-				isBusy={ isSaving }
-				disabled={ isSaving || isLoading }
+				isBusy={ isBusy }
+				disabled={ isDisabled }
 				onClick={ onClickHandler }
 			>
 				{ __( 'Save changes', 'woocommerce-gateway-stripe' ) }

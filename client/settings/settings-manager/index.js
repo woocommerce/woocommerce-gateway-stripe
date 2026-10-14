@@ -53,6 +53,8 @@ const SettingsManager = () => {
 		wc_stripe_settings_params?.is_agentic_commerce_enabled; // eslint-disable-line camelcase
 
 	const agenticSaveRef = useRef( null );
+	const [ canSaveAgenticSettings, setCanSaveAgenticSettings ] =
+		useState( false );
 
 	const { settings, isLoading } = useSettings();
 	const [ initialSettings, setInitialSettings ] = useState( settings );
@@ -160,16 +162,22 @@ const SettingsManager = () => {
 							/>
 						) }
 						{ tab.name === 'agentic-commerce' && (
-							<AgenticCommerceSection ref={ agenticSaveRef } />
+							<AgenticCommerceSection
+								ref={ agenticSaveRef }
+								onSettingsLoad={ setCanSaveAgenticSettings }
+							/>
 						) }
-						<SaveSettingsSection
-							onSettingsSave={ onSettingsSave }
-							agenticSaveRef={
-								tab.name === 'agentic-commerce'
-									? agenticSaveRef
-									: undefined
-							}
-						/>
+						{ ( tab.name !== 'agentic-commerce' ||
+							canSaveAgenticSettings ) && (
+							<SaveSettingsSection
+								onSettingsSave={ onSettingsSave }
+								agenticSaveRef={
+									tab.name === 'agentic-commerce'
+										? agenticSaveRef
+										: undefined
+								}
+							/>
+						) }
 					</div>
 				) }
 			</StyledTabPanel>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { screen, render } from '@testing-library/react';
+import { screen, render, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SaveSettingsSection from '..';
 import { useSettings } from 'wcstripe/data';
@@ -53,5 +53,62 @@ describe( 'SaveSettingsSection', () => {
 		await userEvent.click( saveChangesButton );
 
 		expect( saveSettingsMock ).toHaveBeenCalled();
+	} );
+
+	it( 'calls only `agenticSaveRef.current.save` and does not call `saveSettings` when agenticSaveRef is passed', async () => {
+		const saveSettingsMock = jest.fn();
+		const agenticSaveMock = jest.fn().mockResolvedValue();
+		useSettings.mockReturnValue( {
+			isSaving: false,
+			isLoading: false,
+			saveSettings: saveSettingsMock,
+		} );
+
+		const agenticSaveRef = {
+			current: {
+				save: agenticSaveMock,
+			},
+		};
+
+		render( <SaveSettingsSection agenticSaveRef={ agenticSaveRef } /> );
+
+		const saveChangesButton = screen.getByText( 'Save changes' );
+
+		await act( async () => {
+			await userEvent.click( saveChangesButton );
+		} );
+
+		expect( agenticSaveMock ).toHaveBeenCalled();
+		expect( saveSettingsMock ).not.toHaveBeenCalled();
+	} );
+
+	it( 'calls onSettingsSave after saving agentic settings', async () => {
+		const agenticSaveMock = jest.fn().mockResolvedValue();
+		const onSettingsSaveMock = jest.fn();
+		useSettings.mockReturnValue( {
+			isSaving: false,
+			isLoading: false,
+			saveSettings: jest.fn(),
+		} );
+
+		const agenticSaveRef = {
+			current: {
+				save: agenticSaveMock,
+			},
+		};
+
+		render(
+			<SaveSettingsSection
+				agenticSaveRef={ agenticSaveRef }
+				onSettingsSave={ onSettingsSaveMock }
+			/>
+		);
+
+		await act( async () => {
+			await userEvent.click( screen.getByText( 'Save changes' ) );
+		} );
+
+		expect( agenticSaveMock ).toHaveBeenCalled();
+		expect( onSettingsSaveMock ).toHaveBeenCalled();
 	} );
 } );
