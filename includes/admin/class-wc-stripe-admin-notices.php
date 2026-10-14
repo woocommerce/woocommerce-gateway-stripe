@@ -95,6 +95,8 @@ class WC_Stripe_Admin_Notices {
 			return;
 		}
 
+		$this->check_express_checkout_password_cleanup();
+
 		// Stripe API outage detection. Runs first so other environment checks
 		// can suppress notices that would be misleading during an outage.
 		$this->check_api_outage();
@@ -181,6 +183,30 @@ class WC_Stripe_Admin_Notices {
 
 			echo '</div>';
 		}
+	}
+
+	/**
+	 * Displays the completed express checkout password cleanup notice to administrators.
+	 *
+	 * @return void
+	 */
+	public function check_express_checkout_password_cleanup(): void {
+		if ( ! current_user_can( 'manage_options' ) || ! WC_Stripe_Express_Checkout_Password_Cleanup::should_show_notice() ) {
+			return;
+		}
+
+		$result  = WC_Stripe_Express_Checkout_Password_Cleanup::get_cleanup_result();
+		$message = __( 'WooCommerce Stripe removed account password data from order records.', 'woocommerce-gateway-stripe' );
+		if ( $result['user_count'] > 0 ) {
+			$message .= ' ' . sprintf(
+				/* translators: %d: affected customer account count */
+				_n( '%d customer account was identified as still using a password that appeared in the removed data.', '%d customer accounts were identified as still using a password that appeared in the removed data.', $result['user_count'], 'woocommerce-gateway-stripe' ),
+				$result['user_count']
+			);
+		}
+		$message .= ' ' . __( 'No customer passwords were reset.', 'woocommerce-gateway-stripe' );
+
+		$this->add_admin_notice( 'express_checkout_password_cleanup', 'notice notice-warning', $message, true );
 	}
 
 	/**
@@ -970,6 +996,11 @@ class WC_Stripe_Admin_Notices {
 					break;
 				case 'ece_location':
 					update_option( 'wc_stripe_show_ece_location_notice', 'no' );
+					break;
+				case 'express_checkout_password_cleanup':
+					if ( current_user_can( 'manage_options' ) ) {
+						WC_Stripe_Express_Checkout_Password_Cleanup::dismiss_notice();
+					}
 					break;
 				case 'ocs_ap_banner':
 					update_option( self::SHOW_OCS_AP_BANNER_OPTION, 'no' );
