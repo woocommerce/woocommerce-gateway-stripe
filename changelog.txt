@@ -1,14 +1,19 @@
 *** Changelog ***
 
-xxxx-xx-xx - version 11.1.0
-* Add - Automatically configure test-mode when onboarding to a live account
+xxxx-xx-xx - version 11.2.0
+* Dev - Remove expired lock rows from the options table once a day
+* Tweak - Minor improvement to error logging when saving new keys
+* Fix - Keep pending ACH orders open while Stripe is still waiting for bank verification
+* Fix - Complete express checkout payments on the Pay for Order page when the checkout phone field is required, and preserve the order's saved billing phone
+
+2026-10-13 - version 11.1.0
+* Add - Automatically configure test mode when onboarding to a live account
 * Fix - Show BLIK and ACSS payment methods at checkout when Optimized Checkout Suite is enabled
-* Fix - Prevent non-card payment methods from failing under Optimized Checkout with Dynamic Payment Methods when the store has a statement descriptor set
 * Fix - Return an error response when a Payment Method Configuration update fails in settings, so the frontend correctly displays an error instead of a false success notice
 * Update - Show the specific Stripe error reason in the settings save notice when a Payment Method Configuration update is rejected
 * Fix - Show the correct guidance when a subscription renewal fails because its Stripe mandate is invalid
-* Fix - Ensure retry with a saved payment method works after a declined Adaptive Pricing payment attempt on classic checkout
-* Fix - Allow classic checkout payments without a WooCommerce billing country field when Adaptive Pricing is enabled
+* Fix - Ensure retry with a saved payment method works after a declined Adaptive Pricing payment attempt on Classic Checkout
+* Fix - Allow Classic Checkout payments without a WooCommerce billing country field when Adaptive Pricing is enabled
 * Fix - Ignore Checkout Session failure webhooks after an order switches to another payment gateway
 * Fix - Preselect the customer's default saved Stripe payment method within the active gateway in Blocks checkout
 * Dev - Add E2E coverage for express checkout with free trial subscriptions, with and without shipping, including completing the purchase with Link
@@ -23,10 +28,13 @@ xxxx-xx-xx - version 11.1.0
 * Fix - Allow payment methods to be enabled when they support a currency supplied by a multi-currency plugin
 * Fix - Show a useful error when a Stripe connection cannot start
 * Fix - Prevent express checkout wallets from failing when rounded display items exceed the payment total
-* Fix - Accept shipping addresses in the express checkout wallet sheet for free-trial subscription carts whose shipping is charged with the recurring payments
+* Fix - Accept shipping addresses in the express checkout wallet sheet for free trial subscription carts whose shipping is charged with the recurring payments
+* Fix - Remove account password data that may have been stored in order metadata by express checkout in version 10.9.0
 * Update - Ensure that application fees are not sent to Stripe for OAuth-connected accounts
-* Fix - When checking if unpaid orders should be cancelled, get the Stripe payment status, and update orders with Stripe payment details
+* Update - Improve checks in the wallet payment confirmation flow
+* Fix - When checking if unpaid orders should be canceled, get the Stripe payment status, and update orders with Stripe payment details
 * Dev - Block outbound HTTP requests from unit tests
+* Fix - Preserve manually configured webhooks during automatic reconfiguration and warn when the configured webhook no longer exists
 * Fix - Point a saved Stripe Link payment method at the newest card selection when the customer re-enrolls through Link, so subscription renewals stop charging the replaced card
 * Fix - Retry matching a completed Adaptive Pricing checkout session to its order instead of giving up after the first attempt
 * Add - Show the originating AI agent in the WooCommerce order Origin column for Agentic Commerce orders
@@ -34,11 +42,11 @@ xxxx-xx-xx - version 11.1.0
 * Update - Reduce the size of the express checkout JS bundle
 * Fix - Show the on-page 3D Secure authentication modal instead of a full-page redirect for card payments under Optimized Checkout with Dynamic Payment Methods
 * Tweak - Agentic Commerce: surface shipping zones with no flat-rate method (which contribute no shipping to the feed) in the feed preview and logs
-* Dev - Reduce blocks Javascript by moving payment method icon styles into CSS
+* Dev - Reduce Blocks Javascript by moving payment method icon styles into CSS
 * Add - Agentic Commerce: add merchant settings to exclude add-on/configurator products from the feed or redirect shoppers to the store to check out, with per-product advisories in the feed preview
 * Fix - Show negative order fees as negative line items in Express Checkout on the Pay for Order page
 * Remove - Stop offering Sofort at checkout (discontinued by Stripe on March 31, 2025); refunds and subscription renewals for existing Sofort orders keep working
-* Dev - Mark the Sofort and giropay payment method classes and constants as deprecated ahead of their removal
+* Dev - Mark the Sofort and Giropay payment method classes and constants as deprecated ahead of their removal
 * Fix - Link to checkout when missing required custom fields block express checkout on other pages
 * Fix - Stop refusing express checkout orders over required classic custom checkout fields on stores whose checkout page uses the checkout block and cannot render them
 * Dev - Make e2e tests runnable from Quality Insights Toolkit (QIT)
@@ -51,6 +59,9 @@ xxxx-xx-xx - version 11.1.0
 * Fix - Add robust checks against order attribution Javascript not being fully loaded in block checkout
 * Fix - Remove the duplicated period in the webhook status message when webhooks are pending
 * Fix - Allow retries with an express wallet or saved card after a declined card under Optimized Checkout with Dynamic Payment Methods
+* Update - Include the connected Stripe account ID in the account connection, account disconnection, and key update events sent when usage tracking is enabled
+* Fix - Show an error before submission when required custom checkout fields are empty in Classic Checkout
+* Fix - Ensure that switching mode doesn't show an incorrect payment method save error
 
 2026-10-05 - version 11.0.1
 * Fix - Prevent non-card payment methods from failing under Optimized Checkout with Dynamic Payment Methods when the store has a statement descriptor set
