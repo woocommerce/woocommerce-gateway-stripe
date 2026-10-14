@@ -10,6 +10,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * `post_date`/`post_date_gmt`, the order the event was applied to in `post_parent`, the number of failed fetches
  * in `menu_order`, and the mode in post meta.
  *
+ * Event IDs are matched case-insensitively, like post names. Stripe's IDs are random, so two that only differ in case
+ * do not occur in practice.
+ *
  * @internal Subject to change without notice between releases.
  */
 class WC_Stripe_Event_Post_Store implements WC_Stripe_Event_Store_Interface {

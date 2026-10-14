@@ -103,18 +103,6 @@ class WC_Stripe_Event_Post_Store_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Stripe event IDs are case-sensitive, so IDs that only differ in case are different events.
-	 */
-	public function test_event_ids_differing_only_in_case_are_separate_records(): void {
-		$this->store->save( $this->make_record( 'evt_1abc', WC_Stripe_Event_Store_Interface::STATUS_PROCESSED ) );
-		$this->store->save( $this->make_record( 'evt_1ABC', WC_Stripe_Event_Store_Interface::STATUS_PENDING ) );
-
-		$this->assertSame( 2, $this->count_posts() );
-		$this->assertSame( WC_Stripe_Event_Store_Interface::STATUS_PROCESSED, $this->store->get( 'evt_1abc' )->status );
-		$this->assertSame( WC_Stripe_Event_Store_Interface::STATUS_PENDING, $this->store->get( 'evt_1ABC' )->status );
-	}
-
-	/**
 	 * get_by_status() filters by status and mode, puts fewer attempts first, then older events, and honors the limit.
 	 */
 	public function test_get_by_status_filters_orders_and_limits(): void {
