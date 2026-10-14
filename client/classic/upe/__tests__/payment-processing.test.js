@@ -2324,9 +2324,9 @@ describe( 'ensureUPEElementMounted', () => {
 
 		// Hash format written by process_payment_with_deferred_intent():
 		// #wc-stripe-voucher-<order_id>:<type>:<client_secret>:<encoded_redirect_url>
-		const setVoucherHash = ( encodedRedirectUrl ) => {
+		const setVoucherHash = ( encodedRedirectUrl, orderId = '123' ) => {
 			window.location.href =
-				'https://shop.com/checkout#wc-stripe-voucher-123:boleto:cs_secret:' +
+				`https://shop.com/checkout#wc-stripe-voucher-${ orderId }:boleto:cs_secret:` +
 				encodedRedirectUrl;
 		};
 
@@ -2336,23 +2336,62 @@ describe( 'ensureUPEElementMounted', () => {
 			} ) ),
 		} );
 
-		it( 'navigates to a same-origin post-payment URL after confirming the voucher', async () => {
-			setVoucherHash(
-				encodeURIComponent( 'https://shop.com/order-received/123/' )
-			);
-			stripeUtils.getStripeServerData.mockReturnValue( {
-				orderReceivedURL: 'https://shop.com/checkout/order-received',
-			} );
+		it.each( [
+			'https://shop.com/order-received/123/?key=wc_order_abc&custom=value',
+			'https://shop.com/?page_id=10&order-received=123&key=wc_order_abc',
+		] )(
+			'preserves the complete voucher return URL: %s',
+			async ( returnUrl ) => {
+				setVoucherHash( encodeURIComponent( returnUrl ) );
+				stripeUtils.getStripeServerData.mockReturnValue( {
+					orderReceivedURL:
+						'https://shop.com/checkout/order-received',
+				} );
 
-			await paymentProcessing.confirmVoucherPayment(
-				buildVoucherApi(),
-				createMockForm()
-			);
+				await paymentProcessing.confirmVoucherPayment(
+					buildVoucherApi(),
+					createMockForm()
+				);
 
-			expect( window.location.href ).toBe(
-				'https://shop.com/order-received/123/'
-			);
-		} );
+				expect( window.location.href ).toBe( returnUrl );
+			}
+		);
+
+		it.each( [
+			[
+				'NaN',
+				'https://shop.com/checkout/order-received',
+				'https://shop.com/checkout/order-received',
+			],
+			[
+				'123abc',
+				'https://shop.com/checkout/order-received',
+				'https://shop.com/checkout/order-received',
+			],
+			[
+				'123',
+				'https://returns.example/thank-you',
+				'https://returns.example/thank-you/123/',
+			],
+		] )(
+			'preserves the configured voucher fallback for order %s: %s',
+			async ( orderId, orderReceivedURL, expectedUrl ) => {
+				setVoucherHash(
+					encodeURIComponent( 'https://evil.example/steal' ),
+					orderId
+				);
+				stripeUtils.getStripeServerData.mockReturnValue( {
+					orderReceivedURL,
+				} );
+
+				await paymentProcessing.confirmVoucherPayment(
+					buildVoucherApi(),
+					createMockForm()
+				);
+
+				expect( window.location.href ).toBe( expectedUrl );
+			}
+		);
 
 		it( 'falls back to the order-received page when the post-payment URL is cross-origin', async () => {
 			setVoucherHash(
@@ -2370,6 +2409,232 @@ describe( 'ensureUPEElementMounted', () => {
 			expect( window.location.href ).toBe(
 				'https://shop.com/checkout/order-received/123/'
 			);
+		} );
+	} );
+
+	describe( 'confirmWalletPayment', () => {
+		let originalLocation;
+
+		const ORDER_RECEIVED_URL = 'https://shop.com/checkout/order-received';
+		const FALLBACK_URL = 'https://shop.com/checkout/order-received/123/';
+
+		beforeEach( () => {
+			originalLocation = window.location;
+			delete window.location;
+			window.location = {
+				href: '',
+				origin: 'https://shop.com',
+				pathname: '/checkout',
+				search: '',
+				assign: jest.fn(),
+			};
+			jest.spyOn( window.history, 'replaceState' ).mockImplementation(
+				() => {}
+			);
+			stripeUtils.getStripeServerData.mockReturnValue( {
+				orderReceivedURL: ORDER_RECEIVED_URL,
+			} );
+		} );
+
+		afterEach( () => {
+			window.location = originalLocation;
+			jest.clearAllMocks();
+		} );
+
+		// Hash format written by process_payment_with_deferred_intent():
+		// #wc-stripe-wallet-<order_id>:<type>:<intent_type>:<client_secret>:<encoded_return_url>:<nonce>
+		const setWalletHash = ( paymentMethodType, encodedReturnUrl ) => {
+			window.location.href =
+				`https://shop.com/checkout#wc-stripe-wallet-123:${ paymentMethodType }:payment_intent:cs_secret:` +
+				`${ encodedReturnUrl }:nonce_value`;
+		};
+
+		// The trailing confirm_change_payment request is rejected here (its nonce comes from the
+		// same fragment), so it cannot mask the navigation performed before it.
+		const buildWalletApi = ( confirmFns ) => ( {
+			getStripe: jest.fn( () => confirmFns ),
+			getAjaxUrl: jest.fn( () => 'https://shop.com/ajax' ),
+			request: jest.fn().mockResolvedValue( {
+				success: false,
+				data: { error: { message: 'Invalid nonce.' } },
+			} ),
+		} );
+
+		const succeededIntent = {
+			paymentIntent: { id: 'pi_1', status: 'succeeded' },
+		};
+
+		it.each( [
+			[
+				'resolves a relative return URL against the store origin',
+				encodeURIComponent( '/order-received/123/?key=wc_order_abc' ),
+				'https://shop.com/order-received/123/?key=wc_order_abc',
+			],
+			[
+				'keeps an absolute same-origin return URL',
+				encodeURIComponent(
+					'https://shop.com/order-received/123/?key=wc_order_abc&custom=value'
+				),
+				'https://shop.com/order-received/123/?key=wc_order_abc&custom=value',
+			],
+			[
+				'preserves a query-style order URL',
+				encodeURIComponent(
+					'https://shop.com/?page_id=10&order-received=123&key=wc_order_abc'
+				),
+				'https://shop.com/?page_id=10&order-received=123&key=wc_order_abc',
+			],
+			[
+				'falls back when the return URL is cross-origin',
+				encodeURIComponent( 'https://evil.example/steal' ),
+				FALLBACK_URL,
+			],
+			[
+				'falls back when the return URL is scheme-relative',
+				encodeURIComponent( '//evil.example/steal' ),
+				FALLBACK_URL,
+			],
+			[
+				'falls back when the return URL uses the javascript: scheme',
+				encodeURIComponent( 'javascript:alert(document.domain)' ), // eslint-disable-line no-script-url
+				FALLBACK_URL,
+			],
+			[
+				'falls back when the return URL uses the data: scheme',
+				encodeURIComponent(
+					'data:text/html,<script>alert(1)</script>'
+				),
+				FALLBACK_URL,
+			],
+			[
+				'falls back when the return URL is malformed percent-encoding',
+				'%E0%A4%A',
+				FALLBACK_URL,
+			],
+		] )(
+			'cashapp: %s, for both Stripe and the navigation',
+			async ( _label, encodedReturnUrl, expectedUrl ) => {
+				const confirmCashappPayment = jest
+					.fn()
+					.mockResolvedValue( succeededIntent );
+				setWalletHash( 'cashapp', encodedReturnUrl );
+
+				await paymentProcessing.confirmWalletPayment(
+					buildWalletApi( { confirmCashappPayment } ),
+					createMockForm()
+				);
+
+				expect( confirmCashappPayment ).toHaveBeenCalledWith(
+					'cs_secret',
+					{ return_url: expectedUrl }
+				);
+				expect( window.location.href ).toBe( expectedUrl );
+			}
+		);
+
+		it.each( [
+			[
+				'keeps an absolute same-origin return URL',
+				encodeURIComponent( 'https://shop.com/order-received/123/' ),
+				'https://shop.com/order-received/123/',
+			],
+			[
+				'falls back when the return URL is cross-origin',
+				encodeURIComponent( 'https://evil.example/steal' ),
+				FALLBACK_URL,
+			],
+			[
+				'falls back when the return URL uses the javascript: scheme',
+				encodeURIComponent( 'javascript:alert(document.domain)' ), // eslint-disable-line no-script-url
+				FALLBACK_URL,
+			],
+		] )(
+			// WeChat Pay never forwards the return URL to Stripe, so this flow gets no URL
+			// validation from the provider and depends entirely on the check above.
+			'wechat_pay: %s',
+			async ( _label, encodedReturnUrl, expectedUrl ) => {
+				const confirmWechatPayPayment = jest
+					.fn()
+					.mockResolvedValue( succeededIntent );
+				setWalletHash( 'wechat_pay', encodedReturnUrl );
+
+				await paymentProcessing.confirmWalletPayment(
+					buildWalletApi( { confirmWechatPayPayment } ),
+					createMockForm()
+				);
+
+				expect( window.location.href ).toBe( expectedUrl );
+			}
+		);
+
+		it( 'confirms the setup intent for cashapp with the validated return URL', async () => {
+			const confirmCashappSetup = jest
+				.fn()
+				.mockResolvedValue( { setupIntent: { status: 'succeeded' } } );
+			window.location.href =
+				'https://shop.com/checkout#wc-stripe-wallet-123:cashapp:setup_intent:cs_secret:' +
+				encodeURIComponent( 'https://evil.example/steal' ) +
+				':nonce_value';
+
+			await paymentProcessing.confirmWalletPayment(
+				buildWalletApi( { confirmCashappSetup } ),
+				createMockForm()
+			);
+
+			expect( confirmCashappSetup ).toHaveBeenCalledWith( 'cs_secret', {
+				return_url: FALLBACK_URL,
+			} );
+			expect( window.location.href ).toBe( FALLBACK_URL );
+		} );
+
+		it( 'does not contact Stripe or navigate when no destination can be resolved', async () => {
+			const form = createMockForm();
+			stripeUtils.getStripeServerData.mockReturnValue( {
+				orderReceivedURL: '',
+			} );
+			const confirmCashappPayment = jest
+				.fn()
+				.mockResolvedValue( succeededIntent );
+			setWalletHash(
+				'cashapp',
+				encodeURIComponent( 'https://evil.example/steal' )
+			);
+
+			await paymentProcessing.confirmWalletPayment(
+				buildWalletApi( { confirmCashappPayment } ),
+				form
+			);
+
+			expect( confirmCashappPayment ).not.toHaveBeenCalled();
+			expect( window.location.href ).toBe(
+				'https://shop.com/checkout#wc-stripe-wallet-123:cashapp:payment_intent:cs_secret:https%3A%2F%2Fevil.example%2Fsteal:nonce_value'
+			);
+			expect( stripeUtils.showErrorCheckout ).toHaveBeenCalled();
+			expect( form.removeClass ).toHaveBeenCalledWith( 'processing' );
+			expect( form.unblock ).toHaveBeenCalledTimes( 1 );
+			expect( stripeUtils.unblockBlockCheckout ).toHaveBeenCalledTimes(
+				1
+			);
+			expect(
+				stripeUtils.resetBlockCheckoutPaymentState
+			).toHaveBeenCalledTimes( 1 );
+		} );
+
+		it( 'does not navigate while the intent still requires action', async () => {
+			const confirmCashappPayment = jest.fn().mockResolvedValue( {
+				paymentIntent: { id: 'pi_1', status: 'requires_action' },
+			} );
+			setWalletHash(
+				'cashapp',
+				encodeURIComponent( 'https://shop.com/order-received/123/' )
+			);
+
+			await paymentProcessing.confirmWalletPayment(
+				buildWalletApi( { confirmCashappPayment } ),
+				createMockForm()
+			);
+
+			expect( window.location.href ).toContain( '#wc-stripe-wallet-123' );
 		} );
 	} );
 } );
