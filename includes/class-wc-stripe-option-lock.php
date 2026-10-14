@@ -108,6 +108,72 @@ final class WC_Stripe_Option_Lock {
 	}
 
 	/**
+	 * Whether any lock whose name starts with the given prefix has been held for longer than the TTL.
+	 *
+	 * @param string $prefix Start of the lock option names.
+	 * @param int    $ttl    Seconds after which a lock still held is treated as abandoned.
+	 * @return bool
+	 */
+	public static function has_expired_by_prefix( string $prefix, int $ttl ): bool {
+		global $wpdb;
+
+		// The timestamp before the colon is the one acquire() compares with the TTL. A legacy bare timestamp has no colon.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$found = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT 1 FROM {$wpdb->options} WHERE option_name LIKE %s AND CAST( SUBSTRING_INDEX( option_value, ':', 1 ) AS UNSIGNED ) <= %d LIMIT 1",
+				$wpdb->esc_like( $prefix ) . '%',
+				time() - $ttl
+			)
+		);
+
+		return null !== $found;
+	}
+
+	/**
+	 * Deletes locks whose name starts with the given prefix and that have been held for longer than the TTL.
+	 *
+	 * For locks that are only reclaimed by the next acquire() of the same name, which may never come.
+	 *
+	 * @param string $prefix Start of the lock option names.
+	 * @param int    $ttl    Seconds after which a lock still held is treated as abandoned.
+	 * @param int    $limit  Maximum number of locks to delete.
+	 * @return int Number of locks deleted.
+	 */
+	public static function delete_expired_by_prefix( string $prefix, int $ttl, int $limit ): int {
+		global $wpdb;
+
+		$expired_at = time() - $ttl;
+
+		// The same condition as in has_expired_by_prefix().
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$names = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND CAST( SUBSTRING_INDEX( option_value, ':', 1 ) AS UNSIGNED ) <= %d LIMIT %d",
+				$wpdb->esc_like( $prefix ) . '%',
+				$expired_at,
+				$limit
+			)
+		);
+
+		$deleted = 0;
+		foreach ( $names as $name ) {
+			// Checked again in the delete, so a lock reclaimed since the select carries a new timestamp and is kept.
+			$deleted += (int) $wpdb->query(
+				$wpdb->prepare(
+					"DELETE FROM {$wpdb->options} WHERE option_name = %s AND CAST( SUBSTRING_INDEX( option_value, ':', 1 ) AS UNSIGNED ) <= %d",
+					$name,
+					$expired_at
+				)
+			);
+			self::forget_cached_option( $name );
+		}
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+		return $deleted;
+	}
+
+	/**
 	 * Drops the options-API cache entries for the lock after a direct row write.
 	 *
 	 * The writes above bypass `add_option()`/`delete_option()`, so a caller that read the lock
