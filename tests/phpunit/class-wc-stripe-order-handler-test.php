@@ -105,8 +105,8 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The guard is specific to SetupIntents: a PaymentIntent in the same status keeps the
-	 * pre-existing one-day cancellation behaviour.
+	 * A PaymentIntent that is not waiting on bank verification keeps the one-day cancellation
+	 * behaviour. Card authentication must still be treated as abandoned.
 	 */
 	public function test_payment_intent_awaiting_action_is_still_cancelled_after_a_day() {
 		$order = WC_Helper_Order::create_order();
@@ -129,6 +129,139 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 			);
 
 		$this->assertTrue( $this->order_handler->prevent_cancelling_orders_awaiting_action( true, $order ) );
+	}
+
+	/**
+	 * US bank verification outlives the one-day awaiting-action window, and Adaptive Pricing
+	 * never sets that meta. The order stays pending only while Stripe can still complete the
+	 * debit. Card authentication, including an intent that merely allows us_bank_account, does not.
+	 *
+	 * @param string $gateway_id WooCommerce payment method id.
+	 * @param string $upe_type   Value of _stripe_upe_payment_type, or an empty string.
+	 * @param object $intent     Intent returned for the order.
+	 * @param bool   $expected   Whether the order should still be cancelled.
+	 * @dataProvider provide_payment_intents_for_bank_verification_cancellation
+	 */
+	public function test_payment_intent_awaiting_bank_verification_is_not_cancelled_after_a_day( string $gateway_id, string $upe_type, object $intent, bool $expected ) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( $gateway_id );
+		if ( '' !== $upe_type ) {
+			$order->update_meta_data( '_stripe_upe_payment_type', $upe_type );
+		}
+
+		// Outside the one-day window, with no awaiting-action meta, so only the bank guard can keep it.
+		$modified_date = new DateTime( current_time( 'mysql' ) );
+		$modified_date->modify( '-5 days' );
+		$order->set_date_modified( $modified_date->format( 'Y-m-d H:i:s' ) );
+
+		$this->order_handler
+			->expects( $this->any() )
+			->method( 'get_intent_from_order' )
+			->willReturn( $intent );
+
+		$this->assertSame(
+			$expected,
+			$this->order_handler->prevent_cancelling_orders_awaiting_action( true, $order ),
+			"PaymentIntent status {$intent->status} produced the wrong cancellation decision."
+		);
+	}
+
+	/**
+	 * Data provider for {@see test_payment_intent_awaiting_bank_verification_is_not_cancelled_after_a_day()}.
+	 *
+	 * @return array
+	 */
+	public function provide_payment_intents_for_bank_verification_cancellation(): array {
+		$ach_gateway_id = WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_Payment_Methods::ACH;
+
+		return [
+			'microdeposits'           => [
+				$ach_gateway_id,
+				'',
+				(object) [
+					'id'          => 'pi_mock',
+					'object'      => 'payment_intent',
+					'status'      => 'requires_action',
+					'next_action' => (object) [ 'type' => 'verify_with_microdeposits' ],
+				],
+				false,
+			],
+			'bank redirect'           => [
+				$ach_gateway_id,
+				'',
+				(object) [
+					'id'             => 'pi_mock',
+					'object'         => 'payment_intent',
+					'status'         => 'requires_action',
+					'payment_method' => (object) [
+						'id'   => 'pm_mock',
+						'type' => 'us_bank_account',
+					],
+					'next_action'    => (object) [ 'type' => 'redirect_to_url' ],
+				],
+				false,
+			],
+			'order gateway id'        => [
+				$ach_gateway_id,
+				'',
+				(object) [
+					'id'             => 'pi_mock',
+					'object'         => 'payment_intent',
+					'status'         => 'requires_confirmation',
+					'payment_method' => 'pm_mock',
+				],
+				false,
+			],
+			'upe payment type'        => [
+				WC_Stripe_UPE_Payment_Gateway::ID,
+				WC_Stripe_Payment_Methods::ACH,
+				(object) [
+					'id'             => 'pi_mock',
+					'object'         => 'payment_intent',
+					'status'         => 'requires_action',
+					'payment_method' => 'pm_mock',
+				],
+				false,
+			],
+			'requires payment method' => [
+				$ach_gateway_id,
+				WC_Stripe_Payment_Methods::ACH,
+				(object) [
+					'id'             => 'pi_mock',
+					'object'         => 'payment_intent',
+					'status'         => 'requires_payment_method',
+					'payment_method' => (object) [ 'type' => 'us_bank_account' ],
+				],
+				true,
+			],
+			'canceled'                => [
+				$ach_gateway_id,
+				'',
+				(object) [
+					'id'          => 'pi_mock',
+					'object'      => 'payment_intent',
+					'status'      => 'canceled',
+					'next_action' => (object) [ 'type' => 'verify_with_microdeposits' ],
+				],
+				true,
+			],
+			'card authentication'     => [
+				WC_Stripe_UPE_Payment_Gateway::ID,
+				'',
+				(object) [
+					'id'                   => 'pi_mock',
+					'object'               => 'payment_intent',
+					'status'               => 'requires_action',
+					'payment_method_types' => [ 'card', 'link', 'us_bank_account' ],
+					'payment_method'       => (object) [
+						'id'   => 'pm_card',
+						'type' => 'card',
+					],
+					'next_action'          => (object) [ 'type' => 'use_stripe_sdk' ],
+				],
+				true,
+			],
+		];
 	}
 
 	public function test_prevent_cancelling_orders_that_have_been_paid() {
