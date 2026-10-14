@@ -25,7 +25,6 @@ class WC_Stripe_Event_Post_Store implements WC_Stripe_Event_Store_Interface {
 		self::STATUS_PENDING    => 'wc_stripe_pending',
 		self::STATUS_PROCESSING => 'wc_stripe_processing',
 		self::STATUS_PROCESSED  => 'wc_stripe_processed',
-		self::STATUS_FAILED     => 'wc_stripe_failed',
 		self::STATUS_ABANDONED  => 'wc_stripe_abandoned',
 	];
 
@@ -183,19 +182,24 @@ class WC_Stripe_Event_Post_Store implements WC_Stripe_Event_Store_Interface {
 			$post['ID'] = $post_id;
 		}
 
-		// wp_insert_post() and wp_update_post() run post_name through sanitize_title(), which lowercases the case-sensitive event ID.
-		$keep_event_id = static function ( $post_data ) use ( $event_id ) {
+		$fix_post_data = static function ( $post_data ) use ( $event_id ) {
 			if ( self::POST_TYPE === ( $post_data['post_type'] ?? '' ) ) {
+				// wp_insert_post() and wp_update_post() run post_name through sanitize_title(), which lowercases the case-sensitive event ID.
 				$post_data['post_name'] = $event_id;
+
+				// wp_insert_post() sets the modified time of a new post to its date, which is the event creation time here.
+				// The modified time tells how long a record has been in its status, so a late first delivery would look stuck at once.
+				$post_data['post_modified']     = current_time( 'mysql' );
+				$post_data['post_modified_gmt'] = current_time( 'mysql', true );
 			}
 			return $post_data;
 		};
 
-		add_filter( 'wp_insert_post_data', $keep_event_id );
+		add_filter( 'wp_insert_post_data', $fix_post_data );
 		try {
 			$result = $post_id ? wp_update_post( $post, true ) : wp_insert_post( $post, true );
 		} finally {
-			remove_filter( 'wp_insert_post_data', $keep_event_id );
+			remove_filter( 'wp_insert_post_data', $fix_post_data );
 		}
 
 		return ! is_wp_error( $result ) && $result > 0;

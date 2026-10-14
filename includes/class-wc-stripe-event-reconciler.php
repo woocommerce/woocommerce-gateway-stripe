@@ -30,7 +30,8 @@ class WC_Stripe_Event_Reconciler {
 	public const BATCH_SIZE = 5;
 
 	/**
-	 * Failed fetches and interrupted processing are retried once per reconciliation run, so this gives up after about a day.
+	 * Failed fetches and processing are retried about once per reconciliation run, and interrupted processing once it is
+	 * found stuck, so this gives up after one to three days.
 	 */
 	public const MAX_ATTEMPTS = 48;
 
@@ -89,6 +90,10 @@ class WC_Stripe_Event_Reconciler {
 		add_action( self::PROCESS_ACTION, [ $this, 'process_pending_events' ] );
 		add_action( self::RECONCILE_ACTION, [ $this, 'reconcile' ], 10, 0 );
 		add_action( self::CLEANUP_ACTION, [ $this, 'delete_expired_events' ], 10, 0 );
+
+		// Otherwise enabling the feature only schedules reconciliation at Action Scheduler's daily check of recurring actions.
+		add_action( 'add_option_' . WC_Stripe_Feature_Flags::EVENT_RECONCILIATION_FEATURE_FLAG_NAME, [ $this, 'maybe_schedule_reconciliation' ], 10, 0 );
+		add_action( 'update_option_' . WC_Stripe_Feature_Flags::EVENT_RECONCILIATION_FEATURE_FLAG_NAME, [ $this, 'maybe_schedule_reconciliation' ], 10, 0 );
 
 		if ( WC_Stripe_Feature_Flags::is_event_reconciliation_enabled() ) {
 			add_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ $this, 'maybe_schedule_reconciliation' ], 10, 0 );
@@ -436,12 +441,23 @@ class WC_Stripe_Event_Reconciler {
 				continue;
 			}
 
-			$processed = true;
-
 			try {
 				$handler->process_webhook( $event_json );
+				$processed = true;
 			} catch ( Throwable $e ) {
-				$this->record_event( $event, WC_Stripe_Event_Store_Interface::STATUS_FAILED );
+				// Retried like a failed fetch, since the cause may be temporary, such as a database or Stripe error.
+				WC_Stripe_Logger::error(
+					'Processing a Stripe event failed.',
+					[
+						'event_id'   => $record->id,
+						'event_type' => $record->type,
+						'attempts'   => $record->attempts + 1,
+						'error'      => get_class( $e ) . ': ' . $e->getMessage(),
+					]
+				);
+
+				$record->status = WC_Stripe_Event_Store_Interface::STATUS_PENDING;
+				$this->record_failed_attempt( $record );
 			} finally {
 				$this->release( $event );
 			}
@@ -463,7 +479,7 @@ class WC_Stripe_Event_Reconciler {
 	}
 
 	/**
-	 * Counts a failed fetch or interrupted processing, and gives up on the event when it cannot succeed or has failed too often.
+	 * Counts a failed fetch, or failed or interrupted processing, and gives up on the event when it cannot succeed or has failed too often.
 	 *
 	 * @param WC_Stripe_Event_Record $record     Record of the event.
 	 * @param string                 $error_code Stripe error code of a failed fetch, if any.

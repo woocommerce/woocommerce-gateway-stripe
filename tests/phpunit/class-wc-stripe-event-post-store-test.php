@@ -42,7 +42,6 @@ class WC_Stripe_Event_Post_Store_Test extends WP_UnitTestCase {
 			'pending'    => [ WC_Stripe_Event_Store_Interface::STATUS_PENDING ],
 			'processing' => [ WC_Stripe_Event_Store_Interface::STATUS_PROCESSING ],
 			'processed'  => [ WC_Stripe_Event_Store_Interface::STATUS_PROCESSED ],
-			'failed'     => [ WC_Stripe_Event_Store_Interface::STATUS_FAILED ],
 			'abandoned'  => [ WC_Stripe_Event_Store_Interface::STATUS_ABANDONED ],
 		];
 	}

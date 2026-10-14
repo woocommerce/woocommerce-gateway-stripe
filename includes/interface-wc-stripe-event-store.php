@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 interface WC_Stripe_Event_Store_Interface {
 	/**
-	 * Stripe did not deliver the event, or its processing was interrupted. It waits for the processing job, including after a failed fetch.
+	 * Stripe did not deliver the event, or its processing failed or was interrupted. It waits for the processing job, including after a failed fetch.
 	 */
 	public const STATUS_PENDING = 'pending';
 
@@ -25,11 +25,6 @@ interface WC_Stripe_Event_Store_Interface {
 	 * The webhook handler finished with the event.
 	 */
 	public const STATUS_PROCESSED = 'processed';
-
-	/**
-	 * Processing threw. Not retried, since it would most likely fail the same way.
-	 */
-	public const STATUS_FAILED = 'failed';
 
 	/**
 	 * The event no longer exists on Stripe, or every attempt to fetch or process it failed.

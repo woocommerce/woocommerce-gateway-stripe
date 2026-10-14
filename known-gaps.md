@@ -12,7 +12,7 @@ Temporary file for the draft PR. Remove before marking it ready for review.
 
 ### Behavior
 - Failed fetches are retried on the next reconciliation run (every 30 minutes) rather than with a growing delay, and abandoned after 48 attempts or on `resource_missing`. Interrupted processing counts towards the same 48 attempts. An event can be fetched more than once in a run when other events in its batches succeed.
-- A thrown exception while processing is final (`failed`), since retrying would most likely repeat it.
+- A thrown exception while processing is logged and counts as a failed attempt, so an exception that always repeats is retried until the 48 attempts run out.
 - `delivery_success=false` covers every endpoint on the account, so events that failed for another site or service on the same account are processed here too.
 - Lock rows left by requests that died are deleted by the cleanup job once they are past the 10-minute lock TTL, up to 100 per batch.
 - Disabling the feature flag stops all processing and cleanup, but keeps the stored records until it is enabled again or the plugin is uninstalled with `WC_REMOVE_ALL_DATA`.
