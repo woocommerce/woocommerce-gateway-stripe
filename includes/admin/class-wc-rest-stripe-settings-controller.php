@@ -309,7 +309,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	public function update_settings( WP_REST_Request $request ) {
 		/* Settings > General */
 		$this->update_is_stripe_enabled( $request );
-		$this->update_is_test_mode_enabled( $request );
 
 		/* Settings > Payments accepted on checkout + Express checkouts */
 		$payment_method_ids_to_enable  = $this->get_payment_method_ids_to_enable( $request );
@@ -319,6 +318,13 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			// We need to update a separate setting for legacy checkout.
 			$this->update_is_express_checkout_enabled_for_legacy_checkout( $request );
 		}
+		// Ensure we update the test mode flag after the payment methods are updated.
+		// The current UI shows payment methods and test mode in different UI pages,
+		// but the client code bundles all updates in a single API call.
+		// This code therefore ensures that we apply mode-specific payment method updates before we switch the mode,
+		// as the client code presumably loaded the payment method details using the current, pre-change mode.
+		$this->update_is_test_mode_enabled( $request );
+
 		$this->update_express_checkout_settings( $request );
 		$this->update_express_checkout_button_locations( $request );
 
@@ -433,7 +439,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 *
 	 * @return void
 	 */
-	private function update_is_test_mode_enabled( WP_REST_Request $request ) {
+	private function update_is_test_mode_enabled( WP_REST_Request $request ): void {
 		$is_test_mode_enabled = $request->get_param( 'is_test_mode_enabled' );
 
 		if ( null === $is_test_mode_enabled ) {
@@ -450,7 +456,15 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return;
 		}
 
+		// If the new value matches the existing mode, we don't need to update.
+		if ( WC_Stripe_Mode::is_test() === (bool) $is_test_mode_enabled ) {
+			return;
+		}
+
 		$this->gateway->update_option( 'testmode', $is_test_mode_enabled ? 'yes' : 'no' );
+
+		// Ensure we clear the PMC in-memory cache after switching the mode.
+		WC_Stripe_Payment_Method_Configurations::clear_in_memory_payment_method_configuration_cache();
 	}
 
 	/**
