@@ -62,7 +62,7 @@ jobs:
       # Node
 
       - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: '.nvmrc'
 
@@ -99,7 +99,7 @@ jobs:
 
       - name: Upload e2e setup logs
         if: ${{ failure() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: E2E-${{ matrix.project }}-WP_latest-WC_latest-setup-logs
           path: tests/e2e/e2e-setup.log
@@ -114,7 +114,7 @@ jobs:
 
       - name: Upload E2E-${{ matrix.project }}-WP_latest-WC_latest-results
         if: ${{ failure() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: E2E-${{ matrix.project }}-WP_latest-WC_latest-results
           path: tests/e2e/test-results
