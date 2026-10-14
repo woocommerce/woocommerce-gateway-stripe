@@ -1,13 +1,15 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import LinkSettingsSection from '../link-settings-section';
-import { useEnabledPaymentMethodIds, useLinkLocations } from 'wcstripe/data';
+import {
+	useEnabledPaymentMethodIds,
+	useLinkLocations,
+	useExpressCheckoutButtonSize,
+} from 'wcstripe/data';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useEnabledPaymentMethodIds: jest.fn(),
 	useLinkLocations: jest.fn(),
-	useExpressCheckoutButtonSize: jest
-		.fn()
-		.mockReturnValue( [ 'default', jest.fn() ] ),
+	useExpressCheckoutButtonSize: jest.fn(),
 } ) );
 jest.mock( '@woocommerce/blocks-checkout', () => {}, { virtual: true } );
 
@@ -24,6 +26,11 @@ describe( 'LinkSettingsSection', () => {
 			jest.fn(),
 		] );
 
+		useExpressCheckoutButtonSize.mockReturnValue( [
+			'default',
+			jest.fn(),
+		] );
+
 		global.wc_stripe_link_settings_params = {
 			...globalValues,
 			key: 'pk_test_123',
@@ -36,7 +43,7 @@ describe( 'LinkSettingsSection', () => {
 		global.wc_stripe_link_settings_params = globalValues;
 	} );
 
-	it( 'renders the locations section and preview, without a per-method size control', () => {
+	it( 'renders the locations section, the shared size control, and the preview', () => {
 		render( <LinkSettingsSection /> );
 
 		// Location checkboxes render.
@@ -45,11 +52,27 @@ describe( 'LinkSettingsSection', () => {
 		).toBeInTheDocument();
 		expect( screen.getByText( 'Preview' ) ).toBeInTheDocument();
 
-		// The size control now lives on the Express Checkout settings page.
+		// The shared button size can be edited from this page too.
 		expect(
-			screen.queryByRole( 'heading', { name: 'Appearance' } )
-		).not.toBeInTheDocument();
-		expect( screen.queryAllByRole( 'radio' ) ).toHaveLength( 0 );
+			screen.getByRole( 'heading', { name: 'Appearance' } )
+		).toBeInTheDocument();
+		expect( screen.getByText( /Small/ ) ).toBeInTheDocument();
+		expect(
+			screen.getByText(
+				/This size applies to all express checkout buttons/i
+			)
+		).toBeInTheDocument();
+	} );
+
+	it( 'updates the shared button size when a size is selected', () => {
+		const setSize = jest.fn();
+		useExpressCheckoutButtonSize.mockReturnValue( [ 'default', setSize ] );
+
+		render( <LinkSettingsSection /> );
+
+		fireEvent.click( screen.getByLabelText( /Large/ ) );
+
+		expect( setSize ).toHaveBeenCalledWith( 'large' );
 	} );
 
 	it( 'hides the appearance override notice by default', () => {

@@ -11,6 +11,7 @@ import {
 import getReasonText from 'wcstripe/settings/express-checkout-simulator/get-reason-text';
 import {
 	ExpressCheckoutAppearanceOverrideNotice,
+	ExpressCheckoutButtonSizeControl,
 	ExpressCheckoutLocationsControl,
 	getExpressCheckoutLocationKeys,
 } from 'wcstripe/settings/express-checkout-customize';
@@ -29,8 +30,9 @@ import CardBody from 'wcstripe/settings/card-body';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
 
 const AmazonPaySettingsSection = () => {
-	// Express checkout buttons share one size; the preview reflects the global value.
-	const [ size ] = useExpressCheckoutButtonSize();
+	// Express checkout buttons share one size. This control edits that shared value;
+	// the preview reflects it.
+	const [ size, setSize ] = useExpressCheckoutButtonSize();
 	const isButtonStyleOverridden =
 		!! wc_stripe_amazon_pay_settings_params?.is_button_style_overridden; // eslint-disable-line camelcase
 	// eslint-disable-next-line camelcase
@@ -103,6 +105,17 @@ const AmazonPaySettingsSection = () => {
 					locations={ amazonPayLocations }
 					onChange={ updateAmazonPayLocations }
 				/>
+				<h4>{ __( 'Appearance', 'woocommerce-gateway-stripe' ) }</h4>
+				<ExpressCheckoutButtonSizeControl
+					size={ size }
+					onChange={ setSize }
+				/>
+				<p className="express-checkout-customize__option-muted-text">
+					{ __(
+						'This size applies to all express checkout buttons (Apple Pay, Google Pay, Link, and Amazon Pay).',
+						'woocommerce-gateway-stripe'
+					) }
+				</p>
 				<p>{ __( 'Preview', 'woocommerce-gateway-stripe' ) }</p>
 				<LoadableAccountSection numLines={ 7 }>
 					<ExpressCheckoutPreview

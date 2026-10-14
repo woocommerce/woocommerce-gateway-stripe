@@ -9,6 +9,7 @@ import {
 } from 'wcstripe/settings/express-checkout-simulator/build-checks';
 import {
 	ExpressCheckoutAppearanceOverrideNotice,
+	ExpressCheckoutButtonSizeControl,
 	ExpressCheckoutLocationsControl,
 	getExpressCheckoutLocationKeys,
 } from 'wcstripe/settings/express-checkout-customize';
@@ -27,8 +28,9 @@ import CardBody from 'wcstripe/settings/card-body';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
 
 const LinkSettingsSection = () => {
-	// Express checkout buttons share one size; the preview reflects the global value.
-	const [ size ] = useExpressCheckoutButtonSize();
+	// Express checkout buttons share one size. This control edits that shared value;
+	// the preview reflects it.
+	const [ size, setSize ] = useExpressCheckoutButtonSize();
 
 	const [ enabledMethodIds ] = useEnabledPaymentMethodIds();
 	const isLinkEnabled = enabledMethodIds.includes( PAYMENT_METHOD_LINK );
@@ -73,6 +75,17 @@ const LinkSettingsSection = () => {
 					onChange={ updateLinkLocations }
 					showChangePaymentMethod={ isSubscriptionsActive }
 				/>
+				<h4>{ __( 'Appearance', 'woocommerce-gateway-stripe' ) }</h4>
+				<ExpressCheckoutButtonSizeControl
+					size={ size }
+					onChange={ setSize }
+				/>
+				<p className="express-checkout-customize__option-muted-text">
+					{ __(
+						'This size applies to all express checkout buttons (Apple Pay, Google Pay, Link, and Amazon Pay).',
+						'woocommerce-gateway-stripe'
+					) }
+				</p>
 				<p>{ __( 'Preview', 'woocommerce-gateway-stripe' ) }</p>
 				<LoadableAccountSection numLines={ 7 }>
 					<ExpressCheckoutPreview
