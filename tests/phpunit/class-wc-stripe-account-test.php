@@ -45,8 +45,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	public function tear_down() {
-		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'test' );
-		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'live' );
+		$this->account->clear_cache();
 		$this->clear_webhook_status_cache();
 		WC_Stripe_Helper::delete_main_stripe_settings();
 
@@ -149,6 +148,54 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 
 		$this->assertEmpty( $this->account->get_cached_account_data( null, true ) );
 		$this->assertEmpty( $this->account->get_cached_account_data() );
+	}
+
+	/**
+	 * After a failed account request, later reads wait for the retry delay instead of sending
+	 * the request again. A forced refresh still sends it, and the pause applies per mode.
+	 *
+	 * @param WP_Error|object $failed_response The failed response from Stripe.
+	 *
+	 * @dataProvider provide_failed_account_responses
+	 */
+	public function test_get_cached_account_data_pauses_requests_after_a_failure( $failed_response ) {
+		$this->mock_connect->method( 'is_connected' )->willReturn( true );
+		WC_Helper_Stripe_Api::$retrieve_response = $failed_response;
+
+		$this->assertSame( [], $this->account->get_cached_account_data( 'test' ) );
+
+		// Stripe answers again, but the next read must not send a request yet.
+		WC_Helper_Stripe_Api::reset();
+		$this->assertSame( [], $this->account->get_cached_account_data( 'test' ) );
+
+		// The other mode has its own pause.
+		$this->assertSame( '1234', $this->account->get_cached_account_data( 'live' )['id'] ?? null );
+
+		// A forced refresh sends the request and ends the pause.
+		$this->assertSame( '1234', $this->account->get_cached_account_data( 'test', true )['id'] ?? null );
+		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'test' );
+		$this->assertSame( '1234', $this->account->get_cached_account_data( 'test' )['id'] ?? null );
+	}
+
+	public function provide_failed_account_responses(): array {
+		return [
+			'network error or outage' => [ new WP_Error( 'stripe_api_outage', 'temporarily unavailable' ) ],
+			'Stripe API error'        => [ (object) [ 'error' => (object) [ 'message' => 'Too many requests' ] ] ],
+		];
+	}
+
+	/**
+	 * New keys or a new connection must not wait for the retry delay of a failed request.
+	 */
+	public function test_clear_cache_ends_the_pause_after_a_failed_request() {
+		$this->mock_connect->method( 'is_connected' )->willReturn( true );
+		WC_Helper_Stripe_Api::$retrieve_response = new WP_Error( 'stripe_api_outage', 'temporarily unavailable' );
+		$this->assertSame( [], $this->account->get_cached_account_data() );
+
+		WC_Helper_Stripe_Api::reset();
+		$this->account->clear_cache();
+
+		$this->assertSame( '1234', $this->account->get_cached_account_data()['id'] ?? null );
 	}
 
 	/**
