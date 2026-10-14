@@ -67,6 +67,14 @@ interface WC_Stripe_Event_Store_Interface {
 	public function save( WC_Stripe_Event_Record $record ): bool;
 
 	/**
+	 * Whether there is a record of an event created before the given time.
+	 *
+	 * @param int $timestamp Creation time to compare with.
+	 * @return bool
+	 */
+	public function has_older_than( int $timestamp ): bool;
+
+	/**
 	 * Deletes records of events created before the given time, oldest first.
 	 *
 	 * @param int $timestamp Events created before this time are deleted.

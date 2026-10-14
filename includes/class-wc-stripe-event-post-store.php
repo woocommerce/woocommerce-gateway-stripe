@@ -208,16 +208,40 @@ class WC_Stripe_Event_Post_Store implements WC_Stripe_Event_Store_Interface {
 	/**
 	 * {@inheritDoc}
 	 */
-	public function delete_older_than( int $timestamp, int $limit ): int {
-		return $this->delete_posts(
-			$limit,
+	public function has_older_than( int $timestamp ): bool {
+		$post_ids = get_posts(
 			[
-				[
-					'column' => 'post_date_gmt',
-					'before' => gmdate( 'Y-m-d H:i:s', $timestamp ),
-				],
+				'post_type'   => self::POST_TYPE,
+				'post_status' => array_values( self::POST_STATUSES ),
+				'fields'      => 'ids',
+				'numberposts' => 1,
+				'date_query'  => $this->get_created_before_query( $timestamp ),
 			]
 		);
+
+		return (bool) $post_ids;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function delete_older_than( int $timestamp, int $limit ): int {
+		return $this->delete_posts( $limit, $this->get_created_before_query( $timestamp ) );
+	}
+
+	/**
+	 * Returns the WP_Date_Query clauses matching events created before the given time.
+	 *
+	 * @param int $timestamp Creation time to compare with.
+	 * @return array
+	 */
+	private function get_created_before_query( int $timestamp ): array {
+		return [
+			[
+				'column' => 'post_date_gmt',
+				'before' => gmdate( 'Y-m-d H:i:s', $timestamp ),
+			],
+		];
 	}
 
 	/**

@@ -86,6 +86,15 @@ class WC_Stripe_In_Memory_Event_Store implements WC_Stripe_Event_Store_Interface
 		return true;
 	}
 
+	public function has_older_than( int $timestamp ): bool {
+		foreach ( $this->records as $record ) {
+			if ( $record->created < $timestamp ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	public function delete_older_than( int $timestamp, int $limit ): int {
 		$this->delete_older_than_calls[] = [ $timestamp, $limit ];
 

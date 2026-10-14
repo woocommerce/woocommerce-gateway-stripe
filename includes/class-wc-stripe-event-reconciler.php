@@ -349,12 +349,39 @@ class WC_Stripe_Event_Reconciler {
 	}
 
 	/**
-	 * Schedules the deletion of expired records, unless it is already scheduled or running.
+	 * Schedules the deletion of expired records and event locks when there are any, unless it is already scheduled or running.
+	 *
+	 * Checked first, so runs with nothing to delete do not fill Action Scheduler with empty actions.
 	 */
 	public function schedule_cleanup(): void {
+		if ( ! $this->store->has_older_than( time() - self::RETENTION_PERIOD ) && ! $this->has_expired_locks() ) {
+			return;
+		}
+
 		if ( ! as_has_scheduled_action( self::CLEANUP_ACTION, [], self::ACTION_GROUP ) ) {
 			as_enqueue_async_action( self::CLEANUP_ACTION, [], self::ACTION_GROUP );
 		}
+	}
+
+	/**
+	 * Whether any event lock was left behind by a request that died before releasing it.
+	 *
+	 * @return bool
+	 */
+	private function has_expired_locks(): bool {
+		global $wpdb;
+
+		// The same condition as in delete_expired_locks().
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$found = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT 1 FROM {$wpdb->options} WHERE option_name LIKE %s AND CAST( SUBSTRING_INDEX( option_value, ':', 1 ) AS UNSIGNED ) <= %d LIMIT 1",
+				$wpdb->esc_like( self::LOCK_OPTION_PREFIX ) . '%',
+				time() - self::LOCK_TTL
+			)
+		);
+
+		return null !== $found;
 	}
 
 	/**
