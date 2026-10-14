@@ -134,10 +134,8 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 				data: {
 					is_enabled: isFeatureEnabled,
 					disable_checkout: disableCheckout,
-					// Omit each add-on toggle until settings have loaded from the server
-					// or the merchant has explicitly changed that toggle, so a failed
-					// initial GET cannot overwrite enabled server options with local
-					// false defaults on a subsequent save.
+					// Skip a toggle until it loads or the merchant changes it, so a failed
+					// initial GET can't overwrite enabled server options with false.
 					...( hasLoadedSettings || hasEditedAutoExcludeAddons
 						? {
 								auto_exclude_addons: autoExcludeAddons,
