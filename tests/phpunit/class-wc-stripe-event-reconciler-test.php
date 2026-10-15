@@ -153,21 +153,27 @@ class WC_Stripe_Event_Reconciler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * mark_processed() records the event and its order, and is a no-op while the feature is disabled.
+	 * A completed event is recorded as processed with its order, a deferred one keeps its status, and a failed one is
+	 * abandoned unless it was processed already. All are no-ops while the feature is disabled.
 	 *
-	 * @param bool        $flag_enabled Whether the feature is enabled.
-	 * @param string|null $expected     Expected stored status.
-	 * @dataProvider provide_mark_processed_cases
+	 * @param bool        $flag_enabled  Whether the feature is enabled.
+	 * @param string|null $stored_status Status of the stored record, or null for none.
+	 * @param string      $outcome       Reported outcome.
+	 * @param string|null $expected      Expected stored status.
+	 * @dataProvider provide_record_outcome_cases
 	 */
-	public function test_mark_processed( bool $flag_enabled, ?string $expected ): void {
+	public function test_record_outcome( bool $flag_enabled, ?string $stored_status, string $outcome, ?string $expected ): void {
 		update_option( WC_Stripe_Feature_Flags::EVENT_RECONCILIATION_FEATURE_FLAG_NAME, $flag_enabled ? 'yes' : 'no' );
+		if ( null !== $stored_status ) {
+			$this->store->seed( $this->make_record( 'evt_1Outcome', $stored_status ) );
+		}
 		$order = WC_Helper_Order::create_order();
 
-		$this->reconciler->mark_processed( 'charge.succeeded', $this->make_event( 'evt_1Mark' ), $order );
+		$this->reconciler->record_outcome( $outcome, $this->make_event( 'evt_1Outcome' ), $order );
 
-		$record = $this->store->get( 'evt_1Mark' );
+		$record = $this->store->get( 'evt_1Outcome' );
 		$this->assertSame( $expected, $record ? $record->status : null );
-		if ( $record ) {
+		if ( WC_Stripe_Event_Reconciler::OUTCOME_COMPLETED === $outcome && $record ) {
 			$this->assertSame( $order->get_id(), $record->order_id );
 		}
 	}
@@ -175,10 +181,22 @@ class WC_Stripe_Event_Reconciler_Test extends WP_UnitTestCase {
 	/**
 	 * @return array
 	 */
-	public function provide_mark_processed_cases(): array {
+	public function provide_record_outcome_cases(): array {
+		$processing = WC_Stripe_Event_Store_Interface::STATUS_PROCESSING;
+		$processed  = WC_Stripe_Event_Store_Interface::STATUS_PROCESSED;
+		$abandoned  = WC_Stripe_Event_Store_Interface::STATUS_ABANDONED;
+		$completed  = WC_Stripe_Event_Reconciler::OUTCOME_COMPLETED;
+		$deferred   = WC_Stripe_Event_Reconciler::OUTCOME_DEFERRED;
+		$failed     = WC_Stripe_Event_Reconciler::OUTCOME_FAILED;
+
 		return [
-			'enabled'  => [ true, WC_Stripe_Event_Store_Interface::STATUS_PROCESSED ],
-			'disabled' => [ false, null ],
+			'completed'                  => [ true, $processing, $completed, $processed ],
+			'completed without a record' => [ true, null, $completed, $processed ],
+			'deferred keeps processing'  => [ true, $processing, $deferred, $processing ],
+			'failed is abandoned'        => [ true, $processing, $failed, $abandoned ],
+			'failed after processed'     => [ true, $processed, $failed, $processed ],
+			'disabled'                   => [ false, null, $completed, null ],
+			'disabled failure'           => [ false, $processing, $failed, $processing ],
 		];
 	}
 

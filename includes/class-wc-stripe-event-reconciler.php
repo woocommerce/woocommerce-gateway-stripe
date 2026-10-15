@@ -25,6 +25,15 @@ class WC_Stripe_Event_Reconciler {
 
 	public const CLAIM_LOCKED = 'locked';
 
+	/**
+	 * How the webhook handler finished processing an event, reported through record_outcome().
+	 */
+	public const OUTCOME_COMPLETED = 'completed';
+
+	public const OUTCOME_DEFERRED = 'deferred';
+
+	public const OUTCOME_FAILED = 'failed';
+
 	private const ACTION_GROUP = 'woocommerce-gateway-stripe';
 
 	/**
@@ -564,19 +573,38 @@ class WC_Stripe_Event_Reconciler {
 	}
 
 	/**
-	 * Records an event as processed once the webhook handler is done with it.
+	 * Records how the webhook handler finished processing an event.
 	 *
-	 * @param mixed $webhook_type Event type.
-	 * @param mixed $notification Stripe event.
-	 * @param mixed $order        Order the event was applied to, if any.
+	 * A deferred event stays processing until its deferred job reports the final outcome. A failed event is abandoned,
+	 * not retried, since failures like a deleted order would repeat on every attempt.
+	 *
+	 * @param string $outcome      One of the OUTCOME_* constants.
+	 * @param mixed  $notification Stripe event.
+	 * @param mixed  $order        Order the event was applied to, if any.
 	 */
-	public function mark_processed( $webhook_type, $notification, $order = null ): void {
+	public function record_outcome( string $outcome, $notification, $order = null ): void {
 		// Called by the webhook handler whether the feature is enabled or not.
 		if ( ! WC_Stripe_Feature_Flags::is_event_reconciliation_enabled() ) {
 			return;
 		}
 
-		$this->record_event( $notification, WC_Stripe_Event_Store_Interface::STATUS_PROCESSED, $order );
+		if ( self::OUTCOME_COMPLETED === $outcome ) {
+			$this->record_event( $notification, WC_Stripe_Event_Store_Interface::STATUS_PROCESSED, $order );
+			return;
+		}
+
+		if ( self::OUTCOME_FAILED !== $outcome ) {
+			return;
+		}
+
+		// Callbacks of the action fired after an event is processed can still throw.
+		$event_id = $this->get_event_id( $notification );
+		$record   = null === $event_id ? null : $this->store->get( $event_id );
+		if ( $record && WC_Stripe_Event_Store_Interface::STATUS_PROCESSED === $record->status ) {
+			return;
+		}
+
+		$this->record_event( $notification, WC_Stripe_Event_Store_Interface::STATUS_ABANDONED, $order );
 	}
 
 	/**

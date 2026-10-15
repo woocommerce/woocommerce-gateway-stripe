@@ -145,11 +145,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	private $event_reconciler;
 
 	/**
-	 * Whether the event being processed was handed to a deferred job, which then finishes it.
+	 * How processing of the current event ended, one of the WC_Stripe_Event_Reconciler::OUTCOME_* constants.
 	 *
-	 * @var bool
+	 * @var string
 	 */
-	private $webhook_deferred = false;
+	private $event_outcome = WC_Stripe_Event_Reconciler::OUTCOME_COMPLETED;
 
 	/**
 	 * Constructor.
@@ -1718,7 +1718,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param int|null $delay                Seconds to wait before retrying. Defaults to $deferred_webhook_delay.
 	 */
 	protected function defer_webhook_processing( $webhook_notification, $additional_data, $delay = null ) {
-		$this->webhook_deferred = true;
+		$this->event_outcome = WC_Stripe_Event_Reconciler::OUTCOME_DEFERRED;
 
 		$delay = null === $delay ? $this->deferred_webhook_delay : $delay;
 		$this->action_scheduler_service->schedule_job(
@@ -1733,14 +1733,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Whether the event being processed was deferred since processing started.
+	 * How processing of the current event ended so far.
 	 *
-	 * Static analysis would otherwise treat the property as still false after the reset, since only methods called in between set it.
+	 * Static analysis would otherwise treat the property as unchanged after the reset, since only methods called in between set it.
 	 *
-	 * @return bool
+	 * @return string One of the WC_Stripe_Event_Reconciler::OUTCOME_* constants.
 	 */
-	private function is_webhook_deferred(): bool {
-		return $this->webhook_deferred;
+	private function get_event_outcome(): string {
+		return $this->event_outcome;
 	}
 
 	/**
@@ -1785,7 +1785,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param array|object|null $notification  The webhook notification payload (arrays after AS deserialization).
 	 */
 	public function process_deferred_webhook( $webhook_type, $additional_data, $notification = null ) {
-		$this->webhook_deferred = false;
+		$this->event_outcome = WC_Stripe_Event_Reconciler::OUTCOME_COMPLETED;
 
 		try {
 			if ( null === $notification ) {
@@ -1820,7 +1820,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					if ( ! $order_cancelled && ! $order->has_status( apply_filters( 'wc_stripe_allowed_payment_processing_statuses', [ OrderStatus::PENDING, OrderStatus::FAILED ], $order ) ) ) {
 						WC_Stripe_Logger::debug( "Skipped processing deferred webhook for Stripe PaymentIntent {$intent_id} for order {$order->get_id()} - payment already complete." );
 						// Returns before the event is marked at the end.
-						$this->event_reconciler->mark_processed( $webhook_type, $notification, $order );
+						$this->event_reconciler->record_outcome( WC_Stripe_Event_Reconciler::OUTCOME_COMPLETED, $notification, $order );
 						return;
 					}
 
@@ -1882,11 +1882,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					break;
 			}
 
-			if ( ! $this->is_webhook_deferred() ) {
-				$this->event_reconciler->mark_processed( $webhook_type, $notification, $this->resolved_order );
-			}
+			$this->event_reconciler->record_outcome( $this->get_event_outcome(), $notification, $this->resolved_order );
 			$this->run_webhook_received_action( (string) $webhook_type, $notification );
 		} catch ( Exception $e ) {
+			$this->event_reconciler->record_outcome( WC_Stripe_Event_Reconciler::OUTCOME_FAILED, $notification, $this->resolved_order );
 			WC_Stripe_Logger::error(
 				'Error processing deferred webhook.',
 				[
@@ -2924,8 +2923,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	public function process_webhook( $request_body ) {
 		$notification = json_decode( $request_body );
 
-		$this->resolved_order   = null;
-		$this->webhook_deferred = false;
+		$this->resolved_order = null;
+		$this->event_outcome  = WC_Stripe_Event_Reconciler::OUTCOME_COMPLETED;
 
 		switch ( $notification->type ) {
 			case 'account.updated':
@@ -3008,9 +3007,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		];
 
 		// Not tied to the action below, which is skipped for some events that are not deferred, and which other callbacks can interrupt.
-		if ( ! $this->is_webhook_deferred() ) {
-			$this->event_reconciler->mark_processed( $notification->type, $notification, $this->resolved_order );
-		}
+		$this->event_reconciler->record_outcome( $this->get_event_outcome(), $notification, $this->resolved_order );
 
 		if ( ( $checkout_session_deferred ?? false ) || ( $payment_intent_deferred ?? false ) || in_array( $notification->type, $always_deferred_types, true ) ) {
 			return;

@@ -119,6 +119,45 @@ class WC_Stripe_Webhook_Handler_Event_Reconciliation_Test extends WP_UnitTestCas
 	}
 
 	/**
+	 * A deferred job that throws abandons its event, so the stuck-event sweep does not process it again.
+	 */
+	public function test_failed_deferred_job_abandons_the_event(): void {
+		$this->store->seed(
+			new WC_Stripe_Event_Record( self::EVENT_ID, WC_Stripe_Event_Store_Interface::STATUS_PROCESSING, 'payment_intent.succeeded', time(), false ),
+			time() - 2 * HOUR_IN_SECONDS
+		);
+		$reconciler   = new WC_Stripe_Event_Reconciler( $this->store );
+		$handler      = new WC_Stripe_Webhook_Handler( $reconciler );
+		$notification = (object) [
+			'id'       => self::EVENT_ID,
+			'type'     => 'payment_intent.succeeded',
+			'created'  => time(),
+			'livemode' => false,
+		];
+
+		try {
+			// The order no longer exists.
+			$handler->process_deferred_webhook(
+				'payment_intent.succeeded',
+				[
+					'order_id'  => 0,
+					'intent_id' => 'pi_1Deleted',
+				],
+				$notification
+			);
+			$this->fail( 'The deferred job should rethrow, so Action Scheduler marks it failed.' );
+		} catch ( Exception $e ) {
+			$this->assertStringContainsString( 'order_id', $e->getMessage() );
+		}
+
+		$this->assertSame( WC_Stripe_Event_Store_Interface::STATUS_ABANDONED, $this->store->get( self::EVENT_ID )->status );
+
+		$reconciler->requeue_stuck_events();
+
+		$this->assertFalse( as_has_scheduled_action( WC_Stripe_Event_Reconciler::PROCESS_ACTION, [ self::EVENT_ID ] ) );
+	}
+
+	/**
 	 * @return WP_Error
 	 */
 	public function block_http() {
