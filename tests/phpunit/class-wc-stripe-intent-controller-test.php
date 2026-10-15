@@ -2005,6 +2005,74 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A step after the charge can fail before the order is marked paid, while Stripe has already
+	 * taken the money. The handler must detect the captured payment, send the shopper to the
+	 * order-received page, leave the order unfailed, add a note for the merchant, and release the
+	 * lock on this exception path too.
+	 */
+	public function test_update_order_status_ajax_treats_captured_intent_as_paid_when_order_unpaid() {
+		Ajax_Test_Helper::init_hooks();
+
+		$order     = WC_Helper_Order::create_order();
+		$intent_id = 'pi_captured_order_unpaid';
+		$order->update_meta_data( '_stripe_intent_id', $intent_id );
+		$order->set_status( 'pending' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'process_order_for_confirmed_intent' ] )
+			->getMock();
+
+		// The charge succeeded at Stripe, but a post-charge step (e.g. saving the payment method)
+		// throws before the order is marked paid.
+		$gateway->expects( $this->once() )
+			->method( 'process_order_for_confirmed_intent' )
+			->willThrowException( new WC_Stripe_Exception( 'save_pm_failed', 'Could not save the payment method.' ) );
+
+		$controller = $this->getMockBuilder( 'WC_Stripe_Intent_Controller' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'get_gateway', 'payment_was_captured_at_stripe' ] )
+			->getMock();
+		$controller->method( 'get_gateway' )->willReturn( $gateway );
+		$controller->method( 'payment_was_captured_at_stripe' )->willReturn( true );
+
+		$_POST['order_id']       = $order_id;
+		$_POST['intent_id']      = $intent_id;
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_update_order_status_nonce' );
+
+		try {
+			ob_start();
+			$controller->update_order_status_ajax();
+			$response = json_decode( ob_get_clean(), true );
+
+			$this->assertTrue( $response['success'] );
+			$this->assertStringContainsString( 'order-received', $response['data']['return_url'] );
+
+			$fresh = wc_get_order( $order_id );
+			// The paid order must not be failed; it stays pending for the webhook to finalize.
+			$this->assertSame( 'pending', $fresh->get_status() );
+
+			// The merchant is told the payment went through but a later step failed.
+			$notes          = wc_get_order_notes( [ 'order_id' => $order_id ] );
+			$matching_notes = array_filter(
+				$notes,
+				function ( $note ) {
+					return false !== strpos( $note->content, 'a step after the charge failed' );
+				}
+			);
+			$this->assertNotEmpty( $matching_notes );
+
+			// The lock is released on this exception path too.
+			$this->assertEmpty( WC_Stripe_Order_Helper::get_instance()->get_order_existing_payment_lock( $fresh ) );
+		} finally {
+			unset( $_POST['order_id'], $_POST['intent_id'], $_REQUEST['_ajax_nonce'] );
+			Ajax_Test_Helper::remove_hooks();
+		}
+	}
+
+	/**
 	 * Test that confirm_change_payment rejects requests from users who do not own the subscription.
 	 */
 	public function test_confirm_change_payment_rejects_non_owner() {
