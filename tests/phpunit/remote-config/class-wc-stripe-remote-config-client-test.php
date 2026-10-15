@@ -69,11 +69,11 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 		return [
 			'modes'        => [
 				'live' => [
-					'flags'        => [ 'optimized_checkout' => [ 'value' => false ] ],
+					'flags'        => [ 'optimized_checkout' => false ],
 					'generated_at' => '2026-05-09T12:00:00Z',
 				],
 				'test' => [
-					'flags'        => [ 'optimized_checkout' => [ 'value' => true ] ],
+					'flags'        => [ 'optimized_checkout' => true ],
 					'generated_at' => '2026-05-09T12:00:00Z',
 				],
 			],
@@ -158,7 +158,7 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 	 */
 	public function test_fetch_all_accepts_pretty_printed_body_over_twice_the_payload_limit(): void {
 		$payload = [
-			'flags'        => [ 'optimized_checkout' => [ 'value' => true ] ],
+			'flags'        => [ 'optimized_checkout' => true ],
 			'generated_at' => '2026-05-09T12:00:00Z',
 			'_padding'     => array_fill( 0, 4000, 'a' ),
 		];

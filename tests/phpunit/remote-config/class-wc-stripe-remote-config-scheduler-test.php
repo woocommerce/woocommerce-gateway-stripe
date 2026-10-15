@@ -56,7 +56,7 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 
 	private function get_mock_payload( bool $optimized_checkout_flag_value ): array {
 		return [
-			'flags'        => [ 'optimized_checkout' => [ 'value' => $optimized_checkout_flag_value ] ],
+			'flags'        => [ 'optimized_checkout' => $optimized_checkout_flag_value ],
 			'generated_at' => '2026-05-09T12:00:00Z',
 		];
 	}

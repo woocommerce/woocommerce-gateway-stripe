@@ -23,7 +23,7 @@ class WC_Stripe_Remote_Config_Test extends WP_UnitTestCase {
 
 	private function get_valid_payload( bool $optimized_checkout_flag_value = false ): array {
 		return [
-			'flags'        => [ 'optimized_checkout' => [ 'value' => $optimized_checkout_flag_value ] ],
+			'flags'        => [ 'optimized_checkout' => $optimized_checkout_flag_value ],
 			'generated_at' => '2026-05-09T12:00:00Z',
 		];
 	}
@@ -80,7 +80,7 @@ class WC_Stripe_Remote_Config_Test extends WP_UnitTestCase {
 			],
 			'wrong flag type'           => [
 				static function ( array &$p ): void {
-					$p['flags']['optimized_checkout']['value'] = 'true';
+					$p['flags']['optimized_checkout'] = 'true';
 				},
 			],
 			'oversized payload'         => [
@@ -145,7 +145,7 @@ class WC_Stripe_Remote_Config_Test extends WP_UnitTestCase {
 	public function test_apply_drops_unknown_flag_names_silently(): void {
 		$rc                               = new WC_Stripe_Remote_Config();
 		$payload                          = $this->get_valid_payload();
-		$payload['flags']['unknown_flag'] = [ 'value' => true ];
+		$payload['flags']['unknown_flag'] = true;
 
 		$this->assertTrue( $rc->apply( 'live', $payload ) );
 		$stored = get_option( '_wcstripe_remote_config_live' );
@@ -157,8 +157,8 @@ class WC_Stripe_Remote_Config_Test extends WP_UnitTestCase {
 		$rc = new WC_Stripe_Remote_Config();
 		$rc->apply( 'live', $this->get_valid_payload( false ) );
 
-		$bad_payload = $this->get_valid_payload();
-		$bad_payload['flags']['optimized_checkout']['value'] = 'string-not-bool';
+		$bad_payload                                = $this->get_valid_payload();
+		$bad_payload['flags']['optimized_checkout'] = 'string-not-bool';
 
 		$this->assertFalse( $rc->apply( 'live', $bad_payload ) );
 
@@ -219,7 +219,7 @@ class WC_Stripe_Remote_Config_Test extends WP_UnitTestCase {
 
 	public function provide_get_flag_null_cases(): array {
 		$valid_payload = [
-			'flags'        => [ 'optimized_checkout' => [ 'value' => false ] ],
+			'flags'        => [ 'optimized_checkout' => false ],
 			'generated_at' => '2026-05-09T12:00:00Z',
 		];
 

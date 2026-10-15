@@ -94,11 +94,11 @@ class WC_Stripe_Remote_Config {
 		}
 
 		$known_flags = [];
-		foreach ( $payload['flags'] as $name => $entry ) {
+		foreach ( $payload['flags'] as $name => $value ) {
 			if ( ! WC_Stripe_Remote_Config_Flags::is_known_flag( $name ) ) {
 				continue;
 			}
-			$known_flags[ $name ] = [ 'value' => $entry['value'] ];
+			$known_flags[ $name ] = [ 'value' => $value ];
 		}
 
 		$cache_entry = [
@@ -198,14 +198,11 @@ class WC_Stripe_Remote_Config {
 			return 'missing or non-array flags';
 		}
 
-		foreach ( $payload['flags'] as $name => $entry ) {
+		foreach ( $payload['flags'] as $name => $value ) {
 			if ( ! WC_Stripe_Remote_Config_Flags::is_known_flag( $name ) ) {
 				continue; // Unknown flags are dropped silently, not a validation failure.
 			}
-			if ( ! is_array( $entry ) || ! array_key_exists( 'value', $entry ) ) {
-				return sprintf( 'flag %s: missing value field', $name );
-			}
-			if ( ! WC_Stripe_Remote_Config_Flags::validate_value( $name, $entry['value'] ) ) {
+			if ( ! WC_Stripe_Remote_Config_Flags::validate_value( $name, $value ) ) {
 				return sprintf( 'flag %s: value type does not match schema', $name );
 			}
 		}
