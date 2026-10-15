@@ -443,7 +443,7 @@ class WC_Stripe_Event_Reconciler {
 		}
 
 		// The keys of the other mode cannot fetch the event. It stays pending until the mode is switched back.
-		if ( WC_Stripe_Mode::is_test() === $record->livemode ) {
+		if ( WC_Stripe_Mode::is_live() !== $record->livemode ) {
 			return;
 		}
 
