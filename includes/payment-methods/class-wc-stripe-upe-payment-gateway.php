@@ -316,7 +316,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_email_after_order_table', [ $this, 'add_email_currency_conversion_notice' ], 10, 3 );
 
 		// Clear the duplicate-charge record once the shopper reaches the order-received page.
-		add_action( 'template_redirect', [ $this, 'maybe_clear_duplicate_payment_record' ] );
+		add_action( 'template_redirect', [ WC_Stripe_Duplicate_Payment_Prevention::class, 'maybe_clear_duplicate_payment_record' ] );
 		add_filter( 'woocommerce_thankyou_order_received_text', [ WC_Stripe_Duplicate_Payment_Prevention::class, 'filter_order_received_text' ] );
 
 		// Hide action buttons for pending orders if they take a while to be confirmed.
@@ -1638,33 +1638,36 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$duplicate_guard_owner = WC_Stripe_Duplicate_Payment_Prevention::acquire_lock( $duplicate_guard_key );
 
 			// A concurrent submission of the same cart holds the lock and is charging it. Turn this
-			// one away without charging; its order stays pending so a retry can resume it.
+			// one away without charging; its order stays pending so a retry can resume it. No lock is
+			// held here, so this returns before the try/finally that releases it.
 			if ( null === $duplicate_guard_owner ) {
 				return $this->get_checkout_failure_response( __( 'Your payment is already being processed. Please wait.', 'woocommerce-gateway-stripe' ) );
-			}
-
-			// A resubmit that landed after the first attempt already paid this cart is redirected to
-			// that order instead of charging again.
-			$already_paid_order = WC_Stripe_Duplicate_Payment_Prevention::get_recent_paid_order( $order );
-			if ( $already_paid_order instanceof WC_Order ) {
-				// A guest in another browser session with the same email and cart may be someone
-				// else: turn them away without charging and without the paid order's details.
-				if ( ! WC_Stripe_Duplicate_Payment_Prevention::is_paid_by_current_shopper( $order ) ) {
-					WC_Stripe_Duplicate_Payment_Prevention::release_lock( $duplicate_guard_key, $duplicate_guard_owner );
-					return $this->get_checkout_failure_response( __( 'We already received a payment for this cart. Please check your email for the order confirmation.', 'woocommerce-gateway-stripe' ) );
-				}
-
-				$this->cancel_order_superseded_by_paid_cart( $order, $already_paid_order );
-				WC_Stripe_Duplicate_Payment_Prevention::release_lock( $duplicate_guard_key, $duplicate_guard_owner );
-				return [
-					'result'   => 'success',
-					// Flagged so the order-received page can explain the earlier order number.
-					'redirect' => add_query_arg( WC_Stripe_Duplicate_Payment_Prevention::REDIRECT_QUERY_ARG, '1', $this->get_return_url( $already_paid_order ) ),
-				];
 			}
 		}
 
 		try {
+			// Hold the lock across the try so the finally below always releases it, even when the
+			// already-paid redirect returns early.
+			if ( null !== $duplicate_guard_owner && $order instanceof WC_Order ) {
+				// A resubmit that landed after the first attempt already paid this cart is redirected to
+				// that order instead of charging again.
+				$already_paid_order = WC_Stripe_Duplicate_Payment_Prevention::get_recent_paid_order( $order );
+				if ( $already_paid_order instanceof WC_Order ) {
+					// A guest in another browser session with the same email and cart may be someone
+					// else: turn them away without charging and without the paid order's details.
+					if ( ! WC_Stripe_Duplicate_Payment_Prevention::is_paid_by_current_shopper( $order ) ) {
+						return $this->get_checkout_failure_response( __( 'We already received a payment for this cart. Please check your email for the order confirmation.', 'woocommerce-gateway-stripe' ) );
+					}
+
+					$this->cancel_order_superseded_by_paid_cart( $order, $already_paid_order );
+					return [
+						'result'   => 'success',
+						// Flagged so the order-received page can explain the earlier order number.
+						'redirect' => add_query_arg( WC_Stripe_Duplicate_Payment_Prevention::REDIRECT_QUERY_ARG, '1', $this->get_return_url( $already_paid_order ) ),
+					];
+				}
+			}
+
 			if ( $this->is_using_saved_payment_method() && $order instanceof WC_Order ) {
 				try {
 					$this->retire_checkout_session_for_saved_payment( $order );
@@ -1792,34 +1795,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		if ( WC()->cart instanceof WC_Cart ) {
 			WC()->cart->empty_cart();
-		}
-	}
-
-	/**
-	 * Clears the duplicate-charge record once the shopper reaches the order-received page.
-	 *
-	 * Hooked on `template_redirect` rather than `woocommerce_thankyou` so it does not depend on the
-	 * confirmation template rendering a particular block.
-	 *
-	 * @return void
-	 */
-	public function maybe_clear_duplicate_payment_record(): void {
-		if ( ! function_exists( 'is_order_received_page' ) || ! is_order_received_page() ) {
-			return;
-		}
-
-		global $wp;
-		$order_id = isset( $wp->query_vars['order-received'] ) ? absint( $wp->query_vars['order-received'] ) : 0;
-		if ( $order_id <= 0 ) {
-			return;
-		}
-
-		// The order ID in the URL is guessable, so require the order key that the shopper's own
-		// order-received URL always carries; otherwise anyone could clear another shopper's record.
-		$order_key = isset( $_GET['key'] ) ? wc_clean( wp_unslash( $_GET['key'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$order     = wc_get_order( $order_id );
-		if ( $order instanceof WC_Order && is_string( $order_key ) && '' !== $order_key && $order->key_is_valid( $order_key ) ) {
-			WC_Stripe_Duplicate_Payment_Prevention::clear_paid_record( $order );
 		}
 	}
 

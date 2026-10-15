@@ -66,11 +66,11 @@ final class WC_Stripe_Duplicate_Payment_Prevention {
 	 *
 	 * @return int
 	 */
-	public static function get_detection_window(): int {
+	private static function get_detection_window(): int {
 		/**
 		 * Filters how long a paid cart is protected against a duplicate charge.
 		 *
-		 * @since 11.1.0
+		 * @since 11.2.0
 		 *
 		 * @param int $window Seconds. Return 0 to disable duplicate-charge prevention.
 		 */
@@ -279,6 +279,14 @@ final class WC_Stripe_Duplicate_Payment_Prevention {
 			return;
 		}
 
+		// Keep the first write for this order. A later call without a session (for example a webhook)
+		// would otherwise overwrite the browser session that is_paid_by_current_shopper() needs to
+		// redirect a guest's resubmit.
+		$existing = self::get_record( $cart_key );
+		if ( null !== $existing && (int) $existing['order_id'] === $order->get_id() ) {
+			return;
+		}
+
 		set_transient(
 			self::RECORD_PREFIX . $cart_key,
 			[
@@ -291,12 +299,40 @@ final class WC_Stripe_Duplicate_Payment_Prevention {
 	}
 
 	/**
+	 * Clears the paid-cart record once the shopper reaches the order-received page.
+	 *
+	 * Hooked on `template_redirect` rather than `woocommerce_thankyou` so it does not depend on the
+	 * confirmation template rendering a particular block.
+	 *
+	 * @return void
+	 */
+	public static function maybe_clear_duplicate_payment_record(): void {
+		if ( ! function_exists( 'is_order_received_page' ) || ! is_order_received_page() ) {
+			return;
+		}
+
+		global $wp;
+		$order_id = isset( $wp->query_vars['order-received'] ) ? absint( $wp->query_vars['order-received'] ) : 0;
+		if ( $order_id <= 0 ) {
+			return;
+		}
+
+		// The order ID in the URL is guessable, so require the order key that the shopper's own
+		// order-received URL always carries; otherwise anyone could clear another shopper's record.
+		$order_key = isset( $_GET['key'] ) ? wc_clean( wp_unslash( $_GET['key'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$order     = wc_get_order( $order_id );
+		if ( $order instanceof WC_Order && is_string( $order_key ) && '' !== $order_key && $order->key_is_valid( $order_key ) ) {
+			self::clear_paid_record( $order );
+		}
+	}
+
+	/**
 	 * Clears the paid-cart record for this order's cart.
 	 *
 	 * @param WC_Order $order The order whose cart record should be cleared.
 	 * @return void
 	 */
-	public static function clear_paid_record( WC_Order $order ): void {
+	private static function clear_paid_record( WC_Order $order ): void {
 		$cart_key = self::get_cart_key( $order );
 		if ( '' === $cart_key ) {
 			return;

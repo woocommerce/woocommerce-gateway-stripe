@@ -2195,7 +2195,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$this->assertInstanceOf( WC_Order::class, $paid_order );
 			$this->assertSame( $order->get_id(), $paid_order->get_id() );
 		} finally {
-			WC_Stripe_Duplicate_Payment_Prevention::clear_paid_record( $order );
+			delete_transient( 'wc_stripe_paid_cart_' . WC_Stripe_Duplicate_Payment_Prevention::get_cart_key( $order ) );
 		}
 	}
 
@@ -8356,7 +8356,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		add_filter( 'woocommerce_is_order_received_page', '__return_true' );
 
 		try {
-			( new WC_Stripe_UPE_Payment_Gateway() )->maybe_clear_duplicate_payment_record();
+			WC_Stripe_Duplicate_Payment_Prevention::maybe_clear_duplicate_payment_record();
 
 			$record = WC_Stripe_Duplicate_Payment_Prevention::get_recent_paid_order( $resend );
 			if ( $expect_cleared ) {

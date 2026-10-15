@@ -38,7 +38,9 @@ class WC_Stripe_Duplicate_Payment_Prevention_Test extends WP_UnitTestCase {
 			);
 		}
 
-		$this->assertSame( $expected, WC_Stripe_Duplicate_Payment_Prevention::get_detection_window() );
+		$method = new ReflectionMethod( WC_Stripe_Duplicate_Payment_Prevention::class, 'get_detection_window' );
+		$method->setAccessible( true );
+		$this->assertSame( $expected, $method->invoke( null ) );
 	}
 
 	/**
@@ -172,6 +174,32 @@ class WC_Stripe_Duplicate_Payment_Prevention_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A later sessionless write for the same order (for example from the webhook handler) must not
+	 * overwrite the browser session the first write stored, so a guest's resubmit is still matched.
+	 */
+	public function test_record_paid_order_keeps_the_first_write_session(): void {
+		$original_session = WC()->session;
+
+		try {
+			$paid = $this->make_order( self::CART_HASH, self::EMAIL );
+			$paid->payment_complete();
+			$paid = wc_get_order( $paid->get_id() );
+
+			$this->set_session_customer_id( 't_guest_a' );
+			WC_Stripe_Duplicate_Payment_Prevention::record_paid_order( $paid );
+
+			$this->set_session_customer_id( '' );
+			WC_Stripe_Duplicate_Payment_Prevention::record_paid_order( $paid );
+
+			$resend = $this->make_order( self::CART_HASH, self::EMAIL );
+			$this->set_session_customer_id( 't_guest_a' );
+			$this->assertTrue( WC_Stripe_Duplicate_Payment_Prevention::is_paid_by_current_shopper( $resend ) );
+		} finally {
+			WC()->session = $original_session;
+		}
+	}
+
+	/**
 	 * Sets the WC session customer ID, or removes the session when empty.
 	 *
 	 * @param string $customer_id The session customer ID.
@@ -297,11 +325,13 @@ class WC_Stripe_Duplicate_Payment_Prevention_Test extends WP_UnitTestCase {
 		$key  = WC_Stripe_Duplicate_Payment_Prevention::get_cart_key( $paid );
 
 		// Seed a record whose paid_at is older than the window.
+		$window = new ReflectionMethod( WC_Stripe_Duplicate_Payment_Prevention::class, 'get_detection_window' );
+		$window->setAccessible( true );
 		set_transient(
 			'wc_stripe_paid_cart_' . $key,
 			[
 				'order_id' => $paid->get_id(),
-				'paid_at'  => time() - WC_Stripe_Duplicate_Payment_Prevention::get_detection_window() - 5,
+				'paid_at'  => time() - $window->invoke( null ) - 5,
 			],
 			HOUR_IN_SECONDS
 		);
@@ -317,7 +347,9 @@ class WC_Stripe_Duplicate_Payment_Prevention_Test extends WP_UnitTestCase {
 		$paid = $this->make_paid_order( self::CART_HASH, self::EMAIL );
 		WC_Stripe_Duplicate_Payment_Prevention::record_paid_order( $paid );
 
-		WC_Stripe_Duplicate_Payment_Prevention::clear_paid_record( $paid );
+		$clear = new ReflectionMethod( WC_Stripe_Duplicate_Payment_Prevention::class, 'clear_paid_record' );
+		$clear->setAccessible( true );
+		$clear->invoke( null, $paid );
 
 		$resend = $this->make_order( self::CART_HASH, self::EMAIL );
 		$this->assertNull( WC_Stripe_Duplicate_Payment_Prevention::get_recent_paid_order( $resend ) );
