@@ -9,8 +9,19 @@ const SaveSettingsSectionWrapper = styled( SettingsSection )`
 	text-align: right;
 `;
 
+/**
+ * Renders the save settings button section.
+ *
+ * @param {Object}   props                  Component props.
+ * @param {Function} [props.onSettingsSave] Optional callback invoked after standard store saveSettings completes.
+ * @param {Function} [props.onSave]         Optional custom save closure. When provided, SaveSettingsSection
+ *                                          invokes this custom save handler and manages its own saving state,
+ *                                          bypassing the global settings store saveSettings and onSettingsSave.
+ *
+ * @return {JSX.Element} The save settings button section.
+ */
 const SaveSettingsSection = ( { onSettingsSave, onSave } ) => {
-	const { saveSettings, isSaving, isLoading } = useSettings?.() || {};
+	const { saveSettings, isSaving, isLoading } = useSettings();
 	const [ isCustomSaving, setIsCustomSaving ] = useState( false );
 
 	const onClickHandler = async () => {

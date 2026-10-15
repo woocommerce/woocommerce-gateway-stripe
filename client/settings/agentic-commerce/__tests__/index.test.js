@@ -400,8 +400,6 @@ describe( 'AgenticCommerceSection', () => {
 	} );
 
 	it( 'enables Sync Now once the typed webhook secret is saved', async () => {
-		const ref = { current: null };
-
 		apiFetch.mockImplementation( ( { path, method } ) => {
 			if ( path === '/wc/v3/wc_stripe/agentic-commerce/settings' ) {
 				return Promise.resolve( {
@@ -415,7 +413,7 @@ describe( 'AgenticCommerceSection', () => {
 			return Promise.resolve( EMPTY_RESPONSE );
 		} );
 
-		render( <AgenticCommerceSection ref={ ref } /> );
+		render( <AgenticCommerceSection /> );
 
 		const syncBtn = await screen.findByRole( 'button', {
 			name: /Sync Now/i,
@@ -427,7 +425,9 @@ describe( 'AgenticCommerceSection', () => {
 		expect( syncBtn ).toBeDisabled();
 
 		await act( async () => {
-			await ref.current.save();
+			fireEvent.click(
+				screen.getByRole( 'button', { name: /save changes/i } )
+			);
 		} );
 
 		expect( syncBtn ).toBeEnabled();
@@ -789,12 +789,10 @@ describe( 'AgenticCommerceSection', () => {
 	} );
 
 	// -------------------------------------------------------------------------
-	// Save via ref
+	// Save settings
 	// -------------------------------------------------------------------------
 
-	it( 'exposes a save function via ref that saves settings', async () => {
-		const ref = { current: null };
-
+	it( 'saves settings when Save changes button is clicked', async () => {
 		apiFetch.mockImplementation( ( { path, method } ) => {
 			if (
 				method === 'POST' &&
@@ -814,17 +812,14 @@ describe( 'AgenticCommerceSection', () => {
 			return Promise.resolve( EMPTY_RESPONSE );
 		} );
 
-		render( <AgenticCommerceSection ref={ ref } /> );
+		render( <AgenticCommerceSection /> );
 
-		// Wait for initial load to complete.
-		await waitFor( () => {
-			expect( ref.current ).not.toBeNull();
+		const saveButton = await screen.findByRole( 'button', {
+			name: /save changes/i,
 		} );
-		expect( typeof ref.current.save ).toBe( 'function' );
 
-		// Trigger save via ref.
 		await act( async () => {
-			await ref.current.save();
+			fireEvent.click( saveButton );
 		} );
 
 		expect( apiFetch ).toHaveBeenCalledWith(
@@ -835,9 +830,7 @@ describe( 'AgenticCommerceSection', () => {
 		);
 	} );
 
-	it( 'renders an error notice when save via ref fails', async () => {
-		const ref = { current: null };
-
+	it( 'renders an error notice when save fails', async () => {
 		apiFetch.mockImplementation( ( { path, method } ) => {
 			if (
 				method === 'POST' &&
@@ -854,14 +847,14 @@ describe( 'AgenticCommerceSection', () => {
 			return Promise.resolve( EMPTY_RESPONSE );
 		} );
 
-		render( <AgenticCommerceSection ref={ ref } /> );
+		render( <AgenticCommerceSection /> );
 
-		await waitFor( () => {
-			expect( ref.current ).not.toBeNull();
+		const saveButton = await screen.findByRole( 'button', {
+			name: /save changes/i,
 		} );
 
 		await act( async () => {
-			await ref.current.save();
+			fireEvent.click( saveButton );
 		} );
 
 		await waitFor( () => {
@@ -871,9 +864,7 @@ describe( 'AgenticCommerceSection', () => {
 		} );
 	} );
 
-	it( 'falls back to a generic error message when save via ref rejects without a message', async () => {
-		const ref = { current: null };
-
+	it( 'falls back to a generic error message when save rejects without a message', async () => {
 		apiFetch.mockImplementation( ( { path, method } ) => {
 			if (
 				method === 'POST' &&
@@ -890,14 +881,14 @@ describe( 'AgenticCommerceSection', () => {
 			return Promise.resolve( EMPTY_RESPONSE );
 		} );
 
-		render( <AgenticCommerceSection ref={ ref } /> );
+		render( <AgenticCommerceSection /> );
 
-		await waitFor( () => {
-			expect( ref.current ).not.toBeNull();
+		const saveButton = await screen.findByRole( 'button', {
+			name: /save changes/i,
 		} );
 
 		await act( async () => {
-			await ref.current.save();
+			fireEvent.click( saveButton );
 		} );
 
 		await waitFor( () => {
@@ -988,8 +979,6 @@ describe( 'AgenticCommerceSection', () => {
 	} );
 
 	it( 'persists the toggled disable_checkout value through a save round-trip', async () => {
-		const ref = { current: null };
-
 		apiFetch.mockImplementation( ( { path, method } ) => {
 			if (
 				method === 'POST' &&
@@ -1011,16 +1000,20 @@ describe( 'AgenticCommerceSection', () => {
 			return Promise.resolve( EMPTY_RESPONSE );
 		} );
 
-		render( <AgenticCommerceSection ref={ ref } /> );
+		render( <AgenticCommerceSection /> );
 
 		const redirectCheckbox = await screen.findByLabelText(
 			/Redirect shoppers to my store to check out/i
 		);
 		expect( redirectCheckbox ).not.toBeChecked();
 
-		// Toggle on, then save via the ref the global Save button drives.
+		// Toggle on, then save via the Save changes button.
 		fireEvent.click( redirectCheckbox );
-		await ref.current.save();
+		await act( async () => {
+			fireEvent.click(
+				screen.getByRole( 'button', { name: /save changes/i } )
+			);
+		} );
 
 		expect( apiFetch ).toHaveBeenCalledWith(
 			expect.objectContaining( {
@@ -1089,8 +1082,6 @@ describe( 'AgenticCommerceSection', () => {
 	} );
 
 	it( 'persists the add-on auto-exclude toggle through a save round-trip', async () => {
-		const ref = { current: null };
-
 		apiFetch.mockImplementation( ( { path, method } ) => {
 			if (
 				method === 'POST' &&
@@ -1112,7 +1103,7 @@ describe( 'AgenticCommerceSection', () => {
 			return Promise.resolve( EMPTY_RESPONSE );
 		} );
 
-		render( <AgenticCommerceSection ref={ ref } /> );
+		render( <AgenticCommerceSection /> );
 
 		const excludeCheckbox = await screen.findByLabelText(
 			/Exclude products with add-ons or configurators from the feed/i
@@ -1120,7 +1111,11 @@ describe( 'AgenticCommerceSection', () => {
 		expect( excludeCheckbox ).not.toBeChecked();
 
 		fireEvent.click( excludeCheckbox );
-		await ref.current.save();
+		await act( async () => {
+			fireEvent.click(
+				screen.getByRole( 'button', { name: /save changes/i } )
+			);
+		} );
 
 		expect( apiFetch ).toHaveBeenCalledWith(
 			expect.objectContaining( {
@@ -1160,9 +1155,7 @@ describe( 'AgenticCommerceSection', () => {
 		).not.toBeInTheDocument();
 	} );
 
-	it( 'does not post settings via ref.current.save when initial settings fetch has failed', async () => {
-		const ref = { current: null };
-
+	it( 'omits the Save button when initial settings fetch has failed', async () => {
 		apiFetch.mockImplementation( ( { path } ) => {
 			if ( path === '/wc/v3/wc_stripe/agentic-commerce/settings' ) {
 				return Promise.reject( { message: 'Network error' } );
@@ -1170,7 +1163,7 @@ describe( 'AgenticCommerceSection', () => {
 			return Promise.resolve( EMPTY_RESPONSE );
 		} );
 
-		render( <AgenticCommerceSection ref={ ref } /> );
+		render( <AgenticCommerceSection /> );
 
 		await waitFor( () => {
 			expect(
@@ -1178,9 +1171,9 @@ describe( 'AgenticCommerceSection', () => {
 			).toBeInTheDocument();
 		} );
 
-		await act( async () => {
-			await ref.current.save();
-		} );
+		expect(
+			screen.queryByRole( 'button', { name: /Save changes/i } )
+		).not.toBeInTheDocument();
 
 		const postCalls = apiFetch.mock.calls.filter(
 			( [ call ] ) =>

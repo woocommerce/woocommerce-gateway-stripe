@@ -1,10 +1,4 @@
-import React, {
-	useState,
-	useEffect,
-	useCallback,
-	useImperativeHandle,
-	forwardRef,
-} from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
 import styled from '@emotion/styled';
 import SettingsSection from '../settings-section';
@@ -66,7 +60,7 @@ const AgenticCommerceDescription = () => (
 	</>
 );
 
-const AgenticCommerceSection = forwardRef( ( props, ref ) => {
+const AgenticCommerceSection = () => {
 	const [ isFeatureEnabled, setIsFeatureEnabled ] = useState( false );
 	const [ disableCheckout, setDisableCheckout ] = useState( false );
 	const [ autoExcludeAddons, setAutoExcludeAddons ] = useState( false );
@@ -139,9 +133,6 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 	}, [ fetchSettings ] );
 
 	const handleSaveSettings = useCallback( async () => {
-		if ( ! hasLoadedSettings ) {
-			return;
-		}
 		setSettingsNotice( null );
 		try {
 			const result = await apiFetch( {
@@ -178,23 +169,12 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			} );
 		}
 	}, [
-		hasLoadedSettings,
 		isFeatureEnabled,
 		disableCheckout,
 		autoExcludeAddons,
 		autoRedirectCheckoutAddons,
 		webhookSecret,
 	] );
-
-	// Expose save function to parent via ref so programmatic callers
-	// and existing unit tests can trigger it.
-	useImperativeHandle(
-		ref,
-		() => ( {
-			save: handleSaveSettings,
-		} ),
-		[ handleSaveSettings ]
-	);
 
 	const renderCardContent = () => {
 		if ( isLoadingSettings ) {
@@ -422,18 +402,18 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 				<LoadableSettingsSection numLines={ 10 }>
 					<Card>
 						<CardBody>
+							{ renderCardContent() }
+
 							{ settingsNotice && (
 								<Notice
 									status={ settingsNotice.status }
 									onRemove={ () => setSettingsNotice( null ) }
 									isDismissible
-									style={ { marginBottom: '16px' } }
+									style={ { marginTop: '16px' } }
 								>
 									{ settingsNotice.message }
 								</Notice>
 							) }
-
-							{ renderCardContent() }
 						</CardBody>
 					</Card>
 				</LoadableSettingsSection>
@@ -455,8 +435,6 @@ const AgenticCommerceSection = forwardRef( ( props, ref ) => {
 			) }
 		</>
 	);
-} );
-
-AgenticCommerceSection.displayName = 'AgenticCommerceSection';
+};
 
 export default AgenticCommerceSection;
