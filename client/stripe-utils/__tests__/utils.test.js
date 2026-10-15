@@ -986,6 +986,21 @@ describe( 'showErrorCheckout', () => {
 			expect( excluded ).toContain( 'amazon_pay' );
 		} );
 
+		it( 'keeps a non-deferred method excluded when the billing country becomes supported', () => {
+			// BLIK loads country-excluded (non-PL) and is also excluded because it
+			// can't render in the deferred-intent element; switching to PL only
+			// lifts the country reason.
+			setServerData( { blik: [ 'PL' ] }, [ 'amazon_pay', 'blik' ] );
+			setCountryExcludedSeed( [ 'blik' ] );
+			global.wc_stripe_upe_params.paymentMethodsConfig.blik = {
+				supportsDeferredIntent: false,
+			};
+
+			expect(
+				getExcludedPaymentMethodTypesForBillingCountry( 'PL' )
+			).toContain( 'blik' );
+		} );
+
 		it( 'preserves seed entries that are not country-derived, even when country-governed', () => {
 			// A third party excluded Klarna via `wc_stripe_upe_params` for a
 			// non-country reason: it is absent from the country-derived seed,

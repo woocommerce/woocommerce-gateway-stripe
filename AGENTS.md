@@ -60,6 +60,7 @@ Use the smallest command set needed for the task:
 
 ## Common Pitfalls
 
+- **MUST:** Register one-time migrations in `WC_Stripe_Update_Manager::get_update_functions()` with a `maybe_migrate()` entry point, following existing migrations. Do not add migration execution or recovery hooks to `WC_Stripe::__construct()`.
 - Running PHP tests without Docker: `npm run test:php` fails unless containers are up.
 - Running `npm run infra:up` from a worktree: prefer the main checkout. The script warns interactively if you do it from a worktree.
 - Forgetting `npm run worktree:cleanup` before `git worktree remove`: leaves orphan containers and test databases behind. Run `npm run worktree:status` to find orphans.

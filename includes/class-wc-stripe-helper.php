@@ -1183,8 +1183,8 @@ class WC_Stripe_Helper {
 	public static function clean_statement_descriptor( $statement_descriptor = '' ) {
 		$disallowed_characters = [ '<', '>', '\\', '*', '"', "'", '/', '(', ')', '{', '}' ];
 
-		// Strip any tags.
-		$statement_descriptor = strip_tags( $statement_descriptor );
+		// Strip all tags.
+		$statement_descriptor = wp_strip_all_tags( $statement_descriptor );
 
 		// Strip any HTML entities.
 		// Props https://stackoverflow.com/questions/657643/how-to-remove-html-special-chars .
@@ -2212,7 +2212,7 @@ class WC_Stripe_Helper {
 		}
 
 		if ( ! is_object( $intent ) ) {
-			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		if ( null === $intent_id ) {
@@ -2228,7 +2228,7 @@ class WC_Stripe_Helper {
 					'error'     => $intent->error,
 				]
 			);
-			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		if ( null === $selected_payment_type ) {
@@ -2274,7 +2274,7 @@ class WC_Stripe_Helper {
 			]
 		);
 
-		throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+		throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 	}
 
 	/**
