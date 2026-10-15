@@ -811,7 +811,7 @@ class WC_Stripe_Intent_Controller {
 						if ( $order_helper->is_order_payment_settled( $order ) ) {
 							WC_Stripe_Logger::info( "Skipping update_order_status_ajax for order $order_id; order was settled by a concurrent request." );
 						} else {
-							$processing_started = true; // Past validation; a failure from here on is a genuine payment failure.
+							$processing_started = true; // Past validation; only a Stripe-reported failure from here on may fail the order.
 							try {
 								$gateway->process_order_for_confirmed_intent( $order, $intent_id_received, $save_payment_method );
 							} catch ( Throwable $e ) {
