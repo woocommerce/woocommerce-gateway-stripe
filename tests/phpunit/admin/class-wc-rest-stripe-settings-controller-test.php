@@ -942,14 +942,21 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	/**
-	 * The deprecated per-method size params still update the (now shared) size.
+	 * The deprecated per-method size params still update the (now shared) size, whichever
+	 * method's param is sent.
 	 *
+	 * @dataProvider provide_legacy_button_size_params
+	 *
+	 * @param string $legacy_param The deprecated per-method size param name.
 	 * @return void
 	 */
-	public function test_legacy_button_size_params_update_shared_size() {
+	public function test_legacy_button_size_params_update_shared_size( string $legacy_param ) {
+		// Start from a known size so the assertions prove a real change, not a pre-set value.
+		$this->get_gateway()->update_option( 'express_checkout_button_size', 'small' );
+
 		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
 		$request->set_param( 'is_upe_enabled', true );
-		$request->set_param( 'link_button_size', 'large' );
+		$request->set_param( $legacy_param, 'large' );
 
 		$response = rest_do_request( $request );
 		$this->assertEquals( 200, $response->get_status() );
@@ -965,6 +972,18 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	/**
+	 * Data provider for test_legacy_button_size_params_update_shared_size.
+	 *
+	 * @return array
+	 */
+	public function provide_legacy_button_size_params(): array {
+		return [
+			'link'       => [ 'link_button_size' ],
+			'amazon_pay' => [ 'amazon_pay_button_size' ],
+		];
+	}
+
+	/**
 	 * When both the shared and a deprecated size param are present, the shared one wins.
 	 *
 	 * @return void
@@ -974,11 +993,13 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		$request->set_param( 'is_upe_enabled', true );
 		$request->set_param( 'express_checkout_button_size', 'small' );
 		$request->set_param( 'amazon_pay_button_size', 'large' );
+		$request->set_param( 'link_button_size', 'large' );
 
 		$response = rest_do_request( $request );
 		$this->assertEquals( 200, $response->get_status() );
 		$this->assertSame( 'small', $this->get_gateway()->get_option( 'express_checkout_button_size' ) );
 		$this->assertSame( 'small', $this->get_gateway()->get_option( 'amazon_pay_button_size' ) );
+		$this->assertSame( 'small', $this->get_gateway()->get_option( 'link_button_size' ) );
 	}
 
 	/**

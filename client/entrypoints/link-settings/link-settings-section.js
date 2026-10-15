@@ -28,8 +28,7 @@ import CardBody from 'wcstripe/settings/card-body';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
 
 const LinkSettingsSection = () => {
-	// Express checkout buttons share one size. This control edits that shared value;
-	// the preview reflects it.
+	// Use the shared express checkout button size hook, which is common across express checkout payment methods.
 	const [ size, setSize ] = useExpressCheckoutButtonSize();
 
 	const [ enabledMethodIds ] = useEnabledPaymentMethodIds();

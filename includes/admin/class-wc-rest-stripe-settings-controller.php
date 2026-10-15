@@ -613,7 +613,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return void
 	 */
 	private function update_express_checkout_button_locations( WP_REST_Request $request ): void {
-		foreach ( WC_Stripe_Express_Checkout_Helper::BUTTON_LOCATION_OPTION_KEYS as $option_key ) {
+		foreach ( WC_Stripe_Express_Checkout_Helper::get_button_location_option_keys() as $option_key ) {
 			$value = $request->get_param( $option_key );
 			if ( null === $value ) {
 				continue;

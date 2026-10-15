@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import LinkSettingsSection from '../link-settings-section';
 import {
 	useEnabledPaymentMethodIds,
@@ -64,13 +65,16 @@ describe( 'LinkSettingsSection', () => {
 		).toBeInTheDocument();
 	} );
 
-	it( 'updates the shared button size when a size is selected', () => {
+	it( 'updates the shared button size when a size is selected', async () => {
 		const setSize = jest.fn();
 		useExpressCheckoutButtonSize.mockReturnValue( [ 'default', setSize ] );
 
 		render( <LinkSettingsSection /> );
 
-		fireEvent.click( screen.getByLabelText( /Large/ ) );
+		// Not called until the click, so the click is what triggers the update.
+		expect( setSize ).not.toHaveBeenCalled();
+
+		await userEvent.click( screen.getByLabelText( /Large/ ) );
 
 		expect( setSize ).toHaveBeenCalledWith( 'large' );
 	} );

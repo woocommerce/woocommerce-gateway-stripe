@@ -22,6 +22,28 @@ class WC_Stripe_Express_Checkout_Helper {
 	protected const EXPRESS_CHECKOUT_METHODS = [ 'amazon_pay', 'link', 'apple_pay_google_pay' ];
 
 	/**
+	 * Placement every express checkout method gets until the merchant saves its locations.
+	 *
+	 * @var string[]
+	 */
+	private const DEFAULT_BUTTON_LOCATIONS = [ 'product', 'cart' ];
+
+	/**
+	 * Option key holding each express checkout method's locations.
+	 *
+	 * The settings UI edits the locations as one map, but these per-method options stay
+	 * the persisted form so a rollback to a version that reads them directly keeps the
+	 * merchant's choices. Read externally through get_button_location_option_keys().
+	 *
+	 * @var array<string, string>
+	 */
+	protected const BUTTON_LOCATION_OPTION_KEYS = [
+		'apple_pay_google_pay' => 'express_checkout_button_locations',
+		'link'                 => 'link_button_locations',
+		'amazon_pay'           => 'amazon_pay_button_locations',
+	];
+
+	/**
 	 * Stripe settings.
 	 *
 	 * @var array
@@ -1888,28 +1910,6 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	 * Placement every express checkout method gets until the merchant saves its locations.
-	 *
-	 * @var string[]
-	 */
-	public const DEFAULT_BUTTON_LOCATIONS = [ 'product', 'cart' ];
-
-	/**
-	 * Option key holding each express checkout method's locations.
-	 *
-	 * The settings UI edits the locations as one map, but these per-method options stay
-	 * the persisted form so a rollback to a version that reads them directly keeps the
-	 * merchant's choices.
-	 *
-	 * @var array<string, string>
-	 */
-	public const BUTTON_LOCATION_OPTION_KEYS = [
-		'apple_pay_google_pay' => 'express_checkout_button_locations',
-		'link'                 => 'link_button_locations',
-		'amazon_pay'           => 'amazon_pay_button_locations',
-	];
-
-	/**
 	 * Reads one method's locations from the settings, in stored order.
 	 *
 	 * A missing option means the method was never configured and keeps the default
@@ -1951,6 +1951,15 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
+	 * The per-method location option keys, keyed by express checkout method.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function get_button_location_option_keys(): array {
+		return self::BUTTON_LOCATION_OPTION_KEYS;
+	}
+
+	/**
 	 * Pages where the express checkout buttons should be displayed for a method.
 	 * Without a type, returns the Apple Pay / Google Pay locations — preserving the
 	 * pre-unification no-argument behavior for external callers.
@@ -1959,7 +1968,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return array
 	 */
 	public function get_button_locations( ?string $express_checkout_type = null ): array {
-		$method = self::normalize_express_checkout_method( (string) $express_checkout_type );
+		$method = self::normalize_express_checkout_method( $express_checkout_type );
 
 		return self::get_method_locations_from_settings( $this->stripe_settings, $method );
 	}
@@ -1983,7 +1992,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @param string $express_checkout_type The type of express checkout.
 	 * @return string
 	 */
-	private static function normalize_express_checkout_method( string $express_checkout_type ): string {
+	private static function normalize_express_checkout_method( ?string $express_checkout_type ): string {
 		if ( in_array( $express_checkout_type, [ 'link', 'amazon_pay' ], true ) ) {
 			return $express_checkout_type;
 		}
