@@ -12,6 +12,8 @@ const {
 	setupOptimizedCheckout,
 	fillOCDetails,
 	clickPlaceOrder,
+	clickAddToCartButton,
+	emptyCart,
 	getCartTotal,
 	waitForOrderReceivedPage,
 	getOrderIdFromOrderReceivedUrl,
@@ -130,6 +132,55 @@ test.describe( 'Adaptive Pricing checkout', () => {
 		// details on real conversions, impossible for a same-currency CI
 		// shopper. Unit tests cover the row.
 		await payWithAdaptivePricing( page, 'shortcode' );
+	} );
+
+	test( 'guest can pay when WooCommerce does not collect a billing country', async ( {
+		page,
+		context,
+		baseURL,
+	} ) => {
+		const productId = await api.create.product( {
+			name: `Billing Country E2E ${ randomUUID() }`,
+			type: 'simple',
+			virtual: true,
+			regular_price: '18.00',
+		} );
+
+		try {
+			await context.addCookies( [
+				{
+					name: 'wc_stripe_e2e_without_billing_country',
+					value: '1',
+					url: baseURL,
+				},
+			] );
+
+			await emptyCart( page );
+			await page.goto( `?p=${ productId }` );
+			await clickAddToCartButton( page );
+			await expect(
+				page.getByText( 'has been added to your cart' )
+			).toBeVisible();
+
+			await setupOptimizedCheckout( page, 'shortcode', {
+				timeout: 10000,
+				skipCartSetup: true,
+				cardSelectionOptional: true,
+				skipBillingCountry: true,
+			} );
+			await expect( page.locator( '#billing_country' ) ).toHaveCount( 0 );
+			await fillOCDetails(
+				page,
+				config.get( 'cards.basic' ),
+				'shortcode',
+				{ billingCountry: 'US' }
+			);
+
+			await clickPlaceOrder( page );
+			await waitForOrderReceivedPage( page );
+		} finally {
+			await api.deletePost.product( productId );
+		}
 	} );
 
 	test( 'customer can pay through Adaptive Pricing on blocks checkout @smoke', async ( {

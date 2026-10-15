@@ -22,6 +22,48 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * The available store currencies always contain the normalized base currency
+	 * and only valid strings added through the public filter.
+	 *
+	 * @param mixed    $filtered_currencies Filter return value.
+	 * @param string[] $expected_currencies Expected normalized currencies.
+	 * @return void
+	 * @dataProvider provide_available_store_currencies
+	 */
+	public function test_get_available_store_currencies( $filtered_currencies, array $expected_currencies ): void {
+		$store_currency_filter       = static function () {
+			return 'USD';
+		};
+		$available_currencies_filter = static function ( $currencies ) use ( $filtered_currencies ) {
+			return null === $filtered_currencies ? $currencies : $filtered_currencies;
+		};
+
+		add_filter( 'woocommerce_currency', $store_currency_filter );
+		add_filter( 'wc_stripe_available_store_currencies', $available_currencies_filter );
+
+		try {
+			$this->assertSame( $expected_currencies, WC_Stripe_Helper::get_available_store_currencies() );
+		} finally {
+			remove_filter( 'woocommerce_currency', $store_currency_filter );
+			remove_filter( 'wc_stripe_available_store_currencies', $available_currencies_filter );
+		}
+	}
+
+	/**
+	 * Data provider for test_get_available_store_currencies().
+	 *
+	 * @return array<string, array{mixed, string[]}>
+	 */
+	public function provide_available_store_currencies(): array {
+		return [
+			'normalizes and deduplicates currencies'  => [ [ 'eur', ' usd ', '', null, 123 ], [ 'USD', 'EUR' ] ],
+			'keeps the base currency'                 => [ [ 'EUR' ], [ 'USD', 'EUR' ] ],
+			'falls back when the filter is invalid'   => [ false, [ 'USD' ] ],
+			'keeps the supplied value when unchanged' => [ null, [ 'USD' ] ],
+		];
+	}
+
+	/**
 	 * Test for `get_transaction_url_for_id`.
 	 *
 	 * @param string $id           The Stripe object ID.
@@ -2241,8 +2283,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * A remote disable of Optimized Checkout must also sever Adaptive Pricing,
-	 * which rides the checkout-sessions flow outside the OC element gates.
+	 * A remote disable of Optimized Checkout must also disable Adaptive Pricing.
 	 *
 	 * @return void
 	 */
@@ -2270,7 +2311,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		WC_Stripe_Database_Cache::set_with_mode( $webhook_status_cache_key, 'enabled', HOUR_IN_SECONDS, 'live' );
 
 		add_filter( 'woocommerce_is_checkout', '__return_true' );
-		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'yes' );
+		update_option( '_wcstripe_remote_config_enabled', 'yes' );
 		WC_Stripe_Remote_Config::reset_in_memory_cache();
 		delete_option( '_wcstripe_remote_config_live' );
 
@@ -2284,15 +2325,15 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			WC_Stripe_Remote_Config::get_instance()->apply(
 				'live',
 				[
-					'flags'        => [ 'optimized_checkout' => [ 'value' => false ] ],
+					'flags'        => [ 'optimized_checkout' => false ],
 					'generated_at' => '2026-05-09T12:00:00Z',
 				]
 			);
 
-			$this->assertFalse( WC_Stripe_Helper::is_adaptive_pricing_supported(), 'AP must be severed by the remote OC disable' );
+			$this->assertFalse( WC_Stripe_Helper::is_adaptive_pricing_supported(), 'AP must be disabled by the remote OC disable' );
 		} finally {
 			remove_filter( 'woocommerce_is_checkout', '__return_true' );
-			delete_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION );
+			delete_option( '_wcstripe_remote_config_enabled' );
 			WC_Stripe_Remote_Config::reset_in_memory_cache();
 			delete_option( '_wcstripe_remote_config_live' );
 			WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'live' );
@@ -2425,12 +2466,14 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Tests for `build_line_items`.
 	 *
-	 * @param bool  $itemized       Whether itemized line items are enabled.
-	 * @param array $expected_items The expected line items.
+	 * @param bool       $itemized       Whether itemized line items are enabled.
+	 * @param array      $expected_items The expected line items.
+	 * @param ?float     $fee_amount     Optional cart fee amount to add (negative for a discount-as-fee, positive for a surcharge).
+	 * @param string     $fee_name       Name for the optional cart fee.
 	 * @return void
 	 * @dataProvider provide_test_build_line_items
 	 */
-	public function test_build_line_items( bool $itemized = false, array $expected_items = [] ): void {
+	public function test_build_line_items( bool $itemized = false, array $expected_items = [], ?float $fee_amount = null, string $fee_name = 'Cart fee' ): void {
 		update_option( 'woocommerce_calc_taxes', 'yes' );
 
 		$product = WC_Helper_Product::create_simple_product();
@@ -2447,6 +2490,12 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		WC()->cart->add_to_cart( $product->get_id(), 1 );
 		WC()->cart->add_discount( 'TESTDISCOUNT' );
+
+		if ( null !== $fee_amount ) {
+			// Mirrors how third-party discount extensions (e.g. Discount Rules "apply as fee")
+			// add a negative cart fee instead of a coupon.
+			WC()->cart->add_fee( $fee_name, $fee_amount );
+		}
 
 		$actual = WC_Stripe_Helper::build_line_items( $itemized );
 
@@ -2731,7 +2780,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_build_line_items(): array {
 		return [
-			'itemized'     => [
+			'itemized'                                                          => [
 				'itemized'       => true,
 				'expected items' => [
 					[
@@ -2754,7 +2803,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					],
 				],
 			],
-			'non-itemized' => [
+			'non-itemized'                                                      => [
 				'itemized'       => false,
 				'expected items' => array_merge(
 					[
@@ -2773,6 +2822,62 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 						],
 					],
 				),
+			],
+			// A negative cart fee (e.g. a discount extension applying its discount as a cart
+			// fee instead of a coupon) must be tagged the same way the coupon discount item
+			// is, so the express checkout client re-applies the sign. Without the `key`, the
+			// item stays positive and the summed display items exceed the cart total, which
+			// Stripe rejects. See https://github.com/woocommerce/woocommerce-gateway-stripe/issues/5926.
+			'non-itemized with a negative cart fee (discount applied as a fee)' => [
+				'itemized'       => false,
+				'expected items' => [
+					[
+						'label'  => 'Subtotal',
+						'amount' => 1000,
+					],
+					[
+						'label'  => 'Tax',
+						'amount' => 0,
+					],
+					[
+						'key'    => 'total_discount',
+						'label'  => 'Discount',
+						'amount' => 100,
+					],
+					[
+						'key'    => 'total_discount',
+						'label'  => 'Cart fee',
+						'amount' => 500,
+					],
+				],
+				'fee_amount'     => -5.0,
+				'fee_name'       => 'Cart fee',
+			],
+			// A positive cart fee (e.g. a surcharge) is not a discount and must not be
+			// negated or tagged; it is summed into the total like any other line item.
+			'non-itemized with a positive cart fee (surcharge)'                 => [
+				'itemized'       => false,
+				'expected items' => [
+					[
+						'label'  => 'Subtotal',
+						'amount' => 1000,
+					],
+					[
+						'label'  => 'Tax',
+						'amount' => 0,
+					],
+					[
+						'key'    => 'total_discount',
+						'label'  => 'Discount',
+						'amount' => 100,
+					],
+					[
+						'label'  => 'Cart fee',
+						'amount' => 500,
+					],
+				],
+				'fee_amount'     => 5.0,
+				'fee_name'       => 'Cart fee',
 			],
 		];
 	}

@@ -1792,6 +1792,14 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_failed_renewal_note_links_request_log_url_in_new_tab() {
 		return [
+			'invalid mandate'                        => [
+				[
+					'type'    => 'invalid_request_error',
+					'code'    => 'payment_intent_mandate_invalid',
+					'message' => 'Only active mandates can be used with PaymentIntents.',
+				],
+				'The mandate used for this renewal payment is invalid. You may need to bring the customer back to your store and ask them to resubmit their payment information. %s',
+			],
 			'non-retryable card decline'             => [
 				[
 					'type'    => 'card_error',

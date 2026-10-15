@@ -69,10 +69,13 @@ class WC_Stripe_Remote_Config_Scheduler {
 	/**
 	 * Ensures the daily recurring action is scheduled.
 	 *
-	 * The first run is randomized within a ±1h window around 01:00 UTC (WP pins
-	 * PHP's timezone to UTC, so local DST transitions can't make the anchor
-	 * ambiguous) to spread out traffic across the merchant base. The offset is
-	 * chosen once per store and inherited by every subsequent recurrence.
+	 * The first run is spread uniformly across the whole 24h window, so the
+	 * shared remote-config endpoint does not take a daily spike from the entire
+	 * merchant base fetching within one narrow band. The fetch is a lightweight
+	 * background job, so running it at any hour is harmless to the store. The
+	 * offset is chosen once per store and inherited by every subsequent
+	 * recurrence; the day anchor is pinned to UTC so it does not depend on the
+	 * ambient default timezone.
 	 */
 	public function maybe_schedule_daily_sync(): void {
 		if ( ! did_action( 'action_scheduler_init' ) || ! function_exists( 'as_has_scheduled_action' ) || ! function_exists( 'as_schedule_recurring_action' ) ) {
@@ -83,9 +86,20 @@ class WC_Stripe_Remote_Config_Scheduler {
 			return;
 		}
 
-		$jitter = wp_rand( -HOUR_IN_SECONDS, HOUR_IN_SECONDS );
-		$start  = strtotime( 'tomorrow 01:00' ) + $jitter;
+		$start = strtotime( 'tomorrow midnight UTC' ) + $this->get_schedule_offset();
 		as_schedule_recurring_action( $start, DAY_IN_SECONDS, self::SYNC_ACTION, [], self::SCHEDULER_GROUP );
+	}
+
+	/**
+	 * Random offset, in seconds, into the 24h window for the store's first run.
+	 *
+	 * Isolated behind a method so tests can pin it. The full 0..DAY range is
+	 * what spreads the merchant base across the day.
+	 *
+	 * @return int
+	 */
+	protected function get_schedule_offset(): int {
+		return wp_rand( 0, DAY_IN_SECONDS - 1 );
 	}
 
 	/**
@@ -241,7 +255,7 @@ class WC_Stripe_Remote_Config_Scheduler {
 		$new = is_array( $value ) ? $value : [];
 
 		foreach ( [ 'testmode', 'secret_key', 'test_secret_key' ] as $field ) {
-			if ( ( $old[ $field ] ?? '' ) !== ( $new[ $field ] ?? '' ) ) {
+			if ( ( $new[ $field ] ?? '' ) !== '' && ( $old[ $field ] ?? '' ) !== ( $new[ $field ] ?? '' ) ) {
 				as_enqueue_async_action( self::SYNC_ACTION, [], self::SCHEDULER_GROUP );
 				return;
 			}

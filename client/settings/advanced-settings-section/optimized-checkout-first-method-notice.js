@@ -1,7 +1,7 @@
 /* global wc_stripe_settings_params */
 import { getAdminLink } from '@woocommerce/settings';
 import React, { useState } from 'react';
-import GridIcon from 'gridicons';
+import GridiconNoticeOutline from 'gridicons/dist/notice-outline';
 import { Notice } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import { dismissNotice, moveStripeToTop } from 'wcstripe/utils';
@@ -14,8 +14,7 @@ const PAYMENT_METHODS_CHECKOUT_SETTINGS_PATH =
 const WarningIcon = () => {
 	return (
 		<span data-testid="warning-icon">
-			<GridIcon
-				icon="notice-outline"
+			<GridiconNoticeOutline
 				size={ 20 }
 				style={ {
 					fill: '#DFB085',

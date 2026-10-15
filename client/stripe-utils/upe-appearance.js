@@ -2,7 +2,7 @@ import {
 	getAppearance,
 	getExpandedOptimizedCheckoutRules,
 } from '../styles/upe';
-import { getStripeServerData } from './utils';
+import { getStripeServerData } from './get-stripe-server-data';
 
 // In-memory cache for computed appearance objects, keyed by checkout type.
 // Avoids redundant getComputedStyle() calls within a single page load.

@@ -14,19 +14,19 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 
 	public function set_up(): void {
 		parent::set_up();
-		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'yes' );
+		update_option( '_wcstripe_remote_config_enabled', 'yes' );
 		$this->original_stripe_settings = get_option( 'woocommerce_stripe_settings' );
 		WC_Stripe_Remote_Config::reset_in_memory_cache();
 		delete_option( '_wcstripe_remote_config_live' );
 		delete_option( '_wcstripe_remote_config_test' );
 		delete_option( WC_Stripe_Remote_Config_Scheduler::FAILURE_COUNT_OPTION );
 		if ( function_exists( 'as_unschedule_all_actions' ) ) {
-			as_unschedule_all_actions( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [], 'woocommerce-gateway-stripe' );
+			as_unschedule_all_actions( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [], WC_Stripe_Remote_Config_Scheduler::SCHEDULER_GROUP );
 		}
 	}
 
 	public function tear_down(): void {
-		delete_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION );
+		delete_option( '_wcstripe_remote_config_enabled' );
 		delete_option( WC_Stripe_Remote_Config_Scheduler::FAILURE_COUNT_OPTION );
 		if ( function_exists( 'as_unschedule_all_actions' ) ) {
 			as_unschedule_all_actions( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [], 'woocommerce-gateway-stripe' );
@@ -38,6 +38,11 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 			delete_option( 'woocommerce_stripe_settings' );
 		} else {
 			update_option( 'woocommerce_stripe_settings', $this->original_stripe_settings );
+		}
+		// Unschedule after restoring the settings: the restore runs the
+		// connection-change hook, which can enqueue a new sync.
+		if ( function_exists( 'as_unschedule_all_actions' ) ) {
+			as_unschedule_all_actions( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [], WC_Stripe_Remote_Config_Scheduler::SCHEDULER_GROUP );
 		}
 		parent::tear_down();
 	}
@@ -56,7 +61,7 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 
 	private function get_mock_payload( bool $optimized_checkout_flag_value ): array {
 		return [
-			'flags'        => [ 'optimized_checkout' => [ 'value' => $optimized_checkout_flag_value ] ],
+			'flags'        => [ 'optimized_checkout' => $optimized_checkout_flag_value ],
 			'generated_at' => '2026-05-09T12:00:00Z',
 		];
 	}
@@ -127,6 +132,34 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 				[ 'secret_key' => 'sk_live_xx' ],
 				true,
 			],
+			'live secret key changed'   => [
+				[ 'secret_key' => 'sk_live_old' ],
+				[ 'secret_key' => 'sk_live_new' ],
+				true,
+			],
+			'live secret key removed'   => [
+				[ 'secret_key' => 'sk_live_xx' ],
+				[ 'secret_key' => '' ],
+				false,
+			],
+			'test secret key removed'   => [
+				[ 'test_secret_key' => 'sk_test_xx' ],
+				[],
+				false,
+			],
+			'account disconnected'      => [
+				[
+					'testmode'        => 'no',
+					'secret_key'      => 'sk_live_xx',
+					'test_secret_key' => 'sk_test_xx',
+				],
+				[
+					'testmode'        => 'no',
+					'secret_key'      => '',
+					'test_secret_key' => '',
+				],
+				false,
+			],
 			'unrelated setting changed' => [
 				[
 					'title'      => 'Cards',
@@ -149,6 +182,66 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 		WC_Stripe_Remote_Config_Scheduler::on_plugin_upgrade();
 
 		$this->assertTrue( as_has_scheduled_action( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION ) );
+	}
+
+	/**
+	 * The first run is anchored at tomorrow 00:00 UTC and shifted by the offset,
+	 * so the window spans the whole day: a 0 offset lands at the anchor and the
+	 * maximum offset lands at the far end. Pinning the offset keeps this
+	 * deterministic; the offset's own range is covered separately.
+	 *
+	 * @dataProvider provide_schedule_offset_bounds
+	 * @return void
+	 */
+	public function test_maybe_schedule_daily_sync_applies_offset_across_the_full_day( int $offset ): void {
+		if ( ! function_exists( 'as_next_scheduled_action' ) || ! function_exists( 'as_unschedule_all_actions' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		// Satisfy the action_scheduler_init guard in maybe_schedule_daily_sync().
+		do_action( 'action_scheduler_init' );
+		as_unschedule_all_actions( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [], WC_Stripe_Remote_Config_Scheduler::SCHEDULER_GROUP );
+
+		$scheduler = $this->getMockBuilder( WC_Stripe_Remote_Config_Scheduler::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_schedule_offset' ] )
+			->getMock();
+		$scheduler->method( 'get_schedule_offset' )->willReturn( $offset );
+
+		$scheduler->maybe_schedule_daily_sync();
+
+		$next = as_next_scheduled_action( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [], WC_Stripe_Remote_Config_Scheduler::SCHEDULER_GROUP );
+		$this->assertSame( strtotime( 'tomorrow midnight UTC' ) + $offset, $next );
+	}
+
+	/**
+	 * Data provider for {@see test_maybe_schedule_daily_sync_applies_offset_across_the_full_day()}.
+	 *
+	 * @return array
+	 */
+	public function provide_schedule_offset_bounds(): array {
+		return [
+			'start of the day' => [ 0 ],
+			'end of the day'   => [ DAY_IN_SECONDS - 1 ],
+		];
+	}
+
+	/**
+	 * The offset stays within the 24h window, so the first run never spills into
+	 * a neighbouring day.
+	 *
+	 * @return void
+	 */
+	public function test_get_schedule_offset_stays_within_the_day(): void {
+		$method = new ReflectionMethod( WC_Stripe_Remote_Config_Scheduler::class, 'get_schedule_offset' );
+		$method->setAccessible( true );
+		$scheduler = new WC_Stripe_Remote_Config_Scheduler();
+
+		for ( $i = 0; $i < 100; $i++ ) {
+			$offset = $method->invoke( $scheduler );
+			$this->assertGreaterThanOrEqual( 0, $offset );
+			$this->assertLessThan( DAY_IN_SECONDS, $offset );
+		}
 	}
 
 	/**
@@ -186,11 +279,11 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 		$this->configure_modes( true, false );
 
 		// Disabled by override: client must not be called.
-		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'no' );
+		update_option( '_wcstripe_remote_config_enabled', 'no' );
 		$disabled_client = $this->createMock( WC_Stripe_Remote_Config_Client::class );
 		$disabled_client->expects( $this->never() )->method( 'fetch_all' );
 		( new WC_Stripe_Remote_Config_Scheduler( $disabled_client, new WC_Stripe_Remote_Config() ) )->run();
-		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'yes' );
+		update_option( '_wcstripe_remote_config_enabled', 'yes' );
 
 		// Enabled but client returns WP_Error: must not throw, cache stays empty.
 		$err_client = $this->createMock( WC_Stripe_Remote_Config_Client::class );
