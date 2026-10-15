@@ -5,6 +5,7 @@ xxxx-xx-xx - version 11.2.0
 * Tweak - Minor improvement to error logging when saving new keys
 * Fix - Keep pending ACH orders open while Stripe is still waiting for bank verification
 * Fix - Complete express checkout payments on the Pay for Order page when the checkout phone field is required, and preserve the order's saved billing phone
+* Add - Remote configuration system for managing feature availability during incidents
 
 2026-10-13 - version 11.1.0
 * Add - Automatically configure test mode when onboarding to a live account
@@ -38,7 +39,6 @@ xxxx-xx-xx - version 11.2.0
 * Fix - Point a saved Stripe Link payment method at the newest card selection when the customer re-enrolls through Link, so subscription renewals stop charging the replaced card
 * Fix - Retry matching a completed Adaptive Pricing checkout session to its order instead of giving up after the first attempt
 * Add - Show the originating AI agent in the WooCommerce order Origin column for Agentic Commerce orders
-* Add - Remote configuration system for managing feature availability during incidents
 * Update - Reduce the size of the express checkout JS bundle
 * Fix - Show the on-page 3D Secure authentication modal instead of a full-page redirect for card payments under Optimized Checkout with Dynamic Payment Methods
 * Tweak - Agentic Commerce: surface shipping zones with no flat-rate method (which contribute no shipping to the feed) in the feed preview and logs
