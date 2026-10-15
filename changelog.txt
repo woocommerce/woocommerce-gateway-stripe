@@ -5,6 +5,7 @@ xxxx-xx-xx - version 11.2.0
 * Tweak - Minor improvement to error logging when saving new keys
 * Fix - Keep pending ACH orders open while Stripe is still waiting for bank verification
 * Fix - Complete express checkout payments on the Pay for Order page when the checkout phone field is required, and preserve the order's saved billing phone
+* Fix - Send shoppers to the order confirmation page instead of showing an error when processing fails after a 3D Secure payment has already succeeded
 
 2026-10-13 - version 11.1.0
 * Add - Automatically configure test mode when onboarding to a live account
