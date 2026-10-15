@@ -128,7 +128,7 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			( new WC_Stripe_Remote_Config() )->apply(
 				'live',
 				[
-					'flags'        => [ 'optimized_checkout' => [ 'value' => $remote_value ] ],
+					'flags'        => [ 'optimized_checkout' => $remote_value ],
 					'generated_at' => '2026-05-09T12:00:00Z',
 				]
 			);

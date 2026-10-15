@@ -2325,7 +2325,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			WC_Stripe_Remote_Config::get_instance()->apply(
 				'live',
 				[
-					'flags'        => [ 'optimized_checkout' => [ 'value' => false ] ],
+					'flags'        => [ 'optimized_checkout' => false ],
 					'generated_at' => '2026-05-09T12:00:00Z',
 				]
 			);
