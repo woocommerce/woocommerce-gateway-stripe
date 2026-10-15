@@ -402,6 +402,49 @@ class WC_Stripe_Event_Reconciler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A failed fetch does not reset an event that a delivery processed or holds while the fetch was in flight.
+	 *
+	 * @param bool   $holds_lock      Whether the delivery still holds the event lock.
+	 * @param string $status_meantime Status the delivery left the record in.
+	 * @dataProvider provide_failed_fetch_during_delivery_cases
+	 */
+	public function test_process_event_failed_fetch_during_a_delivery( bool $holds_lock, string $status_meantime ): void {
+		$this->store->seed( $this->make_record( 'evt_1Race', WC_Stripe_Event_Store_Interface::STATUS_PENDING ) );
+		$this->queue_response( 'events/evt_1Race', $this->make_error( 500, 'api_error' ) );
+
+		// Runs before the response is served, like a delivery arriving while the fetch is in flight.
+		$deliver = function ( $preempt ) use ( $holds_lock, $status_meantime ) {
+			if ( $holds_lock ) {
+				WC_Stripe_Option_Lock::acquire( self::LOCK_PREFIX . 'evt_1Race', 600 );
+			}
+			$this->store->seed( $this->make_record( 'evt_1Race', $status_meantime ) );
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $deliver, 5 );
+
+		try {
+			$this->reconciler->process_event( 'evt_1Race' );
+		} finally {
+			remove_filter( 'pre_http_request', $deliver, 5 );
+		}
+
+		$after = $this->store->get( 'evt_1Race' );
+		$this->assertSame( $status_meantime, $after->status );
+		$this->assertSame( 0, $after->attempts );
+		$this->assertFalse( as_has_scheduled_action( WC_Stripe_Event_Reconciler::PROCESS_ACTION, [ 'evt_1Race' ], self::GROUP ) );
+	}
+
+	/**
+	 * @return array
+	 */
+	public function provide_failed_fetch_during_delivery_cases(): array {
+		return [
+			'delivery processed the event' => [ false, WC_Stripe_Event_Store_Interface::STATUS_PROCESSED ],
+			'delivery is processing it'    => [ true, WC_Stripe_Event_Store_Interface::STATUS_PROCESSING ],
+		];
+	}
+
+	/**
 	 * Events left processing for longer than an hour are queued again with an attempt counted, and events left pending
 	 * for longer than an hour get a new action.
 	 */
@@ -412,8 +455,13 @@ class WC_Stripe_Event_Reconciler_Test extends WP_UnitTestCase {
 		$this->store->seed( $this->make_record( 'evt_1Deferred', $processing ), time() - 5 * MINUTE_IN_SECONDS );
 		$this->store->seed( $this->make_record( 'evt_1Lost', $pending ), time() - 2 * HOUR_IN_SECONDS );
 		$this->store->seed( $this->make_record( 'evt_1Waiting', $pending ), time() - 5 * MINUTE_IN_SECONDS );
+		$this->store->seed( $this->make_record( 'evt_1Held', $processing ), time() - 2 * HOUR_IN_SECONDS );
+		WC_Stripe_Option_Lock::acquire( self::LOCK_PREFIX . 'evt_1Held', 600 );
 
 		$this->reconciler->requeue_stuck_events();
+
+		$this->assertSame( $processing, $this->store->get( 'evt_1Held' )->status, 'A request holding the event updates it itself.' );
+		$this->assertSame( 0, $this->store->get( 'evt_1Held' )->attempts );
 
 		$this->assertSame( $pending, $this->store->get( 'evt_1Stuck' )->status );
 		$this->assertSame( 1, $this->store->get( 'evt_1Stuck' )->attempts );

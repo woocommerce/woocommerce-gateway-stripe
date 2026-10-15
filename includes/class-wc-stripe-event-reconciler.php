@@ -373,8 +373,7 @@ class WC_Stripe_Event_Reconciler {
 		$untouched_since = time() - self::STUCK_AFTER;
 
 		foreach ( $this->store->get_by_status( WC_Stripe_Event_Store_Interface::STATUS_PROCESSING, $livemode, self::PAGE_SIZE, $untouched_since ) as $record ) {
-			$record->status = WC_Stripe_Event_Store_Interface::STATUS_PENDING;
-			$this->record_failed_attempt( $record );
+			$this->record_failed_attempt_if_unchanged( $record );
 		}
 
 		// Pending events wait for their own action, which can still be deleted, fail before it runs, or never be enqueued.
@@ -451,7 +450,7 @@ class WC_Stripe_Event_Reconciler {
 		$event_json = $this->is_successful_response( $event ) && ! empty( $event->id ) ? wp_json_encode( $event ) : false;
 
 		if ( false === $event_json ) {
-			$this->record_failed_attempt( $record, is_object( $event ) && isset( $event->error->code ) ? (string) $event->error->code : '' );
+			$this->record_failed_attempt_if_unchanged( $record, is_object( $event ) && isset( $event->error->code ) ? (string) $event->error->code : '' );
 			return;
 		}
 
@@ -488,6 +487,37 @@ class WC_Stripe_Event_Reconciler {
 	 */
 	protected function create_webhook_handler(): WC_Stripe_Webhook_Handler {
 		return new WC_Stripe_Webhook_Handler( $this );
+	}
+
+	/**
+	 * Counts a failed attempt for a record read before a slow step, such as fetching the event, unless it changed since.
+	 *
+	 * Without the lock and the second read, a delivery that processed the event in the meantime would be reset to
+	 * pending, and the event processed again.
+	 *
+	 * @param WC_Stripe_Event_Record $record     Record of the event, as read before.
+	 * @param string                 $error_code Stripe error code of a failed fetch, if any.
+	 */
+	private function record_failed_attempt_if_unchanged( WC_Stripe_Event_Record $record, string $error_code = '' ): void {
+		$lock_name = self::LOCK_OPTION_PREFIX . $record->id;
+		$owner     = WC_Stripe_Option_Lock::acquire( $lock_name, self::LOCK_TTL );
+
+		// A delivery is processing the event, and updates the record itself.
+		if ( null === $owner ) {
+			return;
+		}
+
+		try {
+			$current = $this->store->get( $record->id );
+			if ( ! $current || $current->status !== $record->status ) {
+				return;
+			}
+
+			$current->status = WC_Stripe_Event_Store_Interface::STATUS_PENDING;
+			$this->record_failed_attempt( $current, $error_code );
+		} finally {
+			WC_Stripe_Option_Lock::release( $lock_name, $owner );
+		}
 	}
 
 	/**
