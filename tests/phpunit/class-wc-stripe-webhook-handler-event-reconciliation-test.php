@@ -158,6 +158,21 @@ class WC_Stripe_Webhook_Handler_Event_Reconciliation_Test extends WP_UnitTestCas
 	}
 
 	/**
+	 * A subclass that overrides the constructor without calling it still gets a reconciler.
+	 */
+	public function test_subclass_without_parent_constructor_gets_a_reconciler(): void {
+		$handler = new class() extends WC_Stripe_Webhook_Handler {
+			public function __construct() {}
+		};
+
+		// Without a reconciler, reporting the failure would fatal instead of rethrowing the exception.
+		$this->expectException( Exception::class );
+		$this->expectExceptionMessage( 'Missing deferred webhook notification.' );
+
+		$handler->process_deferred_webhook( 'payment_intent.succeeded', [] );
+	}
+
+	/**
 	 * @return WP_Error
 	 */
 	public function block_http() {
