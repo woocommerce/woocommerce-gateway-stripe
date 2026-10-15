@@ -225,6 +225,7 @@
     "serialize-javascript": "^7.0.5",
     "adm-zip": "^0.6.1",
     "webpack-dev-server": "^5.2.1",
-    "linkify-it": "^5.0.2"
+    "linkify-it": "^5.0.2",
+    "markdown-it": "^14.3.2"
   }
 }
