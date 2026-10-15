@@ -169,6 +169,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Minor improvement to error logging when saving new keys
 * Fix - Keep pending ACH orders open while Stripe is still waiting for bank verification
 * Fix - Complete express checkout payments on the Pay for Order page when the checkout phone field is required, and preserve the order's saved billing phone
-* Update - Unify express checkout button locations and sizing across Apple Pay / Google Pay, Link, and Amazon Pay
+* Update - Unify express checkout button sizes across Apple Pay / Google Pay, Link, and Amazon Pay
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
