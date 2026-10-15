@@ -35,7 +35,7 @@ class WC_Stripe_Remote_Config_Test extends WP_UnitTestCase {
 		$stored = get_option( '_wcstripe_remote_config_live' );
 		$this->assertIsArray( $stored );
 		$this->assertSame( 1, $stored['schema_version'] );
-		$this->assertSame( false, $stored['flags']['optimized_checkout']['value'] );
+		$this->assertSame( false, $stored['flags']['optimized_checkout'] );
 		$this->assertFalse( get_option( '_wcstripe_remote_config_test' ) );
 	}
 
@@ -163,7 +163,7 @@ class WC_Stripe_Remote_Config_Test extends WP_UnitTestCase {
 		$this->assertFalse( $rc->apply( 'live', $bad_payload ) );
 
 		$stored = get_option( '_wcstripe_remote_config_live' );
-		$this->assertSame( false, $stored['flags']['optimized_checkout']['value'] );
+		$this->assertSame( false, $stored['flags']['optimized_checkout'] );
 	}
 
 	public function test_get_cache_snapshot_returns_null_when_no_cache(): void {
@@ -183,7 +183,7 @@ class WC_Stripe_Remote_Config_Test extends WP_UnitTestCase {
 		$this->assertSame( '2026-05-09T12:00:00Z', $snapshot['generated_at'] );
 		$this->assertGreaterThanOrEqual( $before, $snapshot['fetched_at'] );
 		$this->assertLessThanOrEqual( $after, $snapshot['fetched_at'] );
-		$this->assertSame( [ 'optimized_checkout' => [ 'value' => false ] ], $snapshot['flags'] );
+		$this->assertSame( [ 'optimized_checkout' => false ], $snapshot['flags'] );
 	}
 
 	public function test_resolve_remote_wins_when_present_else_local(): void {
@@ -249,7 +249,7 @@ class WC_Stripe_Remote_Config_Test extends WP_UnitTestCase {
 						[
 							'schema_version' => 999,
 							'fetched_at'     => time(),
-							'flags'          => [ 'optimized_checkout' => [ 'value' => false ] ],
+							'flags'          => [ 'optimized_checkout' => false ],
 						]
 					);
 				},

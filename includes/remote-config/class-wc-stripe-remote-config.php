@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *       schema_version: int,            // cache-layout version, plugin-owned
  *       fetched_at:     int,            // unix timestamp of last successful fetch
  *       generated_at:   string,         // server ISO-8601 time the payload was built
- *       flags:          { name: { value: <typed> } }
+ *       flags:          { name: <typed> }
  *   }
  *
  * Last-known-good wins indefinitely: there is no TTL-based expiry of the cache
@@ -98,7 +98,7 @@ class WC_Stripe_Remote_Config {
 			if ( ! WC_Stripe_Remote_Config_Flags::is_known_flag( $name ) ) {
 				continue;
 			}
-			$known_flags[ $name ] = [ 'value' => $value ];
+			$known_flags[ $name ] = $value;
 		}
 
 		$cache_entry = [
@@ -160,7 +160,7 @@ class WC_Stripe_Remote_Config {
 			return null;
 		}
 
-		return $cache['flags'][ $flag ]['value'];
+		return $cache['flags'][ $flag ];
 	}
 
 	/**
