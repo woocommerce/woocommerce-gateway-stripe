@@ -19,7 +19,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 *
 	 * @var string[]
 	 */
-	protected const EXPRESS_CHECKOUT_METHODS = [ 'amazon_pay', 'link', 'payment_request' ];
+	protected const EXPRESS_CHECKOUT_METHODS = [ 'amazon_pay', 'link', 'apple_pay_google_pay' ];
 
 	/**
 	 * Stripe settings.
@@ -1185,7 +1185,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return boolean True if any express checkout buttons are enabled on the given page, false otherwise.
 	 */
 	private function should_show_ece_on_location( string $location ): bool {
-		return $this->is_enabled_for_location( 'payment_request', $location ) ||
+		return $this->is_enabled_for_location( 'apple_pay_google_pay', $location ) ||
 				$this->is_enabled_for_location( 'amazon_pay', $location ) ||
 				$this->is_enabled_for_location( 'link', $location );
 	}
@@ -1904,9 +1904,9 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @var array<string, string>
 	 */
 	public const BUTTON_LOCATION_OPTION_KEYS = [
-		'payment_request' => 'express_checkout_button_locations',
-		'link'            => 'link_button_locations',
-		'amazon_pay'      => 'amazon_pay_button_locations',
+		'apple_pay_google_pay' => 'express_checkout_button_locations',
+		'link'                 => 'link_button_locations',
+		'amazon_pay'           => 'amazon_pay_button_locations',
 	];
 
 	/**
@@ -1972,13 +1972,13 @@ class WC_Stripe_Express_Checkout_Helper {
 	 *
 	 * @return boolean
 	 */
-	public function is_enabled_for_location( string $express_checkout_type = 'payment_request', string $location = '' ): bool {
+	public function is_enabled_for_location( string $express_checkout_type = 'apple_pay_google_pay', string $location = '' ): bool {
 		return in_array( $location, $this->get_button_locations( $express_checkout_type ), true );
 	}
 
 	/**
 	 * Normalizes an express checkout type to its canonical map key; anything that
-	 * is not Link or Amazon Pay maps to `payment_request`.
+	 * is not Link or Amazon Pay maps to `apple_pay_google_pay`.
 	 *
 	 * @param string $express_checkout_type The type of express checkout.
 	 * @return string
@@ -1988,7 +1988,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			return $express_checkout_type;
 		}
 
-		return 'payment_request';
+		return 'apple_pay_google_pay';
 	}
 
 	/**

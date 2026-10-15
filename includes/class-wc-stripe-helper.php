@@ -1564,7 +1564,7 @@ class WC_Stripe_Helper {
 		// Read through the helper so an unset option keeps the default placement and
 		// a non-array value (every location unchecked) counts as disabled.
 		return 'yes' === $are_prbs_enabled
-			&& ( new WC_Stripe_Express_Checkout_Helper() )->is_enabled_for_location( 'payment_request', $location );
+			&& ( new WC_Stripe_Express_Checkout_Helper() )->is_enabled_for_location( 'apple_pay_google_pay', $location );
 	}
 
 	/**

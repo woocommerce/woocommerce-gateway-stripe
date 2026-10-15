@@ -1144,7 +1144,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return void
 	 */
-	public function test_get_button_locations_defaults_to_payment_request(): void {
+	public function test_get_button_locations_defaults_to_apple_pay_google_pay(): void {
 		$helper                  = new WC_Stripe_Express_Checkout_Helper();
 		$helper->stripe_settings = [
 			'express_checkout_button_locations' => [ 'product' ],
@@ -1166,7 +1166,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			'express_checkout_button_locations' => [ 'product', 'product', '', 5, [ 'cart' ] ],
 		];
 
-		$this->assertSame( [ 'product' ], $helper->get_button_locations( 'payment_request' ) );
+		$this->assertSame( [ 'product' ], $helper->get_button_locations( 'apple_pay_google_pay' ) );
 	}
 
 	/**
@@ -1199,17 +1199,17 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			'nothing saved: every method on the default locations'                     => [
 				'settings' => [],
 				'expected' => [
-					'payment_request' => [ 'product', 'cart' ],
-					'link'            => [ 'product', 'cart' ],
-					'amazon_pay'      => [ 'product', 'cart' ],
+					'apple_pay_google_pay' => [ 'product', 'cart' ],
+					'link'                 => [ 'product', 'cart' ],
+					'amazon_pay'           => [ 'product', 'cart' ],
 				],
 			],
 			'only Link saved: the other methods keep their defaults'                   => [
 				'settings' => [ 'link_button_locations' => [ 'checkout' ] ],
 				'expected' => [
-					'payment_request' => [ 'product', 'cart' ],
-					'link'            => [ 'checkout' ],
-					'amazon_pay'      => [ 'product', 'cart' ],
+					'apple_pay_google_pay' => [ 'product', 'cart' ],
+					'link'                 => [ 'checkout' ],
+					'amazon_pay'           => [ 'product', 'cart' ],
 				],
 			],
 			'empty array disables only that method'                                    => [
@@ -1218,9 +1218,9 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 					'link_button_locations'             => [ 'cart' ],
 				],
 				'expected' => [
-					'payment_request' => [],
-					'link'            => [ 'cart' ],
-					'amazon_pay'      => [ 'product', 'cart' ],
+					'apple_pay_google_pay' => [],
+					'link'                 => [ 'cart' ],
+					'amazon_pay'           => [ 'product', 'cart' ],
 				],
 			],
 			'empty string (WooCommerce emptied multiselect) disables only that method' => [
@@ -1229,9 +1229,9 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 					'amazon_pay_button_locations'       => '',
 				],
 				'expected' => [
-					'payment_request' => [],
-					'link'            => [ 'product', 'cart' ],
-					'amazon_pay'      => [],
+					'apple_pay_google_pay' => [],
+					'link'                 => [ 'product', 'cart' ],
+					'amazon_pay'           => [],
 				],
 			],
 		];
@@ -1250,53 +1250,53 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		];
 
 		return [
-			'all methods saved: payment_request locations'       => [
-				'express checkout type' => 'payment_request',
+			'all methods saved: apple_pay_google_pay locations'       => [
+				'express checkout type' => 'apple_pay_google_pay',
 				'settings'              => $per_method,
 				'expected'              => [ 'product', 'cart' ],
 			],
-			'all methods saved: link locations'                  => [
+			'all methods saved: link locations'                       => [
 				'express checkout type' => 'link',
 				'settings'              => $per_method,
 				'expected'              => [ 'product', 'cart', 'checkout' ],
 			],
-			'all methods saved: amazon_pay locations'            => [
+			'all methods saved: amazon_pay locations'                 => [
 				'express checkout type' => 'amazon_pay',
 				'settings'              => $per_method,
 				'expected'              => [ 'product' ],
 			],
-			'express_checkout alias resolves to payment_request' => [
+			'express_checkout alias resolves to apple_pay_google_pay' => [
 				'express checkout type' => 'express_checkout',
 				'settings'              => $per_method,
 				'expected'              => [ 'product', 'cart' ],
 			],
 			// Each method falls back to the default placement until its own option is saved.
-			'payment request, settings exists'                   => [
-				'express checkout type' => 'payment_request',
+			'apple pay / google pay, settings exists'                 => [
+				'express checkout type' => 'apple_pay_google_pay',
 				'settings'              => [ 'express_checkout_button_locations' => [ 'checkout', 'cart' ] ],
 				'expected'              => [ 'checkout', 'cart' ],
 			],
-			'payment request, settings exists, invalid array'    => [
-				'express checkout type' => 'payment_request',
+			'apple pay / google pay, settings exists, invalid array'  => [
+				'express checkout type' => 'apple_pay_google_pay',
 				'settings'              => [ 'express_checkout_button_locations' => 'invalid_value' ],
 				'expected'              => [],
 			],
-			'payment request, settings do not exist'             => [
-				'express checkout type' => 'payment_request',
+			'apple pay / google pay, settings do not exist'           => [
+				'express checkout type' => 'apple_pay_google_pay',
 				'settings'              => [],
 				'expected'              => [ 'product', 'cart' ],
 			],
-			'link, settings exists'                              => [
+			'link, settings exists'                                   => [
 				'express checkout type' => 'link',
 				'settings'              => [ 'link_button_locations' => [ 'cart' ] ],
 				'expected'              => [ 'cart' ],
 			],
-			'amazon pay, settings exists'                        => [
+			'amazon pay, settings exists'                             => [
 				'express checkout type' => 'amazon_pay',
 				'settings'              => [ 'amazon_pay_button_locations' => [ 'checkout' ] ],
 				'expected'              => [ 'checkout' ],
 			],
-			'link, settings do not exist'                        => [
+			'link, settings do not exist'                             => [
 				'express checkout type' => 'link',
 				'settings'              => [],
 				'expected'              => [ 'product', 'cart' ],

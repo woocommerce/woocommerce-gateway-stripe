@@ -660,7 +660,7 @@ class WC_Stripe_Admin_Notices {
 
 		// Read through the helper so a non-array value (every location unchecked) is
 		// treated as disabled instead of a misconfiguration.
-		$locations = ( new WC_Stripe_Express_Checkout_Helper() )->get_button_locations( 'payment_request' );
+		$locations = ( new WC_Stripe_Express_Checkout_Helper() )->get_button_locations( 'apple_pay_google_pay' );
 
 		$has_product  = in_array( 'product', $locations, true );
 		$has_cart     = in_array( 'cart', $locations, true );

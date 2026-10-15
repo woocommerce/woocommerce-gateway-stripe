@@ -278,7 +278,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				// Deprecated aliases: per-method sizes collapsed into the shared size.
 				'link_button_size'                      => $this->gateway->get_validated_option( 'express_checkout_button_size' ),
 				'amazon_pay_button_size'                => $this->gateway->get_validated_option( 'express_checkout_button_size' ),
-				'express_checkout_button_locations'     => $express_checkout_helper->get_button_locations( 'payment_request' ),
+				'express_checkout_button_locations'     => $express_checkout_helper->get_button_locations( 'apple_pay_google_pay' ),
 
 				/* Settings > Payments & transactions */
 				'is_manual_capture_enabled'             => ! $this->gateway->is_automatic_capture_enabled(),
