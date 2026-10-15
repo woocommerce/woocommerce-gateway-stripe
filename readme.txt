@@ -37,7 +37,7 @@ The following items note specific versions that include important changes, featu
 
 * 11.1.0
    - Sofort is no longer offered at checkout, since Stripe discontinued it on March 31, 2025; existing Sofort orders can still be refunded and Sofort-initiated subscriptions keep renewing
-   - Express checkout buttons now share one location setting and one size setting in the settings UI. The per-method options (`link_button_locations`, `amazon_pay_button_locations`, `link_button_size`, `amazon_pay_button_size`) are still stored and kept in sync so a rollback keeps working; they will be removed in a future version
+   - Express checkout buttons now use the same size across payment methods and locations
 * 11.0.0
    - Express checkout merges the wc_stripe_express_checkout_normalize_address filter result over the address it sent; removing a field no longer clears it, return an empty string instead
 * 10.9.1
