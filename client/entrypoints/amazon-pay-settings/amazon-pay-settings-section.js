@@ -20,7 +20,7 @@ import { __ } from '@wordpress/i18n';
 import {
 	useAmazonPayEnabledSettings,
 	useAmazonPayLocations,
-	useAmazonPayButtonSize,
+	useExpressCheckoutButtonSize,
 } from 'wcstripe/data';
 import {
 	PAYMENT_METHOD_AMAZON_PAY,
@@ -30,7 +30,8 @@ import CardBody from 'wcstripe/settings/card-body';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
 
 const AmazonPaySettingsSection = () => {
-	const [ size, setSize ] = useAmazonPayButtonSize();
+	// Use the shared express checkout button size hook, which is common across express checkout payment methods.
+	const [ size, setSize ] = useExpressCheckoutButtonSize();
 	const isButtonStyleOverridden =
 		!! wc_stripe_amazon_pay_settings_params?.is_button_style_overridden; // eslint-disable-line camelcase
 	// eslint-disable-next-line camelcase
@@ -108,6 +109,12 @@ const AmazonPaySettingsSection = () => {
 					size={ size }
 					onChange={ setSize }
 				/>
+				<p className="express-checkout-customize__option-muted-text">
+					{ __(
+						'This size applies to all express checkout buttons (Apple Pay, Google Pay, Link, and Amazon Pay).',
+						'woocommerce-gateway-stripe'
+					) }
+				</p>
 				<p>{ __( 'Preview', 'woocommerce-gateway-stripe' ) }</p>
 				<LoadableAccountSection numLines={ 7 }>
 					<ExpressCheckoutPreview

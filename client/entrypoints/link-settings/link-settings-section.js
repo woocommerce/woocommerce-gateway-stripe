@@ -17,8 +17,8 @@ import { Card } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import {
 	useLinkLocations,
-	useLinkButtonSize,
 	useEnabledPaymentMethodIds,
+	useExpressCheckoutButtonSize,
 } from 'wcstripe/data';
 import {
 	PAYMENT_METHOD_LINK,
@@ -28,7 +28,8 @@ import CardBody from 'wcstripe/settings/card-body';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
 
 const LinkSettingsSection = () => {
-	const [ size, setSize ] = useLinkButtonSize();
+	// Use the shared express checkout button size hook, which is common across express checkout payment methods.
+	const [ size, setSize ] = useExpressCheckoutButtonSize();
 
 	const [ enabledMethodIds ] = useEnabledPaymentMethodIds();
 	const isLinkEnabled = enabledMethodIds.includes( PAYMENT_METHOD_LINK );
@@ -78,6 +79,12 @@ const LinkSettingsSection = () => {
 					size={ size }
 					onChange={ setSize }
 				/>
+				<p className="express-checkout-customize__option-muted-text">
+					{ __(
+						'This size applies to all express checkout buttons (Apple Pay, Google Pay, Link, and Amazon Pay).',
+						'woocommerce-gateway-stripe'
+					) }
+				</p>
 				<p>{ __( 'Preview', 'woocommerce-gateway-stripe' ) }</p>
 				<LoadableAccountSection numLines={ 7 }>
 					<ExpressCheckoutPreview
