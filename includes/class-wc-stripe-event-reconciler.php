@@ -96,8 +96,9 @@ class WC_Stripe_Event_Reconciler {
 		add_action( self::CLEANUP_ACTION, [ $this, 'delete_expired_events' ], 10, 0 );
 
 		// Otherwise enabling the feature only schedules reconciliation at Action Scheduler's daily check of recurring actions.
-		add_action( 'add_option_' . WC_Stripe_Feature_Flags::EVENT_RECONCILIATION_FEATURE_FLAG_NAME, [ $this, 'maybe_schedule_reconciliation' ], 10, 0 );
-		add_action( 'update_option_' . WC_Stripe_Feature_Flags::EVENT_RECONCILIATION_FEATURE_FLAG_NAME, [ $this, 'maybe_schedule_reconciliation' ], 10, 0 );
+		add_action( 'add_option_' . WC_Stripe_Feature_Flags::EVENT_RECONCILIATION_FEATURE_FLAG_NAME, [ $this, 'handle_feature_flag_change' ], 10, 0 );
+		add_action( 'update_option_' . WC_Stripe_Feature_Flags::EVENT_RECONCILIATION_FEATURE_FLAG_NAME, [ $this, 'handle_feature_flag_change' ], 10, 0 );
+		add_action( 'delete_option_' . WC_Stripe_Feature_Flags::EVENT_RECONCILIATION_FEATURE_FLAG_NAME, [ $this, 'handle_feature_flag_change' ], 10, 0 );
 
 		if ( WC_Stripe_Feature_Flags::is_event_reconciliation_enabled() ) {
 			add_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ $this, 'maybe_schedule_reconciliation' ], 10, 0 );
@@ -116,6 +117,22 @@ class WC_Stripe_Event_Reconciler {
 		$this->schedule_cleanup();
 		$this->queue_undelivered_events();
 		$this->requeue_stuck_events();
+	}
+
+	/**
+	 * Schedules the reconciliation when the feature is enabled, and forgets the listing cursors when it is disabled.
+	 *
+	 * No deliveries are recorded while the feature is disabled. Listing from the old cursor after enabling it again
+	 * would process the events this store handled in the meantime, whenever another endpoint of the account failed them.
+	 */
+	public function handle_feature_flag_change(): void {
+		if ( WC_Stripe_Feature_Flags::is_event_reconciliation_enabled() ) {
+			$this->maybe_schedule_reconciliation();
+			return;
+		}
+
+		delete_option( self::CURSOR_OPTION_PREFIX . 'test' );
+		delete_option( self::CURSOR_OPTION_PREFIX . 'live' );
 	}
 
 	/**
@@ -170,8 +187,8 @@ class WC_Stripe_Event_Reconciler {
 	/**
 	 * Records one page of events Stripe has not delivered as pending, starting after the previous page.
 	 *
-	 * The cursor is the ID of the last event listed, so pages are listed oldest first. The first call in each mode only
-	 * starts the cursor, so events from before the feature was enabled are not processed.
+	 * The cursor is the ID of the last event listed, so pages are listed oldest first. The first call in each mode, and
+	 * the first after the feature is enabled again, only starts the cursor, so events from before are not processed.
 	 *
 	 * @return array {
 	 *     Summary of the run.
@@ -194,8 +211,10 @@ class WC_Stripe_Event_Reconciler {
 		];
 
 		// Stripe lists the past 30 days of events, which may be a large backlog of events merchants already handled by hand.
+		// Started at the newest event rather than the newest one old enough to list: deliveries were not recorded before,
+		// so the events in between would be processed again when another endpoint of the account failed them.
 		if ( null === $cursor ) {
-			$summary['cursor_after'] = $this->move_cursor_to_newest_event( $cursor_option, $created_until );
+			$summary['cursor_after'] = $this->move_cursor_to_newest_event( $cursor_option, time() );
 			return $summary;
 		}
 

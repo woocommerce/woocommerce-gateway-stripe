@@ -214,7 +214,23 @@ class WC_Stripe_Event_Reconciler_Test extends WP_UnitTestCase {
 		$this->assertSame( 'evt_1Newest', get_option( self::CURSOR_OPTION ) );
 		$this->assertCount( 1, $this->requests );
 		$this->assertSame( '1', $this->query_of( $this->requests[0] )['limit'] );
+		$this->assertEqualsWithDelta( time(), (int) $this->query_of( $this->requests[0] )['created']['lte'], 5, 'Starts at the newest event, not the newest one old enough to list.' );
 		$this->assertSame( [], $this->store->records );
+	}
+
+	/**
+	 * Disabling the feature forgets the cursors of both modes, so enabling it again does not list the events from
+	 * the time no deliveries were recorded.
+	 */
+	public function test_disabling_the_feature_forgets_the_cursors(): void {
+		update_option( self::CURSOR_OPTION, 'evt_1Cursor' );
+		update_option( 'wc_stripe_events_cursor_live', 'evt_1Live' );
+
+		update_option( WC_Stripe_Feature_Flags::EVENT_RECONCILIATION_FEATURE_FLAG_NAME, 'no' );
+		$this->reconciler->handle_feature_flag_change();
+
+		$this->assertFalse( get_option( self::CURSOR_OPTION ) );
+		$this->assertFalse( get_option( 'wc_stripe_events_cursor_live' ) );
 	}
 
 	/**
