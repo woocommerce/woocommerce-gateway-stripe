@@ -30,8 +30,7 @@ import CardBody from 'wcstripe/settings/card-body';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
 
 const AmazonPaySettingsSection = () => {
-	// Express checkout buttons share one size. This control edits that shared value;
-	// the preview reflects it.
+	// Use the shared express checkout button size hook, which is common across express checkout payment methods.
 	const [ size, setSize ] = useExpressCheckoutButtonSize();
 	const isButtonStyleOverridden =
 		!! wc_stripe_amazon_pay_settings_params?.is_button_style_overridden; // eslint-disable-line camelcase
