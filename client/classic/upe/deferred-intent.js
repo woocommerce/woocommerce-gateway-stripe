@@ -165,10 +165,16 @@ jQuery( function ( $ ) {
 
 	// My Account > Payment Methods page submit.
 	$( 'form#add_payment_method' ).on( 'submit', function () {
+		const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
+		// If another payment gateway was selected, no further action required.
+		if ( ! paymentMethodType ) {
+			return;
+		}
+
 		return processPayment(
 			api,
 			$( 'form#add_payment_method' ),
-			getSelectedUPEGatewayPaymentMethod(),
+			paymentMethodType,
 			createAndConfirmSetupIntent
 		);
 	} );
@@ -185,6 +191,11 @@ jQuery( function ( $ ) {
 		}
 
 		const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
+		// If another payment gateway was selected, no further action required.
+		if ( ! paymentMethodType ) {
+			return;
+		}
+
 		if ( ! isUsingSavedPaymentMethod( paymentMethodType ) ) {
 			return processPayment(
 				api,
