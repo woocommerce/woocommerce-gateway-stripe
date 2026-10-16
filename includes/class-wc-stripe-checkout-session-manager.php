@@ -60,12 +60,15 @@ class WC_Stripe_Checkout_Session_Manager {
 	public function create_session(): array {
 		$this->validate_cart();
 
+		// Used as filter context in build_payment_intent_data() and by the block below.
+		$save_payment_method_enabled = $this->can_enable_save_payment_method();
+
 		$cart_context = $this->build_cart_context();
 		$request      = [
 			'ui_mode'                       => 'elements',
 			'line_items'                    => $this->build_line_items( $cart_context ),
 			'excluded_payment_method_types' => WC_Stripe::get_instance()->get_main_stripe_gateway()->get_excluded_payment_method_types(),
-			'payment_intent_data'           => $this->build_payment_intent_data(),
+			'payment_intent_data'           => $this->build_payment_intent_data( $save_payment_method_enabled ),
 			'mode'                          => 'payment',
 			'adaptive_pricing'              => [
 				'enabled' => 'true',
@@ -85,7 +88,6 @@ class WC_Stripe_Checkout_Session_Manager {
 			$request['phone_number_collection'] = [ 'enabled' => 'true' ];
 		}
 
-		$save_payment_method_enabled = $this->can_enable_save_payment_method();
 		if ( $save_payment_method_enabled ) {
 			try {
 				// Creation happens before checkout fields are complete, so only the saved account identity can be used here.
@@ -319,9 +321,11 @@ class WC_Stripe_Checkout_Session_Manager {
 	/**
 	 * Build payment_intent_data for a new Checkout Session.
 	 *
+	 * @param bool $save_payment_method_enabled Filter context, so a callback can scope its changes
+	 *                                          (for example, to guests only).
 	 * @return array
 	 */
-	private function build_payment_intent_data(): array {
+	private function build_payment_intent_data( bool $save_payment_method_enabled ): array {
 		$metadata = [
 			'site_url'      => esc_url_raw( get_site_url() ),
 			'payment_type'  => 'single',
@@ -331,18 +335,34 @@ class WC_Stripe_Checkout_Session_Manager {
 		/** Documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php */
 		$metadata = apply_filters( 'wc_stripe_payment_metadata', $metadata, null, null );
 
+		$payment_intent_data = [ 'metadata' => $metadata ];
+
 		/**
-		 * Filter the payment_intent_data when creating a new Checkout Session.
-		 * Note that this runs after the wc_stripe_payment_metadata filter, so the metadata is already filtered.
-		 * The WooCommerce Cart should also be fully-created by the time this code runs, though the total may
-		 * change later based on taxes or discounts.
+		 * Filters the payment_intent_data for a new Checkout Session, for example to set
+		 * setup_future_usage. Saving a card for off-session use needs the shopper's agreement to
+		 * future charges, which this filter does not collect.
 		 *
 		 * @see https://docs.stripe.com/api/checkout/sessions/create#create_checkout_session-payment_intent_data
-		 * @since 11.2.0
+		 * @since x.x.x
 		 *
-		 * @param array $payment_intent_data The payment_intent_data to be used when creating the Checkout Session.
+		 * @param array $payment_intent_data The payment_intent_data for the Checkout Session.
+		 * @param array $context             Keys: is_save_payment_method_enabled (bool), false for guests.
 		 */
-		return apply_filters( 'wc_stripe_checkout_session_payment_intent_data', [ 'metadata' => $metadata ] );
+		$filtered = apply_filters(
+			'wc_stripe_checkout_session_payment_intent_data',
+			$payment_intent_data,
+			[ 'is_save_payment_method_enabled' => $save_payment_method_enabled ]
+		);
+
+		if ( ! is_array( $filtered ) ) {
+			return $payment_intent_data;
+		}
+
+		// Keep our metadata, which has its own wc_stripe_payment_metadata filter, if a callback drops it.
+		$extra_metadata       = ( isset( $filtered['metadata'] ) && is_array( $filtered['metadata'] ) ) ? $filtered['metadata'] : [];
+		$filtered['metadata'] = array_merge( $extra_metadata, $metadata );
+
+		return $filtered;
 	}
 
 	/**
