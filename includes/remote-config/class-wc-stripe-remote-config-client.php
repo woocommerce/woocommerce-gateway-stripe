@@ -11,6 +11,12 @@ class WC_Stripe_Remote_Config_Client {
 	/**
 	 * WPCOM endpoint.
 	 */
+	/**
+	 * WP_Error code returned when the feature is disabled on this site. The
+	 * scheduler reads it to skip retrying a deliberate short-circuit.
+	 */
+	public const ERROR_DISABLED = 'wc_stripe_remote_config_disabled';
+
 	private const BASE_URL = 'https://public-api.wordpress.com';
 
 	/**
@@ -45,7 +51,7 @@ class WC_Stripe_Remote_Config_Client {
 	public function fetch_all() {
 		if ( ! WC_Stripe_Remote_Config_Flags::is_remote_config_enabled() ) {
 			return new WP_Error(
-				'wc_stripe_remote_config_disabled',
+				self::ERROR_DISABLED,
 				'Remote config is disabled on this site.'
 			);
 		}

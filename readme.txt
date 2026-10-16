@@ -171,5 +171,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Complete express checkout payments on the Pay for Order page when the checkout phone field is required, and preserve the order's saved billing phone
 * Dev - Fix the Format Release Notes workflow running out of turns before it could open its pull request
 * Add - Remote configuration system for managing feature availability during incidents
+* Update - Retry failed remote-config syncs with backoff and log a warning when the cached configuration goes stale
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

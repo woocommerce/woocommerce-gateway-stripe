@@ -8,6 +8,7 @@ xxxx-xx-xx - version 11.2.0
 * Fix - Complete express checkout payments on the Pay for Order page when the checkout phone field is required, and preserve the order's saved billing phone
 * Dev - Fix the Format Release Notes workflow running out of turns before it could open its pull request
 * Add - Remote configuration system for managing feature availability during incidents
+* Update - Retry failed remote-config syncs with backoff and log a warning when the cached configuration goes stale
 
 2026-10-13 - version 11.1.0
 * Add - Automatically configure test mode when onboarding to a live account
