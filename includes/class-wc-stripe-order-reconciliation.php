@@ -8,15 +8,11 @@
 defined( 'ABSPATH' ) || exit;
 
 class WC_Stripe_Order_Reconciliation {
-	public const SCAN_HOOK        = 'wc_stripe_reconcile_pending_orders';
 	public const ORDER_HOOK       = 'wc_stripe_reconcile_order_payment';
 	public const GROUP            = 'woocommerce_stripe';
-	public const PAGE_OPTION      = 'wc_stripe_reconciliation_page';
 	public const ATTEMPT_META     = '_stripe_reconciliation_attempt';
-	public const PAGE_SIZE        = 20;
 	public const COOLDOWN         = 5 * MINUTE_IN_SECONDS;
-	public const LOOKBACK         = 30 * DAY_IN_SECONDS;
-	public const SETTLEMENT_DELAY = 15 * MINUTE_IN_SECONDS;
+	public const CHECK_DELAY      = 15 * MINUTE_IN_SECONDS;
 	public const ORDER_ACTION     = 'wc_stripe_recheck_payment';
 	public const NOTICE_QUERY_ARG = 'stripe_reconciliation_queued';
 
@@ -25,9 +21,7 @@ class WC_Stripe_Order_Reconciliation {
 			return;
 		}
 
-		as_unschedule_all_actions( self::SCAN_HOOK, null, self::GROUP ); // @phpstan-ignore argument.type (null removes matching jobs regardless of their arguments)
 		as_unschedule_all_actions( self::ORDER_HOOK, null, self::GROUP ); // @phpstan-ignore argument.type (null removes matching jobs regardless of their arguments)
-		delete_option( self::PAGE_OPTION );
 	}
 
 	/**
@@ -50,9 +44,10 @@ class WC_Stripe_Order_Reconciliation {
 	}
 
 	public function register_hooks(): void {
-		add_action( 'init', [ $this, 'ensure_scheduled' ], 20 );
-		add_action( self::SCAN_HOOK, [ $this, 'scan_pending_orders' ] );
 		add_action( self::ORDER_HOOK, [ $this, 'reconcile_order_payment' ] );
+		add_action( 'woocommerce_checkout_order_processed', [ $this, 'schedule_order_check' ] );
+		add_action( 'woocommerce_store_api_checkout_order_processed', [ $this, 'schedule_order_check' ] );
+		add_action( 'woocommerce_before_pay_action', [ $this, 'schedule_order_check' ] );
 		if ( is_admin() ) {
 			add_action( 'woocommerce_order_action_' . self::ORDER_ACTION, [ $this, 'handle_order_action' ] );
 			add_filter( 'woocommerce_order_actions', [ $this, 'add_order_action' ], 10, 2 );
@@ -64,48 +59,25 @@ class WC_Stripe_Order_Reconciliation {
 		}
 	}
 
-	public function ensure_scheduled(): void {
-		if ( ! function_exists( 'as_has_scheduled_action' ) || ! function_exists( 'as_schedule_recurring_action' ) ) {
+	/**
+	 * Schedule a delayed status check for an order that is about to be paid with Stripe.
+	 *
+	 * These hooks fire before the payment is processed, so the order has no session or intent ID yet.
+	 * Only the payment method is checked here; the job checks whether the order still needs settling.
+	 *
+	 * @param mixed $order Order or order ID, depending on the hook.
+	 */
+	public function schedule_order_check( $order ): void {
+		if ( ! function_exists( 'as_schedule_single_action' ) ) {
 			return;
 		}
 
-		if ( ! as_has_scheduled_action( self::SCAN_HOOK, null, self::GROUP ) ) {
-			as_schedule_recurring_action( time() + MINUTE_IN_SECONDS, 5 * MINUTE_IN_SECONDS, self::SCAN_HOOK, [], self::GROUP, true );
-		}
-	}
-
-	public function scan_pending_orders(): void {
-		if ( ! function_exists( 'as_enqueue_async_action' ) ) {
+		$order = $order instanceof WC_Order ? $order : ( is_scalar( $order ) ? wc_get_order( absint( $order ) ) : false );
+		if ( ! $order instanceof WC_Order || ! WC_Stripe_Order_Helper::get_instance()->is_stripe_gateway_order( $order ) ) {
 			return;
 		}
 
-		$page_value = get_option( self::PAGE_OPTION, 1 );
-		$page       = max( 1, is_scalar( $page_value ) ? absint( $page_value ) : 1 );
-		$after      = time() - self::LOOKBACK;
-		$before     = time() - self::SETTLEMENT_DELAY;
-		$orders     = wc_get_orders(
-			[
-				'type'         => 'shop_order',
-				'status'       => 'pending',
-				'date_created' => $after . '...' . $before,
-				'orderby'      => 'ID',
-				'order'        => 'ASC',
-				'limit'        => self::PAGE_SIZE,
-				'page'         => $page,
-			]
-		);
-		$orders     = is_array( $orders ) ? $orders : [];
-
-		foreach ( $orders as $order ) {
-			if ( ! $order instanceof WC_Order || ! $this->is_eligible_order( $order ) || ! $this->is_outside_cooldown( $order ) ) {
-				continue;
-			}
-
-			$this->enqueue_order( $order->get_id() );
-		}
-
-		// Pagination lets later pending orders progress; wrapping revisits skipped or unpaid orders.
-		update_option( self::PAGE_OPTION, self::PAGE_SIZE === count( $orders ) ? $page + 1 : 1, false );
+		as_schedule_single_action( time() + self::CHECK_DELAY, self::ORDER_HOOK, [ 'order_id' => $order->get_id() ], self::GROUP, true );
 	}
 
 	/**

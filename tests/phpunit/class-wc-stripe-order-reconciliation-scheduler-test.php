@@ -42,20 +42,17 @@ class WC_Stripe_Order_Reconciliation_Scheduler_Test extends WP_UnitTestCase {
 		$this->webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )->disableOriginalConstructor()->getMock();
 		$this->reconciliation  = new WC_Stripe_Order_Reconciliation( $this->gateway, $this->webhook_handler );
 
-		as_unschedule_all_actions( WC_Stripe_Order_Reconciliation::SCAN_HOOK, null, WC_Stripe_Order_Reconciliation::GROUP );
 		as_unschedule_all_actions( WC_Stripe_Order_Reconciliation::ORDER_HOOK, null, WC_Stripe_Order_Reconciliation::GROUP );
-		delete_option( WC_Stripe_Order_Reconciliation::PAGE_OPTION );
 	}
 
 	public function tear_down() {
-		as_unschedule_all_actions( WC_Stripe_Order_Reconciliation::SCAN_HOOK, null, WC_Stripe_Order_Reconciliation::GROUP );
 		as_unschedule_all_actions( WC_Stripe_Order_Reconciliation::ORDER_HOOK, null, WC_Stripe_Order_Reconciliation::GROUP );
-		delete_option( WC_Stripe_Order_Reconciliation::PAGE_OPTION );
 		update_option( 'woocommerce_custom_orders_table_enabled', $this->original_hpos_setting );
 		remove_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
-		remove_action( 'init', [ $this->reconciliation, 'ensure_scheduled' ], 20 );
-		remove_action( WC_Stripe_Order_Reconciliation::SCAN_HOOK, [ $this->reconciliation, 'scan_pending_orders' ] );
 		remove_action( WC_Stripe_Order_Reconciliation::ORDER_HOOK, [ $this->reconciliation, 'reconcile_order_payment' ] );
+		remove_action( 'woocommerce_checkout_order_processed', [ $this->reconciliation, 'schedule_order_check' ] );
+		remove_action( 'woocommerce_store_api_checkout_order_processed', [ $this->reconciliation, 'schedule_order_check' ] );
+		remove_action( 'woocommerce_before_pay_action', [ $this->reconciliation, 'schedule_order_check' ] );
 		remove_action( 'woocommerce_order_action_' . WC_Stripe_Order_Reconciliation::ORDER_ACTION, [ $this->reconciliation, 'handle_order_action' ] );
 		remove_filter( 'woocommerce_order_actions', [ $this->reconciliation, 'add_order_action' ], 10 );
 		remove_filter( 'bulk_actions-edit-shop_order', [ $this->reconciliation, 'add_bulk_action' ] );
@@ -66,41 +63,7 @@ class WC_Stripe_Order_Reconciliation_Scheduler_Test extends WP_UnitTestCase {
 		parent::tear_down();
 	}
 
-	public function test_registers_only_one_recurring_scan() {
-		$this->reconciliation->ensure_scheduled();
-		$this->reconciliation->ensure_scheduled();
-
-		$actions = as_get_scheduled_actions(
-			[
-				'hook'   => WC_Stripe_Order_Reconciliation::SCAN_HOOK,
-				'group'  => WC_Stripe_Order_Reconciliation::GROUP,
-				'status' => ActionScheduler_Store::STATUS_PENDING,
-			],
-			'ids'
-		);
-
-		$this->assertCount( 1, $actions );
-		$scheduled_actions = as_get_scheduled_actions(
-			[
-				'hook'   => WC_Stripe_Order_Reconciliation::SCAN_HOOK,
-				'group'  => WC_Stripe_Order_Reconciliation::GROUP,
-				'status' => ActionScheduler_Store::STATUS_PENDING,
-			],
-			'objects'
-		);
-		$action            = reset( $scheduled_actions );
-		$this->assertSame( 5 * MINUTE_IN_SECONDS, $action->get_schedule()->get_recurrence() );
-	}
-
 	public function test_unschedule_cancels_only_reconciliation_actions_in_its_group() {
-		as_schedule_recurring_action(
-			time() + MINUTE_IN_SECONDS,
-			5 * MINUTE_IN_SECONDS,
-			WC_Stripe_Order_Reconciliation::SCAN_HOOK,
-			[],
-			WC_Stripe_Order_Reconciliation::GROUP,
-			true
-		);
 		as_schedule_single_action(
 			time() + MINUTE_IN_SECONDS,
 			WC_Stripe_Order_Reconciliation::ORDER_HOOK,
@@ -111,58 +74,8 @@ class WC_Stripe_Order_Reconciliation_Scheduler_Test extends WP_UnitTestCase {
 
 		WC_Stripe_Order_Reconciliation::unschedule();
 
-		$this->assertFalse( as_has_scheduled_action( WC_Stripe_Order_Reconciliation::SCAN_HOOK, null, WC_Stripe_Order_Reconciliation::GROUP ) );
 		$this->assertFalse( as_has_scheduled_action( WC_Stripe_Order_Reconciliation::ORDER_HOOK, null, WC_Stripe_Order_Reconciliation::GROUP ) );
 		$this->assertNotFalse( as_has_scheduled_action( 'wc_stripe_unrelated_action', null, WC_Stripe_Order_Reconciliation::GROUP ) );
-	}
-
-	/**
-	 * @dataProvider provide_order_storage_modes
-	 */
-	public function test_scan_enqueues_only_recent_eligible_orders_across_storage_modes( string $storage_mode ) {
-		$this->set_storage_mode( $storage_mode );
-		$valid        = $this->create_order( 'stripe', 'pi_valid', 20 * MINUTE_IN_SECONDS );
-		$not_stripe   = $this->create_order( 'cod', 'pi_cod', 20 * MINUTE_IN_SECONDS );
-		$no_ids       = $this->create_order( 'stripe', '', 20 * MINUTE_IN_SECONDS );
-		$cooling_down = $this->create_order( 'stripe', 'pi_cooldown', 20 * MINUTE_IN_SECONDS );
-		$too_recent   = $this->create_order( 'stripe', 'pi_recent', 5 * MINUTE_IN_SECONDS );
-		$too_old      = $this->create_order( 'stripe', 'pi_old', WC_Stripe_Order_Reconciliation::LOOKBACK + DAY_IN_SECONDS );
-		$cooling_down->update_meta_data( WC_Stripe_Order_Reconciliation::ATTEMPT_META, time() );
-		$cooling_down->save_meta_data();
-
-		$this->reconciliation->scan_pending_orders();
-
-		$queued_ids = $this->queued_order_ids();
-		$this->assertSame( [ $valid->get_id() ], $queued_ids );
-		$this->assertNotContains( $not_stripe->get_id(), $queued_ids );
-		$this->assertNotContains( $no_ids->get_id(), $queued_ids );
-		$this->assertNotContains( $cooling_down->get_id(), $queued_ids );
-		$this->assertNotContains( $too_recent->get_id(), $queued_ids );
-		$this->assertNotContains( $too_old->get_id(), $queued_ids );
-	}
-
-	public function test_scan_advances_past_cooling_orders_and_revisits_first_page_after_wrap() {
-		$first_page = [];
-		for ( $index = 0; $index < WC_Stripe_Order_Reconciliation::PAGE_SIZE; $index++ ) {
-			$order = $this->create_order( 'stripe', 'pi_cooldown_' . $index, 20 * MINUTE_IN_SECONDS );
-			$order->update_meta_data( WC_Stripe_Order_Reconciliation::ATTEMPT_META, time() );
-			$order->save_meta_data();
-			$first_page[] = $order;
-		}
-		$later_order = $this->create_order( 'stripe', 'pi_later_page', 20 * MINUTE_IN_SECONDS );
-
-		$this->reconciliation->scan_pending_orders();
-		$this->assertSame( 2, (int) get_option( WC_Stripe_Order_Reconciliation::PAGE_OPTION ) );
-		$this->assertSame( [], $this->queued_order_ids() );
-
-		$this->reconciliation->scan_pending_orders();
-		$this->assertSame( 1, (int) get_option( WC_Stripe_Order_Reconciliation::PAGE_OPTION ) );
-		$this->assertSame( [ $later_order->get_id() ], $this->queued_order_ids() );
-
-		$first_page[0]->delete_meta_data( WC_Stripe_Order_Reconciliation::ATTEMPT_META );
-		$first_page[0]->save_meta_data();
-		$this->reconciliation->scan_pending_orders();
-		$this->assertContains( $first_page[0]->get_id(), $this->queued_order_ids() );
 	}
 
 	/**
@@ -227,15 +140,37 @@ class WC_Stripe_Order_Reconciliation_Scheduler_Test extends WP_UnitTestCase {
 		$this->assertSame( 0, (int) $duplicate_query_args[ WC_Stripe_Order_Reconciliation::NOTICE_QUERY_ARG ] );
 	}
 
-	public function test_scan_enqueues_at_most_one_batch_of_orders() {
-		for ( $index = 0; $index < WC_Stripe_Order_Reconciliation::PAGE_SIZE + 1; $index++ ) {
-			$this->create_order( 'stripe', 'pi_batch_' . $index, 20 * MINUTE_IN_SECONDS );
-		}
+	/**
+	 * @dataProvider provide_order_storage_modes
+	 */
+	public function test_schedules_a_delayed_check_only_for_stripe_orders( string $storage_mode ) {
+		$this->set_storage_mode( $storage_mode );
+		$stripe_order = $this->create_order( 'stripe', '', 0 );
+		$cod_order    = $this->create_order( 'cod', '', 0 );
 
-		$this->reconciliation->scan_pending_orders();
+		$this->reconciliation->schedule_order_check( $stripe_order );
+		$this->reconciliation->schedule_order_check( $cod_order );
 
-		$this->assertCount( WC_Stripe_Order_Reconciliation::PAGE_SIZE, $this->queued_order_ids() );
-		$this->assertSame( 2, (int) get_option( WC_Stripe_Order_Reconciliation::PAGE_OPTION ) );
+		$this->assertSame( [ $stripe_order->get_id() ], $this->queued_order_ids() );
+		$next = as_next_scheduled_action( WC_Stripe_Order_Reconciliation::ORDER_HOOK, [ 'order_id' => $stripe_order->get_id() ], WC_Stripe_Order_Reconciliation::GROUP );
+		$this->assertEqualsWithDelta( time() + WC_Stripe_Order_Reconciliation::CHECK_DELAY, $next, 5 );
+	}
+
+	public function test_scheduled_check_accepts_an_order_id_and_is_unique_per_order() {
+		$order = $this->create_order( 'stripe', '', 0 );
+
+		$this->reconciliation->schedule_order_check( $order->get_id() );
+		$this->reconciliation->schedule_order_check( $order );
+
+		$this->assertSame( [ $order->get_id() ], $this->queued_order_ids() );
+	}
+
+	public function test_hook_registration_schedules_checks_from_checkout_hooks() {
+		$this->reconciliation->register_hooks();
+
+		$this->assertSame( 10, has_action( 'woocommerce_checkout_order_processed', [ $this->reconciliation, 'schedule_order_check' ] ) );
+		$this->assertSame( 10, has_action( 'woocommerce_store_api_checkout_order_processed', [ $this->reconciliation, 'schedule_order_check' ] ) );
+		$this->assertSame( 10, has_action( 'woocommerce_before_pay_action', [ $this->reconciliation, 'schedule_order_check' ] ) );
 	}
 
 	public function test_enqueue_is_unique_per_order() {
