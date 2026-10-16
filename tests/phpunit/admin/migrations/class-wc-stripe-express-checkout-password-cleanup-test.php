@@ -59,7 +59,7 @@ class WC_Stripe_Express_Checkout_Password_Cleanup_Test extends WP_UnitTestCase {
 		$this->delete_user_markers();
 		as_unschedule_all_actions( WC_Stripe_Express_Checkout_Password_Cleanup::BATCH_HOOK, [], WC_Stripe_Action_Scheduler_Service::GROUP_ID );
 
-		$this->started_at = time();
+		$this->test_started_at = time();
 	}
 
 	public function tear_down(): void {
@@ -935,7 +935,7 @@ class WC_Stripe_Express_Checkout_Password_Cleanup_Test extends WP_UnitTestCase {
 		$timestamp = ActionScheduler::store()->fetch_action( (int) reset( $pending ) )->get_schedule()->get_date()->getTimestamp();
 		// Lower bound from a time captured before scheduling, upper bound from now: the batch was
 		// scheduled between the two, so this holds without a slack that a slow runner can exceed.
-		$this->assertGreaterThanOrEqual( $this->started_at + $delay, $timestamp );
+		$this->assertGreaterThanOrEqual( $this->test_started_at + $delay, $timestamp );
 		$this->assertLessThanOrEqual( time() + $delay, $timestamp );
 	}
 
