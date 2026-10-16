@@ -379,6 +379,9 @@ class WC_Stripe {
 
 			// Register Stripe abilities with the WordPress Abilities API.
 			WC_Stripe_Abilities_Registrar::init();
+
+			// Ensure the Stripe plugin version is included for Tracks events from the plugin.
+			add_filter( 'woocommerce_tracks_event_properties', [ self::class, 'maybe_add_stripe_plugin_version_to_stripe_tracks_event' ], 10, 2 );
 		}
 	}
 
@@ -536,9 +539,10 @@ class WC_Stripe {
 			$stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'yes';
 			$this->update_settings( $stripe_settings );
 
-			if ( class_exists( 'WC_Tracks' ) ) {
-				WC_Tracks::record_event( 'wcstripe_migrated_to_new_checkout_experience' );
-			}
+			WC_Stripe_Tracks::record_direct_event(
+				'wcstripe_migrated_to_new_checkout_experience',
+				WC_Stripe_Tracks::add_default_event_properties( [] )
+			);
 		}
 	}
 
@@ -1180,6 +1184,28 @@ class WC_Stripe {
 		 * @param WC_Stripe_Agentic_Commerce_Integration $integration The integration instance.
 		 */
 		do_action( 'wc_stripe_agentic_commerce_initialized', $integration );
+	}
+
+	/**
+	 * Adds the Stripe plugin version to the Stripe Tracks event properties.
+	 * Expected to hook into the `woocommerce_tracks_event_properties` filter.
+	 *
+	 * @param array  $event_properties The event properties.
+	 * @param string $event_name       The event name.
+	 * @return array The event properties.
+	 */
+	public static function maybe_add_stripe_plugin_version_to_stripe_tracks_event( $event_properties, $event_name ) {
+		if ( ! is_array( $event_properties ) || ! is_string( $event_name ) ) {
+			return $event_properties;
+		}
+
+		if ( ! str_starts_with( $event_name, 'wcstripe_' ) ) {
+			return $event_properties;
+		}
+
+		$event_properties['stripe_version'] = WC_STRIPE_VERSION;
+
+		return $event_properties;
 	}
 
 	/**
