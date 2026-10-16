@@ -166,7 +166,7 @@ jQuery( function ( $ ) {
 	// My Account > Payment Methods page submit.
 	$( 'form#add_payment_method' ).on( 'submit', function () {
 		const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
-		// The form is shared with other gateways; returning false would cancel their submit.
+		// If another payment gateway was selected, no further action required.
 		if ( ! paymentMethodType ) {
 			return;
 		}
@@ -191,7 +191,7 @@ jQuery( function ( $ ) {
 		}
 
 		const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
-		// The form is shared with other gateways; returning false would cancel their submit.
+		// If another payment gateway was selected, no further action required.
 		if ( ! paymentMethodType ) {
 			return;
 		}

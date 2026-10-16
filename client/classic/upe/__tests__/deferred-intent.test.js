@@ -180,6 +180,8 @@ describe.each( [
 	],
 ] )( '%s submit handler', ( _, formMarkup, formSelector, serverData ) => {
 	const submit = () => $( formSelector ).triggerHandler( 'submit' );
+	// Only the #order_review form offers saved-method radios.
+	const hasSavedMethods = formSelector === '#order_review';
 
 	beforeEach( async () => {
 		mockUsingSavedMethod = false;
@@ -216,4 +218,14 @@ describe.each( [
 		expect( mockProcessPayment ).toHaveBeenCalledTimes( 1 );
 		expect( mockProcessPayment.mock.calls[ 0 ][ 2 ] ).toBe( 'card' );
 	} );
+
+	if ( hasSavedMethods ) {
+		// A saved card has no form to read on the page: WooCommerce submits the token id and PHP charges it.
+		it( 'lets core submit a saved Stripe method untouched', () => {
+			mockUsingSavedMethod = true;
+
+			expect( submit() ).toBeUndefined();
+			expect( mockProcessPayment ).not.toHaveBeenCalled();
+		} );
+	}
 } );
