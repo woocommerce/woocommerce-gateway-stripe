@@ -3692,7 +3692,25 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$prop->setAccessible( true );
 		$prop->setValue( $this->mock_webhook_handler, $mock_scheduler );
 
-		$this->mock_webhook_handler->process_checkout_session_success( $notification );
+		$received_order  = null;
+		$received_count  = 0;
+		$received_action = static function ( $webhook_type, $event, $order ) use ( &$received_order, &$received_count ) {
+			++$received_count;
+			$received_order = $order;
+		};
+		add_action( 'wc_stripe_webhook_received', $received_action, 10, 3 );
+		try {
+			$this->mock_webhook_handler->process_webhook( wp_json_encode( $notification ) );
+		} finally {
+			remove_action( 'wc_stripe_webhook_received', $received_action, 10 );
+		}
+
+		$this->assertSame( 1, $received_count, 'The received action should fire once for the processed event.' );
+		$this->assertSame(
+			$expect_settled ? $order->get_id() : null,
+			$received_order instanceof WC_Order ? $received_order->get_id() : null,
+			'A mismatched session must not expose a settled order to webhook callbacks.'
+		);
 
 		$notes          = wc_get_order_notes( [ 'order_id' => $order->get_id() ] );
 		$mismatch_notes = array_filter(
@@ -4577,7 +4595,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 * on a mismatch. Uses the committed sample event so reviewers can replay the same body.
 	 */
 	public function test_event_belongs_to_connected_account_reads_context_from_real_agentic_event() {
-		$event         = json_decode( file_get_contents( __DIR__ . '/dummy-data/agentic_customize_checkout_event.json' ) );
+		$event         = json_decode( file_get_contents( __DIR__ . '/dummy-data/agentic_customize_checkout_event.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- This fixture is read from the local test tree, not a remote URL.
 		$event_account = 'acct_sample_connected'; // The `context` value in the fixture.
 		$reflection    = new ReflectionMethod( WC_Stripe_Webhook_Handler::class, 'event_belongs_to_connected_account' );
 		$reflection->setAccessible( true );

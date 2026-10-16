@@ -59,6 +59,7 @@ xxxx-xx-xx - version 11.2.0
 * Dev - Update PHPCS rules and improve alignment with WordPress plugin rules
 * Fix - Add robust checks against order attribution Javascript not being fully loaded in block checkout
 * Fix - Remove the duplicated period in the webhook status message when webhooks are pending
+* Add - Recover pending Stripe orders automatically and add manual payment status checks
 * Fix - Allow retries with an express wallet or saved card after a declined card under Optimized Checkout with Dynamic Payment Methods
 * Update - Include the connected Stripe account ID in the account connection, account disconnection, and key update events sent when usage tracking is enabled
 * Fix - Show an error before submission when required custom checkout fields are empty in Classic Checkout
