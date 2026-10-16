@@ -607,8 +607,44 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			]
 		);
 
-		$potential_order = WC_Stripe_Helper::get_order_by_charge_id( $response->id );
-		if ( $potential_order && $potential_order->get_id() !== $order->get_id() ) {
+		$transaction_id = $response->id;
+		$lock_name      = 'wc_stripe_transaction_lock_' . $transaction_id;
+
+		// Different orders have different payment locks, so guard the charge from the ownership lookup
+		// through the transaction ID write. An empty ID cannot identify a shared charge.
+		$lock_owner = ! empty( $transaction_id ) ? WC_Stripe_Option_Lock::acquire( $lock_name, 5 * MINUTE_IN_SECONDS ) : null;
+		if ( ! empty( $transaction_id ) && null === $lock_owner ) {
+			WC_Stripe_Logger::error( 'Aborting, transaction is being processed by another request.' );
+			$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
+			throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+
+		// Earlier charges have no lock row, so the persisted mapping remains authoritative.
+		$linked_order = WC_Stripe_Helper::get_order_by_charge_id( $transaction_id );
+
+		try {
+			return $this->process_locked_response( $response, $order, $linked_order );
+		} finally {
+			// A failed attempt with no persisted owner must keep the lock until its lease expires.
+			if ( null !== $lock_owner && ( $order->get_transaction_id() === $transaction_id || $linked_order ) ) {
+				WC_Stripe_Option_Lock::release( $lock_name, $lock_owner );
+			}
+		}
+	}
+
+	/**
+	 * Stores the charge data on the order while the Stripe transaction lock is held.
+	 *
+	 * @param object $response The Charge response from Stripe.
+	 * @param WC_Order $order The Order object.
+	 * @param WC_Order|false $linked_order The order the transaction is already linked to, if any.
+	 *
+	 * @return object The Charge response from Stripe.
+	 *
+	 * @throws WC_Stripe_Exception
+	 */
+	private function process_locked_response( $response, $order, $linked_order ) {
+		if ( $linked_order && $linked_order->get_id() !== $order->get_id() ) {
 			WC_Stripe_Logger::error( 'Aborting, transaction already consumed by another order.' );
 			$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
 			throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped

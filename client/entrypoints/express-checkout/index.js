@@ -595,6 +595,9 @@ jQuery( function ( $ ) {
 					currency:
 						currency ??
 						getExpressCheckoutData( 'checkout' ).currency_code,
+					requestPhone:
+						getExpressCheckoutData( 'checkout' )
+							?.needs_payer_phone ?? false,
 					appearance: getExpressCheckoutButtonAppearance(),
 					locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
 					displayItems: transformLabeledDisplayItems(
