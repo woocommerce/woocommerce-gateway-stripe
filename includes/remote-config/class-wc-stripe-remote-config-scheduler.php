@@ -159,6 +159,28 @@ class WC_Stripe_Remote_Config_Scheduler {
 		if ( 0 !== (int) get_option( self::FAILURE_COUNT_OPTION, 0 ) ) {
 			delete_option( self::FAILURE_COUNT_OPTION );
 		}
+
+		$this->unschedule_pending_retries();
+	}
+
+	/**
+	 * Cancels any in-cycle retries an earlier failure left pending. Called after
+	 * a successful run so a recovery before a scheduled retry fires (e.g. a
+	 * connection-change sync succeeds while a daily-run retry is still queued)
+	 * does not trigger a redundant fetch. Only the retry args are matched, so
+	 * the daily recurring action (scheduled with no args) is left in place.
+	 *
+	 * @return void
+	 */
+	private function unschedule_pending_retries(): void {
+		if ( ! function_exists( 'as_unschedule_all_actions' ) ) {
+			return;
+		}
+
+		$max_attempt = count( self::RETRY_DELAYS );
+		for ( $next_attempt = 1; $next_attempt <= $max_attempt; $next_attempt++ ) {
+			as_unschedule_all_actions( self::SYNC_ACTION, [ $next_attempt ], self::SCHEDULER_GROUP );
+		}
 	}
 
 	/**

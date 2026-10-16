@@ -438,6 +438,28 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A successful run must cancel any in-cycle retry an earlier failure left
+	 * pending, so a recovery does not trigger a redundant fetch later.
+	 */
+	public function test_successful_run_cancels_pending_retry(): void {
+		if ( ! function_exists( 'as_schedule_single_action' ) || ! function_exists( 'as_next_scheduled_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		$this->configure_modes( true, false );
+
+		// A prior failure left a retry pending for attempt 1.
+		as_schedule_single_action( time() + HOUR_IN_SECONDS, WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [ 1 ], WC_Stripe_Remote_Config_Scheduler::SCHEDULER_GROUP );
+		$this->assertIsInt( as_next_scheduled_action( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [ 1 ], WC_Stripe_Remote_Config_Scheduler::SCHEDULER_GROUP ) );
+
+		$client = $this->createMock( WC_Stripe_Remote_Config_Client::class );
+		$client->method( 'fetch_all' )->willReturn( $this->get_mock_combined_payload( false, true ) );
+		( new WC_Stripe_Remote_Config_Scheduler( $client, new WC_Stripe_Remote_Config() ) )->run();
+
+		$this->assertFalse( as_next_scheduled_action( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [ 1 ], WC_Stripe_Remote_Config_Scheduler::SCHEDULER_GROUP ) );
+	}
+
+	/**
 	 * A successful fetch must reset the consecutive-failure counter.
 	 */
 	public function test_successful_fetch_resets_failure_counter(): void {
