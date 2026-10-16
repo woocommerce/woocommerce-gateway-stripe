@@ -1,18 +1,13 @@
 #!/usr/bin/env node
 /**
- * Checks the version tags a pull request adds against the `@since x.x.x`
- * convention.
+ * Ensures that code uses `@since x.x.x` instead of concrete versions.
  *
- * New PHP docblocks use `@since x.x.x` (or `@version x.x.x`), and woorelease
- * replaces the placeholder with the release version when the release is cut, in
- * the paths listed under `config.version_replace_paths` in package.json.
- * Nobody has to guess which release a change will ship in, so the tags can't go
- * stale when a pull request slips to a later release.
+ * New PHP docblocks must use `@since x.x.x` (or `@version x.x.x`), with
+ * the version replace due to happen during the release process for 
+ * files under `config.version_replace_paths` in package.json
  *
  * Reports, for lines the pull request adds:
- * - error: an `x.x.x` that woorelease would not replace and would ship as is.
- *   woorelease only rewrites `@since` and `@version` followed by spaces, in
- *   `*.php` files under the configured paths.
+ * - error: an `x.x.x` that cannot be replaced and would ship as is.
  * - warning: a concrete `@since`/`@version` newer than the last released
  *   version, which should be `x.x.x` instead.
  *
