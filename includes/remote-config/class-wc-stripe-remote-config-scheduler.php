@@ -61,6 +61,12 @@ class WC_Stripe_Remote_Config_Scheduler {
 	 * ambient default timezone.
 	 */
 	public function maybe_schedule_daily_sync(): void {
+		// Hooked on `init` for every request, so return before touching the
+		// database when the feature is off.
+		if ( ! WC_Stripe_Remote_Config_Flags::is_remote_config_enabled() ) {
+			return;
+		}
+
 		if ( ! did_action( 'action_scheduler_init' ) || ! function_exists( 'as_has_scheduled_action' ) || ! function_exists( 'as_schedule_recurring_action' ) ) {
 			return;
 		}
@@ -71,6 +77,21 @@ class WC_Stripe_Remote_Config_Scheduler {
 
 		$start = strtotime( 'tomorrow midnight UTC' ) + $this->get_schedule_offset();
 		as_schedule_recurring_action( $start, DAY_IN_SECONDS, self::SYNC_ACTION, [], self::SCHEDULER_GROUP );
+	}
+
+	/**
+	 * Cancels the recurring sync. Called on plugin deactivation so a disabled
+	 * plugin leaves no scheduled action behind.
+	 *
+	 * Static and unconditional (no feature-flag check): deactivation must clear
+	 * an action scheduled while the feature was on, even if it is now off.
+	 */
+	public static function unschedule_daily_sync(): void {
+		if ( ! did_action( 'action_scheduler_init' ) || ! function_exists( 'as_unschedule_all_actions' ) ) {
+			return;
+		}
+
+		as_unschedule_all_actions( self::SYNC_ACTION, [], self::SCHEDULER_GROUP );
 	}
 
 	/**

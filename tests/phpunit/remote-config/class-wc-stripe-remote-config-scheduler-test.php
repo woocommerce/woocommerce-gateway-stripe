@@ -311,4 +311,41 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 		$this->assertSame( false, $rc->get_flag( 'optimized_checkout', 'live' ) );
 		$this->assertNull( $rc->get_flag( 'optimized_checkout', 'test' ) );
 	}
+
+	/**
+	 * The method runs on `init` for every request, so when the feature is off it
+	 * must return before scheduling anything (and before the database lookup).
+	 */
+	public function test_maybe_schedule_daily_sync_does_nothing_when_disabled(): void {
+		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		// Satisfy the action_scheduler_init guard so only the feature flag can
+		// stop the scheduling.
+		do_action( 'action_scheduler_init' );
+		update_option( '_wcstripe_remote_config_enabled', 'no' );
+
+		( new WC_Stripe_Remote_Config_Scheduler() )->maybe_schedule_daily_sync();
+
+		$this->assertFalse( as_has_scheduled_action( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [], WC_Stripe_Remote_Config_Scheduler::SCHEDULER_GROUP ) );
+	}
+
+	/**
+	 * Deactivation must leave no recurring sync behind, so the plugin does not
+	 * keep running a scheduled action after it is turned off.
+	 */
+	public function test_unschedule_daily_sync_cancels_the_scheduled_action(): void {
+		if ( ! function_exists( 'as_schedule_recurring_action' ) || ! function_exists( 'as_has_scheduled_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		do_action( 'action_scheduler_init' );
+		as_schedule_recurring_action( time() + HOUR_IN_SECONDS, DAY_IN_SECONDS, WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [], WC_Stripe_Remote_Config_Scheduler::SCHEDULER_GROUP );
+		$this->assertTrue( as_has_scheduled_action( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [], WC_Stripe_Remote_Config_Scheduler::SCHEDULER_GROUP ) );
+
+		WC_Stripe_Remote_Config_Scheduler::unschedule_daily_sync();
+
+		$this->assertFalse( as_has_scheduled_action( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [], WC_Stripe_Remote_Config_Scheduler::SCHEDULER_GROUP ) );
+	}
 }
