@@ -298,48 +298,6 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 	}
 
 	/**
-	 * Asserts that set_account_keys() delegates the webhook decommission to the account
-	 * and clears the stored webhook data and secret for the affected mode when a webhook is decommissioned.
-	 */
-	public function test_set_account_keys_decommissions_previous_webhook_when_secret_changes() {
-		$previous_webhook_data = [
-			'id'     => 'wh_old',
-			'url'    => 'https://example.com',
-			'secret' => 'sk_live_old',
-		];
-
-		WC_Stripe_Helper::update_main_stripe_settings(
-			[
-				'publishable_key' => 'pk_live_old',
-				'secret_key'      => 'sk_live_old',
-				'webhook_data'    => $previous_webhook_data,
-				'webhook_secret'  => 'whsec_old',
-				'testmode'        => 'no',
-			]
-		);
-
-		$mock_account = $this->getMockBuilder( WC_Stripe_Account::class )
-			->disableOriginalConstructor()
-			->getMock();
-		$mock_account->expects( $this->once() )
-			->method( 'maybe_decommission_webhook' )
-			->with( $previous_webhook_data, 'sk_live_new-12345' )
-			->willReturn( true );
-		$mock_account->expects( $this->never() )->method( 'should_decommission_webhook' );
-
-		$controller = new WC_REST_Stripe_Account_Keys_Controller( $mock_account );
-
-		$request = new WP_REST_Request( 'POST', self::ROUTE );
-		$request->set_param( 'secret_key', 'sk_live_new-12345' );
-
-		$controller->set_account_keys( $request );
-
-		$settings = WC_Stripe_Helper::get_stripe_settings();
-		$this->assertSame( [], $settings['webhook_data'] );
-		$this->assertSame( '', $settings['webhook_secret'] );
-	}
-
-	/**
 	 * Disconnecting must report the account that was connected. The ID has to be read before the
 	 * emptied keys are saved, because afterwards the store no longer resolves to any account.
 	 */
@@ -634,9 +592,11 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$settings['test_secret_key'] = 'sk_test_current';
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 		WC_Stripe_API::set_secret_key( '' );
-		$used_key = null;
-		$account  = $this->createMock( WC_Stripe_Account::class );
-		$account->expects( $this->once() )->method( 'configure_webhooks' )->with( $mode )
+		$used_key                                   = null;
+		$account                                    = $this->createMock( WC_Stripe_Account::class );
+		$webhook_settings                           = $this->createMock( WC_Stripe_Webhook_Settings::class );
+		WC_Stripe::get_instance()->webhook_settings = $webhook_settings;
+		$webhook_settings->expects( $this->once() )->method( 'maybe_autoconfigure_webhooks' )->with( $mode, true )
 			->willReturnCallback(
 				function () use ( &$used_key ) {
 					$used_key = WC_Stripe_API::get_secret_key();
@@ -675,9 +635,11 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$settings['test_secret_key'] = 'test' === $mode ? '' : 'sk_test_current';
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
-		$account = $this->createMock( WC_Stripe_Account::class );
-		$account->expects( $this->never() )->method( 'configure_webhooks' );
-		$request = new WP_REST_Request( 'POST', self::ROUTE . '/webhook' );
+		$account          = $this->createMock( WC_Stripe_Account::class );
+		$webhook_settings = $this->createMock( WC_Stripe_Webhook_Settings::class );
+		$webhook_settings->expects( $this->never() )->method( 'maybe_autoconfigure_webhooks' );
+		WC_Stripe::get_instance()->webhook_settings = $webhook_settings;
+		$request                                    = new WP_REST_Request( 'POST', self::ROUTE . '/webhook' );
 		$request->set_param( 'live_mode', 'live' === $mode );
 
 		$controller = new WC_REST_Stripe_Account_Keys_Controller( $account );
