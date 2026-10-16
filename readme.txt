@@ -164,9 +164,15 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 11.2.0 - xxxx-xx-xx =
-* Dev - Remove expired lock rows from the options table once a day
-* Tweak - Minor improvement to error logging when saving new keys
+
+**Important Fixes and Updates**
 * Fix - Keep pending ACH orders open while Stripe is still waiting for bank verification
 * Fix - Complete express checkout payments on the Pay for Order page when the checkout phone field is required, and preserve the order's saved billing phone
+
+**Other Fixes and Updates**
+* Tweak - Minor improvement to error logging when saving new keys
+
+**Internal Changes and Upcoming Features**
+* Dev - Remove expired lock rows from the options table once a day
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
