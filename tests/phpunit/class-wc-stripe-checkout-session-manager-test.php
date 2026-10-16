@@ -278,8 +278,8 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 		WC()->cart->add_to_cart( $product->get_id(), 1 );
 		WC()->cart->calculate_totals();
 
-		$captured     = null;
-		$capture_body = static function ( $request, $api ) use ( &$captured ) {
+		$captured      = null;
+		$capture_body  = static function ( $request, $api ) use ( &$captured ) {
 			if ( 'checkout/sessions' === $api ) {
 				$captured = $request;
 			}
@@ -336,7 +336,6 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 
 		$this->assertArrayHasKey( 'payment_intent_data', $request );
 		$this->assertSame( 'off_session', $request['payment_intent_data']['setup_future_usage'] );
-		// The dedicated wc_stripe_payment_metadata filter still owns these keys.
 		$this->assertSame( 'single', $request['payment_intent_data']['metadata']['payment_type'] );
 	}
 
@@ -360,7 +359,6 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 
 		$this->assertIsArray( $captured_context );
 		$this->assertArrayHasKey( 'is_save_payment_method_enabled', $captured_context );
-		// No user is logged in during the test, so this is the guest path.
 		$this->assertFalse( $captured_context['is_save_payment_method_enabled'] );
 	}
 
@@ -370,7 +368,6 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 	 */
 	public function test_create_session_keeps_metadata_when_filter_omits_it(): void {
 		$filter = static function () {
-			// Return only setup_future_usage, dropping the metadata key entirely.
 			return [ 'setup_future_usage' => 'off_session' ];
 		};
 		add_filter( 'wc_stripe_checkout_session_payment_intent_data', $filter );
