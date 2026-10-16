@@ -6,10 +6,10 @@
  * the version replace due to happen during the release process for 
  * files under `config.version_replace_paths` in package.json
  *
- * Reports, for lines the pull request adds:
- * - error: an `x.x.x` that cannot be replaced and would ship as is.
- * - warning: a concrete `@since`/`@version` newer than the last released
- *   version, which should be `x.x.x` instead.
+ * Reports, for lines the pull request adds, both as errors:
+ * - an `x.x.x` that cannot be replaced and would ship as is.
+ * - a concrete `@since`/`@version`, which must be `x.x.x` so the release
+ *   process fills in the version.
  *
  * Usage:
  *   node bin/check-version-placeholders.js <base-ref> [<head-ref>]
@@ -23,7 +23,6 @@ const PLACEHOLDER = 'x.x.x';
 // Mirrors the sed pattern in woorelease's Version_Replace: one or more spaces, not tabs.
 const REPLACEABLE_TAG = /@(?:since|version) +x\.x\.x/g;
 const CONCRETE_TAG = /@(since|version)\s+(\d+\.\d+\.\d+)/g;
-const RELEASED_HEADER = /^\d{4}-\d{2}-\d{2} - version (\d+\.\d+\.\d+)\s*$/m;
 const CODE_FILE = /\.(?:php|jsx?|tsx?)$/i;
 // Source folders that ship in the plugin zip. An include list, so new unshipped
 // folders (docker/, release/, ...) are skipped without editing it. Files outside
@@ -61,22 +60,6 @@ function isReplaced(file, replacePaths) {
 }
 
 /**
- * @param {string} a Version like 11.1.0.
- * @param {string} b Version like 11.0.0.
- * @return {number} Positive when a is newer than b.
- */
-function compareVersions(a, b) {
-    const pa = a.split('.').map(Number);
-    const pb = b.split('.').map(Number);
-    for (let i = 0; i < 3; i++) {
-        if (pa[i] !== pb[i]) {
-            return pa[i] - pb[i];
-        }
-    }
-    return 0;
-}
-
-/**
  * Extract lines that were added from a unified diff, with the file and new line number of each.
  *
  * @param {string} diff Output of `git diff --unified=0`.
@@ -107,16 +90,18 @@ function extractAddedLines(diff) {
 /**
  * @param {string}   diff            Output of `git diff --unified=0`.
  * @param {string[]} replacePaths    Entries from version_replace_paths.
- * @param {string}   lastReleased    Latest released version, e.g. 11.0.0.
  * @return {{level: string, file: string, line: number, message: string}[]} Findings.
  */
-function check(diff, replacePaths, lastReleased) {
+function check(diff, replacePaths) {
     const findings = [];
-    for (const { file, line, text } of extractAddedLines(diff).filter(({ file }) => isChecked(file))) {
+    const addedLinesInCheckedFiles = extractAddedLines(diff).filter(({ file }) => isChecked(file));
+    for (const { file, line, text } of addedLinesInCheckedFiles) {
+        const replaced = isReplaced(file, replacePaths);
+
         // Every placeholder woorelease would not rewrite ships as a literal x.x.x.
         const total = text.split(PLACEHOLDER).length - 1;
         if (total > 0) {
-            const replaceable = isReplaced(file, replacePaths) ? (text.match(REPLACEABLE_TAG) || []).length : 0;
+            const replaceable = replaced ? (text.match(REPLACEABLE_TAG) || []).length : 0;
             if (total > replaceable) {
                 findings.push({
                     level: 'error',
@@ -130,13 +115,18 @@ function check(diff, replacePaths, lastReleased) {
             }
         }
 
-        for (const [, tag, version] of text.matchAll(CONCRETE_TAG)) {
-            if (compareVersions(version, lastReleased) > 0) {
+        // New code should use the placeholder so the release process fills in
+        // the version. Only where woorelease replaces x.x.x, though: elsewhere
+        // (JS, files outside the replace paths) x.x.x would not be rewritten, so
+        // a concrete version is correct there and the literal check above guards
+        // x.x.x instead.
+        if (replaced) {
+            for (const [, tag, version] of text.matchAll(CONCRETE_TAG)) {
                 findings.push({
-                    level: 'warning',
+                    level: 'error',
                     file,
                     line,
-                    message: `@${tag} ${version} is not released yet. Use @${tag} x.x.x; woorelease replaces it with the version this ships in.`,
+                    message: `@${tag} ${version} is a concrete version. Use @${tag} x.x.x so it will get updated during the release process.`,
                 });
             }
         }
@@ -158,20 +148,14 @@ if (require.main === module) {
     // woorelease reads its settings from a `woorelease` key when present, else `config`.
     const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
     const replacePaths = [].concat((pkg.woorelease || pkg.config || {}).version_replace_paths || []);
-    const released = git('show', `${head}:changelog.txt`).match(RELEASED_HEADER);
-    if (!released) {
-        console.error('Could not find the latest released version header in changelog.txt.');
-        process.exit(2);
-    }
 
-    const findings = check(diff, replacePaths, released[1]);
+    const findings = check(diff, replacePaths);
     for (const { level, file, line, message } of findings) {
         console.log(`::${level} file=${file},line=${line}::${message}`);
     }
 
-    const errors = findings.filter((finding) => finding.level === 'error').length;
-    console.log(`Version placeholders: ${errors} error(s), ${findings.length - errors} warning(s).`);
-    process.exit(errors > 0 ? 1 : 0);
+    console.log(`Version placeholders: ${findings.length} error(s).`);
+    process.exit(findings.length > 0 ? 1 : 0);
 }
 
 module.exports = { check, isChecked, isReplaced, extractAddedLines };

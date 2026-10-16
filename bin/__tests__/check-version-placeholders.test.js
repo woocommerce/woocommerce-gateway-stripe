@@ -1,7 +1,6 @@
 const { check, isChecked, isReplaced, extractAddedLines } = require('../check-version-placeholders');
 
 const REPLACE_PATHS = ['includes', 'templates', 'woocommerce-gateway-stripe.php', 'uninstall.php'];
-const LAST_RELEASED = '11.0.0';
 
 // A `git diff --unified=0` for lines added to one file, starting at `start`.
 const diffFor = (file, lines, start = 10) =>
@@ -13,15 +12,15 @@ const diffFor = (file, lines, start = 10) =>
         ...lines.map((line) => `+${line}`),
     ].join('\n');
 
-const levels = (diff) => check(diff, REPLACE_PATHS, LAST_RELEASED).map(({ level }) => level);
+const levels = (diff) => check(diff, REPLACE_PATHS).map(({ level }) => level);
 
 describe('check-version-placeholders', () => {
     it.each([
         ['@since in includes/', 'includes/class-foo.php', '	 * @since x.x.x'],
         ['@version in a listed file', 'uninstall.php', ' * @version  x.x.x'],
         ['@since in templates/', 'templates/emails/foo.php', ' * @since x.x.x'],
-        ['moved code keeping a released version', 'includes/class-foo.php', '	 * @since 10.9.0'],
         ['a concrete @deprecated version', 'includes/class-foo.php', '	 * @deprecated 11.1.0'],
+        ['a concrete @since in JS, which woorelease does not replace', 'client/foo.js', ' * @since 11.1.0'],
     ])('accepts %s', (description, file, line) => {
         expect(levels(diffFor(file, [line]))).toEqual([]);
     });
@@ -32,6 +31,7 @@ describe('check-version-placeholders', () => {
         ['a tab between the tag and x.x.x', 'includes/class-foo.php', '	 * @since	x.x.x'],
         ['JS, which woorelease does not scan', 'client/foo.js', ' * @since x.x.x'],
         ['a PHP file outside the replace paths', 'bootstrap.php', ' * @since x.x.x'],
+        ['a concrete @since in a replaced file', 'includes/class-foo.php', '	 * @since 10.9.0'],
     ])('errors on %s', (description, file, line) => {
         expect(levels(diffFor(file, [line]))).toEqual(['error']);
     });
@@ -42,11 +42,11 @@ describe('check-version-placeholders', () => {
         expect(levels(diffFor('includes/class-foo.php', [line]))).toEqual(['error']);
     });
 
-    it('warns on an unreleased concrete version and suggests x.x.x', () => {
-        const findings = check(diffFor('includes/class-foo.php', ['	 * @since 11.1.0'], 42), REPLACE_PATHS, LAST_RELEASED);
+    it('errors on a concrete version in a replaced file and suggests x.x.x', () => {
+        const findings = check(diffFor('includes/class-foo.php', ['	 * @since 11.1.0'], 42), REPLACE_PATHS);
 
         expect(findings).toEqual([
-            expect.objectContaining({ level: 'warning', file: 'includes/class-foo.php', line: 42 }),
+            expect.objectContaining({ level: 'error', file: 'includes/class-foo.php', line: 42 }),
         ]);
         expect(findings[0].message).toContain('@since x.x.x');
     });
@@ -73,7 +73,7 @@ describe('check-version-placeholders', () => {
             '+ * @deprecated x.x.x',
         ].join('\n');
 
-        expect(check(diff, REPLACE_PATHS, LAST_RELEASED).map(({ line }) => line)).toEqual([4, 21]);
+        expect(check(diff, REPLACE_PATHS).map(({ line }) => line)).toEqual([4, 21]);
     });
 
     it('skips deleted files', () => {
