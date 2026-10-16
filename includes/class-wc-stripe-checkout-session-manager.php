@@ -317,7 +317,7 @@ class WC_Stripe_Checkout_Session_Manager {
 	}
 
 	/**
-	 * Build PaymentIntent metadata for a Checkout Session.
+	 * Build payment_intent_data for a new Checkout Session.
 	 *
 	 * @return array
 	 */
@@ -329,7 +329,20 @@ class WC_Stripe_Checkout_Session_Manager {
 		];
 
 		/** Documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php */
-		return [ 'metadata' => apply_filters( 'wc_stripe_payment_metadata', $metadata, null, null ) ];
+		$metadata = apply_filters( 'wc_stripe_payment_metadata', $metadata, null, null );
+
+		/**
+		 * Filter the payment_intent_data when creating a new Checkout Session.
+		 * Note that this runs after the wc_stripe_payment_metadata filter, so the metadata is already filtered.
+		 * The WooCommerce Cart should also be fully-created by the time this code runs, though the total may
+		 * change later based on taxes or discounts.
+		 *
+		 * @see https://docs.stripe.com/api/checkout/sessions/create#create_checkout_session-payment_intent_data
+		 * @since 11.2.0
+		 *
+		 * @param array $payment_intent_data The payment_intent_data to be used when creating the Checkout Session.
+		 */
+		return apply_filters( 'wc_stripe_checkout_session_payment_intent_data', [ 'metadata' => $metadata ] );
 	}
 
 	/**
