@@ -70,5 +70,9 @@ describe( 'WebhookDescription', () => {
 			screen.queryByTestId( 'webhook-information' )
 		).toBeInTheDocument();
 		expect( screen.queryByTestId( 'warning-icon' ) ).toBeInTheDocument();
+
+		expect(
+			screen.getByTestId( 'warning-icon' ).querySelector( 'svg' )
+		).toHaveClass( 'gridicon', 'gridicons-notice-outline' );
 	} );
 } );

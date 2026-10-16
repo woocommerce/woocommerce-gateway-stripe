@@ -1614,7 +1614,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			try {
 				$this->intent_controller->update_intent( $payment_intent_id, $order_id, $save_payment_method, $selected_payment_type );
 			} catch ( Exception $update_intent_exception ) {
-				throw new Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
+				throw new Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			}
 		}
 
@@ -1660,7 +1660,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		try {
 			$checkout_session = $this->stripe_request( 'checkout/sessions/' . $checkout_session_id );
 		} catch ( Exception $e ) {
-			throw new WC_Stripe_Exception( $e->getMessage(), $unavailable_message );
+			throw new WC_Stripe_Exception( $e->getMessage(), $unavailable_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 		if (
 			! is_object( $checkout_session )
@@ -1669,14 +1669,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			|| $checkout_session_id !== $checkout_session->id
 			|| ! is_string( $checkout_session->status )
 		) {
-			throw new WC_Stripe_Exception( 'Unable to retrieve the Checkout Session.', $unavailable_message );
+			throw new WC_Stripe_Exception( 'Unable to retrieve the Checkout Session.', $unavailable_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		if ( 'open' === $checkout_session->status ) {
 			try {
 				$checkout_session = WC_Stripe_API::request( [], 'checkout/sessions/' . $checkout_session_id . '/expire' );
 			} catch ( Exception $e ) {
-				throw new WC_Stripe_Exception( $e->getMessage(), $unavailable_message );
+				throw new WC_Stripe_Exception( $e->getMessage(), $unavailable_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			}
 
 			if (
@@ -1686,10 +1686,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				|| $checkout_session_id !== $checkout_session->id
 				|| 'expired' !== $checkout_session->status
 			) {
-				throw new WC_Stripe_Exception( 'Unable to expire the Checkout Session.', $unavailable_message );
+				throw new WC_Stripe_Exception( 'Unable to expire the Checkout Session.', $unavailable_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			}
 		} elseif ( 'expired' !== $checkout_session->status ) {
-			throw new WC_Stripe_Exception( 'Checkout Session is not expireable.', $unavailable_message );
+			throw new WC_Stripe_Exception( 'Checkout Session is not expireable.', $unavailable_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		$order_helper->delete_stripe_checkout_session_id( $order );
@@ -1948,6 +1948,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				if ( ! $contains_wallet_or_voucher_method && ! $contains_redirect_next_action ) {
 					// Return the payment method used to process the payment so the block checkout can save the payment method.
 					$response_args['payment_method'] = $payment_information['payment_method'];
+
+					// Stripe needs a return_url if the client confirm redirects. It is sent next to the confirm hash,
+					// not inside it, so a page still running older JS can parse the hash.
+					$response_args['stripe_confirm_return_url'] = $payment_information['return_url'];
 				}
 
 				// If the order requires some action from the customer, add meta to the order to prevent it from being cancelled by WooCommerce's hold stock settings.
@@ -2742,9 +2746,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD === $intent->status &&
 				in_array( $error_code, $cancellation_codes, true )
 			) {
-				throw new WC_Stripe_Payment_Cancelled_Exception( $error_message );
+				throw new WC_Stripe_Payment_Cancelled_Exception( $error_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			}
-			throw new WC_Stripe_Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			throw new WC_Stripe_Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
@@ -2753,7 +2757,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		try {
 			$order_helper->validate_intent_for_order( $order, $intent );
 		} catch ( Exception $e ) {
-			throw new Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			throw new Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		// A SetupIntent has no charge, so an empty last_setup_error does not mean success.
@@ -2907,7 +2911,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		if ( ! $retry ) {
 			$localized_message = __( 'Sorry, we are unable to process your payment at this time. Please retry later.', 'woocommerce-gateway-stripe' );
 			$order->add_order_note( $localized_message );
-			throw new WC_Stripe_Exception( $localized_message ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.
+			throw new WC_Stripe_Exception( $localized_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		// Don't do anymore retries after this.
@@ -3493,10 +3497,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Check if the order has a payment intent that is compatible with the current payment method types.
-		// A Dynamic Payment Methods intent is never reused: `automatic_payment_methods` can only be set
-		// when the intent is created, and Stripe populates the intent's `payment_method_types` from the
-		// merchant's configuration — so the compatibility check below would match and the retry would
-		// then send `payment_method_types` to an intent that was never created with them.
+		// A Dynamic Payment Methods attempt never reuses an intent: `automatic_payment_methods` can only
+		// be set when the intent is created, so confirming a stored explicit-types intent would silently
+		// drop DPM for this attempt. (The reverse — a non-DPM attempt finding a stored DPM intent — is
+		// rejected inside get_existing_compatible_payment_intent().)
 		$payment_intent = empty( $payment_information['automatic_payment_methods'] )
 			? $this->get_existing_compatible_payment_intent( $order, $payment_information['payment_method_types'] )
 			: null;
@@ -3523,9 +3527,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			if ( ! $this->is_retryable_error( $payment_intent->error ) || ! $retry ) {
 				throw new WC_Stripe_Exception(
-					// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
-					print_r( $payment_intent, true ),
-					$this->get_payment_intent_error_message( $payment_intent )
+					print_r( $payment_intent, true ), // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r, WordPress.Security.EscapeOutput.ExceptionNotEscaped
+					$this->get_payment_intent_error_message( $payment_intent ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				);
 			}
 
@@ -3598,9 +3601,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$this->maybe_remove_non_existent_customer( $setup_intent->error, $order );
 
 			throw new WC_Stripe_Exception(
-				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
-				print_r( $setup_intent, true ),
-				__( 'Sorry, we are unable to process your payment at this time. Please retry later.', 'woocommerce-gateway-stripe' )
+				print_r( $setup_intent, true ), // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r, WordPress.Security.EscapeOutput.ExceptionNotEscaped
+				__( 'Sorry, we are unable to process your payment at this time. Please retry later.', 'woocommerce-gateway-stripe' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			);
 		}
 
@@ -3664,7 +3666,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			if ( null === $token ) {
 				throw new WC_Stripe_Exception(
 					'A valid payment method token could not be retrieved from the request.',
-					__( "The selected payment method isn't valid.", 'woocommerce-gateway-stripe' )
+					__( "The selected payment method isn't valid.", 'woocommerce-gateway-stripe' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				);
 			}
 
@@ -3685,7 +3687,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				// when the payment element is remounting, and on tampered requests.
 				throw new WC_Stripe_Exception(
 					'Payment method ID is missing from the request.',
-					__( 'Your payment details were not submitted. Please review the checkout form and try again.', 'woocommerce-gateway-stripe' )
+					__( 'Your payment details were not submitted. Please review the checkout form and try again.', 'woocommerce-gateway-stripe' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				);
 			}
 
@@ -3694,7 +3696,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			if ( '' !== $payment_method_id && ! WC_Stripe_Helper::is_valid_stripe_id( $payment_method_id, [ 'pm', 'src', 'card' ] ) ) {
 				throw new WC_Stripe_Exception(
 					'Invalid payment method ID in request.',
-					__( "The selected payment method isn't valid.", 'woocommerce-gateway-stripe' )
+					__( "The selected payment method isn't valid.", 'woocommerce-gateway-stripe' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				);
 			}
 		}
@@ -4213,7 +4215,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		// No payment method type was provided.
 		if ( empty( $payment_information['selected_payment_type'] ) ) {
-			throw new WC_Stripe_Exception( 'No payment method type selected.', $invalid_method_message );
+			throw new WC_Stripe_Exception( 'No payment method type selected.', $invalid_method_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		$payment_method_type = $payment_information['selected_payment_type'];
@@ -4224,18 +4226,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				sprintf(
 					'The selected payment method type is not within the available payment methods.%1$sSelected payment method type: %2$s. Available payment methods: %3$s',
 					PHP_EOL,
-					$payment_method_type,
-					implode( ', ', array_keys( $this->payment_methods ) )
+					$payment_method_type, // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+					implode( ', ', array_keys( $this->payment_methods ) ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				),
-				$invalid_method_message
+				$invalid_method_message // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			);
 		}
 
 		// The selected payment method is allowed in the billing country.
 		if ( ! $this->payment_methods[ $payment_method_type ]->is_available_for_billing_country( $billing_country ) ) {
 			throw new WC_Stripe_Exception(
-				sprintf( 'The payment method type "%1$s" is not available in %2$s.', $payment_method_type, $billing_country ),
-				__( 'This payment method type is not available in the selected country.', 'woocommerce-gateway-stripe' )
+				sprintf( 'The payment method type "%1$s" is not available in %2$s.', $payment_method_type, $billing_country ), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+				__( 'This payment method type is not available in the selected country.', 'woocommerce-gateway-stripe' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			);
 		}
 	}
@@ -4379,6 +4381,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$order  = wc_get_order( $order->get_id() );
 		$intent = $this->get_intent_from_order( $order );
 		if ( ! $intent ) {
+			return null;
+		}
+
+		// A Dynamic Payment Methods intent needs a `return_url` that this non-DPM confirm does not send,
+		// and its types always include `card`, so the type check below would wrongly accept it.
+		if ( ! empty( $intent->automatic_payment_methods->enabled ) ) {
 			return null;
 		}
 
@@ -4802,7 +4810,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		<tr>
 			<td class="label stripe-fee">
-				<?php echo wc_help_tip( __( 'This represents the fee Stripe collects for the transaction.', 'woocommerce-gateway-stripe' ) ); // wpcs: xss ok. ?>
+				<?php echo wc_help_tip( __( 'This represents the fee Stripe collects for the transaction.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?>
 				<?php esc_html_e( 'Stripe Fee:', 'woocommerce-gateway-stripe' ); ?>
 			</td>
 			<td width="1%"></td>
@@ -4849,7 +4857,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		<tr>
 			<td class="label stripe-paid-by-customer">
-				<?php echo wc_help_tip( __( 'The amount the customer paid in their local currency after Adaptive Pricing conversion. Your settlement is unaffected.', 'woocommerce-gateway-stripe' ) ); // wpcs: xss ok. ?>
+				<?php echo wc_help_tip( __( 'The amount the customer paid in their local currency after Adaptive Pricing conversion. Your settlement is unaffected.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?>
 				<?php esc_html_e( 'Paid by customer:', 'woocommerce-gateway-stripe' ); ?>
 			</td>
 			<td width="1%"></td>
@@ -4903,7 +4911,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		<tr>
 			<td class="label stripe-payout">
-				<?php echo wc_help_tip( __( 'This represents the net total that will be credited to your Stripe bank account. This may be in the currency that is set in your Stripe account.', 'woocommerce-gateway-stripe' ) ); // wpcs: xss ok. ?>
+				<?php echo wc_help_tip( __( 'This represents the net total that will be credited to your Stripe bank account. This may be in the currency that is set in your Stripe account.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?>
 				<?php esc_html_e( 'Stripe Payout:', 'woocommerce-gateway-stripe' ); ?>
 			</td>
 			<td width="1%"></td>

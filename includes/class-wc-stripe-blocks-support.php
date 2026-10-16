@@ -708,7 +708,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			]
 		);
 
-		throw new Exception( __( 'This payment method is not available right now. Please try again or use a different one.', 'woocommerce-gateway-stripe' ) );
+		throw new Exception( __( 'This payment method is not available right now. Please try again or use a different one.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 	}
 
 	/**
