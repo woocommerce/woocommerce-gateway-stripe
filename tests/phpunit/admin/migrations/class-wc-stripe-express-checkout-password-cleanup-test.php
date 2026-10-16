@@ -34,10 +34,8 @@ class WC_Stripe_Express_Checkout_Password_Cleanup_Test extends WP_UnitTestCase {
 	private $emails = [];
 
 	/**
-	 * Unix time captured before any batch is scheduled, used as a stable lower
-	 * bound for the next-batch delay. A batch is always scheduled after this, so
-	 * its run time cannot be earlier; this avoids reading time() again at assert
-	 * time, which a slow CI runner can push past the real schedule.
+	 * Timestamp recorded during set_up() before each test case.
+	 * Used as a lower bound for time-based comparisons.
 	 *
 	 * @var int
 	 */
