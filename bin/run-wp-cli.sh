@@ -8,6 +8,6 @@ CONTAINER=wcstripe_wp_${WORKTREE_ID:-default}
 
 # Run the WordPress CLI container with the arguments passed through.
 docker run -it --env-file default.env --rm \
-	--volumes-from $CONTAINER \
-	--network container:$CONTAINER \
-	wordpress:cli $@
+	--volumes-from "$CONTAINER" \
+	--network "container:$CONTAINER" \
+	wordpress:cli "$@"
