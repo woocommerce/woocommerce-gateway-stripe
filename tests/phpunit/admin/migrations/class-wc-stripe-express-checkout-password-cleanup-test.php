@@ -39,7 +39,7 @@ class WC_Stripe_Express_Checkout_Password_Cleanup_Test extends WP_UnitTestCase {
 	 *
 	 * @var int
 	 */
-	private $started_at;
+	private $test_started_at;
 
 	public function set_up(): void {
 		parent::set_up();
