@@ -112,7 +112,7 @@ function extractAddedLines(diff) {
  */
 function check(diff, replacePaths, lastReleased) {
     const findings = [];
-    for (const { file, line, text } of addedLines(diff).filter(({ file }) => isChecked(file))) {
+    for (const { file, line, text } of extractAddedLines(diff).filter(({ file }) => isChecked(file))) {
         // Every placeholder woorelease would not rewrite ships as a literal x.x.x.
         const total = text.split(PLACEHOLDER).length - 1;
         if (total > 0) {
@@ -174,4 +174,4 @@ if (require.main === module) {
     process.exit(errors > 0 ? 1 : 0);
 }
 
-module.exports = { check, isChecked, isReplaced, addedLines };
+module.exports = { check, isChecked, isReplaced, extractAddedLines };

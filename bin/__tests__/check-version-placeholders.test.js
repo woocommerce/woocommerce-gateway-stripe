@@ -1,4 +1,4 @@
-const { check, isChecked, isReplaced, addedLines } = require('../check-version-placeholders');
+const { check, isChecked, isReplaced, extractAddedLines } = require('../check-version-placeholders');
 
 const REPLACE_PATHS = ['includes', 'templates', 'woocommerce-gateway-stripe.php', 'uninstall.php'];
 const LAST_RELEASED = '11.0.0';
@@ -77,7 +77,7 @@ describe('check-version-placeholders', () => {
     });
 
     it('skips deleted files', () => {
-        expect(addedLines(['--- a/includes/gone.php', '+++ /dev/null', '@@ -1,1 +0,0 @@', '- * @since x.x.x'].join('\n'))).toEqual(
+        expect(extractAddedLines(['--- a/includes/gone.php', '+++ /dev/null', '@@ -1,1 +0,0 @@', '- * @since x.x.x'].join('\n'))).toEqual(
             []
         );
     });
