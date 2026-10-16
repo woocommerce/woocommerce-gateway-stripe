@@ -172,5 +172,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Fix the Format Release Notes workflow running out of turns before it could open its pull request
 * Add - Remote configuration system for managing feature availability during incidents
 * Update - Retry failed remote-config syncs with backoff and log a warning when the cached configuration goes stale
+* Dev - Make the express checkout password cleanup next-batch delay test stable on slow CI runners
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
