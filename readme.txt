@@ -173,5 +173,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Remote configuration system for managing feature availability during incidents
 * Update - Retry failed remote-config syncs with backoff and log a warning when the cached configuration goes stale
 * Dev - Make the express checkout password cleanup next-batch delay test stable on slow CI runners
+* Add - Use the store name as the bank statement descriptor for non-card payments when neither the plugin settings nor the Stripe account have one
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

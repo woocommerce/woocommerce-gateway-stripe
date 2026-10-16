@@ -1203,6 +1203,28 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Gets a default bank statement descriptor built from the store name.
+	 *
+	 * Stripe rejects the whole PaymentIntent when the descriptor is invalid, and the store name is not
+	 * something the merchant typed with Stripe's rules in mind. So this is stricter than
+	 * clean_statement_descriptor(): only ASCII, 5 to 22 characters, and at least one letter.
+	 *
+	 * @since 11.1.0
+	 * @return string The descriptor, or an empty string when the store name cannot make a valid one.
+	 */
+	public static function get_store_name_statement_descriptor(): string {
+		$store_name = wp_specialchars_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES );
+		$descriptor = self::clean_statement_descriptor( remove_accents( $store_name ) );
+		$descriptor = trim( (string) preg_replace( '/\s+/', ' ', $descriptor ) );
+
+		if ( strlen( $descriptor ) < 5 || ! preg_match( '/^[\x20-\x7E]+$/', $descriptor ) || ! preg_match( '/[a-zA-Z]/', $descriptor ) ) {
+			return '';
+		}
+
+		return $descriptor;
+	}
+
+	/**
 	 * Converts a WooCommerce locale to the closest supported by Stripe.js.
 	 *
 	 * Stripe.js supports only a subset of IETF language tags, if a country specific locale is not supported we use

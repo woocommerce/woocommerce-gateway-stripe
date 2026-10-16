@@ -62,6 +62,15 @@ const PaymentsAndTransactionsSection = () => {
 	const { data } = useAccount();
 	const stripeAccountStatementDescriptor =
 		data?.account?.settings?.payments?.statement_descriptor || '';
+	// New Stripe accounts can have no descriptor yet. The plugin then uses the store name
+	// for non-card payments, so show that value instead of an empty field.
+	const isUsingStoreNameStatementDescriptor =
+		! stripeAccountStatementDescriptor &&
+		!! data?.default_statement_descriptor;
+	const fullStatementDescriptor =
+		stripeAccountStatementDescriptor ||
+		data?.default_statement_descriptor ||
+		'';
 
 	const stripeAccountShortStatementDescriptor =
 		data?.account?.settings?.card_payments?.statement_descriptor_prefix ||
@@ -132,10 +141,15 @@ const PaymentsAndTransactionsSection = () => {
 				<StatementDescriptorInputWrapper>
 					<TextControl
 						help={ interpolateComponents( {
-							mixedString: __(
-								'You can change the description your customers will see on their bank statement in your {{settingsLink}}Stripe account settings{{/settingsLink}}. Set this to a recognizable name – e.g. the legal entity name or website address – to avoid potential disputes and chargebacks.',
-								'woocommerce-gateway-stripe'
-							),
+							mixedString: isUsingStoreNameStatementDescriptor
+								? __(
+										'Your Stripe account has no bank statement description yet, so your store name is used. You can change the description your customers will see on their bank statement in your {{settingsLink}}Stripe account settings{{/settingsLink}}. Set this to a recognizable name – e.g. the legal entity name or website address – to avoid potential disputes and chargebacks.',
+										'woocommerce-gateway-stripe'
+								  )
+								: __(
+										'You can change the description your customers will see on their bank statement in your {{settingsLink}}Stripe account settings{{/settingsLink}}. Set this to a recognizable name – e.g. the legal entity name or website address – to avoid potential disputes and chargebacks.',
+										'woocommerce-gateway-stripe'
+								  ),
 							components: {
 								settingsLink: (
 									<ExternalLink href="https://dashboard.stripe.com/settings/public" />
@@ -146,7 +160,7 @@ const PaymentsAndTransactionsSection = () => {
 							'Full bank statement',
 							'woocommerce-gateway-stripe'
 						) }
-						value={ stripeAccountStatementDescriptor }
+						value={ fullStatementDescriptor }
 						disabled={ true } // This field is read only. It is set in the Stripe account.
 					/>
 				</StatementDescriptorInputWrapper>
@@ -215,7 +229,7 @@ const PaymentsAndTransactionsSection = () => {
 						icon="bank"
 						title={ translatedFullBankPreviewTitle }
 						text={
-							stripeAccountStatementDescriptor ||
+							fullStatementDescriptor ||
 							stripeAccountShortStatementDescriptor
 						}
 						className={ `full-bank-statement ${
