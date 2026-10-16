@@ -1,7 +1,6 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 11.2.0
-* Fix - Stop blocking non-Stripe payment gateways on the Pay for Order, change payment method, and add payment method pages
 * Dev - Remove expired lock rows from the options table once a day
 * Tweak - Minor improvement to error logging when saving new keys
 * Fix - Keep pending ACH orders open while Stripe is still waiting for bank verification
@@ -10,6 +9,9 @@ xxxx-xx-xx - version 11.2.0
 * Add - Remote configuration system for managing feature availability during incidents
 * Update - Retry failed remote-config syncs with backoff and log a warning when the cached configuration goes stale
 * Dev - Make the express checkout password cleanup next-batch delay test stable on slow CI runners
+
+2026-10-16 - version 11.1.1
+* Fix - Stop blocking non-Stripe payment gateways on the Pay for Order, change payment method, and add payment method pages
 
 2026-10-13 - version 11.1.0
 * Add - Automatically configure test mode when onboarding to a live account
