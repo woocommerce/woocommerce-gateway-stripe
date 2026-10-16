@@ -163,6 +163,12 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
+= 11.1.1 - xxxx-xx-xx =
+
+**Important Fixes and Updates**
+
+* Fix - Stop blocking non-Stripe payment gateways on the Pay for Order, change payment method, and add payment method pages
+
 = 11.1.0 - 2026-10-13 =
 
 **New Features**
