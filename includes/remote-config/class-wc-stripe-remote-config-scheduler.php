@@ -28,12 +28,12 @@ class WC_Stripe_Remote_Config_Scheduler {
 	 * Backoff delays: a failed run at attempt N schedules attempt N+1 after
 	 * RETRY_DELAYS[N]; past the end, the next contact is the daily run.
 	 */
-	protected const RETRY_DELAYS = [ HOUR_IN_SECONDS, 4 * HOUR_IN_SECONDS ];
+	private const RETRY_DELAYS = [ HOUR_IN_SECONDS, 4 * HOUR_IN_SECONDS ];
 
 	/**
 	 * Cache age (seconds) past which a failed fetch logs at warning level.
 	 */
-	protected const STALENESS_WARNING_SECONDS = 7 * DAY_IN_SECONDS;
+	private const STALENESS_WARNING_SECONDS = 7 * DAY_IN_SECONDS;
 
 	/**
 	 * Outbound HTTP client used to fetch remote-config payloads.
@@ -224,7 +224,7 @@ class WC_Stripe_Remote_Config_Scheduler {
 	 * @return void
 	 */
 	private function maybe_schedule_retry( WP_Error $error, int $attempt ): void {
-		if ( 'wc_stripe_remote_config_disabled' === $error->get_error_code() ) {
+		if ( WC_Stripe_Remote_Config_Client::ERROR_DISABLED === $error->get_error_code() ) {
 			return;
 		}
 
