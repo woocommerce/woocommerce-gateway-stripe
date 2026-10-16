@@ -77,12 +77,12 @@ function compareVersions(a, b) {
 }
 
 /**
- * Lines added by a unified diff, with the file and new line number of each.
+ * Extract lines that were added from a unified diff, with the file and new line number of each.
  *
  * @param {string} diff Output of `git diff --unified=0`.
  * @return {{file: string, line: number, text: string}[]} Added lines.
  */
-function addedLines(diff) {
+function extractAddedLines(diff) {
     const lines = [];
     let file = null;
     let line = 0;
