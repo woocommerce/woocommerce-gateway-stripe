@@ -268,6 +268,146 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Run create_session() with the Stripe API mocked and return the request body
+	 * sent to the checkout/sessions endpoint.
+	 *
+	 * @return array The request array passed to checkout/sessions.
+	 */
+	private function capture_create_session_request(): array {
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 12.34 ] );
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$captured     = null;
+		$capture_body = static function ( $request, $api ) use ( &$captured ) {
+			if ( 'checkout/sessions' === $api ) {
+				$captured = $request;
+			}
+			return $request;
+		};
+		$mock_response = static function ( $return_value, $parsed_args, $url ) {
+			if ( 'https://api.stripe.com/v1/checkout/sessions' !== $url ) {
+				return $return_value;
+			}
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					(object) [
+						'id'            => 'cs_test_filter',
+						'client_secret' => 'cs_test_filter_secret',
+					]
+				),
+			];
+		};
+		add_filter( 'wc_stripe_request_body', $capture_body, 10, 2 );
+		add_filter( 'pre_http_request', $mock_response, 10, 3 );
+
+		try {
+			( new WC_Stripe_Checkout_Session_Manager() )->create_session();
+		} finally {
+			remove_filter( 'wc_stripe_request_body', $capture_body, 10 );
+			remove_filter( 'pre_http_request', $mock_response, 10 );
+			$product->delete( true );
+			WC()->cart->empty_cart();
+		}
+
+		$this->assertIsArray( $captured, 'create_session() did not send a checkout/sessions request.' );
+		return $captured;
+	}
+
+	/**
+	 * A wc_stripe_checkout_session_payment_intent_data callback can add fields, such as
+	 * setup_future_usage, and they reach Stripe in the Checkout Session request.
+	 */
+	public function test_create_session_sends_filtered_payment_intent_data_to_stripe(): void {
+		$filter = static function ( $data ) {
+			$data['setup_future_usage'] = 'off_session';
+			return $data;
+		};
+		add_filter( 'wc_stripe_checkout_session_payment_intent_data', $filter );
+
+		try {
+			$request = $this->capture_create_session_request();
+		} finally {
+			remove_filter( 'wc_stripe_checkout_session_payment_intent_data', $filter );
+		}
+
+		$this->assertArrayHasKey( 'payment_intent_data', $request );
+		$this->assertSame( 'off_session', $request['payment_intent_data']['setup_future_usage'] );
+		// The dedicated wc_stripe_payment_metadata filter still owns these keys.
+		$this->assertSame( 'single', $request['payment_intent_data']['metadata']['payment_type'] );
+	}
+
+	/**
+	 * The filter receives context that tells a callback whether the logged-in save-card checkbox
+	 * is already offered, so it can scope its changes. A guest session reports it as disabled.
+	 */
+	public function test_create_session_payment_intent_data_filter_receives_guest_save_context(): void {
+		$captured_context = null;
+		$filter           = static function ( $data, $context ) use ( &$captured_context ) {
+			$captured_context = $context;
+			return $data;
+		};
+		add_filter( 'wc_stripe_checkout_session_payment_intent_data', $filter, 10, 2 );
+
+		try {
+			$this->capture_create_session_request();
+		} finally {
+			remove_filter( 'wc_stripe_checkout_session_payment_intent_data', $filter, 10 );
+		}
+
+		$this->assertIsArray( $captured_context );
+		$this->assertArrayHasKey( 'is_save_payment_method_enabled', $captured_context );
+		// No user is logged in during the test, so this is the guest path.
+		$this->assertFalse( $captured_context['is_save_payment_method_enabled'] );
+	}
+
+	/**
+	 * Metadata has its own filter, so a callback that returns payment_intent_data without a
+	 * metadata key must not drop the metadata we already built.
+	 */
+	public function test_create_session_keeps_metadata_when_filter_omits_it(): void {
+		$filter = static function () {
+			// Return only setup_future_usage, dropping the metadata key entirely.
+			return [ 'setup_future_usage' => 'off_session' ];
+		};
+		add_filter( 'wc_stripe_checkout_session_payment_intent_data', $filter );
+
+		try {
+			$request = $this->capture_create_session_request();
+		} finally {
+			remove_filter( 'wc_stripe_checkout_session_payment_intent_data', $filter );
+		}
+
+		$this->assertSame( 'off_session', $request['payment_intent_data']['setup_future_usage'] );
+		$this->assertArrayHasKey( 'metadata', $request['payment_intent_data'] );
+		$this->assertSame( 'single', $request['payment_intent_data']['metadata']['payment_type'] );
+	}
+
+	/**
+	 * A callback that returns a non-array value is ignored, and the default payment_intent_data is
+	 * sent instead, so a careless callback cannot build an invalid request.
+	 */
+	public function test_create_session_ignores_non_array_payment_intent_data_filter(): void {
+		$filter = static function () {
+			return 'not-an-array';
+		};
+		add_filter( 'wc_stripe_checkout_session_payment_intent_data', $filter );
+
+		try {
+			$request = $this->capture_create_session_request();
+		} finally {
+			remove_filter( 'wc_stripe_checkout_session_payment_intent_data', $filter );
+		}
+
+		$this->assertArrayHasKey( 'metadata', $request['payment_intent_data'] );
+		$this->assertSame( 'single', $request['payment_intent_data']['metadata']['payment_type'] );
+		$this->assertArrayNotHasKey( 'setup_future_usage', $request['payment_intent_data'] );
+	}
+
+	/**
 	 * A later native cart total updates the server-owned session and increments its embedded revision.
 	 */
 	public function test_synchronize_updates_existing_session_after_cart_total_changes(): void {
