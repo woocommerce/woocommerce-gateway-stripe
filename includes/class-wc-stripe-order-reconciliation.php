@@ -53,11 +53,27 @@ class WC_Stripe_Order_Reconciliation {
 	private const RESULT_RETRY = 'retry';
 
 	/**
+	 * Reasons a check stops for good: the Checkout Session or the PaymentIntent can't be paid, Stripe has no
+	 * such object for the current account and mode, or the charge can't settle the order.
+	 */
+	private const STOP_SESSION = 'session';
+	private const STOP_INTENT  = 'intent';
+	private const STOP_MISSING = 'missing';
+	private const STOP_CHARGE  = 'charge';
+
+	/**
 	 * Stripe status behind the last "check again later" outcome, for the merchant's note on manual checks.
 	 *
 	 * @var string
 	 */
 	private $last_retry_status = '';
+
+	/**
+	 * Why the last check stopped for good, one of the STOP_* constants, for the merchant's note on manual checks.
+	 *
+	 * @var string
+	 */
+	private $last_stop = '';
 
 	public static function unschedule(): void {
 		if ( ! did_action( 'action_scheduler_init' ) || ! function_exists( 'as_unschedule_all_actions' ) ) {
@@ -288,6 +304,8 @@ class WC_Stripe_Order_Reconciliation {
 		if ( true === $is_manual ) {
 			if ( self::RESULT_RETRY === $result ) {
 				$this->add_manual_retry_note( $order );
+			} elseif ( '' !== $this->last_stop ) {
+				$this->add_manual_stop_note( $order );
 			}
 			return;
 		}
@@ -329,6 +347,7 @@ class WC_Stripe_Order_Reconciliation {
 		$order_id                = $order->get_id();
 		$order_helper            = WC_Stripe_Order_Helper::get_instance();
 		$this->last_retry_status = '';
+		$this->last_stop         = '';
 
 		// Whoever holds the lock is settling or about to; a later check sees the outcome.
 		if ( $order_helper->lock_order_payment( $order ) ) {
@@ -357,7 +376,7 @@ class WC_Stripe_Order_Reconciliation {
 						return $this->retry( 'The Checkout Session is not paid yet (status: ' . (string) ( $session->status ?? '' ) . ').', $order_id, $session_id, (string) ( $session->status ?? '' ) );
 					}
 					if ( ! $has_other_intent ) {
-						return $this->stop( 'The Checkout Session can no longer be paid.', $order_id, $session_id );
+						return $this->stop( 'The Checkout Session can no longer be paid.', $order_id, $session_id, self::STOP_SESSION );
 					}
 
 					WC_Stripe_Logger::debug(
@@ -397,7 +416,7 @@ class WC_Stripe_Order_Reconciliation {
 			$this->maybe_mark_delayed_payment( $order, $intent );
 			if ( ! $this->is_valid_payment_intent( $intent, $intent_id ) ) {
 				return $this->is_final_payment_intent( $intent, $intent_id )
-					? $this->stop( 'The PaymentIntent can no longer be paid.', $order_id, $intent_id )
+					? $this->stop( 'The PaymentIntent can no longer be paid.', $order_id, $intent_id, self::STOP_INTENT )
 					: $this->retry( 'The PaymentIntent is not paid yet (status: ' . (string) ( $intent->status ?? '' ) . ').', $order_id, $intent_id, (string) ( $intent->status ?? '' ) );
 			}
 
@@ -406,7 +425,7 @@ class WC_Stripe_Order_Reconciliation {
 				return $this->retry( 'The latest charge of the PaymentIntent could not be loaded.', $order_id, $intent_id );
 			}
 			if ( ! $this->is_valid_charge( $charge, $intent ) ) {
-				return $this->stop( 'The latest charge cannot settle the order, for example because it was refunded or disputed.', $order_id, $intent_id );
+				return $this->stop( 'The latest charge cannot settle the order, for example because it was refunded or disputed.', $order_id, $intent_id, self::STOP_CHARGE );
 			}
 			$charge_id = (string) ( $charge->id ?? '' );
 
@@ -490,7 +509,7 @@ class WC_Stripe_Order_Reconciliation {
 	private function get_request_error_result( ?object $response, int $order_id, string $stripe_id ): string {
 		if ( null !== $response && 'resource_missing' === ( $response->error->code ?? '' ) ) {
 			// Stripe's message tells a mode mismatch ("a similar object exists in test mode") apart from a deleted object.
-			return $this->stop( 'The Stripe object no longer exists for the current account and mode.', $order_id, $stripe_id, (string) ( $response->error->message ?? '' ) );
+			return $this->stop( 'The Stripe object no longer exists for the current account and mode.', $order_id, $stripe_id, self::STOP_MISSING, (string) ( $response->error->message ?? '' ) );
 		}
 
 		return $this->retry( 'Stripe returned an error (' . (string) ( $response->error->code ?? 'no response' ) . ').', $order_id, $stripe_id );
@@ -598,6 +617,32 @@ class WC_Stripe_Order_Reconciliation {
 	}
 
 	/**
+	 * Tell the merchant why a check they requested found nothing Stripe will pay for this order.
+	 *
+	 * The stop itself is only logged, and the order keeps its status, so without a note the merchant
+	 * would see their re-check do nothing.
+	 *
+	 * @param WC_Order $order Order that was checked.
+	 */
+	private function add_manual_stop_note( WC_Order $order ): void {
+		switch ( $this->last_stop ) {
+			case self::STOP_SESSION:
+				$note = __( 'Stripe payment status check: the Stripe Checkout Session for this order can no longer be paid, for example because it expired. The order was not paid through it; the customer needs to pay again.', 'woocommerce-gateway-stripe' );
+				break;
+			case self::STOP_INTENT:
+				$note = __( 'Stripe payment status check: the Stripe payment for this order was canceled, so it can no longer be paid. The customer needs to pay again.', 'woocommerce-gateway-stripe' );
+				break;
+			case self::STOP_MISSING:
+				$note = __( 'Stripe payment status check: Stripe has no record of this payment for the connected account and mode. Check that the store is connected to the Stripe account and mode (live or test) the order was paid with.', 'woocommerce-gateway-stripe' );
+				break;
+			default:
+				$note = __( 'Stripe payment status check: the Stripe payment for this order was refunded, disputed, or does not cover the full amount, so the order was not updated. Review the payment in your Stripe Dashboard.', 'woocommerce-gateway-stripe' );
+		}
+
+		$order->add_order_note( $note );
+	}
+
+	/**
 	 * End the checks of an order that Stripe will not pay, and log why.
 	 *
 	 * Logged as a warning because the order stays pending, and the merchant may need to follow up.
@@ -605,10 +650,13 @@ class WC_Stripe_Order_Reconciliation {
 	 * @param string $reason         Why the order can't be settled.
 	 * @param int    $order_id       Order being checked.
 	 * @param string $stripe_id      ID of the Stripe object that settled the question.
+	 * @param string $kind           One of the STOP_* constants, for the merchant's note on manual checks.
 	 * @param string $stripe_message Stripe's error message, if the reason came from an API error.
 	 * @return string Always RESULT_DONE, so callers can return it directly.
 	 */
-	private function stop( string $reason, int $order_id, string $stripe_id, string $stripe_message = '' ): string {
+	private function stop( string $reason, int $order_id, string $stripe_id, string $kind, string $stripe_message = '' ): string {
+		$this->last_stop = $kind;
+
 		$context = [
 			'order_id'  => $order_id,
 			'stripe_id' => $stripe_id,

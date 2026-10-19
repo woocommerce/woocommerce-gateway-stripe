@@ -944,6 +944,34 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		$this->assertSame( [], $this->scheduled_checks( $order->get_id() ) );
 	}
 
+	/** @dataProvider provide_manual_stops */
+	public function test_manual_check_explains_why_it_stopped( string $scenario, string $expected_note ): void {
+		$this->mock_stop_scenario( $scenario, $order );
+
+		$this->reconciliation->reconcile_order_payment( $order->get_id(), true );
+
+		$this->assertStringContainsString( $expected_note, $this->note_text( $order ) );
+		$this->assertSame( 'pending', wc_get_order( $order->get_id() )->get_status() );
+	}
+
+	public static function provide_manual_stops(): array {
+		return [
+			'expired session' => [ 'expired session', 'the Stripe Checkout Session for this order can no longer be paid' ],
+			'canceled intent' => [ 'canceled intent', 'the Stripe payment for this order was canceled' ],
+			'missing intent'  => [ 'missing intent', 'Stripe has no record of this payment for the connected account and mode' ],
+			'refunded charge' => [ 'refunded charge', 'was refunded, disputed, or does not cover the full amount' ],
+		];
+	}
+
+	public function test_scheduled_check_adds_no_note_when_it_stops(): void {
+		$this->mock_stop_scenario( 'canceled intent', $order );
+		$notes_before = $this->note_text( $order );
+
+		$this->reconciliation->reconcile_order_payment( $order->get_id() );
+
+		$this->assertSame( $notes_before, $this->note_text( $order ) );
+	}
+
 	public function test_scheduled_check_adds_no_note_when_the_payment_is_not_confirmed_yet(): void {
 		$order          = $this->create_pending_stripe_order( false );
 		$intent         = $this->successful_intent( self::fixture_charge() );
@@ -967,6 +995,44 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 
 		$this->assertSame( [ '/payment_intents/pi_recovery' ], $endpoints );
 		$this->assertSame( [], $this->scheduled_checks( $order->get_id() ) );
+	}
+
+	/**
+	 * Creates a pending order and mocks Stripe so that checking it stops for the given reason.
+	 *
+	 * @param string        $scenario One of 'expired session', 'canceled intent', 'missing intent', 'refunded charge'.
+	 * @param WC_Order|null $order    Receives the created order.
+	 */
+	private function mock_stop_scenario( string $scenario, ?WC_Order &$order ): void {
+		$order  = $this->create_pending_stripe_order( 'expired session' === $scenario );
+		$charge = self::fixture_charge();
+		$intent = $this->successful_intent( $charge );
+		switch ( $scenario ) {
+			case 'expired session':
+				$session         = $this->completed_session( $intent->id );
+				$session->status = 'expired';
+				$objects         = [ '/checkout/sessions/cs_recovery' => $session ];
+				break;
+			case 'canceled intent':
+				$intent->status = WC_Stripe_Intent_Status::CANCELED;
+				$objects        = [ '/payment_intents/pi_recovery' => $intent ];
+				break;
+			case 'missing intent':
+				$objects = [
+					'/payment_intents/pi_recovery' => (object) [
+						'error' => (object) [
+							'code' => 'resource_missing',
+							'type' => 'invalid_request_error',
+						],
+					],
+				];
+				break;
+			default:
+				$charge->refunded = true;
+				$objects          = [ '/payment_intents/pi_recovery' => $intent ];
+		}
+		$this->mock_stripe_objects( $objects );
+		$this->gateway->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
 	}
 
 	private function note_text( WC_Order $order ): string {
