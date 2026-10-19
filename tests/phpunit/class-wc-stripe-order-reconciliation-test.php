@@ -150,6 +150,8 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		$partially_refunded->amount_refunded = 1;
 		$disputed                            = self::fixture_charge();
 		$disputed->disputed                  = true;
+		$pending                             = self::fixture_charge();
+		$pending->status                     = 'pending';
 
 		return [
 			'charge belongs to another intent' => [ $wrong_owner ],
@@ -158,6 +160,7 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 			'charge is not captured'           => [ $not_captured ],
 			'partially refunded charge'        => [ $partially_refunded ],
 			'disputed charge'                  => [ $disputed ],
+			'pending charge'                   => [ $pending ],
 		];
 	}
 

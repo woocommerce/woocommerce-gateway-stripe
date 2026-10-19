@@ -826,7 +826,7 @@ class WC_Stripe_Order_Reconciliation {
 		}
 
 		if ( ( $charge->payment_intent ?? '' ) !== ( $intent->id ?? '' )
-			|| ! in_array( $charge->status ?? '', [ 'succeeded', 'pending' ], true )
+			|| 'succeeded' !== ( $charge->status ?? '' )
 			|| ! empty( $charge->refunded )
 			|| ! empty( $charge->amount_refunded )
 			|| ! empty( $charge->disputed )
@@ -837,14 +837,12 @@ class WC_Stripe_Order_Reconciliation {
 		}
 
 		if ( 'succeeded' === ( $intent->status ?? '' ) ) {
-			return 'succeeded' === $charge->status
-				&& true === ( $charge->captured ?? false )
+			return true === ( $charge->captured ?? false )
 				&& true === ( $charge->paid ?? false )
 				&& (int) ( $intent->amount_received ?? -1 ) === (int) ( $intent->amount ?? -2 );
 		}
 
 		return WC_Stripe_Intent_Status::REQUIRES_CAPTURE === ( $intent->status ?? '' )
-			&& 'succeeded' === $charge->status
 			&& false === ( $charge->captured ?? true );
 	}
 
