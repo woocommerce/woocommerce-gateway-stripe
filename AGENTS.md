@@ -68,7 +68,6 @@ Use the smallest command set needed for the task:
 - E2E specs that mutate global store settings (for example currency) MUST run in a dedicated Playwright project and separate CI matrix job, not in `default`.
 - Forgetting payment method registration: adding a `WC_Stripe_UPE_Payment_Method` class is not enough; it must also be registered in `WC_Stripe::init()` and constants updated.
 - Updating only backend or frontend for UPE changes: most payment method work spans PHP (`includes/payment-methods/`) and Blocks/UI (`client/blocks/upe/`, icons).
-- **MUST:** Compute subscription wallet save decisions after the change-payment handler resets the posted saved-token selection. Reusing an earlier decision can skip saving and linking the new token.
 - Treating PHPStan baseline as a blanket suppressor: fix real type/nullability issues first.
 - Skipping `@dataProvider` for multi-scenario PHPUnit tests: this repository standardizes on data providers for parameterized inputs.
 - Release metadata drift: version-related changes often require coordinated edits to `changelog.txt`, `readme.txt`, and release references.
