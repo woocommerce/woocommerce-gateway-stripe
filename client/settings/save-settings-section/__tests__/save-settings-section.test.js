@@ -114,4 +114,16 @@ describe( 'SaveSettingsSection', () => {
 
 		expect( saveChangesButton ).not.toBeDisabled();
 	} );
+
+	it( 'disables the button when loading data even when custom onSave is passed', () => {
+		useSettings.mockReturnValue( {
+			isLoading: true,
+			isSaving: false,
+			saveSettings: jest.fn(),
+		} );
+
+		render( <SaveSettingsSection onSave={ jest.fn() } /> );
+
+		expect( screen.getByText( 'Save changes' ) ).toBeDisabled();
+	} );
 } );

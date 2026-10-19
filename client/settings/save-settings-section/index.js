@@ -35,16 +35,14 @@ const SaveSettingsSection = ( { onSettingsSave, onSave } ) => {
 			return;
 		}
 
-		if ( saveSettings ) {
-			await saveSettings();
-		}
+		await saveSettings();
 		if ( onSettingsSave ) {
 			onSettingsSave();
 		}
 	};
 
 	const isBusy = onSave ? isCustomSaving : isSaving;
-	const isDisabled = onSave ? isCustomSaving : isSaving || isLoading;
+	const isDisabled = isBusy || isLoading;
 
 	return (
 		// The 'submit' class is used by WC core to clear unsaved changes warnings.
