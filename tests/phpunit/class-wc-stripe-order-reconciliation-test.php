@@ -287,6 +287,38 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		$this->assertSame( 1, substr_count( $note_text, 'A Stripe payment status check updated this order, because no webhook did.' ) );
 	}
 
+	/** @dataProvider provide_settlement_paths */
+	public function test_radar_manual_review_puts_the_order_on_hold( bool $has_session ): void {
+		$order = $this->create_pending_stripe_order( $has_session );
+		$this->use_real_settlement();
+		$objects = $this->successful_stripe_objects( $order );
+		if ( ! $has_session ) {
+			unset( $objects['/checkout/sessions/cs_recovery'] );
+		}
+		$objects['/charges/ch_recovery']->outcome = (object) [ 'type' => 'manual_review' ];
+		$this->mock_stripe_objects( $objects );
+
+		$this->reconciliation->reconcile_order_payment( $order->get_id() );
+
+		$held      = wc_get_order( $order->get_id() );
+		$note_text = $this->note_text( $held );
+		$this->assertSame( 'on-hold', $held->get_status() );
+		$this->assertFalse( $held->is_paid() );
+		$this->assertSame( 'ch_recovery', $held->get_transaction_id() );
+		// Kept as the payment-complete status (not the pending status it was in), so closing the review completes the order.
+		$this->assertSame( $held->needs_processing() ? 'processing' : 'completed', $held->get_meta( '_stripe_status_before_hold', true ) );
+		$this->assertStringContainsString( 'Stripe Radar is reviewing this payment', $note_text );
+		$this->assertStringContainsString( 'because no webhook did', $note_text );
+		$this->assertSame( [], $this->scheduled_checks( $order->get_id() ) );
+	}
+
+	public static function provide_settlement_paths(): array {
+		return [
+			'PaymentIntent'    => [ false ],
+			'Checkout Session' => [ true ],
+		];
+	}
+
 	public function test_order_settled_by_a_webhook_during_the_check_is_not_settled_again(): void {
 		$order           = $this->create_pending_stripe_order( false );
 		$intent          = $this->successful_intent( self::fixture_charge() );

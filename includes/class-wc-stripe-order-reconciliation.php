@@ -389,7 +389,7 @@ class WC_Stripe_Order_Reconciliation {
 
 			if ( $session ) {
 				$this->webhook_handler->process_checkout_session_payment( $fresh_order, $session, '', $intent, $charge );
-				$this->report_settlement( $order_id, $intent_id, $charge_id );
+				$this->report_settlement( $order_id, $intent_id, $charge );
 				return self::RESULT_DONE;
 			}
 
@@ -425,7 +425,7 @@ class WC_Stripe_Order_Reconciliation {
 			}
 
 			$this->webhook_handler->process_reconciled_payment( $fresh_order, $charge );
-			$this->report_settlement( $order_id, $intent_id, $charge_id );
+			$this->report_settlement( $order_id, $intent_id, $charge );
 			return self::RESULT_DONE;
 		} catch ( Throwable $exception ) {
 			// Not just Exception: settlement runs other plugins' callbacks (for example on payment completion),
@@ -497,12 +497,26 @@ class WC_Stripe_Order_Reconciliation {
 	 * point the merchant at the wrong problem. Every settled outcome (paid, authorized, pre-ordered)
 	 * records the charge as the order's transaction, so that is what tells them apart.
 	 *
+	 * Charges that Stripe Radar holds for manual review are the exception: settlement records the charge
+	 * but leaves the order pending, expecting the review.opened webhook to put it on hold. That webhook
+	 * is missing too, so the check puts the order on hold itself.
+	 *
 	 * @param int    $order_id  Order that was settled.
 	 * @param string $intent_id PaymentIntent that settled it.
-	 * @param string $charge_id The PaymentIntent's latest charge.
+	 * @param object $charge    The PaymentIntent's verified latest charge.
 	 */
-	private function report_settlement( int $order_id, string $intent_id, string $charge_id ): void {
-		$order = $this->resolve_order( $order_id );
+	private function report_settlement( int $order_id, string $intent_id, object $charge ): void {
+		$charge_id = (string) ( $charge->id ?? '' );
+		$order     = $this->resolve_order( $order_id );
+		if ( $order && 'pending' === $order->get_status() && $charge_id === $order->get_transaction_id() && 'manual_review' === ( $charge->outcome->type ?? '' ) ) {
+			// Settlement already stored the status to restore after the review, so review.closed (or the
+			// merchant) can complete the order; putting it on hold here must not replace that status.
+			$order->update_status(
+				'on-hold',
+				__( 'Stripe Radar is reviewing this payment, so the order was placed on hold. Review the payment in your Stripe Dashboard. If webhooks are not reaching this site, update the order yourself once the review is closed.', 'woocommerce-gateway-stripe' )
+			);
+		}
+
 		if ( ! $order || 'pending' === $order->get_status() || $charge_id !== $order->get_transaction_id() ) {
 			WC_Stripe_Logger::warning(
 				'Reconciliation found a Stripe payment, but settling it did not record it on the order.',
