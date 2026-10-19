@@ -294,7 +294,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'is_oc_enabled'                         => 'yes' === $this->gateway->get_option( 'optimized_checkout_element' ),
 				'is_ap_enabled'                         => 'yes' === $this->gateway->get_option( 'adaptive_pricing' ),
 				'oc_layout'                             => $this->gateway->get_validated_option( 'optimized_checkout_layout' ),
-				'is_pmc_enabled'                        => 'yes' === $this->gateway->get_option( 'pmc_enabled' ),
+				'is_pmc_enabled'                        => WC_Stripe_Payment_Method_Configurations::is_enabled(),
 			]
 		);
 	}
@@ -307,46 +307,52 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return WP_REST_Response
 	 */
 	public function update_settings( WP_REST_Request $request ) {
-		/* Settings > General */
-		$this->update_is_stripe_enabled( $request );
+		// Gateway saves persist the whole option, so keep them together with the selection write.
+		return WC_Stripe_Payment_Method_Configurations::with_settings_lock(
+			function () use ( $request ) {
+				$this->gateway->init_settings();
+				/* Settings > General */
+				$this->update_is_stripe_enabled( $request );
 
-		/* Settings > Payments accepted on checkout + Express checkouts */
-		$payment_method_ids_to_enable  = $this->get_payment_method_ids_to_enable( $request );
-		$is_upe_enabled                = $request->get_param( 'is_upe_enabled' );
-		$update_payment_methods_result = $this->update_enabled_payment_methods( $payment_method_ids_to_enable, $is_upe_enabled );
-		if ( ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
-			// We need to update a separate setting for legacy checkout.
-			$this->update_is_express_checkout_enabled_for_legacy_checkout( $request );
-		}
-		// Ensure we update the test mode flag after the payment methods are updated.
-		// The current UI shows payment methods and test mode in different UI pages,
-		// but the client code bundles all updates in a single API call.
-		// This code therefore ensures that we apply mode-specific payment method updates before we switch the mode,
-		// as the client code presumably loaded the payment method details using the current, pre-change mode.
-		$this->update_is_test_mode_enabled( $request );
+				/* Settings > Payments accepted on checkout + Express checkouts */
+				$payment_method_ids_to_enable  = $this->get_payment_method_ids_to_enable( $request );
+				$is_upe_enabled                = $request->get_param( 'is_upe_enabled' );
+				$update_payment_methods_result = $this->update_enabled_payment_methods( $payment_method_ids_to_enable, $is_upe_enabled );
+				if ( ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
+					// We need to update a separate setting for legacy checkout.
+					$this->update_is_express_checkout_enabled_for_legacy_checkout( $request );
+				}
+				// Ensure we update the test mode flag after the payment methods are updated.
+				// The current UI shows payment methods and test mode in different UI pages,
+				// but the client code bundles all updates in a single API call.
+				// This code therefore ensures that we apply mode-specific payment method updates before we switch the mode,
+				// as the client code presumably loaded the payment method details using the current, pre-change mode.
+				$this->update_is_test_mode_enabled( $request );
 
-		$this->update_express_checkout_settings( $request );
-		$this->update_express_checkout_button_locations( $request );
+				$this->update_express_checkout_settings( $request );
+				$this->update_express_checkout_button_locations( $request );
 
-		/* Settings > Payments & transactions */
-		$this->update_is_manual_capture_enabled( $request );
-		$this->update_is_saved_cards_enabled( $request );
-		$this->update_is_sepa_tokens_for_ideal_enabled( $request );
-		$this->update_is_sepa_tokens_for_bancontact_enabled( $request );
-		$this->update_is_separate_card_form_enabled( $request );
-		$this->update_is_short_account_statement_enabled( $request );
+				/* Settings > Payments & transactions */
+				$this->update_is_manual_capture_enabled( $request );
+				$this->update_is_saved_cards_enabled( $request );
+				$this->update_is_sepa_tokens_for_ideal_enabled( $request );
+				$this->update_is_sepa_tokens_for_bancontact_enabled( $request );
+				$this->update_is_separate_card_form_enabled( $request );
+				$this->update_is_short_account_statement_enabled( $request );
 
-		/* Settings > Advanced settings */
-		$this->update_is_debug_log_enabled( $request );
-		$this->update_oc_settings( $request );
+				/* Settings > Advanced settings */
+				$this->update_is_debug_log_enabled( $request );
+				$this->update_oc_settings( $request );
 
-		// Handle a PMC update error last so updates to other settings are saved.
-		// Return an HTTP 502 error code because the error comes from Stripe.
-		if ( is_wp_error( $update_payment_methods_result ) ) {
-			return new WP_REST_Response( [ 'message' => $update_payment_methods_result->get_error_message() ], 502 );
-		}
+				// Handle a PMC update error last so updates to other settings are saved.
+				// Return an HTTP 502 error code because the error comes from Stripe.
+				if ( is_wp_error( $update_payment_methods_result ) ) {
+					return new WP_REST_Response( [ 'message' => $update_payment_methods_result->get_error_message() ], 502 );
+				}
 
-		return new WP_REST_Response( [], 200 );
+				return new WP_REST_Response( [], 200 );
+			}
+		);
 	}
 
 	/**
