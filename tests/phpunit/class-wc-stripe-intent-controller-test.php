@@ -663,6 +663,162 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Level3 data is card-only: the controller must persist the selected payment type to the
+	 * order before the intent request so the level3 gate can exclude non-card methods.
+	 *
+	 * @param string|null $selected_payment_type The selected payment type posted with the confirmation token.
+	 * @param string[]    $payment_method_types  The payment method types the request carries.
+	 * @param bool        $expect_level3         Whether the outgoing request should carry level3 data.
+	 * @dataProvider provide_test_confirmation_token_level3
+	 */
+	public function test_create_and_confirm_payment_intent_with_confirmation_token_gates_level3( $selected_payment_type, $payment_method_types, $expect_level3 ) {
+		// The level3 gate only applies to US-based stores.
+		update_option( 'woocommerce_default_country', 'US:CA' );
+
+		$payment_information = $this->get_confirmation_token_payment_information( $selected_payment_type, $payment_method_types );
+		// A null/empty selected type must not be written (nor fatal), leaving the meta empty.
+		$expected_meta = is_string( $selected_payment_type ) ? $selected_payment_type : '';
+
+		$requests_seen = [];
+		$test_request  = function ( $preempt, $parsed_args, $url ) use ( &$requests_seen, $expected_meta ) {
+			if ( false !== strpos( $url, 'payment_intents' ) ) {
+				// The save must precede the request: webhooks triggered by the confirmation can
+				// arrive while this call is still in flight and read the order from the database.
+				$this->assertSame( $expected_meta, wc_get_order( $this->order->get_id() )->get_meta( '_stripe_upe_payment_type' ) );
+				$requests_seen[] = $parsed_args['body'];
+			}
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode( [ 'id' => 'pi_mock' ] ),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$this->mock_controller->create_and_confirm_payment_intent( $payment_information );
+
+		$this->assertCount( 1, $requests_seen );
+		if ( $expect_level3 ) {
+			$this->assertArrayHasKey( 'level3', $requests_seen[0] );
+		} else {
+			$this->assertArrayNotHasKey( 'level3', $requests_seen[0] );
+		}
+		// The in-memory order is what the level3 gate reads during this request; the freshly
+		// loaded instance proves the type was also persisted for parallel requests (e.g. webhooks).
+		$this->assertSame( $expected_meta, $this->order->get_meta( '_stripe_upe_payment_type' ) );
+		$this->assertSame( $expected_meta, wc_get_order( $this->order->get_id() )->get_meta( '_stripe_upe_payment_type' ) );
+	}
+
+	/**
+	 * Same as the create case: the confirm call on an existing intent must not carry level3
+	 * data for non-card methods.
+	 *
+	 * @param string|null $selected_payment_type The selected payment type posted with the confirmation token.
+	 * @param string[]    $payment_method_types  The payment method types the request carries.
+	 * @param bool        $expect_level3         Whether the outgoing request should carry level3 data.
+	 * @dataProvider provide_test_confirmation_token_level3
+	 */
+	public function test_update_and_confirm_payment_intent_with_confirmation_token_gates_level3( $selected_payment_type, $payment_method_types, $expect_level3 ) {
+		// The level3 gate only applies to US-based stores.
+		update_option( 'woocommerce_default_country', 'US:CA' );
+
+		$payment_information = $this->get_confirmation_token_payment_information( $selected_payment_type, $payment_method_types );
+		$payment_intent      = (object) [ 'id' => 'pi_mock' ];
+		// A null/empty selected type must not be written (nor fatal), leaving the meta empty.
+		$expected_meta = is_string( $selected_payment_type ) ? $selected_payment_type : '';
+
+		$requests_seen = [];
+		$test_request  = function ( $preempt, $parsed_args, $url ) use ( &$requests_seen, $expected_meta ) {
+			if ( false !== strpos( $url, 'payment_intents/pi_mock/confirm' ) ) {
+				// The save must precede the request: webhooks triggered by the confirmation can
+				// arrive while this call is still in flight and read the order from the database.
+				$this->assertSame( $expected_meta, wc_get_order( $this->order->get_id() )->get_meta( '_stripe_upe_payment_type' ) );
+				$requests_seen[] = $parsed_args['body'];
+			}
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode( [ 'id' => 'pi_mock' ] ),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$this->mock_controller->update_and_confirm_payment_intent( $payment_intent, $payment_information );
+
+		$this->assertCount( 1, $requests_seen );
+		if ( $expect_level3 ) {
+			$this->assertArrayHasKey( 'level3', $requests_seen[0] );
+		} else {
+			$this->assertArrayNotHasKey( 'level3', $requests_seen[0] );
+		}
+		// The in-memory order is what the level3 gate reads during this request; the freshly
+		// loaded instance proves the type was also persisted for parallel requests (e.g. webhooks).
+		$this->assertSame( $expected_meta, $this->order->get_meta( '_stripe_upe_payment_type' ) );
+		$this->assertSame( $expected_meta, wc_get_order( $this->order->get_id() )->get_meta( '_stripe_upe_payment_type' ) );
+	}
+
+	/**
+	 * Provider for the confirmation-token level3 gating tests.
+	 *
+	 * @return array
+	 */
+	public function provide_test_confirmation_token_level3() {
+		return [
+			'amazon_pay does not get level3'       => [ WC_Stripe_Payment_Methods::AMAZON_PAY, [ WC_Stripe_Payment_Methods::AMAZON_PAY ], false ],
+			// Link's selected type depends on the gateway: OCS resolves it from the payment method
+			// object as 'link', while base UPE maps ECE Link submissions to 'card' (the intent then
+			// carries [card, link], which Stripe accepts level3 for).
+			'link (OCS) does not get level3'       => [ WC_Stripe_Payment_Methods::LINK, [ WC_Stripe_Payment_Methods::LINK ], false ],
+			'link (base UPE) keeps level3 as card' => [ WC_Stripe_Payment_Methods::CARD, [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ], true ],
+			'card keeps level3'                    => [ WC_Stripe_Payment_Methods::CARD, [ WC_Stripe_Payment_Methods::CARD ], true ],
+			// Unknown selected types must not fatal; the gate then falls back to its legacy card
+			// default. The request still carries a concrete type, as real payloads always do.
+			'empty type keeps level3'              => [ '', [ WC_Stripe_Payment_Methods::CARD ], true ],
+			'null type keeps level3'               => [ null, [ WC_Stripe_Payment_Methods::CARD ], true ],
+		];
+	}
+
+	/**
+	 * Payment information mirroring what the ECE confirmation-token flow prepares: a confirmation
+	 * token instead of a payment method ID, and no UPE payment type persisted on the order yet.
+	 *
+	 * @param string|null $selected_payment_type The selected payment type.
+	 * @param string[]    $payment_method_types  The payment method types for the request.
+	 * @return array
+	 */
+	private function get_confirmation_token_payment_information( $selected_payment_type, $payment_method_types ) {
+		return [
+			'amount'                        => 100,
+			'confirmation_token'            => 'ctoken_mock',
+			'currency'                      => WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
+			'customer'                      => 'cus_mock',
+			'level3'                        => [
+				'line_items' => [
+					[
+						'product_code'        => 'ABC123',
+						'product_description' => 'Test Product',
+						'unit_cost'           => 100,
+						'quantity'            => 1,
+					],
+				],
+			],
+			'metadata'                      => [ '_stripe_metadata' => '123' ],
+			'order'                         => $this->order,
+			'shipping'                      => [],
+			'selected_payment_type'         => $selected_payment_type,
+			'payment_method_types'          => $payment_method_types,
+			'return_url'                    => 'https://example.com/return',
+			'is_using_saved_payment_method' => false,
+			'save_payment_method_to_store'  => false,
+			'has_subscription'              => false,
+		];
+	}
+
+	/**
 	 * Test for setting the `setup_future_usage` parameter in the
 	 *  create_and_confirm_payment_intent intent creation request.
 	 */
@@ -803,6 +959,60 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Dynamic Payment Methods intents always include `card`, and Stripe rejects a full
+	 * statement_descriptor on them, so it is dropped there and kept otherwise.
+	 *
+	 * @param bool $automatic_payment_methods Whether the intent uses Dynamic Payment Methods.
+	 * @param bool $expect_descriptor         Whether statement_descriptor must be sent.
+	 *
+	 * @dataProvider provide_statement_descriptor_with_automatic_payment_methods_data
+	 *
+	 * @return void
+	 */
+	public function test_create_and_confirm_payment_intent_statement_descriptor_with_automatic_payment_methods( bool $automatic_payment_methods, bool $expect_descriptor ): void {
+		$payment_information                          = $this->get_base_payment_information();
+		$payment_information['selected_payment_type'] = WC_Stripe_Payment_Methods::KLARNA;
+		$payment_information['payment_method_types']  = [ WC_Stripe_Payment_Methods::KLARNA ];
+		$payment_information['statement_descriptor']  = 'MY STORE';
+		$payment_information['return_url']            = 'https://example.com/return';
+		if ( $automatic_payment_methods ) {
+			$payment_information['automatic_payment_methods'] = true;
+		}
+
+		$test_request = function ( $preempt, $parsed_args, $url ) use ( $expect_descriptor ) {
+			$body = $parsed_args['body'];
+
+			if ( $expect_descriptor ) {
+				$this->assertSame( 'MY STORE', $body['statement_descriptor'] );
+			} else {
+				$this->assertArrayNotHasKey( 'statement_descriptor', $body );
+			}
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode( [] ),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$this->mock_controller->create_and_confirm_payment_intent( $payment_information );
+	}
+
+	/**
+	 * Data provider for test_create_and_confirm_payment_intent_statement_descriptor_with_automatic_payment_methods.
+	 *
+	 * @return array<string, array{0: bool, 1: bool}>
+	 */
+	public function provide_statement_descriptor_with_automatic_payment_methods_data(): array {
+		return [
+			'dynamic payment methods' => [ true, false ],
+			'explicit method types'   => [ false, true ],
+		];
+	}
+
+	/**
 	 * Without the flag, the request keeps the explicit payment_method_types list and sends no
 	 * automatic_payment_methods.
 	 */
@@ -826,6 +1036,127 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		add_filter( 'pre_http_request', $test_request, 10, 3 );
 
 		$this->mock_controller->create_and_confirm_payment_intent( $payment_information );
+	}
+
+	/**
+	 * `use_stripe_sdk` from the payment information must be forwarded on the payment intent
+	 * request: without it, an intent confirmed with a return_url (the Dynamic Payment Methods
+	 * shape) gets a hosted redirect next action for 3DS instead of the SDK-handled modal.
+	 *
+	 * @param string|null $use_stripe_sdk The value in the payment information, null when not set.
+	 *
+	 * @dataProvider provide_create_and_confirm_payment_intent_use_stripe_sdk
+	 */
+	public function test_create_and_confirm_payment_intent_forwards_use_stripe_sdk( $use_stripe_sdk ) {
+		$payment_information                              = $this->get_base_payment_information();
+		$payment_information['automatic_payment_methods'] = true;
+		$payment_information['return_url']                = 'https://example.com/return';
+
+		if ( null !== $use_stripe_sdk ) {
+			$payment_information['use_stripe_sdk'] = $use_stripe_sdk;
+		}
+
+		$test_request = function ( $preempt, $parsed_args, $url ) use ( $use_stripe_sdk ) {
+			$body = $parsed_args['body'];
+
+			if ( null === $use_stripe_sdk ) {
+				$this->assertArrayNotHasKey( 'use_stripe_sdk', $body );
+			} else {
+				$this->assertSame( $use_stripe_sdk, $body['use_stripe_sdk'] );
+			}
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode( [] ),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$this->mock_controller->create_and_confirm_payment_intent( $payment_information );
+	}
+
+	/**
+	 * Provider for `test_create_and_confirm_payment_intent_forwards_use_stripe_sdk`.
+	 *
+	 * @return array
+	 */
+	public function provide_create_and_confirm_payment_intent_use_stripe_sdk() {
+		return [
+			'forwarded when set'   => [ 'true' ],
+			'omitted when not set' => [ null ],
+		];
+	}
+
+	/**
+	 * When using Dynamic Payment Methods, we must specify the merchant's Payment Method Configuration.
+	 *
+	 * @param bool        $automatic_payment_methods Whether the intent uses Dynamic Payment Methods.
+	 * @param string|null $configuration_id          The cached PMC ID, or null when PMC is disabled or unavailable.
+	 * @param string|null $expected_configuration_id The expected payment_method_configuration, or null when it must be omitted.
+	 *
+	 * @dataProvider provide_create_and_confirm_payment_intent_payment_method_configuration_data
+	 *
+	 * @return void
+	 */
+	public function test_create_and_confirm_payment_intent_payment_method_configuration( bool $automatic_payment_methods, ?string $configuration_id, ?string $expected_configuration_id ): void {
+		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+		if ( null === $configuration_id ) {
+			PMC_Test_Helper::disable_pmc();
+		} else {
+			PMC_Test_Helper::enable_pmc( true );
+			PMC_Test_Helper::cache_mocked_configuration( $configuration_id );
+		}
+
+		$payment_information = $this->get_base_payment_information();
+		if ( $automatic_payment_methods ) {
+			$payment_information['automatic_payment_methods'] = true;
+			$payment_information['return_url']                = 'https://example.com/return';
+		}
+
+		$captured_body = null;
+		$test_request  = function ( $preempt, $parsed_args, $url ) use ( &$captured_body ) {
+			if ( false !== strpos( $url, 'payment_intents' ) ) {
+				$captured_body = $parsed_args['body'];
+			}
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode( [] ),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		try {
+			$this->mock_controller->create_and_confirm_payment_intent( $payment_information );
+		} finally {
+			remove_filter( 'pre_http_request', $test_request, 10 );
+			WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+		}
+
+		$this->assertIsArray( $captured_body );
+		if ( null === $expected_configuration_id ) {
+			$this->assertArrayNotHasKey( 'payment_method_configuration', $captured_body );
+		} else {
+			$this->assertArrayHasKey( 'payment_method_configuration', $captured_body );
+			$this->assertSame( $expected_configuration_id, $captured_body['payment_method_configuration'] );
+		}
+	}
+
+	/**
+	 * Data provider for test_create_and_confirm_payment_intent_payment_method_configuration.
+	 *
+	 * @return array<string, array{0: bool, 1: string|null, 2: string|null}>
+	 */
+	public function provide_create_and_confirm_payment_intent_payment_method_configuration_data(): array {
+		return [
+			'dynamic payment methods with configuration'    => [ true, 'pmc_test_123', 'pmc_test_123' ],
+			'dynamic payment methods without configuration' => [ true, null, null ],
+			'explicit method types with configuration'      => [ false, 'pmc_test_123', null ],
+		];
 	}
 
 	/**
@@ -1445,6 +1776,71 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		// The winner's lock must survive this losing request.
 		$this->assertNotEmpty( $order_helper->get_order_existing_payment_lock( wc_get_order( $order_id ) ) );
+
+		Ajax_Test_Helper::remove_hooks();
+	}
+
+	/**
+	 * The post-lock re-check must catch a concurrent request that settled the order
+	 * between the initial settled-check and the lock acquisition, and skip processing.
+	 */
+	public function test_update_order_status_ajax_rechecks_settlement_after_locking() {
+		Ajax_Test_Helper::init_hooks();
+
+		$order     = WC_Helper_Order::create_order();
+		$intent_id = 'pi_toctou';
+		$order->update_meta_data( '_stripe_intent_id', $intent_id );
+		$order->set_status( 'pending' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		// Settle the order from "another request" at the seam between the two checks.
+		$order_helper = $this->createPartialMock(
+			WC_Stripe_Order_Helper::class,
+			[ 'lock_order_payment' ]
+		);
+		$order_helper->expects( $this->once() )
+			->method( 'lock_order_payment' )
+			->willReturnCallback(
+				function () use ( $order_id ) {
+					$concurrent = wc_get_order( $order_id );
+					$concurrent->set_status( 'processing' );
+					$concurrent->save();
+
+					return false; // Lock acquired.
+				}
+			);
+		WC_Stripe_Order_Helper::set_instance( $order_helper );
+
+		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'process_order_for_confirmed_intent' ] )
+			->getMock();
+
+		// The fresh post-lock read must see the settlement and skip re-processing.
+		$gateway->expects( $this->never() )
+			->method( 'process_order_for_confirmed_intent' );
+
+		$controller = $this->build_controller_with_gateway( $gateway );
+
+		$_POST['order_id']       = $order_id;
+		$_POST['intent_id']      = $intent_id;
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_update_order_status_nonce' );
+
+		try {
+			ob_start();
+			$controller->update_order_status_ajax();
+			$response = json_decode( ob_get_clean(), true );
+		} finally {
+			WC_Stripe_Order_Helper::set_instance( null );
+		}
+
+		$this->assertIsArray( $response );
+		$this->assertTrue( $response['success'] );
+		$this->assertArrayHasKey( 'return_url', $response['data'] );
+
+		// The re-check path must release the lock it acquired.
+		$this->assertEmpty( WC_Stripe_Order_Helper::get_instance()->get_order_existing_payment_lock( wc_get_order( $order_id ) ) );
 
 		Ajax_Test_Helper::remove_hooks();
 	}

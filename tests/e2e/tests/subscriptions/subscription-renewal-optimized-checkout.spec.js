@@ -5,8 +5,7 @@ import { admin, api, payments, products, user } from '../../utils';
 
 const {
 	emptyCart,
-	clickAddToCartButton,
-	selectSubscriptionOption,
+	addSubscriptionToCart,
 	setupOptimizedCheckout,
 	fillOCDetails,
 	clickPlaceOrder,
@@ -112,9 +111,7 @@ test.describe( 'Optimized Checkout subscription renewal tests @subscriptions', (
 			// The initial purchase goes through the OCS payment element,
 			// which auto-saves the payment token used by the renewal below.
 			await emptyCart( page );
-			await page.goto( `?p=${ productId }` );
-			await selectSubscriptionOption( page );
-			await clickAddToCartButton( page, 'Sign up' );
+			await addSubscriptionToCart( page, productId );
 
 			await setupOptimizedCheckout( page, checkoutType, {
 				timeout: 10000,

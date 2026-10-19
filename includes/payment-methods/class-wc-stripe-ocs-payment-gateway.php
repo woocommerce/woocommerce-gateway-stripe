@@ -141,12 +141,24 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 		$payment_methods         = $this->payment_methods;
 
 		if ( $this->should_render_optimized_checkout() ) {
-			$oc_method_id                     = WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID;
-			$enabled_express_methods          = array_intersect(
+			$oc_method_id            = WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID;
+			$enabled_express_methods = array_intersect(
 				$enabled_payment_methods,
 				WC_Stripe_Payment_Methods::EXPRESS_PAYMENT_METHODS
 			);
-			$enabled_payment_methods          = array_merge( [ $oc_method_id ], $enabled_express_methods );
+
+			// Non-deferred-intent methods (e.g. BLIK, ACSS) can't render inside the OC Payment
+			// Element, so they keep their own entries in the config alongside the OC container.
+			$non_deferred_methods = array_filter(
+				$enabled_payment_methods,
+				function ( $method_id ) use ( $payment_methods ) {
+					return isset( $payment_methods[ $method_id ] ) && ! $payment_methods[ $method_id ]->supports_deferred_intent();
+				}
+			);
+
+			// Dedupe defensively: a future method that is both express and non-deferred would
+			// otherwise appear twice. Harmless downstream (settings are keyed by id), but avoided.
+			$enabled_payment_methods          = array_values( array_unique( array_merge( [ $oc_method_id ], $enabled_express_methods, $non_deferred_methods ) ) );
 			$payment_methods[ $oc_method_id ] = new WC_Stripe_UPE_Payment_Method_OC();
 		}
 
@@ -165,8 +177,7 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 			foreach ( $original_method_ids as $method_id ) {
 				if ( isset( $this->payment_methods[ $method_id ] ) ) {
 					$payment_method                 = $this->payment_methods[ $method_id ];
-					$is_saved_as_different_type     = $payment_method->get_id() !== $payment_method->get_retrievable_type();
-					$is_blocked_by_adaptive_pricing = $is_adaptive_pricing_active && $is_saved_as_different_type;
+					$is_blocked_by_adaptive_pricing = $is_adaptive_pricing_active && $this->is_saved_as_different_type( $payment_method );
 
 					$show_save_option_by_method[ $method_id ] = ! $is_blocked_by_adaptive_pricing
 						&& $this->should_upe_payment_method_show_save_option( $payment_method );
@@ -176,6 +187,22 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 					$method_countries = $payment_method->get_available_billing_countries();
 					if ( ! empty( $method_countries ) && ! in_array( $method_id, $non_excludable_methods, true ) ) {
 						$countries_by_method[ $method_id ] = $method_countries;
+					}
+				}
+			}
+
+			// Adaptive Pricing can present methods the store-currency list above
+			// excludes; without an entry, the client's fallback shows the checkbox.
+			if ( $is_adaptive_pricing_active ) {
+				foreach ( $this->get_upe_enabled_payment_method_ids() as $method_id ) {
+					if ( ! isset( $this->payment_methods[ $method_id ] )
+						|| array_key_exists( $method_id, $show_save_option_by_method ) ) {
+						continue;
+					}
+
+					$payment_method = $this->payment_methods[ $method_id ];
+					if ( $this->is_saved_as_different_type( $payment_method ) ) {
+						$show_save_option_by_method[ $method_id ] = false;
 					}
 				}
 			}
@@ -207,6 +234,17 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 		}
 
 		return $settings;
+	}
+
+	/**
+	 * Whether the method is saved under a different Stripe type than it is paid with
+	 * (e.g. Bancontact → SEPA Direct Debit), which makes it unsavable with Adaptive Pricing.
+	 *
+	 * @param WC_Stripe_UPE_Payment_Method $payment_method The payment method to check.
+	 * @return bool
+	 */
+	private function is_saved_as_different_type( WC_Stripe_UPE_Payment_Method $payment_method ): bool {
+		return $payment_method->get_id() !== $payment_method->get_retrievable_type();
 	}
 
 	/**

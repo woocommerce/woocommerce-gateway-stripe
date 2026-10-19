@@ -55,6 +55,25 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	protected const IMMEDIATE_SYNC_ACTION = 'wc_stripe_agentic_commerce_sync_feed_now';
 
 	/**
+	 * Action Scheduler hook for the one-off checkout-disabled feed pushed on
+	 * disable. Stripe has no catalog-delete API, so this is how already-synced
+	 * products are taken out of in-agent purchase.
+	 *
+	 * @var string
+	 * @since 11.0.0
+	 */
+	public const FINAL_FEED_ACTION = 'wc_stripe_agentic_commerce_final_feed';
+
+	/**
+	 * Action Scheduler group for the final-feed push. Kept distinct so its
+	 * idempotency guard and cancellation match only the final-feed action.
+	 *
+	 * @var string
+	 * @since 10.9.0
+	 */
+	private const ASYNC_FINAL_FEED_GROUP = 'wc-stripe-agentic-final-feed';
+
+	/**
 	 * Option name to track whether the sync is scheduled.
 	 *
 	 * @var string
@@ -81,6 +100,29 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @since 10.9.0
 	 */
 	public const DISABLE_CHECKOUT_OPTION = 'wc_stripe_agentic_commerce_disable_checkout';
+
+	/**
+	 * Option key ('yes'/'no', default on) for auto-excluding detector-flagged
+	 * add-on / configurator products from the feed. Their price depends on
+	 * shopper choices the feed can't represent, so they are excluded by default
+	 * to keep agents from checking out at a wrong price; merchants can opt in.
+	 *
+	 * @see WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product()
+	 *
+	 * @var string
+	 * @since 11.1.0
+	 */
+	public const AUTO_EXCLUDE_ADDONS_OPTION = 'wc_stripe_agentic_commerce_auto_exclude_addons';
+
+	/**
+	 * Option key ('yes'/'no', default off) for defaulting `disable_checkout=true`
+	 * on detected add-on/configurator products, so shoppers will be redirected
+	 * to the store for these products.
+	 *
+	 * @var string
+	 * @since 11.1.0
+	 */
+	public const AUTO_REDIRECT_CHECKOUT_ADDONS_OPTION = 'wc_stripe_agentic_commerce_auto_redirect_checkout_addons';
 
 	/**
 	 * Option key storing the content hash, upload timestamp, and Stripe file id
@@ -190,12 +232,15 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		add_action( self::IMMEDIATE_SYNC_ACTION, [ $this, 'sync_feed' ] ); // @phpstan-ignore return.void (sync_feed returns bool for manual callers; WP ignores the return value when invoked via action hook)
 
 		// Adapter-fired hook for converging Stripe's catalog when the
-		// `woocommerce_agentic_commerce_should_sync_product` filter outcome changes.
+		// `wc_stripe_agentic_commerce_should_sync_product` filter outcome changes.
 		// See the filter docblock for the contract — without this, a previously
 		// exported product that becomes excluded would only drop out of Stripe's
 		// catalog on the next scheduled full sync.
 		add_action( 'wc_stripe_agentic_commerce_schedule_full_resync', [ $this, 'schedule_full_resync_now' ] );
 		add_action( 'update_option_woocommerce_stripe_settings', [ $this, 'maybe_resync_after_mode_switch' ], 10, 2 );
+
+		// One-off teardown push queued when the merchant disables the toggle.
+		add_action( self::FINAL_FEED_ACTION, [ $this, 'push_final_checkout_disabled_feed' ] );
 
 		// WC 10.8+ requires `created_via` to be in an allowlist for `payment_complete()` to run.
 		add_filter( 'woocommerce_payment_complete_allowed_created_via_values', [ $this, 'allow_agentic_payment_complete' ] );
@@ -267,6 +312,77 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 		}
 
 		as_unschedule_all_actions( self::IMMEDIATE_SYNC_ACTION, [], 'wc-stripe' );
+	}
+
+	/**
+	 * Queue the final-feed push run on disable. Deferred to Action Scheduler
+	 * because it re-uploads the full catalog. Idempotent while one is pending.
+	 *
+	 * @since 10.9.0
+	 * @return void
+	 */
+	public function schedule_final_checkout_disabled_feed(): void {
+		if ( ! function_exists( 'as_has_scheduled_action' ) || ! function_exists( 'as_enqueue_async_action' ) ) {
+			return;
+		}
+
+		if ( as_has_scheduled_action( self::FINAL_FEED_ACTION, [], self::ASYNC_FINAL_FEED_GROUP ) ) {
+			return;
+		}
+
+		as_enqueue_async_action( self::FINAL_FEED_ACTION, [], self::ASYNC_FINAL_FEED_GROUP );
+	}
+
+	/**
+	 * Cancel any pending final-feed push. Called on re-enable so a teardown
+	 * queued by a just-prior disable can't land on a catalog meant to be live.
+	 *
+	 * @since 10.9.0
+	 * @return void
+	 */
+	public function cancel_pending_final_checkout_disabled_feed(): void {
+		if ( ! function_exists( 'as_unschedule_all_actions' ) ) {
+			return;
+		}
+
+		as_unschedule_all_actions( self::FINAL_FEED_ACTION, [], self::ASYNC_FINAL_FEED_GROUP );
+	}
+
+	/**
+	 * Re-upload the catalog with in-agent checkout disabled for every product.
+	 *
+	 * Runs from the toggle-off job. Deliberately bypasses the sync_feed() merchant
+	 * gate via run_feed_sync() so it can run while the merchant toggle is off, but
+	 * bails if the merchant has turned it back on. Forces the disable-checkout
+	 * filter and the upload so dedup can't skip a change that's only the checkout
+	 * flag.
+	 *
+	 * @since 10.9.0
+	 * @return void
+	 */
+	public function push_final_checkout_disabled_feed(): void {
+		if ( ! $this->is_enabled() ) {
+			return;
+		}
+
+		// The merchant can re-enable between this job being queued and Action Scheduler
+		// running it. Cancellation only removes a job that is still pending, so a job
+		// already claimed by a runner reaches this point regardless — publishing a
+		// checkout-disabled catalog for a store that is live again.
+		if ( self::is_merchant_enabled() ) {
+			return;
+		}
+
+		$force_disable_checkout = static function () {
+			return true;
+		};
+		add_filter( 'wc_stripe_agentic_commerce_disable_checkout', $force_disable_checkout, 99999 );
+
+		try {
+			$this->run_feed_sync( true );
+		} finally {
+			remove_filter( 'wc_stripe_agentic_commerce_disable_checkout', $force_disable_checkout, 99999 );
+		}
 	}
 
 	/**
@@ -540,6 +656,19 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	}
 
 	/**
+	 * Whether the merchant has completed Agentic Commerce onboarding: the feature
+	 * is enabled in settings and the webhook signing secret has been saved. Both
+	 * are set by the settings UI; a catalog sync should not push before they are.
+	 *
+	 * @since 10.9.0
+	 * @return bool True once onboarding is complete.
+	 */
+	public static function is_onboarding_complete(): bool {
+		return self::is_merchant_enabled()
+			&& '' !== (string) get_option( self::WEBHOOK_SECRET_OPTION, '' );
+	}
+
+	/**
 	 * Whether the store-wide default disables in-agent checkout (feed-only / redirect).
 	 * Per-product overrides live in the mapper's filter.
 	 *
@@ -548,6 +677,30 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 */
 	public static function is_checkout_disabled(): bool {
 		return 'yes' === get_option( self::DISABLE_CHECKOUT_OPTION, 'no' );
+	}
+
+	/**
+	 * Whether the merchant has opted to auto-exclude add-on / configurator
+	 * products from the feed entirely.
+	 *
+	 * @see WC_Stripe_Agentic_Commerce_Product_Mapper::should_sync_product()
+	 * @since 11.1.0
+	 * @return bool
+	 */
+	public static function is_auto_exclude_addons_enabled(): bool {
+		return 'yes' === get_option( self::AUTO_EXCLUDE_ADDONS_OPTION, 'yes' );
+	}
+
+	/**
+	 * Whether the merchant has opted to set `disable_checkout` for add-on /
+	 * configurator products so they redirect to the local checkout.
+	 *
+	 * @see WC_Stripe_Agentic_Commerce_Product_Mapper::get_disable_checkout()
+	 * @since 11.1.0
+	 * @return bool
+	 */
+	public static function is_auto_redirect_checkout_addons_enabled(): bool {
+		return 'yes' === get_option( self::AUTO_REDIRECT_CHECKOUT_ADDONS_OPTION, 'no' );
 	}
 
 	/**
@@ -563,8 +716,8 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @return bool True on successful delivery, false on early returns or failure.
 	 */
 	public function sync_feed( bool $force_upload = false ): bool {
-		// Drop any validator cached from a previous sync so this run starts
-		// with a clean per-product error accumulator.
+		// Reset before the enablement gates so a call always clears validator
+		// state from a previous run, even on a disabled early-return.
 		$this->feed_validator = null;
 
 		if ( ! $this->is_enabled() ) {
@@ -572,11 +725,37 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 			return false;
 		}
 
+		// Don't push until onboarding is complete. The teardown push bypasses
+		// this via run_feed_sync().
+		if ( ! self::is_onboarding_complete() ) {
+			WC_Stripe_Logger::info( 'Agentic Commerce: Sync skipped - onboarding incomplete' );
+			return false;
+		}
+
+		return $this->run_feed_sync( $force_upload );
+	}
+
+	/**
+	 * Generate and upload the catalog feed. Callers are responsible for deciding whether
+	 * an upload should occur.
+	 *
+	 * May be called when the agentic commerce feature has been
+	 * disabled to ensure that the uploaded products are marked as unavailable.
+	 *
+	 * @since 10.9.0
+	 * @param bool $force_upload When true, bypass the content-hash deduplication and always upload.
+	 * @return bool True on successful delivery, false on early returns or failure.
+	 */
+	private function run_feed_sync( bool $force_upload = false ): bool {
+		// Drop any validator cached from a previous sync so this run starts
+		// with a clean per-product error accumulator.
+		$this->feed_validator = null;
+
 		// One settings snapshot supplies both the mode label and the delivery
 		// key, held for the whole run: separate reads could straddle a
 		// concurrent settings save and pair one mode's label with the other
 		// mode's key, and every record this run persists must describe the
-		// environment it actually delivered to, not the mode at write time.
+		// Get settings in one fetch to prevent timing issues.
 		$context  = self::get_delivery_context();
 		$mode     = $context['mode'];
 		$delivery = new WC_Stripe_Agentic_Commerce_Files_Api_Delivery( $context['secret_key'] );

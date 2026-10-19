@@ -320,7 +320,7 @@ class WC_Stripe_Webhook_State {
 		}
 
 		if ( $pending_webhooks > 0 ) {
-			$message .= '. ' . sprintf(
+			$message .= ' ' . sprintf(
 				/* translators: 1) number of pending webhooks */
 				_n(
 					'There is at least %d webhook pending.',

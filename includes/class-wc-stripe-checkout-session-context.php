@@ -170,7 +170,7 @@ class WC_Stripe_Checkout_Session_Context {
 	public static function store_for_cart( string $session_id, array $cart_context ): void {
 		$owner_keys = self::get_current_owner_keys();
 		if ( [] === $owner_keys ) {
-			throw new Exception( self::get_unavailable_message() );
+			throw new Exception( self::get_unavailable_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		$existing_context = self::get_context( $session_id ) ?? [];
@@ -213,14 +213,15 @@ class WC_Stripe_Checkout_Session_Context {
 	 * @throws Exception When the Checkout Session is currently locked.
 	 */
 	public static function with_mutation_lock( string $session_id, callable $callback ) {
-		if ( ! self::acquire_mutation_lock( $session_id ) ) {
-			throw new Exception( self::get_unavailable_message() );
+		$lock_owner = self::acquire_mutation_lock( $session_id );
+		if ( null === $lock_owner ) {
+			throw new Exception( self::get_unavailable_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		try {
 			return $callback();
 		} finally {
-			self::release_mutation_lock( $session_id );
+			self::release_mutation_lock( $session_id, $lock_owner );
 		}
 	}
 
@@ -234,18 +235,18 @@ class WC_Stripe_Checkout_Session_Context {
 	public static function validate_update_request( string $session_id ): void {
 		$context = self::get_context( $session_id );
 		if ( empty( $context ) ) {
-			throw new Exception( self::get_unavailable_message() );
+			throw new Exception( self::get_unavailable_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		self::validate_owner( $context );
 
 		if ( ! empty( $context['order_id'] ) ) {
-			throw new Exception( self::get_unavailable_message() );
+			throw new Exception( self::get_unavailable_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		$order = WC_Stripe_Helper::get_order_by_checkout_session_id( $session_id );
 		if ( $order instanceof WC_Order ) {
-			throw new Exception( self::get_unavailable_message() );
+			throw new Exception( self::get_unavailable_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 	}
 
@@ -260,14 +261,14 @@ class WC_Stripe_Checkout_Session_Context {
 	public static function validate_for_order( string $session_id, WC_Order $order ): array {
 		$context = self::get_context( $session_id );
 		if ( empty( $context ) ) {
-			throw new Exception( self::get_unavailable_message() );
+			throw new Exception( self::get_unavailable_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		self::validate_owner( $context );
 
 		$context_order_id = isset( $context['order_id'] ) ? (int) $context['order_id'] : 0;
 		if ( $context_order_id > 0 && $context_order_id !== $order->get_id() ) {
-			throw new Exception( self::get_unavailable_message() );
+			throw new Exception( self::get_unavailable_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		$order_currency = strtolower( $order->get_currency() );
@@ -279,7 +280,7 @@ class WC_Stripe_Checkout_Session_Context {
 		) {
 			self::invalidate_session_after_amount_mismatch( $session_id, $order, $context, $order_amount, $order_currency );
 
-			throw new Exception( __( 'The payment amount no longer matches the order total. Please refresh the page and try again.', 'woocommerce-gateway-stripe' ) );
+			throw new Exception( __( 'The payment amount no longer matches the order total. Please refresh the page and try again.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		return $context;
@@ -307,44 +308,38 @@ class WC_Stripe_Checkout_Session_Context {
 	/**
 	 * Attempt to acquire the Checkout Session mutation lock.
 	 *
-	 * Best-effort: the lock only serializes the short update/link window so a stale validation
-	 * result cannot race a concurrent cart update or order submission. The authoritative guard
-	 * against amount manipulation is the order-id and amount/currency checks, so the rare race
-	 * where two requests reclaim the same expired lock is acceptable.
-	 *
-	 * `add_option()` is atomic on the option name, so the common (uncrashed) path is race-free.
-	 * A lock abandoned by a crashed request is reclaimed once MUTATION_LOCK_TTL has elapsed.
+	 * The lock only serializes the short update/link window so a stale validation result cannot
+	 * race a concurrent cart update or order submission. The authoritative guard against amount
+	 * manipulation is the order-id and amount/currency checks. A lock abandoned by a crashed
+	 * request is reclaimed once MUTATION_LOCK_TTL has elapsed.
 	 *
 	 * @param string $session_id Stripe Checkout Session ID.
-	 * @return bool True when the caller acquired the lock.
+	 * @return string|null The owner value to release the lock with, or null when another request holds it.
 	 */
-	private static function acquire_mutation_lock( string $session_id ): bool {
-		$option_name = self::get_mutation_lock_option_name( $session_id );
-		$now         = time();
-
-		if ( add_option( $option_name, $now, '', false ) ) {
-			return true;
-		}
-
-		$existing = (int) get_option( $option_name, 0 );
-		if ( $existing > 0 && ( $now - $existing ) < self::MUTATION_LOCK_TTL ) {
-			return false;
-		}
-
-		// Reclaim a lock abandoned by a crashed request; the loser of a concurrent
-		// reclaim is rejected by add_option()'s atomic insert. Still best-effort.
-		delete_option( $option_name );
-		return add_option( $option_name, $now, '', false );
+	private static function acquire_mutation_lock( string $session_id ): ?string {
+		return WC_Stripe_Option_Lock::acquire( self::get_mutation_lock_option_name( $session_id ), self::MUTATION_LOCK_TTL );
 	}
 
 	/**
 	 * Release the Checkout Session mutation lock.
 	 *
-	 * @param string $session_id Stripe Checkout Session ID.
+	 * Without an owner the lock is removed whoever holds it. That is only safe once the context
+	 * is gone, because no holder can act on the session any more; on a live session it would hand
+	 * the lock to the next caller while the holder is still working.
+	 *
+	 * @param string      $session_id Stripe Checkout Session ID.
+	 * @param string|null $lock_owner The owner value returned by `acquire_mutation_lock()`, or null to remove the lock regardless of owner.
 	 * @return void
 	 */
-	private static function release_mutation_lock( string $session_id ): void {
-		delete_option( self::get_mutation_lock_option_name( $session_id ) );
+	private static function release_mutation_lock( string $session_id, ?string $lock_owner = null ): void {
+		$option_name = self::get_mutation_lock_option_name( $session_id );
+
+		if ( null === $lock_owner ) {
+			WC_Stripe_Option_Lock::force_release( $option_name );
+			return;
+		}
+
+		WC_Stripe_Option_Lock::release( $option_name, $lock_owner );
 	}
 
 	/**
@@ -365,7 +360,7 @@ class WC_Stripe_Checkout_Session_Context {
 		$stored_owner_keys = array_values( array_unique( $stored_owner_keys ) );
 
 		if ( [] === $current_owner_keys || [] === $stored_owner_keys || [] === array_intersect( $current_owner_keys, $stored_owner_keys ) ) {
-			throw new Exception( self::get_unavailable_message() );
+			throw new Exception( self::get_unavailable_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 	}
 

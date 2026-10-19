@@ -172,11 +172,15 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/class-wc-stripe-subscriptions-legacy-sepa-token-update.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/abstracts/abstract-wc-stripe-payment-gateway.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php';
+		if ( self::$instance === $this ) {
+			( new WC_Stripe_Remote_Config_Scheduler() )->init_hooks();
+		}
+
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-state.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-handler.php';
 
 		if ( self::$instance === $this ) {
-			new WC_Stripe_Webhook_Handler();
+			( new WC_Stripe_Webhook_Handler() )->register_hooks();
 		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-apple-pay-registration.php';
@@ -217,12 +221,12 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-order-handler.php';
 
 		if ( self::$instance === $this ) {
-			new WC_Stripe_Order_Handler();
+			( new WC_Stripe_Order_Handler() )->register_hooks();
 		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-payment-tokens.php';
 		if ( self::$instance === $this ) {
-			new WC_Stripe_Payment_Tokens();
+			( new WC_Stripe_Payment_Tokens() )->register_hooks();
 		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-customer.php';
@@ -237,6 +241,12 @@ class WC_Stripe {
 		$this->api     = new WC_Stripe_Connect_API();
 		$this->connect = new WC_Stripe_Connect( $this->api );
 		$this->account = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
+
+		// Guarded unlike the assignment above: the property must exist on every
+		// instance, but only the first may register the connection hooks.
+		if ( self::$instance === $this ) {
+			$this->connect->register_hooks();
+		}
 
 		// No-op shim so third parties that register the removed WC_Stripe_Payment_Request methods as
 		// hook callbacks via this property don't fatal on a null callback. See the compat class.
@@ -359,7 +369,10 @@ class WC_Stripe {
 			add_action( 'update_option_' . self::SETTINGS_OPTION_NAME, [ $this, 'maybe_reconfigure_webhooks_after_adaptive_pricing_enabled' ], 10, 2 );
 
 			add_action( WC_Stripe_Database_Cache::ASYNC_CLEANUP_ACTION, [ WC_Stripe_Database_Cache::class, 'delete_all_stale_entries_async' ], 10, 2 );
+			add_action( WC_Stripe_Express_Checkout_Password_Cleanup::BATCH_HOOK, [ new WC_Stripe_Express_Checkout_Password_Cleanup(), 'process_batch' ] );
 			add_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ WC_Stripe_Database_Cache::class, 'maybe_schedule_daily_async_cleanup' ], 10, 0 );
+			add_action( WC_Stripe_Option_Lock::CLEANUP_ACTION, [ WC_Stripe_Option_Lock::class, 'cleanup_stale_locks' ], 10, 0 );
+			add_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ WC_Stripe_Option_Lock::class, 'maybe_schedule_daily_cleanup' ], 10, 0 );
 
 			// Handle the async cache prefetch action.
 			add_action( WC_Stripe_Database_Cache_Prefetch::ASYNC_PREFETCH_ACTION, [ WC_Stripe_Database_Cache_Prefetch::get_instance(), 'handle_prefetch_action' ], 10, 1 );
@@ -373,7 +386,7 @@ class WC_Stripe {
 	 * Initialize the class for handling the Apple Pay registration.
 	 */
 	public function initialize_apple_pay_registration() {
-		new WC_Stripe_Apple_Pay_Registration();
+		( new WC_Stripe_Apple_Pay_Registration() )->register_hooks();
 	}
 
 	/**
@@ -461,6 +474,9 @@ class WC_Stripe {
 
 		// Try to schedule the daily async cleanup of the Stripe database cache.
 		WC_Stripe_Database_Cache::maybe_schedule_daily_async_cleanup();
+
+		// Remove lock rows left behind by requests that died while holding a lock.
+		WC_Stripe_Option_Lock::maybe_schedule_daily_cleanup();
 
 		// If we have previously disabled settings synchronization, remove the flag after the upgrade,
 		// just to make sure we are still ineligible for settings synchronization.
@@ -1021,7 +1037,9 @@ class WC_Stripe {
 	 * @return bool
 	 */
 	protected function is_optimized_checkout_enabled(): bool {
-		if ( ! WC_Stripe_Feature_Flags::is_oc_available() ) {
+		// is_oc_offered() (not is_oc_available()) so a remote disable of Optimized
+		// Checkout reverts stores to the classic UPE gateway.
+		if ( ! WC_Stripe_Feature_Flags::is_oc_offered() ) {
 			return false;
 		}
 		$settings = WC_Stripe_Helper::get_stripe_settings();
@@ -1191,9 +1209,15 @@ class WC_Stripe {
 			return;
 		}
 
-		$gateway->update_enabled_payment_methods(
+		$result = $gateway->update_enabled_payment_methods(
 			array_diff( $enabled_payment_methods, $payment_method_ids_to_disable )
 		);
+		if ( is_wp_error( $result ) ) {
+			WC_Stripe_Logger::error(
+				'Failed to disable Stripe payment methods that should only be offered via other active plugins',
+				[ 'error' => $result->get_error_message() ]
+			);
+		}
 	}
 
 	/**

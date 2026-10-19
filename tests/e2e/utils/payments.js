@@ -33,6 +33,31 @@ export async function selectSubscriptionOption( page ) {
 }
 
 /**
+ * Add an APFS subscription product to the cart from its product page.
+ *
+ * APFS products offer a one-time vs subscription choice, so pick the
+ * subscription option before adding to the cart.
+ *
+ * @param {Page}   page      Playwright page fixture.
+ * @param {number} productId The product ID.
+ */
+export async function addSubscriptionToCart( page, productId ) {
+	await page.goto( `?p=${ productId }` );
+	await selectSubscriptionOption( page );
+	// Click the cart form's submit rather than matching the button copy: the
+	// label varies with the WC/WCS combination ("Sign up" on WC <= 11.0,
+	// "Add to cart" on 11.1) and with the store locale.
+	const addToCartButton = page
+		.locator( 'form.cart button[type="submit"]' )
+		.first();
+	await expect( addToCartButton ).toBeEnabled();
+	await addToCartButton.click();
+	await expect(
+		page.getByText( 'has been added to your cart' )
+	).toBeVisible();
+}
+
+/**
  * Empty the WC cart.
  * @param {Page} page Playwright page fixture.
  */
@@ -438,15 +463,23 @@ export async function fillCreditCardDetailsShortcodeLegacy( page, card ) {
  * If billingDetails are empty, they're skipped.
  * @param {Page} page Playwright page fixture.
  * @param {Object} billingDetails The billing details in the format provided on the test-data.
+ * @param {Object} options Optional checkout configuration.
+ * @param {boolean} options.skipBillingCountry Skip the WooCommerce billing country field.
  */
-export async function setupShortcodeCheckout( page, billingDetails = null ) {
+export async function setupShortcodeCheckout(
+	page,
+	billingDetails = null,
+	options = {}
+) {
 	await page.goto( '/checkout-shortcode/' );
 
 	if ( billingDetails ) {
-		await page.selectOption(
-			'#billing_country',
-			billingDetails[ 'country_iso' ]
-		);
+		if ( ! options.skipBillingCountry ) {
+			await page.selectOption(
+				'#billing_country',
+				billingDetails[ 'country_iso' ]
+			);
+		}
 
 		if ( billingDetails[ 'state_iso' ] ) {
 			await page.selectOption(
@@ -747,6 +780,7 @@ export const setupACSSCheckout = async ( page, checkoutType = 'blocks' ) => {
  * @param {Object} options Optional configuration parameters.
  * @param {number} options.timeout Timeout in milliseconds for waiting operations (default: 10000).
  * @param {boolean} options.skipCartSetup Skip cart setup if it's already configured (default: false).
+ * @param {boolean} options.skipBillingCountry Skip the WooCommerce billing country field.
  * @returns {Promise<void>} Resolves when setup is complete.
  * @throws {Error} If iframe cannot be found or initialization fails.
  */
@@ -782,7 +816,8 @@ export const setupOptimizedCheckout = async (
 		} else {
 			await setupShortcodeCheckout(
 				page,
-				config.get( 'addresses.customer.billing' )
+				config.get( 'addresses.customer.billing' ),
+				options
 			);
 		}
 
@@ -1013,8 +1048,15 @@ const getOCPaymentFrame = async ( page, iframeSelector, timeout = 10000 ) => {
  * @param {Page} page Playwright page fixture.
  * @param {Object} card The CC info in the format provided on the test-data.
  * @param {string} checkoutType The type of checkout ('blocks' or 'shortcode').
+ * @param {Object} options Optional payment details.
+ * @param {string} options.billingCountry Country collected by Stripe.
  */
-export const fillOCDetails = async ( page, card, checkoutType = 'blocks' ) => {
+export const fillOCDetails = async (
+	page,
+	card,
+	checkoutType = 'blocks',
+	options = {}
+) => {
 	// Determine the appropriate iframe selector based on checkout type
 	const iframeSelector =
 		checkoutType === 'blocks'
@@ -1039,6 +1081,12 @@ export const fillOCDetails = async ( page, card, checkoutType = 'blocks' ) => {
 		.locator( '[name="expiry"]' )
 		.fill( card.expires.month + card.expires.year );
 	await paymentFrame.locator( '[name="cvc"]' ).fill( card.cvc );
+
+	if ( options.billingCountry ) {
+		await paymentFrame
+			.locator( '[name="country"]' )
+			.selectOption( options.billingCountry );
+	}
 
 	// For emails Link doesn't recognize, it offers signup with "Save my
 	// information" pre-checked, which requires a mobile number the tests

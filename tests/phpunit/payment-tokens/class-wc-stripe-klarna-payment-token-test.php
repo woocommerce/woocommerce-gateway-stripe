@@ -12,8 +12,23 @@ class WC_Stripe_Klarna_Payment_Token_Test extends WP_UnitTestCase {
 	 */
 	protected $token;
 
-	protected function setUp(): void {
+	/**
+	 * Setup test environment.
+	 */
+	public function setUp(): void {
+		parent::setUp();
 		$this->token = new WC_Stripe_Klarna_Payment_Token();
+	}
+
+	/**
+	 * Test that the token type is correctly set as klarna.
+	 */
+	public function test_token_type_is_klarna(): void {
+		$this->assertEquals(
+			WC_Stripe_Payment_Methods::KLARNA,
+			$this->token->get_type(),
+			'The token "type" property should match KLARNA.'
+		);
 	}
 
 	/**
@@ -23,7 +38,7 @@ class WC_Stripe_Klarna_Payment_Token_Test extends WP_UnitTestCase {
 	 * @return void
 	 * @dataProvider provide_test_get_display_name
 	 */
-	public function test_get_display_name( string $dob ) {
+	public function test_get_display_name( string $dob ): void {
 		$this->token->set_dob( $dob );
 		$this->assertSame( 'Klarna', $this->token->get_display_name() );
 	}
@@ -41,6 +56,18 @@ class WC_Stripe_Klarna_Payment_Token_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test getter and setter for token ID.
+	 */
+	public function test_token_get_and_set(): void {
+		$this->token->set_token( 'pm_test_klarna_123' );
+		$this->assertEquals(
+			'pm_test_klarna_123',
+			$this->token->get_token(),
+			'The token property should match the value that was set.'
+		);
+	}
+
+	/**
 	 * Tests for the DOB getters and setters.
 	 *
 	 * @param object $dob_object The DOB object to set.
@@ -48,7 +75,7 @@ class WC_Stripe_Klarna_Payment_Token_Test extends WP_UnitTestCase {
 	 * @return void
 	 * @dataProvider provide_test_getters_setters
 	 */
-	public function test_getters_setters( object $dob_object, string $expected ) {
+	public function test_getters_setters( object $dob_object, string $expected ): void {
 		$this->token->set_dob_from_object( $dob_object );
 		$this->assertSame( $expected, $this->token->get_dob() );
 	}
@@ -76,23 +103,32 @@ class WC_Stripe_Klarna_Payment_Token_Test extends WP_UnitTestCase {
 				],
 				'1999-10-18',
 			],
+			'empty DOB object' => [
+				(object) [],
+				'',
+			],
 		];
 	}
 
 	/**
 	 * Tests for `is_equal_payment_method()`.
 	 *
-	 * @param string $token_id        The token ID to set.
-	 * @param object $dob             The DOB object to set on the token.
-	 * @param object $payment_method  The payment method to compare against.
-	 * @param bool   $expected        Whether the payment methods should be considered equal.
+	 * @param string      $token_id       The token ID to set.
+	 * @param object|null $dob            The DOB object to set on the token (null means no DOB).
+	 * @param object      $payment_method The payment method to compare against.
+	 * @param bool        $expected       Whether the payment methods should be considered equal.
+	 * @param string      $message        The assertion failure message.
 	 * @return void
 	 * @dataProvider provide_test_is_equal_payment_method
 	 */
-	public function test_is_equal_payment_method( string $token_id, object $dob, object $payment_method, bool $expected ) {
+	public function test_is_equal_payment_method( string $token_id, ?object $dob, object $payment_method, bool $expected, string $message ): void {
 		$this->token->set_token( $token_id );
-		$this->token->set_dob_from_object( $dob );
-		$this->assertSame( $expected, $this->token->is_equal_payment_method( $payment_method ) );
+		if ( null !== $dob ) {
+			$this->token->set_dob_from_object( $dob );
+		} else {
+			$this->token->set_dob( '' );
+		}
+		$this->assertSame( $expected, $this->token->is_equal_payment_method( $payment_method ), $message );
 	}
 
 	/**
@@ -126,7 +162,7 @@ class WC_Stripe_Klarna_Payment_Token_Test extends WP_UnitTestCase {
 		];
 
 		return [
-			'equal payment method' => [
+			'equal payment method'                                  => [
 				'pm_123',
 				(object) [
 					'day'   => 1,
@@ -135,8 +171,9 @@ class WC_Stripe_Klarna_Payment_Token_Test extends WP_UnitTestCase {
 				],
 				$matching_pm,
 				true,
+				'is_equal_payment_method() should return true when type and DOB match.',
 			],
-			'different DOB'        => [
+			'different DOB'                                         => [
 				'pm_123',
 				(object) [
 					'day'   => 1,
@@ -145,6 +182,77 @@ class WC_Stripe_Klarna_Payment_Token_Test extends WP_UnitTestCase {
 				],
 				$different_dob_pm,
 				false,
+				'is_equal_payment_method() should return false when DOB does not match.',
+			],
+			'mismatched type'                                       => [
+				'pm_123',
+				(object) [
+					'day'   => 1,
+					'month' => 2,
+					'year'  => 2000,
+				],
+				(object) [
+					'id'     => 'pm_123',
+					'type'   => 'card',
+					'klarna' => (object) [
+						'dob' => (object) [
+							'day'   => 1,
+							'month' => 2,
+							'year'  => 2000,
+						],
+					],
+				],
+				false,
+				'is_equal_payment_method() should return false when payment method type is not klarna.',
+			],
+			'both have no DOB'                                      => [
+				'pm_123',
+				null,
+				(object) [
+					'id'     => 'pm_123',
+					'type'   => WC_Stripe_Payment_Methods::KLARNA,
+					'klarna' => (object) [],
+				],
+				true,
+				'is_equal_payment_method() should return true when both token and payment method have no DOB.',
+			],
+			'token has no DOB but payment method has DOB'           => [
+				'pm_123',
+				null,
+				$matching_pm,
+				false,
+				'is_equal_payment_method() should return false when token has no DOB but payment method has DOB.',
+			],
+			'token has DOB but payment method has no klarna object' => [
+				'pm_123',
+				(object) [
+					'day'   => 1,
+					'month' => 2,
+					'year'  => 2000,
+				],
+				(object) [
+					'id'   => 'pm_123',
+					'type' => WC_Stripe_Payment_Methods::KLARNA,
+				],
+				false,
+				'is_equal_payment_method() should return false when payment method has no klarna object.',
+			],
+			'token has DOB but payment method klarna has empty DOB' => [
+				'pm_123',
+				(object) [
+					'day'   => 1,
+					'month' => 2,
+					'year'  => 2000,
+				],
+				(object) [
+					'id'     => 'pm_123',
+					'type'   => WC_Stripe_Payment_Methods::KLARNA,
+					'klarna' => (object) [
+						'dob' => (object) [],
+					],
+				],
+				false,
+				'is_equal_payment_method() should return false when payment method klarna has an empty DOB object.',
 			],
 		];
 	}

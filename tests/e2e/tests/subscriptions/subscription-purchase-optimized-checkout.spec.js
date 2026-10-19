@@ -5,8 +5,7 @@ import { api, payments, products, user } from '../../utils';
 
 const {
 	emptyCart,
-	clickAddToCartButton,
-	selectSubscriptionOption,
+	addSubscriptionToCart,
 	setupOptimizedCheckout,
 	fillOCDetails,
 	clickPlaceOrder,
@@ -61,9 +60,7 @@ test.describe( 'Optimized Checkout subscription purchase tests @subscriptions', 
 		// Add the subscription product to the cart, then set up the checkout
 		// without letting the helper reset the cart to the default product.
 		await emptyCart( page );
-		await page.goto( `?p=${ productId }` );
-		await selectSubscriptionOption( page );
-		await clickAddToCartButton( page, 'Sign up' );
+		await addSubscriptionToCart( page, productId );
 
 		await setupOptimizedCheckout( page, checkoutType, {
 			timeout: 10000,

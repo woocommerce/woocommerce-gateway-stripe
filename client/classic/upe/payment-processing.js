@@ -65,6 +65,14 @@ const gatewayUPEComponents = {};
 let hasCheckoutCompleted = false;
 
 /**
+ * Clears the one-shot completion flag when a later checkout check blocks the
+ * programmatic submit before processPayment can consume it.
+ */
+export function resetCheckoutCompletionState() {
+	hasCheckoutCompleted = false;
+}
+
+/**
  * OC exclusions last applied to each Elements instance (as a sorted key), so
  * redundant `elements.update()` calls can be skipped. Keyed by instance: a
  * re-mounted element starts fresh and stale state can't leak across mounts.
@@ -1163,17 +1171,19 @@ export const processPayment = (
 		return;
 	}
 
+	const genericErrorMessage = __(
+		'Payment failed. Please try again.',
+		'woocommerce-gateway-stripe'
+	);
+
 	if ( ! gatewayUPEComponents[ paymentMethodType ] ) {
-		return;
+		showErrorCheckout( genericErrorMessage );
+		return false;
 	}
 
 	blockUI( jQueryForm );
 
 	const getErrorMessage = ( err ) => {
-		const genericErrorMessage = __(
-			'Payment failed. Please try again.',
-			'woocommerce-gateway-stripe'
-		);
 		if ( ! err ) {
 			return genericErrorMessage;
 		}
@@ -1309,7 +1319,12 @@ export const processPayment = (
 					redirect: 'if_required',
 				};
 
-				if ( getStripeServerData()?.isLoggedIn ) {
+				// Stripe rejects savePaymentMethod when the session was created
+				// without save support (e.g. as a guest), so gate on the session,
+				// not the login state.
+				if (
+					getNativeCheckoutSessionData()?.save_payment_method_enabled
+				) {
 					confirmArgs.savePaymentMethod = jQueryForm
 						.find( '#wc-stripe-new-payment-method' )
 						.is( ':checked' );
@@ -1425,6 +1440,47 @@ export const createAndConfirmSetupIntent = (
 };
 
 /**
+ * Resolves the post-payment destination for the voucher and wallet confirmation flows.
+ *
+ * The return URL travels in the URL fragment, which never reaches the server and can therefore
+ * be swapped for any destination by anyone able to hand the shopper a crafted store URL. It is
+ * clamped to this store's origin here, before it is used to navigate or handed to Stripe as a
+ * `return_url`, and falls back to the order received page when it does not survive that check.
+ *
+ * @param {string} encodedReturnUrl The percent-encoded return URL taken from the fragment.
+ * @param {string} orderId          The order ID taken from the fragment.
+ * @return {?string} A same-origin fragment URL or the server-provided fallback, or null when neither is available.
+ */
+const resolvePostPaymentUrl = ( encodedReturnUrl, orderId ) => {
+	let decodedReturnUrl = null;
+	try {
+		decodedReturnUrl = decodeURIComponent( encodedReturnUrl || '' );
+	} catch ( error ) {}
+
+	const validatedReturnUrl = normalizeReturnUrl( decodedReturnUrl );
+	if ( validatedReturnUrl ) {
+		return validatedReturnUrl;
+	}
+
+	const orderReceivedURL = getStripeServerData()?.orderReceivedURL;
+	if ( ! orderReceivedURL ) {
+		return null;
+	}
+
+	// `parseInt( 'NaN' )` round-trips back to the string 'NaN', so it has to be excluded
+	// explicitly for the numeric check to reject it.
+	if (
+		orderId &&
+		orderId !== 'NaN' &&
+		orderId === String( parseInt( orderId, 10 ) )
+	) {
+		return orderReceivedURL + '/' + encodeURIComponent( orderId ) + '/';
+	}
+
+	return orderReceivedURL;
+};
+
+/**
  * Handles displaying the Boleto or Oxxo or Multibanco voucher to the customer and then redirecting
  * them to the order received page once they close the voucher window.
  *
@@ -1502,18 +1558,8 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
 		return;
 	}
 
-	let postPaymentUrl = null;
-	try {
-		postPaymentUrl = decodeURIComponent( partials[ 4 ] || '' );
-	} catch ( error ) {}
-
-	const validatedRedirectUrl = normalizeReturnUrl( postPaymentUrl );
-	if ( validatedRedirectUrl ) {
-		window.location.href = validatedRedirectUrl;
-		return;
-	}
-
-	if ( ! stripeServerData?.orderReceivedURL ) {
+	const postPaymentUrl = resolvePostPaymentUrl( partials[ 4 ], orderId );
+	if ( ! postPaymentUrl ) {
 		showErrorCheckout(
 			__(
 				'There was a problem processing the payment. Please refresh the page to try again.',
@@ -1523,23 +1569,7 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
 		return;
 	}
 
-	// We didn't get a valid redirect URL, so redirect to the order received page.
-	// If we have a numeric order ID, navigate to the order received page for that order.
-	if (
-		orderId &&
-		orderId !== 'NaN' &&
-		orderId === String( parseInt( orderId, 10 ) )
-	) {
-		window.location.href =
-			stripeServerData.orderReceivedURL +
-			'/' +
-			encodeURIComponent( orderId ) +
-			'/';
-		return;
-	}
-
-	// Otherwise go to the generic page.
-	window.location.href = stripeServerData.orderReceivedURL;
+	window.location.href = postPaymentUrl;
 };
 
 /**
@@ -1548,7 +1578,7 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
  *
  * When processing a payment for a wallet payment method on the checkout or order pay page,
  * the process_payment_with_deferred_intent() function redirects the customer to a URL
- * formatted with: #wc-stripe-wallet-<order_id>:<payment_method_type>:<payment_intent_type>:<client_secret>:<redirect_url>.
+ * formatted with: #wc-stripe-wallet-<order_id>:<payment_method_type>:<payment_intent_type>:<client_secret>:<redirect_url>:<nonce>.
  *
  * This function, which is hooked onto the hashchanged event, checks if the URL contains the data we need to process the wallet payment.
  *
@@ -1594,7 +1624,20 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 
 	const paymentMethodType = partials[ 2 ];
 	const intentType = partials[ 3 ];
-	const returnURL = decodeURIComponent( partials[ 5 ] );
+	const returnURL = resolvePostPaymentUrl( partials[ 5 ], orderId );
+
+	if ( ! returnURL ) {
+		jQueryForm.removeClass( 'processing' ).unblock();
+		showErrorCheckout(
+			__(
+				'There was a problem processing the payment. Please refresh the page to try again.',
+				'woocommerce-gateway-stripe'
+			)
+		);
+		unblockBlockCheckout();
+		resetBlockCheckoutPaymentState();
+		return;
+	}
 
 	try {
 		// Confirm the payment to tell Stripe to display the modal to the customer.
@@ -1693,18 +1736,48 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
  */
 export const hasEmptyRequiredFields = ( requiredWrappers ) => {
 	for ( const wrapper of requiredWrappers ) {
-		const input = wrapper.querySelector(
-			'input.input-text, select, input[type="checkbox"]'
-		);
-		if ( ! input ) {
+		const inputs = [
+			...wrapper.querySelectorAll(
+				'input.input-text, textarea.input-text, select, input[type="checkbox"]'
+			),
+		];
+		if ( ! inputs.length ) {
 			continue;
 		}
 
-		if ( input.type === 'checkbox' ) {
-			if ( ! input.checked ) {
-				return true;
-			}
-		} else if ( ! input.value || input.value.trim() === '' ) {
+		const first = inputs[ 0 ];
+		let hasValue;
+
+		if ( first.type === 'checkbox' ) {
+			// A required wrapper can hold a "tick at least one" checkbox group, so the
+			// first box being unchecked does not mean the group is incomplete.
+			hasValue = inputs.some(
+				( input ) => input.type === 'checkbox' && input.checked
+			);
+		} else if ( first.type === 'select-multiple' ) {
+			// `first.value` is only the first selected option, so a selected empty
+			// placeholder would hide the real selections behind it.
+			hasValue = [ ...first.selectedOptions ].some(
+				( option ) => option.value.trim() !== ''
+			);
+		} else {
+			hasValue = first.value.trim() !== '';
+		}
+
+		if ( hasValue ) {
+			continue;
+		}
+
+		// Radios are not matched by the selector above, so a wrapper holding only
+		// radios is skipped entirely, as it is by WooCommerce core. A checked radio can
+		// still satisfy a wrapper: it is not proof the other controls are filled, but
+		// it is reason enough to let the server validate the submission rather than
+		// block it here.
+		const hasCheckedRadio = !! wrapper.querySelector(
+			'input[type="radio"]:checked'
+		);
+
+		if ( ! hasCheckedRadio ) {
 			return true;
 		}
 	}

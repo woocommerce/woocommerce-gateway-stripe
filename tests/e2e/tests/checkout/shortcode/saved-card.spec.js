@@ -56,6 +56,14 @@ test( 'customer can checkout with a saved card @smoke', async ( {
 				config.get( 'cards.basic' )
 			);
 
+			// The fieldset wrapping the save checkbox must be visible while the
+			// checkbox row is shown (Link is disabled in this test).
+			await expect(
+				page.locator(
+					'.payment_box.payment_method_stripe fieldset:has(.woocommerce-SavedPaymentMethods-saveNew)'
+				)
+			).toBeVisible();
+
 			// check box to save payment method.
 			await page.locator( '#wc-stripe-new-payment-method' ).click();
 
@@ -81,6 +89,15 @@ test( 'customer can checkout with a saved card @smoke', async ( {
 					'.woocommerce-SavedPaymentMethods-token input[id^="wc-stripe-payment-token-"]'
 				)
 			).toHaveCount( 1 );
+
+			// With the saved card selected the save-checkbox row is hidden, and the
+			// fieldset wrapping it must be hidden too — a bare fieldset renders as
+			// an empty box on themes that keep the browser's default fieldset border.
+			const hiddenWrapper = page.locator(
+				'.payment_box.payment_method_stripe fieldset:has(.woocommerce-SavedPaymentMethods-saveNew)'
+			);
+			await expect( hiddenWrapper ).toBeAttached();
+			await expect( hiddenWrapper ).toBeHidden();
 
 			const expectedTotal = await getCartTotal( page );
 
