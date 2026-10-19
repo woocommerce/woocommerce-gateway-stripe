@@ -37,20 +37,6 @@ class WC_Stripe_Order_Reconciliation {
 	public const DELAYED_MAX_AGE        = 21 * DAY_IN_SECONDS;
 
 	/**
-	 * Stripe payment method types that confirm days after checkout.
-	 */
-	private const DELAYED_PAYMENT_METHOD_TYPES = [
-		WC_Stripe_Payment_Methods::ACH,
-		WC_Stripe_Payment_Methods::ACSS_DEBIT,
-		WC_Stripe_Payment_Methods::BACS_DEBIT,
-		WC_Stripe_Payment_Methods::BECS_DEBIT,
-		WC_Stripe_Payment_Methods::SEPA_DEBIT,
-		WC_Stripe_Payment_Methods::BOLETO,
-		WC_Stripe_Payment_Methods::MULTIBANCO,
-		WC_Stripe_Payment_Methods::OXXO,
-	];
-
-	/**
 	 * The order needs no further checks: it was settled, put on hold, or Stripe says it can't be paid.
 	 */
 	private const RESULT_DONE = 'done';
@@ -386,7 +372,7 @@ class WC_Stripe_Order_Reconciliation {
 	 */
 	private function is_delayed_payment( WC_Order $order ): bool {
 		return 'yes' === $order->get_meta( self::DELAYED_META, true )
-			|| in_array( WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order ), self::DELAYED_PAYMENT_METHOD_TYPES, true );
+			|| in_array( WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order ), WC_Stripe_Payment_Methods::DELAYED_NOTIFICATION_PAYMENT_METHODS, true );
 	}
 
 	/**
@@ -394,12 +380,17 @@ class WC_Stripe_Order_Reconciliation {
 	 *
 	 * Stored on the order so a later check that can't reach Stripe still uses the longer window.
 	 *
+	 * The reconciliation keeps its own flag instead of filling in `_stripe_upe_payment_type` for
+	 * Adaptive Pricing orders: the webhook handler, the voucher payment methods and several helpers
+	 * read that meta to decide how to process an order, and none of them expect it on Adaptive Pricing
+	 * orders. Filling it in from here would change their behaviour for those orders.
+	 *
 	 * @param WC_Order $order  Order being checked.
 	 * @param object   $intent PaymentIntent from Stripe, with its payment method expanded.
 	 */
 	private function maybe_mark_delayed_payment( WC_Order $order, object $intent ): void {
 		$type = is_object( $intent->payment_method ?? null ) ? ( $intent->payment_method->type ?? '' ) : '';
-		if ( ! in_array( $type, self::DELAYED_PAYMENT_METHOD_TYPES, true ) || 'yes' === $order->get_meta( self::DELAYED_META, true ) ) {
+		if ( ! in_array( $type, WC_Stripe_Payment_Methods::DELAYED_NOTIFICATION_PAYMENT_METHODS, true ) || 'yes' === $order->get_meta( self::DELAYED_META, true ) ) {
 			return;
 		}
 
