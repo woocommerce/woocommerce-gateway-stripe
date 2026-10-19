@@ -3902,7 +3902,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$order->save_meta_data();
 
 			if ( function_exists( 'wc_admin_record_tracks_event' ) ) {
-				wc_admin_record_tracks_event( 'wcstripe_co_branded_cc_preferred_brand_selected', [ 'brand' => $preferred_brand ] );
+				wc_admin_record_tracks_event(
+					'wcstripe_co_branded_cc_preferred_brand_selected',
+					WC_Stripe_Tracks::add_default_event_properties( [ 'brand' => $preferred_brand ] )
+				);
 			}
 		}
 	}

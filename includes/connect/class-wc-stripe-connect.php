@@ -546,18 +546,12 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * @param string          $mode            The connection mode. Either 'live' or 'test'.
 		 */
 		private function record_account_connect_tracks_event( $error_code, string $connection_type, string $mode ): void {
-			if ( ! class_exists( 'WC_Tracks' ) || ! method_exists( 'WC_Tracks', 'record_event' ) ) { // @phpstan-ignore function.alreadyNarrowedType (Defensive check to make sure the function is available in WooCommerce.)
-				return;
-			}
-
-			if ( ! class_exists( 'WC_Site_Tracking' ) || ! method_exists( WC_Site_Tracking::class, 'is_tracking_enabled' ) || ! WC_Site_Tracking::is_tracking_enabled() ) { // @phpstan-ignore function.alreadyNarrowedType (Defensive check to make sure the function is available in WooCommerce.)
+			if ( ! WC_Stripe_Tracks::is_tracking_enabled() ) {
 				return;
 			}
 
 			$event_props = [
-				'is_test_mode'    => 'live' !== $mode,
 				'connection_type' => $connection_type,
-				'stripe_version'  => WC_STRIPE_VERSION,
 			];
 
 			// Include the account ID if we have it, as some errors occur after the keys have been saved.
@@ -570,11 +564,13 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				$event_props['error_code'] = $error_code;
 			}
 
+			$event_props = WC_Stripe_Tracks::add_default_event_properties( $event_props );
+
 			$event_name = null === $error_code ? 'wcstripe_stripe_connected' : 'wcstripe_stripe_connect_error';
 
 			// We're recording this directly instead of queueing it because
 			// a queue wouldn't be processed due to the redirect that comes after.
-			WC_Tracks::record_event( $event_name, $event_props );
+			WC_Stripe_Tracks::record_direct_event( $event_name, $event_props );
 		}
 
 		/**
