@@ -580,6 +580,71 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A Checkout Session order has no intent stored until checkout.session.completed is processed,
+	 * so a late webhook must not let the hold-stock cron cancel an order whose session is complete.
+	 *
+	 * @dataProvider provide_checkout_session_states_for_cancellation
+	 *
+	 * @param string $session_status Checkout Session status reported by Stripe.
+	 * @param string $payment_status Checkout Session payment status reported by Stripe.
+	 * @param bool   $expected       Whether the order may be cancelled.
+	 */
+	public function test_checkout_session_order_without_intent_cancellation( string $session_status, string $payment_status, bool $expected ) {
+		$session_id = 'cs_test_cancel_unpaid';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_status( 'pending' );
+		$order->save();
+
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $session_id );
+		$order->save();
+		$order = wc_get_order( $order->get_id() );
+
+		$session_url    = WC_Stripe_API::ENDPOINT . 'checkout/sessions/' . $session_id;
+		$session_lookup = function ( $preempt, $request_args, $url ) use ( $session_url, $session_id, $session_status, $payment_status ) {
+			// Only the session itself is served; anything else must not reach the network.
+			if ( 0 !== strpos( $url, $session_url ) || ( $request_args['method'] ?? '' ) !== 'GET' ) {
+				return new WP_Error( 'unexpected_request', $url );
+			}
+
+			return [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'body'     => wp_json_encode(
+					[
+						'id'             => $session_id,
+						'object'         => 'checkout.session',
+						'status'         => $session_status,
+						'payment_status' => $payment_status,
+						'payment_intent' => 'pi_test_cancel_unpaid',
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $session_lookup, 10, 3 );
+
+		try {
+			$this->assertSame( $expected, $this->order_handler->prevent_cancelling_orders_awaiting_action( true, $order ) );
+		} finally {
+			remove_filter( 'pre_http_request', $session_lookup );
+		}
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: string, 2: bool}>
+	 */
+	public function provide_checkout_session_states_for_cancellation(): array {
+		return [
+			'complete and paid'                => [ 'complete', 'paid', false ],
+			'complete, async payment underway' => [ 'complete', 'unpaid', false ],
+			'expired without payment'          => [ 'expired', 'unpaid', true ],
+		];
+	}
+
+	/**
 	 * Returns the order notes that announce a prevented paid-order cancellation.
 	 *
 	 * @param int $order_id The order to read notes from.
