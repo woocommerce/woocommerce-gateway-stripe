@@ -582,6 +582,44 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		];
 	}
 
+	public function test_missing_stripe_object_logs_stripes_message(): void {
+		$order   = $this->create_pending_stripe_order( false );
+		$message = "No such payment_intent: 'pi_recovery'; a similar object exists in test mode, but a live mode key was used to make this request.";
+		$this->mock_stripe_objects(
+			[
+				'/payment_intents/pi_recovery' => (object) [
+					'error' => (object) [
+						'code'    => 'resource_missing',
+						'type'    => 'invalid_request_error',
+						'message' => $message,
+					],
+				],
+			]
+		);
+		$logger = $this->getMockBuilder( WC_Logger::class )->getMock();
+		$logger->expects( $this->once() )
+			->method( 'warning' )
+			->with(
+				$this->stringContains( 'Stopped reconciling a pending Stripe order' ),
+				$this->callback(
+					static function ( $context ) use ( $message ) {
+						return is_array( $context ) && ( $context['stripe_message'] ?? null ) === $message && 'pi_recovery' === ( $context['stripe_id'] ?? null );
+					}
+				)
+			);
+		WC_Stripe_Logger::$logger = $logger;
+		add_filter( 'wc_stripe_logger_can_log', '__return_true' );
+
+		try {
+			$this->reconciliation->reconcile_order_payment( $order->get_id() );
+		} finally {
+			remove_filter( 'wc_stripe_logger_can_log', '__return_true' );
+			WC_Stripe_Logger::$logger = null;
+		}
+
+		$this->assertSame( [], $this->scheduled_checks( $order->get_id() ) );
+	}
+
 	/** @dataProvider provide_check_windows */
 	public function test_next_check_follows_the_payment_method_window( string $payment_type, int $started_ago, ?int $expected_delay ): void {
 		$order = $this->create_pending_stripe_order( false );

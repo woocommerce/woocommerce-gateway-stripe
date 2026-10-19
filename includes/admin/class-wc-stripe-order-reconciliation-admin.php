@@ -7,6 +7,11 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Order screen and Orders list actions for re-checking Stripe payments.
+ *
+ * @internal Not part of the public API; it can change without notice.
+ */
 class WC_Stripe_Order_Reconciliation_Admin {
 	public const ORDER_ACTION      = 'wc_stripe_recheck_payment';
 	public const NOTICE_QUERY_ARG  = 'stripe_reconciliation_queued';

@@ -7,6 +7,11 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Checks pending Stripe orders against Stripe when their webhooks don't settle them, and settles them.
+ *
+ * @internal Not part of the public API; it can change without notice.
+ */
 class WC_Stripe_Order_Reconciliation {
 	public const ORDER_HOOK   = 'wc_stripe_reconcile_order_payment';
 	public const GROUP        = 'woocommerce-gateway-stripe';
@@ -384,7 +389,8 @@ class WC_Stripe_Order_Reconciliation {
 	 */
 	private function get_request_error_result( ?object $response, int $order_id, string $stripe_id ): string {
 		if ( null !== $response && 'resource_missing' === ( $response->error->code ?? '' ) ) {
-			return $this->stop( 'The Stripe object no longer exists for the current account and mode.', $order_id, $stripe_id );
+			// Stripe's message tells a mode mismatch ("a similar object exists in test mode") apart from a deleted object.
+			return $this->stop( 'The Stripe object no longer exists for the current account and mode.', $order_id, $stripe_id, (string) ( $response->error->message ?? '' ) );
 		}
 
 		return $this->retry( 'Stripe returned an error (' . (string) ( $response->error->code ?? 'no response' ) . ').', $order_id, $stripe_id );
@@ -451,19 +457,22 @@ class WC_Stripe_Order_Reconciliation {
 	 *
 	 * Logged as a warning because the order stays pending, and the merchant may need to follow up.
 	 *
-	 * @param string $reason    Why the order can't be settled.
-	 * @param int    $order_id  Order being checked.
-	 * @param string $stripe_id ID of the Stripe object that settled the question.
+	 * @param string $reason         Why the order can't be settled.
+	 * @param int    $order_id       Order being checked.
+	 * @param string $stripe_id      ID of the Stripe object that settled the question.
+	 * @param string $stripe_message Stripe's error message, if the reason came from an API error.
 	 * @return string Always RESULT_DONE, so callers can return it directly.
 	 */
-	private function stop( string $reason, int $order_id, string $stripe_id ): string {
-		WC_Stripe_Logger::warning(
-			'Stopped reconciling a pending Stripe order: ' . $reason,
-			[
-				'order_id'  => $order_id,
-				'stripe_id' => $stripe_id,
-			]
-		);
+	private function stop( string $reason, int $order_id, string $stripe_id, string $stripe_message = '' ): string {
+		$context = [
+			'order_id'  => $order_id,
+			'stripe_id' => $stripe_id,
+		];
+		if ( '' !== $stripe_message ) {
+			$context['stripe_message'] = $stripe_message;
+		}
+
+		WC_Stripe_Logger::warning( 'Stopped reconciling a pending Stripe order: ' . $reason, $context );
 
 		return self::RESULT_DONE;
 	}
