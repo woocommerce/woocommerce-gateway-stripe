@@ -90,7 +90,7 @@ class WC_Stripe_Order_Reconciliation {
 	 * @param mixed $order Order or order ID, depending on the hook.
 	 */
 	public function schedule_order_check( $order ): void {
-		if ( ! function_exists( 'as_schedule_single_action' ) ) {
+		if ( ! WC_Stripe_Feature_Flags::is_order_reconciliation_enabled() || ! function_exists( 'as_schedule_single_action' ) ) {
 			return;
 		}
 
@@ -115,7 +115,7 @@ class WC_Stripe_Order_Reconciliation {
 	 * @param mixed $order Order or order ID.
 	 */
 	public function enqueue_order( $order ): bool {
-		if ( ! function_exists( 'as_enqueue_async_action' ) ) {
+		if ( ! WC_Stripe_Feature_Flags::is_order_reconciliation_enabled() || ! function_exists( 'as_enqueue_async_action' ) ) {
 			return false;
 		}
 
@@ -145,6 +145,12 @@ class WC_Stripe_Order_Reconciliation {
 	 * @param mixed $is_manual
 	 */
 	public function reconcile_order_payment( $order_id = 0, $is_manual = false ): void {
+		// The callback stays registered while the feature is off: Action Scheduler marks actions
+		// without a callback as failed, so checks queued before it was turned off end here instead.
+		if ( ! WC_Stripe_Feature_Flags::is_order_reconciliation_enabled() ) {
+			return;
+		}
+
 		$order = $this->resolve_order( $order_id );
 		if ( ! $order || ! $this->is_eligible_order( $order ) ) {
 			return;

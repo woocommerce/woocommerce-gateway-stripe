@@ -226,7 +226,7 @@ class WC_Stripe {
 			$order_reconciliation = new WC_Stripe_Order_Reconciliation( $order_handler, $webhook_handler );
 			$order_reconciliation->register_hooks();
 
-			if ( is_admin() ) {
+			if ( is_admin() && WC_Stripe_Feature_Flags::is_order_reconciliation_enabled() ) {
 				( new WC_Stripe_Order_Reconciliation_Admin( $order_reconciliation ) )->register_hooks();
 			}
 		}

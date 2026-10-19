@@ -158,4 +158,31 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 		];
 	}
+
+	/**
+	 * @param string|null $option_value The value to set on `_wcstripe_feature_order_reconciliation`, or null to delete.
+	 * @param bool        $expected     The expected return value.
+	 *
+	 * @dataProvider provide_test_is_order_reconciliation_enabled
+	 */
+	public function test_is_order_reconciliation_enabled( $option_value, bool $expected ): void {
+		if ( null === $option_value ) {
+			delete_option( WC_Stripe_Feature_Flags::ORDER_RECONCILIATION_FEATURE_FLAG_NAME );
+		} else {
+			update_option( WC_Stripe_Feature_Flags::ORDER_RECONCILIATION_FEATURE_FLAG_NAME, $option_value );
+		}
+
+		$actual = WC_Stripe_Feature_Flags::is_order_reconciliation_enabled();
+		delete_option( WC_Stripe_Feature_Flags::ORDER_RECONCILIATION_FEATURE_FLAG_NAME );
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	public function provide_test_is_order_reconciliation_enabled(): array {
+		return [
+			'on by default' => [ null, true ],
+			'explicitly on' => [ 'yes', true ],
+			'turned off'    => [ 'no', false ],
+		];
+	}
 }

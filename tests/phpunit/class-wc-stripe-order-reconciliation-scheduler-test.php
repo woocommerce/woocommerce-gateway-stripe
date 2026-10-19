@@ -161,6 +161,49 @@ class WC_Stripe_Order_Reconciliation_Scheduler_Test extends WP_UnitTestCase {
 		$this->assertSame( '', $reloaded->get_meta( WC_Stripe_Order_Reconciliation::DELAYED_META, true ) );
 	}
 
+	public function test_nothing_is_scheduled_or_queued_while_the_feature_is_off() {
+		$order = $this->create_order( 'stripe', 'pi_flag_off', 0 );
+		update_option( WC_Stripe_Feature_Flags::ORDER_RECONCILIATION_FEATURE_FLAG_NAME, 'no' );
+
+		try {
+			$this->reconciliation->schedule_order_check( $order );
+			$this->assertFalse( $this->reconciliation->enqueue_order( $order ) );
+		} finally {
+			delete_option( WC_Stripe_Feature_Flags::ORDER_RECONCILIATION_FEATURE_FLAG_NAME );
+		}
+
+		$this->assertSame( [], $this->queued_order_ids() );
+	}
+
+	public function test_queued_check_completes_without_errors_after_the_feature_is_turned_off() {
+		$order = $this->create_order( 'stripe', 'pi_flag_off_queue', 0 );
+		$this->reconciliation->schedule_order_check( $order );
+		$action_ids = as_get_scheduled_actions(
+			[
+				'hook'   => WC_Stripe_Order_Reconciliation::ORDER_HOOK,
+				'args'   => [ 'order_id' => $order->get_id() ],
+				'group'  => WC_Stripe_Order_Reconciliation::GROUP,
+				'status' => ActionScheduler_Store::STATUS_PENDING,
+			],
+			'ids'
+		);
+		$this->assertCount( 1, $action_ids );
+		$action_id = (int) reset( $action_ids );
+
+		update_option( WC_Stripe_Feature_Flags::ORDER_RECONCILIATION_FEATURE_FLAG_NAME, 'no' );
+		try {
+			$this->reconciliation->register_hooks();
+			$this->assertSame( 10, has_action( WC_Stripe_Order_Reconciliation::ORDER_HOOK, [ $this->reconciliation, 'reconcile_order_payment' ] ) );
+
+			ActionScheduler::runner()->process_action( $action_id, 'PHPUnit' );
+		} finally {
+			delete_option( WC_Stripe_Feature_Flags::ORDER_RECONCILIATION_FEATURE_FLAG_NAME );
+		}
+
+		$this->assertSame( ActionScheduler_Store::STATUS_COMPLETE, ActionScheduler::store()->get_status( $action_id ) );
+		$this->assertSame( [], $this->queued_order_ids() );
+	}
+
 	public function test_hook_registration_adds_no_admin_hooks() {
 		$this->reconciliation->register_hooks();
 

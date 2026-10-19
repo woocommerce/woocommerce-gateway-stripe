@@ -581,6 +581,23 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		$this->assertSame( [], $this->scheduled_checks( $order->get_id() ) );
 	}
 
+	public function test_queued_check_exits_without_stripe_requests_while_the_feature_is_off(): void {
+		$order     = $this->create_pending_stripe_order( false );
+		$endpoints = [];
+		$this->mock_stripe_objects( [ '/payment_intents/pi_recovery' => $this->successful_intent( self::fixture_charge() ) ], $endpoints );
+		update_option( WC_Stripe_Feature_Flags::ORDER_RECONCILIATION_FEATURE_FLAG_NAME, 'no' );
+
+		try {
+			$this->reconciliation->reconcile_order_payment( $order->get_id() );
+		} finally {
+			delete_option( WC_Stripe_Feature_Flags::ORDER_RECONCILIATION_FEATURE_FLAG_NAME );
+		}
+
+		$this->assertSame( [], $endpoints );
+		$this->assertSame( [], $this->scheduled_checks( $order->get_id() ) );
+		$this->assertSame( 'pending', wc_get_order( $order->get_id() )->get_status() );
+	}
+
 	public function test_manual_check_does_not_schedule_a_retry(): void {
 		$order          = $this->create_pending_stripe_order( false );
 		$intent         = $this->successful_intent( self::fixture_charge() );
