@@ -299,6 +299,32 @@ class WC_Stripe_Order_Reconciliation_Scheduler_Test extends WP_UnitTestCase {
 		$this->assertFalse( $this->reconciliation->is_eligible_order( $subscription ) );
 	}
 
+	public function test_checks_of_different_orders_never_rely_on_action_schedulers_unique_flag() {
+		$first  = $this->create_order( 'stripe', 'pi_first', 0 );
+		$second = $this->create_order( 'stripe', 'pi_second', 0 );
+		$unique = [];
+		$record = static function ( $pre, ...$args ) use ( &$unique ) {
+			$unique[] = end( $args );
+			return $pre;
+		};
+		add_filter( 'pre_as_schedule_single_action', $record, 10, 7 );
+		add_filter( 'pre_as_enqueue_async_action', $record, 10, 6 );
+
+		try {
+			$this->reconciliation->schedule_order_check( $first );
+			$this->reconciliation->schedule_order_check( $second );
+			$this->reconciliation->enqueue_order( $first );
+			$this->reconciliation->enqueue_order( $second );
+		} finally {
+			remove_filter( 'pre_as_schedule_single_action', $record, 10 );
+			remove_filter( 'pre_as_enqueue_async_action', $record, 10 );
+		}
+
+		// Before Action Scheduler 4.0.0, a `unique` action was unique per hook and group only.
+		$this->assertSame( [ false, false, false, false ], $unique );
+		$this->assertSame( [ $first->get_id(), $first->get_id(), $second->get_id(), $second->get_id() ], $this->queued_order_ids() );
+	}
+
 	public function test_enqueue_is_unique_per_order() {
 		$order = $this->create_order( 'stripe', 'pi_unique', 20 * MINUTE_IN_SECONDS );
 

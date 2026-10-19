@@ -191,7 +191,26 @@ class WC_Stripe_Order_Reconciliation {
 			$first_check_at = $started_at + ( $this->is_delayed_payment( $order ) ? self::DELAYED_CHECK_INTERVAL : self::FIRST_CHECK_DELAY );
 		}
 
-		as_schedule_single_action( $first_check_at, self::ORDER_HOOK, [ 'order_id' => $order->get_id() ], self::GROUP, true );
+		$args = [ 'order_id' => $order->get_id() ];
+		if ( $this->has_pending_check( $args ) ) {
+			return;
+		}
+
+		as_schedule_single_action( $first_check_at, self::ORDER_HOOK, $args, self::GROUP );
+	}
+
+	/**
+	 * Whether a check with these arguments is already queued or running.
+	 *
+	 * Used instead of Action Scheduler's `unique` flag: before Action Scheduler 4.0.0, `unique` ignored
+	 * the arguments and allowed one pending action per hook and group, so stores on older releases
+	 * would only ever have one order checked at a time.
+	 *
+	 * @param array $args Arguments of the check.
+	 * @return bool
+	 */
+	private function has_pending_check( array $args ): bool {
+		return function_exists( 'as_has_scheduled_action' ) && as_has_scheduled_action( self::ORDER_HOOK, $args, self::GROUP );
 	}
 
 	/**
@@ -217,8 +236,8 @@ class WC_Stripe_Order_Reconciliation {
 	/**
 	 * Queue an immediate, one-off status check requested by the merchant.
 	 *
-	 * The extra argument keeps it apart from the scheduled check of the same order, which would
-	 * otherwise make Action Scheduler reject it as a duplicate until the scheduled check runs.
+	 * The extra argument keeps it apart from the scheduled check of the same order, so a pending
+	 * scheduled check doesn't block it. Only another queued manual check does.
 	 *
 	 * @param mixed $order Order or order ID.
 	 */
@@ -232,15 +251,15 @@ class WC_Stripe_Order_Reconciliation {
 			return false;
 		}
 
-		return (bool) as_enqueue_async_action(
-			self::ORDER_HOOK,
-			[
-				'order_id' => $order->get_id(),
-				'manual'   => true,
-			],
-			self::GROUP,
-			true
-		);
+		$args = [
+			'order_id' => $order->get_id(),
+			'manual'   => true,
+		];
+		if ( $this->has_pending_check( $args ) ) {
+			return false;
+		}
+
+		return (bool) as_enqueue_async_action( self::ORDER_HOOK, $args, self::GROUP );
 	}
 
 	/**
