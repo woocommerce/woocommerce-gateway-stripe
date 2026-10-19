@@ -118,6 +118,88 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		];
 	}
 
+	/** @dataProvider provide_final_sessions */
+	public function test_final_session_falls_back_to_the_intent_of_a_later_payment_attempt( string $change ): void {
+		$order = $this->create_pending_stripe_order( true );
+		$order->update_meta_data( '_stripe_intent_id', 'pi_recovery' );
+		$order->save();
+		$this->use_real_settlement();
+		$objects = $this->successful_stripe_objects( $order );
+
+		$objects['/checkout/sessions/cs_recovery']->payment_intent = 'pi_from_the_session';
+		if ( 'expired' === $change ) {
+			$objects['/checkout/sessions/cs_recovery']->status = 'expired';
+		} else {
+			$objects['/checkout/sessions/cs_recovery']->mode = 'setup';
+		}
+		$endpoints = [];
+		$this->mock_stripe_objects( $objects, $endpoints );
+
+		$this->reconciliation->reconcile_order_payment( $order->get_id() );
+
+		$settled = wc_get_order( $order->get_id() );
+		$this->assertTrue( $settled->is_paid() );
+		$this->assertSame( 'ch_recovery', $settled->get_transaction_id() );
+		$this->assertContains( '/payment_intents/pi_recovery', $endpoints );
+	}
+
+	public static function provide_final_sessions(): array {
+		return [
+			'expired session'          => [ 'expired' ],
+			'session for another mode' => [ 'mode' ],
+		];
+	}
+
+	public function test_final_session_without_another_intent_stops(): void {
+		$order = $this->create_pending_stripe_order( true );
+		$order->update_meta_data( '_stripe_intent_id', 'pi_recovery' );
+		$order->save();
+		$session         = $this->completed_session( 'pi_recovery' );
+		$session->status = 'expired';
+		$endpoints       = [];
+		$this->mock_stripe_objects( [ '/checkout/sessions/cs_recovery' => $session ], $endpoints );
+		$this->gateway->expects( $this->never() )->method( 'process_response' );
+
+		$this->reconciliation->reconcile_order_payment( $order->get_id() );
+
+		$this->assertSame( [ '/checkout/sessions/cs_recovery' ], $endpoints );
+		$this->assertSame( [], $this->scheduled_checks( $order->get_id() ) );
+		$this->assertSame( 'pending', wc_get_order( $order->get_id() )->get_status() );
+	}
+
+	public function test_paid_session_with_another_intent_settles_and_warns(): void {
+		$order = $this->create_pending_stripe_order( true );
+		$order->update_meta_data( '_stripe_intent_id', 'pi_other_attempt' );
+		$order->save();
+		$this->use_real_settlement();
+		$this->mock_stripe_objects( $this->successful_stripe_objects( $order ) );
+		$warnings = [];
+		$logger   = $this->getMockBuilder( WC_Logger::class )->getMock();
+		$logger->method( 'warning' )->willReturnCallback(
+			static function ( $message, $context ) use ( &$warnings ) {
+				$warnings[] = [ $message, $context ];
+			}
+		);
+		WC_Stripe_Logger::$logger = $logger;
+		add_filter( 'wc_stripe_logger_can_log', '__return_true' );
+
+		try {
+			$this->reconciliation->reconcile_order_payment( $order->get_id() );
+		} finally {
+			remove_filter( 'wc_stripe_logger_can_log', '__return_true' );
+			WC_Stripe_Logger::$logger = null;
+		}
+
+		$this->assertTrue( wc_get_order( $order->get_id() )->is_paid() );
+		$second_intent_warnings = array_filter(
+			$warnings,
+			static function ( $warning ) {
+				return false !== strpos( $warning[0], 'also has another PaymentIntent' ) && 'pi_other_attempt' === ( $warning[1]['other_intent_id'] ?? '' );
+			}
+		);
+		$this->assertCount( 1, $second_intent_warnings );
+	}
+
 	/** @dataProvider provide_invalid_charges */
 	public function test_rejects_invalid_charge_before_settlement( $charge ): void {
 		$order  = $this->create_pending_stripe_order( true );

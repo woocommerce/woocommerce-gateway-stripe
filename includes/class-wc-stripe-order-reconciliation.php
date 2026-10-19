@@ -346,12 +346,45 @@ class WC_Stripe_Order_Reconciliation {
 				if ( ! is_object( $session ) || isset( $session->error ) ) {
 					return $this->get_request_error_result( $session, $order_id, $session_id );
 				}
+				$session_intent_id = is_string( $session->payment_intent ?? null ) ? $session->payment_intent : '';
+				// Only Payment Element payments store an intent ID other than the session's, so a different one
+				// comes from another payment attempt on the same order, for example through pay-for-order.
+				$has_other_intent = '' !== $stored_intent_id && $stored_intent_id !== $session_intent_id;
+
 				if ( ! $this->is_valid_checkout_session( $session, $session_id ) ) {
-					return $this->is_final_checkout_session( $session, $session_id )
-						? $this->stop( 'The Checkout Session can no longer be paid.', $order_id, $session_id )
-						: $this->retry( 'The Checkout Session is not paid yet (status: ' . (string) ( $session->status ?? '' ) . ').', $order_id, $session_id, (string) ( $session->status ?? '' ) );
+					if ( ! $this->is_final_checkout_session( $session, $session_id ) ) {
+						// A session that can still be paid is followed, whatever else is stored on the order.
+						return $this->retry( 'The Checkout Session is not paid yet (status: ' . (string) ( $session->status ?? '' ) . ').', $order_id, $session_id, (string) ( $session->status ?? '' ) );
+					}
+					if ( ! $has_other_intent ) {
+						return $this->stop( 'The Checkout Session can no longer be paid.', $order_id, $session_id );
+					}
+
+					WC_Stripe_Logger::debug(
+						'Reconciliation found a Checkout Session that can no longer be paid, and checks the PaymentIntent of a later payment attempt instead.',
+						[
+							'order_id'   => $order_id,
+							'session_id' => $session_id,
+							'intent_id'  => $stored_intent_id,
+						]
+					);
+					$session = null;
+				} else {
+					if ( $has_other_intent ) {
+						// Both may have been paid. Settling follows the session, which holds a verified payment;
+						// the other PaymentIntent is left for the merchant to look at.
+						WC_Stripe_Logger::warning(
+							'Reconciliation settles an order through its Checkout Session, but the order also has another PaymentIntent. Check whether the customer paid twice.',
+							[
+								'order_id'          => $order_id,
+								'session_id'        => $session_id,
+								'session_intent_id' => $session_intent_id,
+								'other_intent_id'   => $stored_intent_id,
+							]
+						);
+					}
+					$intent_id = $session_intent_id;
 				}
-				$intent_id = $session->payment_intent ?? '';
 			}
 			if ( ! is_string( $intent_id ) || '' === $intent_id ) {
 				return self::RESULT_DONE;
