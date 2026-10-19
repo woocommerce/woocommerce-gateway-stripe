@@ -111,6 +111,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$this->assertSame( $expected_oc, $settings['optimized_checkout_element'] ?? '' );
 		$this->assertSame( $expected_ap, $settings['adaptive_pricing'] ?? '' );
+		$this->assertSame( [ 'card', 'link' ], $settings['upe_checkout_experience_accepted_payments'] );
 
 		// Marker is always consumed, even when not applied.
 		$this->assertEquals( false, get_option( 'wc_stripe_optimized_checkout_default_on' ) );
@@ -148,6 +149,64 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'account_country' => 'US',
 				'expected_oc'     => '',
 				'expected_ap'     => '',
+			],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_reconnect_preferences
+	 * @param array $preferences Existing saved preferences.
+	 */
+	public function test_reconnect_preserves_existing_preferences( array $preferences ): void {
+		$this->mock_stripe_account();
+		$settings = array_merge(
+			[
+				'test_publishable_key' => 'pk_test_previous',
+				'test_secret_key'      => 'sk_test_previous',
+				'pmc_enabled'          => 'yes',
+			],
+			$preferences
+		);
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		update_option( 'wc_stripe_optimized_checkout_default_on', 'yes' );
+		add_filter( 'pre_update_option_woocommerce_stripe_settings', [ WC_Stripe::get_instance(), 'gateway_settings_update' ], 10, 2 );
+
+		try {
+			$this->invoke_save_stripe_keys( 'pk_test_previous', 'sk_test_previous' );
+			$this->invoke_save_stripe_keys( 'pk_test_previous', 'sk_test_previous' );
+		} finally {
+			remove_filter( 'pre_update_option_woocommerce_stripe_settings', [ WC_Stripe::get_instance(), 'gateway_settings_update' ] );
+		}
+
+		$saved = WC_Stripe_Helper::get_stripe_settings();
+		foreach ( [ 'upe_checkout_experience_accepted_payments', 'express_checkout_button_locations', 'optimized_checkout_element', 'adaptive_pricing' ] as $key ) {
+			if ( array_key_exists( $key, $preferences ) ) {
+				$this->assertSame( $preferences[ $key ], $saved[ $key ], $key );
+			} else {
+				$this->assertArrayNotHasKey( $key, $saved, $key );
+			}
+		}
+		$this->assertFalse( get_option( 'wc_stripe_optimized_checkout_default_on' ) );
+	}
+
+	public function provide_reconnect_preferences(): array {
+		return [
+			'missing settings stay missing' => [ [ 'upe_checkout_experience_enabled' => 'yes' ] ],
+			'explicit empty and off'        => [
+				[
+					'upe_checkout_experience_accepted_payments' => [],
+					'express_checkout_button_locations'         => [],
+					'optimized_checkout_element'                => 'no',
+					'adaptive_pricing'                          => 'no',
+				],
+			],
+			'custom selections'             => [
+				[
+					'upe_checkout_experience_accepted_payments' => [ 'card', 'klarna' ],
+					'express_checkout_button_locations'         => [ 'checkout' ],
+					'optimized_checkout_element'                => 'no',
+					'adaptive_pricing'                          => 'no',
+				],
 			],
 		];
 	}
