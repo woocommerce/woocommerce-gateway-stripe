@@ -43,9 +43,8 @@ class WC_Stripe_Order_Reconciliation_Scheduler_Test extends WP_UnitTestCase {
 		update_option( 'woocommerce_custom_orders_table_enabled', $this->original_hpos_setting );
 		remove_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
 		remove_action( WC_Stripe_Order_Reconciliation::ORDER_HOOK, [ $this->reconciliation, 'reconcile_order_payment' ] );
-		remove_action( 'woocommerce_checkout_order_processed', [ $this->reconciliation, 'schedule_order_check' ] );
-		remove_action( 'woocommerce_store_api_checkout_order_processed', [ $this->reconciliation, 'schedule_order_check' ] );
-		remove_action( 'woocommerce_before_pay_action', [ $this->reconciliation, 'schedule_order_check' ] );
+		remove_filter( 'woocommerce_payment_successful_result', [ $this->reconciliation, 'schedule_after_classic_payment' ], 10 );
+		remove_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this->reconciliation, 'schedule_after_store_api_payment' ], 10001 );
 		parent::tear_down();
 	}
 
@@ -69,8 +68,8 @@ class WC_Stripe_Order_Reconciliation_Scheduler_Test extends WP_UnitTestCase {
 	 */
 	public function test_schedules_a_delayed_check_only_for_stripe_orders( string $storage_mode ) {
 		$this->set_storage_mode( $storage_mode );
-		$stripe_order = $this->create_order( 'stripe', '', 0 );
-		$cod_order    = $this->create_order( 'cod', '', 0 );
+		$stripe_order = $this->create_order( 'stripe', 'pi_scheduled', 0 );
+		$cod_order    = $this->create_order( 'cod', 'pi_cod', 0 );
 
 		$this->reconciliation->schedule_order_check( $stripe_order );
 		$this->reconciliation->schedule_order_check( $cod_order );
@@ -81,7 +80,7 @@ class WC_Stripe_Order_Reconciliation_Scheduler_Test extends WP_UnitTestCase {
 	}
 
 	public function test_scheduled_check_accepts_an_order_id_and_is_unique_per_order() {
-		$order = $this->create_order( 'stripe', '', 0 );
+		$order = $this->create_order( 'stripe', 'pi_unique_check', 0 );
 
 		$this->reconciliation->schedule_order_check( $order->get_id() );
 		$this->reconciliation->schedule_order_check( $order );
@@ -114,12 +113,105 @@ class WC_Stripe_Order_Reconciliation_Scheduler_Test extends WP_UnitTestCase {
 		];
 	}
 
-	public function test_hook_registration_schedules_checks_from_checkout_hooks() {
+	public function test_hook_registration_schedules_checks_after_payment_processing() {
 		$this->reconciliation->register_hooks();
 
-		$this->assertSame( 10, has_action( 'woocommerce_checkout_order_processed', [ $this->reconciliation, 'schedule_order_check' ] ) );
-		$this->assertSame( 10, has_action( 'woocommerce_store_api_checkout_order_processed', [ $this->reconciliation, 'schedule_order_check' ] ) );
-		$this->assertSame( 10, has_action( 'woocommerce_before_pay_action', [ $this->reconciliation, 'schedule_order_check' ] ) );
+		$this->assertSame( 10, has_filter( 'woocommerce_payment_successful_result', [ $this->reconciliation, 'schedule_after_classic_payment' ] ) );
+		$this->assertSame( 10001, has_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this->reconciliation, 'schedule_after_store_api_payment' ] ) );
+	}
+
+	/** @dataProvider provide_orders_after_payment */
+	public function test_classic_payment_schedules_a_check_only_for_orders_waiting_for_stripe( string $scenario, bool $expect_check ) {
+		$order = $this->create_order_in_state( $scenario );
+		$input = [
+			'result'   => 'success',
+			'redirect' => 'https://example.org/checkout/order-received/',
+		];
+
+		$output = $this->reconciliation->schedule_after_classic_payment( $input, $order->get_id() );
+
+		$this->assertSame( $input, $output );
+		$this->assertSame( $expect_check ? [ $order->get_id() ] : [], $this->queued_order_ids() );
+	}
+
+	/** @dataProvider provide_orders_after_payment */
+	public function test_store_api_payment_schedules_a_check_only_for_orders_waiting_for_stripe( string $scenario, bool $expect_check ) {
+		$order   = $this->create_order_in_state( $scenario );
+		$context = new \Automattic\WooCommerce\StoreApi\Payments\PaymentContext();
+		$context->set_order( $order );
+
+		$this->reconciliation->schedule_after_store_api_payment( $context, new \Automattic\WooCommerce\StoreApi\Payments\PaymentResult( 'success' ) );
+
+		$this->assertSame( $expect_check ? [ $order->get_id() ] : [], $this->queued_order_ids() );
+	}
+
+	public static function provide_orders_after_payment(): array {
+		return [
+			'pending with an intent (redirect or 3DS)' => [ 'pending_intent', true ],
+			'pending with a Checkout Session'          => [ 'pending_session', true ],
+			'paid during the request'                  => [ 'processing', false ],
+			'on hold'                                  => [ 'on_hold', false ],
+			'pending but already paid'                 => [ 'pending_paid', false ],
+			'pending without Stripe IDs'               => [ 'pending_no_ids', false ],
+			'paid with another gateway'                => [ 'other_gateway', false ],
+		];
+	}
+
+	/** @dataProvider provide_unsuccessful_payment_results */
+	public function test_unsuccessful_payments_schedule_nothing( string $status ) {
+		$order   = $this->create_order_in_state( 'pending_intent' );
+		$context = new \Automattic\WooCommerce\StoreApi\Payments\PaymentContext();
+		$context->set_order( $order );
+
+		$this->reconciliation->schedule_after_classic_payment( [ 'result' => $status ], $order->get_id() );
+		$this->reconciliation->schedule_after_store_api_payment( $context, new \Automattic\WooCommerce\StoreApi\Payments\PaymentResult( $status ) );
+
+		$this->assertSame( [], $this->queued_order_ids() );
+	}
+
+	public static function provide_unsuccessful_payment_results(): array {
+		return [
+			'failure' => [ 'failure' ],
+			'error'   => [ 'error' ],
+			'pending' => [ 'pending' ],
+			'empty'   => [ '' ],
+		];
+	}
+
+	public function test_unexpected_hook_arguments_are_ignored() {
+		$this->assertNull( $this->reconciliation->schedule_after_classic_payment( null, null ) );
+		$this->reconciliation->schedule_after_store_api_payment( null, 'success' );
+
+		$this->assertSame( [], $this->queued_order_ids() );
+	}
+
+	public function test_scheduling_failure_never_breaks_checkout() {
+		$order  = $this->create_order_in_state( 'pending_intent' );
+		$filter = static function () {
+			throw new RuntimeException( 'Action Scheduler is unavailable.' );
+		};
+		add_filter( 'pre_as_schedule_single_action', $filter );
+
+		try {
+			$result = $this->reconciliation->schedule_after_classic_payment( [ 'result' => 'success' ], $order->get_id() );
+		} finally {
+			remove_filter( 'pre_as_schedule_single_action', $filter );
+		}
+
+		$this->assertSame( [ 'result' => 'success' ], $result );
+		$this->assertSame( [], $this->queued_order_ids() );
+	}
+
+	public function test_subscriptions_are_not_checked() {
+		$subscription = new class() extends WC_Order {
+			public function get_type() {
+				return 'shop_subscription';
+			}
+		};
+		$subscription->set_payment_method( 'stripe' );
+		$subscription->update_meta_data( '_stripe_intent_id', 'pi_subscription' );
+
+		$this->assertFalse( $this->reconciliation->is_eligible_order( $subscription ) );
 	}
 
 	public function test_enqueue_is_unique_per_order() {
@@ -230,6 +322,26 @@ class WC_Stripe_Order_Reconciliation_Scheduler_Test extends WP_UnitTestCase {
 		$order->set_date_created( time() - $age_seconds );
 		if ( '' !== $intent_id ) {
 			$order->update_meta_data( '_stripe_intent_id', $intent_id );
+		}
+		$order->save();
+		return $order;
+	}
+
+	private function create_order_in_state( string $scenario ): WC_Order {
+		$order = $this->create_order( 'other_gateway' === $scenario ? 'cod' : 'stripe', 'pending_no_ids' === $scenario || 'pending_session' === $scenario ? '' : 'pi_after_payment', 0 );
+		switch ( $scenario ) {
+			case 'pending_session':
+				$order->update_meta_data( '_stripe_checkout_session_id', 'cs_after_payment' );
+				break;
+			case 'processing':
+				$order->set_status( 'processing' );
+				break;
+			case 'on_hold':
+				$order->set_status( 'on-hold' );
+				break;
+			case 'pending_paid':
+				$order->set_date_paid( time() );
+				break;
 		}
 		$order->save();
 		return $order;

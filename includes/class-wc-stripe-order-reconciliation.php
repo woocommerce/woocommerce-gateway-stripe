@@ -75,19 +75,54 @@ class WC_Stripe_Order_Reconciliation {
 
 	public function register_hooks(): void {
 		add_action( self::ORDER_HOOK, [ $this, 'reconcile_order_payment' ], 10, 2 );
-		add_action( 'woocommerce_checkout_order_processed', [ $this, 'schedule_order_check' ] );
-		add_action( 'woocommerce_store_api_checkout_order_processed', [ $this, 'schedule_order_check' ] );
-		add_action( 'woocommerce_before_pay_action', [ $this, 'schedule_order_check' ] );
+		// Classic checkout and classic pay-for-order.
+		add_filter( 'woocommerce_payment_successful_result', [ $this, 'schedule_after_classic_payment' ], 10, 2 );
+		// Blocks checkout, Blocks pay-for-order and express checkout. WooCommerce calls the gateway at
+		// priority 999 and the plugin's own handlers run up to 10000, so the result is final by now.
+		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'schedule_after_store_api_payment' ], 10001, 2 );
 	}
 
 	/**
-	 * Schedule a delayed status check for an order that is about to be paid with Stripe.
+	 * Schedule a check after a successful classic payment, if the order is still waiting for Stripe.
 	 *
-	 * These hooks fire before the payment is processed, so the order has no session or intent ID yet.
-	 * Only the payment method is checked here; the job checks whether the order still needs settling.
+	 * @param mixed $result   Result of the gateway's process_payment().
+	 * @param mixed $order_id Order that was paid for.
+	 * @return mixed The result, unchanged.
+	 */
+	public function schedule_after_classic_payment( $result, $order_id ) {
+		if ( is_array( $result ) && 'success' === ( $result['result'] ?? '' ) ) {
+			$this->schedule_order_check_safely( $order_id );
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Schedule a check after a successful Store API payment, if the order is still waiting for Stripe.
+	 *
+	 * @param mixed $context Payment context, holding the order.
+	 * @param mixed $result  Payment result.
+	 */
+	public function schedule_after_store_api_payment( $context, $result ): void {
+		// Both objects expose their fields through __get() only, so isset() and ?? can't be used on them.
+		if ( ! $context instanceof \Automattic\WooCommerce\StoreApi\Payments\PaymentContext
+			|| ! $result instanceof \Automattic\WooCommerce\StoreApi\Payments\PaymentResult
+			|| 'success' !== $result->status // @phpstan-ignore property.protected (readable through PaymentResult::__get())
+		) {
+			return;
+		}
+
+		$this->schedule_order_check_safely( $context->order ); // @phpstan-ignore property.protected (readable through PaymentContext::__get())
+	}
+
+	/**
+	 * Schedule a delayed status check for an order whose payment was handed over to Stripe.
+	 *
+	 * Called once payment processing has returned. Orders that were settled during the request, for
+	 * example card payments confirmed on the spot, are no longer eligible and get no check.
 	 * A new payment attempt on the same order starts the checks over, possibly with another method.
 	 *
-	 * @param mixed $order Order or order ID, depending on the hook.
+	 * @param mixed $order Order or order ID.
 	 */
 	public function schedule_order_check( $order ): void {
 		if ( ! WC_Stripe_Feature_Flags::is_order_reconciliation_enabled() || ! function_exists( 'as_schedule_single_action' ) ) {
@@ -95,7 +130,7 @@ class WC_Stripe_Order_Reconciliation {
 		}
 
 		$order = $this->resolve_order( $order );
-		if ( ! $order || ! WC_Stripe_Order_Helper::get_instance()->is_stripe_gateway_order( $order ) ) {
+		if ( ! $order || ! $this->is_eligible_order( $order ) ) {
 			return;
 		}
 
@@ -104,6 +139,26 @@ class WC_Stripe_Order_Reconciliation {
 		$order->save_meta_data();
 
 		as_schedule_single_action( time() + self::FIRST_CHECK_DELAY, self::ORDER_HOOK, [ 'order_id' => $order->get_id() ], self::GROUP, true );
+	}
+
+	/**
+	 * Schedule a check from a checkout hook, without letting a failure reach the customer.
+	 *
+	 * These hooks run while the customer waits for the checkout response, and the Store API turns any
+	 * exception thrown there into a checkout error. The payment has already been processed, so a
+	 * missing safety-net check must never cost the order.
+	 *
+	 * @param mixed $order Order or order ID.
+	 */
+	private function schedule_order_check_safely( $order ): void {
+		try {
+			$this->schedule_order_check( $order );
+		} catch ( Throwable $exception ) {
+			WC_Stripe_Logger::error(
+				'Could not schedule a Stripe payment status check: ' . $exception->getMessage(),
+				[ 'order_id' => $order instanceof WC_Order ? $order->get_id() : ( is_scalar( $order ) ? absint( $order ) : 0 ) ]
+			);
+		}
 	}
 
 	/**
@@ -409,13 +464,15 @@ class WC_Stripe_Order_Reconciliation {
 	 *
 	 * An order with a paid date was settled once even if its status is still pending, and settling it
 	 * again would repeat the payment side effects. An order without a session or intent ID never
-	 * reached Stripe, so there is nothing to look up.
+	 * reached Stripe, so there is nothing to look up. Subscriptions are WC_Order objects too, but their
+	 * payments are taken on renewal orders, so only regular orders are checked.
 	 *
 	 * @param WC_Order $order Order to check.
 	 * @return bool
 	 */
 	public function is_eligible_order( WC_Order $order ): bool {
-		return 'pending' === $order->get_status()
+		return 'shop_order' === $order->get_type()
+			&& 'pending' === $order->get_status()
 			&& ! $order->get_date_paid()
 			&& WC_Stripe_Order_Helper::get_instance()->is_stripe_gateway_order( $order )
 			&& ( $this->get_stripe_meta_id( $order, '_stripe_checkout_session_id' ) || $this->get_stripe_meta_id( $order, '_stripe_intent_id' ) );
