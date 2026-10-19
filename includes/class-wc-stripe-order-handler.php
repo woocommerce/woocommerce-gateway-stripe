@@ -556,7 +556,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 		// Bail if the order doesn't have an intent yet.
 		if ( ! $intent ) {
-			return $cancel_order;
+			return $this->is_checkout_session_order_cancellable( $order ) ? $cancel_order : false;
 		}
 
 		// Before cancelling, check with Stripe if the payment intent has already been paid or
@@ -651,6 +651,74 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		} finally {
 			$order_helper->unlock_order_payment( $order );
 		}
+	}
+
+	/**
+	 * Whether an order with no intent on record may be cancelled as unpaid, judged by its Checkout Session.
+	 *
+	 * A Checkout Session order only gets its intent when checkout.session.completed is processed, so a
+	 * late or failed webhook would otherwise let the hold-stock cron cancel an order Stripe has already
+	 * charged. Only a session that can no longer be paid is safe to cancel against: an open one is expired
+	 * first, so the customer cannot pay once the order is gone. When Stripe can't confirm the session's
+	 * state, the order is kept and the next hold-stock run checks again.
+	 *
+	 * Orders without a Checkout Session keep the previous behavior and stay cancellable.
+	 *
+	 * @param WC_Order $order The pending order about to be cancelled as unpaid.
+	 * @return bool
+	 */
+	private function is_checkout_session_order_cancellable( WC_Order $order ): bool {
+		$session_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( $order );
+		if ( ! is_string( $session_id ) || '' === $session_id ) {
+			return true;
+		}
+
+		$log_context = [
+			'order_id'            => $order->get_id(),
+			'checkout_session_id' => $session_id,
+		];
+
+		try {
+			// Bypass the session cache: a status that is up to an hour old can't tell a paid session from an open one.
+			$session = WC_Stripe_API::request( [], 'checkout/sessions/' . $session_id, 'GET' );
+
+			if ( is_object( $session ) && 'open' === ( $session->status ?? '' ) ) {
+				WC_Stripe_Logger::info( "Expiring open Checkout Session {$session_id} before order {$order->get_id()} is cancelled as unpaid.", $log_context );
+
+				// A session completed in the meantime can't be expired, so the error response keeps the order.
+				$session = WC_Stripe_API::request( [], 'checkout/sessions/' . $session_id . '/expire' );
+			}
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::error(
+				"Could not check Checkout Session {$session_id}; order {$order->get_id()} was not cancelled as unpaid.",
+				array_merge( $log_context, [ 'error_message' => $e->getMessage() ] )
+			);
+			return false;
+		}
+
+		// A session Stripe doesn't know (e.g. after switching accounts or modes) can never be paid here.
+		if ( is_object( $session ) && 'resource_missing' === ( $session->error->code ?? '' ) ) {
+			return true;
+		}
+
+		if ( ! is_object( $session ) || ! empty( $session->error ) || ( $session->id ?? '' ) !== $session_id ) {
+			WC_Stripe_Logger::error(
+				"Could not check Checkout Session {$session_id}; order {$order->get_id()} was not cancelled as unpaid.",
+				array_merge( $log_context, [ 'error_message' => $session->error->message ?? '' ] )
+			);
+			return false;
+		}
+
+		$session_status = is_string( $session->status ?? null ) ? $session->status : '';
+		if ( 'expired' === $session_status ) {
+			return true;
+		}
+
+		WC_Stripe_Logger::info(
+			"Order {$order->get_id()} was not cancelled as unpaid: Checkout Session {$session_id} is '{$session_status}', the order is waiting for its webhook.",
+			array_merge( $log_context, [ 'payment_status' => $session->payment_status ?? '' ] )
+		);
+		return false;
 	}
 
 	/**

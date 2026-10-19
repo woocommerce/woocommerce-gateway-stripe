@@ -581,15 +581,16 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 
 	/**
 	 * A Checkout Session order has no intent stored until checkout.session.completed is processed,
-	 * so a late webhook must not let the hold-stock cron cancel an order whose session is complete.
+	 * so a late webhook must not let the hold-stock cron cancel an order whose session can still be,
+	 * or already was, paid.
 	 *
 	 * @dataProvider provide_checkout_session_states_for_cancellation
 	 *
-	 * @param string $session_status Checkout Session status reported by Stripe.
-	 * @param string $payment_status Checkout Session payment status reported by Stripe.
-	 * @param bool   $expected       Whether the order may be cancelled.
+	 * @param array|null $retrieve_response Stripe's answer to the session lookup, null for a network failure.
+	 * @param array|null $expire_response   Stripe's answer to expiring the session, null when no expiry is expected.
+	 * @param bool       $expected          Whether the order may be cancelled.
 	 */
-	public function test_checkout_session_order_without_intent_cancellation( string $session_status, string $payment_status, bool $expected ) {
+	public function test_checkout_session_order_without_intent_cancellation( ?array $retrieve_response, ?array $expire_response, bool $expected ) {
 		$session_id = 'cs_test_cancel_unpaid';
 
 		$order = WC_Helper_Order::create_order();
@@ -601,46 +602,93 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 		$order->save();
 		$order = wc_get_order( $order->get_id() );
 
-		$session_url    = WC_Stripe_API::ENDPOINT . 'checkout/sessions/' . $session_id;
-		$session_lookup = function ( $preempt, $request_args, $url ) use ( $session_url, $session_id, $session_status, $payment_status ) {
-			// Only the session itself is served; anything else must not reach the network.
-			if ( 0 !== strpos( $url, $session_url ) || ( $request_args['method'] ?? '' ) !== 'GET' ) {
-				return new WP_Error( 'unexpected_request', $url );
+		$session_url = WC_Stripe_API::ENDPOINT . 'checkout/sessions/' . $session_id;
+		$requests    = [];
+		$stripe_mock = function ( $preempt, $request_args, $url ) use ( $session_url, $retrieve_response, $expire_response, &$requests ) {
+			$request    = ( $request_args['method'] ?? '' ) . ' ' . $url;
+			$requests[] = $request;
+
+			if ( 'GET ' . $session_url === $request && null !== $retrieve_response ) {
+				return $retrieve_response;
 			}
 
-			return [
-				'response' => [
-					'code'    => 200,
-					'message' => 'OK',
-				],
-				'body'     => wp_json_encode(
-					[
-						'id'             => $session_id,
-						'object'         => 'checkout.session',
-						'status'         => $session_status,
-						'payment_status' => $payment_status,
-						'payment_intent' => 'pi_test_cancel_unpaid',
-					]
-				),
-			];
+			if ( 'POST ' . $session_url . '/expire' === $request && null !== $expire_response ) {
+				return $expire_response;
+			}
+
+			// Anything else fails like a network error, so it can never reach Stripe.
+			return new WP_Error( 'http_request_failed', $request );
 		};
-		add_filter( 'pre_http_request', $session_lookup, 10, 3 );
+		add_filter( 'pre_http_request', $stripe_mock, 10, 3 );
 
 		try {
 			$this->assertSame( $expected, $this->order_handler->prevent_cancelling_orders_awaiting_action( true, $order ) );
 		} finally {
-			remove_filter( 'pre_http_request', $session_lookup );
+			remove_filter( 'pre_http_request', $stripe_mock );
+			// A simulated network failure records an API outage, which would leak into later tests.
+			WC_Stripe_API_Outage_Status::record_success();
 		}
+
+		$expected_requests = [ 'GET ' . $session_url ];
+		if ( null !== $expire_response ) {
+			$expected_requests[] = 'POST ' . $session_url . '/expire';
+		}
+		$this->assertSame( $expected_requests, $requests );
 	}
 
 	/**
-	 * @return array<string, array{0: string, 1: string, 2: bool}>
+	 * @return array<string, array{0: array|null, 1: array|null, 2: bool}>
 	 */
 	public function provide_checkout_session_states_for_cancellation(): array {
+		$session = function ( string $status, string $payment_status = 'unpaid' ): array {
+			return $this->make_stripe_response(
+				200,
+				[
+					'id'             => 'cs_test_cancel_unpaid',
+					'object'         => 'checkout.session',
+					'status'         => $status,
+					'payment_status' => $payment_status,
+				]
+			);
+		};
+		$error   = function ( int $code, string $error_code ): array {
+			return $this->make_stripe_response(
+				$code,
+				[
+					'error' => [
+						'code'    => $error_code,
+						'message' => 'Mocked Stripe error.',
+					],
+				]
+			);
+		};
+
 		return [
-			'complete and paid'                => [ 'complete', 'paid', false ],
-			'complete, async payment underway' => [ 'complete', 'unpaid', false ],
-			'expired without payment'          => [ 'expired', 'unpaid', true ],
+			'complete and paid'                      => [ $session( 'complete', 'paid' ), null, false ],
+			'complete, async payment underway'       => [ $session( 'complete' ), null, false ],
+			'expired without payment'                => [ $session( 'expired' ), null, true ],
+			'open, expired before cancelling'        => [ $session( 'open' ), $session( 'expired' ), true ],
+			'open, completed before it could expire' => [ $session( 'open' ), $error( 400, 'checkout_session_not_open' ), false ],
+			'unknown to Stripe'                      => [ $error( 404, 'resource_missing' ), null, true ],
+			'lookup fails'                           => [ null, null, false ],
+			'lookup returns another error'           => [ $error( 429, 'rate_limit' ), null, false ],
+		];
+	}
+
+	/**
+	 * Builds a mocked Stripe HTTP response for the `pre_http_request` filter.
+	 *
+	 * @param int   $code HTTP status code.
+	 * @param array $body Decoded response body.
+	 * @return array
+	 */
+	private function make_stripe_response( int $code, array $body ): array {
+		return [
+			'response' => [
+				'code'    => $code,
+				'message' => '',
+			],
+			'body'     => wp_json_encode( $body ),
 		];
 	}
 
