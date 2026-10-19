@@ -376,6 +376,7 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		$this->assertSame( 'on-hold', $review_order->get_status() );
 		$this->assertFalse( $review_order->is_paid() );
 		$this->assertSame( '', $review_order->get_transaction_id() );
+		$this->assertStringNotContainsString( 'because no webhook did', $this->note_text( $review_order ) );
 	}
 
 	public static function provide_session_settlement_mismatches(): array {
@@ -482,10 +483,15 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 
 		$this->reconciliation->reconcile_order_payment( $order->get_id() );
 
-		$mismatch = wc_get_order( $order->get_id() );
-		$this->assertSame( 'on-hold', $mismatch->get_status() );
-		$this->assertFalse( $mismatch->is_paid() );
-		$this->assertSame( '', $mismatch->get_transaction_id() );
+		$mismatch_order = wc_get_order( $order->get_id() );
+		$this->assertSame( 'on-hold', $mismatch_order->get_status() );
+		$this->assertFalse( $mismatch_order->is_paid() );
+		$this->assertSame( '', $mismatch_order->get_transaction_id() );
+		$expected_amount = WC_Stripe_Helper::get_stripe_amount( (float) $mismatch_order->get_total(), $mismatch_order->get_currency() );
+		$note_text       = $this->note_text( $mismatch_order );
+		$this->assertStringContainsString( 'Stripe payment pi_recovery was found, but it does not match this order', $note_text );
+		$this->assertStringContainsString( 'the order expects ' . $expected_amount . ' ' . strtoupper( $mismatch_order->get_currency() ), $note_text );
+		$this->assertStringNotContainsString( 'because no webhook did', $note_text );
 	}
 
 	public static function provide_payment_intent_mismatches(): array {
@@ -703,6 +709,103 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		$this->assertSame( [], $endpoints );
 		$this->assertSame( [], $this->scheduled_checks( $order->get_id() ) );
 		$this->assertSame( 'pending', wc_get_order( $order->get_id() )->get_status() );
+	}
+
+	public function test_errors_thrown_during_the_check_schedule_a_retry(): void {
+		$order = $this->create_pending_stripe_order( false );
+		$this->mock_stripe_objects( [ '/payment_intents/pi_recovery' => $this->successful_intent( self::fixture_charge() ) ] );
+		$this->gateway->method( 'get_latest_charge_from_intent' )->willThrowException( new Error( 'A callback failed.' ) );
+
+		$this->reconciliation->reconcile_order_payment( $order->get_id() );
+
+		$this->assertSame( 'pending', wc_get_order( $order->get_id() )->get_status() );
+		$this->assertCount( 1, $this->scheduled_checks( $order->get_id() ) );
+	}
+
+	public function test_reconciled_payment_fires_the_deprecated_process_payment_action_once(): void {
+		$this->setExpectedDeprecated( 'wc_gateway_stripe_process_payment' );
+		$order = $this->create_pending_stripe_order( false );
+		$this->use_real_settlement();
+		$objects = $this->successful_stripe_objects( $order );
+		unset( $objects['/checkout/sessions/cs_recovery'] );
+		$this->mock_stripe_objects( $objects );
+		$calls    = 0;
+		$listener = static function () use ( &$calls ) {
+			++$calls;
+		};
+		add_action( 'wc_gateway_stripe_process_payment', $listener );
+
+		try {
+			$this->reconciliation->reconcile_order_payment( $order->get_id() );
+		} finally {
+			remove_action( 'wc_gateway_stripe_process_payment', $listener );
+		}
+
+		$this->assertSame( 1, $calls );
+		$this->assertTrue( wc_get_order( $order->get_id() )->is_paid() );
+	}
+
+	public function test_throttled_api_keys_skip_stripe_and_schedule_a_retry(): void {
+		$order             = $this->create_pending_stripe_order( false );
+		$http_calls        = 0;
+		$this->http_filter = static function ( $preempt, $args, $url ) use ( &$http_calls ) {
+			if ( false !== strpos( $url, 'api.stripe.com' ) ) {
+				++$http_calls;
+			}
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $this->http_filter, 10, 3 );
+		foreach ( [ 'test', 'live' ] as $mode ) {
+			WC_Stripe_Database_Cache::set_with_mode( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY, 99, HOUR_IN_SECONDS, $mode );
+		}
+
+		try {
+			$this->reconciliation->reconcile_order_payment( $order->get_id() );
+		} finally {
+			foreach ( [ 'test', 'live' ] as $mode ) {
+				WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY, $mode );
+			}
+		}
+
+		$this->assertSame( 0, $http_calls );
+		$this->assertCount( 1, $this->scheduled_checks( $order->get_id() ) );
+	}
+
+	public function test_manual_check_explains_a_payment_that_is_not_confirmed_yet(): void {
+		$order          = $this->create_pending_stripe_order( false );
+		$intent         = $this->successful_intent( self::fixture_charge() );
+		$intent->status = WC_Stripe_Intent_Status::PROCESSING;
+		$this->mock_stripe_objects( [ '/payment_intents/pi_recovery' => $intent ] );
+
+		$this->reconciliation->reconcile_order_payment( $order->get_id(), true );
+
+		$this->assertStringContainsString( 'Stripe has not confirmed this payment yet (status: processing)', $this->note_text( $order ) );
+	}
+
+	public function test_manual_check_explains_when_stripe_cannot_be_reached(): void {
+		$order             = $this->create_pending_stripe_order( false );
+		$this->http_filter = static function ( $preempt, $args, $url ) {
+			return false !== strpos( $url, 'api.stripe.com' ) ? new WP_Error( 'http_request_failed', 'Timeout.' ) : $preempt;
+		};
+		add_filter( 'pre_http_request', $this->http_filter, 10, 3 );
+
+		$this->reconciliation->reconcile_order_payment( $order->get_id(), true );
+
+		$note_text = $this->note_text( $order );
+		$this->assertStringContainsString( 'the payment status could not be confirmed right now', $note_text );
+		$this->assertSame( [], $this->scheduled_checks( $order->get_id() ) );
+	}
+
+	public function test_scheduled_check_adds_no_note_when_the_payment_is_not_confirmed_yet(): void {
+		$order          = $this->create_pending_stripe_order( false );
+		$intent         = $this->successful_intent( self::fixture_charge() );
+		$intent->status = WC_Stripe_Intent_Status::PROCESSING;
+		$this->mock_stripe_objects( [ '/payment_intents/pi_recovery' => $intent ] );
+		$notes_before = $this->note_text( $order );
+
+		$this->reconciliation->reconcile_order_payment( $order->get_id() );
+
+		$this->assertSame( $notes_before, $this->note_text( $order ) );
 	}
 
 	public function test_manual_check_does_not_schedule_a_retry(): void {

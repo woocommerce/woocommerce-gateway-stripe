@@ -52,6 +52,13 @@ class WC_Stripe_Order_Reconciliation {
 	 */
 	private const RESULT_RETRY = 'retry';
 
+	/**
+	 * Stripe status behind the last "check again later" outcome, for the merchant's note on manual checks.
+	 *
+	 * @var string
+	 */
+	private $last_retry_status = '';
+
 	public static function unschedule(): void {
 		if ( ! did_action( 'action_scheduler_init' ) || ! function_exists( 'as_unschedule_all_actions' ) ) {
 			return;
@@ -259,7 +266,13 @@ class WC_Stripe_Order_Reconciliation {
 		$order_id = $order->get_id();
 
 		$result = $this->check_order_payment( $order );
-		if ( true === $is_manual || self::RESULT_RETRY !== $result ) {
+		if ( true === $is_manual ) {
+			if ( self::RESULT_RETRY === $result ) {
+				$this->add_manual_retry_note( $order );
+			}
+			return;
+		}
+		if ( self::RESULT_RETRY !== $result ) {
 			return;
 		}
 
@@ -290,8 +303,9 @@ class WC_Stripe_Order_Reconciliation {
 	 * @return string One of the RESULT_* constants.
 	 */
 	private function check_order_payment( WC_Order $order ): string {
-		$order_id     = $order->get_id();
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_id                = $order->get_id();
+		$order_helper            = WC_Stripe_Order_Helper::get_instance();
+		$this->last_retry_status = '';
 
 		// Whoever holds the lock is settling or about to; a later check sees the outcome.
 		if ( $order_helper->lock_order_payment( $order ) ) {
@@ -299,8 +313,8 @@ class WC_Stripe_Order_Reconciliation {
 		}
 
 		try {
-			$session_id       = $this->get_stripe_meta_id( $order, '_stripe_checkout_session_id' );
-			$stored_intent_id = $this->get_stripe_meta_id( $order, '_stripe_intent_id' );
+			$session_id       = $this->get_checkout_session_id( $order );
+			$stored_intent_id = $this->get_intent_id( $order );
 			$intent_id        = $stored_intent_id;
 			$session          = null;
 
@@ -312,7 +326,7 @@ class WC_Stripe_Order_Reconciliation {
 				if ( ! $this->is_valid_checkout_session( $session, $session_id ) ) {
 					return $this->is_final_checkout_session( $session, $session_id )
 						? $this->stop( 'The Checkout Session can no longer be paid.', $order_id, $session_id )
-						: $this->retry( 'The Checkout Session is not paid yet (status: ' . (string) ( $session->status ?? '' ) . ').', $order_id, $session_id );
+						: $this->retry( 'The Checkout Session is not paid yet (status: ' . (string) ( $session->status ?? '' ) . ').', $order_id, $session_id, (string) ( $session->status ?? '' ) );
 				}
 				$intent_id = $session->payment_intent ?? '';
 			}
@@ -328,7 +342,7 @@ class WC_Stripe_Order_Reconciliation {
 			if ( ! $this->is_valid_payment_intent( $intent, $intent_id ) ) {
 				return $this->is_final_payment_intent( $intent, $intent_id )
 					? $this->stop( 'The PaymentIntent can no longer be paid.', $order_id, $intent_id )
-					: $this->retry( 'The PaymentIntent is not paid yet (status: ' . (string) ( $intent->status ?? '' ) . ').', $order_id, $intent_id );
+					: $this->retry( 'The PaymentIntent is not paid yet (status: ' . (string) ( $intent->status ?? '' ) . ').', $order_id, $intent_id, (string) ( $intent->status ?? '' ) );
 			}
 
 			$charge = $this->gateway->get_latest_charge_from_intent( $intent );
@@ -338,6 +352,7 @@ class WC_Stripe_Order_Reconciliation {
 			if ( ! $this->is_valid_charge( $charge, $intent ) ) {
 				return $this->stop( 'The latest charge cannot settle the order, for example because it was refunded or disputed.', $order_id, $intent_id );
 			}
+			$charge_id = (string) ( $charge->id ?? '' );
 
 			$fresh_order = $this->resolve_order( $order_id );
 			if ( ! $fresh_order || ! $this->is_eligible_order( $fresh_order ) ) {
@@ -351,24 +366,53 @@ class WC_Stripe_Order_Reconciliation {
 
 			if ( $session ) {
 				$this->webhook_handler->process_checkout_session_payment( $fresh_order, $session, '', $intent, $charge );
-				$this->report_settlement( $order_id, $intent_id );
+				$this->report_settlement( $order_id, $intent_id, $charge_id );
 				return self::RESULT_DONE;
 			}
 
 			$expected_amount   = WC_Stripe_Helper::get_stripe_amount( $fresh_order->get_total(), $fresh_order->get_currency() );
 			$expected_currency = strtolower( $fresh_order->get_currency() );
-			if ( (int) ( $intent->amount ?? -1 ) !== (int) $expected_amount || strtolower( (string) ( $intent->currency ?? '' ) ) !== $expected_currency ) {
-				$fresh_order->update_status( 'on-hold', __( 'Stripe payment was found, but its amount or currency does not match this order. The order was placed on hold for review.', 'woocommerce-gateway-stripe' ) );
+			$intent_amount     = (int) ( $intent->amount ?? -1 );
+			$intent_currency   = strtolower( (string) ( $intent->currency ?? '' ) );
+			if ( $intent_amount !== (int) $expected_amount || $intent_currency !== $expected_currency ) {
+				// The transaction ID stays empty: the payment doesn't match the order, so it isn't the order's payment yet.
+				$fresh_order->update_status(
+					'on-hold',
+					sprintf(
+						/* translators: 1: PaymentIntent ID, 2: amount Stripe charged, 3: amount the order expects. Amounts are in the smallest currency unit, followed by the currency code. */
+						__( 'Stripe payment %1$s was found, but it does not match this order: Stripe has %2$s, the order expects %3$s. The order was placed on hold for review.', 'woocommerce-gateway-stripe' ),
+						$intent_id,
+						$intent_amount . ' ' . strtoupper( $intent_currency ),
+						(int) $expected_amount . ' ' . strtoupper( $expected_currency )
+					)
+				);
+				WC_Stripe_Logger::warning(
+					'Reconciliation found a Stripe payment that does not match the order; the order was placed on hold.',
+					[
+						'order_id'          => $order_id,
+						'intent_id'         => $intent_id,
+						'charge_id'         => $charge_id,
+						'intent_amount'     => $intent_amount,
+						'intent_currency'   => $intent_currency,
+						'expected_amount'   => (int) $expected_amount,
+						'expected_currency' => $expected_currency,
+					]
+				);
 				return self::RESULT_DONE;
 			}
 
 			$this->webhook_handler->process_reconciled_payment( $fresh_order, $charge );
-			$this->report_settlement( $order_id, $intent_id );
+			$this->report_settlement( $order_id, $intent_id, $charge_id );
 			return self::RESULT_DONE;
-		} catch ( Exception $exception ) {
+		} catch ( Throwable $exception ) {
+			// Not just Exception: settlement runs other plugins' callbacks (for example on payment completion),
+			// and an Error escaping to Action Scheduler would fail the action and end the order's checks.
 			WC_Stripe_Logger::error(
 				'Reconciliation failed for order ' . $order_id . ': ' . $exception->getMessage(),
-				[ 'order_id' => $order_id ]
+				[
+					'order_id'  => $order_id,
+					'exception' => get_class( $exception ),
+				]
 			);
 			return self::RESULT_RETRY;
 		} finally {
@@ -401,12 +445,15 @@ class WC_Stripe_Order_Reconciliation {
 	 *
 	 * Debug level: most of these are expected while a payment is still in progress.
 	 *
-	 * @param string $reason    Why the order wasn't settled now.
-	 * @param int    $order_id  Order being checked.
-	 * @param string $stripe_id ID of the Stripe object involved, if any.
+	 * @param string $reason        Why the order wasn't settled now.
+	 * @param int    $order_id      Order being checked.
+	 * @param string $stripe_id     ID of the Stripe object involved, if any.
+	 * @param string $stripe_status Status Stripe reported for that object, if the check got that far.
 	 * @return string Always RESULT_RETRY, so callers can return it directly.
 	 */
-	private function retry( string $reason, int $order_id, string $stripe_id ): string {
+	private function retry( string $reason, int $order_id, string $stripe_id, string $stripe_status = '' ): string {
+		$this->last_retry_status = $stripe_status;
+
 		WC_Stripe_Logger::debug(
 			'Reconciliation will check the order again: ' . $reason,
 			[
@@ -422,20 +469,25 @@ class WC_Stripe_Order_Reconciliation {
 	 * Record that a check, not a webhook, settled the order.
 	 *
 	 * The note tells the merchant that the webhook didn't do its job, which is the first sign of a
-	 * broken webhook setup. Settlement can still leave the order pending, for example when the
-	 * Checkout Session amount doesn't match, so the order is re-read first.
+	 * broken webhook setup. Settlement can also stop short, for example when the Checkout Session
+	 * amount doesn't match and the order is held for review instead; blaming the webhook then would
+	 * point the merchant at the wrong problem. Every settled outcome (paid, authorized, pre-ordered)
+	 * records the charge as the order's transaction, so that is what tells them apart.
 	 *
 	 * @param int    $order_id  Order that was settled.
 	 * @param string $intent_id PaymentIntent that settled it.
+	 * @param string $charge_id The PaymentIntent's latest charge.
 	 */
-	private function report_settlement( int $order_id, string $intent_id ): void {
+	private function report_settlement( int $order_id, string $intent_id, string $charge_id ): void {
 		$order = $this->resolve_order( $order_id );
-		if ( ! $order || 'pending' === $order->get_status() ) {
+		if ( ! $order || 'pending' === $order->get_status() || $charge_id !== $order->get_transaction_id() ) {
 			WC_Stripe_Logger::warning(
-				'Reconciliation settled a Stripe payment, but the order is still pending.',
+				'Reconciliation found a Stripe payment, but settling it did not record it on the order.',
 				[
 					'order_id'  => $order_id,
 					'intent_id' => $intent_id,
+					'charge_id' => $charge_id,
+					'status'    => $order ? $order->get_status() : '',
 				]
 			);
 			return;
@@ -450,6 +502,29 @@ class WC_Stripe_Order_Reconciliation {
 				'status'    => $order->get_status(),
 			]
 		);
+	}
+
+	/**
+	 * Tell the merchant why a check they requested didn't settle the order.
+	 *
+	 * Manual checks don't reschedule themselves, so without a note the only trace would be the
+	 * "check scheduled" note and a debug log. Scheduled checks stay silent to keep order notes short.
+	 *
+	 * @param WC_Order $order Order that was checked.
+	 */
+	private function add_manual_retry_note( WC_Order $order ): void {
+		if ( '' !== $this->last_retry_status ) {
+			$order->add_order_note(
+				sprintf(
+					/* translators: %s: payment status reported by Stripe, for example "processing". */
+					__( 'Stripe payment status check: Stripe has not confirmed this payment yet (status: %s). Check again later, or look the payment up in your Stripe Dashboard.', 'woocommerce-gateway-stripe' ),
+					$this->last_retry_status
+				)
+			);
+			return;
+		}
+
+		$order->add_order_note( __( 'Stripe payment status check: the payment status could not be confirmed right now, because Stripe could not be reached or the order was being updated. Check again later.', 'woocommerce-gateway-stripe' ) );
 	}
 
 	/**
@@ -588,18 +663,36 @@ class WC_Stripe_Order_Reconciliation {
 			&& 'pending' === $order->get_status()
 			&& ! $order->get_date_paid()
 			&& WC_Stripe_Order_Helper::get_instance()->is_stripe_gateway_order( $order )
-			&& ( $this->get_stripe_meta_id( $order, '_stripe_checkout_session_id' ) || $this->get_stripe_meta_id( $order, '_stripe_intent_id' ) );
+			&& ( $this->get_checkout_session_id( $order ) || $this->get_intent_id( $order ) );
 	}
 
 	/**
-	 * Read a Stripe ID from order meta.
+	 * The Checkout Session ID stored on the order.
 	 *
 	 * @param WC_Order $order Order to read from.
-	 * @param string   $key   Meta key holding the ID.
-	 * @return string The trimmed ID, or an empty string when it is missing or not a string.
+	 * @return string The trimmed ID, or an empty string when there is none.
 	 */
-	private function get_stripe_meta_id( WC_Order $order, string $key ): string {
-		$value = $order->get_meta( $key, true );
+	private function get_checkout_session_id( WC_Order $order ): string {
+		return $this->normalize_stripe_id( WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( $order ) );
+	}
+
+	/**
+	 * The PaymentIntent ID stored on the order.
+	 *
+	 * @param WC_Order $order Order to read from.
+	 * @return string The trimmed ID, or an empty string when there is none.
+	 */
+	private function get_intent_id( WC_Order $order ): string {
+		return $this->normalize_stripe_id( WC_Stripe_Order_Helper::get_instance()->get_stripe_intent_id( $order ) );
+	}
+
+	/**
+	 * Order meta can hold anything, so only non-empty strings count as IDs.
+	 *
+	 * @param mixed $value Value read from order meta.
+	 * @return string
+	 */
+	private function normalize_stripe_id( $value ): string {
 		return is_string( $value ) && '' !== trim( $value ) ? trim( $value ) : '';
 	}
 
@@ -607,12 +700,15 @@ class WC_Stripe_Order_Reconciliation {
 	 * Fetch a Stripe object with the keys of the current mode.
 	 *
 	 * @param string $endpoint API path, including any query string.
-	 * @return object|null The decoded response, which can be a Stripe error object, or null when it isn't an object.
-	 * @throws WC_Stripe_Exception When Stripe can't be reached or is unavailable.
+	 * @return object|null The decoded response, which can be a Stripe error object, or null when Stripe
+	 *                     couldn't be reached, the keys are throttled after repeated 401s, or the response isn't an object.
 	 */
 	private function request_stripe_object( string $endpoint ): ?object {
-		$response = WC_Stripe_API::request( [], $endpoint, 'GET' );
-		return is_object( $response ) ? $response : null;
+		// retrieve() stops calling Stripe after repeated 401s, so revoked keys don't keep every pending
+		// order's checks hitting the API. It returns null while throttled, and a WP_Error when Stripe
+		// can't be reached; both mean "try again later", not a Stripe object.
+		$response = WC_Stripe_API::retrieve( $endpoint );
+		return is_object( $response ) && ! is_wp_error( $response ) ? $response : null;
 	}
 
 	/**
@@ -730,8 +826,8 @@ class WC_Stripe_Order_Reconciliation {
 	 * @return bool
 	 */
 	private function stripe_ids_match( WC_Order $order, string $session_id, string $stored_intent_id ): bool {
-		$current_session_id = $this->get_stripe_meta_id( $order, '_stripe_checkout_session_id' );
-		$current_intent_id  = $this->get_stripe_meta_id( $order, '_stripe_intent_id' );
+		$current_session_id = $this->get_checkout_session_id( $order );
+		$current_intent_id  = $this->get_intent_id( $order );
 
 		return $session_id === $current_session_id && $stored_intent_id === $current_intent_id;
 	}
