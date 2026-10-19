@@ -12,6 +12,15 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 	 */
 	private $order_handler;
 
+	/**
+	 * The `pre_http_request` callback added by mock_stripe_requests().
+	 *
+	 * @var callable|null
+	 */
+	private $stripe_request_mock;
+
+	private const CHECKOUT_SESSION_ID = 'cs_test_cancel_unpaid';
+
 	public function set_up() {
 		parent::set_up();
 
@@ -591,71 +600,53 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 	 * @param bool       $expected          Whether the order may be cancelled.
 	 */
 	public function test_checkout_session_order_without_intent_cancellation( ?array $retrieve_response, ?array $expire_response, bool $expected ) {
-		$session_id = 'cs_test_cancel_unpaid';
+		$order = $this->create_checkout_session_order();
 
-		$order = WC_Helper_Order::create_order();
-		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
-		$order->set_status( 'pending' );
-		$order->save();
-
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $session_id );
-		$order->save();
-		$order = wc_get_order( $order->get_id() );
-
-		$session_url = WC_Stripe_API::ENDPOINT . 'checkout/sessions/' . $session_id;
-		$requests    = [];
-		$stripe_mock = function ( $preempt, $request_args, $url ) use ( $session_url, $retrieve_response, $expire_response, &$requests ) {
-			$request    = ( $request_args['method'] ?? '' ) . ' ' . $url;
-			$requests[] = $request;
-
-			if ( 'GET ' . $session_url === $request && null !== $retrieve_response ) {
-				return $retrieve_response;
-			}
-
-			if ( 'POST ' . $session_url . '/expire' === $request && null !== $expire_response ) {
-				return $expire_response;
-			}
-
-			// Anything else fails like a network error, so it can never reach Stripe.
-			return new WP_Error( 'http_request_failed', $request );
-		};
-		add_filter( 'pre_http_request', $stripe_mock, 10, 3 );
+		$session_url = WC_Stripe_API::ENDPOINT . 'checkout/sessions/' . self::CHECKOUT_SESSION_ID;
+		$retrieve    = 'GET ' . $session_url . '?expand[]=payment_intent';
+		$expire      = 'POST ' . $session_url . '/expire';
+		$requests    = $this->mock_stripe_requests(
+			[
+				$retrieve => $retrieve_response,
+				$expire   => $expire_response,
+			]
+		);
 
 		try {
 			$this->assertSame( $expected, $this->order_handler->prevent_cancelling_orders_awaiting_action( true, $order ) );
 		} finally {
-			remove_filter( 'pre_http_request', $stripe_mock );
-			// A simulated network failure records an API outage, which would leak into later tests.
-			WC_Stripe_API_Outage_Status::record_success();
+			$this->restore_stripe_requests();
 		}
 
-		$expected_requests = [ 'GET ' . $session_url ];
-		if ( null !== $expire_response ) {
-			$expected_requests[] = 'POST ' . $session_url . '/expire';
-		}
-		$this->assertSame( $expected_requests, $requests );
+		$this->assertSame( null !== $expire_response ? [ $retrieve, $expire ] : [ $retrieve ], $requests->getArrayCopy() );
 	}
 
 	/**
 	 * @return array<string, array{0: array|null, 1: array|null, 2: bool}>
 	 */
 	public function provide_checkout_session_states_for_cancellation(): array {
-		$session = function ( string $status, string $payment_status = 'unpaid' ): array {
+		$session = function ( string $status, ?string $intent_status = null, string $payment_status = 'unpaid' ): array {
 			return $this->make_stripe_response(
 				200,
 				[
-					'id'             => 'cs_test_cancel_unpaid',
+					'id'             => self::CHECKOUT_SESSION_ID,
 					'object'         => 'checkout.session',
 					'status'         => $status,
 					'payment_status' => $payment_status,
+					'payment_intent' => null === $intent_status ? null : [
+						'id'     => 'pi_test_cancel_unpaid',
+						'object' => 'payment_intent',
+						'status' => $intent_status,
+					],
 				]
 			);
 		};
-		$error   = function ( int $code, string $error_code ): array {
+		$error   = function ( int $code, string $type, string $error_code = '' ): array {
 			return $this->make_stripe_response(
 				$code,
 				[
 					'error' => [
+						'type'    => $type,
 						'code'    => $error_code,
 						'message' => 'Mocked Stripe error.',
 					],
@@ -664,15 +655,90 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 		};
 
 		return [
-			'complete and paid'                      => [ $session( 'complete', 'paid' ), null, false ],
-			'complete, async payment underway'       => [ $session( 'complete' ), null, false ],
+			'complete and paid'                      => [ $session( 'complete', WC_Stripe_Intent_Status::SUCCEEDED, 'paid' ), null, false ],
+			'complete, bank debit still settling'    => [ $session( 'complete', WC_Stripe_Intent_Status::PROCESSING ), null, false ],
+			'complete, voucher not paid yet'         => [ $session( 'complete', WC_Stripe_Intent_Status::REQUIRES_ACTION ), null, false ],
+			'complete, intent missing'               => [ $session( 'complete' ), null, false ],
+			'complete, async payment failed'         => [ $session( 'complete', WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD ), null, true ],
+			'complete, intent cancelled'             => [ $session( 'complete', WC_Stripe_Intent_Status::CANCELED ), null, true ],
 			'expired without payment'                => [ $session( 'expired' ), null, true ],
 			'open, expired before cancelling'        => [ $session( 'open' ), $session( 'expired' ), true ],
-			'open, completed before it could expire' => [ $session( 'open' ), $error( 400, 'checkout_session_not_open' ), false ],
-			'unknown to Stripe'                      => [ $error( 404, 'resource_missing' ), null, true ],
-			'lookup fails'                           => [ null, null, false ],
-			'lookup returns another error'           => [ $error( 429, 'rate_limit' ), null, false ],
+			'open, completed before it could expire' => [ $session( 'open' ), $error( 400, 'invalid_request_error', 'checkout_session_not_open' ), false ],
+			'open, expiry not confirmed'             => [ $session( 'open' ), $session( 'complete' ), false ],
+			'unknown to Stripe'                      => [ $error( 404, 'invalid_request_error', 'resource_missing' ), null, true ],
+			'API key rejected'                       => [ $error( 401, 'invalid_request_error', 'api_key_expired' ), null, true ],
+			'network failure'                        => [ null, null, false ],
+			'rate limited'                           => [ $error( 429, 'rate_limit_error', 'rate_limit' ), null, false ],
+			'Stripe server error'                    => [ $error( 500, 'api_error' ), null, false ],
 		];
+	}
+
+	/**
+	 * When a stored intent can't be fetched, the session must not decide: an order that has an intent was
+	 * settled from it, so keep the previous behavior instead of expiring or reading the session.
+	 */
+	public function test_order_with_unfetchable_intent_ignores_checkout_session() {
+		$order = $this->create_checkout_session_order();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, 'pi_test_unfetchable' );
+		$order->save();
+		$order = wc_get_order( $order->get_id() );
+
+		$requests = $this->mock_stripe_requests( [] );
+
+		try {
+			$this->assertTrue( $this->order_handler->prevent_cancelling_orders_awaiting_action( true, $order ) );
+		} finally {
+			$this->restore_stripe_requests();
+		}
+
+		$this->assertSame( [], $requests->getArrayCopy() );
+	}
+
+	/**
+	 * Creates a pending Stripe order linked only to a Checkout Session, as the order is before its webhook arrives.
+	 *
+	 * @return WC_Order
+	 */
+	private function create_checkout_session_order(): WC_Order {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_status( 'pending' );
+		$order->save();
+
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, self::CHECKOUT_SESSION_ID );
+		$order->save();
+
+		return wc_get_order( $order->get_id() );
+	}
+
+	/**
+	 * Serves mocked Stripe responses by "METHOD URL". Unlisted requests, and listed ones without a
+	 * response, fail like a network error, so no request can reach Stripe.
+	 *
+	 * @param array<string, array|null> $responses Responses keyed by "METHOD URL".
+	 * @return ArrayObject The requests made, as "METHOD URL", filled in as they happen.
+	 */
+	private function mock_stripe_requests( array $responses ): ArrayObject {
+		$requests = new ArrayObject();
+
+		$this->stripe_request_mock = function ( $preempt, $request_args, $url ) use ( $responses, $requests ) {
+			$request    = ( $request_args['method'] ?? '' ) . ' ' . $url;
+			$requests[] = $request;
+
+			return $responses[ $request ] ?? new WP_Error( 'http_request_failed', $request );
+		};
+		add_filter( 'pre_http_request', $this->stripe_request_mock, 10, 3 );
+
+		return $requests;
+	}
+
+	/**
+	 * Removes the mock added by mock_stripe_requests().
+	 */
+	private function restore_stripe_requests(): void {
+		remove_filter( 'pre_http_request', $this->stripe_request_mock );
+		// A simulated network failure records an API outage, which would leak into later tests.
+		WC_Stripe_API_Outage_Status::record_success();
 	}
 
 	/**
