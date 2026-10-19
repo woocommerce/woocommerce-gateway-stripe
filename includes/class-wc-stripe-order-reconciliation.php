@@ -9,14 +9,15 @@ defined( 'ABSPATH' ) || exit;
 
 class WC_Stripe_Order_Reconciliation {
 	public const ORDER_HOOK   = 'wc_stripe_reconcile_order_payment';
-	public const GROUP        = 'woocommerce_stripe';
+	public const GROUP        = 'woocommerce-gateway-stripe';
 	public const STARTED_META = '_stripe_reconciliation_started';
 	public const DELAYED_META = '_stripe_reconciliation_delayed';
 
 	/**
 	 * This is a fallback for missed webhooks, so it waits until a normal delivery, and Stripe's first
-	 * retries, would have settled the order. The payment method type isn't known yet when this is
-	 * scheduled, so every order gets the same first check.
+	 * retries, would have settled the order. Orders known to use a method that confirms days later start
+	 * at DELAYED_CHECK_INTERVAL instead; Adaptive Pricing orders don't store their type, so they always
+	 * get this first check, which also tells which window applies.
 	 */
 	public const FIRST_CHECK_DELAY = 30 * MINUTE_IN_SECONDS;
 
@@ -80,6 +81,9 @@ class WC_Stripe_Order_Reconciliation {
 		// Blocks checkout, Blocks pay-for-order and express checkout. WooCommerce calls the gateway at
 		// priority 999 and the plugin's own handlers run up to 10000, so the result is final by now.
 		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'schedule_after_store_api_payment' ], 10001, 2 );
+		// Off-session renewals that Stripe charges later, after a pre-debit notification. Other renewals
+		// settle during the renewal request, or fail and are paid through pay-for-order.
+		add_action( 'wc_gateway_stripe_process_payment_subscription_charge_attempt_delayed', [ $this, 'schedule_after_delayed_renewal_charge' ], 10, 2 );
 	}
 
 	/**
@@ -116,6 +120,28 @@ class WC_Stripe_Order_Reconciliation {
 	}
 
 	/**
+	 * Schedule a check for a renewal that Stripe charges at a later date.
+	 *
+	 * The order stays pending until Stripe attempts the charge at `completes_at`, so the checks start then.
+	 *
+	 * @param mixed $response      PaymentIntent returned for the renewal.
+	 * @param mixed $renewal_order Renewal order.
+	 */
+	public function schedule_after_delayed_renewal_charge( $response, $renewal_order ): void {
+		$completes_at = is_object( $response ) ? ( $response->processing->card->customer_notification->completes_at ?? 0 ) : 0;
+		$charge_at    = max( time(), is_numeric( $completes_at ) ? (int) $completes_at : 0 );
+
+		try {
+			$this->schedule_checks( $renewal_order, $charge_at, $charge_at + self::FIRST_CHECK_DELAY );
+		} catch ( Throwable $exception ) {
+			WC_Stripe_Logger::error(
+				'Could not schedule a Stripe payment status check for a delayed renewal: ' . $exception->getMessage(),
+				[ 'order_id' => $renewal_order instanceof WC_Order ? $renewal_order->get_id() : 0 ]
+			);
+		}
+	}
+
+	/**
 	 * Schedule a delayed status check for an order whose payment was handed over to Stripe.
 	 *
 	 * Called once payment processing has returned. Orders that were settled during the request, for
@@ -125,6 +151,17 @@ class WC_Stripe_Order_Reconciliation {
 	 * @param mixed $order Order or order ID.
 	 */
 	public function schedule_order_check( $order ): void {
+		$this->schedule_checks( $order, time(), null );
+	}
+
+	/**
+	 * Start the checks of an order's payment attempt.
+	 *
+	 * @param mixed    $order          Order or order ID.
+	 * @param int      $started_at     When the payment attempt's window starts.
+	 * @param int|null $first_check_at When to check first, or null to pick it from the payment method type.
+	 */
+	private function schedule_checks( $order, int $started_at, ?int $first_check_at ): void {
 		if ( ! WC_Stripe_Feature_Flags::is_order_reconciliation_enabled() || ! function_exists( 'as_schedule_single_action' ) ) {
 			return;
 		}
@@ -134,11 +171,15 @@ class WC_Stripe_Order_Reconciliation {
 			return;
 		}
 
-		$order->update_meta_data( self::STARTED_META, (string) time() );
+		$order->update_meta_data( self::STARTED_META, (string) $started_at );
 		$order->delete_meta_data( self::DELAYED_META );
 		$order->save_meta_data();
 
-		as_schedule_single_action( time() + self::FIRST_CHECK_DELAY, self::ORDER_HOOK, [ 'order_id' => $order->get_id() ], self::GROUP, true );
+		if ( null === $first_check_at ) {
+			$first_check_at = $started_at + ( $this->is_delayed_payment( $order ) ? self::DELAYED_CHECK_INTERVAL : self::FIRST_CHECK_DELAY );
+		}
+
+		as_schedule_single_action( $first_check_at, self::ORDER_HOOK, [ 'order_id' => $order->get_id() ], self::GROUP, true );
 	}
 
 	/**
@@ -249,7 +290,7 @@ class WC_Stripe_Order_Reconciliation {
 
 		// Whoever holds the lock is settling or about to; a later check sees the outcome.
 		if ( $order_helper->lock_order_payment( $order ) ) {
-			return self::RESULT_RETRY;
+			return $this->retry( 'Another request is processing the payment.', $order_id, '' );
 		}
 
 		try {
@@ -264,7 +305,9 @@ class WC_Stripe_Order_Reconciliation {
 					return $this->get_request_error_result( $session, $order_id, $session_id );
 				}
 				if ( ! $this->is_valid_checkout_session( $session, $session_id ) ) {
-					return $this->is_final_checkout_session( $session, $session_id ) ? $this->stop( 'The Checkout Session can no longer be paid.', $order_id, $session_id ) : self::RESULT_RETRY;
+					return $this->is_final_checkout_session( $session, $session_id )
+						? $this->stop( 'The Checkout Session can no longer be paid.', $order_id, $session_id )
+						: $this->retry( 'The Checkout Session is not paid yet (status: ' . (string) ( $session->status ?? '' ) . ').', $order_id, $session_id );
 				}
 				$intent_id = $session->payment_intent ?? '';
 			}
@@ -278,12 +321,14 @@ class WC_Stripe_Order_Reconciliation {
 			}
 			$this->maybe_mark_delayed_payment( $order, $intent );
 			if ( ! $this->is_valid_payment_intent( $intent, $intent_id ) ) {
-				return $this->is_final_payment_intent( $intent, $intent_id ) ? $this->stop( 'The PaymentIntent can no longer be paid.', $order_id, $intent_id ) : self::RESULT_RETRY;
+				return $this->is_final_payment_intent( $intent, $intent_id )
+					? $this->stop( 'The PaymentIntent can no longer be paid.', $order_id, $intent_id )
+					: $this->retry( 'The PaymentIntent is not paid yet (status: ' . (string) ( $intent->status ?? '' ) . ').', $order_id, $intent_id );
 			}
 
 			$charge = $this->gateway->get_latest_charge_from_intent( $intent );
 			if ( ! is_object( $charge ) ) {
-				return self::RESULT_RETRY;
+				return $this->retry( 'The latest charge of the PaymentIntent could not be loaded.', $order_id, $intent_id );
 			}
 			if ( ! $this->is_valid_charge( $charge, $intent ) ) {
 				return $this->stop( 'The latest charge cannot settle the order, for example because it was refunded or disputed.', $order_id, $intent_id );
@@ -291,15 +336,17 @@ class WC_Stripe_Order_Reconciliation {
 
 			$fresh_order = $this->resolve_order( $order_id );
 			if ( ! $fresh_order || ! $this->is_eligible_order( $fresh_order ) ) {
+				WC_Stripe_Logger::debug( 'Reconciliation found the order already settled while Stripe was being queried.', [ 'order_id' => $order_id ] );
 				return self::RESULT_DONE;
 			}
 			// A new payment attempt replaced the IDs while Stripe was being queried; check the new ones next time.
 			if ( ! $this->stripe_ids_match( $fresh_order, $session_id, $stored_intent_id ) ) {
-				return self::RESULT_RETRY;
+				return $this->retry( 'The order got a new payment attempt during the check.', $order_id, $intent_id );
 			}
 
 			if ( $session ) {
 				$this->webhook_handler->process_checkout_session_payment( $fresh_order, $session, '', $intent, $charge );
+				$this->report_settlement( $order_id, $intent_id );
 				return self::RESULT_DONE;
 			}
 
@@ -311,6 +358,7 @@ class WC_Stripe_Order_Reconciliation {
 			}
 
 			$this->webhook_handler->process_reconciled_payment( $fresh_order, $charge );
+			$this->report_settlement( $order_id, $intent_id );
 			return self::RESULT_DONE;
 		} catch ( Exception $exception ) {
 			WC_Stripe_Logger::error(
@@ -339,7 +387,63 @@ class WC_Stripe_Order_Reconciliation {
 			return $this->stop( 'The Stripe object no longer exists for the current account and mode.', $order_id, $stripe_id );
 		}
 
+		return $this->retry( 'Stripe returned an error (' . (string) ( $response->error->code ?? 'no response' ) . ').', $order_id, $stripe_id );
+	}
+
+	/**
+	 * Log why the order is checked again later.
+	 *
+	 * Debug level: most of these are expected while a payment is still in progress.
+	 *
+	 * @param string $reason    Why the order wasn't settled now.
+	 * @param int    $order_id  Order being checked.
+	 * @param string $stripe_id ID of the Stripe object involved, if any.
+	 * @return string Always RESULT_RETRY, so callers can return it directly.
+	 */
+	private function retry( string $reason, int $order_id, string $stripe_id ): string {
+		WC_Stripe_Logger::debug(
+			'Reconciliation will check the order again: ' . $reason,
+			[
+				'order_id'  => $order_id,
+				'stripe_id' => $stripe_id,
+			]
+		);
+
 		return self::RESULT_RETRY;
+	}
+
+	/**
+	 * Record that a check, not a webhook, settled the order.
+	 *
+	 * The note tells the merchant that the webhook didn't do its job, which is the first sign of a
+	 * broken webhook setup. Settlement can still leave the order pending, for example when the
+	 * Checkout Session amount doesn't match, so the order is re-read first.
+	 *
+	 * @param int    $order_id  Order that was settled.
+	 * @param string $intent_id PaymentIntent that settled it.
+	 */
+	private function report_settlement( int $order_id, string $intent_id ): void {
+		$order = $this->resolve_order( $order_id );
+		if ( ! $order || 'pending' === $order->get_status() ) {
+			WC_Stripe_Logger::warning(
+				'Reconciliation settled a Stripe payment, but the order is still pending.',
+				[
+					'order_id'  => $order_id,
+					'intent_id' => $intent_id,
+				]
+			);
+			return;
+		}
+
+		$order->add_order_note( __( 'A Stripe payment status check updated this order, because no webhook did. If this happens often, check the webhook status in the Stripe settings.', 'woocommerce-gateway-stripe' ) );
+		WC_Stripe_Logger::info(
+			'Reconciliation settled a pending Stripe order.',
+			[
+				'order_id'  => $order_id,
+				'intent_id' => $intent_id,
+				'status'    => $order->get_status(),
+			]
+		);
 	}
 
 	/**

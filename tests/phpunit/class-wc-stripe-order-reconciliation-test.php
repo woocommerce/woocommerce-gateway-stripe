@@ -281,6 +281,75 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		$this->assertSame( $request_count, count( $requests ) );
 		$this->assertStringContainsString( 'Stripe charge complete (Charge ID: ch_recovery)', $note_text );
 		$this->assertStringNotContainsString( '(via webhook)', $note_text );
+		$this->assertSame( 1, substr_count( $note_text, 'A Stripe payment status check updated this order, because no webhook did.' ) );
+	}
+
+	public function test_order_settled_by_a_webhook_during_the_check_is_not_settled_again(): void {
+		$order           = $this->create_pending_stripe_order( false );
+		$intent          = $this->successful_intent( self::fixture_charge() );
+		$webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'process_checkout_session_payment', 'process_reconciled_payment' ] )
+			->getMock();
+		$webhook_handler->expects( $this->never() )->method( 'process_reconciled_payment' );
+		$this->reconciliation = new WC_Stripe_Order_Reconciliation( $this->gateway, $webhook_handler );
+		$this->gateway->method( 'get_latest_charge_from_intent' )->willReturn( self::fixture_charge() );
+		$this->http_filter = static function ( $preempt, $args, $url ) use ( $order, $intent ) {
+			if ( false === strpos( $url, '/payment_intents/pi_recovery' ) ) {
+				return $preempt;
+			}
+
+			// The webhook settles the order while the check waits for Stripe.
+			$order->payment_complete( 'ch_recovery' );
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode( $intent ),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+		add_filter( 'pre_http_request', $this->http_filter, 10, 3 );
+
+		$this->reconciliation->reconcile_order_payment( $order->get_id() );
+
+		$this->assertSame( [], $this->scheduled_checks( $order->get_id() ) );
+		$this->assertStringNotContainsString( 'A Stripe payment status check updated this order', $this->note_text( $order ) );
+	}
+
+	public function test_late_webhook_does_not_settle_an_order_the_check_already_settled(): void {
+		$order = $this->create_pending_stripe_order( false );
+		$this->use_real_settlement();
+		$objects = $this->successful_stripe_objects( $order );
+		unset( $objects['/checkout/sessions/cs_recovery'] );
+		$this->mock_stripe_objects( $objects );
+		$payment_complete_count    = 0;
+		$payment_complete_listener = static function () use ( &$payment_complete_count ) {
+			++$payment_complete_count;
+		};
+		add_action( 'woocommerce_payment_complete', $payment_complete_listener );
+
+		try {
+			$this->reconciliation->reconcile_order_payment( $order->get_id() );
+			$notes_after_check = $this->note_text( $order );
+
+			$webhook = new WC_Stripe_Webhook_Handler();
+			$webhook->process_payment_intent(
+				(object) [
+					'type' => 'payment_intent.succeeded',
+					'data' => (object) [ 'object' => $objects['/payment_intents/pi_recovery'] ],
+				]
+			);
+		} finally {
+			remove_action( 'woocommerce_payment_complete', $payment_complete_listener );
+		}
+
+		$this->assertTrue( wc_get_order( $order->get_id() )->is_paid() );
+		$this->assertSame( 1, $payment_complete_count );
+		$this->assertSame( $notes_after_check, $this->note_text( $order ) );
 	}
 
 	/** @dataProvider provide_session_settlement_mismatches */
@@ -609,6 +678,18 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 
 		$this->assertSame( [ '/payment_intents/pi_recovery' ], $endpoints );
 		$this->assertSame( [], $this->scheduled_checks( $order->get_id() ) );
+	}
+
+	private function note_text( WC_Order $order ): string {
+		return implode(
+			"\n",
+			array_map(
+				static function ( $note ) {
+					return $note->content;
+				},
+				wc_get_order_notes( [ 'order_id' => $order->get_id() ] )
+			)
+		);
 	}
 
 	/**

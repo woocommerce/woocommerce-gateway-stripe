@@ -45,6 +45,7 @@ class WC_Stripe_Order_Reconciliation_Scheduler_Test extends WP_UnitTestCase {
 		remove_action( WC_Stripe_Order_Reconciliation::ORDER_HOOK, [ $this->reconciliation, 'reconcile_order_payment' ] );
 		remove_filter( 'woocommerce_payment_successful_result', [ $this->reconciliation, 'schedule_after_classic_payment' ], 10 );
 		remove_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this->reconciliation, 'schedule_after_store_api_payment' ], 10001 );
+		remove_action( 'wc_gateway_stripe_process_payment_subscription_charge_attempt_delayed', [ $this->reconciliation, 'schedule_after_delayed_renewal_charge' ], 10 );
 		parent::tear_down();
 	}
 
@@ -118,6 +119,61 @@ class WC_Stripe_Order_Reconciliation_Scheduler_Test extends WP_UnitTestCase {
 
 		$this->assertSame( 10, has_filter( 'woocommerce_payment_successful_result', [ $this->reconciliation, 'schedule_after_classic_payment' ] ) );
 		$this->assertSame( 10001, has_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this->reconciliation, 'schedule_after_store_api_payment' ] ) );
+		$this->assertSame( 10, has_action( 'wc_gateway_stripe_process_payment_subscription_charge_attempt_delayed', [ $this->reconciliation, 'schedule_after_delayed_renewal_charge' ] ) );
+	}
+
+	/** @dataProvider provide_known_payment_types */
+	public function test_first_check_waits_a_day_when_the_payment_method_confirms_days_later( string $payment_type, int $expected_delay ) {
+		$order = $this->create_order_in_state( 'pending_intent' );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_payment_type( $order, $payment_type );
+		$order->save_meta_data();
+
+		$this->reconciliation->schedule_order_check( $order );
+
+		$this->assertEqualsWithDelta( time() + $expected_delay, $this->next_check_for( $order ), 5 );
+	}
+
+	public static function provide_known_payment_types(): array {
+		return [
+			'card'   => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Order_Reconciliation::FIRST_CHECK_DELAY ],
+			'Boleto' => [ WC_Stripe_Payment_Methods::BOLETO, WC_Stripe_Order_Reconciliation::DELAYED_CHECK_INTERVAL ],
+			'ACH'    => [ WC_Stripe_Payment_Methods::ACH, WC_Stripe_Order_Reconciliation::DELAYED_CHECK_INTERVAL ],
+		];
+	}
+
+	public function test_delayed_renewal_is_checked_after_stripe_attempts_the_charge() {
+		$order        = $this->create_order_in_state( 'pending_intent' );
+		$completes_at = time() + 2 * DAY_IN_SECONDS;
+		$response     = (object) [
+			'status'     => WC_Stripe_Intent_Status::PROCESSING,
+			'processing' => (object) [
+				'card' => (object) [
+					'customer_notification' => (object) [ 'completes_at' => $completes_at ],
+				],
+			],
+		];
+
+		$this->reconciliation->schedule_after_delayed_renewal_charge( $response, $order );
+
+		$this->assertSame( (string) $completes_at, wc_get_order( $order->get_id() )->get_meta( WC_Stripe_Order_Reconciliation::STARTED_META, true ) );
+		$this->assertEqualsWithDelta( $completes_at + WC_Stripe_Order_Reconciliation::FIRST_CHECK_DELAY, $this->next_check_for( $order ), 5 );
+	}
+
+	public function test_delayed_renewal_without_a_charge_date_starts_now() {
+		$order = $this->create_order_in_state( 'pending_intent' );
+
+		$this->reconciliation->schedule_after_delayed_renewal_charge( (object) [], $order );
+
+		$this->assertEqualsWithDelta( time() + WC_Stripe_Order_Reconciliation::FIRST_CHECK_DELAY, $this->next_check_for( $order ), 5 );
+	}
+
+	public function test_delayed_renewal_that_is_not_waiting_for_stripe_is_not_scheduled() {
+		$order = $this->create_order_in_state( 'pending_no_ids' );
+
+		$this->reconciliation->schedule_after_delayed_renewal_charge( (object) [], $order );
+		$this->reconciliation->schedule_after_delayed_renewal_charge( (object) [], null );
+
+		$this->assertSame( [], $this->queued_order_ids() );
 	}
 
 	/** @dataProvider provide_orders_after_payment */
@@ -345,6 +401,12 @@ class WC_Stripe_Order_Reconciliation_Scheduler_Test extends WP_UnitTestCase {
 		}
 		$order->save();
 		return $order;
+	}
+
+	private function next_check_for( WC_Order $order ): int {
+		$next = as_next_scheduled_action( WC_Stripe_Order_Reconciliation::ORDER_HOOK, [ 'order_id' => $order->get_id() ], WC_Stripe_Order_Reconciliation::GROUP );
+		$this->assertIsInt( $next );
+		return $next;
 	}
 
 	private function queued_order_ids(): array {

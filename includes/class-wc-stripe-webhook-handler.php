@@ -2442,7 +2442,20 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		return false;
 	}
 
-	/** The caller must hold the order payment lock while this method settles the session. */
+	/**
+	 * Settle an order from its completed Checkout Session.
+	 *
+	 * The caller must hold the order payment lock while this method settles the session.
+	 *
+	 * @internal Shared by the checkout.session.completed webhook and order reconciliation. Not part of
+	 *           the public API; it can change without notice.
+	 *
+	 * @param WC_Order    $order            Order linked to the session.
+	 * @param object      $checkout_session Checkout Session from Stripe.
+	 * @param string      $api_version      API version of the webhook event, if any.
+	 * @param object|null $intent           The session's PaymentIntent, when the caller already fetched it.
+	 * @param object|null $charge           The intent's latest charge, when the caller already fetched it.
+	 */
 	public function process_checkout_session_payment( WC_Order $order, object $checkout_session, string $api_version = '', ?object $intent = null, ?object $charge = null ): void {
 		$session_id   = $checkout_session->id;
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
@@ -2632,6 +2645,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 	/**
 	 * Settle a PaymentIntent found by reconciliation using the same pre-order lifecycle as a webhook.
+	 *
+	 * @internal Used by order reconciliation. Not part of the public API; it can change without notice.
+	 *
+	 * @param WC_Order $order  Order to settle.
+	 * @param object   $charge The PaymentIntent's verified latest charge.
 	 */
 	public function process_reconciled_payment( WC_Order $order, object $charge ): void {
 		if ( $this->maybe_mark_order_as_pre_ordered( $order, $charge ) ) {

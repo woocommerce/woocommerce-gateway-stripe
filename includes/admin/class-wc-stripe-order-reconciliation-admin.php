@@ -8,8 +8,9 @@
 defined( 'ABSPATH' ) || exit;
 
 class WC_Stripe_Order_Reconciliation_Admin {
-	public const ORDER_ACTION     = 'wc_stripe_recheck_payment';
-	public const NOTICE_QUERY_ARG = 'stripe_reconciliation_queued';
+	public const ORDER_ACTION      = 'wc_stripe_recheck_payment';
+	public const NOTICE_QUERY_ARG  = 'stripe_reconciliation_queued';
+	public const SKIPPED_QUERY_ARG = 'stripe_reconciliation_skipped';
 
 	/**
 	 * Queues and runs the checks.
@@ -68,7 +69,15 @@ class WC_Stripe_Order_Reconciliation_Admin {
 
 		if ( $this->reconciliation->enqueue_order( $order ) ) {
 			$order->add_order_note( __( 'A Stripe payment status check has been scheduled.', 'woocommerce-gateway-stripe' ) );
+			return;
 		}
+
+		// The action is only offered for eligible orders, but the order can change before it is saved.
+		$order->add_order_note(
+			$this->reconciliation->is_eligible_order( $order )
+				? __( 'No Stripe payment status check was scheduled: one is already queued for this order and runs within a few minutes.', 'woocommerce-gateway-stripe' )
+				: __( 'No Stripe payment status check was scheduled: the order is no longer pending, or it has no Stripe payment to look up. Check the payment in your Stripe Dashboard.', 'woocommerce-gateway-stripe' )
+		);
 	}
 
 	/**
@@ -99,16 +108,28 @@ class WC_Stripe_Order_Reconciliation_Admin {
 			return $redirect_to;
 		}
 
-		$queued = 0;
+		$queued  = 0;
+		$skipped = 0;
 		foreach ( $order_ids as $order_id ) {
 			$order = $this->reconciliation->resolve_order( $order_id );
 			if ( ! $order || ! current_user_can( 'edit_shop_order', $order->get_id() ) ) { // phpcs:ignore WordPress.WP.Capabilities.Unknown -- WooCommerce maps this meta capability against the order ID.
+				++$skipped;
 				continue;
 			}
-			$queued += $this->reconciliation->enqueue_order( $order ) ? 1 : 0;
+			if ( $this->reconciliation->enqueue_order( $order ) ) {
+				++$queued;
+			} else {
+				++$skipped;
+			}
 		}
 
-		return add_query_arg( self::NOTICE_QUERY_ARG, $queued, $redirect_to );
+		return add_query_arg(
+			[
+				self::NOTICE_QUERY_ARG  => $queued,
+				self::SKIPPED_QUERY_ARG => $skipped,
+			],
+			$redirect_to
+		);
 	}
 
 	/**
@@ -128,12 +149,29 @@ class WC_Stripe_Order_Reconciliation_Admin {
 		if ( ! is_scalar( $count_value ) ) {
 			return;
 		}
-		$count = absint( sanitize_text_field( (string) $count_value ) );
+		$count         = absint( sanitize_text_field( (string) $count_value ) );
+		$skipped_value = isset( $_GET[ self::SKIPPED_QUERY_ARG ] ) ? wp_unslash( $_GET[ self::SKIPPED_QUERY_ARG ] ) : 0; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Recommended -- Scalar input is sanitized below; WooCommerce verified the action nonce before redirecting here.
+		$skipped       = is_scalar( $skipped_value ) ? absint( sanitize_text_field( (string) $skipped_value ) ) : 0;
+
 		/* translators: %d: number of queued Stripe payment status checks. */
-		$message = _n( '%d Stripe payment status check scheduled.', '%d Stripe payment status checks scheduled.', $count, 'woocommerce-gateway-stripe' );
+		$message = sprintf( _n( '%d Stripe payment status check scheduled.', '%d Stripe payment status checks scheduled.', $count, 'woocommerce-gateway-stripe' ), $count );
+		if ( $skipped ) {
+			$message .= ' ' . sprintf(
+				/* translators: %d: number of orders that were not checked. */
+				_n(
+					'%d order was skipped: it is no longer pending, has no Stripe payment to look up, or already has a check queued.',
+					'%d orders were skipped: they are no longer pending, have no Stripe payment to look up, or already have a check queued.',
+					$skipped,
+					'woocommerce-gateway-stripe'
+				),
+				$skipped
+			);
+		}
+
 		printf(
-			'<div class="notice notice-success is-dismissible"><p>%s</p></div>',
-			esc_html( sprintf( $message, $count ) )
+			'<div class="notice %s is-dismissible"><p>%s</p></div>',
+			esc_attr( $count ? 'notice-success' : 'notice-warning' ),
+			esc_html( $message )
 		);
 	}
 }

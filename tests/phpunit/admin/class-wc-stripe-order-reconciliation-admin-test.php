@@ -101,6 +101,7 @@ class WC_Stripe_Order_Reconciliation_Admin_Test extends WP_UnitTestCase {
 		$this->assertSame( 0, $http_calls );
 		parse_str( (string) wp_parse_url( $redirect, PHP_URL_QUERY ), $query_args );
 		$this->assertSame( 1, (int) $query_args[ WC_Stripe_Order_Reconciliation_Admin::NOTICE_QUERY_ARG ] );
+		$this->assertSame( 3, (int) $query_args[ WC_Stripe_Order_Reconciliation_Admin::SKIPPED_QUERY_ARG ] );
 		$this->assertSame( [ $eligible->get_id() ], $this->queued_order_ids() );
 
 		$duplicate_redirect = $this->admin->handle_bulk_action(
@@ -110,43 +111,75 @@ class WC_Stripe_Order_Reconciliation_Admin_Test extends WP_UnitTestCase {
 		);
 		parse_str( (string) wp_parse_url( $duplicate_redirect, PHP_URL_QUERY ), $duplicate_query_args );
 		$this->assertSame( 0, (int) $duplicate_query_args[ WC_Stripe_Order_Reconciliation_Admin::NOTICE_QUERY_ARG ] );
+		$this->assertSame( 1, (int) $duplicate_query_args[ WC_Stripe_Order_Reconciliation_Admin::SKIPPED_QUERY_ARG ] );
 	}
 
-	public function test_single_action_adds_a_note_only_when_an_action_is_queued() {
+	public function test_single_action_adds_a_note_when_a_check_is_queued() {
 		$order = $this->create_order( 'stripe', 'pi_single' );
-		$this->admin->handle_order_action( $order );
-		$notes = wc_get_order_notes(
-			[
-				'order_id' => $order->get_id(),
-				'type'     => 'internal',
-			]
-		);
-		$this->assertCount( 1, $notes );
-		$this->assertStringContainsString( 'A Stripe payment status check has been scheduled.', $notes[0]->content );
 
-		$before = count(
-			wc_get_order_notes(
-				[
-					'order_id' => $order->get_id(),
-					'type'     => 'internal',
-				]
-			)
-		);
-		$filter = static function () {
-			return 0;
-		};
-		add_filter( 'pre_as_enqueue_async_action', $filter, 10, 6 );
 		$this->admin->handle_order_action( $order );
-		remove_filter( 'pre_as_enqueue_async_action', $filter, 10 );
-		$this->assertCount(
-			$before,
-			wc_get_order_notes(
-				[
-					'order_id' => $order->get_id(),
-					'type'     => 'internal',
-				]
-			)
-		);
+
+		$this->assertSame( [ 'A Stripe payment status check has been scheduled.' ], $this->note_contents( $order ) );
+	}
+
+	public function test_single_action_explains_an_already_queued_check() {
+		$order = $this->create_order( 'stripe', 'pi_single_duplicate' );
+		$this->admin->handle_order_action( $order );
+
+		$this->admin->handle_order_action( $order );
+
+		$notes = $this->note_contents( $order );
+		$this->assertCount( 2, $notes );
+		$this->assertStringContainsString( 'one is already queued for this order', $notes[0] );
+	}
+
+	public function test_single_action_explains_an_order_that_cannot_be_checked() {
+		$order = $this->create_order( 'stripe', 'pi_single_paid' );
+		$order->set_status( 'processing' );
+		$order->save();
+
+		$this->admin->handle_order_action( $order );
+
+		$notes = $this->note_contents( $order );
+		$this->assertStringContainsString( 'the order is no longer pending, or it has no Stripe payment to look up', $notes[0] );
+		$this->assertSame( [], $this->queued_order_ids() );
+	}
+
+	/** @dataProvider provide_bulk_notices */
+	public function test_bulk_notice_reports_queued_and_skipped_orders( int $queued, int $skipped, string $expected_class, array $expected_texts ) {
+		$original_screen = isset( $GLOBALS['current_screen'] ) ? $GLOBALS['current_screen'] : null;
+		set_current_screen( 'edit-shop_order' );
+		$_GET[ WC_Stripe_Order_Reconciliation_Admin::NOTICE_QUERY_ARG ]  = (string) $queued;
+		$_GET[ WC_Stripe_Order_Reconciliation_Admin::SKIPPED_QUERY_ARG ] = (string) $skipped;
+
+		try {
+			ob_start();
+			$this->admin->render_admin_notice();
+			$output = (string) ob_get_clean();
+		} finally {
+			unset( $_GET[ WC_Stripe_Order_Reconciliation_Admin::NOTICE_QUERY_ARG ], $_GET[ WC_Stripe_Order_Reconciliation_Admin::SKIPPED_QUERY_ARG ] );
+			if ( null === $original_screen ) {
+				unset( $GLOBALS['current_screen'] );
+			} else {
+				$GLOBALS['current_screen'] = $original_screen;
+			}
+		}
+
+		$this->assertStringContainsString( $expected_class, $output );
+		foreach ( $expected_texts as $text ) {
+			$this->assertStringContainsString( $text, $output );
+		}
+		if ( 0 === $skipped ) {
+			$this->assertStringNotContainsString( 'skipped', $output );
+		}
+	}
+
+	public static function provide_bulk_notices(): array {
+		return [
+			'all queued'     => [ 2, 0, 'notice-success', [ '2 Stripe payment status checks scheduled.' ] ],
+			'some skipped'   => [ 1, 2, 'notice-success', [ '1 Stripe payment status check scheduled.', '2 orders were skipped' ] ],
+			'nothing queued' => [ 0, 1, 'notice-warning', [ '0 Stripe payment status checks scheduled.', '1 order was skipped' ] ],
+		];
 	}
 
 	public function test_hook_registration_adds_the_order_action_and_both_order_list_screens() {
@@ -179,6 +212,20 @@ class WC_Stripe_Order_Reconciliation_Admin_Test extends WP_UnitTestCase {
 		$order->update_meta_data( '_stripe_intent_id', $intent_id );
 		$order->save();
 		return $order;
+	}
+
+	private function note_contents( WC_Order $order ): array {
+		return array_map(
+			static function ( $note ) {
+				return $note->content;
+			},
+			wc_get_order_notes(
+				[
+					'order_id' => $order->get_id(),
+					'type'     => 'internal',
+				]
+			)
+		);
 	}
 
 	private function queued_order_ids(): array {
