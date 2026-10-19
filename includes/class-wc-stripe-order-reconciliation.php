@@ -8,12 +8,47 @@
 defined( 'ABSPATH' ) || exit;
 
 class WC_Stripe_Order_Reconciliation {
-	public const ORDER_HOOK      = 'wc_stripe_reconcile_order_payment';
-	public const GROUP           = 'woocommerce_stripe';
-	public const ATTEMPTS_META   = '_stripe_reconciliation_attempts';
-	public const CHECK_DELAY     = 15 * MINUTE_IN_SECONDS;
-	public const MAX_RETRY_DELAY = 6 * HOUR_IN_SECONDS;
-	public const MAX_ATTEMPTS    = 10;
+	public const ORDER_HOOK   = 'wc_stripe_reconcile_order_payment';
+	public const GROUP        = 'woocommerce_stripe';
+	public const STARTED_META = '_stripe_reconciliation_started';
+	public const DELAYED_META = '_stripe_reconciliation_delayed';
+
+	/**
+	 * This is a fallback for missed webhooks, so it waits until a normal delivery, and Stripe's first
+	 * retries, would have settled the order. The payment method type isn't known yet when this is
+	 * scheduled, so every order gets the same first check.
+	 */
+	public const FIRST_CHECK_DELAY = 30 * MINUTE_IN_SECONDS;
+
+	/**
+	 * Methods that confirm while the customer is at checkout (cards, wallets, redirects, BNPL) can't
+	 * succeed after their authorization window, the longest being Affirm's 12 hours, or after an
+	 * Adaptive Pricing Checkout Session expires (24 hours by default).
+	 */
+	public const IMMEDIATE_CHECK_INTERVAL = 6 * HOUR_IN_SECONDS;
+	public const IMMEDIATE_MAX_AGE        = DAY_IN_SECONDS;
+
+	/**
+	 * Bank debits confirm in 3 to 7 business days, plus up to 10 days of microdeposit verification
+	 * for ACH and ACSS. Vouchers confirm up to about 15 days after checkout (OXXO's default 5-day
+	 * expiry plus Stripe's 10-day confirmation window).
+	 */
+	public const DELAYED_CHECK_INTERVAL = DAY_IN_SECONDS;
+	public const DELAYED_MAX_AGE        = 21 * DAY_IN_SECONDS;
+
+	/**
+	 * Stripe payment method types that confirm days after checkout.
+	 */
+	private const DELAYED_PAYMENT_METHOD_TYPES = [
+		WC_Stripe_Payment_Methods::ACH,
+		WC_Stripe_Payment_Methods::ACSS_DEBIT,
+		WC_Stripe_Payment_Methods::BACS_DEBIT,
+		WC_Stripe_Payment_Methods::BECS_DEBIT,
+		WC_Stripe_Payment_Methods::SEPA_DEBIT,
+		WC_Stripe_Payment_Methods::BOLETO,
+		WC_Stripe_Payment_Methods::MULTIBANCO,
+		WC_Stripe_Payment_Methods::OXXO,
+	];
 
 	/**
 	 * The order needs no further checks: it was settled, put on hold, or Stripe says it can't be paid.
@@ -64,7 +99,7 @@ class WC_Stripe_Order_Reconciliation {
 	 *
 	 * These hooks fire before the payment is processed, so the order has no session or intent ID yet.
 	 * Only the payment method is checked here; the job checks whether the order still needs settling.
-	 * A new payment attempt on the same order starts a fresh retry budget.
+	 * A new payment attempt on the same order starts the checks over, possibly with another method.
 	 *
 	 * @param mixed $order Order or order ID, depending on the hook.
 	 */
@@ -78,12 +113,11 @@ class WC_Stripe_Order_Reconciliation {
 			return;
 		}
 
-		if ( '' !== $order->get_meta( self::ATTEMPTS_META, true ) ) {
-			$order->delete_meta_data( self::ATTEMPTS_META );
-			$order->save_meta_data();
-		}
+		$order->update_meta_data( self::STARTED_META, (string) time() );
+		$order->delete_meta_data( self::DELAYED_META );
+		$order->save_meta_data();
 
-		as_schedule_single_action( time() + self::CHECK_DELAY, self::ORDER_HOOK, [ 'order_id' => $order->get_id() ], self::GROUP, true );
+		as_schedule_single_action( time() + self::FIRST_CHECK_DELAY, self::ORDER_HOOK, [ 'order_id' => $order->get_id() ], self::GROUP, true );
 	}
 
 	/**
@@ -118,8 +152,8 @@ class WC_Stripe_Order_Reconciliation {
 	/**
 	 * Process an Action Scheduler job.
 	 *
-	 * Scheduled checks reschedule themselves with backoff while Stripe may still complete the payment.
-	 * Manual checks run once and leave any scheduled check in place.
+	 * Scheduled checks reschedule themselves while Stripe may still complete the payment, until the
+	 * payment method's window has passed. Manual checks run once and leave any scheduled check in place.
 	 *
 	 * @param mixed $order_id
 	 * @param mixed $is_manual
@@ -131,33 +165,26 @@ class WC_Stripe_Order_Reconciliation {
 		}
 		$order_id = $order->get_id();
 
-		$is_manual = true === $is_manual;
-		$attempt   = 0;
-		if ( ! $is_manual ) {
-			// Counted before the check, so a request that dies mid-check still uses up an attempt.
-			$attempt = absint( $order->get_meta( self::ATTEMPTS_META, true ) ) + 1;
-			$order->update_meta_data( self::ATTEMPTS_META, (string) $attempt );
-			$order->save_meta_data();
-		}
-
 		$result = $this->check_order_payment( $order );
-		if ( $is_manual || self::RESULT_RETRY !== $result ) {
+		if ( true === $is_manual || self::RESULT_RETRY !== $result ) {
 			return;
 		}
 
-		if ( $attempt >= self::MAX_ATTEMPTS ) {
+		$next_check = $this->get_next_check_time( $order );
+		if ( null === $next_check ) {
 			WC_Stripe_Logger::warning(
-				'Gave up on reconciling a pending Stripe order.',
+				'Gave up on reconciling a pending Stripe order: its payment method can no longer complete.',
 				[
 					'order_id' => $order_id,
-					'attempts' => $attempt,
+					'started'  => $this->get_checks_started_at( $order ),
+					'delayed'  => $this->is_delayed_payment( $order ),
 				]
 			);
 			return;
 		}
 
 		// Not unique: this action is still running, and Action Scheduler counts running actions as duplicates.
-		as_schedule_single_action( time() + $this->get_retry_delay( $attempt ), self::ORDER_HOOK, [ 'order_id' => $order_id ], self::GROUP );
+		as_schedule_single_action( $next_check, self::ORDER_HOOK, [ 'order_id' => $order_id ], self::GROUP );
 	}
 
 	/**
@@ -202,6 +229,7 @@ class WC_Stripe_Order_Reconciliation {
 			if ( ! is_object( $intent ) || isset( $intent->error ) ) {
 				return $this->get_request_error_result( $intent, $order_id, $intent_id );
 			}
+			$this->maybe_mark_delayed_payment( $order, $intent );
 			if ( ! $this->is_valid_payment_intent( $intent, $intent_id ) ) {
 				return $this->is_final_payment_intent( $intent, $intent_id ) ? $this->stop( 'The PaymentIntent can no longer be paid.', $order_id, $intent_id ) : self::RESULT_RETRY;
 			}
@@ -309,15 +337,74 @@ class WC_Stripe_Order_Reconciliation {
 	}
 
 	/**
-	 * Delay before the next scheduled check: CHECK_DELAY, doubled after each attempt, up to MAX_RETRY_DELAY.
+	 * When to check the order next, based on how long its payment method can take to confirm.
 	 *
-	 * The exponent is capped so a large attempt count can't overflow before the minimum applies.
+	 * The last check lands exactly when the window closes, so a payment confirmed just before
+	 * the deadline is still picked up.
 	 *
-	 * @param int $attempt Attempts made so far, including the one that just ran.
-	 * @return int Seconds.
+	 * @param WC_Order $order Order that is still pending after a check.
+	 * @return int|null Timestamp of the next check, or null when the window has passed.
 	 */
-	private function get_retry_delay( int $attempt ): int {
-		return (int) min( self::CHECK_DELAY * 2 ** min( $attempt - 1, 10 ), self::MAX_RETRY_DELAY );
+	private function get_next_check_time( WC_Order $order ): ?int {
+		$is_delayed = $this->is_delayed_payment( $order );
+		$deadline   = $this->get_checks_started_at( $order ) + ( $is_delayed ? self::DELAYED_MAX_AGE : self::IMMEDIATE_MAX_AGE );
+		$now        = time();
+		if ( $now >= $deadline ) {
+			return null;
+		}
+
+		return min( $now + ( $is_delayed ? self::DELAYED_CHECK_INTERVAL : self::IMMEDIATE_CHECK_INTERVAL ), $deadline );
+	}
+
+	/**
+	 * When the checks of the current payment attempt started.
+	 *
+	 * Falls back to the order creation date for orders whose checks weren't scheduled at checkout,
+	 * for example ones created before this feature.
+	 *
+	 * @param WC_Order $order Order being checked.
+	 * @return int Timestamp.
+	 */
+	private function get_checks_started_at( WC_Order $order ): int {
+		$started = absint( $order->get_meta( self::STARTED_META, true ) );
+		if ( $started ) {
+			return $started;
+		}
+
+		$created = $order->get_date_created();
+		return $created ? $created->getTimestamp() : time();
+	}
+
+	/**
+	 * Whether the order is paid with a method that confirms days after checkout.
+	 *
+	 * The Payment Element path stores the payment method type on the order. The Adaptive Pricing path
+	 * doesn't, so a check also records what the PaymentIntent reported (see maybe_mark_delayed_payment()).
+	 *
+	 * @param WC_Order $order Order being checked.
+	 * @return bool
+	 */
+	private function is_delayed_payment( WC_Order $order ): bool {
+		return 'yes' === $order->get_meta( self::DELAYED_META, true )
+			|| in_array( WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order ), self::DELAYED_PAYMENT_METHOD_TYPES, true );
+	}
+
+	/**
+	 * Remember that the PaymentIntent uses a method that confirms days later.
+	 *
+	 * Stored on the order so a later check that can't reach Stripe still uses the longer window.
+	 *
+	 * @param WC_Order $order  Order being checked.
+	 * @param object   $intent PaymentIntent from Stripe, with its payment method expanded.
+	 */
+	private function maybe_mark_delayed_payment( WC_Order $order, object $intent ): void {
+		$type = is_object( $intent->payment_method ?? null ) ? ( $intent->payment_method->type ?? '' ) : '';
+		if ( ! in_array( $type, self::DELAYED_PAYMENT_METHOD_TYPES, true ) || 'yes' === $order->get_meta( self::DELAYED_META, true ) ) {
+			return;
+		}
+
+		$order->update_meta_data( self::DELAYED_META, 'yes' );
+		$order->save_meta_data();
 	}
 
 	/**

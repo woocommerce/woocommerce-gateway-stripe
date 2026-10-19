@@ -77,7 +77,7 @@ class WC_Stripe_Order_Reconciliation_Scheduler_Test extends WP_UnitTestCase {
 
 		$this->assertSame( [ $stripe_order->get_id() ], $this->queued_order_ids() );
 		$next = as_next_scheduled_action( WC_Stripe_Order_Reconciliation::ORDER_HOOK, [ 'order_id' => $stripe_order->get_id() ], WC_Stripe_Order_Reconciliation::GROUP );
-		$this->assertEqualsWithDelta( time() + WC_Stripe_Order_Reconciliation::CHECK_DELAY, $next, 5 );
+		$this->assertEqualsWithDelta( time() + WC_Stripe_Order_Reconciliation::FIRST_CHECK_DELAY, $next, 5 );
 	}
 
 	public function test_scheduled_check_accepts_an_order_id_and_is_unique_per_order() {
@@ -148,14 +148,17 @@ class WC_Stripe_Order_Reconciliation_Scheduler_Test extends WP_UnitTestCase {
 		$this->assertNotFalse( as_next_scheduled_action( WC_Stripe_Order_Reconciliation::ORDER_HOOK, [ 'order_id' => $order->get_id() ], WC_Stripe_Order_Reconciliation::GROUP ) );
 	}
 
-	public function test_new_payment_attempt_resets_the_retry_budget() {
+	public function test_new_payment_attempt_starts_the_checks_over() {
 		$order = $this->create_order( 'stripe', 'pi_reset', 0 );
-		$order->update_meta_data( WC_Stripe_Order_Reconciliation::ATTEMPTS_META, '4' );
+		$order->update_meta_data( WC_Stripe_Order_Reconciliation::STARTED_META, (string) ( time() - 3 * DAY_IN_SECONDS ) );
+		$order->update_meta_data( WC_Stripe_Order_Reconciliation::DELAYED_META, 'yes' );
 		$order->save_meta_data();
 
 		$this->reconciliation->schedule_order_check( $order->get_id() );
 
-		$this->assertSame( '', wc_get_order( $order->get_id() )->get_meta( WC_Stripe_Order_Reconciliation::ATTEMPTS_META, true ) );
+		$reloaded = wc_get_order( $order->get_id() );
+		$this->assertEqualsWithDelta( time(), (int) $reloaded->get_meta( WC_Stripe_Order_Reconciliation::STARTED_META, true ), 5 );
+		$this->assertSame( '', $reloaded->get_meta( WC_Stripe_Order_Reconciliation::DELAYED_META, true ) );
 	}
 
 	public function test_hook_registration_adds_no_admin_hooks() {
