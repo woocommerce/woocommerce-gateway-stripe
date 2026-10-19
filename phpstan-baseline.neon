@@ -2343,13 +2343,13 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 3
+			count: 2
 			path: includes/class-wc-stripe-payment-method-configurations.php
 
 		-
 			message: '#^Argument of an invalid type object supplied for foreach, only iterables are supported\.$#'
 			identifier: foreach.nonIterable
-			count: 3
+			count: 2
 			path: includes/class-wc-stripe-payment-method-configurations.php
 
 		-
