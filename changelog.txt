@@ -1,6 +1,7 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 11.2.0
+* Fix - Keep Optimized Checkout orders from being auto-cancelled as unpaid while Stripe can still confirm their payment
 * Fix - Stop blocking non-Stripe payment gateways on the Pay for Order, change payment method, and add payment method pages
 * Dev - Remove expired lock rows from the options table once a day
 * Tweak - Minor improvement to error logging when saving new keys
