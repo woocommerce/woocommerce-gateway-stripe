@@ -661,6 +661,37 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		];
 	}
 
+	/** @dataProvider provide_unreachable_stripe_windows */
+	public function test_checks_that_cannot_reach_stripe_continue_up_to_the_longest_window( int $started_ago, ?int $expected_delay ): void {
+		$order = $this->create_pending_stripe_order( false );
+		$order->update_meta_data( WC_Stripe_Order_Reconciliation::STARTED_META, (string) ( time() - $started_ago ) );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_payment_type( $order, WC_Stripe_Payment_Methods::CARD );
+		$order->save_meta_data();
+		$this->http_filter = static function ( $preempt, $args, $url ) {
+			return false !== strpos( $url, 'api.stripe.com' ) ? new WP_Error( 'http_request_failed', 'Timeout.' ) : $preempt;
+		};
+		add_filter( 'pre_http_request', $this->http_filter, 10, 3 );
+
+		$this->reconciliation->reconcile_order_payment( $order->get_id() );
+
+		$checks = $this->scheduled_checks( $order->get_id() );
+		if ( null === $expected_delay ) {
+			$this->assertSame( [], $checks );
+			return;
+		}
+		$this->assertCount( 1, $checks );
+		$this->assertEqualsWithDelta( time() + $expected_delay, $checks[0], 5 );
+	}
+
+	public static function provide_unreachable_stripe_windows(): array {
+		return [
+			'within the card window'          => [ 30 * MINUTE_IN_SECONDS, 6 * HOUR_IN_SECONDS ],
+			'card window passed, daily after' => [ DAY_IN_SECONDS, DAY_IN_SECONDS ],
+			'last check at the longest limit' => [ 20 * DAY_IN_SECONDS + 12 * HOUR_IN_SECONDS, 12 * HOUR_IN_SECONDS ],
+			'longest window passed'           => [ 21 * DAY_IN_SECONDS, null ],
+		];
+	}
+
 	public function test_delayed_payment_method_reported_by_stripe_keeps_the_longer_window(): void {
 		$order = $this->create_pending_stripe_order( false );
 		$order->update_meta_data( WC_Stripe_Order_Reconciliation::STARTED_META, (string) ( time() - 2 * DAY_IN_SECONDS ) );

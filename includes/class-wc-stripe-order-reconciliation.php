@@ -295,20 +295,24 @@ class WC_Stripe_Order_Reconciliation {
 			return;
 		}
 
-		$next_check = $this->get_next_check_time( $order );
+		$stripe_reported_status = '' !== $this->last_retry_status;
+		$next_check             = $this->get_next_check_time( $order, $stripe_reported_status );
 		if ( null === $next_check ) {
 			WC_Stripe_Logger::warning(
-				'Gave up on reconciling a pending Stripe order: its payment method can no longer complete.',
+				$stripe_reported_status
+					? 'Gave up on reconciling a pending Stripe order: its payment method can no longer complete.'
+					: 'Gave up on reconciling a pending Stripe order: Stripe could not be reached for the longest payment window.',
 				[
-					'order_id' => $order_id,
-					'started'  => $this->get_checks_started_at( $order ),
-					'delayed'  => $this->is_delayed_payment( $order ),
+					'order_id'      => $order_id,
+					'started'       => $this->get_checks_started_at( $order ),
+					'delayed'       => $this->is_delayed_payment( $order ),
+					'stripe_status' => $this->last_retry_status,
 				]
 			);
 			return;
 		}
 
-		// Not unique: this action is still running, and Action Scheduler counts running actions as duplicates.
+		// No has_pending_check() here: this action is still running, so it would count as the pending check.
 		as_schedule_single_action( $next_check, self::ORDER_HOOK, [ 'order_id' => $order_id ], self::GROUP );
 	}
 
@@ -597,21 +601,28 @@ class WC_Stripe_Order_Reconciliation {
 	/**
 	 * When to check the order next, based on how long its payment method can take to confirm.
 	 *
-	 * The last check lands exactly when the window closes, so a payment confirmed just before
-	 * the deadline is still picked up.
+	 * The payment method's window only ends the checks when the last check got a status from Stripe.
+	 * A check that couldn't reach Stripe (an outage, throttled keys, the order lock) says nothing about the
+	 * payment, which may well have succeeded, so those keep going up to the longest window, once a day
+	 * after the payment method's own window. The last check lands exactly when a window closes, so a
+	 * payment confirmed just before the deadline is still picked up.
 	 *
-	 * @param WC_Order $order Order that is still pending after a check.
+	 * @param WC_Order $order                  Order that is still pending after a check.
+	 * @param bool     $stripe_reported_status Whether the last check got the payment's status from Stripe.
 	 * @return int|null Timestamp of the next check, or null when the window has passed.
 	 */
-	private function get_next_check_time( WC_Order $order ): ?int {
-		$is_delayed = $this->is_delayed_payment( $order );
-		$deadline   = $this->get_checks_started_at( $order ) + ( $is_delayed ? self::DELAYED_MAX_AGE : self::IMMEDIATE_MAX_AGE );
-		$now        = time();
+	private function get_next_check_time( WC_Order $order, bool $stripe_reported_status ): ?int {
+		$is_delayed      = $this->is_delayed_payment( $order );
+		$started_at      = $this->get_checks_started_at( $order );
+		$window_deadline = $started_at + ( $is_delayed ? self::DELAYED_MAX_AGE : self::IMMEDIATE_MAX_AGE );
+		$deadline        = $stripe_reported_status ? $window_deadline : $started_at + self::DELAYED_MAX_AGE;
+		$now             = time();
 		if ( $now >= $deadline ) {
 			return null;
 		}
 
-		return min( $now + ( $is_delayed ? self::DELAYED_CHECK_INTERVAL : self::IMMEDIATE_CHECK_INTERVAL ), $deadline );
+		$interval = $is_delayed || $now >= $window_deadline ? self::DELAYED_CHECK_INTERVAL : self::IMMEDIATE_CHECK_INTERVAL;
+		return min( $now + $interval, $deadline );
 	}
 
 	/**
