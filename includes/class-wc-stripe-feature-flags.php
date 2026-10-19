@@ -52,7 +52,7 @@ class WC_Stripe_Feature_Flags {
 	 * Feature flag for checking pending Stripe orders against Stripe when their webhooks don't arrive.
 	 *
 	 * @var string
-	 * @since 11.1.0
+	 * @since x.x.x
 	 */
 	public const ORDER_RECONCILIATION_FEATURE_FLAG_NAME = '_wcstripe_feature_order_reconciliation';
 
@@ -285,7 +285,7 @@ class WC_Stripe_Feature_Flags {
 	 *
 	 * On by default; it exists as a kill switch.
 	 *
-	 * @since 11.1.0
+	 * @since x.x.x
 	 * @return bool True if enabled, false otherwise.
 	 */
 	public static function is_order_reconciliation_enabled(): bool {
