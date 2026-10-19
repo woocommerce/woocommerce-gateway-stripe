@@ -66,34 +66,27 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Asserts that the OCS install marker is consumed during Connect OAuth: when the
-	 * marker is present and the connection type is 'connect', Optimized Checkout is
-	 * defaulted to 'yes' and Adaptive Pricing is defaulted to 'yes' unless the connected
-	 * account is India-based, where Adaptive Pricing is not supported. The marker is
-	 * always cleaned up.
+	 * Installation persists settings before OAuth. First-connection defaults must
+	 * still apply without overwriting saved preferences or bypassing AP eligibility.
 	 *
 	 * @param bool   $marker_set       Whether the OCS install marker is set before save.
 	 * @param string $type             Connection type ('connect' or 'app').
 	 * @param string $account_country  Country of the connected Stripe account.
 	 * @param string $expected_oc      Expected value of optimized_checkout_element after save.
 	 * @param string $expected_ap      Expected value of adaptive_pricing after save.
+	 * @param array  $preferences      Preferences saved before the first connection.
+	 * @param bool   $webhook_enabled  Whether the configured webhook is enabled.
 	 *
 	 * @dataProvider provide_save_stripe_keys_defaults_ocs_for_new_installs
 	 */
-	public function test_save_stripe_keys_defaults_ocs_and_adaptive_pricing_for_new_installs( bool $marker_set, string $type, string $account_country, string $expected_oc, string $expected_ap ): void {
-		if ( $marker_set ) {
-			update_option( 'wc_stripe_optimized_checkout_default_on', 'yes' );
-		} else {
-			delete_option( 'wc_stripe_optimized_checkout_default_on' );
-		}
-
+	public function test_save_stripe_keys_defaults_ocs_and_adaptive_pricing_for_new_installs( bool $marker_set, string $type, string $account_country, string $expected_oc, string $expected_ap, array $preferences = [], bool $webhook_enabled = true ): void {
 		$account = $this->getMockBuilder( WC_Stripe_Account::class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'get_cached_account_data', 'maybe_decommission_webhook', 'configure_webhooks', 'clear_cache', 'is_webhook_enabled' ] )
+			->onlyMethods( [ 'get_cached_account_data', 'maybe_decommission_webhook', 'configure_webhooks', 'clear_cache', 'is_webhook_enabled', 'maybe_reconfigure_webhooks_on_update' ] )
 			->getMock();
 		$account->method( 'get_cached_account_data' )->willReturn( [ 'country' => $account_country ] );
 		$account->method( 'maybe_decommission_webhook' )->willReturn( false );
-		$account->method( 'is_webhook_enabled' )->willReturn( true );
+		$account->method( 'is_webhook_enabled' )->willReturn( $webhook_enabled );
 		WC_Stripe::get_instance()->account = $account;
 
 		$result                 = new stdClass();
@@ -105,7 +98,24 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$method = new ReflectionMethod( WC_Stripe_Connect::class, 'save_stripe_keys' );
 		$method->setAccessible( true );
-		$method->invoke( $this->connect, $result, $type, 'test' );
+		$stripe = WC_Stripe::get_instance();
+		add_filter( 'pre_update_option_woocommerce_stripe_settings', [ $stripe, 'gateway_settings_update' ], 10, 2 );
+		try {
+			delete_option( WC_Stripe::SETTINGS_OPTION_NAME );
+			delete_option( 'wc_stripe_version' );
+			update_option( 'active_plugins', [ plugin_basename( WC_STRIPE_MAIN_FILE ) ] );
+			$stripe->install();
+			$installed_settings = $stripe->get_settings();
+			$this->assertSame( 'yes', $installed_settings['upe_checkout_experience_enabled'] );
+			$this->assertSame( 'yes', get_option( 'wc_stripe_optimized_checkout_default_on' ) );
+			$stripe->update_settings( array_merge( $installed_settings, $preferences ) );
+			if ( ! $marker_set ) {
+				delete_option( 'wc_stripe_optimized_checkout_default_on' );
+			}
+			$method->invoke( $this->connect, $result, $type, 'test' );
+		} finally {
+			remove_filter( 'pre_update_option_woocommerce_stripe_settings', [ $stripe, 'gateway_settings_update' ] );
+		}
 
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 
@@ -150,20 +160,74 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected_oc'     => '',
 				'expected_ap'     => '',
 			],
+			'explicit AP off preserves OCS onboarding default'                 => [
+				true,
+				'connect',
+				'US',
+				'yes',
+				'no',
+				[ 'adaptive_pricing' => 'no' ],
+			],
+			'explicit OCS off and AP on are preserved'                         => [
+				true,
+				'connect',
+				'US',
+				'no',
+				'yes',
+				[
+					'optimized_checkout_element' => 'no',
+					'adaptive_pricing'           => 'yes',
+				],
+			],
+			'explicit OCS and AP off are preserved'                            => [
+				true,
+				'connect',
+				'US',
+				'no',
+				'no',
+				[
+					'optimized_checkout_element' => 'no',
+					'adaptive_pricing'           => 'no',
+				],
+			],
+			'disabled webhook prevents AP default'                             => [
+				true,
+				'connect',
+				'US',
+				'yes',
+				'',
+				[],
+				false,
+			],
+			'manual capture prevents AP default'                               => [
+				true,
+				'connect',
+				'US',
+				'yes',
+				'',
+				[ 'capture' => 'no' ],
+			],
 		];
 	}
 
 	/**
 	 * @dataProvider provide_reconnect_preferences
-	 * @param array $preferences Existing saved preferences.
+	 * @param array  $preferences   Existing saved preferences.
+	 * @param string $previous_mode Mode with previously configured credentials.
+	 * @param array  $account_data  Account data, empty when credentials have expired.
 	 */
-	public function test_reconnect_preserves_existing_preferences( array $preferences ): void {
-		$this->mock_stripe_account();
+	public function test_reconnect_preserves_existing_preferences( array $preferences, string $previous_mode = 'test', array $account_data = [ 'country' => 'US' ] ): void {
+		if ( ! empty( $account_data ) ) {
+			$account_data['capabilities'] = [ 'card_payments' => 'active' ];
+		}
+		$this->mock_stripe_account( $account_data );
+		$this->mock_payment_method_configurations( $preferences['upe_checkout_experience_accepted_payments'] ?? [ 'card' ] );
+		$prefix   = 'test' === $previous_mode ? 'test_' : '';
 		$settings = array_merge(
 			[
-				'test_publishable_key' => 'pk_test_previous',
-				'test_secret_key'      => 'sk_test_previous',
-				'pmc_enabled'          => 'yes',
+				$prefix . 'publishable_key' => 'pk_' . $previous_mode . '_previous',
+				$prefix . 'secret_key'      => 'sk_' . $previous_mode . '_previous',
+				'pmc_enabled'               => 'yes',
 			],
 			$preferences
 		);
@@ -172,27 +236,52 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		add_filter( 'pre_update_option_woocommerce_stripe_settings', [ WC_Stripe::get_instance(), 'gateway_settings_update' ], 10, 2 );
 
 		try {
-			$this->invoke_save_stripe_keys( 'pk_test_previous', 'sk_test_previous' );
-			$this->invoke_save_stripe_keys( 'pk_test_previous', 'sk_test_previous' );
+			for ( $attempt = 0; $attempt < 2; $attempt++ ) {
+				$this->invoke_save_stripe_keys( 'pk_test_previous', 'sk_test_previous' );
+				$snapshots = [ 'OAuth' => WC_Stripe_Helper::get_stripe_settings() ];
+				// A settings-page reload constructs the gateway from persisted options.
+				$controller = new WC_REST_Stripe_Settings_Controller( new WC_Stripe_UPE_Payment_Gateway() );
+				$response   = $controller->get_settings();
+				$this->assertSame( 200, $response->get_status() );
+				$snapshots['GET'] = WC_Stripe_Helper::get_stripe_settings();
+				foreach ( $snapshots as $stage => $saved ) {
+					foreach ( [ 'upe_checkout_experience_accepted_payments', 'express_checkout_button_locations', 'express_checkout_button_type', 'express_checkout_button_theme', 'express_checkout_button_size', 'optimized_checkout_element', 'adaptive_pricing' ] as $key ) {
+						if ( array_key_exists( $key, $preferences ) ) {
+							$this->assertSame( $preferences[ $key ], $saved[ $key ], $stage . ': ' . $key );
+						} else {
+							$this->assertArrayNotHasKey( $key, $saved, $stage . ': ' . $key );
+						}
+					}
+				}
+				foreach ( [ 'express_checkout_button_locations', 'express_checkout_button_type', 'express_checkout_button_theme', 'express_checkout_button_size' ] as $key ) {
+					if ( array_key_exists( $key, $preferences ) ) {
+						$this->assertSame( $preferences[ $key ], $response->get_data()[ $key ], $key );
+					}
+				}
+				$this->assertSame( 'yes' === ( $preferences['optimized_checkout_element'] ?? '' ), $response->get_data()['is_oc_enabled'] );
+				$this->assertSame( 'yes' === ( $preferences['adaptive_pricing'] ?? '' ), $response->get_data()['is_ap_enabled'] );
+				$this->assertFalse( get_option( 'wc_stripe_optimized_checkout_default_on' ) );
+			}
 		} finally {
 			remove_filter( 'pre_update_option_woocommerce_stripe_settings', [ WC_Stripe::get_instance(), 'gateway_settings_update' ] );
 		}
-
-		$saved = WC_Stripe_Helper::get_stripe_settings();
-		foreach ( [ 'upe_checkout_experience_accepted_payments', 'express_checkout_button_locations', 'optimized_checkout_element', 'adaptive_pricing' ] as $key ) {
-			if ( array_key_exists( $key, $preferences ) ) {
-				$this->assertSame( $preferences[ $key ], $saved[ $key ], $key );
-			} else {
-				$this->assertArrayNotHasKey( $key, $saved, $key );
-			}
-		}
-		$this->assertFalse( get_option( 'wc_stripe_optimized_checkout_default_on' ) );
 	}
 
 	public function provide_reconnect_preferences(): array {
 		return [
-			'missing settings stay missing' => [ [ 'upe_checkout_experience_enabled' => 'yes' ] ],
-			'explicit empty and off'        => [
+			'missing settings stay missing'            => [ [ 'upe_checkout_experience_enabled' => 'yes' ] ],
+			'previous live connection'                 => [ [ 'upe_checkout_experience_enabled' => 'yes' ], 'live' ],
+			'expired credentials without account data' => [
+				[
+					'upe_checkout_experience_enabled' => 'yes',
+					'test_secret_key'                 => 'sk_test_expired',
+					'test_connection_type'            => 'app',
+					'test_refresh_token'              => 'rt_test_expired',
+				],
+				'test',
+				[],
+			],
+			'explicit empty and off'                   => [
 				[
 					'upe_checkout_experience_accepted_payments' => [],
 					'express_checkout_button_locations'         => [],
@@ -200,10 +289,13 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					'adaptive_pricing'                          => 'no',
 				],
 			],
-			'custom selections'             => [
+			'custom selections'                        => [
 				[
 					'upe_checkout_experience_accepted_payments' => [ 'card', 'klarna' ],
 					'express_checkout_button_locations'         => [ 'checkout' ],
+					'express_checkout_button_type'              => 'donate',
+					'express_checkout_button_theme'             => 'light-outline',
+					'express_checkout_button_size'              => 'large',
 					'optimized_checkout_element'                => 'no',
 					'adaptive_pricing'                          => 'no',
 				],
@@ -969,14 +1061,15 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * Builds a WC_Stripe_Account mock with the methods save_stripe_keys() relies on, and
 	 * registers it on the plugin instance.
 	 *
+	 * @param array $account_data Cached account data.
 	 * @return WC_Stripe_Account&\PHPUnit\Framework\MockObject\MockObject
 	 */
-	private function mock_stripe_account() {
+	private function mock_stripe_account( array $account_data = [ 'country' => 'US' ] ) {
 		$account = $this->getMockBuilder( WC_Stripe_Account::class )
 			->disableOriginalConstructor()
 			->onlyMethods( [ 'get_cached_account_data', 'maybe_decommission_webhook', 'configure_webhooks', 'clear_cache' ] )
 			->getMock();
-		$account->method( 'get_cached_account_data' )->willReturn( [ 'country' => 'US' ] );
+		$account->method( 'get_cached_account_data' )->willReturn( $account_data );
 
 		WC_Stripe::get_instance()->account = $account;
 
