@@ -555,15 +555,19 @@ class WC_Stripe_Order_Reconciliation {
 	/**
 	 * Hooks, Action Scheduler and the order list pass orders as objects or as IDs of any scalar type.
 	 *
+	 * Order objects are read again from the database too: hooks can pass a copy loaded before the payment
+	 * ran, while the gateway saved the session or intent ID and the new status on another copy. The Store
+	 * API's payment context is one, and its order would look unpaid and unlinked.
+	 *
 	 * IDs are validated before calling wc_get_order(), which falls back to the order on the current
 	 * admin screen when given false, and returns refunds as well as orders.
 	 *
 	 * @param mixed $order Order or order ID.
-	 * @return WC_Order|null The order, or null when the reference doesn't point to one.
+	 * @return WC_Order|null The current order, or null when the reference doesn't point to a saved order.
 	 */
 	public function resolve_order( $order ): ?WC_Order {
 		if ( $order instanceof WC_Order ) {
-			return $order;
+			$order = $order->get_id();
 		}
 
 		$order_id = is_scalar( $order ) ? absint( $order ) : 0;

@@ -201,6 +201,35 @@ class WC_Stripe_Order_Reconciliation_Scheduler_Test extends WP_UnitTestCase {
 		$this->assertSame( $expect_check ? [ $order->get_id() ] : [], $this->queued_order_ids() );
 	}
 
+	public function test_store_api_payment_reads_the_order_the_gateway_updated() {
+		$order = $this->create_order( 'stripe', '', 0 );
+		// The Store API context holds the order as loaded before payment; the gateway updates its own copy.
+		$context_copy = wc_get_order( $order->get_id() );
+		$gateway_copy = wc_get_order( $order->get_id() );
+		$gateway_copy->update_meta_data( '_stripe_intent_id', 'pi_saved_by_gateway' );
+		$gateway_copy->save();
+		$context = new \Automattic\WooCommerce\StoreApi\Payments\PaymentContext();
+		$context->set_order( $context_copy );
+
+		$this->reconciliation->schedule_after_store_api_payment( $context, new \Automattic\WooCommerce\StoreApi\Payments\PaymentResult( 'success' ) );
+
+		$this->assertSame( [ $order->get_id() ], $this->queued_order_ids() );
+	}
+
+	public function test_store_api_payment_skips_an_order_the_gateway_already_paid() {
+		$order        = $this->create_order( 'stripe', 'pi_paid_by_gateway', 0 );
+		$context_copy = wc_get_order( $order->get_id() );
+		$gateway_copy = wc_get_order( $order->get_id() );
+		$gateway_copy->set_status( 'processing' );
+		$gateway_copy->save();
+		$context = new \Automattic\WooCommerce\StoreApi\Payments\PaymentContext();
+		$context->set_order( $context_copy );
+
+		$this->reconciliation->schedule_after_store_api_payment( $context, new \Automattic\WooCommerce\StoreApi\Payments\PaymentResult( 'success' ) );
+
+		$this->assertSame( [], $this->queued_order_ids() );
+	}
+
 	public static function provide_orders_after_payment(): array {
 		return [
 			'pending with an intent (redirect or 3DS)' => [ 'pending_intent', true ],
