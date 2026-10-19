@@ -1223,6 +1223,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$stripe_settings                                      = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['express_checkout_button_locations'] = $button_locations;
 		$stripe_settings['amazon_pay_button_locations']       = $button_locations;
+		$stripe_settings['link_button_locations']             = $button_locations;
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )

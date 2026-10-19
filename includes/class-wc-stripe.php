@@ -38,7 +38,12 @@ class WC_Stripe {
 	 * @return bool Whether the option was actually written (matches `update_option`).
 	 */
 	public function update_settings( array $settings ): bool {
-		return update_option( self::SETTINGS_OPTION_NAME, $settings );
+		$updated = update_option( self::SETTINGS_OPTION_NAME, $settings );
+		// A later gateway save must not put the pre-sync settings back into the option.
+		if ( $this->stripe_gateway ) {
+			$this->stripe_gateway->init_settings();
+		}
+		return $updated;
 	}
 
 	/**
