@@ -401,6 +401,54 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * @dataProvider provide_saved_button_locations
+	 * @param array|string $locations Saved button placements.
+	 */
+	public function test_update_prb_location_settings_preserves_saved_selection( $locations ): void {
+		$this->remove_gateway_settings_update_filter();
+		$settings = [
+			'express_checkout_button_locations' => $locations,
+			'payment_request_button_locations'  => [ 'product', 'cart', 'checkout' ],
+		];
+		update_option( WC_Stripe::SETTINGS_OPTION_NAME, $settings );
+
+		WC_Stripe::get_instance()->update_prb_location_settings();
+		WC_Stripe::get_instance()->update_prb_location_settings();
+
+		$this->assertSame( $settings, get_option( WC_Stripe::SETTINGS_OPTION_NAME ) );
+	}
+
+	public function provide_saved_button_locations(): array {
+		return [
+			'empty REST selection' => [ [] ],
+			'empty form selection' => [ '' ],
+			'custom selection'     => [ [ 'checkout' ] ],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_upe_payment_selections
+	 * @param array      $settings Existing payment-method settings.
+	 * @param string[]   $expected Expected enabled methods.
+	 */
+	public function test_enabling_upe_preserves_saved_payment_selection( array $settings, array $expected ): void {
+		$previous                                    = array_merge( $settings, [ 'upe_checkout_experience_enabled' => 'no' ] );
+		$settings['upe_checkout_experience_enabled'] = 'yes';
+
+		$updated = WC_Stripe::get_instance()->gateway_settings_update( $settings, $previous );
+
+		$this->assertSame( $expected, $updated['upe_checkout_experience_accepted_payments'] );
+	}
+
+	public function provide_upe_payment_selections(): array {
+		return [
+			'explicit empty selection' => [ [ 'upe_checkout_experience_accepted_payments' => [] ], [] ],
+			'Link disabled'            => [ [ 'upe_checkout_experience_accepted_payments' => [ 'card', 'klarna' ] ], [ 'card', 'klarna' ] ],
+			'no saved selection'       => [ [], [ 'card', 'link' ] ],
+		];
+	}
+
+	/**
 	 * Tests for `maybe_redirect_to_stripe_settings`.
 	 *
 	 * @return void
