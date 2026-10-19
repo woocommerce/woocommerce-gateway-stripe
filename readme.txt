@@ -164,7 +164,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 11.2.0 - xxxx-xx-xx =
-* Fix - Keep Optimized Checkout orders from being auto-cancelled as unpaid while Stripe can still confirm their payment
+* Fix - Keep Adaptive Pricing orders from being auto-cancelled as unpaid while Stripe can still confirm their payment
 * Fix - Stop blocking non-Stripe payment gateways on the Pay for Order, change payment method, and add payment method pages
 * Dev - Remove expired lock rows from the options table once a day
 * Tweak - Minor improvement to error logging when saving new keys
