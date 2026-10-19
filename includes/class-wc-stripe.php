@@ -482,16 +482,6 @@ class WC_Stripe {
 
 		// Remove lock rows left behind by requests that died while holding a lock.
 		WC_Stripe_Option_Lock::maybe_schedule_daily_cleanup();
-
-		// If we have previously disabled settings synchronization, remove the flag after the upgrade,
-		// just to make sure we are still ineligible for settings synchronization.
-		$stripe_settings = $this->get_settings();
-		if ( isset( $stripe_settings['pmc_enabled'] ) && 'no' === $stripe_settings['pmc_enabled'] ) {
-			unset( $stripe_settings['pmc_enabled'] );
-			$stripe_settings['skip_pmc_express_checkout_defaults'] = 'yes';
-			$this->update_settings( $stripe_settings );
-			WC_Stripe_Logger::error( 'Settings synchronization eligibility will be re-checked after upgrade' );
-		}
 	}
 
 	/**

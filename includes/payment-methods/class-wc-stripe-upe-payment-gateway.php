@@ -4860,6 +4860,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		$enabled_payment_method_ids = $this->get_upe_enabled_payment_method_ids();
+		if ( ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
+			return 'yes' === $this->get_option( 'express_checkout' );
+		}
 
 		// Apple Pay and Google Pay settings are currently unified in wp-admin.
 		// However, they are managed separately within the Stripe dashboard.

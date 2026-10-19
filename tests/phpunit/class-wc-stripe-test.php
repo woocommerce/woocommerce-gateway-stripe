@@ -310,9 +310,9 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					'pmc_enabled' => 'no',
 				],
 				'expected settings' => [
-					'pmc_enabled'                        => null,
+					'pmc_enabled'                        => 'no',
 					'optimized_checkout_element'         => null,
-					'skip_pmc_express_checkout_defaults' => 'yes',
+					'skip_pmc_express_checkout_defaults' => null,
 				],
 			],
 			'will not enable OCS by default due to OCS being set'      => [

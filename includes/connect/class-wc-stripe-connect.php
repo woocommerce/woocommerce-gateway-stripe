@@ -288,7 +288,10 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$options[ $prefix . 'publishable_key' ]     = $publishable_key;
 			$options[ $prefix . 'secret_key' ]          = $secret_key;
 			$options[ $prefix . 'connection_type' ]     = $type;
-			$options['pmc_enabled']                     = 'connect' === $type ? 'yes' : 'no'; // When not connected via Connect OAuth, the PMC is disabled.
+			$options['pmc_enabled']                     = 'connect' === $type
+				&& ( $current_options['testmode'] ?? 'no' ) === $options['testmode']
+				&& ( $current_options[ $prefix . 'publishable_key' ] ?? '' ) === $publishable_key
+				? ( $current_options['pmc_enabled'] ?? 'no' ) : 'no';
 			$should_default_optimized_checkout_on       = $is_first_connection && get_option( 'wc_stripe_optimized_checkout_default_on' );
 			// Clean up the option.
 			delete_option( 'wc_stripe_optimized_checkout_default_on' );
