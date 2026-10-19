@@ -226,7 +226,6 @@ class WC_Stripe {
 			$order_handler = new WC_Stripe_Order_Handler();
 			$order_handler->register_hooks();
 
-			require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-order-reconciliation.php';
 			$order_reconciliation = new WC_Stripe_Order_Reconciliation( $order_handler, $webhook_handler );
 			$order_reconciliation->register_hooks();
 
