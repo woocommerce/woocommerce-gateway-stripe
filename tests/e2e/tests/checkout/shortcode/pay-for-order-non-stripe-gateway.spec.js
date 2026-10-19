@@ -7,7 +7,6 @@ const { waitForOrderReceivedPage } = payments;
 let productId;
 
 test.beforeAll( async () => {
-	await api.update.paymentGateway( 'cod', { enabled: true } );
 	productId = await api.create.product( {
 		name: 'Pay for order non-Stripe gateway product',
 		type: 'simple',
@@ -17,7 +16,6 @@ test.beforeAll( async () => {
 } );
 
 test.afterAll( async () => {
-	await api.update.paymentGateway( 'cod', { enabled: false } );
 	if ( productId ) {
 		await api.deletePost.product( productId );
 	}
@@ -26,7 +24,14 @@ test.afterAll( async () => {
 // Stripe's submit handler must leave the shared form alone when another gateway is selected.
 test( 'customer can pay for an order with a non-Stripe gateway @shortcode', async ( {
 	page,
+	context,
+	baseURL,
 } ) => {
+	// The e2e mu-plugin registers the non-Stripe gateway only when this cookie is set.
+	await context.addCookies( [
+		{ name: 'wc_stripe_e2e_mock_gateway', value: '1', url: baseURL },
+	] );
+
 	const billing = config.get( 'addresses.customer.billing' );
 	const order = await api.create.order( {
 		status: 'pending',
@@ -49,7 +54,7 @@ test( 'customer can pay for an order with a non-Stripe gateway @shortcode', asyn
 		`/checkout/order-pay/${ order.id }/?pay_for_order=true&key=${ order.order_key }`
 	);
 
-	await page.locator( 'label[for="payment_method_cod"]' ).click();
+	await page.locator( 'label[for="payment_method_e2e_mock"]' ).click();
 	await page.locator( '#place_order' ).click();
 
 	await waitForOrderReceivedPage( page );

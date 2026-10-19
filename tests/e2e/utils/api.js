@@ -173,17 +173,6 @@ const update = {
 
 		return response.data.id;
 	},
-	paymentGateway: async ( gatewayId, settings ) => {
-		await api
-			.put( `payment_gateways/${ gatewayId }`, settings )
-			.then( ( response ) => response )
-			.catch( ( error ) => {
-				throwCustomError(
-					error,
-					'Failed to update payment gateway. See details below.'
-				);
-			} );
-	},
 };
 
 const deletePost = {
