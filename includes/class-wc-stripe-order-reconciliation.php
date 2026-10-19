@@ -8,14 +8,12 @@
 defined( 'ABSPATH' ) || exit;
 
 class WC_Stripe_Order_Reconciliation {
-	public const ORDER_HOOK       = 'wc_stripe_reconcile_order_payment';
-	public const GROUP            = 'woocommerce_stripe';
-	public const ATTEMPTS_META    = '_stripe_reconciliation_attempts';
-	public const CHECK_DELAY      = 15 * MINUTE_IN_SECONDS;
-	public const MAX_RETRY_DELAY  = 6 * HOUR_IN_SECONDS;
-	public const MAX_ATTEMPTS     = 10;
-	public const ORDER_ACTION     = 'wc_stripe_recheck_payment';
-	public const NOTICE_QUERY_ARG = 'stripe_reconciliation_queued';
+	public const ORDER_HOOK      = 'wc_stripe_reconcile_order_payment';
+	public const GROUP           = 'woocommerce_stripe';
+	public const ATTEMPTS_META   = '_stripe_reconciliation_attempts';
+	public const CHECK_DELAY     = 15 * MINUTE_IN_SECONDS;
+	public const MAX_RETRY_DELAY = 6 * HOUR_IN_SECONDS;
+	public const MAX_ATTEMPTS    = 10;
 
 	/**
 	 * The order needs no further checks: it was settled, put on hold, or Stripe says it can't be paid.
@@ -59,15 +57,6 @@ class WC_Stripe_Order_Reconciliation {
 		add_action( 'woocommerce_checkout_order_processed', [ $this, 'schedule_order_check' ] );
 		add_action( 'woocommerce_store_api_checkout_order_processed', [ $this, 'schedule_order_check' ] );
 		add_action( 'woocommerce_before_pay_action', [ $this, 'schedule_order_check' ] );
-		if ( is_admin() ) {
-			add_action( 'woocommerce_order_action_' . self::ORDER_ACTION, [ $this, 'handle_order_action' ] );
-			add_filter( 'woocommerce_order_actions', [ $this, 'add_order_action' ], 10, 2 );
-			add_filter( 'bulk_actions-edit-shop_order', [ $this, 'add_bulk_action' ] );
-			add_filter( 'bulk_actions-woocommerce_page_wc-orders', [ $this, 'add_bulk_action' ] );
-			add_filter( 'handle_bulk_actions-edit-shop_order', [ $this, 'handle_bulk_action' ], 10, 3 );
-			add_filter( 'handle_bulk_actions-woocommerce_page_wc-orders', [ $this, 'handle_bulk_action' ], 10, 3 );
-			add_action( 'admin_notices', [ $this, 'render_admin_notice' ] );
-		}
 	}
 
 	/**
@@ -169,100 +158,6 @@ class WC_Stripe_Order_Reconciliation {
 
 		// Not unique: this action is still running, and Action Scheduler counts running actions as duplicates.
 		as_schedule_single_action( time() + $this->get_retry_delay( $attempt ), self::ORDER_HOOK, [ 'order_id' => $order_id ], self::GROUP );
-	}
-
-	/**
-	 * Add an order action when the order can be checked.
-	 *
-	 * @param mixed $actions
-	 * @param mixed $order
-	 * @return mixed
-	 */
-	public function add_order_action( $actions, $order ) {
-		if ( ! is_array( $actions ) || ! $order instanceof WC_Order || ! current_user_can( 'edit_shop_order', $order->get_id() ) || ! $this->is_eligible_order( $order ) ) { // phpcs:ignore WordPress.WP.Capabilities.Unknown -- WooCommerce maps this meta capability against the order ID.
-			return $actions;
-		}
-
-		$actions[ self::ORDER_ACTION ] = __( 'Re-check payment status with Stripe', 'woocommerce-gateway-stripe' );
-		return $actions;
-	}
-
-	/**
-	 * Queue the requested order status check.
-	 *
-	 * @param mixed $order
-	 */
-	public function handle_order_action( $order ): void {
-		if ( ! $order instanceof WC_Order || ! current_user_can( 'edit_shop_order', $order->get_id() ) ) { // phpcs:ignore WordPress.WP.Capabilities.Unknown -- WooCommerce maps this meta capability against the order ID.
-			return;
-		}
-
-		if ( $this->enqueue_order( $order ) ) {
-			$order->add_order_note( __( 'A Stripe payment status check has been scheduled.', 'woocommerce-gateway-stripe' ) );
-		}
-	}
-
-	/**
-	 * Add the bulk order action when it is available.
-	 *
-	 * @param mixed $actions
-	 * @return mixed
-	 */
-	public function add_bulk_action( $actions ) {
-		if ( ! is_array( $actions ) || ! current_user_can( 'edit_shop_orders' ) ) { // phpcs:ignore WordPress.WP.Capabilities.Unknown -- WooCommerce registers this order-list capability.
-			return $actions;
-		}
-
-		$actions[ self::ORDER_ACTION ] = __( 'Re-check payment status with Stripe', 'woocommerce-gateway-stripe' );
-		return $actions;
-	}
-
-	/**
-	 * Queue payment checks requested from the order list.
-	 *
-	 * @param mixed $redirect_to
-	 * @param mixed $action
-	 * @param mixed $order_ids
-	 * @return mixed
-	 */
-	public function handle_bulk_action( $redirect_to, $action, $order_ids ) {
-		if ( ! is_string( $redirect_to ) || self::ORDER_ACTION !== $action || ! is_array( $order_ids ) || ! current_user_can( 'edit_shop_orders' ) ) { // phpcs:ignore WordPress.WP.Capabilities.Unknown -- WooCommerce registers this order-list capability.
-			return $redirect_to;
-		}
-
-		$queued = 0;
-		foreach ( $order_ids as $order_id ) {
-			$order = $this->resolve_order( $order_id );
-			if ( ! $order || ! current_user_can( 'edit_shop_order', $order->get_id() ) ) { // phpcs:ignore WordPress.WP.Capabilities.Unknown -- WooCommerce maps this meta capability against the order ID.
-				continue;
-			}
-			$queued += $this->enqueue_order( $order ) ? 1 : 0;
-		}
-
-		return add_query_arg( self::NOTICE_QUERY_ARG, $queued, $redirect_to );
-	}
-
-	public function render_admin_notice(): void {
-		if ( ! is_admin() || ! current_user_can( 'edit_shop_orders' ) || ! isset( $_GET[ self::NOTICE_QUERY_ARG ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.WP.Capabilities.Unknown -- WooCommerce verifies the bulk-action nonce before redirecting here and registers this capability.
-			return;
-		}
-
-		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-		if ( ! $screen || ! in_array( $screen->id, [ 'edit-shop_order', 'woocommerce_page_wc-orders' ], true ) ) {
-			return;
-		}
-
-		$count_value = wp_unslash( $_GET[ self::NOTICE_QUERY_ARG ] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Recommended -- Scalar input is sanitized below; WooCommerce verified the action nonce before redirecting here.
-		if ( ! is_scalar( $count_value ) ) {
-			return;
-		}
-		$count = absint( sanitize_text_field( (string) $count_value ) );
-		/* translators: %d: number of queued Stripe payment status checks. */
-		$message = _n( '%d Stripe payment status check scheduled.', '%d Stripe payment status checks scheduled.', $count, 'woocommerce-gateway-stripe' );
-		printf(
-			'<div class="notice notice-success is-dismissible"><p>%s</p></div>',
-			esc_html( sprintf( $message, $count ) )
-		);
 	}
 
 	/**
@@ -403,7 +298,7 @@ class WC_Stripe_Order_Reconciliation {
 	 * @param mixed $order Order or order ID.
 	 * @return WC_Order|null The order, or null when the reference doesn't point to one.
 	 */
-	private function resolve_order( $order ): ?WC_Order {
+	public function resolve_order( $order ): ?WC_Order {
 		if ( $order instanceof WC_Order ) {
 			return $order;
 		}
@@ -435,7 +330,7 @@ class WC_Stripe_Order_Reconciliation {
 	 * @param WC_Order $order Order to check.
 	 * @return bool
 	 */
-	private function is_eligible_order( WC_Order $order ): bool {
+	public function is_eligible_order( WC_Order $order ): bool {
 		return 'pending' === $order->get_status()
 			&& ! $order->get_date_paid()
 			&& WC_Stripe_Order_Helper::get_instance()->is_stripe_gateway_order( $order )

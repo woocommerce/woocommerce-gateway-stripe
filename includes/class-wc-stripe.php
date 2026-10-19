@@ -223,7 +223,12 @@ class WC_Stripe {
 			$order_handler->register_hooks();
 
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-order-reconciliation.php';
-			( new WC_Stripe_Order_Reconciliation( $order_handler, $webhook_handler ) )->register_hooks();
+			$order_reconciliation = new WC_Stripe_Order_Reconciliation( $order_handler, $webhook_handler );
+			$order_reconciliation->register_hooks();
+
+			if ( is_admin() ) {
+				( new WC_Stripe_Order_Reconciliation_Admin( $order_reconciliation ) )->register_hooks();
+			}
 		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-payment-tokens.php';

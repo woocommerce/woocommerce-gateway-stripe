@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Tests for Stripe pending order reconciliation scheduling and admin actions.
+ * Tests for scheduling Stripe pending order reconciliation checks.
  *
  * @package WooCommerce/Stripe
  */
@@ -26,17 +26,10 @@ class WC_Stripe_Order_Reconciliation_Scheduler_Test extends WP_UnitTestCase {
 	 */
 	private $original_hpos_setting;
 
-	/**
-	 * @var int
-	 */
-	private $admin_user_id;
-
 	public function set_up() {
 		parent::set_up();
 		$this->original_hpos_setting = get_option( 'woocommerce_custom_orders_table_enabled', 'no' );
 		add_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
-		$this->admin_user_id = self::factory()->user->create( [ 'role' => 'administrator' ] );
-		wp_set_current_user( $this->admin_user_id );
 
 		$this->gateway         = $this->getMockBuilder( WC_Gateway_Stripe::class )->disableOriginalConstructor()->getMock();
 		$this->webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )->disableOriginalConstructor()->getMock();
@@ -53,13 +46,6 @@ class WC_Stripe_Order_Reconciliation_Scheduler_Test extends WP_UnitTestCase {
 		remove_action( 'woocommerce_checkout_order_processed', [ $this->reconciliation, 'schedule_order_check' ] );
 		remove_action( 'woocommerce_store_api_checkout_order_processed', [ $this->reconciliation, 'schedule_order_check' ] );
 		remove_action( 'woocommerce_before_pay_action', [ $this->reconciliation, 'schedule_order_check' ] );
-		remove_action( 'woocommerce_order_action_' . WC_Stripe_Order_Reconciliation::ORDER_ACTION, [ $this->reconciliation, 'handle_order_action' ] );
-		remove_filter( 'woocommerce_order_actions', [ $this->reconciliation, 'add_order_action' ], 10 );
-		remove_filter( 'bulk_actions-edit-shop_order', [ $this->reconciliation, 'add_bulk_action' ] );
-		remove_filter( 'bulk_actions-woocommerce_page_wc-orders', [ $this->reconciliation, 'add_bulk_action' ] );
-		remove_filter( 'handle_bulk_actions-edit-shop_order', [ $this->reconciliation, 'handle_bulk_action' ], 10 );
-		remove_filter( 'handle_bulk_actions-woocommerce_page_wc-orders', [ $this->reconciliation, 'handle_bulk_action' ], 10 );
-		remove_action( 'admin_notices', [ $this->reconciliation, 'render_admin_notice' ] );
 		parent::tear_down();
 	}
 
@@ -76,68 +62,6 @@ class WC_Stripe_Order_Reconciliation_Scheduler_Test extends WP_UnitTestCase {
 
 		$this->assertFalse( as_has_scheduled_action( WC_Stripe_Order_Reconciliation::ORDER_HOOK, null, WC_Stripe_Order_Reconciliation::GROUP ) );
 		$this->assertNotFalse( as_has_scheduled_action( 'wc_stripe_unrelated_action', null, WC_Stripe_Order_Reconciliation::GROUP ) );
-	}
-
-	/**
-	 * @dataProvider provide_order_storage_modes
-	 */
-	public function test_order_action_is_added_only_for_authorized_eligible_orders( string $storage_mode ) {
-		$this->set_storage_mode( $storage_mode );
-		$order      = $this->create_order( 'stripe', 'pi_admin', 20 * MINUTE_IN_SECONDS );
-		$actions    = $this->reconciliation->add_order_action( [], $order );
-		$subscriber = self::factory()->user->create( [ 'role' => 'subscriber' ] );
-
-		$this->assertSame( 'Re-check payment status with Stripe', $actions[ WC_Stripe_Order_Reconciliation::ORDER_ACTION ] );
-		wp_set_current_user( $subscriber );
-		$this->assertSame( [], $this->reconciliation->add_order_action( [], $order ) );
-		wp_set_current_user( $this->admin_user_id );
-
-		$non_stripe = $this->create_order( 'cod', 'pi_cod_admin', 20 * MINUTE_IN_SECONDS );
-		$this->assertSame( [], $this->reconciliation->add_order_action( [], $non_stripe ) );
-	}
-
-	/**
-	 * @dataProvider provide_order_storage_modes
-	 */
-	public function test_bulk_action_queues_only_eligible_orders_without_making_http_requests( string $storage_mode ) {
-		$this->set_storage_mode( $storage_mode );
-		$eligible    = $this->create_order( 'stripe', 'pi_bulk', 20 * MINUTE_IN_SECONDS );
-		$forbidden   = $this->create_order( 'stripe', 'pi_bulk_forbidden', 20 * MINUTE_IN_SECONDS );
-		$non_stripe  = $this->create_order( 'cod', 'pi_bulk_cod', 20 * MINUTE_IN_SECONDS );
-		$http_calls  = 0;
-		$map_caps    = static function ( $caps, $cap, $user_id, $args ) use ( $forbidden ) {
-			if ( 'edit_post' === $cap && $forbidden->get_id() === absint( $args[0] ?? 0 ) ) {
-				return [ 'do_not_allow' ];
-			}
-			return $caps;
-		};
-		$http_filter = static function () use ( &$http_calls ) {
-			++$http_calls;
-			return new WP_Error( 'unexpected_http', 'Bulk scheduling must not make network requests.' );
-		};
-		add_filter( 'map_meta_cap', $map_caps, 10, 4 );
-		add_filter( 'pre_http_request', $http_filter, 10, 3 );
-
-		$redirect = $this->reconciliation->handle_bulk_action(
-			'http://example.org/wp-admin/admin.php?page=wc-orders',
-			WC_Stripe_Order_Reconciliation::ORDER_ACTION,
-			[ $eligible->get_id(), $forbidden->get_id(), $non_stripe->get_id(), 999999 ]
-		);
-
-		remove_filter( 'map_meta_cap', $map_caps, 10 );
-		remove_filter( 'pre_http_request', $http_filter, 10 );
-		$this->assertSame( 0, $http_calls );
-		parse_str( (string) wp_parse_url( $redirect, PHP_URL_QUERY ), $query_args );
-		$this->assertSame( 1, (int) $query_args[ WC_Stripe_Order_Reconciliation::NOTICE_QUERY_ARG ] );
-		$this->assertSame( [ $eligible->get_id() ], $this->queued_order_ids() );
-
-		$duplicate_redirect = $this->reconciliation->handle_bulk_action(
-			'http://example.org/wp-admin/admin.php?page=wc-orders',
-			WC_Stripe_Order_Reconciliation::ORDER_ACTION,
-			[ $eligible->get_id() ]
-		);
-		parse_str( (string) wp_parse_url( $duplicate_redirect, PHP_URL_QUERY ), $duplicate_query_args );
-		$this->assertSame( 0, (int) $duplicate_query_args[ WC_Stripe_Order_Reconciliation::NOTICE_QUERY_ARG ] );
 	}
 
 	/**
@@ -234,68 +158,12 @@ class WC_Stripe_Order_Reconciliation_Scheduler_Test extends WP_UnitTestCase {
 		$this->assertSame( '', wc_get_order( $order->get_id() )->get_meta( WC_Stripe_Order_Reconciliation::ATTEMPTS_META, true ) );
 	}
 
-	public function test_single_action_adds_a_note_only_when_an_action_is_queued() {
-		$order = $this->create_order( 'stripe', 'pi_single', 20 * MINUTE_IN_SECONDS );
-		$this->reconciliation->handle_order_action( $order );
-		$notes = wc_get_order_notes(
-			[
-				'order_id' => $order->get_id(),
-				'type'     => 'internal',
-			]
-		);
-		$this->assertCount( 1, $notes );
-		$this->assertStringContainsString( 'A Stripe payment status check has been scheduled.', $notes[0]->content );
-
-		$before = count(
-			wc_get_order_notes(
-				[
-					'order_id' => $order->get_id(),
-					'type'     => 'internal',
-				]
-			)
-		);
-		$filter = static function () {
-			return 0;
-		};
-		add_filter( 'pre_as_enqueue_async_action', $filter, 10, 6 );
-		$this->reconciliation->handle_order_action( $order );
-		remove_filter( 'pre_as_enqueue_async_action', $filter, 10 );
-		$this->assertCount(
-			$before,
-			wc_get_order_notes(
-				[
-					'order_id' => $order->get_id(),
-					'type'     => 'internal',
-				]
-			)
-		);
-	}
-
-	public function test_frontend_hook_registration_does_not_add_admin_actions() {
+	public function test_hook_registration_adds_no_admin_hooks() {
 		$this->reconciliation->register_hooks();
-		$this->assertFalse( has_action( 'woocommerce_order_action_' . WC_Stripe_Order_Reconciliation::ORDER_ACTION ) );
+
+		$this->assertFalse( has_action( 'woocommerce_order_action_wc_stripe_recheck_payment' ) );
 		$this->assertFalse( has_filter( 'bulk_actions-edit-shop_order' ) );
 		$this->assertFalse( has_filter( 'bulk_actions-woocommerce_page_wc-orders' ) );
-	}
-
-	public function test_admin_hook_registration_adds_both_order_list_screens() {
-		$original_screen = isset( $GLOBALS['current_screen'] ) ? $GLOBALS['current_screen'] : null;
-		set_current_screen( 'edit-shop_order' );
-
-		try {
-			$this->reconciliation->register_hooks();
-
-			$this->assertSame( 10, has_filter( 'bulk_actions-edit-shop_order', [ $this->reconciliation, 'add_bulk_action' ] ) );
-			$this->assertSame( 10, has_filter( 'bulk_actions-woocommerce_page_wc-orders', [ $this->reconciliation, 'add_bulk_action' ] ) );
-			$this->assertSame( 10, has_filter( 'handle_bulk_actions-edit-shop_order', [ $this->reconciliation, 'handle_bulk_action' ] ) );
-			$this->assertSame( 10, has_filter( 'handle_bulk_actions-woocommerce_page_wc-orders', [ $this->reconciliation, 'handle_bulk_action' ] ) );
-		} finally {
-			if ( null === $original_screen ) {
-				unset( $GLOBALS['current_screen'] );
-			} else {
-				$GLOBALS['current_screen'] = $original_screen;
-			}
-		}
 	}
 
 	public function provide_order_storage_modes(): array {
