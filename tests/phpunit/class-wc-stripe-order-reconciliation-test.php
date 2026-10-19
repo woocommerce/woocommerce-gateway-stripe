@@ -45,9 +45,11 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 			->getMock();
 		$order_helper->method( 'lock_order_payment' )->willReturn( false );
 		WC_Stripe_Order_Helper::set_instance( $order_helper );
+		as_unschedule_all_actions( WC_Stripe_Order_Reconciliation::ORDER_HOOK, null, WC_Stripe_Order_Reconciliation::GROUP );
 	}
 
 	public function tear_down() {
+		as_unschedule_all_actions( WC_Stripe_Order_Reconciliation::ORDER_HOOK, null, WC_Stripe_Order_Reconciliation::GROUP );
 		if ( $this->http_filter ) {
 			remove_filter( 'pre_http_request', $this->http_filter, 10 );
 			$this->http_filter = null;
@@ -77,10 +79,11 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 			->method( 'process_checkout_session_payment' )
 			->with( $this->isInstanceOf( WC_Order::class ), $this->equalTo( $session ), '', $this->equalTo( $intent ), $this->equalTo( $charge ) );
 
-		$this->reconciliation->reconcile_order_payment( [ 'order_id' => $order->get_id() ] );
+		$this->reconciliation->reconcile_order_payment( $order->get_id() );
 
 		$this->assertSame( [ '/checkout/sessions/cs_recovery', '/payment_intents/pi_recovery' ], $endpoints );
-		$this->assertNotEmpty( wc_get_order( $order->get_id() )->get_meta( WC_Stripe_Order_Reconciliation::ATTEMPT_META, true ) );
+		$this->assertSame( '1', wc_get_order( $order->get_id() )->get_meta( WC_Stripe_Order_Reconciliation::ATTEMPTS_META, true ) );
+		$this->assertSame( [], $this->scheduled_checks( $order->get_id() ) );
 	}
 
 	/** @dataProvider provide_invalid_sessions */
@@ -171,6 +174,8 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		$this->webhook_handler->expects( $this->never() )->method( 'process_checkout_session_payment' );
 
 		$this->reconciliation->reconcile_order_payment( $order->get_id() );
+
+		$this->assertCount( 1, $this->scheduled_checks( $order->get_id() ) );
 	}
 
 	/** @dataProvider provide_ineligible_orders */
@@ -422,7 +427,7 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		];
 	}
 
-	public function test_stripe_api_error_keeps_order_pending_and_cooldown_suppresses_retry(): void {
+	public function test_stripe_api_error_keeps_order_pending_and_schedules_a_retry(): void {
 		$order        = $this->create_pending_stripe_order( true );
 		$order_helper = $this->getMockBuilder( WC_Stripe_Order_Helper::class )
 			->onlyMethods( [ 'lock_order_payment', 'unlock_order_payment' ] )
@@ -440,10 +445,148 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		};
 		add_filter( 'pre_http_request', $this->http_filter, 10, 3 );
 		$this->reconciliation->reconcile_order_payment( $order->get_id() );
-		$this->reconciliation->reconcile_order_payment( $order->get_id() );
 
 		$this->assertSame( 'pending', wc_get_order( $order->get_id() )->get_status() );
 		$this->assertSame( 1, $request_count );
+		$this->assertCount( 1, $this->scheduled_checks( $order->get_id() ) );
+	}
+
+	/** @dataProvider provide_check_outcomes */
+	public function test_scheduled_check_retries_only_while_stripe_may_still_complete_the_payment( string $scenario, bool $expect_retry ): void {
+		$has_session = in_array( $scenario, [ 'open session', 'expired session' ], true );
+		$order       = $this->create_pending_stripe_order( $has_session );
+		$charge      = self::fixture_charge();
+		$intent      = $this->successful_intent( $charge );
+		$objects     = [ '/payment_intents/pi_recovery' => $intent ];
+
+		switch ( $scenario ) {
+			case 'processing intent':
+				$intent->status = WC_Stripe_Intent_Status::PROCESSING;
+				break;
+			case 'intent requires action':
+				$intent->status = WC_Stripe_Intent_Status::REQUIRES_ACTION;
+				break;
+			case 'intent requires payment method':
+				$intent->status = WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD;
+				break;
+			case 'canceled intent':
+				$intent->status = WC_Stripe_Intent_Status::CANCELED;
+				break;
+			case 'missing intent':
+				$objects['/payment_intents/pi_recovery'] = (object) [
+					'error' => (object) [
+						'code' => 'resource_missing',
+						'type' => 'invalid_request_error',
+					],
+				];
+				break;
+			case 'refunded charge':
+				$charge->refunded = true;
+				break;
+			case 'open session':
+			case 'expired session':
+				$session         = $this->completed_session( $intent->id );
+				$session->status = 'open session' === $scenario ? 'open' : 'expired';
+				$objects         = [ '/checkout/sessions/cs_recovery' => $session ];
+				break;
+		}
+		$this->mock_stripe_objects( $objects );
+		$this->gateway->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
+		$this->gateway->expects( $this->never() )->method( 'process_response' );
+		$this->webhook_handler->expects( $this->never() )->method( 'process_checkout_session_payment' );
+
+		$this->reconciliation->reconcile_order_payment( $order->get_id() );
+
+		$this->assertSame( 'pending', wc_get_order( $order->get_id() )->get_status() );
+		$this->assertSame( '1', wc_get_order( $order->get_id() )->get_meta( WC_Stripe_Order_Reconciliation::ATTEMPTS_META, true ) );
+		$this->assertCount( $expect_retry ? 1 : 0, $this->scheduled_checks( $order->get_id() ) );
+	}
+
+	public static function provide_check_outcomes(): array {
+		return [
+			'processing intent'              => [ 'processing intent', true ],
+			'intent requires action'         => [ 'intent requires action', true ],
+			'intent requires payment method' => [ 'intent requires payment method', true ],
+			'open session'                   => [ 'open session', true ],
+			'canceled intent'                => [ 'canceled intent', false ],
+			'expired session'                => [ 'expired session', false ],
+			'missing intent'                 => [ 'missing intent', false ],
+			'refunded charge'                => [ 'refunded charge', false ],
+		];
+	}
+
+	/** @dataProvider provide_retry_delays */
+	public function test_retry_delay_doubles_up_to_the_cap( int $previous_attempts, int $expected_delay ): void {
+		$order = $this->create_pending_stripe_order( false );
+		$order->update_meta_data( WC_Stripe_Order_Reconciliation::ATTEMPTS_META, (string) $previous_attempts );
+		$order->save_meta_data();
+		$intent         = $this->successful_intent( self::fixture_charge() );
+		$intent->status = WC_Stripe_Intent_Status::PROCESSING;
+		$this->mock_stripe_objects( [ '/payment_intents/pi_recovery' => $intent ] );
+
+		$this->reconciliation->reconcile_order_payment( $order->get_id() );
+
+		$checks = $this->scheduled_checks( $order->get_id() );
+		$this->assertCount( 1, $checks );
+		$this->assertEqualsWithDelta( time() + $expected_delay, $checks[0], 5 );
+	}
+
+	public static function provide_retry_delays(): array {
+		return [
+			'after the first attempt'   => [ 0, 15 * MINUTE_IN_SECONDS ],
+			'after the second attempt'  => [ 1, 30 * MINUTE_IN_SECONDS ],
+			'after the fourth attempt'  => [ 3, 2 * HOUR_IN_SECONDS ],
+			'capped after many retries' => [ 6, WC_Stripe_Order_Reconciliation::MAX_RETRY_DELAY ],
+		];
+	}
+
+	public function test_gives_up_after_the_last_attempt(): void {
+		$order = $this->create_pending_stripe_order( false );
+		$order->update_meta_data( WC_Stripe_Order_Reconciliation::ATTEMPTS_META, (string) ( WC_Stripe_Order_Reconciliation::MAX_ATTEMPTS - 1 ) );
+		$order->save_meta_data();
+		$intent         = $this->successful_intent( self::fixture_charge() );
+		$intent->status = WC_Stripe_Intent_Status::PROCESSING;
+		$this->mock_stripe_objects( [ '/payment_intents/pi_recovery' => $intent ] );
+
+		$this->reconciliation->reconcile_order_payment( $order->get_id() );
+
+		$this->assertSame( (string) WC_Stripe_Order_Reconciliation::MAX_ATTEMPTS, wc_get_order( $order->get_id() )->get_meta( WC_Stripe_Order_Reconciliation::ATTEMPTS_META, true ) );
+		$this->assertSame( [], $this->scheduled_checks( $order->get_id() ) );
+	}
+
+	public function test_manual_check_neither_counts_an_attempt_nor_schedules_a_retry(): void {
+		$order          = $this->create_pending_stripe_order( false );
+		$intent         = $this->successful_intent( self::fixture_charge() );
+		$intent->status = WC_Stripe_Intent_Status::PROCESSING;
+		$endpoints      = [];
+		$this->mock_stripe_objects( [ '/payment_intents/pi_recovery' => $intent ], $endpoints );
+
+		$this->reconciliation->reconcile_order_payment( $order->get_id(), true );
+
+		$this->assertSame( [ '/payment_intents/pi_recovery' ], $endpoints );
+		$this->assertSame( '', wc_get_order( $order->get_id() )->get_meta( WC_Stripe_Order_Reconciliation::ATTEMPTS_META, true ) );
+		$this->assertSame( [], $this->scheduled_checks( $order->get_id() ) );
+	}
+
+	/**
+	 * Timestamps of the pending scheduled (not manual) checks of an order.
+	 */
+	private function scheduled_checks( int $order_id ): array {
+		$actions    = as_get_scheduled_actions(
+			[
+				'hook'     => WC_Stripe_Order_Reconciliation::ORDER_HOOK,
+				'args'     => [ 'order_id' => $order_id ],
+				'group'    => WC_Stripe_Order_Reconciliation::GROUP,
+				'status'   => ActionScheduler_Store::STATUS_PENDING,
+				'per_page' => -1,
+			],
+			'objects'
+		);
+		$timestamps = [];
+		foreach ( $actions as $action ) {
+			$timestamps[] = $action->get_schedule()->get_date()->getTimestamp();
+		}
+		return $timestamps;
 	}
 
 	private function create_pending_stripe_order( bool $has_session ): WC_Order {
