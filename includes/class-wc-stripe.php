@@ -226,7 +226,10 @@ class WC_Stripe {
 			$order_handler = new WC_Stripe_Order_Handler();
 			$order_handler->register_hooks();
 
-			$order_reconciliation = new WC_Stripe_Order_Reconciliation( $order_handler, $webhook_handler );
+			// A separate, unregistered handler instance: settlement leaves per-event state on the handler
+			// (the resolved order), and sharing the registered instance would let a deferred webhook that runs
+			// later in the same Action Scheduler batch report the order a check just settled.
+			$order_reconciliation = new WC_Stripe_Order_Reconciliation( $order_handler, new WC_Stripe_Webhook_Handler() );
 			$order_reconciliation->register_hooks();
 
 			if ( is_admin() && WC_Stripe_Feature_Flags::is_order_reconciliation_enabled() ) {
