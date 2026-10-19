@@ -51,6 +51,9 @@ class WC_Stripe_Feature_Flags {
 	/**
 	 * Feature flag for checking pending Stripe orders against Stripe when their webhooks don't arrive.
 	 *
+	 * On by default on purpose: the checks are a safety net for missed webhooks, so every store should get
+	 * them without opting in. The flag lets a patch release turn them off quickly if they cause problems.
+	 *
 	 * @var string
 	 * @since x.x.x
 	 */
@@ -69,7 +72,7 @@ class WC_Stripe_Feature_Flags {
 		self::AGENTIC_COMMERCE_FEATURE_FLAG_NAME                             => 'no',
 		self::EXPAND_OPTIMIZED_CHECKOUT_IN_LEGACY_CHECKOUT_FEATURE_FLAG_NAME => 'no',
 		self::ABILITIES_FEATURE_FLAG_NAME                                    => 'no',
-		self::ORDER_RECONCILIATION_FEATURE_FLAG_NAME                         => 'yes',
+		self::ORDER_RECONCILIATION_FEATURE_FLAG_NAME                         => 'yes', // On by default on purpose, see the constant.
 	];
 
 	/**
@@ -283,7 +286,7 @@ class WC_Stripe_Feature_Flags {
 	/**
 	 * Whether pending Stripe orders are checked against Stripe, automatically and from the order screens.
 	 *
-	 * On by default; it exists as a kill switch.
+	 * On by default, see ORDER_RECONCILIATION_FEATURE_FLAG_NAME.
 	 *
 	 * @since x.x.x
 	 * @return bool True if enabled, false otherwise.
