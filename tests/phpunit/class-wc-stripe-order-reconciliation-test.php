@@ -58,31 +58,44 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		parent::tear_down();
 	}
 
-	public function test_recovers_completed_checkout_session_with_verified_charge(): void {
+	/** @dataProvider provide_session_expansions */
+	public function test_recovers_completed_checkout_session_with_verified_charge( bool $expanded, array $expected_endpoints ): void {
 		$order     = $this->create_pending_stripe_order( true );
 		$charge    = $this->successful_charge();
-		$intent    = $this->successful_intent( $charge );
+		$intent    = $this->successful_intent( $expanded ? $charge : 'ch_recovery' );
 		$session   = $this->completed_session( $intent->id );
+		$response  = clone $session;
 		$endpoints = [];
+		if ( $expanded ) {
+			$response->payment_intent = $intent;
+		}
 		$this->mock_stripe_objects(
 			[
-				'/checkout/sessions/cs_recovery' => $session,
+				'/checkout/sessions/cs_recovery' => $response,
 				'/payment_intents/pi_recovery'   => $intent,
 			],
 			$endpoints
 		);
-		$this->gateway->expects( $this->once() )
+		$this->gateway->expects( $expanded ? $this->never() : $this->once() )
 			->method( 'get_latest_charge_from_intent' )
 			->with( $this->equalTo( $intent ) )
 			->willReturn( $charge );
+		// The session reaches the shared webhook code with the PaymentIntent ID, as webhooks deliver it.
 		$this->webhook_handler->expects( $this->once() )
 			->method( 'process_checkout_session_payment' )
 			->with( $this->isInstanceOf( WC_Order::class ), $this->equalTo( $session ), '', $this->equalTo( $intent ), $this->equalTo( $charge ) );
 
 		$this->reconciliation->reconcile_order_payment( $order->get_id() );
 
-		$this->assertSame( [ '/checkout/sessions/cs_recovery', '/payment_intents/pi_recovery' ], $endpoints );
+		$this->assertSame( $expected_endpoints, $endpoints );
 		$this->assertSame( [], $this->scheduled_checks( $order->get_id() ) );
+	}
+
+	public static function provide_session_expansions(): array {
+		return [
+			'expanded PaymentIntent and charge' => [ true, [ '/checkout/sessions/cs_recovery' ] ],
+			'PaymentIntent ID only'             => [ false, [ '/checkout/sessions/cs_recovery', '/payment_intents/pi_recovery' ] ],
+		];
 	}
 
 	/** @dataProvider provide_invalid_sessions */
@@ -861,7 +874,7 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 
 	public function test_errors_thrown_during_the_check_schedule_a_retry(): void {
 		$order = $this->create_pending_stripe_order( false );
-		$this->mock_stripe_objects( [ '/payment_intents/pi_recovery' => $this->successful_intent( self::fixture_charge() ) ] );
+		$this->mock_stripe_objects( [ '/payment_intents/pi_recovery' => $this->successful_intent( 'ch_recovery' ) ] );
 		$this->gateway->method( 'get_latest_charge_from_intent' )->willThrowException( new Error( 'A callback failed.' ) );
 
 		$this->reconciliation->reconcile_order_payment( $order->get_id() );
@@ -1145,14 +1158,14 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 				'type'   => 'card',
 				'card'   => (object) [],
 			],
-			'latest_charge'   => 'ch_recovery',
+			'latest_charge'   => $charge,
 		];
 		$session = (object) [
 			'id'                  => 'cs_recovery',
 			'object'              => 'checkout.session',
 			'mode'                => 'payment',
 			'status'              => 'complete',
-			'payment_intent'      => 'pi_recovery',
+			'payment_intent'      => $intent,
 			'customer'            => null,
 			'currency'            => strtolower( $order->get_currency() ),
 			'amount_total'        => $amount,

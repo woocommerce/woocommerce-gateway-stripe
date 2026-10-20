@@ -104,11 +104,16 @@ class WC_Stripe_Order_Reconciliation {
 
 	public function register_hooks(): void {
 		add_action( self::ORDER_HOOK, [ $this, 'reconcile_order_payment' ], 10, 2 );
+
 		// Classic checkout and classic pay-for-order.
 		add_filter( 'woocommerce_payment_successful_result', [ $this, 'schedule_after_classic_payment' ], 10, 2 );
-		// Blocks checkout, Blocks pay-for-order and express checkout. WooCommerce calls the gateway at
-		// priority 999 and the plugin's own handlers run up to 10000, so the result is final by now.
+
+		// Blocks checkout, Blocks pay-for-order and express checkout.
+		// - WooCommerce calls the gateway at priority 999.
+		// - The plugin's own handlers run up to 10000.
+		// By 10001, the plugin's own handlers have run and the result is final.
 		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'schedule_after_store_api_payment' ], 10001, 2 );
+
 		// Off-session renewals that Stripe charges later, after a pre-debit notification. Other renewals
 		// settle during the renewal request, or fail and are paid through pay-for-order.
 		add_action( 'wc_gateway_stripe_process_payment_subscription_charge_attempt_delayed', [ $this, 'schedule_after_delayed_renewal_charge' ], 10, 2 );
@@ -359,18 +364,35 @@ class WC_Stripe_Order_Reconciliation {
 			$stored_intent_id = $this->get_intent_id( $order );
 			$intent_id        = $stored_intent_id;
 			$session          = null;
+			$intent           = null;
 
 			if ( $session_id ) {
-				$session = $this->request_stripe_object( 'checkout/sessions/' . rawurlencode( $session_id ) );
+				// One request for everything settling needs: the session, its PaymentIntent and the charge.
+				$session = $this->request_stripe_object(
+					add_query_arg(
+						[
+							'expand' => [
+								'payment_intent.payment_method',
+								'payment_intent.latest_charge',
+							],
+						],
+						'checkout/sessions/' . rawurlencode( $session_id )
+					)
+				);
 				if ( ! is_object( $session ) || isset( $session->error ) ) {
 					return $this->get_request_error_result( $session, $order_id, $session_id );
+				}
+				// Settlement shares the webhook code, which expects the session as webhooks deliver it, with the ID only.
+				$session_intent = is_object( $session->payment_intent ?? null ) ? $session->payment_intent : null;
+				if ( $session_intent ) {
+					$session->payment_intent = is_string( $session_intent->id ?? null ) ? $session_intent->id : ''; // @phpstan-ignore property.notFound (the decoded session is a stdClass that has the property)
 				}
 				$session_intent_id = is_string( $session->payment_intent ?? null ) ? $session->payment_intent : '';
 				// Only Payment Element payments store an intent ID other than the session's, so a different one
 				// comes from another payment attempt on the same order, for example through pay-for-order.
 				$has_other_intent = '' !== $stored_intent_id && $stored_intent_id !== $session_intent_id;
 
-				if ( ! $this->is_valid_checkout_session( $session, $session_id ) ) {
+				if ( ! $this->is_valid_paid_checkout_session( $session, $session_id ) ) {
 					if ( ! $this->is_final_checkout_session( $session, $session_id ) ) {
 						// A session that can still be paid is followed, whatever else is stored on the order.
 						return $this->retry( 'The Checkout Session is not paid yet (status: ' . (string) ( $session->status ?? '' ) . ').', $order_id, $session_id, (string) ( $session->status ?? '' ) );
@@ -403,15 +425,30 @@ class WC_Stripe_Order_Reconciliation {
 						);
 					}
 					$intent_id = $session_intent_id;
+					$intent    = $session_intent;
 				}
 			}
+
+			// We process everything through intents. If there is no intent ID, there's nothing to do here.
 			if ( '' === $intent_id ) {
 				return self::RESULT_DONE;
 			}
 
-			$intent = $this->request_stripe_object( 'payment_intents/' . rawurlencode( $intent_id ) . '?expand[]=payment_method' );
-			if ( ! is_object( $intent ) || isset( $intent->error ) ) {
-				return $this->get_request_error_result( $intent, $order_id, $intent_id );
+			if ( null === $intent ) {
+				$intent = $this->request_stripe_object(
+					add_query_arg(
+						[
+							'expand' => [
+								'payment_method',
+								'latest_charge',
+							],
+						],
+						'payment_intents/' . rawurlencode( $intent_id )
+					)
+				);
+				if ( ! is_object( $intent ) || isset( $intent->error ) ) {
+					return $this->get_request_error_result( $intent, $order_id, $intent_id );
+				}
 			}
 			$this->maybe_mark_delayed_payment( $order, $intent );
 			if ( ! $this->is_valid_payment_intent( $intent, $intent_id ) ) {
@@ -420,7 +457,8 @@ class WC_Stripe_Order_Reconciliation {
 					: $this->retry( 'The PaymentIntent is not paid yet (status: ' . (string) ( $intent->status ?? '' ) . ').', $order_id, $intent_id, (string) ( $intent->status ?? '' ) );
 			}
 
-			$charge = $this->gateway->get_latest_charge_from_intent( $intent );
+			// The gateway helper can't take an expanded charge, and is only needed when Stripe didn't expand it.
+			$charge = is_object( $intent->latest_charge ?? null ) ? $intent->latest_charge : $this->gateway->get_latest_charge_from_intent( $intent );
 			if ( ! is_object( $charge ) ) {
 				return $this->retry( 'The latest charge of the PaymentIntent could not be loaded.', $order_id, $intent_id );
 			}
@@ -849,7 +887,7 @@ class WC_Stripe_Order_Reconciliation {
 	 * @param string      $session_id Session ID stored on the order.
 	 * @return bool
 	 */
-	private function is_valid_checkout_session( ?object $session, string $session_id ): bool {
+	private function is_valid_paid_checkout_session( ?object $session, string $session_id ): bool {
 		return null !== $session
 			&& 'checkout.session' === ( $session->object ?? '' )
 			&& ( $session->id ?? '' ) === $session_id
@@ -863,7 +901,7 @@ class WC_Stripe_Order_Reconciliation {
 	 * An expired session can't be paid, and a session that isn't this order's payment session never will be.
 	 * An open session, or a complete one still waiting for its PaymentIntent, may still be paid.
 	 *
-	 * @param object $session    Checkout Session from Stripe that failed is_valid_checkout_session().
+	 * @param object $session    Checkout Session from Stripe that failed is_valid_paid_checkout_session().
 	 * @param string $session_id Session ID stored on the order.
 	 * @return bool
 	 */
