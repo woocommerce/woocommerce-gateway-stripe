@@ -815,6 +815,148 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @return array<string, array{0: bool, 1: string|null, 2: bool, 3: bool}>
+	 */
+	public function provide_verification_outcomes(): array {
+		// [ verify with Stripe, status Stripe reports, expect lookup, expect replacement ]
+		return [
+			'not asked to verify'       => [ false, 'open', false, false ],
+			'verified and still open'   => [ true, 'open', true, false ],
+			'verified and expired'      => [ true, 'expired', true, true ],
+			'verified and completed'    => [ true, 'complete', true, true ],
+			'verification inconclusive' => [ true, 'empty-body', true, false ],
+		];
+	}
+
+	/**
+	 * A session expired from the Dashboard or API leaves no local trace, so a reused session can be
+	 * confirmed with Stripe on request. The lookup costs an API call, so it only happens when asked,
+	 * and only an explicit "finished" answer replaces the session.
+	 *
+	 * @dataProvider provide_verification_outcomes
+	 */
+	public function test_synchronize_verifies_a_reused_session_with_stripe_only_when_asked( bool $verify, ?string $retrieved_status, bool $expect_lookup, bool $expect_replacement ): void {
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 10 ] );
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$requested_urls = [];
+		$mock_request   = $this->mock_stripe_with_failing_update( 'cs_test_verify', 400, [ 'type' => 'invalid_request_error' ], $requested_urls, null, $retrieved_status );
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+
+		try {
+			$manager = new WC_Stripe_Checkout_Session_Manager();
+			$created = $manager->synchronize();
+			$this->assertSame( 'cs_test_verify_1', $created['session_id'] );
+
+			$result = $manager->synchronize( $verify );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_request, 10 );
+			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_verify_1' );
+		}
+
+		$expected_urls = [ 'POST https://api.stripe.com/v1/checkout/sessions' ];
+		if ( $expect_lookup ) {
+			$expected_urls[] = 'GET https://api.stripe.com/v1/checkout/sessions/cs_test_verify_1';
+		}
+		if ( $expect_replacement ) {
+			$expected_urls[] = 'POST https://api.stripe.com/v1/checkout/sessions';
+		}
+		$this->assertSame( $expected_urls, $requested_urls );
+		$this->assertSame( $expect_replacement ? 'cs_test_verify_2' : 'cs_test_verify_1', $result['session_id'] );
+		$this->assertSame( 'success', $result['status'] );
+	}
+
+	/**
+	 * The classic placeholder is rendered once per checkout page load, so a reused session is
+	 * confirmed with Stripe there and replaced before the client can mount it.
+	 */
+	public function test_classic_placeholder_replaces_a_session_stripe_reports_finished(): void {
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 25 ] );
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$restore        = $this->enable_adaptive_pricing();
+		$requested_urls = [];
+		$mock_request   = $this->mock_stripe_with_failing_update( 'cs_test_placeholder', 400, [ 'type' => 'invalid_request_error' ], $requested_urls, null, 'expired' );
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+
+		try {
+			$lifecycle = new WC_Stripe_Checkout_Session_Lifecycle();
+
+			ob_start();
+			$lifecycle->render_classic_placeholder();
+			$first_render = ob_get_clean();
+			$this->assertStringContainsString( 'uninitialized', $first_render, 'Without a stored session the placeholder must not create one.' );
+
+			$lifecycle->add_classic_fragment( [] );
+
+			ob_start();
+			$lifecycle->render_classic_placeholder();
+			$second_render = ob_get_clean();
+		} finally {
+			remove_filter( 'pre_http_request', $mock_request, 10 );
+			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_placeholder_1' );
+			$restore();
+		}
+
+		$this->assertSame(
+			[
+				'POST https://api.stripe.com/v1/checkout/sessions',
+				'GET https://api.stripe.com/v1/checkout/sessions/cs_test_placeholder_1',
+				'POST https://api.stripe.com/v1/checkout/sessions',
+			],
+			$requested_urls,
+			'The page load must look the stored session up once and replace it.'
+		);
+		$data = json_decode( $this->get_fragment_session_data( $second_render ), true );
+		$this->assertSame( 'cs_test_placeholder_2', $data['session_id'] );
+		$this->assertSame( 'success', $data['status'] );
+	}
+
+	/**
+	 * The Blocks checkout asks for an explicit sync when it mounts; that request confirms a reused
+	 * session with Stripe, while ordinary cart responses never pay for the lookup.
+	 */
+	public function test_store_api_sync_request_replaces_a_session_stripe_reports_finished(): void {
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 25 ] );
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$restore        = $this->enable_adaptive_pricing();
+		$requested_urls = [];
+		$mock_request   = $this->mock_stripe_with_failing_update( 'cs_test_store_verify', 400, [ 'type' => 'invalid_request_error' ], $requested_urls, null, 'expired' );
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+
+		try {
+			$manager = new WC_Stripe_Checkout_Session_Manager();
+			$created = $manager->synchronize();
+			$this->assertSame( 'cs_test_store_verify_1', $created['session_id'] );
+
+			$cart_response = WC_Stripe_Checkout_Session_Lifecycle::get_store_api_data();
+			$this->assertSame( 'cs_test_store_verify_1', $cart_response['session_id'], 'An ordinary cart response must reuse the session without a lookup.' );
+
+			WC_Stripe_Checkout_Session_Lifecycle::request_store_api_sync( [ 'action' => 'sync' ] );
+			$mount_response = WC_Stripe_Checkout_Session_Lifecycle::get_store_api_data();
+		} finally {
+			remove_filter( 'pre_http_request', $mock_request, 10 );
+			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_store_verify_1' );
+			$restore();
+		}
+
+		$this->assertSame(
+			[
+				'POST https://api.stripe.com/v1/checkout/sessions',
+				'GET https://api.stripe.com/v1/checkout/sessions/cs_test_store_verify_1',
+				'POST https://api.stripe.com/v1/checkout/sessions',
+			],
+			$requested_urls
+		);
+		$this->assertSame( 'cs_test_store_verify_2', $mount_response['session_id'] );
+		$this->assertSame( 'success', $mount_response['status'] );
+	}
+
+	/**
 	 * A context that no longer matches the cart must be repaired, whatever left it behind. It is the
 	 * value validate_for_order() enforces, so a stale one fails the order with an amount mismatch.
 	 */

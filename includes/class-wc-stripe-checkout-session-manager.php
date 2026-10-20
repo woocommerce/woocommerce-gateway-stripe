@@ -225,10 +225,14 @@ class WC_Stripe_Checkout_Session_Manager {
 	/**
 	 * Create or update the session only when the native WooCommerce cart has changed.
 	 *
+	 * @param bool $verify_with_stripe Also confirm with Stripe that a reused session is still open.
+	 *                                 Costs one API call, so callers limit it to a checkout page load:
+	 *                                 a session expired from the Dashboard or API leaves no local trace,
+	 *                                 and a mounted client cannot recover from it.
 	 * @return array Public session data.
 	 * @throws Exception When synchronization fails.
 	 */
-	public function synchronize(): array {
+	public function synchronize( bool $verify_with_stripe = false ): array {
 		$this->validate_cart();
 
 		$record       = $this->get_record();
@@ -275,6 +279,14 @@ class WC_Stripe_Checkout_Session_Manager {
 			&& (string) ( $context['currency'] ?? '' ) === $cart_context['currency']
 			&& 'success' === ( $record['status'] ?? '' )
 		) {
+			if ( $verify_with_stripe && $this->is_session_finished_on_stripe( (string) $record['session_id'] ) ) {
+				return $this->replace_session(
+					(string) $record['session_id'],
+					'Replacing the Checkout Session because Stripe reports it is no longer open.',
+					[ 'checkout_session_id' => (string) $record['session_id'] ]
+				);
+			}
+
 			return $this->get_public_data( $record );
 		}
 
@@ -346,6 +358,16 @@ class WC_Stripe_Checkout_Session_Manager {
 			return true;
 		}
 
+		return $this->is_session_finished_on_stripe( $session_id );
+	}
+
+	/**
+	 * Ask Stripe whether a session is expired, completed, or gone.
+	 *
+	 * @param string $session_id Stripe Checkout Session ID.
+	 * @return bool True only on an explicit Stripe answer; an inconclusive lookup returns false.
+	 */
+	private function is_session_finished_on_stripe( string $session_id ): bool {
 		// retrieve() answers null during the invalid-key cooldown and a WP_Error during an outage;
 		// neither says anything about the session, so only an explicit Stripe answer may discard it.
 		$session = WC_Stripe_API::retrieve( "checkout/sessions/$session_id" );
