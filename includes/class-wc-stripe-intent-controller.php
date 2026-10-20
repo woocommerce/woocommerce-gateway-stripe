@@ -831,13 +831,11 @@ class WC_Stripe_Intent_Controller {
 										[ 'error_message' => $e->getMessage() ]
 									);
 									// The shopper was sent to the order-received page with no error, so
-									// record the failure on the order for the merchant to follow up.
+									// record the failure on the order for the merchant to follow up. The
+									// error message stays in the log only: it can hold Stripe data, and
+									// order notes are kept forever while logs expire.
 									$order->add_order_note(
-										sprintf(
-											/* translators: %s: the error message from the step that failed after the charge. */
-											__( 'Stripe took the payment, but a step after the charge failed: %s. The payment was not charged again. Please review this order.', 'woocommerce-gateway-stripe' ),
-											$e->getMessage()
-										)
+										__( 'Stripe took the payment, but a step after the charge failed. The payment was not charged again. Please review this order, and see the Stripe logs (WooCommerce > Status > Logs) for details.', 'woocommerce-gateway-stripe' )
 									);
 								} elseif ( $e instanceof WC_Stripe_Exception ) {
 									throw $e;

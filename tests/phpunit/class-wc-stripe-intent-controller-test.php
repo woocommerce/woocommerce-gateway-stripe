@@ -2086,6 +2086,12 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 			);
 			$this->assertNotEmpty( $matching_notes );
 
+			// The error message goes to the log only, never into an order note.
+			foreach ( $notes as $note ) {
+				$this->assertStringNotContainsString( 'save_pm_failed', $note->content );
+				$this->assertStringNotContainsString( 'Could not save the payment method', $note->content );
+			}
+
 			// The lock is released on this exception path too.
 			$this->assertEmpty( WC_Stripe_Order_Helper::get_instance()->get_order_existing_payment_lock( $fresh ) );
 		} finally {
