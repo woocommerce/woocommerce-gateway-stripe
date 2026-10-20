@@ -1,7 +1,7 @@
 {
   "name": "woocommerce-gateway-stripe",
   "title": "WooCommerce Gateway Stripe",
-  "version": "11.1.0",
+  "version": "11.1.1",
   "license": "GPL-3.0",
   "homepage": "http://wordpress.org/plugins/woocommerce-gateway-stripe/",
   "repository": {
@@ -199,7 +199,8 @@
     "version_replace_paths": [
       "includes",
       "templates",
-      "woocommerce-gateway-stripe.php"
+      "woocommerce-gateway-stripe.php",
+      "uninstall.php"
     ],
     "assets": {
       "js": {

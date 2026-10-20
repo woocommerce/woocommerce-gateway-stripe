@@ -1412,6 +1412,12 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
+		// If Optimized Checkout is not available to shoppers, we should ensure that
+		// Adaptive Pricing is also disabled.
+		if ( ! WC_Stripe_Feature_Flags::is_oc_offered() ) {
+			return false;
+		}
+
 		// False if Adaptive Pricing is not available for the current Stripe account in the plugin.
 		if ( ! self::is_adaptive_pricing_available_for_account() ) {
 			return false;
