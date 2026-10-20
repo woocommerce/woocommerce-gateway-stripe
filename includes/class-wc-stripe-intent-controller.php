@@ -942,7 +942,7 @@ class WC_Stripe_Intent_Controller {
 		}
 
 		$intent = WC_Stripe_API::retrieve( "payment_intents/$intent_id" );
-		if ( ! is_object( $intent ) || ! empty( $intent->error ) || ! isset( $intent->status ) ) {
+		if ( ! is_object( $intent ) || is_wp_error( $intent ) || ! empty( $intent->error ) || ! isset( $intent->status ) ) {
 			return false;
 		}
 
