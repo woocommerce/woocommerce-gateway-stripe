@@ -362,6 +362,12 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 					];
 				}
 
+				if ( 'linked-concurrently' === $retrieved_status ) {
+					// Simulate an order request that linked the session between the verdict and the replacement lock.
+					WC_Stripe_Checkout_Session_Context::mark_linked_to_order( "{$prefix}_1", WC_Helper_Order::create_order() );
+					$retrieved_status = 'expired';
+				}
+
 				if ( 'replaced-concurrently' === $retrieved_status ) {
 					// Simulate another request that replaced the expired session while this one awaited Stripe.
 					WC()->session->set(
@@ -686,6 +692,56 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 		);
 		$this->assertSame( 'cs_test_locked_1', $manager->get_current_data()['session_id'], 'The record must be left for the next sync to adopt the winner’s replacement.' );
 		$this->assertNotNull( $context_after, 'The context must survive so the winner can discard it.' );
+	}
+
+	/**
+	 * An order can link the session between the status verdict and the replacement lock. The order
+	 * flow owns that context from then on, so replacement must create the new session without
+	 * deleting it, and must leave the lock in a releasable state afterwards.
+	 */
+	public function test_replacement_keeps_the_context_of_a_session_an_order_linked_meanwhile(): void {
+		$product       = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 10 ] );
+		$cart_item_key = WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$requested_urls = [];
+		$mock_request   = $this->mock_stripe_with_failing_update(
+			'cs_test_linked',
+			400,
+			[
+				'type'    => 'invalid_request_error',
+				'message' => 'This Checkout Session is no longer active and cannot be updated.',
+			],
+			$requested_urls,
+			null,
+			'linked-concurrently'
+		);
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+
+		try {
+			$manager = new WC_Stripe_Checkout_Session_Manager();
+			$created = $manager->synchronize();
+			$this->assertSame( 'cs_test_linked_1', $created['session_id'] );
+
+			WC()->cart->set_quantity( $cart_item_key, 2 );
+			WC()->cart->calculate_totals();
+
+			$result      = $manager->synchronize();
+			$old_context = WC_Stripe_Checkout_Session_Context::get_context( 'cs_test_linked_1' );
+			$lock_name   = $this->get_mutation_lock_option_name( 'cs_test_linked_1' );
+			$lock_owner  = WC_Stripe_Option_Lock::acquire( $lock_name, 70 );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_request, 10 );
+			if ( ! empty( $lock_owner ) ) {
+				WC_Stripe_Option_Lock::release( $lock_name, $lock_owner );
+			}
+			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_linked_1' );
+		}
+
+		$this->assertSame( 'cs_test_linked_2', $result['session_id'], 'The client must still receive a live replacement.' );
+		$this->assertNotNull( $old_context, 'A context an order linked meanwhile must survive the replacement.' );
+		$this->assertGreaterThan( 0, (int) $old_context['order_id'] );
+		$this->assertNotNull( $lock_owner, 'The mutation lock must be free again once the replacement is done.' );
 	}
 
 	/**

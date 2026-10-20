@@ -389,7 +389,8 @@ class WC_Stripe_Checkout_Session_Manager {
 	 *
 	 * The check-and-create runs under the session's mutation lock so two overlapping syncs cannot
 	 * both create a replacement: the second either sees the first's record or fails to acquire the
-	 * lock. Deleting the old context force-releases that lock, so it waits until the lock is gone.
+	 * lock. An order linked to the session in the meantime keeps its context, which the order flow
+	 * owns from then on.
 	 *
 	 * @param string $session_id  Stripe Checkout Session ID being replaced.
 	 * @param string $log_message Why the session is being replaced.
@@ -406,6 +407,9 @@ class WC_Stripe_Checkout_Session_Manager {
 					return null;
 				}
 
+				$context            = WC_Stripe_Checkout_Session_Context::get_context( $session_id );
+				$is_linked_to_order = ! empty( $context['order_id'] );
+
 				WC_Stripe_Logger::info( $log_message, $log_context );
 
 				// WC_Session::set() removes the key when given null.
@@ -413,11 +417,17 @@ class WC_Stripe_Checkout_Session_Manager {
 					WC()->session->set( self::WC_SESSION_KEY, null );
 				}
 
-				return $this->create_session();
+				$replacement_session_data = $this->create_session();
+
+				// Last on purpose: deleting the context force-releases the mutation lock, which is only
+				// safe for the lock this request holds, never for an order request that took it later.
+				if ( ! $is_linked_to_order ) {
+					WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
+				}
+
+				return $replacement_session_data;
 			}
 		);
-
-		WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
 
 		return $replacement_session_data ?? $this->get_current_data();
 	}
