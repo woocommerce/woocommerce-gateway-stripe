@@ -26,6 +26,8 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 	/**
 	 * Legacy source callbacks retain their customer context and can still disable forced saving.
+	 *
+	 * @since x.x.x
 	 */
 	public function test_prepare_source_preserves_deprecated_filter_context(): void {
 		$original_post = $_POST;
@@ -61,6 +63,8 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 	/**
 	 * Legacy intent callbacks retain their source ID and control future-use setup.
+	 *
+	 * @since x.x.x
 	 *
 	 * @dataProvider provide_deprecated_force_save_values
 	 * @param bool $force_save Whether the callback forces saving.

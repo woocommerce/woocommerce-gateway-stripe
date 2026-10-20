@@ -8261,6 +8261,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	/**
 	 * Two-argument legacy callbacks must not fatal or change existing save-request and saved-token behavior.
 	 *
+	 * @since x.x.x
+	 *
 	 * @dataProvider provide_deprecated_force_save_payment_results
 	 * @param bool $force_save   Whether the callback forces saving.
 	 * @param bool $requested    Whether the shopper requested saving.
