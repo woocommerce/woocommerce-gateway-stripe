@@ -405,7 +405,7 @@ class WC_Stripe_Order_Reconciliation {
 					$intent_id = $session_intent_id;
 				}
 			}
-			if ( ! is_string( $intent_id ) || '' === $intent_id ) {
+			if ( '' === $intent_id ) {
 				return self::RESULT_DONE;
 			}
 
