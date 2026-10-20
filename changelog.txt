@@ -1,7 +1,7 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 11.2.0
-* Fix - Complete deprecation of wc_stripe_force_save_source and prevent missing-argument errors in legacy payment result callbacks
+* Fix - Complete deprecation of wc_stripe_force_save_source
 * Fix - Use the account API key for webhook status, cleanup, and manual setup
 * Dev - Remove expired lock rows from the options table once a day
 * Tweak - Minor improvement to error logging when saving new keys

@@ -8259,7 +8259,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * Two-argument legacy callbacks must not fatal or change existing save-request and saved-token behavior.
+	 * Legacy callbacks may distinguish this path by the absence of a second argument.
 	 *
 	 * @since x.x.x
 	 *
@@ -8277,9 +8277,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			'wc-stripe-new-payment-method' => $requested ? 'true' : '',
 			'wc-stripe-payment-token'      => $using_saved ? '123' : 'new',
 		];
-		$filter        = function ( $default, $context ) use ( $order_id, $force_save ) {
+		$filter        = function ( $default, $context = null ) use ( $force_save ) {
+			$this->assertSame( 1, func_num_args() );
 			$this->assertFalse( $default );
-			$this->assertSame( $order_id, $context );
+			$this->assertNull( $context );
 			return $force_save;
 		};
 		add_filter( 'wc_stripe_force_save_source', $filter, 10, 2 );

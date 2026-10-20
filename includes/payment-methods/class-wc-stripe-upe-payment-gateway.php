@@ -4960,7 +4960,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$force_save_source_value = apply_filters_deprecated(
 			'wc_stripe_force_save_source',
-			[ false, $order_id ],
+			[ false ],
 			'9.6.0',
 			'wc_stripe_force_save_payment_method'
 		);
