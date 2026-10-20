@@ -148,6 +148,10 @@ class WC_Stripe_Checkout_Session_Manager {
 	/**
 	 * Update an existing Stripe Checkout Session from the current cart.
 	 *
+	 * When Stripe reports that the session itself can no longer be updated (expired, completed, or
+	 * missing), it is discarded and a new one is created, because retrying would fail the same way
+	 * for as long as the record lives.
+	 *
 	 * @param string $session_id Stripe Checkout Session ID.
 	 * @return array Public session data.
 	 * @throws Exception When the session cannot be updated.
@@ -159,9 +163,12 @@ class WC_Stripe_Checkout_Session_Manager {
 			throw new WC_Stripe_Exception( 'Checkout session ID is required.', self::get_runtime_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
-		WC_Stripe_Checkout_Session_Context::with_mutation_lock(
+		// A rejected update is handed out of the lock as the raw Stripe error, because deciding
+		// whether the session is still open can cost a second Stripe round trip and the lock TTL only
+		// covers one request timeout.
+		$update_error = WC_Stripe_Checkout_Session_Context::with_mutation_lock(
 			$session_id,
-			function () use ( $session_id ): void {
+			function () use ( $session_id ): ?object {
 				WC_Stripe_Checkout_Session_Context::validate_update_request( $session_id );
 
 				// Read the cart only once the lock is held and the session is known not to be
@@ -175,8 +182,7 @@ class WC_Stripe_Checkout_Session_Manager {
 				);
 
 				if ( ! empty( $checkout_session->error ) ) {
-					$message = empty( $checkout_session->error->message ) ? '(No error message returned from Stripe)' : $checkout_session->error->message;
-					throw new WC_Stripe_Exception( $message, self::get_runtime_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+					return is_object( $checkout_session->error ) ? $checkout_session->error : (object) [ 'message' => (string) $checkout_session->error ];
 				}
 
 				WC_Stripe_Checkout_Session_Context::store_for_cart( $session_id, $cart_context );
@@ -190,8 +196,38 @@ class WC_Stripe_Checkout_Session_Manager {
 					$record['message']  = '';
 					$this->set_record( $record );
 				}
+
+				return null;
 			}
 		);
+
+		if ( null !== $update_error ) {
+			$message = empty( $update_error->message ) ? '(No error message returned from Stripe)' : (string) $update_error->message;
+
+			if ( ! $this->is_session_no_longer_open( $session_id, $update_error ) ) {
+				throw new WC_Stripe_Exception( $message, self::get_runtime_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			}
+
+			// A concurrent sync may have replaced the expired session while this one waited on Stripe;
+			// creating another would orphan its replacement.
+			$record = $this->get_record();
+			if ( is_array( $record ) && (string) ( $record['session_id'] ?? '' ) !== $session_id ) {
+				return $this->get_current_data();
+			}
+
+			WC_Stripe_Logger::info(
+				'Replacing the Checkout Session because Stripe no longer accepts updates to it.',
+				[
+					'checkout_session_id' => $session_id,
+					'stripe_error'        => $message,
+				]
+			);
+
+			// Deleting the context force-releases the mutation lock, so this must stay outside it.
+			$this->discard_session( $session_id );
+
+			return $this->create_session();
+		}
 
 		// Ensure we (re)fetch the current data.
 		return $this->get_current_data();
@@ -286,7 +322,7 @@ class WC_Stripe_Checkout_Session_Manager {
 	/**
 	 * Whether the stored record describes a session Stripe has already expired.
 	 *
-	 * Records written before expires_at was stored report false.
+	 * Records written before expires_at was stored report false and are caught by update_session().
 	 *
 	 * @param array $record Stored session record.
 	 * @return bool
@@ -295,6 +331,55 @@ class WC_Stripe_Checkout_Session_Manager {
 		$expires_at = (int) ( $record['expires_at'] ?? 0 );
 
 		return $expires_at > 0 && time() >= $expires_at;
+	}
+
+	/**
+	 * Whether a rejected update means the session itself is finished, as opposed to a bad request.
+	 *
+	 * Stripe has no error code for updating an expired or completed session, only a generic
+	 * invalid_request_error (https://docs.stripe.com/api/errors), which is also what a malformed
+	 * request gets. The session's own status is the authoritative signal, so unless the stored
+	 * expiry already settles it, the session is retrieved and only one that is no longer open (or
+	 * no longer exists) is treated as unusable. Anything else keeps the record so the error
+	 * surfaces and the next sync retries the same session.
+	 *
+	 * @param string $session_id Stripe Checkout Session ID.
+	 * @param object $error      Stripe error returned by the update.
+	 * @return bool
+	 */
+	private function is_session_no_longer_open( string $session_id, object $error ): bool {
+		// type is one of api_error, card_error, idempotency_error, or invalid_request_error
+		// (https://docs.stripe.com/api/errors#errors-type). A session update never attempts a
+		// payment, so a finished or missing session can only surface as invalid_request_error;
+		// the other three are retryable and must not discard the session.
+		if ( 'invalid_request_error' !== (string) ( $error->type ?? '' ) ) {
+			return false;
+		}
+
+		// https://docs.stripe.com/error-codes#resource-missing
+		if ( 'resource_missing' === (string) ( $error->code ?? '' ) ) {
+			return true;
+		}
+
+		$record = $this->get_record();
+		if ( is_array( $record ) && (string) ( $record['session_id'] ?? '' ) === $session_id && $this->has_expired( $record ) ) {
+			return true;
+		}
+
+		// retrieve() answers null during the invalid-key cooldown and a WP_Error during an outage;
+		// neither says anything about the session, so only an explicit Stripe answer may discard it.
+		$session = WC_Stripe_API::retrieve( "checkout/sessions/$session_id" );
+		if ( ! is_object( $session ) || is_wp_error( $session ) ) {
+			return false;
+		}
+
+		if ( ! empty( $session->error ) ) {
+			return 'resource_missing' === (string) ( $session->error->code ?? '' );
+		}
+
+		// status is one of open, complete, or expired:
+		// https://docs.stripe.com/api/checkout/sessions/object#checkout_session_object-status
+		return in_array( (string) ( $session->status ?? '' ), [ 'expired', 'complete' ], true );
 	}
 
 	/**
