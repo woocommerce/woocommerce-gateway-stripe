@@ -76,6 +76,50 @@ describe('check-version-placeholders', () => {
         expect(check(diff, REPLACE_PATHS).map(({ line }) => line)).toEqual([4, 21]);
     });
 
+    describe('moved or re-indented docblocks', () => {
+        // A `git diff --unified=0` hunk that removes and adds lines in one file.
+        const changeFor = (file, removed, added) =>
+            [
+                `diff --git a/${file} b/${file}`,
+                `--- a/${file}`,
+                `+++ b/${file}`,
+                `@@ -10,${removed.length} +10,${added.length} @@`,
+                ...removed.map((line) => `-${line}`),
+                ...added.map((line) => `+${line}`),
+            ].join('\n');
+
+        it('accepts a concrete version the same file also removes', () => {
+            const diff = changeFor('includes/class-foo.php', ['	 * @since 10.8.0'], ['		 * @since 10.8.0']);
+
+            expect(levels(diff)).toEqual([]);
+        });
+
+        it('errors when the version changes', () => {
+            const diff = changeFor('includes/class-foo.php', ['	 * @since 10.8.0'], ['	 * @since 10.9.0']);
+
+            expect(levels(diff)).toEqual(['error']);
+        });
+
+        it('errors on each added copy beyond the removed ones', () => {
+            const diff = changeFor(
+                'includes/class-foo.php',
+                ['	 * @since 10.8.0'],
+                ['		 * @since 10.8.0', '		 * @since 10.8.0']
+            );
+
+            expect(levels(diff)).toEqual(['error']);
+        });
+
+        it('errors when the tag was removed from another file', () => {
+            const diff = [
+                changeFor('includes/class-bar.php', ['	 * @since 10.8.0'], []),
+                diffFor('includes/class-foo.php', ['	 * @since 10.8.0']),
+            ].join('\n');
+
+            expect(levels(diff)).toEqual(['error']);
+        });
+    });
+
     it('skips deleted files', () => {
         expect(extractAddedLines(['--- a/includes/gone.php', '+++ /dev/null', '@@ -1,1 +0,0 @@', '- * @since x.x.x'].join('\n'))).toEqual(
             []
