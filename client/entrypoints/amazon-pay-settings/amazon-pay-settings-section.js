@@ -109,12 +109,6 @@ const AmazonPaySettingsSection = () => {
 					size={ size }
 					onChange={ setSize }
 				/>
-				<p className="express-checkout-customize__option-muted-text">
-					{ __(
-						'This size applies to all express checkout buttons (Apple Pay, Google Pay, Link, and Amazon Pay).',
-						'woocommerce-gateway-stripe'
-					) }
-				</p>
 				<p>{ __( 'Preview', 'woocommerce-gateway-stripe' ) }</p>
 				<LoadableAccountSection numLines={ 7 }>
 					<ExpressCheckoutPreview
