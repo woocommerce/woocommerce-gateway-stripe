@@ -4507,6 +4507,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * on the checkout page, where no order exists yet, and never on the pay-for-order page.
 	 *
 	 * @dataProvider provider_is_payment_needed_cart_precedence
+	 *
+	 * @param string|null $order_kind                   'released-pre-order', 'pre-order-being-placed', 'regular', or null for no order.
+	 * @param bool        $cart_product_charged_upfront Charge timing of the pre-order product (in the cart, and on the order when one is supplied).
+	 * @param bool        $on_pay_for_order_page        Whether the request is a valid pay-for-order endpoint request.
+	 * @param bool        $expected                     Expected return value of is_payment_needed().
 	 */
 	public function test_is_payment_needed_consults_the_cart_only_without_an_order( $order_kind, $cart_product_charged_upfront, $on_pay_for_order_page, $expected ) {
 		// $cart_product_charged_upfront doubles as the order product's charge timing: at checkout
@@ -4552,6 +4557,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		}
 	}
 
+	/**
+	 * Data provider: order kind, cart product charge timing, pay-for-order request, expected result.
+	 *
+	 * @return array<string, array{0: string|null, 1: bool, 2: bool, 3: bool}>
+	 */
 	public function provider_is_payment_needed_cart_precedence() {
 		return [
 			'released pre-order, charge-upon-release pre-order in cart' => [ 'released-pre-order', false, false, true ],
