@@ -208,25 +208,14 @@ class WC_Stripe_Checkout_Session_Manager {
 				throw new WC_Stripe_Exception( $message, self::get_runtime_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			}
 
-			// A concurrent sync may have replaced the expired session while this one waited on Stripe;
-			// creating another would orphan its replacement.
-			$record = $this->get_record();
-			if ( is_array( $record ) && (string) ( $record['session_id'] ?? '' ) !== $session_id ) {
-				return $this->get_current_data();
-			}
-
-			WC_Stripe_Logger::info(
+			return $this->replace_session(
+				$session_id,
 				'Replacing the Checkout Session because Stripe no longer accepts updates to it.',
 				[
 					'checkout_session_id' => $session_id,
 					'stripe_error'        => $message,
 				]
 			);
-
-			// Deleting the context force-releases the mutation lock, so this must stay outside it.
-			$this->discard_session( $session_id );
-
-			return $this->create_session();
 		}
 
 		// Ensure we (re)fetch the current data.
@@ -272,14 +261,11 @@ class WC_Stripe_Checkout_Session_Manager {
 		// Stripe expires sessions 24 hours after creation while the record can outlive that, so an
 		// expired one is replaced here rather than handed to the client, which cannot recover from it.
 		if ( $this->has_expired( $record ) ) {
-			WC_Stripe_Logger::info(
+			return $this->replace_session(
+				(string) $record['session_id'],
 				'Recreating the Checkout Session because it has expired.',
 				[ 'checkout_session_id' => (string) $record['session_id'] ]
 			);
-
-			$this->discard_session( (string) $record['session_id'] );
-
-			return $this->create_session();
 		}
 
 		// The context is the source of truth for amount and currency, so we need to compare
@@ -383,20 +369,41 @@ class WC_Stripe_Checkout_Session_Manager {
 	}
 
 	/**
-	 * Forget a session so the next synchronization creates a new one.
+	 * Replace a session that can no longer be used with a newly created one.
 	 *
-	 * @param string $session_id Stripe Checkout Session ID.
-	 * @return void
+	 * The check-and-create runs under the session's mutation lock so two overlapping syncs cannot
+	 * both create a replacement: the second either sees the first's record or fails to acquire the
+	 * lock. Deleting the old context force-releases that lock, so it waits until the lock is gone.
+	 *
+	 * @param string $session_id  Stripe Checkout Session ID being replaced.
+	 * @param string $log_message Why the session is being replaced.
+	 * @param array  $log_context Logger context.
+	 * @return array Public data of the replacement, or of the one a concurrent request already stored.
+	 * @throws Exception When another request holds the lock or the replacement cannot be created.
 	 */
-	private function discard_session( string $session_id ): void {
+	private function replace_session( string $session_id, string $log_message, array $log_context ): array {
+		$replacement = WC_Stripe_Checkout_Session_Context::with_mutation_lock(
+			$session_id,
+			function () use ( $session_id, $log_message, $log_context ): ?array {
+				$record = $this->get_record();
+				if ( is_array( $record ) && (string) ( $record['session_id'] ?? '' ) !== $session_id ) {
+					return null;
+				}
+
+				WC_Stripe_Logger::info( $log_message, $log_context );
+
+				// WC_Session::set() removes the key when given null.
+				if ( WC()->session && is_callable( [ WC()->session, 'set' ] ) ) {
+					WC()->session->set( self::WC_SESSION_KEY, null );
+				}
+
+				return $this->create_session();
+			}
+		);
+
 		WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
 
-		// Only the record for this session is cleared: a concurrent sync may already have stored a
-		// replacement. WC_Session::set() removes the key when given null.
-		$record = $this->get_record();
-		if ( is_array( $record ) && (string) ( $record['session_id'] ?? '' ) === $session_id && WC()->session && is_callable( [ WC()->session, 'set' ] ) ) {
-			WC()->session->set( self::WC_SESSION_KEY, null );
-		}
+		return $replacement ?? $this->get_current_data();
 	}
 
 	/**

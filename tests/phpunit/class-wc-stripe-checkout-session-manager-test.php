@@ -604,6 +604,133 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Option name the context class derives for a session's mutation lock.
+	 *
+	 * @param string $session_id Stripe Checkout Session ID.
+	 * @return string
+	 */
+	private function get_mutation_lock_option_name( string $session_id ): string {
+		return 'wc_stripe_checkout_session_lock_' . md5( $session_id );
+	}
+
+	/**
+	 * Two requests can discover the same expired session at once. Replacement is serialized on
+	 * the session's mutation lock, so the one that loses the lock must fail fast without creating
+	 * a competing session, leaving its record and context for the next sync to adopt the winner's.
+	 */
+	public function test_update_session_does_not_replace_while_another_request_holds_the_lock(): void {
+		$product       = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 10 ] );
+		$cart_item_key = WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$requested_urls = [];
+		$mock_request   = $this->mock_stripe_with_failing_update(
+			'cs_test_locked',
+			400,
+			[
+				'type'    => 'invalid_request_error',
+				'message' => 'This Checkout Session is no longer active and cannot be updated.',
+			],
+			$requested_urls,
+			null,
+			'expired'
+		);
+		$lock_name      = $this->get_mutation_lock_option_name( 'cs_test_locked_1' );
+		$lock_owner     = null;
+		// The status lookup runs outside the lock; a competing request grabs the lock right then.
+		$grab_lock = static function ( $preempt, $parsed_args, $url ) use ( &$lock_owner, $lock_name ) {
+			if ( null === $lock_owner && 'GET' === strtoupper( (string) ( $parsed_args['method'] ?? 'GET' ) ) && str_ends_with( $url, '/checkout/sessions/cs_test_locked_1' ) ) {
+				$lock_owner = WC_Stripe_Option_Lock::acquire( $lock_name, 70 );
+			}
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $grab_lock, 9, 3 );
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+
+		try {
+			$manager = new WC_Stripe_Checkout_Session_Manager();
+			$created = $manager->synchronize();
+			$this->assertSame( 'cs_test_locked_1', $created['session_id'] );
+
+			WC()->cart->set_quantity( $cart_item_key, 2 );
+			WC()->cart->calculate_totals();
+
+			$thrown = null;
+			try {
+				$manager->synchronize();
+			} catch ( Exception $e ) {
+				$thrown = $e;
+			}
+
+			$context_after = WC_Stripe_Checkout_Session_Context::get_context( 'cs_test_locked_1' );
+		} finally {
+			remove_filter( 'pre_http_request', $grab_lock, 9 );
+			remove_filter( 'pre_http_request', $mock_request, 10 );
+			if ( null !== $lock_owner ) {
+				WC_Stripe_Option_Lock::release( $lock_name, $lock_owner );
+			}
+			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_locked_1' );
+		}
+
+		$this->assertNotNull( $lock_owner, 'The competing request must have taken the lock during the status lookup.' );
+		$this->assertInstanceOf( Exception::class, $thrown );
+		$this->assertSame( WC_Stripe_Checkout_Session_Context::get_unavailable_message(), $thrown->getMessage() );
+		$this->assertSame(
+			[
+				'POST https://api.stripe.com/v1/checkout/sessions',
+				'POST https://api.stripe.com/v1/checkout/sessions/cs_test_locked_1',
+				'GET https://api.stripe.com/v1/checkout/sessions/cs_test_locked_1',
+			],
+			$requested_urls,
+			'Losing the lock must not create a competing session.'
+		);
+		$this->assertSame( 'cs_test_locked_1', $manager->get_current_data()['session_id'], 'The record must be left for the next sync to adopt the winner’s replacement.' );
+		$this->assertNotNull( $context_after, 'The context must survive so the winner can discard it.' );
+	}
+
+	/**
+	 * The expiry branch is serialized the same way.
+	 */
+	public function test_synchronize_does_not_recreate_an_expired_session_while_another_request_holds_the_lock(): void {
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 10 ] );
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$requested_urls = [];
+		$mock_request   = $this->mock_stripe_with_failing_update( 'cs_test_locked_expiry', 400, [ 'type' => 'invalid_request_error' ], $requested_urls, time() - 1 );
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+
+		$lock_name  = $this->get_mutation_lock_option_name( 'cs_test_locked_expiry_1' );
+		$lock_owner = null;
+
+		try {
+			$manager = new WC_Stripe_Checkout_Session_Manager();
+			$created = $manager->synchronize();
+			$this->assertSame( 'cs_test_locked_expiry_1', $created['session_id'] );
+
+			$lock_owner = WC_Stripe_Option_Lock::acquire( $lock_name, 70 );
+			$this->assertNotNull( $lock_owner );
+
+			$thrown = null;
+			try {
+				$manager->synchronize();
+			} catch ( Exception $e ) {
+				$thrown = $e;
+			}
+		} finally {
+			remove_filter( 'pre_http_request', $mock_request, 10 );
+			if ( null !== $lock_owner ) {
+				WC_Stripe_Option_Lock::release( $lock_name, $lock_owner );
+			}
+			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_locked_expiry_1' );
+		}
+
+		$this->assertInstanceOf( Exception::class, $thrown );
+		$this->assertSame( [ 'POST https://api.stripe.com/v1/checkout/sessions' ], $requested_urls, 'Losing the lock must not create a competing session.' );
+		$this->assertSame( 'cs_test_locked_expiry_1', $manager->get_current_data()['session_id'] );
+	}
+
+	/**
 	 * When the stored expiry already says the session is gone, a rejected update must not spend a
 	 * retrieve confirming it. The mock answers "open" to any retrieve, so a lookup would wrongly
 	 * keep the session and the assertions below would fail.
