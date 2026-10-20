@@ -138,6 +138,7 @@ class WC_Stripe_Checkout_Session_Manager {
 			'status'                      => 'success',
 			'message'                     => '',
 			'save_payment_method_enabled' => $save_payment_method_enabled,
+			'expires_at'                  => (int) ( $checkout_session->expires_at ?? 0 ),
 		];
 		$this->set_record( $record );
 
@@ -232,6 +233,19 @@ class WC_Stripe_Checkout_Session_Manager {
 			return $this->create_session();
 		}
 
+		// Stripe expires sessions 24 hours after creation while the record can outlive that, so an
+		// expired one is replaced here rather than handed to the client, which cannot recover from it.
+		if ( $this->has_expired( $record ) ) {
+			WC_Stripe_Logger::info(
+				'Recreating the Checkout Session because it has expired.',
+				[ 'checkout_session_id' => (string) $record['session_id'] ]
+			);
+
+			$this->discard_session( (string) $record['session_id'] );
+
+			return $this->create_session();
+		}
+
 		// The context is the source of truth for amount and currency, so we need to compare
 		// against the data that was pushed to Stripe.
 		if (
@@ -267,6 +281,37 @@ class WC_Stripe_Checkout_Session_Manager {
 		$this->set_record( $record );
 
 		return $this->get_public_data( $record );
+	}
+
+	/**
+	 * Whether the stored record describes a session Stripe has already expired.
+	 *
+	 * Records written before expires_at was stored report false.
+	 *
+	 * @param array $record Stored session record.
+	 * @return bool
+	 */
+	private function has_expired( array $record ): bool {
+		$expires_at = (int) ( $record['expires_at'] ?? 0 );
+
+		return $expires_at > 0 && time() >= $expires_at;
+	}
+
+	/**
+	 * Forget a session so the next synchronization creates a new one.
+	 *
+	 * @param string $session_id Stripe Checkout Session ID.
+	 * @return void
+	 */
+	private function discard_session( string $session_id ): void {
+		WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
+
+		// Only the record for this session is cleared: a concurrent sync may already have stored a
+		// replacement. WC_Session::set() removes the key when given null.
+		$record = $this->get_record();
+		if ( is_array( $record ) && (string) ( $record['session_id'] ?? '' ) === $session_id && WC()->session && is_callable( [ WC()->session, 'set' ] ) ) {
+			WC()->session->set( self::WC_SESSION_KEY, null );
+		}
 	}
 
 	/**

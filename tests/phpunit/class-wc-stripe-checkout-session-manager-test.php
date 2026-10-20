@@ -329,6 +329,144 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Mock Stripe so creates hand out sequential session IDs and updates to the first one fail.
+	 *
+	 * @param string      $prefix           Session ID prefix.
+	 * @param int         $http_status      HTTP status of the failed update.
+	 * @param array       $error            Stripe error body for the failed update.
+	 * @param array       $requested_urls   Receives every Checkout Session request, as "METHOD url", in order.
+	 * @param int|null    $expires_at       expires_at for the first created session; later ones expire in a day.
+	 * @param string|null $retrieved_status Status Stripe reports when the first session is retrieved; null answers resource_missing.
+	 * @return callable The pre_http_request filter callback.
+	 */
+	private function mock_stripe_with_failing_update( string $prefix, int $http_status, array $error, array &$requested_urls, ?int $expires_at = null, ?string $retrieved_status = 'open' ): callable {
+		$create_count = 0;
+		$mock_request = static function ( $return_value, $parsed_args, $url ) use ( &$requested_urls, &$create_count, $prefix, $http_status, $error, $expires_at, $retrieved_status ) {
+			if ( ! str_starts_with( $url, 'https://api.stripe.com/v1/checkout/sessions' ) ) {
+				return $return_value;
+			}
+
+			$method           = strtoupper( (string) ( $parsed_args['method'] ?? 'GET' ) );
+			$requested_urls[] = "$method $url";
+
+			if ( 'GET' === $method ) {
+				if ( 'empty-body' === $retrieved_status ) {
+					// WC_Stripe_API::retrieve() turns an empty body into a WP_Error without recording an outage.
+					return [
+						'response' => [
+							'code'    => 200,
+							'message' => 'OK',
+						],
+						'headers'  => [ 'Content-Type' => 'application/json' ],
+						'body'     => '',
+					];
+				}
+
+				if ( 'replaced-concurrently' === $retrieved_status ) {
+					// Simulate another request that replaced the expired session while this one awaited Stripe.
+					WC()->session->set(
+						'wc_stripe_checkout_session',
+						[
+							'session_id'    => "{$prefix}_other",
+							'client_secret' => "{$prefix}_secret_other",
+							'revision'      => 'other-revision',
+							'status'        => 'success',
+							'message'       => '',
+							'expires_at'    => time() + DAY_IN_SECONDS,
+						]
+					);
+					$retrieved_status = 'expired';
+				}
+
+				if ( null === $retrieved_status ) {
+					return [
+						'response' => 404,
+						'headers'  => [ 'Content-Type' => 'application/json' ],
+						'body'     => wp_json_encode(
+							[
+								'error' => (object) [
+									'type'    => 'invalid_request_error',
+									'code'    => 'resource_missing',
+									'message' => 'No such checkout session',
+								],
+							]
+						),
+					];
+				}
+
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode(
+						(object) [
+							'id'     => "{$prefix}_1",
+							'status' => $retrieved_status,
+						]
+					),
+				];
+			}
+
+			if ( 'https://api.stripe.com/v1/checkout/sessions' === $url ) {
+				++$create_count;
+				$body = [
+					'id'            => "{$prefix}_{$create_count}",
+					'client_secret' => "{$prefix}_secret_{$create_count}",
+					'expires_at'    => 1 === $create_count && null !== $expires_at ? $expires_at : time() + DAY_IN_SECONDS,
+				];
+
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode( (object) $body ),
+				];
+			}
+
+			return [
+				'response' => $http_status,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode( [ 'error' => (object) $error ] ),
+			];
+		};
+
+		return $mock_request;
+	}
+
+	/**
+	 * Stripe expires sessions 24 hours after creation while the record and context can outlive
+	 * that, so an unchanged cart must not keep handing the client a session Stripe will refuse.
+	 */
+	public function test_synchronize_recreates_session_once_it_has_expired(): void {
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 10 ] );
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$requested_urls = [];
+		$mock_request   = $this->mock_stripe_with_failing_update( 'cs_test_expired', 400, [ 'type' => 'invalid_request_error' ], $requested_urls, time() - 1 );
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+
+		try {
+			$manager = new WC_Stripe_Checkout_Session_Manager();
+			$created = $manager->synchronize();
+			$this->assertSame( 'cs_test_expired_1', $created['session_id'] );
+
+			$recreated = $manager->synchronize();
+			$reused    = $manager->synchronize();
+
+			// Read before cleanup; the finally block deletes this context either way.
+			$expired_context_after_sync = WC_Stripe_Checkout_Session_Context::get_context( 'cs_test_expired_1' );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_request, 10 );
+			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_expired_1' );
+		}
+
+		$this->assertSame( [ 'POST https://api.stripe.com/v1/checkout/sessions', 'POST https://api.stripe.com/v1/checkout/sessions' ], $requested_urls, 'An expired session must be recreated without attempting an update.' );
+		$this->assertSame( 'cs_test_expired_2', $recreated['session_id'] );
+		$this->assertSame( 'success', $recreated['status'] );
+		$this->assertNull( $expired_context_after_sync, 'The expired session’s context must be discarded.' );
+		$this->assertSame( $recreated, $reused, 'A live replacement must be reused for an unchanged cart.' );
+	}
+
+	/**
 	 * A context that no longer matches the cart must be repaired, whatever left it behind. It is the
 	 * value validate_for_order() enforces, so a stale one fails the order with an amount mismatch.
 	 */
