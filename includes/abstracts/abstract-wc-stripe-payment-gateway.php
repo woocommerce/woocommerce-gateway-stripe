@@ -1043,7 +1043,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'wc_stripe_force_save_source',
 			[ $force_save_source, $customer ],
 			'9.6.0',
-			'wc_stripe_force_save_payment_method'
+			'',
+			'This filter has no direct replacement in legacy payment flows.'
 		);
 		$source_object     = '';
 		$source_id         = '';
@@ -1732,7 +1733,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'wc_stripe_force_save_source',
 			[ false, $prepared_source->source ],
 			'9.6.0',
-			'wc_stripe_force_save_payment_method'
+			'',
+			'This filter has no direct replacement in legacy payment flows.'
 		);
 
 		if ( $this->save_payment_method_requested() || $this->has_subscription( $order->get_id() ) || $force_save_source ) {

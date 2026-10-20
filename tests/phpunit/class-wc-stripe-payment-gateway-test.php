@@ -44,8 +44,16 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				: $preempt;
 		};
 
+		$deprecation         = [];
+		$capture_deprecation = function ( $hook, $replacement, $version, $message ) use ( &$deprecation ) {
+			if ( 'wc_stripe_force_save_source' === $hook ) {
+				$deprecation = [ $replacement, $version, $message ];
+			}
+		};
+
 		add_filter( 'wc_stripe_force_save_source', $filter, 10, 2 );
 		add_filter( 'pre_http_request', $api_filter, 10, 3 );
+		add_action( 'deprecated_hook_run', $capture_deprecation, 10, 4 );
 		$this->setExpectedDeprecated( 'wc_stripe_force_save_source' );
 
 		try {
@@ -53,9 +61,11 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		} finally {
 			remove_filter( 'wc_stripe_force_save_source', $filter, 10 );
 			remove_filter( 'pre_http_request', $api_filter, 10 );
+			remove_action( 'deprecated_hook_run', $capture_deprecation, 10 );
 			$_POST = $original_post;
 		}
 
+		$this->assertSame( [ '', '9.6.0', 'This filter has no direct replacement in legacy payment flows.' ], $deprecation );
 		$this->assertInstanceOf( WC_Stripe_Customer::class, $customer );
 		$this->assertSame( 'cus_context_test', $customer->get_id() );
 		$this->assertSame( 'pm_context_test', $source->source );
@@ -92,16 +102,27 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			$this->assertSame( 'pm_context_test', $source_id );
 			return $force_save;
 		};
+
+		$deprecation         = [];
+		$capture_deprecation = function ( $hook, $replacement, $version, $message ) use ( &$deprecation ) {
+			if ( 'wc_stripe_force_save_source' === $hook ) {
+				$deprecation = [ $replacement, $version, $message ];
+			}
+		};
+
 		add_filter( 'wc_stripe_force_save_source', $filter, 10, 2 );
+		add_action( 'deprecated_hook_run', $capture_deprecation, 10, 4 );
 		$this->setExpectedDeprecated( 'wc_stripe_force_save_source' );
 
 		try {
 			$request = $gateway->generate_create_intent_request( WC_Helper_Order::create_order(), $source );
 		} finally {
 			remove_filter( 'wc_stripe_force_save_source', $filter, 10 );
+			remove_action( 'deprecated_hook_run', $capture_deprecation, 10 );
 			$_POST = $original_post;
 		}
 
+		$this->assertSame( [ '', '9.6.0', 'This filter has no direct replacement in legacy payment flows.' ], $deprecation );
 		$this->assertIsArray( $request['metadata'] ?? null );
 		if ( $force_save ) {
 			$this->assertArrayHasKey( 'setup_future_usage', $request );

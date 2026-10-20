@@ -4962,7 +4962,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			'wc_stripe_force_save_source',
 			[ false ],
 			'9.6.0',
-			'wc_stripe_force_save_payment_method'
+			'',
+			'This filter has no direct replacement in legacy payment flows.'
 		);
 
 		// We want to save the payment method if requested or forced, AND if we are not
