@@ -102,8 +102,16 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			$_POST = $original_post;
 		}
 
-		$this->assertSame( $force_save ? 'off_session' : null, $request['setup_future_usage'] ?? null );
-		$this->assertSame( $force_save ? 'true' : null, $request['metadata']['save_payment_method'] ?? null );
+		$this->assertIsArray( $request['metadata'] ?? null );
+		if ( $force_save ) {
+			$this->assertArrayHasKey( 'setup_future_usage', $request );
+			$this->assertSame( 'off_session', $request['setup_future_usage'] );
+			$this->assertArrayHasKey( 'save_payment_method', $request['metadata'] );
+			$this->assertSame( 'true', $request['metadata']['save_payment_method'] );
+		} else {
+			$this->assertArrayNotHasKey( 'setup_future_usage', $request );
+			$this->assertArrayNotHasKey( 'save_payment_method', $request['metadata'] );
+		}
 	}
 
 	public function provide_deprecated_force_save_values(): array {
