@@ -40,7 +40,7 @@
 		<exclude name="WooCommerce.Commenting.CommentHooks.HookCommentWrongStyle" />
 
 		<!-- A hook @since must use the x.x.x placeholder, which woorelease fills in at release
-		     (see the Version placeholders lint). This sniff rejects the placeholder and demands a
+		     (see bin/check-version-placeholders.js). This sniff rejects the placeholder and demands a
 		     concrete version, so the two checks cannot both pass on a new hook. Drop the sniff and
 		     let the placeholder lint own the @since version on hooks. -->
 		<exclude name="WooCommerce.Commenting.CommentHooks.MissingSinceVersionComment" />
