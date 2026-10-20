@@ -320,24 +320,18 @@ class WC_Stripe_Checkout_Session_Manager {
 	}
 
 	/**
-	 * Whether a rejected update means the session itself is finished, as opposed to a bad request.
+	 * Whether a rejected update means the session is finished, as opposed to a bad request.
 	 *
-	 * Stripe has no error code for updating an expired or completed session, only a generic
-	 * invalid_request_error (https://docs.stripe.com/api/errors), which is also what a malformed
-	 * request gets. The session's own status is the authoritative signal, so unless the stored
-	 * expiry already settles it, the session is retrieved and only one that is no longer open (or
-	 * no longer exists) is treated as unusable. Anything else keeps the record so the error
-	 * surfaces and the next sync retries the same session.
+	 * Stripe reports both with a generic invalid_request_error, so the session's own status decides
+	 * (https://docs.stripe.com/api/errors). Anything inconclusive keeps the record for a retry.
 	 *
 	 * @param string $session_id Stripe Checkout Session ID.
 	 * @param object $error      Stripe error returned by the update.
 	 * @return bool
 	 */
 	private function is_session_no_longer_open( string $session_id, object $error ): bool {
-		// type is one of api_error, card_error, idempotency_error, or invalid_request_error
-		// (https://docs.stripe.com/api/errors#errors-type). A session update never attempts a
-		// payment, so a finished or missing session can only surface as invalid_request_error;
-		// the other three are retryable and must not discard the session.
+		// Of Stripe's four error types, only invalid_request_error can mean a finished or missing
+		// session; the rest are retryable (https://docs.stripe.com/api/errors#errors-type).
 		if ( 'invalid_request_error' !== (string) ( $error->type ?? '' ) ) {
 			return false;
 		}
@@ -382,7 +376,7 @@ class WC_Stripe_Checkout_Session_Manager {
 	 * @throws Exception When another request holds the lock or the replacement cannot be created.
 	 */
 	private function replace_session( string $session_id, string $log_message, array $log_context ): array {
-		$replacement = WC_Stripe_Checkout_Session_Context::with_mutation_lock(
+		$replacement_session_data = WC_Stripe_Checkout_Session_Context::with_mutation_lock(
 			$session_id,
 			function () use ( $session_id, $log_message, $log_context ): ?array {
 				$record = $this->get_record();
@@ -403,7 +397,7 @@ class WC_Stripe_Checkout_Session_Manager {
 
 		WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
 
-		return $replacement ?? $this->get_current_data();
+		return $replacement_session_data ?? $this->get_current_data();
 	}
 
 	/**
