@@ -2033,10 +2033,31 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		$controller = $this->getMockBuilder( 'WC_Stripe_Intent_Controller' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'get_gateway', 'payment_was_captured_at_stripe' ] )
+			->setMethods( [ 'get_gateway' ] )
 			->getMock();
 		$controller->method( 'get_gateway' )->willReturn( $gateway );
-		$controller->method( 'payment_was_captured_at_stripe' )->willReturn( true );
+
+		// Stripe reports the payment intent as succeeded.
+		$intent_requests = 0;
+		$stripe_response = function ( $preempt, $parsed_args, $url ) use ( $intent_id, &$intent_requests ) {
+			if ( false === strpos( $url, 'payment_intents/' . $intent_id ) ) {
+				return $preempt;
+			}
+			++$intent_requests;
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					[
+						'id'     => $intent_id,
+						'object' => 'payment_intent',
+						'status' => WC_Stripe_Intent_Status::SUCCEEDED,
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $stripe_response, 10, 3 );
 
 		$_POST['order_id']       = $order_id;
 		$_POST['intent_id']      = $intent_id;
@@ -2047,6 +2068,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 			$controller->update_order_status_ajax();
 			$response = json_decode( ob_get_clean(), true );
 
+			$this->assertSame( 1, $intent_requests );
 			$this->assertTrue( $response['success'] );
 			$this->assertStringContainsString( 'order-received', $response['data']['return_url'] );
 
@@ -2067,6 +2089,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 			// The lock is released on this exception path too.
 			$this->assertEmpty( WC_Stripe_Order_Helper::get_instance()->get_order_existing_payment_lock( $fresh ) );
 		} finally {
+			remove_filter( 'pre_http_request', $stripe_response, 10 );
 			unset( $_POST['order_id'], $_POST['intent_id'], $_REQUEST['_ajax_nonce'] );
 			Ajax_Test_Helper::remove_hooks();
 		}

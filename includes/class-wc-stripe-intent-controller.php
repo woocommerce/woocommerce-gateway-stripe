@@ -936,7 +936,7 @@ class WC_Stripe_Intent_Controller {
 	 * @param string                        $intent_id The confirmed payment intent id from the request.
 	 * @return bool
 	 */
-	protected function payment_was_captured_at_stripe( $gateway, WC_Order $order, $intent_id ): bool {
+	private function payment_was_captured_at_stripe( $gateway, WC_Order $order, $intent_id ): bool {
 		if ( empty( $intent_id ) || ! $gateway->is_payment_needed( $order->get_id() ) ) {
 			return false;
 		}
