@@ -30,11 +30,15 @@ final class WC_Stripe_Duplicate_Payment_Prevention {
 	private const LOCK_PREFIX = 'wc_stripe_checkout_charge_lock_';
 
 	/**
-	 * Paid-cart record transient name prefix.
+	 * Paid-cart record key prefix in {@see WC_Stripe_Database_Cache}.
+	 *
+	 * The record is the only check that stops a resubmit after the lock is released, so it is kept
+	 * in an option rather than a transient: with an external object cache, a transient never reaches
+	 * the database and can be evicted early.
 	 *
 	 * @var string
 	 */
-	private const RECORD_PREFIX = 'wc_stripe_paid_cart_';
+	private const RECORD_PREFIX = 'paid_cart_';
 
 	/**
 	 * Default detection window, in seconds.
@@ -203,7 +207,7 @@ final class WC_Stripe_Duplicate_Payment_Prevention {
 			return null;
 		}
 
-		$record = get_transient( self::RECORD_PREFIX . $cart_key );
+		$record = WC_Stripe_Database_Cache::get( self::RECORD_PREFIX . $cart_key );
 		if ( ! is_array( $record ) || empty( $record['order_id'] ) ) {
 			return null;
 		}
@@ -287,7 +291,7 @@ final class WC_Stripe_Duplicate_Payment_Prevention {
 			return;
 		}
 
-		set_transient(
+		WC_Stripe_Database_Cache::set(
 			self::RECORD_PREFIX . $cart_key,
 			[
 				'order_id' => $order->get_id(),
@@ -338,6 +342,6 @@ final class WC_Stripe_Duplicate_Payment_Prevention {
 			return;
 		}
 
-		delete_transient( self::RECORD_PREFIX . $cart_key );
+		WC_Stripe_Database_Cache::delete( self::RECORD_PREFIX . $cart_key );
 	}
 }

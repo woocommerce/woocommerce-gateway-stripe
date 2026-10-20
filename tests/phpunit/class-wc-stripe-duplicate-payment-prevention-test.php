@@ -13,10 +13,11 @@ class WC_Stripe_Duplicate_Payment_Prevention_Test extends WP_UnitTestCase {
 	private const EMAIL     = 'shopper@example.com';
 
 	/**
-	 * Removes any window filter left by a test.
+	 * Removes any window filter and paid-cart record left by a test.
 	 */
 	public function tear_down() {
 		remove_all_filters( 'wc_stripe_duplicate_charge_detection_window' );
+		WC_Stripe_Test_Helper::forget_database_cache_entries( 'paid_cart_' );
 		parent::tear_down();
 	}
 
@@ -318,6 +319,32 @@ class WC_Stripe_Duplicate_Payment_Prevention_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The record is stored in the database, so it is still found after the object cache is flushed.
+	 */
+	public function test_record_survives_an_object_cache_flush(): void {
+		$paid = $this->make_paid_order( self::CART_HASH, self::EMAIL );
+
+		// With an external object cache, a transient lives only in that cache and is lost on eviction.
+		$was_using_ext_cache = wp_using_ext_object_cache( true );
+		try {
+			WC_Stripe_Duplicate_Payment_Prevention::record_paid_order( $paid );
+
+			// A later request starts with no in-memory copy, and the object cache can drop entries
+			// at any time: the record must still be read from the database.
+			WC_Stripe_Test_Helper::forget_database_cache_entries( 'paid_cart_' );
+			wp_cache_flush();
+
+			$resend = $this->make_order( self::CART_HASH, self::EMAIL );
+			$found  = WC_Stripe_Duplicate_Payment_Prevention::get_recent_paid_order( $resend );
+		} finally {
+			wp_using_ext_object_cache( $was_using_ext_cache );
+		}
+
+		$this->assertInstanceOf( WC_Order::class, $found );
+		$this->assertSame( $paid->get_id(), $found->get_id() );
+	}
+
+	/**
 	 * A record older than the detection window no longer matches.
 	 */
 	public function test_get_recent_paid_order_ignores_stale_record(): void {
@@ -327,8 +354,8 @@ class WC_Stripe_Duplicate_Payment_Prevention_Test extends WP_UnitTestCase {
 		// Seed a record whose paid_at is older than the window.
 		$window = new ReflectionMethod( WC_Stripe_Duplicate_Payment_Prevention::class, 'get_detection_window' );
 		$window->setAccessible( true );
-		set_transient(
-			'wc_stripe_paid_cart_' . $key,
+		WC_Stripe_Database_Cache::set(
+			'paid_cart_' . $key,
 			[
 				'order_id' => $paid->get_id(),
 				'paid_at'  => time() - $window->invoke( null ) - 5,

@@ -231,6 +231,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	public function tear_down() {
+		WC_Stripe_Test_Helper::forget_database_cache_entries( 'paid_cart_' );
 		delete_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME );
 		delete_option( self::ADAPTIVE_PRICING_AMOUNT_MISMATCH_OPTION );
 
@@ -2195,7 +2196,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$this->assertInstanceOf( WC_Order::class, $paid_order );
 			$this->assertSame( $order->get_id(), $paid_order->get_id() );
 		} finally {
-			delete_transient( 'wc_stripe_paid_cart_' . WC_Stripe_Duplicate_Payment_Prevention::get_cart_key( $order ) );
+			WC_Stripe_Database_Cache::delete( 'paid_cart_' . WC_Stripe_Duplicate_Payment_Prevention::get_cart_key( $order ) );
 		}
 	}
 
