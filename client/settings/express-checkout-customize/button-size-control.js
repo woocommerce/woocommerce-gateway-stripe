@@ -55,25 +55,18 @@ const buttonSizeOptions = [
  * @param {Function} props.onChange Receives the next size key.
  */
 const ExpressCheckoutButtonSizeControl = ( { size, onChange } ) => (
-	<>
-		<RadioControl
-			help={ __(
-				'Note that larger buttons are more suitable for mobile use.',
-				'woocommerce-gateway-stripe'
-			) }
-			label={ __( 'Size', 'woocommerce-gateway-stripe' ) }
-			selected={ size }
-			options={ buttonSizeOptions }
-			onChange={ onChange }
-		/>
-		{ /* Every tab edits the same stored size, so each one needs to say so. */ }
-		<p className="express-checkout-customize__option-muted-text">
-			{ __(
-				'This size applies to all express checkout buttons (Apple Pay, Google Pay, Link, and Amazon Pay).',
-				'woocommerce-gateway-stripe'
-			) }
-		</p>
-	</>
+	// Both notes live in the control's help text so they share one style. Every tab edits the
+	// same stored size, so the help also says the size is shared.
+	<RadioControl
+		help={ __(
+			'Note that larger buttons are more suitable for mobile use. This size applies to all express checkout buttons (Apple Pay, Google Pay, Link, and Amazon Pay).',
+			'woocommerce-gateway-stripe'
+		) }
+		label={ __( 'Size', 'woocommerce-gateway-stripe' ) }
+		selected={ size }
+		options={ buttonSizeOptions }
+		onChange={ onChange }
+	/>
 );
 
 export default ExpressCheckoutButtonSizeControl;
