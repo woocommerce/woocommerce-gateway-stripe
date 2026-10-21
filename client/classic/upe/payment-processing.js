@@ -289,15 +289,16 @@ function getNativeCheckoutSessionData() {
 }
 
 /**
- * Ask the server to replace the mounted Checkout Session if Stripe reports it finished.
+ * Have the server replace the mounted Checkout Session, which it does only once Stripe confirms
+ * the session is finished.
  *
  * The mounted element cannot switch sessions, so the shopper reloads to mount the replacement.
  *
  * @param {Object} api               The API instance.
  * @param {string} paymentMethodType The payment method type whose element failed to load.
- * @return {Promise<boolean>} Whether the server now holds a different session than the mounted one.
+ * @return {Promise<boolean>} Whether the session was replaced.
  */
-async function replaceFinishedCheckoutSession( api, paymentMethodType ) {
+async function maybeReplaceCheckoutSession( api, paymentMethodType ) {
 	const mountedSessionId =
 		gatewayUPEComponents[ paymentMethodType ]?.checkoutSessionId;
 	if (
@@ -1021,7 +1022,7 @@ async function mountStripePaymentElementImpl( api, domElement ) {
 			// server, which keeps handing it out until told otherwise.
 			if (
 				loadActionsErrorCode === 'checkout_not_active_session' &&
-				( await replaceFinishedCheckoutSession(
+				( await maybeReplaceCheckoutSession(
 					api,
 					paymentMethodType
 				) ) &&
