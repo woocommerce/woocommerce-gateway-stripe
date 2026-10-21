@@ -39,7 +39,12 @@ add_action(
 
 			public function process_payment( $order_id ) {
 				$order = wc_get_order( $order_id );
-				$order->payment_complete( 'e2e-mock-' . time() );
+				// Subscriptions passes the subscription itself when changing its payment method.
+				// That flow only switches the gateway, so there is no payment to complete.
+				$is_payment_method_change = function_exists( 'wcs_is_subscription' ) && wcs_is_subscription( $order );
+				if ( ! $is_payment_method_change ) {
+					$order->payment_complete( 'e2e-mock-' . time() );
+				}
 				return [
 					'result'   => 'success',
 					'redirect' => $this->get_return_url( $order ),
