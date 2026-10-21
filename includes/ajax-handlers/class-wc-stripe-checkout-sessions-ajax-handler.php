@@ -116,8 +116,8 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 	/**
 	 * Ask Stripe about the stored Checkout Session and replace it if Stripe reports it finished.
 	 *
-	 * Classic checkout calls this only when the shopper places an order on a session Stripe.js
-	 * refused to load, so the lookup is never spent on a healthy checkout.
+	 * Classic checkout calls this only after Stripe.js reported the mounted session as no longer
+	 * active, so the lookup is never spent on a healthy checkout.
 	 *
 	 * @since x.x.x
 	 * @return void

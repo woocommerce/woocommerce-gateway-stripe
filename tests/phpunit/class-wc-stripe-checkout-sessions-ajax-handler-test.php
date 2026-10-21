@@ -32,8 +32,8 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Classic checkout asks for verification only when the shopper places an order on a session
-	 * Stripe.js refused; the endpoint looks it up and answers with the replacement when Stripe
+	 * Classic checkout asks for verification only after Stripe.js reported the mounted session as
+	 * no longer active; the endpoint looks it up and answers with the replacement when Stripe
 	 * reports it finished.
 	 */
 	public function test_verify_checkout_session_replaces_a_finished_session(): void {

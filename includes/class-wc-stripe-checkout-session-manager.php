@@ -278,8 +278,8 @@ class WC_Stripe_Checkout_Session_Manager {
 	 * Replace the stored session if Stripe reports it finished.
 	 *
 	 * A session expired early from the Stripe Dashboard or API leaves no local trace, so an unchanged
-	 * cart keeps handing it out. Classic checkout calls this only after the shopper tried to pay with
-	 * a session Stripe.js refused to load, which keeps the lookup off the normal checkout path.
+	 * cart keeps handing it out. Classic checkout calls this only after Stripe.js reported the
+	 * mounted session as no longer active, which keeps the lookup off the normal checkout path.
 	 *
 	 * @since x.x.x
 	 * @return array Public session data.

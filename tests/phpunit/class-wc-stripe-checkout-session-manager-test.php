@@ -414,7 +414,7 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 
 	/**
 	 * A session expired early on Stripe leaves no local trace, so classic checkout asks for a lookup
-	 * when the shopper cannot pay with it; only a finished session is replaced.
+	 * once Stripe.js reports it no longer active; only a finished session is replaced.
 	 *
 	 * @dataProvider provide_replace_if_finished_data
 	 *

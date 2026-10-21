@@ -1283,27 +1283,45 @@ describe( 'payment-processing', () => {
 
 			it.each( [
 				[
-					'a replacement session',
+					'asks the server and shows the expiry notice when it replaced the session',
+					'checkout_not_active_session',
 					{ session_id: 'cs_test_replacement', status: 'success' },
+					1,
 					'Your payment session has expired. Please refresh the page to continue.',
 				],
 				[
-					'the same session',
+					'keeps the Stripe error when the server still holds the same session',
+					'checkout_not_active_session',
 					{
 						session_id: MOCK_AP_CHECKOUT_SESSION_ID,
 						status: 'success',
 					},
-					'Invalid or missing payment details. Please ensure the provided payment method is correctly entered.',
+					1,
+					'The checkout session is no longer active, please try again.',
+				],
+				[
+					'does not ask the server about any other load error',
+					'some_other_error',
+					{ session_id: 'cs_test_replacement', status: 'success' },
+					0,
+					'The checkout session is no longer active, please try again.',
 				],
 			] )(
-				'asks the server about a session that failed to load, and answers with %s',
-				async ( _, verifiedSession, expectedMessage ) => {
+				'on a mount-time load error, %s',
+				async (
+					_,
+					errorCode,
+					verifiedSession,
+					expectedVerifyCalls,
+					expectedMessage
+				) => {
 					const checkoutElements = createMockElements();
 					checkoutElements.loadActions.mockResolvedValue( {
 						type: 'error',
 						error: {
+							code: errorCode,
 							message:
-								'The checkout session is no longer active.',
+								'The checkout session is no longer active, please try again.',
 						},
 					} );
 					const api = createMockApi( checkoutElements );
@@ -1313,26 +1331,19 @@ describe( 'payment-processing', () => {
 					const dom = document.createElement( 'div' );
 					dom.dataset.paymentMethodType = 'card';
 
-					await paymentProcessing.mountStripePaymentElement(
-						api,
-						dom
-					);
-					expect(
-						api.checkoutSessionsVerifySession
-					).not.toHaveBeenCalled();
-					stripeUtils.showErrorCheckout.mockClear();
-
-					const form = createMockForm();
-					paymentProcessing.processPayment( api, form, 'card' );
-					await flushPromises();
+					const component =
+						await paymentProcessing.mountStripePaymentElement(
+							api,
+							dom
+						);
 
 					expect(
 						api.checkoutSessionsVerifySession
-					).toHaveBeenCalledTimes( 1 );
+					).toHaveBeenCalledTimes( expectedVerifyCalls );
 					expect(
-						stripeUtils.showErrorCheckout
-					).toHaveBeenCalledWith( expectedMessage );
-					expect( form.trigger ).not.toHaveBeenCalledWith( 'submit' );
+						stripeUtils.showErrorPaymentMethod
+					).toHaveBeenLastCalledWith( expectedMessage, dom );
+					expect( component.hasLoadError ).toBe( true );
 				}
 			);
 		} );

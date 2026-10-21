@@ -790,7 +790,7 @@ export default class WCStripeAPI {
 	/**
 	 * Ask the server to confirm the stored Checkout Session with Stripe and replace it if needed.
 	 *
-	 * Only called when the shopper places an order on a session Stripe.js refused to load.
+	 * Only called after Stripe.js reported the mounted session as no longer active.
 	 *
 	 * @return {Promise<Object>} The public session data, as embedded in the checkout fragment.
 	 * @throws {Error} When the server responds with an application-level error.

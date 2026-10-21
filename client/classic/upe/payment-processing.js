@@ -291,9 +291,7 @@ function getNativeCheckoutSessionData() {
 /**
  * Ask the server to replace the mounted Checkout Session if Stripe reports it finished.
  *
- * A session expired early from the Stripe Dashboard or API leaves no local trace, so the server
- * keeps handing it out and the element cannot load it. The mounted element cannot switch
- * sessions, so the shopper reloads to mount the replacement.
+ * The mounted element cannot switch sessions, so the shopper reloads to mount the replacement.
  *
  * @param {Object} api               The API instance.
  * @param {string} paymentMethodType The payment method type whose element failed to load.
@@ -984,6 +982,7 @@ async function mountStripePaymentElementImpl( api, domElement ) {
 		// Call loadActions() after mounting the elements with the Checkout Session API to check if there are any errors.
 		let hasLoadActionsError = false;
 		let loadActionsErrorMessage;
+		let loadActionsErrorCode;
 		try {
 			const actions = await elements.loadActions();
 
@@ -996,6 +995,7 @@ async function mountStripePaymentElementImpl( api, domElement ) {
 			if ( actions.type === 'error' ) {
 				hasLoadActionsError = true;
 				loadActionsErrorMessage = actions?.error?.message;
+				loadActionsErrorCode = actions?.error?.code;
 			}
 		} catch ( error ) {
 			if ( ! isCurrentMount() ) {
@@ -1016,6 +1016,25 @@ async function mountStripePaymentElementImpl( api, domElement ) {
 					),
 				domElement
 			);
+
+			// A session expired early from the Stripe Dashboard or API leaves no trace on the
+			// server, which keeps handing it out until told otherwise.
+			if (
+				loadActionsErrorCode === 'checkout_not_active_session' &&
+				( await replaceFinishedCheckoutSession(
+					api,
+					paymentMethodType
+				) ) &&
+				isCurrentMount()
+			) {
+				showErrorPaymentMethod(
+					__(
+						'Your payment session has expired. Please refresh the page to continue.',
+						'woocommerce-gateway-stripe'
+					),
+					domElement
+				);
+			}
 		}
 
 		return component;
@@ -1259,20 +1278,6 @@ export const processPayment = (
 				gatewayUPEComponents[ paymentMethodType ];
 
 			if ( hasLoadError ) {
-				if (
-					await replaceFinishedCheckoutSession(
-						api,
-						paymentMethodType
-					)
-				) {
-					throw new Error(
-						__(
-							'Your payment session has expired. Please refresh the page to continue.',
-							'woocommerce-gateway-stripe'
-						)
-					);
-				}
-
 				throw new Error(
 					__(
 						'Invalid or missing payment details. Please ensure the provided payment method is correctly entered.',
