@@ -1310,6 +1310,43 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Preserve classic forms embedded in other layouts while avoiding their runtime on express-only pages.
+	 *
+	 * @since x.x.x
+	 * @return bool
+	 */
+	public static function should_load_classic_checkout_scripts(): bool {
+		$helper = new WC_Stripe_Express_Checkout_Helper();
+		if (
+			$helper->is_one_page_checkout() ||
+			is_add_payment_method_page() ||
+			is_wc_endpoint_url( 'order-pay' ) ||
+			isset( $_GET['change_payment_method'] ) // phpcs:ignore WordPress.Security.NonceVerification
+		) {
+			return true;
+		}
+
+		global $post;
+		if (
+			$post instanceof WP_Post &&
+			( has_shortcode( $post->post_content, 'woocommerce_checkout' ) || has_block( 'woocommerce/classic-shortcode', $post ) )
+		) {
+			return true;
+		}
+
+		if ( has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' ) ) {
+			return false;
+		}
+
+		if ( $helper->is_checkout() ) {
+			return true;
+		}
+
+		// Unknown/custom pages retain the previous behavior; only known product/cart layouts opt out.
+		return ! $helper->is_product() && ! $helper->is_cart();
+	}
+
+	/**
 	 * Whether the express checkout button styles are overridden by the "Apply uniform style"
 	 * option of the Cart & Checkout blocks' Express Checkout section (`showButtonStyles`).
 	 *

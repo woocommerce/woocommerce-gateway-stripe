@@ -6644,7 +6644,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
 				'amazon_pay_button_locations'               => [],
 				'expected_stripe'                           => true,
-				'expected_upe_classic'                      => true,
+				'expected_upe_classic'                      => false,
 			],
 			'Cart page with ECE off, Amazon Pay on at cart'       => [
 				'page_type'                                 => 'cart',
@@ -6653,7 +6653,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::AMAZON_PAY ],
 				'amazon_pay_button_locations'               => [ 'cart' ],
 				'expected_stripe'                           => true,
-				'expected_upe_classic'                      => true,
+				'expected_upe_classic'                      => false,
 			],
 			'Product page with ECE on at product'                 => [
 				'page_type'                                 => 'product',
@@ -6662,7 +6662,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
 				'amazon_pay_button_locations'               => [],
 				'expected_stripe'                           => true,
-				'expected_upe_classic'                      => true,
+				'expected_upe_classic'                      => false,
 			],
 			'Product page with ECE off, Amazon Pay on at product' => [
 				'page_type'                                 => 'product',
@@ -6671,7 +6671,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::AMAZON_PAY ],
 				'amazon_pay_button_locations'               => [ 'product' ],
 				'expected_stripe'                           => true,
-				'expected_upe_classic'                      => true,
+				'expected_upe_classic'                      => false,
 			],
 			'Checkout page with ECE off and Amazon Pay off'       => [
 				'page_type'                                 => 'checkout',
@@ -6761,6 +6761,83 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				remove_filter( 'woocommerce_is_cart', $is_cart_filter );
 			}
 		}
+	}
+
+	/**
+	 * Settings must survive layout gating, including filters used by extensions on Blocks pages.
+	 *
+	 * @since x.x.x
+	 * @dataProvider provide_checkout_script_layouts
+	 * @param string $content Page content.
+	 * @param bool   $is_checkout Whether WooCommerce identifies the page as checkout.
+	 * @param string $endpoint Special checkout endpoint, if any.
+	 * @param bool   $expected_classic Whether the classic runtime is required.
+	 * @return void
+	 */
+	public function test_payment_scripts_for_checkout_layouts( $content, $is_checkout, $endpoint, $expected_classic ): void {
+		$page = self::factory()->post->create(
+			[
+				'post_type'    => 'page',
+				'post_content' => $content,
+			]
+		);
+		$this->go_to( get_permalink( $page ) );
+		$checkout_filter = static function () use ( $is_checkout ) {
+			return $is_checkout;
+		};
+		$params_filter   = static function ( $params ) {
+			$params['locale'] = 'fr';
+			return $params;
+		};
+		add_filter( 'woocommerce_is_checkout', $checkout_filter );
+		add_filter( 'wc_stripe_upe_params', $params_filter );
+		if ( 'change_payment_method' === $endpoint ) {
+			$_GET[ $endpoint ] = 123;
+		} elseif ( $endpoint ) {
+			$GLOBALS['wp']->query_vars[ $endpoint ] = 123;
+		}
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->onlyMethods( [ 'javascript_params', 'should_skip_full_payment_scripts' ] )
+			->getMock();
+		$gateway->expects( $this->once() )->method( 'javascript_params' )->willReturn( [ 'key' => 'pk_test_example' ] );
+		$gateway->expects( $this->once() )->method( 'should_skip_full_payment_scripts' )->willReturn( false );
+		$gateway->enabled = 'yes';
+		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ] );
+
+		try {
+			$gateway->payment_scripts();
+			$this->assertSame( $expected_classic, wp_script_is( 'wc-stripe-upe-classic', 'enqueued' ) );
+			$this->assertTrue( wp_script_is( 'wc-stripe-checkout-settings', 'enqueued' ) );
+			$this->assertStringContainsString( '"locale":"fr"', wp_scripts()->get_data( 'wc-stripe-checkout-settings', 'data' ) );
+
+			// Extensions can still explicitly request the real classic runtime on a custom page.
+			wp_enqueue_script( 'wc-stripe-upe-classic' );
+			$this->assertStringEndsWith( '/build/upe-classic.js', wp_scripts()->registered['wc-stripe-upe-classic']->src );
+			$this->assertContains( 'wc-stripe-checkout-settings', wp_scripts()->registered['wc-stripe-upe-classic']->deps );
+		} finally {
+			remove_filter( 'woocommerce_is_checkout', $checkout_filter );
+			remove_filter( 'wc_stripe_upe_params', $params_filter );
+			unset( $_GET['change_payment_method'], $GLOBALS['wp']->query_vars[ $endpoint ] );
+			$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
+		}
+	}
+
+	/**
+	 * @since x.x.x
+	 * @return array
+	 */
+	public function provide_checkout_script_layouts(): array {
+		return [
+			'Blocks cart on a custom page'   => [ '<!-- wp:woocommerce/cart /-->', false, '', false ],
+			'Blocks checkout'                => [ '<!-- wp:woocommerce/checkout /-->', true, '', false ],
+			'Blocks checkout on custom page' => [ '<!-- wp:woocommerce/checkout /-->', false, '', false ],
+			'classic checkout'               => [ '[woocommerce_checkout]', true, '', true ],
+			'classic shortcode block'        => [ '<!-- wp:woocommerce/classic-shortcode {"shortcode":"checkout"} /-->', true, '', true ],
+			'mixed classic and Blocks'       => [ '<!-- wp:woocommerce/cart /-->[woocommerce_checkout]', true, '', true ],
+			'pay for order on Blocks page'   => [ '<!-- wp:woocommerce/checkout /-->', true, 'order-pay', true ],
+			'subscription payment change'    => [ '<!-- wp:woocommerce/checkout /-->', true, 'change_payment_method', true ],
+		];
 	}
 
 	/**
