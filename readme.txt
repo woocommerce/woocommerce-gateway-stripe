@@ -173,6 +173,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Remote configuration system for managing feature availability during incidents
 * Update - Retry failed remote-config syncs with backoff and log a warning when the cached configuration goes stale
 * Dev - Make the express checkout password cleanup next-batch delay test stable on slow CI runners
-* Fix - Replace an expired Adaptive Pricing Checkout Session with a new one instead of retrying it on every cart update
+* Fix - Create a new Adaptive Pricing Checkout Session once the stored one expires, instead of blocking checkout for shoppers who return a day later
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

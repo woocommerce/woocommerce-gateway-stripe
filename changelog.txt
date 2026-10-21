@@ -10,7 +10,7 @@ xxxx-xx-xx - version 11.2.0
 * Add - Remote configuration system for managing feature availability during incidents
 * Update - Retry failed remote-config syncs with backoff and log a warning when the cached configuration goes stale
 * Dev - Make the express checkout password cleanup next-batch delay test stable on slow CI runners
-* Fix - Replace an expired Adaptive Pricing Checkout Session with a new one instead of retrying it on every cart update
+* Fix - Create a new Adaptive Pricing Checkout Session once the stored one expires, instead of blocking checkout for shoppers who return a day later
 
 2026-10-16 - version 11.1.1
 * Fix - Stop blocking non-Stripe payment gateways on the Pay for Order, change payment method, and add payment method pages

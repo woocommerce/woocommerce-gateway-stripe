@@ -93,23 +93,7 @@ class WC_Stripe_Checkout_Session_Lifecycle {
 	 * @return void
 	 */
 	public function render_classic_placeholder(): void {
-		$data = $this->manager->get_current_data();
-
-		// A page load is the one moment to confirm a reused session is still open on Stripe: the
-		// client mounts whatever is embedded here and cannot recover from an expired session.
-		if ( '' !== $data['session_id'] && 'success' === $data['status'] && self::is_adaptive_pricing_enabled() ) {
-			try {
-				$data = $this->manager->synchronize( true );
-			} catch ( Throwable $e ) {
-				WC_Stripe_Logger::error( 'Native classic checkout session verification failed.', [ 'error_message' => $e->getMessage() ] );
-
-				$message = ( $e instanceof WC_Stripe_Exception ) ? $e->getLocalizedMessage() : WC_Stripe_Checkout_Session_Manager::get_runtime_error_message();
-
-				$data = $this->manager->mark_failed( $message );
-			}
-		}
-
-		echo $this->get_classic_fragment_html( $data ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by get_classic_fragment_html().
+		echo $this->get_classic_fragment_html( $this->manager->get_current_data() ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by get_classic_fragment_html().
 	}
 
 	/**
@@ -198,8 +182,7 @@ class WC_Stripe_Checkout_Session_Lifecycle {
 		}
 
 		try {
-			// The explicit sync request is the Blocks checkout mounting, so verify a reused session then.
-			return $manager->synchronize( self::$store_api_sync_requested );
+			return $manager->synchronize();
 		} catch ( Throwable $e ) {
 			WC_Stripe_Logger::error( 'Native Store API checkout session synchronization failed.', [ 'error_message' => $e->getMessage() ] );
 

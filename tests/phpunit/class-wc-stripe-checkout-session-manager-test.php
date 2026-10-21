@@ -191,6 +191,76 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Stripe expires a session 24 hours after creation while the record can outlive it, so an
+	 * unchanged cart must get a new session once Stripe's expiry has passed, and keep reusing one
+	 * that is still live or that predates expiry tracking.
+	 *
+	 * @dataProvider provide_synchronize_expiry_data
+	 *
+	 * @param int|null $expires_at_offset    Seconds from now that the first session expires at, or null when Stripe's response omits it.
+	 * @param int      $expected_create_count Number of sessions created across both synchronizations.
+	 */
+	public function test_synchronize_recreates_session_only_once_it_has_expired( ?int $expires_at_offset, int $expected_create_count ): void {
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 10 ] );
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$create_count = 0;
+		$mock_request = static function ( $return_value, $parsed_args, $url ) use ( &$create_count, $expires_at_offset ) {
+			if ( ! str_starts_with( $url, 'https://api.stripe.com/v1/checkout/sessions' ) ) {
+				return $return_value;
+			}
+
+			if ( 'https://api.stripe.com/v1/checkout/sessions' !== $url ) {
+				// Only creates are expected; anything else (e.g. an update) fails the assertions below.
+				return new WP_Error( 'unexpected_request', "Unexpected Stripe request: $url" );
+			}
+
+			++$create_count;
+			$body = [
+				'id'            => "cs_test_expiry_{$create_count}",
+				'client_secret' => "cs_test_expiry_secret_{$create_count}",
+			];
+			if ( null !== $expires_at_offset ) {
+				$body['expires_at'] = 1 === $create_count ? time() + $expires_at_offset : time() + DAY_IN_SECONDS;
+			}
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode( (object) $body ),
+			];
+		};
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+
+		try {
+			$manager = new WC_Stripe_Checkout_Session_Manager();
+			$manager->synchronize();
+			$second = $manager->synchronize();
+		} finally {
+			remove_filter( 'pre_http_request', $mock_request, 10 );
+			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_expiry_1' );
+		}
+
+		$this->assertSame( $expected_create_count, $create_count );
+		$this->assertSame( "cs_test_expiry_{$expected_create_count}", $second['session_id'] );
+		$this->assertSame( 'success', $second['status'] );
+	}
+
+	/**
+	 * Data provider for test_synchronize_recreates_session_only_once_it_has_expired().
+	 *
+	 * @return array
+	 */
+	public function provide_synchronize_expiry_data(): array {
+		return [
+			'expired session is recreated'        => [ -1, 2 ],
+			'live session is reused'              => [ HOUR_IN_SECONDS, 1 ],
+			'record without expires_at is reused' => [ null, 1 ],
+		];
+	}
+
+	/**
 	 * We must create checkout sessions using the merchant's Payment Method Configuration ID.
 	 *
 	 * @param string|null $configuration_id The cached PMC ID, or null when PMC is disabled or unavailable.
@@ -326,690 +396,6 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 		$expected_amount = WC_Stripe_Helper::get_stripe_amount( (float) WC()->cart->get_total( 'edit' ), get_woocommerce_currency() );
 		$this->assertSame( $expected_amount, $captured_updates[0]['line_items'][0]['price_data']['unit_amount'] );
 		$this->assertSame( 1, $captured_updates[0]['line_items'][0]['quantity'] );
-	}
-
-	/**
-	 * Mock Stripe so creates hand out sequential session IDs and updates to the first one fail.
-	 *
-	 * @param string      $prefix           Session ID prefix.
-	 * @param int         $http_status      HTTP status of the failed update.
-	 * @param array       $error            Stripe error body for the failed update.
-	 * @param array       $requested_urls   Receives every Checkout Session request, as "METHOD url", in order.
-	 * @param int|null    $expires_at       expires_at for the first created session; later ones expire in a day.
-	 * @param string|null $retrieved_status Status Stripe reports when the first session is retrieved; null answers resource_missing.
-	 * @return callable The pre_http_request filter callback.
-	 */
-	private function mock_stripe_with_failing_update( string $prefix, int $http_status, array $error, array &$requested_urls, ?int $expires_at = null, ?string $retrieved_status = 'open' ): callable {
-		$create_count = 0;
-		$mock_request = static function ( $return_value, $parsed_args, $url ) use ( &$requested_urls, &$create_count, $prefix, $http_status, $error, $expires_at, $retrieved_status ) {
-			if ( ! str_starts_with( $url, 'https://api.stripe.com/v1/checkout/sessions' ) ) {
-				return $return_value;
-			}
-
-			$method           = strtoupper( (string) ( $parsed_args['method'] ?? 'GET' ) );
-			$requested_urls[] = "$method $url";
-
-			if ( 'GET' === $method ) {
-				if ( 'empty-body' === $retrieved_status ) {
-					// WC_Stripe_API::retrieve() turns an empty body into a WP_Error without recording an outage.
-					return [
-						'response' => [
-							'code'    => 200,
-							'message' => 'OK',
-						],
-						'headers'  => [ 'Content-Type' => 'application/json' ],
-						'body'     => '',
-					];
-				}
-
-				if ( 'linked-concurrently' === $retrieved_status ) {
-					// Simulate an order request that linked the session between the verdict and the replacement lock.
-					WC_Stripe_Checkout_Session_Context::mark_linked_to_order( "{$prefix}_1", WC_Helper_Order::create_order() );
-					$retrieved_status = 'expired';
-				}
-
-				if ( 'replaced-concurrently' === $retrieved_status ) {
-					// Simulate another request that replaced the expired session while this one awaited Stripe.
-					WC()->session->set(
-						'wc_stripe_checkout_session',
-						[
-							'session_id'    => "{$prefix}_other",
-							'client_secret' => "{$prefix}_secret_other",
-							'revision'      => 'other-revision',
-							'status'        => 'success',
-							'message'       => '',
-							'expires_at'    => time() + DAY_IN_SECONDS,
-						]
-					);
-					$retrieved_status = 'expired';
-				}
-
-				if ( null === $retrieved_status ) {
-					return [
-						'response' => 404,
-						'headers'  => [ 'Content-Type' => 'application/json' ],
-						'body'     => wp_json_encode(
-							[
-								'error' => (object) [
-									'type'    => 'invalid_request_error',
-									'code'    => 'resource_missing',
-									'message' => 'No such checkout session',
-								],
-							]
-						),
-					];
-				}
-
-				return [
-					'response' => 200,
-					'headers'  => [ 'Content-Type' => 'application/json' ],
-					'body'     => wp_json_encode(
-						(object) [
-							'id'     => "{$prefix}_1",
-							'status' => $retrieved_status,
-						]
-					),
-				];
-			}
-
-			if ( 'https://api.stripe.com/v1/checkout/sessions' === $url ) {
-				++$create_count;
-				$body = [
-					'id'            => "{$prefix}_{$create_count}",
-					'client_secret' => "{$prefix}_secret_{$create_count}",
-					'expires_at'    => 1 === $create_count && null !== $expires_at ? $expires_at : time() + DAY_IN_SECONDS,
-				];
-
-				return [
-					'response' => 200,
-					'headers'  => [ 'Content-Type' => 'application/json' ],
-					'body'     => wp_json_encode( (object) $body ),
-				];
-			}
-
-			return [
-				'response' => $http_status,
-				'headers'  => [ 'Content-Type' => 'application/json' ],
-				'body'     => wp_json_encode( [ 'error' => (object) $error ] ),
-			];
-		};
-
-		return $mock_request;
-	}
-
-	/**
-	 * @return array<string, array{0: int, 1: array, 2: string|null, 3: bool, 4: bool}>
-	 */
-	public function provide_update_errors(): array {
-		$no_longer_active = [
-			'type'    => 'invalid_request_error',
-			'message' => 'This Checkout Session is no longer active and cannot be updated.',
-		];
-
-		// [ update HTTP status, update error, status Stripe reports on retrieve, expect retrieve, expect replacement ]
-		return [
-			'expired session'                       => [ 400, $no_longer_active, 'expired', true, true ],
-			'completed session'                     => [ 400, $no_longer_active, 'complete', true, true ],
-			'unknown session'                       => [
-				404,
-				[
-					'type'    => 'invalid_request_error',
-					'code'    => 'resource_missing',
-					'message' => "No such checkout session: 'cs_test_replace_1'",
-				],
-				null,
-				false,
-				true,
-			],
-			'status lookup fails'                   => [ 400, $no_longer_active, 'empty-body', true, false ],
-			'invalid parameters on an open session' => [
-				400,
-				[
-					'type'    => 'invalid_request_error',
-					'code'    => 'parameter_invalid_integer',
-					'param'   => 'line_items[0][price_data][unit_amount]',
-					'message' => 'Invalid integer: abc',
-				],
-				'open',
-				true,
-				false,
-			],
-			// A real 5xx makes WC_Stripe_API::request() throw before any body is parsed, so the
-			// non-invalid_request_error branch is exercised with a 4xx type that reaches it.
-			'other error type'                      => [
-				400,
-				[
-					'type'    => 'idempotency_error',
-					'message' => 'Keys for idempotent requests can only be used with the same parameters they were first used with.',
-				],
-				'open',
-				false,
-				false,
-			],
-		];
-	}
-
-	/**
-	 * Stripe rejects every update to an expired, completed, or unknown session, so keeping that
-	 * record would retry the unusable session on every cart change for the rest of the WooCommerce
-	 * session. Stripe reports those with the same generic error type as a malformed request, so
-	 * the session's retrieved status decides; a bad request against an open session, a lookup
-	 * that fails, and any other error type must keep the record so the next sync retries it.
-	 *
-	 * @dataProvider provide_update_errors
-	 */
-	public function test_synchronize_replaces_session_only_when_stripe_can_no_longer_update_it( int $http_status, array $error, ?string $retrieved_status, bool $expect_retrieve, bool $expect_replacement ): void {
-		$product       = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 10 ] );
-		$cart_item_key = WC()->cart->add_to_cart( $product->get_id(), 1 );
-		WC()->cart->calculate_totals();
-
-		$requested_urls = [];
-		$mock_request   = $this->mock_stripe_with_failing_update( 'cs_test_replace', $http_status, $error, $requested_urls, null, $retrieved_status );
-		add_filter( 'pre_http_request', $mock_request, 10, 3 );
-
-		try {
-			$manager = new WC_Stripe_Checkout_Session_Manager();
-			$created = $manager->synchronize();
-			$this->assertSame( 'cs_test_replace_1', $created['session_id'] );
-			$this->assertNotNull( WC_Stripe_Checkout_Session_Context::get_context( 'cs_test_replace_1' ) );
-
-			WC()->cart->set_quantity( $cart_item_key, 2 );
-			WC()->cart->calculate_totals();
-
-			$thrown = null;
-			try {
-				$result = $manager->synchronize();
-			} catch ( WC_Stripe_Exception $e ) {
-				$thrown = $e;
-			}
-
-			// Read before cleanup; the finally block deletes this context either way.
-			$first_context_after_sync = WC_Stripe_Checkout_Session_Context::get_context( 'cs_test_replace_1' );
-		} finally {
-			remove_filter( 'pre_http_request', $mock_request, 10 );
-			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_replace_1' );
-		}
-
-		$this->assertSame( 'POST https://api.stripe.com/v1/checkout/sessions/cs_test_replace_1', $requested_urls[1], 'The existing session must be updated first.' );
-
-		$retrieves = array_filter(
-			$requested_urls,
-			static function ( string $request ): bool {
-				return 'GET https://api.stripe.com/v1/checkout/sessions/cs_test_replace_1' === $request;
-			}
-		);
-		$this->assertCount( $expect_retrieve ? 1 : 0, $retrieves, 'The session status must be retrieved exactly when the update is rejected as an invalid request.' );
-
-		if ( ! $expect_replacement ) {
-			$this->assertInstanceOf( WC_Stripe_Exception::class, $thrown );
-			$this->assertSame( $error['message'], $thrown->getMessage(), 'The original Stripe error must surface when the session is kept.' );
-			$this->assertNotContains( 'POST https://api.stripe.com/v1/checkout/sessions', array_slice( $requested_urls, 1 ), 'Keeping the session must not create a new one.' );
-			$this->assertSame( 'cs_test_replace_1', $manager->get_current_data()['session_id'], 'The session must be kept for the next retry.' );
-			$this->assertNotNull( $first_context_after_sync, 'The kept session’s context must survive.' );
-			return;
-		}
-
-		$this->assertNull( $thrown, 'Replacing the session must not surface the unusable session’s error.' );
-		$this->assertCount( $expect_retrieve ? 4 : 3, $requested_urls );
-		$this->assertSame( 'POST https://api.stripe.com/v1/checkout/sessions', end( $requested_urls ), 'The unusable session must be replaced in the same synchronization.' );
-		$this->assertSame( 'cs_test_replace_2', $result['session_id'] );
-		$this->assertSame( 'cs_test_replace_secret_2', $result['client_secret'] );
-		$this->assertSame( 'success', $result['status'] );
-		$this->assertNotSame( $created['revision'], $result['revision'] );
-		$this->assertNull( $first_context_after_sync, 'The unusable session’s context must be discarded.' );
-
-		$expected_amount = WC_Stripe_Helper::get_stripe_amount( (float) WC()->cart->get_total( 'edit' ), get_woocommerce_currency() );
-		$this->assertSame( $expected_amount, WC_Stripe_Checkout_Session_Context::get_context( 'cs_test_replace_2' )['amount'], 'The replacement must carry the current cart total.' );
-	}
-
-	/**
-	 * Two syncs can hit the same expired session; the one that finishes second must adopt the
-	 * replacement already stored instead of discarding it and creating a third session.
-	 */
-	public function test_update_session_adopts_a_replacement_stored_by_a_concurrent_request(): void {
-		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 10 ] );
-		WC()->cart->add_to_cart( $product->get_id(), 1 );
-		WC()->cart->calculate_totals();
-
-		$requested_urls = [];
-		$mock_request   = $this->mock_stripe_with_failing_update(
-			'cs_test_concurrent',
-			400,
-			[
-				'type'    => 'invalid_request_error',
-				'message' => 'This Checkout Session is no longer active and cannot be updated.',
-			],
-			$requested_urls,
-			null,
-			'replaced-concurrently'
-		);
-		add_filter( 'pre_http_request', $mock_request, 10, 3 );
-
-		try {
-			$manager = new WC_Stripe_Checkout_Session_Manager();
-			$created = $manager->synchronize();
-			$this->assertSame( 'cs_test_concurrent_1', $created['session_id'] );
-
-			$result = $manager->update_session( 'cs_test_concurrent_1' );
-		} finally {
-			remove_filter( 'pre_http_request', $mock_request, 10 );
-			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_concurrent_1' );
-		}
-
-		$this->assertSame(
-			[
-				'POST https://api.stripe.com/v1/checkout/sessions',
-				'POST https://api.stripe.com/v1/checkout/sessions/cs_test_concurrent_1',
-				'GET https://api.stripe.com/v1/checkout/sessions/cs_test_concurrent_1',
-			],
-			$requested_urls,
-			'No third session may be created once another request has stored a replacement.'
-		);
-		$this->assertSame( 'cs_test_concurrent_other', $result['session_id'], 'The replacement stored by the other request must be adopted.' );
-		$this->assertSame( 'cs_test_concurrent_other', $manager->get_current_data()['session_id'], 'The replacement record must not be cleared.' );
-	}
-
-	/**
-	 * Option name the context class derives for a session's mutation lock.
-	 *
-	 * @param string $session_id Stripe Checkout Session ID.
-	 * @return string
-	 */
-	private function get_mutation_lock_option_name( string $session_id ): string {
-		return 'wc_stripe_checkout_session_lock_' . md5( $session_id );
-	}
-
-	/**
-	 * Two requests can discover the same expired session at once. Replacement is serialized on
-	 * the session's mutation lock, so the one that loses the lock must fail fast without creating
-	 * a competing session, leaving its record and context for the next sync to adopt the winner's.
-	 */
-	public function test_update_session_does_not_replace_while_another_request_holds_the_lock(): void {
-		$product       = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 10 ] );
-		$cart_item_key = WC()->cart->add_to_cart( $product->get_id(), 1 );
-		WC()->cart->calculate_totals();
-
-		$requested_urls = [];
-		$mock_request   = $this->mock_stripe_with_failing_update(
-			'cs_test_locked',
-			400,
-			[
-				'type'    => 'invalid_request_error',
-				'message' => 'This Checkout Session is no longer active and cannot be updated.',
-			],
-			$requested_urls,
-			null,
-			'expired'
-		);
-		$lock_name      = $this->get_mutation_lock_option_name( 'cs_test_locked_1' );
-		$lock_owner     = null;
-		// The status lookup runs outside the lock; a competing request grabs the lock right then.
-		$grab_lock = static function ( $preempt, $parsed_args, $url ) use ( &$lock_owner, $lock_name ) {
-			if ( null === $lock_owner && 'GET' === strtoupper( (string) ( $parsed_args['method'] ?? 'GET' ) ) && str_ends_with( $url, '/checkout/sessions/cs_test_locked_1' ) ) {
-				$lock_owner = WC_Stripe_Option_Lock::acquire( $lock_name, 70 );
-			}
-			return $preempt;
-		};
-		add_filter( 'pre_http_request', $grab_lock, 9, 3 );
-		add_filter( 'pre_http_request', $mock_request, 10, 3 );
-
-		try {
-			$manager = new WC_Stripe_Checkout_Session_Manager();
-			$created = $manager->synchronize();
-			$this->assertSame( 'cs_test_locked_1', $created['session_id'] );
-
-			WC()->cart->set_quantity( $cart_item_key, 2 );
-			WC()->cart->calculate_totals();
-
-			$thrown = null;
-			try {
-				$manager->synchronize();
-			} catch ( Exception $e ) {
-				$thrown = $e;
-			}
-
-			$context_after = WC_Stripe_Checkout_Session_Context::get_context( 'cs_test_locked_1' );
-		} finally {
-			remove_filter( 'pre_http_request', $grab_lock, 9 );
-			remove_filter( 'pre_http_request', $mock_request, 10 );
-			if ( null !== $lock_owner ) {
-				WC_Stripe_Option_Lock::release( $lock_name, $lock_owner );
-			}
-			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_locked_1' );
-		}
-
-		$this->assertNotNull( $lock_owner, 'The competing request must have taken the lock during the status lookup.' );
-		$this->assertInstanceOf( Exception::class, $thrown );
-		$this->assertSame( WC_Stripe_Checkout_Session_Context::get_unavailable_message(), $thrown->getMessage() );
-		$this->assertSame(
-			[
-				'POST https://api.stripe.com/v1/checkout/sessions',
-				'POST https://api.stripe.com/v1/checkout/sessions/cs_test_locked_1',
-				'GET https://api.stripe.com/v1/checkout/sessions/cs_test_locked_1',
-			],
-			$requested_urls,
-			'Losing the lock must not create a competing session.'
-		);
-		$this->assertSame( 'cs_test_locked_1', $manager->get_current_data()['session_id'], 'The record must be left for the next sync to adopt the winner’s replacement.' );
-		$this->assertNotNull( $context_after, 'The context must survive so the winner can discard it.' );
-	}
-
-	/**
-	 * An order can link the session between the status verdict and the replacement lock. The order
-	 * flow owns that context from then on, so replacement must create the new session without
-	 * deleting it, and must leave the lock in a releasable state afterwards.
-	 */
-	public function test_replacement_keeps_the_context_of_a_session_an_order_linked_meanwhile(): void {
-		$product       = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 10 ] );
-		$cart_item_key = WC()->cart->add_to_cart( $product->get_id(), 1 );
-		WC()->cart->calculate_totals();
-
-		$requested_urls = [];
-		$mock_request   = $this->mock_stripe_with_failing_update(
-			'cs_test_linked',
-			400,
-			[
-				'type'    => 'invalid_request_error',
-				'message' => 'This Checkout Session is no longer active and cannot be updated.',
-			],
-			$requested_urls,
-			null,
-			'linked-concurrently'
-		);
-		add_filter( 'pre_http_request', $mock_request, 10, 3 );
-
-		try {
-			$manager = new WC_Stripe_Checkout_Session_Manager();
-			$created = $manager->synchronize();
-			$this->assertSame( 'cs_test_linked_1', $created['session_id'] );
-
-			WC()->cart->set_quantity( $cart_item_key, 2 );
-			WC()->cart->calculate_totals();
-
-			$result      = $manager->synchronize();
-			$old_context = WC_Stripe_Checkout_Session_Context::get_context( 'cs_test_linked_1' );
-			$lock_name   = $this->get_mutation_lock_option_name( 'cs_test_linked_1' );
-			$lock_owner  = WC_Stripe_Option_Lock::acquire( $lock_name, 70 );
-		} finally {
-			remove_filter( 'pre_http_request', $mock_request, 10 );
-			if ( ! empty( $lock_owner ) ) {
-				WC_Stripe_Option_Lock::release( $lock_name, $lock_owner );
-			}
-			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_linked_1' );
-		}
-
-		$this->assertSame( 'cs_test_linked_2', $result['session_id'], 'The client must still receive a live replacement.' );
-		$this->assertNotNull( $old_context, 'A context an order linked meanwhile must survive the replacement.' );
-		$this->assertGreaterThan( 0, (int) $old_context['order_id'] );
-		$this->assertNotNull( $lock_owner, 'The mutation lock must be free again once the replacement is done.' );
-	}
-
-	/**
-	 * The expiry branch is serialized the same way.
-	 */
-	public function test_synchronize_does_not_recreate_an_expired_session_while_another_request_holds_the_lock(): void {
-		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 10 ] );
-		WC()->cart->add_to_cart( $product->get_id(), 1 );
-		WC()->cart->calculate_totals();
-
-		$requested_urls = [];
-		$mock_request   = $this->mock_stripe_with_failing_update( 'cs_test_locked_expiry', 400, [ 'type' => 'invalid_request_error' ], $requested_urls, time() - 1 );
-		add_filter( 'pre_http_request', $mock_request, 10, 3 );
-
-		$lock_name  = $this->get_mutation_lock_option_name( 'cs_test_locked_expiry_1' );
-		$lock_owner = null;
-
-		try {
-			$manager = new WC_Stripe_Checkout_Session_Manager();
-			$created = $manager->synchronize();
-			$this->assertSame( 'cs_test_locked_expiry_1', $created['session_id'] );
-
-			$lock_owner = WC_Stripe_Option_Lock::acquire( $lock_name, 70 );
-			$this->assertNotNull( $lock_owner );
-
-			$thrown = null;
-			try {
-				$manager->synchronize();
-			} catch ( Exception $e ) {
-				$thrown = $e;
-			}
-		} finally {
-			remove_filter( 'pre_http_request', $mock_request, 10 );
-			if ( null !== $lock_owner ) {
-				WC_Stripe_Option_Lock::release( $lock_name, $lock_owner );
-			}
-			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_locked_expiry_1' );
-		}
-
-		$this->assertInstanceOf( Exception::class, $thrown );
-		$this->assertSame( [ 'POST https://api.stripe.com/v1/checkout/sessions' ], $requested_urls, 'Losing the lock must not create a competing session.' );
-		$this->assertSame( 'cs_test_locked_expiry_1', $manager->get_current_data()['session_id'] );
-	}
-
-	/**
-	 * When the stored expiry already says the session is gone, a rejected update must not spend a
-	 * retrieve confirming it. The mock answers "open" to any retrieve, so a lookup would wrongly
-	 * keep the session and the assertions below would fail.
-	 */
-	public function test_update_session_skips_the_status_lookup_for_a_session_known_to_have_expired(): void {
-		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 10 ] );
-		WC()->cart->add_to_cart( $product->get_id(), 1 );
-		WC()->cart->calculate_totals();
-
-		$requested_urls = [];
-		$mock_request   = $this->mock_stripe_with_failing_update(
-			'cs_test_known_expired',
-			400,
-			[
-				'type'    => 'invalid_request_error',
-				'message' => 'This Checkout Session is no longer active and cannot be updated.',
-			],
-			$requested_urls,
-			time() - 1,
-			'open'
-		);
-		add_filter( 'pre_http_request', $mock_request, 10, 3 );
-
-		try {
-			$manager = new WC_Stripe_Checkout_Session_Manager();
-			$created = $manager->synchronize();
-			$this->assertSame( 'cs_test_known_expired_1', $created['session_id'] );
-
-			// Call the update directly: synchronize() would already recreate from the stored expiry.
-			$result = $manager->update_session( 'cs_test_known_expired_1' );
-		} finally {
-			remove_filter( 'pre_http_request', $mock_request, 10 );
-			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_known_expired_1' );
-		}
-
-		$this->assertSame(
-			[
-				'POST https://api.stripe.com/v1/checkout/sessions',
-				'POST https://api.stripe.com/v1/checkout/sessions/cs_test_known_expired_1',
-				'POST https://api.stripe.com/v1/checkout/sessions',
-			],
-			$requested_urls,
-			'A session the record already knows has expired must be replaced without retrieving it.'
-		);
-		$this->assertSame( 'cs_test_known_expired_2', $result['session_id'] );
-		$this->assertSame( 'success', $result['status'] );
-	}
-
-	/**
-	 * Stripe expires sessions 24 hours after creation while the record and context can outlive
-	 * that, so an unchanged cart must not keep handing the client a session Stripe will refuse.
-	 */
-	public function test_synchronize_recreates_session_once_it_has_expired(): void {
-		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 10 ] );
-		WC()->cart->add_to_cart( $product->get_id(), 1 );
-		WC()->cart->calculate_totals();
-
-		$requested_urls = [];
-		$mock_request   = $this->mock_stripe_with_failing_update( 'cs_test_expired', 400, [ 'type' => 'invalid_request_error' ], $requested_urls, time() - 1 );
-		add_filter( 'pre_http_request', $mock_request, 10, 3 );
-
-		try {
-			$manager = new WC_Stripe_Checkout_Session_Manager();
-			$created = $manager->synchronize();
-			$this->assertSame( 'cs_test_expired_1', $created['session_id'] );
-
-			$recreated = $manager->synchronize();
-			$reused    = $manager->synchronize();
-
-			// Read before cleanup; the finally block deletes this context either way.
-			$expired_context_after_sync = WC_Stripe_Checkout_Session_Context::get_context( 'cs_test_expired_1' );
-		} finally {
-			remove_filter( 'pre_http_request', $mock_request, 10 );
-			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_expired_1' );
-		}
-
-		$this->assertSame( [ 'POST https://api.stripe.com/v1/checkout/sessions', 'POST https://api.stripe.com/v1/checkout/sessions' ], $requested_urls, 'An expired session must be recreated without attempting an update.' );
-		$this->assertSame( 'cs_test_expired_2', $recreated['session_id'] );
-		$this->assertSame( 'success', $recreated['status'] );
-		$this->assertNull( $expired_context_after_sync, 'The expired session’s context must be discarded.' );
-		$this->assertSame( $recreated, $reused, 'A live replacement must be reused for an unchanged cart.' );
-	}
-
-	/**
-	 * @return array<string, array{0: bool, 1: string|null, 2: bool, 3: bool}>
-	 */
-	public function provide_verification_outcomes(): array {
-		// [ verify with Stripe, status Stripe reports, expect lookup, expect replacement ]
-		return [
-			'not asked to verify'       => [ false, 'open', false, false ],
-			'verified and still open'   => [ true, 'open', true, false ],
-			'verified and expired'      => [ true, 'expired', true, true ],
-			'verified and completed'    => [ true, 'complete', true, true ],
-			'verification inconclusive' => [ true, 'empty-body', true, false ],
-		];
-	}
-
-	/**
-	 * A session expired from the Dashboard or API leaves no local trace, so a reused session can be
-	 * confirmed with Stripe on request. The lookup costs an API call, so it only happens when asked,
-	 * and only an explicit "finished" answer replaces the session.
-	 *
-	 * @dataProvider provide_verification_outcomes
-	 */
-	public function test_synchronize_verifies_a_reused_session_with_stripe_only_when_asked( bool $verify, ?string $retrieved_status, bool $expect_lookup, bool $expect_replacement ): void {
-		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 10 ] );
-		WC()->cart->add_to_cart( $product->get_id(), 1 );
-		WC()->cart->calculate_totals();
-
-		$requested_urls = [];
-		$mock_request   = $this->mock_stripe_with_failing_update( 'cs_test_verify', 400, [ 'type' => 'invalid_request_error' ], $requested_urls, null, $retrieved_status );
-		add_filter( 'pre_http_request', $mock_request, 10, 3 );
-
-		try {
-			$manager = new WC_Stripe_Checkout_Session_Manager();
-			$created = $manager->synchronize();
-			$this->assertSame( 'cs_test_verify_1', $created['session_id'] );
-
-			$result = $manager->synchronize( $verify );
-		} finally {
-			remove_filter( 'pre_http_request', $mock_request, 10 );
-			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_verify_1' );
-		}
-
-		$expected_urls = [ 'POST https://api.stripe.com/v1/checkout/sessions' ];
-		if ( $expect_lookup ) {
-			$expected_urls[] = 'GET https://api.stripe.com/v1/checkout/sessions/cs_test_verify_1';
-		}
-		if ( $expect_replacement ) {
-			$expected_urls[] = 'POST https://api.stripe.com/v1/checkout/sessions';
-		}
-		$this->assertSame( $expected_urls, $requested_urls );
-		$this->assertSame( $expect_replacement ? 'cs_test_verify_2' : 'cs_test_verify_1', $result['session_id'] );
-		$this->assertSame( 'success', $result['status'] );
-	}
-
-	/**
-	 * The classic placeholder is rendered once per checkout page load, so a reused session is
-	 * confirmed with Stripe there and replaced before the client can mount it.
-	 */
-	public function test_classic_placeholder_replaces_a_session_stripe_reports_finished(): void {
-		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 25 ] );
-		WC()->cart->add_to_cart( $product->get_id(), 1 );
-		WC()->cart->calculate_totals();
-
-		$restore        = $this->enable_adaptive_pricing();
-		$requested_urls = [];
-		$mock_request   = $this->mock_stripe_with_failing_update( 'cs_test_placeholder', 400, [ 'type' => 'invalid_request_error' ], $requested_urls, null, 'expired' );
-		add_filter( 'pre_http_request', $mock_request, 10, 3 );
-
-		try {
-			$lifecycle = new WC_Stripe_Checkout_Session_Lifecycle();
-
-			ob_start();
-			$lifecycle->render_classic_placeholder();
-			$first_render = ob_get_clean();
-			$this->assertStringContainsString( 'uninitialized', $first_render, 'Without a stored session the placeholder must not create one.' );
-
-			$lifecycle->add_classic_fragment( [] );
-
-			ob_start();
-			$lifecycle->render_classic_placeholder();
-			$second_render = ob_get_clean();
-		} finally {
-			remove_filter( 'pre_http_request', $mock_request, 10 );
-			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_placeholder_1' );
-			$restore();
-		}
-
-		$this->assertSame(
-			[
-				'POST https://api.stripe.com/v1/checkout/sessions',
-				'GET https://api.stripe.com/v1/checkout/sessions/cs_test_placeholder_1',
-				'POST https://api.stripe.com/v1/checkout/sessions',
-			],
-			$requested_urls,
-			'The page load must look the stored session up once and replace it.'
-		);
-		$data = json_decode( $this->get_fragment_session_data( $second_render ), true );
-		$this->assertSame( 'cs_test_placeholder_2', $data['session_id'] );
-		$this->assertSame( 'success', $data['status'] );
-	}
-
-	/**
-	 * The Blocks checkout asks for an explicit sync when it mounts; that request confirms a reused
-	 * session with Stripe, while ordinary cart responses never pay for the lookup.
-	 */
-	public function test_store_api_sync_request_replaces_a_session_stripe_reports_finished(): void {
-		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 25 ] );
-		WC()->cart->add_to_cart( $product->get_id(), 1 );
-		WC()->cart->calculate_totals();
-
-		$restore        = $this->enable_adaptive_pricing();
-		$requested_urls = [];
-		$mock_request   = $this->mock_stripe_with_failing_update( 'cs_test_store_verify', 400, [ 'type' => 'invalid_request_error' ], $requested_urls, null, 'expired' );
-		add_filter( 'pre_http_request', $mock_request, 10, 3 );
-
-		try {
-			$manager = new WC_Stripe_Checkout_Session_Manager();
-			$created = $manager->synchronize();
-			$this->assertSame( 'cs_test_store_verify_1', $created['session_id'] );
-
-			$cart_response = WC_Stripe_Checkout_Session_Lifecycle::get_store_api_data();
-			$this->assertSame( 'cs_test_store_verify_1', $cart_response['session_id'], 'An ordinary cart response must reuse the session without a lookup.' );
-
-			WC_Stripe_Checkout_Session_Lifecycle::request_store_api_sync( [ 'action' => 'sync' ] );
-			$mount_response = WC_Stripe_Checkout_Session_Lifecycle::get_store_api_data();
-		} finally {
-			remove_filter( 'pre_http_request', $mock_request, 10 );
-			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_store_verify_1' );
-			$restore();
-		}
-
-		$this->assertSame(
-			[
-				'POST https://api.stripe.com/v1/checkout/sessions',
-				'GET https://api.stripe.com/v1/checkout/sessions/cs_test_store_verify_1',
-				'POST https://api.stripe.com/v1/checkout/sessions',
-			],
-			$requested_urls
-		);
-		$this->assertSame( 'cs_test_store_verify_2', $mount_response['session_id'] );
-		$this->assertSame( 'success', $mount_response['status'] );
 	}
 
 	/**
