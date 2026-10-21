@@ -261,6 +261,204 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Mock Stripe Checkout Sessions: creates hand out sequential IDs, updates fail with the given
+	 * error, and a lookup answers with the given status.
+	 *
+	 * @param array       $update_error   Stripe error body returned for an update.
+	 * @param string|null $lookup         Status a lookup reports, 'missing' for a 404, or null for a failed request.
+	 * @param array       $requested_urls Receives every Checkout Session request as "METHOD url", in order.
+	 * @return callable The pre_http_request filter callback.
+	 */
+	private function mock_finished_session_stripe( array $update_error, ?string $lookup, array &$requested_urls ): callable {
+		$create_count = 0;
+
+		return static function ( $return_value, $parsed_args, $url ) use ( $update_error, $lookup, &$requested_urls, &$create_count ) {
+			if ( ! str_starts_with( $url, 'https://api.stripe.com/v1/checkout/sessions' ) ) {
+				return $return_value;
+			}
+
+			$method           = strtoupper( (string) ( $parsed_args['method'] ?? 'GET' ) );
+			$requested_urls[] = "$method $url";
+
+			if ( 'GET' === $method ) {
+				if ( null === $lookup ) {
+					return new WP_Error( 'http_request_failed', 'cURL error 28: Operation timed out' );
+				}
+
+				$is_missing = 'missing' === $lookup;
+				$body       = $is_missing
+					? [
+						'error' => [
+							'type'    => 'invalid_request_error',
+							'code'    => 'resource_missing',
+							'message' => 'No such checkout.session',
+						],
+					]
+					: [
+						'id'     => 'cs_test_finished_1',
+						'status' => $lookup,
+					];
+
+				return [
+					'response' => [ 'code' => $is_missing ? 404 : 200 ],
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode( $body ),
+				];
+			}
+
+			if ( 'https://api.stripe.com/v1/checkout/sessions' !== $url ) {
+				return [
+					'response' => [ 'code' => 400 ],
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode( [ 'error' => $update_error ] ),
+				];
+			}
+
+			++$create_count;
+
+			return [
+				'response' => [ 'code' => 200 ],
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					[
+						'id'            => "cs_test_finished_{$create_count}",
+						'client_secret' => "cs_test_finished_secret_{$create_count}",
+						'expires_at'    => time() + DAY_IN_SECONDS,
+					]
+				),
+			];
+		};
+	}
+
+	/**
+	 * Stripe rejects updates to a finished session with the same generic error as a bad parameter,
+	 * so a rejected update recreates the session only when a lookup says it is finished; any other
+	 * answer keeps the session and surfaces the error as before.
+	 *
+	 * @dataProvider provide_rejected_update_data
+	 *
+	 * @param string      $error_type      Stripe error type of the rejected update.
+	 * @param string|null $lookup          What a lookup of the session answers.
+	 * @param bool        $expect_lookup   Whether the session should be looked up.
+	 * @param bool        $expect_recreate Whether a new session should be created.
+	 */
+	public function test_rejected_update_recreates_session_only_when_stripe_reports_it_finished( string $error_type, ?string $lookup, bool $expect_lookup, bool $expect_recreate ): void {
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 10 ] );
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$requested_urls = [];
+		$mock_request   = $this->mock_finished_session_stripe(
+			[
+				'type'    => $error_type,
+				'message' => 'This Checkout Session is no longer active and cannot be updated.',
+			],
+			$lookup,
+			$requested_urls
+		);
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+
+		$result    = null;
+		$exception = null;
+		try {
+			$manager = new WC_Stripe_Checkout_Session_Manager();
+			$manager->synchronize();
+
+			try {
+				$result = $manager->update_session( 'cs_test_finished_1' );
+			} catch ( WC_Stripe_Exception $e ) {
+				$exception = $e;
+			}
+		} finally {
+			remove_filter( 'pre_http_request', $mock_request, 10 );
+			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_finished_1' );
+		}
+
+		$expected_urls = [
+			'POST https://api.stripe.com/v1/checkout/sessions',
+			'POST https://api.stripe.com/v1/checkout/sessions/cs_test_finished_1',
+		];
+		if ( $expect_lookup ) {
+			$expected_urls[] = 'GET https://api.stripe.com/v1/checkout/sessions/cs_test_finished_1';
+		}
+		if ( $expect_recreate ) {
+			$expected_urls[] = 'POST https://api.stripe.com/v1/checkout/sessions';
+		}
+		$this->assertSame( $expected_urls, $requested_urls );
+
+		if ( $expect_recreate ) {
+			$this->assertNull( $exception );
+			$this->assertSame( 'cs_test_finished_2', $result['session_id'] );
+			$this->assertSame( 'success', $result['status'] );
+		} else {
+			$this->assertInstanceOf( WC_Stripe_Exception::class, $exception );
+			$this->assertSame( 'cs_test_finished_1', WC()->session->get( 'wc_stripe_checkout_session' )['session_id'] );
+		}
+	}
+
+	/**
+	 * Data provider for test_rejected_update_recreates_session_only_when_stripe_reports_it_finished().
+	 *
+	 * @return array
+	 */
+	public function provide_rejected_update_data(): array {
+		return [
+			'expired session is recreated'       => [ 'invalid_request_error', 'expired', true, true ],
+			'completed session is recreated'     => [ 'invalid_request_error', 'complete', true, true ],
+			'missing session is recreated'       => [ 'invalid_request_error', 'missing', true, true ],
+			'open session keeps the error'       => [ 'invalid_request_error', 'open', true, false ],
+			'failed lookup keeps the error'      => [ 'invalid_request_error', null, true, false ],
+			'non-request error skips the lookup' => [ 'api_error', 'expired', false, false ],
+		];
+	}
+
+	/**
+	 * A session expired early on Stripe leaves no local trace, so classic checkout asks for a lookup
+	 * when the shopper cannot pay with it; only a finished session is replaced.
+	 *
+	 * @dataProvider provide_replace_if_finished_data
+	 *
+	 * @param string|null $lookup              What a lookup of the session answers.
+	 * @param string      $expected_session_id Session ID returned afterwards.
+	 */
+	public function test_replace_if_finished_on_stripe( ?string $lookup, string $expected_session_id ): void {
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 10 ] );
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$requested_urls = [];
+		$mock_request   = $this->mock_finished_session_stripe( [ 'type' => 'invalid_request_error' ], $lookup, $requested_urls );
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+
+		try {
+			$manager = new WC_Stripe_Checkout_Session_Manager();
+			$manager->synchronize();
+			$result = $manager->replace_if_finished_on_stripe();
+		} finally {
+			remove_filter( 'pre_http_request', $mock_request, 10 );
+			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_finished_1' );
+		}
+
+		$this->assertSame( 'GET https://api.stripe.com/v1/checkout/sessions/cs_test_finished_1', $requested_urls[1] );
+		$this->assertCount( 'cs_test_finished_1' === $expected_session_id ? 2 : 3, $requested_urls );
+		$this->assertSame( $expected_session_id, $result['session_id'] );
+		$this->assertSame( 'success', $result['status'] );
+	}
+
+	/**
+	 * Data provider for test_replace_if_finished_on_stripe().
+	 *
+	 * @return array
+	 */
+	public function provide_replace_if_finished_data(): array {
+		return [
+			'expired session is replaced' => [ 'expired', 'cs_test_finished_2' ],
+			'open session is kept'        => [ 'open', 'cs_test_finished_1' ],
+			'failed lookup keeps it'      => [ null, 'cs_test_finished_1' ],
+		];
+	}
+
+	/**
 	 * We must create checkout sessions using the merchant's Payment Method Configuration ID.
 	 *
 	 * @param string|null $configuration_id The cached PMC ID, or null when PMC is disabled or unavailable.

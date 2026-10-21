@@ -23,6 +23,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 	public function init_hooks(): void {
 		add_action( 'wc_ajax_wc_stripe_create_checkout_session', [ $this, 'create_checkout_session' ] );
 		add_action( 'wc_ajax_wc_stripe_update_checkout_session', [ $this, 'update_checkout_session' ] );
+		add_action( 'wc_ajax_wc_stripe_verify_checkout_session', [ $this, 'verify_checkout_session' ] );
 	}
 
 	/**
@@ -109,6 +110,37 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error( 'Create checkout session error.', [ 'error_message' => $e->getMessage() ] );
 			wp_send_json_error( [ 'message' => $e->getMessage() ] );
+		}
+	}
+
+	/**
+	 * Ask Stripe about the stored Checkout Session and replace it if Stripe reports it finished.
+	 *
+	 * Classic checkout calls this only when the shopper places an order on a session Stripe.js
+	 * refused to load, so the lookup is never spent on a healthy checkout.
+	 *
+	 * @since x.x.x
+	 * @return void
+	 */
+	public function verify_checkout_session(): void {
+		$is_nonce_valid = check_ajax_referer( 'wc_stripe_verify_checkout_session_nonce', 'security', false );
+		if ( ! $is_nonce_valid ) {
+			wp_send_json_error( [ 'message' => __( "We're not able to process this request. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) ] );
+		} else {
+			$manager = WC_Stripe_Checkout_Session_Manager::get_instance();
+
+			try {
+				wp_send_json_success( $manager->replace_if_finished_on_stripe() );
+			} catch ( Throwable $e ) {
+				WC_Stripe_Logger::error( 'Checkout session verification failed.', [ 'error_message' => $e->getMessage() ] );
+
+				// Marked failed so the next page load falls back to the regular Payment Element
+				// rather than mounting the finished session again.
+				$message = ( $e instanceof WC_Stripe_Exception ) ? $e->getLocalizedMessage() : WC_Stripe_Checkout_Session_Manager::get_runtime_error_message();
+				$manager->mark_failed( $message );
+
+				wp_send_json_error( [ 'message' => $message ] );
+			}
 		}
 	}
 

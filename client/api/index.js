@@ -786,4 +786,27 @@ export default class WCStripeAPI {
 
 		return response;
 	}
+
+	/**
+	 * Ask the server to confirm the stored Checkout Session with Stripe and replace it if needed.
+	 *
+	 * Only called when the shopper places an order on a session Stripe.js refused to load.
+	 *
+	 * @return {Promise<Object>} The public session data, as embedded in the checkout fragment.
+	 * @throws {Error} When the server responds with an application-level error.
+	 */
+	async checkoutSessionsVerifySession() {
+		const response = await this.request(
+			this.getAjaxUrl( 'verify_checkout_session' ),
+			{
+				security: this.options?.verifyCheckoutSessionNonce,
+			}
+		);
+
+		if ( ! response || response.success === false ) {
+			throw new Error( response?.data?.message );
+		}
+
+		return response.data;
+	}
 }

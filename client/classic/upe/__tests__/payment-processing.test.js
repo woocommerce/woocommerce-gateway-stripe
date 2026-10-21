@@ -1280,6 +1280,61 @@ describe( 'payment-processing', () => {
 				);
 				expect( form.trigger ).not.toHaveBeenCalledWith( 'submit' );
 			} );
+
+			it.each( [
+				[
+					'a replacement session',
+					{ session_id: 'cs_test_replacement', status: 'success' },
+					'Your payment session has expired. Please refresh the page to continue.',
+				],
+				[
+					'the same session',
+					{
+						session_id: MOCK_AP_CHECKOUT_SESSION_ID,
+						status: 'success',
+					},
+					'Invalid or missing payment details. Please ensure the provided payment method is correctly entered.',
+				],
+			] )(
+				'asks the server about a session that failed to load, and answers with %s',
+				async ( _, verifiedSession, expectedMessage ) => {
+					const checkoutElements = createMockElements();
+					checkoutElements.loadActions.mockResolvedValue( {
+						type: 'error',
+						error: {
+							message:
+								'The checkout session is no longer active.',
+						},
+					} );
+					const api = createMockApi( checkoutElements );
+					api.checkoutSessionsVerifySession = jest
+						.fn()
+						.mockResolvedValue( verifiedSession );
+					const dom = document.createElement( 'div' );
+					dom.dataset.paymentMethodType = 'card';
+
+					await paymentProcessing.mountStripePaymentElement(
+						api,
+						dom
+					);
+					expect(
+						api.checkoutSessionsVerifySession
+					).not.toHaveBeenCalled();
+					stripeUtils.showErrorCheckout.mockClear();
+
+					const form = createMockForm();
+					paymentProcessing.processPayment( api, form, 'card' );
+					await flushPromises();
+
+					expect(
+						api.checkoutSessionsVerifySession
+					).toHaveBeenCalledTimes( 1 );
+					expect(
+						stripeUtils.showErrorCheckout
+					).toHaveBeenCalledWith( expectedMessage );
+					expect( form.trigger ).not.toHaveBeenCalledWith( 'submit' );
+				}
+			);
 		} );
 
 		describe( 'checkout session resync failure handling', () => {

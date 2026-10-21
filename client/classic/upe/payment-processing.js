@@ -289,6 +289,35 @@ function getNativeCheckoutSessionData() {
 }
 
 /**
+ * Ask the server to replace the mounted Checkout Session if Stripe reports it finished.
+ *
+ * A session expired early from the Stripe Dashboard or API leaves no local trace, so the server
+ * keeps handing it out and the element cannot load it. The mounted element cannot switch
+ * sessions, so the shopper reloads to mount the replacement.
+ *
+ * @param {Object} api               The API instance.
+ * @param {string} paymentMethodType The payment method type whose element failed to load.
+ * @return {Promise<boolean>} Whether the server now holds a different session than the mounted one.
+ */
+async function replaceFinishedCheckoutSession( api, paymentMethodType ) {
+	const mountedSessionId =
+		gatewayUPEComponents[ paymentMethodType ]?.checkoutSessionId;
+	if (
+		! mountedSessionId ||
+		! getStripeServerData()?.isAdaptivePricingEnabled
+	) {
+		return false;
+	}
+
+	try {
+		const data = await api.checkoutSessionsVerifySession();
+		return !! data?.session_id && data.session_id !== mountedSessionId;
+	} catch ( error ) {
+		return false;
+	}
+}
+
+/**
  * Block UI to indicate processing and avoid duplicate submission.
  *
  * @param {Object} jQueryForm The jQuery object for the form.
@@ -1230,6 +1259,20 @@ export const processPayment = (
 				gatewayUPEComponents[ paymentMethodType ];
 
 			if ( hasLoadError ) {
+				if (
+					await replaceFinishedCheckoutSession(
+						api,
+						paymentMethodType
+					)
+				) {
+					throw new Error(
+						__(
+							'Your payment session has expired. Please refresh the page to continue.',
+							'woocommerce-gateway-stripe'
+						)
+					);
+				}
+
 				throw new Error(
 					__(
 						'Invalid or missing payment details. Please ensure the provided payment method is correctly entered.',
