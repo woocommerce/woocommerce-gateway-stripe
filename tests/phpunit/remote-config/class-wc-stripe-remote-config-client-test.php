@@ -204,6 +204,9 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 
 		$this->client->fetch_all();
 
+		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'live' );
+		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'test' );
+
 		$query = [];
 		wp_parse_str( (string) wp_parse_url( $this->captured_requests[0]['url'], PHP_URL_QUERY ), $query );
 
@@ -216,9 +219,6 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 		// `WC_Subscriptions` stub is loaded by the test bootstrap; `WC_Pre_Orders` has no stub.
 		$this->assertSame( '1', $query['subscriptions_enabled'] );
 		$this->assertSame( '0', $query['pre_orders_enabled'] );
-
-		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'live' );
-		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'test' );
 	}
 
 	public function test_fetch_all_omits_account_countries_when_cache_missing(): void {
