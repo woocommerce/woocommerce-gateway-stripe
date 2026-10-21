@@ -303,16 +303,22 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	public function update_settings( WP_REST_Request $request ) {
 		/* Settings > General */
 		$this->update_is_stripe_enabled( $request );
-		$this->update_is_test_mode_enabled( $request );
 
 		/* Settings > Payments accepted on checkout + Express checkouts */
-		$payment_method_ids_to_enable = $this->get_payment_method_ids_to_enable( $request );
-		$is_upe_enabled               = $request->get_param( 'is_upe_enabled' );
-		$this->update_enabled_payment_methods( $payment_method_ids_to_enable, $is_upe_enabled );
+		$payment_method_ids_to_enable  = $this->get_payment_method_ids_to_enable( $request );
+		$is_upe_enabled                = $request->get_param( 'is_upe_enabled' );
+		$update_payment_methods_result = $this->update_enabled_payment_methods( $payment_method_ids_to_enable, $is_upe_enabled );
 		if ( ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
 			// We need to update a separate setting for legacy checkout.
 			$this->update_is_express_checkout_enabled_for_legacy_checkout( $request );
 		}
+		// Ensure we update the test mode flag after the payment methods are updated.
+		// The current UI shows payment methods and test mode in different UI pages,
+		// but the client code bundles all updates in a single API call.
+		// This code therefore ensures that we apply mode-specific payment method updates before we switch the mode,
+		// as the client code presumably loaded the payment method details using the current, pre-change mode.
+		$this->update_is_test_mode_enabled( $request );
+
 		$this->update_express_checkout_settings( $request );
 		$this->update_amazon_pay_settings( $request );
 		$this->update_link_settings( $request );
@@ -329,6 +335,12 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$this->update_is_debug_log_enabled( $request );
 		$this->update_oc_settings( $request );
 
+		// Handle a PMC update error last so updates to other settings are saved.
+		// Return an HTTP 502 error code because the error comes from Stripe.
+		if ( is_wp_error( $update_payment_methods_result ) ) {
+			return new WP_REST_Response( [ 'message' => $update_payment_methods_result->get_error_message() ], 502 );
+		}
+
 		return new WP_REST_Response( [], 200 );
 	}
 
@@ -337,17 +349,21 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 *
 	 * @param WP_REST_Request $request Request object.
 	 *
-	 * @return string[]
+	 * @return string[]|null
 	 */
 	private function get_payment_method_ids_to_enable( WP_REST_Request $request ) {
 		$payment_method_ids_to_enable = $request->get_param( 'enabled_payment_method_ids' );
-		$is_upe_enabled               = $request->get_param( 'is_upe_enabled' );
-		$is_express_checkout_enabled  = $request->get_param( 'is_express_checkout_enabled' );
+
+		if ( ! is_array( $payment_method_ids_to_enable ) ) {
+			return null;
+		}
+
+		$is_upe_enabled              = $request->get_param( 'is_upe_enabled' );
+		$is_express_checkout_enabled = $request->get_param( 'is_express_checkout_enabled' );
 
 		// Card is required for Apple Pay and Google Pay.
 		if ( $is_upe_enabled &&
 			$is_express_checkout_enabled &&
-			is_array( $payment_method_ids_to_enable ) &&
 			in_array( WC_Stripe_Payment_Methods::CARD, $payment_method_ids_to_enable, true )
 		) {
 			$payment_method_ids_to_enable = array_merge(
@@ -418,7 +434,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 *
 	 * @return void
 	 */
-	private function update_is_test_mode_enabled( WP_REST_Request $request ) {
+	private function update_is_test_mode_enabled( WP_REST_Request $request ): void {
 		$is_test_mode_enabled = $request->get_param( 'is_test_mode_enabled' );
 
 		if ( null === $is_test_mode_enabled ) {
@@ -435,7 +451,15 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return;
 		}
 
+		// If the new value matches the existing mode, we don't need to update.
+		if ( WC_Stripe_Mode::is_test() === (bool) $is_test_mode_enabled ) {
+			return;
+		}
+
 		$this->gateway->update_option( 'testmode', $is_test_mode_enabled ? 'yes' : 'no' );
+
+		// Ensure we clear the PMC in-memory cache after switching the mode.
+		WC_Stripe_Payment_Method_Configurations::clear_in_memory_payment_method_configuration_cache();
 	}
 
 	/**
@@ -680,21 +704,21 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	/**
 	 * Updates the list of enabled payment methods.
 	 *
-	 * @param array $payment_method_ids_to_enable The list of payment method ids to enable.
-	 * @param bool  $is_upe_enabled               Whether UPE is enabled.
+	 * @param array|null $payment_method_ids_to_enable The list of payment method ids to enable, or null to skip.
+	 * @param bool|null  $is_upe_enabled               Whether UPE is enabled.
 	 *
-	 * @return void
+	 * @return true|\WP_Error|null True on success, WP_Error on failure, null if skipped.
 	 */
 	private function update_enabled_payment_methods( $payment_method_ids_to_enable, $is_upe_enabled ) {
 		if ( null === $is_upe_enabled ) {
-			return;
+			return null;
 		}
 
 		if ( null === $payment_method_ids_to_enable ) {
-			return;
+			return null;
 		}
 
-		$this->gateway->update_enabled_payment_methods( $payment_method_ids_to_enable );
+		return $this->gateway->update_enabled_payment_methods( $payment_method_ids_to_enable );
 	}
 
 	/**

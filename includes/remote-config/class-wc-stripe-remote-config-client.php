@@ -11,6 +11,12 @@ class WC_Stripe_Remote_Config_Client {
 	/**
 	 * WPCOM endpoint.
 	 */
+	/**
+	 * WP_Error code returned when the feature is disabled on this site. The
+	 * scheduler reads it to skip retrying a deliberate short-circuit.
+	 */
+	public const ERROR_DISABLED = 'wc_stripe_remote_config_disabled';
+
 	private const BASE_URL = 'https://public-api.wordpress.com';
 
 	/**
@@ -24,6 +30,16 @@ class WC_Stripe_Remote_Config_Client {
 	private const TIMEOUT = 10;
 
 	/**
+	 * Largest response body we decode, in bytes.
+	 *
+	 * Only a coarse guard against decoding a huge body. The exact per-mode
+	 * limit is checked in WC_Stripe_Remote_Config::apply(). This bound must
+	 * stay well above two full-size payloads, because the wire body also holds
+	 * the envelope keys and its JSON escaping can differ from ours.
+	 */
+	private const MAX_RESPONSE_BYTES = 4 * WC_Stripe_Remote_Config_Flags::MAX_PAYLOAD_BYTES;
+
+	/**
 	 * Fetches the combined remote-config envelope covering both modes.
 	 *
 	 * `mode=all` returns `{ modes: { live: <envelope>, test: <envelope> }, generated_at }`,
@@ -35,7 +51,7 @@ class WC_Stripe_Remote_Config_Client {
 	public function fetch_all() {
 		if ( ! WC_Stripe_Remote_Config_Flags::is_remote_config_enabled() ) {
 			return new WP_Error(
-				'wc_stripe_remote_config_disabled',
+				self::ERROR_DISABLED,
 				'Remote config is disabled on this site.'
 			);
 		}
@@ -71,10 +87,7 @@ class WC_Stripe_Remote_Config_Client {
 		}
 
 		$body = (string) wp_remote_retrieve_body( $response );
-		// The combined envelope carries one payload per mode; each is validated
-		// against MAX_PAYLOAD_BYTES individually in WC_Stripe_Remote_Config::apply(),
-		// so the wire-level bound is twice the per-mode cap.
-		if ( strlen( $body ) > 2 * WC_Stripe_Remote_Config_Flags::MAX_PAYLOAD_BYTES ) {
+		if ( strlen( $body ) > self::MAX_RESPONSE_BYTES ) {
 			return new WP_Error(
 				'wc_stripe_remote_config_payload_too_large',
 				'Remote-config payload exceeds maximum allowed size.'

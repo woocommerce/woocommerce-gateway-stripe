@@ -1,11 +1,10 @@
 import React from 'react';
-import GridIcon from 'gridicons';
+import GridiconNoticeOutline from 'gridicons/dist/notice-outline';
 
 const WarningIcon = () => {
 	return (
 		<span data-testid="warning-icon">
-			<GridIcon
-				icon="notice-outline"
+			<GridiconNoticeOutline
 				size={ 24 }
 				style={ {
 					marginRight: '0.6rem',

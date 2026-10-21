@@ -25,7 +25,7 @@ runs:
         path: |
           /tmp/wordpress
           /tmp/wordpress-tests-lib
-        key: wp-testenv-${{ runner.os }}-${{ env.WP_VERSION }}-wc-${{ env.WC_VERSION }}-${{ hashFiles('bin/install-wp-tests.sh', 'bin/run-ci-tests.bash') }}
+        key: wp-testenv-${{ runner.os }}-${{ env.WP_VERSION }}-wc-${{ env.WC_VERSION }}-${{ hashFiles('bin/install-wp-tests.sh', 'bin/run-ci-tests.bash', 'bin/wc-version.sh') }}
         restore-keys: |
           wp-testenv-${{ runner.os }}-${{ env.WP_VERSION }}-wc-${{ env.WC_VERSION }}-
           wp-testenv-${{ runner.os }}-${{ env.WP_VERSION }}-

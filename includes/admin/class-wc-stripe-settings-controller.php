@@ -125,9 +125,12 @@ class WC_Stripe_Settings_Controller {
 	 * AJAX handler to generate OAuth URL on-demand
 	 */
 	public function ajax_get_oauth_url() {
-		// Check nonce and capabilities
-		if ( ! check_ajax_referer( 'wc_stripe_get_oauth_url', 'nonce', false ) ||
-			! current_user_can( 'manage_woocommerce' ) ) {
+		if ( ! check_ajax_referer( 'wc_stripe_get_oauth_url', 'nonce', false ) ) {
+			wp_send_json_error( [ 'message' => __( 'Your session has expired. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) ] );
+			return;
+		}
+
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
 			wp_send_json_error( [ 'message' => __( 'You do not have permission to do this.', 'woocommerce-gateway-stripe' ) ] );
 			return;
 		}
@@ -140,7 +143,17 @@ class WC_Stripe_Settings_Controller {
 		$oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url( '', $mode );
 
 		if ( is_wp_error( $oauth_url ) ) {
-			wp_send_json_error( [ 'message' => $oauth_url->get_error_message() ] );
+			$connect_server_error_codes = [
+				'wcc_server_error',
+				'wcc_server_error_content_type',
+				'wcc_server_empty_response',
+				'wcc_server_error_response',
+			];
+			$message                    = in_array( $oauth_url->get_error_code(), $connect_server_error_codes, true )
+				? __( 'An issue occurred generating a connection to Stripe. Please try again.', 'woocommerce-gateway-stripe' )
+				: $oauth_url->get_error_message();
+
+			wp_send_json_error( [ 'message' => $message ] );
 			return;
 		}
 
@@ -263,6 +276,7 @@ class WC_Stripe_Settings_Controller {
 			'has_affirm_gateway_plugin'              => WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM ),
 			'has_klarna_gateway_plugin'              => WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_KLARNA ),
 			'has_other_bnpl_plugins'                 => WC_Stripe_Helper::has_other_bnpl_plugins_active(),
+			'available_store_currencies'             => WC_Stripe_Helper::get_available_store_currencies(),
 			'is_payments_onboarding_task_completed'  => $this->is_payments_onboarding_task_completed(),
 			'taxes_based_on_billing'                 => wc_tax_enabled() && 'billing' === get_option( 'woocommerce_tax_based_on' ),
 			'is_card_method_enabled'                 => in_array( WC_Stripe_Payment_Methods::CARD, $enabled_payment_methods, true ),

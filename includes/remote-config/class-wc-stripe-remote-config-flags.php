@@ -8,9 +8,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Adding a new remotely-controllable flag = add a row to FLAGS and route the
  * call site through WC_Stripe_Remote_Config::resolve().
- *
- * The `reader` field is informational only (greppable pointer to which code
- * reads the flag); the resolver does not invoke it.
  */
 class WC_Stripe_Remote_Config_Flags {
 
@@ -28,17 +25,14 @@ class WC_Stripe_Remote_Config_Flags {
 	 * Schema of remotely-controllable flags.
 	 *
 	 * Each entry maps a flag name to:
-	 *  - `reader`: informational pointer (greppable) to the call site that
-	 *    reads this flag; not invoked by the resolver.
-	 *  - `type`:   declared PHP type used by validate_value() to reject
+	 *  - `type`: declared PHP type used by validate_value() to reject
 	 *    payloads whose value does not match.
 	 *
-	 * @var array<string, array{reader: string, type: string}>
+	 * @var array<string, array{type: string}>
 	 */
 	private const FLAGS = [
-		'optimized_checkout' => [
-			'reader' => 'WC_Stripe_Feature_Flags::is_oc_offered',
-			'type'   => 'bool',
+		'optimized_checkout' => [ // reader=WC_Stripe_Feature_Flags::is_oc_offered
+			'type' => 'bool',
 		],
 	];
 
@@ -53,21 +47,16 @@ class WC_Stripe_Remote_Config_Flags {
 
 	/**
 	 * Option that force-enables ('yes') or force-disables ('no') the
-	 * remote-config channel on this site; any other value falls through to
-	 * the environment default. Internal tooling seam (wp-cli, phased rollout,
-	 * support) — deliberately not a merchant-facing opt-out: a public escape
-	 * hatch would fragment incident coverage and force a patch release for
-	 * exactly the sites a remote disable needs to reach.
+	 * remote-config feature on this site.
 	 */
-	public const ENABLED_OVERRIDE_OPTION = '_wcstripe_remote_config_enabled';
+	private const ENABLED_OVERRIDE_OPTION = '_wcstripe_remote_config_enabled';
 
 	/**
 	 * Whether the remote-config feature is enabled on this site.
 	 *
 	 * Disabled by default while the rollout is in phase 1; the
 	 * ENABLED_OVERRIDE_OPTION option force-enables ('yes') or force-disables
-	 * ('no') an individual site. There is intentionally no public filter or
-	 * constant.
+	 * ('no') an individual site.
 	 */
 	public static function is_remote_config_enabled(): bool {
 		$override = get_option( self::ENABLED_OVERRIDE_OPTION, '' );
@@ -78,11 +67,9 @@ class WC_Stripe_Remote_Config_Flags {
 			return false;
 		}
 
-		// Phase 1 of the phased rollout: the code ships with the channel
-		// globally disabled and our test sites are enabled by hand via the
-		// override option. Later phases flip this default via patch releases —
-		// test-mode sites first, then a progressive live ramp — and must
-		// re-exclude development environments when they do.
+		// Phase 1 of the phased rollout: the code ships with the feature
+		// globally disabled, with test and development sites managed via the
+		// override option. Later phases will change the defaults.
 		return false;
 	}
 

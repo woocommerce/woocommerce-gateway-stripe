@@ -89,11 +89,11 @@ describe( 'Settings actions tests', () => {
 			).toHaveBeenCalledWith( 'Settings saved.' );
 		} );
 
-		test( 'displays error notice if error is thrown', () => {
+		test( 'displays generic error notice when the error has no message', () => {
 			const saveGenerator = saveSettings();
 
 			apiFetch.mockImplementation( () => {
-				saveGenerator.throw( 'Some error' );
+				throw new Error();
 			} );
 
 			// eslint-disable-next-line no-unused-expressions
@@ -102,6 +102,28 @@ describe( 'Settings actions tests', () => {
 			expect(
 				dispatch( 'core/notices' ).createErrorNotice
 			).toHaveBeenCalledWith( 'Error saving settings.' );
+			expect(
+				dispatch( 'core/notices' ).createSuccessNotice
+			).not.toHaveBeenCalled();
+		} );
+
+		test( 'appends the REST error message to the generic notice when one is present', () => {
+			const saveGenerator = saveSettings();
+
+			apiFetch.mockImplementation( () => {
+				throw new Error(
+					'Unable to update payment method configuration.'
+				);
+			} );
+
+			// eslint-disable-next-line no-unused-expressions
+			[ ...saveGenerator ];
+
+			expect(
+				dispatch( 'core/notices' ).createErrorNotice
+			).toHaveBeenCalledWith(
+				'Error saving settings: Unable to update payment method configuration.'
+			);
 			expect(
 				dispatch( 'core/notices' ).createSuccessNotice
 			).not.toHaveBeenCalled();
