@@ -208,11 +208,9 @@ class WC_Stripe_Order_Reconciliation {
 			$first_check_at = $started_at + ( $this->is_delayed_payment( $order ) ? self::DELAYED_CHECK_INTERVAL : self::FIRST_CHECK_DELAY );
 		}
 
+		// The new attempt's timing replaces a check queued for an earlier one, which may be days out.
 		$args = [ 'order_id' => $order->get_id() ];
-		if ( $this->has_pending_check( $args ) ) {
-			return;
-		}
-
+		as_unschedule_all_actions( self::ORDER_HOOK, $args, self::GROUP );
 		as_schedule_single_action( $first_check_at, self::ORDER_HOOK, $args, self::GROUP );
 	}
 

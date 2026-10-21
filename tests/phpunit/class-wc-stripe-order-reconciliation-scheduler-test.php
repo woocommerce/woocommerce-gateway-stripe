@@ -356,12 +356,16 @@ class WC_Stripe_Order_Reconciliation_Scheduler_Test extends WP_UnitTestCase {
 		$order->update_meta_data( WC_Stripe_Order_Reconciliation::STARTED_META, (string) ( time() - 3 * DAY_IN_SECONDS ) );
 		$order->update_meta_data( WC_Stripe_Order_Reconciliation::DELAYED_META, 'yes' );
 		$order->save_meta_data();
+		// The earlier attempt used a method that confirms days later, so its check is a day out.
+		as_schedule_single_action( time() + DAY_IN_SECONDS, WC_Stripe_Order_Reconciliation::ORDER_HOOK, [ 'order_id' => $order->get_id() ], WC_Stripe_Order_Reconciliation::GROUP );
 
 		$this->reconciliation->schedule_order_check( $order->get_id() );
 
 		$reloaded = wc_get_order( $order->get_id() );
 		$this->assertEqualsWithDelta( time(), (int) $reloaded->get_meta( WC_Stripe_Order_Reconciliation::STARTED_META, true ), 5 );
 		$this->assertSame( '', $reloaded->get_meta( WC_Stripe_Order_Reconciliation::DELAYED_META, true ) );
+		$this->assertSame( [ $order->get_id() ], $this->queued_order_ids() );
+		$this->assertEqualsWithDelta( time() + WC_Stripe_Order_Reconciliation::FIRST_CHECK_DELAY, $this->next_check_for( $order ), 5 );
 	}
 
 	public function test_nothing_is_scheduled_or_queued_while_the_feature_is_off() {
