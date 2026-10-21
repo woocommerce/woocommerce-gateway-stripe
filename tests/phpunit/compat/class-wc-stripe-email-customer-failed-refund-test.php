@@ -37,8 +37,39 @@ class WC_Stripe_Email_Customer_Failed_Refund_Test extends WP_UnitTestCase {
 		$this->assertEquals( $order, $params['order'] );
 		$this->assertEquals( 'Unknown reason', $params['reason'] );
 		$this->assertEquals( 'Refund failed', $params['email_heading'] );
+		$this->assertArrayHasKey( 'additional_content', $params );
 		$this->assertFalse( $params['sent_to_admin'] );
 		$this->assertFalse( $params['plain_text'] );
 		$this->assertInstanceOf( WC_Stripe_Email_Customer_Failed_Refund::class, $params['email'] );
+	}
+
+	/**
+	 * The merchant's "Additional content" setting is rendered in the HTML email body.
+	 *
+	 * @return void
+	 */
+	public function test_renders_additional_content_in_html() {
+		$order = WC_Helper_Order::create_order();
+		$email = new WC_Stripe_Email_Customer_Failed_Refund();
+
+		$email->settings['additional_content'] = 'Thanks for shopping with us.';
+		$email->object                         = $order;
+
+		$this->assertStringContainsString( 'Thanks for shopping with us.', $email->get_content_html() );
+	}
+
+	/**
+	 * The merchant's "Additional content" setting is rendered in the plain-text email body.
+	 *
+	 * @return void
+	 */
+	public function test_renders_additional_content_in_plain() {
+		$order = WC_Helper_Order::create_order();
+		$email = new WC_Stripe_Email_Customer_Failed_Refund();
+
+		$email->settings['additional_content'] = 'Thanks for shopping with us.';
+		$email->object                         = $order;
+
+		$this->assertStringContainsString( 'Thanks for shopping with us.', $email->get_content_plain() );
 	}
 }
