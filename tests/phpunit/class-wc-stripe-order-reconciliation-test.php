@@ -631,6 +631,50 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		];
 	}
 
+	/** @dataProvider provide_settlement_paths */
+	public function test_mismatch_hold_is_logged_as_held_for_review( bool $has_session ): void {
+		$order = $this->create_pending_stripe_order( $has_session );
+		$this->use_real_settlement();
+		$objects = $this->successful_stripe_objects( $order );
+		if ( $has_session ) {
+			$objects['/checkout/sessions/cs_recovery']->amount_total = 1;
+		} else {
+			unset( $objects['/checkout/sessions/cs_recovery'] );
+			$objects['/payment_intents/pi_recovery']->amount          = 1;
+			$objects['/payment_intents/pi_recovery']->amount_received = 1;
+			$objects['/charges/ch_recovery']->amount                  = 1;
+		}
+		$this->mock_stripe_objects( $objects );
+		$messages = [];
+		$logger   = $this->getMockBuilder( WC_Logger::class )->getMock();
+		$logger->method( 'log' )->willReturnCallback(
+			static function ( $level, $message ) use ( &$messages ) {
+				$messages[] = $level . ': ' . $message;
+			}
+		);
+		foreach ( [ 'info', 'warning' ] as $level ) {
+			$logger->method( $level )->willReturnCallback(
+				static function ( $message ) use ( &$messages, $level ) {
+					$messages[] = $level . ': ' . $message;
+				}
+			);
+		}
+		WC_Stripe_Logger::$logger = $logger;
+		add_filter( 'wc_stripe_logger_can_log', '__return_true' );
+
+		try {
+			$this->reconciliation->reconcile_order_payment( $order->get_id() );
+		} finally {
+			remove_filter( 'wc_stripe_logger_can_log', '__return_true' );
+			WC_Stripe_Logger::$logger = null;
+		}
+
+		$log = implode( "\n", $messages );
+		$this->assertSame( 'on-hold', wc_get_order( $order->get_id() )->get_status() );
+		$this->assertStringContainsString( 'info: Reconciliation found a Stripe payment that does not match the order; the order is held for review.', $log );
+		$this->assertStringNotContainsString( 'did not record it on the order', $log );
+	}
+
 	public function test_stripe_api_error_keeps_order_pending_and_schedules_a_retry(): void {
 		$order        = $this->create_pending_stripe_order( true );
 		$order_helper = $this->getMockBuilder( WC_Stripe_Order_Helper::class )

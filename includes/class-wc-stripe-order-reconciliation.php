@@ -604,6 +604,19 @@ class WC_Stripe_Order_Reconciliation {
 			);
 		}
 
+		if ( $order && $order->has_status( OrderStatus::ON_HOLD ) && $charge_id !== $order->get_transaction_id() ) {
+			// Settlement refused a payment that doesn't match the order, and held the order instead.
+			WC_Stripe_Logger::info(
+				'Reconciliation found a Stripe payment that does not match the order; the order is held for review.',
+				[
+					'order_id'  => $order_id,
+					'intent_id' => $intent_id,
+					'charge_id' => $charge_id,
+				]
+			);
+			return;
+		}
+
 		if ( ! $order || $order->has_status( OrderStatus::PENDING ) || $charge_id !== $order->get_transaction_id() ) {
 			WC_Stripe_Logger::warning(
 				'Reconciliation found a Stripe payment, but settling it did not record it on the order.',
