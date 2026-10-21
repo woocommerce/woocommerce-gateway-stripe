@@ -108,11 +108,8 @@ class WC_Stripe_Remote_Config_Client {
 	/**
 	 * Builds the query arguments for the combined `mode=all` request.
 	 *
-	 * Mode-independent signals travel unprefixed; the account country can
-	 * differ between a dual-keyed store's live and test accounts, so it is
-	 * sent per mode under the prefixed names the endpoint contract reserves
-	 * for diverging params (`live_account_country` / `test_account_country`).
-	 * Empty values are dropped from the request entirely.
+	 * Uses the mode as a prefix when the value is mode-dependent, e.g. the account country.
+	 * Empty values are not included in the parameters.
 	 *
 	 * @return array<string, string>
 	 */
