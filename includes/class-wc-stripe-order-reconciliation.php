@@ -72,20 +72,6 @@ class WC_Stripe_Order_Reconciliation {
 	private const STATE_FINAL   = 'final';
 
 	/**
-	 * Stripe status behind the last "check again later" outcome, for the merchant's note on manual checks.
-	 *
-	 * @var string
-	 */
-	private $last_retry_status = '';
-
-	/**
-	 * Why the last check stopped for good, one of the STOP_* constants, for the merchant's note on manual checks.
-	 *
-	 * @var string
-	 */
-	private $last_stop = '';
-
-	/**
 	 * Gateway used to settle charge responses.
 	 *
 	 * @var WC_Stripe_Payment_Gateway
@@ -315,20 +301,20 @@ class WC_Stripe_Order_Reconciliation {
 		}
 		$order_id = $order->get_id();
 
-		$result = $this->check_order_payment( $order );
+		$outcome = $this->check_order_payment( $order );
 		if ( true === $is_manual ) {
-			if ( self::RESULT_RETRY === $result ) {
-				$this->add_manual_retry_note( $order );
-			} elseif ( '' !== $this->last_stop ) {
-				$this->add_manual_stop_note( $order );
+			if ( self::RESULT_RETRY === $outcome['result'] ) {
+				$this->add_manual_retry_note( $order, $outcome['stripe_status'] );
+			} elseif ( '' !== $outcome['stop'] ) {
+				$this->add_manual_stop_note( $order, $outcome['stop'] );
 			}
 			return;
 		}
-		if ( self::RESULT_RETRY !== $result ) {
+		if ( self::RESULT_RETRY !== $outcome['result'] ) {
 			return;
 		}
 
-		$stripe_reported_status = '' !== $this->last_retry_status;
+		$stripe_reported_status = '' !== $outcome['stripe_status'];
 		$next_check             = $this->get_next_check_time( $order, $stripe_reported_status );
 		if ( null === $next_check ) {
 			WC_Stripe_Logger::warning(
@@ -339,7 +325,7 @@ class WC_Stripe_Order_Reconciliation {
 					'order_id'      => $order_id,
 					'started'       => $this->get_checks_started_at( $order ),
 					'delayed'       => $this->is_delayed_payment( $order ),
-					'stripe_status' => $this->last_retry_status,
+					'stripe_status' => $outcome['stripe_status'],
 				]
 			);
 			return;
@@ -356,13 +342,11 @@ class WC_Stripe_Order_Reconciliation {
 	 * or the order-received redirect settling the same order.
 	 *
 	 * @param WC_Order $order Eligible order to check.
-	 * @return string One of the RESULT_* constants.
+	 * @return array The outcome, see outcome().
 	 */
-	private function check_order_payment( WC_Order $order ): string {
-		$order_id                = $order->get_id();
-		$order_helper            = WC_Stripe_Order_Helper::get_instance();
-		$this->last_retry_status = '';
-		$this->last_stop         = '';
+	private function check_order_payment( WC_Order $order ): array {
+		$order_id     = $order->get_id();
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		// Whoever holds the lock is settling or about to; a later check sees the outcome.
 		if ( $order_helper->lock_order_payment( $order ) ) {
@@ -449,7 +433,7 @@ class WC_Stripe_Order_Reconciliation {
 
 			// We process everything through intents. If there is no intent ID, there's nothing to do here.
 			if ( '' === $intent_id ) {
-				return self::RESULT_DONE;
+				return $this->outcome( self::RESULT_DONE );
 			}
 
 			if ( null === $intent ) {
@@ -501,7 +485,7 @@ class WC_Stripe_Order_Reconciliation {
 						'status'   => $fresh_order ? $fresh_order->get_status() : 'not found',
 					]
 				);
-				return self::RESULT_DONE;
+				return $this->outcome( self::RESULT_DONE );
 			}
 
 			// A new payment attempt replaced the IDs while Stripe was being queried; check the new ones next time.
@@ -516,7 +500,7 @@ class WC_Stripe_Order_Reconciliation {
 				$this->webhook_handler->process_reconciled_payment( $fresh_order, $charge );
 			}
 			$this->report_settlement( $order_id, $intent_id, $charge );
-			return self::RESULT_DONE;
+			return $this->outcome( self::RESULT_DONE );
 		} catch ( Throwable $exception ) {
 			// Not just Exception: settlement runs other plugins' callbacks (for example on payment completion),
 			// and an Error escaping to Action Scheduler would fail the action and end the order's checks.
@@ -527,7 +511,7 @@ class WC_Stripe_Order_Reconciliation {
 					'exception' => get_class( $exception ),
 				]
 			);
-			return self::RESULT_RETRY;
+			return $this->outcome( self::RESULT_RETRY );
 		} finally {
 			$order_helper->unlock_order_payment( $order );
 		}
@@ -542,15 +526,31 @@ class WC_Stripe_Order_Reconciliation {
 	 * @param object|null $response  Decoded Stripe response, or null when it wasn't an object.
 	 * @param int         $order_id  Order being checked, for the log.
 	 * @param string      $stripe_id ID of the Stripe object that was requested, for the log.
-	 * @return string One of the RESULT_* constants.
+	 * @return array The outcome, see outcome().
 	 */
-	private function get_request_error_result( ?object $response, int $order_id, string $stripe_id ): string {
+	private function get_request_error_result( ?object $response, int $order_id, string $stripe_id ): array {
 		if ( null !== $response && 'resource_missing' === ( $response->error->code ?? '' ) ) {
 			// Stripe's message tells a mode mismatch ("a similar object exists in test mode") apart from a deleted object.
 			return $this->stop( 'The Stripe object no longer exists for the current account and mode.', $order_id, $stripe_id, self::STOP_MISSING, (string) ( $response->error->message ?? '' ) );
 		}
 
 		return $this->retry( 'Stripe returned an error (' . (string) ( $response->error->code ?? 'no response' ) . ').', $order_id, $stripe_id );
+	}
+
+	/**
+	 * The outcome of a check.
+	 *
+	 * @param string $result        One of the RESULT_* constants.
+	 * @param string $stripe_status For a retry, the status Stripe reported, if the check got that far.
+	 * @param string $stop          When the checks stop for good, one of the STOP_* constants.
+	 * @return array{result: string, stripe_status: string, stop: string}
+	 */
+	private function outcome( string $result, string $stripe_status = '', string $stop = '' ): array {
+		return [
+			'result'        => $result,
+			'stripe_status' => $stripe_status,
+			'stop'          => $stop,
+		];
 	}
 
 	/**
@@ -562,11 +562,9 @@ class WC_Stripe_Order_Reconciliation {
 	 * @param int    $order_id      Order being checked.
 	 * @param string $stripe_id     ID of the Stripe object involved, if any.
 	 * @param string $stripe_status Status Stripe reported for that object, if the check got that far.
-	 * @return string Always RESULT_RETRY, so callers can return it directly.
+	 * @return array A retry outcome, so callers can return it directly.
 	 */
-	private function retry( string $reason, int $order_id, string $stripe_id, string $stripe_status = '' ): string {
-		$this->last_retry_status = $stripe_status;
-
+	private function retry( string $reason, int $order_id, string $stripe_id, string $stripe_status = '' ): array {
 		WC_Stripe_Logger::debug(
 			'Reconciliation will check the order again: ' . $reason,
 			[
@@ -575,7 +573,7 @@ class WC_Stripe_Order_Reconciliation {
 			]
 		);
 
-		return self::RESULT_RETRY;
+		return $this->outcome( self::RESULT_RETRY, $stripe_status );
 	}
 
 	/**
@@ -635,18 +633,19 @@ class WC_Stripe_Order_Reconciliation {
 	/**
 	 * Tell the merchant why a check they requested didn't settle the order.
 	 *
-	 * Manual checks don't reschedule themselves, so without a note the only trace would be the
-	 * "check scheduled" note and a debug log. Scheduled checks stay silent to keep order notes short.
+	 * Manual checks don't reschedule themselves, so without a note the only trace would be a debug log.
+	 * Scheduled checks stay silent to keep order notes short.
 	 *
-	 * @param WC_Order $order Order that was checked.
+	 * @param WC_Order $order         Order that was checked.
+	 * @param string   $stripe_status Status Stripe reported, or an empty string when the check didn't get that far.
 	 */
-	private function add_manual_retry_note( WC_Order $order ): void {
-		if ( '' !== $this->last_retry_status ) {
+	private function add_manual_retry_note( WC_Order $order, string $stripe_status ): void {
+		if ( '' !== $stripe_status ) {
 			$order->add_order_note(
 				sprintf(
 					/* translators: %s: payment status reported by Stripe, for example "processing". */
 					__( 'Stripe payment status check: Stripe has not confirmed this payment yet (status: %s). Check again later, or look the payment up in your Stripe Dashboard.', 'woocommerce-gateway-stripe' ),
-					$this->last_retry_status
+					$stripe_status
 				)
 			);
 			return;
@@ -662,9 +661,10 @@ class WC_Stripe_Order_Reconciliation {
 	 * would see their re-check do nothing.
 	 *
 	 * @param WC_Order $order Order that was checked.
+	 * @param string   $stop  Why the checks stopped, one of the STOP_* constants.
 	 */
-	private function add_manual_stop_note( WC_Order $order ): void {
-		switch ( $this->last_stop ) {
+	private function add_manual_stop_note( WC_Order $order, string $stop ): void {
+		switch ( $stop ) {
 			case self::STOP_SESSION:
 				$note = __( 'Stripe payment status check: the Stripe Checkout Session for this order can no longer be paid, for example because it expired. The order was not paid through it; the customer needs to pay again.', 'woocommerce-gateway-stripe' );
 				break;
@@ -691,11 +691,9 @@ class WC_Stripe_Order_Reconciliation {
 	 * @param string $stripe_id      ID of the Stripe object that settled the question.
 	 * @param string $kind           One of the STOP_* constants, for the merchant's note on manual checks.
 	 * @param string $stripe_message Stripe's error message, if the reason came from an API error.
-	 * @return string Always RESULT_DONE, so callers can return it directly.
+	 * @return array A stop outcome, so callers can return it directly.
 	 */
-	private function stop( string $reason, int $order_id, string $stripe_id, string $kind, string $stripe_message = '' ): string {
-		$this->last_stop = $kind;
-
+	private function stop( string $reason, int $order_id, string $stripe_id, string $kind, string $stripe_message = '' ): array {
 		$context = [
 			'order_id'  => $order_id,
 			'stripe_id' => $stripe_id,
@@ -706,7 +704,7 @@ class WC_Stripe_Order_Reconciliation {
 
 		WC_Stripe_Logger::warning( 'Stopped reconciling a pending Stripe order: ' . $reason, $context );
 
-		return self::RESULT_DONE;
+		return $this->outcome( self::RESULT_DONE, '', $kind );
 	}
 
 	/**
