@@ -2916,15 +2916,21 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 		$payment_method = $this->payment_methods[ $payment_method_type ];
 
-		$is_pre_order = false;
-		if ( $this->has_pre_order( $order->get_id() ) ) {
+		$is_pre_order_placement = $this->has_pre_order( $order->get_id() );
+
+		// A released pre-order paid from the pay page is a regular payment: marking it as
+		// pre-ordered again would reset its status and reduce stock a second time.
+		if ( $is_pre_order_placement && $payment_needed && $this->is_pre_order_completed( $order->get_id() ) ) {
+			$is_pre_order_placement = false;
+		}
+
+		if ( $is_pre_order_placement ) {
 			// If this is a pre-order, simply mark the order as pre-ordered and allow
 			// the subsequent logic to save the payment method and proceed to complete the order.
 			$this->mark_order_as_pre_ordered( $order->get_id() );
 
 			// We require to save the payment method if the pre-order is charged upon release.
 			$save_payment_method = $save_payment_method || $this->has_pre_order_charged_upon_release( $order );
-			$is_pre_order        = true;
 		}
 
 		if ( $save_payment_method && $payment_method->is_reusable() ) {
@@ -2957,7 +2963,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// wc_gateway_stripe_process_response callback), or a resubmit would charge again.
 		// Covers the async return (3DS/SCA and redirect APMs). No-op unless the order is paid.
 		try {
-			if ( ! $is_pre_order ) {
+			if ( ! $is_pre_order_placement ) {
 				if ( $payment_needed ) {
 					// Use the last charge within the intent to proceed.
 					$this->process_response( $this->get_latest_charge_from_intent( $intent ), $order );
@@ -3089,8 +3095,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	public function is_payment_needed( $order_id = null ) {
 		$is_pay_for_order_page = parent::is_valid_pay_for_order_endpoint();
 
-		// Check if the cart contains a pre-order product. Ignore the cart if we're on the Pay for Order page.
-		if ( $this->is_pre_order_item_in_cart() && ! $is_pay_for_order_page ) {
+		// The cart stands in for the order only on the checkout page, where no order exists yet.
+		if ( empty( $order_id ) && $this->is_pre_order_item_in_cart() && ! $is_pay_for_order_page ) {
 			$pre_order_product = $this->get_pre_order_product_from_cart();
 
 			// Only one pre-order product is allowed per cart,
@@ -3102,8 +3108,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$pre_order_product  = $this->get_pre_order_product_from_order( $order_id );
 			$is_charged_upfront = $this->is_pre_order_product_charged_upfront( $pre_order_product );
 
-			// If the pre-order is set to charge upon release and we're on the pay for order page and the pre-order has completed status, payment is needed.
-			if ( ! $is_charged_upfront && $is_pay_for_order_page && $this->is_pre_order_completed( $order_id ) ) {
+			// A released charge-upon-release pre-order needs payment regardless of the current
+			// request: the post-3DS confirmation runs on wc-ajax, not on the order-pay endpoint.
+			if ( ! $is_charged_upfront && $this->is_pre_order_completed( $order_id ) ) {
 				return true;
 			}
 
