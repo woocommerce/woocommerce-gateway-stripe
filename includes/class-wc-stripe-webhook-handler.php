@@ -1733,6 +1733,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param array|object|null $notification  The webhook notification payload (arrays after AS deserialization).
 	 */
 	public function process_deferred_webhook( $webhook_type, $additional_data, $notification = null ) {
+		$this->resolved_order = null;
+
 		try {
 			if ( null === $notification ) {
 				throw new Exception( 'Missing deferred webhook notification.' );

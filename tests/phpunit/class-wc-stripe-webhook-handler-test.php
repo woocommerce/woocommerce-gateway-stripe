@@ -1667,6 +1667,40 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The handler instance is shared by every job in an Action Scheduler batch, including order
+	 * reconciliation checks, so a deferred event must not report an order an earlier job resolved.
+	 */
+	public function test_process_deferred_webhook_does_not_report_an_order_resolved_by_an_earlier_job(): void {
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'handle_checkout_session_success' ] )
+			->getMock();
+		$handler->method( 'handle_checkout_session_success' )->willReturn( false );
+		$resolved_order = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'resolved_order' );
+		$resolved_order->setAccessible( true );
+		$resolved_order->setValue( $handler, WC_Helper_Order::create_order() );
+
+		$received_orders = [];
+		$received_action = static function ( $webhook_type, $event, $order ) use ( &$received_orders ) {
+			$received_orders[] = $order;
+		};
+		add_action( 'wc_stripe_webhook_received', $received_action, 10, 3 );
+		try {
+			$handler->process_deferred_webhook(
+				'checkout.session.completed',
+				[ 'session_id' => 'cs_test_deferred_without_order' ],
+				(object) [
+					'type' => 'checkout.session.completed',
+					'data' => (object) [ 'object' => (object) [ 'id' => 'cs_test_deferred_without_order' ] ],
+				]
+			);
+		} finally {
+			remove_action( 'wc_stripe_webhook_received', $received_action, 10 );
+		}
+
+		$this->assertSame( [ null ], $received_orders );
+	}
+
+	/**
 	 * @return array<string, array{0: string}>
 	 */
 	public function provide_deferred_checkout_session_success_event_types(): array {
