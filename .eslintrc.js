@@ -67,6 +67,15 @@ module.exports = {
 				allowedTextDomain: 'woocommerce-gateway-stripe',
 			},
 		],
+		// The package entry point bundles every icon (~94 KB), even if only one is used.
+		'no-restricted-syntax': [
+			'error',
+			{
+				selector: 'ImportDeclaration[source.value=/^gridicons$/]',
+				message:
+					"Do not import whole Gridicons, import them individually with 'gridicons/dist/icon-name'.",
+			},
+		],
 	},
 	settings: {
 		react: {

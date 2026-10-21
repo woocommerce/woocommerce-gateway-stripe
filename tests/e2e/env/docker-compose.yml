@@ -41,4 +41,4 @@ services:
     restart: unless-stopped
     depends_on:
       - wordpress
-    command: "listen --api-key=${STRIPE_SECRET_KEY} --forward-to http://wordpress/?wc-api=wc_stripe"
+    command: "listen --all-snapshot --api-key=${STRIPE_SECRET_KEY} --forward-to http://wordpress/?wc-api=wc_stripe"

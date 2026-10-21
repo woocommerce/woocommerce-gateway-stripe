@@ -196,7 +196,9 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 				$response = $this->connect_oauth( $state, $code, $type, $mode );
 
-				$this->record_account_connect_track_event( is_wp_error( $response ) );
+				$connection_type = is_string( $type ) ? $type : '';
+				$key_mode        = is_string( $mode ) ? $mode : '';
+				$this->record_account_connect_tracks_event( is_wp_error( $response ) ? $response->get_error_code() : null, $connection_type, $key_mode );
 
 				$redirect_url = remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code', 'wcs_stripe_type', 'wcs_stripe_mode' ] );
 				if ( ! is_wp_error( $response ) ) {
@@ -265,11 +267,11 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			}
 
 			if ( ! isset( $result->publishableKey, $result->secretKey ) ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-				return new WP_Error( 'Invalid credentials received from WooCommerce Connect server' );
+				return new WP_Error( 'invalid_credentials', 'Invalid credentials received from WooCommerce Connect server' );
 			}
 
 			if ( 'app' === $type && ! isset( $result->refreshToken ) ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-				return new WP_Error( 'Invalid credentials received from WooCommerce Connect server' );
+				return new WP_Error( 'invalid_credentials', 'Invalid credentials received from WooCommerce Connect server' );
 			}
 
 			$publishable_key                            = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
@@ -301,9 +303,15 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// Before saving the new keys, decommission any webhook configured on the
 			// previously connected account.
 			$previous_webhook_data = $options[ $prefix . 'webhook_data' ] ?? '';
-			if ( WC_Stripe::get_instance()->account->maybe_decommission_webhook( $previous_webhook_data, $secret_key ) ) {
+			if ( is_array( $previous_webhook_data ) && empty( $previous_webhook_data['secret'] ) ) {
+				$previous_webhook_data['secret'] = $current_options[ $prefix . 'secret_key' ] ?? '';
+			}
+			$account = WC_Stripe::get_instance()->account;
+			if ( $account->maybe_decommission_webhook( $previous_webhook_data, $secret_key ) ) {
 				$options[ $prefix . 'webhook_data' ]   = [];
 				$options[ $prefix . 'webhook_secret' ] = '';
+			} elseif ( $account->should_decommission_webhook( $previous_webhook_data, $secret_key ) ) {
+				$options[ $prefix . 'webhook_data' ] = $previous_webhook_data;
 			}
 
 			WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
@@ -361,6 +369,14 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				// Automatically configure webhooks for the account now that we have the keys.
 				WC_Stripe::get_instance()->account->configure_webhooks( $is_test ? 'test' : 'live' );
 			} catch ( Exception $e ) {
+				WC_Stripe_Logger::error(
+					'OAuth: Failed to configure webhooks after saving keys',
+					[
+						'exception_message' => $e->getMessage(),
+						'mode'              => $is_test ? 'test' : 'live',
+						'connection_type'   => $type,
+					]
+				);
 				return new WP_Error( 'wc_stripe_webhook_error', $e->getMessage() );
 			} finally {
 				// Ensure we reset the key before we do anything else.
@@ -400,7 +416,8 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return;
 			}
 
-			$settings = WC_Stripe_Helper::get_stripe_settings();
+			$settings        = WC_Stripe_Helper::get_stripe_settings();
+			$previous_secret = $settings['test_secret_key'] ?? '';
 
 			$settings['test_publishable_key'] = $test_publishable_key;
 			$settings['test_secret_key']      = $test_secret_key;
@@ -408,9 +425,15 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			// Decommission any webhook configured on the previously connected test account.
 			$previous_webhook_data = $settings['test_webhook_data'] ?? '';
-			if ( WC_Stripe::get_instance()->account->maybe_decommission_webhook( $previous_webhook_data, $test_secret_key ) ) {
+			if ( is_array( $previous_webhook_data ) && empty( $previous_webhook_data['secret'] ) ) {
+				$previous_webhook_data['secret'] = $previous_secret;
+			}
+			$account = WC_Stripe::get_instance()->account;
+			if ( $account->maybe_decommission_webhook( $previous_webhook_data, $test_secret_key ) ) {
 				$settings['test_webhook_data']   = [];
 				$settings['test_webhook_secret'] = '';
+			} elseif ( $account->should_decommission_webhook( $previous_webhook_data, $test_secret_key ) ) {
+				$settings['test_webhook_data'] = $previous_webhook_data;
 			}
 
 			WC_Stripe_Helper::update_main_stripe_settings( $settings );
@@ -516,20 +539,42 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		}
 
 		/**
-		 * Records a track event after the user is redirected back to the store from the Stripe UX.
+		 * Records a Tracks event after we try to process the keys returned from Stripe.
 		 *
-		 * @param bool $had_error Whether the Stripe connection had an error.
+		 * @param string|int|null $error_code      The error code if the connection had an error. Null if no error occurred.
+		 * @param string          $connection_type The connection type.
+		 * @param string          $mode            The connection mode. Either 'live' or 'test'.
 		 */
-		private function record_account_connect_track_event( bool $had_error ) {
-			if ( ! class_exists( 'WC_Tracks' ) ) {
+		private function record_account_connect_tracks_event( $error_code, string $connection_type, string $mode ): void {
+			if ( ! class_exists( 'WC_Tracks' ) || ! method_exists( 'WC_Tracks', 'record_event' ) ) { // @phpstan-ignore function.alreadyNarrowedType (Defensive check to make sure the function is available in WooCommerce.)
 				return;
 			}
 
-			$event_name = ! $had_error ? 'wcstripe_stripe_connected' : 'wcstripe_stripe_connect_error';
+			if ( ! class_exists( 'WC_Site_Tracking' ) || ! method_exists( WC_Site_Tracking::class, 'is_tracking_enabled' ) || ! WC_Site_Tracking::is_tracking_enabled() ) { // @phpstan-ignore function.alreadyNarrowedType (Defensive check to make sure the function is available in WooCommerce.)
+				return;
+			}
+
+			$event_props = [
+				'is_test_mode'    => 'live' !== $mode,
+				'connection_type' => $connection_type,
+				'stripe_version'  => WC_STRIPE_VERSION,
+			];
+
+			// Include the account ID if we have it, as some errors occur after the keys have been saved.
+			$account_data = WC_Stripe::get_instance()->account->get_cached_account_data( $mode );
+			if ( is_string( $account_data['id'] ?? null ) ) {
+				$event_props['account_id'] = $account_data['id'];
+			}
+
+			if ( null !== $error_code ) {
+				$event_props['error_code'] = $error_code;
+			}
+
+			$event_name = null === $error_code ? 'wcstripe_stripe_connected' : 'wcstripe_stripe_connect_error';
 
 			// We're recording this directly instead of queueing it because
 			// a queue wouldn't be processed due to the redirect that comes after.
-			WC_Tracks::record_event( $event_name, [ 'is_test_mode' => WC_Stripe_Mode::is_test() ] );
+			WC_Tracks::record_event( $event_name, $event_props );
 		}
 
 		/**
@@ -670,6 +715,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				'secretKey',
 				'testSecretKey',
 				'refreshToken',
+				'secret',
 				'secret_key',
 				'test_secret_key',
 				'webhook_secret',

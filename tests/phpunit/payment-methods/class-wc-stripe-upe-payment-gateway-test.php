@@ -172,6 +172,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'get_intent_from_order',
 					'has_pre_order_charged_upon_release',
 					'has_pre_order',
+					'is_pre_order_completed',
 					'update_saved_payment_method',
 				]
 			)
@@ -1029,6 +1030,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 	/**
 	 * Test SCA/3DS checkout process_payment flow with deferred intent.
+	 *
+	 * The response also carries the return URL for the client confirm.
+	 *
+	 * @return void
 	 */
 	public function test_process_payment_deferred_intent_with_required_action_returns_valid_response() {
 		$customer_id = 'cus_mock';
@@ -1082,7 +1087,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$response = $this->mock_gateway->process_payment( $order_id );
 
 		$this->assertEquals( 'success', $response['result'] );
-		$this->assertMatchesRegularExpression( "/#wc-stripe-confirm-pi:{$order_id}:{$mock_intent->client_secret}/", $response['redirect'] );
+		// Older JS only parses a four-part hash, so the return URL is sent next to it.
+		$this->assertMatchesRegularExpression( "/#wc-stripe-confirm-pi:{$order_id}:{$mock_intent->client_secret}:[^:]+$/", $response['redirect'] );
+
+		wp_parse_str( (string) wp_parse_url( $response['stripe_confirm_return_url'] ?? '', PHP_URL_QUERY ), $query );
+		$this->assertSame( (string) $order_id, $query['order_id'] ?? null );
+		$this->assertSame( WC_Stripe_UPE_Payment_Gateway::ID, $query['wc_payment_method'] ?? null );
+		$this->assertNotEmpty( $query['_wpnonce'] ?? null );
 	}
 
 	/**
@@ -4308,9 +4319,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			->with( $order_id )
 			->will( $this->returnValue( true ) );
 
-		$this->mock_gateway->expects( $this->once() )
-			->method( 'is_pre_order_item_in_cart' )
-			->will( $this->returnValue( true ) );
+		// An order is supplied on the confirmation path, so the cart is not consulted.
+		$this->mock_gateway->expects( $this->never() )
+			->method( 'is_pre_order_item_in_cart' );
 
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'is_pre_order_product_charged_upfront' )
@@ -4394,13 +4405,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			);
 
 		// Mock order has pre-order product.
-		$this->mock_gateway->expects( $this->once() )
+		$this->mock_gateway->expects( $this->any() )
 			->method( 'has_pre_order' )
 			->will( $this->returnValue( true ) );
 
-		$this->mock_gateway->expects( $this->once() )
-			->method( 'is_pre_order_item_in_cart' )
-			->will( $this->returnValue( true ) );
+		// An order is supplied on the confirmation path, so the cart is not consulted.
+		$this->mock_gateway->expects( $this->never() )
+			->method( 'is_pre_order_item_in_cart' );
 
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'is_pre_order_product_charged_upfront' )
@@ -4426,6 +4437,141 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertEquals( $payment_method_id, $order_helper->get_stripe_source_id( $final_order ) );
 		$this->assertEquals( $customer_id, $order_helper->get_stripe_customer_id( $final_order ) );
 		$this->assertTrue( (bool) $order_helper->get_stripe_upe_redirect_processed( $final_order ) );
+	}
+
+	/**
+	 * Paying a released charge-upon-release pre-order from the pay page: the post-3DS
+	 * confirmation runs outside the order-pay endpoint and must still record the payment.
+	 */
+	public function test_released_pre_order_confirmed_payment_intent_records_the_payment() {
+		$payment_intent_id = 'pi_mock';
+		$payment_method_id = 'pm_mock';
+		$customer_id       = 'cus_mock';
+		$order             = WC_Helper_Order::create_order();
+		$order_id          = $order->get_id();
+
+		list( $amount, $description, $metadata, $currency ) = $this->get_order_details( $order );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
+		$payment_method_mock['id']               = $payment_method_id;
+		$payment_method_mock['customer']         = $customer_id;
+		$payment_method_mock['card']['exp_year'] = intval( gmdate( 'Y' ) ) + 1;
+
+		$payment_intent_mock                       = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$payment_intent_mock['id']                 = $payment_intent_id;
+		$payment_intent_mock['amount']             = $amount;
+		$payment_intent_mock['currency']           = $currency;
+		$payment_intent_mock['last_payment_error'] = [];
+		$payment_intent_mock['payment_method']     = $payment_method_mock;
+		$payment_intent_mock['latest_charge']      = 'ch_mock';
+
+		// Released charge-upon-release pre-order, no cart (pay page).
+		$this->mock_gateway->method( 'has_pre_order' )->willReturn( true );
+		$this->mock_gateway->method( 'is_pre_order_completed' )->willReturn( true );
+		$this->mock_gateway->method( 'is_pre_order_item_in_cart' )->willReturn( false );
+		$this->mock_gateway->method( 'is_pre_order_product_charged_upfront' )->willReturn( false );
+		$this->mock_gateway->method( 'has_pre_order_charged_upon_release' )->willReturn( true );
+		$this->mock_gateway->method( 'get_stripe_customer_from_order' )->willReturn( $this->mock_stripe_customer );
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'stripe_request' )
+			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" )
+			->willReturn( $this->array_to_object( $payment_intent_mock ) );
+
+		$charge = [
+			'id'                     => 'ch_mock',
+			'captured'               => true,
+			'status'                 => 'succeeded',
+			'payment_method_details' => $payment_method_mock,
+		];
+		$this->mock_gateway->method( 'get_latest_charge_from_intent' )->willReturn( $this->array_to_object( $charge ) );
+
+		$this->mock_gateway->expects( $this->never() )
+			->method( 'mark_order_as_pre_ordered' );
+
+		// Called outside the order-pay endpoint, as the wc-ajax and redirect handlers do.
+		$this->mock_gateway->process_order_for_confirmed_intent( $order, $payment_intent_id, false );
+
+		$final_order  = wc_get_order( $order_id );
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		$this->assertEquals( OrderStatus::PROCESSING, $final_order->get_status() );
+		$this->assertEquals( 'ch_mock', $final_order->get_transaction_id() );
+		$this->assertEquals( $payment_intent_id, $order_helper->get_stripe_intent_id( $final_order ) );
+	}
+
+	/**
+	 * Once an order is supplied, payment eligibility comes from that order. The cart only speaks
+	 * on the checkout page, where no order exists yet, and never on the pay-for-order page.
+	 *
+	 * @dataProvider provider_is_payment_needed_cart_precedence
+	 *
+	 * @param string|null $order_kind                   'released-pre-order', 'pre-order-being-placed', 'regular', or null for no order.
+	 * @param bool        $cart_product_charged_upfront Charge timing of the pre-order product (in the cart, and on the order when one is supplied).
+	 * @param bool        $on_pay_for_order_page        Whether the request is a valid pay-for-order endpoint request.
+	 * @param bool        $expected                     Expected return value of is_payment_needed().
+	 */
+	public function test_is_payment_needed_consults_the_cart_only_without_an_order( $order_kind, $cart_product_charged_upfront, $on_pay_for_order_page, $expected ) {
+		// $cart_product_charged_upfront doubles as the order product's charge timing: at checkout
+		// the order mirrors the cart, which is why the answer is unchanged there.
+		global $wp, $wp_query;
+
+		$order_id = null;
+		if ( null !== $order_kind ) {
+			$order_id = WC_Helper_Order::create_order( 0 )->get_id();
+		}
+
+		$this->mock_gateway->method( 'has_pre_order' )->willReturn( in_array( $order_kind, [ 'released-pre-order', 'pre-order-being-placed' ], true ) );
+		$this->mock_gateway->method( 'is_pre_order_completed' )->willReturn( 'released-pre-order' === $order_kind );
+		// With an order supplied the cart must not be read at all; without one it is the only source.
+		$this->mock_gateway->expects( null === $order_kind ? $this->atLeastOnce() : $this->never() )
+			->method( 'is_pre_order_item_in_cart' )
+			->willReturn( true );
+		$this->mock_gateway->method( 'is_pre_order_product_charged_upfront' )->willReturn( $cart_product_charged_upfront );
+
+		$original_get             = $_GET;
+		$original_wp_query_vars   = $wp->query_vars;
+		$original_query_vars      = $wp_query->query_vars;
+		$original_current_user_id = get_current_user_id();
+
+		if ( $on_pay_for_order_page ) {
+			// A valid guest pay-for-order request; the order is deliberately not passed to
+			// is_payment_needed() so only the endpoint exclusion keeps the cart out.
+			$endpoint_order              = WC_Helper_Order::create_order( 0 );
+			$wp->query_vars['order-pay'] = $endpoint_order->get_id();
+			$wp_query->set( 'order-pay', $endpoint_order->get_id() );
+			$_GET['pay_for_order'] = 'true';
+			$_GET['key']           = $endpoint_order->get_order_key();
+			wp_set_current_user( 0 );
+		}
+
+		try {
+			$this->assertSame( $expected, $this->mock_gateway->is_payment_needed( $order_id ) );
+		} finally {
+			$_GET                 = $original_get;
+			$wp->query_vars       = $original_wp_query_vars;
+			$wp_query->query_vars = $original_query_vars;
+			wp_set_current_user( $original_current_user_id );
+		}
+	}
+
+	/**
+	 * Data provider: order kind, cart product charge timing, pay-for-order request, expected result.
+	 *
+	 * @return array<string, array{0: string|null, 1: bool, 2: bool, 3: bool}>
+	 */
+	public function provider_is_payment_needed_cart_precedence() {
+		return [
+			'released pre-order, charge-upon-release pre-order in cart' => [ 'released-pre-order', false, false, true ],
+			'regular order, charge-upon-release pre-order in cart'      => [ 'regular', false, false, true ],
+			'pre-order being placed at checkout, charge upon release'   => [ 'pre-order-being-placed', false, false, false ],
+			'pre-order being placed at checkout, charge upfront'        => [ 'pre-order-being-placed', true, false, true ],
+			'no order, charge-upfront pre-order in cart'                => [ null, true, false, true ],
+			'no order, charge-upon-release pre-order in cart'           => [ null, false, false, false ],
+			'pay-for-order request without order id, pre-order in cart' => [ null, true, true, false ],
+		];
 	}
 
 	/**
@@ -4564,6 +4710,132 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$method = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'process_payment_intent_for_order' );
 		$method->setAccessible( true );
 		$method->invoke( $this->mock_gateway, $order, $payment_information );
+	}
+
+	/**
+	 * A non-DPM retry (express wallet, saved token) must not reuse a stored Dynamic Payment Methods
+	 * intent: its confirm sends no `return_url`, which `allow_redirects: always` requires.
+	 *
+	 * @dataProvider provide_non_dpm_retry_payment_information
+	 *
+	 * @param array $payment_information The non-DPM retry request.
+	 */
+	public function test_process_payment_intent_for_order_does_not_reuse_a_stored_dynamic_payment_methods_intent_for_a_non_dpm_retry( array $payment_information ) {
+		$order                        = WC_Helper_Order::create_order();
+		$payment_information['order'] = $order;
+		$existing_intent              = $this->get_declined_card_intent_fixture( $order, true );
+
+		$new_intent = (object) wp_parse_args(
+			[
+				'id'                   => 'pi_new_card_only',
+				'payment_method_types' => [ WC_Stripe_Payment_Methods::CARD ],
+			],
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
+		);
+
+		$this->mock_gateway->method( 'get_intent_from_order' )->willReturn( $existing_intent );
+		$this->mock_gateway->method( 'stripe_request' )->willReturn( $existing_intent );
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->never() )
+			->method( 'update_and_confirm_payment_intent' );
+		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
+			->method( 'create_and_confirm_payment_intent' )
+			->willReturn( $new_intent );
+
+		$method = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'process_payment_intent_for_order' );
+		$method->setAccessible( true );
+		$result = $method->invoke( $this->mock_gateway, $order, $payment_information );
+
+		$this->assertSame( 'pi_new_card_only', $result->id );
+		$this->assertSame( 'pi_new_card_only', WC_Stripe_Order_Helper::get_instance()->get_stripe_intent_id( wc_get_order( $order->get_id() ) ) );
+	}
+
+	/**
+	 * Data provider for test_process_payment_intent_for_order_does_not_reuse_a_stored_dynamic_payment_methods_intent_for_a_non_dpm_retry.
+	 *
+	 * @return array
+	 */
+	public function provide_non_dpm_retry_payment_information(): array {
+		return [
+			'express wallet retry' => [
+				[
+					'payment_method_types'          => [ WC_Stripe_Payment_Methods::CARD ],
+					'selected_payment_type'         => WC_Stripe_Payment_Methods::CARD,
+					'is_using_saved_payment_method' => false,
+				],
+			],
+			'saved card retry'     => [
+				[
+					'payment_method_types'          => [ WC_Stripe_Payment_Methods::CARD ],
+					'selected_payment_type'         => WC_Stripe_Payment_Methods::CARD,
+					'is_using_saved_payment_method' => true,
+				],
+			],
+		];
+	}
+
+	/**
+	 * Control for the test above: the same declined intent without Dynamic Payment Methods is still
+	 * reused, so `automatic_payment_methods.enabled` is what blocks the reuse, not the fixture's shape.
+	 */
+	public function test_process_payment_intent_for_order_reuses_a_compatible_non_dynamic_payment_methods_intent() {
+		$order           = WC_Helper_Order::create_order();
+		$existing_intent = $this->get_declined_card_intent_fixture( $order, false );
+
+		$payment_information = [
+			'payment_method_types'          => [ WC_Stripe_Payment_Methods::CARD ],
+			'selected_payment_type'         => WC_Stripe_Payment_Methods::CARD,
+			'is_using_saved_payment_method' => false,
+			'order'                         => $order,
+		];
+
+		$this->mock_gateway->method( 'get_intent_from_order' )->willReturn( $existing_intent );
+		$this->mock_gateway->method( 'stripe_request' )->willReturn( $existing_intent );
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->never() )
+			->method( 'create_and_confirm_payment_intent' );
+		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
+			->method( 'update_and_confirm_payment_intent' )
+			->with( $existing_intent, $this->anything() )
+			->willReturn( $existing_intent );
+
+		$method = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'process_payment_intent_for_order' );
+		$method->setAccessible( true );
+		$result = $method->invoke( $this->mock_gateway, $order, $payment_information );
+
+		$this->assertSame( 'pi_declined_card', $result->id );
+	}
+
+	/**
+	 * The intent a declined card attempt leaves on the order: `card` is in its types, the amount
+	 * matches and the status still allows confirmation, so the reuse checks accept it unless it is
+	 * a Dynamic Payment Methods intent.
+	 *
+	 * @param WC_Order $order                   The order the intent belongs to.
+	 * @param bool     $dynamic_payment_methods Whether the intent was created with `automatic_payment_methods`.
+	 * @return stdClass
+	 */
+	private function get_declined_card_intent_fixture( WC_Order $order, bool $dynamic_payment_methods ): stdClass {
+		return (object) wp_parse_args(
+			[
+				'id'                        => 'pi_declined_card',
+				'payment_method'            => 'pm_mock',
+				'payment_method_types'      => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ],
+				'automatic_payment_methods' => $dynamic_payment_methods
+					? (object) [
+						'enabled'         => true,
+						'allow_redirects' => 'always',
+					]
+					: null,
+				'status'                    => WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD,
+				'amount'                    => WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ),
+			],
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
+		);
 	}
 
 	/**
@@ -8038,7 +8310,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'country'  => 'US',
 					'settings' => [
 						'payments' => [
-							'statement_descriptor' => '<script>ACME</script>',
+							'statement_descriptor' => '<div>ACME</div><style>.bad { display: none; }</style><script>alert("bad");</script>',
 						],
 					],
 				],
