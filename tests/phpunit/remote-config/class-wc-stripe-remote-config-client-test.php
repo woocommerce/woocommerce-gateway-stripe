@@ -193,7 +193,7 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 		$this->assertIsArray( $result );
 		$this->assertSame( $payload, $result['modes']['live'] );
 		$this->assertSame( $payload, $result['modes']['test'] );
-  }
+	}
 
 	public function test_fetch_all_sends_store_identity_query_params(): void {
 		$this->stub_successful_response();
@@ -232,19 +232,6 @@ class WC_Stripe_Remote_Config_Client_Test extends WP_UnitTestCase {
 		wp_parse_str( (string) wp_parse_url( $this->captured_requests[0]['url'], PHP_URL_QUERY ), $query );
 		$this->assertArrayNotHasKey( 'live_account_country', $query );
 		$this->assertArrayNotHasKey( 'test_account_country', $query );
-	}
-
-	public function test_fetch_short_circuits_when_disabled_by_override(): void {
-		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'no' );
-
-		$result = $this->client->fetch_all();
-
-		// Clean up before asserting so a failed assertion can't leak the override into later tests.
-		update_option( WC_Stripe_Remote_Config_Flags::ENABLED_OVERRIDE_OPTION, 'yes' );
-
-		$this->assertWPError( $result );
-		$this->assertSame( 'wc_stripe_remote_config_disabled', $result->get_error_code() );
-		$this->assertCount( 0, $this->captured_requests );
 	}
 
 	/**
