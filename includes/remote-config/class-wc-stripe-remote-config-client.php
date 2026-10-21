@@ -140,11 +140,11 @@ class WC_Stripe_Remote_Config_Client {
 	 */
 	private function get_account_country( string $mode ): string {
 		$cached = WC_Stripe_Database_Cache::get_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $mode );
-		if ( ! is_array( $cached ) || empty( $cached['country'] ) ) {
+		if ( ! is_array( $cached ) || empty( $cached['country'] ) || ! is_string( $cached['country'] ) ) {
 			return '';
 		}
 
-		return (string) $cached['country'];
+		return $cached['country'];
 	}
 
 	private function bool_param( bool $value ): string {
