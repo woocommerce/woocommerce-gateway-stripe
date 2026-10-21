@@ -2648,10 +2648,48 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @internal Used by order reconciliation. Not part of the public API; it can change without notice.
 	 *
+	 * Unlike Checkout Sessions, nothing else compares a PaymentIntent payment with the order before settling
+	 * it, so a charge that doesn't match the order total holds the order for review instead.
+	 *
 	 * @param WC_Order $order  Order to settle.
 	 * @param object   $charge The PaymentIntent's verified latest charge.
 	 */
 	public function process_reconciled_payment( WC_Order $order, object $charge ): void {
+		$order_currency  = strtolower( $order->get_currency() );
+		$order_amount    = (int) WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $order_currency );
+		$charge_currency = strtolower( (string) ( $charge->currency ?? '' ) );
+		$charge_amount   = (int) ( $charge->amount ?? -1 );
+		if ( $charge_amount !== $order_amount || $charge_currency !== $order_currency ) {
+			$intent_id = (string) ( $charge->payment_intent ?? '' );
+			WC_Stripe_Logger::error(
+				'Refusing to settle PaymentIntent: the charged amount/currency does not match the order.',
+				[
+					'order_id'        => $order->get_id(),
+					'intent_id'       => $intent_id,
+					'charge_id'       => (string) ( $charge->id ?? '' ),
+					'charge_amount'   => $charge_amount,
+					'charge_currency' => $charge_currency,
+					'order_amount'    => $order_amount,
+					'order_currency'  => $order_currency,
+				]
+			);
+
+			// The transaction ID stays empty: the payment doesn't match the order, so it isn't the order's payment yet.
+			$order->add_order_note(
+				sprintf(
+					/* translators: 1: PaymentIntent ID, 2: amount Stripe charged, 3: amount the order expects. Amounts are in the smallest currency unit, followed by the currency code. */
+					__( 'Stripe payment %1$s was found, but it does not match this order: Stripe has %2$s, the order expects %3$s. The order was placed on hold for review.', 'woocommerce-gateway-stripe' ),
+					$intent_id,
+					$charge_amount . ' ' . strtoupper( $charge_currency ),
+					$order_amount . ' ' . strtoupper( $order_currency )
+				)
+			);
+			if ( ! $order->has_status( OrderStatus::ON_HOLD ) ) {
+				$order->update_status( OrderStatus::ON_HOLD );
+			}
+			return;
+		}
+
 		if ( $this->maybe_mark_order_as_pre_ordered( $order, $charge ) ) {
 			return;
 		}
