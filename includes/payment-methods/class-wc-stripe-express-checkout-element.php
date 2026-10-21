@@ -442,10 +442,11 @@ class WC_Stripe_Express_Checkout_Element {
 		$asset_data = $this->get_asset_data();
 
 		WC_Stripe_Helper::register_stripe_js();
+		WC_Stripe_Helper::register_checkout_settings_script();
 		wp_register_script(
 			'wc_stripe_express_checkout',
 			WC_STRIPE_PLUGIN_URL . '/build/express-checkout.js',
-			array_merge( [ 'jquery', 'stripe' ], $asset_data['dependencies'] ),
+			array_merge( [ 'jquery', 'stripe', 'wc-stripe-checkout-settings' ], $asset_data['dependencies'] ),
 			$asset_data['version'],
 			true
 		);
@@ -585,7 +586,7 @@ class WC_Stripe_Express_Checkout_Element {
 		);
 
 		wp_localize_script(
-			'wc_stripe_express_checkout',
+			'wc-stripe-checkout-settings',
 			'wc_stripe_express_checkout_params',
 			/** This filter is documented in includes/class-wc-stripe-blocks-support.php. */
 			apply_filters(

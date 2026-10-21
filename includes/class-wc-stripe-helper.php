@@ -70,6 +70,16 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Keep shared checkout settings available without requiring a particular checkout UI bundle.
+	 *
+	 * @since x.x.x
+	 * @return void
+	 */
+	public static function register_checkout_settings_script() {
+		wp_register_script( 'wc-stripe-checkout-settings', false, [], WC_STRIPE_VERSION, true );
+	}
+
+	/**
 	 * Validates a value against the expected Stripe object ID shape: `{prefix}_{token}`,
 	 * word characters only, at most 255 characters (Stripe's documented ceiling).
 	 *
