@@ -786,27 +786,4 @@ export default class WCStripeAPI {
 
 		return response;
 	}
-
-	/**
-	 * Ask the server to confirm the stored Checkout Session with Stripe and replace it if needed.
-	 *
-	 * Only called after Stripe.js reported the mounted session as no longer active.
-	 *
-	 * @return {Promise<Object>} The public session data, as embedded in the checkout fragment.
-	 * @throws {Error} When the server responds with an application-level error.
-	 */
-	async checkoutSessionsVerifySession() {
-		const response = await this.request(
-			this.getAjaxUrl( 'verify_checkout_session' ),
-			{
-				security: this.options?.verifyCheckoutSessionNonce,
-			}
-		);
-
-		if ( ! response || response.success === false ) {
-			throw new Error( response?.data?.message );
-		}
-
-		return response.data;
-	}
 }

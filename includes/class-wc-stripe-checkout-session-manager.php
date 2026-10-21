@@ -201,7 +201,12 @@ class WC_Stripe_Checkout_Session_Manager {
 			// invalid_request_error and no code, the same shape as a bad parameter, so only the
 			// session's own status can tell whether retrying could ever succeed.
 			if ( 'invalid_request_error' === (string) ( $stripe_error->type ?? '' ) && $this->is_session_finished_on_stripe( $session_id ) ) {
-				return $this->recreate_finished_session( $session_id );
+				WC_Stripe_Logger::info(
+					'Recreating the Checkout Session because Stripe reports it is no longer open.',
+					[ 'checkout_session_id' => $session_id ]
+				);
+
+				return $this->create_session();
 			}
 
 			$message = empty( $stripe_error->message ) ? '(No error message returned from Stripe)' : (string) $stripe_error->message;
@@ -248,10 +253,14 @@ class WC_Stripe_Checkout_Session_Manager {
 			return $this->create_session();
 		}
 
-		// Stripe expires a session 24 hours after creation, but every cart update extends the
-		// context past that, so an unchanged cart would otherwise keep handing the client a session
-		// Stripe refuses. Records stored before expires_at was tracked fall back to the context TTL.
+		// Stripe expires a session at expires_at, 24 hours after creation by default, but every cart
+		// update extends the context past that, so an unchanged cart would otherwise keep handing the
+		// client a session Stripe refuses. Records stored before expires_at was tracked fall back to
+		// Stripe's default lifetime from the context's creation time.
 		$expires_at = (int) ( $record['expires_at'] ?? 0 );
+		if ( 0 === $expires_at && ! empty( $context['created_at'] ) ) {
+			$expires_at = (int) $context['created_at'] + DAY_IN_SECONDS;
+		}
 		if ( $expires_at > 0 && time() >= $expires_at ) {
 			WC_Stripe_Logger::info(
 				'Recreating the Checkout Session because it has expired.',
@@ -272,29 +281,6 @@ class WC_Stripe_Checkout_Session_Manager {
 		}
 
 		return $this->update_session( (string) $record['session_id'] );
-	}
-
-	/**
-	 * Replace the stored session if Stripe reports it finished.
-	 *
-	 * A session expired early from the Stripe Dashboard or API leaves no local trace, so an unchanged
-	 * cart keeps handing it out. Classic checkout calls this only after Stripe.js reported the
-	 * mounted session as no longer active, which keeps the lookup off the normal checkout path.
-	 *
-	 * @since x.x.x
-	 * @return array Public session data.
-	 * @throws Exception When the cart is not payable or the replacement cannot be created.
-	 */
-	public function replace_if_finished_on_stripe(): array {
-		$this->validate_cart();
-
-		$record     = $this->get_record();
-		$session_id = (string) ( $record['session_id'] ?? '' );
-		if ( '' === $session_id || ! $this->is_session_finished_on_stripe( $session_id ) ) {
-			return $this->get_public_data( $record );
-		}
-
-		return $this->recreate_finished_session( $session_id );
 	}
 
 	/**
@@ -341,22 +327,6 @@ class WC_Stripe_Checkout_Session_Manager {
 
 		// https://docs.stripe.com/api/checkout/sessions/object#checkout_session_object-status
 		return in_array( (string) ( $session->status ?? '' ), [ 'expired', 'complete' ], true );
-	}
-
-	/**
-	 * Create a new session in place of one Stripe reports finished.
-	 *
-	 * @param string $session_id Stripe Checkout Session ID being replaced.
-	 * @return array Public session data.
-	 * @throws Exception When the replacement cannot be created.
-	 */
-	private function recreate_finished_session( string $session_id ): array {
-		WC_Stripe_Logger::info(
-			'Recreating the Checkout Session because Stripe reports it is no longer open.',
-			[ 'checkout_session_id' => $session_id ]
-		);
-
-		return $this->create_session();
 	}
 
 	/**

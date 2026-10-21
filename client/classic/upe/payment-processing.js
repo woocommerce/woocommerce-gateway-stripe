@@ -289,34 +289,6 @@ function getNativeCheckoutSessionData() {
 }
 
 /**
- * Have the server replace the mounted Checkout Session, which it does only once Stripe confirms
- * the session is finished.
- *
- * The mounted element cannot switch sessions, so the shopper reloads to mount the replacement.
- *
- * @param {Object} api               The API instance.
- * @param {string} paymentMethodType The payment method type whose element failed to load.
- * @return {Promise<boolean>} Whether the session was replaced.
- */
-async function maybeReplaceCheckoutSession( api, paymentMethodType ) {
-	const mountedSessionId =
-		gatewayUPEComponents[ paymentMethodType ]?.checkoutSessionId;
-	if (
-		! mountedSessionId ||
-		! getStripeServerData()?.isAdaptivePricingEnabled
-	) {
-		return false;
-	}
-
-	try {
-		const data = await api.checkoutSessionsVerifySession();
-		return !! data?.session_id && data.session_id !== mountedSessionId;
-	} catch ( error ) {
-		return false;
-	}
-}
-
-/**
  * Block UI to indicate processing and avoid duplicate submission.
  *
  * @param {Object} jQueryForm The jQuery object for the form.
@@ -983,7 +955,6 @@ async function mountStripePaymentElementImpl( api, domElement ) {
 		// Call loadActions() after mounting the elements with the Checkout Session API to check if there are any errors.
 		let hasLoadActionsError = false;
 		let loadActionsErrorMessage;
-		let loadActionsErrorCode;
 		try {
 			const actions = await elements.loadActions();
 
@@ -996,7 +967,6 @@ async function mountStripePaymentElementImpl( api, domElement ) {
 			if ( actions.type === 'error' ) {
 				hasLoadActionsError = true;
 				loadActionsErrorMessage = actions?.error?.message;
-				loadActionsErrorCode = actions?.error?.code;
 			}
 		} catch ( error ) {
 			if ( ! isCurrentMount() ) {
@@ -1017,25 +987,6 @@ async function mountStripePaymentElementImpl( api, domElement ) {
 					),
 				domElement
 			);
-
-			// A session expired early from the Stripe Dashboard or API leaves no trace on the
-			// server, which keeps handing it out until told otherwise.
-			if (
-				loadActionsErrorCode === 'checkout_not_active_session' &&
-				( await maybeReplaceCheckoutSession(
-					api,
-					paymentMethodType
-				) ) &&
-				isCurrentMount()
-			) {
-				showErrorPaymentMethod(
-					__(
-						'Your payment session has expired. Please refresh the page to continue.',
-						'woocommerce-gateway-stripe'
-					),
-					domElement
-				);
-			}
 		}
 
 		return component;

@@ -193,14 +193,16 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 	/**
 	 * Stripe expires a session 24 hours after creation while the record can outlive it, so an
 	 * unchanged cart must get a new session once Stripe's expiry has passed, and keep reusing one
-	 * that is still live or that predates expiry tracking.
+	 * that is still live. A record stored before expires_at was tracked expires a day after its
+	 * context was created.
 	 *
 	 * @dataProvider provide_synchronize_expiry_data
 	 *
-	 * @param int|null $expires_at_offset    Seconds from now that the first session expires at, or null when Stripe's response omits it.
+	 * @param int|null $expires_at_offset     Seconds from now that the first session expires at, or null when Stripe's response omits it.
 	 * @param int      $expected_create_count Number of sessions created across both synchronizations.
+	 * @param int      $context_age           Seconds to backdate the first session's context creation by.
 	 */
-	public function test_synchronize_recreates_session_only_once_it_has_expired( ?int $expires_at_offset, int $expected_create_count ): void {
+	public function test_synchronize_recreates_session_only_once_it_has_expired( ?int $expires_at_offset, int $expected_create_count, int $context_age = 0 ): void {
 		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 10 ] );
 		WC()->cart->add_to_cart( $product->get_id(), 1 );
 		WC()->cart->calculate_totals();
@@ -236,6 +238,13 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 		try {
 			$manager = new WC_Stripe_Checkout_Session_Manager();
 			$manager->synchronize();
+
+			if ( $context_age > 0 ) {
+				$context               = WC_Stripe_Checkout_Session_Context::get_context( 'cs_test_expiry_1' );
+				$context['created_at'] = time() - $context_age;
+				WC_Stripe_Checkout_Session_Context::set_context( 'cs_test_expiry_1', $context );
+			}
+
 			$second = $manager->synchronize();
 		} finally {
 			remove_filter( 'pre_http_request', $mock_request, 10 );
@@ -254,9 +263,10 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 	 */
 	public function provide_synchronize_expiry_data(): array {
 		return [
-			'expired session is recreated'        => [ -1, 2 ],
-			'live session is reused'              => [ HOUR_IN_SECONDS, 1 ],
-			'record without expires_at is reused' => [ null, 1 ],
+			'expired session is recreated'                       => [ -1, 2 ],
+			'live session is reused'                             => [ HOUR_IN_SECONDS, 1 ],
+			'record without expires_at is reused within a day'   => [ null, 1, HOUR_IN_SECONDS ],
+			'record without expires_at is recreated after a day' => [ null, 2, DAY_IN_SECONDS + 1 ],
 		];
 	}
 
@@ -409,52 +419,6 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 			'open session keeps the error'       => [ 'invalid_request_error', 'open', true, false ],
 			'failed lookup keeps the error'      => [ 'invalid_request_error', null, true, false ],
 			'non-request error skips the lookup' => [ 'api_error', 'expired', false, false ],
-		];
-	}
-
-	/**
-	 * A session expired early on Stripe leaves no local trace, so classic checkout asks for a lookup
-	 * once Stripe.js reports it no longer active; only a finished session is replaced.
-	 *
-	 * @dataProvider provide_replace_if_finished_data
-	 *
-	 * @param string|null $lookup              What a lookup of the session answers.
-	 * @param string      $expected_session_id Session ID returned afterwards.
-	 */
-	public function test_replace_if_finished_on_stripe( ?string $lookup, string $expected_session_id ): void {
-		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 10 ] );
-		WC()->cart->add_to_cart( $product->get_id(), 1 );
-		WC()->cart->calculate_totals();
-
-		$requested_urls = [];
-		$mock_request   = $this->mock_finished_session_stripe( [ 'type' => 'invalid_request_error' ], $lookup, $requested_urls );
-		add_filter( 'pre_http_request', $mock_request, 10, 3 );
-
-		try {
-			$manager = new WC_Stripe_Checkout_Session_Manager();
-			$manager->synchronize();
-			$result = $manager->replace_if_finished_on_stripe();
-		} finally {
-			remove_filter( 'pre_http_request', $mock_request, 10 );
-			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_finished_1' );
-		}
-
-		$this->assertSame( 'GET https://api.stripe.com/v1/checkout/sessions/cs_test_finished_1', $requested_urls[1] );
-		$this->assertCount( 'cs_test_finished_1' === $expected_session_id ? 2 : 3, $requested_urls );
-		$this->assertSame( $expected_session_id, $result['session_id'] );
-		$this->assertSame( 'success', $result['status'] );
-	}
-
-	/**
-	 * Data provider for test_replace_if_finished_on_stripe().
-	 *
-	 * @return array
-	 */
-	public function provide_replace_if_finished_data(): array {
-		return [
-			'expired session is replaced' => [ 'expired', 'cs_test_finished_2' ],
-			'open session is kept'        => [ 'open', 'cs_test_finished_1' ],
-			'failed lookup keeps it'      => [ null, 'cs_test_finished_1' ],
 		];
 	}
 
