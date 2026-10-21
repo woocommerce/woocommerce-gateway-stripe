@@ -391,12 +391,24 @@ class WC_Stripe_Order_Reconciliation {
 
 				$session_state = $this->get_checkout_session_state( $session, $session_id );
 				if ( self::STATE_PENDING === $session_state ) {
-					// A session that can still be paid is followed, whatever else is stored on the order.
-					$session_status = (string) ( $session->status ?? '' );
-					return $this->retry( 'The Checkout Session is not paid yet (status: ' . $session_status . ').', $order_id, $session_id, $session_status );
-				}
+					// A session that can still be paid is followed, unless a later payment attempt was verifiably paid.
+					$other_intent = $has_other_intent ? $this->get_settleable_payment_intent( $stored_intent_id ) : null;
+					if ( null === $other_intent ) {
+						$session_status = (string) ( $session->status ?? '' );
+						return $this->retry( 'The Checkout Session is not paid yet (status: ' . $session_status . ').', $order_id, $session_id, $session_status );
+					}
 
-				if ( self::STATE_FINAL === $session_state ) {
+					WC_Stripe_Logger::warning(
+						'Reconciliation settles an order through the PaymentIntent of a later payment attempt, but its Checkout Session is still open. Check that the customer does not pay twice.',
+						[
+							'order_id'   => $order_id,
+							'session_id' => $session_id,
+							'intent_id'  => $stored_intent_id,
+						]
+					);
+					$session = null;
+					$intent  = $other_intent;
+				} elseif ( self::STATE_FINAL === $session_state ) {
 					if ( ! $has_other_intent ) {
 						return $this->stop( 'The Checkout Session can no longer be paid.', $order_id, $session_id, self::STOP_SESSION );
 					}
@@ -435,17 +447,7 @@ class WC_Stripe_Order_Reconciliation {
 			}
 
 			if ( null === $intent ) {
-				$intent = $this->request_stripe_object(
-					add_query_arg(
-						[
-							'expand' => [
-								'payment_method',
-								'latest_charge',
-							],
-						],
-						'payment_intents/' . rawurlencode( $intent_id )
-					)
-				);
+				$intent = $this->request_payment_intent( $intent_id );
 				if ( ! is_object( $intent ) || isset( $intent->error ) ) {
 					return $this->get_request_error_result( $intent, $order_id, $intent_id );
 				}
@@ -886,6 +888,45 @@ class WC_Stripe_Order_Reconciliation {
 		// can't be reached; both mean "try again later", not a Stripe object.
 		$response = WC_Stripe_API::retrieve( $endpoint );
 		return is_object( $response ) && ! is_wp_error( $response ) ? $response : null;
+	}
+
+	/**
+	 * Fetch a PaymentIntent with everything settling needs: its payment method and its latest charge.
+	 *
+	 * @param string $intent_id PaymentIntent ID.
+	 * @return object|null See request_stripe_object().
+	 */
+	private function request_payment_intent( string $intent_id ): ?object {
+		return $this->request_stripe_object(
+			add_query_arg(
+				[
+					'expand' => [
+						'payment_method',
+						'latest_charge',
+					],
+				],
+				'payment_intents/' . rawurlencode( $intent_id )
+			)
+		);
+	}
+
+	/**
+	 * A PaymentIntent from a later payment attempt that can settle the order while its Checkout Session is still open.
+	 *
+	 * Only a paid intent with a verified charge counts. Anything else, including errors from Stripe, means
+	 * the check keeps following the session, which can still be paid; the intent never ends the checks.
+	 *
+	 * @param string $intent_id PaymentIntent ID stored on the order.
+	 * @return object|null The PaymentIntent, or null when it can't settle the order.
+	 */
+	private function get_settleable_payment_intent( string $intent_id ): ?object {
+		$intent = $this->request_payment_intent( $intent_id );
+		if ( ! is_object( $intent ) || isset( $intent->error ) || self::STATE_PAID !== $this->get_payment_intent_state( $intent, $intent_id ) ) {
+			return null;
+		}
+
+		$charge = $intent->latest_charge ?? null;
+		return is_object( $charge ) && $this->is_valid_charge( $charge, $intent ) ? $intent : null;
 	}
 
 	/**

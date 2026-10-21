@@ -163,6 +163,43 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		];
 	}
 
+	/** @dataProvider provide_later_attempts_while_the_session_is_open */
+	public function test_open_session_gives_way_only_to_a_paid_later_payment_attempt( string $later_attempt, bool $expect_paid ): void {
+		$order = $this->create_pending_stripe_order( true );
+		$order->update_meta_data( '_stripe_intent_id', 'pi_recovery' );
+		$order->save();
+		$this->use_real_settlement();
+		$objects = $this->successful_stripe_objects( $order );
+		$objects['/checkout/sessions/cs_recovery']->status         = 'open';
+		$objects['/checkout/sessions/cs_recovery']->payment_intent = null;
+		if ( 'processing' === $later_attempt ) {
+			$objects['/payment_intents/pi_recovery']->status = WC_Stripe_Intent_Status::PROCESSING;
+		} elseif ( 'missing' === $later_attempt ) {
+			$objects['/payment_intents/pi_recovery'] = (object) [
+				'error' => (object) [
+					'code' => 'resource_missing',
+					'type' => 'invalid_request_error',
+				],
+			];
+		}
+		$this->mock_stripe_objects( $objects );
+
+		$this->reconciliation->reconcile_order_payment( $order->get_id() );
+
+		$checked = wc_get_order( $order->get_id() );
+		$this->assertSame( $expect_paid, $checked->is_paid() );
+		// Anything short of a paid later attempt keeps following the session, which can still be paid.
+		$this->assertCount( $expect_paid ? 0 : 1, $this->scheduled_checks( $order->get_id() ) );
+	}
+
+	public static function provide_later_attempts_while_the_session_is_open(): array {
+		return [
+			'paid'           => [ 'paid', true ],
+			'not paid yet'   => [ 'processing', false ],
+			'missing intent' => [ 'missing', false ],
+		];
+	}
+
 	public function test_final_session_without_another_intent_stops(): void {
 		$order = $this->create_pending_stripe_order( true );
 		$order->update_meta_data( '_stripe_intent_id', 'pi_recovery' );
