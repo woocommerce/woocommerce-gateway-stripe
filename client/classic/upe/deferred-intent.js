@@ -8,7 +8,6 @@ import {
 	isUsingSavedPaymentMethod,
 	paymentMethodSupportsDeferredIntent,
 	removeCheckoutSessionIdFromForm,
-	showErrorCheckout,
 	togglePaymentMethodForCountry,
 } from '../../stripe-utils';
 import './style.scss';
@@ -26,7 +25,6 @@ import {
 	resetCheckoutCompletionState,
 	trackMountInProgress,
 } from './payment-processing';
-import { __ } from '@wordpress/i18n';
 
 jQuery( function ( $ ) {
 	const stripeServerData = getStripeServerData();
@@ -105,24 +103,21 @@ jQuery( function ( $ ) {
 	} );
 
 	function processPaymentIfNotUsingSavedMethod( $form ) {
-		// Returning false is what stops WooCommerce submitting: returning early without
-		// it would let the form POST with no payment method, and the order would be
-		// created and then failed. jQuery :visible filters out fields hidden by
-		// conditional checkout logic (e.g. shipping fields when "Ship to different
-		// address" is unchecked).
+		// When a required field is empty, let WooCommerce submit and return its own per-field
+		// notices (one named message per field, with a link where Woo provides one) instead of
+		// replacing them with a single generic message. We still skip creating a Stripe payment
+		// method for a submission that is missing fields, which is what #5222 set out to avoid.
+		// Returning undefined (not false) keeps WooCommerce's normal flow: it rejects the
+		// required fields it validates before an order is created. jQuery :visible filters out
+		// fields hidden by conditional checkout logic (e.g. shipping fields when "Ship to
+		// different address" is unchecked).
 		if (
 			hasEmptyRequiredFields(
 				$form.find( '.validate-required:visible' ).toArray()
 			)
 		) {
 			resetCheckoutCompletionState();
-			showErrorCheckout(
-				__(
-					'Please fill in all required fields.',
-					'woocommerce-gateway-stripe'
-				)
-			);
-			return false;
+			return;
 		}
 
 		const paymentMethodType = getSelectedUPEGatewayPaymentMethod();

@@ -1,8 +1,9 @@
 /**
  * The classic checkout handler's RETURN VALUE is the contract with WooCommerce core:
  * core submits the form unless a `checkout_place_order_*` handler returns exactly false.
- * Returning early without false lets the form POST with no payment method, which creates
- * an order and then fails it. These tests pin the return value, not just the side effects.
+ * When required fields are empty the handler returns undefined so core submits and
+ * WooCommerce returns its own per-field notices, while still skipping Stripe payment-method
+ * creation. These tests pin the return value, not just the side effects.
  */
 const mockProcessPayment = jest.fn();
 const mockResetCheckoutCompletionState = jest.fn();
@@ -84,15 +85,13 @@ describe( 'classic checkout place-order handler', () => {
 		jest.resetModules();
 	} );
 
-	it( 'returns false so core does not submit when a required field is empty', () => {
+	it( 'lets core submit so WooCommerce validates when a required field is empty', () => {
 		mockIsEmpty = true;
 
-		expect( placeOrder() ).toBe( false );
+		expect( placeOrder() ).toBeUndefined();
 		expect( mockProcessPayment ).not.toHaveBeenCalled();
 		expect( mockResetCheckoutCompletionState ).toHaveBeenCalledTimes( 1 );
-		expect( mockShowErrorCheckout ).toHaveBeenCalledWith(
-			'Please fill in all required fields.'
-		);
+		expect( mockShowErrorCheckout ).not.toHaveBeenCalled();
 	} );
 
 	it( 'delegates to processPayment when the required fields are filled', () => {
@@ -103,16 +102,14 @@ describe( 'classic checkout place-order handler', () => {
 		expect( mockShowErrorCheckout ).not.toHaveBeenCalled();
 	} );
 
-	it( 'blocks a saved-token checkout when a required field is empty', () => {
+	it( 'lets core submit a saved-token checkout so WooCommerce validates when a required field is empty', () => {
 		mockIsEmpty = true;
 		mockUsingSavedMethod = true;
 
-		expect( placeOrder() ).toBe( false );
+		expect( placeOrder() ).toBeUndefined();
 		expect( mockProcessPayment ).not.toHaveBeenCalled();
 		expect( mockResetCheckoutCompletionState ).toHaveBeenCalledTimes( 1 );
-		expect( mockShowErrorCheckout ).toHaveBeenCalledWith(
-			'Please fill in all required fields.'
-		);
+		expect( mockShowErrorCheckout ).not.toHaveBeenCalled();
 	} );
 
 	it( 'lets core submit a saved token when required fields are filled', () => {
