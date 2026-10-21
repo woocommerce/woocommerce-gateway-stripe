@@ -193,8 +193,8 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 	/**
 	 * Stripe expires a session 24 hours after creation while the record can outlive it, so an
 	 * unchanged cart must get a new session once Stripe's expiry has passed, and keep reusing one
-	 * that is still live. A record stored before expires_at was tracked expires a day after its
-	 * context was created.
+	 * that is still live. A record stored before expires_at was tracked is never assumed expired,
+	 * however old its context is.
 	 *
 	 * @dataProvider provide_synchronize_expiry_data
 	 *
@@ -263,10 +263,9 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 	 */
 	public function provide_synchronize_expiry_data(): array {
 		return [
-			'expired session is recreated'                       => [ -1, 2 ],
-			'live session is reused'                             => [ HOUR_IN_SECONDS, 1 ],
-			'record without expires_at is reused within a day'   => [ null, 1, HOUR_IN_SECONDS ],
-			'record without expires_at is recreated after a day' => [ null, 2, DAY_IN_SECONDS + 1 ],
+			'expired session is recreated'        => [ -1, 2 ],
+			'live session is reused'              => [ HOUR_IN_SECONDS, 1 ],
+			'record without expires_at is reused' => [ null, 1, DAY_IN_SECONDS + 1 ],
 		];
 	}
 

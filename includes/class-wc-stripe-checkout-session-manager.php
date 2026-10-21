@@ -253,14 +253,11 @@ class WC_Stripe_Checkout_Session_Manager {
 			return $this->create_session();
 		}
 
-		// Stripe expires a session at expires_at, 24 hours after creation by default, but every cart
-		// update extends the context past that, so an unchanged cart would otherwise keep handing the
-		// client a session Stripe refuses. Records stored before expires_at was tracked fall back to
-		// Stripe's default lifetime from the context's creation time.
+		// Stripe expires a session at expires_at, but every cart update extends the context past
+		// that, so an unchanged cart would otherwise keep handing the client a session Stripe refuses.
+		// Records stored before expires_at was tracked are replaced on their next cart change instead,
+		// through the rejected update.
 		$expires_at = (int) ( $record['expires_at'] ?? 0 );
-		if ( 0 === $expires_at && ! empty( $context['created_at'] ) ) {
-			$expires_at = (int) $context['created_at'] + DAY_IN_SECONDS;
-		}
 		if ( $expires_at > 0 && time() >= $expires_at ) {
 			WC_Stripe_Logger::info(
 				'Recreating the Checkout Session because it has expired.',
