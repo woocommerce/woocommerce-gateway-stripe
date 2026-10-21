@@ -636,9 +636,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		 * This action is documented in includes/class-wc-stripe-webhook-handler.php.
 		 */
 		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification, null );
-
-		$order_id = $order->get_id();
-		$this->send_failed_order_email( $order_id );
 	}
 
 	/**
