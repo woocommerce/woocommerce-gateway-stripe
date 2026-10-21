@@ -58,6 +58,7 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @return void
 	 */
 	public function tear_down(): void {
+		remove_filter( 'wp_doing_ajax', '__return_true' );
 		woocommerce_gateway_stripe()->connect = $this->stripe_connect_original;
 		WC_Stripe_Helper::delete_main_stripe_settings();
 
@@ -153,5 +154,79 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$admin_note_store = WC_Data_Store::load( 'admin-note' );
 		$this->assertSame( 0, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_StripeLink_Note::NOTE_NAME ) ) );
+	}
+
+	/**
+	 * The "What's new" note is created on regular admin requests and deferred during AJAX.
+	 *
+	 * @dataProvider provider_create_upe_notes_whats_new_note_by_request_type
+	 */
+	public function test_create_upe_notes_whats_new_note_by_request_type( bool $doing_ajax, int $expected_note_count, bool $expect_baseline_advanced ) {
+		update_option( WC_Stripe_Whats_New_Note::LAST_SEEN_VERSION_OPTION, '0.0.1' );
+		if ( $doing_ajax ) {
+			add_filter( 'wp_doing_ajax', '__return_true' );
+		}
+
+		WC_Stripe_Inbox_Notes::create_upe_notes();
+
+		$admin_note_store = WC_Data_Store::load( 'admin-note' );
+		$this->assertSame( $expected_note_count, count( $admin_note_store->get_notes_with_name( WC_Stripe_Whats_New_Note::NOTE_NAME ) ) );
+		$this->assertSame(
+			$expect_baseline_advanced ? WC_STRIPE_VERSION : '0.0.1',
+			get_option( WC_Stripe_Whats_New_Note::LAST_SEEN_VERSION_OPTION )
+		);
+	}
+
+	public function provider_create_upe_notes_whats_new_note_by_request_type(): array {
+		return [
+			'regular admin request' => [ false, 1, true ],
+			'admin-ajax request'    => [ true, 0, false ],
+		];
+	}
+
+	/**
+	 * Promotional notes are registered on regular admin requests and skipped during AJAX.
+	 *
+	 * @dataProvider provider_create_upe_notes_promotional_notes_by_request_type
+	 */
+	public function test_create_upe_notes_promotional_notes_by_request_type( bool $doing_ajax, int $expected_note_count ) {
+		if ( $doing_ajax ) {
+			add_filter( 'wp_doing_ajax', '__return_true' );
+		}
+
+		WC_Stripe_Inbox_Notes::create_upe_notes();
+
+		$admin_note_store = WC_Data_Store::load( 'admin-note' );
+		$this->assertSame( $expected_note_count, count( $admin_note_store->get_notes_with_name( WC_Stripe_BNPL_Promotion_Note::NOTE_NAME ) ) );
+		$this->assertSame( $expected_note_count, count( $admin_note_store->get_notes_with_name( WC_Stripe_OC_Promotion_Note::NOTE_NAME ) ) );
+	}
+
+	public function provider_create_upe_notes_promotional_notes_by_request_type(): array {
+		return [
+			'regular admin request' => [ false, 1 ],
+			'admin-ajax request'    => [ true, 0 ],
+		];
+	}
+
+	/**
+	 * During AJAX, promotional notes are skipped before the main gateway is built.
+	 */
+	public function test_create_upe_notes_skips_promotional_notes_during_ajax() {
+		$mock_wc_stripe = $this->createMock( WC_Stripe::class );
+		$mock_wc_stripe->expects( $this->never() )
+			->method( 'get_main_stripe_gateway' );
+
+		$wc_stripe_instance_reflection = new ReflectionProperty( WC_Stripe::class, 'instance' );
+		$wc_stripe_instance_reflection->setAccessible( true );
+		$original_wc_stripe = $wc_stripe_instance_reflection->getValue();
+		$wc_stripe_instance_reflection->setValue( null, $mock_wc_stripe );
+
+		add_filter( 'wp_doing_ajax', '__return_true' );
+
+		try {
+			WC_Stripe_Inbox_Notes::create_upe_notes();
+		} finally {
+			$wc_stripe_instance_reflection->setValue( null, $original_wc_stripe );
+		}
 	}
 }
