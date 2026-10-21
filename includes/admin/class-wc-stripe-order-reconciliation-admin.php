@@ -63,7 +63,9 @@ class WC_Stripe_Order_Reconciliation_Admin {
 	}
 
 	/**
-	 * Queue the requested order status check.
+	 * Run the requested order status check right away.
+	 *
+	 * Unlike the bulk action, this checks a single order, so the merchant sees the result when the order screen reloads.
 	 *
 	 * @param mixed $order
 	 */
@@ -72,17 +74,13 @@ class WC_Stripe_Order_Reconciliation_Admin {
 			return;
 		}
 
-		if ( $this->reconciliation->enqueue_order( $order ) ) {
-			$order->add_order_note( __( 'A Stripe payment status check has been scheduled.', 'woocommerce-gateway-stripe' ) );
+		// The action is only offered for eligible orders, but the order can change before it is saved.
+		if ( ! $this->reconciliation->is_eligible_order( $order ) ) {
+			$order->add_order_note( __( 'No Stripe payment status check was run: the order is no longer pending, or it has no Stripe payment to look up. Check the payment in your Stripe Dashboard.', 'woocommerce-gateway-stripe' ) );
 			return;
 		}
 
-		// The action is only offered for eligible orders, but the order can change before it is saved.
-		$order->add_order_note(
-			$this->reconciliation->is_eligible_order( $order )
-				? __( 'No Stripe payment status check was scheduled: one is already queued for this order and runs within a few minutes.', 'woocommerce-gateway-stripe' )
-				: __( 'No Stripe payment status check was scheduled: the order is no longer pending, or it has no Stripe payment to look up. Check the payment in your Stripe Dashboard.', 'woocommerce-gateway-stripe' )
-		);
+		$this->reconciliation->reconcile_order_payment( $order->get_id(), true );
 	}
 
 	/**

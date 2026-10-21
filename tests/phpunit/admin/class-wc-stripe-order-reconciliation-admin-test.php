@@ -114,23 +114,27 @@ class WC_Stripe_Order_Reconciliation_Admin_Test extends WP_UnitTestCase {
 		$this->assertSame( 1, (int) $duplicate_query_args[ WC_Stripe_Order_Reconciliation_Admin::SKIPPED_QUERY_ARG ] );
 	}
 
-	public function test_single_action_adds_a_note_when_a_check_is_queued() {
-		$order = $this->create_order( 'stripe', 'pi_single' );
+	public function test_single_action_checks_the_order_right_away() {
+		$order       = $this->create_order( 'stripe', 'pi_single' );
+		$http_calls  = 0;
+		$http_filter = static function ( $preempt, $args, $url ) use ( &$http_calls ) {
+			if ( false === strpos( $url, 'api.stripe.com/v1/payment_intents/pi_single' ) ) {
+				return $preempt;
+			}
+			++$http_calls;
+			return new WP_Error( 'http_request_failed', 'Timeout.' );
+		};
+		add_filter( 'pre_http_request', $http_filter, 10, 3 );
 
-		$this->admin->handle_order_action( $order );
+		try {
+			$this->admin->handle_order_action( $order );
+		} finally {
+			remove_filter( 'pre_http_request', $http_filter, 10 );
+		}
 
-		$this->assertSame( [ 'A Stripe payment status check has been scheduled.' ], $this->note_contents( $order ) );
-	}
-
-	public function test_single_action_explains_an_already_queued_check() {
-		$order = $this->create_order( 'stripe', 'pi_single_duplicate' );
-		$this->admin->handle_order_action( $order );
-
-		$this->admin->handle_order_action( $order );
-
-		$notes = $this->note_contents( $order );
-		$this->assertCount( 2, $notes );
-		$this->assertStringContainsString( 'one is already queued for this order', $notes[0] );
+		$this->assertSame( 1, $http_calls );
+		$this->assertSame( [], $this->queued_order_ids() );
+		$this->assertStringContainsString( 'the payment status could not be confirmed right now', implode( "\n", $this->note_contents( $order ) ) );
 	}
 
 	public function test_single_action_explains_an_order_that_cannot_be_checked() {

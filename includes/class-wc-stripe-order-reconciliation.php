@@ -284,7 +284,7 @@ class WC_Stripe_Order_Reconciliation {
 	}
 
 	/**
-	 * Process an Action Scheduler job.
+	 * Process an Action Scheduler job, or a manual check of one order from the order screen.
 	 *
 	 * Scheduled checks reschedule themselves while Stripe may still complete the payment, until the
 	 * payment method's window has passed. Manual checks run once and leave any scheduled check in place.
