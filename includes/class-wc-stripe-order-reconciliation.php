@@ -5,6 +5,8 @@
  * @package WooCommerce\Stripe
  */
 
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -62,6 +64,14 @@ class WC_Stripe_Order_Reconciliation {
 	private const STOP_CHARGE  = 'charge';
 
 	/**
+	 * States of a Checkout Session or PaymentIntent: it holds the customer's money, it may still be paid,
+	 * or it never will be.
+	 */
+	private const STATE_PAID    = 'paid';
+	private const STATE_PENDING = 'pending';
+	private const STATE_FINAL   = 'final';
+
+	/**
 	 * Stripe status behind the last "check again later" outcome, for the merchant's note on manual checks.
 	 *
 	 * @var string
@@ -74,14 +84,6 @@ class WC_Stripe_Order_Reconciliation {
 	 * @var string
 	 */
 	private $last_stop = '';
-
-	public static function unschedule(): void {
-		if ( ! did_action( 'action_scheduler_init' ) || ! function_exists( 'as_unschedule_all_actions' ) ) {
-			return;
-		}
-
-		as_unschedule_all_actions( self::ORDER_HOOK, null, self::GROUP ); // @phpstan-ignore argument.type (null removes matching jobs regardless of their arguments)
-	}
 
 	/**
 	 * Gateway used to settle charge responses.
@@ -100,6 +102,14 @@ class WC_Stripe_Order_Reconciliation {
 	public function __construct( WC_Stripe_Payment_Gateway $gateway, WC_Stripe_Webhook_Handler $webhook_handler ) {
 		$this->gateway         = $gateway;
 		$this->webhook_handler = $webhook_handler;
+	}
+
+	public static function unschedule(): void {
+		if ( ! did_action( 'action_scheduler_init' ) || ! function_exists( 'as_unschedule_all_actions' ) ) {
+			return;
+		}
+
+		as_unschedule_all_actions( self::ORDER_HOOK, null, self::GROUP ); // @phpstan-ignore argument.type (null removes matching jobs regardless of their arguments)
 	}
 
 	public function register_hooks(): void {
@@ -397,12 +407,14 @@ class WC_Stripe_Order_Reconciliation {
 				// comes from another payment attempt on the same order, for example through pay-for-order.
 				$has_other_intent = '' !== $stored_intent_id && $stored_intent_id !== $session_intent_id;
 
-				if ( ! $this->is_valid_paid_checkout_session( $session, $session_id ) ) {
-					if ( ! $this->is_checkout_session_finalized( $session, $session_id ) ) {
-						// A session that can still be paid is followed, whatever else is stored on the order.
-						$session_status = (string) ( $session->status ?? '' );
-						return $this->retry( 'The Checkout Session is not paid yet (status: ' . $session_status . ').', $order_id, $session_id, $session_status );
-					}
+				$session_state = $this->get_checkout_session_state( $session, $session_id );
+				if ( self::STATE_PENDING === $session_state ) {
+					// A session that can still be paid is followed, whatever else is stored on the order.
+					$session_status = (string) ( $session->status ?? '' );
+					return $this->retry( 'The Checkout Session is not paid yet (status: ' . $session_status . ').', $order_id, $session_id, $session_status );
+				}
+
+				if ( self::STATE_FINAL === $session_state ) {
 					if ( ! $has_other_intent ) {
 						return $this->stop( 'The Checkout Session can no longer be paid.', $order_id, $session_id, self::STOP_SESSION );
 					}
@@ -460,10 +472,13 @@ class WC_Stripe_Order_Reconciliation {
 			// Store a flag against the order for delayed payments.
 			$this->maybe_mark_delayed_payment( $order, $intent );
 
-			if ( ! $this->is_valid_payment_intent( $intent, $intent_id ) ) {
-				return $this->is_payment_intent_finalized( $intent, $intent_id )
-					? $this->stop( 'The PaymentIntent can no longer be paid.', $order_id, $intent_id, self::STOP_INTENT )
-					: $this->retry( 'The PaymentIntent is not paid yet (status: ' . (string) ( $intent->status ?? '' ) . ').', $order_id, $intent_id, (string) ( $intent->status ?? '' ) );
+			$intent_state = $this->get_payment_intent_state( $intent, $intent_id );
+			if ( self::STATE_FINAL === $intent_state ) {
+				return $this->stop( 'The PaymentIntent can no longer be paid.', $order_id, $intent_id, self::STOP_INTENT );
+			}
+			if ( self::STATE_PENDING === $intent_state ) {
+				$intent_status = (string) ( $intent->status ?? '' );
+				return $this->retry( 'The PaymentIntent is not paid yet (status: ' . $intent_status . ').', $order_id, $intent_id, $intent_status );
 			}
 
 			// The gateway helper can't take an expanded charge, and is only needed when Stripe didn't expand it.
@@ -584,16 +599,16 @@ class WC_Stripe_Order_Reconciliation {
 	private function report_settlement( int $order_id, string $intent_id, object $charge ): void {
 		$charge_id = (string) ( $charge->id ?? '' );
 		$order     = $this->resolve_order( $order_id );
-		if ( $order && 'pending' === $order->get_status() && $charge_id === $order->get_transaction_id() && 'manual_review' === ( $charge->outcome->type ?? '' ) ) {
+		if ( $order && $order->has_status( OrderStatus::PENDING ) && $charge_id === $order->get_transaction_id() && 'manual_review' === ( $charge->outcome->type ?? '' ) ) {
 			// Settlement already stored the status to restore after the review, so review.closed (or the
 			// merchant) can complete the order; putting it on hold here must not replace that status.
 			$order->update_status(
-				'on-hold',
+				OrderStatus::ON_HOLD,
 				__( 'Stripe Radar is reviewing this payment, so the order was placed on hold. Review the payment in your Stripe Dashboard. If webhooks are not reaching this site, update the order yourself once the review is closed.', 'woocommerce-gateway-stripe' )
 			);
 		}
 
-		if ( ! $order || 'pending' === $order->get_status() || $charge_id !== $order->get_transaction_id() ) {
+		if ( ! $order || $order->has_status( OrderStatus::PENDING ) || $charge_id !== $order->get_transaction_id() ) {
 			WC_Stripe_Logger::warning(
 				'Reconciliation found a Stripe payment, but settling it did not record it on the order.',
 				[
@@ -813,7 +828,7 @@ class WC_Stripe_Order_Reconciliation {
 	 */
 	public function is_eligible_order( WC_Order $order ): bool {
 		return 'shop_order' === $order->get_type()
-			&& 'pending' === $order->get_status()
+			&& $order->has_status( OrderStatus::PENDING )
 			&& ! $order->get_date_paid()
 			&& WC_Stripe_Order_Helper::get_instance()->is_stripe_gateway_order( $order )
 			&& ( $this->get_checkout_session_id( $order ) || $this->get_intent_id( $order ) );
@@ -865,67 +880,53 @@ class WC_Stripe_Order_Reconciliation {
 	}
 
 	/**
-	 * Whether the session is this order's completed payment session and names its PaymentIntent.
+	 * Where the order's Checkout Session stands.
 	 *
-	 * A complete session alone never settles the order: its PaymentIntent and charge are verified as well.
+	 * - Paid: this order's completed payment session, naming its PaymentIntent. That alone never settles
+	 *   the order: its PaymentIntent and charge are verified as well.
+	 * - Final: expired, or not an order's payment session at all, so it never will be paid.
+	 * - Pending: open, or complete and still waiting for its PaymentIntent.
 	 *
-	 * @param object|null $session    Checkout Session from Stripe.
-	 * @param string      $session_id Session ID stored on the order.
-	 * @return bool
-	 */
-	private function is_valid_paid_checkout_session( ?object $session, string $session_id ): bool {
-		return null !== $session
-			&& 'checkout.session' === ( $session->object ?? '' )
-			&& ( $session->id ?? '' ) === $session_id
-			&& 'payment' === ( $session->mode ?? '' )
-			&& 'complete' === ( $session->status ?? '' )
-			&& is_string( $session->payment_intent ?? null )
-			&& '' !== $session->payment_intent;
-	}
-
-	/**
-	 * An expired session can't be paid, and a session that isn't an order's payment session never will be.
-	 * An open session, or a complete one still waiting for its PaymentIntent, may still be paid.
-	 *
-	 * @param object $session    Checkout Session from Stripe that failed is_valid_paid_checkout_session().
+	 * @param object $session    Checkout Session from Stripe.
 	 * @param string $session_id Session ID stored on the order.
-	 * @return bool
+	 * @return string One of the STATE_* constants.
 	 */
-	private function is_checkout_session_finalized( object $session, string $session_id ): bool {
-		return 'checkout.session' !== ( $session->object ?? '' )
+	private function get_checkout_session_state( object $session, string $session_id ): string {
+		if ( 'checkout.session' !== ( $session->object ?? '' )
 			|| ( $session->id ?? '' ) !== $session_id
 			|| 'payment' !== ( $session->mode ?? '' )
-			|| 'expired' === ( $session->status ?? '' );
+			|| 'expired' === ( $session->status ?? '' )
+		) {
+			return self::STATE_FINAL;
+		}
+
+		$has_intent = is_string( $session->payment_intent ?? null ) && '' !== $session->payment_intent;
+		return 'complete' === ( $session->status ?? '' ) && $has_intent ? self::STATE_PAID : self::STATE_PENDING;
 	}
 
 	/**
-	 * Whether the intent is the one requested and holds the customer's money.
+	 * Where the PaymentIntent stands.
 	 *
-	 * That means succeeded, or authorized and waiting for a manual capture.
+	 * - Paid: the one requested, and it holds the customer's money: succeeded, or authorized and
+	 *   waiting for a manual capture.
+	 * - Final: canceled, or not the one requested.
+	 * - Pending: it needs an action, a payment method or more time (async payment methods).
 	 *
-	 * @param object|null $intent    PaymentIntent from Stripe.
-	 * @param string      $intent_id ID that was requested.
-	 * @return bool
-	 */
-	private function is_valid_payment_intent( ?object $intent, string $intent_id ): bool {
-		return null !== $intent
-			&& 'payment_intent' === ( $intent->object ?? '' )
-			&& ( $intent->id ?? '' ) === $intent_id
-			&& in_array( $intent->status ?? '', [ WC_Stripe_Intent_Status::SUCCEEDED, WC_Stripe_Intent_Status::REQUIRES_CAPTURE ], true );
-	}
-
-	/**
-	 * A canceled intent can't be paid. Intents that need an action, a payment method or more time
-	 * (async payment methods) may still succeed.
-	 *
-	 * @param object $intent    PaymentIntent from Stripe that failed is_valid_payment_intent().
+	 * @param object $intent    PaymentIntent from Stripe.
 	 * @param string $intent_id ID that was requested.
-	 * @return bool
+	 * @return string One of the STATE_* constants.
 	 */
-	private function is_payment_intent_finalized( object $intent, string $intent_id ): bool {
-		return 'payment_intent' !== ( $intent->object ?? '' )
+	private function get_payment_intent_state( object $intent, string $intent_id ): string {
+		if ( 'payment_intent' !== ( $intent->object ?? '' )
 			|| ( $intent->id ?? '' ) !== $intent_id
-			|| WC_Stripe_Intent_Status::CANCELED === ( $intent->status ?? '' );
+			|| WC_Stripe_Intent_Status::CANCELED === ( $intent->status ?? '' )
+		) {
+			return self::STATE_FINAL;
+		}
+
+		return in_array( $intent->status ?? '', [ WC_Stripe_Intent_Status::SUCCEEDED, WC_Stripe_Intent_Status::REQUIRES_CAPTURE ], true )
+			? self::STATE_PAID
+			: self::STATE_PENDING;
 	}
 
 	/**
@@ -936,7 +937,7 @@ class WC_Stripe_Order_Reconciliation {
 	 * captured, paid charge for the full amount; an authorized intent needs an uncaptured charge.
 	 *
 	 * @param object $charge Latest charge of the intent.
-	 * @param object $intent PaymentIntent that passed is_valid_payment_intent().
+	 * @param object $intent PaymentIntent in the paid state.
 	 * @return bool
 	 */
 	private function is_valid_charge( object $charge, object $intent ): bool {
@@ -955,7 +956,7 @@ class WC_Stripe_Order_Reconciliation {
 			return false;
 		}
 
-		if ( 'succeeded' === ( $intent->status ?? '' ) ) {
+		if ( WC_Stripe_Intent_Status::SUCCEEDED === ( $intent->status ?? '' ) ) {
 			return true === ( $charge->captured ?? false )
 				&& true === ( $charge->paid ?? false )
 				&& (int) ( $intent->amount_received ?? -1 ) === (int) ( $intent->amount ?? -2 );
