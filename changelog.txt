@@ -1,9 +1,25 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 11.2.0
+* Fix - Complete deprecation of wc_stripe_force_save_source
+* Fix - Use the account API key for webhook status, cleanup, and manual setup
 * Dev - Remove expired lock rows from the options table once a day
+* Tweak - Minor improvement to error logging when saving new keys
 * Fix - Keep pending ACH orders open while Stripe is still waiting for bank verification
 * Fix - Show the completed order on order-received after a 3D Secure retry under Adaptive Pricing, instead of a brief failed-order notice
+* Fix - Complete express checkout payments on the Pay for Order page when the checkout phone field is required, and preserve the order's saved billing phone
+* Dev - Fix the Format Release Notes workflow running out of turns before it could open its pull request
+* Add - Remote configuration system for managing feature availability during incidents
+* Update - Retry failed remote-config syncs with backoff and log a warning when the cached configuration goes stale
+* Dev - Make the express checkout password cleanup next-batch delay test stable on slow CI runners
+* Dev - Let hook @since docblocks use the x.x.x version placeholder in phpcs
+* Fix - Send shoppers to the order confirmation page instead of showing an error when processing fails after a 3D Secure payment has already succeeded
+* Dev - Add E2E coverage for paying with a non-Stripe gateway on the Pay for Order, add payment method, and change payment method pages
+* Fix - Record the payment for a released charge-upon-release pre-order paid from the pay page with 3D Secure, instead of leaving the order unpaid after the card was charged
+* Update - Unify express checkout button sizes across Apple Pay / Google Pay, Link, and Amazon Pay
+
+2026-10-16 - version 11.1.1
+* Fix - Stop blocking non-Stripe payment gateways on the Pay for Order, change payment method, and add payment method pages
 
 2026-10-13 - version 11.1.0
 * Add - Automatically configure test mode when onboarding to a live account

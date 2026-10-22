@@ -111,6 +111,13 @@ describe( 'ExpressCheckoutSettingsSection', () => {
 		expect( screen.getByLabelText( 'Buy' ) ).toBeChecked();
 		expect( screen.getByLabelText( 'Default (48 px)' ) ).toBeChecked();
 		expect( screen.getByLabelText( /Dark/ ) ).toBeChecked();
+
+		// The size is shared with the Link and Amazon Pay tabs.
+		expect(
+			screen.getByText(
+				/This size applies to all express checkout buttons/i
+			)
+		).toBeInTheDocument();
 	} );
 
 	it( 'triggers the hooks when the settings are being interacted with', async () => {
