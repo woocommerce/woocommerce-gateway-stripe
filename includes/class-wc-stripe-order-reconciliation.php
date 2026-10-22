@@ -12,6 +12,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Checks pending Stripe orders against Stripe when their webhooks don't settle them, and settles them.
  *
+ * @since x.x.x
  * @internal Not part of the public API; it can change without notice.
  */
 class WC_Stripe_Order_Reconciliation {
@@ -91,6 +92,11 @@ class WC_Stripe_Order_Reconciliation {
 		$this->webhook_handler = $webhook_handler;
 	}
 
+	/**
+	 * Remove all pending checks, when the plugin is deactivated.
+	 *
+	 * @since x.x.x
+	 */
 	public static function unschedule(): void {
 		if ( ! did_action( 'action_scheduler_init' ) || ! function_exists( 'as_unschedule_all_actions' ) ) {
 			return;
@@ -99,6 +105,11 @@ class WC_Stripe_Order_Reconciliation {
 		as_unschedule_all_actions( self::ORDER_HOOK, null, self::GROUP ); // @phpstan-ignore argument.type (null removes matching jobs regardless of their arguments)
 	}
 
+	/**
+	 * Register the check callback, and the hooks that schedule checks after payment processing.
+	 *
+	 * @since x.x.x
+	 */
 	public function register_hooks(): void {
 		add_action( self::ORDER_HOOK, [ $this, 'reconcile_order_payment' ], 10, 2 );
 
@@ -119,6 +130,7 @@ class WC_Stripe_Order_Reconciliation {
 	/**
 	 * Schedule a check after a successful classic payment, if the order is still waiting for Stripe.
 	 *
+	 * @since x.x.x
 	 * @param mixed $result   Result of the gateway's process_payment().
 	 * @param mixed $order_id Order that was paid for.
 	 * @return mixed The result, unchanged.
@@ -134,6 +146,7 @@ class WC_Stripe_Order_Reconciliation {
 	/**
 	 * Schedule a check after a successful Store API payment, if the order is still waiting for Stripe.
 	 *
+	 * @since x.x.x
 	 * @param mixed $context Payment context, holding the order.
 	 * @param mixed $result  Payment result.
 	 */
@@ -154,6 +167,7 @@ class WC_Stripe_Order_Reconciliation {
 	 *
 	 * The order stays pending until Stripe attempts the charge at `completes_at`, so the checks start then.
 	 *
+	 * @since x.x.x
 	 * @param mixed $response      PaymentIntent returned for the renewal.
 	 * @param mixed $renewal_order Renewal order.
 	 */
@@ -178,6 +192,7 @@ class WC_Stripe_Order_Reconciliation {
 	 * example card payments confirmed on the spot, are no longer eligible and get no check.
 	 * A new payment attempt on the same order starts the checks over, possibly with another method.
 	 *
+	 * @since x.x.x
 	 * @param mixed $order Order or order ID.
 	 */
 	public function schedule_order_check( $order ): void {
@@ -255,6 +270,7 @@ class WC_Stripe_Order_Reconciliation {
 	 * The extra argument keeps it apart from the scheduled check of the same order, so a pending
 	 * scheduled check doesn't block it. Only another queued manual check does.
 	 *
+	 * @since x.x.x
 	 * @param mixed $order Order or order ID.
 	 */
 	public function enqueue_order( $order ): bool {
@@ -284,6 +300,7 @@ class WC_Stripe_Order_Reconciliation {
 	 * Scheduled checks reschedule themselves while Stripe may still complete the payment, until the
 	 * payment method's window has passed. Manual checks run once and leave any scheduled check in place.
 	 *
+	 * @since x.x.x
 	 * @param mixed $order_id
 	 * @param mixed $is_manual
 	 */
@@ -772,6 +789,7 @@ class WC_Stripe_Order_Reconciliation {
 	 * IDs are validated before calling wc_get_order(), which falls back to the order on the current
 	 * admin screen when given false, and returns refunds as well as orders.
 	 *
+	 * @since x.x.x
 	 * @param mixed $order Order or order ID.
 	 * @return WC_Order|null The current order, or null when the reference doesn't point to a saved order.
 	 */
@@ -876,6 +894,7 @@ class WC_Stripe_Order_Reconciliation {
 	 * reached Stripe, so there is nothing to look up. Subscriptions are WC_Order objects too, but their
 	 * payments are taken on renewal orders, so only regular orders are checked.
 	 *
+	 * @since x.x.x
 	 * @param WC_Order $order Order to check.
 	 * @return bool
 	 */

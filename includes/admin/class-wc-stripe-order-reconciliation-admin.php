@@ -10,6 +10,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Order screen and Orders list actions for re-checking Stripe payments.
  *
+ * @since x.x.x
  * @internal Not part of the public API; it can change without notice.
  */
 class WC_Stripe_Order_Reconciliation_Admin {
@@ -35,6 +36,8 @@ class WC_Stripe_Order_Reconciliation_Admin {
 
 	/**
 	 * Register the order screen and Orders list hooks, for both the legacy and HPOS order screens.
+	 *
+	 * @since x.x.x
 	 */
 	public function register_hooks(): void {
 		add_action( 'woocommerce_order_action_' . self::ORDER_ACTION, [ $this, 'handle_order_action' ] );
@@ -49,6 +52,7 @@ class WC_Stripe_Order_Reconciliation_Admin {
 	/**
 	 * Add an order action when the order can be checked.
 	 *
+	 * @since x.x.x
 	 * @param mixed $actions
 	 * @param mixed $order
 	 * @return mixed
@@ -67,6 +71,7 @@ class WC_Stripe_Order_Reconciliation_Admin {
 	 *
 	 * Unlike the bulk action, this checks a single order, so the merchant sees the result when the order screen reloads.
 	 *
+	 * @since x.x.x
 	 * @param mixed $order
 	 */
 	public function handle_order_action( $order ): void {
@@ -86,6 +91,7 @@ class WC_Stripe_Order_Reconciliation_Admin {
 	/**
 	 * Add the bulk order action when it is available.
 	 *
+	 * @since x.x.x
 	 * @param mixed $actions
 	 * @return mixed
 	 */
@@ -101,6 +107,7 @@ class WC_Stripe_Order_Reconciliation_Admin {
 	/**
 	 * Queue payment checks requested from the order list.
 	 *
+	 * @since x.x.x
 	 * @param mixed $redirect_to
 	 * @param mixed $action
 	 * @param mixed $order_ids
@@ -137,6 +144,8 @@ class WC_Stripe_Order_Reconciliation_Admin {
 
 	/**
 	 * Show how many checks the bulk action queued, after WooCommerce redirects back to the Orders list.
+	 *
+	 * @since x.x.x
 	 */
 	public function render_admin_notice(): void {
 		if ( ! is_admin() || ! current_user_can( 'edit_shop_orders' ) || ! isset( $_GET[ self::NOTICE_QUERY_ARG ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.WP.Capabilities.Unknown -- WooCommerce verifies the bulk-action nonce before redirecting here and registers this capability.

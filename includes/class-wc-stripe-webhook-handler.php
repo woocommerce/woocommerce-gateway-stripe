@@ -2449,6 +2449,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * The caller must hold the order payment lock while this method settles the session.
 	 *
+	 * @since x.x.x
 	 * @internal Shared by the checkout.session.completed webhook and order reconciliation. Not part of
 	 *           the public API; it can change without notice.
 	 *
@@ -2648,6 +2649,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Settle a PaymentIntent found by reconciliation using the same pre-order lifecycle as a webhook.
 	 *
+	 * @since x.x.x
 	 * @internal Used by order reconciliation. Not part of the public API; it can change without notice.
 	 *
 	 * Unlike Checkout Sessions, nothing else compares a PaymentIntent payment with the order before settling
