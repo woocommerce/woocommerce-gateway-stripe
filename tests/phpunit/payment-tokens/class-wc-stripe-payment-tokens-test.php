@@ -441,6 +441,85 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @dataProvider provide_refresh_card_token_details
+	 *
+	 * @param object $payment_method  The incoming Stripe PaymentMethod.
+	 * @param string $expected_expiry The expected "month/year" on the token afterwards.
+	 */
+	public function test_refresh_card_token_details( $payment_method, string $expected_expiry ) {
+		$token = new WC_Stripe_Payment_Token_CC();
+		$token->set_card_type( 'visa' );
+		$token->set_last4( '4242' );
+		$token->set_expiry_month( '01' );
+		$token->set_expiry_year( '2027' );
+		$token->set_wallet_type( 'apple_pay' );
+
+		WC_Stripe_Payment_Tokens::refresh_card_token_details( $token, $payment_method );
+
+		$this->assertSame( $expected_expiry, $token->get_expiry_month() . '/' . $token->get_expiry_year() );
+		$this->assertSame( 'apple_pay', $token->get_wallet_type(), 'wallet_type must never be refreshed.' );
+	}
+
+	/**
+	 * Data provider for {@see test_refresh_card_token_details()}.
+	 *
+	 * @return array
+	 */
+	public function provide_refresh_card_token_details(): array {
+		$card = (object) [
+			'brand'     => 'visa',
+			'exp_month' => 2,
+			'exp_year'  => 2028,
+			'last4'     => '4242',
+			'wallet'    => (object) [ 'type' => 'google_pay' ],
+		];
+
+		return [
+			'card payment method refreshes the token' => [
+				(object) [
+					'type' => WC_Stripe_Payment_Methods::CARD,
+					'card' => $card,
+				],
+				'02/2028',
+			],
+			'non-card payment method leaves it alone' => [
+				(object) [
+					'type' => WC_Stripe_Payment_Methods::LINK,
+					'card' => $card,
+				],
+				'01/2027',
+			],
+			'payment method without card details'     => [
+				(object) [ 'type' => WC_Stripe_Payment_Methods::CARD ],
+				'01/2027',
+			],
+		];
+	}
+
+	/**
+	 * A non-card token is not touched, and no error is raised.
+	 */
+	public function test_refresh_card_token_details_ignores_non_card_tokens() {
+		$token = new WC_Payment_Token_SEPA();
+		$token->set_last4( '3000' );
+
+		WC_Stripe_Payment_Tokens::refresh_card_token_details(
+			$token,
+			(object) [
+				'type' => WC_Stripe_Payment_Methods::CARD,
+				'card' => (object) [
+					'brand'     => 'visa',
+					'exp_month' => 2,
+					'exp_year'  => 2028,
+					'last4'     => '4242',
+				],
+			]
+		);
+
+		$this->assertSame( '3000', $token->get_last4() );
+	}
+
+	/**
 	 * When a Link customer re-enrolls with a different card, a new Link PM is
 	 * attached while the old one remains in Stripe's list. The email-matched
 	 * token must repoint to the newer PM, or subscription renewals keep

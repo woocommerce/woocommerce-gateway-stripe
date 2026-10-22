@@ -17,6 +17,7 @@ xxxx-xx-xx - version 11.2.0
 * Fix - Record the payment for a released charge-upon-release pre-order paid from the pay page with 3D Secure, instead of leaving the order unpaid after the card was charged
 * Update - Unify express checkout button sizes across Apple Pay / Google Pay, Link, and Amazon Pay
 * Fix - Allow retrying a failed BLIK or Pre-Authorized Debit (ACSS) payment on the same order instead of failing every retry
+* Fix - Show the new expiry date of a saved card after the same card is saved again from My Account or at checkout
 
 2026-10-16 - version 11.1.1
 * Fix - Stop blocking non-Stripe payment gateways on the Pay for Order, change payment method, and add payment method pages

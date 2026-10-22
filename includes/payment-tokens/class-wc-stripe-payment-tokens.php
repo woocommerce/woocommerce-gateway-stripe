@@ -808,18 +808,7 @@ class WC_Stripe_Payment_Tokens {
 				// Clear cached payment methods.
 				$customer->clear_cache();
 				$found_token->set_token( $payment_method->id );
-
-				// Card fingerprint hashes the card number only, so a fingerprint
-				// match can still carry a different expiry or brand. Refresh the
-				// mutable card metadata so the UI reflects the replacement.
-				// `wallet_type` is left as-is so a later wallet use doesn't re-badge a saved card.
-				if ( WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID === $payment_method_type && $found_token instanceof WC_Stripe_Payment_Token_CC ) {
-					$found_token->set_expiry_month( $payment_method->card->exp_month );
-					$found_token->set_expiry_year( $payment_method->card->exp_year );
-					$found_token->set_card_type( strtolower( $payment_method->card->display_brand ?? $payment_method->card->networks->preferred ?? $payment_method->card->brand ) );
-					$found_token->set_last4( $payment_method->card->last4 );
-				}
-
+				self::refresh_card_token_details( $found_token, $payment_method );
 				$found_token->save();
 			} elseif ( $found_token instanceof WC_Payment_Token_Link && $this->is_newer_link_payment_method( $payment_method, $found_token, $payment_methods ) ) {
 				// Link tokens dedupe by account email, and re-enrolling through
@@ -1088,6 +1077,30 @@ class WC_Stripe_Payment_Tokens {
 		}
 
 		return 0 === strpos( $payment_method_id, 'src_' ) && WC_Stripe_Payment_Methods::CARD === $payment_method_type;
+	}
+
+	/**
+	 * Copies the card details (expiry, brand, last4) from the new PaymentMethod onto a reused card token.
+	 *
+	 * Tokens match by fingerprint (card number only), so a reissued card can have a new expiry.
+	 * `wallet_type` is kept, and the token is not saved.
+	 *
+	 * @since 11.1.0
+	 *
+	 * @param WC_Payment_Token $token          The reused token.
+	 * @param object           $payment_method The new Stripe PaymentMethod.
+	 * @return void
+	 */
+	public static function refresh_card_token_details( $token, $payment_method ): void {
+		if ( ! $token instanceof WC_Stripe_Payment_Token_CC || ! isset( $payment_method->type, $payment_method->card ) || WC_Stripe_Payment_Methods::CARD !== $payment_method->type ) {
+			return;
+		}
+
+		$card = $payment_method->card;
+		$token->set_expiry_month( $card->exp_month );
+		$token->set_expiry_year( $card->exp_year );
+		$token->set_card_type( strtolower( $card->display_brand ?? $card->networks->preferred ?? $card->brand ) );
+		$token->set_last4( $card->last4 );
 	}
 
 	/**
