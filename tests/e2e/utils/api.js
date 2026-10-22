@@ -144,6 +144,19 @@ const create = {
 
 		return response.data;
 	},
+	subscription: async ( subscription ) => {
+		const response = await api
+			.post( 'subscriptions', subscription )
+			.then( ( response ) => response )
+			.catch( ( error ) => {
+				throwCustomError(
+					error,
+					'Failed to create subscription. See details below.'
+				);
+			} );
+
+		return response.data;
+	},
 };
 
 const update = {
