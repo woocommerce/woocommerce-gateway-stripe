@@ -107,6 +107,24 @@ describe( 'classic checkout place-order handler', () => {
 		);
 	} );
 
+	it( 'strips a required marker rendered as plain "*" text from the field name', () => {
+		const wrapper = document.createElement( 'p' );
+		wrapper.className = 'form-row validate-required';
+		// Some themes render the required marker as plain text rather than an <abbr>.
+		wrapper.innerHTML =
+			'<label>First name *</label>' +
+			'<input type="text" class="input-text" value="" />';
+		mockEmptyWrappers = [ wrapper ];
+
+		expect( placeOrder() ).toBe( false );
+		expect( mockShowErrorCheckout.mock.calls[ 0 ][ 0 ] ).toContain(
+			'First name is a required field.'
+		);
+		expect( mockShowErrorCheckout.mock.calls[ 0 ][ 0 ] ).not.toContain(
+			'First name *'
+		);
+	} );
+
 	it( 'delegates to processPayment when the required fields are filled', () => {
 		placeOrder();
 

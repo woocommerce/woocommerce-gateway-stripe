@@ -112,13 +112,15 @@ jQuery( function ( $ ) {
 			return '';
 		}
 
-		// Drop the "*" marker WooCommerce adds inside an <abbr class="required">.
+		// Drop the required marker. WooCommerce renders it as <abbr class="required"> in some
+		// themes and as plain "*" text in others, so remove the marked-up node and then strip any
+		// trailing asterisk left as text.
 		const labelClone = label.cloneNode( true );
 		labelClone
-			.querySelectorAll( 'abbr' )
+			.querySelectorAll( 'abbr, .required' )
 			.forEach( ( node ) => node.remove() );
 
-		const name = labelClone.textContent.trim();
+		const name = labelClone.textContent.replace( /\s*\*+\s*$/, '' ).trim();
 		if ( ! name ) {
 			return '';
 		}
