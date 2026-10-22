@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * The lock row bypasses the options API: `add_option()` upserts behind a cached existence
  * check, so two concurrent callers can both succeed, and it offers no conditional update or
- * delete. Each holder stores `<timestamp>:<token>`. A lock abandoned for longer than its TTL
+ * delete. Each holder stores `<expiration_timestamp>:<token>:v2`. A lock abandoned for longer than its TTL
  * is reclaimed with a compare-and-swap on the exact stale value, so of two requests that read
  * the same expired lock only one wins, and a holder can never remove a lock it does not own.
  *
@@ -197,6 +197,14 @@ final class WC_Stripe_Option_Lock {
 		return time() > $lock_expiration;
 	}
 
+	/**
+	 * Retrieves the current lock owner token for a named lock.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param string $name The name of the lock to retrieve the owner for.
+	 * @return string|null The current lock owner token, or null if no lock is held.
+	 */
 	public static function get_lock_owner( string $name ): ?string {
 		global $wpdb;
 
