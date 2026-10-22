@@ -11,6 +11,8 @@ let mockIsEmpty = false;
 let mockUsingSavedMethod = false;
 let mockHasActiveCheckoutSession = false;
 let mockAdaptivePricingSavedTokenPaymentMethod = null;
+let mockSelectedMethod = 'card';
+let mockStripeServerData = {};
 
 jest.mock( '../../../api', () => jest.fn() );
 
@@ -18,8 +20,8 @@ jest.mock( '../../../stripe-utils', () => ( {
 	generateCheckoutEventNames: () => 'checkout_place_order_stripe',
 	getAdaptivePricingSavedTokenPaymentMethod: () =>
 		mockAdaptivePricingSavedTokenPaymentMethod,
-	getSelectedUPEGatewayPaymentMethod: () => 'card',
-	getStripeServerData: () => ( {} ),
+	getSelectedUPEGatewayPaymentMethod: () => mockSelectedMethod,
+	getStripeServerData: () => mockStripeServerData,
 	isPaymentMethodRestrictedToLocation: () => false,
 	isUsingSavedPaymentMethod: () => mockUsingSavedMethod,
 	paymentMethodSupportsDeferredIntent: () => true,
@@ -69,6 +71,8 @@ describe( 'classic checkout place-order handler', () => {
 		mockUsingSavedMethod = false;
 		mockHasActiveCheckoutSession = false;
 		mockAdaptivePricingSavedTokenPaymentMethod = null;
+		mockSelectedMethod = 'card';
+		mockStripeServerData = {};
 		mockProcessPayment.mockReset();
 		mockProcessPayment.mockReturnValue( false );
 		mockResetCheckoutCompletionState.mockReset();
@@ -170,4 +174,77 @@ describe( 'classic checkout place-order handler', () => {
 		// The saved card pays the mounted session via confirm( { paymentMethod } ).
 		expect( mockProcessPayment ).toHaveBeenCalled();
 	} );
+} );
+
+/**
+ * The pay-for-order and add-payment-method forms are shared with every gateway, unlike
+ * classic checkout where core only fires Stripe's own `checkout_place_order_*` events.
+ * Returning false from these submit handlers cancels the submit for whichever gateway
+ * is selected, so for a non-Stripe gateway they must return undefined and do nothing.
+ */
+describe.each( [
+	[ 'pay-for-order', '<form id="order_review"></form>', '#order_review', {} ],
+	[
+		// Subscriptions renders its change-payment-method page on the same form.
+		'change-payment-method',
+		'<form id="order_review"><input type="hidden" name="change_payment_method" value="1"></form>',
+		'#order_review',
+		{ isChangingPayment: true },
+	],
+	[
+		'add-payment-method',
+		'<form id="add_payment_method"></form>',
+		'form#add_payment_method',
+		{},
+	],
+] )( '%s submit handler', ( _, formMarkup, formSelector, serverData ) => {
+	const submit = () => $( formSelector ).triggerHandler( 'submit' );
+	// Only the #order_review form offers saved-method radios.
+	const hasSavedMethods = formSelector === '#order_review';
+
+	beforeEach( async () => {
+		mockUsingSavedMethod = false;
+		mockSelectedMethod = 'card';
+		mockStripeServerData = serverData;
+		mockProcessPayment.mockReset();
+		mockProcessPayment.mockReturnValue( false );
+		mockShowErrorCheckout.mockReset();
+
+		document.body.innerHTML = formMarkup;
+
+		await jest.isolateModulesAsync( async () => {
+			$ = require( 'jquery' );
+			require( '../deferred-intent' );
+			await flushReady();
+		} );
+	} );
+
+	afterEach( () => {
+		document.body.innerHTML = '';
+		jest.resetModules();
+	} );
+
+	it( 'lets core submit untouched when a non-Stripe gateway is selected', () => {
+		mockSelectedMethod = null;
+
+		expect( submit() ).toBeUndefined();
+		expect( mockProcessPayment ).not.toHaveBeenCalled();
+		expect( mockShowErrorCheckout ).not.toHaveBeenCalled();
+	} );
+
+	it( 'delegates to processPayment when a Stripe method is selected', () => {
+		expect( submit() ).toBe( false );
+		expect( mockProcessPayment ).toHaveBeenCalledTimes( 1 );
+		expect( mockProcessPayment.mock.calls[ 0 ][ 2 ] ).toBe( 'card' );
+	} );
+
+	if ( hasSavedMethods ) {
+		// A saved card has no form to read on the page: WooCommerce submits the token id and PHP charges it.
+		it( 'lets core submit a saved Stripe method untouched', () => {
+			mockUsingSavedMethod = true;
+
+			expect( submit() ).toBeUndefined();
+			expect( mockProcessPayment ).not.toHaveBeenCalled();
+		} );
+	}
 } );

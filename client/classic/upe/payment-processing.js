@@ -1535,6 +1535,47 @@ export const createAndConfirmSetupIntent = (
 };
 
 /**
+ * Resolves the post-payment destination for the voucher and wallet confirmation flows.
+ *
+ * The return URL travels in the URL fragment, which never reaches the server and can therefore
+ * be swapped for any destination by anyone able to hand the shopper a crafted store URL. It is
+ * clamped to this store's origin here, before it is used to navigate or handed to Stripe as a
+ * `return_url`, and falls back to the order received page when it does not survive that check.
+ *
+ * @param {string} encodedReturnUrl The percent-encoded return URL taken from the fragment.
+ * @param {string} orderId          The order ID taken from the fragment.
+ * @return {?string} A same-origin fragment URL or the server-provided fallback, or null when neither is available.
+ */
+const resolvePostPaymentUrl = ( encodedReturnUrl, orderId ) => {
+	let decodedReturnUrl = null;
+	try {
+		decodedReturnUrl = decodeURIComponent( encodedReturnUrl || '' );
+	} catch ( error ) {}
+
+	const validatedReturnUrl = normalizeReturnUrl( decodedReturnUrl );
+	if ( validatedReturnUrl ) {
+		return validatedReturnUrl;
+	}
+
+	const orderReceivedURL = getStripeServerData()?.orderReceivedURL;
+	if ( ! orderReceivedURL ) {
+		return null;
+	}
+
+	// `parseInt( 'NaN' )` round-trips back to the string 'NaN', so it has to be excluded
+	// explicitly for the numeric check to reject it.
+	if (
+		orderId &&
+		orderId !== 'NaN' &&
+		orderId === String( parseInt( orderId, 10 ) )
+	) {
+		return orderReceivedURL + '/' + encodeURIComponent( orderId ) + '/';
+	}
+
+	return orderReceivedURL;
+};
+
+/**
  * Handles displaying the Boleto or Oxxo or Multibanco voucher to the customer and then redirecting
  * them to the order received page once they close the voucher window.
  *
@@ -1612,18 +1653,8 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
 		return;
 	}
 
-	let postPaymentUrl = null;
-	try {
-		postPaymentUrl = decodeURIComponent( partials[ 4 ] || '' );
-	} catch ( error ) {}
-
-	const validatedRedirectUrl = normalizeReturnUrl( postPaymentUrl );
-	if ( validatedRedirectUrl ) {
-		window.location.href = validatedRedirectUrl;
-		return;
-	}
-
-	if ( ! stripeServerData?.orderReceivedURL ) {
+	const postPaymentUrl = resolvePostPaymentUrl( partials[ 4 ], orderId );
+	if ( ! postPaymentUrl ) {
 		showErrorCheckout(
 			__(
 				'There was a problem processing the payment. Please refresh the page to try again.',
@@ -1633,23 +1664,7 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
 		return;
 	}
 
-	// We didn't get a valid redirect URL, so redirect to the order received page.
-	// If we have a numeric order ID, navigate to the order received page for that order.
-	if (
-		orderId &&
-		orderId !== 'NaN' &&
-		orderId === String( parseInt( orderId, 10 ) )
-	) {
-		window.location.href =
-			stripeServerData.orderReceivedURL +
-			'/' +
-			encodeURIComponent( orderId ) +
-			'/';
-		return;
-	}
-
-	// Otherwise go to the generic page.
-	window.location.href = stripeServerData.orderReceivedURL;
+	window.location.href = postPaymentUrl;
 };
 
 /**
@@ -1658,7 +1673,7 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
  *
  * When processing a payment for a wallet payment method on the checkout or order pay page,
  * the process_payment_with_deferred_intent() function redirects the customer to a URL
- * formatted with: #wc-stripe-wallet-<order_id>:<payment_method_type>:<payment_intent_type>:<client_secret>:<redirect_url>.
+ * formatted with: #wc-stripe-wallet-<order_id>:<payment_method_type>:<payment_intent_type>:<client_secret>:<redirect_url>:<nonce>.
  *
  * This function, which is hooked onto the hashchanged event, checks if the URL contains the data we need to process the wallet payment.
  *
@@ -1704,7 +1719,20 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 
 	const paymentMethodType = partials[ 2 ];
 	const intentType = partials[ 3 ];
-	const returnURL = decodeURIComponent( partials[ 5 ] );
+	const returnURL = resolvePostPaymentUrl( partials[ 5 ], orderId );
+
+	if ( ! returnURL ) {
+		jQueryForm.removeClass( 'processing' ).unblock();
+		showErrorCheckout(
+			__(
+				'There was a problem processing the payment. Please refresh the page to try again.',
+				'woocommerce-gateway-stripe'
+			)
+		);
+		unblockBlockCheckout();
+		resetBlockCheckoutPaymentState();
+		return;
+	}
 
 	try {
 		// Confirm the payment to tell Stripe to display the modal to the customer.

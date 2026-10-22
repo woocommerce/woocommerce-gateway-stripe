@@ -300,27 +300,27 @@ class WC_Stripe_Customer {
 			if ( true === $field_requirements ) {
 				if ( empty( trim( $create_customer_request[ $field ] ?? '' ) ) ) {
 					throw new WC_Stripe_Exception(
-						sprintf( 'missing_required_customer_field: %s', $field ),
+						sprintf( 'missing_required_customer_field: %s', $field ), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 						/* translators: %s is a field name, e.g. 'email' or 'name'. */
-						sprintf( __( 'Missing required customer field: %s', 'woocommerce-gateway-stripe' ), $field )
+						sprintf( __( 'Missing required customer field: %s', 'woocommerce-gateway-stripe' ), $field ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 					);
 				}
 			}
 			if ( is_array( $field_requirements ) ) {
 				if ( ! isset( $create_customer_request[ $field ] ) || ! is_array( $create_customer_request[ $field ] ) ) {
 					throw new WC_Stripe_Exception(
-						sprintf( 'missing_required_customer_field: %s', $field ),
+						sprintf( 'missing_required_customer_field: %s', $field ), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 						/* translators: %s is a field name, e.g. 'email' or 'name'. */
-						sprintf( __( 'Missing required customer field: %s', 'woocommerce-gateway-stripe' ), $field )
+						sprintf( __( 'Missing required customer field: %s', 'woocommerce-gateway-stripe' ), $field ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 					);
 				}
 
 				foreach ( $field_requirements as $sub_field => $sub_field_requirements ) {
 					if ( true === $sub_field_requirements && empty( trim( $create_customer_request[ $field ][ $sub_field ] ?? '' ) ) ) {
 						throw new WC_Stripe_Exception(
-							sprintf( 'missing_required_customer_field: %s->%s', $field, $sub_field ),
+							sprintf( 'missing_required_customer_field: %s->%s', $field, $sub_field ), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 							/* translators: %1$s is a field name, e.g. address, and %2$s is a secondary field name, e.g. line1 or city. */
-							sprintf( __( 'Missing required customer field: %1$s->%2$s', 'woocommerce-gateway-stripe' ), $field, $sub_field )
+							sprintf( __( 'Missing required customer field: %1$s->%2$s', 'woocommerce-gateway-stripe' ), $field, $sub_field ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 						);
 					}
 				}
@@ -473,7 +473,7 @@ class WC_Stripe_Customer {
 				return $this->recreate_customer( [], $current_context );
 			}
 
-			throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
+			throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		return $response->id;
@@ -535,7 +535,7 @@ class WC_Stripe_Customer {
 		$response = WC_Stripe_API::request( $create_customer_args, 'customers' );
 
 		if ( ! empty( $response->error ) ) {
-			throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
+			throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		$this->set_id( $response->id );
@@ -570,7 +570,7 @@ class WC_Stripe_Customer {
 	 */
 	public function update_customer( $args = [], $is_retry = false, $order = null ) {
 		if ( empty( $this->get_id() ) ) {
-			throw new WC_Stripe_Exception( 'id_required_to_update_user', __( 'Attempting to update a Stripe customer without a customer ID.', 'woocommerce-gateway-stripe' ) );
+			throw new WC_Stripe_Exception( 'id_required_to_update_user', __( 'Attempting to update a Stripe customer without a customer ID.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		$args = $this->generate_customer_request( $args, $order );
@@ -593,7 +593,7 @@ class WC_Stripe_Customer {
 				return $this->update_customer( $args, true );
 			}
 
-			throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
+			throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		$this->clear_cache();
@@ -930,8 +930,8 @@ class WC_Stripe_Customer {
 					// local tokens must be able to tell it apart from a genuinely empty list.
 					if ( $throw_on_error ) {
 						throw new WC_Stripe_Exception(
-							print_r( $response->error, true ),
-							__( 'There was a problem retrieving data from the Stripe API endpoint.', 'woocommerce-gateway-stripe' )
+							print_r( $response->error, true ), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+							__( 'There was a problem retrieving data from the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 						);
 					}
 
