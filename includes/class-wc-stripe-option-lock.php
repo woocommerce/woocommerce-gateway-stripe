@@ -78,6 +78,10 @@ final class WC_Stripe_Option_Lock {
 	public static function acquire( string $name, int $ttl ): ?string {
 		global $wpdb;
 
+		if ( ! self::is_supported_lock_name( $name ) ) {
+			return null;
+		}
+
 		$owner = time() . ':' . wp_generate_uuid4();
 
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -130,6 +134,10 @@ final class WC_Stripe_Option_Lock {
 	public static function release( string $name, string $owner ): void {
 		global $wpdb;
 
+		if ( ! self::is_supported_lock_name( $name ) ) {
+			return;
+		}
+
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->delete(
 			$wpdb->options,
@@ -151,6 +159,10 @@ final class WC_Stripe_Option_Lock {
 	 */
 	public static function force_release( string $name ): void {
 		global $wpdb;
+
+		if ( ! self::is_supported_lock_name( $name ) ) {
+			return;
+		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->delete( $wpdb->options, [ 'option_name' => $name ] );
@@ -320,5 +332,27 @@ final class WC_Stripe_Option_Lock {
 			unset( $notoptions[ $name ] );
 			wp_cache_set( 'notoptions', $notoptions, 'options' );
 		}
+	}
+
+	/**
+	 * Checks if a lock name is supported by this class.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param string $name The name of the lock to check.
+	 * @return bool True if the lock name is supported, false otherwise.
+	 */
+	private static function is_supported_lock_name( string $name ): bool {
+		if ( array_key_exists( $name, self::CLEANUP_LOCK_NAMES ) ) {
+			return true;
+		}
+
+		foreach ( array_keys( self::CLEANUP_LOCK_PREFIXES ) as $lock_prefix ) {
+			if ( str_starts_with( $name, $lock_prefix ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 }
