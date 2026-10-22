@@ -48,7 +48,8 @@ final class WC_Stripe_Option_Lock {
 	 * @var array<string, string|null>
 	 */
 	private const CLEANUP_LOCK_PREFIXES = [
-		'wc_stripe_checkout_session_lock_' => null,
+		'wc_stripe_checkout_charge_lock_'  => self::LOCK_FORMAT_V2,
+    'wc_stripe_checkout_session_lock_' => null,
 		'wc_stripe_order_payment_lock_'    => self::LOCK_FORMAT_V2,
 		'wc_stripe_user_customer_lock_'    => null,
 	];
