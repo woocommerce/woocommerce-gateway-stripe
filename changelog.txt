@@ -14,6 +14,7 @@ xxxx-xx-xx - version 11.2.0
 * Fix - Send shoppers to the order confirmation page instead of showing an error when processing fails after a 3D Secure payment has already succeeded
 * Dev - Add E2E coverage for paying with a non-Stripe gateway on the Pay for Order, add payment method, and change payment method pages
 * Fix - Record the payment for a released charge-upon-release pre-order paid from the pay page with 3D Secure, instead of leaving the order unpaid after the card was charged
+* Fix - Refund the shopper when a Stripe payment succeeds for an order that was already cancelled before Stripe reported it
 
 2026-10-16 - version 11.1.1
 * Fix - Stop blocking non-Stripe payment gateways on the Pay for Order, change payment method, and add payment method pages
