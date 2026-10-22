@@ -2751,8 +2751,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return bool
 	 */
 	protected function order_reached_paid_status( int $order_id ): bool {
-		// Clear WooCommerce's order caches so a status the settling webhook wrote in another request
-		// is visible here: OrderCache holds the HPOS object, clean_post_cache covers the posts store.
+		// Clear/flush the OrderCache and post cache to pick up changes made by other processes.
 		if ( function_exists( 'wc_get_container' ) && class_exists( OrderCache::class ) ) {
 			$order_cache = wc_get_container()->get( OrderCache::class );
 			if ( $order_cache instanceof OrderCache ) {
