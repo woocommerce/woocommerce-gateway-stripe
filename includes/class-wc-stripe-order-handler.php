@@ -22,6 +22,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Stripe error types that clear up on their own, so a later check can still get an answer.
 	 *
+	 * @since x.x.x
+	 *
 	 * @var string[]
 	 */
 	private const TEMPORARY_STRIPE_ERROR_TYPES = [ 'api_connection_error', 'api_error', 'rate_limit_error' ];
@@ -681,6 +683,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * Orders without a Checkout Session keep the previous behavior and stay cancellable.
 	 *
+	 * @since x.x.x
+	 *
 	 * @param WC_Order $order The pending order about to be cancelled as unpaid.
 	 * @return bool
 	 */
@@ -772,6 +776,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * Stripe refuses to expire a session the customer completed in the meantime, so only a confirmed
 	 * expiry lets the order go; anything else keeps it for the next hold-stock run to look at again.
+	 *
+	 * @since x.x.x
 	 *
 	 * @param WC_Order $order       The pending order about to be cancelled as unpaid.
 	 * @param string   $session_id  The order's open Checkout Session.
