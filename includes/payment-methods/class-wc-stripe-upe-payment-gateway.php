@@ -2613,9 +2613,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			// The settling webhook holds the lock; a retry after a decline is still Failed, so a bare
 			// return would show the failed-order notice. Wait for settlement, then redirect clean.
-			$this->wait_for_checkout_session_settlement( $order_id );
-			wp_safe_redirect( wp_sanitize_redirect( $this->get_return_url( $order ) ) );
-			exit;
+			// On timeout, return without stripping the query args so a later refresh re-runs this
+			// handler and routes the shopper correctly, rather than stranding them on the clean
+			// order-received page for an order that never settled.
+			if ( $this->wait_for_checkout_session_settlement( $order_id ) ) {
+				wp_safe_redirect( wp_sanitize_redirect( $this->get_return_url( $order ) ) );
+				exit;
+			}
+
+			WC_Stripe_Logger::info( "Checkout session settlement wait timed out for order $order_id" );
+			return;
 		}
 
 		try {

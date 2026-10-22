@@ -3023,15 +3023,14 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * When the settlement webhook holds the order payment lock, the redirect handler must not
-	 * leave the shopper on the stale failed-order page. After waiting for the webhook, it redirects
-	 * to the clean order-received URL instead of returning (the pre-fix behaviour, which rendered
-	 * the failed-order notice). The settlement wait is short-circuited here with a zero timeout.
+	 * When the settlement webhook holds the order payment lock and the order settles while the
+	 * handler waits, it redirects to the clean order-received URL instead of returning (the pre-fix
+	 * behaviour, which rendered the failed-order notice).
 	 */
 	public function test_process_checkout_session_redirect_redirects_clean_when_webhook_holds_lock() {
 		[ $order ] = $this->create_order_with_checkout_session( 'cs_test_locked' );
-		// A declined earlier attempt leaves the order Failed while the webhook settles the retry.
-		$order->set_status( OrderStatus::FAILED );
+		// The webhook has settled the retry by the time the handler checks, so the order is paid.
+		$order->set_status( OrderStatus::PROCESSING );
 		$order->save();
 
 		// The settlement webhook holds the lock, so lock_order_payment() reports it as locked.
@@ -3039,9 +3038,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order_helper->method( 'lock_order_payment' )->willReturn( true );
 		$order_helper->method( 'unlock_order_payment' );
 		WC_Stripe_Order_Helper::set_instance( $order_helper );
-
-		// Don't actually wait for the webhook in the test.
-		add_filter( 'wc_stripe_checkout_session_settlement_timeout', '__return_zero' );
 
 		// No Stripe API call runs on the locked branch.
 		$this->mock_gateway->expects( $this->never() )->method( 'stripe_request' );
@@ -3056,10 +3052,47 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$this->assertSame( 'redirect_intercepted', $e->getMessage() );
 		} finally {
 			remove_all_filters( 'wp_redirect' );
-			remove_filter( 'wc_stripe_checkout_session_settlement_timeout', '__return_zero' );
 		}
 
 		$this->assertSame( self::MOCK_RETURN_URL_AFTER_REDIRECT, $captured );
+	}
+
+	/**
+	 * When the settlement wait times out with the order still unpaid, the handler must not strip
+	 * the query args by redirecting clean. It returns so a later refresh re-runs the handler and
+	 * routes the shopper correctly, rather than stranding them on order-received for a failed order.
+	 */
+	public function test_process_checkout_session_redirect_does_not_redirect_when_settlement_times_out() {
+		[ $order ] = $this->create_order_with_checkout_session( 'cs_test_locked_timeout' );
+		// A declined earlier attempt leaves the order Failed, and the webhook has not settled it.
+		$order->set_status( OrderStatus::FAILED );
+		$order->save();
+
+		// The lock is held by something else, so lock_order_payment() reports it as locked.
+		$order_helper = $this->createPartialMock( WC_Stripe_Order_Helper::class, [ 'lock_order_payment', 'unlock_order_payment' ] );
+		$order_helper->method( 'lock_order_payment' )->willReturn( true );
+		$order_helper->method( 'unlock_order_payment' );
+		WC_Stripe_Order_Helper::set_instance( $order_helper );
+
+		// Time out immediately: the order never reaches a paid status.
+		add_filter( 'wc_stripe_checkout_session_settlement_timeout', '__return_zero' );
+
+		// No Stripe API call runs on the locked branch.
+		$this->mock_gateway->expects( $this->never() )->method( 'stripe_request' );
+
+		$captured = null;
+		$this->intercept_wp_redirect( $captured );
+
+		try {
+			// No redirect means no exception: the handler returns on timeout.
+			$this->mock_gateway->process_checkout_session_redirect( $order->get_id() );
+		} finally {
+			remove_all_filters( 'wp_redirect' );
+			remove_filter( 'wc_stripe_checkout_session_settlement_timeout', '__return_zero' );
+		}
+
+		$this->assertNull( $captured, 'The handler must not redirect when the settlement wait times out.' );
+		$this->assertSame( OrderStatus::FAILED, wc_get_order( $order->get_id() )->get_status() );
 	}
 
 	/**
