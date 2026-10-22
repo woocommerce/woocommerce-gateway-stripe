@@ -1465,10 +1465,25 @@ class WC_Stripe_Order_Helper {
 		return WC_Stripe_Option_Lock::get_lock_owner( $this->get_order_payment_lock_name( $order ) );
 	}
 
+	/**
+	 * Retrieves the TTL for the order payment lock.
+	 *
+	 * @since x.x.x
+	 *
+	 * @return int The TTL for the order payment lock.
+	 */
 	private function get_order_payment_lock_ttl(): int {
 		return 5 * MINUTE_IN_SECONDS;
 	}
 
+	/**
+	 * Gets the name of the order payment lock.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Order $order The order to lock.
+	 * @return string The name of the order payment lock.
+	 */
 	private function get_order_payment_lock_name( WC_Order $order ): string {
 		return 'wc_stripe_order_payment_lock_' . $order->get_id();
 	}
