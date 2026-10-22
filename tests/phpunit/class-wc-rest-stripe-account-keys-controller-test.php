@@ -536,7 +536,8 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$new_key = 'same' === $change ? $old_key : ( 'remove' === $change ? '' : 'sk_' . $mode . '_new' );
 		$data    = [
 			'id'  => 'we_old',
-			'url' => 'https://example.com',
+			// The endpoint points at this site, so the decommission guard confirms it as ours and deletes it.
+			'url' => WC_Stripe_Helper::get_webhook_url(),
 		];
 		if ( null !== $legacy_secret ) {
 			$data['secret'] = $legacy_secret;
@@ -550,6 +551,14 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$filter     = function ( $preempt, $args, $url ) use ( &$requests, $prefix, &$failure ) {
 			if ( 'https://api.stripe.com/v1/webhook_endpoints/we_old' !== $url ) {
 				return $preempt;
+			}
+			// The decommission guard fetches the endpoint first to confirm it points at this
+			// site before deleting it. Answer that lookup; only the DELETE is recorded below.
+			if ( 'GET' === $args['method'] ) {
+				return [
+					'response' => [ 'code' => 200 ],
+					'body'     => wp_json_encode( [ 'id' => 'we_old', 'url' => WC_Stripe_Helper::get_webhook_url() ] ),
+				];
 			}
 			$requests[] = [ $args['method'], $args['headers']['Authorization'], WC_Stripe_Helper::get_stripe_settings()[ $prefix . 'secret_key' ] ];
 			if ( 'exception' === $failure ) {
