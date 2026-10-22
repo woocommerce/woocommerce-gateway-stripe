@@ -2775,7 +2775,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		/**
 		 * Filters the wait for the settlement webhook on the order-received return.
 		 *
-		 * @since 11.2.0
+		 * @since x.x.x
 		 *
 		 * @param float $timeout Seconds to wait. Default 5.
 		 */
