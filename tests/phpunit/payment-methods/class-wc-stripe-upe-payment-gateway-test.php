@@ -6775,12 +6775,16 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @return void
 	 */
 	public function test_payment_scripts_for_checkout_layouts( $content, $is_checkout, $endpoint, $expected_classic ): void {
-		$page = self::factory()->post->create(
+		$original_account_page = get_option( 'woocommerce_myaccount_page_id' );
+		$page                  = self::factory()->post->create(
 			[
 				'post_type'    => 'page',
 				'post_content' => $content,
 			]
 		);
+		if ( 'add-payment-method' === $endpoint ) {
+			update_option( 'woocommerce_myaccount_page_id', $page );
+		}
 		$this->go_to( get_permalink( $page ) );
 		$checkout_filter = static function () use ( $is_checkout ) {
 			return $is_checkout;
@@ -6816,6 +6820,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$this->assertStringEndsWith( '/build/upe-classic.js', wp_scripts()->registered['wc-stripe-upe-classic']->src );
 			$this->assertContains( 'wc-stripe-checkout-settings', wp_scripts()->registered['wc-stripe-upe-classic']->deps );
 		} finally {
+			update_option( 'woocommerce_myaccount_page_id', $original_account_page );
 			remove_filter( 'woocommerce_is_checkout', $checkout_filter );
 			remove_filter( 'wc_stripe_upe_params', $params_filter );
 			unset( $_GET['change_payment_method'], $GLOBALS['wp']->query_vars[ $endpoint ] );
@@ -6836,6 +6841,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			'classic shortcode block'        => [ '<!-- wp:woocommerce/classic-shortcode {"shortcode":"checkout"} /-->', true, '', true ],
 			'mixed classic and Blocks'       => [ '<!-- wp:woocommerce/cart /-->[woocommerce_checkout]', true, '', true ],
 			'pay for order on Blocks page'   => [ '<!-- wp:woocommerce/checkout /-->', true, 'order-pay', true ],
+			'add payment method'             => [ '[woocommerce_my_account]', false, 'add-payment-method', true ],
 			'subscription payment change'    => [ '<!-- wp:woocommerce/checkout /-->', true, 'change_payment_method', true ],
 		];
 	}

@@ -1342,7 +1342,7 @@ class WC_Stripe_Helper {
 			return true;
 		}
 
-		// Unknown/custom pages retain the previous behavior; only known product/cart layouts opt out.
+		// Custom pages can embed classic payment forms without a checkout shortcode.
 		return ! $helper->is_product() && ! $helper->is_cart();
 	}
 
