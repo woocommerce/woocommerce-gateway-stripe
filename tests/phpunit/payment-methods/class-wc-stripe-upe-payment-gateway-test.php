@@ -8393,4 +8393,71 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			'not eligible: cashapp delayed confirm' => [ true, 'yes', WC_Stripe_Payment_Methods::CASHAPP_PAY, false, false, null, false ],
 		];
 	}
+
+	/**
+	 * Legacy callbacks may distinguish this path by the absence of a second argument.
+	 *
+	 * @since x.x.x
+	 *
+	 * @dataProvider provide_deprecated_force_save_payment_results
+	 * @param bool $force_save   Whether the callback forces saving.
+	 * @param bool $requested    Whether the shopper requested saving.
+	 * @param bool $using_saved  Whether an existing token is selected.
+	 * @param bool $should_save  Whether verification should save the method.
+	 */
+	public function test_modify_successful_payment_result_preserves_deprecated_filter( bool $force_save, bool $requested, bool $using_saved, bool $should_save ): void {
+		$order_id      = WC_Helper_Order::create_order()->get_id();
+		$original_post = $_POST;
+		$_POST         = [
+			'payment_method'               => 'stripe',
+			'wc-stripe-new-payment-method' => $requested ? 'true' : '',
+			'wc-stripe-payment-token'      => $using_saved ? '123' : 'new',
+		];
+		$filter        = function ( $default, $context = null ) use ( $force_save ) {
+			$this->assertSame( 1, func_num_args() );
+			$this->assertFalse( $default );
+			$this->assertNull( $context );
+			return $force_save;
+		};
+
+		$deprecation         = [];
+		$capture_deprecation = function ( $hook, $replacement, $version, $message ) use ( &$deprecation ) {
+			if ( 'wc_stripe_force_save_source' === $hook ) {
+				$deprecation = [ $replacement, $version, $message ];
+			}
+		};
+
+		add_filter( 'wc_stripe_force_save_source', $filter, 10, 2 );
+		add_action( 'deprecated_hook_run', $capture_deprecation, 10, 4 );
+		$this->setExpectedDeprecated( 'wc_stripe_force_save_source' );
+
+		try {
+			$result = $this->mock_gateway->modify_successful_payment_result(
+				[
+					'result'              => 'success',
+					'redirect'            => self::MOCK_RETURN_URL,
+					'setup_intent_secret' => 'seti_secret_context_test',
+				],
+				$order_id
+			);
+		} finally {
+			remove_filter( 'wc_stripe_force_save_source', $filter, 10 );
+			remove_action( 'deprecated_hook_run', $capture_deprecation, 10 );
+			$_POST = $original_post;
+		}
+
+		$this->assertSame( [ '', '9.6.0', 'This filter has no direct replacement in legacy payment flows.' ], $deprecation );
+		$verification_url = rawurldecode( explode( ':', $result['redirect'], 2 )[1] );
+		parse_str( (string) wp_parse_url( $verification_url, PHP_URL_QUERY ), $query );
+		$this->assertSame( $should_save ? '1' : null, $query['save_payment_method'] ?? null );
+	}
+
+	public function provide_deprecated_force_save_payment_results(): array {
+		return [
+			'forced new method'     => [ true, false, false, true ],
+			'not requested'         => [ false, false, false, false ],
+			'requested new method'  => [ false, true, false, true ],
+			'existing saved method' => [ true, true, true, false ],
+		];
+	}
 }

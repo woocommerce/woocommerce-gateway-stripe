@@ -1039,7 +1039,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$customer->set_id( $existing_customer_id );
 		}
 
-		$force_save_source = apply_filters( 'wc_stripe_force_save_source', $force_save_source, $customer );
+		$force_save_source = apply_filters_deprecated(
+			'wc_stripe_force_save_source',
+			[ $force_save_source, $customer ],
+			'9.6.0',
+			'',
+			'This filter has no direct replacement in legacy payment flows.'
+		);
 		$source_object     = '';
 		$source_id         = '';
 		$wc_token_id       = false;
@@ -1723,7 +1729,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$request = WC_Stripe_Helper::add_payment_method_to_request_array( $prepared_source->source, $request );
 
-		$force_save_source = apply_filters( 'wc_stripe_force_save_source', false, $prepared_source->source );
+		$force_save_source = apply_filters_deprecated(
+			'wc_stripe_force_save_source',
+			[ false, $prepared_source->source ],
+			'9.6.0',
+			'',
+			'This filter has no direct replacement in legacy payment flows.'
+		);
 
 		if ( $this->save_payment_method_requested() || $this->has_subscription( $order->get_id() ) || $force_save_source ) {
 			$request['setup_future_usage']              = 'off_session';
