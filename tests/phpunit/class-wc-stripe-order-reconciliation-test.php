@@ -964,6 +964,38 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		$this->assertCount( 1, $this->scheduled_checks( $order->get_id() ) );
 	}
 
+	/**
+	 * @dataProvider provide_settlement_failures
+	 */
+	public function test_settlement_errors_stop_the_checks( bool $has_session, bool $paid_before_error, bool $expect_note ): void {
+		$order = $this->create_pending_stripe_order( $has_session );
+		$this->mock_settlement_error( $order, $has_session, $paid_before_error );
+
+		$this->reconciliation->reconcile_order_payment( $order->get_id() );
+
+		$this->assertSame( [], $this->scheduled_checks( $order->get_id() ) );
+		$this->assertSame( $expect_note ? 1 : 0, substr_count( $this->note_text( $order ), 'but the order could not be updated with it' ) );
+	}
+
+	public static function provide_settlement_failures(): array {
+		return [
+			'Checkout Session'            => [ true, false, true ],
+			'PaymentIntent'               => [ false, false, true ],
+			'order paid before the error' => [ false, true, false ],
+		];
+	}
+
+	public function test_manual_check_reports_a_settlement_error_once(): void {
+		$order = $this->create_pending_stripe_order( false );
+		$this->mock_settlement_error( $order, false, false );
+
+		$this->reconciliation->reconcile_order_payment( $order->get_id(), true );
+
+		$notes = $this->note_text( $order );
+		$this->assertSame( 1, substr_count( $notes, 'but the order could not be updated with it' ) );
+		$this->assertStringNotContainsString( 'Stripe could not be reached', $notes );
+	}
+
 	public function test_reconciled_payment_fires_the_deprecated_process_payment_action_once(): void {
 		$this->setExpectedDeprecated( 'wc_gateway_stripe_process_payment' );
 		$order = $this->create_pending_stripe_order( false );
@@ -1127,6 +1159,38 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		}
 		$this->mock_stripe_objects( $objects );
 		$this->gateway->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
+	}
+
+	/**
+	 * Mocks a verified Stripe payment whose settlement throws.
+	 *
+	 * @param WC_Order $order             Order being checked.
+	 * @param bool     $has_session       Whether the order has a Checkout Session.
+	 * @param bool     $paid_before_error Whether settlement pays the order before it throws.
+	 */
+	private function mock_settlement_error( WC_Order $order, bool $has_session, bool $paid_before_error ): void {
+		$intent  = $this->successful_intent( self::fixture_charge() );
+		$objects = [ '/payment_intents/pi_recovery' => $intent ];
+		if ( $has_session ) {
+			$objects['/checkout/sessions/cs_recovery'] = $this->completed_session( $intent->id );
+		}
+		$this->mock_stripe_objects( $objects );
+
+		$webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'process_checkout_session_payment', 'process_reconciled_payment' ] )
+			->getMock();
+		$webhook_handler->expects( $this->once() )
+			->method( $has_session ? 'process_checkout_session_payment' : 'process_reconciled_payment' )
+			->willReturnCallback(
+				static function () use ( $order, $paid_before_error ) {
+					if ( $paid_before_error ) {
+						wc_get_order( $order->get_id() )->payment_complete( 'ch_recovery' );
+					}
+					throw new Error( 'Settlement failed.' );
+				}
+			);
+		$this->reconciliation = new WC_Stripe_Order_Reconciliation( $this->gateway, $webhook_handler );
 	}
 
 	private function note_text( WC_Order $order ): string {

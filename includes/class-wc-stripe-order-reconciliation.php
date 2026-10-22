@@ -45,7 +45,8 @@ class WC_Stripe_Order_Reconciliation {
 	public const DELAYED_MAX_AGE        = 21 * DAY_IN_SECONDS;
 
 	/**
-	 * The order needs no further checks: it was settled, put on hold, or Stripe says it can't be paid.
+	 * The order needs no further checks: it was settled, put on hold, Stripe says it can't be paid, or
+	 * settling a verified payment failed and needs the merchant.
 	 */
 	private const RESULT_DONE = 'done';
 
@@ -494,16 +495,23 @@ class WC_Stripe_Order_Reconciliation {
 			}
 
 			// Both settle through the webhook code, which also holds the order when the payment doesn't match it.
-			if ( $session ) {
-				$this->webhook_handler->process_checkout_session_payment( $fresh_order, $session, '', $intent, $charge );
-			} else {
-				$this->webhook_handler->process_reconciled_payment( $fresh_order, $charge );
+			try {
+				if ( $session ) {
+					$this->webhook_handler->process_checkout_session_payment( $fresh_order, $session, '', $intent, $charge );
+				} else {
+					$this->webhook_handler->process_reconciled_payment( $fresh_order, $charge );
+				}
+			} catch ( Throwable $exception ) {
+				// Stripe already verified the payment, so retrying would most likely fail the same way (for
+				// example a charge recorded on another order) and repeat the notes added before the failure.
+				// Not just Exception: settlement runs other plugins' callbacks, for example on payment completion.
+				$this->report_settlement_failure( $order_id, $intent_id, $exception );
+				return $this->outcome( self::RESULT_DONE );
 			}
 			$this->report_settlement( $order_id, $intent_id, $charge );
 			return $this->outcome( self::RESULT_DONE );
 		} catch ( Throwable $exception ) {
-			// Not just Exception: settlement runs other plugins' callbacks (for example on payment completion),
-			// and an Error escaping to Action Scheduler would fail the action and end the order's checks.
+			// Not just Exception: an Error escaping to Action Scheduler would fail the action and end the order's checks.
 			WC_Stripe_Logger::error(
 				'Reconciliation failed for order ' . $order_id . ': ' . $exception->getMessage(),
 				[
@@ -602,7 +610,7 @@ class WC_Stripe_Order_Reconciliation {
 			// merchant) can complete the order; putting it on hold here must not replace that status.
 			$order->update_status(
 				OrderStatus::ON_HOLD,
-				__( 'Stripe Radar is reviewing this payment, so the order was placed on hold. Review the payment in your Stripe Dashboard. If webhooks are not reaching this site, update the order yourself once the review is closed.', 'woocommerce-gateway-stripe' )
+				__( 'Stripe Radar is reviewing this payment, so the order was placed on hold. Review the payment in your Stripe Dashboard. If webhooks are not reaching this site, update the order manually once the review is closed.', 'woocommerce-gateway-stripe' )
 			);
 		}
 
@@ -641,6 +649,40 @@ class WC_Stripe_Order_Reconciliation {
 				'status'    => $order->get_status(),
 			]
 		);
+	}
+
+	/**
+	 * Record that a verified Stripe payment could not be settled, and end the checks.
+	 *
+	 * The note is added on scheduled checks too: the checks stop with a paid charge and a pending order,
+	 * so the merchant has to follow up. An order that is no longer pending was settled before the failure,
+	 * for example when a payment completion callback threw, and only gets the log.
+	 *
+	 * @param int       $order_id  Order being settled. Read again, because settlement may have saved another copy.
+	 * @param string    $intent_id PaymentIntent that should have settled it.
+	 * @param Throwable $exception What settlement threw.
+	 */
+	private function report_settlement_failure( int $order_id, string $intent_id, Throwable $exception ): void {
+		$order = $this->resolve_order( $order_id );
+		WC_Stripe_Logger::error(
+			'Reconciliation found a Stripe payment but could not settle the order: ' . $exception->getMessage(),
+			[
+				'order_id'  => $order_id,
+				'intent_id' => $intent_id,
+				'exception' => get_class( $exception ),
+				'status'    => $order ? $order->get_status() : 'not found',
+			]
+		);
+
+		if ( $order && $order->has_status( OrderStatus::PENDING ) ) {
+			$order->add_order_note(
+				sprintf(
+					/* translators: %s: Stripe PaymentIntent ID. */
+					__( 'Stripe payment status check: Stripe confirmed payment %s, but the order could not be updated with it. Review the payment in your Stripe Dashboard and the Stripe logs, then update the order manually.', 'woocommerce-gateway-stripe' ),
+					$intent_id
+				)
+			);
+		}
 	}
 
 	/**
