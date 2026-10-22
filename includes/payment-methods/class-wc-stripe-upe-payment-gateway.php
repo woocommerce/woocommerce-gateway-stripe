@@ -2773,7 +2773,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	protected function get_checkout_session_settlement_timeout(): float {
 		/**
-		 * Filters the wait for the settlement webhook on the order-received return.
+		 * Filters the maximum wait time for a shopper when we want to redirect them to the order received
+		 * page, but the order has been locked by our webhook processing. The lock status will be
+		 * re-checked every 250ms up to the time returned by this filter.
 		 *
 		 * @since x.x.x
 		 *
