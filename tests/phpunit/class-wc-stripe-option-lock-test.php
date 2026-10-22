@@ -168,21 +168,143 @@ class WC_Stripe_Option_Lock_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Every lock name the plugin uses is accepted, so a missing allow-list entry fails here
+	 * rather than silently disabling that lock in production.
+	 *
+	 * @param string $name A lock option name used by the plugin.
+	 * @dataProvider provide_supported_lock_names
+	 */
+	public function test_supported_lock_names_can_be_acquired_and_released( string $name ): void {
+		$owner = WC_Stripe_Option_Lock::acquire( $name, self::TTL );
+
+		try {
+			$this->assertIsString( $owner );
+			$this->assertSame( $owner, $this->read_lock( $name ) );
+
+			WC_Stripe_Option_Lock::release( $name, $owner );
+
+			$this->assertNull( $this->read_lock( $name ) );
+		} finally {
+			$this->remove_lock( $name );
+		}
+	}
+
+	/**
+	 * Data provider for {@see test_supported_lock_names_can_be_acquired_and_released()}.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public function provide_supported_lock_names(): array {
+		$test_cases = [];
+
+		$supported_lock_names = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Option_Lock::class, 'SUPPORTED_LOCK_NAMES', 'array' );
+
+		foreach ( $supported_lock_names as $lock_name ) {
+			$test_cases[ 'exact lock ' . $lock_name ] = [ $lock_name ];
+		}
+
+		$supported_lock_prefixes = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Option_Lock::class, 'SUPPORTED_LOCK_PREFIXES', 'array' );
+
+		foreach ( $supported_lock_prefixes as $lock_prefix ) {
+			$test_cases[ 'lock prefix ' . $lock_prefix ] = [ $lock_prefix . 'test_123' ];
+		}
+
+		return $test_cases;
+	}
+
+	/**
+	 * A name outside the allow-lists is refused, since the daily cleanup would never remove a
+	 * row left behind under it.
+	 *
+	 * @param string $name An unsupported option name.
+	 * @dataProvider provide_unsupported_lock_names
+	 */
+	public function test_acquire_refuses_unsupported_lock_names( string $name ): void {
+		$this->assertNull( WC_Stripe_Option_Lock::acquire( $name, self::TTL ) );
+		$this->assertNull( $this->read_lock( $name ) );
+	}
+
+	/**
+	 * Release must not delete an arbitrary option, even when the caller passes its exact value.
+	 *
+	 * @param string $name An unsupported option name.
+	 * @dataProvider provide_unsupported_lock_names
+	 */
+	public function test_release_ignores_unsupported_lock_names( string $name ): void {
+		$owner = time() . ':some-owner';
+		$this->seed_lock( $owner, $name );
+
+		WC_Stripe_Option_Lock::release( $name, $owner );
+
+		try {
+			$this->assertSame( $owner, $this->read_lock( $name ) );
+		} finally {
+			$this->remove_lock( $name );
+		}
+	}
+
+	/**
+	 * Forced release must not delete an arbitrary option.
+	 *
+	 * @param string $name An unsupported option name.
+	 * @dataProvider provide_unsupported_lock_names
+	 */
+	public function test_force_release_ignores_unsupported_lock_names( string $name ): void {
+		$value = time() . ':some-owner';
+		$this->seed_lock( $value, $name );
+
+		WC_Stripe_Option_Lock::force_release( $name );
+
+		try {
+			$this->assertSame( $value, $this->read_lock( $name ) );
+		} finally {
+			$this->remove_lock( $name );
+		}
+	}
+
+	/**
+	 * Data provider for the unsupported lock name tests.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public function provide_unsupported_lock_names(): array {
+		return [
+			'unknown name'               => [ 'wc_stripe_test_lock' ],
+			'fixed-name look-alike'      => [ 'wc_stripe_agentic_sync_lock_backup' ],
+			'prefix not at the start'    => [ 'other_wc_stripe_checkout_session_lock_abc' ],
+			'prefix with different case' => [ 'WC_STRIPE_TRANSACTION_LOCK_ch_123' ],
+			'unrelated core option'      => [ 'blogname_lock' ],
+		];
+	}
+
+	/**
 	 * Writes a lock row directly so the options cache is not involved.
 	 *
 	 * @param string $value The value another request stored.
+	 * @param string $name  The lock option name.
 	 */
-	private function seed_lock( string $value ): void {
+	private function seed_lock( string $value, string $name = self::LOCK_NAME ): void {
 		global $wpdb;
 
 		$wpdb->insert(
 			$wpdb->options,
 			[
-				'option_name'  => self::LOCK_NAME,
+				'option_name'  => $name,
 				'option_value' => $value,
 				'autoload'     => 'off',
 			]
 		);
+	}
+
+	/**
+	 * Removes a lock row directly so we can ensure we have a clean state after the test.
+	 *
+	 * @param string $name The lock option name.
+	 */
+	private function remove_lock( string $name ): void {
+		global $wpdb;
+
+		$wpdb->delete( $wpdb->options, [ 'option_name' => $name ] );
 	}
 
 	/**
@@ -228,6 +350,8 @@ class WC_Stripe_Option_Lock_Test extends WP_UnitTestCase {
 			'live session lock'               => [ 'wc_stripe_checkout_session_lock_def', 30, false, false ],
 			'abandoned bare-timestamp lock'   => [ 'wc_stripe_user_customer_lock_42', 2 * DAY_IN_SECONDS, true, true ],
 			'abandoned fixed-name lock'       => [ 'wc_stripe_agentic_sync_lock', 2 * DAY_IN_SECONDS, false, true ],
+			'abandoned password cleanup lock' => [ 'wc_stripe_express_checkout_password_cleanup_lock', 2 * DAY_IN_SECONDS, false, true ],
+			'abandoned transaction lock'      => [ 'wc_stripe_transaction_lock_ch_123', 2 * DAY_IN_SECONDS, false, true ],
 			'fixed-name look-alike kept'      => [ 'wc_stripe_agentic_sync_lock_backup', 2 * DAY_IN_SECONDS, false, false ],
 			'old option outside the prefixes' => [ 'wc_stripe_other_lock_1', 2 * DAY_IN_SECONDS, false, false ],
 			'underscore is not a wildcard'    => [ 'wc_stripe_checkout_sessionXlock_1', 2 * DAY_IN_SECONDS, false, false ],
@@ -338,12 +462,13 @@ class WC_Stripe_Option_Lock_Test extends WP_UnitTestCase {
 	/**
 	 * Reads the lock row straight from the database.
 	 *
+	 * @param string $name The lock option name.
 	 * @return string|null The stored owner value, or null when no lock row exists.
 	 */
-	private function read_lock(): ?string {
+	private function read_lock( string $name = self::LOCK_NAME ): ?string {
 		global $wpdb;
 
-		$value = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", self::LOCK_NAME ) );
+		$value = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", $name ) );
 
 		return is_string( $value ) ? $value : null;
 	}
