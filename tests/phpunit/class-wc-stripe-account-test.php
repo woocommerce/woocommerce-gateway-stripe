@@ -901,7 +901,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$api_version_method = new ReflectionMethod( WC_Stripe_Account::class, 'get_webhooks_api_version' );
 		$api_version_method->setAccessible( true );
 
-		// An up-to-date endpoint still serves the site URL, so the events/version check would pass.
+		// Up-to-date endpoint at the site URL, so the events/version check would pass.
 		$up_to_date_webhook = (object) [
 			'id'             => 'we_other',
 			'url'            => WC_Stripe_Helper::get_webhook_url(),
@@ -932,7 +932,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$settings['test_webhook_data']   = [
 			'id'             => 'we_ghost',
 			'secret'         => 'sk_test_key',
-			// A signing_secret that differs from the saved webhook secret marks a manual edit.
+			// signing_secret != the saved webhook secret marks a manual edit.
 			'signing_secret' => 'whsec_auto',
 		];
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
