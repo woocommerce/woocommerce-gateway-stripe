@@ -972,21 +972,22 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 	/**
 	 * @dataProvider provide_settlement_failures
 	 */
-	public function test_settlement_errors_stop_the_checks( bool $has_session, bool $paid_before_error, bool $expect_note ): void {
+	public function test_settlement_errors_stop_the_checks( bool $has_session, bool $paid_before_error, string $expected_status ): void {
 		$order = $this->create_pending_stripe_order( $has_session );
 		$this->mock_settlement_error( $order, $has_session, $paid_before_error );
 
 		$this->reconciliation->reconcile_order_payment( $order->get_id() );
 
 		$this->assertSame( [], $this->scheduled_checks( $order->get_id() ) );
-		$this->assertSame( $expect_note ? 1 : 0, substr_count( $this->note_text( $order ), 'but the order could not be updated with it' ) );
+		$this->assertSame( $expected_status, wc_get_order( $order->get_id() )->get_status() );
+		$this->assertSame( 'on-hold' === $expected_status ? 1 : 0, substr_count( $this->note_text( $order ), 'but the order could not be updated with it, so it was placed on hold' ) );
 	}
 
 	public static function provide_settlement_failures(): array {
 		return [
-			'Checkout Session'            => [ true, false, true ],
-			'PaymentIntent'               => [ false, false, true ],
-			'order paid before the error' => [ false, true, false ],
+			'Checkout Session'            => [ true, false, 'on-hold' ],
+			'PaymentIntent'               => [ false, false, 'on-hold' ],
+			'order paid before the error' => [ false, true, 'processing' ],
 		];
 	}
 

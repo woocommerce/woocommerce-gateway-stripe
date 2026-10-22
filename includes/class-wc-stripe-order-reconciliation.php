@@ -671,9 +671,10 @@ class WC_Stripe_Order_Reconciliation {
 	/**
 	 * Record that a verified Stripe payment could not be settled, and end the checks.
 	 *
-	 * The note is added on scheduled checks too: the checks stop with a paid charge and a pending order,
-	 * so the merchant has to follow up. An order that is no longer pending was settled before the failure,
-	 * for example when a payment completion callback threw, and only gets the log.
+	 * A pending order is put on hold, on scheduled checks too: the checks stop with a paid charge, so the
+	 * merchant has to follow up, and a pending order could still be cancelled as unpaid. An order that is
+	 * no longer pending was settled before the failure, for example when a payment completion callback
+	 * threw, and only gets the log.
 	 *
 	 * @param int       $order_id  Order being settled. Read again, because settlement may have saved another copy.
 	 * @param string    $intent_id PaymentIntent that should have settled it.
@@ -692,10 +693,11 @@ class WC_Stripe_Order_Reconciliation {
 		);
 
 		if ( $order && $order->has_status( OrderStatus::PENDING ) ) {
-			$order->add_order_note(
+			$order->update_status(
+				OrderStatus::ON_HOLD,
 				sprintf(
 					/* translators: %s: Stripe PaymentIntent ID. */
-					__( 'Stripe payment status check: Stripe confirmed payment %s, but the order could not be updated with it. Review the payment in your Stripe Dashboard and the Stripe logs, then update the order manually.', 'woocommerce-gateway-stripe' ),
+					__( 'Stripe payment status check: Stripe confirmed payment %s, but the order could not be updated with it, so it was placed on hold. Review the payment in your Stripe Dashboard and the Stripe logs, then update the order manually.', 'woocommerce-gateway-stripe' ),
 					$intent_id
 				)
 			);
