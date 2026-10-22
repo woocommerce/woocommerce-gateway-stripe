@@ -1385,6 +1385,21 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return false;
 		}
 
+		// The order can be cancelled while its intent is still payable (3DS or a bank redirect left open, bank
+		// verification). Only the deferred job returns that money, so the event must be deferred before the status
+		// guard below drops it, and before the inline wallet path, which would mark the cancelled order paid.
+		if ( $order->has_status( OrderStatus::CANCELLED )
+			&& in_array( $notification->type, [ 'payment_intent.succeeded', 'payment_intent.amount_capturable_updated' ], true ) ) {
+			$this->defer_webhook_processing(
+				$notification,
+				[
+					'order_id'  => $order->get_id(),
+					'intent_id' => $intent->id,
+				]
+			);
+			return false;
+		}
+
 		if ( ! $order->has_status(
 			/** This filter is documented in includes/class-wc-stripe-webhook-handler.php. */
 			apply_filters(

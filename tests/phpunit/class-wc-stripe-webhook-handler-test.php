@@ -385,6 +385,71 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A late payment for an order that was cancelled before the event arrived is deferred, so the
+	 * deferred job can return the money, and the cancelled order is not marked paid inline.
+	 *
+	 * @param string $event_type   The PaymentIntent event type.
+	 * @param string $payment_type The payment method type stored on the order.
+	 * @dataProvider provide_late_payment_for_cancelled_order
+	 */
+	public function test_process_payment_intent_defers_late_payment_for_cancelled_order( $event_type, $payment_type ) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::CANCELLED );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_payment_type( $order, $payment_type );
+		$order->save();
+
+		$notification = json_decode(
+			wp_json_encode(
+				[
+					'type' => $event_type,
+					'data' => [
+						'object' => [
+							'id'       => self::MOCK_PAYMENT_INTENT['id'],
+							'object'   => 'payment_intent',
+							'metadata' => [ 'order_id' => $order->get_id() ],
+						],
+					],
+				]
+			)
+		);
+
+		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+		$mock_scheduler->expects( $this->once() )
+			->method( 'schedule_job' )
+			->with(
+				$this->isType( 'int' ),
+				'wc_stripe_deferred_webhook',
+				$this->callback(
+					function ( $args ) use ( $event_type, $order ) {
+						return $event_type === $args['type']
+							&& $order->get_id() === $args['data']['order_id']
+							&& self::MOCK_PAYMENT_INTENT['id'] === $args['data']['intent_id'];
+					}
+				)
+			);
+
+		$prop = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $this->mock_webhook_handler, $mock_scheduler );
+
+		$this->assertFalse( $this->mock_webhook_handler->process_payment_intent( $notification ) );
+		$this->assertSame( OrderStatus::CANCELLED, wc_get_order( $order->get_id() )->get_status() );
+	}
+
+	/**
+	 * Provider for `test_process_payment_intent_defers_late_payment_for_cancelled_order`.
+	 *
+	 * @return array
+	 */
+	public function provide_late_payment_for_cancelled_order() {
+		return [
+			'card, captured'                   => [ 'payment_intent.succeeded', WC_Stripe_Payment_Methods::CARD ],
+			'card, manual capture'             => [ 'payment_intent.amount_capturable_updated', WC_Stripe_Payment_Methods::CARD ],
+			'wallet, otherwise handled inline' => [ 'payment_intent.succeeded', WC_Stripe_Payment_Methods::CASHAPP_PAY ],
+		];
+	}
+
+	/**
 	 * A cancelled order that receives a late payment is refunded (captured charge) or voided
 	 * (uncaptured authorisation). The refund amount comes from the charge's remaining balance, and
 	 * the order is only flagged as handled when process_refund() reports the path-appropriate success.
