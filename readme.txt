@@ -181,5 +181,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add E2E coverage for paying with a non-Stripe gateway on the Pay for Order, add payment method, and change payment method pages
 * Fix - Record the payment for a released charge-upon-release pre-order paid from the pay page with 3D Secure, instead of leaving the order unpaid after the card was charged
 * Update - Unify express checkout button sizes across Apple Pay / Google Pay, Link, and Amazon Pay
+* Fix - Allow retrying a failed BLIK or Pre-Authorized Debit (ACSS) payment on the same order instead of failing every retry
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
