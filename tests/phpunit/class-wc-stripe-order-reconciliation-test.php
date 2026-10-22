@@ -36,7 +36,7 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 			->getMock();
 		$this->webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'process_checkout_session_payment' ] )
+			->onlyMethods( [ 'process_checkout_session_payment', 'process_reconciled_payment' ] )
 			->getMock();
 		$this->reconciliation  = new WC_Stripe_Order_Reconciliation( $this->gateway, $this->webhook_handler );
 
@@ -209,6 +209,7 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		$endpoints       = [];
 		$this->mock_stripe_objects( [ '/checkout/sessions/cs_recovery' => $session ], $endpoints );
 		$this->gateway->expects( $this->never() )->method( 'process_response' );
+		$this->webhook_handler->expects( $this->never() )->method( 'process_reconciled_payment' );
 
 		$this->reconciliation->reconcile_order_payment( $order->get_id() );
 
@@ -263,10 +264,11 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		$this->gateway->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
 		$this->webhook_handler->expects( $this->never() )->method( 'process_checkout_session_payment' );
 		$this->gateway->expects( $this->never() )->method( 'process_response' );
+		$this->webhook_handler->expects( $this->never() )->method( 'process_reconciled_payment' );
 
 		$this->reconciliation->reconcile_order_payment( $order->get_id() );
 
-		$this->assertSame( 'pending', $order->get_status() );
+		$this->assertSame( 'pending', wc_get_order( $order->get_id() )->get_status() );
 	}
 
 	public static function provide_invalid_charges(): array {
@@ -337,10 +339,11 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		$this->mock_stripe_objects( [ '/payment_intents/pi_recovery' => $intent ] );
 		$this->gateway->expects( $this->never() )->method( 'get_latest_charge_from_intent' );
 		$this->gateway->expects( $this->never() )->method( 'process_response' );
+		$this->webhook_handler->expects( $this->never() )->method( 'process_reconciled_payment' );
 
 		$this->reconciliation->reconcile_order_payment( $order->get_id() );
 
-		$this->assertSame( 'pending', $order->get_status() );
+		$this->assertSame( 'pending', wc_get_order( $order->get_id() )->get_status() );
 	}
 
 	public function test_order_links_are_rechecked_after_stripe_requests(): void {
@@ -368,10 +371,11 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		add_filter( 'pre_http_request', $this->http_filter, 10, 3 );
 		$this->gateway->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
 		$this->gateway->expects( $this->never() )->method( 'process_response' );
+		$this->webhook_handler->expects( $this->never() )->method( 'process_reconciled_payment' );
 
 		$this->reconciliation->reconcile_order_payment( $order->get_id() );
 
-		$this->assertSame( 'pending', $order->get_status() );
+		$this->assertSame( 'pending', wc_get_order( $order->get_id() )->get_status() );
 	}
 
 	public function test_recovers_session_payment_through_the_real_settlement_flow_only_once(): void {
@@ -778,6 +782,7 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		$this->mock_stripe_objects( $objects );
 		$this->gateway->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
 		$this->gateway->expects( $this->never() )->method( 'process_response' );
+		$this->webhook_handler->expects( $this->never() )->method( 'process_reconciled_payment' );
 		$this->webhook_handler->expects( $this->never() )->method( 'process_checkout_session_payment' );
 
 		$this->reconciliation->reconcile_order_payment( $order->get_id() );
