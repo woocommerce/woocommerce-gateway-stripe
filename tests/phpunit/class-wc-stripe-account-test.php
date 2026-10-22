@@ -1154,9 +1154,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	 *
 	 * @param mixed       $webhook_data      The previously stored webhook data.
 	 * @param string      $new_secret_key    The secret key about to be saved.
-	 * @param string|null $endpoint_url      The URL the endpoint lookup returns: 'self' for this
-	 *                                       site's webhook URL, a literal URL for another site, or
-	 *                                       null when the endpoint is missing from Stripe.
+	 * @param string|null $endpoint_url      Endpoint URL the lookup returns: 'self' for this site, a literal URL for another site, or null when missing.
 	 * @param bool        $expected_return   Whether a webhook should be decommissioned.
 	 * @param array       $expected_requests The Stripe API requests expected to be made.
 	 *
@@ -1183,8 +1181,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			'All expected webhook requests should have been made.'
 		);
 
-		// The param-matching exception is swallowed by the method's catch, so prove a skip
-		// by checking no DELETE was issued at all, not just that the return value is false.
+		// The method swallows the param-matching exception, so prove a skip by the absence of a DELETE.
 		$deletes = array_filter(
 			WC_Helper_Stripe_Api::$recorded_requests,
 			static function ( $call ) {

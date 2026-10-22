@@ -525,15 +525,12 @@ class WC_Stripe_Account {
 		}
 
 		try {
-			// Authenticate with the secret key that created the webhook so the lookup and
-			// deletion hit the originally connected account.
+			// Authenticate with the key that created the webhook so the lookup and deletion hit
+			// the originally connected account.
 			WC_Stripe_API::set_secret_key( $webhook_data['secret'] );
 
-			// A staging clone inherits production's stored webhook id and secret, so deleting by id
-			// alone would remove production's endpoint from Stripe and silently stop its webhooks.
-			// Only delete when the endpoint still points at this site. When it points at another
-			// site, is missing, or the lookup fails, leave it alone: a leftover endpoint in the old
-			// account is recoverable, deleting another site's endpoint is not.
+			// A staging clone inherits production's stored id and secret, so deleting by id alone
+			// would remove production's endpoint. Delete only an endpoint still pointing at this site.
 			$endpoint = $this->get_webhook_endpoint_by_id( $webhook_data['id'] );
 			if ( false === $endpoint || ! isset( $endpoint->url ) || ! WC_Stripe_Helper::is_webhook_url( $endpoint->url ) ) {
 				WC_Stripe_Logger::info( "Skipped decommissioning webhook {$webhook_data['id']}: its endpoint is missing or registered for another site." );

@@ -52,10 +52,8 @@ class WC_Helper_Stripe_Api extends WC_Stripe_API {
 	public static $request_exception = null;
 
 	/**
-	 * Every request() call, recorded as [ $request, $api, $method ].
-	 *
-	 * Use this to assert that a request was, or was not, made (the param-matching check
-	 * throws an exception that callers may swallow, so it cannot prove a request was skipped).
+	 * Every request() call, recorded as [ $request, $api, $method ], to assert a request was or
+	 * was not made (the param-matching check throws, which callers may swallow).
 	 *
 	 * @var array
 	 */
