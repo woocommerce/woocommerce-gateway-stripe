@@ -865,7 +865,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 */
 	protected function is_order_payment_lock_expired( string $lock_expiry ): bool {
 		$order_helper    = WC_Stripe_Order_Helper::get_instance();
-		$mock_lock_owner = $lock_expiry . ':';
+		$mock_lock_owner = $lock_expiry . ':mock:v2';
 
 		return true === $order_helper->is_order_payment_lock_expired( $mock_lock_owner );
 	}

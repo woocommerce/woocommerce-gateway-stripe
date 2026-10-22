@@ -1390,6 +1390,14 @@ class WC_Stripe_Order_Helper {
 		return null === $lock_owner; // $lock_owner is null if the order is already locked.
 	}
 
+	/**
+	 * Locks an order for payment intent processing.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Order $order The order that is being locked.
+	 * @return string|null The lock owner token if the order is locked, null otherwise.
+	 */
 	public function lock_order_payment_atomic( WC_Order $order ): ?string {
 		$lock_owner = WC_Stripe_Option_Lock::acquire( $this->get_order_payment_lock_name( $order ), $this->get_order_payment_lock_ttl() );
 		if ( null === $lock_owner ) {
@@ -1411,6 +1419,15 @@ class WC_Stripe_Order_Helper {
 		$this->unlock_order_payment_atomic( $order, null );
 	}
 
+	/**
+	 * Unlocks an order for payment intent processing.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Order $order The order that is being unlocked.
+	 * @param string|null $lock_owner The lock owner token to unlock. If null, the lock owner will be retrieved from the in-memory values.
+	 * @return void
+	 */
 	public function unlock_order_payment_atomic( WC_Order $order, ?string $lock_owner = null ): void {
 		if ( null === $lock_owner ) {
 			$lock_owner = self::$order_payment_locks[ $order->get_id() ] ?? null;
@@ -1424,8 +1441,16 @@ class WC_Stripe_Order_Helper {
 		unset( self::$order_payment_locks[ $order->get_id() ] );
 	}
 
+	/**
+	 * Indicate whether the specified lock owner token has expired.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param string|null $lock_owner The lock owner token.
+	 * @return bool|null Returns whether the token has expired or not. Null indicates we could not compute the expiration.
+	 */
 	public function is_order_payment_lock_expired( ?string $lock_owner = null ): ?bool {
-		return WC_Stripe_Option_Lock::is_lock_owner_expired( $lock_owner, $this->get_order_payment_lock_ttl() );
+		return WC_Stripe_Option_Lock::is_lock_owner_expired( $lock_owner );
 	}
 
 	/**
