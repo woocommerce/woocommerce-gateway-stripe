@@ -9,6 +9,8 @@ const mockResetCheckoutCompletionState = jest.fn();
 const mockShowErrorCheckout = jest.fn();
 let mockIsEmpty = false;
 let mockUsingSavedMethod = false;
+let mockHasActiveCheckoutSession = false;
+let mockAdaptivePricingSavedTokenPaymentMethod = null;
 let mockSelectedMethod = 'card';
 let mockStripeServerData = {};
 
@@ -16,6 +18,8 @@ jest.mock( '../../../api', () => jest.fn() );
 
 jest.mock( '../../../stripe-utils', () => ( {
 	generateCheckoutEventNames: () => 'checkout_place_order_stripe',
+	getAdaptivePricingSavedTokenPaymentMethod: () =>
+		mockAdaptivePricingSavedTokenPaymentMethod,
 	getSelectedUPEGatewayPaymentMethod: () => mockSelectedMethod,
 	getStripeServerData: () => mockStripeServerData,
 	isPaymentMethodRestrictedToLocation: () => false,
@@ -33,12 +37,14 @@ jest.mock( '../payment-processing', () => ( {
 	confirmWalletPayment: () => {},
 	createAndConfirmSetupIntent: () => {},
 	getMountedUPEComponent: () => null,
+	hasActiveCheckoutSession: () => mockHasActiveCheckoutSession,
 	hasEmptyRequiredFields: () => mockIsEmpty,
 	initializeUPEComponents: () => {},
 	maybeUpdateAdaptivePricingCheckoutSession: () => Promise.resolve(),
 	maybeUpdateOptimizedCheckoutExclusions: () => {},
 	mountStripePaymentElement: () => Promise.resolve(),
 	processPayment: ( ...args ) => mockProcessPayment( ...args ),
+	relocateCurrencySelector: () => {},
 	resetCheckoutCompletionState: ( ...args ) =>
 		mockResetCheckoutCompletionState( ...args ),
 	trackMountInProgress: () => {},
@@ -63,6 +69,8 @@ describe( 'classic checkout place-order handler', () => {
 	beforeEach( async () => {
 		mockIsEmpty = false;
 		mockUsingSavedMethod = false;
+		mockHasActiveCheckoutSession = false;
+		mockAdaptivePricingSavedTokenPaymentMethod = null;
 		mockSelectedMethod = 'card';
 		mockStripeServerData = {};
 		mockProcessPayment.mockReset();
@@ -153,6 +161,17 @@ describe( 'classic checkout place-order handler', () => {
 		expect(
 			document.getElementById( 'wc_stripe_checkout_session_id' )
 		).not.toBeNull();
+		expect( mockProcessPayment ).toHaveBeenCalled();
+	} );
+
+	it( 'pays through the live Checkout Session when an Adaptive Pricing saved card is selected', () => {
+		mockUsingSavedMethod = true;
+		mockHasActiveCheckoutSession = true;
+		mockAdaptivePricingSavedTokenPaymentMethod = 'pm_saved_ap_123';
+
+		placeOrder();
+
+		// The saved card pays the mounted session via confirm( { paymentMethod } ).
 		expect( mockProcessPayment ).toHaveBeenCalled();
 	} );
 } );

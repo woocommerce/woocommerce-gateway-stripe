@@ -109,3 +109,12 @@ body.wc-stripe-hide-save-checkbox .wc-block-components-payment-methods__save-car
 	.wc-stripe-test-mode-badge {
 	display: inline-block;
 }
+
+/*
+ * Adaptive Pricing currency selector nested inside the selected saved token's
+ * row (SavedTokenCheckoutForm portal): indent past the radio to align with
+ * the token label.
+ */
+.wc-stripe-saved-token-currency-selector {
+	margin: 8px 16px 12px 44px;
+}

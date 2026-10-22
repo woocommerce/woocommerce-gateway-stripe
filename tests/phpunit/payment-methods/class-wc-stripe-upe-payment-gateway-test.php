@@ -2370,6 +2370,54 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Mocks the gateway's Checkout Session retrieval to report the session as
+	 * completed, which is what routes a saved token onto the session path.
+	 *
+	 * @param string $session_id The Checkout Session id to report as complete.
+	 * @return void
+	 */
+	private function mock_completed_checkout_session( string $session_id ): void {
+		$this->mock_gateway->method( 'stripe_request' )->willReturnCallback(
+			function ( $path ) use ( $session_id ) {
+				if ( 'checkout/sessions/' . $session_id === $path ) {
+					return (object) [
+						'id'     => $session_id,
+						'status' => 'complete',
+					];
+				}
+
+				return null;
+			}
+		);
+	}
+
+	/**
+	 * Builds a pre_http_request stub serving Stripe customer creation, which the
+	 * Checkout Session payment path performs for logged-in users. The bootstrap
+	 * blocks all unmocked outbound HTTP, so these tests must serve it locally.
+	 *
+	 * @return callable The filter callback for `pre_http_request` (3 args).
+	 */
+	private function build_customers_endpoint_stub(): callable {
+		return function ( $return_value, $parsed_args, $url ) {
+			if ( false === strpos( $url, 'api.stripe.com/v1/customers' ) ) {
+				return $return_value;
+			}
+
+			return [
+				'headers'  => [],
+				'cookies'  => [],
+				'filename' => null,
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'body'     => wp_json_encode( [ 'id' => 'cus_mock_cs_token' ] ),
+			];
+		};
+	}
+
+	/**
 	 * Assert that a Checkout Session processing failure is surfaced through Woo checkout notices.
 	 *
 	 * @param string $expected_message Expected notice message.
@@ -2429,6 +2477,159 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertSame( $order->get_id(), $context['order_id'] );
 
 		WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_disambig' );
+	}
+
+	/**
+	 * A saved card token pays the Checkout Session: the order links to the session,
+	 * records the token's PaymentMethod id (which the client passes to
+	 * `confirm( { paymentMethod } )`), attaches the token, and never requests
+	 * saving an already-saved method. The client posts the order before it
+	 * confirms, so an open session with the flag must take this path too.
+	 *
+	 * @dataProvider provide_saved_card_token_checkout_session_states
+	 *
+	 * @param string $session_status The status returned by the Checkout Session retrieval.
+	 * @param bool   $confirms_flag  Whether the client sends the saved-token confirm flag.
+	 */
+	public function test_process_payment_with_checkout_session_accepts_saved_card_token( string $session_status, bool $confirms_flag ) {
+		$session_id = 'cs_test_saved_token';
+		$user_id    = $this->factory->user->create();
+		wp_set_current_user( $user_id );
+
+		// The Stripe-side token sync would delete the fixture token (the test
+		// account has no PaymentMethods behind it), so keep it out of the way.
+		$stripe_payment_tokens = WC_Stripe_Payment_Tokens::get_instance();
+		remove_filter( 'woocommerce_get_customer_payment_tokens', [ $stripe_payment_tokens, 'woocommerce_get_customer_payment_tokens' ], 10 );
+
+		$token = WC_Helper_Token::create_token( 'pm_saved_ap_123', $user_id );
+
+		$_POST['wc_stripe_checkout_session_id'] = $session_id;
+		$_POST['payment_method']                = WC_Stripe_UPE_Payment_Gateway::ID;
+		$_POST['wc-stripe-payment-method']      = WC_Stripe_UPE_Payment_Gateway::ID;
+		$_POST['wc-stripe-payment-token']       = (string) $token->get_id();
+
+		$order = WC_Helper_Order::create_order( $user_id );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+
+		$this->store_checkout_session_context_for_order( $session_id, $order );
+
+		if ( $confirms_flag ) {
+			$_POST['wc_stripe_saved_token_confirms_session'] = '1';
+		}
+
+		$this->mock_gateway->method( 'stripe_request' )->willReturnCallback(
+			function ( $path ) use ( $session_id, $session_status ) {
+				if ( 'checkout/sessions/' . $session_id === $path ) {
+					return (object) [
+						'id'     => $session_id,
+						'status' => $session_status,
+					];
+				}
+
+				return null;
+			}
+		);
+
+		// The session path must not charge the token itself; the client confirms the session.
+		$this->mock_gateway->intent_controller
+			->expects( $this->never() )
+			->method( 'create_and_confirm_payment_intent' );
+
+		// The session payment path ensures a Stripe customer for the logged-in
+		// user; the bootstrap blocks outbound HTTP, so serve the creation here.
+		$pre_http_filter = $this->build_customers_endpoint_stub();
+		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
+
+		try {
+			$result = $this->mock_gateway->process_payment( $order->get_id() );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_filter );
+			WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
+			unset( $_POST['wc_stripe_checkout_session_id'], $_POST['payment_method'], $_POST['wc-stripe-payment-method'], $_POST['wc-stripe-payment-token'], $_POST['wc_stripe_saved_token_confirms_session'] );
+			add_filter( 'woocommerce_get_customer_payment_tokens', [ $stripe_payment_tokens, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
+			wp_set_current_user( 0 );
+		}
+
+		$this->assertSame( 'success', $result['result'] );
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$fresh_order  = wc_get_order( $order->get_id() );
+		$this->assertSame( $session_id, $order_helper->get_stripe_checkout_session_id( $fresh_order ) );
+		$this->assertSame( 'pm_saved_ap_123', $order_helper->get_stripe_source_id( $fresh_order ) );
+		$this->assertContains( $token->get_id(), $fresh_order->get_payment_tokens() );
+		$this->assertFalse( $order_helper->get_should_save_stripe_payment_method( $fresh_order ) );
+	}
+
+	/**
+	 * @return array<string,array{string,bool}>
+	 */
+	public function provide_saved_card_token_checkout_session_states(): array {
+		return [
+			'completed session'                    => [ 'complete', false ],
+			'open session the client will confirm' => [ 'open', true ],
+		];
+	}
+
+	/**
+	 * A non-card token cannot pay a Checkout Session (single-currency methods can't
+	 * settle a converted presentment currency), so the checkout fails with a notice
+	 * instead of silently charging the wrong flow.
+	 */
+	public function test_process_payment_with_checkout_session_rejects_non_card_token() {
+		$session_id = 'cs_test_non_card_token';
+		wc_clear_notices();
+
+		$user_id = $this->factory->user->create();
+		wp_set_current_user( $user_id );
+
+		// Keep the Stripe-side token sync from deleting the fixture token.
+		$stripe_payment_tokens = WC_Stripe_Payment_Tokens::get_instance();
+		remove_filter( 'woocommerce_get_customer_payment_tokens', [ $stripe_payment_tokens, 'woocommerce_get_customer_payment_tokens' ], 10 );
+
+		$token = new WC_Payment_Token_CashApp();
+		$token->set_user_id( $user_id );
+		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$token->set_token( 'pm_cashapp_ap_123' );
+		$token->save();
+
+		$_POST['wc_stripe_checkout_session_id'] = $session_id;
+		$_POST['payment_method']                = WC_Stripe_UPE_Payment_Gateway::ID;
+		$_POST['wc-stripe-payment-method']      = WC_Stripe_UPE_Payment_Gateway::ID;
+		$_POST['wc-stripe-payment-token']       = (string) $token->get_id();
+
+		$order = WC_Helper_Order::create_order( $user_id );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+
+		$this->store_checkout_session_context_for_order( $session_id, $order );
+
+		// Even a completed session must reject a non-card token inside the
+		// session path, so mock the completed state to reach that guard.
+		$this->mock_completed_checkout_session( $session_id );
+
+		// The token-type check runs after the customer is ensured, so the
+		// blocked /v1/customers call must be served for the rejection to be reached.
+		$pre_http_filter = $this->build_customers_endpoint_stub();
+		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
+
+		try {
+			$result = $this->mock_gateway->process_payment( $order->get_id() );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_filter );
+			WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
+			unset( $_POST['wc_stripe_checkout_session_id'], $_POST['payment_method'], $_POST['wc-stripe-payment-method'], $_POST['wc-stripe-payment-token'] );
+			add_filter( 'woocommerce_get_customer_payment_tokens', [ $stripe_payment_tokens, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
+			wp_set_current_user( 0 );
+		}
+
+		$this->assertSame( 'failure', $result['result'] );
+		$this->assert_checkout_session_failure_notice( 'The selected payment method cannot be used for this purchase. Please choose a different one.' );
+		$this->assertEmpty( WC_Stripe_Order_Helper::get_instance()->get_stripe_source_id( wc_get_order( $order->get_id() ) ) );
+
+		wc_clear_notices();
 	}
 
 	/**
@@ -2873,11 +3074,15 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * A complete session is deliberately absent: a saved card completes the
+	 * session client-side via confirm( { paymentMethod } ), so that state routes
+	 * to the session path instead of retirement (see
+	 * test_process_payment_with_checkout_session_accepts_saved_card_token).
+	 *
 	 * @return array<string,array{string|null,string|null,bool}>
 	 */
 	public function provide_unretireable_checkout_session_states(): array {
 		return [
-			'complete Session'        => [ 'complete', null, false ],
 			'malformed Session'       => [ null, null, false ],
 			'retrieval failure'       => [ null, null, true ],
 			'expiration failure'      => [ 'open', null, false ],

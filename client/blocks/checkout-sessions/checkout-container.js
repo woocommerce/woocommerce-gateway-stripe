@@ -16,8 +16,13 @@ const stripePromise = loadStripe();
  * @return {JSX.Element} The Checkout Sessions Container component.
  */
 export const CheckoutContainer = ( props ) => {
-	const { setPaymentProcessorLoadErrorMessage, setShouldLoadStripeElements } =
-		props;
+	const {
+		setPaymentProcessorLoadErrorMessage,
+		setShouldLoadStripeElements,
+		// The saved-token flow reuses this provider with a form that renders
+		// only the currency selector; everything else defaults to the full form.
+		FormComponent = CheckoutForm,
+	} = props;
 
 	// Create a promise wrapper for the client secret during render,
 	// but use an effect to ensure that we correctly make API calls
@@ -103,7 +108,7 @@ export const CheckoutContainer = ( props ) => {
 			stripe={ stripePromise }
 			options={ providerOptions }
 		>
-			<CheckoutForm
+			<FormComponent
 				{ ...props }
 				onLoadError={ setPaymentProcessorLoadErrorMessage }
 			/>
