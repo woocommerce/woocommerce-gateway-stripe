@@ -33,7 +33,7 @@ final class WC_Stripe_Option_Lock {
 	 *
 	 * @var string[]
 	 */
-	private const CLEANUP_LOCK_NAMES = [
+	private const SUPPORTED_LOCK_NAMES = [
 		'wc_stripe_agentic_sync_lock',
 	];
 
@@ -47,7 +47,7 @@ final class WC_Stripe_Option_Lock {
 	 *
 	 * @var string[]
 	 */
-	private const CLEANUP_LOCK_PREFIXES = [
+	private const SUPPORTED_LOCK_PREFIXES = [
 		'wc_stripe_checkout_session_lock_',
 		'wc_stripe_user_customer_lock_',
 	];
@@ -244,7 +244,7 @@ final class WC_Stripe_Option_Lock {
 		$deleted = 0;
 
 		// Fixed names are matched by equality so a look-alike option is never touched.
-		foreach ( self::CLEANUP_LOCK_NAMES as $name ) {
+		foreach ( self::SUPPORTED_LOCK_NAMES as $name ) {
 			if ( $deleted >= $limit ) {
 				break;
 			}
@@ -264,7 +264,7 @@ final class WC_Stripe_Option_Lock {
 		}
 
 		// Per-entity locks are matched by prefix with a LIKE wildcard.
-		foreach ( self::CLEANUP_LOCK_PREFIXES as $prefix ) {
+		foreach ( self::SUPPORTED_LOCK_PREFIXES as $prefix ) {
 			if ( $deleted >= $limit ) {
 				break;
 			}
@@ -343,11 +343,11 @@ final class WC_Stripe_Option_Lock {
 	 * @return bool True if the lock name is supported, false otherwise.
 	 */
 	private static function is_supported_lock_name( string $name ): bool {
-		if ( array_key_exists( $name, self::CLEANUP_LOCK_NAMES ) ) {
+		if ( in_array( $name, self::SUPPORTED_LOCK_NAMES, true ) ) {
 			return true;
 		}
 
-		foreach ( array_keys( self::CLEANUP_LOCK_PREFIXES ) as $lock_prefix ) {
+		foreach ( self::SUPPORTED_LOCK_PREFIXES as $lock_prefix ) {
 			if ( str_starts_with( $name, $lock_prefix ) ) {
 				return true;
 			}
