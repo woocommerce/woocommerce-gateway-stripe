@@ -46,7 +46,7 @@ class WC_Stripe_Account {
 	/**
 	 * Retained for callers that read webhook events from the account class.
 	 *
-	 * @deprecated x.x.x Use WC_Stripe_Webhook_Settings::WEBHOOK_EVENTS instead.
+	 * @deprecated 11.2.0 Use WC_Stripe_Webhook_Settings::WEBHOOK_EVENTS instead.
 	 */
 	public const WEBHOOK_EVENTS = WC_Stripe_Webhook_Settings::WEBHOOK_EVENTS;
 
