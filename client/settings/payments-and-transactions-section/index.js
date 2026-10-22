@@ -21,6 +21,7 @@ import {
 	useSepaTokensForIdeal,
 } from 'wcstripe/data';
 import { PAYMENT_METHOD_CASHAPP } from 'wcstripe/stripe-utils/constants';
+import InlineNotice from 'components/inline-notice';
 
 const StatementDescriptorInputWrapper = styled.div`
 	position: relative;
@@ -82,6 +83,17 @@ const PaymentsAndTransactionsSection = () => {
 	// To meet this requirement, we use the first character of the full statement descriptor.
 	const shortStatementDescriptorSuffix =
 		stripeAccountShortStatementDescriptor.charAt( 0 );
+
+	// Card payments ignore the store-name fallback: they show the descriptor set on the Stripe
+	// account (its statement descriptor or card prefix), which the client cannot set. Warn only
+	// when we fall back to the store name AND the account has neither, so the merchant knows card
+	// customers would otherwise see no recognizable descriptor.
+	const stripeAccountCardStatementDescriptor =
+		data?.account?.settings?.card_payments?.statement_descriptor || '';
+	const showCardDescriptorWarning =
+		isUsingStoreNameStatementDescriptor &&
+		! stripeAccountCardStatementDescriptor &&
+		! stripeAccountShortStatementDescriptor;
 
 	return (
 		<Card className="transactions-and-payouts">
@@ -164,6 +176,22 @@ const PaymentsAndTransactionsSection = () => {
 						disabled={ true } // This field is read only. It is set in the Stripe account.
 					/>
 				</StatementDescriptorInputWrapper>
+
+				{ showCardDescriptorWarning && (
+					<InlineNotice icon status="warning" isDismissible={ false }>
+						{ interpolateComponents( {
+							mixedString: __(
+								'Card payments do not use this default. They show the bank statement descriptor set on your Stripe account, which is currently empty. Set one in your {{settingsLink}}Stripe account settings{{/settingsLink}} so card customers see a recognizable name and to avoid disputes and chargebacks.',
+								'woocommerce-gateway-stripe'
+							),
+							components: {
+								settingsLink: (
+									<ExternalLink href="https://dashboard.stripe.com/settings/public" />
+								),
+							},
+						} ) }
+					</InlineNotice>
+				) }
 
 				<CheckboxControl
 					checked={ isShortAccountStatementEnabled }
