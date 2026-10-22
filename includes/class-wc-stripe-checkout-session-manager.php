@@ -196,12 +196,11 @@ class WC_Stripe_Checkout_Session_Manager {
 		);
 
 		if ( null !== $stripe_error ) {
-			// Stripe rejects an update to an expired or completed session with a generic
-			// invalid_request_error and no code, the same shape as a bad parameter, so only the
-			// session's own status can tell whether retrying could ever succeed.
+			// Stripe returns the same invalid_request_error type, with no code, for both bad parameters
+			// and an expired session. Fetch the session to get its current state.
 			if ( 'invalid_request_error' === (string) ( $stripe_error->type ?? '' ) && $this->is_session_finished_on_stripe( $session_id ) ) {
 				WC_Stripe_Logger::info(
-					'Recreating the Checkout Session because Stripe reports it is no longer open.',
+					'Creating a new Checkout Session because Stripe reports the existing session as inactive.',
 					[ 'checkout_session_id' => $session_id ]
 				);
 
@@ -259,7 +258,7 @@ class WC_Stripe_Checkout_Session_Manager {
 		$expires_at = (int) ( $record['expires_at'] ?? 0 );
 		if ( $expires_at > 0 && time() >= $expires_at ) {
 			WC_Stripe_Logger::info(
-				'Recreating the Checkout Session because it has expired.',
+				'Creating a new Checkout Session as the current session has expired.',
 				[ 'checkout_session_id' => (string) $record['session_id'] ]
 			);
 
@@ -318,11 +317,15 @@ class WC_Stripe_Checkout_Session_Manager {
 		}
 
 		if ( ! empty( $session->error ) ) {
-			return 'resource_missing' === (string) ( $session->error->code ?? '' );
+			return 'resource_missing' === ( $session->error->code ?? '' );
+		}
+
+		if ( ! is_string( $session->status ?? null ) ) {
+			return false;
 		}
 
 		// https://docs.stripe.com/api/checkout/sessions/object#checkout_session_object-status
-		return in_array( (string) ( $session->status ?? '' ), [ 'expired', 'complete' ], true );
+		return in_array( $session->status, [ 'expired', 'complete' ], true );
 	}
 
 	/**

@@ -249,6 +249,7 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 		} finally {
 			remove_filter( 'pre_http_request', $mock_request, 10 );
 			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_expiry_1' );
+			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_expiry_2' );
 		}
 
 		$this->assertSame( $expected_create_count, $create_count );
@@ -381,6 +382,7 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 		} finally {
 			remove_filter( 'pre_http_request', $mock_request, 10 );
 			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_finished_1' );
+			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_finished_2' );
 		}
 
 		$expected_urls = [
