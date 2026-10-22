@@ -23,9 +23,13 @@ class WC_Stripe_Option_Lock_Test extends WP_UnitTestCase {
 	public function test_acquire_takes_a_free_lock(): void {
 		$owner = WC_Stripe_Option_Lock::acquire( self::LOCK_NAME, self::TTL );
 
-		$this->assertIsString( $owner );
-		$this->assertMatchesRegularExpression( '/^\d+:[0-9a-f-]{36}$/', $owner );
-		$this->assertSame( $owner, $this->read_lock() );
+		try {
+			$this->assertIsString( $owner );
+			$this->assertMatchesRegularExpression( '/^\d+:[0-9a-f-]{36}$/', $owner );
+			$this->assertSame( $owner, $this->read_lock() );
+		} finally {
+			$this->remove_lock( self::LOCK_NAME );
+		}
 	}
 
 	/**
@@ -41,12 +45,16 @@ class WC_Stripe_Option_Lock_Test extends WP_UnitTestCase {
 
 		$owner = WC_Stripe_Option_Lock::acquire( self::LOCK_NAME, self::TTL );
 
-		if ( $expect_acquired ) {
-			$this->assertIsString( $owner );
-			$this->assertSame( $owner, $this->read_lock(), 'The reclaimed row must carry the new owner.' );
-		} else {
-			$this->assertNull( $owner );
-			$this->assertSame( $seeded_value, $this->read_lock(), 'A live lock must not be touched.' );
+		try {
+			if ( $expect_acquired ) {
+				$this->assertIsString( $owner );
+				$this->assertSame( $owner, $this->read_lock(), 'The reclaimed row must carry the new owner.' );
+			} else {
+				$this->assertNull( $owner );
+				$this->assertSame( $seeded_value, $this->read_lock(), 'A live lock must not be touched.' );
+			}
+		} finally {
+			$this->remove_lock( self::LOCK_NAME );
 		}
 	}
 
@@ -84,8 +92,12 @@ class WC_Stripe_Option_Lock_Test extends WP_UnitTestCase {
 
 		$owner = WC_Stripe_Option_Lock::acquire( self::LOCK_NAME, self::TTL );
 
-		$this->assertIsString( $owner );
-		$this->assertSame( $owner, get_option( self::LOCK_NAME ) );
+		try {
+			$this->assertIsString( $owner );
+			$this->assertSame( $owner, get_option( self::LOCK_NAME ) );
+		} finally {
+			$this->remove_lock( self::LOCK_NAME );
+		}
 	}
 
 	/**
@@ -126,8 +138,12 @@ class WC_Stripe_Option_Lock_Test extends WP_UnitTestCase {
 			remove_filter( 'query', $rival_reclaims );
 		}
 
-		$this->assertNull( $owner );
-		$this->assertSame( $rival_owner, $this->read_lock() );
+		try {
+			$this->assertNull( $owner );
+			$this->assertSame( $rival_owner, $this->read_lock() );
+		} finally {
+			$this->remove_lock( self::LOCK_NAME );
+		}
 	}
 
 	/**
@@ -140,8 +156,12 @@ class WC_Stripe_Option_Lock_Test extends WP_UnitTestCase {
 
 		WC_Stripe_Option_Lock::release( self::LOCK_NAME, $owner );
 
-		$this->assertNull( $this->read_lock() );
-		$this->assertFalse( get_option( self::LOCK_NAME ) );
+		try {
+			$this->assertNull( $this->read_lock() );
+			$this->assertFalse( get_option( self::LOCK_NAME ) );
+		} finally {
+			$this->remove_lock( self::LOCK_NAME );
+		}
 	}
 
 	/**
@@ -153,7 +173,11 @@ class WC_Stripe_Option_Lock_Test extends WP_UnitTestCase {
 
 		WC_Stripe_Option_Lock::release( self::LOCK_NAME, ( time() - 10 ) . ':stale-owner' );
 
-		$this->assertSame( $rival_owner, $this->read_lock() );
+		try {
+			$this->assertSame( $rival_owner, $this->read_lock() );
+		} finally {
+			$this->remove_lock( self::LOCK_NAME );
+		}
 	}
 
 	/**
@@ -336,7 +360,12 @@ class WC_Stripe_Option_Lock_Test extends WP_UnitTestCase {
 		WC_Stripe_Option_Lock::delete_stale_locks( 50 );
 
 		$exists = (bool) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name = %s", $name ) );
-		$this->assertSame( ! $expect_deleted, $exists );
+
+		try {
+			$this->assertSame( ! $expect_deleted, $exists );
+		} finally {
+			$this->remove_lock( $name );
+		}
 	}
 
 	/**
@@ -390,19 +419,30 @@ class WC_Stripe_Option_Lock_Test extends WP_UnitTestCase {
 	public function test_delete_stale_locks_respects_the_limit(): void {
 		global $wpdb;
 
+		$cleanup_lock_names = [];
+
 		foreach ( [ 'a', 'b', 'c' ] as $suffix ) {
+			$lock_name = 'wc_stripe_checkout_session_lock_' . $suffix;
+
+			$cleanup_lock_names[] = $lock_name;
 			$wpdb->insert(
 				$wpdb->options,
 				[
-					'option_name'  => 'wc_stripe_checkout_session_lock_' . $suffix,
+					'option_name'  => $lock_name,
 					'option_value' => ( time() - 2 * DAY_IN_SECONDS ) . ':owner',
 					'autoload'     => 'off',
 				]
 			);
 		}
 
-		$this->assertSame( 2, WC_Stripe_Option_Lock::delete_stale_locks( 2 ) );
-		$this->assertSame( 1, WC_Stripe_Option_Lock::delete_stale_locks( 2 ) );
+		try {
+			$this->assertSame( 2, WC_Stripe_Option_Lock::delete_stale_locks( 2 ) );
+			$this->assertSame( 1, WC_Stripe_Option_Lock::delete_stale_locks( 2 ) );
+		} finally {
+			foreach ( $cleanup_lock_names as $lock_name ) {
+				$this->remove_lock( $lock_name );
+			}
+		}
 	}
 
 	/**
