@@ -52,6 +52,16 @@ class WC_Helper_Stripe_Api extends WC_Stripe_API {
 	public static $request_exception = null;
 
 	/**
+	 * Every request() call, recorded as [ $request, $api, $method ].
+	 *
+	 * Use this to assert that a request was, or was not, made (the param-matching check
+	 * throws an exception that callers may swallow, so it cannot prove a request was skipped).
+	 *
+	 * @var array
+	 */
+	public static $recorded_requests = [];
+
+	/**
 	 * Reset the helper.
 	 */
 	public static function reset() {
@@ -62,6 +72,7 @@ class WC_Helper_Stripe_Api extends WC_Stripe_API {
 		self::$request_response             = [];
 		self::$expected_request_call_params = null;
 		self::$request_exception            = null;
+		self::$recorded_requests            = [];
 	}
 
 	/**
@@ -86,6 +97,8 @@ class WC_Helper_Stripe_Api extends WC_Stripe_API {
 	 * @return array $response
 	 */
 	public static function request( $request, $api = 'charges', $method = 'POST', $with_headers = false ) {
+		self::$recorded_requests[] = [ $request, $api, $method ];
+
 		// Simulate a failing Stripe API request when configured to do so.
 		if ( self::$request_exception instanceof Exception ) {
 			throw self::$request_exception;
