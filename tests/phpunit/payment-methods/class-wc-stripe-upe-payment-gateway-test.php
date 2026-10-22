@@ -3075,7 +3075,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		WC_Stripe_Order_Helper::set_instance( $order_helper );
 
 		// Time out immediately: the order never reaches a paid status.
-		add_filter( 'wc_stripe_checkout_session_settlement_timeout', '__return_zero' );
+		add_filter( 'wc_stripe_checkout_session_order_received_maximum_delay', '__return_zero' );
 
 		// No Stripe API call runs on the locked branch.
 		$this->mock_gateway->expects( $this->never() )->method( 'stripe_request' );
@@ -3088,7 +3088,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$this->mock_gateway->process_checkout_session_redirect( $order->get_id() );
 		} finally {
 			remove_all_filters( 'wp_redirect' );
-			remove_filter( 'wc_stripe_checkout_session_settlement_timeout', '__return_zero' );
+			remove_filter( 'wc_stripe_checkout_session_order_received_maximum_delay', '__return_zero' );
 		}
 
 		$this->assertNull( $captured, 'The handler must not redirect when the settlement wait times out.' );

@@ -2788,7 +2788,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		 *
 		 * @param float $timeout Seconds to wait. Default 5.
 		 */
-		$timeout = apply_filters( 'wc_stripe_checkout_session_settlement_timeout', 5.0 );
+		$timeout = apply_filters( 'wc_stripe_checkout_session_order_received_maximum_delay', 5.0 );
 		if ( ! is_float( $timeout ) && ! is_int( $timeout ) ) {
 			$timeout = 5.0;
 		} else {
