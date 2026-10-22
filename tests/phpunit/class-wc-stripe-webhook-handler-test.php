@@ -2138,6 +2138,122 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that dispute creation never sends the failed order email.
+	 *
+	 * @return void
+	 */
+	public function test_dispute_creation_does_not_send_failed_order_email(): void {
+		$charge_id = 'ch_test_dispute_no_failed_email';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PROCESSING );
+		$order->set_transaction_id( $charge_id );
+		$order->save();
+
+		$notification = (object) [
+			'type' => 'charge.dispute.created',
+			'data' => (object) [
+				'object' => (object) [
+					'charge' => $charge_id,
+					'status' => 'needs_response',
+				],
+			],
+		];
+
+		$webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'send_failed_order_email' ] )
+			->getMock();
+		$webhook_handler->expects( $this->never() )->method( 'send_failed_order_email' );
+
+		$webhook_handler->process_webhook_dispute( $notification );
+
+		$this->assertSame( OrderStatus::ON_HOLD, wc_get_order( $order->get_id() )->get_status() );
+	}
+
+	/**
+	 * Test for `process_webhook_dispute_closed`.
+	 *
+	 * @dataProvider provide_test_process_webhook_dispute_closed
+	 *
+	 * @param string $initial_status  The order status before dispute.
+	 * @param string $dispute_status  The dispute closed status ('lost', 'won', 'warning_closed').
+	 * @param string $expected_status The expected final order status.
+	 * @param string $expected_note   The expected note pattern.
+	 * @return void
+	 */
+	public function test_process_webhook_dispute_closed( string $initial_status, string $dispute_status, string $expected_status, string $expected_note ): void {
+		$charge_id = 'ch_test_dispute_closed_' . $dispute_status;
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( $initial_status );
+		$order->set_transaction_id( $charge_id );
+		$order->save();
+
+		// Simulate dispute creation putting order on hold.
+		$notification_created = (object) [
+			'type' => 'charge.dispute.created',
+			'data' => (object) [
+				'object' => (object) [
+					'charge' => $charge_id,
+					'status' => 'needs_response',
+				],
+			],
+		];
+		$this->mock_webhook_handler->process_webhook_dispute( $notification_created );
+		$this->assertSame( OrderStatus::ON_HOLD, wc_get_order( $order->get_id() )->get_status() );
+
+		// Simulate dispute closed notification.
+		$notification_closed = (object) [
+			'type' => 'charge.dispute.closed',
+			'data' => (object) [
+				'object' => (object) [
+					'charge' => $charge_id,
+					'status' => $dispute_status,
+				],
+			],
+		];
+		$this->mock_webhook_handler->process_webhook_dispute_closed( $notification_closed );
+
+		$final_order = wc_get_order( $order->get_id() );
+		$this->assertSame( $expected_status, $final_order->get_status() );
+		$this->assert_order_has_note_matching( $expected_note, $final_order->get_id() );
+	}
+
+	/**
+	 * Provider for `test_process_webhook_dispute_closed`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_process_webhook_dispute_closed() {
+		return [
+			'dispute lost transitions to failed'                => [
+				'initial status'  => OrderStatus::PROCESSING,
+				'dispute status'  => 'lost',
+				'expected status' => OrderStatus::FAILED,
+				'expected note'   => '/The dispute was lost or accepted./',
+			],
+			'dispute won reverts to pre-hold processing status' => [
+				'initial status'  => OrderStatus::PROCESSING,
+				'dispute status'  => 'won',
+				'expected status' => OrderStatus::PROCESSING,
+				'expected note'   => '/The dispute was resolved in your favor./',
+			],
+			'dispute won reverts to pre-hold completed status'  => [
+				'initial status'  => OrderStatus::COMPLETED,
+				'dispute status'  => 'won',
+				'expected status' => OrderStatus::COMPLETED,
+				'expected note'   => '/The dispute was resolved in your favor./',
+			],
+			'warning closed reverts to pre-hold status'         => [
+				'initial status'  => OrderStatus::PROCESSING,
+				'dispute status'  => 'warning_closed',
+				'expected status' => OrderStatus::PROCESSING,
+				'expected note'   => '/The inquiry or retrieval was closed./',
+			],
+		];
+	}
+
+	/**
 	 * Test for `process_payment_intent`.
 	 *
 	 * @param string $event_type The event type.
