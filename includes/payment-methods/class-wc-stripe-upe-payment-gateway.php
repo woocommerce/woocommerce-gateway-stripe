@@ -1106,7 +1106,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return string[]
 	 */
 	public function get_upe_enabled_payment_method_ids( $force_refresh = false ) {
-		return WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids( $force_refresh );
+		$methods  = WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids( $force_refresh );
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		foreach ( [ 'upe_checkout_experience_accepted_payments', 'express_checkout', 'pmc_enabled' ] as $key ) {
+			if ( array_key_exists( $key, $settings ) ) {
+				$this->settings[ $key ] = $settings[ $key ];
+			}
+		}
+		return $methods;
 	}
 
 	/**
@@ -1175,34 +1182,41 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return true|\WP_Error True on success, WP_Error on failure.
 	 */
 	public function update_enabled_payment_methods( $payment_method_ids_to_enable ) {
-		// If the payment method configurations API is not enabled, we fallback to store the enabled payment methods in the DB.
-		if ( ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
-			$currently_enabled_payment_method_ids      = (array) $this->get_option( 'upe_checkout_experience_accepted_payments' );
-			$upe_checkout_experience_accepted_payments = [];
+		return WC_Stripe_Payment_Method_Configurations::with_settings_lock(
+			function () use ( $payment_method_ids_to_enable ) {
+				$this->init_settings();
+				// If the payment method configurations API is not enabled, we fallback to store the enabled payment methods in the DB.
+				if ( ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
+					$currently_enabled_payment_method_ids      = (array) $this->get_option( 'upe_checkout_experience_accepted_payments' );
+					$upe_checkout_experience_accepted_payments = [];
 
-			foreach ( self::UPE_AVAILABLE_METHODS as $gateway ) {
-				if ( in_array( $gateway::STRIPE_ID, $payment_method_ids_to_enable, true ) ) {
-					$upe_checkout_experience_accepted_payments[] = $gateway::STRIPE_ID;
+					foreach ( self::UPE_AVAILABLE_METHODS as $gateway ) {
+						if ( in_array( $gateway::STRIPE_ID, $payment_method_ids_to_enable, true ) ) {
+							$upe_checkout_experience_accepted_payments[] = $gateway::STRIPE_ID;
+						}
+					}
+					$this->update_option( 'upe_checkout_experience_accepted_payments', $upe_checkout_experience_accepted_payments );
+
+					// After updating payment methods record tracks events.
+					$newly_enabled_methods  = array_diff( $upe_checkout_experience_accepted_payments, $currently_enabled_payment_method_ids );
+					$newly_disabled_methods = array_diff( $currently_enabled_payment_method_ids, $payment_method_ids_to_enable );
+					WC_Stripe_Payment_Method_Configurations::record_payment_method_settings_event( $newly_enabled_methods, $newly_disabled_methods );
+
+					return true;
 				}
+
+				$payment_method_ids_to_update = array_merge(
+					$this->get_stripe_supported_payment_methods(),
+					[ WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ]
+				);
+
+				$result = WC_Stripe_Payment_Method_Configurations::update_payment_method_configuration(
+					$payment_method_ids_to_enable,
+					$payment_method_ids_to_update
+				);
+				$this->init_settings();
+				return $result;
 			}
-			$this->update_option( 'upe_checkout_experience_accepted_payments', $upe_checkout_experience_accepted_payments );
-
-			// After updating payment methods record tracks events.
-			$newly_enabled_methods  = array_diff( $upe_checkout_experience_accepted_payments, $currently_enabled_payment_method_ids );
-			$newly_disabled_methods = array_diff( $currently_enabled_payment_method_ids, $payment_method_ids_to_enable );
-			WC_Stripe_Payment_Method_Configurations::record_payment_method_settings_event( $newly_enabled_methods, $newly_disabled_methods );
-
-			return true;
-		}
-
-		$payment_method_ids_to_update = array_merge(
-			$this->get_stripe_supported_payment_methods(),
-			[ WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ]
-		);
-
-		return WC_Stripe_Payment_Method_Configurations::update_payment_method_configuration(
-			$payment_method_ids_to_enable,
-			$payment_method_ids_to_update
 		);
 	}
 
@@ -4702,6 +4716,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		$enabled_payment_method_ids = $this->get_upe_enabled_payment_method_ids();
+		if ( ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
+			return 'yes' === $this->get_option( 'express_checkout' );
+		}
 
 		// Apple Pay and Google Pay settings are currently unified in wp-admin.
 		// However, they are managed separately within the Stripe dashboard.

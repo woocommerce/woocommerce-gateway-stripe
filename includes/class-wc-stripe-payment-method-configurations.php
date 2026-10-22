@@ -16,6 +16,15 @@ class WC_Stripe_Payment_Method_Configurations {
 	 */
 	private static $primary_configuration = null;
 
+	private const SETTINGS_LOCK = 'wc_stripe_pmc_settings_lock';
+
+	/**
+	 * Site holding the settings lock in this request.
+	 *
+	 * @var int|null
+	 */
+	private static $locked_blog_id = null;
+
 	/**
 	 * The test mode configuration parent ID.
 	 *
@@ -134,6 +143,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * @return object|null
 	 */
 	private static function get_payment_method_configuration_from_stripe() {
+		$context      = self::connection_context();
 		$is_test_mode = WC_Stripe_Mode::is_test();
 
 		$preselected_pmc = self::get_preselected_pmc( $is_test_mode );
@@ -148,10 +158,11 @@ class WC_Stripe_Payment_Method_Configurations {
 					]
 				);
 			} elseif ( ! empty( $preselected_pmc['configuration'] ) ) {
-				self::set_payment_method_configuration_cache( $preselected_pmc['configuration'] );
+				self::observe_configuration( $preselected_pmc['configuration'], $context );
 				return $preselected_pmc['configuration'];
 			}
-			// If the preselected Payment Method Configuration is not found, we continue with the default logic below.
+			self::disable_payment_method_configuration_sync( $context );
+			return null;
 		}
 
 		$result         = WC_Stripe_API::get_instance()->get_payment_method_configurations();
@@ -171,11 +182,11 @@ class WC_Stripe_Payment_Method_Configurations {
 					'stripe_mode' => $is_test_mode ? 'test' : 'live',
 				]
 			);
-			self::disable_payment_method_configuration_sync();
+			self::disable_payment_method_configuration_sync( $context );
 			return null;
 		}
 
-		self::set_payment_method_configuration_cache( $pmc );
+		self::observe_configuration( $pmc, $context );
 		return $pmc;
 	}
 
@@ -235,7 +246,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 *     @type string|null $reason The reason for the selection (or for not finding one).
 	 * }
 	 */
-	private static function select_platform_or_fallback_pmc( array $configurations ): array {
+	private static function select_platform_or_fallback_pmc( array $configurations, bool $persist_selection = true ): array {
 		$is_test_mode     = WC_Stripe_Mode::is_test();
 		$fallback_pmc_key = $is_test_mode ? 'woocommerce_stripe_pmc_fallback_id_test' : 'woocommerce_stripe_pmc_fallback_id_live';
 
@@ -244,7 +255,9 @@ class WC_Stripe_Payment_Method_Configurations {
 		foreach ( $configurations as $configuration ) {
 			// The API returns data for the corresponding mode of the api keys used, so we'll get either test or live PMCs, but never both.
 			if ( ( $configuration->parent ?? null ) && ( self::LIVE_MODE_CONFIGURATION_PARENT_ID === $configuration->parent || self::TEST_MODE_CONFIGURATION_PARENT_ID === $configuration->parent ) ) {
-				delete_option( $fallback_pmc_key );
+				if ( $persist_selection ) {
+					delete_option( $fallback_pmc_key );
+				}
 				return [
 					'pmc'    => $configuration,
 					'reason' => 'platform_child_used',
@@ -257,7 +270,7 @@ class WC_Stripe_Payment_Method_Configurations {
 		[
 			'pmc'    => $fallback_pmc,
 			'reason' => $fallback_reason,
-		] = self::get_fallback_payment_method_configuration( $configurations );
+		] = self::get_fallback_payment_method_configuration( $configurations, $persist_selection );
 
 		if ( null !== $fallback_pmc ) {
 			WC_Stripe_Logger::debug(
@@ -289,7 +302,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 *     @type string      $reason The reason for using the fallback Payment Method Configuration.
 	 * }
 	 */
-	private static function get_fallback_payment_method_configuration( array $payment_method_configurations ): array {
+	private static function get_fallback_payment_method_configuration( array $payment_method_configurations, bool $persist_selection = true ): array {
 		$active_non_child_payment_method_configurations = array_filter(
 			$payment_method_configurations,
 			function ( $configuration ) {
@@ -315,7 +328,9 @@ class WC_Stripe_Payment_Method_Configurations {
 						'option_name'     => $fallback_pmc_key,
 					]
 				);
-				delete_option( $fallback_pmc_key );
+				if ( $persist_selection ) {
+					delete_option( $fallback_pmc_key );
+				}
 			}
 
 			return [
@@ -343,7 +358,9 @@ class WC_Stripe_Payment_Method_Configurations {
 					'option_name'     => $fallback_pmc_key,
 				]
 			);
-			delete_option( $fallback_pmc_key );
+			if ( $persist_selection ) {
+				delete_option( $fallback_pmc_key );
+			}
 			$fallback_pmc_id = null;
 		}
 
@@ -381,7 +398,9 @@ class WC_Stripe_Payment_Method_Configurations {
 					'option_name' => $fallback_pmc_key,
 				]
 			);
-			update_option( $fallback_pmc_key, $fallback_pmc->id );
+			if ( $persist_selection ) {
+				update_option( $fallback_pmc_key, $fallback_pmc->id );
+			}
 
 			return [
 				'pmc'    => $fallback_pmc,
@@ -415,7 +434,7 @@ class WC_Stripe_Payment_Method_Configurations {
 		}
 
 		$primary_configuration = self::get_primary_configuration();
-		if ( ! $primary_configuration || empty( $primary_configuration->id ) ) {
+		if ( ! self::is_enabled() || ! $primary_configuration || empty( $primary_configuration->id ) ) {
 			return null;
 		}
 
@@ -486,16 +505,24 @@ class WC_Stripe_Payment_Method_Configurations {
 		// If the payment method configurations API is not enabled, we fallback to the enabled payment methods stored in the DB.
 		if ( ! self::is_enabled() ) {
 			$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-			return isset( $stripe_settings['upe_checkout_experience_accepted_payments'] ) && ! empty( $stripe_settings['upe_checkout_experience_accepted_payments'] )
+			return isset( $stripe_settings['upe_checkout_experience_accepted_payments'] ) && is_array( $stripe_settings['upe_checkout_experience_accepted_payments'] )
 				? $stripe_settings['upe_checkout_experience_accepted_payments']
 				: [ WC_Stripe_Payment_Methods::CARD ];
 		}
 
-		// Migrate payment methods from DB to Stripe PMC if needed
 		self::maybe_migrate_payment_methods_from_db_to_pmc();
+		if ( ! self::is_enabled() ) {
+			return self::get_upe_enabled_payment_method_ids();
+		}
 
 		$enabled_payment_method_ids            = [];
 		$merchant_payment_method_configuration = self::get_primary_configuration( $force_refresh );
+		if ( ! self::is_valid_configuration( $merchant_payment_method_configuration ) ) {
+			self::disable_payment_method_configuration_sync();
+		}
+		if ( ! self::is_enabled() ) {
+			return self::get_upe_enabled_payment_method_ids();
+		}
 
 		if ( $merchant_payment_method_configuration ) {
 			foreach ( $merchant_payment_method_configuration as $payment_method_id => $payment_method ) {
@@ -516,55 +543,65 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * @return true|\WP_Error True on success, WP_Error on failure.
 	 */
 	public static function update_payment_method_configuration( $enabled_payment_method_ids, $available_payment_method_ids ) {
-		$payment_method_configuration         = self::get_primary_configuration();
-		$updated_payment_method_configuration = [];
-		$newly_enabled_methods                = [];
-		$newly_disabled_methods               = [];
+		return self::with_settings_lock(
+			function () use ( $enabled_payment_method_ids, $available_payment_method_ids ) {
+				$context                              = self::connection_context();
+				$payment_method_configuration         = self::get_primary_configuration();
+				$updated_payment_method_configuration = [];
+				$newly_enabled_methods                = [];
+				$newly_disabled_methods               = [];
 
-		if ( ! $payment_method_configuration ) {
-			WC_Stripe_Logger::error( 'No primary payment method configuration found while updating payment method configuration' );
-			return new WP_Error( 'pmc_not_found', __( 'No primary payment method configuration found.', 'woocommerce-gateway-stripe' ) );
-		}
+				if ( ! self::is_enabled() || ! $payment_method_configuration ) {
+					WC_Stripe_Logger::error( 'No primary payment method configuration found while updating payment method configuration' );
+					return new WP_Error( 'pmc_not_found', __( 'No primary payment method configuration found.', 'woocommerce-gateway-stripe' ) );
+				}
 
-		foreach ( $available_payment_method_ids as $stripe_id ) {
-			$will_enable = in_array( $stripe_id, $enabled_payment_method_ids, true );
+				foreach ( $available_payment_method_ids as $stripe_id ) {
+					$will_enable = in_array( $stripe_id, $enabled_payment_method_ids, true );
 
-			if ( 'on' === ( $payment_method_configuration->$stripe_id->display_preference->value ?? null ) && ! $will_enable ) {
-				$newly_disabled_methods[] = $stripe_id;
+					if ( 'on' === ( $payment_method_configuration->$stripe_id->display_preference->value ?? null ) && ! $will_enable ) {
+						$newly_disabled_methods[] = $stripe_id;
+					}
+
+					if ( 'off' === ( $payment_method_configuration->$stripe_id->display_preference->value ?? null ) && $will_enable ) {
+						$newly_enabled_methods[] = $stripe_id;
+					}
+
+					$updated_payment_method_configuration[ $stripe_id ] = [
+						'display_preference' => [
+							'preference' => in_array( $stripe_id, $enabled_payment_method_ids, true ) ? 'on' : 'off',
+						],
+					];
+				}
+
+				$response = WC_Stripe_API::get_instance()->update_payment_method_configurations(
+					$payment_method_configuration->id,
+					$updated_payment_method_configuration
+				);
+				if ( ! self::is_valid_configuration( $response ) || ( $payment_method_configuration->id ?? null ) !== $response->id ) {
+					WC_Stripe_Logger::error(
+						'Unable to update Payment Method Configuration',
+						[
+							'pmc_id'        => $payment_method_configuration->id,
+							'configuration' => $updated_payment_method_configuration,
+							'response'      => $response,
+						]
+					);
+					return new WP_Error( 'pmc_update_failed', __( 'Unable to update payment method configuration.', 'woocommerce-gateway-stripe' ) );
+				}
+
+				self::observe_configuration( $response, $context );
+				foreach ( $updated_payment_method_configuration as $id => $preference ) {
+					if ( ( $response->$id->display_preference->value ?? null ) !== $preference['display_preference']['preference'] ) {
+						return new WP_Error( 'pmc_update_failed', __( 'Stripe did not apply all selected payment methods.', 'woocommerce-gateway-stripe' ) );
+					}
+				}
+
+				self::record_payment_method_settings_event( $newly_enabled_methods, $newly_disabled_methods );
+
+				return true;
 			}
-
-			if ( 'off' === ( $payment_method_configuration->$stripe_id->display_preference->value ?? null ) && $will_enable ) {
-				$newly_enabled_methods[] = $stripe_id;
-			}
-
-			$updated_payment_method_configuration[ $stripe_id ] = [
-				'display_preference' => [
-					'preference' => in_array( $stripe_id, $enabled_payment_method_ids, true ) ? 'on' : 'off',
-				],
-			];
-		}
-
-		$response = WC_Stripe_API::get_instance()->update_payment_method_configurations(
-			$payment_method_configuration->id,
-			$updated_payment_method_configuration
 		);
-		if ( ! empty( $response->error ) ) {
-			WC_Stripe_Logger::error(
-				'Unable to update Payment Method Configuration',
-				[
-					'pmc_id'        => $payment_method_configuration->id,
-					'configuration' => $updated_payment_method_configuration,
-					'response'      => $response,
-				]
-			);
-			return new WP_Error( 'pmc_update_failed', __( 'Unable to update payment method configuration.', 'woocommerce-gateway-stripe' ) );
-		}
-
-		self::clear_payment_method_configuration_cache();
-
-		self::record_payment_method_settings_event( $newly_enabled_methods, $newly_disabled_methods );
-
-		return true;
 	}
 
 	/**
@@ -613,6 +650,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * Check if the payment method configurations API can be used to store enabled payment methods.
 	 * This requires the Stripe account to be connected to Stripe.
 	 *
+	 * @phpstan-impure
 	 * @return bool
 	 */
 	public static function is_enabled() {
@@ -645,18 +683,12 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * `wc_stripe_preselect_payment_method_configuration` filter takes priority, then the
 	 * platform-child PMC, then the fallback PMC.
 	 *
-	 * Outcomes:
-	 *   - No usable PMC found: delegates to {@see self::disable_payment_method_configuration_sync()} ('no').
-	 *   - Usable PMC + `pmc_enabled` already 'yes': no-op.
-	 *   - Usable PMC + `pmc_enabled` empty or 'no': runs the DB-to-PMC migration to reconcile any
-	 *     payment methods edited while the flag was 'no', and the migration sets 'yes' on success.
-	 *
-	 * Note: when recovering from 'no', the union behavior of the migration may re-enable methods the
-	 * merchant disabled during the 'no' window. Disables made during that window are not preserved.
+	 * Different selections require merchant review; equal selections still require fresh verification.
 	 *
 	 * @return void
 	 */
 	public static function refresh_pmc_availability() {
+		$context = self::connection_context();
 		// Re-arm the cooldown instead of clearing it: this admin action triggers a forced settings
 		// re-fetch (get_upe_enabled_payment_method_ids( true )), which would otherwise bypass the PMC
 		// we cache below and make a redundant Stripe call — one that, on a transient failure, could
@@ -708,131 +740,300 @@ class WC_Stripe_Payment_Method_Configurations {
 				'No usable Payment Method Configuration found during account refresh; disabling Payment Method Configuration sync',
 				[ 'stripe_mode' => $is_test_mode ? 'test' : 'live' ]
 			);
-			self::disable_payment_method_configuration_sync();
+			self::disable_payment_method_configuration_sync( $context );
 			return;
 		}
 
-		self::set_payment_method_configuration_cache( $usable_pmc );
-
-		$stripe_settings    = WC_Stripe_Helper::get_stripe_settings();
-		$previous_pmc_state = $stripe_settings['pmc_enabled'] ?? '';
-
-		if ( 'yes' === $previous_pmc_state ) {
-			return;
-		}
-
-		if ( 'no' === $previous_pmc_state ) {
-			// Reset the flag so the migration's is_enabled() short-circuit doesn't block it.
-			// The migration will set 'yes' once it finishes.
-			unset( $stripe_settings['pmc_enabled'] );
-			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-		}
+		self::observe_configuration( $usable_pmc, $context );
 
 		self::maybe_migrate_payment_methods_from_db_to_pmc();
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		if ( ! self::is_enabled() && self::is_valid_configuration( $usable_pmc ) ) {
+			$review = self::review_data( $usable_pmc, $settings );
+			if ( ! $review['differs'] ) {
+				self::resolve_sync_review( 'stripe', $review['revision'] );
+			}
+		}
 	}
 
 	/**
-	 * Migrates the payment methods from the DB option to PMC if needed.
+	 * Preserves local choices until a previously uninitialized configuration can be compared.
 	 *
-	 * @param bool $force_migration Whether to force the migration.
+	 * @param bool $force_migration Retained for compatibility; forcing must not bypass verification.
 	 */
-	public static function maybe_migrate_payment_methods_from_db_to_pmc( $force_migration = false ) {
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-
-		// Skip if PMC is not enabled.
-		if ( ! self::is_enabled() ) {
+	public static function maybe_migrate_payment_methods_from_db_to_pmc( $force_migration = false ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		if ( ! WC_Stripe_Helper::is_connected() || ! empty( $settings['pmc_enabled'] ) ) {
 			return;
 		}
 
-		// Skip if migration already done (pmc_enabled is set) and we are not forcing the migration.
-		if ( ! empty( $stripe_settings['pmc_enabled'] ) && ! $force_migration ) {
-			return;
+		// An uninitialized connection must keep its local selections until reviewed.
+		self::disable_payment_method_configuration_sync();
+	}
+
+	/**
+	 * Serializes payment settings saves with background mirroring.
+	 *
+	 * @since x.x.x
+	 * @param callable $callback Settings operation.
+	 * @return mixed|WP_Error
+	 */
+	public static function with_settings_lock( callable $callback ) {
+		$blog_id = get_current_blog_id();
+		if ( self::$locked_blog_id === $blog_id ) {
+			return $callback();
 		}
-
-		// Skip if there is no PMC available
-		$merchant_payment_method_configuration = self::get_primary_configuration();
-		if ( ! $merchant_payment_method_configuration ) {
-			return;
+		$owner = WC_Stripe_Option_Lock::acquire( self::SETTINGS_LOCK, 300 );
+		if ( null === $owner ) {
+			return new WP_Error( 'pmc_busy', __( 'Payment settings are being updated. Please try again.', 'woocommerce-gateway-stripe' ), [ 'status' => 409 ] );
 		}
-
-		$enabled_payment_methods = [];
-
-		if ( isset( $stripe_settings['upe_checkout_experience_accepted_payments'] ) &&
-				! empty( $stripe_settings['upe_checkout_experience_accepted_payments'] ) ) {
-			$enabled_payment_methods = array_merge(
-				$enabled_payment_methods,
-				$stripe_settings['upe_checkout_experience_accepted_payments']
-			);
+		$previous_blog_id     = self::$locked_blog_id;
+		self::$locked_blog_id = $blog_id;
+		try {
+			self::fresh_settings();
+			return $callback();
+		} finally {
+			self::$locked_blog_id = $previous_blog_id;
+			WC_Stripe_Option_Lock::release( self::SETTINGS_LOCK, $owner );
 		}
+	}
 
-		// Add default express checkout methods to the list if express checkout is enabled
-		if (
-			! empty( $stripe_settings['express_checkout'] ) &&
-			'yes' === $stripe_settings['express_checkout'] &&
-			'yes' !== ( $stripe_settings['skip_pmc_express_checkout_defaults'] ?? 'no' )
-		) {
-			$enabled_payment_methods = array_merge(
-				$enabled_payment_methods,
-				[ WC_Stripe_Payment_Methods::GOOGLE_PAY, WC_Stripe_Payment_Methods::APPLE_PAY ]
-			);
+	private static function fresh_settings(): array {
+		// A Stripe request can outlive another request's settings save, including its alloptions snapshot.
+		wp_cache_delete( 'alloptions', 'options' );
+		wp_cache_delete( WC_Stripe::SETTINGS_OPTION_NAME, 'options' );
+		return WC_Stripe::get_instance()->get_settings();
+	}
 
-			// If Amazon Pay should be defaulted on, and the account country and currency are supported, enable Amazon Pay.
-			if ( 'yes' === get_option( 'wc_stripe_amazon_pay_default_on' ) && WC_Stripe_UPE_Payment_Method_Amazon_Pay::is_amazon_pay_available_for_account_country() && in_array( get_woocommerce_currency(), WC_Stripe_UPE_Payment_Method_Amazon_Pay::get_amazon_pay_supported_currencies(), true ) ) {
-				$enabled_payment_methods[] = WC_Stripe_Payment_Methods::AMAZON_PAY;
+	private static function connection_context(): string {
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$prefix   = 'yes' === ( $settings['testmode'] ?? 'no' ) ? 'test_' : '';
+		return hash( 'sha256', (string) wp_json_encode( [ get_current_blog_id(), $prefix, $settings[ $prefix . 'publishable_key' ] ?? '', $settings[ $prefix . 'secret_key' ] ?? '' ] ) );
+	}
+
+	/**
+	 * Invalid/incomplete responses must never erase the fallback selections.
+	 *
+	 * @param mixed $configuration Stripe response.
+	 * @phpstan-assert-if-true \stdClass $configuration
+	 */
+	private static function is_valid_configuration( $configuration ): bool {
+		return is_object( $configuration ) && ! is_wp_error( $configuration ) && empty( $configuration->error )
+			&& is_string( $configuration->id ?? null ) && str_starts_with( $configuration->id, 'pmc_' )
+			&& true === ( $configuration->active ?? false )
+			&& ( ! WC_Stripe_Mode::is_test() ) === ( $configuration->livemode ?? null )
+			&& in_array( $configuration->card->display_preference->value ?? null, [ 'on', 'off' ], true );
+	}
+
+	private static function local_selections( array $settings ): array {
+		$methods = $settings['upe_checkout_experience_accepted_payments'] ?? [ WC_Stripe_Payment_Methods::CARD ];
+		$methods = is_array( $methods ) ? array_values( array_intersect( array_keys( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS ), array_filter( $methods, 'is_string' ) ) ) : [];
+		sort( $methods );
+		return [
+			'upe_checkout_experience_accepted_payments' => $methods,
+			'express_checkout'                          => 'yes' === ( $settings['express_checkout'] ?? 'yes' ) ? 'yes' : 'no',
+		];
+	}
+
+	private static function configuration_selections( object $configuration ): array {
+		$methods = [];
+		foreach ( (array) $configuration as $id => $method ) {
+			if ( 'on' === ( $method->display_preference->value ?? null ) ) {
+				$methods[] = $id;
 			}
 		}
+		return self::local_selections(
+			[
+				'upe_checkout_experience_accepted_payments' => $methods,
+				'express_checkout'                          => array_intersect( [ 'apple_pay', 'google_pay' ], $methods ) ? 'yes' : 'no',
+			]
+		);
+	}
 
-		// Update the PMC if there are locally enabled payment methods
-		if ( ! empty( $enabled_payment_methods ) ) {
-			// Get all available payment method IDs from the configuration.
-			// We explicitly disable all payment methods that are not in the enabled_payment_methods array
-			$available_payment_method_ids = [];
-			foreach ( $merchant_payment_method_configuration as $payment_method_id => $payment_method ) {
-				if ( isset( $payment_method->display_preference ) ) {
-					$available_payment_method_ids[] = $payment_method_id;
+	/**
+	 * Late responses cannot overwrite choices saved after sync was disabled.
+	 *
+	 * @param mixed  $configuration Stripe response.
+	 * @param string $context Connection identity when the request started.
+	 */
+	private static function observe_configuration( $configuration, string $context ): void {
+		self::with_settings_lock(
+			function () use ( $configuration, $context ) {
+				$settings = self::fresh_settings();
+				if ( self::connection_context() !== $context || ! self::is_valid_configuration( $configuration ) ) {
+					return;
 				}
-
-				// Add all payment methods enabled in the PMC that are not enabled locally.
-				if (
-					! in_array( $payment_method_id, $enabled_payment_methods, true ) &&
-					isset( $payment_method->display_preference->value ) && 'on' === $payment_method->display_preference->value
-				) {
-					$enabled_payment_methods[] = $payment_method_id;
+				self::set_payment_method_configuration_cache( $configuration );
+				if ( 'yes' !== ( $settings['pmc_enabled'] ?? '' ) ) {
+					return;
+				}
+				$selections = self::configuration_selections( $configuration );
+				if ( self::local_selections( $settings ) !== $selections ) {
+					WC_Stripe::get_instance()->update_settings( array_merge( $settings, $selections ) );
 				}
 			}
+		);
+	}
 
-			WC_Stripe_Logger::error(
-				'Switching to Stripe-hosted payment method configuration',
-				[
-					'pmc_id'                       => $merchant_payment_method_configuration->id,
-					'enabled_payment_methods'      => $enabled_payment_methods,
-					'available_payment_method_ids' => $available_payment_method_ids,
-				]
-			);
-
-			self::update_payment_method_configuration(
-				$enabled_payment_methods,
-				$available_payment_method_ids
-			);
+	/**
+	 * Bypass cached discovery without changing selection bookkeeping.
+	 *
+	 * @return \stdClass|WP_Error
+	 */
+	private static function retrieve_review_configuration() {
+		$preselected = self::get_preselected_pmc( WC_Stripe_Mode::is_test() );
+		if ( null !== $preselected['pmc_id'] ) {
+			$configuration = $preselected['configuration'];
+		} else {
+			$response = WC_Stripe_API::get_instance()->get_payment_method_configurations();
+			if ( ! is_object( $response ) || is_wp_error( $response ) || ! empty( $response->error ) || ! is_array( $response->data ?? null ) ) {
+				return new WP_Error( 'pmc_unavailable', __( 'Unable to compare payment methods with Stripe. Please try again.', 'woocommerce-gateway-stripe' ), [ 'status' => 502 ] );
+			}
+			[ 'pmc' => $configuration ] = self::select_platform_or_fallback_pmc( $response->data, false );
 		}
-
-		// If there is no payment method order defined, set it to the default order
-		if ( empty( $stripe_settings['stripe_upe_payment_method_order'] ) ) {
-			$stripe_settings['stripe_upe_payment_method_order'] = array_keys( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS );
+		if ( ! self::is_valid_configuration( $configuration ) ) {
+			return new WP_Error( 'pmc_unavailable', __( 'No usable Stripe payment method configuration is available.', 'woocommerce-gateway-stripe' ), [ 'status' => 502 ] );
 		}
+		return $configuration;
+	}
 
-		// Mark migration as complete in stripe settings
-		$stripe_settings['pmc_enabled'] = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+	private static function review_data( object $configuration, array $settings ): array {
+		$local       = self::local_selections( $settings );
+		$stripe      = self::configuration_selections( $configuration );
+		$wallets     = [
+			'apple_pay'  => 'on' === ( $configuration->apple_pay->display_preference->value ?? null ),
+			'google_pay' => 'on' === ( $configuration->google_pay->display_preference->value ?? null ),
+		];
+		$preferences = [];
+		foreach ( (array) $configuration as $id => $method ) {
+			if ( isset( $method->display_preference ) ) {
+				$preferences[ $id ] = [ $method->available ?? null, $method->display_preference->value ?? null, $method->display_preference->preference ?? null, $method->display_preference->overridable ?? null ];
+			}
+		}
+		ksort( $preferences );
+		return [
+			'configuration_id' => $configuration->id ?? '',
+			'testmode'         => WC_Stripe_Mode::is_test(),
+			'local'            => $local,
+			'stripe'           => $stripe,
+			'wallets'          => $wallets,
+			'differs'          => $local !== $stripe,
+			// Bind confirmation to all preference/availability changes, not just the displayed difference.
+			'revision'         => hash_hmac( 'sha256', (string) wp_json_encode( [ self::connection_context(), $settings['pmc_enabled'] ?? '', $local, $configuration->id ?? '', $configuration->parent ?? null, $preferences ] ), wp_salt() ),
+		];
+	}
+
+	/**
+	 * Compare persisted local choices without adopting the remote configuration.
+	 *
+	 * @since x.x.x
+	 * @return array|WP_Error
+	 */
+	public static function get_sync_review() {
+		$settings = self::fresh_settings();
+		if ( self::is_enabled() || ! WC_Stripe_Helper::is_connected() ) {
+			return [ 'differs' => false ];
+		}
+		$context       = self::connection_context();
+		$configuration = self::retrieve_review_configuration();
+		if ( is_wp_error( $configuration ) ) {
+			return $configuration;
+		}
+		$settings = self::fresh_settings();
+		if ( self::connection_context() !== $context || self::is_enabled() ) {
+			return new WP_Error( 'pmc_changed', __( 'Payment settings changed. Refresh the comparison and try again.', 'woocommerce-gateway-stripe' ), [ 'status' => 409 ] );
+		}
+		return self::review_data( $configuration, $settings );
+	}
+
+	/**
+	 * Resolve a reviewed difference, then activate synchronization after verification.
+	 *
+	 * @since x.x.x
+	 * @param string $source Either woocommerce or stripe.
+	 * @param string $revision Revision returned by get_sync_review().
+	 * @return true|WP_Error
+	 */
+	public static function resolve_sync_review( string $source, string $revision ) {
+		return self::with_settings_lock(
+			function () use ( $source, $revision ) {
+				$review = self::get_sync_review();
+				if ( is_wp_error( $review ) ) {
+					return $review;
+				}
+				if ( ! in_array( $source, [ 'woocommerce', 'stripe' ], true ) || empty( $review['revision'] ) || ! hash_equals( $review['revision'], $revision ) ) {
+					return new WP_Error( 'pmc_changed', __( 'Payment settings changed. Refresh the comparison and try again.', 'woocommerce-gateway-stripe' ), [ 'status' => 409 ] );
+				}
+				$context       = self::connection_context();
+				$configuration = WC_Stripe_API::retrieve( 'payment_method_configurations/' . $review['configuration_id'] );
+				if ( ! self::is_valid_configuration( $configuration ) || self::review_data( $configuration, self::fresh_settings() )['revision'] !== $revision ) {
+					return new WP_Error( 'pmc_changed', __( 'Stripe settings changed. Refresh the comparison and try again.', 'woocommerce-gateway-stripe' ), [ 'status' => 409 ] );
+				}
+				if ( 'woocommerce' === $source ) {
+					$enabled = $review['local']['upe_checkout_experience_accepted_payments'];
+					if ( 'yes' === $review['local']['express_checkout'] ) {
+						$enabled = array_merge( $enabled, [ 'apple_pay', 'google_pay' ] );
+					}
+					$payload = [];
+					foreach ( array_merge( array_keys( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS ), [ 'apple_pay', 'google_pay' ] ) as $id ) {
+						$preference = in_array( $id, $enabled, true ) ? 'on' : 'off';
+						$display    = $configuration->$id->display_preference ?? null;
+						if ( null === $display || false === ( $display->overridable ?? true ) ) {
+							if ( ( $display->value ?? 'off' ) !== $preference ) {
+								/* translators: %s: payment method ID. */
+								return new WP_Error( 'pmc_method_unavailable', sprintf( __( 'Stripe cannot apply the WooCommerce selection for %s. Change that selection or use Stripe’s settings.', 'woocommerce-gateway-stripe' ), $id ), [ 'status' => 409 ] );
+							}
+							continue;
+						}
+						$payload[ $id ] = [ 'display_preference' => [ 'preference' => $preference ] ];
+					}
+					$configuration = WC_Stripe_API::get_instance()->update_payment_method_configurations( $configuration->id, $payload );
+				}
+				$rejected = [];
+				foreach ( $payload ?? [] as $id => $preference ) {
+					if ( ( $configuration->$id->display_preference->value ?? null ) !== $preference['display_preference']['preference'] ) {
+						$rejected[] = $id;
+					}
+				}
+				$expected = $review[ 'woocommerce' === $source ? 'local' : 'stripe' ];
+				if ( $rejected || ! self::is_valid_configuration( $configuration ) || $review['configuration_id'] !== $configuration->id || self::configuration_selections( $configuration ) !== $expected ) {
+					return new WP_Error( 'pmc_verification_failed', __( 'Stripe could not apply all selected payment methods. Synchronization remains off. Refresh the comparison or use Stripe’s settings.', 'woocommerce-gateway-stripe' ) . ( $rejected ? ' ' . implode( ', ', $rejected ) : '' ), [ 'status' => 502 ] );
+				}
+				$settings = self::fresh_settings();
+				if ( self::connection_context() !== $context || self::local_selections( $settings ) !== $review['local'] || self::is_enabled() ) {
+					return new WP_Error( 'pmc_changed', __( 'Payment settings changed. Refresh the comparison and try again.', 'woocommerce-gateway-stripe' ), [ 'status' => 409 ] );
+				}
+				WC_Stripe::get_instance()->update_settings( array_merge( $settings, $expected, [ 'pmc_enabled' => 'yes' ] ) );
+				$saved = self::fresh_settings();
+				if ( 'yes' !== ( $saved['pmc_enabled'] ?? '' ) || self::local_selections( $saved ) !== $expected ) {
+					WC_Stripe::get_instance()->update_settings( array_merge( $saved, [ 'pmc_enabled' => 'no' ] ) );
+					return new WP_Error( 'pmc_save_failed', __( 'Unable to save the verified payment settings. Synchronization remains off.', 'woocommerce-gateway-stripe' ), [ 'status' => 500 ] );
+				}
+				self::set_payment_method_configuration_cache( $configuration );
+				update_option( self::FETCH_COOLDOWN_OPTION_KEY, time() + MINUTE_IN_SECONDS );
+				return true;
+			}
+		);
 	}
 
 	/**
 	 * Disables the payment method configuration sync by setting pmc_enabled to 'no' in the Stripe settings.
 	 * This is called when no Payment Method Configuration is found that inherits from the WooCommerce Platform.
 	 */
-	private static function disable_payment_method_configuration_sync() {
-		$stripe_settings                = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['pmc_enabled'] = 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+	private static function disable_payment_method_configuration_sync( ?string $context = null ) {
+		self::with_settings_lock(
+			function () use ( $context ) {
+				$settings = self::fresh_settings();
+				if ( null !== $context && self::connection_context() !== $context ) {
+					return;
+				}
+				$cached = self::get_payment_method_configuration_from_cache();
+				if ( 'yes' === ( $settings['pmc_enabled'] ?? '' ) && self::is_valid_configuration( $cached ) ) {
+					$settings = array_merge( $settings, self::configuration_selections( $cached ) );
+				}
+				$settings['pmc_enabled'] = 'no';
+				WC_Stripe::get_instance()->update_settings( $settings );
+			}
+		);
 	}
 }

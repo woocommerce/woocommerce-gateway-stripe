@@ -141,6 +141,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 
 		$response = $this->controller->update_settings( $request );
 		$this->assertEquals( 200, $response->get_status() );
+		$this->assertSame( [ 'amazon_pay', 'card' ], WC_Stripe_Helper::get_stripe_settings()['upe_checkout_experience_accepted_payments'] );
 	}
 
 	/**
@@ -311,9 +312,9 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 			->method( 'update_payment_method_configurations' )
 			->with( $this->equalTo( $initial_pmc_id ) )
 			->willReturnCallback(
-				function () use ( &$is_test_mode_during_pmc_update ) {
+				function ( $id, $payload ) use ( &$is_test_mode_during_pmc_update ) {
 					$is_test_mode_during_pmc_update = WC_Stripe_Mode::is_test();
-					return (object) [];
+					return $this->payment_method_configuration_update_response( $id, $payload );
 				}
 			);
 
@@ -909,7 +910,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	public function is_express_checkout_enabled_provider() {
 		return [
 			[ true, [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::GOOGLE_PAY ], [] ],
-			[ false, [], [ WC_Stripe_Payment_Methods::GOOGLE_PAY, WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::AMAZON_PAY ] ],
+			[ false, [], [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::GOOGLE_PAY, WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::AMAZON_PAY ] ],
 		];
 	}
 

@@ -6308,6 +6308,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			'parent'   => \WC_Stripe_Payment_Method_Configurations::TEST_MODE_CONFIGURATION_PARENT_ID,
 			'active'   => true,
 			'livemode' => false,
+			'card'     => (object) [ 'display_preference' => (object) [ 'value' => 'off' ] ],
 		];
 
 		foreach ( $unsupported_methods as $method_id ) {
