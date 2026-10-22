@@ -35,6 +35,7 @@ final class WC_Stripe_Option_Lock {
 	 */
 	private const SUPPORTED_LOCK_NAMES = [
 		'wc_stripe_agentic_sync_lock',
+		'wc_stripe_express_checkout_password_cleanup_lock',
 	];
 
 	/**
@@ -49,6 +50,7 @@ final class WC_Stripe_Option_Lock {
 	 */
 	private const SUPPORTED_LOCK_PREFIXES = [
 		'wc_stripe_checkout_session_lock_',
+		'wc_stripe_transaction_lock_',
 		'wc_stripe_user_customer_lock_',
 	];
 
