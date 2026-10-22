@@ -9,7 +9,12 @@
  */
 class WC_Stripe_Option_Lock_Test extends WP_UnitTestCase {
 
-	private const LOCK_NAME = 'wc_stripe_test_lock';
+	/**
+	 * The lock name to use for the test. Note that it needs to be a supported lock name for the code to work.
+	 *
+	 * @var string
+	 */
+	private const LOCK_NAME = 'wc_stripe_express_checkout_password_cleanup_lock';
 	private const TTL       = MINUTE_IN_SECONDS;
 
 	/**
