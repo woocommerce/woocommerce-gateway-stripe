@@ -8,6 +8,7 @@ import {
 	isUsingSavedPaymentMethod,
 	paymentMethodSupportsDeferredIntent,
 	removeCheckoutSessionIdFromForm,
+	showErrorCheckout,
 	togglePaymentMethodForCountry,
 } from '../../stripe-utils';
 import './style.scss';
@@ -15,8 +16,8 @@ import {
 	confirmVoucherPayment,
 	confirmWalletPayment,
 	createAndConfirmSetupIntent,
+	getEmptyRequiredFields,
 	getMountedUPEComponent,
-	hasEmptyRequiredFields,
 	initializeUPEComponents,
 	maybeUpdateAdaptivePricingCheckoutSession,
 	maybeUpdateOptimizedCheckoutExclusions,
@@ -25,6 +26,7 @@ import {
 	resetCheckoutCompletionState,
 	trackMountInProgress,
 } from './payment-processing';
+import { __, sprintf } from '@wordpress/i18n';
 
 jQuery( function ( $ ) {
 	const stripeServerData = getStripeServerData();
@@ -102,22 +104,70 @@ jQuery( function ( $ ) {
 		void updateChain;
 	} );
 
+	// Builds the notice WooCommerce shows for a missing field: "<Field> is a required field."
+	// The label text is read from the DOM and HTML-escaped before it goes into the notice markup.
+	function getRequiredFieldMessage( wrapper ) {
+		const label = wrapper.querySelector( 'label' );
+		if ( ! label ) {
+			return '';
+		}
+
+		// Drop the "*" marker WooCommerce adds inside an <abbr class="required">.
+		const labelClone = label.cloneNode( true );
+		labelClone
+			.querySelectorAll( 'abbr' )
+			.forEach( ( node ) => node.remove() );
+
+		const name = labelClone.textContent.trim();
+		if ( ! name ) {
+			return '';
+		}
+
+		const escaped = jQuery( '<div>' ).text( name ).html();
+		return sprintf(
+			// translators: %s is the name of a required checkout field.
+			__( '%s is a required field.', 'woocommerce-gateway-stripe' ),
+			escaped
+		);
+	}
+
+	// Shows one notice per empty required field, falling back to a single generic notice when no
+	// field label can be read.
+	function showEmptyRequiredFieldsError( wrappers ) {
+		const messages = wrappers
+			.map( getRequiredFieldMessage )
+			.filter( Boolean );
+		if ( ! messages.length ) {
+			messages.push(
+				__(
+					'Please fill in all required fields.',
+					'woocommerce-gateway-stripe'
+				)
+			);
+		}
+
+		const items = messages.map( ( message ) => `<li>${ message }</li>` );
+		showErrorCheckout(
+			`<ul class="woocommerce-error" role="alert">${ items.join(
+				''
+			) }</ul>`
+		);
+	}
+
 	function processPaymentIfNotUsingSavedMethod( $form ) {
-		// When a required field is empty, let WooCommerce submit and return its own per-field
-		// notices (one named message per field, with a link where Woo provides one) instead of
-		// replacing them with a single generic message. We still skip creating a Stripe payment
-		// method for a submission that is missing fields, which is what #5222 set out to avoid.
-		// Returning undefined (not false) keeps WooCommerce's normal flow: it rejects the
-		// required fields it validates before an order is created. jQuery :visible filters out
-		// fields hidden by conditional checkout logic (e.g. shipping fields when "Ship to
-		// different address" is unchecked).
-		if (
-			hasEmptyRequiredFields(
-				$form.find( '.validate-required:visible' ).toArray()
-			)
-		) {
+		// When a required field is empty, block the submission, as #5222 does: letting WooCommerce
+		// submit without a Stripe payment method creates an order that then fails (the STRIPE-1402
+		// shape), and a field WooCommerce does not validate server-side would not be caught at all.
+		// Instead of #5222's single generic notice, show one notice per empty field so the shopper
+		// sees which to fill. jQuery :visible drops fields hidden by conditional checkout logic
+		// (e.g. shipping fields when "Ship to different address" is unchecked).
+		const emptyRequiredFields = getEmptyRequiredFields(
+			$form.find( '.validate-required:visible' ).toArray()
+		);
+		if ( emptyRequiredFields.length ) {
 			resetCheckoutCompletionState();
-			return;
+			showEmptyRequiredFieldsError( emptyRequiredFields );
+			return false;
 		}
 
 		const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
