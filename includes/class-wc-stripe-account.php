@@ -752,11 +752,11 @@ class WC_Stripe_Account {
 
 				// The stored endpoint can vanish (deleted in the Dashboard, or created under a
 				// previously connected account); notice instead of displaying the ghost ID forever.
-				if (
-					'' !== $stored_webhook_id
+				$stored_webhook_is_missing = '' !== $stored_webhook_id
 					&& ( ! $existing_webhook || ( $existing_webhook->id ?? '' ) !== $stored_webhook_id )
-					&& ! $this->webhook_endpoint_exists( $stored_webhook_id )
-				) {
+					&& ! $this->webhook_endpoint_exists( $stored_webhook_id );
+
+				if ( $stored_webhook_is_missing ) {
 					update_option( self::get_webhook_missing_notice_option( $mode ), 'yes' );
 					WC_Stripe_Logger::info( "Stored webhook {$stored_webhook_id} for {$mode} mode no longer exists in the Stripe account." );
 				}
@@ -789,6 +789,20 @@ class WC_Stripe_Account {
 					'' === $stored_webhook_id
 					|| ( isset( $webhook_data['signing_secret'] ) && $webhook_data['signing_secret'] !== $stored_secret )
 				);
+
+				// The stored id is absent from this mode's own account, yet another endpoint still
+				// serves this site's URL. This is the state left by a reconfigure that ran under the
+				// other mode's key: the endpoint was filed under this mode but created in the other
+				// account, so the saved signing secret matches no endpoint here and events fail to
+				// verify. The events/version check below would pass on the surviving endpoint and
+				// never repair it, so rebuild this mode now to save a secret that matches a real
+				// endpoint. Skip when the secret was set by hand or the stored endpoint belongs to
+				// another site (a staging clone), the same guards the recreate path uses.
+				if ( $stored_webhook_is_missing && $existing_webhook && ! $secret_is_manual && ! $stored_endpoint_is_foreign ) {
+					$this->configure_webhooks( $mode );
+					WC_Stripe_Logger::info( "Rebuilt the {$mode}-mode webhook after {$update_type} update: the stored endpoint was not found in this mode's account." );
+					continue;
+				}
 
 				if ( ! $existing_webhook ) {
 					// If the secret was manually edited, we don't want to overwrite the changes.
