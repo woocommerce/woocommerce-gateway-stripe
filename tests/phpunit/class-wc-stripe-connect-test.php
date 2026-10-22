@@ -418,6 +418,115 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * New OAuth credentials must not inherit a manual signing secret or an expired
+	 * webhook API key, even when the old endpoint still exists in the same account.
+	 *
+	 * @dataProvider provide_oauth_webhook_replacement_cases
+	 */
+	public function test_oauth_replaces_webhooks_for_new_credentials( string $path, bool $expired_key ): void {
+		$mode     = 'live' === $path ? 'live' : 'test';
+		$prefix   = 'test' === $mode ? 'test_' : '';
+		$old_key  = 'sk_' . $mode . '_old';
+		$new_key  = 'sk_' . $mode . '_new';
+		$old_auth = 'Basic ' . base64_encode( $old_key . ':' );
+		$new_auth = 'Basic ' . base64_encode( $new_key . ':' );
+		$endpoint = [
+			'id'             => 'we_old',
+			'url'            => WC_Stripe_Helper::get_webhook_url(),
+			'enabled_events' => WC_Stripe_Webhook_Settings::WEBHOOK_EVENTS,
+			'api_version'    => WC_Stripe_API::STRIPE_API_VERSION,
+			'status'         => 'enabled',
+		];
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'testmode'                 => 'test' === $path ? 'yes' : 'no',
+				'pmc_enabled'              => 'yes',
+				$prefix . 'secret_key'     => $old_key,
+				$prefix . 'webhook_secret' => 'whsec_old',
+				$prefix . 'webhook_data'   => $expired_key ? [
+					'id'             => 'we_old',
+					'url'            => $endpoint['url'],
+					'secret'         => $old_key,
+					'signing_secret' => 'whsec_old',
+				] : [],
+			]
+		);
+		$this->mock_stripe_account();
+		$webhook_settings                           = new WC_Stripe_Webhook_Settings( WC_Stripe_API::class );
+		WC_Stripe::get_instance()->webhook_settings = $webhook_settings;
+		$requests                                   = [];
+		$filter                                     = static function ( $preempt, $args, $url ) use ( &$requests, $old_auth, $endpoint ) {
+			if ( false === strpos( $url, WC_Stripe_API::ENDPOINT . 'webhook_endpoints' ) ) {
+				return $preempt;
+			}
+			$requests[] = [ $args['method'], $url, $args['headers']['Authorization'] ];
+			if ( $old_auth === $args['headers']['Authorization'] ) {
+				$body = [ 'error' => [ 'code' => 'api_key_expired' ] ];
+			} elseif ( 'POST' === $args['method'] || 'we_new' === basename( $url ) ) {
+				$body = array_merge(
+					$endpoint,
+					[
+						'id'     => 'we_new',
+						'secret' => 'whsec_new',
+					]
+				);
+			} elseif ( 'webhook_endpoints' === basename( $url ) ) {
+				$body = [ 'data' => [] ];
+			} else {
+				$body = $endpoint;
+			}
+			return [
+				'response' => [ 'code' => isset( $body['error'] ) ? 401 : 200 ],
+				'body'     => wp_json_encode( $body ),
+			];
+		};
+		add_filter( 'pre_http_request', $filter, 10, 3 );
+		try {
+			if ( 'dual-fetch' === $path ) {
+				$method = new ReflectionMethod( WC_Stripe_Connect::class, 'save_oauth_test_keys_alongside_live' );
+				$method->setAccessible( true );
+				$method->invoke(
+					$this->connect,
+					(object) [
+						'testPublishableKey' => 'pk_test_new',
+						'testSecretKey'      => $new_key,
+					]
+				);
+			} else {
+				$this->invoke_save_stripe_keys( 'pk_' . $mode . '_new', $new_key, $mode );
+			}
+
+			$settings = WC_Stripe_Helper::get_stripe_settings();
+			$this->assertSame( 'we_new', $settings[ $prefix . 'webhook_data' ]['id'] ?? null );
+			$this->assertSame( 'whsec_new', $settings[ $prefix . 'webhook_secret' ] );
+			$this->assertSame( $new_key, $settings[ $prefix . 'webhook_data' ]['secret'] );
+			$this->assertContains( [ 'POST', WC_Stripe_API::ENDPOINT . 'webhook_endpoints', $new_auth ], $requests );
+			if ( $expired_key ) {
+				$this->assertSame( [ 'DELETE', WC_Stripe_API::ENDPOINT . 'webhook_endpoints/we_old', $old_auth ], $requests[0] );
+			}
+
+			WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Webhook_Settings::WEBHOOK_STATUS_CACHE_KEY, $mode );
+			$this->assertTrue( $webhook_settings->is_webhook_enabled( $mode ) );
+			$this->assertSame( [ 'GET', WC_Stripe_API::ENDPOINT . 'webhook_endpoints/we_new', $new_auth ], end( $requests ) );
+		} finally {
+			remove_filter( 'pre_http_request', $filter, 10 );
+			WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Webhook_Settings::WEBHOOK_STATUS_CACHE_KEY, $mode );
+			WC_Stripe_API::set_secret_key( '' );
+		}
+	}
+
+	public function provide_oauth_webhook_replacement_cases(): array {
+		return [
+			'live manual setup' => [ 'live', false ],
+			'test manual setup' => [ 'test', false ],
+			'dual manual setup' => [ 'dual-fetch', false ],
+			'live expired key'  => [ 'live', true ],
+			'test expired key'  => [ 'test', true ],
+			'dual expired key'  => [ 'dual-fetch', true ],
+		];
+	}
+
+	/**
 	 * A failed cleanup retains the old key for retry, but verbose OAuth logs must mask it.
 	 *
 	 * @dataProvider provide_webhook_log_modes

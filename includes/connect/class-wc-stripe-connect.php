@@ -355,7 +355,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// Configure webhooks last so errors stemming from unreachable test/local sites don't prevent other actions.
 			try {
 				// Automatically configure webhooks for the account now that we have the keys.
-				WC_Stripe::get_instance()->webhook_settings->maybe_autoconfigure_webhooks( $is_test ? 'test' : 'live' );
+				WC_Stripe::get_instance()->webhook_settings->maybe_autoconfigure_webhooks( $is_test ? 'test' : 'live', true );
 			} catch ( Exception $e ) {
 				WC_Stripe_Logger::error(
 					'OAuth: Failed to configure webhooks after saving keys',
@@ -421,7 +421,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			WC_Stripe_API::set_secret_key( $test_secret_key );
 			try {
-				WC_Stripe::get_instance()->webhook_settings->maybe_autoconfigure_webhooks( 'test' );
+				WC_Stripe::get_instance()->webhook_settings->maybe_autoconfigure_webhooks( 'test', true );
 			} catch ( Exception $e ) {
 				WC_Stripe_Logger::error( 'OAuth: Failed to configure test webhooks during dual-fetch: ' . $e->getMessage() );
 			} finally {
