@@ -885,10 +885,8 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A stored webhook ID that this mode's own key cannot find means the saved signing secret no
-	 * longer matches a real endpoint (for example a reconfigure that ran under the other mode's
-	 * key). Even when another endpoint still serves the site URL and looks up to date, the mode is
-	 * rebuilt so the saved secret matches a real endpoint again.
+	 * A stored webhook ID the mode's own key cannot find means the saved secret matches no
+	 * endpoint, so the mode is rebuilt even when another up-to-date endpoint serves the site URL.
 	 */
 	public function test_reconfigure_webhooks_rebuilds_when_stored_endpoint_missing_from_account() {
 		$settings                        = WC_Stripe_Helper::get_stripe_settings();
@@ -903,8 +901,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$api_version_method = new ReflectionMethod( WC_Stripe_Account::class, 'get_webhooks_api_version' );
 		$api_version_method->setAccessible( true );
 
-		// Another endpoint still serves the site URL and is up to date, so the events/version
-		// check would pass and never repair the stale saved secret on its own.
+		// An up-to-date endpoint still serves the site URL, so the events/version check would pass.
 		$up_to_date_webhook = (object) [
 			'id'             => 'we_other',
 			'url'            => WC_Stripe_Helper::get_webhook_url(),

@@ -790,14 +790,11 @@ class WC_Stripe_Account {
 					|| ( isset( $webhook_data['signing_secret'] ) && $webhook_data['signing_secret'] !== $stored_secret )
 				);
 
-				// The stored id is absent from this mode's own account, yet another endpoint still
-				// serves this site's URL. This is the state left by a reconfigure that ran under the
-				// other mode's key: the endpoint was filed under this mode but created in the other
-				// account, so the saved signing secret matches no endpoint here and events fail to
-				// verify. The events/version check below would pass on the surviving endpoint and
-				// never repair it, so rebuild this mode now to save a secret that matches a real
-				// endpoint. Skip when the secret was set by hand or the stored endpoint belongs to
-				// another site (a staging clone), the same guards the recreate path uses.
+				// The stored id is absent from this mode's account while another endpoint still
+				// serves the site URL: the state left by a reconfigure run under the other mode's
+				// key, so the saved signing secret matches no endpoint and events fail to verify.
+				// The events/version check below would pass on the surviving endpoint and never
+				// repair it, so rebuild. The manual-secret and foreign-endpoint guards still apply.
 				if ( $stored_webhook_is_missing && $existing_webhook && ! $secret_is_manual && ! $stored_endpoint_is_foreign ) {
 					$this->configure_webhooks( $mode );
 					WC_Stripe_Logger::info( "Rebuilt the {$mode}-mode webhook after {$update_type} update: the stored endpoint was not found in this mode's account." );
