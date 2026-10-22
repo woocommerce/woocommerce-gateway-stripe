@@ -2736,7 +2736,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$deadline = microtime( true ) + $this->get_checkout_session_settlement_timeout();
 
 		while ( true ) {
-			if ( $this->order_reached_paid_status( $order_id ) ) {
+			if ( $this->order_is_paid( $order_id ) ) {
 				return true;
 			}
 
@@ -2749,15 +2749,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Reports whether the order is in a paid status, read fresh from the data store.
+	 * Reports whether the order is paid, read fresh from the data store.
 	 *
 	 * The settling webhook runs in a separate request, so its write is only visible after the
-	 * per-request order cache is cleared.
+	 * per-request order cache is cleared. is_paid() honours wc_get_is_paid_statuses(), so custom
+	 * paid statuses registered by the store count too.
 	 *
 	 * @param int $order_id The order id.
 	 * @return bool
 	 */
-	protected function order_reached_paid_status( int $order_id ): bool {
+	protected function order_is_paid( int $order_id ): bool {
 		// Clear/flush the OrderCache and post cache to pick up changes made by other processes.
 		if ( function_exists( 'wc_get_container' ) && class_exists( OrderCache::class ) ) {
 			$order_cache = wc_get_container()->get( OrderCache::class );
@@ -2769,8 +2770,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$order = wc_get_order( $order_id );
 
-		return $order instanceof WC_Order
-			&& $order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED, OrderStatus::ON_HOLD ] );
+		return $order instanceof WC_Order && $order->is_paid();
 	}
 
 	/**

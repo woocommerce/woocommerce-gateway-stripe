@@ -3102,11 +3102,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	public function test_wait_for_checkout_session_settlement_returns_true_when_order_settles() {
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->setConstructorArgs( [] )
-			->onlyMethods( [ 'order_reached_paid_status', 'sleep_between_settlement_checks', 'get_checkout_session_settlement_timeout' ] )
+			->onlyMethods( [ 'order_is_paid', 'sleep_between_settlement_checks', 'get_checkout_session_settlement_timeout' ] )
 			->getMock();
 		$gateway->method( 'get_checkout_session_settlement_timeout' )->willReturn( 5.0 );
 		// Not paid, not paid, then the webhook marks it paid.
-		$gateway->expects( $this->exactly( 3 ) )->method( 'order_reached_paid_status' )
+		$gateway->expects( $this->exactly( 3 ) )->method( 'order_is_paid' )
 			->willReturnOnConsecutiveCalls( false, false, true );
 		$gateway->expects( $this->exactly( 2 ) )->method( 'sleep_between_settlement_checks' );
 
@@ -3123,11 +3123,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	public function test_wait_for_checkout_session_settlement_times_out() {
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->setConstructorArgs( [] )
-			->onlyMethods( [ 'order_reached_paid_status', 'sleep_between_settlement_checks', 'get_checkout_session_settlement_timeout' ] )
+			->onlyMethods( [ 'order_is_paid', 'sleep_between_settlement_checks', 'get_checkout_session_settlement_timeout' ] )
 			->getMock();
 		// Zero budget: one status check, then the deadline has already passed.
 		$gateway->method( 'get_checkout_session_settlement_timeout' )->willReturn( 0.0 );
-		$gateway->method( 'order_reached_paid_status' )->willReturn( false );
+		$gateway->method( 'order_is_paid' )->willReturn( false );
 		$gateway->expects( $this->never() )->method( 'sleep_between_settlement_checks' );
 
 		$method = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'wait_for_checkout_session_settlement' );
@@ -3137,15 +3137,15 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * order_reached_paid_status() reports a paid order and rejects a non-paid one, reading the
+	 * order_is_paid() reports a paid order and rejects a non-paid one, reading the
 	 * current status fresh from the data store.
 	 */
-	public function test_order_reached_paid_status_reflects_current_status() {
+	public function test_order_is_paid_reflects_current_status() {
 		$order = WC_Helper_Order::create_order();
 		$order->set_status( OrderStatus::FAILED );
 		$order->save();
 
-		$method = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'order_reached_paid_status' );
+		$method = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'order_is_paid' );
 		$method->setAccessible( true );
 
 		$this->assertFalse( $method->invoke( $this->mock_gateway, $order->get_id() ) );
