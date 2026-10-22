@@ -301,6 +301,76 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Blocks need the filtered express settings, but must not download the classic bundle via a preload.
+	 *
+	 * @since x.x.x
+	 * @dataProvider provide_express_script_layouts
+	 * @param string $content Page content.
+	 * @param string $endpoint Special endpoint, if any.
+	 * @param bool   $expected_classic Whether classic express checkout is needed.
+	 * @return void
+	 */
+	public function test_express_scripts_and_preload_follow_layout( $content, $endpoint, $expected_classic ): void {
+		$page = self::factory()->post->create(
+			[
+				'post_type'    => 'page',
+				'post_content' => $content,
+			]
+		);
+		$this->go_to( get_permalink( $page ) );
+		if ( $endpoint ) {
+			$GLOBALS['wp']->query_vars[ $endpoint ] = 123;
+		}
+		$filter = static function ( $params ) {
+			$params['button']['theme'] = 'white';
+			return $params;
+		};
+		add_filter( 'wc_stripe_express_checkout_params', $filter );
+		foreach ( [ 'wc_stripe_express_checkout', 'wc-stripe-checkout-settings' ] as $handle ) {
+			wp_dequeue_script( $handle );
+			wp_deregister_script( $handle );
+		}
+
+		try {
+			$element = $this->build_element_with_guards( true, true );
+			$element->scripts();
+			$this->assertSame( $expected_classic, wp_script_is( 'wc_stripe_express_checkout', 'enqueued' ) );
+			$this->assertTrue( wp_script_is( 'wc-stripe-checkout-settings', 'enqueued' ) );
+			$this->assertStringContainsString( '"theme":"white"', wp_scripts()->get_data( 'wc-stripe-checkout-settings', 'data' ) );
+			$this->assertStringEndsWith( '/build/express-checkout.js', wp_scripts()->registered['wc_stripe_express_checkout']->src );
+
+			$bundle     = $expected_classic ? 'express-checkout' : 'upe-blocks';
+			$asset_path = WC_STRIPE_PLUGIN_PATH . '/build/' . $bundle . '.asset.php';
+			$asset      = file_exists( $asset_path ) ? require $asset_path : [ 'version' => WC_STRIPE_VERSION ];
+			$hints      = $element->add_preload_resources( [] );
+			$this->assertCount( 1, $hints );
+			$this->assertSame( WC_STRIPE_PLUGIN_URL . '/build/' . $bundle . '.js?ver=' . $asset['version'], $hints[0]['href'] );
+		} finally {
+			remove_filter( 'wc_stripe_express_checkout_params', $filter );
+			unset( $GLOBALS['wp']->query_vars[ $endpoint ] );
+			foreach ( [ 'wc_stripe_express_checkout', 'wc-stripe-checkout-settings' ] as $handle ) {
+				wp_dequeue_script( $handle );
+				wp_deregister_script( $handle );
+			}
+		}
+	}
+
+	/**
+	 * @since x.x.x
+	 * @return array
+	 */
+	public function provide_express_script_layouts(): array {
+		return [
+			'Blocks cart'              => [ '<!-- wp:woocommerce/cart /-->', '', false ],
+			'Blocks checkout'          => [ '<!-- wp:woocommerce/checkout /-->', '', false ],
+			'classic cart'             => [ '[woocommerce_cart]', '', true ],
+			'classic checkout'         => [ '[woocommerce_checkout]', '', true ],
+			'pay for order'            => [ '<!-- wp:woocommerce/checkout /-->', 'order-pay', true ],
+			'mixed classic and Blocks' => [ '<!-- wp:woocommerce/cart /-->[woocommerce_checkout]', '', true ],
+		];
+	}
+
+	/**
 	 * Build an element with helper mocks for both guards.
 	 *
 	 * @param bool $page_supported Return value for is_page_supported().

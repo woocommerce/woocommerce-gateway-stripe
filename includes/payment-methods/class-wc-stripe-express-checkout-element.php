@@ -410,10 +410,11 @@ class WC_Stripe_Express_Checkout_Element {
 	/**
 	 * Get asset file data (version and dependencies).
 	 *
+	 * @param string $bundle Bundle name.
 	 * @return array Array containing 'version' and 'dependencies' keys.
 	 */
-	private function get_asset_data() {
-		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/express-checkout.asset.php';
+	private function get_asset_data( $bundle = 'express-checkout' ) {
+		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/' . $bundle . '.asset.php';
 		$version      = WC_STRIPE_VERSION;
 		$dependencies = [];
 
@@ -540,14 +541,15 @@ class WC_Stripe_Express_Checkout_Element {
 			return $preload_resources;
 		}
 
-		$asset_data = $this->get_asset_data();
+		$bundle     = $this->should_load_classic_express_checkout_script() ? 'express-checkout' : 'upe-blocks';
+		$asset_data = $this->get_asset_data( $bundle );
 
 		if ( is_array( $asset_data ) && isset( $asset_data['version'] ) ) {
 			$preload_resources[] = [
 				'href' => add_query_arg(
 					'ver',
 					$asset_data['version'],
-					WC_STRIPE_PLUGIN_URL . '/build/express-checkout.js'
+					WC_STRIPE_PLUGIN_URL . '/build/' . $bundle . '.js'
 				),
 				'as'   => 'script',
 			];
@@ -595,7 +597,21 @@ class WC_Stripe_Express_Checkout_Element {
 			)
 		);
 
-		wp_enqueue_script( 'wc_stripe_express_checkout' );
+		wp_enqueue_script( 'wc-stripe-checkout-settings' );
+		if ( $this->should_load_classic_express_checkout_script() ) {
+			wp_enqueue_script( 'wc_stripe_express_checkout' );
+		}
+	}
+
+	/**
+	 * Blocks render their own express buttons, but classic forms can share the same page.
+	 *
+	 * @since x.x.x
+	 * @return bool
+	 */
+	private function should_load_classic_express_checkout_script(): bool {
+		return WC_Stripe_Helper::should_load_classic_checkout_scripts() ||
+			( ! has_block( 'woocommerce/cart' ) && ! has_block( 'woocommerce/checkout' ) );
 	}
 
 	/**
