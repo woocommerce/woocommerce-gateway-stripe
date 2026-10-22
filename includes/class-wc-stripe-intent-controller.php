@@ -683,7 +683,8 @@ class WC_Stripe_Intent_Controller {
 	/**
 	 * Fetches a payment or setup intent the same way validate_intent_for_order() does.
 	 *
-	 * @param string $intent_id The payment or setup intent ID.
+	 * @param string $intent_id             The payment or setup intent ID.
+	 * @param bool   $expand_payment_method Whether to expand the payment method on the fetched intent.
 	 * @return stdClass|null The intent, an error object, or null.
 	 */
 	private function retrieve_intent( string $intent_id, bool $expand_payment_method = true ) {
@@ -699,7 +700,17 @@ class WC_Stripe_Intent_Controller {
 	 * @return string The endpoint, `setup_intents` or `payment_intents`.
 	 */
 	private function intent_endpoint( string $intent_id ): string {
-		return 0 === strpos( $intent_id, 'seti_' ) ? 'setup_intents' : 'payment_intents';
+		return self::is_setup_intent( $intent_id ) ? 'setup_intents' : 'payment_intents';
+	}
+
+	/**
+	 * Whether an intent id is a setup intent. Setup intents start with `seti_`.
+	 *
+	 * @param string $intent_id The intent id.
+	 * @return bool
+	 */
+	private static function is_setup_intent( string $intent_id ): bool {
+		return 0 === strpos( $intent_id, 'seti_' );
 	}
 
 	/**
@@ -722,8 +733,8 @@ class WC_Stripe_Intent_Controller {
 			return;
 		}
 
-		$is_setup_intent = 0 === strpos( $intent_id, 'seti_' );
-		if ( ( 0 === strpos( $order_intent_id, 'seti_' ) ) !== $is_setup_intent ) {
+		$is_setup_intent = self::is_setup_intent( $intent_id );
+		if ( self::is_setup_intent( $order_intent_id ) !== $is_setup_intent ) {
 			return;
 		}
 		$endpoint = $this->intent_endpoint( $intent_id );
