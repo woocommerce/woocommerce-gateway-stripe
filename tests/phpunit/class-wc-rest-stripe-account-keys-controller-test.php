@@ -557,7 +557,12 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 			if ( 'GET' === $args['method'] ) {
 				return [
 					'response' => [ 'code' => 200 ],
-					'body'     => wp_json_encode( [ 'id' => 'we_old', 'url' => WC_Stripe_Helper::get_webhook_url() ] ),
+					'body'     => wp_json_encode(
+						[
+							'id'  => 'we_old',
+							'url' => WC_Stripe_Helper::get_webhook_url(),
+						]
+					),
 				];
 			}
 			$requests[] = [ $args['method'], $args['headers']['Authorization'], WC_Stripe_Helper::get_stripe_settings()[ $prefix . 'secret_key' ] ];
