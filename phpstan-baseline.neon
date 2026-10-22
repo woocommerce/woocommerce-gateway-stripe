@@ -2305,12 +2305,6 @@ parameters:
 			path: includes/class-wc-stripe-payment-method-configurations.php
 
 		-
-			message: '#^Method WC_Stripe_Payment_Method_Configurations\:\:clear_payment_method_configuration_cache\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/class-wc-stripe-payment-method-configurations.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Method_Configurations\:\:disable_payment_method_configuration_sync\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
@@ -2990,12 +2984,6 @@ parameters:
 
 		-
 			message: '#^Method WC_Stripe_Connect\:\:maybe_handle_redirect\(\) has no return type specified\.$#'
-			identifier: missingType.return
-			count: 1
-			path: includes/connect/class-wc-stripe-connect.php
-
-		-
-			message: '#^Method WC_Stripe_Connect\:\:record_account_connect_track_event\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1
 			path: includes/connect/class-wc-stripe-connect.php

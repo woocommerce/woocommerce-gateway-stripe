@@ -60,6 +60,7 @@ Use the smallest command set needed for the task:
 
 ## Common Pitfalls
 
+- **MUST:** Register one-time migrations in `WC_Stripe_Update_Manager::get_update_functions()` with a `maybe_migrate()` entry point, following existing migrations. Do not add migration execution or recovery hooks to `WC_Stripe::__construct()`.
 - Running PHP tests without Docker: `npm run test:php` fails unless containers are up.
 - Running `npm run infra:up` from a worktree: prefer the main checkout. The script warns interactively if you do it from a worktree.
 - Forgetting `npm run worktree:cleanup` before `git worktree remove`: leaves orphan containers and test databases behind. Run `npm run worktree:status` to find orphans.
@@ -156,6 +157,7 @@ Good comments explain intent; they do not restate the code. The CRITICAL rule ab
 - For version/release changes, update `changelog.txt`, `readme.txt` stable tag, and related version references together.
 - `changelog.txt` and `readme.txt` use **different version header formats**: `changelog.txt` uses `YYYY-MM-DD - version X.Y.Z` (WooCommerce.com parser format); `readme.txt` uses `= X.Y.Z - YYYY-MM-DD =` (WordPress.org format). Do not convert one to the other. `bin/changelog.js` handles both formats.
 - For WooCommerce version resolution logic, include explicit cases for stable, RC, and beta semantics.
+- **MUST:** New PHP docblocks must use `@since x.x.x` (a space, not a tab), never a specific version. The correct version will be inserted at release for files under `config.version_replace_paths` in `package.json`. Note than only `@since` and `@version` are currently supported, so `@deprecated` tags and deprecation function arguments (`_deprecated_function()`, `apply_filters_deprecated()`, ...) still need a concrete version. The `Version placeholders` lint job flags both mistakes.
 
 ## Version Support
 

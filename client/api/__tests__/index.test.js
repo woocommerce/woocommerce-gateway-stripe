@@ -203,6 +203,171 @@ describe( 'WCStripeAPI', () => {
 		} );
 	} );
 
+	describe( 'expressCheckoutECEPayForOrder', () => {
+		const orderDetails = ( overrides = {} ) => ( {
+			orderKey: 'wc_order_test_key',
+			billingEmail: 'jane.doe@example.com',
+			billingPhone: '+14155550123',
+			needsShipping: true,
+			shippingAddress: { first_name: 'Jane', phone: '' },
+			...overrides,
+		} );
+
+		const payForOrder = ( details, paymentData ) => {
+			const api = new WCStripeAPI( { key: 'pk_test_123', locale: 'en' } );
+			const postSpy = jest
+				.spyOn( api, 'postToStoreApi' )
+				.mockResolvedValue( {} );
+			api.expressCheckoutECEPayForOrder( 660, details, paymentData );
+			return postSpy.mock.calls[ 0 ];
+		};
+
+		// The Store API order-pay route replaces the order's saved billing address
+		// with this payload before validating it, so an empty phone from a wallet
+		// sheet that never asked for one would wipe the order's saved phone.
+		it( "falls back to the order's saved billing phone when the wallet returned none", () => {
+			const [ , payload ] = payForOrder( orderDetails(), {
+				billing_address: { first_name: 'Jane', phone: '' },
+			} );
+
+			expect( payload.billing_address.phone ).toBe( '+14155550123' );
+		} );
+
+		it( 'keeps the wallet-provided phone over the saved one', () => {
+			const [ , payload ] = payForOrder( orderDetails(), {
+				billing_address: { first_name: 'Jane', phone: '+19998887777' },
+			} );
+
+			expect( payload.billing_address.phone ).toBe( '+19998887777' );
+		} );
+
+		it( 'leaves the phone empty when the order has none saved either', () => {
+			const [ , payload ] = payForOrder(
+				orderDetails( { billingPhone: '' } ),
+				{ billing_address: { first_name: 'Jane', phone: '' } }
+			);
+
+			expect( payload.billing_address.phone ).toBe( '' );
+		} );
+
+		// The pay-for-order sheet never collects shipping, so the wallet's
+		// synthesized shipping address is empty and must not overwrite the
+		// order's saved one. Its phone is then backfilled from billing, since
+		// the route validates it with the same requiredness — mirroring
+		// cart/checkout, which send one wallet phone for both.
+		it( "replaces the shipping address with the order's saved one, backfilling its phone", () => {
+			const [ , payload ] = payForOrder( orderDetails(), {
+				billing_address: { first_name: 'Jane', phone: '' },
+				shipping_address: { first_name: 'Wallet' },
+			} );
+
+			expect( payload.shipping_address ).toEqual( {
+				first_name: 'Jane',
+				phone: '+14155550123',
+			} );
+		} );
+
+		it( 'keeps the saved shipping phone when the order has one', () => {
+			const [ , payload ] = payForOrder(
+				orderDetails( {
+					shippingAddress: {
+						first_name: 'Jane',
+						phone: '+12223334444',
+					},
+				} ),
+				{
+					billing_address: { first_name: 'Jane', phone: '' },
+				}
+			);
+
+			expect( payload.shipping_address.phone ).toBe( '+12223334444' );
+		} );
+
+		it( 'backfills the shipping phone from a wallet-provided billing phone', () => {
+			const [ , payload ] = payForOrder(
+				orderDetails( { billingPhone: '' } ),
+				{
+					billing_address: {
+						first_name: 'Jane',
+						phone: '+19998887777',
+					},
+				}
+			);
+
+			expect( payload.shipping_address.phone ).toBe( '+19998887777' );
+		} );
+
+		// A virtual/downloadable order carries an all-empty shipping address
+		// and the order-pay route skips shipping validation for it, so
+		// backfilling a phone would send a lone-phone "address" for no reason.
+		it( 'passes the shipping address through untouched when the order needs no shipping', () => {
+			const emptyShippingAddress = {
+				first_name: '',
+				last_name: '',
+				address_1: '',
+				city: '',
+				country: '',
+				postcode: '',
+				phone: '',
+			};
+			const [ , payload ] = payForOrder(
+				orderDetails( {
+					needsShipping: false,
+					shippingAddress: emptyShippingAddress,
+				} ),
+				{ billing_address: { first_name: 'Jane', phone: '' } }
+			);
+
+			expect( payload.shipping_address ).toEqual( emptyShippingAddress );
+		} );
+
+		// A shippable order with no saved shipping address localizes an
+		// all-empty address, and the route persists submitted addresses even
+		// when validation then fails the payment — so no phone may be
+		// fabricated onto it.
+		it( 'passes an all-empty shipping address through untouched even when the order needs shipping', () => {
+			const emptyShippingAddress = {
+				first_name: '',
+				last_name: '',
+				address_1: '',
+				city: '',
+				country: '',
+				postcode: '',
+				phone: '',
+			};
+			const [ , payload ] = payForOrder(
+				orderDetails( { shippingAddress: emptyShippingAddress } ),
+				{ billing_address: { first_name: 'Jane', phone: '' } }
+			);
+
+			expect( payload.shipping_address ).toEqual( emptyShippingAddress );
+		} );
+
+		it( 'leaves absent addresses untouched instead of fabricating phone-only ones', () => {
+			const [ , payload ] = payForOrder(
+				orderDetails( { shippingAddress: undefined } ),
+				{}
+			);
+
+			expect( payload.billing_address ).toBeUndefined();
+			expect( payload.shipping_address ).toBeUndefined();
+		} );
+
+		it( "does not mutate the caller's payment data", () => {
+			const paymentData = {
+				billing_address: { first_name: 'Jane', phone: '' },
+				shipping_address: { first_name: 'Wallet' },
+			};
+
+			payForOrder( orderDetails(), paymentData );
+
+			expect( paymentData ).toEqual( {
+				billing_address: { first_name: 'Jane', phone: '' },
+				shipping_address: { first_name: 'Wallet' },
+			} );
+		} );
+	} );
+
 	describe( 'createIntent', () => {
 		it( 'includes the order key in the PaymentIntent AJAX request', async () => {
 			const request = jest.fn().mockResolvedValue( {
@@ -236,6 +401,111 @@ describe( 'WCStripeAPI', () => {
 					_ajax_nonce: 'nonce_123',
 				}
 			);
+		} );
+	} );
+
+	describe( 'confirmIntent', () => {
+		const returnUrl = `${ window.location.origin }/checkout/order-received/123/?key=wc_order_abc&order_id=123&wc_payment_method=stripe&_wpnonce=n1`;
+
+		const setUp = () => {
+			const stripe = {
+				confirmPayment: jest.fn().mockResolvedValue( {
+					paymentIntent: { id: 'pi_test' },
+				} ),
+				confirmSetup: jest.fn().mockResolvedValue( {
+					setupIntent: { id: 'seti_test' },
+				} ),
+			};
+			const request = jest.fn().mockResolvedValue( {
+				success: true,
+				data: { return_url: 'https://example.com/thank-you' },
+			} );
+			const api = new WCStripeAPI(
+				{ ajax_url: '/?wc-ajax=%%endpoint%%' },
+				request
+			);
+			jest.spyOn( api, 'getStripe' ).mockReturnValue( stripe );
+
+			return { api, stripe };
+		};
+
+		it.each( [
+			[
+				'payment intent with a return URL',
+				'#wc-stripe-confirm-pi:123:pi_test_secret_abc:nonce1',
+				returnUrl,
+				'confirmPayment',
+				{ return_url: returnUrl },
+			],
+			[
+				'setup intent with a return URL',
+				'#wc-stripe-confirm-si:123:seti_test_secret_abc:nonce1',
+				returnUrl,
+				'confirmSetup',
+				{ return_url: returnUrl },
+			],
+			[
+				'full page URL with a return URL',
+				'https://example.com/checkout/#wc-stripe-confirm-pi:123:pi_test_secret_abc:nonce1',
+				returnUrl,
+				'confirmPayment',
+				{ return_url: returnUrl },
+			],
+			[
+				'payment intent without a return URL',
+				'#wc-stripe-confirm-pi:123:pi_test_secret_abc:nonce1',
+				undefined,
+				'confirmPayment',
+				undefined,
+			],
+			[
+				'payment intent with a return URL on another origin',
+				'#wc-stripe-confirm-pi:123:pi_test_secret_abc:nonce1',
+				'https://attacker.example/phish',
+				'confirmPayment',
+				undefined,
+			],
+		] )(
+			'confirms a %s',
+			async (
+				_,
+				redirectUrl,
+				givenReturnUrl,
+				confirmMethod,
+				confirmParams
+			) => {
+				const { api, stripe } = setUp();
+
+				const { request } = api.confirmIntent(
+					redirectUrl,
+					null,
+					givenReturnUrl
+				);
+
+				await expect( request ).resolves.toBe(
+					'https://example.com/thank-you'
+				);
+				expect( stripe[ confirmMethod ] ).toHaveBeenCalledTimes( 1 );
+				const [ args ] = stripe[ confirmMethod ].mock.calls[ 0 ];
+				expect( args.clientSecret ).toBe(
+					redirectUrl.split( ':' ).slice( -2 )[ 0 ]
+				);
+				expect( args.redirect ).toBe( 'if_required' );
+				expect( args.confirmParams ).toEqual( confirmParams );
+			}
+		);
+
+		it( 'returns true when there is no intent to confirm', () => {
+			const { api, stripe } = setUp();
+
+			expect(
+				api.confirmIntent(
+					'https://example.com/thank-you',
+					null,
+					returnUrl
+				)
+			).toBe( true );
+			expect( stripe.confirmPayment ).not.toHaveBeenCalled();
 		} );
 	} );
 } );

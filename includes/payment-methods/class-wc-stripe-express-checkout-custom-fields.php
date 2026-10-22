@@ -92,7 +92,7 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 
 		if ( $errors->has_errors() ) {
 			$error_messages = implode( "\n", $errors->get_error_messages() );
-			throw new RouteException( 'wc_stripe_express_checkout_invalid_data', $error_messages, 400 );
+			throw new RouteException( 'wc_stripe_express_checkout_invalid_data', $error_messages, 400 ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		// Persist entered values only when no handler is hooked to the action
@@ -189,7 +189,7 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 		// Only send the flag when set: older Store API versions array_filter() this data and would drop a false.
 		throw new RouteException(
 			'wc_stripe_express_checkout_missing_required_fields',
-			$error_messages,
+			$error_messages, // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			400,
 			$link_to_checkout ? [ 'link_to_checkout' => true ] : []
 		);
