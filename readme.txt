@@ -172,7 +172,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Remove expired lock rows from the options table once a day
 * Tweak - Minor improvement to error logging when saving new keys
 * Fix - Keep pending ACH orders open while Stripe is still waiting for bank verification
-* Fix - Show the completed order on order-received after a 3D Secure retry under Adaptive Pricing, instead of a brief failed-order notice
 * Fix - Complete express checkout payments on the Pay for Order page when the checkout phone field is required, and preserve the order's saved billing phone
 * Dev - Fix the Format Release Notes workflow running out of turns before it could open its pull request
 * Add - Remote configuration system for managing feature availability during incidents
@@ -186,5 +185,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Unify express checkout button sizes across Apple Pay / Google Pay, Link, and Amazon Pay
 * Fix - Allow retrying a failed BLIK or Pre-Authorized Debit (ACSS) payment on the same order instead of failing every retry
 * Fix - Prevent a second charge when an interrupted checkout is resubmitted or two tabs submit the same cart at once
+* Fix - On classic checkout, show a notice naming each empty required field instead of a single generic "Please fill in all required fields" notice
+* Fix - Show the completed order on order-received after a 3D Secure retry under Adaptive Pricing, instead of a brief failed-order notice
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
