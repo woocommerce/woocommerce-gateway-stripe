@@ -172,6 +172,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'get_intent_from_order',
 					'has_pre_order_charged_upon_release',
 					'has_pre_order',
+					'is_pre_order_completed',
 					'update_saved_payment_method',
 				]
 			)
@@ -231,6 +232,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	public function tear_down() {
+		WC_Stripe_Test_Helper::forget_database_cache_entries( 'paid_cart_' );
 		delete_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME );
 		delete_option( self::ADAPTIVE_PRICING_AMOUNT_MISMATCH_OPTION );
 
@@ -2137,6 +2139,66 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$exception = $e;
 		}
 		$this->assertMatchesRegularExpression( '/not able to process this payment./', $exception->getMessage() );
+	}
+
+	/**
+	 * A callback that throws after a 3DS or redirect charge must not stop the paid cart from
+	 * being recorded, or the shopper's resubmit would charge the card again.
+	 *
+	 * @return void
+	 */
+	public function test_process_order_for_confirmed_intent_records_paid_cart_when_a_callback_throws(): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_cart_hash( 'confirmed-intent-cart' );
+		$order->save();
+
+		list( $amount ) = $this->get_order_details( $order );
+
+		$payment_intent_mock             = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$payment_intent_mock['amount']   = $amount;
+		$payment_intent_mock['currency'] = strtolower( $order->get_currency() );
+
+		$charge = $this->array_to_object(
+			[
+				'id'                     => 'ch_confirmed_intent_callback_throws',
+				'captured'               => true,
+				'status'                 => 'succeeded',
+				'payment_method_details' => [ 'type' => WC_Stripe_Payment_Methods::CARD ],
+			]
+		);
+
+		$this->mock_gateway->method( 'stripe_request' )->willReturn( $this->array_to_object( $payment_intent_mock ) );
+		$this->mock_gateway->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
+
+		$throw_after_charge = static function () {
+			throw new Exception( 'simulated lost response' );
+		};
+		add_action( 'wc_gateway_stripe_process_response', $throw_after_charge );
+
+		$exception = null;
+		try {
+			$this->mock_gateway->process_order_for_confirmed_intent( $order, 'pi_mock', false );
+		} catch ( Exception $e ) {
+			$exception = $e;
+		} finally {
+			remove_action( 'wc_gateway_stripe_process_response', $throw_after_charge );
+		}
+
+		$resubmit = WC_Helper_Order::create_order( $order->get_customer_id() );
+		$resubmit->set_cart_hash( 'confirmed-intent-cart' );
+		$resubmit->set_billing_email( $order->get_billing_email() );
+		$resubmit->save();
+
+		try {
+			$this->assertNotNull( $exception, 'The callback exception must still reach the caller.' );
+			$this->assertSame( 'simulated lost response', $exception->getMessage() );
+
+			$paid_order = WC_Stripe_Duplicate_Payment_Prevention::get_recent_paid_order( $resubmit );
+			$this->assertInstanceOf( WC_Order::class, $paid_order );
+			$this->assertSame( $order->get_id(), $paid_order->get_id() );
+		} finally {
+			WC_Stripe_Database_Cache::delete( 'paid_cart_' . WC_Stripe_Duplicate_Payment_Prevention::get_cart_key( $order ) );
+		}
 	}
 
 	/**
@@ -4318,9 +4380,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			->with( $order_id )
 			->will( $this->returnValue( true ) );
 
-		$this->mock_gateway->expects( $this->once() )
-			->method( 'is_pre_order_item_in_cart' )
-			->will( $this->returnValue( true ) );
+		// An order is supplied on the confirmation path, so the cart is not consulted.
+		$this->mock_gateway->expects( $this->never() )
+			->method( 'is_pre_order_item_in_cart' );
 
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'is_pre_order_product_charged_upfront' )
@@ -4404,13 +4466,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			);
 
 		// Mock order has pre-order product.
-		$this->mock_gateway->expects( $this->once() )
+		$this->mock_gateway->expects( $this->any() )
 			->method( 'has_pre_order' )
 			->will( $this->returnValue( true ) );
 
-		$this->mock_gateway->expects( $this->once() )
-			->method( 'is_pre_order_item_in_cart' )
-			->will( $this->returnValue( true ) );
+		// An order is supplied on the confirmation path, so the cart is not consulted.
+		$this->mock_gateway->expects( $this->never() )
+			->method( 'is_pre_order_item_in_cart' );
 
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'is_pre_order_product_charged_upfront' )
@@ -4436,6 +4498,141 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertEquals( $payment_method_id, $order_helper->get_stripe_source_id( $final_order ) );
 		$this->assertEquals( $customer_id, $order_helper->get_stripe_customer_id( $final_order ) );
 		$this->assertTrue( (bool) $order_helper->get_stripe_upe_redirect_processed( $final_order ) );
+	}
+
+	/**
+	 * Paying a released charge-upon-release pre-order from the pay page: the post-3DS
+	 * confirmation runs outside the order-pay endpoint and must still record the payment.
+	 */
+	public function test_released_pre_order_confirmed_payment_intent_records_the_payment() {
+		$payment_intent_id = 'pi_mock';
+		$payment_method_id = 'pm_mock';
+		$customer_id       = 'cus_mock';
+		$order             = WC_Helper_Order::create_order();
+		$order_id          = $order->get_id();
+
+		list( $amount, $description, $metadata, $currency ) = $this->get_order_details( $order );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
+		$payment_method_mock['id']               = $payment_method_id;
+		$payment_method_mock['customer']         = $customer_id;
+		$payment_method_mock['card']['exp_year'] = intval( gmdate( 'Y' ) ) + 1;
+
+		$payment_intent_mock                       = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$payment_intent_mock['id']                 = $payment_intent_id;
+		$payment_intent_mock['amount']             = $amount;
+		$payment_intent_mock['currency']           = $currency;
+		$payment_intent_mock['last_payment_error'] = [];
+		$payment_intent_mock['payment_method']     = $payment_method_mock;
+		$payment_intent_mock['latest_charge']      = 'ch_mock';
+
+		// Released charge-upon-release pre-order, no cart (pay page).
+		$this->mock_gateway->method( 'has_pre_order' )->willReturn( true );
+		$this->mock_gateway->method( 'is_pre_order_completed' )->willReturn( true );
+		$this->mock_gateway->method( 'is_pre_order_item_in_cart' )->willReturn( false );
+		$this->mock_gateway->method( 'is_pre_order_product_charged_upfront' )->willReturn( false );
+		$this->mock_gateway->method( 'has_pre_order_charged_upon_release' )->willReturn( true );
+		$this->mock_gateway->method( 'get_stripe_customer_from_order' )->willReturn( $this->mock_stripe_customer );
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'stripe_request' )
+			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" )
+			->willReturn( $this->array_to_object( $payment_intent_mock ) );
+
+		$charge = [
+			'id'                     => 'ch_mock',
+			'captured'               => true,
+			'status'                 => 'succeeded',
+			'payment_method_details' => $payment_method_mock,
+		];
+		$this->mock_gateway->method( 'get_latest_charge_from_intent' )->willReturn( $this->array_to_object( $charge ) );
+
+		$this->mock_gateway->expects( $this->never() )
+			->method( 'mark_order_as_pre_ordered' );
+
+		// Called outside the order-pay endpoint, as the wc-ajax and redirect handlers do.
+		$this->mock_gateway->process_order_for_confirmed_intent( $order, $payment_intent_id, false );
+
+		$final_order  = wc_get_order( $order_id );
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		$this->assertEquals( OrderStatus::PROCESSING, $final_order->get_status() );
+		$this->assertEquals( 'ch_mock', $final_order->get_transaction_id() );
+		$this->assertEquals( $payment_intent_id, $order_helper->get_stripe_intent_id( $final_order ) );
+	}
+
+	/**
+	 * Once an order is supplied, payment eligibility comes from that order. The cart only speaks
+	 * on the checkout page, where no order exists yet, and never on the pay-for-order page.
+	 *
+	 * @dataProvider provider_is_payment_needed_cart_precedence
+	 *
+	 * @param string|null $order_kind                   'released-pre-order', 'pre-order-being-placed', 'regular', or null for no order.
+	 * @param bool        $cart_product_charged_upfront Charge timing of the pre-order product (in the cart, and on the order when one is supplied).
+	 * @param bool        $on_pay_for_order_page        Whether the request is a valid pay-for-order endpoint request.
+	 * @param bool        $expected                     Expected return value of is_payment_needed().
+	 */
+	public function test_is_payment_needed_consults_the_cart_only_without_an_order( $order_kind, $cart_product_charged_upfront, $on_pay_for_order_page, $expected ) {
+		// $cart_product_charged_upfront doubles as the order product's charge timing: at checkout
+		// the order mirrors the cart, which is why the answer is unchanged there.
+		global $wp, $wp_query;
+
+		$order_id = null;
+		if ( null !== $order_kind ) {
+			$order_id = WC_Helper_Order::create_order( 0 )->get_id();
+		}
+
+		$this->mock_gateway->method( 'has_pre_order' )->willReturn( in_array( $order_kind, [ 'released-pre-order', 'pre-order-being-placed' ], true ) );
+		$this->mock_gateway->method( 'is_pre_order_completed' )->willReturn( 'released-pre-order' === $order_kind );
+		// With an order supplied the cart must not be read at all; without one it is the only source.
+		$this->mock_gateway->expects( null === $order_kind ? $this->atLeastOnce() : $this->never() )
+			->method( 'is_pre_order_item_in_cart' )
+			->willReturn( true );
+		$this->mock_gateway->method( 'is_pre_order_product_charged_upfront' )->willReturn( $cart_product_charged_upfront );
+
+		$original_get             = $_GET;
+		$original_wp_query_vars   = $wp->query_vars;
+		$original_query_vars      = $wp_query->query_vars;
+		$original_current_user_id = get_current_user_id();
+
+		if ( $on_pay_for_order_page ) {
+			// A valid guest pay-for-order request; the order is deliberately not passed to
+			// is_payment_needed() so only the endpoint exclusion keeps the cart out.
+			$endpoint_order              = WC_Helper_Order::create_order( 0 );
+			$wp->query_vars['order-pay'] = $endpoint_order->get_id();
+			$wp_query->set( 'order-pay', $endpoint_order->get_id() );
+			$_GET['pay_for_order'] = 'true';
+			$_GET['key']           = $endpoint_order->get_order_key();
+			wp_set_current_user( 0 );
+		}
+
+		try {
+			$this->assertSame( $expected, $this->mock_gateway->is_payment_needed( $order_id ) );
+		} finally {
+			$_GET                 = $original_get;
+			$wp->query_vars       = $original_wp_query_vars;
+			$wp_query->query_vars = $original_query_vars;
+			wp_set_current_user( $original_current_user_id );
+		}
+	}
+
+	/**
+	 * Data provider: order kind, cart product charge timing, pay-for-order request, expected result.
+	 *
+	 * @return array<string, array{0: string|null, 1: bool, 2: bool, 3: bool}>
+	 */
+	public function provider_is_payment_needed_cart_precedence() {
+		return [
+			'released pre-order, charge-upon-release pre-order in cart' => [ 'released-pre-order', false, false, true ],
+			'regular order, charge-upon-release pre-order in cart'      => [ 'regular', false, false, true ],
+			'pre-order being placed at checkout, charge upon release'   => [ 'pre-order-being-placed', false, false, false ],
+			'pre-order being placed at checkout, charge upfront'        => [ 'pre-order-being-placed', true, false, true ],
+			'no order, charge-upfront pre-order in cart'                => [ null, true, false, true ],
+			'no order, charge-upon-release pre-order in cart'           => [ null, false, false, false ],
+			'pay-for-order request without order id, pre-order in cart' => [ null, true, true, false ],
+		];
 	}
 
 	/**
@@ -8255,6 +8452,465 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			'not eligible: express payment'         => [ true, 'yes', $card, false, false, WC_Stripe_Payment_Methods::GOOGLE_PAY, false ],
 			'not eligible: boleto voucher'          => [ true, 'yes', WC_Stripe_Payment_Methods::BOLETO, false, false, null, false ],
 			'not eligible: cashapp delayed confirm' => [ true, 'yes', WC_Stripe_Payment_Methods::CASHAPP_PAY, false, false, null, false ],
+		];
+	}
+
+	/**
+	 * The order-received page may only clear the duplicate-charge record for the shopper holding the
+	 * order key: the order ID in the URL is guessable, so a missing or wrong key must leave it intact.
+	 *
+	 * @dataProvider provide_order_received_keys
+	 *
+	 * @param string|null $key            The `key` query arg, `valid` for the order's own key, or null when absent.
+	 * @param bool        $expect_cleared Whether the record should be cleared.
+	 *
+	 * @return void
+	 */
+	public function test_maybe_clear_duplicate_payment_record_requires_order_key( ?string $key, bool $expect_cleared ): void {
+		global $wp;
+
+		$make_order = static function (): WC_Order {
+			$order = new WC_Order();
+			// WC 10.8+ blocks payment_complete() without checkout evidence.
+			$order->set_created_via( 'checkout' );
+			$order->set_cart_hash( 'cart-hash-order-received' );
+			$order->set_billing_email( 'shopper@example.com' );
+			$order->save();
+
+			return $order;
+		};
+
+		$paid = $make_order();
+		$paid->payment_complete();
+		$paid = wc_get_order( $paid->get_id() );
+		WC_Stripe_Duplicate_Payment_Prevention::record_paid_order( $paid );
+		$resend = $make_order();
+
+		$wp->query_vars['order-received'] = (string) $paid->get_id();
+		if ( null !== $key ) {
+			$_GET['key'] = 'valid' === $key ? $paid->get_order_key() : $key;
+		}
+		add_filter( 'woocommerce_is_order_received_page', '__return_true' );
+
+		try {
+			WC_Stripe_Duplicate_Payment_Prevention::maybe_clear_duplicate_payment_record();
+
+			$record = WC_Stripe_Duplicate_Payment_Prevention::get_recent_paid_order( $resend );
+			if ( $expect_cleared ) {
+				$this->assertNull( $record );
+			} else {
+				$this->assertInstanceOf( WC_Order::class, $record );
+			}
+		} finally {
+			remove_filter( 'woocommerce_is_order_received_page', '__return_true' );
+			unset( $wp->query_vars['order-received'], $_GET['key'] );
+		}
+	}
+
+	/**
+	 * Data provider for `test_maybe_clear_duplicate_payment_record_requires_order_key`.
+	 *
+	 * @return array<string, array{0: string|null, 1: bool}>
+	 */
+	public function provide_order_received_keys(): array {
+		return [
+			'valid key'   => [ 'valid', true ],
+			'wrong key'   => [ 'wc_order_wrongkey', false ],
+			'missing key' => [ null, false ],
+		];
+	}
+
+	/**
+	 * Builds a checkout order that matches the live session cart, so the duplicate-charge guard applies.
+	 *
+	 * @return WC_Order
+	 */
+	private function create_order_for_live_cart(): WC_Order {
+		if ( is_null( WC()->cart ) ) {
+			wc_load_cart();
+		}
+		WC()->cart->empty_cart();
+		WC()->cart->add_to_cart( WC_Helper_Product::create_simple_product()->get_id() );
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_created_via( 'checkout' );
+		$order->set_cart_hash( WC()->cart->get_cart_hash() );
+		$order->set_billing_email( 'shopper@example.com' );
+		$order->save();
+
+		return $order;
+	}
+
+	/**
+	 * A charge that succeeds but is followed by an exception (here from a third-party callback) must
+	 * still record the paid cart, so a resubmit of the same cart is not charged again.
+	 *
+	 * @return void
+	 */
+	public function test_process_payment_records_paid_cart_when_later_processing_throws(): void {
+		$order    = $this->create_order_for_live_cart();
+		$order_id = $order->get_id();
+
+		$mock_intent = (object) wp_parse_args(
+			[ 'payment_method' => 'pm_mock' ],
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
+		);
+		$mock_charge = (object) [
+			'id'                  => 'ch_mock',
+			'captured'            => true,
+			'status'              => 'succeeded',
+			'paid'                => true,
+			'currency'            => strtolower( $order->get_currency() ),
+			'balance_transaction' => null,
+		];
+
+		$_POST = [
+			'payment_method'               => 'stripe',
+			'wc-stripe-payment-method'     => 'pm_mock',
+			'wc-stripe-confirmation-token' => '',
+		];
+
+		$this->mock_gateway->intent_controller
+			->method( 'create_and_confirm_payment_intent' )
+			->willReturn( $mock_intent );
+		$this->mock_gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_mock' );
+		$this->mock_gateway->method( 'get_latest_charge_from_intent' )->willReturn( $mock_charge );
+
+		$throw_after_payment = static function () {
+			throw new Exception( 'Third-party callback failed.' );
+		};
+		add_action( 'wc_gateway_stripe_process_response', $throw_after_payment );
+
+		try {
+			$this->mock_gateway->process_payment( $order_id );
+			$this->fail( 'Expected the callback exception to escape process_payment().' );
+		} catch ( Exception $e ) {
+			$this->assertSame( 'Third-party callback failed.', $e->getMessage() );
+		} finally {
+			remove_action( 'wc_gateway_stripe_process_response', $throw_after_payment );
+		}
+
+		$this->assertNotNull( wc_get_order( $order_id )->get_date_paid() );
+
+		$resend = WC_Helper_Order::create_order();
+		$resend->set_created_via( 'checkout' );
+		$resend->set_cart_hash( WC()->cart->get_cart_hash() );
+		$resend->set_billing_email( 'shopper@example.com' );
+		$resend->save();
+
+		$found = WC_Stripe_Duplicate_Payment_Prevention::get_recent_paid_order( $resend );
+		$this->assertInstanceOf( WC_Order::class, $found );
+		$this->assertSame( $order_id, $found->get_id() );
+	}
+
+	/**
+	 * A guest resubmit of a paid cart goes to the paid order only from the session that paid it. A
+	 * guest in another session with the same email and cart is turned away without a charge and
+	 * without the paid order's details, and their order is left as it is.
+	 *
+	 * @dataProvider provide_guest_resubmit_sessions
+	 *
+	 * @param string $current_session WC session customer ID of the resubmit.
+	 * @param bool   $expect_redirect Whether the resubmit is redirected to the paid order.
+	 *
+	 * @return void
+	 */
+	public function test_process_payment_redirects_guest_resubmit_only_from_the_paying_session( string $current_session, bool $expect_redirect ): void {
+		$original_session = WC()->session;
+		$set_session_id   = static function ( string $customer_id ): void {
+			$reflection = new ReflectionClass( WC()->session );
+			$property   = $reflection->getProperty( '_customer_id' );
+			$property->setAccessible( true );
+			$property->setValue( WC()->session, $customer_id );
+		};
+
+		$paid = $this->create_order_for_live_cart();
+		$paid->set_customer_id( 0 );
+		$paid->payment_complete( 'ch_first' );
+		$set_session_id( 't_guest_paid' );
+		WC_Stripe_Duplicate_Payment_Prevention::record_paid_order( wc_get_order( $paid->get_id() ) );
+
+		$resend = WC_Helper_Order::create_order( 0 );
+		$resend->set_created_via( 'checkout' );
+		$resend->set_cart_hash( WC()->cart->get_cart_hash() );
+		$resend->set_billing_email( 'shopper@example.com' );
+		$resend->set_status( OrderStatus::PENDING );
+		$resend->save();
+
+		$_POST = [
+			'payment_method'               => 'stripe',
+			'wc-stripe-payment-method'     => 'pm_mock',
+			'wc-stripe-confirmation-token' => '',
+		];
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->never() )
+			->method( 'create_and_confirm_payment_intent' );
+
+		try {
+			$set_session_id( $current_session );
+			$result = $this->mock_gateway->process_payment( $resend->get_id() );
+		} finally {
+			$set_session_id( (string) $original_session->get_customer_id() );
+			$_POST = [];
+			wc_clear_notices();
+		}
+
+		$resend = wc_get_order( $resend->get_id() );
+		if ( $expect_redirect ) {
+			$this->assertSame( 'success', $result['result'] );
+			$this->assertStringContainsString( WC_Stripe_Duplicate_Payment_Prevention::REDIRECT_QUERY_ARG, $result['redirect'] );
+			$this->assertTrue( $resend->has_status( OrderStatus::CANCELLED ) );
+		} else {
+			$this->assertSame( 'failure', $result['result'] );
+			$this->assertStringNotContainsString( WC_Stripe_Duplicate_Payment_Prevention::REDIRECT_QUERY_ARG, (string) ( $result['redirect'] ?? '' ) );
+			$this->assertTrue( $resend->has_status( OrderStatus::PENDING ) );
+		}
+	}
+
+	/**
+	 * Data provider for `test_process_payment_redirects_guest_resubmit_only_from_the_paying_session`.
+	 *
+	 * @return array<string, array{0: string, 1: bool}>
+	 */
+	public function provide_guest_resubmit_sessions(): array {
+		return [
+			'same guest session'  => [ 't_guest_paid', true ],
+			'other guest session' => [ 't_guest_other', false ],
+		];
+	}
+
+	/**
+	 * A submission turned away because the same cart or order is already being charged must show its
+	 * message on both checkouts: Blocks reads `errorMessage`, classic reads the notice.
+	 *
+	 * @dataProvider provide_lock_contention_cases
+	 *
+	 * @param string $lock                 Which lock is held: `cart` (duplicate-charge guard) or `order`.
+	 * @param bool   $is_store_api_request Whether the request is a Store API (Blocks) checkout.
+	 *
+	 * @return void
+	 */
+	public function test_process_payment_lock_contention_response_matches_checkout_type( string $lock, bool $is_store_api_request ): void {
+		$cart_key = '';
+		$owner    = null;
+		if ( 'cart' === $lock ) {
+			$order    = $this->create_order_for_live_cart();
+			$cart_key = WC_Stripe_Duplicate_Payment_Prevention::get_cart_key( $order );
+			$owner    = WC_Stripe_Duplicate_Payment_Prevention::acquire_lock( $cart_key );
+			$this->assertNotNull( $owner );
+		} else {
+			$order        = WC_Helper_Order::create_order();
+			$order_helper = $this->createPartialMock( WC_Stripe_Order_Helper::class, [ 'lock_order_payment', 'unlock_order_payment' ] );
+			$order_helper->method( 'lock_order_payment' )->willReturn( true );
+			WC_Stripe_Order_Helper::set_instance( $order_helper );
+			$this->mock_gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_mock' );
+		}
+
+		$_POST = [
+			'payment_method'           => 'stripe',
+			'wc-stripe-payment-method' => 'pm_mock',
+		];
+
+		$original_request_uri   = $_SERVER['REQUEST_URI'] ?? null; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		$_SERVER['REQUEST_URI'] = $is_store_api_request ? '/wp-json/wc/store/v1/checkout' : '/checkout/';
+		wc_clear_notices();
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->never() )
+			->method( 'create_and_confirm_payment_intent' );
+
+		try {
+			$response = $this->mock_gateway->process_payment( $order->get_id() );
+		} finally {
+			if ( null !== $owner ) {
+				WC_Stripe_Duplicate_Payment_Prevention::release_lock( $cart_key, $owner );
+			}
+			if ( null === $original_request_uri ) {
+				unset( $_SERVER['REQUEST_URI'] );
+			} else {
+				$_SERVER['REQUEST_URI'] = $original_request_uri;
+			}
+		}
+
+		$this->assertSame( 'failure', $response['result'] );
+		if ( $is_store_api_request ) {
+			$this->assertNotEmpty( $response['errorMessage'] ?? '' );
+			$this->assertSame( 0, wc_notice_count( 'error' ) );
+		} else {
+			$this->assertNotEmpty( $response['message'] ?? '' );
+			$this->assertSame( 1, wc_notice_count( 'error' ) );
+		}
+		wc_clear_notices();
+	}
+
+	/**
+	 * Data provider for `test_process_payment_lock_contention_response_matches_checkout_type`.
+	 *
+	 * @return array<string, array{0: string, 1: bool}>
+	 */
+	public function provide_lock_contention_cases(): array {
+		return [
+			'cart lock, store api'  => [ 'cart', true ],
+			'cart lock, classic'    => [ 'cart', false ],
+			'order lock, store api' => [ 'order', true ],
+			'order lock, classic'   => [ 'order', false ],
+		];
+	}
+
+	/**
+	 * On a BLIK retry, the earlier failed charge must not fail the order.
+	 *
+	 * @return void
+	 */
+	public function test_process_payment_blik_ignores_stale_charge_while_awaiting_approval(): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( WC_Stripe_Currency_Code::POLISH_ZLOTY );
+		$order->set_billing_country( WC_Stripe_Country_Code::POLAND );
+		$order->save();
+
+		$_POST = [
+			'payment_method'           => 'stripe_blik',
+			'wc-stripe-payment-method' => 'pm_mock',
+			'wc-stripe-blik-code'      => '654321',
+		];
+
+		$mock_intent  = (object) wp_parse_args(
+			[
+				'status'               => WC_Stripe_Intent_Status::REQUIRES_ACTION,
+				'payment_method'       => 'pm_mock',
+				'payment_method_types' => [ WC_Stripe_Payment_Methods::BLIK ],
+				'currency'             => 'pln',
+				'latest_charge'        => 'py_failed_earlier_attempt',
+			],
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
+		);
+		$stale_charge = (object) [
+			'id'              => 'py_failed_earlier_attempt',
+			'status'          => 'failed',
+			'captured'        => true,
+			'paid'            => false,
+			'failure_message' => 'The code passed wasn’t a valid BLIK code.',
+		];
+
+		$this->mock_gateway->intent_controller
+			->method( 'create_and_confirm_payment_intent' )
+			->willReturn( $mock_intent );
+		$this->mock_gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_mock' );
+		$this->mock_gateway->method( 'get_latest_charge_from_intent' )->willReturn( $stale_charge );
+
+		$response = $this->mock_gateway->process_payment( $order->get_id() );
+
+		$this->assertSame( 'success', $response['result'] );
+		$this->assertTrue( wc_get_order( $order->get_id() )->has_status( OrderStatus::PENDING ) );
+	}
+
+	/**
+	 * A BLIK retry on an order the earlier attempt left FAILED is returned to PENDING while the new
+	 * intent waits for the shopper, so classic checkout does not keep showing a failed order.
+	 *
+	 * @return void
+	 */
+	public function test_process_payment_blik_retry_resets_failed_order_to_pending(): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( WC_Stripe_Currency_Code::POLISH_ZLOTY );
+		$order->set_billing_country( WC_Stripe_Country_Code::POLAND );
+		$order->set_status( OrderStatus::FAILED );
+		$order->save();
+
+		$_POST = [
+			'payment_method'           => 'stripe_blik',
+			'wc-stripe-payment-method' => 'pm_mock',
+			'wc-stripe-blik-code'      => '654321',
+		];
+
+		$mock_intent = (object) wp_parse_args(
+			[
+				'status'               => WC_Stripe_Intent_Status::REQUIRES_ACTION,
+				'payment_method'       => 'pm_mock',
+				'payment_method_types' => [ WC_Stripe_Payment_Methods::BLIK ],
+				'currency'             => 'pln',
+				'latest_charge'        => '',
+			],
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
+		);
+
+		$this->mock_gateway->intent_controller
+			->method( 'create_and_confirm_payment_intent' )
+			->willReturn( $mock_intent );
+		$this->mock_gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_mock' );
+		$this->mock_gateway->method( 'get_latest_charge_from_intent' )->willReturn( null );
+
+		$response = $this->mock_gateway->process_payment( $order->get_id() );
+
+		$this->assertSame( 'success', $response['result'] );
+		$this->assertTrue( wc_get_order( $order->get_id() )->has_status( OrderStatus::PENDING ) );
+	}
+
+	/**
+	 * Legacy callbacks may distinguish this path by the absence of a second argument.
+	 *
+	 * @since x.x.x
+	 *
+	 * @dataProvider provide_deprecated_force_save_payment_results
+	 * @param bool $force_save   Whether the callback forces saving.
+	 * @param bool $requested    Whether the shopper requested saving.
+	 * @param bool $using_saved  Whether an existing token is selected.
+	 * @param bool $should_save  Whether verification should save the method.
+	 */
+	public function test_modify_successful_payment_result_preserves_deprecated_filter( bool $force_save, bool $requested, bool $using_saved, bool $should_save ): void {
+		$order_id      = WC_Helper_Order::create_order()->get_id();
+		$original_post = $_POST;
+		$_POST         = [
+			'payment_method'               => 'stripe',
+			'wc-stripe-new-payment-method' => $requested ? 'true' : '',
+			'wc-stripe-payment-token'      => $using_saved ? '123' : 'new',
+		];
+		$filter        = function ( $default, $context = null ) use ( $force_save ) {
+			$this->assertSame( 1, func_num_args() );
+			$this->assertFalse( $default );
+			$this->assertNull( $context );
+			return $force_save;
+		};
+
+		$deprecation         = [];
+		$capture_deprecation = function ( $hook, $replacement, $version, $message ) use ( &$deprecation ) {
+			if ( 'wc_stripe_force_save_source' === $hook ) {
+				$deprecation = [ $replacement, $version, $message ];
+			}
+		};
+
+		add_filter( 'wc_stripe_force_save_source', $filter, 10, 2 );
+		add_action( 'deprecated_hook_run', $capture_deprecation, 10, 4 );
+		$this->setExpectedDeprecated( 'wc_stripe_force_save_source' );
+
+		try {
+			$result = $this->mock_gateway->modify_successful_payment_result(
+				[
+					'result'              => 'success',
+					'redirect'            => self::MOCK_RETURN_URL,
+					'setup_intent_secret' => 'seti_secret_context_test',
+				],
+				$order_id
+			);
+		} finally {
+			remove_filter( 'wc_stripe_force_save_source', $filter, 10 );
+			remove_action( 'deprecated_hook_run', $capture_deprecation, 10 );
+			$_POST = $original_post;
+		}
+
+		$this->assertSame( [ '', '9.6.0', 'This filter has no direct replacement in legacy payment flows.' ], $deprecation );
+		$verification_url = rawurldecode( explode( ':', $result['redirect'], 2 )[1] );
+		parse_str( (string) wp_parse_url( $verification_url, PHP_URL_QUERY ), $query );
+		$this->assertSame( $should_save ? '1' : null, $query['save_payment_method'] ?? null );
+	}
+
+	public function provide_deprecated_force_save_payment_results(): array {
+		return [
+			'forced new method'     => [ true, false, false, true ],
+			'not requested'         => [ false, false, false, false ],
+			'requested new method'  => [ false, true, false, true ],
+			'existing saved method' => [ true, true, true, false ],
 		];
 	}
 }

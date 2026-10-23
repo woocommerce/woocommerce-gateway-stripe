@@ -1364,6 +1364,28 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Daily cleanup routines must be scheduled via the public Action Scheduler contract hook.
+	 *
+	 * @return void
+	 */
+	public function test_daily_cleanups_registered_to_public_action_scheduler_hook(): void {
+		$this->assertSame(
+			10,
+			has_action( 'action_scheduler_ensure_recurring_actions', [ WC_Stripe_Database_Cache::class, 'maybe_schedule_daily_async_cleanup' ] )
+		);
+		$this->assertSame(
+			10,
+			has_action( 'action_scheduler_ensure_recurring_actions', [ WC_Stripe_Option_Lock::class, 'maybe_schedule_daily_cleanup' ] )
+		);
+		$this->assertFalse(
+			has_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ WC_Stripe_Database_Cache::class, 'maybe_schedule_daily_async_cleanup' ] )
+		);
+		$this->assertFalse(
+			has_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ WC_Stripe_Option_Lock::class, 'maybe_schedule_daily_cleanup' ] )
+		);
+	}
+
+	/**
 	 * Helper: count callbacks registered on `$hook` at `$priority`.
 	 *
 	 * @param string $hook     Hook name.
