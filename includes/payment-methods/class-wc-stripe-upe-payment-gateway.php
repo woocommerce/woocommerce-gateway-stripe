@@ -1,5 +1,6 @@
 <?php
 
+use Automattic\WooCommerce\Caches\OrderCache;
 use Automattic\WooCommerce\Enums\OrderStatus;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -2759,7 +2760,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$locked = $order_helper->lock_order_payment( $order );
 		if ( $locked ) {
-			WC_Stripe_Logger::info( "Skip processing checkout session redirect for order $order_id, order payment is already being processed (locked)" );
+			WC_Stripe_Logger::info( "Order $order_id payment is locked by webhook processing; waiting for settlement before redirecting." );
+
+			// We assume the order payment lock is held by the webhook processing.
+			// Wait for processing to complete, so we can redirect without showing an error.
+			// If we time out, return without stripping the query args so a later refresh re-runs this
+			// handler and routes the shopper correctly.
+			if ( $this->wait_for_checkout_session_settlement( $order_id ) ) {
+				wp_safe_redirect( wp_sanitize_redirect( $this->get_return_url( $order ) ) );
+				exit;
+			}
+
+			WC_Stripe_Logger::info( "Checkout session settlement wait timed out for order $order_id" );
 			return;
 		}
 
@@ -2858,6 +2870,90 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		} finally {
 			$order_helper->unlock_order_payment( $order );
 		}
+	}
+
+	/**
+	 * Waits for the settlement webhook to mark the order paid, up to a short budget.
+	 *
+	 * The redirect handler and the webhook serialize on the order payment lock. When the webhook
+	 * wins, it holds the lock while it settles the order, so polling for the paid transition keeps
+	 * the shopper off the stale failed-order page.
+	 *
+	 * @param int $order_id The order being settled by the webhook.
+	 * @return bool True if the order reached a paid status within the budget.
+	 */
+	protected function wait_for_checkout_session_settlement( int $order_id ): bool {
+		$deadline = microtime( true ) + $this->get_checkout_session_settlement_timeout();
+
+		while ( true ) {
+			if ( $this->order_is_paid( $order_id ) ) {
+				return true;
+			}
+
+			if ( microtime( true ) >= $deadline ) {
+				return false;
+			}
+
+			$this->sleep_between_settlement_checks();
+		}
+	}
+
+	/**
+	 * Reports whether the order is paid, with each call reloading the order details from the database.
+	 * The full reload is needed to ensure that we detect changes from other requests.
+	 * The main is paid logic fully relies on `WC_Order->is_paid()`.
+	 *
+	 * @param int $order_id The order id.
+	 * @return bool
+	 */
+	protected function order_is_paid( int $order_id ): bool {
+		// Clear/flush the OrderCache and post cache to pick up changes made by other processes.
+		if ( function_exists( 'wc_get_container' ) && class_exists( OrderCache::class ) ) {
+			$order_cache = wc_get_container()->get( OrderCache::class );
+			if ( $order_cache instanceof OrderCache ) {
+				$order_cache->remove( $order_id );
+			}
+		}
+		clean_post_cache( $order_id );
+
+		$order = wc_get_order( $order_id );
+
+		return $order instanceof WC_Order && $order->is_paid();
+	}
+
+	/**
+	 * How long the redirect handler waits for the settlement webhook, in seconds.
+	 *
+	 * @return float
+	 */
+	protected function get_checkout_session_settlement_timeout(): float {
+		/**
+		 * Filters the maximum wait time for a shopper when we want to redirect them to the order received
+		 * page, but the order has been locked by our webhook processing. The lock status will be
+		 * re-checked every 250ms up to the time returned by this filter.
+		 *
+		 * @since x.x.x
+		 *
+		 * @param float $timeout Seconds to wait. Default 5.
+		 */
+		$timeout = apply_filters( 'wc_stripe_checkout_session_order_received_maximum_delay', 5.0 );
+		if ( ! is_float( $timeout ) && ! is_int( $timeout ) ) {
+			$timeout = 5.0;
+		} else {
+			$timeout = (float) $timeout;
+		}
+
+		// Clamp so a filter cannot block the return request for an unreasonable time.
+		return max( 0.0, min( $timeout, 15.0 ) );
+	}
+
+	/**
+	 * Sleeps between settlement checks. Isolated so tests can override it without a real delay.
+	 *
+	 * @return void
+	 */
+	protected function sleep_between_settlement_checks(): void {
+		usleep( 250000 ); // 250ms.
 	}
 
 	/**
