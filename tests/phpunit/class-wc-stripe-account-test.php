@@ -885,9 +885,10 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A stored webhook ID that no longer exists in the account must raise the missing notice.
+	 * A stored webhook ID the mode's own key cannot find means the saved secret matches no
+	 * endpoint, so the mode is rebuilt even when another up-to-date endpoint serves the site URL.
 	 */
-	public function test_reconfigure_webhooks_flags_missing_stored_webhook() {
+	public function test_reconfigure_webhooks_rebuilds_when_stored_endpoint_missing_from_account() {
 		$settings                        = WC_Stripe_Helper::get_stripe_settings();
 		$settings['test_webhook_secret'] = 'whsec_auto';
 		$settings['test_webhook_data']   = [
@@ -900,7 +901,45 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$api_version_method = new ReflectionMethod( WC_Stripe_Account::class, 'get_webhooks_api_version' );
 		$api_version_method->setAccessible( true );
 
-		// The URL-matched endpoint is someone else's; the stored one is gone.
+		// Up-to-date endpoint at the site URL, so the events/version check would pass.
+		$up_to_date_webhook = (object) [
+			'id'             => 'we_other',
+			'url'            => WC_Stripe_Helper::get_webhook_url(),
+			'enabled_events' => WC_Stripe_Account::WEBHOOK_EVENTS,
+			'api_version'    => $api_version_method->invoke( null ),
+			'status'         => 'enabled',
+		];
+
+		$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->setConstructorArgs( [ $this->mock_connect, WC_Helper_Stripe_Api::class ] )
+			->onlyMethods( [ 'get_existing_webhook', 'configure_webhooks', 'webhook_endpoint_exists', 'get_webhook_endpoint_by_id' ] )
+			->getMock();
+		$this->account->method( 'get_existing_webhook' )->willReturn( $up_to_date_webhook );
+		$this->account->method( 'webhook_endpoint_exists' )->with( 'we_ghost' )->willReturn( false );
+		$this->account->method( 'get_webhook_endpoint_by_id' )->with( 'we_ghost' )->willReturn( false );
+		$this->account->expects( $this->once() )->method( 'configure_webhooks' )->with( 'test' );
+
+		$this->account->maybe_reconfigure_webhooks_on_update();
+	}
+
+	/**
+	 * A missing stored endpoint whose secret was set by hand is not rebuilt automatically: the
+	 * missing notice is raised and the merchant decides.
+	 */
+	public function test_reconfigure_webhooks_does_not_rebuild_missing_endpoint_when_secret_is_manual() {
+		$settings                        = WC_Stripe_Helper::get_stripe_settings();
+		$settings['test_webhook_secret'] = 'whsec_manual';
+		$settings['test_webhook_data']   = [
+			'id'             => 'we_ghost',
+			'secret'         => 'sk_test_key',
+			// signing_secret != the saved webhook secret marks a manual edit.
+			'signing_secret' => 'whsec_auto',
+		];
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$api_version_method = new ReflectionMethod( WC_Stripe_Account::class, 'get_webhooks_api_version' );
+		$api_version_method->setAccessible( true );
+
 		$up_to_date_webhook = (object) [
 			'id'             => 'we_other',
 			'url'            => WC_Stripe_Helper::get_webhook_url(),
