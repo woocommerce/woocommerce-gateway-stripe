@@ -166,6 +166,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 11.2.0 - xxxx-xx-xx =
+* Fix - Keep Adaptive Pricing orders from being auto-cancelled as unpaid while Stripe can still confirm their payment
 * Fix - Rebuild a mode's webhook on update when an earlier "Reconfigure webhooks" click registered it in the wrong mode, which had left webhooks failing in both live and test
 * Fix - Complete deprecation of wc_stripe_force_save_source
 * Fix - Use the account API key for webhook status, cleanup, and manual setup
