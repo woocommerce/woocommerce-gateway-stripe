@@ -58,6 +58,53 @@ class WC_Stripe_Event_Post_Store_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A read sees a change another request made since the last read. Rows are written directly, as another request would,
+	 * without clearing this request's cache.
+	 */
+	public function test_get_sees_changes_made_by_other_requests(): void {
+		global $wpdb;
+		$this->store->save( $this->make_record( 'evt_1Changed', WC_Stripe_Event_Store_Interface::STATUS_PENDING ) );
+		$this->store->get( 'evt_1Changed' );
+
+		$wpdb->update(
+			$wpdb->posts,
+			[ 'post_status' => 'wc_stripe_processed' ],
+			[
+				'post_type' => WC_Stripe_Event_Post_Store::POST_TYPE,
+				'post_name' => 'evt_1Changed',
+			]
+		);
+
+		$this->assertSame( WC_Stripe_Event_Store_Interface::STATUS_PROCESSED, $this->store->get( 'evt_1Changed' )->status );
+	}
+
+	/**
+	 * Saving an event another request recorded since the last lookup updates that record instead of adding a second one.
+	 */
+	public function test_save_finds_records_added_by_other_requests(): void {
+		global $wpdb;
+		$get_post_id = new ReflectionMethod( WC_Stripe_Event_Post_Store::class, 'get_post_id' );
+		$get_post_id->setAccessible( true );
+		$this->assertSame( 0, $get_post_id->invoke( $this->store, 'evt_1Added' ) );
+
+		$wpdb->insert(
+			$wpdb->posts,
+			[
+				'post_type'     => WC_Stripe_Event_Post_Store::POST_TYPE,
+				'post_name'     => 'evt_1Added',
+				'post_status'   => 'wc_stripe_processing',
+				'post_title'    => 'charge.succeeded',
+				'post_date'     => current_time( 'mysql' ),
+				'post_date_gmt' => current_time( 'mysql', true ),
+			]
+		);
+
+		$this->store->save( $this->make_record( 'evt_1Added', WC_Stripe_Event_Store_Interface::STATUS_PROCESSED ) );
+
+		$this->assertSame( 1, $this->count_posts() );
+	}
+
+	/**
 	 * Records that cannot be stored are rejected.
 	 *
 	 * @param string $event_id Event ID.

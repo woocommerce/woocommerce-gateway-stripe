@@ -100,6 +100,8 @@ class WC_Stripe_Event_Post_Store implements WC_Stripe_Event_Store_Interface {
 				'post_status'            => array_values( self::POST_STATUSES ),
 				'post_name__in'          => $event_ids,
 				'posts_per_page'         => -1,
+				// Without a persistent object cache, a cached result misses changes made by other requests since.
+				'cache_results'          => false,
 				'update_post_term_cache' => false,
 			]
 		);
@@ -306,11 +308,13 @@ class WC_Stripe_Event_Post_Store implements WC_Stripe_Event_Store_Interface {
 	private function get_post_id( string $event_id ): int {
 		$post_ids = get_posts(
 			[
-				'post_type'   => self::POST_TYPE,
-				'post_status' => array_values( self::POST_STATUSES ),
-				'name'        => $event_id,
-				'fields'      => 'ids',
-				'numberposts' => 1,
+				'post_type'     => self::POST_TYPE,
+				'post_status'   => array_values( self::POST_STATUSES ),
+				'name'          => $event_id,
+				'fields'        => 'ids',
+				'numberposts'   => 1,
+				// A cached miss would insert a second post for an event another request recorded since.
+				'cache_results' => false,
 			]
 		);
 
