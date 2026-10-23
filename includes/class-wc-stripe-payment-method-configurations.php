@@ -599,8 +599,7 @@ class WC_Stripe_Payment_Method_Configurations {
 			return new WP_Error( 'pmc_update_failed', __( 'Unable to update payment method configuration.', 'woocommerce-gateway-stripe' ) );
 		}
 
-		self::clear_payment_method_configuration_cache();
-		self::sync_payment_methods_to_settings( $response );
+		self::set_payment_method_configuration_cache( $response );
 
 		self::record_payment_method_settings_event( $newly_enabled_methods, $newly_disabled_methods );
 
@@ -866,6 +865,7 @@ class WC_Stripe_Payment_Method_Configurations {
 		// Mark migration as complete in stripe settings
 		$stripe_settings['pmc_enabled'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		self::sync_payment_methods_to_settings( self::get_payment_method_configuration_from_cache() );
 	}
 
 	/**

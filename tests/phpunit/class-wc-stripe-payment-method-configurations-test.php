@@ -1180,23 +1180,43 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 
 	/**
 	 * Usable PMC returned with pmc_enabled='no': flag flips back to 'yes' (recovery path).
+	 *
+	 * @dataProvider recovery_selections_provider
 	 */
-	public function test_refresh_pmc_availability_recovers_from_no_state() {
-		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
-		WC_Stripe_Helper::update_main_stripe_settings( $this->build_connected_test_mode_settings( 'no' ) );
+	public function test_refresh_pmc_availability_recovers_from_no_state( array $local_methods, array $expected_methods, bool $update_fails ): void {
+		$settings = $this->build_connected_test_mode_settings( 'no' );
+		$settings['upe_checkout_experience_accepted_payments'] = $local_methods;
+		$settings['express_checkout']                          = 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		$this->reset_payment_method_configuration_state();
 
-		$instance_property = $this->mock_get_payment_method_configurations_response(
-			(object) [ 'data' => [ (object) self::MOCK_CHILD_TEST_PMC ] ]
-		);
+		$api = $this->createMock( WC_Stripe_API::class );
+		$api->expects( $this->once() )
+			->method( 'get_payment_method_configurations' )
+			->willReturn( (object) [ 'data' => [ $this->mirrored_configuration( [ 'klarna', 'apple_pay' ] ) ] ] );
+		$api->expects( $local_methods ? $this->once() : $this->never() )
+			->method( 'update_payment_method_configurations' )
+			->willReturn(
+				$update_fails
+					? (object) [ 'error' => (object) [ 'message' => 'Update rejected' ] ]
+					: $this->mirrored_configuration( [ 'card', 'klarna', 'apple_pay' ] )
+			);
+		WC_Stripe_API::set_instance( $api );
 
 		WC_Stripe_Payment_Method_Configurations::refresh_pmc_availability();
 
 		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame( 'yes', $updated_settings['pmc_enabled'] );
+		$this->assertSame( $expected_methods, $updated_settings['upe_checkout_experience_accepted_payments'] );
+		$this->assertSame( 'yes', $updated_settings['express_checkout'] );
+	}
 
-		$instance_property->setValue( null, null );
-		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
-
-		$this->assertEquals( 'yes', $updated_settings['pmc_enabled'] );
+	public function recovery_selections_provider(): array {
+		return [
+			'updated PMC'      => [ [ 'card' ], [ 'card', 'klarna' ], false ],
+			'no local methods' => [ [], [ 'klarna' ], false ],
+			'rejected update'  => [ [ 'card' ], [ 'klarna' ], true ],
+		];
 	}
 
 	/**
