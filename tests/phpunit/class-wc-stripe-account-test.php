@@ -1191,15 +1191,36 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	 * Tests that maybe_decommission_webhook() only deletes the previously configured
 	 * webhook when the secret key that created it is being removed or replaced.
 	 *
-	 * @param mixed  $webhook_data      The previously stored webhook data.
-	 * @param string $new_secret_key    The secret key about to be saved.
-	 * @param bool   $expected_return   Whether a webhook should be decommissioned.
-	 * @param array  $expected_requests The Stripe API requests expected to be made.
+	 * @param mixed       $webhook_data      The previously stored webhook data.
+	 * @param string      $new_secret_key    The secret key about to be saved.
+	 * @param string|null $endpoint_url      Endpoint URL the lookup returns: 'self' for this site, a literal URL for another site, or null when missing.
+	 * @param bool        $expected_return   Whether a webhook should be decommissioned.
+	 * @param array       $expected_requests The Stripe API requests expected to be made.
 	 *
 	 * @dataProvider provide_maybe_decommission_webhook
 	 */
-	public function test_maybe_decommission_webhook( $webhook_data, $new_secret_key, $expected_return, $expected_requests ) {
+	public function test_maybe_decommission_webhook( $webhook_data, $new_secret_key, $endpoint_url, $expected_return, $expected_requests ) {
+		if ( null === $endpoint_url ) {
+			// A non-object retrieve response stands in for a lookup failure.
+			WC_Helper_Stripe_Api::$retrieve_response = [];
+		} elseif ( 'resource_missing' === $endpoint_url ) {
+			// Stripe reports a deleted endpoint as a resource_missing error object.
+			WC_Helper_Stripe_Api::$retrieve_response = (object) [ 'error' => (object) [ 'code' => 'resource_missing' ] ];
+		} else {
+			$url                                     = 'self' === $endpoint_url ? WC_Stripe_Helper::get_webhook_url() : $endpoint_url;
+			WC_Helper_Stripe_Api::$retrieve_response = (object) [
+				'id'  => is_array( $webhook_data ) ? ( $webhook_data['id'] ?? 'wh_old' ) : 'wh_old',
+				'url' => $url,
+			];
+		}
 		WC_Helper_Stripe_Api::$expected_request_call_params = $expected_requests;
+
+		// When no DELETE is expected, make any request() call throw. The method swallows it and
+		// returns false, so a webhook that is wrongly deleted turns an expected true into false
+		// and fails the assertion below, without the helper having to record every request.
+		if ( empty( $expected_requests ) ) {
+			WC_Helper_Stripe_Api::$request_exception = new Exception( 'No webhook endpoint request should be made.' );
+		}
 
 		$result = $this->account->maybe_decommission_webhook( $webhook_data, $new_secret_key );
 
@@ -1223,27 +1244,52 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		];
 
 		return [
-			'changed secret key decommissions the old webhook'              => [
+			'changed secret key decommissions this site\'s webhook'                  => [
 				$webhook,
 				'rk_live_new',
+				'self',
 				true,
 				[ [ [], 'webhook_endpoints/wh_old', 'DELETE' ] ],
 			],
-			'removed secret key (disconnect) decommissions the old webhook' => [
+			'removed secret key (disconnect) decommissions this site\'s webhook'     => [
 				$webhook,
 				'',
+				'self',
 				true,
 				[ [ [], 'webhook_endpoints/wh_old', 'DELETE' ] ],
 			],
-			'unchanged secret key is left untouched'                        => [
+			'staging clone clears its copy without deleting the other site endpoint' => [
 				$webhook,
-				'rk_live_old',
+				'',
+				'https://production.example.test/?wc-api=wc_stripe',
+				true,
+				[],
+			],
+			'already missing endpoint clears the stored webhook'                     => [
+				$webhook,
+				'',
+				'resource_missing',
+				true,
+				[],
+			],
+			'lookup failure keeps the webhook for a retry'                           => [
+				$webhook,
+				'',
+				null,
 				false,
 				[],
 			],
-			'missing/invalid webhook data is a no-op'                       => [
+			'unchanged secret key is left untouched'                                 => [
+				$webhook,
+				'rk_live_old',
+				'self',
+				false,
+				[],
+			],
+			'missing/invalid webhook data is a no-op'                                => [
 				'',
 				'rk_live_new',
+				null,
 				false,
 				[],
 			],
@@ -1256,6 +1302,10 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	 * the best-effort cleanup never aborts the (re)connect flow.
 	 */
 	public function test_maybe_decommission_webhook_returns_false_when_deletion_fails() {
+		WC_Helper_Stripe_Api::$retrieve_response = (object) [
+			'id'  => 'wh_old',
+			'url' => WC_Stripe_Helper::get_webhook_url(),
+		];
 		WC_Helper_Stripe_Api::$request_exception = new Exception( 'Network error' );
 
 		$result = $this->account->maybe_decommission_webhook(
@@ -1270,6 +1320,10 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	public function test_maybe_decommission_webhook_logs_authentication_failure() {
+		WC_Helper_Stripe_Api::$retrieve_response            = (object) [
+			'id'  => 'wh_old',
+			'url' => WC_Stripe_Helper::get_webhook_url(),
+		];
 		WC_Helper_Stripe_Api::$request_response             = (object) [ 'error' => (object) [ 'code' => 'api_key_expired' ] ];
 		WC_Helper_Stripe_Api::$expected_request_call_params = [ [ [], 'webhook_endpoints/wh_old', 'DELETE' ] ];
 
@@ -1304,11 +1358,54 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A lookup failure (expired/invalid key, network error) is not a confirmed missing endpoint, so
+	 * it is logged at error level and the stored data is kept for a retry, with no delete attempted.
+	 */
+	public function test_maybe_decommission_webhook_keeps_data_on_lookup_failure() {
+		WC_Helper_Stripe_Api::$retrieve_response = (object) [ 'error' => (object) [ 'code' => 'api_key_expired' ] ];
+		// A lookup failure must return before the DELETE. If it does not, request() throws and the
+		// method logs its own "Failed to decommission" error, breaking the single-error expectation below.
+		WC_Helper_Stripe_Api::$request_exception = new Exception( 'No DELETE should be attempted when the lookup fails.' );
+
+		$previous_logger = WC_Stripe_Logger::$logger;
+		$logger          = $this->createMock( WC_Logger::class );
+		$logger->expects( $this->once() )
+			->method( 'error' )
+			->with(
+				'Failed to look up webhook wh_old before decommissioning it.',
+				$this->callback(
+					static function ( $context ) {
+						return 'api_key_expired' === ( $context['error_code'] ?? null );
+					}
+				)
+			);
+		WC_Stripe_Logger::$logger = $logger;
+
+		try {
+			$result = $this->account->maybe_decommission_webhook(
+				[
+					'id'     => 'wh_old',
+					'secret' => 'rk_live_old',
+				],
+				'rk_live_new'
+			);
+		} finally {
+			WC_Stripe_Logger::$logger = $previous_logger;
+		}
+
+		$this->assertFalse( $result );
+	}
+
+	/**
 	 * A rejected DELETE must retain the endpoint for retry, while an already missing endpoint needs no retry.
 	 *
 	 * @dataProvider provide_webhook_deletion_responses
 	 */
 	public function test_maybe_decommission_webhook_handles_api_responses( $response, $expected_result ) {
+		WC_Helper_Stripe_Api::$retrieve_response            = (object) [
+			'id'  => 'wh_old',
+			'url' => WC_Stripe_Helper::get_webhook_url(),
+		];
 		WC_Helper_Stripe_Api::$request_response             = $response;
 		WC_Helper_Stripe_Api::$expected_request_call_params = [ [ [], 'webhook_endpoints/wh_old', 'DELETE' ] ];
 
