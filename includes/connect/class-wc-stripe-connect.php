@@ -274,12 +274,13 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return new WP_Error( 'invalid_credentials', 'Invalid credentials received from WooCommerce Connect server' );
 			}
 
+			$publishable_key = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$secret_key      = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$is_test         = 'live' !== $mode;
+			$prefix          = $is_test ? 'test_' : '';
+			$current_options = WC_Stripe_Helper::get_stripe_settings();
+
 			// Installation saves settings before OAuth; stored keys in either mode, even expired ones, identify a reconnect.
-			$publishable_key                            = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-			$secret_key                                 = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-			$is_test                                    = 'live' !== $mode;
-			$prefix                                     = $is_test ? 'test_' : '';
-			$current_options                            = WC_Stripe_Helper::get_stripe_settings();
 			$is_first_connection                        = ! $this->is_connected( 'live' ) && ! $this->is_connected( 'test' );
 			$options                                    = $is_first_connection ? array_merge( $this->get_default_stripe_config(), $current_options ) : $current_options;
 			$options['enabled']                         = 'yes';
