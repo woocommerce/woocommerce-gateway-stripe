@@ -125,6 +125,34 @@ describe( 'classic checkout place-order handler', () => {
 		);
 	} );
 
+	it( 'shows a notice for each empty required field', () => {
+		mockEmptyWrappers = [
+			buildRequiredWrapper( 'First name' ),
+			buildRequiredWrapper( 'Last name' ),
+		];
+
+		expect( placeOrder() ).toBe( false );
+		expect( mockShowErrorCheckout ).toHaveBeenCalledTimes( 1 );
+		const html = mockShowErrorCheckout.mock.calls[ 0 ][ 0 ];
+		expect( html ).toContain( 'First name is a required field.' );
+		expect( html ).toContain( 'Last name is a required field.' );
+		expect( ( html.match( /<li>/g ) || [] ).length ).toBe( 2 );
+	} );
+
+	it( 'falls back to the generic notice when a required wrapper has no label', () => {
+		const wrapper = document.createElement( 'p' );
+		wrapper.className = 'form-row validate-required';
+		// No <label>, so no field name can be read for a per-field message.
+		wrapper.innerHTML = '<input type="text" class="input-text" value="" />';
+		mockEmptyWrappers = [ wrapper ];
+
+		expect( placeOrder() ).toBe( false );
+		expect( mockShowErrorCheckout ).toHaveBeenCalledTimes( 1 );
+		expect( mockShowErrorCheckout.mock.calls[ 0 ][ 0 ] ).toContain(
+			'Please fill in all required fields.'
+		);
+	} );
+
 	it( 'delegates to processPayment when the required fields are filled', () => {
 		placeOrder();
 
