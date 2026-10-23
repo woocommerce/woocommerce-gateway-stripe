@@ -1,28 +1,17 @@
 #!/usr/bin/env node
 /**
- * Resolves a merge conflict in changelog.txt or readme.txt.
+ * Resolves a changelog.txt/readme.txt merge conflict: takes the base branch's file and
+ * appends the PR's new entries to its upcoming (xxxx-xx-xx) section (which also moves an
+ * entry out of a section released after the branch was cut). Exits 1 when the PR did
+ * anything but add entries, so a person resolves those. Dependency-free: the workflow
+ * runs it with a write token and must not install or run PR code.
  *
- * The result is the base branch's version of the file with the pull request's
- * new changelog entries appended to its upcoming (xxxx-xx-xx) version section.
- * Taking the base branch's file whole, instead of resolving conflict hunks, also
- * moves an entry out of a section that was released after the branch was cut.
- *
- * Usage:
- *   node bin/resolve-changelog-conflicts.js <merge-base-file> <pr-file> <base-branch-file>
- *
- * Prints the resolved file to stdout. Exits with status 1 when the pull request
- * changed anything other than adding entries (removed or edited lines, version
- * headers, readme metadata such as "Tested up to"), so a person resolves those.
- *
- * Deliberately dependency-free: the auto-resolve workflow runs it with a
- * write-scoped token and must not install packages or run pull request code.
+ * Usage: node bin/resolve-changelog-conflicts.js <merge-base> <pr> <base-branch>
  */
 const fs = require('fs');
 
-// The same two section formats bin/changelog.js writes to:
-// - changelog.txt: xxxx-xx-xx - version X.Y.Z
-// - readme.txt:    = X.Y.Z - xxxx-xx-xx =
-const UPCOMING_HEADER = /^(?:xxxx-xx-xx\s*-\s*version\s+\d+\.\d+\.\d+|=\s*\d+\.\d+\.\d+\s*-\s*xxxx-xx-xx\s*=)\s*$/;
+// The two section formats bin/changelog.js writes (changelog.txt and readme.txt).
+const UPCOMING_HEADER =/^(?:xxxx-xx-xx\s*-\s*version\s+\d+\.\d+\.\d+|=\s*\d+\.\d+\.\d+\s*-\s*xxxx-xx-xx\s*=)\s*$/;
 // Any version header, released or upcoming, in either format.
 const ANY_HEADER = /^(?:[0-9x]{4}-[0-9x]{2}-[0-9x]{2}\s*-\s*version\s+\d+\.\d+\.\d+|=\s*\d+\.\d+\.\d+\s*-\s*[0-9x]{4}-[0-9x]{2}-[0-9x]{2}\s*=)\s*$/;
 const ENTRY = /^\* \S+ - \S/;
@@ -32,12 +21,11 @@ class UnresolvableError extends Error {}
 const isBlank = (line) => line.trim() === '';
 
 /**
- * Lines added and removed going from one version to another, compared as
- * multisets so moved lines do not count as changes. Blank lines are ignored.
+ * Lines added/removed between two versions, as multisets (moved lines don't count; blanks ignored).
  *
  * @param {string[]} fromLines Original lines.
  * @param {string[]} toLines   Changed lines.
- * @return {{added: string[], removed: string[]}} Added lines in toLines order, and removed lines.
+ * @return {{added: string[], removed: string[]}}
  */
 function diffLines(fromLines, toLines) {
     const remaining = new Map();
@@ -103,8 +91,7 @@ function resolve(mergeBase, pr, baseBranch) {
         }
     }
 
-    // After the section's last entry, like bin/changelog.js, so trailing text
-    // such as readme.txt's "See changelog" link stays last.
+    // After the section's last entry (like bin/changelog.js), so trailing text stays last.
     let insertAt = start + 1;
     for (let i = start + 1; i < end; i++) {
         if (ENTRY.test(lines[i])) {

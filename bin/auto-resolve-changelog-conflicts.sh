@@ -1,19 +1,13 @@
 #!/usr/bin/env bash
 #
-# Merges origin/develop into one pull request branch when the only conflicts are
-# in changelog.txt and/or readme.txt, resolves them with
-# resolve-changelog-conflicts.js, and pushes the merge commit to the branch.
-# Any other conflict, or a changelog change the resolver refuses, is left for a
-# person and exits 0.
+# Merges origin/develop into one PR branch when the only conflicts are in
+# changelog.txt/readme.txt, resolves them with resolve-changelog-conflicts.js,
+# and pushes the merge commit. Any other conflict is left for a person (exit 0).
 #
-# Usage (from inside a clone whose origin is the repository):
-#   bin/auto-resolve-changelog-conflicts.sh <pr-number> <head-branch>
-#
-# Environment:
-#   RESOLVER  Path to resolve-changelog-conflicts.js. Defaults to the copy next
-#             to this script; the workflow points it at a develop checkout so
-#             no code from the pull request runs.
-#   DRY_RUN   Set to 1 to resolve and commit locally without pushing.
+# Usage: bin/auto-resolve-changelog-conflicts.sh <pr-number> <head-branch>
+#   RESOLVER  path to the resolver (default: next to this script; the workflow
+#             points it at a develop checkout so no PR code runs).
+#   DRY_RUN=1 resolve and commit locally without pushing.
 
 set -euo pipefail
 
@@ -23,11 +17,10 @@ resolver="${RESOLVER:-$(dirname "$0")/resolve-changelog-conflicts.js}"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
-# The branch name ends up in refspecs; reject anything that isn't a plain branch name.
+# The branch name goes into refspecs, so reject anything but a plain branch name.
 git check-ref-format --branch "$head_ref" > /dev/null
 
-# The workflow runs this once per pull request in the same clone; drop anything
-# an earlier run left behind.
+# Drop any half-done merge an earlier run left in this clone.
 git merge --abort > /dev/null 2>&1 || true
 
 git fetch --quiet origin \
@@ -36,7 +29,7 @@ git fetch --quiet origin \
 git checkout --quiet --force --detach "origin/${head_ref}"
 
 if git merge --no-edit --no-commit origin/develop > /dev/null 2>&1; then
-	# Merging cleanly is not this script's concern; leave the branch alone.
+	# A clean merge is not this script's job; leave the branch alone.
 	git merge --abort
 	echo "#${number}: no conflicts with develop."
 	exit 0
@@ -76,8 +69,7 @@ if [ "${DRY_RUN:-}" = 1 ]; then
 	exit 0
 fi
 
-# Never force: if the author pushed meanwhile, the push is rejected and the next
-# run (on their push, or the next develop push) tries again.
+# Never force: a rejected push (the author pushed meanwhile) is retried next run.
 if git push --quiet origin "HEAD:refs/heads/${head_ref}"; then
 	echo "#${number}: resolved ${files} and pushed."
 else
