@@ -8,6 +8,8 @@
 require_once __DIR__ . '/helpers/class-wc-stripe-webhook-request-simulator.php';
 require_once __DIR__ . '/helpers/class-wc-stripe-in-memory-event-store.php';
 
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 /**
  * WC_Stripe_Webhook_Handler_Event_Reconciliation_Test class.
  */
@@ -119,9 +121,16 @@ class WC_Stripe_Webhook_Handler_Event_Reconciliation_Test extends WP_UnitTestCas
 	}
 
 	/**
-	 * A deferred job that throws abandons its event, so the stuck-event sweep does not process it again.
+	 * A deferred job that cannot succeed abandons its event, so the stuck-event sweep does not process it again.
+	 * One that fails for a reason that may pass leaves it processing, so the sweep retries it.
+	 *
+	 * @param bool   $order_exists       Whether the order still exists.
+	 * @param string $expected_exception Class of the exception the job rethrows.
+	 * @param string $expected_status    Status of the event after the job.
+	 * @param bool   $expect_retry       Whether the sweep schedules another attempt.
+	 * @dataProvider provide_failed_deferred_jobs
 	 */
-	public function test_failed_deferred_job_abandons_the_event(): void {
+	public function test_failed_deferred_job( bool $order_exists, string $expected_exception, string $expected_status, bool $expect_retry ): void {
 		$this->store->seed(
 			new WC_Stripe_Event_Record( self::EVENT_ID, WC_Stripe_Event_Store_Interface::STATUS_PROCESSING, 'payment_intent.succeeded', time(), false ),
 			time() - 2 * HOUR_IN_SECONDS
@@ -135,26 +144,48 @@ class WC_Stripe_Webhook_Handler_Event_Reconciliation_Test extends WP_UnitTestCas
 			'livemode' => false,
 		];
 
+		$order_id = 0;
+		if ( $order_exists ) {
+			$order = WC_Helper_Order::create_order();
+			$order->set_status( OrderStatus::PENDING );
+			WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, 'pi_1Unreachable' );
+			$order->save();
+			$order_id = $order->get_id();
+		}
+
+		$thrown = null;
 		try {
-			// The order no longer exists.
+			// Without the order, the job cannot succeed. With it, fetching the intent fails, since HTTP is blocked.
 			$handler->process_deferred_webhook(
 				'payment_intent.succeeded',
 				[
-					'order_id'  => 0,
-					'intent_id' => 'pi_1Deleted',
+					'order_id'  => $order_id,
+					'intent_id' => 'pi_1Unreachable',
 				],
 				$notification
 			);
-			$this->fail( 'The deferred job should rethrow, so Action Scheduler marks it failed.' );
 		} catch ( Exception $e ) {
-			$this->assertStringContainsString( 'order_id', $e->getMessage() );
+			$thrown = $e;
 		}
 
-		$this->assertSame( WC_Stripe_Event_Store_Interface::STATUS_ABANDONED, $this->store->get( self::EVENT_ID )->status );
+		// The job rethrows, so Action Scheduler marks it failed.
+		$this->assertSame( $expected_exception, $thrown ? get_class( $thrown ) : null );
+
+		$this->assertSame( $expected_status, $this->store->get( self::EVENT_ID )->status );
 
 		$reconciler->requeue_stuck_events();
 
-		$this->assertFalse( as_has_scheduled_action( WC_Stripe_Event_Reconciler::PROCESS_ACTION, [ self::EVENT_ID ] ) );
+		$this->assertSame( $expect_retry, as_has_scheduled_action( WC_Stripe_Event_Reconciler::PROCESS_ACTION, [ self::EVENT_ID ] ) );
+	}
+
+	/**
+	 * @return array
+	 */
+	public function provide_failed_deferred_jobs(): array {
+		return [
+			'order deleted'      => [ false, Exception::class, WC_Stripe_Event_Store_Interface::STATUS_ABANDONED, false ],
+			'Stripe unreachable' => [ true, WC_Stripe_Exception::class, WC_Stripe_Event_Store_Interface::STATUS_PROCESSING, true ],
+		];
 	}
 
 	/**

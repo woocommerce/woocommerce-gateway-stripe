@@ -1816,6 +1816,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					$intent_id = $additional_data['intent_id'] ?? '';
 
 					if ( ! $order instanceof \WC_Order ) {
+						// Retrying cannot bring back a deleted order.
+						$this->event_outcome = WC_Stripe_Event_Reconciler::OUTCOME_FAILED;
 						throw new Exception( "Missing required data. 'order_id' is invalid or not found for the deferred '{$webhook_type}' event." );
 					}
 
@@ -1823,6 +1825,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					$this->resolved_order = $order;
 
 					if ( empty( $intent_id ) ) {
+						$this->event_outcome = WC_Stripe_Event_Reconciler::OUTCOME_FAILED;
 						throw new Exception( "Missing required data. 'intent_id' is missing for the deferred '{$webhook_type}' event." );
 					}
 
@@ -1893,6 +1896,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					}
 					break;
 				default:
+					$this->event_outcome = WC_Stripe_Event_Reconciler::OUTCOME_FAILED;
 					throw new Exception( "Unsupported webhook type: {$webhook_type}" );
 					break;
 			}
@@ -1900,7 +1904,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$this->get_event_reconciler()->record_outcome( $this->get_event_outcome(), $notification, $this->resolved_order );
 			$this->run_webhook_received_action( (string) $webhook_type, $notification );
 		} catch ( Exception $e ) {
-			$this->get_event_reconciler()->record_outcome( WC_Stripe_Event_Reconciler::OUTCOME_FAILED, $notification, $this->resolved_order );
+			// Other failures, such as a Stripe outage, may pass. The event stays processing, so the stuck-event sweep retries it.
+			if ( WC_Stripe_Event_Reconciler::OUTCOME_FAILED === $this->get_event_outcome() ) {
+				$this->get_event_reconciler()->record_outcome( WC_Stripe_Event_Reconciler::OUTCOME_FAILED, $notification, $this->resolved_order );
+			}
 			WC_Stripe_Logger::error(
 				'Error processing deferred webhook.',
 				[
