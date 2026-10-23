@@ -603,6 +603,18 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Deletes the Stripe setup intent for order.
+	 *
+	 * @since 11.1.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|void
+	 */
+	public function delete_stripe_setup_intent_id( ?WC_Order $order = null ) {
+		return $this->delete_order_meta( $order, self::META_STRIPE_SETUP_INTENT );
+	}
+
+	/**
 	 * Gets the Stripe checkout session ID for order.
 	 *
 	 * @since 10.5.0

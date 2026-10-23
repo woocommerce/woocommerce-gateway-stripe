@@ -364,6 +364,9 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			// If the payment intent requires confirmation or action, redirect the customer to confirm the intent.
 			if ( in_array( $payment_intent->status, WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION_OR_ACTION_STATUSES, true ) ) {
+				// Subscription intents are excluded from save_intent_to_order(), but redirect validation needs the exact SetupIntent ID.
+				WC_Stripe_Order_Helper::get_instance()->update_stripe_setup_intent_id( $subscription, $payment_intent->id );
+
 				// Because we're filtering woocommerce_subscriptions_update_payment_via_pay_shortcode, we need to manually set this delayed update all flag here.
 				if ( isset( $_POST['update_all_subscriptions_payment_method'] ) && wc_clean( wp_unslash( $_POST['update_all_subscriptions_payment_method'] ) ) ) {
 					$subscription->update_meta_data( '_delayed_update_payment_method_all', $new_payment_method );
@@ -1013,8 +1016,9 @@ trait WC_Stripe_Subscriptions_Trait {
 		$order_helper->delete_stripe_customer_id( $resubscribe_order );
 		// For BW compat will remove in future.
 		$order_helper->delete_stripe_card_id( $resubscribe_order );
-		// Delete payment intent ID.
+		// Delete payment and setup intent IDs.
 		$order_helper->delete_stripe_intent_id( $resubscribe_order );
+		$order_helper->delete_stripe_setup_intent_id( $resubscribe_order );
 		$this->delete_renewal_meta( $resubscribe_order );
 		$resubscribe_order->save();
 	}
@@ -1034,8 +1038,11 @@ trait WC_Stripe_Subscriptions_Trait {
 		$order_helper->delete_stripe_fee( $renewal_order );
 		$order_helper->delete_stripe_net( $renewal_order );
 
-		// Delete payment intent ID.
+		// Delete payment and setup intent IDs so they are not reused on the renewal. The setup intent
+		// is written to the subscription for redirect validation and would otherwise be copied here,
+		// where get_order_by_setup_intent_id() could match the renewal instead of the subscription.
 		$order_helper->delete_stripe_intent_id( $renewal_order );
+		$order_helper->delete_stripe_setup_intent_id( $renewal_order );
 
 		return $renewal_order;
 	}
