@@ -158,6 +158,7 @@ Good comments explain intent; they do not restate the code. The CRITICAL rule ab
 - `changelog.txt` and `readme.txt` use **different version header formats**: `changelog.txt` uses `YYYY-MM-DD - version X.Y.Z` (WooCommerce.com parser format); `readme.txt` uses `= X.Y.Z - YYYY-MM-DD =` (WordPress.org format). Do not convert one to the other. `bin/changelog.js` handles both formats.
 - For WooCommerce version resolution logic, include explicit cases for stable, RC, and beta semantics.
 - **MUST:** New PHP docblocks must use `@since x.x.x` (a space, not a tab), never a specific version. The correct version will be inserted at release for files under `config.version_replace_paths` in `package.json`. Note than only `@since` and `@version` are currently supported, so `@deprecated` tags and deprecation function arguments (`_deprecated_function()`, `apply_filters_deprecated()`, ...) still need a concrete version. The `Version placeholders` lint job flags both mistakes.
+- For same-repo PRs targeting `develop`, the `Auto-resolve changelog conflicts` workflow merges `develop` in when the only conflicts are in `changelog.txt`/`readme.txt`, appending the PR's entries to the upcoming section (`bin/resolve-changelog-conflicts.js`). It refuses edited lines, version headers, and readme metadata; resolve those by hand.
 
 ## Version Support
 
