@@ -172,6 +172,10 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/class-wc-stripe-subscriptions-legacy-sepa-token-update.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/abstracts/abstract-wc-stripe-payment-gateway.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php';
+		if ( self::$instance === $this ) {
+			( new WC_Stripe_Remote_Config_Scheduler() )->init_hooks();
+		}
+
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-state.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-handler.php';
 
@@ -368,9 +372,9 @@ class WC_Stripe {
 
 			add_action( WC_Stripe_Database_Cache::ASYNC_CLEANUP_ACTION, [ WC_Stripe_Database_Cache::class, 'delete_all_stale_entries_async' ], 10, 2 );
 			add_action( WC_Stripe_Express_Checkout_Password_Cleanup::BATCH_HOOK, [ new WC_Stripe_Express_Checkout_Password_Cleanup(), 'process_batch' ] );
-			add_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ WC_Stripe_Database_Cache::class, 'maybe_schedule_daily_async_cleanup' ], 10, 0 );
+			add_action( 'action_scheduler_ensure_recurring_actions', [ WC_Stripe_Database_Cache::class, 'maybe_schedule_daily_async_cleanup' ], 10, 0 );
 			add_action( WC_Stripe_Option_Lock::CLEANUP_ACTION, [ WC_Stripe_Option_Lock::class, 'cleanup_stale_locks' ], 10, 0 );
-			add_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ WC_Stripe_Option_Lock::class, 'maybe_schedule_daily_cleanup' ], 10, 0 );
+			add_action( 'action_scheduler_ensure_recurring_actions', [ WC_Stripe_Option_Lock::class, 'maybe_schedule_daily_cleanup' ], 10, 0 );
 
 			// Handle the async cache prefetch action.
 			add_action( WC_Stripe_Database_Cache_Prefetch::ASYNC_PREFETCH_ACTION, [ WC_Stripe_Database_Cache_Prefetch::get_instance(), 'handle_prefetch_action' ], 10, 1 );
@@ -1037,7 +1041,9 @@ class WC_Stripe {
 	 * @return bool
 	 */
 	protected function is_optimized_checkout_enabled(): bool {
-		if ( ! WC_Stripe_Feature_Flags::is_oc_available() ) {
+		// is_oc_offered() (not is_oc_available()) so a remote disable of Optimized
+		// Checkout reverts stores to the classic UPE gateway.
+		if ( ! WC_Stripe_Feature_Flags::is_oc_offered() ) {
 			return false;
 		}
 		$settings = WC_Stripe_Helper::get_stripe_settings();

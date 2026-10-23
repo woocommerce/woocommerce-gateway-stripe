@@ -507,15 +507,18 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$wc_stripe_api_secret_key_reflection->setAccessible( true );
 		$wc_stripe_api_secret_key_reflection->setValue( '', '' );
 
-		// False if webhook secrets are not set.
-		$stripe_settings['testmode']          = 'yes';
-		$stripe_settings['test_webhook_data'] = [
+		$stripe_settings['testmode']                        = 'yes';
+		$stripe_settings['test_webhook_data']               = [
 			'id'     => 'wh_123_test',
 			'secret' => '',
 		];
+		WC_Helper_Stripe_Api::$expected_request_call_params = [
+			[ [], 'webhook_endpoints/wh_123_test', 'GET' ],
+		];
+		WC_Helper_Stripe_Api::$request_response             = (object) [ 'status' => 'enabled' ];
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 		$this->clear_webhook_status_cache();
-		$this->assertFalse( $this->account->is_webhook_enabled() );
+		$this->assertTrue( $this->account->is_webhook_enabled() );
 		$this->assertSame( '', $wc_stripe_api_secret_key_reflection->getValue( null ) );
 
 		$stripe_settings['test_webhook_data'] = [];
@@ -580,6 +583,59 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		// Assert that it uses the cached status.
 		$this->assertTrue( $this->account->is_webhook_enabled() );
 		$this->assertSame( '', $wc_stripe_api_secret_key_reflection->getValue( null ) );
+	}
+
+	/**
+	 * Status checks use the matching account key, including legacy webhook credentials.
+	 *
+	 * @dataProvider provide_webhook_status_credentials
+	 */
+	public function test_webhook_status_authentication( $mode, $legacy_secret, $account_secret, $expected_secret ) {
+		$prefix                               = 'test' === $mode ? 'test_' : '';
+		$settings                             = WC_Stripe_Helper::get_stripe_settings();
+		$settings['testmode']                 = 'test' === $mode ? 'yes' : 'no';
+		$settings[ $prefix . 'secret_key' ]   = $account_secret;
+		$settings[ $prefix . 'webhook_data' ] = [ 'id' => 'we_status' ];
+		if ( null !== $legacy_secret ) {
+			$settings[ $prefix . 'webhook_data' ]['secret'] = $legacy_secret;
+		}
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		$this->clear_webhook_status_cache();
+		WC_Stripe_API::set_secret_key( '' );
+		$headers = [];
+		$filter  = function ( $preempt, $args, $url ) use ( &$headers ) {
+			$headers[] = $args['headers']['Authorization'];
+			return [
+				'response' => [ 'code' => 200 ],
+				'body'     => wp_json_encode( [ 'status' => 'enabled' ] ),
+			];
+		};
+		add_filter( 'pre_http_request', $filter, 10, 3 );
+		try {
+			$account = new WC_Stripe_Account( $this->mock_connect, WC_Stripe_API::class );
+			$this->assertSame( '' !== $expected_secret, $account->is_webhook_enabled() );
+			$this->assertSame( '' !== $expected_secret, $account->is_webhook_enabled() );
+		} finally {
+			remove_filter( 'pre_http_request', $filter );
+		}
+		$this->assertSame( '' === $expected_secret ? [] : [ 'Basic ' . base64_encode( $expected_secret . ':' ) ], $headers );
+		$this->assertSame( $account_secret, WC_Stripe_API::get_secret_key() );
+		WC_Stripe_API::set_secret_key( '' );
+	}
+
+	public function provide_webhook_status_credentials() {
+		return [
+			'live account key' => [ 'live', null, 'sk_live_current', 'sk_live_current' ],
+			'test account key' => [ 'test', null, 'sk_test_current', 'sk_test_current' ],
+			'empty live copy'  => [ 'live', '', 'sk_live_current', 'sk_live_current' ],
+			'empty test copy'  => [ 'test', '', 'sk_test_current', 'sk_test_current' ],
+			'legacy live key'  => [ 'live', 'sk_live_old', 'sk_live_current', 'sk_live_old' ],
+			'legacy test key'  => [ 'test', 'sk_test_old', 'sk_test_current', 'sk_test_old' ],
+			'missing live key' => [ 'live', null, '', '' ],
+			'missing test key' => [ 'test', null, '', '' ],
+			'empty live keys'  => [ 'live', '', '', '' ],
+			'empty test keys'  => [ 'test', '', '', '' ],
+		];
 	}
 
 	private function clear_webhook_status_cache() {
@@ -829,9 +885,10 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A stored webhook ID that no longer exists in the account must raise the missing notice.
+	 * A stored webhook ID the mode's own key cannot find means the saved secret matches no
+	 * endpoint, so the mode is rebuilt even when another up-to-date endpoint serves the site URL.
 	 */
-	public function test_reconfigure_webhooks_flags_missing_stored_webhook() {
+	public function test_reconfigure_webhooks_rebuilds_when_stored_endpoint_missing_from_account() {
 		$settings                        = WC_Stripe_Helper::get_stripe_settings();
 		$settings['test_webhook_secret'] = 'whsec_auto';
 		$settings['test_webhook_data']   = [
@@ -844,7 +901,45 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$api_version_method = new ReflectionMethod( WC_Stripe_Account::class, 'get_webhooks_api_version' );
 		$api_version_method->setAccessible( true );
 
-		// The URL-matched endpoint is someone else's; the stored one is gone.
+		// Up-to-date endpoint at the site URL, so the events/version check would pass.
+		$up_to_date_webhook = (object) [
+			'id'             => 'we_other',
+			'url'            => WC_Stripe_Helper::get_webhook_url(),
+			'enabled_events' => WC_Stripe_Account::WEBHOOK_EVENTS,
+			'api_version'    => $api_version_method->invoke( null ),
+			'status'         => 'enabled',
+		];
+
+		$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->setConstructorArgs( [ $this->mock_connect, WC_Helper_Stripe_Api::class ] )
+			->onlyMethods( [ 'get_existing_webhook', 'configure_webhooks', 'webhook_endpoint_exists', 'get_webhook_endpoint_by_id' ] )
+			->getMock();
+		$this->account->method( 'get_existing_webhook' )->willReturn( $up_to_date_webhook );
+		$this->account->method( 'webhook_endpoint_exists' )->with( 'we_ghost' )->willReturn( false );
+		$this->account->method( 'get_webhook_endpoint_by_id' )->with( 'we_ghost' )->willReturn( false );
+		$this->account->expects( $this->once() )->method( 'configure_webhooks' )->with( 'test' );
+
+		$this->account->maybe_reconfigure_webhooks_on_update();
+	}
+
+	/**
+	 * A missing stored endpoint whose secret was set by hand is not rebuilt automatically: the
+	 * missing notice is raised and the merchant decides.
+	 */
+	public function test_reconfigure_webhooks_does_not_rebuild_missing_endpoint_when_secret_is_manual() {
+		$settings                        = WC_Stripe_Helper::get_stripe_settings();
+		$settings['test_webhook_secret'] = 'whsec_manual';
+		$settings['test_webhook_data']   = [
+			'id'             => 'we_ghost',
+			'secret'         => 'sk_test_key',
+			// signing_secret != the saved webhook secret marks a manual edit.
+			'signing_secret' => 'whsec_auto',
+		];
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$api_version_method = new ReflectionMethod( WC_Stripe_Account::class, 'get_webhooks_api_version' );
+		$api_version_method->setAccessible( true );
+
 		$up_to_date_webhook = (object) [
 			'id'             => 'we_other',
 			'url'            => WC_Stripe_Helper::get_webhook_url(),
@@ -1172,5 +1267,68 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		);
 
 		$this->assertFalse( $result );
+	}
+
+	public function test_maybe_decommission_webhook_logs_authentication_failure() {
+		WC_Helper_Stripe_Api::$request_response             = (object) [ 'error' => (object) [ 'code' => 'api_key_expired' ] ];
+		WC_Helper_Stripe_Api::$expected_request_call_params = [ [ [], 'webhook_endpoints/wh_old', 'DELETE' ] ];
+
+		$previous_logger = WC_Stripe_Logger::$logger;
+		$logger          = $this->createMock( WC_Logger::class );
+		$logger->expects( $this->once() )
+			->method( 'error' )
+			->with(
+				'Failed to decommission previously configured webhook wh_old.',
+				$this->callback(
+					static function ( $context ) {
+						return 'api_key_expired' === ( $context['error_code'] ?? null );
+					}
+				)
+			);
+		WC_Stripe_Logger::$logger = $logger;
+
+		try {
+			$result = $this->account->maybe_decommission_webhook(
+				[
+					'id'     => 'wh_old',
+					'secret' => 'rk_live_old',
+				],
+				'rk_live_new'
+			);
+		} finally {
+			WC_Stripe_Logger::$logger = $previous_logger;
+		}
+
+		$this->assertFalse( $result );
+		$this->assertEmpty( WC_Helper_Stripe_Api::$expected_request_call_params );
+	}
+
+	/**
+	 * A rejected DELETE must retain the endpoint for retry, while an already missing endpoint needs no retry.
+	 *
+	 * @dataProvider provide_webhook_deletion_responses
+	 */
+	public function test_maybe_decommission_webhook_handles_api_responses( $response, $expected_result ) {
+		WC_Helper_Stripe_Api::$request_response             = $response;
+		WC_Helper_Stripe_Api::$expected_request_call_params = [ [ [], 'webhook_endpoints/wh_old', 'DELETE' ] ];
+
+		$result = $this->account->maybe_decommission_webhook(
+			[
+				'id'     => 'wh_old',
+				'secret' => 'rk_live_old',
+			],
+			'rk_live_new'
+		);
+
+		$this->assertSame( $expected_result, $result );
+		$this->assertEmpty( WC_Helper_Stripe_Api::$expected_request_call_params );
+	}
+
+	public function provide_webhook_deletion_responses() {
+		return [
+			'rate limited'             => [ (object) [ 'error' => (object) [ 'code' => 'rate_limit' ] ], false ],
+			'endpoint already missing' => [ (object) [ 'error' => (object) [ 'code' => 'resource_missing' ] ], true ],
+			'deleted'                  => [ (object) [ 'deleted' => true ], true ],
+		];
 	}
 }

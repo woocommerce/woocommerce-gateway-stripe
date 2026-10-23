@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from '@emotion/styled';
 import SettingsSection from '../settings-section';
 import { useSettings } from '../../data';
@@ -9,18 +9,40 @@ const SaveSettingsSectionWrapper = styled( SettingsSection )`
 	text-align: right;
 `;
 
-const SaveSettingsSection = ( { onSettingsSave, agenticSaveRef } ) => {
+/**
+ * Renders the save settings button section.
+ *
+ * @param {Object}   props                  Component props.
+ * @param {Function} [props.onSettingsSave] Optional callback invoked after standard store saveSettings completes.
+ * @param {Function} [props.onSave]         Optional custom save closure. When provided, SaveSettingsSection
+ *                                          invokes this custom save handler and manages its own saving state,
+ *                                          bypassing the global settings store saveSettings and onSettingsSave.
+ *
+ * @return {JSX.Element} The save settings button section.
+ */
+const SaveSettingsSection = ( { onSettingsSave, onSave } ) => {
 	const { saveSettings, isSaving, isLoading } = useSettings();
+	const [ isCustomSaving, setIsCustomSaving ] = useState( false );
 
 	const onClickHandler = async () => {
-		await saveSettings();
-		if ( agenticSaveRef?.current?.save ) {
-			await agenticSaveRef.current.save();
+		if ( onSave ) {
+			setIsCustomSaving( true );
+			try {
+				await onSave();
+			} finally {
+				setIsCustomSaving( false );
+			}
+			return;
 		}
+
+		await saveSettings();
 		if ( onSettingsSave ) {
 			onSettingsSave();
 		}
 	};
+
+	const isBusy = onSave ? isCustomSaving : isSaving;
+	const isDisabled = isBusy || isLoading;
 
 	return (
 		// The 'submit' class is used by WC core to clear unsaved changes warnings.
@@ -28,8 +50,8 @@ const SaveSettingsSection = ( { onSettingsSave, agenticSaveRef } ) => {
 		<SaveSettingsSectionWrapper className="submit">
 			<Button
 				isPrimary
-				isBusy={ isSaving }
-				disabled={ isSaving || isLoading }
+				isBusy={ isBusy }
+				disabled={ isDisabled }
 				onClick={ onClickHandler }
 			>
 				{ __( 'Save changes', 'woocommerce-gateway-stripe' ) }

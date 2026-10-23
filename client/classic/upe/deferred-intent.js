@@ -16,8 +16,8 @@ import {
 	confirmVoucherPayment,
 	confirmWalletPayment,
 	createAndConfirmSetupIntent,
+	getEmptyRequiredFields,
 	getMountedUPEComponent,
-	hasEmptyRequiredFields,
 	initializeUPEComponents,
 	maybeUpdateAdaptivePricingCheckoutSession,
 	maybeUpdateOptimizedCheckoutExclusions,
@@ -26,7 +26,7 @@ import {
 	resetCheckoutCompletionState,
 	trackMountInProgress,
 } from './payment-processing';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 
 jQuery( function ( $ ) {
 	const stripeServerData = getStripeServerData();
@@ -104,24 +104,86 @@ jQuery( function ( $ ) {
 		void updateChain;
 	} );
 
-	function processPaymentIfNotUsingSavedMethod( $form ) {
-		// Returning false is what stops WooCommerce submitting: returning early without
-		// it would let the form POST with no payment method, and the order would be
-		// created and then failed. jQuery :visible filters out fields hidden by
-		// conditional checkout logic (e.g. shipping fields when "Ship to different
-		// address" is unchecked).
-		if (
-			hasEmptyRequiredFields(
-				$form.find( '.validate-required:visible' ).toArray()
-			)
-		) {
-			resetCheckoutCompletionState();
-			showErrorCheckout(
+	// Builds the notice WooCommerce shows for a missing field: "<Field> is a required field."
+	// The label text is read from the DOM and HTML-escaped before it goes into the notice markup.
+	function getRequiredFieldMessage( wrapper ) {
+		const label = wrapper.querySelector( 'label' );
+		if ( ! label ) {
+			return '';
+		}
+
+		// Drop the required marker. WooCommerce renders it as <abbr class="required"> in some
+		// themes and as plain "*" text in others, so remove the marked-up node and then strip any
+		// trailing asterisk left as text.
+		const labelClone = label.cloneNode( true );
+		labelClone
+			.querySelectorAll( 'abbr, .required' )
+			.forEach( ( node ) => node.remove() );
+
+		const name = labelClone.textContent.replace( /\s*\*+\s*$/, '' ).trim();
+		if ( ! name ) {
+			return '';
+		}
+
+		// Link the field name to its control, like WooCommerce's own notices, so the shopper can
+		// jump to the field. Fall back to plain text when no control id is available. Build the
+		// markup through the DOM so both the id (href) and the name are safely escaped.
+		const control = wrapper.querySelector( 'input, select, textarea' );
+		const fieldId =
+			label.getAttribute( 'for' ) || ( control && control.id ) || '';
+		let fieldMarkup;
+		if ( fieldId ) {
+			const link = document.createElement( 'a' );
+			link.setAttribute( 'href', `#${ fieldId }` );
+			link.textContent = name;
+			fieldMarkup = link.outerHTML;
+		} else {
+			fieldMarkup = jQuery( '<div>' ).text( name ).html();
+		}
+
+		return sprintf(
+			// translators: %s is the name of a required checkout field.
+			__( '%s is a required field.', 'woocommerce-gateway-stripe' ),
+			fieldMarkup
+		);
+	}
+
+	// Shows one notice per empty required field, falling back to a single generic notice when no
+	// field label can be read.
+	function showEmptyRequiredFieldsError( wrappers ) {
+		const messages = wrappers
+			.map( getRequiredFieldMessage )
+			.filter( Boolean );
+		if ( ! messages.length ) {
+			messages.push(
 				__(
 					'Please fill in all required fields.',
 					'woocommerce-gateway-stripe'
 				)
 			);
+		}
+
+		const items = messages.map( ( message ) => `<li>${ message }</li>` );
+		showErrorCheckout(
+			`<ul class="woocommerce-error" role="alert">${ items.join(
+				''
+			) }</ul>`
+		);
+	}
+
+	function processPaymentIfNotUsingSavedMethod( $form ) {
+		// When a required field is empty, block the submission, as #5222 does: letting WooCommerce
+		// submit without a Stripe payment method creates an order that then fails (the STRIPE-1402
+		// shape), and a field WooCommerce does not validate server-side would not be caught at all.
+		// Instead of #5222's single generic notice, show one notice per empty field so the shopper
+		// sees which to fill. jQuery :visible drops fields hidden by conditional checkout logic
+		// (e.g. shipping fields when "Ship to different address" is unchecked).
+		const emptyRequiredFields = getEmptyRequiredFields(
+			$form.find( '.validate-required:visible' ).toArray()
+		);
+		if ( emptyRequiredFields.length ) {
+			resetCheckoutCompletionState();
+			showEmptyRequiredFieldsError( emptyRequiredFields );
 			return false;
 		}
 
@@ -165,10 +227,16 @@ jQuery( function ( $ ) {
 
 	// My Account > Payment Methods page submit.
 	$( 'form#add_payment_method' ).on( 'submit', function () {
+		const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
+		// If another payment gateway was selected, no further action required.
+		if ( ! paymentMethodType ) {
+			return;
+		}
+
 		return processPayment(
 			api,
 			$( 'form#add_payment_method' ),
-			getSelectedUPEGatewayPaymentMethod(),
+			paymentMethodType,
 			createAndConfirmSetupIntent
 		);
 	} );
@@ -185,6 +253,11 @@ jQuery( function ( $ ) {
 		}
 
 		const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
+		// If another payment gateway was selected, no further action required.
+		if ( ! paymentMethodType ) {
+			return;
+		}
+
 		if ( ! isUsingSavedPaymentMethod( paymentMethodType ) ) {
 			return processPayment(
 				api,
