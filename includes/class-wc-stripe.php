@@ -554,10 +554,8 @@ class WC_Stripe {
 	 */
 	public function update_prb_location_settings() {
 		$stripe_settings = $this->get_settings();
-		$prb_locations   = isset( $stripe_settings['express_checkout_button_locations'] )
-			? $stripe_settings['express_checkout_button_locations']
-			: [];
-		if ( ! empty( $stripe_settings ) && empty( $prb_locations ) ) {
+		// An explicitly empty selection hides the buttons and must survive upgrades.
+		if ( ! empty( $stripe_settings ) && ! array_key_exists( 'express_checkout_button_locations', $stripe_settings ) ) {
 			// Use existing payment_request_button_locations if it exists.
 			if ( array_key_exists( 'payment_request_button_locations', $stripe_settings ) ) {
 				$stripe_settings['express_checkout_button_locations'] = $stripe_settings['payment_request_button_locations'];
@@ -904,13 +902,9 @@ class WC_Stripe {
 	}
 
 	protected function enable_upe( $settings ) {
-		$settings['upe_checkout_experience_accepted_payments'] = [];
-
-		if ( empty( $settings['upe_checkout_experience_accepted_payments'] ) ) {
+		// Switching checkout engines must preserve saved selections, including an empty list.
+		if ( ! array_key_exists( 'upe_checkout_experience_accepted_payments', $settings ) ) {
 			$settings['upe_checkout_experience_accepted_payments'] = [ 'card', 'link' ];
-		} else {
-			// The 'stripe' gateway must be enabled for UPE if any LPMs were enabled.
-			$settings['enabled'] = 'yes';
 		}
 
 		return $settings;

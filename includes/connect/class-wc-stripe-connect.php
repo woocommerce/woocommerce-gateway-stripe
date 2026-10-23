@@ -274,13 +274,15 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return new WP_Error( 'invalid_credentials', 'Invalid credentials received from WooCommerce Connect server' );
 			}
 
-			$publishable_key                            = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-			$secret_key                                 = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-			$is_test                                    = 'live' !== $mode;
-			$prefix                                     = $is_test ? 'test_' : '';
-			$default_options                            = $this->get_default_stripe_config();
-			$current_options                            = WC_Stripe_Helper::get_stripe_settings();
-			$options                                    = array_merge( $default_options, is_array( $current_options ) ? $current_options : [] );
+			$publishable_key = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$secret_key      = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$is_test         = 'live' !== $mode;
+			$prefix          = $is_test ? 'test_' : '';
+			$current_options = WC_Stripe_Helper::get_stripe_settings();
+
+			// Installation saves settings before OAuth; stored keys in either mode, even expired ones, identify a reconnect.
+			$is_first_connection                        = ! $this->is_connected( 'live' ) && ! $this->is_connected( 'test' );
+			$options                                    = $is_first_connection ? array_merge( $this->get_default_stripe_config(), $current_options ) : $current_options;
 			$options['enabled']                         = 'yes';
 			$options['testmode']                        = $is_test ? 'yes' : 'no';
 			$options['upe_checkout_experience_enabled'] = $this->get_upe_checkout_experience_enabled();
@@ -288,7 +290,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$options[ $prefix . 'secret_key' ]          = $secret_key;
 			$options[ $prefix . 'connection_type' ]     = $type;
 			$options['pmc_enabled']                     = 'connect' === $type ? 'yes' : 'no'; // When not connected via Connect OAuth, the PMC is disabled.
-			$should_default_optimized_checkout_on       = get_option( 'wc_stripe_optimized_checkout_default_on' );
+			$should_default_optimized_checkout_on       = $is_first_connection && get_option( 'wc_stripe_optimized_checkout_default_on' );
 			// Clean up the option.
 			delete_option( 'wc_stripe_optimized_checkout_default_on' );
 			if ( 'app' === $type ) {
@@ -324,7 +326,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			$this->clear_caches_after_key_update();
 
-			if ( 'connect' === $type && $should_default_optimized_checkout_on ) {
+			if ( 'connect' === $type && $should_default_optimized_checkout_on && ! array_key_exists( 'optimized_checkout_element', $current_options ) ) {
 				$options['optimized_checkout_element'] = 'yes';
 				WC_Stripe_Helper::update_main_stripe_settings( $options );
 			}
@@ -386,7 +388,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// Default Adaptive Pricing on for first-time connections, now that webhooks have been
 			// configured above. AP requires a working webhook endpoint, so this decision must run after
 			// configure_webhooks()
-			if ( 'connect' === $type && $should_default_optimized_checkout_on ) {
+			if ( 'connect' === $type && $should_default_optimized_checkout_on && ! array_key_exists( 'adaptive_pricing', $current_options ) ) {
 				if ( WC_Stripe_Helper::is_adaptive_pricing_available_for_account() ) {
 					$settings                     = WC_Stripe_Helper::get_stripe_settings();
 					$settings['adaptive_pricing'] = 'yes';
@@ -478,8 +480,8 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				}
 			}
 
-			$result['upe_checkout_experience_enabled']             = 'yes';
-			$result['upe_checkout_experience_accepted_payments'][] = WC_Stripe_Payment_Methods::LINK;
+			$result['upe_checkout_experience_enabled']           = 'yes';
+			$result['upe_checkout_experience_accepted_payments'] = [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ];
 
 			return $result;
 		}
