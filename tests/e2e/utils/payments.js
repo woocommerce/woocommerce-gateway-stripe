@@ -1,4 +1,5 @@
 import { expect } from '@playwright/test';
+import { randomUUID } from 'crypto';
 import config from 'config';
 import { verifyOrderChargedAmount } from './admin';
 
@@ -456,6 +457,26 @@ export async function fillCreditCardDetailsShortcodeLegacy( page, card ) {
 	await cardNumberLocator.fill( card.number );
 	await cardExpiryLocator.fill( card.expires.month + card.expires.year );
 	await cardCvcLocator.fill( card.cvc );
+}
+
+/**
+ * Returns the default guest billing details with an email unique to this call.
+ *
+ * The duplicate-charge guard keys a checkout by its cart and billing email. Guest tests that
+ * share the default email and the default cart would get the same key and, running in parallel,
+ * turn each other away with "Your payment is already being processed." or "We already received a
+ * payment for this cart.", so each guest checkout needs its own email.
+ *
+ * @return {Object} The billing details in the format provided on the test-data.
+ */
+export function getGuestBillingDetails() {
+	return {
+		...config.get( 'addresses.customer.billing' ),
+		email:
+			randomUUID() +
+			'+' +
+			config.get( 'addresses.customer.billing.email' ),
+	};
 }
 
 /**

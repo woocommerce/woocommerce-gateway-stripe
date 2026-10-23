@@ -11,6 +11,7 @@ const {
 	handleCheckout3DSChallenge,
 	getCartTotal,
 	waitForOrderReceivedPageAndConfirmExpectedTotal,
+	getGuestBillingDetails,
 } = payments;
 
 test( 'customer can checkout with a SCA card @smoke @blocks', async ( {
@@ -19,10 +20,7 @@ test( 'customer can checkout with a SCA card @smoke @blocks', async ( {
 } ) => {
 	await emptyCart( page );
 	await setupCart( page );
-	await setupBlocksCheckout(
-		page,
-		config.get( 'addresses.customer.billing' )
-	);
+	await setupBlocksCheckout( page, getGuestBillingDetails() );
 	await fillCreditCardDetails( page, config.get( 'cards.3ds' ) );
 
 	const expectedTotal = await getCartTotal( page );

@@ -10,6 +10,7 @@ const {
 	clickPlaceOrder,
 	getCartTotal,
 	waitForOrderReceivedPageAndConfirmExpectedTotal,
+	getGuestBillingDetails,
 } = payments;
 
 test( 'customer can checkout with a normal credit card @smoke @blocks', async ( {
@@ -18,10 +19,7 @@ test( 'customer can checkout with a normal credit card @smoke @blocks', async ( 
 } ) => {
 	await emptyCart( page );
 	await setupCart( page );
-	await setupBlocksCheckout(
-		page,
-		config.get( 'addresses.customer.billing' )
-	);
+	await setupBlocksCheckout( page, getGuestBillingDetails() );
 
 	await fillCreditCardDetails( page, config.get( 'cards.basic' ) );
 

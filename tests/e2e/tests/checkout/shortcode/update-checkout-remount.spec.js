@@ -8,6 +8,7 @@ const {
 	setupShortcodeCheckout,
 	fillCreditCardDetailsShortcode,
 	waitForStripeReady,
+	getGuestBillingDetails,
 } = payments;
 
 const UPE_IFRAME_SELECTOR =
@@ -26,10 +27,7 @@ test( 'completes a classic checkout order submitted during a checkout re-render'
 } ) => {
 	await emptyCart( page );
 	await setupCart( page );
-	await setupShortcodeCheckout(
-		page,
-		config.get( 'addresses.customer.billing' )
-	);
+	await setupShortcodeCheckout( page, getGuestBillingDetails() );
 
 	await fillCreditCardDetailsShortcode( page, config.get( 'cards.basic' ) );
 

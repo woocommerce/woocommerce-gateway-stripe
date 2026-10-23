@@ -8,6 +8,7 @@ const {
 	setupShortcodeCheckout,
 	fillCreditCardDetailsShortcode,
 	waitForStripeReady,
+	getGuestBillingDetails,
 } = payments;
 
 const UPE_IFRAME_SELECTOR =
@@ -43,10 +44,7 @@ test( 'keeps the shopper on the form when a third-party required field is empty'
 } ) => {
 	await emptyCart( page );
 	await setupCart( page );
-	await setupShortcodeCheckout(
-		page,
-		config.get( 'addresses.customer.billing' )
-	);
+	await setupShortcodeCheckout( page, getGuestBillingDetails() );
 
 	await fillCreditCardDetailsShortcode( page, config.get( 'cards.basic' ) );
 	await waitForStripeReady( page, UPE_IFRAME_SELECTOR );
