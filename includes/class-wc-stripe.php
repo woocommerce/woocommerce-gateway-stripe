@@ -179,8 +179,10 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-state.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-handler.php';
 
+		$webhook_handler = null;
 		if ( self::$instance === $this ) {
-			( new WC_Stripe_Webhook_Handler() )->register_hooks();
+			$webhook_handler = new WC_Stripe_Webhook_Handler();
+			$webhook_handler->register_hooks();
 		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-apple-pay-registration.php';
@@ -220,8 +222,16 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/connect/class-wc-stripe-connect-api.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-order-handler.php';
 
-		if ( self::$instance === $this ) {
-			( new WC_Stripe_Order_Handler() )->register_hooks();
+		if ( self::$instance === $this && $webhook_handler instanceof WC_Stripe_Webhook_Handler ) {
+			$order_handler = new WC_Stripe_Order_Handler();
+			$order_handler->register_hooks();
+
+			$order_reconciliation = new WC_Stripe_Order_Reconciliation( $order_handler, $webhook_handler );
+			$order_reconciliation->register_hooks();
+
+			if ( is_admin() && WC_Stripe_Feature_Flags::is_order_reconciliation_enabled() ) {
+				( new WC_Stripe_Order_Reconciliation_Admin( $order_reconciliation ) )->register_hooks();
+			}
 		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-payment-tokens.php';
