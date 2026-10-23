@@ -668,7 +668,9 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 			'unknown to Stripe'                      => [ $error( 404, 'invalid_request_error', 'resource_missing' ), null, true ],
 			'API key rejected'                       => [ $error( 401, 'invalid_request_error', 'api_key_expired' ), null, true ],
 			'network failure'                        => [ null, null, false ],
-			'rate limited'                           => [ $error( 429, 'rate_limit_error', 'rate_limit' ), null, false ],
+			'rate limited'                           => [ $error( 429, 'invalid_request_error', 'rate_limit' ), null, false ],
+			'lock timeout'                           => [ $error( 429, 'invalid_request_error', 'lock_timeout' ), null, false ],
+			'Stripe API error'                       => [ $error( 400, 'api_error' ), null, false ],
 			'Stripe server error'                    => [ $error( 500, 'api_error' ), null, false ],
 		];
 	}

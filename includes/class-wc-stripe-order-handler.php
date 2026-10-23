@@ -26,7 +26,17 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @var string[]
 	 */
-	private const TEMPORARY_STRIPE_ERROR_TYPES = [ 'api_connection_error', 'api_error', 'rate_limit_error' ];
+	private const TEMPORARY_STRIPE_ERROR_TYPES = [ 'api_error' ];
+
+	/**
+	 * Stripe error codes that clear up on their own. Stripe sends rate limits and lock timeouts as a 429
+	 * with type invalid_request_error, the same type as permanent errors, so only the code tells them apart.
+	 *
+	 * @since x.x.x
+	 *
+	 * @var string[]
+	 */
+	private const TEMPORARY_STRIPE_ERROR_CODES = [ 'rate_limit', 'lock_timeout' ];
 
 	/**
 	 * Constructor.
@@ -712,7 +722,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 		if ( is_object( $session ) && ! empty( $session->error ) ) {
 			$error_type   = is_string( $session->error->type ?? null ) ? $session->error->type : '';
-			$is_temporary = in_array( $error_type, self::TEMPORARY_STRIPE_ERROR_TYPES, true );
+			$error_code   = is_string( $session->error->code ?? null ) ? $session->error->code : '';
+			$is_temporary = in_array( $error_type, self::TEMPORARY_STRIPE_ERROR_TYPES, true )
+				|| in_array( $error_code, self::TEMPORARY_STRIPE_ERROR_CODES, true );
 
 			WC_Stripe_Logger::error(
 				$is_temporary
@@ -722,7 +734,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					$log_context,
 					[
 						'error_type'    => $error_type,
-						'error_code'    => $session->error->code ?? '',
+						'error_code'    => $error_code,
 						'error_message' => $session->error->message ?? '',
 					]
 				)
