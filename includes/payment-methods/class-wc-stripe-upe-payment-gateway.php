@@ -2611,11 +2611,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		if ( $locked ) {
 			WC_Stripe_Logger::info( "Skip processing checkout session redirect for order $order_id, order payment is already being processed (locked)" );
 
-			// The settling webhook holds the lock; a retry after a decline is still Failed, so a bare
-			// return would show the failed-order notice. Wait for settlement, then redirect clean.
-			// On timeout, return without stripping the query args so a later refresh re-runs this
-			// handler and routes the shopper correctly, rather than stranding them on the clean
-			// order-received page for an order that never settled.
+			// We assume the order payment lock is held by the webhook processing.
+			// Wait for processing to complete, so we can redirect without showing an error.
+			// If we time out, return without stripping the query args so a later refresh re-runs this
+			// handler and routes the shopper correctly.
 			if ( $this->wait_for_checkout_session_settlement( $order_id ) ) {
 				wp_safe_redirect( wp_sanitize_redirect( $this->get_return_url( $order ) ) );
 				exit;
