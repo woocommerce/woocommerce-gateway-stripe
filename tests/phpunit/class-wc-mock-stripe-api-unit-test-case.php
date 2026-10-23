@@ -40,11 +40,6 @@ abstract class WC_Mock_Stripe_API_Unit_Test_Case extends WP_UnitTestCase {
 		$this->stripe_api       = $this->createMock( WC_Stripe_API::class );
 		$this->stripe_api->method( 'get_payment_method_configurations' )->willReturnCallback(
 			function () {
-				// Stripe lists configurations for the active keys, including after a test switches mode.
-				foreach ( $this->payment_method_configurations_response->data ?? [] as $configuration ) {
-					$configuration->livemode = WC_Stripe_Mode::is_live();
-					$configuration->parent   = WC_Stripe_Payment_Method_Configurations::get_parent_configuration_id();
-				}
 				return $this->payment_method_configurations_response;
 			}
 		);
@@ -107,19 +102,7 @@ abstract class WC_Mock_Stripe_API_Unit_Test_Case extends WP_UnitTestCase {
 					return true;
 				}
 			)
-		)->willReturnCallback( [ $this, 'payment_method_configuration_update_response' ] );
-	}
-
-	public function payment_method_configuration_update_response( $id, $payload ) {
-		$configuration = (object) [
-			'id'       => $id,
-			'active'   => true,
-			'livemode' => WC_Stripe_Mode::is_live(),
-		];
-		foreach ( $payload as $method => $preferences ) {
-			$configuration->$method = (object) [ 'display_preference' => (object) [ 'value' => $preferences['display_preference']['preference'] ] ];
-		}
-		return $configuration;
+		);
 	}
 
 	/**
@@ -134,8 +117,8 @@ abstract class WC_Mock_Stripe_API_Unit_Test_Case extends WP_UnitTestCase {
 			'id'       => $mock_pmc_id,
 			'object'   => 'payment_method_configuration',
 			'active'   => true,
-			'parent'   => WC_Stripe_Payment_Method_Configurations::get_parent_configuration_id(),
-			'livemode' => WC_Stripe_Mode::is_live(),
+			'parent'   => WC_Stripe_Payment_Method_Configurations::TEST_MODE_CONFIGURATION_PARENT_ID,
+			'livemode' => false,
 		];
 
 		foreach ( $enabled_payment_method_ids as $payment_method ) {
