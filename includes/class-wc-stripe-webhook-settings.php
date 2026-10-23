@@ -5,11 +5,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Webhook settings and automatic endpoint configuration.
+ *
+ * @since x.x.x
  */
 class WC_Stripe_Webhook_Settings {
 	/**
 	 * List of webhook events that this plugin listens to.
 	 * Based on WC_Stripe_Webhook_Handler::process_webhook()
+	 *
+	 * @since x.x.x
 	 */
 	public const WEBHOOK_EVENTS = [
 		'account.updated',
@@ -40,6 +44,8 @@ class WC_Stripe_Webhook_Settings {
 	/**
 	 * The webhook status cache key.
 	 *
+	 * @since x.x.x
+	 *
 	 * @internal
 	 *
 	 * @var string
@@ -66,6 +72,8 @@ class WC_Stripe_Webhook_Settings {
 	/**
 	 * Constructor.
 	 *
+	 * @since x.x.x
+	 *
 	 * @param class-string<WC_Stripe_API> $stripe_api Stripe API implementation.
 	 */
 	public function __construct( $stripe_api ) {
@@ -74,6 +82,8 @@ class WC_Stripe_Webhook_Settings {
 
 	/**
 	 * Option name for the "webhook endpoint missing" notice flag.
+	 *
+	 * @since x.x.x
 	 *
 	 * @param string $mode 'live' or 'test'. Any other value is treated as 'test'.
 	 * @return string
@@ -84,6 +94,8 @@ class WC_Stripe_Webhook_Settings {
 
 	/**
 	 * Option name for the "reconfiguration skipped over a manual secret" notice flag.
+	 *
+	 * @since x.x.x
 	 *
 	 * @param string $mode 'live' or 'test'. Any other value is treated as 'test'.
 	 * @return string
@@ -98,6 +110,8 @@ class WC_Stripe_Webhook_Settings {
 
 	/**
 	 * Ensures the selected mode has a usable endpoint with the plugin configuration.
+	 *
+	 * @since x.x.x
 	 *
 	 * @param string $mode  Either 'live' or 'test'.
 	 * @param bool   $force Replace even a healthy endpoint, returning its new signing secret.
@@ -184,6 +198,8 @@ class WC_Stripe_Webhook_Settings {
 
 	/**
 	 * Cleans up endpoints before their account keys are replaced or removed.
+	 *
+	 * @since x.x.x
 	 *
 	 * @param array    $previous_settings Settings before replacing the account keys.
 	 * @param array    $settings          Candidate settings; the caller persists the result.
@@ -400,6 +416,8 @@ class WC_Stripe_Webhook_Settings {
 
 	/**
 	 * Determine if the webhook is enabled by checking with Stripe.
+	 *
+	 * @since x.x.x
 	 *
 	 * @param string|null $mode Mode to check, or null for the current mode.
 	 * @return bool

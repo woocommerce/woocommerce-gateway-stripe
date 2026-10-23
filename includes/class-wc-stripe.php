@@ -100,6 +100,8 @@ class WC_Stripe {
 	/**
 	 * Webhook settings.
 	 *
+	 * @since x.x.x
+	 *
 	 * @var WC_Stripe_Webhook_Settings
 	 */
 	public $webhook_settings;
