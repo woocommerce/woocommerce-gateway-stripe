@@ -9,15 +9,13 @@ const {
 	fillCreditCardDetails,
 	getPaymentElementFrame,
 	clickPlaceOrder,
+	getGuestBillingDetails,
 } = payments;
 
 test.beforeEach( async ( { page } ) => {
 	await emptyCart( page );
 	await setupCart( page );
-	await setupBlocksCheckout(
-		page,
-		config.get( 'addresses.customer.billing' )
-	);
+	await setupBlocksCheckout( page, getGuestBillingDetails() );
 } );
 
 const testCard = async ( page, cardKey ) => {

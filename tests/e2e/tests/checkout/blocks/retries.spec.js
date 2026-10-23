@@ -13,6 +13,7 @@ const {
 	getCartTotal,
 	waitForOrderReceivedPage,
 	waitForOrderReceivedPageAndConfirmExpectedTotal,
+	getGuestBillingDetails,
 } = payments;
 
 test.beforeAll( 'enable Cash App Pay', async ( { browser } ) => {
@@ -34,10 +35,7 @@ test.beforeAll( 'enable Cash App Pay', async ( { browser } ) => {
 test.beforeEach( async ( { page } ) => {
 	await emptyCart( page );
 	await setupCart( page );
-	await setupBlocksCheckout(
-		page,
-		config.get( 'addresses.customer.billing' )
-	);
+	await setupBlocksCheckout( page, getGuestBillingDetails() );
 } );
 /**
  * When retrying payments, we will reuse a compatible payment intent, if the order already has one.

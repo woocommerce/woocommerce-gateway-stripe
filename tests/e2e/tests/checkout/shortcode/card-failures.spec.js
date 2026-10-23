@@ -7,15 +7,13 @@ const {
 	setupCart,
 	setupShortcodeCheckout,
 	fillCreditCardDetailsShortcode,
+	getGuestBillingDetails,
 } = payments;
 
 test.beforeEach( async ( { page } ) => {
 	await emptyCart( page );
 	await setupCart( page );
-	await setupShortcodeCheckout(
-		page,
-		config.get( 'addresses.customer.billing' )
-	);
+	await setupShortcodeCheckout( page, getGuestBillingDetails() );
 } );
 
 const testCard = async ( page, cardKey ) => {

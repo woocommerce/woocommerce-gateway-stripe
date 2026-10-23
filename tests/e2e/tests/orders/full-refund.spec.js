@@ -11,6 +11,7 @@ const {
 	getCartTotal,
 	getOrderIdFromOrderReceivedUrl,
 	waitForOrderReceivedPageAndConfirmExpectedTotal,
+	getGuestBillingDetails,
 } = payments;
 
 test( 'merchant can issue a full refund @smoke', async ( { browser } ) => {
@@ -27,10 +28,7 @@ test( 'merchant can issue a full refund @smoke', async ( { browser } ) => {
 	await test.step( 'customer checkout with Stripe', async () => {
 		await emptyCart( userPage );
 		await setupCart( userPage );
-		await setupShortcodeCheckout(
-			userPage,
-			config.get( 'addresses.customer.billing' )
-		);
+		await setupShortcodeCheckout( userPage, getGuestBillingDetails() );
 
 		await fillCreditCardDetailsShortcode(
 			userPage,
