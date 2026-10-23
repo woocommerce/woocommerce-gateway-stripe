@@ -193,13 +193,6 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_PAYMENT_AWAITING_ACTION = '_stripe_payment_awaiting_action';
 
 	/**
-	 * Meta key for lock payment to prevent multiple simultaneous payment attempts.
-	 *
-	 * @var string
-	 */
-	private const META_STRIPE_LOCK_PAYMENT = '_stripe_lock_payment';
-
-	/**
 	 * Meta key for lock refund to prevent multiple simultaneous refund attempts.
 	 *
 	 * @var string
@@ -222,6 +215,8 @@ class WC_Stripe_Order_Helper {
 	 * @var null|WC_Stripe_Order_Helper
 	 */
 	private static ?WC_Stripe_Order_Helper $instance = null;
+
+	private static array $order_payment_locks = [];
 
 	/**
 	 * Gets the singleton instance of the class.
@@ -1391,17 +1386,26 @@ class WC_Stripe_Order_Helper {
 	 * @return bool            A flag that indicates whether the order is already locked.
 	 */
 	public function lock_order_payment( WC_Order $order ): bool {
-		if ( $this->is_order_payment_locked( $order ) ) {
-			// If the order is already locked, return true.
-			return true;
+		$lock_owner = $this->lock_order_payment_atomic( $order );
+		return null === $lock_owner; // $lock_owner is null if the order is already locked.
+	}
+
+	/**
+	 * Locks an order for payment intent processing.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Order $order The order that is being locked.
+	 * @return string|null The lock owner token if the order is locked, null otherwise.
+	 */
+	public function lock_order_payment_atomic( WC_Order $order ): ?string {
+		$lock_owner = WC_Stripe_Option_Lock::acquire( $this->get_order_payment_lock_name( $order ), $this->get_order_payment_lock_ttl() );
+		if ( null === $lock_owner ) {
+			return null;
 		}
 
-		$new_lock = ( time() + 5 * MINUTE_IN_SECONDS );
-
-		$order->update_meta_data( self::META_STRIPE_LOCK_PAYMENT, $new_lock );
-		$order->save_meta_data();
-
-		return false;
+		self::$order_payment_locks[ $order->get_id() ] = $lock_owner;
+		return $lock_owner;
 	}
 
 	/**
@@ -1412,8 +1416,41 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order $order The order that is being unlocked.
 	 */
 	public function unlock_order_payment( WC_Order $order ): void {
-		$order->delete_meta_data( self::META_STRIPE_LOCK_PAYMENT );
-		$order->save_meta_data();
+		$this->unlock_order_payment_atomic( $order, null );
+	}
+
+	/**
+	 * Unlocks an order for payment intent processing.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Order $order The order that is being unlocked.
+	 * @param string|null $lock_owner The lock owner token to unlock. If null, the lock owner will be retrieved from the in-memory values.
+	 * @return void
+	 */
+	public function unlock_order_payment_atomic( WC_Order $order, ?string $lock_owner = null ): void {
+		if ( null === $lock_owner ) {
+			$lock_owner = self::$order_payment_locks[ $order->get_id() ] ?? null;
+			if ( null === $lock_owner ) {
+				return;
+			}
+		}
+
+		WC_Stripe_Option_Lock::release( $this->get_order_payment_lock_name( $order ), $lock_owner );
+
+		unset( self::$order_payment_locks[ $order->get_id() ] );
+	}
+
+	/**
+	 * Indicate whether the specified lock owner token has expired.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param string|null $lock_owner The lock owner token.
+	 * @return bool|null Returns whether the token has expired or not. Null indicates we could not compute the expiration.
+	 */
+	public function is_order_payment_lock_expired( ?string $lock_owner = null ): ?bool {
+		return WC_Stripe_Option_Lock::is_lock_owner_expired( $lock_owner );
 	}
 
 	/**
@@ -1421,12 +1458,34 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * @since 10.0.0
 	 *
-	 * @param WC_Order $order The order to retrieve the lock for
-	 * @return mixed
+	 * @param WC_Order $order The order to retrieve the lock for.
+	 * @return string|null
 	 */
 	public function get_order_existing_payment_lock( WC_Order $order ) {
-		$order->read_meta_data( true );
-		return $order->get_meta( self::META_STRIPE_LOCK_PAYMENT, true );
+		return WC_Stripe_Option_Lock::get_lock_owner( $this->get_order_payment_lock_name( $order ) );
+	}
+
+	/**
+	 * Retrieves the TTL for the order payment lock.
+	 *
+	 * @since x.x.x
+	 *
+	 * @return int The TTL for the order payment lock.
+	 */
+	private function get_order_payment_lock_ttl(): int {
+		return 5 * MINUTE_IN_SECONDS;
+	}
+
+	/**
+	 * Gets the name of the order payment lock.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Order $order The order to lock.
+	 * @return string The name of the order payment lock.
+	 */
+	private function get_order_payment_lock_name( WC_Order $order ): string {
+		return 'wc_stripe_order_payment_lock_' . $order->get_id();
 	}
 
 	/**

@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * The lock row bypasses the options API: `add_option()` upserts behind a cached existence
  * check, so two concurrent callers can both succeed, and it offers no conditional update or
- * delete. Each holder stores `<timestamp>:<token>`. A lock abandoned for longer than its TTL
+ * delete. Each holder stores `<expiration_timestamp>:<token>:v2`. A lock abandoned for longer than its TTL
  * is reclaimed with a compare-and-swap on the exact stale value, so of two requests that read
  * the same expired lock only one wins, and a holder can never remove a lock it does not own.
  *
@@ -31,10 +31,10 @@ final class WC_Stripe_Option_Lock {
 	 * Matched by equality, so a look-alike option (e.g. `wc_stripe_agentic_sync_lock_backup`) is
 	 * never touched. Add any new lock with a single, fixed name here.
 	 *
-	 * @var string[]
+	 * @var array<string, string|null>
 	 */
 	private const CLEANUP_LOCK_NAMES = [
-		'wc_stripe_agentic_sync_lock',
+		'wc_stripe_agentic_sync_lock' => null,
 	];
 
 	/**
@@ -45,12 +45,13 @@ final class WC_Stripe_Option_Lock {
 	 * same name, so nothing else would ever remove those rows. Add the prefix of any new per-entity
 	 * lock here; the trailing separator keeps the match scoped to that lock family.
 	 *
-	 * @var string[]
+	 * @var array<string, string|null>
 	 */
 	private const CLEANUP_LOCK_PREFIXES = [
-		'wc_stripe_checkout_session_lock_',
-		'wc_stripe_user_customer_lock_',
-		'wc_stripe_checkout_charge_lock_',
+		'wc_stripe_checkout_charge_lock_'  => self::LOCK_FORMAT_V2,
+    'wc_stripe_checkout_session_lock_' => null,
+		'wc_stripe_order_payment_lock_'    => self::LOCK_FORMAT_V2,
+		'wc_stripe_user_customer_lock_'    => null,
 	];
 
 	/**
@@ -61,6 +62,15 @@ final class WC_Stripe_Option_Lock {
 	 * @var int
 	 */
 	private const CLEANUP_STALE_AFTER = DAY_IN_SECONDS;
+
+	private const CLEANUP_STALE_WINDOW_V2 = 5 * MINUTE_IN_SECONDS;
+
+	/**
+	 * The format of the lock owner token for version 2.
+	 *
+	 * @var string
+	 */
+	private const LOCK_FORMAT_V2 = 'v2';
 
 	/**
 	 * Maximum rows removed per cleanup run; a full batch queues another run.
@@ -79,7 +89,7 @@ final class WC_Stripe_Option_Lock {
 	public static function acquire( string $name, int $ttl ): ?string {
 		global $wpdb;
 
-		$owner = time() . ':' . wp_generate_uuid4();
+		$owner = ( time() + $ttl ) . ':' . wp_generate_uuid4() . ':' . self::LOCK_FORMAT_V2;
 
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$inserted = $wpdb->query(
@@ -94,13 +104,13 @@ final class WC_Stripe_Option_Lock {
 			return $owner;
 		}
 
-		$current = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", $name ) );
-		if ( ! is_string( $current ) ) {
+		$current_lock = self::get_lock_owner( $name );
+		if ( null === $current_lock ) {
 			return null;
 		}
 
-		$locked_at = (int) strtok( $current, ':' );
-		if ( $locked_at > 0 && ( time() - $locked_at ) < $ttl ) {
+		$is_expired = self::is_lock_owner_expired( $current_lock );
+		if ( true !== $is_expired ) {
 			return null;
 		}
 
@@ -109,7 +119,7 @@ final class WC_Stripe_Option_Lock {
 				"UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND option_value = %s",
 				$owner,
 				$name,
-				$current
+				$current_lock
 			)
 		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -156,6 +166,55 @@ final class WC_Stripe_Option_Lock {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->delete( $wpdb->options, [ 'option_name' => $name ] );
 		self::forget_cached_option( $name );
+	}
+
+	/**
+	 * Checks if a specific lock owner token has expired.
+	 *
+	 * @param string|null $owner The lock owner token.
+	 * @return bool|null True if the lock owner token has expired, false if it is still valid, or null otherwise.
+	 */
+	public static function is_lock_owner_expired( ?string $owner ): ?bool {
+		if ( null === $owner ) {
+			return null;
+		}
+
+		$owner_parts = explode( ':', $owner );
+		if ( self::LOCK_FORMAT_V2 !== ( $owner_parts[2] ?? null ) ) {
+			// Old lock format, can't tell what the expiration time is yet.
+			return null;
+		}
+
+		$expiry = $owner_parts[0] ?? false;
+		if ( false === $expiry || ! ctype_digit( $expiry ) ) {
+			return null;
+		}
+
+		$lock_expiration = (int) $expiry;
+		if ( $lock_expiration <= 0 ) {
+			return null;
+		}
+
+		return time() > $lock_expiration;
+	}
+
+	/**
+	 * Retrieves the current lock owner token for a named lock.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param string $name The name of the lock to retrieve the owner for.
+	 * @return string|null The current lock owner token, or null if no lock is held.
+	 */
+	public static function get_lock_owner( string $name ): ?string {
+		global $wpdb;
+
+		$current = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", $name ) );
+		if ( is_string( $current ) ) {
+			return $current;
+		}
+
+		return null;
 	}
 
 	/**
@@ -229,46 +288,128 @@ final class WC_Stripe_Option_Lock {
 	public static function delete_stale_locks( int $limit ): int {
 		global $wpdb;
 
-		$cutoff  = time() - self::CLEANUP_STALE_AFTER;
-		$deleted = 0;
+		$now       = time();
+		$v1_cutoff = $now - self::CLEANUP_STALE_AFTER;
+		$v2_cutoff = $now - self::CLEANUP_STALE_WINDOW_V2;
+		$deleted   = 0;
 
 		// Fixed names are matched by equality so a look-alike option is never touched.
-		foreach ( self::CLEANUP_LOCK_NAMES as $name ) {
+		foreach ( self::CLEANUP_LOCK_NAMES as $name => $initial_lock_format ) {
 			if ( $deleted >= $limit ) {
 				break;
 			}
 
-			// The value is `<timestamp>:<token>`, or a bare timestamp from an older deploy.
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$rows = $wpdb->get_results(
-				$wpdb->prepare(
-					"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name = %s AND CAST( SUBSTRING_INDEX( option_value, ':', 1 ) AS UNSIGNED ) < %d LIMIT %d",
-					$name,
-					$cutoff,
-					$limit - $deleted
-				)
-			);
+			$lock_formats = [];
 
-			$deleted += self::delete_lock_rows( is_array( $rows ) ? $rows : [] );
+			switch ( $initial_lock_format ) {
+				case self::LOCK_FORMAT_V2:
+					$lock_formats = [ self::LOCK_FORMAT_V2 ];
+					break;
+				case null:
+				default:
+						$lock_formats = [ '', self::LOCK_FORMAT_V2 ];
+					break;
+
+			}
+
+			if ( in_array( '', $lock_formats, true ) ) {
+				// The lock format is `<timestamp>:<token>` or `<timestamp>`.
+				// We use SUBSTRING_INDEX( option_value, ':', 2 ) = option_value to capture both of these cases.
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$rows = $wpdb->get_results(
+					$wpdb->prepare(
+						"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name = %s AND SUBSTRING_INDEX( option_value, ':', 2 ) = option_value AND CAST( SUBSTRING_INDEX( option_value, ':', 1 ) AS UNSIGNED ) < %d LIMIT %d",
+						$name,
+						$v1_cutoff,
+						$limit - $deleted
+					)
+				);
+
+				$deleted += self::delete_lock_rows( is_array( $rows ) ? $rows : [] );
+
+				if ( $deleted >= $limit ) {
+					break;
+				}
+			}
+
+			if ( in_array( self::LOCK_FORMAT_V2, $lock_formats, true ) ) {
+				// The lock format is `<timestamp>:<token>:v2`.
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$rows = $wpdb->get_results(
+					$wpdb->prepare(
+						"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name = %s AND SUBSTRING_INDEX( option_value, ':', -1 ) = %s AND CAST( SUBSTRING_INDEX( option_value, ':', 1 ) AS UNSIGNED ) < %d LIMIT %d",
+						$name,
+						self::LOCK_FORMAT_V2,
+						$v2_cutoff,
+						$limit - $deleted
+					)
+				);
+
+				$deleted += self::delete_lock_rows( is_array( $rows ) ? $rows : [] );
+
+				if ( $deleted >= $limit ) {
+					break;
+				}
+			}
 		}
 
 		// Per-entity locks are matched by prefix with a LIKE wildcard.
-		foreach ( self::CLEANUP_LOCK_PREFIXES as $prefix ) {
+		foreach ( self::CLEANUP_LOCK_PREFIXES as $prefix => $initial_lock_format ) {
 			if ( $deleted >= $limit ) {
 				break;
 			}
 
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			$rows = $wpdb->get_results(
-				$wpdb->prepare(
-					"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND CAST( SUBSTRING_INDEX( option_value, ':', 1 ) AS UNSIGNED ) < %d LIMIT %d",
-					$wpdb->esc_like( $prefix ) . '%',
-					$cutoff,
-					$limit - $deleted
-				)
-			);
+			$lock_formats = [];
 
-			$deleted += self::delete_lock_rows( is_array( $rows ) ? $rows : [] );
+			switch ( $initial_lock_format ) {
+				case self::LOCK_FORMAT_V2:
+					$lock_formats = [ self::LOCK_FORMAT_V2 ];
+					break;
+				case null:
+				default:
+					$lock_formats = [ '', self::LOCK_FORMAT_V2 ];
+					break;
+			}
+
+			if ( in_array( '', $lock_formats, true ) ) {
+				// The lock format is `<timestamp>:<token>` or `<timestamp>`.
+				// We use SUBSTRING_INDEX( option_value, ':', 2 ) = option_value to capture both of these cases.
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$rows = $wpdb->get_results(
+					$wpdb->prepare(
+						"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND SUBSTRING_INDEX( option_value, ':', 2 ) = option_value AND CAST( SUBSTRING_INDEX( option_value, ':', 1 ) AS UNSIGNED ) < %d LIMIT %d",
+						$wpdb->esc_like( $prefix ) . '%',
+						$v1_cutoff,
+						$limit - $deleted
+					)
+				);
+
+				$deleted += self::delete_lock_rows( is_array( $rows ) ? $rows : [] );
+
+				if ( $deleted >= $limit ) {
+					break;
+				}
+			}
+
+			if ( in_array( self::LOCK_FORMAT_V2, $lock_formats, true ) ) {
+				// The lock format is `<timestamp>:<token>:v2`.
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				$rows = $wpdb->get_results(
+					$wpdb->prepare(
+						"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND SUBSTRING_INDEX( option_value, ':', -1 ) = %s AND CAST( SUBSTRING_INDEX( option_value, ':', 1 ) AS UNSIGNED ) < %d LIMIT %d",
+						$wpdb->esc_like( $prefix ) . '%',
+						self::LOCK_FORMAT_V2,
+						$v2_cutoff,
+						$limit - $deleted
+					)
+				);
+
+				$deleted += self::delete_lock_rows( is_array( $rows ) ? $rows : [] );
+
+				if ( $deleted >= $limit ) {
+					break;
+				}
+			}
 		}
 
 		return $deleted;
