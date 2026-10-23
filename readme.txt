@@ -182,5 +182,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Record the payment for a released charge-upon-release pre-order paid from the pay page with 3D Secure, instead of leaving the order unpaid after the card was charged
 * Fix - Replace an expired Adaptive Pricing Checkout Session with a new one instead of retrying it, so returning shoppers are no longer blocked at checkout
 * Update - Unify express checkout button sizes across Apple Pay / Google Pay, Link, and Amazon Pay
+* Fix - Allow retrying a failed BLIK or Pre-Authorized Debit (ACSS) payment on the same order instead of failing every retry
+* Fix - Prevent a second charge when an interrupted checkout is resubmitted or two tabs submit the same cart at once
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
