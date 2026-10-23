@@ -127,4 +127,43 @@ class WC_REST_Stripe_Account_Controller_Test extends WP_UnitTestCase {
 		$this->assertEmpty( $data['account'] );
 		$this->assertEmpty( WC_Stripe_Database_Cache::get( WC_Stripe_Account::ACCOUNT_CACHE_KEY ) );
 	}
+
+	/**
+	 * @dataProvider provide_get_account_summary_statement_descriptor
+	 */
+	public function test_get_account_summary_statement_descriptor( string $local_descriptor, array $account, string $store_name, ?string $expected ) {
+		update_option( 'blogname', $store_name );
+		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account );
+
+		$mock_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+							->disableOriginalConstructor()
+							->onlyMethods( [ 'get_option' ] )
+							->getMock();
+		$mock_gateway->method( 'get_option' )->willReturnMap( [ [ 'statement_descriptor', null, $local_descriptor ] ] );
+		$controller = new WC_REST_Stripe_Account_Controller( $mock_gateway, $this->account );
+
+		$data = $controller->get_account_summary()->get_data();
+
+		$this->assertSame( $expected, $data['statement_descriptor'] );
+	}
+
+	/**
+	 * Data provider for {@see test_get_account_summary_statement_descriptor()}.
+	 *
+	 * @return array
+	 */
+	public function provide_get_account_summary_statement_descriptor(): array {
+		$account_with_descriptor    = [
+			'id'       => 'acct_123',
+			'settings' => [ 'payments' => [ 'statement_descriptor' => 'ACCOUNT DESCRIPTOR' ] ],
+		];
+		$account_without_descriptor = [ 'id' => 'acct_123' ];
+
+		return [
+			'local descriptor wins'          => [ 'LOCAL STORE', $account_with_descriptor, 'My Woo Store', 'LOCAL STORE' ],
+			'account descriptor next'        => [ '', $account_with_descriptor, 'My Woo Store', 'ACCOUNT DESCRIPTOR' ],
+			'store name when both are empty' => [ '', $account_without_descriptor, 'My Woo Store', 'My Woo Store' ],
+			'null when store name invalid'   => [ '', $account_without_descriptor, 'Shop', null ],
+		];
+	}
 }
