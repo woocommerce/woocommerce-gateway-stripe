@@ -403,6 +403,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * @dataProvider provide_saved_button_locations
 	 * @param array|string $locations Saved button placements.
+	 * @since x.x.x
 	 */
 	public function test_update_prb_location_settings_preserves_saved_selection( $locations ): void {
 		$this->remove_gateway_settings_update_filter();
@@ -430,6 +431,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @dataProvider provide_upe_payment_selections
 	 * @param array      $settings Existing payment-method settings.
 	 * @param string[]   $expected Expected enabled methods.
+	 * @since x.x.x
 	 */
 	public function test_enabling_upe_preserves_saved_payment_selection( array $settings, array $expected ): void {
 		$previous                                    = array_merge( $settings, [ 'upe_checkout_experience_enabled' => 'no' ] );

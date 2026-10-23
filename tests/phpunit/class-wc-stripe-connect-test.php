@@ -215,6 +215,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @param array  $preferences   Existing saved preferences.
 	 * @param string $previous_mode Mode with previously configured credentials.
 	 * @param array  $account_data  Account data, empty when credentials have expired.
+	 * @since x.x.x
 	 */
 	public function test_reconnect_preserves_existing_preferences( array $preferences, string $previous_mode = 'test', array $account_data = [ 'country' => 'US' ] ): void {
 		if ( ! empty( $account_data ) ) {
