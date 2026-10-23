@@ -159,8 +159,7 @@ class WC_Stripe_Checkout_Session_Manager {
 			throw new WC_Stripe_Exception( 'Checkout session ID is required.', self::get_runtime_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
-		// A rejected update is handed out of the lock, because telling a finished session from a bad
-		// request costs a second Stripe round trip and the lock TTL only covers one.
+		// Handle errors outside of the locked context, as the lock TTL is not long enough to cover multiple Stripe API requests.
 		$stripe_error = WC_Stripe_Checkout_Session_Context::with_mutation_lock(
 			$session_id,
 			function () use ( $session_id ): ?object {
