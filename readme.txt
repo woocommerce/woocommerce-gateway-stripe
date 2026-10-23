@@ -170,6 +170,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Complete deprecation of wc_stripe_force_save_source
 * Fix - Use the account API key for webhook status, cleanup, and manual setup
 * Dev - Remove expired lock rows from the options table once a day
+* Dev - Behind a feature flag, find Stripe events whose webhook delivery failed and process them in the background
 * Tweak - Minor improvement to error logging when saving new keys
 * Fix - Keep pending ACH orders open while Stripe is still waiting for bank verification
 * Fix - Complete express checkout payments on the Pay for Order page when the checkout phone field is required, and preserve the order's saved billing phone

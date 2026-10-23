@@ -181,6 +181,8 @@ class WC_Stripe {
 
 		if ( self::$instance === $this ) {
 			( new WC_Stripe_Webhook_Handler() )->register_hooks();
+			WC_Stripe_Event_Post_Store::get_instance()->init();
+			( new WC_Stripe_Event_Reconciler() )->init();
 		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-apple-pay-registration.php';
@@ -474,6 +476,8 @@ class WC_Stripe {
 
 		// Try to schedule the daily async cleanup of the Stripe database cache.
 		WC_Stripe_Database_Cache::maybe_schedule_daily_async_cleanup();
+
+		( new WC_Stripe_Event_Reconciler() )->maybe_schedule_reconciliation();
 
 		// Remove lock rows left behind by requests that died while holding a lock.
 		WC_Stripe_Option_Lock::maybe_schedule_daily_cleanup();
