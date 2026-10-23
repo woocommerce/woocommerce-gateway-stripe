@@ -849,10 +849,13 @@ class WC_Stripe_Payment_Method_Configurations {
 				]
 			);
 
-			self::update_payment_method_configuration(
+			$result = self::update_payment_method_configuration(
 				$enabled_payment_methods,
 				$available_payment_method_ids
 			);
+			if ( is_wp_error( $result ) ) {
+				return;
+			}
 		}
 
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();

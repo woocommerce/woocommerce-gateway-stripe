@@ -1179,7 +1179,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	}
 
 	/**
-	 * Usable PMC returned with pmc_enabled='no': flag flips back to 'yes' (recovery path).
+	 * A rejected migration must preserve local edits so a later attempt can still apply them.
 	 *
 	 * @dataProvider recovery_selections_provider
 	 */
@@ -1206,16 +1206,16 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		WC_Stripe_Payment_Method_Configurations::refresh_pmc_availability();
 
 		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
-		$this->assertSame( 'yes', $updated_settings['pmc_enabled'] );
+		$this->assertSame( $update_fails ? null : 'yes', $updated_settings['pmc_enabled'] ?? null );
 		$this->assertSame( $expected_methods, $updated_settings['upe_checkout_experience_accepted_payments'] );
-		$this->assertSame( 'yes', $updated_settings['express_checkout'] );
+		$this->assertSame( $update_fails ? 'no' : 'yes', $updated_settings['express_checkout'] );
 	}
 
 	public function recovery_selections_provider(): array {
 		return [
 			'updated PMC'      => [ [ 'card' ], [ 'card', 'klarna' ], false ],
 			'no local methods' => [ [], [ 'klarna' ], false ],
-			'rejected update'  => [ [ 'card' ], [ 'klarna' ], true ],
+			'rejected update'  => [ [ 'card' ], [ 'card' ], true ],
 		];
 	}
 
