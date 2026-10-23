@@ -259,6 +259,12 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 						$this->assertSame( $preferences[ $key ], $response->get_data()[ $key ], $key );
 					}
 				}
+				if ( array_key_exists( 'upe_checkout_experience_accepted_payments', $preferences ) ) {
+					$this->assertEqualsCanonicalizing(
+						$preferences['upe_checkout_experience_accepted_payments'],
+						$response->get_data()['enabled_payment_method_ids']
+					);
+				}
 				$this->assertSame( 'yes' === ( $preferences['optimized_checkout_element'] ?? '' ), $response->get_data()['is_oc_enabled'] );
 				$this->assertSame( 'yes' === ( $preferences['adaptive_pricing'] ?? '' ), $response->get_data()['is_ap_enabled'] );
 				$this->assertFalse( get_option( 'wc_stripe_optimized_checkout_default_on' ) );
