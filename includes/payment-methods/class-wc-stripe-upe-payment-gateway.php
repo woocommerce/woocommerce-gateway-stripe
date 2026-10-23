@@ -2748,11 +2748,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Reports whether the order is paid, read fresh from the data store.
-	 *
-	 * The settling webhook runs in a separate request, so its write is only visible after the
-	 * per-request order cache is cleared. is_paid() honours wc_get_is_paid_statuses(), so custom
-	 * paid statuses registered by the store count too.
+	 * Reports whether the order is paid, with each call reloading the order details from the database.
+	 * The full reload is needed to ensure that we detect changes from other requests.
+	 * The main is paid logic fully relies on `WC_Order->is_paid()`.
 	 *
 	 * @param int $order_id The order id.
 	 * @return bool
