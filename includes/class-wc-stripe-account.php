@@ -517,7 +517,9 @@ class WC_Stripe_Account {
 	 * @param mixed  $webhook_data   The previously stored webhook data. Expected to contain 'id' and 'secret'.
 	 * @param string $new_secret_key The secret key that is about to be saved. Empty when disconnecting.
 	 *
-	 * @return bool True if a webhook was decommissioned, false otherwise.
+	 * @return bool True when there is nothing of ours left to keep (the endpoint was deleted, is
+	 *              already gone, or belongs to another site), so the caller should clear the stored
+	 *              data. False when the cleanup could not be completed and the data must be kept.
 	 */
 	public function maybe_decommission_webhook( $webhook_data, $new_secret_key ): bool {
 		if ( ! $this->should_decommission_webhook( $webhook_data, $new_secret_key ) ) {
@@ -530,11 +532,33 @@ class WC_Stripe_Account {
 			WC_Stripe_API::set_secret_key( $webhook_data['secret'] );
 
 			// A staging clone inherits production's stored id and secret, so deleting by id alone
-			// would remove production's endpoint. Delete only an endpoint still pointing at this site.
-			$endpoint = $this->get_webhook_endpoint_by_id( $webhook_data['id'] );
-			if ( false === $endpoint || ! isset( $endpoint->url ) || ! WC_Stripe_Helper::is_webhook_url( $endpoint->url ) ) {
-				WC_Stripe_Logger::info( "Skipped decommissioning webhook {$webhook_data['id']}: its endpoint is missing or registered for another site." );
+			// would remove production's endpoint. Look the endpoint up first and only delete one
+			// that still points at this site. The outcomes are kept apart so a real lookup failure
+			// is not mistaken for a deliberate skip.
+			$endpoint = $this->stripe_api::retrieve( 'webhook_endpoints/' . $webhook_data['id'] );
+
+			// Confirmed gone: nothing of ours to delete, so report success and let the caller clear
+			// the stale data (including the old account's secret) instead of keeping it.
+			if ( is_object( $endpoint ) && 'resource_missing' === ( $endpoint->error->code ?? '' ) ) {
+				WC_Stripe_Logger::info( "Skipped decommissioning webhook {$webhook_data['id']}: the endpoint no longer exists." );
+				return true;
+			}
+
+			// Any other lookup failure (expired or invalid key, network error, throttled retrieve):
+			// we cannot confirm the endpoint, so keep the data and let a later change retry.
+			if ( ! is_object( $endpoint ) || isset( $endpoint->error ) || ! isset( $endpoint->url ) ) {
+				WC_Stripe_Logger::error(
+					"Failed to look up webhook {$webhook_data['id']} before decommissioning it.",
+					[ 'error_code' => is_string( $endpoint->error->code ?? null ) ? $endpoint->error->code : 'unknown' ]
+				);
 				return false;
+			}
+
+			// Registered for another site (a staging clone with production's settings): do not delete
+			// the other site's endpoint, but clear our stale copy so we stop retrying.
+			if ( ! WC_Stripe_Helper::is_webhook_url( $endpoint->url ) ) {
+				WC_Stripe_Logger::info( "Skipped decommissioning webhook {$webhook_data['id']}: its endpoint is registered for another site." );
+				return true;
 			}
 
 			$response = $this->stripe_api::request( [], 'webhook_endpoints/' . $webhook_data['id'], 'DELETE' );

@@ -1162,8 +1162,11 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	 */
 	public function test_maybe_decommission_webhook( $webhook_data, $new_secret_key, $endpoint_url, $expected_return, $expected_requests ) {
 		if ( null === $endpoint_url ) {
-			// A non-object retrieve response stands in for a missing endpoint.
+			// A non-object retrieve response stands in for a lookup failure.
 			WC_Helper_Stripe_Api::$retrieve_response = [];
+		} elseif ( 'resource_missing' === $endpoint_url ) {
+			// Stripe reports a deleted endpoint as a resource_missing error object.
+			WC_Helper_Stripe_Api::$retrieve_response = (object) [ 'error' => (object) [ 'code' => 'resource_missing' ] ];
 		} else {
 			$url                                     = 'self' === $endpoint_url ? WC_Stripe_Helper::get_webhook_url() : $endpoint_url;
 			WC_Helper_Stripe_Api::$retrieve_response = (object) [
@@ -1208,42 +1211,49 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		];
 
 		return [
-			'changed secret key decommissions this site\'s webhook'              => [
+			'changed secret key decommissions this site\'s webhook'                  => [
 				$webhook,
 				'rk_live_new',
 				'self',
 				true,
 				[ [ [], 'webhook_endpoints/wh_old', 'DELETE' ] ],
 			],
-			'removed secret key (disconnect) decommissions this site\'s webhook' => [
+			'removed secret key (disconnect) decommissions this site\'s webhook'     => [
 				$webhook,
 				'',
 				'self',
 				true,
 				[ [ [], 'webhook_endpoints/wh_old', 'DELETE' ] ],
 			],
-			'staging clone keeps an endpoint pointing at another site'           => [
+			'staging clone clears its copy without deleting the other site endpoint' => [
 				$webhook,
 				'',
 				'https://production.example.test/?wc-api=wc_stripe',
-				false,
+				true,
 				[],
 			],
-			'already missing endpoint is not deleted'                            => [
+			'already missing endpoint clears the stored webhook'                     => [
+				$webhook,
+				'',
+				'resource_missing',
+				true,
+				[],
+			],
+			'lookup failure keeps the webhook for a retry'                           => [
 				$webhook,
 				'',
 				null,
 				false,
 				[],
 			],
-			'unchanged secret key is left untouched'                             => [
+			'unchanged secret key is left untouched'                                 => [
 				$webhook,
 				'rk_live_old',
 				'self',
 				false,
 				[],
 			],
-			'missing/invalid webhook data is a no-op'                            => [
+			'missing/invalid webhook data is a no-op'                                => [
 				'',
 				'rk_live_new',
 				null,
@@ -1312,6 +1322,50 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 
 		$this->assertFalse( $result );
 		$this->assertEmpty( WC_Helper_Stripe_Api::$expected_request_call_params );
+	}
+
+	/**
+	 * A lookup failure (expired/invalid key, network error) is not a confirmed missing endpoint, so
+	 * it is logged at error level and the stored data is kept for a retry, with no delete attempted.
+	 */
+	public function test_maybe_decommission_webhook_keeps_data_on_lookup_failure() {
+		WC_Helper_Stripe_Api::$retrieve_response = (object) [ 'error' => (object) [ 'code' => 'api_key_expired' ] ];
+
+		$previous_logger = WC_Stripe_Logger::$logger;
+		$logger          = $this->createMock( WC_Logger::class );
+		$logger->expects( $this->once() )
+			->method( 'error' )
+			->with(
+				'Failed to look up webhook wh_old before decommissioning it.',
+				$this->callback(
+					static function ( $context ) {
+						return 'api_key_expired' === ( $context['error_code'] ?? null );
+					}
+				)
+			);
+		WC_Stripe_Logger::$logger = $logger;
+
+		try {
+			$result = $this->account->maybe_decommission_webhook(
+				[
+					'id'     => 'wh_old',
+					'secret' => 'rk_live_old',
+				],
+				'rk_live_new'
+			);
+		} finally {
+			WC_Stripe_Logger::$logger = $previous_logger;
+		}
+
+		$this->assertFalse( $result );
+
+		$deletes = array_filter(
+			WC_Helper_Stripe_Api::$recorded_requests,
+			static function ( $call ) {
+				return 'DELETE' === ( $call[2] ?? '' ) && 0 === strpos( (string) ( $call[1] ?? '' ), 'webhook_endpoints/' );
+			}
+		);
+		$this->assertEmpty( $deletes, 'No delete should be attempted when the lookup fails.' );
 	}
 
 	/**
