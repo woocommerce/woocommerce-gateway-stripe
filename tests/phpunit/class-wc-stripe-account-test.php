@@ -1176,6 +1176,13 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		}
 		WC_Helper_Stripe_Api::$expected_request_call_params = $expected_requests;
 
+		// When no DELETE is expected, make any request() call throw. The method swallows it and
+		// returns false, so a webhook that is wrongly deleted turns an expected true into false
+		// and fails the assertion below, without the helper having to record every request.
+		if ( empty( $expected_requests ) ) {
+			WC_Helper_Stripe_Api::$request_exception = new Exception( 'No webhook endpoint request should be made.' );
+		}
+
 		$result = $this->account->maybe_decommission_webhook( $webhook_data, $new_secret_key );
 
 		$this->assertSame( $expected_return, $result );
@@ -1183,19 +1190,6 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			WC_Helper_Stripe_Api::$expected_request_call_params,
 			'All expected webhook requests should have been made.'
 		);
-
-		// The method swallows the param-matching exception, so prove a skip by the absence of a DELETE.
-		$deletes = array_filter(
-			WC_Helper_Stripe_Api::$recorded_requests,
-			static function ( $call ) {
-				return 'DELETE' === ( $call[2] ?? '' ) && 0 === strpos( (string) ( $call[1] ?? '' ), 'webhook_endpoints/' );
-			}
-		);
-		if ( empty( $expected_requests ) ) {
-			$this->assertEmpty( $deletes, 'No webhook endpoint should be deleted.' );
-		} else {
-			$this->assertNotEmpty( $deletes, 'The webhook endpoint should be deleted.' );
-		}
 	}
 
 	/**
@@ -1330,6 +1324,9 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	 */
 	public function test_maybe_decommission_webhook_keeps_data_on_lookup_failure() {
 		WC_Helper_Stripe_Api::$retrieve_response = (object) [ 'error' => (object) [ 'code' => 'api_key_expired' ] ];
+		// A lookup failure must return before the DELETE. If it does not, request() throws and the
+		// method logs its own "Failed to decommission" error, breaking the single-error expectation below.
+		WC_Helper_Stripe_Api::$request_exception = new Exception( 'No DELETE should be attempted when the lookup fails.' );
 
 		$previous_logger = WC_Stripe_Logger::$logger;
 		$logger          = $this->createMock( WC_Logger::class );
@@ -1358,14 +1355,6 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		}
 
 		$this->assertFalse( $result );
-
-		$deletes = array_filter(
-			WC_Helper_Stripe_Api::$recorded_requests,
-			static function ( $call ) {
-				return 'DELETE' === ( $call[2] ?? '' ) && 0 === strpos( (string) ( $call[1] ?? '' ), 'webhook_endpoints/' );
-			}
-		);
-		$this->assertEmpty( $deletes, 'No delete should be attempted when the lookup fails.' );
 	}
 
 	/**
