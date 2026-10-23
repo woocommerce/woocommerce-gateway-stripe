@@ -134,6 +134,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * Keep the fallback selections current without overwriting edits awaiting migration.
 	 *
 	 * @since x.x.x
+	 * @version x.x.x
 	 * @param mixed $configuration Payment method configuration returned by Stripe.
 	 */
 	private static function sync_payment_methods_to_settings( $configuration ): void {
