@@ -203,6 +203,61 @@ class WC_Stripe_Webhook_Settings_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Another healthy endpoint at the same URL cannot validate the saved signing secret
+	 * when its own endpoint is missing. Only a manually edited secret prevents repair.
+	 *
+	 * @dataProvider provide_missing_stored_endpoint_cases
+	 */
+	public function test_missing_stored_endpoint_with_another_healthy_endpoint( $mode, $manual_secret ) {
+		$prefix       = 'test' === $mode ? 'test_' : '';
+		$other_prefix = 'test' === $mode ? '' : 'test_';
+		$settings     = WC_Stripe_Helper::get_stripe_settings();
+
+		$settings[ $prefix . 'webhook_data' ]['id'] = 'we_ghost';
+		if ( $manual_secret ) {
+			$settings[ $prefix . 'webhook_secret' ] = 'whsec_manual';
+		}
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		$this->listed_endpoints[0]['id'] = 'we_other';
+		$this->lookup_error              = [
+			'response' => [ 'code' => 404 ],
+			'body'     => wp_json_encode( [ 'error' => [ 'code' => 'resource_missing' ] ] ),
+		];
+
+		$result = $this->webhook_settings->maybe_autoconfigure_webhooks( $mode );
+		$stored = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame( 'we_ghost', $this->requests[0]['id'] );
+		foreach ( $this->requests as $request ) {
+			$this->assertSame( 'sk_' . $mode . '_current', $request['key'] );
+		}
+		$this->assertSame( $settings[ $other_prefix . 'webhook_data' ], $stored[ $other_prefix . 'webhook_data' ] );
+		$this->assertSame( $settings[ $other_prefix . 'webhook_secret' ], $stored[ $other_prefix . 'webhook_secret' ] );
+
+		if ( $manual_secret ) {
+			$this->assertNull( $result );
+			$this->assertSame( [ 'GET' ], array_column( $this->requests, 'method' ) );
+			$this->assertSame( $settings, $stored );
+			$this->assertSame( 'yes', get_option( WC_Stripe_Webhook_Settings::get_webhook_missing_notice_option( $mode ) ) );
+		} else {
+			$this->assertSame( 'we_new', $result->id );
+			$this->assertSame( [ 'GET', 'POST', 'GET' ], array_column( $this->requests, 'method' ) );
+			$this->assertSame( 'we_new', $stored[ $prefix . 'webhook_data' ]['id'] );
+			$this->assertSame( 'whsec_new', $stored[ $prefix . 'webhook_secret' ] );
+			$this->assertSame( 'whsec_new', $stored[ $prefix . 'webhook_data' ]['signing_secret'] );
+			$this->assertFalse( get_option( WC_Stripe_Webhook_Settings::get_webhook_missing_notice_option( $mode ) ) );
+		}
+	}
+
+	public function provide_missing_stored_endpoint_cases() {
+		return [
+			'live automatic secret' => [ 'live', false ],
+			'test automatic secret' => [ 'test', false ],
+			'live manual secret'    => [ 'live', true ],
+			'test manual secret'    => [ 'test', true ],
+		];
+	}
+
+	/**
 	 * Automatic setup must preserve manual secrets; the explicit Configure action may replace them.
 	 *
 	 * @dataProvider provide_manual_configurations
