@@ -3036,7 +3036,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		// The settlement webhook holds the lock, so lock_order_payment() reports it as locked.
 		$order_helper = $this->createPartialMock( WC_Stripe_Order_Helper::class, [ 'lock_order_payment', 'unlock_order_payment' ] );
 		$order_helper->method( 'lock_order_payment' )->willReturn( true );
-		$order_helper->method( 'unlock_order_payment' );
 		WC_Stripe_Order_Helper::set_instance( $order_helper );
 
 		// No Stripe API call runs on the locked branch.
@@ -3071,7 +3070,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		// The lock is held by something else, so lock_order_payment() reports it as locked.
 		$order_helper = $this->createPartialMock( WC_Stripe_Order_Helper::class, [ 'lock_order_payment', 'unlock_order_payment' ] );
 		$order_helper->method( 'lock_order_payment' )->willReturn( true );
-		$order_helper->method( 'unlock_order_payment' );
 		WC_Stripe_Order_Helper::set_instance( $order_helper );
 
 		// Time out immediately: the order never reaches a paid status.

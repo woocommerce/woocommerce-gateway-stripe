@@ -2609,7 +2609,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$locked = $order_helper->lock_order_payment( $order );
 		if ( $locked ) {
-			WC_Stripe_Logger::info( "Skip processing checkout session redirect for order $order_id, order payment is already being processed (locked)" );
+			WC_Stripe_Logger::info( "Order $order_id payment is locked by webhook processing; waiting for settlement before redirecting." );
 
 			// We assume the order payment lock is held by the webhook processing.
 			// Wait for processing to complete, so we can redirect without showing an error.
