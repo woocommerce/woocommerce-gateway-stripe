@@ -396,7 +396,7 @@ class WC_Stripe_Webhook_Settings_Test extends WP_UnitTestCase {
 		$this->assertSame( $previous, WC_Stripe_Helper::get_stripe_settings() );
 		$this->assertSame( [ 'DELETE' ], array_column( $this->requests, 'method' ) );
 		$this->assertSame( 'sk_test_current', $this->requests[0]['key'] );
-		$this->assertSame( 'sk_caller', WC_Stripe_API::get_secret_key() );
+		$this->assertSame( 'sk_test_current', WC_Stripe_API::get_secret_key() );
 	}
 
 	public function provide_decommission_responses() {

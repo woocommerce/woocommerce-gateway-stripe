@@ -383,7 +383,6 @@ class WC_Stripe_Webhook_Settings {
 			return false;
 		}
 
-		$previous_secret = WC_Stripe_API::get_secret_key();
 		try {
 			// Authenticate with the secret key that created the webhook so the deletion
 			// hits the originally connected account.
@@ -408,7 +407,8 @@ class WC_Stripe_Webhook_Settings {
 			);
 			return false;
 		} finally {
-			WC_Stripe_API::set_secret_key( $previous_secret );
+			// Reset the key so later calls re-resolve it from the freshly saved settings.
+			WC_Stripe_API::set_secret_key( '' );
 		}
 
 		return true;
