@@ -62,4 +62,20 @@ class WC_Stripe_Email_Admin_Failed_Refund_Test extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'Please review this failed refund.', $email->get_content_plain() );
 	}
+
+	/**
+	 * With no saved additional content, the email must not fall back to WC_Email_Failed_Order's
+	 * merchant-facing "failed payments" default, which is wrong for a refund-failed email.
+	 *
+	 * @return void
+	 */
+	public function test_does_not_inherit_failed_order_default_additional_content() {
+		$order         = WC_Helper_Order::create_order();
+		$email         = new WC_Stripe_Email_Admin_Failed_Refund();
+		$email->object = $order;
+
+		$this->assertSame( '', $email->get_default_additional_content() );
+		$this->assertStringNotContainsString( 'troubleshooting failed payments', $email->get_content_html() );
+		$this->assertStringNotContainsString( 'troubleshooting failed payments', $email->get_content_plain() );
+	}
 }
