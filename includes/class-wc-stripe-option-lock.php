@@ -51,6 +51,7 @@ final class WC_Stripe_Option_Lock {
 	private const CLEANUP_LOCK_PREFIXES = [
 		'wc_stripe_checkout_session_lock_',
 		'wc_stripe_user_customer_lock_',
+		'wc_stripe_checkout_charge_lock_',
 	];
 
 	/**
