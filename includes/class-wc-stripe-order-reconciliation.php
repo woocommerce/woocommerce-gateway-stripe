@@ -801,7 +801,16 @@ class WC_Stripe_Order_Reconciliation {
 		}
 
 		$order_id = is_scalar( $order ) ? absint( $order ) : 0;
-		$order    = $order_id ? wc_get_order( $order_id ) : false;
+		if ( ! $order_id ) {
+			return null;
+		}
+
+		// Bypass the request cache: an unlocked request may have cancelled or paid the order meanwhile.
+		clean_post_cache( $order_id );
+		if ( class_exists( \Automattic\WooCommerce\Caches\OrderCache::class ) ) {
+			wc_get_container()->get( \Automattic\WooCommerce\Caches\OrderCache::class )->remove( $order_id );
+		}
+		$order = wc_get_order( $order_id );
 		return $order instanceof WC_Order ? $order : null;
 	}
 

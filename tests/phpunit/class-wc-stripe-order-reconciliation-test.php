@@ -378,6 +378,40 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		$this->assertSame( 'pending', wc_get_order( $order->get_id() )->get_status() );
 	}
 
+	public function test_order_cancelled_by_another_request_during_the_check_is_not_settled(): void {
+		$order             = $this->create_pending_stripe_order( false );
+		$intent            = $this->successful_intent( self::fixture_charge() );
+		$this->http_filter = static function ( $preempt, $args, $url ) use ( $order, $intent ) {
+			if ( false === strpos( $url, '/payment_intents/pi_recovery' ) ) {
+				return $preempt;
+			}
+
+			// Another request cancels the order, so this request's order caches still hold it as pending.
+			global $wpdb;
+			if ( \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled() ) {
+				$wpdb->update( $wpdb->prefix . 'wc_orders', [ 'status' => 'wc-cancelled' ], [ 'id' => $order->get_id() ] );
+			} else {
+				$wpdb->update( $wpdb->posts, [ 'post_status' => 'wc-cancelled' ], [ 'ID' => $order->get_id() ] );
+			}
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode( $intent ),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+		add_filter( 'pre_http_request', $this->http_filter, 10, 3 );
+		$this->webhook_handler->expects( $this->never() )->method( 'process_reconciled_payment' );
+
+		$this->reconciliation->reconcile_order_payment( $order->get_id() );
+
+		$this->assertSame( [], $this->scheduled_checks( $order->get_id() ) );
+	}
+
 	public function test_recovers_session_payment_through_the_real_settlement_flow_only_once(): void {
 		$order = $this->create_pending_stripe_order( true );
 		$this->use_real_settlement();
@@ -658,10 +692,11 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		$this->assertSame( 'on-hold', $mismatch_order->get_status() );
 		$this->assertFalse( $mismatch_order->is_paid() );
 		$this->assertSame( '', $mismatch_order->get_transaction_id() );
-		$expected_amount = WC_Stripe_Helper::get_stripe_amount( (float) $mismatch_order->get_total(), $mismatch_order->get_currency() );
-		$note_text       = $this->note_text( $mismatch_order );
+		$order_currency = strtoupper( $mismatch_order->get_currency() );
+		$note_text      = $this->note_text( $mismatch_order );
 		$this->assertStringContainsString( 'Stripe payment pi_recovery was found, but it does not match this order', $note_text );
-		$this->assertStringContainsString( 'the order expects ' . $expected_amount . ' ' . strtoupper( $mismatch_order->get_currency() ), $note_text );
+		$this->assertStringContainsString( 'Stripe has ' . ( 'amount' === $mismatch ? $order_currency . ' 0.01' : 'EUR 12.34' ), $note_text );
+		$this->assertStringContainsString( 'the order expects ' . $order_currency . ' 12.34', $note_text );
 		$this->assertStringNotContainsString( 'because no webhook did', $note_text );
 	}
 

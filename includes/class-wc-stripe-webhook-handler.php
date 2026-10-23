@@ -2681,11 +2681,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			// The transaction ID stays empty: the payment doesn't match the order, so it isn't the order's payment yet.
 			$order->add_order_note(
 				sprintf(
-					/* translators: 1: PaymentIntent ID, 2: amount Stripe charged, 3: amount the order expects. Amounts are in the smallest currency unit, followed by the currency code. */
+					/* translators: 1: PaymentIntent ID, 2: amount Stripe charged, 3: amount the order expects. Amounts follow their currency code, for example "USD 12.34". */
 					__( 'Stripe payment %1$s was found, but it does not match this order: Stripe has %2$s, the order expects %3$s. The order was placed on hold for review.', 'woocommerce-gateway-stripe' ),
 					$intent_id,
-					$charge_amount . ' ' . strtoupper( $charge_currency ),
-					$order_amount . ' ' . strtoupper( $order_currency )
+					strtoupper( $charge_currency ) . ' ' . WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( $charge_amount, $charge_currency ),
+					strtoupper( $order_currency ) . ' ' . WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( $order_amount, $order_currency )
 				)
 			);
 			if ( ! $order->has_status( OrderStatus::ON_HOLD ) ) {
