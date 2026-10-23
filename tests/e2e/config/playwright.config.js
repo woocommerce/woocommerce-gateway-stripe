@@ -12,8 +12,8 @@ dotenv.config( {
 const { BASE_URL, CI, DOCKER, E2E_MAX_FAILURES, TIMEOUT } = process.env;
 
 const config = {
-	globalSetup: DOCKER ? './global-setup-docker' : './global-setup',
-	globalTeardown: './global-teardown',
+	globalSetup: DOCKER ? './global-setup-docker.js' : './global-setup.js',
+	globalTeardown: './global-teardown.js',
 
 	testDir: '../tests',
 

@@ -47,7 +47,7 @@ class WC_Stripe_Agentic_Commerce_Product_Visibility_Test extends WP_UnitTestCase
 		remove_all_actions( 'added_post_meta' );
 		remove_all_actions( 'updated_post_meta' );
 		remove_all_actions( 'deleted_post_meta' );
-		remove_all_filters( 'woocommerce_agentic_commerce_should_sync_product' );
+		remove_all_filters( 'wc_stripe_agentic_commerce_should_sync_product' );
 		remove_all_actions( 'woocommerce_update_product_variation' );
 		remove_all_actions( 'woocommerce_new_product_variation' );
 		delete_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION );
@@ -243,7 +243,7 @@ class WC_Stripe_Agentic_Commerce_Product_Visibility_Test extends WP_UnitTestCase
 		// Make eligibility depend on variation-level data, since the built-in
 		// predicates (password, catalog visibility) live on the parent.
 		add_filter(
-			'woocommerce_agentic_commerce_should_sync_product',
+			'wc_stripe_agentic_commerce_should_sync_product',
 			function ( $should_sync, $product ) use ( $variation_id ) {
 				if ( $product->get_id() === $variation_id && (float) $product->get_regular_price() > 100 ) {
 					return false;

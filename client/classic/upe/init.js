@@ -223,6 +223,16 @@ jQuery( function ( $ ) {
 		}
 	};
 
+	// WooCommerce passes the full checkout result to this event just before it sets the confirm hash.
+	// It uses triggerHandler(), which does not bubble, so the handler must be on the form itself.
+	let confirmReturnUrl = null;
+	$( 'form.checkout' ).on(
+		'checkout_place_order_success',
+		( event, result ) => {
+			confirmReturnUrl = result?.stripe_confirm_return_url ?? null;
+		}
+	);
+
 	/**
 	 * Displays the authentication modal to the user if needed.
 	 */
@@ -234,8 +244,10 @@ jQuery( function ( $ ) {
 		);
 		const confirmation = api.confirmIntent(
 			window.location.href,
-			savePaymentMethod ? paymentMethodId : null
+			savePaymentMethod ? paymentMethodId : null,
+			confirmReturnUrl
 		);
+		confirmReturnUrl = null;
 
 		// Boolean `true` means that there is nothing to confirm.
 		if ( confirmation === true ) {

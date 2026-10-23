@@ -191,6 +191,316 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Stripe expires a session 24 hours after creation while the record can outlive it, so an
+	 * unchanged cart must get a new session once Stripe's expiry has passed, and keep reusing one
+	 * that is still live. A record stored before expires_at was tracked is never assumed expired,
+	 * however old its context is.
+	 *
+	 * @dataProvider provide_synchronize_expiry_data
+	 *
+	 * @param int|null $expires_at_offset     Seconds from now that the first session expires at, or null when Stripe's response omits it.
+	 * @param int      $expected_create_count Number of sessions created across both synchronizations.
+	 * @param int      $context_age           Seconds to backdate the first session's context creation by.
+	 */
+	public function test_synchronize_recreates_session_only_once_it_has_expired( ?int $expires_at_offset, int $expected_create_count, int $context_age = 0 ): void {
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 10 ] );
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$create_count = 0;
+		$mock_request = static function ( $return_value, $parsed_args, $url ) use ( &$create_count, $expires_at_offset ) {
+			if ( ! str_starts_with( $url, 'https://api.stripe.com/v1/checkout/sessions' ) ) {
+				return $return_value;
+			}
+
+			if ( 'https://api.stripe.com/v1/checkout/sessions' !== $url ) {
+				// Only creates are expected; anything else (e.g. an update) fails the assertions below.
+				return new WP_Error( 'unexpected_request', "Unexpected Stripe request: $url" );
+			}
+
+			++$create_count;
+			$body = [
+				'id'            => "cs_test_expiry_{$create_count}",
+				'client_secret' => "cs_test_expiry_secret_{$create_count}",
+			];
+			if ( null !== $expires_at_offset ) {
+				$body['expires_at'] = 1 === $create_count ? time() + $expires_at_offset : time() + DAY_IN_SECONDS;
+			}
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode( (object) $body ),
+			];
+		};
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+
+		try {
+			$manager = new WC_Stripe_Checkout_Session_Manager();
+			$manager->synchronize();
+
+			if ( $context_age > 0 ) {
+				$context               = WC_Stripe_Checkout_Session_Context::get_context( 'cs_test_expiry_1' );
+				$context['created_at'] = time() - $context_age;
+				WC_Stripe_Checkout_Session_Context::set_context( 'cs_test_expiry_1', $context );
+			}
+
+			$second = $manager->synchronize();
+		} finally {
+			remove_filter( 'pre_http_request', $mock_request, 10 );
+			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_expiry_1' );
+			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_expiry_2' );
+		}
+
+		$this->assertSame( $expected_create_count, $create_count );
+		$this->assertSame( "cs_test_expiry_{$expected_create_count}", $second['session_id'] );
+		$this->assertSame( 'success', $second['status'] );
+	}
+
+	/**
+	 * Data provider for test_synchronize_recreates_session_only_once_it_has_expired().
+	 *
+	 * @return array
+	 */
+	public function provide_synchronize_expiry_data(): array {
+		return [
+			'expired session is recreated'        => [ -1, 2 ],
+			'live session is reused'              => [ HOUR_IN_SECONDS, 1 ],
+			'record without expires_at is reused' => [ null, 1, DAY_IN_SECONDS + 1 ],
+		];
+	}
+
+	/**
+	 * Mock Stripe Checkout Sessions: creates hand out sequential IDs, updates fail with the given
+	 * error, and a lookup answers with the given status.
+	 *
+	 * @param array       $update_error   Stripe error body returned for an update.
+	 * @param string|null $lookup         Status a lookup reports, 'missing' for a 404, or null for a failed request.
+	 * @param array       $requested_urls Receives every Checkout Session request as "METHOD url", in order.
+	 * @return callable The pre_http_request filter callback.
+	 */
+	private function mock_finished_session_stripe( array $update_error, ?string $lookup, array &$requested_urls ): callable {
+		$create_count = 0;
+
+		return static function ( $return_value, $parsed_args, $url ) use ( $update_error, $lookup, &$requested_urls, &$create_count ) {
+			if ( ! str_starts_with( $url, 'https://api.stripe.com/v1/checkout/sessions' ) ) {
+				return $return_value;
+			}
+
+			$method           = strtoupper( (string) ( $parsed_args['method'] ?? 'GET' ) );
+			$requested_urls[] = "$method $url";
+
+			if ( 'GET' === $method ) {
+				if ( null === $lookup ) {
+					return new WP_Error( 'http_request_failed', 'cURL error 28: Operation timed out' );
+				}
+
+				$is_missing = 'missing' === $lookup;
+				$body       = $is_missing
+					? [
+						'error' => [
+							'type'    => 'invalid_request_error',
+							'code'    => 'resource_missing',
+							'message' => 'No such checkout.session',
+						],
+					]
+					: [
+						'id'     => 'cs_test_finished_1',
+						'status' => $lookup,
+					];
+
+				return [
+					'response' => [ 'code' => $is_missing ? 404 : 200 ],
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode( $body ),
+				];
+			}
+
+			if ( 'https://api.stripe.com/v1/checkout/sessions' !== $url ) {
+				return [
+					'response' => [ 'code' => 400 ],
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode( [ 'error' => $update_error ] ),
+				];
+			}
+
+			++$create_count;
+
+			return [
+				'response' => [ 'code' => 200 ],
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					[
+						'id'            => "cs_test_finished_{$create_count}",
+						'client_secret' => "cs_test_finished_secret_{$create_count}",
+						'expires_at'    => time() + DAY_IN_SECONDS,
+					]
+				),
+			];
+		};
+	}
+
+	/**
+	 * Stripe rejects updates to a finished session with the same generic error as a bad parameter,
+	 * so a rejected update recreates the session only when a lookup says it is finished; any other
+	 * answer keeps the session and surfaces the error as before.
+	 *
+	 * @dataProvider provide_rejected_update_data
+	 *
+	 * @param string      $error_type      Stripe error type of the rejected update.
+	 * @param string|null $lookup          What a lookup of the session answers.
+	 * @param bool        $expect_lookup   Whether the session should be looked up.
+	 * @param bool        $expect_recreate Whether a new session should be created.
+	 */
+	public function test_rejected_update_recreates_session_only_when_stripe_reports_it_finished( string $error_type, ?string $lookup, bool $expect_lookup, bool $expect_recreate ): void {
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 10 ] );
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$requested_urls = [];
+		$mock_request   = $this->mock_finished_session_stripe(
+			[
+				'type'    => $error_type,
+				'message' => 'This Checkout Session is no longer active and cannot be updated.',
+			],
+			$lookup,
+			$requested_urls
+		);
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+
+		$result    = null;
+		$exception = null;
+		try {
+			$manager = new WC_Stripe_Checkout_Session_Manager();
+			$manager->synchronize();
+
+			try {
+				$result = $manager->update_session( 'cs_test_finished_1' );
+			} catch ( WC_Stripe_Exception $e ) {
+				$exception = $e;
+			}
+		} finally {
+			remove_filter( 'pre_http_request', $mock_request, 10 );
+			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_finished_1' );
+			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_finished_2' );
+		}
+
+		$expected_urls = [
+			'POST https://api.stripe.com/v1/checkout/sessions',
+			'POST https://api.stripe.com/v1/checkout/sessions/cs_test_finished_1',
+		];
+		if ( $expect_lookup ) {
+			$expected_urls[] = 'GET https://api.stripe.com/v1/checkout/sessions/cs_test_finished_1';
+		}
+		if ( $expect_recreate ) {
+			$expected_urls[] = 'POST https://api.stripe.com/v1/checkout/sessions';
+		}
+		$this->assertSame( $expected_urls, $requested_urls );
+
+		if ( $expect_recreate ) {
+			$this->assertNull( $exception );
+			$this->assertSame( 'cs_test_finished_2', $result['session_id'] );
+			$this->assertSame( 'success', $result['status'] );
+		} else {
+			$this->assertInstanceOf( WC_Stripe_Exception::class, $exception );
+			$this->assertSame( 'cs_test_finished_1', WC()->session->get( 'wc_stripe_checkout_session' )['session_id'] );
+		}
+	}
+
+	/**
+	 * Data provider for test_rejected_update_recreates_session_only_when_stripe_reports_it_finished().
+	 *
+	 * @return array
+	 */
+	public function provide_rejected_update_data(): array {
+		return [
+			'expired session is recreated'       => [ 'invalid_request_error', 'expired', true, true ],
+			'completed session is recreated'     => [ 'invalid_request_error', 'complete', true, true ],
+			'missing session is recreated'       => [ 'invalid_request_error', 'missing', true, true ],
+			'open session keeps the error'       => [ 'invalid_request_error', 'open', true, false ],
+			'failed lookup keeps the error'      => [ 'invalid_request_error', null, true, false ],
+			'non-request error skips the lookup' => [ 'api_error', 'expired', false, false ],
+		];
+	}
+
+	/**
+	 * We must create checkout sessions using the merchant's Payment Method Configuration ID.
+	 *
+	 * @param string|null $configuration_id The cached PMC ID, or null when PMC is disabled or unavailable.
+	 *
+	 * @dataProvider provide_create_session_payment_method_configuration_data
+	 */
+	public function test_create_session_with_payment_method_configuration( ?string $configuration_id ): void {
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 12.34 ] );
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+		if ( null === $configuration_id ) {
+			PMC_Test_Helper::disable_pmc();
+		} else {
+			PMC_Test_Helper::enable_pmc( true );
+			PMC_Test_Helper::cache_mocked_configuration( $configuration_id );
+		}
+
+		$captured_create = null;
+		$capture_body    = static function ( $request, $api ) use ( &$captured_create ) {
+			if ( 'checkout/sessions' === $api ) {
+				$captured_create = $request;
+			}
+			return $request;
+		};
+		$mock_response   = static function ( $return_value, $parsed_args, $url ) {
+			if ( 'https://api.stripe.com/v1/checkout/sessions' !== $url ) {
+				return $return_value;
+			}
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					(object) [
+						'id'            => 'cs_test_pmc',
+						'client_secret' => 'cs_test_pmc_secret',
+					]
+				),
+			];
+		};
+		add_filter( 'wc_stripe_request_body', $capture_body, 10, 2 );
+		add_filter( 'pre_http_request', $mock_response, 10, 3 );
+
+		try {
+			( new WC_Stripe_Checkout_Session_Manager() )->create_session();
+		} finally {
+			remove_filter( 'wc_stripe_request_body', $capture_body, 10 );
+			remove_filter( 'pre_http_request', $mock_response, 10 );
+			WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+			$product->delete( true );
+			WC()->cart->empty_cart();
+		}
+
+		$this->assertIsArray( $captured_create );
+		if ( null === $configuration_id ) {
+			$this->assertArrayNotHasKey( 'payment_method_configuration', $captured_create );
+		} else {
+			$this->assertArrayHasKey( 'payment_method_configuration', $captured_create );
+			$this->assertSame( $configuration_id, $captured_create['payment_method_configuration'] );
+		}
+	}
+
+	/**
+	 * Data provider for {@see test_create_session_with_payment_method_configuration()}.
+	 *
+	 * @return array
+	 */
+	public function provide_create_session_payment_method_configuration_data(): array {
+		return [
+			'configuration available'   => [ 'pmc_test_123' ],
+			'configuration unavailable' => [ null ],
+		];
+	}
+
+	/**
 	 * A later native cart total updates the server-owned session and increments its embedded revision.
 	 */
 	public function test_synchronize_updates_existing_session_after_cart_total_changes(): void {

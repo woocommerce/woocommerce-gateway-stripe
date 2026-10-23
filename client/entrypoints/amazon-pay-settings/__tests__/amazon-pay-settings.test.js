@@ -4,7 +4,7 @@ import AmazonPaySettingsSection from '../amazon-pay-settings-section';
 import {
 	useAmazonPayEnabledSettings,
 	useAmazonPayLocations,
-	useAmazonPayButtonSize,
+	useExpressCheckoutButtonSize,
 } from 'wcstripe/data';
 
 const realPathToA11yModule =
@@ -17,7 +17,7 @@ jest.mock( realPathToA11yModule, () => ( {
 jest.mock( 'wcstripe/data', () => ( {
 	useAmazonPayEnabledSettings: jest.fn(),
 	useAmazonPayLocations: jest.fn(),
-	useAmazonPayButtonSize: jest.fn().mockReturnValue( [ 'default' ] ),
+	useExpressCheckoutButtonSize: jest.fn(),
 } ) );
 jest.mock( 'wcstripe/data/account/hooks', () => ( {
 	useAccount: jest.fn().mockReturnValue( { data: {} } ),
@@ -39,6 +39,11 @@ describe( 'AmazonPaySettingsSection', () => {
 			jest.fn(),
 		] );
 
+		useExpressCheckoutButtonSize.mockReturnValue( [
+			'default',
+			jest.fn(),
+		] );
+
 		global.wc_stripe_amazon_pay_settings_params = {
 			...globalValues,
 			key: 'pk_test_123',
@@ -51,38 +56,39 @@ describe( 'AmazonPaySettingsSection', () => {
 		global.wc_stripe_amazon_pay_settings_params = globalValues;
 	} );
 
-	it( 'renders settings with defaults', () => {
+	it( 'renders the locations section, the shared size control, and the preview', () => {
 		render( <AmazonPaySettingsSection /> );
 
-		// confirm settings headings.
+		// Location checkboxes render.
 		expect(
-			screen.queryByRole( 'heading', { name: 'Appearance' } )
+			screen.getByRole( 'checkbox', { name: /checkout/i } )
 		).toBeInTheDocument();
+		expect( screen.getByText( 'Preview' ) ).toBeInTheDocument();
 
-		// confirm radio button groups displayed.
-		const [ sizeRadio ] = screen.queryAllByRole( 'radio' );
-		expect( sizeRadio ).toBeInTheDocument();
-
-		// confirm default values.
-		expect( screen.getByLabelText( 'Default (48 px)' ) ).toBeChecked();
+		// The shared button size can be edited from this page too.
+		expect(
+			screen.getByRole( 'heading', { name: 'Appearance' } )
+		).toBeInTheDocument();
+		expect( screen.getByText( /Small/ ) ).toBeInTheDocument();
+		expect(
+			screen.getByText(
+				/This size applies to all express checkout buttons/i
+			)
+		).toBeInTheDocument();
 	} );
 
-	it( 'triggers the hooks when the settings are being interacted with', async () => {
-		const setButtonSizeMock = jest.fn();
-
-		useAmazonPayButtonSize.mockReturnValue( [
-			'default',
-			setButtonSizeMock,
-		] );
-		useAmazonPayEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
+	it( 'updates the shared button size when a size is selected', async () => {
+		const setSize = jest.fn();
+		useExpressCheckoutButtonSize.mockReturnValue( [ 'default', setSize ] );
 
 		render( <AmazonPaySettingsSection /> );
 
-		expect( setButtonSizeMock ).not.toHaveBeenCalled();
+		// Not called until the click, so the click is what triggers the update.
+		expect( setSize ).not.toHaveBeenCalled();
 
-		await userEvent.click( screen.getByLabelText( 'Large (56 px)' ) );
+		await userEvent.click( screen.getByLabelText( /Large/ ) );
 
-		expect( setButtonSizeMock ).toHaveBeenCalledWith( 'large' );
+		expect( setSize ).toHaveBeenCalledWith( 'large' );
 	} );
 
 	it( 'shows the appearance override notice when an override is in effect', () => {

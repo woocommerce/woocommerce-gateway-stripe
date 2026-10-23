@@ -146,20 +146,41 @@ jobs:
           MILESTONE_RE="${MILESTONE//./\\.}"
 
           check_file() {
-            local file="$1" header_re="$2"
-            local added block
+            local file="$1" header_re="$2" section_re="${3:-}"
+            local added content block section entry
 
             added="$(git diff "${TARGET_SHA}" "${PR_SHA}" -- "$file" | grep '^+\*' | sed 's/^+//' || true)"
             if [ -z "$added" ]; then
               return 0
             fi
 
+            # Use a here-string rather than piping git show into awk, as in the
+            # trailing-period step: awk exits at the next header, and with pipefail
+            # git show then fails with SIGPIPE (exit 141) whenever the file is larger
+            # than the pipe buffer and the milestone block sits near the top.
+            content="$(git show "${PR_SHA}:${file}")"
+
+            # readme.txt has other "* " lists above its changelog, such as the
+            # "* X.Y.Z" items in Compatibility Notes. Only lines in the changelog
+            # section are changelog entries.
+            if [ -n "$section_re" ]; then
+              section="$(awk -v re="$section_re" '$0 ~ re { inside = 1; next } inside { print }' <<< "$content")"
+              added="$(while IFS= read -r entry; do
+                if [ -n "$entry" ] && grep -qxF "$entry" <<< "$section"; then
+                  echo "$entry"
+                fi
+              done <<< "$added")"
+              if [ -z "$added" ]; then
+                return 0
+              fi
+            fi
+
             # The milestone's block: everything between its header and the next one.
-            block="$(git show "${PR_SHA}:${file}" | awk -v re="$header_re" '
+            block="$(awk -v re="$header_re" '
               $0 ~ re { inside = 1; next }
               inside && /^([0-9x]+-[0-9x]+-[0-9x]+ - version |= [0-9])/ { exit }
               inside { print }
-            ')"
+            ' <<< "$content")"
 
             if [ -z "$block" ]; then
               echo "::error file=${file}::No version ${MILESTONE} section found in ${file}."
@@ -176,7 +197,7 @@ jobs:
           }
 
           check_file changelog.txt "^[0-9x]+-[0-9x]+-[0-9x]+ - version ${MILESTONE_RE}$"
-          check_file readme.txt "^= ${MILESTONE_RE} - [0-9x]+-[0-9x]+-[0-9x]+ =$"
+          check_file readme.txt "^= ${MILESTONE_RE} - [0-9x]+-[0-9x]+-[0-9x]+ =$" "^== Changelog ==$"
 
           if [ "$status" -ne 0 ]; then
             echo "Move the entries into the ${MILESTONE} section of both files."

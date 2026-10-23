@@ -8,7 +8,7 @@ import {
 	installPluginFromRepository,
 	setupWoo,
 	setupStripe,
-} from '../utils/playwright-setup';
+} from '../utils/playwright-setup.js';
 
 dotenv.config( {
 	path: `${ process.env.E2E_ROOT }/config/local.env`,
@@ -72,7 +72,7 @@ async function installPlugins( page ) {
 	}
 }
 
-module.exports = async ( config ) => {
+export default async ( config ) => {
 	console.time( 'Total Setup Time' );
 	const { stateDir, baseURL, userAgent } = config.projects[ 0 ].use;
 
