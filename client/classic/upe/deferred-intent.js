@@ -125,11 +125,26 @@ jQuery( function ( $ ) {
 			return '';
 		}
 
-		const escaped = jQuery( '<div>' ).text( name ).html();
+		// Link the field name to its control, like WooCommerce's own notices, so the shopper can
+		// jump to the field. Fall back to plain text when no control id is available. Build the
+		// markup through the DOM so both the id (href) and the name are safely escaped.
+		const control = wrapper.querySelector( 'input, select, textarea' );
+		const fieldId =
+			label.getAttribute( 'for' ) || ( control && control.id ) || '';
+		let fieldMarkup;
+		if ( fieldId ) {
+			const link = document.createElement( 'a' );
+			link.setAttribute( 'href', `#${ fieldId }` );
+			link.textContent = name;
+			fieldMarkup = link.outerHTML;
+		} else {
+			fieldMarkup = jQuery( '<div>' ).text( name ).html();
+		}
+
 		return sprintf(
 			// translators: %s is the name of a required checkout field.
 			__( '%s is a required field.', 'woocommerce-gateway-stripe' ),
-			escaped
+			fieldMarkup
 		);
 	}
 

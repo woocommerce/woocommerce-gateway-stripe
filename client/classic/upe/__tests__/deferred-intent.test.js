@@ -139,6 +139,20 @@ describe( 'classic checkout place-order handler', () => {
 		expect( ( html.match( /<li>/g ) || [] ).length ).toBe( 2 );
 	} );
 
+	it( 'links the field name in the notice to the field when it has an id', () => {
+		const wrapper = document.createElement( 'p' );
+		wrapper.className = 'form-row validate-required';
+		wrapper.innerHTML =
+			'<label for="billing_first_name">First name <abbr class="required" title="required">*</abbr></label>' +
+			'<input id="billing_first_name" type="text" class="input-text" value="" />';
+		mockEmptyWrappers = [ wrapper ];
+
+		expect( placeOrder() ).toBe( false );
+		expect( mockShowErrorCheckout.mock.calls[ 0 ][ 0 ] ).toContain(
+			'<a href="#billing_first_name">First name</a> is a required field.'
+		);
+	} );
+
 	it( 'falls back to the generic notice when a required wrapper has no label', () => {
 		const wrapper = document.createElement( 'p' );
 		wrapper.className = 'form-row validate-required';
