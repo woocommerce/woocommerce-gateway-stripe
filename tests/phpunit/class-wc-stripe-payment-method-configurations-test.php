@@ -1179,7 +1179,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	}
 
 	/**
-	 * A rejected migration must preserve local edits so a later attempt can still apply them.
+	 * A rejected update must not overwrite local selections with the pre-update PMC.
 	 *
 	 * @dataProvider recovery_selections_provider
 	 */
@@ -1206,9 +1206,13 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		WC_Stripe_Payment_Method_Configurations::refresh_pmc_availability();
 
 		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
-		$this->assertSame( $update_fails ? null : 'yes', $updated_settings['pmc_enabled'] ?? null );
+		$this->assertSame( 'yes', $updated_settings['pmc_enabled'] );
 		$this->assertSame( $expected_methods, $updated_settings['upe_checkout_experience_accepted_payments'] );
 		$this->assertSame( $update_fails ? 'no' : 'yes', $updated_settings['express_checkout'] );
+		$this->assertSame(
+			$local_methods && ! $update_fails ? [ 'card', 'klarna', 'apple_pay' ] : [ 'klarna', 'apple_pay' ],
+			WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids()
+		);
 	}
 
 	public function recovery_selections_provider(): array {
