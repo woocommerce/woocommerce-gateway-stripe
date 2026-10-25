@@ -49,6 +49,7 @@ final class WC_Stripe_Option_Lock {
 	 */
 	private const CLEANUP_LOCK_PREFIXES = [
 		'wc_stripe_checkout_session_lock_',
+		'wc_stripe_order_payment_lock_',
 		'wc_stripe_user_customer_lock_',
 		'wc_stripe_checkout_charge_lock_',
 	];
@@ -94,13 +95,13 @@ final class WC_Stripe_Option_Lock {
 			return $owner;
 		}
 
-		$current = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", $name ) );
-		if ( ! is_string( $current ) ) {
+		$current = self::get_lock_owner( $name );
+		if ( null === $current ) {
 			return null;
 		}
 
-		$locked_at = (int) strtok( $current, ':' );
-		if ( $locked_at > 0 && ( time() - $locked_at ) < $ttl ) {
+		$is_expired = self::is_lock_owner_expired( $current, $ttl );
+		if ( true !== $is_expired ) {
 			return null;
 		}
 
@@ -156,6 +157,58 @@ final class WC_Stripe_Option_Lock {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->delete( $wpdb->options, [ 'option_name' => $name ] );
 		self::forget_cached_option( $name );
+	}
+
+	/**
+	 * Checks if the lock has expired.
+	 *
+	 * @param string $name The lock option name.
+	 * @param int    $ttl  Seconds the lock should be held for.
+	 * @return bool|null True if the lock has expired, false if it has not, or null if the lock does not exist.
+	 */
+	public static function has_lock_expired( string $name, int $ttl ): ?bool {
+		$owner = self::get_lock_owner( $name );
+		if ( null === $owner ) {
+			return null;
+		}
+
+		return self::is_lock_owner_expired( $owner, $ttl );
+	}
+
+	/**
+	 * Checks if a specific lock owner token has expired.
+	 *
+	 * @param string|null $owner The lock owner token.
+	 * @param int         $ttl   Seconds the lock should be held for.
+	 * @return bool|null True if the lock owner token has expired, false if it is still valid, or null otherwise.
+	 */
+	public static function is_lock_owner_expired( ?string $owner, int $ttl ): ?bool {
+		if ( null === $owner || $ttl <= 0 ) {
+			return null;
+		}
+
+		$expiry = strtok( $owner, ':' );
+		if ( false === $expiry || ! ctype_digit( $expiry ) ) {
+			return null;
+		}
+
+		$locked_at = (int) $expiry;
+		if ( $locked_at <= 0 ) {
+			return null;
+		}
+
+		return time() > ( $locked_at + $ttl );
+	}
+
+	public static function get_lock_owner( string $name ): ?string {
+		global $wpdb;
+
+		$current = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", $name ) );
+		if ( is_string( $current ) ) {
+			return $current;
+		}
+
+		return null;
 	}
 
 	/**
