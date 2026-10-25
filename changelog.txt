@@ -9,6 +9,7 @@ xxxx-xx-xx - version 11.2.0
 * Fix - Keep pending ACH orders open while Stripe is still waiting for bank verification
 * Fix - Complete express checkout payments on the Pay for Order page when the checkout phone field is required, and preserve the order's saved billing phone
 * Dev - Fix the Format Release Notes workflow running out of turns before it could open its pull request
+* Add - Recover pending Stripe orders automatically and add manual payment status checks
 * Add - Remote configuration system for managing feature availability during incidents
 * Update - Retry failed remote-config syncs with backoff and log a warning when the cached configuration goes stale
 * Dev - Make the express checkout password cleanup next-batch delay test stable on slow CI runners
