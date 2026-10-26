@@ -7,7 +7,6 @@ import { __ } from '@wordpress/i18n';
 import { dismissNotice } from 'wcstripe/utils';
 
 const NoticeWrapper = styled( Notice )`
-	border-left: none;
 	margin: 0 0 24px 0;
 	background: #f0f6fc;
 `;
