@@ -24,7 +24,8 @@ const describe = ( selection ) =>
 
 const PMCSyncNotice = ( { onResolved, hasUnsavedChanges = false } ) => {
 	const { settings, isLoading, isSaving } = useSettings();
-	const { data, isRefreshing } = useAccount();
+	const { data, isLoading: isAccountLoading, isRefreshing } = useAccount();
+	const hasAccount = Boolean( data?.account?.id );
 	const { updateSettings } = useDispatch( STORE_NAME );
 	const [ review, setReview ] = useState( null );
 	const [ error, setError ] = useState( '' );
@@ -69,6 +70,8 @@ const PMCSyncNotice = ( { onResolved, hasUnsavedChanges = false } ) => {
 	useEffect( () => {
 		if (
 			isLoading ||
+			isAccountLoading ||
+			! hasAccount ||
 			isSaving ||
 			isRefreshing ||
 			settings.is_pmc_enabled
@@ -102,6 +105,8 @@ const PMCSyncNotice = ( { onResolved, hasUnsavedChanges = false } ) => {
 		};
 	}, [
 		isLoading,
+		isAccountLoading,
+		hasAccount,
 		isSaving,
 		isRefreshing,
 		settings.is_pmc_enabled,
@@ -110,7 +115,12 @@ const PMCSyncNotice = ( { onResolved, hasUnsavedChanges = false } ) => {
 		resolve,
 	] );
 
-	if ( settings.is_pmc_enabled || isLoading ) {
+	if (
+		settings.is_pmc_enabled ||
+		isLoading ||
+		isAccountLoading ||
+		! hasAccount
+	) {
 		return null;
 	}
 
@@ -154,30 +164,22 @@ const PMCSyncNotice = ( { onResolved, hasUnsavedChanges = false } ) => {
 			status="warning"
 			isDismissible={ false }
 			spokenMessage={ __(
-				'WooCommerce and Stripe have different payment methods enabled.',
+				'WooCommerce and the connected Stripe account have different payment methods enabled',
 				'woocommerce-gateway-stripe'
 			) }
 		>
 			<p>
 				<strong>
 					{ __(
-						'WooCommerce and Stripe have different payment methods enabled.',
+						'WooCommerce and the connected Stripe account have different payment methods enabled',
 						'woocommerce-gateway-stripe'
 					) }
 				</strong>
 			</p>
 			<p>
-				{ sprintf(
-					/* translators: 1: account ID, 2: Stripe configuration ID, 3: test/live mode. */
-					__(
-						'Account: %1$s. Configuration: %2$s (%3$s). Checkout uses your saved WooCommerce selections until you choose.',
-						'woocommerce-gateway-stripe'
-					),
-					data?.account?.id || '',
-					review.configuration_id,
-					review.testmode
-						? __( 'test mode', 'woocommerce-gateway-stripe' )
-						: __( 'live mode', 'woocommerce-gateway-stripe' )
+				{ __(
+					'Checkout uses your saved WooCommerce selections until you choose.',
+					'woocommerce-gateway-stripe'
 				) }
 			</p>
 			<p>
@@ -198,13 +200,7 @@ const PMCSyncNotice = ( { onResolved, hasUnsavedChanges = false } ) => {
 			</p>
 			<p>
 				{ __(
-					'Use WooCommerce updates this Stripe configuration, including for other stores sharing it. Use Stripe updates this store. Synchronization starts after the selected settings are verified.',
-					'woocommerce-gateway-stripe'
-				) }
-			</p>
-			<p>
-				{ __(
-					'WooCommerce groups Apple Pay and Google Pay. Use WooCommerce turns both wallets on or off together. Use Stripe turns the store’s wallet toggle on if either Stripe wallet is on.',
+					'Use WooCommerce updates this Stripe configuration, including for other stores sharing it. Use Stripe updates this store.',
 					'woocommerce-gateway-stripe'
 				) }
 			</p>
