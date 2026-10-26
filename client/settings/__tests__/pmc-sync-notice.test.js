@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PMCSyncNotice from '../pmc-sync-notice';
 import { useSettings } from '../../data';
@@ -53,6 +53,59 @@ it( 'does not compare during active sync', () => {
 	} );
 	render( <PMCSyncNotice onResolved={ jest.fn() } /> );
 	expect( apiFetch ).not.toHaveBeenCalled();
+} );
+
+it.each( [
+	[ 'missing account data', {} ],
+	[ 'a disconnected account', { data: { account: null } } ],
+	[ 'an empty account', { data: { account: {} } } ],
+	[
+		'an account that is still loading',
+		{ data: { account: { id: 'acct_example' } }, isLoading: true },
+	],
+] )( 'does not compare or show a notice for %s', ( label, account ) => {
+	useAccount.mockReturnValue( account );
+	const { container } = render( <PMCSyncNotice onResolved={ jest.fn() } /> );
+	expect( apiFetch ).not.toHaveBeenCalled();
+	expect( container ).toBeEmptyDOMElement();
+} );
+
+it( 'hides an existing comparison error when the account disconnects', async () => {
+	apiFetch.mockRejectedValueOnce( { message: 'Unable to compare.' } );
+	const onResolved = jest.fn();
+	const { container, rerender } = render(
+		<PMCSyncNotice onResolved={ onResolved } />
+	);
+	expect(
+		await screen.findByText( 'Unable to compare.', { selector: 'p' } )
+	).toBeInTheDocument();
+
+	useAccount.mockReturnValue( { data: { account: null } } );
+	rerender( <PMCSyncNotice onResolved={ onResolved } /> );
+	expect( container ).toBeEmptyDOMElement();
+	expect( apiFetch ).toHaveBeenCalledTimes( 1 );
+} );
+
+it( 'ignores a pending comparison after the account disconnects', async () => {
+	let finishComparison;
+	apiFetch.mockReturnValueOnce(
+		new Promise( ( resolve ) => {
+			finishComparison = resolve;
+		} )
+	);
+	const onResolved = jest.fn();
+	const { container, rerender } = render(
+		<PMCSyncNotice onResolved={ onResolved } />
+	);
+
+	useAccount.mockReturnValue( { data: { account: null } } );
+	rerender( <PMCSyncNotice onResolved={ onResolved } /> );
+	await act( async () => {
+		finishComparison( { ...review, differs: false, stripe: local } );
+	} );
+	expect( container ).toBeEmptyDOMElement();
+	expect( apiFetch ).toHaveBeenCalledTimes( 1 );
+	expect( updateSettings ).not.toHaveBeenCalled();
 } );
 
 it.each( [
