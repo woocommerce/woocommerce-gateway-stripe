@@ -84,6 +84,13 @@ jQuery( function ( $ ) {
 
 	// Snapshot is first-paint only; re-inits reconcile via AJAX (see init() below).
 	let cartBootstrapConsumed = false;
+	let cartRevision = 0;
+	let cartRefreshPending = false;
+	let checkoutUpdating = false;
+	const isClassicCheckout =
+		getExpressCheckoutData( 'is_checkout_page' ) &&
+		! getExpressCheckoutData( 'is_pay_for_order' ) &&
+		! getExpressCheckoutData( 'is_change_payment_method' );
 
 	const hasVariationForm = $( '.variations_form' ).length > 0;
 	const hasBookingForm = $( '.wc-bookings-booking-form' ).length > 0;
@@ -549,6 +556,12 @@ jQuery( function ( $ ) {
 			wcStripeECE.renderButton( eceButton, expressPaymentType );
 
 			eceButton.on( 'click', async function ( event ) {
+				// Wallet discovery can finish before WooCommerce's recalculation.
+				// Do not open a sheet with totals that are known to be stale.
+				if ( isClassicCheckout && cartRefreshPending ) {
+					return;
+				}
+
 				// If login is required for checkout, display redirect confirmation dialog.
 				if ( getExpressCheckoutData( 'login_confirmation' ) ) {
 					displayLoginConfirmation( event.expressPaymentType );
@@ -605,6 +618,16 @@ jQuery( function ( $ ) {
 			);
 
 			eceButton.on( 'confirm', async ( event ) => {
+				if ( isClassicCheckout && cartRefreshPending ) {
+					return wcStripeECE.abortPayment(
+						event,
+						__(
+							'Your cart has been updated. Please try again.',
+							'woocommerce-gateway-stripe'
+						)
+					);
+				}
+
 				if (
 					getExpressCheckoutData( 'is_product_page' ) &&
 					wcStripeECE.isAddToCartSuccessful === false
@@ -655,7 +678,13 @@ jQuery( function ( $ ) {
 					Object.values(
 						onReadyParams.availablePaymentMethods
 					).filter( Boolean ).length > 0;
-				if ( ! isVariationSelectionNeeded() && group.available ) {
+				if (
+					! isVariationSelectionNeeded() &&
+					group.available &&
+					( options.total > 0 ||
+						hasFreeTrial ||
+						isChangePaymentMethod )
+				) {
 					wcStripeECE.show();
 					wcStripeECE.getButtonSeparator().show();
 				}
@@ -746,12 +775,32 @@ jQuery( function ( $ ) {
 				}
 			} else {
 				// Cart and Checkout page specific initialization.
+				if ( checkoutUpdating || wcStripeECE.paymentInFlight ) {
+					wcStripeECE.pendingRefresh = true;
+					return;
+				}
+				wcStripeECE.pendingRefresh = false;
+				const revision = ++cartRevision;
 				const cartBootstrap = getExpressCheckoutData( 'cart' );
 
 				// First paint renders from the snapshot, skipping GET /wc/store/v1/cart;
 				// re-inits fall through to the AJAX path below for live cart updates.
-				if ( cartBootstrap && ! cartBootstrapConsumed ) {
+				if (
+					! cartBootstrapConsumed &&
+					Number.isInteger( cartBootstrap?.total ) &&
+					cartBootstrap.total >= 0 &&
+					typeof cartBootstrap.currency === 'string' &&
+					cartBootstrap.currency.length === 3
+				) {
 					cartBootstrapConsumed = true;
+					cartRefreshPending = false;
+					if (
+						cartBootstrap.total === 0 &&
+						! getExpressCheckoutData( 'has_free_trial' )
+					) {
+						wcStripeECE.hide();
+						return;
+					}
 
 					wcStripeECE.startExpressCheckout( {
 						total: cartBootstrap.total,
@@ -768,32 +817,63 @@ jQuery( function ( $ ) {
 					return;
 				}
 
-				api.expressCheckoutGetCartDetails().then( ( cart ) => {
-					const total = transformPrice(
-						parseInt( cart.totals.total_price, 10 ) -
-							parseInt( cart.totals.total_refund || 0, 10 ),
-						cart.totals
-					);
+				cartBootstrapConsumed = true;
+				cartRefreshPending = true;
+				api.expressCheckoutGetCartDetails()
+					.then( ( cart ) => {
+						// An update invalidates older responses before its debounced
+						// fetch starts, and a sheet opened meanwhile must stay intact.
+						if ( revision !== cartRevision ) {
+							return;
+						}
+						if ( wcStripeECE.paymentInFlight ) {
+							wcStripeECE.pendingRefresh = true;
+							return;
+						}
 
-					if (
-						total === 0 &&
-						! getExpressCheckoutData( 'has_free_trial' )
-					) {
-						wcStripeECE.hide();
-						return;
-					}
+						const total = transformPrice(
+							parseInt( cart.totals.total_price, 10 ) -
+								parseInt( cart.totals.total_refund || 0, 10 ),
+							cart.totals
+						);
 
-					wcStripeECE.refreshOrStartExpressCheckout( {
-						total,
-						currency:
-							getExpressCheckoutData( 'checkout' )?.currency_code,
-						requestShipping: cart.needs_shipping === true,
-						requestPhone:
-							getExpressCheckoutData( 'checkout' )
-								?.needs_payer_phone,
-						displayItems: transformCartDataForDisplayItems( cart ),
+						if (
+							total === 0 &&
+							! getExpressCheckoutData( 'has_free_trial' )
+						) {
+							wcStripeECE.mountedGroups.forEach( ( group ) => {
+								group.options.total = 0;
+							} );
+							wcStripeECE.hide();
+							cartRefreshPending = false;
+							return;
+						}
+
+						wcStripeECE.refreshOrStartExpressCheckout( {
+							total,
+							currency:
+								cart.totals.currency_code?.toLowerCase() ??
+								getExpressCheckoutData( 'checkout' )
+									?.currency_code,
+							requestShipping: cart.needs_shipping === true,
+							requestPhone:
+								getExpressCheckoutData( 'checkout' )
+									?.needs_payer_phone,
+							displayItems:
+								transformCartDataForDisplayItems( cart ),
+						} );
+						cartRefreshPending = false;
+					} )
+					.catch( () => {
+						// Keep stale totals unpayable; the next checkout update retries.
+						if ( revision === cartRevision ) {
+							if ( wcStripeECE.paymentInFlight ) {
+								wcStripeECE.pendingRefresh = true;
+							} else {
+								wcStripeECE.hide();
+							}
+						}
 					} );
-				} );
 			}
 
 			// After initializing a new express checkout button, we need to reset the paymentAborted flag.
@@ -997,6 +1077,9 @@ jQuery( function ( $ ) {
 			// result, so order errors must fail it too. A late call rejects an
 			// internal Stripe promise asynchronously, after the message is shown.
 			payment.paymentFailed( { reason: 'fail' } );
+			if ( isClassicCheckout && cartRefreshPending ) {
+				wcStripeECE.init();
+			}
 		},
 
 		attachProductPageEventListeners: () => {
@@ -1172,9 +1255,9 @@ jQuery( function ( $ ) {
 		},
 	};
 
-	// We don't need to initialize ECE on the checkout page now because it will be initialized by updated_checkout event.
 	if (
 		getExpressCheckoutData( 'is_product_page' ) ||
+		isClassicCheckout ||
 		getExpressCheckoutData( 'is_pay_for_order' ) ||
 		getExpressCheckoutData( 'is_cart_page' ) ||
 		getExpressCheckoutData( 'is_change_payment_method' )
@@ -1215,6 +1298,18 @@ jQuery( function ( $ ) {
 		{ leading: true, trailing: true }
 	);
 
-	$( document.body ).on( 'updated_cart_totals', refreshExpressCheckout );
-	$( document.body ).on( 'updated_checkout', refreshExpressCheckout );
+	if ( isClassicCheckout ) {
+		$( document.body ).on( 'update_checkout', () => {
+			checkoutUpdating = true;
+			cartRefreshPending = true;
+			++cartRevision;
+		} );
+	}
+
+	$( document.body ).on( 'updated_cart_totals updated_checkout', () => {
+		checkoutUpdating = false;
+		cartRefreshPending = true;
+		++cartRevision;
+		refreshExpressCheckout();
+	} );
 } );
