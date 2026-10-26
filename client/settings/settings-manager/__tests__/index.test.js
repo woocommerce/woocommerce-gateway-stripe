@@ -14,7 +14,9 @@ jest.mock( '../../save-settings-section', () => jest.fn() );
 
 jest.mock( 'wcstripe/data', () => ( {
 	useEnabledPaymentMethodIds: jest.fn().mockReturnValue( [ [], jest.fn() ] ),
-	useSettings: jest.fn().mockReturnValue( {} ),
+	useSettings: jest.fn().mockReturnValue( {
+		settings: { is_pmc_enabled: true },
+	} ),
 } ) );
 
 jest.mock( 'wcstripe/data/account', () => ( {

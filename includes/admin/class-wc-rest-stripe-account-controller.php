@@ -45,6 +45,41 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 	public function register_routes() {
 		register_rest_route(
 			$this->namespace,
+			'/' . $this->rest_base . '/pmc-review',
+			[
+				[
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => [ WC_Stripe_Payment_Method_Configurations::class, 'get_sync_review' ],
+					'permission_callback' => [ $this, 'check_permission' ],
+				],
+				[
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => function ( WP_REST_Request $request ) {
+						$result = WC_Stripe_Payment_Method_Configurations::resolve_sync_review( $request['source'], $request['revision'] );
+						if ( is_wp_error( $result ) ) {
+							return $result;
+						}
+						$this->gateway->init_settings();
+						return ( new WC_REST_Stripe_Settings_Controller( $this->gateway ) )->get_settings();
+					},
+					'permission_callback' => [ $this, 'check_permission' ],
+					'args'                => [
+						'source'   => [
+							'type'     => 'string',
+							'enum'     => [ 'woocommerce', 'stripe' ],
+							'required' => true,
+						],
+						'revision' => [
+							'type'     => 'string',
+							'required' => true,
+						],
+					],
+				],
+			]
+		);
+
+		register_rest_route(
+			$this->namespace,
 			'/' . $this->rest_base,
 			[
 				'methods'             => WP_REST_Server::READABLE,
