@@ -1,12 +1,12 @@
 /**
  * DRAFT entry for the experimental WooCommerce payment settings screen.
  *
- * Starting point for the Frankfurt meetup. It registers the Stripe page (one core-data entity)
+ * Draft starting point. It registers the Stripe page (one core-data entity)
  * and its fields, the same way the WooPayments PR does
  * (Automattic/woocommerce-payments#12269). PHP hands the config in through
  * `window.wcStripeSettingsScreen`; see includes/admin/class-wc-stripe-settings-screen.php.
  *
- * Not wired into webpack or built yet. See the meetup note before adding it: it needs
+ * Not wired into webpack or built yet. See docs/payment-settings-screen.md before adding it: it needs
  * `registerEntityField` from a `@wordpress/editor` new enough to export it (Gutenberg 24.2+).
  */
 

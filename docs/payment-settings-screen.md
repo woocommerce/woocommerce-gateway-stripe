@@ -1,6 +1,6 @@
-# Meetup: Stripe on the new payment settings screen
+# Stripe on the new payment settings screen
 
-Draft starting point for the Frankfurt meetup. Goal: build the new Stripe settings UI on
+Draft starting point. Goal: build the new Stripe settings UI on
 WooCommerce's experimental payment settings framework. This note is how to run it and where to
 start. It is a scaffold, not a finished feature.
 
@@ -38,7 +38,7 @@ The screen has one level of pages for now, so a sub-page would be a separate ent
   `woocommerce/woocommerce#70007` at `f75a874127fc94447cb7be867112b74ad2977c00`.
 - WooPayments PR, the external-plugin pattern and the best template to copy:
   `Automattic/woocommerce-payments#12269` at `c9972269841e2efc1c0112e3f84f486949755a6b`.
-- Daniel Mallory's guidance (quarkp2 meetup agenda thread, reply to STRIPE-1533 question).
+- Daniel Mallory's guidance on STRIPE-1533.
 
 Both PRs are open and experimental; the framework targets Woo 11.4 behind a flag and will change.
 Flag anything that gets in the way back to Daniel.
@@ -52,13 +52,13 @@ Flag anything that gets in the way back to Daniel.
    Turn it on the same way WooCommerce enables experimental features (feature settings or the
    `woocommerce_admin_features` filter); confirm with
    `Automattic\WooCommerce\Admin\Features\Features::is_enabled( 'experimental-admin-screens' )`.
-5. This plugin on the `try/meetup-payment-settings-screen` branch.
+5. This plugin on this branch.
 
 ## Build
 
 The client entry is not in webpack yet, on purpose: `registerEntityField` must be exported by the
 `@wordpress/editor` version in the env (Gutenberg 24.2+), which is not guaranteed by the version
-this plugin currently pins. First meetup step:
+this plugin currently pins. First step:
 
 1. Stand up the environment above and confirm the WooCommerce cheque page renders at
    `/wp-admin/admin.php?page=wc-payment-settings-wp-admin&p=/settings/cheque`.

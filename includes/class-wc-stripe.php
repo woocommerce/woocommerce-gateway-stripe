@@ -311,7 +311,7 @@ class WC_Stripe {
 				new WC_Stripe_Command_Palette_Controller();
 			}
 
-			// DRAFT (meetup): experimental payment settings screen. init_hooks() is a no-op
+			// DRAFT: experimental payment settings screen. init_hooks() is a no-op
 			// unless WooCommerce's experimental admin-screens feature is enabled.
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-settings-screen.php';
 			if ( self::$instance === $this ) {

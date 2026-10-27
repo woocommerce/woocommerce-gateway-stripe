@@ -1,6 +1,6 @@
 # Settings screen sections
 
-Draft starting point for the meetup. One section is one card on the Stripe page and one owner.
+Draft starting point. One section is one card on the Stripe page and one owner.
 
 ## How a section is split
 

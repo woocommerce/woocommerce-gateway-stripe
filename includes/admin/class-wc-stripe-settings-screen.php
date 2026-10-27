@@ -2,7 +2,7 @@
 /**
  * DRAFT scaffold for the experimental WooCommerce payment settings screen.
  *
- * Starting point for the Frankfurt meetup, not a finished feature. It stays off unless
+ * Draft starting point, not a finished feature. It stays off unless
  * WooCommerce's experimental admin-screens feature is on, so it is a no-op on a normal install.
  *
  * References (read these before extending this class):
@@ -21,7 +21,7 @@ defined( 'ABSPATH' ) || exit;
  * supplies the entity (shown at /settings/stripe), the field layout through View Config, and a
  * REST route the entity record loads and saves through.
  *
- * It is split into sections so each person can own one at the meetup without clashing: each
+ * It is split into sections so each person can own one without clashing: each
  * section is a card on the page, built from its own method here and (later) its own field UI in
  * client/settings-screen/sections/. Only the "general" section has real fields today; the rest
  * are empty stubs waiting for an owner.
@@ -87,7 +87,7 @@ class WC_Stripe_Settings_Screen {
 	/**
 	 * The sections the Stripe page is split into, in display order.
 	 *
-	 * One section is one card on the page, and one owner at the meetup. Keep each section's fields
+	 * One section is one card on the page, and one owner. Keep each section's fields
 	 * in its own method so two people editing different sections do not touch the same lines. A
 	 * section with no fields is skipped, so a stub is safe to leave until someone picks it up.
 	 *
@@ -99,17 +99,17 @@ class WC_Stripe_Settings_Screen {
 				'label'  => __( 'General', 'woocommerce-gateway-stripe' ),
 				'fields' => $this->get_general_fields(),
 			],
-			// TODO(meetup): owner ____. Move the enable/disable and icons of each method here.
+			// TODO: owner ____. Move the enable/disable and icons of each method here.
 			'payment-methods'  => [
 				'label'  => __( 'Payment methods', 'woocommerce-gateway-stripe' ),
 				'fields' => [],
 			],
-			// TODO(meetup): owner ____. Apple Pay / Google Pay / Link toggles and button options.
+			// TODO: owner ____. Apple Pay / Google Pay / Link toggles and button options.
 			'express-checkout' => [
 				'label'  => __( 'Express checkout', 'woocommerce-gateway-stripe' ),
 				'fields' => [],
 			],
-			// TODO(meetup): owner ____. Debug log, webhooks, manual keys.
+			// TODO: owner ____. Debug log, webhooks, manual keys.
 			'advanced'         => [
 				'label'  => __( 'Advanced', 'woocommerce-gateway-stripe' ),
 				'fields' => [],
@@ -240,9 +240,9 @@ class WC_Stripe_Settings_Screen {
 	/**
 	 * Enqueues the screen script and hands it the entity config.
 	 *
-	 * The built asset does not exist until the client entry is added to webpack and built; see the
-	 * meetup note. Because this runs only when the experimental screen is on, a missing build never
-	 * affects a normal install.
+	 * The built asset does not exist until the client entry is added to webpack and built; see
+	 * docs/payment-settings-screen.md. Because this runs only when the experimental screen is
+	 * on, a missing build never affects a normal install.
 	 */
 	public function enqueue_scripts(): void {
 		$fields = [];
