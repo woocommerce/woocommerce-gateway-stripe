@@ -6,8 +6,8 @@
  * (Automattic/woocommerce-payments#12269). PHP hands the config in through
  * `window.wcStripeSettingsScreen`; see includes/admin/class-wc-stripe-settings-screen.php.
  *
- * Not wired into webpack or built yet. See docs/payment-settings-screen.md before adding it: it needs
- * `registerEntityField` from a `@wordpress/editor` new enough to export it (Gutenberg 24.2+).
+ * Built as the `settings-screen` webpack entry. Needs `registerEntityField` from a
+ * `@wordpress/editor` new enough to export it (Gutenberg 24.2+); see docs/payment-settings-screen.md.
  */
 
 /**

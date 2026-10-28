@@ -59,9 +59,20 @@ class WC_Stripe_Settings_Screen {
 	protected const FEATURE_FLAG = 'experimental-admin-screens';
 
 	/**
-	 * Registers hooks, but only when the experimental screen is available.
+	 * Registers hooks on `init`, when WooCommerce's feature flags are reliably readable.
+	 *
+	 * WC_Stripe::init() runs on plugins_loaded, which is too early to read the admin feature
+	 * flags (WooCommerce finalizes them later), so the actual gating is deferred to `init`, the
+	 * same hook WooCommerce's own AdminScreens uses.
 	 */
 	public function init_hooks(): void {
+		add_action( 'init', [ $this, 'register_screen_hooks' ] );
+	}
+
+	/**
+	 * Registers the screen's hooks, but only when the experimental screen is available.
+	 */
+	public function register_screen_hooks(): void {
 		if ( ! $this->is_screen_enabled() ) {
 			return;
 		}

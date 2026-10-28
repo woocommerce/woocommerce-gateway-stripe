@@ -12,8 +12,10 @@ STRIPE-1533.
   (`/settings/stripe`), its field layout (View Config), and a REST route the page loads and saves
   through. Off unless WooCommerce's experimental screen is on, so it is a no-op on a normal install.
 - `client/settings-screen/`: the browser entry that registers the entity and its fields, plus a
-  per-section folder. Not wired into webpack yet (see "Build").
-- Wired in `WC_Stripe::init()` behind the feature flag.
+  per-section folder. Wired into webpack as the `settings-screen` entry.
+- Registered in `WC_Stripe::init()` (outside the `is_admin()` block, since the REST record route
+  fires on `rest_api_init`), gated on the feature flag, and deferred to `init` so the flag is
+  readable when it is checked.
 
 Only the "general" section (enable / title / description) is a worked example. The other sections
 are stubs for us to split up. See `client/settings-screen/sections/README.md`.
@@ -54,22 +56,32 @@ Flag anything that gets in the way back to Daniel.
    `Automattic\WooCommerce\Admin\Features\Features::is_enabled( 'experimental-admin-screens' )`.
 5. This plugin on this branch.
 
-## Build
+## Run it (verified locally)
 
-The client entry is not in webpack yet, on purpose: `registerEntityField` must be exported by the
-`@wordpress/editor` version in the env (Gutenberg 24.2+), which is not guaranteed by the version
-this plugin currently pins. First step:
+Verified on WP 7.1.3 + Gutenberg 24.2.0 + WooCommerce 11.4.0-dev (#70007): `/settings/stripe`
+renders the General card (Enable Stripe, Title, Description) and saves to
+`woocommerce_stripe_settings`. `registerEntityField` is exported by `@wordpress/editor` at
+Gutenberg 24.2, so no dependency bump was needed.
 
-1. Stand up the environment above and confirm the WooCommerce cheque page renders at
-   `/wp-admin/admin.php?page=wc-settings-screen-wp-admin&p=/settings/cheque`.
-2. Add `settings-screen: './client/settings-screen/index.js'` to the webpack entries and build
-   (`npm run build:webpack`). The PHP enqueues `build/settings-screen.js`.
-3. Open `...&p=/settings/stripe`. You should see the General card with the three fields, saving to
-   `woocommerce_stripe_settings`.
+Recipe used (with `wp-env`):
 
-If `registerEntityField` is missing from `@wordpress/editor`, that is the first thing to resolve
-(bump the dependency to match the env, or import it the way #12269 ends up doing), and worth
-flagging to Daniel.
+1. Check out WooCommerce `#70007` in a monorepo clone and `pnpm install`. Build what the screen
+   needs: `pnpm --filter=@woocommerce/plugin-woocommerce build:admin` (this generates
+   `includes/react-admin/feature-config.php`; without it WooCommerce fatals) and
+   `pnpm --filter=@woocommerce/plugin-woocommerce build:project:admin-screens`.
+2. Build this plugin's assets: `npm run build:webpack` (the `settings-screen` entry writes
+   `build/settings-screen.js`, which the PHP enqueues).
+3. Bring up a WP 7.1+ env mounting the built WooCommerce, the Gutenberg 24.2.0 plugin, and this
+   plugin; activate all three.
+4. Enable the flag with a mu-plugin:
+   `add_filter( 'woocommerce_admin_features', fn( $f ) => array_merge( $f, [ 'experimental-admin-screens' ] ) );`
+5. Open `/wp-admin/admin.php?page=wc-settings-screen-wp-admin&p=/settings/stripe` (the cheque
+   example renders at `...&p=/settings/cheque`).
+
+Gotcha: the screen loads and saves over the REST API from the browser. If you see "Unable to load
+settings" and the REST requests 404, the `/wp-json/` rewrite is not active. Use plain permalinks
+(Settings > Permalinks > Plain) so `apiFetch` falls back to `?rest_route=`, or make pretty
+permalinks work in the env.
 
 ## Where to start
 
