@@ -606,9 +606,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A payment that succeeds for an order that was already cancelled when the event arrives is
-	 * deferred on the live webhook pass, so the deferred job can refund or void it, instead of
-	 * being dropped at the status guard or marked paid inline.
+	 * A late payment on an already-cancelled order is deferred on the live webhook pass, not
+	 * dropped at the status guard or marked paid inline, so the deferred job can refund or void it.
 	 *
 	 * @param string $type The payment_intent event type.
 	 * @dataProvider provide_cancelled_order_late_payment_events
@@ -648,7 +647,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'A late payment on a cancelled order must report itself as deferred.'
 		);
 
-		// The cancelled order must not be marked paid on the inline pass.
+		// Not marked paid on the inline pass.
 		$this->assertTrue( wc_get_order( $order->get_id() )->has_status( OrderStatus::CANCELLED ) );
 	}
 
