@@ -1385,9 +1385,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return false;
 		}
 
-		// A late payment on an already-cancelled order is deferred before the status guard (which
-		// would drop it) and the inline wallet branch (which would mark it paid), so the deferred
-		// job routes it to handle_deferred_payment_for_cancelled_order() to refund or void it.
+		// Defer a late payment on an already-cancelled order, before the guard that would drop it
+		// and the wallet branch that would mark it paid, so the deferred job refunds or voids it.
 		if (
 			$order->has_status( OrderStatus::CANCELLED )
 			&& in_array( $notification->type, [ 'payment_intent.succeeded', 'payment_intent.amount_capturable_updated' ], true )
