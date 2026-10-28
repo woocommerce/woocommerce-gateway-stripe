@@ -22,7 +22,7 @@ are stubs for us to split up. See `client/settings-screen/sections/README.md`.
 
 A gateway registers its own page with the same WordPress APIs the WooCommerce cheque example uses:
 
-1. Load a script from the `wc-payment-settings-wp-admin_init` action (fires only on that page).
+1. Load a script from the `wc-settings-screen-wp-admin_init` action (fires only on that page).
 2. In that script, `addEntities()` a core-data entity of kind `woo_settings_payments`. Its name is
    the page segment and the record id, so `stripe` is shown at `/settings/stripe` and loads/saves
    at `{baseURL}/stripe`.
@@ -35,9 +35,9 @@ The screen has one level of pages for now, so a sub-page would be a separate ent
 ## References (pinned)
 
 - WooCommerce foundation PR, the cheque example and View Config:
-  `woocommerce/woocommerce#70007` at `f75a874127fc94447cb7be867112b74ad2977c00`.
+  `woocommerce/woocommerce#70007` at `6c04ead5fdd0638d603ebace50f6ce4081efff85`.
 - WooPayments PR, the external-plugin pattern and the best template to copy:
-  `Automattic/woocommerce-payments#12269` at `c9972269841e2efc1c0112e3f84f486949755a6b`.
+  `Automattic/woocommerce-payments#12269` at `6707da7a8f4965892afab1bd87637759c611fc0a`.
 - Daniel Mallory's guidance on STRIPE-1533.
 
 Both PRs are open and experimental; the framework targets Woo 11.4 behind a flag and will change.
@@ -61,7 +61,7 @@ The client entry is not in webpack yet, on purpose: `registerEntityField` must b
 this plugin currently pins. First step:
 
 1. Stand up the environment above and confirm the WooCommerce cheque page renders at
-   `/wp-admin/admin.php?page=wc-payment-settings-wp-admin&p=/settings/cheque`.
+   `/wp-admin/admin.php?page=wc-settings-screen-wp-admin&p=/settings/cheque`.
 2. Add `settings-screen: './client/settings-screen/index.js'` to the webpack entries and build
    (`npm run build:webpack`). The PHP enqueues `build/settings-screen.js`.
 3. Open `...&p=/settings/stripe`. You should see the General card with the three fields, saving to

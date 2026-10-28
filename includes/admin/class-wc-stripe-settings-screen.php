@@ -41,7 +41,7 @@ class WC_Stripe_Settings_Screen {
 	/**
 	 * Admin page slug of the settings screen. WooCommerce fires `{slug}_init` only on this page.
 	 */
-	protected const PAGE_SLUG = 'wc-payment-settings-wp-admin';
+	protected const PAGE_SLUG = 'wc-settings-screen-wp-admin';
 
 	/**
 	 * Script that registers the entity and its fields in the browser.
