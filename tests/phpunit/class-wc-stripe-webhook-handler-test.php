@@ -606,6 +606,65 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A payment that succeeds for an order that was already cancelled when the event arrives is
+	 * deferred on the live webhook pass, so the deferred job can refund or void it, instead of
+	 * being dropped at the status guard or marked paid inline.
+	 *
+	 * @param string $type The payment_intent event type.
+	 * @dataProvider provide_cancelled_order_late_payment_events
+	 */
+	public function test_process_payment_intent_defers_late_payment_on_cancelled_order( string $type ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::CANCELLED );
+		$order->update_meta_data( '_stripe_intent_id', self::MOCK_PAYMENT_INTENT['id'] );
+		$order->save();
+
+		$notification = (object) [
+			'type' => $type,
+			'data' => (object) [
+				'object' => (object) [
+					'id'     => self::MOCK_PAYMENT_INTENT['id'],
+					'object' => 'payment_intent',
+					'status' => WC_Stripe_Intent_Status::SUCCEEDED,
+				],
+			],
+		];
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'defer_webhook_processing' ] )
+			->getMock();
+		$handler->expects( $this->once() )
+			->method( 'defer_webhook_processing' )
+			->with(
+				$notification,
+				[
+					'order_id'  => $order->get_id(),
+					'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
+				]
+			);
+
+		$this->assertTrue(
+			$handler->process_payment_intent( $notification ),
+			'A late payment on a cancelled order must report itself as deferred.'
+		);
+
+		// The cancelled order must not be marked paid on the inline pass.
+		$this->assertTrue( wc_get_order( $order->get_id() )->has_status( OrderStatus::CANCELLED ) );
+	}
+
+	/**
+	 * Data provider for test_process_payment_intent_defers_late_payment_on_cancelled_order.
+	 *
+	 * @return array
+	 */
+	public function provide_cancelled_order_late_payment_events(): array {
+		return [
+			'succeeded'                 => [ 'payment_intent.succeeded' ],
+			'amount_capturable_updated' => [ 'payment_intent.amount_capturable_updated' ],
+		];
+	}
+
+	/**
 	 * Asserts that an order has at least one note containing the given substring.
 	 *
 	 * @param WC_Order $order  The order to inspect.
