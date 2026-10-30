@@ -75,12 +75,11 @@ test.describe( 'customer can use Link express checkout', () => {
 			( route ) => route.abort( 'failed' ),
 			{ times: 1 }
 		);
-		await page
-			.getByLabel( 'Postcode / ZIP', { exact: false } )
-			.fill( '90210' );
-		await page
-			.getByLabel( 'Postcode / ZIP', { exact: false } )
-			.press( 'Tab' );
+		const postcode = page.locator( '#billing_postcode' );
+		await postcode.fill(
+			( await postcode.inputValue() ) === '90210' ? '90211' : '90210'
+		);
+		await postcode.press( 'Tab' );
 		const error = page.locator(
 			'#wc-stripe-express-checkout-refresh-error'
 		);
