@@ -88,6 +88,36 @@ function extractAddedLines(diff) {
 }
 
 /**
+ * Count the concrete `@since`/`@version` tags on removed lines, per file of the new side.
+ *
+ * @param {string} diff Output of `git diff --unified=0`.
+ * @return {Map<string, Map<string, number>>} For each file, how often each tag (e.g. `@since 10.8.0`) was removed.
+ */
+function countRemovedConcreteTags(diff) {
+    const counts = new Map();
+    let file = null;
+    for (const raw of diff.split('\n')) {
+        if (raw.startsWith('--- ')) {
+            continue;
+        }
+        if (raw.startsWith('+++ ')) {
+            file = raw === '+++ /dev/null' ? null : raw.replace(/^\+\+\+ b\//, '');
+            continue;
+        }
+        if (!file || !raw.startsWith('-')) {
+            continue;
+        }
+        for (const [, tag, version] of raw.slice(1).matchAll(CONCRETE_TAG)) {
+            const tags = counts.get(file) || new Map();
+            const key = `@${tag} ${version}`;
+            tags.set(key, (tags.get(key) || 0) + 1);
+            counts.set(file, tags);
+        }
+    }
+    return counts;
+}
+
+/**
  * @param {string}   diff            Output of `git diff --unified=0`.
  * @param {string[]} replacePaths    Entries from version_replace_paths.
  * @return {{level: string, file: string, line: number, message: string}[]} Findings.
@@ -95,6 +125,9 @@ function extractAddedLines(diff) {
 function check(diff, replacePaths) {
     const findings = [];
     const addedLinesInCheckedFiles = extractAddedLines(diff).filter(({ file }) => isChecked(file));
+    // A docblock that is moved or re-indented shows up as removed and added lines. Its tag keeps
+    // its real version, so a concrete tag the same file also removes is not new.
+    const removedTags = countRemovedConcreteTags(diff);
     for (const { file, line, text } of addedLinesInCheckedFiles) {
         const replaced = isReplaced(file, replacePaths);
 
@@ -122,6 +155,12 @@ function check(diff, replacePaths) {
         // x.x.x instead.
         if (replaced) {
             for (const [, tag, version] of text.matchAll(CONCRETE_TAG)) {
+                const tags = removedTags.get(file);
+                const key = `@${tag} ${version}`;
+                if (tags && tags.get(key) > 0) {
+                    tags.set(key, tags.get(key) - 1);
+                    continue;
+                }
                 findings.push({
                     level: 'error',
                     file,
