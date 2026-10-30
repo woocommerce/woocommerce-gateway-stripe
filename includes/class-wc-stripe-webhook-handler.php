@@ -1385,8 +1385,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return false;
 		}
 
-		// Defer a late payment on an already-cancelled order, before the guard that would drop it
-		// and the wallet branch that would mark it paid, so the deferred job refunds or voids it.
+		// Defer before the status guard and inline wallet branch so the job can refund or void it.
 		if (
 			$order->has_status( OrderStatus::CANCELLED )
 			&& in_array( $notification->type, [ 'payment_intent.succeeded', 'payment_intent.amount_capturable_updated' ], true )
@@ -2099,9 +2098,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$intent = $this->get_intent_from_order( $order );
 
-		// The id match is an ownership check, and process_refund() recovers the charge from the order's
-		// own stored intent, so a mismatch or missing intent cannot be reversed by the event id alone.
-		// Leave a merchant-facing note instead of acknowledging the payment silently.
+		// Can't reverse without the order's own matching intent, so note it for manual review.
 		if ( ! $intent || $intent->id !== $intent_id ) {
 			$order->add_order_note( __( 'A Stripe payment on this cancelled order could not be refunded automatically because the order has no matching PaymentIntent. Please refund or void it from the Stripe dashboard.', 'woocommerce-gateway-stripe' ) );
 			WC_Stripe_Logger::warning( "Cancelled order {$order->get_id()} received a payment for {$intent_id} with no matching stored intent; left a manual-refund note." );
