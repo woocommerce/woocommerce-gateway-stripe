@@ -16,9 +16,34 @@ const addProductToCart = async ( page, productSlug = 'beanie' ) => {
 	).toBeVisible();
 };
 
-const testLink = async ( page, navigateTo, isBlockPage = false ) => {
+const testLink = async (
+	page,
+	navigateTo,
+	isBlockPage = false,
+	needsClassicCheckout = false
+) => {
 	await page.goto( navigateTo );
 	await assertLinkModalLoads( page, isBlockPage );
+
+	const bundles = await page.evaluate( () =>
+		performance
+			.getEntriesByType( 'resource' )
+			.map( ( resource ) => new URL( resource.name ).pathname )
+			.filter( ( path ) =>
+				/\/build\/(express-checkout|upe-classic|upe-blocks)\.js$/.test(
+					path
+				)
+			)
+			.map( ( path ) => path.split( '/' ).pop() )
+			.sort()
+	);
+	const expectedBundles = isBlockPage
+		? [ 'upe-blocks.js' ]
+		: [ 'express-checkout.js' ];
+	if ( needsClassicCheckout ) {
+		expectedBundles.push( 'upe-classic.js' );
+	}
+	await expect( bundles ).toEqual( expectedBundles.sort() );
 };
 
 test.describe( 'customer can use Link express checkout', () => {
@@ -32,7 +57,7 @@ test.describe( 'customer can use Link express checkout', () => {
 
 	test( 'inside the checkout page (classic)', async ( { page } ) => {
 		await addProductToCart( page );
-		await testLink( page, '/checkout-shortcode', false );
+		await testLink( page, '/checkout-shortcode', false, true );
 	} );
 
 	test( 'inside the cart page (block)', async ( { page } ) => {
