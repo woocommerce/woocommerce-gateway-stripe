@@ -405,6 +405,26 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The metadata is merged into the request, so a wc_stripe_payment_metadata callback that
+	 * returns a non-array must be ignored instead of fataling the Checkout Session request.
+	 */
+	public function test_create_session_ignores_non_array_payment_metadata_filter(): void {
+		$filter = static function () {
+			return null;
+		};
+		add_filter( 'wc_stripe_payment_metadata', $filter );
+
+		try {
+			$request = $this->capture_create_session_request();
+		} finally {
+			remove_filter( 'wc_stripe_payment_metadata', $filter );
+		}
+
+		$this->assertArrayHasKey( 'metadata', $request['payment_intent_data'] );
+		$this->assertSame( 'single', $request['payment_intent_data']['metadata']['payment_type'] );
+	}
+
+	/**
 	 * A later native cart total updates the server-owned session and increments its embedded revision.
 	 */
 	public function test_synchronize_updates_existing_session_after_cart_total_changes(): void {

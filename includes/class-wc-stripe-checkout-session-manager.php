@@ -333,7 +333,13 @@ class WC_Stripe_Checkout_Session_Manager {
 		];
 
 		/** Documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php */
-		$metadata = apply_filters( 'wc_stripe_payment_metadata', $metadata, null, null );
+		$filtered_metadata = apply_filters( 'wc_stripe_payment_metadata', $metadata, null, null );
+
+		// A callback can return any type; the array_merge below needs an array, so keep the
+		// metadata we built when a callback returns a non-array.
+		if ( is_array( $filtered_metadata ) ) {
+			$metadata = $filtered_metadata;
+		}
 
 		$payment_intent_data = [ 'metadata' => $metadata ];
 
