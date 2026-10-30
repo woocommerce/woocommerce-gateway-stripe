@@ -92,14 +92,15 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 	public function get_account() {
 		return new WP_REST_Response(
 			[
-				'account'                 => $this->account->get_cached_account_data(),
-				'testmode'                => WC_Stripe_Mode::is_test(),
-				'webhook_status_code'     => WC_Stripe_Webhook_State::get_webhook_status_code(),
-				'webhook_status_message'  => WC_Stripe_Webhook_State::get_webhook_status_message(),
-				'webhook_url'             => WC_Stripe_Helper::get_webhook_url(),
-				'configured_webhook_urls' => WC_Stripe_Webhook_State::get_configured_webhook_urls(),
-				'is_webhook_enabled'      => $this->account->is_webhook_enabled(),
-				'oauth_connections'       => [
+				'account'                      => $this->account->get_cached_account_data(),
+				'default_statement_descriptor' => WC_Stripe_Helper::get_store_name_statement_descriptor(),
+				'testmode'                     => WC_Stripe_Mode::is_test(),
+				'webhook_status_code'          => WC_Stripe_Webhook_State::get_webhook_status_code(),
+				'webhook_status_message'       => WC_Stripe_Webhook_State::get_webhook_status_message(),
+				'webhook_url'                  => WC_Stripe_Helper::get_webhook_url(),
+				'configured_webhook_urls'      => WC_Stripe_Webhook_State::get_configured_webhook_urls(),
+				'is_webhook_enabled'           => $this->account->is_webhook_enabled(),
+				'oauth_connections'            => [
 					'test' => $this->get_account_oauth_connection_data( 'test' ),
 					'live' => $this->get_account_oauth_connection_data( 'live' ),
 				],
@@ -115,10 +116,13 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 	public function get_account_summary() {
 		$account = $this->account->get_cached_account_data();
 
-		// Use statement descriptor from settings, falling back to Stripe account statement descriptor if needed.
+		// Use statement descriptor from settings, falling back to Stripe account statement descriptor, then the store name.
 		$statement_descriptor = WC_Stripe_Helper::clean_statement_descriptor( $this->gateway->get_option( 'statement_descriptor' ) );
 		if ( empty( $statement_descriptor ) ) {
 			$statement_descriptor = $account['settings']['payments']['statement_descriptor'] ?? null;
+		}
+		if ( empty( $statement_descriptor ) ) {
+			$statement_descriptor = WC_Stripe_Helper::get_store_name_statement_descriptor();
 		}
 		if ( empty( $statement_descriptor ) ) {
 			$statement_descriptor = null;

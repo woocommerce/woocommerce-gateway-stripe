@@ -1855,6 +1855,35 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * @dataProvider provide_get_store_name_statement_descriptor
+	 * @covers WC_Stripe_Helper::get_store_name_statement_descriptor()
+	 */
+	public function test_get_store_name_statement_descriptor( $store_name, $expected ) {
+		update_option( 'blogname', $store_name );
+
+		$this->assertSame( $expected, WC_Stripe_Helper::get_store_name_statement_descriptor() );
+	}
+
+	/**
+	 * Data provider for {@see test_get_store_name_statement_descriptor()}.
+	 *
+	 * @return array
+	 */
+	public function provide_get_store_name_statement_descriptor(): array {
+		return [
+			'plain store name'             => [ 'My Woo Store', 'My Woo Store' ],
+			'decodes stored HTML entities' => [ 'Bob&#039;s &amp; Co', 'Bobs & Co' ],
+			'removes accents'              => [ 'Café Crème', 'Cafe Creme' ],
+			'collapses spaces'             => [ 'Test < Store', 'Test Store' ],
+			'truncates to 22 chars'        => [ 'The Very Long Store Name Shop', 'The Very Long Store Na' ],
+			'too short'                    => [ 'Shop', '' ],
+			'numbers only'                 => [ '123456', '' ],
+			'non-Latin only'               => [ 'ショップストア', '' ],
+			'empty'                        => [ '', '' ],
+		];
+	}
+
+	/**
 	 * Test that {@see WC_Stripe_Helper::is_webhook_url()} works as expected.
 	 *
 	 * @dataProvider is_webhook_url_provider
