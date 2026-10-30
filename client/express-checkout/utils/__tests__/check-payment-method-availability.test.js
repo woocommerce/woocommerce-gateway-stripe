@@ -91,9 +91,12 @@ describe( 'checkPaymentMethodIsAvailable', () => {
 		],
 		[ { applePay: true, googlePay: true }, [ true, true, false ] ],
 	] )(
-		'shares one in-flight probe and returns each wallet’s own availability (%j)',
+		'shares card-wallet availability across pending and completed amount updates (%j)',
 		async ( available, expected ) => {
 			const results = checkWallets();
+			const pendingUpdate = checkWallets(
+				hydratedCart( { total_price: '2000' } )
+			);
 			expect( createRoot ).toHaveBeenCalledTimes( 1 );
 			expect( api.loadStripe ).toHaveBeenCalledTimes( 1 );
 			expect( getRenderedElements().props.options ).toEqual( {
@@ -115,6 +118,12 @@ describe( 'checkPaymentMethodIsAvailable', () => {
 
 			ready( available );
 			expect( await Promise.all( results ) ).toEqual( expected );
+			expect( await Promise.all( pendingUpdate ) ).toEqual( expected );
+			expect(
+				await Promise.all(
+					checkWallets( hydratedCart( { total_price: '3000' } ) )
+				)
+			).toEqual( expected );
 			expect( await Promise.all( checkWallets() ) ).toEqual( expected );
 			expect( createRoot ).toHaveBeenCalledTimes( 1 );
 			await new Promise( ( resolve ) => setTimeout( resolve ) );
@@ -220,9 +229,28 @@ describe( 'checkPaymentMethodIsAvailable', () => {
 		}
 	);
 
+	it( 'reprobes Amazon Pay when the amount changes', async () => {
+		const first = checkPaymentMethodIsAvailable(
+			'amazonPay',
+			api,
+			hydratedCart()
+		);
+		ready( { amazonPay: true } );
+		expect( await first ).toBe( true );
+
+		const second = checkPaymentMethodIsAvailable(
+			'amazonPay',
+			api,
+			hydratedCart( { total_price: '2000' } )
+		);
+		expect( createRoot ).toHaveBeenCalledTimes( 2 );
+		expect( getRenderedElements( 1 ).props.options.amount ).toBe( 2000 );
+		ready( { amazonPay: false }, 1 );
+		expect( await second ).toBe( false );
+	} );
+
 	it.each( [
 		[ 'currency', () => hydratedCart( { currency_code: 'EUR' } ) ],
-		[ 'amount', () => hydratedCart( { total_price: '2000' } ) ],
 		[
 			'mode',
 			() => {
@@ -307,8 +335,13 @@ describe( 'checkPaymentMethodIsAvailable', () => {
 				false,
 			] );
 
-			const second = checkWallets();
+			const second = checkWallets(
+				hydratedCart( { total_price: '2000' } )
+			);
 			expect( createRoot ).toHaveBeenCalledTimes( 2 );
+			expect( getRenderedElements( 1 ).props.options.amount ).toBe(
+				2000
+			);
 			fail();
 			ready( { applePay: false } );
 			ready( { applePay: true, googlePay: true, link: true }, 1 );
