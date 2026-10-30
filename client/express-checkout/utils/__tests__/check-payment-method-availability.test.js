@@ -80,39 +80,48 @@ describe( 'checkPaymentMethodIsAvailable', () => {
 		}
 	);
 
-	it( 'shares one in-flight probe and returns each wallet’s own availability', async () => {
-		const results = checkWallets();
-		expect( createRoot ).toHaveBeenCalledTimes( 1 );
-		expect( api.loadStripe ).toHaveBeenCalledTimes( 1 );
-		expect( getRenderedElements().props.options ).toEqual( {
-			mode: 'payment',
-			paymentMethodCreation: 'manual',
-			amount: 1000,
-			currency: 'usd',
-			paymentMethodTypes: [ 'card', 'link' ],
-		} );
-		expect(
-			getRenderedExpressCheckoutElement().props.options.paymentMethods
-		).toEqual( {
-			applePay: 'always',
-			googlePay: 'always',
-			link: 'auto',
-			amazonPay: 'never',
-			paypal: 'never',
-		} );
+	it.each( [
+		[
+			{ applePay: true, googlePay: false, link: true },
+			[ true, false, true ],
+		],
+		[
+			{ applePay: true, googlePay: true, link: false },
+			[ true, true, false ],
+		],
+		[ { applePay: true, googlePay: true }, [ true, true, false ] ],
+	] )(
+		'shares one in-flight probe and returns each wallet’s own availability (%j)',
+		async ( available, expected ) => {
+			const results = checkWallets();
+			expect( createRoot ).toHaveBeenCalledTimes( 1 );
+			expect( api.loadStripe ).toHaveBeenCalledTimes( 1 );
+			expect( getRenderedElements().props.options ).toEqual( {
+				mode: 'payment',
+				paymentMethodCreation: 'manual',
+				amount: 1000,
+				currency: 'usd',
+				paymentMethodTypes: [ 'card', 'link' ],
+			} );
+			expect(
+				getRenderedExpressCheckoutElement().props.options.paymentMethods
+			).toEqual( {
+				applePay: 'always',
+				googlePay: 'always',
+				link: 'auto',
+				amazonPay: 'never',
+				paypal: 'never',
+			} );
 
-		ready( { applePay: true, googlePay: false, link: true } );
-		expect( await Promise.all( results ) ).toEqual( [ true, false, true ] );
-		expect( await Promise.all( checkWallets() ) ).toEqual( [
-			true,
-			false,
-			true,
-		] );
-		expect( createRoot ).toHaveBeenCalledTimes( 1 );
-		await new Promise( ( resolve ) => setTimeout( resolve ) );
-		expect( unmount ).toHaveBeenCalledTimes( 1 );
-		expect( document.body ).toBeEmptyDOMElement();
-	} );
+			ready( available );
+			expect( await Promise.all( results ) ).toEqual( expected );
+			expect( await Promise.all( checkWallets() ) ).toEqual( expected );
+			expect( createRoot ).toHaveBeenCalledTimes( 1 );
+			await new Promise( ( resolve ) => setTimeout( resolve ) );
+			expect( unmount ).toHaveBeenCalledTimes( 1 );
+			expect( document.body ).toBeEmptyDOMElement();
+		}
+	);
 
 	it.each( [ undefined, null, {}, { applePay: false } ] )(
 		'caches a successful probe with unavailable or missing wallets (%j)',
