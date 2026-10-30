@@ -87,6 +87,7 @@ jQuery( function ( $ ) {
 	let cartRevision = 0;
 	let cartRefreshPending = false;
 	let checkoutUpdating = false;
+	let checkoutRefreshFailed = false;
 	const isClassicCheckout =
 		getExpressCheckoutData( 'is_checkout_page' ) &&
 		! getExpressCheckoutData( 'is_pay_for_order' ) &&
@@ -191,6 +192,39 @@ jQuery( function ( $ ) {
 		hide: () => {
 			wcStripeECE.getElements().hide();
 			wcStripeECE.getButtonSeparator().hide();
+		},
+
+		clearCheckoutRefreshError: () => {
+			checkoutRefreshFailed = false;
+			$( '#wc-stripe-express-checkout-refresh-error' ).remove();
+		},
+
+		failCheckoutRefresh: () => {
+			checkoutRefreshFailed = true;
+			cartRefreshPending = true;
+			if ( wcStripeECE.paymentInFlight ) {
+				wcStripeECE.pendingRefresh = true;
+				return;
+			}
+			wcStripeECE.hide();
+			$( '#wc-stripe-express-checkout-refresh-error' ).remove();
+			const notice = $( '<div>', {
+				id: 'wc-stripe-express-checkout-refresh-error',
+				class: 'woocommerce-info',
+				role: 'alert',
+			} ).text(
+				__(
+					'Express checkout is unavailable because your order could not be updated. ',
+					'woocommerce-gateway-stripe'
+				)
+			);
+			$( '<button>', { type: 'button', class: 'button' } )
+				.text( __( 'Retry', 'woocommerce-gateway-stripe' ) )
+				.on( 'click', () =>
+					$( document.body ).trigger( 'update_checkout' )
+				)
+				.appendTo( notice );
+			notice.insertBefore( wcStripeECE.getElements() );
 		},
 
 		renderButton: ( eceButton, expressPaymentType ) => {
@@ -301,7 +335,10 @@ jQuery( function ( $ ) {
 
 			// Recover from a zero-total hide, but only if a group reported
 			// availability — otherwise the separator would linger empty.
-			if ( groups.some( ( group ) => group.available ) ) {
+			if (
+				! checkoutRefreshFailed &&
+				groups.some( ( group ) => group.available )
+			) {
 				wcStripeECE.show();
 				wcStripeECE.getButtonSeparator().show();
 			}
@@ -702,6 +739,10 @@ jQuery( function ( $ ) {
 				wcStripeECE.paymentAborted = true;
 				wcStripeECE.paymentInFlight = false;
 				onCancelHandler();
+				if ( checkoutRefreshFailed ) {
+					wcStripeECE.failCheckoutRefresh();
+					return;
+				}
 				// Apply an update deferred while the sheet was open.
 				if ( wcStripeECE.pendingRefresh ) {
 					wcStripeECE.pendingRefresh = false;
@@ -748,6 +789,7 @@ jQuery( function ( $ ) {
 				}
 				if (
 					! isVariationSelectionNeeded() &&
+					! checkoutRefreshFailed &&
 					group.available &&
 					( options.total > 0 ||
 						hasFreeTrial ||
@@ -935,6 +977,7 @@ jQuery( function ( $ ) {
 								parseInt( cart.totals.total_refund || 0, 10 ),
 							cart.totals
 						);
+						wcStripeECE.clearCheckoutRefreshError();
 
 						if (
 							total === 0 &&
@@ -966,7 +1009,9 @@ jQuery( function ( $ ) {
 					.catch( () => {
 						// Keep stale totals unpayable; the next checkout update retries.
 						if ( revision === cartRevision ) {
-							if ( wcStripeECE.paymentInFlight ) {
+							if ( isClassicCheckout ) {
+								wcStripeECE.failCheckoutRefresh();
+							} else if ( wcStripeECE.paymentInFlight ) {
 								wcStripeECE.pendingRefresh = true;
 							} else {
 								wcStripeECE.hide();
@@ -1176,7 +1221,9 @@ jQuery( function ( $ ) {
 			// result, so order errors must fail it too. A late call rejects an
 			// internal Stripe promise asynchronously, after the message is shown.
 			payment.paymentFailed( { reason: 'fail' } );
-			if ( isClassicCheckout && cartRefreshPending ) {
+			if ( checkoutRefreshFailed ) {
+				wcStripeECE.failCheckoutRefresh();
+			} else if ( isClassicCheckout && cartRefreshPending ) {
 				wcStripeECE.init();
 			}
 		},
@@ -1398,10 +1445,44 @@ jQuery( function ( $ ) {
 	);
 
 	if ( isClassicCheckout ) {
+		let latestCheckoutRequest;
+		// WooCommerce emits updated_checkout only on success. Observe the
+		// actual request so transport failures cannot leave a visible stale wallet.
+		$( document ).on( 'ajaxSend', ( event, request, settings ) => {
+			const url = new URL( settings.url, window.location.href );
+			if (
+				url.origin !== window.location.origin ||
+				url.searchParams.get( 'wc-ajax' ) !== 'update_order_review'
+			) {
+				return;
+			}
+			latestCheckoutRequest = request;
+			const revision = cartRevision;
+			request.fail( ( xhr, status ) => {
+				if (
+					status === 'abort' ||
+					status === 'canceled' ||
+					request !== latestCheckoutRequest ||
+					revision !== cartRevision
+				) {
+					return;
+				}
+				wcStripeECE.failCheckoutRefresh();
+			} );
+		} );
+		$( document.body ).on( 'checkout_error', () => {
+			if ( cartRefreshPending ) {
+				wcStripeECE.failCheckoutRefresh();
+			}
+		} );
 		$( document.body ).on( 'update_checkout', () => {
 			checkoutUpdating = true;
 			cartRefreshPending = true;
 			++cartRevision;
+			$( '#wc-stripe-express-checkout-refresh-error button' ).prop(
+				'disabled',
+				true
+			);
 		} );
 	}
 

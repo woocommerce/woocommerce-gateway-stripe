@@ -64,6 +64,44 @@ test.describe( 'customer can use Link express checkout', () => {
 		}
 	} );
 
+	test( 'recovers express checkout after update_order_review fails', async ( {
+		page,
+	} ) => {
+		await addProductToCart( page );
+		await page.goto( '/checkout-shortcode' );
+		await expect( await getLinkButton( page ) ).toBeVisible();
+		await page.route(
+			'**/*wc-ajax=update_order_review*',
+			( route ) => route.abort( 'failed' ),
+			{ times: 1 }
+		);
+		await page
+			.getByLabel( 'Postcode / ZIP', { exact: false } )
+			.fill( '90210' );
+		await page
+			.getByLabel( 'Postcode / ZIP', { exact: false } )
+			.press( 'Tab' );
+		const error = page.locator(
+			'#wc-stripe-express-checkout-refresh-error'
+		);
+		await expect( error ).toBeVisible();
+		await expect(
+			page.locator( '#wc-stripe-express-checkout-element' )
+		).toBeHidden();
+		const update = page.waitForResponse(
+			( response ) =>
+				response.url().includes( 'wc-ajax=update_order_review' ) &&
+				response.ok()
+		);
+		await error
+			.getByRole( 'button', { name: 'Retry', exact: true } )
+			.click();
+		await update;
+		await expect( error ).toHaveCount( 0 );
+		await expect( await getLinkButton( page ) ).toBeVisible();
+		await assertLinkModalLoads( page );
+	} );
+
 	test( 'inside the cart page (block)', async ( { page } ) => {
 		await addProductToCart( page );
 		await testLink( page, '/cart', true );

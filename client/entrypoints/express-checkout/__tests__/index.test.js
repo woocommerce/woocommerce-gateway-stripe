@@ -25,10 +25,10 @@ const flushPromises = async () => {
 // jQuery calls delegate to the real library so `.on()`/`.trigger()` still work.
 jest.mock( 'jquery', () => {
 	const actualJQuery = jest.requireActual( 'jquery' );
-	const syncReadyJQuery = ( arg ) =>
+	const syncReadyJQuery = ( arg, ...args ) =>
 		typeof arg === 'function'
 			? arg( syncReadyJQuery )
-			: actualJQuery( arg );
+			: actualJQuery( arg, ...args );
 	return Object.assign( syncReadyJQuery, actualJQuery );
 } );
 
@@ -1352,5 +1352,123 @@ describe( 'Classic checkout early initialization', () => {
 		loadEntrypoint();
 		expect( groups ).toHaveLength( 0 );
 		expect( mockGetCartDetails ).not.toHaveBeenCalled();
+	} );
+	const sendCheckoutRequest = ( url = '/?wc-ajax=update_order_review' ) => {
+		const request = jq.Deferred();
+		jq( document ).trigger( 'ajaxSend', [ request, { url } ] );
+		return request;
+	};
+
+	it( 'hides stale wallets after a failed checkout request and restores them after retry', async () => {
+		loadEntrypoint();
+		await ready( groups[ 0 ] );
+		trigger( 'update_checkout' );
+		sendCheckoutRequest().reject( {}, 'error' );
+		expect(
+			jq( '#wc-stripe-express-checkout-element' ).css( 'display' )
+		).toBe( 'none' );
+		expect(
+			jq( '#wc-stripe-express-checkout-refresh-error' ).text()
+		).toContain( 'Retry' );
+		await ready( groups[ 0 ] );
+		expect(
+			jq( '#wc-stripe-express-checkout-element' ).css( 'display' )
+		).toBe( 'none' );
+		const click = { resolve: jest.fn() };
+		await groups[ 0 ].button.emit( 'click', click );
+		expect( click.resolve ).not.toHaveBeenCalled();
+		const update = jest.fn();
+		jq( document.body ).on( 'update_checkout', update );
+		jq( '#wc-stripe-express-checkout-refresh-error button' ).trigger(
+			'click'
+		);
+		expect( update ).toHaveBeenCalledTimes( 1 );
+		trigger( 'updated_checkout' );
+		await settle();
+		expect(
+			jq( '#wc-stripe-express-checkout-refresh-error' )
+		).toHaveLength( 0 );
+		expect(
+			jq( '#wc-stripe-express-checkout-element' ).css( 'display' )
+		).not.toBe( 'none' );
+		expect( groups ).toHaveLength( 1 );
+		expect( groups[ 0 ].options.amount ).toBe( 2500 );
+		await groups[ 0 ].button.emit( 'click', click );
+		expect( click.resolve ).toHaveBeenCalledTimes( 1 );
+	} );
+
+	it.each( [ 'abort', 'canceled' ] )(
+		'ignores a canceled checkout request: %s',
+		async ( reason ) => {
+			loadEntrypoint();
+			await ready( groups[ 0 ] );
+			trigger( 'update_checkout' );
+			sendCheckoutRequest().reject( {}, reason );
+			expect(
+				jq( '#wc-stripe-express-checkout-refresh-error' )
+			).toHaveLength( 0 );
+		}
+	);
+
+	it( 'ignores unrelated and superseded request failures', async () => {
+		loadEntrypoint();
+		await ready( groups[ 0 ] );
+		trigger( 'update_checkout' );
+		sendCheckoutRequest( '/?wc-ajax=apply_coupon' ).reject( {}, 'error' );
+		const oldRequest = sendCheckoutRequest();
+		trigger( 'update_checkout' );
+		sendCheckoutRequest();
+		trigger( 'updated_checkout' );
+		await settle();
+		oldRequest.reject( {}, 'error' );
+		expect(
+			jq( '#wc-stripe-express-checkout-refresh-error' )
+		).toHaveLength( 0 );
+		expect(
+			jq( '#wc-stripe-express-checkout-element' ).css( 'display' )
+		).not.toBe( 'none' );
+	} );
+
+	it( 'preserves an open wallet when recalculation fails while keeping confirmation stale', async () => {
+		loadEntrypoint();
+		await ready( groups[ 0 ] );
+		await groups[ 0 ].button.emit( 'click', { resolve: jest.fn() } );
+		trigger( 'update_checkout' );
+		sendCheckoutRequest().reject( {}, 'error' );
+		expect( groups[ 0 ].button.destroy ).not.toHaveBeenCalled();
+		const event = { paymentFailed: jest.fn() };
+		await groups[ 0 ].button.emit( 'confirm', event );
+		expect( event.paymentFailed ).toHaveBeenCalled();
+	} );
+
+	it( 'keeps retry available when the fresh cart fetch fails', async () => {
+		loadEntrypoint();
+		await ready( groups[ 0 ] );
+		mockGetCartDetails.mockRejectedValueOnce( new Error( 'offline' ) );
+		trigger( 'updated_checkout' );
+		await settle();
+		expect(
+			jq( '#wc-stripe-express-checkout-refresh-error button' ).prop(
+				'disabled'
+			)
+		).toBe( false );
+		expect(
+			jq( '#wc-stripe-express-checkout-element' ).css( 'display' )
+		).toBe( 'none' );
+	} );
+
+	it( 'hides a stale wallet after checkout_error without treating time as fresh totals', async () => {
+		loadEntrypoint();
+		await ready( groups[ 0 ] );
+		trigger( 'update_checkout' );
+		trigger( 'checkout_error' );
+		await jest.advanceTimersByTimeAsync( 35000 );
+		const click = { resolve: jest.fn() };
+		await groups[ 0 ].button.emit( 'click', click );
+		expect( click.resolve ).not.toHaveBeenCalled();
+		expect( mockGetCartDetails ).not.toHaveBeenCalled();
+		expect(
+			jq( '#wc-stripe-express-checkout-element' ).css( 'display' )
+		).toBe( 'none' );
 	} );
 } );
