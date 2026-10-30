@@ -1385,6 +1385,22 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return false;
 		}
 
+		// Defer before the status guard and inline wallet branch so the job can refund or void it.
+		if (
+			$order->has_status( OrderStatus::CANCELLED )
+			&& in_array( $notification->type, [ 'payment_intent.succeeded', 'payment_intent.amount_capturable_updated' ], true )
+		) {
+			$this->resolved_order = $order;
+			$this->defer_webhook_processing(
+				$notification,
+				[
+					'order_id'  => $order->get_id(),
+					'intent_id' => $intent->id,
+				]
+			);
+			return true;
+		}
+
 		if ( ! $order->has_status(
 			/** This filter is documented in includes/class-wc-stripe-webhook-handler.php. */
 			apply_filters(
@@ -2082,8 +2098,16 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$intent = $this->get_intent_from_order( $order );
 
+		// Can't reverse without the order's own matching intent, so note it (with the id) for manual review.
 		if ( ! $intent || $intent->id !== $intent_id ) {
-			WC_Stripe_Logger::debug( "Skipped refunding cancelled order {$order->get_id()} for Stripe PaymentIntent {$intent_id} - intent ID stored on the order doesn't match." );
+			$order->add_order_note(
+				sprintf(
+					/* translators: %s: Stripe PaymentIntent ID. */
+					__( 'Stripe PaymentIntent %s succeeded for this cancelled order but could not be refunded automatically because it does not match the order\'s stored payment. Please refund or void it from the Stripe dashboard.', 'woocommerce-gateway-stripe' ),
+					$intent_id
+				)
+			);
+			WC_Stripe_Logger::warning( "Cancelled order {$order->get_id()} received a payment for {$intent_id} with no matching stored intent; left a manual-refund note." );
 			return;
 		}
 

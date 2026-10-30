@@ -536,6 +536,30 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A cancelled order with no matching stored intent is noted, not refunded by the event id.
+	 */
+	public function test_cancelled_order_refund_notes_when_no_matching_intent() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::CANCELLED );
+		$order->save();
+
+		list( $data, $notification ) = $this->build_deferred_intent_succeeded_payload( $order );
+
+		$this->mock_webhook_handler( [ 'handle_deferred_payment_for_cancelled_order' ] );
+
+		// No stored intent on the order.
+		$this->mock_webhook_handler->method( 'get_intent_from_order' )->willReturn( null );
+		$this->mock_webhook_handler->expects( $this->never() )->method( 'process_refund' );
+
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+
+		$updated_order = wc_get_order( $order->get_id() );
+		$this->assertEmpty( $updated_order->get_meta( self::META_REFUNDED_AFTER_CANCELLATION ) );
+		$this->assertOrderHasNoteContaining( $updated_order, 'could not be refunded automatically' );
+		$this->assertOrderHasNoteContaining( $updated_order, self::MOCK_PAYMENT_INTENT['id'] );
+	}
+
+	/**
 	 * The cancelled-order notes link both the PaymentIntent and the charge to the Stripe dashboard,
 	 * in the mode the intent itself was created in rather than the gateway's configured mode.
 	 *
@@ -602,6 +626,83 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'missing livemode falls back to test' => [ WC_Stripe_Intent_Status::SUCCEEDED, null, true, null, $test ],
 			'voided authorisation note is linked' => [ WC_Stripe_Intent_Status::REQUIRES_CAPTURE, false, false, WC_Stripe_Intent_Status::CANCELED, $test ],
 			'failed refund note is linked'        => [ WC_Stripe_Intent_Status::SUCCEEDED, false, new WP_Error( 'stripe_error', 'boom' ), null, $test ],
+		];
+	}
+
+	/**
+	 * A late payment on a cancelled order is deferred, including the wallet and BLIK types the old
+	 * code marked paid inline.
+	 *
+	 * @param string $type           The payment_intent event type.
+	 * @param string $payment_type   The order's stored Stripe UPE payment type, or '' for none.
+	 * @param bool   $allow_cancelled Whether a site filter adds cancelled to the allowed-processing statuses.
+	 * @dataProvider provide_cancelled_order_late_payment_events
+	 */
+	public function test_process_payment_intent_defers_late_payment_on_cancelled_order( string $type, string $payment_type, bool $allow_cancelled = false ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::CANCELLED );
+		$order->update_meta_data( '_stripe_intent_id', self::MOCK_PAYMENT_INTENT['id'] );
+		if ( '' !== $payment_type ) {
+			WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_payment_type( $order, $payment_type );
+		}
+		$order->save();
+
+		// With cancelled allowed, a wallet/BLIK event would be marked paid inline without the early return.
+		$allow_filter = static function ( $statuses ) {
+			$statuses[] = OrderStatus::CANCELLED;
+			return $statuses;
+		};
+		if ( $allow_cancelled ) {
+			add_filter( 'wc_stripe_allowed_payment_processing_statuses', $allow_filter );
+		}
+
+		$notification = (object) [
+			'type' => $type,
+			'data' => (object) [
+				'object' => (object) [
+					'id'     => self::MOCK_PAYMENT_INTENT['id'],
+					'object' => 'payment_intent',
+					'status' => WC_Stripe_Intent_Status::SUCCEEDED,
+				],
+			],
+		];
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'defer_webhook_processing' ] )
+			->getMock();
+		$handler->expects( $this->once() )
+			->method( 'defer_webhook_processing' )
+			->with(
+				$notification,
+				[
+					'order_id'  => $order->get_id(),
+					'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
+				]
+			);
+
+		try {
+			$result = $handler->process_payment_intent( $notification );
+		} finally {
+			remove_filter( 'wc_stripe_allowed_payment_processing_statuses', $allow_filter );
+		}
+
+		$this->assertTrue( $result, 'A late payment on a cancelled order must report itself as deferred.' );
+		$this->assertTrue( wc_get_order( $order->get_id() )->has_status( OrderStatus::CANCELLED ) );
+	}
+
+	/**
+	 * Data provider for test_process_payment_intent_defers_late_payment_on_cancelled_order.
+	 *
+	 * @return array
+	 */
+	public function provide_cancelled_order_late_payment_events(): array {
+		return [
+			'succeeded, no stored type'     => [ 'payment_intent.succeeded', '' ],
+			'amount_capturable_updated'     => [ 'payment_intent.amount_capturable_updated', '' ],
+			'succeeded wallet payment'      => [ 'payment_intent.succeeded', WC_Stripe_Payment_Methods::CASHAPP_PAY ],
+			'succeeded BLIK payment'        => [ 'payment_intent.succeeded', WC_Stripe_Payment_Methods::BLIK ],
+			// Inline paid-branch is only reachable when a site allows the cancelled status.
+			'wallet with cancelled allowed' => [ 'payment_intent.succeeded', WC_Stripe_Payment_Methods::CASHAPP_PAY, true ],
 		];
 	}
 
