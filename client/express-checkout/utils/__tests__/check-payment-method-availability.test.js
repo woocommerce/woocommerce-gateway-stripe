@@ -104,7 +104,6 @@ describe( 'checkPaymentMethodIsAvailable', () => {
 				paymentMethodCreation: 'manual',
 				amount: 1000,
 				currency: 'usd',
-				paymentMethodTypes: [ 'card', 'link' ],
 			} );
 			expect(
 				getRenderedExpressCheckoutElement().props.options.paymentMethods
@@ -114,6 +113,7 @@ describe( 'checkPaymentMethodIsAvailable', () => {
 				link: 'auto',
 				amazonPay: 'never',
 				paypal: 'never',
+				klarna: 'never',
 			} );
 
 			ready( available );
@@ -174,9 +174,9 @@ describe( 'checkPaymentMethodIsAvailable', () => {
 				method
 			]
 		).toBe( 'never' );
-		expect(
-			getRenderedElements().props.options.paymentMethodTypes
-		).toEqual( method === 'link' ? [ 'card' ] : [ 'card', 'link' ] );
+		expect( getRenderedElements().props.options ).not.toHaveProperty(
+			'paymentMethodTypes'
+		);
 		ready( { [ enabledMethod ]: true } );
 		expect( await result ).toBe( true );
 	} );
@@ -212,6 +212,7 @@ describe( 'checkPaymentMethodIsAvailable', () => {
 				googlePay: 'never',
 				link: 'never',
 				paypal: 'never',
+				klarna: 'never',
 			} );
 			expect( getRenderedElements().props.options ).toMatchObject( {
 				mode: hasFreeTrial ? 'subscription' : 'payment',
