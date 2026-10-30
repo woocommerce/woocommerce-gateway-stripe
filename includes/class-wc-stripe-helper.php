@@ -1209,7 +1209,7 @@ class WC_Stripe_Helper {
 	 * something the merchant typed with Stripe's rules in mind. So this is stricter than
 	 * clean_statement_descriptor(): only ASCII, 5 to 22 characters, and at least one letter.
 	 *
-	 * @since 11.1.0
+	 * @since x.x.x
 	 * @return string The descriptor, or an empty string when the store name cannot make a valid one.
 	 */
 	public static function get_store_name_statement_descriptor(): string {
