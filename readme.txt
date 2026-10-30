@@ -162,6 +162,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 11.1.0 - xxxx-xx-xx =
+* Update - Start express checkout button initialization earlier on classic checkout
 * Fix - Show the correct guidance when a subscription renewal fails because its Stripe mandate is invalid
 * Fix - Ensure retry with a saved payment method works after a declined Adaptive Pricing payment attempt on classic checkout
 * Fix - Ignore Checkout Session failure webhooks after an order switches to another payment gateway

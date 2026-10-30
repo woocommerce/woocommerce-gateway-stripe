@@ -35,6 +35,35 @@ test.describe( 'customer can use Link express checkout', () => {
 		await testLink( page, '/checkout-shortcode', false );
 	} );
 
+	test( 'discovers Link before the first classic checkout recalculation finishes', async ( {
+		page,
+	} ) => {
+		await addProductToCart( page );
+		let releaseCheckoutUpdate;
+		const checkoutUpdate = new Promise( ( resolve ) => {
+			releaseCheckoutUpdate = resolve;
+		} );
+		// Holding the response makes early discovery independent of server speed.
+		await page.route(
+			'**/*wc-ajax=update_order_review*',
+			async ( route ) => {
+				await checkoutUpdate;
+				await route.continue();
+			}
+		);
+		const updateRequest = page.waitForRequest( ( request ) =>
+			request.url().includes( 'wc-ajax=update_order_review' )
+		);
+		try {
+			await page.goto( '/checkout-shortcode' );
+			await updateRequest;
+			const linkButton = await getLinkButton( page );
+			await expect( linkButton ).toBeVisible();
+		} finally {
+			releaseCheckoutUpdate();
+		}
+	} );
+
 	test( 'inside the cart page (block)', async ( { page } ) => {
 		await addProductToCart( page );
 		await testLink( page, '/cart', true );

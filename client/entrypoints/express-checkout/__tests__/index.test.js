@@ -697,3 +697,569 @@ describe( 'Express Checkout group reuse on cart/checkout updates', () => {
 		expect( mockGetCartDetails ).toHaveBeenCalled();
 	} );
 } );
+
+describe( 'Classic checkout early initialization', () => {
+	let stripe;
+	let groups;
+	let params;
+	let jq;
+
+	const cartResponse = ( {
+		total = '2500',
+		currency = 'USD',
+		shipping = true,
+	} = {} ) => ( {
+		items: [
+			{
+				name: 'Updated product',
+				quantity: 1,
+				totals: { line_subtotal: '2000', currency_minor_unit: 2 },
+			},
+		],
+		totals: {
+			total_price: total,
+			total_shipping: shipping ? '500' : '0',
+			currency_code: currency,
+			currency_minor_unit: 2,
+		},
+		needs_shipping: shipping,
+	} );
+
+	const deferred = () => {
+		let resolve;
+		let reject;
+		const promise = new Promise( ( res, rej ) => {
+			resolve = res;
+			reject = rej;
+		} );
+		return { promise, resolve, reject };
+	};
+
+	const settle = () => jest.advanceTimersByTimeAsync( 0 );
+	const trigger = ( event ) => jq( document.body ).trigger( event );
+	const ready = ( group, available = true ) =>
+		group.button.emit( 'ready', {
+			availablePaymentMethods: available ? { googlePay: true } : null,
+		} );
+
+	beforeEach( () => {
+		jest.resetModules();
+		jest.useFakeTimers();
+		mockGetCartDetails.mockReset().mockResolvedValue( cartResponse() );
+		mockGetStripe.mockReset();
+		jq = require( 'jquery' );
+		global.jQuery = jq;
+		jq.blockUI = jest.fn();
+		jq.unblockUI = jest.fn();
+
+		const transformers = require( 'wcstripe/express-checkout/transformers/wc-to-stripe' );
+		const actualTransformers = jest.requireActual(
+			'wcstripe/express-checkout/transformers/wc-to-stripe'
+		);
+		Object.keys( transformers ).forEach( ( name ) => {
+			transformers[ name ].mockImplementation(
+				actualTransformers[ name ]
+			);
+		} );
+
+		groups = [];
+		stripe = {
+			elements: jest.fn( ( options ) => {
+				const handlers = {};
+				const button = {
+					on: jest.fn( ( event, handler ) => {
+						handlers[ event ] = [
+							...( handlers[ event ] ?? [] ),
+							handler,
+						];
+						return button;
+					} ),
+					emit: ( event, data ) =>
+						Promise.all(
+							handlers[ event ].map( ( handler ) =>
+								handler( data )
+							)
+						),
+					mount: jest.fn( ( selector ) => {
+						document.querySelector( selector ).innerHTML =
+							'<iframe></iframe>';
+					} ),
+					unmount: jest.fn(),
+					destroy: jest.fn(),
+				};
+				const group = {
+					button,
+					options: { ...options },
+					create: jest.fn( () => button ),
+					update: jest.fn( ( updates ) =>
+						Object.assign( group.options, updates )
+					),
+					submit: jest.fn().mockResolvedValue( {} ),
+				};
+				groups.push( group );
+				return group;
+			} ),
+		};
+		mockGetStripe.mockReturnValue( stripe );
+		params = {
+			...baseParams(),
+			is_cart_page: false,
+			is_checkout_page: true,
+			stripe: {
+				publishable_key: 'pk_test_123',
+				locale: 'en',
+				is_google_pay_enabled: true,
+			},
+			cart: {
+				total: 1500,
+				currency: 'usd',
+				requestShipping: true,
+				requestPhone: false,
+				displayItems: [ { label: 'Initial product', amount: 1500 } ],
+			},
+		};
+		global.wc_stripe_express_checkout_params = params;
+		document.body.innerHTML = `
+			<div id="wc-stripe-express-checkout-element" style="display:none"></div>
+			<div id="wc-stripe-express-checkout-button-separator" style="display:none"></div>`;
+	} );
+
+	afterEach( () => {
+		jest.useRealTimers();
+		delete global.wc_stripe_express_checkout_params;
+		delete global.wcStripeExpressCheckoutPayForOrderParams;
+	} );
+
+	it( 'creates separate wallet groups from the snapshot before updated_checkout', async () => {
+		params.stripe.is_apple_pay_enabled = true;
+		loadEntrypoint();
+		expect( groups ).toHaveLength( 2 );
+		expect( mockGetCartDetails ).not.toHaveBeenCalled();
+		await ready( groups[ 0 ] );
+		expect(
+			jq( '#wc-stripe-express-checkout-element' ).css( 'display' )
+		).not.toBe( 'none' );
+		expect( groups[ 0 ].options ).toMatchObject( {
+			amount: 1500,
+			currency: 'usd',
+		} );
+	} );
+
+	it.each( [ null, {}, { total: -1, currency: 'usd' }, { total: 1500 } ] )(
+		'fetches initial data without waiting for updated_checkout when the snapshot is invalid: %j',
+		async ( cart ) => {
+			params.cart = cart;
+			loadEntrypoint();
+			expect( mockGetCartDetails ).toHaveBeenCalledTimes( 1 );
+			expect( groups ).toHaveLength( 0 );
+			await settle();
+			expect( groups[ 0 ].options.amount ).toBe( 2500 );
+		}
+	);
+
+	it( 'reuses every group on the first update and refreshes click-time totals and shipping', async () => {
+		params.stripe.is_apple_pay_enabled = true;
+		loadEntrypoint();
+		trigger( 'updated_checkout' );
+		await settle();
+		expect( mockGetCartDetails ).toHaveBeenCalledTimes( 1 );
+		expect( groups ).toHaveLength( 2 );
+		for ( const group of groups ) {
+			expect( group.options.amount ).toBe( 2500 );
+			expect( group.button.mount ).toHaveBeenCalledTimes( 1 );
+			expect( group.button.destroy ).not.toHaveBeenCalled();
+			const event = { resolve: jest.fn() };
+			await group.button.emit( 'click', event );
+			expect( event.resolve ).toHaveBeenCalledWith(
+				expect.objectContaining( {
+					lineItems: [
+						{ name: 'Updated product', amount: 2000 },
+						{
+							key: 'total_shipping',
+							name: 'Shipping',
+							amount: 500,
+						},
+					],
+					shippingRates: [
+						{
+							id: 'rate-shipping',
+							displayName: 'Shipping',
+							amount: 500,
+						},
+					],
+					shippingAddressRequired: true,
+				} )
+			);
+			await group.button.emit( 'cancel' );
+		}
+	} );
+
+	it.each( [ true, false ] )(
+		'discards an older initialization response (old response first: %s)',
+		async ( olderFirst ) => {
+			params.cart = null;
+			const initial = deferred();
+			const updated = deferred();
+			mockGetCartDetails
+				.mockReturnValueOnce( initial.promise )
+				.mockReturnValueOnce( updated.promise );
+			loadEntrypoint();
+			trigger( 'updated_checkout' );
+			if ( olderFirst ) {
+				initial.resolve(
+					cartResponse( {
+						total: '1000',
+						currency: 'EUR',
+						shipping: false,
+					} )
+				);
+				await settle();
+			}
+			expect( groups ).toHaveLength( 0 );
+			updated.resolve( cartResponse() );
+			await settle();
+			initial.resolve(
+				cartResponse( {
+					total: '1000',
+					currency: 'EUR',
+					shipping: false,
+				} )
+			);
+			await settle();
+			expect( groups ).toHaveLength( 1 );
+			expect( groups[ 0 ].options ).toMatchObject( {
+				amount: 2500,
+				currency: 'usd',
+			} );
+			expect( groups[ 0 ].button.destroy ).not.toHaveBeenCalled();
+		}
+	);
+
+	it( 'invalidates a pending response as soon as another checkout recalculation starts', async () => {
+		const previous = deferred();
+		mockGetCartDetails.mockReturnValueOnce( previous.promise );
+		loadEntrypoint();
+		trigger( 'updated_checkout' );
+		trigger( 'update_checkout' );
+		previous.resolve( cartResponse() );
+		await settle();
+		expect( groups[ 0 ].update ).not.toHaveBeenCalled();
+		trigger( 'updated_checkout' );
+		await jest.advanceTimersByTimeAsync( 300 );
+		expect( groups[ 0 ].options.amount ).toBe( 2500 );
+	} );
+
+	it( 'invalidates a response during the debounce window before the next fetch starts', async () => {
+		const previous = deferred();
+		mockGetCartDetails.mockReturnValueOnce( previous.promise );
+		loadEntrypoint();
+		trigger( 'updated_checkout' );
+		trigger( 'updated_checkout' );
+		previous.resolve( cartResponse( { total: '1000' } ) );
+		await settle();
+		expect( mockGetCartDetails ).toHaveBeenCalledTimes( 1 );
+		expect( groups[ 0 ].update ).not.toHaveBeenCalled();
+		await jest.advanceTimersByTimeAsync( 300 );
+		expect( mockGetCartDetails ).toHaveBeenCalledTimes( 2 );
+		expect( groups[ 0 ].options.amount ).toBe( 2500 );
+	} );
+
+	it.each( [ 'currency', 'shipping' ] )(
+		'rebuilds cleanly when the first update changes %s',
+		async ( change ) => {
+			loadEntrypoint();
+			mockGetCartDetails.mockResolvedValue(
+				cartResponse( {
+					currency: change === 'currency' ? 'EUR' : 'USD',
+					shipping: change !== 'shipping',
+				} )
+			);
+			trigger( 'updated_checkout' );
+			await settle();
+			expect( groups ).toHaveLength( 2 );
+			expect( groups[ 0 ].button.destroy ).toHaveBeenCalledTimes( 1 );
+			expect(
+				document.querySelectorAll(
+					'#wc-stripe-express-checkout-element > div'
+				)
+			).toHaveLength( 1 );
+			expect( groups[ 1 ].options.currency ).toBe(
+				change === 'currency' ? 'eur' : 'usd'
+			);
+		}
+	);
+
+	it( 'keeps an unavailable wallet and the separator hidden after the first update', async () => {
+		loadEntrypoint();
+		await ready( groups[ 0 ], false );
+		trigger( 'updated_checkout' );
+		await settle();
+		expect( groups ).toHaveLength( 1 );
+		expect( groups[ 0 ].button.mount ).toHaveBeenCalledTimes( 1 );
+		expect(
+			jq( '#wc-stripe-express-checkout-button-separator' ).css(
+				'display'
+			)
+		).toBe( 'none' );
+	} );
+
+	it( 'does not initialize a zero-total cart without a free trial', () => {
+		params.cart.total = 0;
+		loadEntrypoint();
+		expect( groups ).toHaveLength( 0 );
+	} );
+
+	it.each( [
+		[ 'is_product_page', true ],
+		[ 'is_product_page', false ],
+		[ 'is_pay_for_order', true ],
+		[ 'is_pay_for_order', false ],
+		[ 'is_change_payment_method', true ],
+		[ 'is_change_payment_method', false ],
+	] )(
+		'preserves zero-total ready visibility for %s (wallet available: %s)',
+		async ( context, available ) => {
+			params[ context ] = true;
+			params.is_checkout_page = context !== 'is_product_page';
+			if ( context === 'is_product_page' ) {
+				params.product = {
+					total: { amount: 0 },
+					currency: 'usd',
+					requestShipping: false,
+					displayItems: [],
+				};
+			} else if ( context === 'is_pay_for_order' ) {
+				global.wcStripeExpressCheckoutPayForOrderParams = {
+					total: { amount: 0 },
+					currency: 'usd',
+					displayItems: [],
+					order: 123,
+					orderDetails: {
+						orderKey: 'wc_order_test',
+						billingEmail: 'customer@example.com',
+					},
+				};
+			}
+
+			loadEntrypoint();
+			expect( groups ).toHaveLength( 1 );
+			await ready( groups[ 0 ], available );
+			for ( const selector of [
+				'#wc-stripe-express-checkout-element',
+				'#wc-stripe-express-checkout-button-separator',
+			] ) {
+				expect( jq( selector ).css( 'display' ) !== 'none' ).toBe(
+					available
+				);
+			}
+		}
+	);
+
+	it( 'initializes a zero-total free trial in subscription mode', async () => {
+		params.cart.total = 0;
+		params.has_free_trial = true;
+		loadEntrypoint();
+		expect( groups ).toHaveLength( 1 );
+		expect( groups[ 0 ].options ).toMatchObject( {
+			amount: 0,
+			mode: 'subscription',
+		} );
+		await ready( groups[ 0 ] );
+		expect(
+			jq( '#wc-stripe-express-checkout-element' ).css( 'display' )
+		).not.toBe( 'none' );
+	} );
+
+	it( 'does not let a late ready event reveal a zero-total cart and reuses it when payable again', async () => {
+		loadEntrypoint();
+		mockGetCartDetails.mockResolvedValueOnce(
+			cartResponse( { total: '0' } )
+		);
+		trigger( 'updated_checkout' );
+		await settle();
+		await ready( groups[ 0 ] );
+		expect(
+			jq( '#wc-stripe-express-checkout-element' ).css( 'display' )
+		).toBe( 'none' );
+		expect(
+			jq( '#wc-stripe-express-checkout-button-separator' ).css(
+				'display'
+			)
+		).toBe( 'none' );
+		trigger( 'updated_checkout' );
+		await jest.advanceTimersByTimeAsync( 300 );
+		expect( groups ).toHaveLength( 1 );
+		expect( groups[ 0 ].options.amount ).toBe( 2500 );
+		expect(
+			jq( '#wc-stripe-express-checkout-element' ).css( 'display' )
+		).not.toBe( 'none' );
+	} );
+
+	it( 'does not resolve a click until checkout recalculation and its cart refresh finish', async () => {
+		loadEntrypoint();
+		const update = deferred();
+		mockGetCartDetails.mockReturnValueOnce( update.promise );
+		const event = { resolve: jest.fn() };
+		trigger( 'update_checkout' );
+		await groups[ 0 ].button.emit( 'click', event );
+		expect( event.resolve ).not.toHaveBeenCalled();
+		trigger( 'updated_checkout' );
+		await groups[ 0 ].button.emit( 'click', event );
+		expect( event.resolve ).not.toHaveBeenCalled();
+		update.resolve( cartResponse() );
+		await settle();
+		await groups[ 0 ].button.emit( 'click', event );
+		expect( event.resolve ).toHaveBeenCalledTimes( 1 );
+	} );
+
+	it( 'defers the first update while a wallet is open and refreshes on cancel', async () => {
+		loadEntrypoint();
+		await groups[ 0 ].button.emit( 'click', { resolve: jest.fn() } );
+		trigger( 'updated_checkout' );
+		await settle();
+		expect( mockGetCartDetails ).not.toHaveBeenCalled();
+		expect( groups[ 0 ].button.destroy ).not.toHaveBeenCalled();
+		await groups[ 0 ].button.emit( 'cancel' );
+		await settle();
+		expect( groups ).toHaveLength( 1 );
+		expect( groups[ 0 ].options.amount ).toBe( 2500 );
+	} );
+
+	it( 'fails confirmation when checkout changed under the open wallet, then refreshes for retry', async () => {
+		loadEntrypoint();
+		await groups[ 0 ].button.emit( 'click', { resolve: jest.fn() } );
+		trigger( 'updated_checkout' );
+		const event = { paymentFailed: jest.fn() };
+		await groups[ 0 ].button.emit( 'confirm', event );
+		expect( event.paymentFailed ).toHaveBeenCalledWith( {
+			reason: 'fail',
+		} );
+		expect(
+			require( 'wcstripe/express-checkout/event-handler' )
+				.onConfirmHandler
+		).not.toHaveBeenCalled();
+		await settle();
+		expect( groups[ 0 ].options.amount ).toBe( 2500 );
+	} );
+
+	it( 'keeps a failed refresh unpayable and recovers on the next update', async () => {
+		loadEntrypoint();
+		mockGetCartDetails.mockRejectedValueOnce(
+			new Error( 'Network error' )
+		);
+		trigger( 'updated_checkout' );
+		await settle();
+		const event = { resolve: jest.fn() };
+		await groups[ 0 ].button.emit( 'click', event );
+		expect( event.resolve ).not.toHaveBeenCalled();
+		trigger( 'updated_checkout' );
+		await jest.advanceTimersByTimeAsync( 300 );
+		await groups[ 0 ].button.emit( 'click', event );
+		expect( event.resolve ).toHaveBeenCalledTimes( 1 );
+	} );
+
+	it( 'submits the reused Elements and current wallet payment data after the first update', async () => {
+		const handlers = require( 'wcstripe/express-checkout/event-handler' );
+		const actualHandlers = jest.requireActual(
+			'wcstripe/express-checkout/event-handler'
+		);
+		handlers.onConfirmHandler.mockImplementation( ( options ) =>
+			actualHandlers.onConfirmHandler( {
+				...options,
+				completePayment: jest.fn(),
+			} )
+		);
+		loadEntrypoint();
+		const api = require( '../../../api' ).mock.results[ 0 ].value;
+		api.expressCheckoutNormalizeAddress = jest.fn().mockResolvedValue( {} );
+		api.expressCheckoutECECreateOrder = jest.fn().mockResolvedValue( {
+			payment_result: {
+				payment_status: 'success',
+				redirect_url: '/order-received/',
+			},
+		} );
+		api.confirmIntent = jest.fn().mockReturnValue( true );
+		stripe.createPaymentMethod = jest
+			.fn()
+			.mockResolvedValue( { paymentMethod: { id: 'pm_current' } } );
+
+		trigger( 'updated_checkout' );
+		await settle();
+		await groups[ 0 ].button.emit( 'click', { resolve: jest.fn() } );
+		const event = {
+			expressPaymentType: 'google_pay',
+			billingDetails: {
+				name: 'Current Shopper',
+				email: 'current@example.test',
+				address: {
+					country: 'US',
+					postal_code: '10001',
+					line1: 'Current billing address',
+				},
+			},
+			shippingAddress: {
+				name: 'Current Shopper',
+				address: {
+					country: 'US',
+					postal_code: '10002',
+					line1: 'Current shipping address',
+				},
+			},
+			paymentFailed: jest.fn(),
+		};
+		await groups[ 0 ].button.emit( 'confirm', event );
+		expect( groups ).toHaveLength( 1 );
+		expect( groups[ 0 ].options ).toMatchObject( {
+			amount: 2500,
+			currency: 'usd',
+		} );
+		expect( groups[ 0 ].submit ).toHaveBeenCalledTimes( 1 );
+		expect( stripe.createPaymentMethod ).toHaveBeenCalledWith( {
+			elements: groups[ 0 ],
+		} );
+		expect( api.expressCheckoutECECreateOrder ).toHaveBeenCalledWith(
+			expect.objectContaining( {
+				billing_address: expect.objectContaining( {
+					email: 'current@example.test',
+					address_1: 'Current billing address',
+				} ),
+				shipping_address: expect.objectContaining( {
+					address_1: 'Current shipping address',
+					postcode: '10002',
+				} ),
+				payment_data: expect.arrayContaining( [
+					{ key: 'wc-stripe-payment-method', value: 'pm_current' },
+					{ key: 'express_payment_type', value: 'google_pay' },
+				] ),
+			} )
+		);
+		expect( event.paymentFailed ).not.toHaveBeenCalled();
+	} );
+
+	it( 'does not apply an outstanding cart response to an open wallet', async () => {
+		params.is_checkout_page = false;
+		params.is_cart_page = true;
+		const previous = deferred();
+		mockGetCartDetails.mockReturnValueOnce( previous.promise );
+		loadEntrypoint();
+		trigger( 'updated_cart_totals' );
+		await groups[ 0 ].button.emit( 'click', { resolve: jest.fn() } );
+		previous.resolve(
+			cartResponse( { currency: 'EUR', shipping: false } )
+		);
+		await settle();
+		expect( groups ).toHaveLength( 1 );
+		expect( groups[ 0 ].update ).not.toHaveBeenCalled();
+		expect( groups[ 0 ].button.destroy ).not.toHaveBeenCalled();
+		await groups[ 0 ].button.emit( 'cancel' );
+		await settle();
+		expect( groups[ 0 ].options.amount ).toBe( 2500 );
+	} );
+
+	it( 'does not initialize the classic entrypoint on Blocks checkout', () => {
+		params.has_block = true;
+		loadEntrypoint();
+		expect( groups ).toHaveLength( 0 );
+		expect( mockGetCartDetails ).not.toHaveBeenCalled();
+	} );
+} );
