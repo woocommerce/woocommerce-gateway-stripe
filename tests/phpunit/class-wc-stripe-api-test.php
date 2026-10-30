@@ -258,6 +258,107 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @dataProvider provide_unsafe_api_paths
+	 */
+	public function test_request_refuses_unsafe_path_without_api_call( string $api ) {
+		$request_count = 0;
+
+		$count_filter = function () use ( &$request_count ) {
+			++$request_count;
+			return $this->mock_successful_response();
+		};
+		add_filter( 'pre_http_request', $count_filter );
+
+		$caught = null;
+		try {
+			WC_Stripe_API::request( [], $api, 'GET' );
+		} catch ( \WC_Stripe_Exception $e ) {
+			$caught = $e;
+		} finally {
+			remove_filter( 'pre_http_request', $count_filter );
+		}
+
+		$this->assertInstanceOf( \WC_Stripe_Exception::class, $caught );
+		$this->assertSame( 0, $request_count );
+	}
+
+	/**
+	 * @dataProvider provide_unsafe_api_paths
+	 */
+	public function test_retrieve_refuses_unsafe_path_without_api_call( string $api ) {
+		$request_count = 0;
+
+		$count_filter = function () use ( &$request_count ) {
+			++$request_count;
+			return $this->mock_successful_response();
+		};
+		add_filter( 'pre_http_request', $count_filter );
+
+		try {
+			$result = WC_Stripe_API::retrieve( $api );
+		} finally {
+			remove_filter( 'pre_http_request', $count_filter );
+		}
+
+		$this->assertWPError( $result );
+		$this->assertSame( 0, $request_count );
+	}
+
+	/**
+	 * @return array<string, array{string}>
+	 */
+	public function provide_unsafe_api_paths(): array {
+		return [
+			'fragment'                 => [ 'payment_intents/pi_123#' ],
+			'fragment after traversal' => [ 'payment_intents/../coupons/SOME-ID#' ],
+			'leading traversal'        => [ '../coupons/SOME-ID' ],
+			'traversal before query'   => [ 'payment_intents/../coupons/SOME-ID?expand[]=x' ],
+			'trailing traversal'       => [ 'payment_intents/pi_123/..' ],
+			'encoded traversal'        => [ 'payment_intents/%2E%2e/coupons/SOME-ID' ],
+			'encoded separators'       => [ 'payment_intents/pi_123%2f..%2fcoupons' ],
+			'backslash separators'     => [ 'payment_intents\\..\\coupons' ],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_safe_api_paths
+	 */
+	public function test_safe_paths_reach_stripe( string $api ) {
+		$request_count = 0;
+
+		$count_filter = function () use ( &$request_count ) {
+			++$request_count;
+			return $this->mock_successful_response();
+		};
+		add_filter( 'pre_http_request', $count_filter );
+
+		try {
+			WC_Stripe_API::request( [], $api, 'GET' );
+			WC_Stripe_API::retrieve( $api );
+		} finally {
+			remove_filter( 'pre_http_request', $count_filter );
+		}
+
+		$this->assertSame( 2, $request_count );
+	}
+
+	/**
+	 * @return array<string, array{string}>
+	 */
+	public function provide_safe_api_paths(): array {
+		return [
+			'plain resource'        => [ 'webhook_endpoints' ],
+			'object id'             => [ 'payment_intents/pi_123' ],
+			'expand query'          => [ 'setup_intents/seti_123?expand[]=payment_method&expand[]=latest_attempt' ],
+			'list query'            => [ 'checkout/sessions?payment_intent=pi_123&limit=1' ],
+			'nested path'           => [ 'balance/history/txn_123' ],
+			'url-encoded id'        => [ 'terminal/locations/tml_123%20' ],
+			'dots inside a segment' => [ 'payment_intents/pi..123' ],
+			'dots in query value'   => [ 'customers/search?query=a/../b' ],
+		];
+	}
+
+	/**
 	 * Test WC_Stripe_API::log_error_response() as called from WC_Stripe_API::request() and WC_Stripe_API::retrieve().
 	 *
 	 * @param array|WP_Error $response     The mock response.

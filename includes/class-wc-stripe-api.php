@@ -211,6 +211,11 @@ class WC_Stripe_API {
 	 * @throws WC_Stripe_Exception
 	 */
 	public static function request( $request, $api = 'charges', $method = 'POST', $with_headers = false ) {
+		if ( ! self::is_safe_api_path( $api ) ) {
+			WC_Stripe_Logger::error( 'Stripe API request refused: unsafe path.', [ 'api' => $api ] );
+			throw new WC_Stripe_Exception( 'Unsafe Stripe API path.', __( 'There was a problem sending a request to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
+		}
+
 		$headers = self::get_headers();
 
 		/**
@@ -320,6 +325,28 @@ class WC_Stripe_API {
 	}
 
 	/**
+	 * Checks that a Stripe API path can't leave the endpoint it was built for.
+	 *
+	 * This is a last line of defense for ids concatenated into paths, not a replacement for validating
+	 * them at the call site: a crafted id with extra path segments (`pi_123/cancel`) still passes.
+	 * The query string is allowed because many paths use `?expand[]=`, and dot segments are only
+	 * looked for before it because a query value can't change the target.
+	 *
+	 * @param mixed $api The Stripe API path.
+	 * @return bool
+	 */
+	private static function is_safe_api_path( $api ): bool {
+		if ( ! is_string( $api ) || false !== strpos( $api, '#' ) ) {
+			return false;
+		}
+
+		$path = explode( '?', $api, 2 )[0];
+
+		// Encoded forms count because a proxy in front of the API may decode them before routing.
+		return 1 !== preg_match( '~(?:^|/|\\\\|%2f|%5c)(?:\.|%2e){2}(?:$|/|\\\\|%2f|%5c)~i', $path );
+	}
+
+	/**
 	 * Retrieve API endpoint.
 	 *
 	 * @since 4.0.0
@@ -327,6 +354,11 @@ class WC_Stripe_API {
 	 * @param string $api
 	 */
 	public static function retrieve( $api ) {
+		if ( ! self::is_safe_api_path( $api ) ) {
+			WC_Stripe_Logger::error( 'Stripe API request refused: unsafe path.', [ 'api' => $api ] );
+			return new WP_Error( 'stripe_error', __( 'There was a problem retrieving data from the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
+		}
+
 		// If keep count of consecutive 401 errors, and it exceeds INVALID_API_KEY_ERROR_COUNT_THRESHOLD,
 		// we return null until the cache expires (INVALID_API_KEY_ERROR_COUNT_CACHE_TIMEOUT) or the keys are updated.
 		$invalid_api_key_error_count = WC_Stripe_Database_Cache::get( self::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
