@@ -2097,18 +2097,15 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		// get_order_from_intent() can resolve the order from the event's signed metadata without a
-		// stored intent id, so fall back to the verified event intent instead of skipping the reversal.
 		$intent = $this->get_intent_from_order( $order );
-		if ( ! $intent || $intent->id !== $intent_id ) {
-			$intent = WC_Stripe_API::retrieve( "payment_intents/$intent_id" );
-		}
 
-		if ( ! is_object( $intent ) || ! empty( $intent->error ) || ( $intent->id ?? '' ) !== $intent_id ) {
-			// Don't acknowledge silently: that would leave a captured payment on the cancelled order.
-			// Note it for the merchant and rethrow so Action Scheduler retries the reversal.
-			$order->add_order_note( __( 'A Stripe payment on this cancelled order could not be refunded automatically because its PaymentIntent could not be retrieved. Please refund or void it from the Stripe dashboard.', 'woocommerce-gateway-stripe' ) );
-			throw new WC_Stripe_Exception( "Could not retrieve PaymentIntent $intent_id to reverse the payment on cancelled order {$order->get_id()}." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		// The id match is an ownership check, and process_refund() recovers the charge from the order's
+		// own stored intent, so a mismatch or missing intent cannot be reversed by the event id alone.
+		// Leave a merchant-facing note instead of acknowledging the payment silently.
+		if ( ! $intent || $intent->id !== $intent_id ) {
+			$order->add_order_note( __( 'A Stripe payment on this cancelled order could not be refunded automatically because the order has no matching PaymentIntent. Please refund or void it from the Stripe dashboard.', 'woocommerce-gateway-stripe' ) );
+			WC_Stripe_Logger::warning( "Cancelled order {$order->get_id()} received a payment for {$intent_id} with no matching stored intent; left a manual-refund note." );
+			return;
 		}
 
 		// Idempotency: Action Scheduler can retry this job, and issuing a refund twice would

@@ -536,13 +536,11 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * When the order was resolved from the event's signed metadata and has no stored intent id, the
-	 * handler falls back to the verified event intent and still refunds the cancelled order.
-	 *
-	 * @since x.x.x
-	 * @return void
+	 * When the cancelled order has no matching stored intent (resolved from the event's signed
+	 * metadata), the handler leaves a merchant-facing note instead of silently acknowledging the
+	 * payment, and does not refund by the event id alone.
 	 */
-	public function test_cancelled_order_refund_falls_back_to_event_intent_without_stored_intent() {
+	public function test_cancelled_order_refund_notes_when_no_matching_intent() {
 		$order = WC_Helper_Order::create_order();
 		$order->set_status( OrderStatus::CANCELLED );
 		$order->save();
@@ -551,102 +549,15 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$this->mock_webhook_handler( [ 'handle_deferred_payment_for_cancelled_order' ] );
 
-		// No intent stored on the order: get_intent_from_order() finds nothing.
+		// The order has no stored intent, so get_intent_from_order() finds nothing.
 		$this->mock_webhook_handler->method( 'get_intent_from_order' )->willReturn( null );
-
-		// The verified event intent is retrieved from Stripe by its id instead.
-		$called = false;
-		$stub   = $this->stub_payment_intent_retrieve( self::MOCK_PAYMENT_INTENT['id'], (object) self::MOCK_PAYMENT_INTENT, $called );
-		add_filter( 'pre_http_request', $stub, 10, 3 );
-
-		$charge = (object) array_merge(
-			self::MOCK_PAYMENT_INTENT['charges']['data'][0],
-			[
-				'amount'          => 1000,
-				'amount_refunded' => 0,
-			]
-		);
-		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
-
-		$this->mock_webhook_handler->expects( $this->once() )->method( 'process_refund' )->willReturn( true );
-
-		try {
-			$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
-		} finally {
-			remove_filter( 'pre_http_request', $stub, 10 );
-		}
-
-		$this->assertTrue( $called );
-		$updated_order = wc_get_order( $order->get_id() );
-		$this->assertEquals( 'yes', $updated_order->get_meta( self::META_REFUNDED_AFTER_CANCELLATION ) );
-		$this->assertOrderHasNoteContaining( $updated_order, 'automatically refunded' );
-	}
-
-	/**
-	 * When neither the order nor Stripe yields the intent, the handler notes the order for manual
-	 * review and throws so Action Scheduler retries, rather than silently leaving the payment.
-	 *
-	 * @since x.x.x
-	 * @return void
-	 */
-	public function test_cancelled_order_refund_notes_and_retries_when_intent_unavailable() {
-		$order = WC_Helper_Order::create_order();
-		$order->set_status( OrderStatus::CANCELLED );
-		$order->save();
-
-		list( $data, $notification ) = $this->build_deferred_intent_succeeded_payload( $order );
-
-		$this->mock_webhook_handler( [ 'handle_deferred_payment_for_cancelled_order' ] );
-		$this->mock_webhook_handler->method( 'get_intent_from_order' )->willReturn( null );
-
-		// Stripe cannot resolve the intent either.
-		$stub = $this->stub_payment_intent_retrieve( self::MOCK_PAYMENT_INTENT['id'], (object) [ 'error' => (object) [ 'message' => 'No such payment_intent' ] ] );
-		add_filter( 'pre_http_request', $stub, 10, 3 );
-
 		$this->mock_webhook_handler->expects( $this->never() )->method( 'process_refund' );
 
-		$threw = false;
-		try {
-			$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
-		} catch ( Exception $e ) {
-			$threw = true;
-		} finally {
-			remove_filter( 'pre_http_request', $stub, 10 );
-		}
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
 
-		$this->assertTrue( $threw );
 		$updated_order = wc_get_order( $order->get_id() );
 		$this->assertEmpty( $updated_order->get_meta( self::META_REFUNDED_AFTER_CANCELLATION ) );
 		$this->assertOrderHasNoteContaining( $updated_order, 'could not be refunded automatically' );
-	}
-
-	/**
-	 * Builds a pre_http_request stub that returns the given object for a retrieve of the named PaymentIntent.
-	 *
-	 * @since x.x.x
-	 *
-	 * @param string $intent_id     The PaymentIntent id the handler retrieves.
-	 * @param object $return_object The decoded object to return as the API response body.
-	 * @param bool   $called        Set to true when the retrieve endpoint is hit.
-	 * @return callable
-	 */
-	private function stub_payment_intent_retrieve( string $intent_id, $return_object, &$called = false ) {
-		return function ( $return_value, $parsed_args, $url ) use ( $intent_id, $return_object, &$called ) {
-			if ( WC_Stripe_API::ENDPOINT . 'payment_intents/' . $intent_id !== $url ) {
-				return $return_value;
-			}
-			$called = true;
-			return [
-				'headers'  => [],
-				'body'     => wp_json_encode( $return_object ),
-				'response' => [
-					'code'    => 200,
-					'message' => 'OK',
-				],
-				'cookies'  => [],
-				'filename' => null,
-			];
-		};
 	}
 
 	/**
@@ -724,8 +635,6 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 * Includes the wallet and BLIK types that took the inline process_response() branch, which is the
 	 * path the old code used to mark a cancelled order paid.
 	 *
-	 * @since x.x.x
-	 *
 	 * @param string $type           The payment_intent event type.
 	 * @param string $payment_type   The order's stored Stripe UPE payment type, or '' for none.
 	 * @param bool   $allow_cancelled Whether a site filter adds cancelled to the allowed-processing statuses.
@@ -788,8 +697,6 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 	/**
 	 * Data provider for test_process_payment_intent_defers_late_payment_on_cancelled_order.
-	 *
-	 * @since x.x.x
 	 *
 	 * @return array
 	 */
