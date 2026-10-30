@@ -69,7 +69,7 @@ const probePaymentMethods = ( api, elementsOptions, paymentMethods ) =>
 		const containerEl = document.createElement( 'div' );
 		containerEl.style.display = 'none';
 		document.body.appendChild( containerEl );
-		const root = createRoot( containerEl );
+		let root;
 		let settled = false;
 
 		const settleProbe = ( availablePaymentMethods ) => {
@@ -82,13 +82,14 @@ const probePaymentMethods = ( api, elementsOptions, paymentMethods ) =>
 			// React can report readiness or a render error during its commit
 			// phase, when synchronously unmounting another root is unsafe.
 			setTimeout( () => {
-				root.unmount();
+				root?.unmount();
 				containerEl.remove();
 			} );
 		};
 		const failProbe = () => settleProbe( null );
 
 		try {
+			root = createRoot( containerEl );
 			root.render(
 				<ProbeErrorBoundary onError={ failProbe }>
 					<Elements

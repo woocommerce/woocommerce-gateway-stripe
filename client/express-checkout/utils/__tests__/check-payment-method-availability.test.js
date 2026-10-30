@@ -327,6 +327,45 @@ describe( 'checkPaymentMethodIsAvailable', () => {
 		expect( unmount ).toHaveBeenCalledTimes( 1 );
 	} );
 
+	it( 'retries after a synchronous React root initialization failure', async () => {
+		createRoot.mockImplementationOnce( () => {
+			throw new Error( 'React root could not initialize' );
+		} );
+		const first = checkWallets();
+		const failedContainer = createRoot.mock.calls[ 0 ][ 0 ];
+		expect( createRoot ).toHaveBeenCalledTimes( 1 );
+		expect( failedContainer ).toBeInTheDocument();
+		expect( render ).not.toHaveBeenCalled();
+		expect( api.loadStripe ).not.toHaveBeenCalled();
+		await expect( Promise.all( first ) ).resolves.toEqual( [
+			false,
+			false,
+			false,
+		] );
+		await new Promise( ( resolve ) => setTimeout( resolve ) );
+		expect( failedContainer ).not.toBeInTheDocument();
+		expect( unmount ).not.toHaveBeenCalled();
+
+		const retry = checkWallets();
+		const retryContainer = createRoot.mock.calls[ 1 ][ 0 ];
+		ready( { applePay: true, googlePay: true, link: true } );
+		await expect( Promise.all( retry ) ).resolves.toEqual( [
+			true,
+			true,
+			true,
+		] );
+		await expect( Promise.all( checkWallets() ) ).resolves.toEqual( [
+			true,
+			true,
+			true,
+		] );
+		expect( createRoot ).toHaveBeenCalledTimes( 2 );
+		expect( api.loadStripe ).toHaveBeenCalledTimes( 1 );
+		await new Promise( ( resolve ) => setTimeout( resolve ) );
+		expect( unmount ).toHaveBeenCalledTimes( 1 );
+		expect( retryContainer ).not.toBeInTheDocument();
+	} );
+
 	it( 'retries after a synchronous Stripe initialization failure', async () => {
 		api.loadStripe.mockImplementationOnce( () => {
 			throw new Error( 'Stripe could not initialize' );
