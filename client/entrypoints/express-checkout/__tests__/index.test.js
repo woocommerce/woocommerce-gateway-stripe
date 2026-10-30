@@ -844,6 +844,138 @@ describe( 'Classic checkout early initialization', () => {
 		} );
 	} );
 
+	it( 'prepares wallets hidden and reveals only the ready wallet using the same element', async () => {
+		params.stripe.is_link_enabled = true;
+		loadEntrypoint();
+		const google = groups[ 0 ];
+		const link = groups[ 1 ];
+		const preparation = document.querySelector(
+			google.button.mount.mock.calls[ 0 ][ 0 ]
+		);
+		expect( preparation.style.display ).toBe( 'none' );
+		expect(
+			preparation.closest( '#wc-stripe-express-checkout-element' )
+		).toBeNull();
+		await ready( link );
+		expect( google.button.mount ).toHaveBeenCalledTimes( 1 );
+		expect( preparation.isConnected ).toBe( true );
+		expect(
+			document.querySelector(
+				'#wc-stripe-express-checkout-element-googlePay'
+			)
+		).toBeNull();
+		await ready( google );
+		expect( preparation.isConnected ).toBe( false );
+		expect( google.button.mount ).toHaveBeenCalledTimes( 2 );
+		expect( google.create ).toHaveBeenCalledTimes( 1 );
+		expect( google.button.unmount ).not.toHaveBeenCalled();
+		expect(
+			[
+				...document.querySelectorAll(
+					'#wc-stripe-express-checkout-element > div'
+				),
+			].map( ( slot ) => slot.id )
+		).toEqual( [
+			'wc-stripe-express-checkout-element-googlePay',
+			'wc-stripe-express-checkout-element-link',
+		] );
+		const slot = document.querySelector(
+			'#wc-stripe-express-checkout-element-googlePay'
+		);
+		expect( slot.style.minHeight ).toBe(
+			`${ google.create.mock.calls[ 0 ][ 1 ].buttonHeight }px`
+		);
+		await ready( google );
+		expect( google.button.mount ).toHaveBeenCalledTimes( 2 );
+		expect(
+			google.button.on.mock.calls.filter(
+				( [ event ] ) => event === 'click'
+			)
+		).toHaveLength( 1 );
+	} );
+
+	it.each( [ 40, 55 ] )(
+		'reserves the configured %ipx height after fragment replacement without duplicating handlers',
+		async ( height ) => {
+			params.button = { height };
+			loadEntrypoint();
+			const group = groups[ 0 ];
+			await ready( group );
+			jq( '#wc-stripe-express-checkout-element' ).empty();
+			trigger( 'updated_checkout' );
+			await settle();
+			expect( groups ).toHaveLength( 1 );
+			expect( group.button.mount ).toHaveBeenCalledTimes( 3 );
+			expect( group.button.unmount ).toHaveBeenCalledTimes( 1 );
+			expect(
+				document.querySelector(
+					'#wc-stripe-express-checkout-element-googlePay'
+				).style.minHeight
+			).toBe( `${ height }px` );
+			expect(
+				group.button.on.mock.calls.filter(
+					( [ event ] ) => event === 'click'
+				)
+			).toHaveLength( 1 );
+		}
+	);
+
+	it( 'keeps preparation mounted through a checkout refresh and uses the current total on reveal', async () => {
+		loadEntrypoint();
+		const group = groups[ 0 ];
+		trigger( 'updated_checkout' );
+		await settle();
+		expect( group.button.mount ).toHaveBeenCalledTimes( 1 );
+		await ready( group );
+		expect( group.button.mount ).toHaveBeenCalledTimes( 2 );
+		expect( group.options.amount ).toBe( 2500 );
+		expect( group.create ).toHaveBeenCalledTimes( 1 );
+	} );
+
+	it.each( [ 'unavailable', 'loaderror' ] )(
+		'cleans up preparation after %s',
+		async ( reason ) => {
+			loadEntrypoint();
+			const group = groups[ 0 ];
+			const preparation = document.querySelector(
+				group.button.mount.mock.calls[ 0 ][ 0 ]
+			);
+			if ( reason === 'unavailable' ) {
+				await ready( group, false );
+			} else {
+				await group.button.emit( 'loaderror', {} );
+				await ready( group );
+			}
+			expect( preparation.isConnected ).toBe( false );
+			expect( group.button.unmount ).toHaveBeenCalled();
+			expect( group.button.mount ).toHaveBeenCalledTimes( 1 );
+			expect(
+				jq( '#wc-stripe-express-checkout-element' ).css( 'display' )
+			).toBe( 'none' );
+		}
+	);
+
+	it( 'ignores readiness from a destroyed preparation after a structural change', async () => {
+		loadEntrypoint();
+		const old = groups[ 0 ];
+		const preparation = document.querySelector(
+			old.button.mount.mock.calls[ 0 ][ 0 ]
+		);
+		mockGetCartDetails.mockResolvedValue(
+			cartResponse( { currency: 'EUR' } )
+		);
+		trigger( 'updated_checkout' );
+		await settle();
+		await ready( old );
+		expect( preparation.isConnected ).toBe( false );
+		expect( old.button.mount ).toHaveBeenCalledTimes( 1 );
+		expect(
+			jq( '#wc-stripe-express-checkout-element' ).css( 'display' )
+		).toBe( 'none' );
+		await ready( groups[ 1 ] );
+		expect( groups[ 1 ].button.mount ).toHaveBeenCalledTimes( 2 );
+	} );
+
 	it.each( [ null, {}, { total: -1, currency: 'usd' }, { total: 1500 } ] )(
 		'fetches initial data without waiting for updated_checkout when the snapshot is invalid: %j',
 		async ( cart ) => {
@@ -977,6 +1109,12 @@ describe( 'Classic checkout early initialization', () => {
 			await settle();
 			expect( groups ).toHaveLength( 2 );
 			expect( groups[ 0 ].button.destroy ).toHaveBeenCalledTimes( 1 );
+			expect(
+				document.querySelectorAll(
+					'[id^="wc-stripe-express-prepare-"]'
+				)
+			).toHaveLength( 1 );
+			await ready( groups[ 1 ] );
 			expect(
 				document.querySelectorAll(
 					'#wc-stripe-express-checkout-element > div'

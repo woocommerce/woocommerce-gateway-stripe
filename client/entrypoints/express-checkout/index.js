@@ -240,11 +240,13 @@ jQuery( function ( $ ) {
 
 		teardownExpressCheckout: () => {
 			wcStripeECE.mountedGroups.forEach( ( group ) => {
+				group.disposed = true;
 				try {
 					group.button?.destroy();
 				} catch ( error ) {
 					// A stale reference must not block the rebuild.
 				}
+				group.preparation?.remove();
 				$(
 					`#wc-stripe-express-checkout-element-${ group.type }`
 				).remove();
@@ -265,7 +267,10 @@ jQuery( function ( $ ) {
 			const canReuse =
 				groups.length > 0 &&
 				groups.every(
-					( group ) => group.button && group.signature === signature
+					( group ) =>
+						group.button &&
+						! group.failed &&
+						group.signature === signature
 				);
 
 			if ( ! canReuse ) {
@@ -286,6 +291,7 @@ jQuery( function ( $ ) {
 					`wc-stripe-express-checkout-element-${ group.type }`
 				);
 				if (
+					! group.preparing &&
 					( ! container || ! container.childElementCount ) &&
 					group.available !== false
 				) {
@@ -311,9 +317,33 @@ jQuery( function ( $ ) {
 					`<div id="${ containerName }"></div>`
 				);
 			}
-			// unmount() first: the element may still reference the discarded
-			// markup. Not renderButton(), which would rebind the listeners.
-			group.button.unmount();
+			if ( isClassicCheckout ) {
+				// Readiness order must not change the merchant's wallet order.
+				const nextSlot = wcStripeECE.mountedGroups
+					.slice( wcStripeECE.mountedGroups.indexOf( group ) + 1 )
+					.map( ( item ) =>
+						document.getElementById(
+							`wc-stripe-express-checkout-element-${ item.type }`
+						)
+					)
+					.find( Boolean );
+				if ( nextSlot ) {
+					$( `#${ containerName }` ).insertBefore( nextSlot );
+				}
+				// Reserve this wallet's configured height before the reused iframe
+				// is attached; an earlier wallet must not expose its initial growth.
+				$( `#${ containerName }` ).css(
+					'min-height',
+					group.buttonHeight
+				);
+			}
+			// The hidden preparation node is removed before the visible mount.
+			// Fragment replacement must also detach the prior visible mount.
+			if ( ! group.preparation ) {
+				group.button.unmount();
+			}
+			group.preparation?.remove();
+			group.preparation = null;
 			group.button.mount( `#${ containerName }` );
 		},
 
@@ -523,11 +553,16 @@ jQuery( function ( $ ) {
 				signature: wcStripeECE.getStructuralSignature( options ),
 				button: null,
 				available: null,
+				preparing: isClassicCheckout,
+				preparation: null,
+				disposed: false,
+				failed: false,
 			};
 			wcStripeECE.mountedGroups.push( group );
 
 			const buttonStyleSettings =
 				getExpressCheckoutButtonStyleSettings( expressPaymentType );
+			group.buttonHeight = buttonStyleSettings.buttonHeight;
 
 			const eceButton = wcStripeECE.createButton( elements, {
 				...buttonStyleSettings,
@@ -553,7 +588,9 @@ jQuery( function ( $ ) {
 
 			group.button = eceButton;
 
-			wcStripeECE.renderButton( eceButton, expressPaymentType );
+			if ( ! isClassicCheckout ) {
+				wcStripeECE.renderButton( eceButton, expressPaymentType );
+			}
 
 			eceButton.on( 'click', async function ( event ) {
 				// Wallet discovery can finish before WooCommerce's recalculation.
@@ -672,12 +709,43 @@ jQuery( function ( $ ) {
 				}
 			} );
 
-			eceButton.on( 'ready', ( onReadyParams ) => {
+			eceButton.on( 'ready', async ( onReadyParams ) => {
+				if ( group.disposed || group.failed ) {
+					return;
+				}
 				group.available =
 					!! onReadyParams.availablePaymentMethods &&
 					Object.values(
 						onReadyParams.availablePaymentMethods
 					).filter( Boolean ).length > 0;
+				if ( isClassicCheckout ) {
+					if ( ! group.available ) {
+						group.preparing = false;
+						group.button.unmount();
+						group.preparation?.remove();
+						group.preparation = null;
+						$(
+							`#wc-stripe-express-checkout-element-${ group.type }`
+						).remove();
+						if (
+							! wcStripeECE.mountedGroups.some(
+								( item ) => item.available
+							)
+						) {
+							wcStripeECE.hide();
+						}
+						return;
+					}
+					if ( group.preparing ) {
+						group.preparing = false;
+						// Finish the SDK's initial ready dispatch before changing its mount.
+						await Promise.resolve();
+						if ( group.disposed || group.failed ) {
+							return;
+						}
+						wcStripeECE.remountGroupButton( group );
+					}
+				}
 				if (
 					! isVariationSelectionNeeded() &&
 					group.available &&
@@ -689,6 +757,37 @@ jQuery( function ( $ ) {
 					wcStripeECE.getButtonSeparator().show();
 				}
 			} );
+
+			if ( isClassicCheckout ) {
+				eceButton.on( 'loaderror', () => {
+					if ( group.disposed ) {
+						return;
+					}
+					group.failed = true;
+					group.available = false;
+					group.preparing = false;
+					eceButton.unmount();
+					group.preparation?.remove();
+					group.preparation = null;
+					$(
+						`#wc-stripe-express-checkout-element-${ group.type }`
+					).remove();
+					if (
+						! wcStripeECE.mountedGroups.some(
+							( item ) => item.available
+						)
+					) {
+						wcStripeECE.hide();
+					}
+				} );
+				// Prepare each wallet independently, outside the shared visible root.
+				// Keep this same element and its handlers for the visible remount.
+				group.preparation = document.createElement( 'div' );
+				group.preparation.id = `wc-stripe-express-prepare-${ expressPaymentType }`;
+				group.preparation.style.display = 'none';
+				document.body.appendChild( group.preparation );
+				eceButton.mount( `#${ group.preparation.id }` );
+			}
 
 			if ( getExpressCheckoutData( 'is_product_page' ) ) {
 				wcStripeECE.attachProductPageEventListeners();
