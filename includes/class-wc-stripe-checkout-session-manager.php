@@ -349,7 +349,7 @@ class WC_Stripe_Checkout_Session_Manager {
 		 * future charges, which this filter does not collect.
 		 *
 		 * @see https://docs.stripe.com/api/checkout/sessions/create#create_checkout_session-payment_intent_data
-		 * @since x.x.x
+		 * @since 11.2.0
 		 *
 		 * @param array $payment_intent_data The payment_intent_data for the Checkout Session.
 		 * @param array $context             Keys: is_save_payment_method_enabled (bool), false for guests.
