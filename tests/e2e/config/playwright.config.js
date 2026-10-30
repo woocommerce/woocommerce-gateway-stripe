@@ -86,9 +86,11 @@ const config = {
 			testMatch: '**/*.spec.js',
 			testIgnore: [
 				'**/acss.spec.js',
+				'**/acss-oc.spec.js',
 				'**/*optimized-checkout.spec.js',
 				'**/adaptive-pricing.spec.js',
 				'**/blik.spec.js',
+				'**/blik-oc.spec.js',
 				'**/becs.spec.js',
 				'**/isk.spec.js',
 				'**/free-trial-link.spec.js',
@@ -176,6 +178,29 @@ const config = {
 			name: 'blik',
 			testMatch: '**/blik.spec.js',
 			dependencies: [ 'blik-setup' ],
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'acss-oc-setup',
+			testMatch: '/acss-oc.setup.js',
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'acss-oc',
+			testMatch: '**/acss-oc.spec.js',
+			dependencies: [ 'acss-oc-setup' ],
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'blik-oc-setup',
+			testMatch: '/blik-oc.setup.js',
+			teardown: 'reset account',
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'blik-oc',
+			testMatch: '**/blik-oc.spec.js',
+			dependencies: [ 'blik-oc-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
 		{

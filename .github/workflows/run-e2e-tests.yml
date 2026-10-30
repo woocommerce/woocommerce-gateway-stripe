@@ -24,7 +24,7 @@ jobs:
       fail-fast: false
       max-parallel: 10
       matrix:
-        project: [ 'default', 'express-checkout-link', 'isk', 'acss', 'optimized-checkout', 'blik', 'becs' ]
+        project: [ 'default', 'express-checkout-link', 'isk', 'acss', 'acss-oc', 'optimized-checkout', 'blik', 'blik-oc', 'becs' ]
 
     name: E2E - ${{ matrix.project }} (WP=${{ inputs.wp-version }}, WC=${{ inputs.wc-version }}, PHP=${{ inputs.php-version }})
     steps:
@@ -47,8 +47,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.E2E_GH_TOKEN }}
           WP_VERSION: ${{ inputs.wp-version }}
           WC_VERSION: ${{ inputs.wc-version }}
-          STRIPE_PUB_KEY: ${{ matrix.project == 'blik' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_AU || secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
-          STRIPE_SECRET_KEY: ${{ matrix.project == 'blik' && secrets.E2E_STRIPE_SECRET_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_SECRET_KEY_AU || secrets.E2E_STRIPE_SECRET_KEY }}
+          STRIPE_PUB_KEY: ${{ ( matrix.project == 'blik' || matrix.project == 'blik-oc' ) && secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_AU || secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
+          STRIPE_SECRET_KEY: ${{ ( matrix.project == 'blik' || matrix.project == 'blik-oc' ) && secrets.E2E_STRIPE_SECRET_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_SECRET_KEY_AU || secrets.E2E_STRIPE_SECRET_KEY }}
         run: npm run test:e2e-setup
 
       - name: Upload e2e setup logs
@@ -62,8 +62,8 @@ jobs:
 
       - name: Run E2E tests
         env:
-          STRIPE_PUB_KEY: ${{ matrix.project == 'blik' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_AU || secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
-          STRIPE_SECRET_KEY: ${{ matrix.project == 'blik' && secrets.E2E_STRIPE_SECRET_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_SECRET_KEY_AU || secrets.E2E_STRIPE_SECRET_KEY }}
+          STRIPE_PUB_KEY: ${{ ( matrix.project == 'blik' || matrix.project == 'blik-oc' ) && secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_AU || secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
+          STRIPE_SECRET_KEY: ${{ ( matrix.project == 'blik' || matrix.project == 'blik-oc' ) && secrets.E2E_STRIPE_SECRET_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_SECRET_KEY_AU || secrets.E2E_STRIPE_SECRET_KEY }}
         run: npm run test:e2e -- --project=${{ matrix.project }}
 
       - name: Upload E2E test results
