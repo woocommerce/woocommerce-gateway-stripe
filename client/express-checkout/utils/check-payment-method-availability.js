@@ -116,8 +116,8 @@ const probePaymentMethods = ( api, elementsOptions, paymentMethods ) =>
 /**
  * Checks whether a given express payment method is available in the current context.
  *
- * Compatible wallets share a probe for the same API instance and Elements
- * options. Failed probes are not cached, so a later call retries.
+ * Compatible wallets share a probe for the same API instance, currency, mode,
+ * and wallet configuration. Failed probes are not cached, so a later call retries.
  *
  * @param {string} paymentMethod The express payment method identifier (e.g. 'googlePay', 'applePay').
  * @param {Object} api           The WCStripeAPI instance used to load Stripe.
@@ -137,6 +137,8 @@ export const checkPaymentMethodIsAvailable = ( paymentMethod, api, cart ) => {
 		return Promise.resolve( false );
 	}
 
+	const isAmazonPay =
+		paymentMethod === EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY;
 	const hasFreeTrial = getExpressCheckoutData( 'has_free_trial' );
 	const elementsOptions = {
 		mode: hasFreeTrial ? 'subscription' : 'payment',
@@ -176,7 +178,13 @@ export const checkPaymentMethodIsAvailable = ( paymentMethod, api, cart ) => {
 		availabilityProbes.set( api, new Map() );
 	}
 	const probes = availabilityProbes.get( api );
-	const key = JSON.stringify( [ elementsOptions, paymentMethods ] );
+	const cacheOptions = { ...elementsOptions };
+	// Keep card-wallet discovery stable during cart edits; their visible
+	// Elements receive updated payment totals independently.
+	if ( ! isAmazonPay ) {
+		delete cacheOptions.amount;
+	}
+	const key = JSON.stringify( [ cacheOptions, paymentMethods ] );
 	if ( ! probes.has( key ) ) {
 		const probe = probePaymentMethods(
 			api,
