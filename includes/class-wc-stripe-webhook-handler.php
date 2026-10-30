@@ -2097,11 +2097,18 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		// get_order_from_intent() can resolve the order from the event's signed metadata without a
+		// stored intent id, so fall back to the verified event intent instead of skipping the reversal.
 		$intent = $this->get_intent_from_order( $order );
-
 		if ( ! $intent || $intent->id !== $intent_id ) {
-			WC_Stripe_Logger::debug( "Skipped refunding cancelled order {$order->get_id()} for Stripe PaymentIntent {$intent_id} - intent ID stored on the order doesn't match." );
-			return;
+			$intent = WC_Stripe_API::retrieve( "payment_intents/$intent_id" );
+		}
+
+		if ( ! is_object( $intent ) || ! empty( $intent->error ) || ( $intent->id ?? '' ) !== $intent_id ) {
+			// Don't acknowledge silently: that would leave a captured payment on the cancelled order.
+			// Note it for the merchant and rethrow so Action Scheduler retries the reversal.
+			$order->add_order_note( __( 'A Stripe payment on this cancelled order could not be refunded automatically because its PaymentIntent could not be retrieved. Please refund or void it from the Stripe dashboard.', 'woocommerce-gateway-stripe' ) );
+			throw new WC_Stripe_Exception( "Could not retrieve PaymentIntent $intent_id to reverse the payment on cancelled order {$order->get_id()}." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		// Idempotency: Action Scheduler can retry this job, and issuing a refund twice would
