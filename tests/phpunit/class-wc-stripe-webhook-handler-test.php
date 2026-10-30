@@ -721,17 +721,36 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 	/**
 	 * A late payment on an already-cancelled order is deferred, not dropped or marked paid inline.
+	 * Includes the wallet and BLIK types that took the inline process_response() branch, which is the
+	 * path the old code used to mark a cancelled order paid.
 	 *
 	 * @since x.x.x
 	 *
-	 * @param string $type The payment_intent event type.
+	 * @param string $type           The payment_intent event type.
+	 * @param string $payment_type   The order's stored Stripe UPE payment type, or '' for none.
+	 * @param bool   $allow_cancelled Whether a site filter adds cancelled to the allowed-processing statuses.
 	 * @dataProvider provide_cancelled_order_late_payment_events
 	 */
-	public function test_process_payment_intent_defers_late_payment_on_cancelled_order( string $type ): void {
+	public function test_process_payment_intent_defers_late_payment_on_cancelled_order( string $type, string $payment_type, bool $allow_cancelled = false ): void {
 		$order = WC_Helper_Order::create_order();
 		$order->set_status( OrderStatus::CANCELLED );
 		$order->update_meta_data( '_stripe_intent_id', self::MOCK_PAYMENT_INTENT['id'] );
+		if ( '' !== $payment_type ) {
+			WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_payment_type( $order, $payment_type );
+		}
 		$order->save();
+
+		// A site can add cancelled to the allowed-processing statuses to reinstate an order on a late
+		// payment. Without the early return, that is exactly when a wallet or BLIK event would pass the
+		// status guard and be marked paid by the inline process_response() branch. The early return
+		// runs before this filter, so the payment is still deferred for the refund handler.
+		$allow_filter = static function ( $statuses ) {
+			$statuses[] = OrderStatus::CANCELLED;
+			return $statuses;
+		};
+		if ( $allow_cancelled ) {
+			add_filter( 'wc_stripe_allowed_payment_processing_statuses', $allow_filter );
+		}
 
 		$notification = (object) [
 			'type' => $type,
@@ -757,11 +776,13 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				]
 			);
 
-		$this->assertTrue(
-			$handler->process_payment_intent( $notification ),
-			'A late payment on a cancelled order must report itself as deferred.'
-		);
+		try {
+			$result = $handler->process_payment_intent( $notification );
+		} finally {
+			remove_filter( 'wc_stripe_allowed_payment_processing_statuses', $allow_filter );
+		}
 
+		$this->assertTrue( $result, 'A late payment on a cancelled order must report itself as deferred.' );
 		$this->assertTrue( wc_get_order( $order->get_id() )->has_status( OrderStatus::CANCELLED ) );
 	}
 
@@ -774,8 +795,13 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 */
 	public function provide_cancelled_order_late_payment_events(): array {
 		return [
-			'succeeded'                 => [ 'payment_intent.succeeded' ],
-			'amount_capturable_updated' => [ 'payment_intent.amount_capturable_updated' ],
+			'succeeded, no stored type'     => [ 'payment_intent.succeeded', '' ],
+			'amount_capturable_updated'     => [ 'payment_intent.amount_capturable_updated', '' ],
+			'succeeded wallet payment'      => [ 'payment_intent.succeeded', WC_Stripe_Payment_Methods::CASHAPP_PAY ],
+			'succeeded BLIK payment'        => [ 'payment_intent.succeeded', WC_Stripe_Payment_Methods::BLIK ],
+			// The inline branch that the old code marked paid is only reachable when a site adds
+			// cancelled to the allowed-processing statuses; the early return must pre-empt it.
+			'wallet with cancelled allowed' => [ 'payment_intent.succeeded', WC_Stripe_Payment_Methods::CASHAPP_PAY, true ],
 		];
 	}
 
