@@ -152,11 +152,11 @@ export const checkPaymentMethodIsAvailable = ( paymentMethod, api, cart ) => {
 			)
 		),
 		currency: cart.cartTotals.currency_code.toLowerCase(),
-		paymentMethodTypes: [
-			...new Set(
-				methods.flatMap( getPaymentMethodTypesForExpressMethod )
-			),
-		],
+		// Let Stripe discover card wallets without explicitly requiring Link.
+		...( isAmazonPay && {
+			paymentMethodTypes:
+				getPaymentMethodTypesForExpressMethod( paymentMethod ),
+		} ),
 	};
 	const paymentMethods = {
 		amazonPay: methods.includes( EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY )
@@ -172,6 +172,7 @@ export const checkPaymentMethodIsAvailable = ( paymentMethod, api, cart ) => {
 			? 'auto'
 			: 'never',
 		paypal: 'never',
+		klarna: 'never',
 	};
 
 	if ( ! availabilityProbes.has( api ) ) {
