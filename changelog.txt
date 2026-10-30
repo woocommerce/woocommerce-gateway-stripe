@@ -1,6 +1,7 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 11.1.0
+* Update - Start express checkout button initialization earlier on classic checkout
 * Fix - Show the correct guidance when a subscription renewal fails because its Stripe mandate is invalid
 * Fix - Ensure retry with a saved payment method works after a declined Adaptive Pricing payment attempt on classic checkout
 * Fix - Ignore Checkout Session failure webhooks after an order switches to another payment gateway

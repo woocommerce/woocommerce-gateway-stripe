@@ -827,6 +827,7 @@ describe( 'Classic checkout early initialization', () => {
 	afterEach( () => {
 		jest.useRealTimers();
 		delete global.wc_stripe_express_checkout_params;
+		delete global.wcStripeExpressCheckoutPayForOrderParams;
 	} );
 
 	it( 'creates separate wallet groups from the snapshot before updated_checkout', async () => {
@@ -1007,6 +1008,52 @@ describe( 'Classic checkout early initialization', () => {
 		loadEntrypoint();
 		expect( groups ).toHaveLength( 0 );
 	} );
+
+	it.each( [
+		[ 'is_product_page', true ],
+		[ 'is_product_page', false ],
+		[ 'is_pay_for_order', true ],
+		[ 'is_pay_for_order', false ],
+		[ 'is_change_payment_method', true ],
+		[ 'is_change_payment_method', false ],
+	] )(
+		'preserves zero-total ready visibility for %s (wallet available: %s)',
+		async ( context, available ) => {
+			params[ context ] = true;
+			params.is_checkout_page = context !== 'is_product_page';
+			if ( context === 'is_product_page' ) {
+				params.product = {
+					total: { amount: 0 },
+					currency: 'usd',
+					requestShipping: false,
+					displayItems: [],
+				};
+			} else if ( context === 'is_pay_for_order' ) {
+				global.wcStripeExpressCheckoutPayForOrderParams = {
+					total: { amount: 0 },
+					currency: 'usd',
+					displayItems: [],
+					order: 123,
+					orderDetails: {
+						orderKey: 'wc_order_test',
+						billingEmail: 'customer@example.com',
+					},
+				};
+			}
+
+			loadEntrypoint();
+			expect( groups ).toHaveLength( 1 );
+			await ready( groups[ 0 ], available );
+			for ( const selector of [
+				'#wc-stripe-express-checkout-element',
+				'#wc-stripe-express-checkout-button-separator',
+			] ) {
+				expect( jq( selector ).css( 'display' ) !== 'none' ).toBe(
+					available
+				);
+			}
+		}
+	);
 
 	it( 'initializes a zero-total free trial in subscription mode', async () => {
 		params.cart.total = 0;
