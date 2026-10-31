@@ -30,7 +30,12 @@ const upeMethods = getPaymentMethodsConstants();
  */
 const getUpeElementIcon = ( paymentMethod ) => {
 	const stripeServerData = getBlocksConfiguration();
-	if ( stripeServerData?.shouldShowOptimizedCheckout ) {
+	// Under OC, `card` is the OC container, and the Payment Element inside it draws its own
+	// branding. Standalone entries (BLIK, ACSS) still need their label icon.
+	if (
+		stripeServerData?.shouldShowOptimizedCheckout &&
+		paymentMethod === PAYMENT_METHOD_CARD
+	) {
 		return null;
 	}
 

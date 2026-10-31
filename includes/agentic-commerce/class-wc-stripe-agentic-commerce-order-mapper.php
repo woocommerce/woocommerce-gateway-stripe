@@ -70,6 +70,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			$this->map_line_items( $order, $session );
 			$this->map_addresses( $order, $session );
 			$this->store_stripe_metadata( $order, $session );
+			$this->store_order_attribution( $order, $session );
 
 			// Save everything we've got so far.
 			$order->save();
@@ -130,13 +131,13 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 
 		if ( null === $session->get_payment_intent_id() ) {
 			throw new Exception(
-				sprintf( 'Checkout session %s is missing the payment_intent id.', $session->get_id() )
+				sprintf( 'Checkout session %s is missing the payment_intent id.', $session->get_id() ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			);
 		}
 
 		if ( null === $session->get_currency() ) {
 			throw new Exception(
-				sprintf( 'Checkout session %s is missing the currency field.', $session->get_id() )
+				sprintf( 'Checkout session %s is missing the currency field.', $session->get_id() ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			);
 		}
 
@@ -146,8 +147,8 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			throw new Exception(
 				sprintf(
 					'Checkout session %s has unsupported currency: %s.',
-					$session->get_id(),
-					$currency
+					$session->get_id(), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+					$currency // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				)
 			);
 		}
@@ -161,8 +162,8 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			throw new Exception(
 				sprintf(
 					'Checkout session %s includes a discount (%d): discounts are not supported for agentic checkout orders.',
-					$session->get_id(),
-					$session->get_amount_discount()
+					$session->get_id(), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+					$session->get_amount_discount() // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				)
 			);
 		}
@@ -183,8 +184,8 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			throw new Exception(
 				sprintf(
 					'Failed to create WooCommerce order for session %s: %s',
-					$session->get_id(),
-					$order->get_error_message()
+					$session->get_id(), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+					$order->get_error_message() // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				)
 			);
 		}
@@ -193,7 +194,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			throw new Exception(
 				sprintf(
 					'wc_create_order() returned an unexpected type for session %s.',
-					$session->get_id()
+					$session->get_id() // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				)
 			);
 		}
@@ -226,7 +227,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			throw new Exception(
 				sprintf(
 					'Checkout session %s has no customer email.',
-					$session->get_id(),
+					$session->get_id(), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				)
 			);
 		}
@@ -258,7 +259,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			throw new Exception(
 				sprintf(
 					'Checkout session %s has no line items.',
-					$session->get_id()
+					$session->get_id() // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				)
 			);
 		}
@@ -269,7 +270,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 				throw new Exception(
 					sprintf(
 						'Line item %s has no external_reference that resolves to a WooCommerce product (SKU or legacy product-ID).',
-						$line_item->get_id()
+						$line_item->get_id() // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 					)
 				);
 			}
@@ -285,8 +286,8 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 				throw new Exception(
 					sprintf(
 						'Line item %s has an invalid quantity (%d).',
-						$line_item->get_id(),
-						$quantity
+						$line_item->get_id(), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+						$quantity // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 					)
 				);
 			}
@@ -305,9 +306,9 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 				throw new Exception(
 					sprintf(
 						'Line item price mismatch for product %d: WC calculated %s, Stripe expected %s.',
-						$product_id,
-						wc_format_decimal( $wc_line_total ),
-						wc_format_decimal( $line_total )
+						$product_id, // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+						wc_format_decimal( $wc_line_total ), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+						wc_format_decimal( $line_total ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 					)
 				);
 			}
@@ -331,8 +332,8 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			throw new Exception(
 				sprintf(
 					'Failed to add product %d to order for session %s.',
-					$product->get_id(),
-					$session_id
+					$product->get_id(), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+					$session_id // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				)
 			);
 		}
@@ -342,7 +343,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			throw new Exception(
 				sprintf(
 					'Line item %s is not a product.',
-					$item_id
+					$item_id // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				)
 			);
 		}
@@ -528,6 +529,34 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 	}
 
 	/**
+	 * Writes WooCommerce Order Attribution meta so agentic orders show their
+	 * originating agent in the admin Origin column instead of "Unknown".
+	 *
+	 * Order Attribution meta is normally written from checkout-page JavaScript,
+	 * which never runs for webhook-created orders. WooCommerce Core does not
+	 * support a dedicated agent source/type, so we use the `referral` type with the
+	 * name of the agent as the `utm_source`.
+	 *
+	 * @since 11.1.0
+	 * @param WC_Order                           $order   The WooCommerce order.
+	 * @param WC_Stripe_Agentic_Checkout_Session $session The checkout session wrapper.
+	 */
+	private function store_order_attribution( WC_Order $order, WC_Stripe_Agentic_Checkout_Session $session ): void {
+		$agent_source = $session->get_agent_source();
+		if ( null === $agent_source ) {
+			return;
+		}
+
+		$sanitized_agent_source = sanitize_text_field( $agent_source );
+		if ( '' === $sanitized_agent_source ) {
+			return;
+		}
+
+		$order->update_meta_data( '_wc_order_attribution_source_type', 'referral' );
+		$order->update_meta_data( '_wc_order_attribution_utm_source', $sanitized_agent_source );
+	}
+
+	/**
 	 * Maps the chosen shipping rate from the checkout session to the order.
 	 *
 	 * Re-runs WooCommerce shipping calculation for the order's destination and
@@ -568,7 +597,7 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 
 		if ( ! $wc_shipping instanceof WC_Shipping ) {
 			throw new Exception(
-				sprintf( 'WooCommerce shipping is unavailable for session %s.', $session->get_id() )
+				sprintf( 'WooCommerce shipping is unavailable for session %s.', $session->get_id() ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			);
 		}
 
@@ -700,9 +729,9 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper {
 			throw new Exception(
 				sprintf(
 					'Order total mismatch for session %s: WC total %s, Stripe total %s.',
-					$session->get_id(),
-					wc_format_decimal( $order_total ),
-					wc_format_decimal( $expected_total )
+					$session->get_id(), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+					wc_format_decimal( $order_total ), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+					wc_format_decimal( $expected_total ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				)
 			);
 		}

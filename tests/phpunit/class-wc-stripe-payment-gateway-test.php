@@ -25,6 +25,124 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Legacy source callbacks retain their customer context and can still disable forced saving.
+	 *
+	 * @since x.x.x
+	 */
+	public function test_prepare_source_preserves_deprecated_filter_context(): void {
+		$original_post = $_POST;
+		$_POST         = [ 'stripe_token' => 'pm_context_test' ];
+		$customer      = null;
+		$filter        = function ( $force_save, $context ) use ( &$customer ) {
+			$this->assertTrue( $force_save );
+			$customer = $context;
+			return false;
+		};
+		$api_filter    = function ( $preempt, $args, $url ) {
+			return false !== strpos( $url, 'customers/cus_context_test' )
+				? $this->build_response( [ 'id' => 'cus_context_test' ] )
+				: $preempt;
+		};
+
+		$deprecation         = [];
+		$capture_deprecation = function ( $hook, $replacement, $version, $message ) use ( &$deprecation ) {
+			if ( 'wc_stripe_force_save_source' === $hook ) {
+				$deprecation = [ $replacement, $version, $message ];
+			}
+		};
+
+		add_filter( 'wc_stripe_force_save_source', $filter, 10, 2 );
+		add_filter( 'pre_http_request', $api_filter, 10, 3 );
+		add_action( 'deprecated_hook_run', $capture_deprecation, 10, 4 );
+		$this->setExpectedDeprecated( 'wc_stripe_force_save_source' );
+
+		try {
+			$source = $this->gateway->prepare_source( 0, true, 'cus_context_test' );
+		} finally {
+			remove_filter( 'wc_stripe_force_save_source', $filter, 10 );
+			remove_filter( 'pre_http_request', $api_filter, 10 );
+			remove_action( 'deprecated_hook_run', $capture_deprecation, 10 );
+			$_POST = $original_post;
+		}
+
+		$this->assertSame( [ '', '9.6.0', 'This filter has no direct replacement in legacy payment flows.' ], $deprecation );
+		$this->assertInstanceOf( WC_Stripe_Customer::class, $customer );
+		$this->assertSame( 'cus_context_test', $customer->get_id() );
+		$this->assertSame( 'pm_context_test', $source->source );
+	}
+
+	/**
+	 * Legacy intent callbacks retain their source ID and control future-use setup.
+	 *
+	 * @since x.x.x
+	 *
+	 * @dataProvider provide_deprecated_force_save_values
+	 * @param bool $force_save Whether the callback forces saving.
+	 */
+	public function test_generate_create_intent_request_preserves_deprecated_filter( bool $force_save ): void {
+		$original_post = $_POST;
+		$_POST         = [];
+		$gateway       = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->onlyMethods( [ 'generate_payment_request' ] )
+			->getMock();
+		$gateway->method( 'generate_payment_request' )->willReturn(
+			[
+				'description' => 'Legacy payment request',
+				'metadata'    => [],
+				'capture'     => 'true',
+			]
+		);
+
+		$source = (object) [
+			'customer' => 'cus_context_test',
+			'source'   => 'pm_context_test',
+		];
+		$filter = function ( $default, $source_id ) use ( $force_save ) {
+			$this->assertFalse( $default );
+			$this->assertSame( 'pm_context_test', $source_id );
+			return $force_save;
+		};
+
+		$deprecation         = [];
+		$capture_deprecation = function ( $hook, $replacement, $version, $message ) use ( &$deprecation ) {
+			if ( 'wc_stripe_force_save_source' === $hook ) {
+				$deprecation = [ $replacement, $version, $message ];
+			}
+		};
+
+		add_filter( 'wc_stripe_force_save_source', $filter, 10, 2 );
+		add_action( 'deprecated_hook_run', $capture_deprecation, 10, 4 );
+		$this->setExpectedDeprecated( 'wc_stripe_force_save_source' );
+
+		try {
+			$request = $gateway->generate_create_intent_request( WC_Helper_Order::create_order(), $source );
+		} finally {
+			remove_filter( 'wc_stripe_force_save_source', $filter, 10 );
+			remove_action( 'deprecated_hook_run', $capture_deprecation, 10 );
+			$_POST = $original_post;
+		}
+
+		$this->assertSame( [ '', '9.6.0', 'This filter has no direct replacement in legacy payment flows.' ], $deprecation );
+		$this->assertIsArray( $request['metadata'] ?? null );
+		if ( $force_save ) {
+			$this->assertArrayHasKey( 'setup_future_usage', $request );
+			$this->assertSame( 'off_session', $request['setup_future_usage'] );
+			$this->assertArrayHasKey( 'save_payment_method', $request['metadata'] );
+			$this->assertSame( 'true', $request['metadata']['save_payment_method'] );
+		} else {
+			$this->assertArrayNotHasKey( 'setup_future_usage', $request );
+			$this->assertArrayNotHasKey( 'save_payment_method', $request['metadata'] );
+		}
+	}
+
+	public function provide_deprecated_force_save_values(): array {
+		return [
+			'force saving'    => [ true ],
+			'do not force it' => [ false ],
+		];
+	}
+
+	/**
 	 * Helper function to update test order meta data
 	 */
 	private function updateOrderMeta( $order, $key, $value ) {
@@ -367,7 +485,11 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					'brand' => 'mastercard',
 					'last4' => '1234',
 				],
-				'expected_result'       => 'Via MasterCard card ending in 1234',
+				// Derive the brand label from WooCommerce so the assertion tracks
+				// the running WC version (it relabelled 'mastercard' from
+				// 'MasterCard' to 'Mastercard'), matching the plugin's own use of
+				// wc_get_credit_card_type_label() to render the title.
+				'expected_result'       => sprintf( 'Via %s card ending in 1234', wc_get_credit_card_type_label( 'mastercard' ) ),
 			],
 			'American Express card ending in 5678'    => [
 				'payment_method_type'   => 'card',
@@ -409,7 +531,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					'last4'  => '4444',
 					'wallet' => [ 'type' => 'apple_pay' ],
 				],
-				'expected_result'       => 'Via Apple Pay (MasterCard) ending in 4444',
+				'expected_result'       => sprintf( 'Via Apple Pay (%s) ending in 4444', wc_get_credit_card_type_label( 'mastercard' ) ),
 			],
 			'Link wallet card stays bare'             => [
 				'payment_method_type'   => 'card',
@@ -1850,6 +1972,64 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Builds the minimal succeeded charge `process_response()` needs, keeping the fee lookup and token
+	 * update branches out of the path.
+	 *
+	 * @param string $charge_id The Stripe charge ID.
+	 * @return object
+	 */
+	private function build_succeeded_charge( string $charge_id ) {
+		return (object) [
+			'id'       => $charge_id,
+			'captured' => true,
+			'status'   => 'succeeded',
+		];
+	}
+
+	/**
+	 * An empty ID cannot identify a shared transaction, so processing must continue without attempting
+	 * a transaction lock.
+	 *
+	 * @dataProvider provide_empty_transaction_ids
+	 *
+	 * @param string|null $transaction_id The empty transaction ID.
+	 * @return void
+	 */
+	public function test_process_response_skips_transaction_lock_for_empty_transaction_id( $transaction_id ) {
+		global $wpdb;
+
+		$order              = WC_Helper_Order::create_order();
+		$response           = (object) [
+			'id'       => $transaction_id,
+			'captured' => true,
+			'status'   => 'succeeded',
+		];
+		$stop_at_processing = static function () {
+			throw new RuntimeException( 'Response processing reached.' );
+		};
+
+		add_action( 'wc_gateway_stripe_process_payment_charge', $stop_at_processing, 10, 0 );
+
+		try {
+			try {
+				$this->gateway->process_response( $response, $order );
+				$this->fail( 'Expected charge processing to be reached.' );
+			} catch ( RuntimeException $exception ) {
+				$this->assertSame( 'Response processing reached.', $exception->getMessage() );
+			}
+
+			// The lock option name is the prefix plus the transaction ID, so locking on an empty ID would
+			// write the bare prefix and block every other transaction that also arrives without an ID.
+			$this->assertNull(
+				$wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", 'wc_stripe_transaction_lock_' ) ),
+				'No transaction lock should be taken out when the transaction ID is empty.'
+			);
+		} finally {
+			remove_action( 'wc_gateway_stripe_process_payment_charge', $stop_at_processing );
+		}
+	}
+
+	/**
 	 * Locks the fieldset > p.woocommerce-SavedPaymentMethods-saveNew structure the
 	 * empty-box hide rule in client/classic/upe/style.scss depends on.
 	 *
@@ -1872,6 +2052,177 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			$this->assertStringNotContainsString( '<fieldset style="display: none;">', $output );
 			$this->assertStringNotContainsString( 'checked', $output );
 		}
+	}
+
+	/**
+	 * Provides transaction IDs that cannot be used as lock keys.
+	 *
+	 * @return array
+	 */
+	public function provide_empty_transaction_ids(): array {
+		return [
+			'null'         => [ null ],
+			'empty string' => [ '' ],
+		];
+	}
+
+	/**
+	 * Reproduces the reported race: a second worker enters `process_response()` while the first is
+	 * inside the window between the ownership lookup and the transaction ID write. The charge may be
+	 * linked to only one order, and the loser has to stay payable rather than complete against someone
+	 * else's payment.
+	 *
+	 * @dataProvider provide_order_storage
+	 *
+	 * @param bool $use_hpos Whether to run against HPOS or legacy post storage.
+	 * @return void
+	 */
+	public function test_process_response_denies_an_order_racing_for_a_locked_charge( bool $use_hpos ) {
+		$previous_hpos_setting = get_option( 'woocommerce_custom_orders_table_enabled', 'no' );
+		$new_hpos_setting      = $use_hpos ? 'yes' : 'no';
+
+		try {
+			// Allow HPOS to be toggled regardless of database state.
+			add_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+
+			if ( $new_hpos_setting !== $previous_hpos_setting ) {
+				update_option( 'woocommerce_custom_orders_table_enabled', $new_hpos_setting );
+			}
+
+			$second_order = WC_Helper_Order::create_order();
+			$charge       = $this->build_succeeded_charge( 'ch_race_' . $new_hpos_setting );
+			$lock_name    = 'wc_stripe_transaction_lock_' . $charge->id;
+
+			// The first worker is inside the window: holding the lock, transaction ID not yet written.
+			$lock_owner = WC_Stripe_Option_Lock::acquire( $lock_name, 5 * MINUTE_IN_SECONDS );
+			$this->assertIsString( $lock_owner );
+
+			$exception = null;
+			try {
+				$this->gateway->process_response( $charge, $second_order );
+			} catch ( WC_Stripe_Exception $e ) {
+				$exception = $e;
+			}
+
+			$this->assertInstanceOf( WC_Stripe_Exception::class, $exception );
+
+			$second_order = wc_get_order( $second_order->get_id() );
+			$this->assertEmpty( $second_order->get_transaction_id() );
+			$this->assertFalse( $second_order->is_paid() );
+		} finally {
+			if ( isset( $lock_owner ) ) {
+				WC_Stripe_Option_Lock::release( $lock_name, $lock_owner );
+			}
+			if ( $new_hpos_setting !== $previous_hpos_setting ) {
+				update_option( 'woocommerce_custom_orders_table_enabled', $previous_hpos_setting );
+			}
+			remove_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+		}
+	}
+
+	/**
+	 * Data provider for `test_process_response_denies_an_order_racing_for_a_locked_charge`.
+	 *
+	 * @return array
+	 */
+	public function provide_order_storage(): array {
+		return [
+			'HPOS'           => [ true ],
+			'legacy storage' => [ false ],
+		];
+	}
+
+	/**
+	 * After one request has linked the charge, a later request for the same order can safely repeat it.
+	 *
+	 * @return void
+	 */
+	public function test_process_response_is_idempotent_for_the_owning_order() {
+		$order  = WC_Helper_Order::create_order();
+		$charge = $this->build_succeeded_charge( 'ch_idempotent' );
+
+		$this->gateway->process_response( $charge, $order );
+		$this->gateway->process_response( $charge, $order );
+
+		$order = wc_get_order( $order->get_id() );
+		$this->assertSame( $charge->id, $order->get_transaction_id() );
+		$this->assertTrue( $order->is_paid() );
+	}
+
+	/**
+	 * A request that fails before persisting the transaction-to-order mapping must not release the lock.
+	 * @return void
+	 */
+	public function test_process_response_pre_persistence_failure_retains_the_lock() {
+		$first_order        = WC_Helper_Order::create_order();
+		$competing_order    = WC_Helper_Order::create_order();
+		$charge             = $this->build_succeeded_charge( 'ch_owner_failure' );
+		$lock_name          = 'wc_stripe_transaction_lock_' . $charge->id;
+		$processing_failure = static function () {
+			throw new RuntimeException( 'Stop before the transaction ID is persisted.' );
+		};
+
+		add_action( 'wc_gateway_stripe_process_payment_charge', $processing_failure );
+
+		try {
+			try {
+				$this->gateway->process_response( $charge, $first_order );
+				$this->fail( 'Expected charge processing to fail before persisting the transaction ID.' );
+			} catch ( RuntimeException $exception ) {
+				$this->assertSame( 'Stop before the transaction ID is persisted.', $exception->getMessage() );
+			}
+
+			$this->assertNull( WC_Stripe_Option_Lock::acquire( $lock_name, 5 * MINUTE_IN_SECONDS ), 'A failed request must retain the lock until its lease expires.' );
+			try {
+				$this->gateway->process_response( $charge, $competing_order );
+				$this->fail( 'Expected the competing order to be denied.' );
+			} catch ( WC_Stripe_Exception $exception ) {
+				$this->assertEmpty( $competing_order->get_transaction_id() );
+			}
+		} finally {
+			remove_action( 'wc_gateway_stripe_process_payment_charge', $processing_failure );
+			WC_Stripe_Option_Lock::force_release( $lock_name );
+		}
+	}
+
+	/**
+	 * The lock is released once the charge is linked, so from that point the persisted transaction
+	 * ID is what has to keep a second order out.
+	 *
+	 * @return void
+	 */
+	public function test_process_response_rejects_a_second_order_once_the_charge_is_linked() {
+		$first_order  = WC_Helper_Order::create_order();
+		$second_order = WC_Helper_Order::create_order();
+		$third_order  = WC_Helper_Order::create_order();
+		$charge       = $this->build_succeeded_charge( 'ch_linked' );
+		$lock_name    = 'wc_stripe_transaction_lock_' . $charge->id;
+
+		$this->gateway->process_response( $charge, $first_order );
+
+		// Nothing is holding the lock any more, so the rejection below cannot come from the lock.
+		$lock_owner = WC_Stripe_Option_Lock::acquire( $lock_name, 5 * MINUTE_IN_SECONDS );
+		$this->assertIsString( $lock_owner );
+		WC_Stripe_Option_Lock::release( $lock_name, $lock_owner );
+
+		$exception = null;
+		try {
+			$this->gateway->process_response( $charge, $second_order );
+		} catch ( WC_Stripe_Exception $e ) {
+			$exception = $e;
+		}
+
+		$this->assertInstanceOf( WC_Stripe_Exception::class, $exception );
+
+		$second_order = wc_get_order( $second_order->get_id() );
+		$this->assertEmpty( $second_order->get_transaction_id() );
+		$this->assertFalse( $second_order->is_paid() );
+
+		// The persisted mapping makes releasing the rejected request's lock safe and avoids blocking the
+		// order that already owns the transaction until the lock expires.
+		$lock_owner = WC_Stripe_Option_Lock::acquire( $lock_name, 5 * MINUTE_IN_SECONDS );
+		$this->assertIsString( $lock_owner );
+		WC_Stripe_Option_Lock::release( $lock_name, $lock_owner );
 	}
 
 	/**

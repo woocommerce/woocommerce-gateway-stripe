@@ -93,12 +93,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'enum'              => array_keys( $form_fields['optimized_checkout_layout']['options'] ?? [] ),
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'amazon_pay_button_size'                => [
-						'description'       => __( 'Express checkout button sizes.', 'woocommerce-gateway-stripe' ),
-						'type'              => 'string',
-						'enum'              => array_keys( $form_fields['amazon_pay_button_size']['options'] ?? [] ),
-						'validate_callback' => 'rest_validate_request_arg',
-					],
 					'amazon_pay_button_locations'           => [
 						'description'       => __( 'Express checkout locations that should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'array',
@@ -106,12 +100,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 							'type' => 'string',
 							'enum' => array_keys( $form_fields['amazon_pay_button_locations']['options'] ?? [] ),
 						],
-						'validate_callback' => 'rest_validate_request_arg',
-					],
-					'link_button_size'                      => [
-						'description'       => __( 'Link by Stripe button size.', 'woocommerce-gateway-stripe' ),
-						'type'              => 'string',
-						'enum'              => array_keys( $form_fields['link_button_size']['options'] ?? [] ),
 						'validate_callback' => 'rest_validate_request_arg',
 					],
 					'link_button_locations'                 => [
@@ -144,6 +132,20 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'description'       => __( 'Express checkout button sizes.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
 						// it can happen that `$form_fields['express_checkout_button_size']` is empty (in tests) - fixing temporarily.
+						'enum'              => array_keys( isset( $form_fields['express_checkout_button_size']['options'] ) ? $form_fields['express_checkout_button_size']['options'] : [] ),
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					// Deprecated aliases for `express_checkout_button_size`, kept so
+					// pre-unification clients can still update the (now shared) size.
+					'link_button_size'                      => [
+						'description'       => __( 'Deprecated alias of express_checkout_button_size.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'string',
+						'enum'              => array_keys( isset( $form_fields['express_checkout_button_size']['options'] ) ? $form_fields['express_checkout_button_size']['options'] : [] ),
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'amazon_pay_button_size'                => [
+						'description'       => __( 'Deprecated alias of express_checkout_button_size.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'string',
 						'enum'              => array_keys( isset( $form_fields['express_checkout_button_size']['options'] ) ? $form_fields['express_checkout_button_size']['options'] : [] ),
 						'validate_callback' => 'rest_validate_request_arg',
 					],
@@ -248,6 +250,9 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$available_payment_method_ids = $this->gateway->get_upe_available_payment_methods();
 		$ordered_payment_method_ids   = WC_Stripe_Helper::get_upe_ordered_payment_method_ids( $this->gateway );
 
+		// Derives the per-method button locations from the unified map, keeping the flat-array response contract.
+		$express_checkout_helper = new WC_Stripe_Express_Checkout_Helper();
+
 		return new WP_REST_Response(
 			[
 				/* Settings > General */
@@ -264,15 +269,16 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 					)
 				), // exclude Amazon Pay and Link from this list as they are express methods only.
 				/* Settings > Express checkouts */
-				'amazon_pay_button_size'                => $this->gateway->get_validated_option( 'amazon_pay_button_size' ),
-				'amazon_pay_button_locations'           => $this->gateway->get_validated_option( 'amazon_pay_button_locations' ),
-				'link_button_size'                      => $this->gateway->get_validated_option( 'link_button_size' ),
-				'link_button_locations'                 => $this->gateway->get_validated_option( 'link_button_locations' ),
+				'amazon_pay_button_locations'           => $express_checkout_helper->get_button_locations( 'amazon_pay' ),
+				'link_button_locations'                 => $express_checkout_helper->get_button_locations( 'link' ),
 				'is_express_checkout_enabled'           => $this->gateway->is_express_checkout_enabled(),
 				'express_checkout_button_type'          => $this->gateway->get_validated_option( 'express_checkout_button_type' ),
 				'express_checkout_button_theme'         => $this->gateway->get_validated_option( 'express_checkout_button_theme' ),
 				'express_checkout_button_size'          => $this->gateway->get_validated_option( 'express_checkout_button_size' ),
-				'express_checkout_button_locations'     => $this->gateway->get_validated_option( 'express_checkout_button_locations' ),
+				// Deprecated aliases: per-method sizes collapsed into the shared size.
+				'link_button_size'                      => $this->gateway->get_validated_option( 'express_checkout_button_size' ),
+				'amazon_pay_button_size'                => $this->gateway->get_validated_option( 'express_checkout_button_size' ),
+				'express_checkout_button_locations'     => $express_checkout_helper->get_button_locations( 'apple_pay_google_pay' ),
 
 				/* Settings > Payments & transactions */
 				'is_manual_capture_enabled'             => ! $this->gateway->is_automatic_capture_enabled(),
@@ -303,19 +309,24 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	public function update_settings( WP_REST_Request $request ) {
 		/* Settings > General */
 		$this->update_is_stripe_enabled( $request );
-		$this->update_is_test_mode_enabled( $request );
 
 		/* Settings > Payments accepted on checkout + Express checkouts */
-		$payment_method_ids_to_enable = $this->get_payment_method_ids_to_enable( $request );
-		$is_upe_enabled               = $request->get_param( 'is_upe_enabled' );
-		$this->update_enabled_payment_methods( $payment_method_ids_to_enable, $is_upe_enabled );
+		$payment_method_ids_to_enable  = $this->get_payment_method_ids_to_enable( $request );
+		$is_upe_enabled                = $request->get_param( 'is_upe_enabled' );
+		$update_payment_methods_result = $this->update_enabled_payment_methods( $payment_method_ids_to_enable, $is_upe_enabled );
 		if ( ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
 			// We need to update a separate setting for legacy checkout.
 			$this->update_is_express_checkout_enabled_for_legacy_checkout( $request );
 		}
+		// Ensure we update the test mode flag after the payment methods are updated.
+		// The current UI shows payment methods and test mode in different UI pages,
+		// but the client code bundles all updates in a single API call.
+		// This code therefore ensures that we apply mode-specific payment method updates before we switch the mode,
+		// as the client code presumably loaded the payment method details using the current, pre-change mode.
+		$this->update_is_test_mode_enabled( $request );
+
 		$this->update_express_checkout_settings( $request );
-		$this->update_amazon_pay_settings( $request );
-		$this->update_link_settings( $request );
+		$this->update_express_checkout_button_locations( $request );
 
 		/* Settings > Payments & transactions */
 		$this->update_is_manual_capture_enabled( $request );
@@ -329,6 +340,12 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$this->update_is_debug_log_enabled( $request );
 		$this->update_oc_settings( $request );
 
+		// Handle a PMC update error last so updates to other settings are saved.
+		// Return an HTTP 502 error code because the error comes from Stripe.
+		if ( is_wp_error( $update_payment_methods_result ) ) {
+			return new WP_REST_Response( [ 'message' => $update_payment_methods_result->get_error_message() ], 502 );
+		}
+
 		return new WP_REST_Response( [], 200 );
 	}
 
@@ -337,17 +354,21 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 *
 	 * @param WP_REST_Request $request Request object.
 	 *
-	 * @return string[]
+	 * @return string[]|null
 	 */
 	private function get_payment_method_ids_to_enable( WP_REST_Request $request ) {
 		$payment_method_ids_to_enable = $request->get_param( 'enabled_payment_method_ids' );
-		$is_upe_enabled               = $request->get_param( 'is_upe_enabled' );
-		$is_express_checkout_enabled  = $request->get_param( 'is_express_checkout_enabled' );
+
+		if ( ! is_array( $payment_method_ids_to_enable ) ) {
+			return null;
+		}
+
+		$is_upe_enabled              = $request->get_param( 'is_upe_enabled' );
+		$is_express_checkout_enabled = $request->get_param( 'is_express_checkout_enabled' );
 
 		// Card is required for Apple Pay and Google Pay.
 		if ( $is_upe_enabled &&
 			$is_express_checkout_enabled &&
-			is_array( $payment_method_ids_to_enable ) &&
 			in_array( WC_Stripe_Payment_Methods::CARD, $payment_method_ids_to_enable, true )
 		) {
 			$payment_method_ids_to_enable = array_merge(
@@ -418,7 +439,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 *
 	 * @return void
 	 */
-	private function update_is_test_mode_enabled( WP_REST_Request $request ) {
+	private function update_is_test_mode_enabled( WP_REST_Request $request ): void {
 		$is_test_mode_enabled = $request->get_param( 'is_test_mode_enabled' );
 
 		if ( null === $is_test_mode_enabled ) {
@@ -435,7 +456,15 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return;
 		}
 
+		// If the new value matches the existing mode, we don't need to update.
+		if ( WC_Stripe_Mode::is_test() === (bool) $is_test_mode_enabled ) {
+			return;
+		}
+
 		$this->gateway->update_option( 'testmode', $is_test_mode_enabled ? 'yes' : 'no' );
+
+		// Ensure we clear the PMC in-memory cache after switching the mode.
+		WC_Stripe_Payment_Method_Configurations::clear_in_memory_payment_method_configuration_cache();
 	}
 
 	/**
@@ -575,40 +604,21 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	}
 
 	/**
-	 * Updates appearance attributes of the Amazon Pay button.
+	 * Saves the express checkout button locations.
 	 *
-	 * @param WP_REST_Request $request Request object.
+	 * The UI edits one map, but each method keeps its own option so a rollback to a
+	 * version that reads the per-method options still sees the merchant's choices.
 	 *
+	 * @param WP_REST_Request $request Full data about the request.
 	 * @return void
 	 */
-	private function update_amazon_pay_settings( WP_REST_Request $request ) {
-		$attributes = [ 'amazon_pay_button_size', 'amazon_pay_button_locations' ];
-
-		foreach ( $attributes as $attribute ) {
-			if ( null === $request->get_param( $attribute ) ) {
+	private function update_express_checkout_button_locations( WP_REST_Request $request ): void {
+		foreach ( WC_Stripe_Express_Checkout_Helper::get_button_location_option_keys() as $option_key ) {
+			$value = $request->get_param( $option_key );
+			if ( null === $value ) {
 				continue;
 			}
-
-			$this->gateway->update_validated_option( $attribute, $request->get_param( $attribute ) );
-		}
-	}
-
-	/**
-	 * Updates appearance attributes of the Link by Stripe button.
-	 *
-	 * @param WP_REST_Request $request Request object.
-	 *
-	 * @return void
-	 */
-	private function update_link_settings( WP_REST_Request $request ) {
-		$attributes = [ 'link_button_size', 'link_button_locations' ];
-
-		foreach ( $attributes as $attribute ) {
-			if ( null === $request->get_param( $attribute ) ) {
-				continue;
-			}
-
-			$this->gateway->update_validated_option( $attribute, $request->get_param( $attribute ) );
+			$this->gateway->update_validated_option( $option_key, array_values( (array) $value ) );
 		}
 	}
 
@@ -621,10 +631,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 */
 	private function update_express_checkout_settings( WP_REST_Request $request ) {
 		$attributes = [
-			'express_checkout_button_type'      => 'express_checkout_button_type',
-			'express_checkout_button_size'      => 'express_checkout_button_size',
-			'express_checkout_button_theme'     => 'express_checkout_button_theme',
-			'express_checkout_button_locations' => 'express_checkout_button_locations',
+			'express_checkout_button_type'  => 'express_checkout_button_type',
+			'express_checkout_button_theme' => 'express_checkout_button_theme',
 		];
 
 		foreach ( $attributes as $request_key => $attribute ) {
@@ -634,6 +642,21 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 			$value = $request->get_param( $request_key );
 			$this->gateway->update_validated_option( $attribute, $value );
+		}
+
+		// Deprecated aliases: pre-unification clients may still send a per-method
+		// size. They update the shared size, but the shared parameter wins.
+		$size = $request->get_param( 'express_checkout_button_size' )
+			?? $request->get_param( 'link_button_size' )
+			?? $request->get_param( 'amazon_pay_button_size' );
+		if ( null === $size ) {
+			return;
+		}
+
+		// The per-method size options are no longer read, but they are kept in step with
+		// the shared size so a rollback to a version that reads them shows the same size.
+		foreach ( [ 'express_checkout_button_size', 'link_button_size', 'amazon_pay_button_size' ] as $option_key ) {
+			$this->gateway->update_validated_option( $option_key, $size );
 		}
 	}
 
@@ -680,21 +703,21 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	/**
 	 * Updates the list of enabled payment methods.
 	 *
-	 * @param array $payment_method_ids_to_enable The list of payment method ids to enable.
-	 * @param bool  $is_upe_enabled               Whether UPE is enabled.
+	 * @param array|null $payment_method_ids_to_enable The list of payment method ids to enable, or null to skip.
+	 * @param bool|null  $is_upe_enabled               Whether UPE is enabled.
 	 *
-	 * @return void
+	 * @return true|\WP_Error|null True on success, WP_Error on failure, null if skipped.
 	 */
 	private function update_enabled_payment_methods( $payment_method_ids_to_enable, $is_upe_enabled ) {
 		if ( null === $is_upe_enabled ) {
-			return;
+			return null;
 		}
 
 		if ( null === $payment_method_ids_to_enable ) {
-			return;
+			return null;
 		}
 
-		$this->gateway->update_enabled_payment_methods( $payment_method_ids_to_enable );
+		return $this->gateway->update_enabled_payment_methods( $payment_method_ids_to_enable );
 	}
 
 	/**

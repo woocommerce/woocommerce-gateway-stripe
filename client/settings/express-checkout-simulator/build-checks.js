@@ -1,5 +1,6 @@
 import { getSetting } from '@woocommerce/settings';
 import getReasonText from './get-reason-text';
+import getAvailableStoreCurrencies from 'utils/get-available-store-currencies';
 import { __, sprintf } from '@wordpress/i18n';
 import { PAYMENT_METHOD_UNAVAILABLE_REASONS } from 'wcstripe/stripe-utils/constants';
 import { getExpressCheckoutLocationDefinitions } from 'wcstripe/settings/express-checkout-customize/locations';
@@ -142,8 +143,8 @@ export const buildBaseChecks = ( { params, methodEnabled, methodLabel } ) => {
 /**
  * Builds a store-currency check for methods that restrict the currency (e.g. Amazon Pay).
  * Returns null for methods that support all currencies so the row isn't shown where it would
- * always pass. The caller passes the currency list from its page's localized params, so the
- * server-side per-account list stays the single source of truth.
+ * always pass. The server-localized store currency list includes currencies supplied by
+ * multi-currency plugins.
  *
  * @param {Object}   args
  * @param {string[]} args.currencies  Currencies the method supports for the connected account.
@@ -157,8 +158,12 @@ export const buildCurrencyCheck = ( { currencies = [], methodLabel } ) => {
 	}
 
 	const storeCurrency = getSetting( 'currency' )?.code;
+	const availableStoreCurrencies =
+		getAvailableStoreCurrencies( storeCurrency );
 	const supported = Boolean(
-		storeCurrency && currencies.includes( storeCurrency )
+		availableStoreCurrencies.some( ( currency ) =>
+			currencies.includes( currency )
+		)
 	);
 
 	return {
