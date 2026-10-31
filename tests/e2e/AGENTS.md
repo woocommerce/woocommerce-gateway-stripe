@@ -10,6 +10,7 @@ For repository-wide rules, always read the root `AGENTS.md` first.
 - **CRITICAL:** Do not commit secrets from `tests/e2e/config/local.env`.
 - **CRITICAL:** Keep tests deterministic; avoid unnecessary sleeps and flaky selectors.
 - **CRITICAL:** For Stripe iframe interactions, do not rely on `networkidle`; use deterministic field readiness/visibility checks.
+- For Classic Checkout network-failure tests, wait for the initial recalculation and trigger a control that requests a new update. `fill()` followed by Tab can leave WooCommerce's address state clean; assert that the intercepted request actually failed.
 - **CRITICAL:** Reuse existing setup/utility helpers before adding new setup logic.
 
 ## Environment and Commands

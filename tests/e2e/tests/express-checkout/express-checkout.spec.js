@@ -68,18 +68,32 @@ test.describe( 'customer can use Link express checkout', () => {
 		page,
 	} ) => {
 		await addProductToCart( page );
+		const initialUpdate = page.waitForResponse(
+			( response ) =>
+				response.url().includes( 'wc-ajax=update_order_review' ) &&
+				response.ok()
+		);
 		await page.goto( '/checkout-shortcode' );
+		await initialUpdate;
 		await expect( await getLinkButton( page ) ).toBeVisible();
 		await page.route(
 			'**/*wc-ajax=update_order_review*',
 			( route ) => route.abort( 'failed' ),
 			{ times: 1 }
 		);
-		const postcode = page.locator( '#billing_postcode' );
-		await postcode.fill(
-			( await postcode.inputValue() ) === '90210' ? '90211' : '90210'
+		const failedUpdate = page.waitForEvent( 'requestfailed', {
+			predicate: ( request ) =>
+				request.url().includes( 'wc-ajax=update_order_review' ),
+		} );
+		// Address text changes can be ignored until WooCommerce marks the
+		// address dirty; this control always requests a totals recalculation.
+		const shippingAddress = page.locator(
+			'#ship-to-different-address-checkbox'
 		);
-		await postcode.press( 'Tab' );
+		await shippingAddress.setChecked(
+			! ( await shippingAddress.isChecked() )
+		);
+		await failedUpdate;
 		const error = page.locator(
 			'#wc-stripe-express-checkout-refresh-error'
 		);
