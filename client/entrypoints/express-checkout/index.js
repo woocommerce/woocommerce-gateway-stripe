@@ -793,7 +793,9 @@ jQuery( function ( $ ) {
 					group.available &&
 					( options.total > 0 ||
 						hasFreeTrial ||
-						isChangePaymentMethod )
+						isChangePaymentMethod ||
+						getExpressCheckoutData( 'is_product_page' ) ||
+						getExpressCheckoutData( 'is_pay_for_order' ) )
 				) {
 					wcStripeECE.show();
 					wcStripeECE.getButtonSeparator().show();
