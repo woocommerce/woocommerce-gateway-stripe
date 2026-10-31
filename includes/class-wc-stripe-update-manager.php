@@ -82,6 +82,8 @@ class WC_Stripe_Update_Manager {
 			[ new WC_Stripe_Express_Checkout_Add_Change_Payment_Method_Location_Update(), 'maybe_migrate' ],
 			[ new WC_Stripe_OCS_AP_Default_On_Update(), 'maybe_migrate' ],
 			[ new WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update(), 'maybe_migrate' ],
+			[ new WC_Stripe_Express_Checkout_Password_Cleanup(), 'maybe_migrate' ],
+			[ new WC_Stripe_Failed_Refund_Email_Additional_Content_Update(), 'maybe_migrate' ],
 		];
 
 		return $functions;

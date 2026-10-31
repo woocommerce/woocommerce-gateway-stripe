@@ -13,7 +13,7 @@ jest.mock( 'wcstripe/express-checkout/utils', () => ( {
 	getExpressCheckoutData: jest.fn(),
 } ) );
 
-jest.mock( 'wcstripe/stripe-utils', () => ( {
+jest.mock( 'wcstripe/stripe-utils/get-stripe-server-data', () => ( {
 	getStripeServerData: jest.fn( () => ( {
 		isCheckout: true,
 	} ) ),

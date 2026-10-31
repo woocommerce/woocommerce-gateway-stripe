@@ -75,6 +75,12 @@ class WC_Stripe_Checkout_Session_Manager {
 			],
 		];
 
+		// We should have a valid configuration ID, but we make sure we don't create an invalid request.
+		$payment_method_configuration_id = WC_Stripe_Payment_Method_Configurations::get_configuration_id();
+		if ( null !== $payment_method_configuration_id ) {
+			$request['payment_method_configuration'] = $payment_method_configuration_id;
+		}
+
 		if ( 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ) ) {
 			$request['phone_number_collection'] = [ 'enabled' => 'true' ];
 		}
@@ -86,7 +92,7 @@ class WC_Stripe_Checkout_Session_Manager {
 				$stripe_customer = new WC_Stripe_Customer( WC()->customer->get_id() );
 				$stripe_customer->maybe_create_customer( WC_Stripe_Customer::CUSTOMER_CONTEXT_CHECKOUT_SESSION );
 			} catch ( Exception $e ) {
-				throw new WC_Stripe_Exception( $e->getMessage(), __( 'Unable to create or retrieve Stripe customer.', 'woocommerce-gateway-stripe' ) );
+				throw new WC_Stripe_Exception( $e->getMessage(), __( 'Unable to create or retrieve Stripe customer.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			}
 
 			$request['customer']                     = $stripe_customer->get_id();
@@ -113,11 +119,11 @@ class WC_Stripe_Checkout_Session_Manager {
 		$checkout_session = WC_Stripe_API::request( $request, 'checkout/sessions' );
 		if ( ! empty( $checkout_session->error ) ) {
 			$message = empty( $checkout_session->error->message ) ? '(No error message returned from Stripe)' : $checkout_session->error->message;
-			throw new WC_Stripe_Exception( $message, self::get_runtime_error_message() );
+			throw new WC_Stripe_Exception( $message, self::get_runtime_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		if ( empty( $checkout_session->client_secret ) || empty( $checkout_session->id ) ) {
-			throw new WC_Stripe_Exception( 'Failed to create Stripe Checkout Session.', self::get_runtime_error_message() );
+			throw new WC_Stripe_Exception( 'Failed to create Stripe Checkout Session.', self::get_runtime_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		WC_Stripe_Checkout_Session_Context::store_for_cart( $checkout_session->id, $cart_context );
@@ -132,6 +138,7 @@ class WC_Stripe_Checkout_Session_Manager {
 			'status'                      => 'success',
 			'message'                     => '',
 			'save_payment_method_enabled' => $save_payment_method_enabled,
+			'expires_at'                  => (int) ( $checkout_session->expires_at ?? 0 ),
 		];
 		$this->set_record( $record );
 
@@ -149,12 +156,13 @@ class WC_Stripe_Checkout_Session_Manager {
 		$this->validate_cart();
 
 		if ( '' === $session_id ) {
-			throw new WC_Stripe_Exception( 'Checkout session ID is required.', self::get_runtime_error_message() );
+			throw new WC_Stripe_Exception( 'Checkout session ID is required.', self::get_runtime_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
-		WC_Stripe_Checkout_Session_Context::with_mutation_lock(
+		// Handle errors outside of the locked context, as the lock TTL is not long enough to cover multiple Stripe API requests.
+		$stripe_error = WC_Stripe_Checkout_Session_Context::with_mutation_lock(
 			$session_id,
-			function () use ( $session_id ): void {
+			function () use ( $session_id ): ?object {
 				WC_Stripe_Checkout_Session_Context::validate_update_request( $session_id );
 
 				// Read the cart only once the lock is held and the session is known not to be
@@ -168,8 +176,7 @@ class WC_Stripe_Checkout_Session_Manager {
 				);
 
 				if ( ! empty( $checkout_session->error ) ) {
-					$message = empty( $checkout_session->error->message ) ? '(No error message returned from Stripe)' : $checkout_session->error->message;
-					throw new WC_Stripe_Exception( $message, self::get_runtime_error_message() );
+					return is_object( $checkout_session->error ) ? $checkout_session->error : (object) [ 'message' => (string) $checkout_session->error ];
 				}
 
 				WC_Stripe_Checkout_Session_Context::store_for_cart( $session_id, $cart_context );
@@ -183,8 +190,26 @@ class WC_Stripe_Checkout_Session_Manager {
 					$record['message']  = '';
 					$this->set_record( $record );
 				}
+
+				return null;
 			}
 		);
+
+		if ( null !== $stripe_error ) {
+			// Stripe returns the same invalid_request_error type, with no code, for both bad parameters
+			// and an expired session. Fetch the session to get its current state.
+			if ( 'invalid_request_error' === (string) ( $stripe_error->type ?? '' ) && $this->is_session_finished_on_stripe( $session_id ) ) {
+				WC_Stripe_Logger::info(
+					'Creating a new Checkout Session because Stripe reports the existing session as inactive.',
+					[ 'checkout_session_id' => $session_id ]
+				);
+
+				return $this->create_session();
+			}
+
+			$message = empty( $stripe_error->message ) ? '(No error message returned from Stripe)' : (string) $stripe_error->message;
+			throw new WC_Stripe_Exception( $message, self::get_runtime_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
 
 		// Ensure we (re)fetch the current data.
 		return $this->get_current_data();
@@ -226,6 +251,20 @@ class WC_Stripe_Checkout_Session_Manager {
 			return $this->create_session();
 		}
 
+		// Stripe expires a session at expires_at, but every cart update extends the context past
+		// that, so an unchanged cart would otherwise keep handing the client a session Stripe refuses.
+		// Records stored before expires_at was tracked are replaced on their next cart change instead,
+		// through the rejected update.
+		$expires_at = (int) ( $record['expires_at'] ?? 0 );
+		if ( $expires_at > 0 && time() >= $expires_at ) {
+			WC_Stripe_Logger::info(
+				'Creating a new Checkout Session as the current session has expired.',
+				[ 'checkout_session_id' => (string) $record['session_id'] ]
+			);
+
+			return $this->create_session();
+		}
+
 		// The context is the source of truth for amount and currency, so we need to compare
 		// against the data that was pushed to Stripe.
 		if (
@@ -261,6 +300,32 @@ class WC_Stripe_Checkout_Session_Manager {
 		$this->set_record( $record );
 
 		return $this->get_public_data( $record );
+	}
+
+	/**
+	 * Ask Stripe whether a session is expired, completed, or gone.
+	 *
+	 * @param string $session_id Stripe Checkout Session ID.
+	 * @return bool True only on an explicit Stripe answer; an inconclusive lookup keeps the session.
+	 */
+	private function is_session_finished_on_stripe( string $session_id ): bool {
+		// retrieve() answers null during the invalid-key cooldown and a WP_Error during an outage;
+		// neither says anything about the session.
+		$session = WC_Stripe_API::retrieve( "checkout/sessions/$session_id" );
+		if ( ! is_object( $session ) || is_wp_error( $session ) ) {
+			return false;
+		}
+
+		if ( ! empty( $session->error ) ) {
+			return 'resource_missing' === ( $session->error->code ?? '' );
+		}
+
+		if ( ! is_string( $session->status ?? null ) ) {
+			return false;
+		}
+
+		// https://docs.stripe.com/api/checkout/sessions/object#checkout_session_object-status
+		return in_array( $session->status, [ 'expired', 'complete' ], true );
 	}
 
 	/**
@@ -346,11 +411,11 @@ class WC_Stripe_Checkout_Session_Manager {
 	 */
 	private function validate_cart(): void {
 		if ( ! WC()->session ) {
-			throw new WC_Stripe_Exception( 'No WooCommerce session found.', self::get_runtime_error_message() );
+			throw new WC_Stripe_Exception( 'No WooCommerce session found.', self::get_runtime_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		if ( ! WC()->cart || WC()->cart->is_empty() ) {
-			throw new WC_Stripe_Exception( 'Cart is empty.', __( 'Your cart is currently empty.', 'woocommerce-gateway-stripe' ) );
+			throw new WC_Stripe_Exception( 'Cart is empty.', __( 'Your cart is currently empty.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 	}
 

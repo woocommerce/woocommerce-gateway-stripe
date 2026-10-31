@@ -2,7 +2,7 @@
     "name": "woocommerce/woocommerce-gateway-stripe-hooks-documentor",
     "description": "Generate hook documentation for woocommerce/woocommerce-gateway-stripe",
     "type": "library",
-    "license": "GPL-2.0-or-later",
+    "license": "GPL-3.0-only",
     "minimum-stability": "beta",
     "config": {
         "allow-plugins": {

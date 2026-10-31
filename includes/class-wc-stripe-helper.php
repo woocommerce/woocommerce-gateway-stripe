@@ -22,6 +22,14 @@ class WC_Stripe_Helper {
 	public const PAYMENT_AWAITING_ACTION_META = '_stripe_payment_awaiting_action';
 
 	/**
+	 * Display item key treated as a negative amount by the express checkout client;
+	 * must match the literal in client/express-checkout/utils/normalize.js.
+	 *
+	 * @var string
+	 */
+	public const EXPRESS_CHECKOUT_DISCOUNT_ITEM_KEY = 'total_discount';
+
+	/**
 	 * The identifier for the official Affirm gateway plugin.
 	 *
 	 * @var string
@@ -36,11 +44,31 @@ class WC_Stripe_Helper {
 	public const OFFICIAL_PLUGIN_ID_KLARNA = 'klarna_payments';
 
 	/**
+	 * The Stripe.js version this plugin ships and is tested against. The checkout
+	 * client only runs Checkout Sessions on this exact build, so bump it together
+	 * with the `@stripe/stripe-js` release train in package.json.
+	 *
+	 * @var string
+	 */
+	private const STRIPE_JS_VERSION = 'dahlia';
+
+	/**
 	 * The Stripe.js SDK URL, pinned to a named major release.
 	 *
 	 * @var string
 	 */
-	protected const STRIPE_JS_URL = 'https://js.stripe.com/dahlia/stripe.js';
+	protected const STRIPE_JS_URL = 'https://js.stripe.com/' . self::STRIPE_JS_VERSION . '/stripe.js';
+
+	/**
+	 * Returns the Stripe.js version this plugin ships, for example 'dahlia'.
+	 *
+	 * @since x.x.x
+	 *
+	 * @return string
+	 */
+	public static function get_stripe_js_version(): string {
+		return self::STRIPE_JS_VERSION;
+	}
 
 	/**
 	 * List of legacy Stripe gateways.
@@ -381,6 +409,50 @@ class WC_Stripe_Helper {
 			'omr', // Omani Rial
 			'tnd', // Tunisian Dinar
 		];
+	}
+
+	/**
+	 * Returns the currencies that may be used as the store currency at checkout.
+	 *
+	 * Admin availability checks need the complete list because a multi-currency store
+	 * can offer checkout currencies other than its WooCommerce base currency.
+	 *
+	 * @since 11.1.0
+	 *
+	 * @return string[] Uppercase currency codes.
+	 */
+	public static function get_available_store_currencies(): array {
+		$store_currency             = strtoupper( (string) get_woocommerce_currency() );
+		$available_store_currencies = $store_currency ? [ $store_currency ] : [];
+
+		/**
+		 * Filters the currencies that may be used as the store currency at checkout.
+		 *
+		 * Multi-currency plugins should append their configured currencies to the
+		 * supplied WooCommerce base currency.
+		 *
+		 * @since 11.1.0
+		 *
+		 * @param string[] $available_store_currencies Available currency codes.
+		 */
+		$filtered_currencies = apply_filters( 'wc_stripe_available_store_currencies', $available_store_currencies );
+
+		if ( ! is_array( $filtered_currencies ) ) {
+			return $available_store_currencies;
+		}
+
+		foreach ( $filtered_currencies as $currency ) {
+			if ( ! is_string( $currency ) ) {
+				continue;
+			}
+
+			$currency = strtoupper( trim( $currency ) );
+			if ( '' !== $currency ) {
+				$available_store_currencies[] = $currency;
+			}
+		}
+
+		return array_values( array_unique( $available_store_currencies ) );
 	}
 
 	/**
@@ -1131,8 +1203,8 @@ class WC_Stripe_Helper {
 	public static function clean_statement_descriptor( $statement_descriptor = '' ) {
 		$disallowed_characters = [ '<', '>', '\\', '*', '"', "'", '/', '(', ')', '{', '}' ];
 
-		// Strip any tags.
-		$statement_descriptor = strip_tags( $statement_descriptor );
+		// Strip all tags.
+		$statement_descriptor = wp_strip_all_tags( $statement_descriptor );
 
 		// Strip any HTML entities.
 		// Props https://stackoverflow.com/questions/657643/how-to-remove-html-special-chars .
@@ -1292,6 +1364,37 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Records a Tracks event when the plugin decides by itself whether to turn Adaptive Pricing on,
+	 * without a merchant action. Merchant changes in the settings are tracked separately.
+	 *
+	 * @internal
+	 * @since x.x.x
+	 *
+	 * @param string      $source         The flow that made the decision, e.g. 'connect' or 'ocs_ap_default_on'.
+	 * @param string|null $skipped_reason Why Adaptive Pricing was left off, or null when it was turned on.
+	 * @return void
+	 */
+	public static function record_adaptive_pricing_default_tracks_event( string $source, ?string $skipped_reason = null ): void {
+		if ( ! function_exists( 'wc_admin_record_tracks_event' ) ) {
+			return;
+		}
+
+		$properties = [
+			'test_mode' => WC_Stripe_Mode::is_test() ? 1 : 0,
+			'source'    => $source,
+		];
+
+		if ( null !== $skipped_reason ) {
+			$properties['reason'] = $skipped_reason;
+		}
+
+		wc_admin_record_tracks_event(
+			null === $skipped_reason ? 'wcstripe_ap_default_enabled' : 'wcstripe_ap_default_skipped',
+			$properties
+		);
+	}
+
+	/**
 	 * Returns the reason why adaptive pricing is not available for the current Stripe account.
 	 * Adaptive Pricing is not supported for accounts based in India, as well as for other situations.
 	 *
@@ -1357,6 +1460,12 @@ class WC_Stripe_Helper {
 
 		// False if checkout session feature flag is disabled.
 		if ( ! self::is_checkout_sessions_available() ) {
+			return false;
+		}
+
+		// If Optimized Checkout is not available to shoppers, we should ensure that
+		// Adaptive Pricing is also disabled.
+		if ( ! WC_Stripe_Feature_Flags::is_oc_offered() ) {
 			return false;
 		}
 
@@ -1508,13 +1617,11 @@ class WC_Stripe_Helper {
 		// Make sure location parameter is sanitized.
 		$location         = in_array( $location, [ 'product', 'cart' ], true ) ? $location : '';
 		$are_prbs_enabled = self::get_settings( null, 'express_checkout' ) ?? 'yes';
-		$prb_locations    = self::get_settings( null, 'express_checkout_button_locations' ) ?? [ 'product', 'cart' ];
 
-		// The scripts should be loaded when all of the following are true:
-		//   1. The PRBs are enabled; and
-		//   2. The PRB location settings have an array value (saving an empty option in the GUI results in non-array value); and
-		//   3. The PRBs are enabled at $location.
-		return 'yes' === $are_prbs_enabled && is_array( $prb_locations ) && in_array( $location, $prb_locations, true );
+		// Read through the helper so an unset option keeps the default placement and
+		// a non-array value (every location unchecked) counts as disabled.
+		return 'yes' === $are_prbs_enabled
+			&& ( new WC_Stripe_Express_Checkout_Helper() )->is_enabled_for_location( 'apple_pay_google_pay', $location );
 	}
 
 	/**
@@ -2160,7 +2267,7 @@ class WC_Stripe_Helper {
 		}
 
 		if ( ! is_object( $intent ) ) {
-			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		if ( null === $intent_id ) {
@@ -2176,7 +2283,7 @@ class WC_Stripe_Helper {
 					'error'     => $intent->error,
 				]
 			);
-			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		if ( null === $selected_payment_type ) {
@@ -2222,7 +2329,7 @@ class WC_Stripe_Helper {
 			]
 		);
 
-		throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+		throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 	}
 
 	/**
@@ -2362,7 +2469,7 @@ class WC_Stripe_Helper {
 
 		if ( WC()->cart->has_discount() ) {
 			$items[] = [
-				'key'    => 'total_discount',
+				'key'    => self::EXPRESS_CHECKOUT_DISCOUNT_ITEM_KEY,
 				'label'  => esc_html( __( 'Discount', 'woocommerce-gateway-stripe' ) ),
 				'amount' => WC_Stripe_Helper::get_stripe_amount( $discounts ),
 			];
@@ -2372,6 +2479,7 @@ class WC_Stripe_Helper {
 
 		// Include fees and taxes as display items.
 		foreach ( $cart_fees as $fee ) {
+			// ->amount is safe here (cart fees are freshly calculated); order paths must read get_total() instead.
 			$fee_amount = (float) $fee->amount;
 			$item       = [];
 
@@ -2383,7 +2491,7 @@ class WC_Stripe_Helper {
 			// display items exceed the cart total and Stripe rejects the payment sheet with
 			// "the amount is less than the total amount of the line items provided."
 			if ( $fee_amount < 0 ) {
-				$item['key'] = 'total_discount';
+				$item['key'] = self::EXPRESS_CHECKOUT_DISCOUNT_ITEM_KEY;
 			}
 
 			$item['label']  = $fee->name;
