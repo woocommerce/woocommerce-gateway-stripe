@@ -683,6 +683,10 @@ export const fillACHBankDetails = async ( page ) => {
 	const frame = page
 		.frameLocator( 'iframe[name^="__privateStripeFrame"]' )
 		.first();
+	// Stripe's test account picker uses radios in newer SDK builds.
+	const successAccount = frame
+		.getByRole( 'radio', { name: /^Success ••••/ } )
+		.or( frame.getByRole( 'button', { name: 'Success ••••' } ) );
 
 	// Click Agree and Continue button
 	let button = frame.getByTestId( 'agree-button' );
@@ -697,9 +701,7 @@ export const fillACHBankDetails = async ( page ) => {
 			.then( async () => {
 				await frame.getByTestId( 'link-not-now-button' ).click();
 			} ),
-		frame
-			.getByRole( 'button', { name: 'Success ••••' } )
-			.waitFor( { state: 'visible' } ),
+		successAccount.waitFor( { state: 'visible' } ),
 		frame
 			.getByTestId( 'continue-button' )
 			.waitFor( { state: 'visible' } )
@@ -709,9 +711,8 @@ export const fillACHBankDetails = async ( page ) => {
 	] );
 
 	// Click "Success ••••" account
-	button = frame.getByRole( 'button', { name: 'Success ••••' } );
-	await expect( button ).toBeVisible();
-	await button.click();
+	await expect( successAccount ).toBeVisible();
+	await successAccount.click();
 
 	// Click Connect account button
 	button = frame.getByTestId( 'select-button' );
