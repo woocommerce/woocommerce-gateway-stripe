@@ -253,7 +253,7 @@ export const getOrderTotalForLabel = ( page, label ) =>
  * Checks the following locations to ensure we are charging the expected amount:
  *  - The "Order Total" row
  *  - The "Paid" (captured) row of the order details
- *  - The sum of the "Stripe Fee" and "Stripe Payout" rows
+ *  - The sum of the Stripe payout and any displayed fee
  *
  * @param {Browser} browser       Playwright browser fixture.
  * @param {string}  orderId       The WooCommerce order ID.
@@ -282,14 +282,19 @@ export const verifyOrderChargedAmount = async (
 			expectedTotal
 		);
 
-		// Also verify that the Stripe Fee and Stripe Payout rows are present and add up to the expected amount.
+		// The payout and any displayed fee must account for the captured total.
 		const stripeFeeElement = totalElementForLabel( 'Stripe Fee' );
 		const stripePayoutElement = totalElementForLabel( 'Stripe Payout' );
 
-		await expect( stripeFeeElement ).toContainText( '-' );
 		await expect( stripePayoutElement ).not.toBeEmpty();
 
-		const stripeFeeText = await stripeFeeElement.textContent();
+		// Zero-fee transactions omit the fee row; their payout must still
+		// reconcile to the captured total.
+		let stripeFeeText = '0';
+		if ( await stripeFeeElement.count() ) {
+			await expect( stripeFeeElement ).toContainText( '-' );
+			stripeFeeText = await stripeFeeElement.textContent();
+		}
 		const stripePayoutText = await stripePayoutElement.textContent();
 
 		// Extract the numeric amount from the text content - ignore - and currency symbol.
