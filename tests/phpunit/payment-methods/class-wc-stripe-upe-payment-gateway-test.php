@@ -588,19 +588,29 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			->setConstructorArgs( [] )
 			->onlyMethods( [ 'javascript_params', 'get_return_url' ] )
 			->getMock();
-		$gateway->method( 'javascript_params' )->willReturn( [] );
+		$gateway->method( 'javascript_params' )->willReturn(
+			[
+				'isOCEnabled'               => true,
+				'showStripeDeveloperWidget' => true,
+			]
+		);
 		$gateway->method( 'get_return_url' )->willReturn( self::MOCK_RETURN_URL );
 		$gateway->enabled = 'yes';
 
 		add_filter( 'woocommerce_is_checkout', '__return_true' );
 		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
+		wp_register_script( 'wc_stripe_express_checkout', 'https://example.test/express.js', [], null, true );
+		wp_enqueue_script( 'wc_stripe_express_checkout' );
 
 		$gateway->payment_scripts();
-		$localized = wp_scripts()->get_data( 'wc-stripe-upe-classic', 'data' );
+		$localized         = wp_scripts()->get_data( 'wc-stripe-upe-classic', 'data' );
+		$express_localized = wp_scripts()->get_data( 'wc_stripe_express_checkout', 'data' );
 
 		remove_filter( 'woocommerce_is_checkout', '__return_true' );
 		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
+		$this->clean_up_scripts( [ 'wc_stripe_express_checkout' ] );
 
+		$this->assertSame( $localized, $express_localized, 'Early wallets must receive the same filtered gateway configuration before initialization.' );
 		$this->assertIsString( $localized, 'wc_stripe_upe_params was not localized' );
 		$this->assertMatchesRegularExpression( '/var wc_stripe_upe_params = (\{.*\});/s', $localized );
 		preg_match( '/var wc_stripe_upe_params = (\{.*\});/s', $localized, $matches );

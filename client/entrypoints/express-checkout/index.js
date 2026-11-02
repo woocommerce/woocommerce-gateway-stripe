@@ -4,6 +4,7 @@
 import { debounce } from 'lodash';
 import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
+import { getStripeServerData } from 'wcstripe/stripe-utils/get-stripe-server-data';
 import { __ } from '@wordpress/i18n';
 import {
 	displayExpressCheckoutNotice,
@@ -44,7 +45,7 @@ import {
 	transformPrice,
 } from 'wcstripe/express-checkout/transformers/wc-to-stripe';
 
-jQuery( function ( $ ) {
+const initializeExpressCheckout = ( $ ) => {
 	// Don't load if blocks checkout is being loaded.
 	if (
 		getExpressCheckoutData( 'has_block' ) &&
@@ -1505,4 +1506,23 @@ jQuery( function ( $ ) {
 		++cartRevision;
 		refreshExpressCheckout();
 	} );
-} );
+};
+
+// Footer markup is already available on Classic checkout. Preparing wallets now
+// overlaps the deferred WooCommerce scripts instead of waiting for their ready event.
+const stripeServerData = getStripeServerData();
+if (
+	getExpressCheckoutData( 'is_checkout_page' ) &&
+	! getExpressCheckoutData( 'is_product_page' ) &&
+	! getExpressCheckoutData( 'has_block' ) &&
+	! getExpressCheckoutData( 'is_pay_for_order' ) &&
+	! getExpressCheckoutData( 'is_change_payment_method' ) &&
+	stripeServerData &&
+	! stripeServerData.isOCEnabled &&
+	typeof window.Stripe === 'function' &&
+	document.getElementById( 'wc-stripe-express-checkout-element' )
+) {
+	initializeExpressCheckout( jQuery );
+} else {
+	jQuery( initializeExpressCheckout );
+}

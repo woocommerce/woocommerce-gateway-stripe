@@ -1,8 +1,8 @@
 /**
  * Tests for the cart/checkout bootstrap path in the Express Checkout entrypoint.
  *
- * The entrypoint is an `jQuery( ( $ ) => { … } )` IIFE with no exported surface,
- * so these tests load it for its side effects and assert on the one observable
+ * The entrypoint has no exported surface, so these tests load its side effects
+ * and assert on the observable
  * signal that distinguishes the bootstrap path from the legacy AJAX path: whether
  * `expressCheckoutGetCartDetails()` (the `GET /wc/store/v1/cart` fetch) fires.
  */
@@ -13,6 +13,8 @@ const mockGetStripe = jest.fn();
 const mockAddToCart = jest.fn();
 const mockEmptyCartLegacy = jest.fn();
 const mockTransformLabeledDisplayItems = jest.fn( () => [] );
+let mockDelayReady = false;
+const mockReadyCallbacks = [];
 
 // Drain both microtasks and jQuery Deferred's timer-scheduled callbacks.
 const flushPromises = async () => {
@@ -26,10 +28,16 @@ const flushPromises = async () => {
 // jQuery calls delegate to the real library so `.on()`/`.trigger()` still work.
 jest.mock( 'jquery', () => {
 	const actualJQuery = jest.requireActual( 'jquery' );
-	const syncReadyJQuery = ( arg, ...args ) =>
-		typeof arg === 'function'
-			? arg( syncReadyJQuery )
-			: actualJQuery( arg, ...args );
+	const syncReadyJQuery = ( arg, ...args ) => {
+		if ( typeof arg === 'function' ) {
+			if ( mockDelayReady ) {
+				mockReadyCallbacks.push( () => arg( syncReadyJQuery ) );
+				return;
+			}
+			return arg( syncReadyJQuery );
+		}
+		return actualJQuery( arg, ...args );
+	};
 	return Object.assign( syncReadyJQuery, actualJQuery );
 } );
 
@@ -951,6 +959,8 @@ describe( 'Classic checkout early initialization', () => {
 			},
 		};
 		global.wc_stripe_express_checkout_params = params;
+		global.wc_stripe_upe_params = { isOCEnabled: false };
+		global.Stripe = jest.fn();
 		document.body.innerHTML = `
 			<div id="wc-stripe-express-checkout-element" style="display:none"></div>
 			<div id="wc-stripe-express-checkout-button-separator" style="display:none"></div>`;
@@ -958,8 +968,74 @@ describe( 'Classic checkout early initialization', () => {
 
 	afterEach( () => {
 		jest.useRealTimers();
+		mockDelayReady = false;
+		mockReadyCallbacks.length = 0;
 		delete global.wc_stripe_express_checkout_params;
 		delete global.wcStripeExpressCheckoutPayForOrderParams;
+		delete global.wc_stripe_upe_params;
+		delete global.Stripe;
+	} );
+
+	it( 'prepares Classic wallets before document ready without initializing twice', () => {
+		mockDelayReady = true;
+		loadEntrypoint();
+		expect( groups ).toHaveLength( 1 );
+		expect( groups[ 0 ].button.mount ).toHaveBeenCalledTimes( 1 );
+		mockReadyCallbacks.forEach( ( callback ) => callback() );
+		expect( groups ).toHaveLength( 1 );
+		expect( groups[ 0 ].button.mount ).toHaveBeenCalledTimes( 1 );
+	} );
+
+	it( 'waits for document ready when the Classic wallet container is not rendered yet', () => {
+		mockDelayReady = true;
+		document.body.innerHTML = '';
+		loadEntrypoint();
+		expect( groups ).toHaveLength( 0 );
+		document.body.innerHTML =
+			'<div id="wc-stripe-express-checkout-element"></div>';
+		mockReadyCallbacks.forEach( ( callback ) => callback() );
+		expect( groups ).toHaveLength( 1 );
+	} );
+
+	it( 'keeps optimized checkout on document-ready initialization', () => {
+		mockDelayReady = true;
+		global.wc_stripe_upe_params = { isOCEnabled: true };
+		loadEntrypoint();
+		expect( groups ).toHaveLength( 0 );
+		mockReadyCallbacks.forEach( ( callback ) => callback() );
+		expect( groups ).toHaveLength( 1 );
+	} );
+
+	it( 'keeps product pages with embedded checkout on document-ready initialization', () => {
+		mockDelayReady = true;
+		params.is_product_page = true;
+		params.product = {
+			total: { amount: 1500 },
+			currency: 'usd',
+			displayItems: [],
+		};
+		loadEntrypoint();
+		expect( groups ).toHaveLength( 0 );
+	} );
+
+	it( 'waits for the gateway configuration when it is localized after the wallet script', () => {
+		mockDelayReady = true;
+		delete global.wc_stripe_upe_params;
+		loadEntrypoint();
+		expect( groups ).toHaveLength( 0 );
+		global.wc_stripe_upe_params = { isOCEnabled: false };
+		mockReadyCallbacks.forEach( ( callback ) => callback() );
+		expect( groups ).toHaveLength( 1 );
+	} );
+
+	it( 'keeps the ready fallback when an optimizer defers Stripe past the wallet script', () => {
+		mockDelayReady = true;
+		delete global.Stripe;
+		loadEntrypoint();
+		expect( groups ).toHaveLength( 0 );
+		global.Stripe = jest.fn();
+		mockReadyCallbacks.forEach( ( callback ) => callback() );
+		expect( groups ).toHaveLength( 1 );
 	} );
 
 	it( 'creates separate wallet groups from the snapshot before updated_checkout', async () => {
