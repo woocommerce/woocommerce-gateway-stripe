@@ -13,7 +13,7 @@ jest.mock( 'wcstripe/express-checkout/utils', () => ( {
 	getExpressCheckoutData: jest.fn(),
 } ) );
 
-jest.mock( 'wcstripe/stripe-utils', () => ( {
+jest.mock( 'wcstripe/stripe-utils/get-stripe-server-data', () => ( {
 	getStripeServerData: jest.fn( () => ( {
 		isCheckout: true,
 	} ) ),
@@ -236,6 +236,7 @@ describe( 'Express checkout normalization', () => {
 		};
 
 		beforeEach( () => {
+			window.wp = { ...window.wp, data: { select } };
 			expectedNormalizedData.payment_data[ 1 ].value = paymentMethodId;
 			expectedNormalizedData.payment_data[ 2 ].value = '';
 

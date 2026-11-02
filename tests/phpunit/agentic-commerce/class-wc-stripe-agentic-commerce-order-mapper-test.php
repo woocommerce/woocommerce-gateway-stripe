@@ -307,6 +307,101 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that Order Attribution meta is written from the session's agent
+	 * details so the admin Origin column shows the originating agent.
+	 *
+	 * @return void
+	 */
+	public function test_order_attribution_meta_is_stored_for_agentic_session() {
+		$session = $this->build_checkout_session(
+			[
+				'payment_intent' => (object) [
+					'id'            => 'pi_test_attribution',
+					'agent_details' => (object) [
+						'network_business_profile' => 'ChatGPT',
+					],
+				],
+			]
+		);
+		$order   = $this->mapper->create_order_from_checkout_session( $session );
+
+		$this->assertEquals( 'referral', $order->get_meta( '_wc_order_attribution_source_type', true ) );
+		$this->assertEquals( 'ChatGPT', $order->get_meta( '_wc_order_attribution_utm_source', true ) );
+
+		$order->delete( true );
+	}
+
+	/**
+	 * Tests that the agent source is sanitized before it is stored: the value
+	 * comes from an external payload and is later rendered in the admin Origin
+	 * column, so tags and control characters must not reach the database.
+	 *
+	 * @return void
+	 */
+	public function test_order_attribution_agent_source_is_sanitized() {
+		$session = $this->build_checkout_session(
+			[
+				'payment_intent' => (object) [
+					'id'            => 'pi_test_attr_sanitize',
+					'agent_details' => (object) [
+						'network_business_profile' => "  <script>alert(1)</script>Agent\tName\n",
+					],
+				],
+			]
+		);
+		$order   = $this->mapper->create_order_from_checkout_session( $session );
+
+		// sanitize_text_field() drops script tags with their contents, strips
+		// the surrounding whitespace, and collapses the tab and newline.
+		$this->assertSame( 'Agent Name', $order->get_meta( '_wc_order_attribution_utm_source', true ) );
+
+		$order->delete( true );
+	}
+
+	/**
+	 * Tests that no Order Attribution meta is written when the agent source
+	 * sanitizes to an empty string, so a dangling "Referral:" with no source
+	 * never reaches the Origin column.
+	 *
+	 * @return void
+	 */
+	public function test_order_attribution_meta_is_not_stored_when_agent_source_sanitizes_to_empty() {
+		$session = $this->build_checkout_session(
+			[
+				'payment_intent' => (object) [
+					'id'            => 'pi_test_attr_empty',
+					'agent_details' => (object) [
+						'network_business_profile' => '<script>alert(1)</script>',
+					],
+				],
+			]
+		);
+		$order   = $this->mapper->create_order_from_checkout_session( $session );
+
+		// A dangling source type without a source must not be written either.
+		$this->assertSame( '', $order->get_meta( '_wc_order_attribution_source_type', true ) );
+		$this->assertSame( '', $order->get_meta( '_wc_order_attribution_utm_source', true ) );
+
+		$order->delete( true );
+	}
+
+	/**
+	 * Tests that no Order Attribution meta is written when the session carries
+	 * no agent details, leaving the Origin column untouched.
+	 *
+	 * @return void
+	 */
+	public function test_order_attribution_meta_is_not_stored_without_agent_details() {
+		$session = $this->build_checkout_session();
+		$order   = $this->mapper->create_order_from_checkout_session( $session );
+
+		$this->assertSame( '', $order->get_meta( '_wc_order_attribution_source_type', true ) );
+		$this->assertSame( '', $order->get_meta( '_wc_order_attribution_utm_source', true ) );
+
+		$order->delete( true );
+	}
+
+	/**
 	 * Test that the order status is set to processing.
 	 *
 	 * @return void

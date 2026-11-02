@@ -9,7 +9,7 @@ on:
         type: string
         default: 'latest'
       wc-version:
-        description: 'WooCommerce version: `latest`, `nightly` or a specific version number.'
+        description: 'WooCommerce version: `latest`, `nightly`, a released version number, or a pre-release build such as `11.2.0-dev`.'
         type: string
         default: 'latest'
       php-version:

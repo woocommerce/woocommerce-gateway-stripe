@@ -1,6 +1,7 @@
 import { React } from 'react';
 import styled from '@emotion/styled';
-import GridIcon from 'gridicons';
+import GridiconCheckmark from 'gridicons/dist/checkmark';
+import GridiconNoticeOutline from 'gridicons/dist/notice-outline';
 import { __ } from '@wordpress/i18n';
 import { useDispatch } from '@wordpress/data';
 import { useAccountKeys } from 'wcstripe/data/account-keys';
@@ -136,8 +137,7 @@ export const AccountKeysConnectionStatus = ( { formRef } ) => {
 						alignItems: 'end',
 					} }
 				>
-					<GridIcon
-						icon="checkmark"
+					<GridiconCheckmark
 						size={ 18 }
 						style={ { marginRight: '0.5rem', fill: '#4AB866' } }
 					/>
@@ -162,8 +162,7 @@ export const AccountKeysConnectionStatus = ( { formRef } ) => {
 						alignItems: 'end',
 					} }
 				>
-					<GridIcon
-						icon="notice-outline"
+					<GridiconNoticeOutline
 						size={ 18 }
 						style={ { marginRight: '0.5rem', fill: '#CC1818' } }
 					/>

@@ -4,6 +4,7 @@
 import { debounce } from 'lodash';
 import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
+import { getStripeServerData } from 'wcstripe/stripe-utils/get-stripe-server-data';
 import { __ } from '@wordpress/i18n';
 import {
 	displayExpressCheckoutNotice,
@@ -44,7 +45,7 @@ import {
 	transformPrice,
 } from 'wcstripe/express-checkout/transformers/wc-to-stripe';
 
-jQuery( function ( $ ) {
+const initializeExpressCheckout = ( $ ) => {
 	// Don't load if blocks checkout is being loaded.
 	if (
 		getExpressCheckoutData( 'has_block' ) &&
@@ -793,7 +794,9 @@ jQuery( function ( $ ) {
 					group.available &&
 					( options.total > 0 ||
 						hasFreeTrial ||
-						isChangePaymentMethod )
+						isChangePaymentMethod ||
+						getExpressCheckoutData( 'is_product_page' ) ||
+						getExpressCheckoutData( 'is_pay_for_order' ) )
 				) {
 					wcStripeECE.show();
 					wcStripeECE.getButtonSeparator().show();
@@ -884,10 +887,14 @@ jQuery( function ( $ ) {
 					currency:
 						currency ??
 						getExpressCheckoutData( 'checkout' ).currency_code,
+					requestPhone:
+						getExpressCheckoutData( 'checkout' )
+							?.needs_payer_phone ?? false,
 					appearance: getExpressCheckoutButtonAppearance(),
 					locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
 					displayItems: transformLabeledDisplayItems(
-						displayItems ?? []
+						displayItems ?? [],
+						total
 					),
 					order,
 					orderDetails,
@@ -949,7 +956,8 @@ jQuery( function ( $ ) {
 						requestShipping: cartBootstrap.requestShipping,
 						requestPhone: cartBootstrap.requestPhone,
 						displayItems: transformLabeledDisplayItems(
-							cartBootstrap.displayItems ?? []
+							cartBootstrap.displayItems ?? [],
+							cartBootstrap.total
 						),
 					} );
 
@@ -1211,11 +1219,17 @@ jQuery( function ( $ ) {
 		 *
 		 * @param {PaymentResponse} payment Payment response instance.
 		 * @param {string}          message Error message to display.
+		 * @param {Object}          options Set `linkToCheckout` to link to the checkout page.
 		 */
-		abortPayment: ( payment, message ) => {
+		abortPayment: ( payment, message, options = {} ) => {
 			wcStripeECE.paymentInFlight = false;
 			onAbortPaymentHandler( payment, message );
-			displayExpressCheckoutNotice( message, 'error' );
+			displayExpressCheckoutNotice(
+				message,
+				'error',
+				undefined,
+				options
+			);
 
 			// The wallet sheet only closes once the confirm event gets a terminal
 			// result, so order errors must fail it too. A late call rejects an
@@ -1492,4 +1506,23 @@ jQuery( function ( $ ) {
 		++cartRevision;
 		refreshExpressCheckout();
 	} );
-} );
+};
+
+// Footer markup is already available on Classic checkout. Preparing wallets now
+// overlaps the deferred WooCommerce scripts instead of waiting for their ready event.
+const stripeServerData = getStripeServerData();
+if (
+	getExpressCheckoutData( 'is_checkout_page' ) &&
+	! getExpressCheckoutData( 'is_product_page' ) &&
+	! getExpressCheckoutData( 'has_block' ) &&
+	! getExpressCheckoutData( 'is_pay_for_order' ) &&
+	! getExpressCheckoutData( 'is_change_payment_method' ) &&
+	stripeServerData &&
+	! stripeServerData.isOCEnabled &&
+	typeof window.Stripe === 'function' &&
+	document.getElementById( 'wc-stripe-express-checkout-element' )
+) {
+	initializeExpressCheckout( jQuery );
+} else {
+	jQuery( initializeExpressCheckout );
+}

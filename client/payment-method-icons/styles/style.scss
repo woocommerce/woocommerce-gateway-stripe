@@ -1,0 +1,84 @@
+@use '../../styles/abstracts/styles';
+
+// All payment method icon styles live here so their cascade order is fixed: base, then
+// size, then shell, then the per-icon shell overrides.
+.wc-stripe-payment-method-icon {
+	box-sizing: border-box;
+	display: inline-flex;
+	justify-content: center;
+
+	// Most icons need a border. Keeping it inside the icon's size gives consistent spacing,
+	// so unshelled icons carry a transparent one.
+	border: 1px solid transparent;
+
+	img {
+		max-width: 100%;
+	}
+
+	&.wc-stripe-payment-method-icon--small {
+		height: 24px;
+		width: 37px;
+	}
+
+	&.wc-stripe-payment-method-icon--medium {
+		height: 40px;
+		width: 65px;
+	}
+
+	&.wc-stripe-payment-method-icon--shell {
+		background: styles.$white;
+		border-color: styles.$gray-300;
+		border-radius: 5px;
+		overflow: hidden;
+
+		&.wc-stripe-payment-method-icon--small {
+			padding: 4px;
+		}
+
+		&.wc-stripe-payment-method-icon--medium {
+			padding: 7px;
+		}
+	}
+
+	// Per-icon shell overrides. Doubled with the shell class so they outrank the size-specific
+	// shell padding above, which is also two classes deep.
+	&.wc-stripe-payment-method-icon--pad-y,
+	&.wc-stripe-payment-method-icon--shell.wc-stripe-payment-method-icon--pad-y {
+		padding-top: 4px;
+		padding-bottom: 4px;
+	}
+
+	&.wc-stripe-payment-method-icon--flush-y,
+	&.wc-stripe-payment-method-icon--shell.wc-stripe-payment-method-icon--flush-y {
+		padding-top: 0;
+		padding-bottom: 0;
+	}
+
+	&.wc-stripe-payment-method-icon--flush-outlined,
+	&.wc-stripe-payment-method-icon--shell.wc-stripe-payment-method-icon--flush-outlined {
+		padding: 0;
+		border: none;
+
+		img {
+			outline: 1px solid styles.$gray-300;
+		}
+	}
+
+	// Per-icon overrides.
+	&.wc-stripe-payment-method-icon--blik {
+		background: styles.$payment-method-blik;
+	}
+
+	&.wc-stripe-payment-method-icon--cashapp {
+		background: styles.$payment-method-cashapp;
+	}
+
+	&.wc-stripe-payment-method-icon--sepa {
+		background: styles.$payment-method-sepa;
+	}
+
+	&.wc-stripe-payment-method-icon--sofort {
+		background: styles.$payment-method-sofort;
+	}
+
+}

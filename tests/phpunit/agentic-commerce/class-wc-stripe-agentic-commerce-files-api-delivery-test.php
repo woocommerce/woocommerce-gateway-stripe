@@ -60,7 +60,6 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery_Test extends WP_UnitTestCase
 		}
 
 		remove_all_filters( 'wc_stripe_agentic_commerce_files_api_pre_request' );
-		remove_all_filters( 'pre_http_request' );
 
 		parent::tearDown();
 	}
@@ -151,25 +150,26 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery_Test extends WP_UnitTestCase
 			}
 		);
 
-		add_filter(
-			'pre_http_request',
-			function ( $preempt, $parsed_args, $url ) {
-				if ( str_contains( $url, 'import_sets' ) ) {
-					return [
-						'response' => [ 'code' => 200 ],
-						'body'     => wp_json_encode( [ 'id' => 'is_test_xyz789' ] ),
-					];
-				}
-				return $preempt;
-			},
-			10,
-			3
-		);
+		$mock_http_filter = function ( $preempt, $parsed_args, $url ) {
+			if ( str_contains( $url, 'import_sets' ) ) {
+				return [
+					'response' => [ 'code' => 200 ],
+					'body'     => wp_json_encode( [ 'id' => 'is_test_xyz789' ] ),
+				];
+			}
+			return $preempt;
+		};
 
-		$result = $this->sut->deliver( $feed );
+		add_filter( 'pre_http_request', $mock_http_filter, 10, 3 );
 
-		$this->assertSame( 'is_test_xyz789', $result['import_set_id'] );
-		$this->assertSame( '', $result['status'] );
+		try {
+			$result = $this->sut->deliver( $feed );
+
+			$this->assertSame( 'is_test_xyz789', $result['import_set_id'] );
+			$this->assertSame( '', $result['status'] );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_http_filter );
+		}
 	}
 
 	public function test_deliver_returns_file_id_and_import_set_id_on_success() {
@@ -185,31 +185,31 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery_Test extends WP_UnitTestCase
 		);
 
 		// Mock the ImportSet creation via pre_http_request.
-		add_filter(
-			'pre_http_request',
-			function ( $preempt, $parsed_args, $url ) {
-				if ( str_contains( $url, 'import_sets' ) ) {
-					return [
-						'response' => [ 'code' => 200 ],
-						'body'     => wp_json_encode(
-							[
-								'id'     => 'is_test_xyz789',
-								'status' => 'pending',
-							]
-						),
-					];
-				}
-				return $preempt;
-			},
-			10,
-			3
-		);
+		$mock_http_filter = function ( $preempt, $parsed_args, $url ) {
+			if ( str_contains( $url, 'import_sets' ) ) {
+				return [
+					'response' => [ 'code' => 200 ],
+					'body'     => wp_json_encode(
+						[
+							'id'     => 'is_test_xyz789',
+							'status' => 'pending',
+						]
+					),
+				];
+			}
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $mock_http_filter, 10, 3 );
 
-		$result = $this->sut->deliver( $feed );
+		try {
+			$result = $this->sut->deliver( $feed );
 
-		$this->assertEquals( 'file_test_abc123', $result['file_id'] );
-		$this->assertEquals( 'is_test_xyz789', $result['import_set_id'] );
-		$this->assertEquals( 'pending', $result['status'] );
+			$this->assertEquals( 'file_test_abc123', $result['file_id'] );
+			$this->assertEquals( 'is_test_xyz789', $result['import_set_id'] );
+			$this->assertEquals( 'pending', $result['status'] );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_http_filter, 10 );
+		}
 	}
 
 	public function test_deliver_throws_when_files_api_returns_no_id() {
@@ -242,24 +242,25 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery_Test extends WP_UnitTestCase
 			}
 		);
 
-		add_filter(
-			'pre_http_request',
-			function ( $preempt, $parsed_args, $url ) {
-				if ( str_contains( $url, 'import_sets' ) ) {
-					return [
-						'response' => [ 'code' => 400 ],
-						'body'     => wp_json_encode( [ 'error' => [ 'message' => 'Invalid file' ] ] ),
-					];
-				}
-				return $preempt;
-			},
-			10,
-			3
-		);
+		$mock_http_filter = function ( $preempt, $parsed_args, $url ) {
+			if ( str_contains( $url, 'import_sets' ) ) {
+				return [
+					'response' => [ 'code' => 400 ],
+					'body'     => wp_json_encode( [ 'error' => [ 'message' => 'Invalid file' ] ] ),
+				];
+			}
+			return $preempt;
+		};
 
-		$this->expectException( Exception::class );
-		$this->expectExceptionMessage( 'ImportSet API returned HTTP 400' );
-		$this->sut->deliver( $feed );
+		add_filter( 'pre_http_request', $mock_http_filter, 10, 3 );
+
+		try {
+			$this->expectException( Exception::class );
+			$this->expectExceptionMessage( 'ImportSet API returned HTTP 400' );
+			$this->sut->deliver( $feed );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_http_filter );
+		}
 	}
 
 	public function test_deliver_throws_on_import_set_wp_error() {
@@ -273,21 +274,22 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery_Test extends WP_UnitTestCase
 			}
 		);
 
-		add_filter(
-			'pre_http_request',
-			function ( $preempt, $parsed_args, $url ) {
-				if ( str_contains( $url, 'import_sets' ) ) {
-					return new \WP_Error( 'http_request_failed', 'Connection timed out' );
-				}
-				return $preempt;
-			},
-			10,
-			3
-		);
+		$mock_http_filter = function ( $preempt, $parsed_args, $url ) {
+			if ( str_contains( $url, 'import_sets' ) ) {
+				return new \WP_Error( 'http_request_failed', 'Connection timed out' );
+			}
+			return $preempt;
+		};
 
-		$this->expectException( Exception::class );
-		$this->expectExceptionMessage( 'ImportSet creation failed: Connection timed out' );
-		$this->sut->deliver( $feed );
+		add_filter( 'pre_http_request', $mock_http_filter, 10, 3 );
+
+		try {
+			$this->expectException( Exception::class );
+			$this->expectExceptionMessage( 'ImportSet creation failed: Connection timed out' );
+			$this->sut->deliver( $feed );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_http_filter );
+		}
 	}
 
 	// ---- ImportSet request parameter tests ----
@@ -306,36 +308,37 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery_Test extends WP_UnitTestCase
 		$captured_args = null;
 		$captured_url  = null;
 
-		add_filter(
-			'pre_http_request',
-			function ( $preempt, $parsed_args, $url ) use ( &$captured_args, &$captured_url ) {
-				if ( str_contains( $url, 'import_sets' ) ) {
-					$captured_args = $parsed_args;
-					$captured_url  = $url;
+		$mock_http_filter = function ( $preempt, $parsed_args, $url ) use ( &$captured_args, &$captured_url ) {
+			if ( str_contains( $url, 'import_sets' ) ) {
+				$captured_args = $parsed_args;
+				$captured_url  = $url;
 
-					return [
-						'response' => [ 'code' => 200 ],
-						'body'     => wp_json_encode(
-							[
-								'id'     => 'is_123',
-								'status' => 'pending',
-							]
-						),
-					];
-				}
-				return $preempt;
-			},
-			10,
-			3
-		);
+				return [
+					'response' => [ 'code' => 200 ],
+					'body'     => wp_json_encode(
+						[
+							'id'     => 'is_123',
+							'status' => 'pending',
+						]
+					),
+				];
+			}
+			return $preempt;
+		};
 
-		$this->sut->deliver( $feed );
+		add_filter( 'pre_http_request', $mock_http_filter, 10, 3 );
 
-		$this->assertEquals( 'https://api.stripe.com/v1/data_management/import_sets', $captured_url );
-		$this->assertEquals( 'file_test_abc123', $captured_args['body']['file'] );
-		$this->assertEquals( 'product_catalog_feed', $captured_args['body']['standard_data_format'] );
-		$this->assertStringContainsString( 'Bearer sk_test_fake_key_123', $captured_args['headers']['Authorization'] );
-		$this->assertEquals( '2026-03-25.dahlia;udap_beta=v1', $captured_args['headers']['Stripe-Version'] );
+		try {
+			$this->sut->deliver( $feed );
+
+			$this->assertEquals( 'https://api.stripe.com/v1/data_management/import_sets', $captured_url );
+			$this->assertEquals( 'file_test_abc123', $captured_args['body']['file'] );
+			$this->assertEquals( 'product_catalog_feed', $captured_args['body']['standard_data_format'] );
+			$this->assertStringContainsString( 'Bearer sk_test_fake_key_123', $captured_args['headers']['Authorization'] );
+			$this->assertEquals( '2026-03-25.dahlia;udap_beta=v1', $captured_args['headers']['Stripe-Version'] );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_http_filter );
+		}
 	}
 
 	public function test_import_set_request_includes_stripe_account_header() {
@@ -352,30 +355,30 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery_Test extends WP_UnitTestCase
 
 		$captured_args = null;
 
-		add_filter(
-			'pre_http_request',
-			function ( $preempt, $parsed_args, $url ) use ( &$captured_args ) {
-				if ( str_contains( $url, 'import_sets' ) ) {
-					$captured_args = $parsed_args;
-					return [
-						'response' => [ 'code' => 200 ],
-						'body'     => wp_json_encode(
-							[
-								'id'     => 'is_123',
-								'status' => 'pending',
-							]
-						),
-					];
-				}
-				return $preempt;
-			},
-			10,
-			3
-		);
+		$mock_http_filter = function ( $preempt, $parsed_args, $url ) use ( &$captured_args ) {
+			if ( str_contains( $url, 'import_sets' ) ) {
+				$captured_args = $parsed_args;
+				return [
+					'response' => [ 'code' => 200 ],
+					'body'     => wp_json_encode(
+						[
+							'id'     => 'is_123',
+							'status' => 'pending',
+						]
+					),
+				];
+			}
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $mock_http_filter, 10, 3 );
 
-		$delivery->deliver( $feed );
+		try {
+			$delivery->deliver( $feed );
 
-		$this->assertEquals( 'acct_123', $captured_args['headers']['Stripe-Account'] );
+			$this->assertEquals( 'acct_123', $captured_args['headers']['Stripe-Account'] );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_http_filter );
+		}
 	}
 
 	// ---- get_import_set tests ----
@@ -395,62 +398,67 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery_Test extends WP_UnitTestCase
 			],
 		];
 
-		add_filter(
-			'pre_http_request',
-			function ( $preempt, $parsed_args, $url ) use ( $import_set_data ) {
-				if ( str_contains( $url, 'import_sets/impset_test_123' ) ) {
-					return [
-						'response' => [ 'code' => 200 ],
-						'body'     => wp_json_encode( $import_set_data ),
-					];
-				}
-				return $preempt;
-			},
-			10,
-			3
-		);
+		$mock_http_filter = function ( $preempt, $parsed_args, $url ) use ( $import_set_data ) {
+			if ( str_contains( $url, 'import_sets/impset_test_123' ) ) {
+				return [
+					'response' => [ 'code' => 200 ],
+					'body'     => wp_json_encode( $import_set_data ),
+				];
+			}
+			return $preempt;
+		};
 
-		$result = $this->sut->get_import_set( 'impset_test_123' );
+		add_filter( 'pre_http_request', $mock_http_filter, 10, 3 );
 
-		$this->assertEquals( 'impset_test_123', $result['id'] );
-		$this->assertEquals( 'succeeded_with_errors', $result['status'] );
-		$this->assertEquals( 21, $result['result']['rows_processed'] );
-		$this->assertEquals( 5, $result['result']['errors']['row_count'] );
-		$this->assertEquals( 'file_err_123', $result['result']['errors']['file'] );
+		try {
+			$result = $this->sut->get_import_set( 'impset_test_123' );
+
+			$this->assertEquals( 'impset_test_123', $result['id'] );
+			$this->assertEquals( 'succeeded_with_errors', $result['status'] );
+			$this->assertEquals( 21, $result['result']['rows_processed'] );
+			$this->assertEquals( 5, $result['result']['errors']['row_count'] );
+			$this->assertEquals( 'file_err_123', $result['result']['errors']['file'] );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_http_filter );
+		}
 	}
 
 	public function test_get_import_set_throws_on_http_error() {
-		add_filter(
-			'pre_http_request',
-			function ( $preempt, $parsed_args, $url ) {
-				if ( str_contains( $url, 'import_sets/' ) ) {
-					return [
-						'response' => [ 'code' => 404 ],
-						'body'     => wp_json_encode( [ 'error' => 'not found' ] ),
-					];
-				}
-				return $preempt;
-			},
-			10,
-			3
-		);
+		$mock_404_filter = function ( $preempt, $parsed_args, $url ) {
+			if ( str_contains( $url, 'import_sets/' ) ) {
+				return [
+					'response' => [ 'code' => 404 ],
+					'body'     => wp_json_encode( [ 'error' => 'not found' ] ),
+				];
+			}
+			return $preempt;
+		};
 
-		$this->expectException( Exception::class );
-		$this->expectExceptionMessage( 'ImportSet status API returned HTTP 404' );
-		$this->sut->get_import_set( 'impset_nonexistent' );
+		add_filter( 'pre_http_request', $mock_404_filter, 10, 3 );
+
+		try {
+			$this->expectException( Exception::class );
+			$this->expectExceptionMessage( 'ImportSet status API returned HTTP 404' );
+			$this->sut->get_import_set( 'impset_nonexistent' );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_404_filter );
+		}
 	}
 
 	public function test_get_import_set_throws_on_wp_error() {
-		add_filter(
-			'pre_http_request',
-			function () {
-				return new \WP_Error( 'http_request_failed', 'DNS resolution failed' );
-			}
-		);
+		$mock_wp_error_filter = function () {
+			return new \WP_Error( 'http_request_failed', 'DNS resolution failed' );
+		};
 
-		$this->expectException( Exception::class );
-		$this->expectExceptionMessage( 'ImportSet status check failed: DNS resolution failed' );
-		$this->sut->get_import_set( 'impset_test_123' );
+		add_filter( 'pre_http_request', $mock_wp_error_filter );
+
+		try {
+			$this->expectException( Exception::class );
+			$this->expectExceptionMessage( 'ImportSet status check failed: DNS resolution failed' );
+			$this->sut->get_import_set( 'impset_test_123' );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_wp_error_filter );
+		}
 	}
 
 	public function test_get_import_set_throws_on_invalid_id_format() {
@@ -479,31 +487,31 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery_Test extends WP_UnitTestCase
 			2
 		);
 
-		// Mock ImportSet creation.
-		add_filter(
-			'pre_http_request',
-			function ( $preempt, $parsed_args, $url ) {
-				if ( str_contains( $url, 'import_sets' ) ) {
-					return [
-						'response' => [ 'code' => 200 ],
-						'body'     => wp_json_encode(
-							[
-								'id'     => 'is_123',
-								'status' => 'pending',
-							]
-						),
-					];
-				}
-				return $preempt;
-			},
-			10,
-			3
-		);
+		$mock_http_filter = function ( $preempt, $parsed_args, $url ) {
+			if ( str_contains( $url, 'import_sets' ) ) {
+				return [
+					'response' => [ 'code' => 200 ],
+					'body'     => wp_json_encode(
+						[
+							'id'     => 'is_123',
+							'status' => 'pending',
+						]
+					),
+				];
+			}
+			return $preempt;
+		};
 
-		$result = $this->sut->deliver( $feed );
+		add_filter( 'pre_http_request', $mock_http_filter, 10, 3 );
 
-		$this->assertTrue( $filter_called );
-		$this->assertEquals( 'file_from_filter', $result['file_id'] );
+		try {
+			$result = $this->sut->deliver( $feed );
+
+			$this->assertTrue( $filter_called );
+			$this->assertEquals( 'file_from_filter', $result['file_id'] );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_http_filter );
+		}
 	}
 
 	// ---- Constants tests ----
