@@ -139,6 +139,7 @@ class WC_Stripe_Checkout_Session_Manager {
 			'message'                     => '',
 			'save_payment_method_enabled' => $save_payment_method_enabled,
 			'expires_at'                  => (int) ( $checkout_session->expires_at ?? 0 ),
+			'exclusions'                  => $request['excluded_payment_method_types'],
 		];
 		$this->set_record( $record );
 
@@ -249,6 +250,23 @@ class WC_Stripe_Checkout_Session_Manager {
 			);
 
 			return $this->create_session();
+		}
+
+		// Stripe only accepts excluded_payment_method_types at creation, and the list follows the
+		// billing country, which is often unknown when the session is first created, so a change
+		// needs a new session for a method hidden for the earlier country (e.g. iDEAL) to surface.
+		// Records stored before the list was tracked have nothing to compare against and are kept.
+		if ( isset( $record['exclusions'] ) && is_array( $record['exclusions'] ) ) {
+			$current_exclusions = WC_Stripe::get_instance()->get_main_stripe_gateway()->get_excluded_payment_method_types();
+			$stored_exclusions  = $record['exclusions'];
+			sort( $current_exclusions );
+			sort( $stored_exclusions );
+
+			if ( $current_exclusions !== $stored_exclusions ) {
+				WC_Stripe_Logger::info( 'Recreating the Checkout Session after the excluded payment method types changed.', [ 'checkout_session_id' => (string) $record['session_id'] ] );
+
+				return $this->create_session();
+			}
 		}
 
 		// Stripe expires a session at expires_at, but every cart update extends the context past
