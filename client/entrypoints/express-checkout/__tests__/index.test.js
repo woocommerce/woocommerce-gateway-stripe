@@ -8,6 +8,8 @@
  */
 
 const mockGetCartDetails = jest.fn();
+let mockDelayReady = false;
+const mockReadyCallbacks = [];
 const mockGetSelectedProductData = jest.fn();
 const mockGetStripe = jest.fn();
 const mockAddToCart = jest.fn();
@@ -26,10 +28,16 @@ const flushPromises = async () => {
 // jQuery calls delegate to the real library so `.on()`/`.trigger()` still work.
 jest.mock( 'jquery', () => {
 	const actualJQuery = jest.requireActual( 'jquery' );
-	const syncReadyJQuery = ( arg ) =>
-		typeof arg === 'function'
-			? arg( syncReadyJQuery )
-			: actualJQuery( arg );
+	const syncReadyJQuery = ( arg, ...args ) => {
+		if ( typeof arg === 'function' ) {
+			if ( mockDelayReady ) {
+				mockReadyCallbacks.push( () => arg( syncReadyJQuery ) );
+				return;
+			}
+			return arg( syncReadyJQuery );
+		}
+		return actualJQuery( arg, ...args );
+	};
 	return Object.assign( syncReadyJQuery, actualJQuery );
 } );
 
@@ -681,4 +689,274 @@ describe( 'Express Checkout pay-for-order phone collection', () => {
 			).toBe( needsPayerPhone );
 		}
 	);
+} );
+
+describe( 'Classic early start with checkout reconstruction', () => {
+	let jq;
+	let groups;
+	let params;
+	const settle = () => jest.advanceTimersByTimeAsync( 0 );
+	const trigger = ( name ) => jq( document.body ).trigger( name );
+	const addContainer = () => {
+		document.body.insertAdjacentHTML(
+			'beforeend',
+			'<div id="wc-stripe-express-checkout-element" style="display:none"></div>' +
+				'<div id="wc-stripe-express-checkout-button-separator" style="display:none"></div>'
+		);
+	};
+	const cart = ( amount = '2000' ) => ( {
+		items: [],
+		totals: {
+			total_price: amount,
+			total_shipping: '0',
+			currency_code: 'USD',
+			currency_minor_unit: 2,
+		},
+		needs_shipping: false,
+	} );
+	const pending = () => {
+		let resolve;
+		const promise = new Promise( ( res ) => {
+			resolve = res;
+		} );
+		return { promise, resolve };
+	};
+	beforeEach( () => {
+		jest.resetModules();
+		jest.useFakeTimers();
+		mockGetCartDetails.mockReset().mockResolvedValue( cart() );
+		mockGetStripe.mockReset();
+		jq = require( 'jquery' );
+		groups = [];
+		mockGetStripe.mockReturnValue( {
+			elements: jest.fn( ( options ) => {
+				const handlers = {};
+				const id = groups.length;
+				const button = {
+					on: jest.fn( ( name, callback ) => {
+						handlers[ name ] = [
+							...( handlers[ name ] ?? [] ),
+							callback,
+						];
+						return button;
+					} ),
+					emit: ( name, data ) =>
+						Promise.all(
+							( handlers[ name ] ?? [] ).map( ( fn ) =>
+								fn( data )
+							)
+						),
+					mount: jest.fn( ( selector ) => {
+						document.querySelector(
+							selector
+						).innerHTML = `<iframe data-wallet-generation="${ id }"></iframe>`;
+					} ),
+					destroy: jest.fn(),
+				};
+				const group = {
+					options,
+					button,
+					create: () => button,
+					update: jest.fn(),
+				};
+				groups.push( group );
+				return group;
+			} ),
+		} );
+		const transformers = require( 'wcstripe/express-checkout/transformers/wc-to-stripe' );
+		const actual = jest.requireActual(
+			'wcstripe/express-checkout/transformers/wc-to-stripe'
+		);
+		Object.keys( transformers ).forEach( ( name ) =>
+			transformers[ name ].mockImplementation( actual[ name ] )
+		);
+		params = {
+			...baseParams(),
+			is_cart_page: false,
+			is_checkout_page: true,
+			stripe: {
+				publishable_key: 'pk_test_123',
+				locale: 'en',
+				is_google_pay_enabled: true,
+			},
+			cart: {
+				total: 1500,
+				currency: 'usd',
+				requestShipping: false,
+				requestPhone: false,
+				displayItems: [],
+			},
+		};
+		global.wc_stripe_express_checkout_params = params;
+		global.wc_stripe_upe_params = { isOCEnabled: false };
+		global.Stripe = jest.fn();
+		document.body.innerHTML = '';
+		addContainer();
+	} );
+	afterEach( () => {
+		jest.useRealTimers();
+		mockDelayReady = false;
+		mockReadyCallbacks.length = 0;
+		delete global.wc_stripe_express_checkout_params;
+		delete global.wc_stripe_upe_params;
+		delete global.Stripe;
+	} );
+	it( 'mounts before document readiness without a second initialization', () => {
+		mockDelayReady = true;
+		loadEntrypoint();
+		expect( document.querySelectorAll( 'iframe' ) ).toHaveLength( 1 );
+		mockReadyCallbacks.forEach( ( fn ) => fn() );
+		expect( groups ).toHaveLength( 1 );
+	} );
+	it( 'waits for markup inserted after document readiness', async () => {
+		mockDelayReady = true;
+		document.body.innerHTML = '';
+		loadEntrypoint();
+		mockReadyCallbacks.forEach( ( fn ) => fn() );
+		expect( groups ).toHaveLength( 0 );
+		addContainer();
+		await settle();
+		expect( document.querySelectorAll( 'iframe' ) ).toHaveLength( 1 );
+	} );
+	it( 'does not react to unrelated mutations or keep watching after mounting', async () => {
+		document.body.innerHTML = '';
+		loadEntrypoint();
+		document.body.appendChild( document.createElement( 'div' ) );
+		await settle();
+		expect( groups ).toHaveLength( 0 );
+		addContainer();
+		await settle();
+		expect( groups ).toHaveLength( 1 );
+		document
+			.querySelector( '#wc-stripe-express-checkout-element' )
+			.remove();
+		addContainer();
+		await settle();
+		expect( groups ).toHaveLength( 1 );
+	} );
+	it( 'rebuilds new Elements and button markup after updated_checkout', async () => {
+		loadEntrypoint();
+		const original = document.querySelector( 'iframe' );
+		trigger( 'updated_checkout' );
+		await settle();
+		expect( groups ).toHaveLength( 2 );
+		expect( groups[ 1 ].options.amount ).toBe( 2000 );
+		expect( document.querySelector( 'iframe' ) ).not.toBe( original );
+		expect( groups[ 0 ].update ).not.toHaveBeenCalled();
+	} );
+	it( 'waits for a pending review and fetches fresh totals for late markup', async () => {
+		document.body.innerHTML = '';
+		loadEntrypoint();
+		trigger( 'update_checkout' );
+		addContainer();
+		await settle();
+		expect( groups ).toHaveLength( 0 );
+		trigger( 'updated_checkout' );
+		await settle();
+		expect( groups ).toHaveLength( 1 );
+		expect( groups[ 0 ].options.amount ).toBe( 2000 );
+	} );
+	it( 'does not open or confirm a wallet while totals are stale', async () => {
+		loadEntrypoint();
+		trigger( 'update_checkout' );
+		const click = { resolve: jest.fn(), expressPaymentType: 'googlePay' };
+		await groups[ 0 ].button.emit( 'click', click );
+		expect( click.resolve ).not.toHaveBeenCalled();
+		const confirm = { paymentFailed: jest.fn() };
+		await groups[ 0 ].button.emit( 'confirm', confirm );
+		expect( confirm.paymentFailed ).toHaveBeenCalledWith( {
+			reason: 'fail',
+		} );
+	} );
+	it( 'ignores an older cart response after a newer checkout update', async () => {
+		const first = pending();
+		const second = pending();
+		mockGetCartDetails
+			.mockReturnValueOnce( first.promise )
+			.mockReturnValueOnce( second.promise );
+		loadEntrypoint();
+		trigger( 'updated_checkout' );
+		trigger( 'updated_checkout' );
+		second.resolve( cart( '3000' ) );
+		await settle();
+		first.resolve( cart( '2000' ) );
+		await settle();
+		expect( groups ).toHaveLength( 2 );
+		expect( groups[ 1 ].options.amount ).toBe( 3000 );
+	} );
+	it( 'rebuilds with fresh totals after stale confirmation closes an open wallet', async () => {
+		loadEntrypoint();
+		await groups[ 0 ].button.emit( 'click', {
+			resolve: jest.fn(),
+			expressPaymentType: 'googlePay',
+		} );
+		trigger( 'update_checkout' );
+		trigger( 'updated_checkout' );
+		await settle();
+		expect( groups ).toHaveLength( 1 );
+		await groups[ 0 ].button.emit( 'confirm', {
+			paymentFailed: jest.fn(),
+		} );
+		await settle();
+		expect( groups ).toHaveLength( 2 );
+		expect( groups[ 1 ].options.amount ).toBe( 2000 );
+	} );
+
+	it( 'ignores clicks from a replaced wallet after fresh buttons are ready', async () => {
+		loadEntrypoint();
+		trigger( 'updated_checkout' );
+		await settle();
+		const click = { resolve: jest.fn(), expressPaymentType: 'googlePay' };
+		await groups[ 0 ].button.emit( 'click', click );
+		expect( click.resolve ).not.toHaveBeenCalled();
+	} );
+
+	test( 'uses fresh cart data when totals changed before late markup appeared', async () => {
+		document.body.innerHTML = '';
+		loadEntrypoint();
+		trigger( 'updated_cart_totals' );
+		addContainer();
+		await settle();
+		expect( groups ).toHaveLength( 1 );
+		expect( groups[ 0 ].options.amount ).toBe( 2000 );
+	} );
+
+	it( 'keeps the legacy update gate when gateway configuration is still missing at readiness', async () => {
+		delete global.wc_stripe_upe_params;
+		loadEntrypoint();
+		expect( groups ).toHaveLength( 0 );
+		global.wc_stripe_upe_params = { isOCEnabled: false };
+		trigger( 'updated_checkout' );
+		await settle();
+		expect( groups ).toHaveLength( 1 );
+	} );
+
+	test( 'leaves late cart snapshots on non-Classic pages with their legacy behavior', async () => {
+		params.is_checkout_page = false;
+		params.is_cart_page = true;
+		params.cart = null;
+		loadEntrypoint();
+		await settle();
+		params.cart = {
+			total: 1500,
+			currency: 'usd',
+			requestShipping: false,
+			displayItems: [],
+		};
+		trigger( 'updated_cart_totals' );
+		await settle();
+		expect( mockGetCartDetails ).toHaveBeenCalledTimes( 1 );
+	} );
+
+	it( 'keeps the optimized checkout path on its existing ready and update events', async () => {
+		mockDelayReady = true;
+		global.wc_stripe_upe_params.isOCEnabled = true;
+		loadEntrypoint();
+		expect( groups ).toHaveLength( 0 );
+		mockReadyCallbacks.forEach( ( fn ) => fn() );
+		expect( groups ).toHaveLength( 0 );
+		trigger( 'updated_checkout' );
+		await settle();
+		expect( groups ).toHaveLength( 1 );
+	} );
 } );
