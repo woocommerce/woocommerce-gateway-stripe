@@ -35,6 +35,112 @@ test.describe( 'customer can use Link express checkout', () => {
 		await testLink( page, '/checkout-shortcode', false );
 	} );
 
+	test( 'waits for a Classic container added after document readiness', async ( {
+		page,
+	} ) => {
+		await addProductToCart( page );
+		await page.addInitScript( () => {
+			if ( ! location.pathname.includes( '/checkout-shortcode' ) ) {
+				return;
+			}
+			const observer = new MutationObserver( () => {
+				const root = document.getElementById(
+					'wc-stripe-express-checkout-element'
+				);
+				if ( root ) {
+					window.lateCheckoutContainer = root;
+					root.remove();
+					observer.disconnect();
+				}
+			} );
+			observer.observe( document, { childList: true, subtree: true } );
+		} );
+		await page.goto( '/checkout-shortcode' );
+		await page.evaluate(
+			() => new Promise( ( resolve ) => window.jQuery( resolve ) )
+		);
+		await expect(
+			page.locator( '#wc-stripe-express-checkout-element' )
+		).toHaveCount( 0 );
+		await page.evaluate( () =>
+			document
+				.querySelector( 'form.checkout' )
+				.prepend( window.lateCheckoutContainer )
+		);
+		await expect( await getLinkButton( page ) ).toBeVisible();
+	} );
+
+	for ( const atomicMoves of [ true, false ] ) {
+		test( `rebuilds wallet wrappers with ${
+			atomicMoves ? 'preserved' : 'remounted'
+		} SDK frames`, async ( { page } ) => {
+			if ( ! atomicMoves ) {
+				await page.addInitScript( () => {
+					delete Element.prototype.moveBefore;
+				} );
+			}
+			await addProductToCart( page );
+			const initialUpdate = page.waitForResponse(
+				( response ) =>
+					response.url().includes( 'wc-ajax=update_order_review' ) &&
+					response.ok()
+			);
+			await page.goto( '/checkout-shortcode' );
+			await initialUpdate;
+			await expect( await getLinkButton( page ) ).toBeVisible();
+			const slot = await page
+				.locator( '#wc-stripe-express-checkout-element-link' )
+				.elementHandle();
+			const frame = await page
+				.locator( '#wc-stripe-express-checkout-element-link iframe' )
+				.first()
+				.elementHandle();
+			await frame.evaluate( ( element ) => {
+				window.walletFrameReloads = 0;
+				element.addEventListener( 'load', () => {
+					window.walletFrameReloads++;
+				} );
+			} );
+			expect(
+				await page.evaluate( () => typeof Element.prototype.moveBefore )
+			).toBe( atomicMoves ? 'function' : 'undefined' );
+			const response = page.waitForResponse(
+				( r ) =>
+					r.url().includes( 'wc-ajax=update_order_review' ) && r.ok()
+			);
+			await page.locator( '#ship-to-different-address-checkbox' ).check();
+			await response;
+			await expect
+				.poll( () =>
+					slot.evaluate( ( element ) => element.isConnected )
+				)
+				.toBe( false );
+			await expect( await getLinkButton( page ) ).toBeVisible();
+			if ( atomicMoves ) {
+				expect(
+					await frame.evaluate( ( element ) => element.isConnected )
+				).toBe( true );
+				expect(
+					await page.evaluate( () => window.walletFrameReloads )
+				).toBe( 0 );
+			} else {
+				// Stripe can retain the iframe node while reloading its document.
+				await expect
+					.poll(
+						async () =>
+							! ( await frame.evaluate(
+								( element ) => element.isConnected
+							) ) ||
+							( await page.evaluate(
+								() => window.walletFrameReloads > 0
+							) )
+					)
+					.toBe( true );
+			}
+			await assertLinkModalLoads( page, false );
+		} );
+	}
+
 	test( 'discovers Link before the first classic checkout recalculation finishes', async ( {
 		page,
 	} ) => {

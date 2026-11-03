@@ -4,6 +4,7 @@
 import { debounce } from 'lodash';
 import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
+import { rebuildWalletContainer } from 'wcstripe/express-checkout/utils/rebuild-wallet-container';
 import { getStripeServerData } from 'wcstripe/stripe-utils/get-stripe-server-data';
 import { __ } from '@wordpress/i18n';
 import {
@@ -89,6 +90,7 @@ const initializeExpressCheckout = ( $ ) => {
 	let cartRefreshPending = false;
 	let checkoutUpdating = false;
 	let checkoutRefreshFailed = false;
+	let containerObserver;
 	const isClassicCheckout =
 		getExpressCheckoutData( 'is_checkout_page' ) &&
 		! getExpressCheckoutData( 'is_pay_for_order' ) &&
@@ -318,7 +320,28 @@ const initializeExpressCheckout = ( $ ) => {
 				// The click/confirm closures read this same options object;
 				// mutate it in place so the wallet sheet stays in sync.
 				Object.assign( group.options, options, { shippingRates } );
-				group.elements.update( { amount: options.total } );
+				const update = group.elements.update( {
+					amount: options.total,
+				} );
+				if ( update && typeof update.then === 'function' ) {
+					const token = {};
+					group.pendingUpdate = token;
+					update
+						.then( () => {
+							if ( group.pendingUpdate === token ) {
+								group.pendingUpdate = null;
+							}
+						} )
+						.catch( () => {
+							if (
+								! group.disposed &&
+								group.pendingUpdate === token
+							) {
+								group.failed = true;
+								wcStripeECE.failCheckoutRefresh();
+							}
+						} );
+				}
 
 				// updated_cart_totals re-renders the cart totals wholesale,
 				// discarding the button markup; remount instead of rebuilding.
@@ -327,7 +350,9 @@ const initializeExpressCheckout = ( $ ) => {
 				);
 				if (
 					! group.preparing &&
-					( ! container || ! container.childElementCount ) &&
+					( isClassicCheckout ||
+						! container ||
+						! container.childElementCount ) &&
 					group.available !== false
 				) {
 					wcStripeECE.remountGroupButton( group );
@@ -355,9 +380,10 @@ const initializeExpressCheckout = ( $ ) => {
 					`<div id="${ containerName }"></div>`
 				);
 			}
+			let nextSlot;
 			if ( isClassicCheckout ) {
 				// Readiness order must not change the merchant's wallet order.
-				const nextSlot = wcStripeECE.mountedGroups
+				nextSlot = wcStripeECE.mountedGroups
 					.slice( wcStripeECE.mountedGroups.indexOf( group ) + 1 )
 					.map( ( item ) =>
 						document.getElementById(
@@ -365,8 +391,14 @@ const initializeExpressCheckout = ( $ ) => {
 						)
 					)
 					.find( Boolean );
-				if ( nextSlot ) {
-					$( `#${ containerName }` ).insertBefore( nextSlot );
+				const slot = document.getElementById( containerName );
+				if ( nextSlot && slot.nextElementSibling !== nextSlot ) {
+					// Reinserting a populated wrapper restarts its iframe too.
+					if ( typeof slot.parentElement.moveBefore === 'function' ) {
+						slot.parentElement.moveBefore( slot, nextSlot );
+					} else if ( ! slot.querySelector( 'iframe' ) ) {
+						nextSlot.before( slot );
+					}
 				}
 				// Reserve this wallet's configured height before the reused iframe
 				// is attached; an earlier wallet must not expose its initial growth.
@@ -375,14 +407,35 @@ const initializeExpressCheckout = ( $ ) => {
 					group.buttonHeight
 				);
 			}
-			// The hidden preparation node is removed before the visible mount.
-			// Fragment replacement must also detach the prior visible mount.
-			if ( ! group.preparation ) {
-				group.button.unmount();
+			const container = document.getElementById( containerName );
+			const host = group.mountHost ?? group.preparation;
+			if (
+				isClassicCheckout &&
+				rebuildWalletContainer( container, host )
+			) {
+				host.style.display = '';
+				group.mountHost = host;
+				group.preparation = null;
+				return;
 			}
+			// Unsupported browsers and discarded fragments need a real SDK remount.
+			// Preserve correctness there without claiming discovery was retained.
+			group.button.unmount();
 			group.preparation?.remove();
 			group.preparation = null;
-			group.button.mount( `#${ containerName }` );
+			if ( isClassicCheckout ) {
+				const replacement = container.cloneNode( false );
+				container.replaceWith( replacement );
+				if ( nextSlot ) {
+					nextSlot.before( replacement );
+				}
+				group.mountHost = document.createElement( 'div' );
+				group.mountHost.id = `wc-stripe-express-prepare-${ group.type }`;
+				replacement.appendChild( group.mountHost );
+				group.button.mount( `#${ group.mountHost.id }` );
+			} else {
+				group.button.mount( `#${ containerName }` );
+			}
 		},
 
 		/**
@@ -633,7 +686,13 @@ const initializeExpressCheckout = ( $ ) => {
 			eceButton.on( 'click', async function ( event ) {
 				// Wallet discovery can finish before WooCommerce's recalculation.
 				// Do not open a sheet with totals that are known to be stale.
-				if ( isClassicCheckout && cartRefreshPending ) {
+				if (
+					isClassicCheckout &&
+					( cartRefreshPending ||
+						group.disposed ||
+						group.failed ||
+						group.pendingUpdate )
+				) {
 					return;
 				}
 
@@ -693,7 +752,13 @@ const initializeExpressCheckout = ( $ ) => {
 			);
 
 			eceButton.on( 'confirm', async ( event ) => {
-				if ( isClassicCheckout && cartRefreshPending ) {
+				if (
+					isClassicCheckout &&
+					( cartRefreshPending ||
+						group.disposed ||
+						group.failed ||
+						group.pendingUpdate )
+				) {
 					return wcStripeECE.abortPayment(
 						event,
 						__(
@@ -843,6 +908,25 @@ const initializeExpressCheckout = ( $ ) => {
 		 * Initialize event handlers and UI state
 		 */
 		init: () => {
+			if ( isClassicCheckout ) {
+				if ( ! wcStripeECE.getElements().length ) {
+					if ( ! containerObserver ) {
+						// Late checkout insertion must not consume the initial cart snapshot.
+						containerObserver = new MutationObserver( () => {
+							if ( wcStripeECE.getElements().length ) {
+								wcStripeECE.init();
+							}
+						} );
+						containerObserver.observe( document.body, {
+							childList: true,
+							subtree: true,
+						} );
+					}
+					return;
+				}
+				containerObserver?.disconnect();
+				containerObserver = undefined;
+			}
 			if ( getExpressCheckoutData( 'is_change_payment_method' ) ) {
 				const currency =
 					getExpressCheckoutData( 'checkout' )?.currency_code ??
@@ -935,6 +1019,7 @@ const initializeExpressCheckout = ( $ ) => {
 				// re-inits fall through to the AJAX path below for live cart updates.
 				if (
 					! cartBootstrapConsumed &&
+					( ! isClassicCheckout || ! cartRefreshPending ) &&
 					Number.isInteger( cartBootstrap?.total ) &&
 					cartBootstrap.total >= 0 &&
 					typeof cartBootstrap.currency === 'string' &&
