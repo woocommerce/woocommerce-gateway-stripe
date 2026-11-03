@@ -21,6 +21,11 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay extends WC_Stripe_UPE_Payment_Meth
 	public const STRIPE_ID = WC_Stripe_Payment_Methods::AMAZON_PAY;
 
 	/**
+	 * Refund window is 90 days.
+	 */
+	protected const REFUND_WINDOW_DATE_EXPRESSION = '+90 days';
+
+	/**
 	 * Stripe account countries that may enable Amazon Pay.
 	 *
 	 * @var string[]
