@@ -1,152 +1,430 @@
 import { createRoot } from 'react-dom/client';
 import { checkPaymentMethodIsAvailable } from 'wcstripe/express-checkout/utils/check-payment-method-availability';
-import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
 
 jest.mock( 'react-dom/client', () => ( {
 	createRoot: jest.fn(),
 } ) );
 
-jest.mock( 'wcstripe/express-checkout/utils', () => ( {
-	getExpressCheckoutData: jest.fn(),
-	getPaymentMethodTypesForExpressMethod: jest.fn( () => [ 'card' ] ),
-	isManualPaymentMethodCreation: jest.fn( () => false ),
-} ) );
-
 describe( 'checkPaymentMethodIsAvailable', () => {
-	const api = { loadStripe: jest.fn( () => Promise.resolve( {} ) ) };
-
+	let api;
 	const render = jest.fn();
 	const unmount = jest.fn();
+	const wallets = [ 'applePay', 'googlePay', 'link' ];
 
-	const hydratedCart = ( currencyCode = 'USD' ) => ( {
+	const hydratedCart = ( totals = {} ) => ( {
 		cartTotals: {
 			total_price: '1000',
 			currency_minor_unit: 2,
-			currency_code: currencyCode,
+			currency_code: 'USD',
+			...totals,
 		},
 	} );
 
-	// The default cart totals @woocommerce/block-data seeds before the Store
-	// API response is applied.
-	const unhydratedCart = () => ( {
-		cartTotals: {
-			total_price: '0',
-			currency_minor_unit: 2,
-			currency_code: '',
-		},
-	} );
-
-	// The rendered tree is ProbeErrorBoundary > Elements > ExpressCheckoutElement.
 	const getRenderedErrorBoundary = ( call = 0 ) =>
 		render.mock.calls[ call ][ 0 ];
 	const getRenderedElements = ( call = 0 ) =>
 		getRenderedErrorBoundary( call ).props.children;
 	const getRenderedExpressCheckoutElement = ( call = 0 ) =>
 		getRenderedElements( call ).props.children;
+	const ready = ( availablePaymentMethods, call = 0 ) =>
+		getRenderedExpressCheckoutElement( call ).props.onReady( {
+			availablePaymentMethods,
+		} );
+	const checkWallets = ( cart = hydratedCart() ) =>
+		wallets.map( ( method ) =>
+			checkPaymentMethodIsAvailable( method, api, cart )
+		);
 
 	beforeEach( () => {
 		jest.clearAllMocks();
+		api = { loadStripe: jest.fn( () => Promise.resolve( {} ) ) };
 		createRoot.mockReturnValue( { render, unmount } );
-		getExpressCheckoutData.mockReturnValue( false );
+		global.wcSettings = {
+			stripe_data: {
+				isApplePayEnabled: true,
+				isGooglePayEnabled: true,
+				isLinkEnabled: true,
+				isAmazonPayEnabled: true,
+				paymentMethodsConfig: { card: {}, link: {} },
+			},
+		};
+		global.wc_stripe_express_checkout_params = {
+			has_free_trial: false,
+			stripe: { is_amazon_pay_enabled: true },
+		};
 	} );
 
-	it( 'resolves false without mounting a probe element when the cart currency is not hydrated', async () => {
-		const result = await checkPaymentMethodIsAvailable(
-			'amazonPay',
-			api,
-			unhydratedCart()
-		);
+	afterEach( async () => {
+		await new Promise( ( resolve ) => setTimeout( resolve ) );
+		delete global.wcSettings;
+		global.wc_stripe_express_checkout_params = {};
+		document.body.innerHTML = '';
+	} );
 
-		expect( result ).toBe( false );
+	it.each( [ undefined, {}, hydratedCart( { currency_code: '' } ) ] )(
+		'waits for cart hydration without caching an unavailable result (%j)',
+		async ( cart ) => {
+			expect(
+				await checkPaymentMethodIsAvailable( 'applePay', api, cart )
+			).toBe( false );
+			expect( createRoot ).not.toHaveBeenCalled();
+
+			const results = checkWallets();
+			expect( createRoot ).toHaveBeenCalledTimes( 1 );
+			ready( { applePay: true, googlePay: true, link: true } );
+			expect( await Promise.all( results ) ).toEqual( [
+				true,
+				true,
+				true,
+			] );
+		}
+	);
+
+	it.each( [
+		[
+			{ applePay: true, googlePay: false, link: true },
+			[ true, false, true ],
+		],
+		[
+			{ applePay: true, googlePay: true, link: false },
+			[ true, true, false ],
+		],
+		[ { applePay: true, googlePay: true }, [ true, true, false ] ],
+	] )(
+		'shares card-wallet availability across pending and completed amount updates (%j)',
+		async ( available, expected ) => {
+			const results = checkWallets();
+			const pendingUpdate = checkWallets(
+				hydratedCart( { total_price: '2000' } )
+			);
+			expect( createRoot ).toHaveBeenCalledTimes( 1 );
+			expect( api.loadStripe ).toHaveBeenCalledTimes( 1 );
+			expect( getRenderedElements().props.options ).toEqual( {
+				mode: 'payment',
+				paymentMethodCreation: 'manual',
+				amount: 1000,
+				currency: 'usd',
+			} );
+			expect(
+				getRenderedExpressCheckoutElement().props.options.paymentMethods
+			).toEqual( {
+				applePay: 'always',
+				googlePay: 'always',
+				link: 'auto',
+				amazonPay: 'never',
+				paypal: 'never',
+				klarna: 'never',
+			} );
+
+			ready( available );
+			expect( await Promise.all( results ) ).toEqual( expected );
+			expect( await Promise.all( pendingUpdate ) ).toEqual( expected );
+			expect(
+				await Promise.all(
+					checkWallets( hydratedCart( { total_price: '3000' } ) )
+				)
+			).toEqual( expected );
+			expect( await Promise.all( checkWallets() ) ).toEqual( expected );
+			expect( createRoot ).toHaveBeenCalledTimes( 1 );
+			await new Promise( ( resolve ) => setTimeout( resolve ) );
+			expect( unmount ).toHaveBeenCalledTimes( 1 );
+			expect( document.body ).toBeEmptyDOMElement();
+		}
+	);
+
+	it.each( [ undefined, null, {}, { applePay: false } ] )(
+		'caches a successful probe with unavailable or missing wallets (%j)',
+		async ( available ) => {
+			const results = checkWallets();
+			ready( available );
+			expect( await Promise.all( results ) ).toEqual( [
+				false,
+				false,
+				false,
+			] );
+			expect( await Promise.all( checkWallets() ) ).toEqual( [
+				false,
+				false,
+				false,
+			] );
+			expect( createRoot ).toHaveBeenCalledTimes( 1 );
+		}
+	);
+
+	it.each( [
+		[ 'applePay', 'isApplePayEnabled' ],
+		[ 'googlePay', 'isGooglePayEnabled' ],
+		[ 'link', 'isLinkEnabled' ],
+		[ 'amazonPay', 'isAmazonPayEnabled' ],
+	] )( 'does not probe disabled %s', async ( method, flag ) => {
+		global.wcSettings.stripe_data[ flag ] = false;
+		expect(
+			await checkPaymentMethodIsAvailable( method, api, hydratedCart() )
+		).toBe( false );
 		expect( createRoot ).not.toHaveBeenCalled();
-	} );
 
-	it( 'probes again once the cart hydrates instead of reusing the unhydrated result', async () => {
-		const beforeHydration = await checkPaymentMethodIsAvailable(
-			'applePay',
-			api,
-			unhydratedCart()
-		);
-		expect( beforeHydration ).toBe( false );
-		expect( createRoot ).not.toHaveBeenCalled();
-
-		const afterHydration = checkPaymentMethodIsAvailable(
-			'applePay',
-			api,
-			hydratedCart()
-		);
-		expect( createRoot ).toHaveBeenCalledTimes( 1 );
-		expect( getRenderedElements().props.options.currency ).toBe( 'usd' );
-
-		getRenderedExpressCheckoutElement().props.onReady( {
-			availablePaymentMethods: { applePay: true },
-		} );
-
-		expect( await afterHydration ).toBe( true );
-		expect( unmount ).toHaveBeenCalled();
-	} );
-
-	it( 'memoizes the probe per payment method for hydrated carts', async () => {
-		const first = checkPaymentMethodIsAvailable(
-			'googlePay',
-			api,
-			hydratedCart()
-		);
-		getRenderedExpressCheckoutElement().props.onReady( {
-			availablePaymentMethods: { googlePay: true },
-		} );
-
-		const second = checkPaymentMethodIsAvailable(
-			'googlePay',
-			api,
-			hydratedCart()
-		);
-
-		expect( createRoot ).toHaveBeenCalledTimes( 1 );
-		expect( await first ).toBe( true );
-		expect( await second ).toBe( true );
-	} );
-
-	it( 'resolves false when the ready event does not report the method as available', async () => {
+		const enabledMethod = method === 'applePay' ? 'googlePay' : 'applePay';
 		const result = checkPaymentMethodIsAvailable(
-			'link',
+			enabledMethod,
 			api,
 			hydratedCart()
 		);
-
-		getRenderedExpressCheckoutElement().props.onReady( {
-			availablePaymentMethods: { link: false },
-		} );
-
-		expect( await result ).toBe( false );
+		expect(
+			getRenderedExpressCheckoutElement().props.options.paymentMethods[
+				method
+			]
+		).toBe( 'never' );
+		expect( getRenderedElements().props.options ).not.toHaveProperty(
+			'paymentMethodTypes'
+		);
+		ready( { [ enabledMethod ]: true } );
+		expect( await result ).toBe( true );
 	} );
 
-	it( 'resolves false on probe failures without caching them, so later calls probe again', async () => {
-		// Mount error caught by the error boundary.
+	it.each( [ false, true ] )(
+		'keeps Amazon Pay separate with its own Elements options (free trial: %s)',
+		async ( hasFreeTrial ) => {
+			global.wc_stripe_express_checkout_params.has_free_trial =
+				hasFreeTrial;
+			const cart = hydratedCart( {
+				total_price: hasFreeTrial ? '0' : '1000',
+			} );
+			const results = checkWallets( cart );
+			const amazon = checkPaymentMethodIsAvailable(
+				'amazonPay',
+				api,
+				cart
+			);
+			expect( createRoot ).toHaveBeenCalledTimes( 2 );
+			expect( getRenderedElements( 1 ).props.options ).toEqual( {
+				mode: hasFreeTrial ? 'subscription' : 'payment',
+				...( hasFreeTrial && { paymentMethodCreation: 'manual' } ),
+				amount: hasFreeTrial ? 0 : 1000,
+				currency: 'usd',
+				paymentMethodTypes: [ 'amazon_pay' ],
+			} );
+			expect(
+				getRenderedExpressCheckoutElement( 1 ).props.options
+					.paymentMethods
+			).toEqual( {
+				amazonPay: 'auto',
+				applePay: 'never',
+				googlePay: 'never',
+				link: 'never',
+				paypal: 'never',
+				klarna: 'never',
+			} );
+			expect( getRenderedElements().props.options ).toMatchObject( {
+				mode: hasFreeTrial ? 'subscription' : 'payment',
+				paymentMethodCreation: 'manual',
+				amount: hasFreeTrial ? 0 : 1000,
+			} );
+			ready( { applePay: true, googlePay: true, link: true } );
+			ready( { amazonPay: false }, 1 );
+			expect( await Promise.all( results ) ).toEqual( [
+				true,
+				true,
+				true,
+			] );
+			expect( await amazon ).toBe( false );
+		}
+	);
+
+	it( 'reprobes Amazon Pay when the amount changes', async () => {
 		const first = checkPaymentMethodIsAvailable(
 			'amazonPay',
 			api,
 			hydratedCart()
 		);
-		getRenderedErrorBoundary().props.onError();
-		expect( await first ).toBe( false );
+		ready( { amazonPay: true } );
+		expect( await first ).toBe( true );
 
-		// The failure was evicted, so this call probes again; this time the
-		// element reports a load error.
 		const second = checkPaymentMethodIsAvailable(
 			'amazonPay',
 			api,
+			hydratedCart( { total_price: '2000' } )
+		);
+		expect( createRoot ).toHaveBeenCalledTimes( 2 );
+		expect( getRenderedElements( 1 ).props.options.amount ).toBe( 2000 );
+		ready( { amazonPay: false }, 1 );
+		expect( await second ).toBe( false );
+	} );
+
+	it.each( [
+		[ 'currency', () => hydratedCart( { currency_code: 'EUR' } ) ],
+		[
+			'mode',
+			() => {
+				global.wc_stripe_express_checkout_params.has_free_trial = true;
+				return hydratedCart();
+			},
+		],
+		[
+			'enabled wallets',
+			() => {
+				global.wcSettings.stripe_data.isLinkEnabled = false;
+				return hydratedCart();
+			},
+		],
+	] )( 'reprobes when %s changes', async ( _name, changeContext ) => {
+		const first = checkPaymentMethodIsAvailable(
+			'applePay',
+			api,
+			hydratedCart()
+		);
+		ready( { applePay: true } );
+		expect( await first ).toBe( true );
+		const second = checkPaymentMethodIsAvailable(
+			'applePay',
+			api,
+			changeContext()
+		);
+		expect( createRoot ).toHaveBeenCalledTimes( 2 );
+		ready( { applePay: false }, 1 );
+		expect( await second ).toBe( false );
+	} );
+
+	it( 'does not share results between API instances', async () => {
+		const first = checkPaymentMethodIsAvailable(
+			'applePay',
+			api,
+			hydratedCart()
+		);
+		const second = checkPaymentMethodIsAvailable(
+			'applePay',
+			{ loadStripe: api.loadStripe },
 			hydratedCart()
 		);
 		expect( createRoot ).toHaveBeenCalledTimes( 2 );
-		getRenderedExpressCheckoutElement( 1 ).props.onLoadError();
-		expect( await second ).toBe( false );
+		ready( { applePay: true } );
+		ready( { applePay: false }, 1 );
+		expect( await Promise.all( [ first, second ] ) ).toEqual( [
+			true,
+			false,
+		] );
+	} );
 
-		checkPaymentMethodIsAvailable( 'amazonPay', api, hydratedCart() );
-		expect( createRoot ).toHaveBeenCalledTimes( 3 );
+	it( 'normalizes the amount using the store’s currency precision', async () => {
+		global.wc_stripe_express_checkout_params.checkout = {
+			currency_decimals: 0,
+		};
+		const result = checkPaymentMethodIsAvailable(
+			'applePay',
+			api,
+			hydratedCart( { currency_code: 'JPY' } )
+		);
+		expect( getRenderedElements().props.options ).toMatchObject( {
+			amount: 10,
+			currency: 'jpy',
+		} );
+		ready( { applePay: true } );
+		expect( await result ).toBe( true );
+	} );
 
-		// Failed probes tear down their container on a deferred tick.
+	it.each( [ 'render', 'load' ] )(
+		'releases all waiting wallets after a %s error and allows a shared retry',
+		async ( errorType ) => {
+			const first = checkWallets();
+			const fail =
+				errorType === 'render'
+					? getRenderedErrorBoundary().props.onError
+					: getRenderedExpressCheckoutElement().props.onLoadError;
+			fail();
+			expect( await Promise.all( first ) ).toEqual( [
+				false,
+				false,
+				false,
+			] );
+
+			const second = checkWallets(
+				hydratedCart( { total_price: '2000' } )
+			);
+			expect( createRoot ).toHaveBeenCalledTimes( 2 );
+			expect( getRenderedElements( 1 ).props.options.amount ).toBe(
+				2000
+			);
+			fail();
+			ready( { applePay: false } );
+			ready( { applePay: true, googlePay: true, link: true }, 1 );
+			expect( await Promise.all( second ) ).toEqual( [
+				true,
+				true,
+				true,
+			] );
+			await Promise.all( checkWallets() );
+			expect( createRoot ).toHaveBeenCalledTimes( 2 );
+			await new Promise( ( resolve ) => setTimeout( resolve ) );
+			expect( unmount ).toHaveBeenCalledTimes( 2 );
+			expect( document.body ).toBeEmptyDOMElement();
+		}
+	);
+
+	it( 'ignores a late load error after a successful ready event', async () => {
+		const first = checkWallets();
+		ready( { applePay: true, googlePay: true, link: true } );
+		getRenderedExpressCheckoutElement().props.onLoadError();
+		expect( await Promise.all( first ) ).toEqual( [ true, true, true ] );
+		await Promise.all( checkWallets() );
+		expect( createRoot ).toHaveBeenCalledTimes( 1 );
 		await new Promise( ( resolve ) => setTimeout( resolve ) );
-		expect( unmount ).toHaveBeenCalled();
+		expect( unmount ).toHaveBeenCalledTimes( 1 );
+	} );
+
+	it( 'retries after a synchronous React root initialization failure', async () => {
+		createRoot.mockImplementationOnce( () => {
+			throw new Error( 'React root could not initialize' );
+		} );
+		const first = checkWallets();
+		const failedContainer = createRoot.mock.calls[ 0 ][ 0 ];
+		expect( createRoot ).toHaveBeenCalledTimes( 1 );
+		expect( failedContainer ).toBeInTheDocument();
+		expect( render ).not.toHaveBeenCalled();
+		expect( api.loadStripe ).not.toHaveBeenCalled();
+		await expect( Promise.all( first ) ).resolves.toEqual( [
+			false,
+			false,
+			false,
+		] );
+		await new Promise( ( resolve ) => setTimeout( resolve ) );
+		expect( failedContainer ).not.toBeInTheDocument();
+		expect( unmount ).not.toHaveBeenCalled();
+
+		const retry = checkWallets();
+		const retryContainer = createRoot.mock.calls[ 1 ][ 0 ];
+		ready( { applePay: true, googlePay: true, link: true } );
+		await expect( Promise.all( retry ) ).resolves.toEqual( [
+			true,
+			true,
+			true,
+		] );
+		await expect( Promise.all( checkWallets() ) ).resolves.toEqual( [
+			true,
+			true,
+			true,
+		] );
+		expect( createRoot ).toHaveBeenCalledTimes( 2 );
+		expect( api.loadStripe ).toHaveBeenCalledTimes( 1 );
+		await new Promise( ( resolve ) => setTimeout( resolve ) );
+		expect( unmount ).toHaveBeenCalledTimes( 1 );
+		expect( retryContainer ).not.toBeInTheDocument();
+	} );
+
+	it( 'retries after a synchronous Stripe initialization failure', async () => {
+		api.loadStripe.mockImplementationOnce( () => {
+			throw new Error( 'Stripe could not initialize' );
+		} );
+		expect( await Promise.all( checkWallets() ) ).toEqual( [
+			false,
+			false,
+			false,
+		] );
+		expect( createRoot ).toHaveBeenCalledTimes( 1 );
+
+		const retry = checkWallets();
+		ready( { applePay: true, googlePay: true, link: true } );
+		expect( await Promise.all( retry ) ).toEqual( [ true, true, true ] );
+		expect( createRoot ).toHaveBeenCalledTimes( 2 );
+		await new Promise( ( resolve ) => setTimeout( resolve ) );
+		expect( unmount ).toHaveBeenCalledTimes( 2 );
 	} );
 } );

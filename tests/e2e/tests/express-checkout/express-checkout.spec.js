@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { payments } from '../../utils';
-import { assertLinkModalLoads, getLinkButton } from './utils';
+import { assertLinkModalLoads, getLinkButton, openLinkPopup } from './utils';
 
-const { clickAddToCartButton } = payments;
+const { clickAddToCartButton, getCartTotal } = payments;
 
 const addProductToCart = async ( page, productSlug = 'beanie' ) => {
 	// Add a product to the cart
@@ -38,6 +38,54 @@ test.describe( 'customer can use Link express checkout', () => {
 	test( 'inside the cart page (block)', async ( { page } ) => {
 		await addProductToCart( page );
 		await testLink( page, '/cart', true );
+	} );
+
+	test( 'after quantity changes in the cart page (block)', async ( {
+		page,
+	} ) => {
+		await addProductToCart( page );
+		await page.goto( '/cart' );
+
+		const linkButton = await getLinkButton( page, true );
+		await expect( linkButton ).toBeVisible();
+		await expect( linkButton ).toBeEnabled();
+
+		const initialTotal = await getCartTotal( page );
+		const quantityInput = page.locator(
+			'.wc-block-components-quantity-selector__input'
+		);
+		const displayedTotal = page
+			.locator(
+				'.wc-block-components-totals-footer-item .wc-block-components-totals-item__value'
+			)
+			.last();
+		await expect( quantityInput ).toHaveValue( '1' );
+		await expect( displayedTotal ).toContainText( initialTotal );
+
+		for ( const quantity of [ '2', '1' ] ) {
+			await quantityInput.fill( quantity );
+			await quantityInput.blur();
+			if ( quantity === '2' ) {
+				await expect
+					.poll( () => getCartTotal( page ) )
+					.not.toBe( initialTotal );
+			} else {
+				await expect
+					.poll( () => getCartTotal( page ) )
+					.toBe( initialTotal );
+			}
+			await expect( displayedTotal ).toContainText(
+				await getCartTotal( page )
+			);
+			await expect( quantityInput ).toBeEnabled();
+			await expect( quantityInput ).toHaveValue( quantity );
+			await expect( linkButton ).toBeVisible();
+			await expect( linkButton ).toBeEnabled();
+		}
+
+		// Reloading would reset availability and hide a stale-cache failure.
+		const popup = await openLinkPopup( page, true, { maxRetries: 0 } );
+		await popup.close();
 	} );
 
 	test( 'inside the checkout page (block)', async ( { page } ) => {
