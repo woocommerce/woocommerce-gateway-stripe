@@ -1308,6 +1308,33 @@ describe( 'Classic checkout early initialization', () => {
 		).toBe( 'Retry' );
 	} );
 
+	it( 'recovers on a checkout update after the initial SDK creation fails', async () => {
+		stripe.elements.mockImplementationOnce( () => {
+			throw new Error( 'Stripe Elements could not initialize' );
+		} );
+		try {
+			loadEntrypoint();
+		} catch {
+			// A failed bootstrap must leave the next update able to recover.
+		}
+
+		trigger( 'updated_checkout' );
+		await settle();
+		expect( mockGetCartDetails ).toHaveBeenCalledTimes( 1 );
+		expect( groups ).toHaveLength( 1 );
+		expect( groups[ 0 ].options.amount ).toBe( 2500 );
+		await ready( groups[ 0 ] );
+		const click = { resolve: jest.fn() };
+		await groups[ 0 ].button.emit( 'click', click );
+		expect( click.resolve ).toHaveBeenCalledWith(
+			expect.objectContaining( {
+				lineItems: expect.arrayContaining( [
+					{ name: 'Updated product', amount: 2000 },
+				] ),
+			} )
+		);
+	} );
+
 	it( 'prepares Classic wallets before document ready without initializing twice', () => {
 		mockDelayReady = true;
 		loadEntrypoint();
