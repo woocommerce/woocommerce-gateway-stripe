@@ -33,10 +33,16 @@ test.beforeAll( async () => {
 test( 'customer can checkout with a saved card @smoke', async ( {
 	page,
 	browser,
+	baseURL,
 } ) => {
-	// Disable Link so the store-level save checkbox is visible.
-	// When Link is enabled, the store checkbox is hidden and Link handles save consent.
-	await admin.togglePaymentMethod( browser, 'Link by Stripe', false );
+	const useLocalFixture = process.env.DOCKER === 'true';
+	if ( useLocalFixture ) {
+		await page.context().addCookies( [
+			{ name: 'wc_stripe_e2e_card_only', value: '1', url: baseURL },
+		] );
+	} else {
+		await admin.togglePaymentMethod( browser, 'Link by Stripe', false );
+	}
 
 	try {
 		await test.step( 'customer login', async () => {
@@ -110,7 +116,8 @@ test( 'customer can checkout with a saved card @smoke', async ( {
 			);
 		} );
 	} finally {
-		// Re-enable Link after the test.
-		await admin.togglePaymentMethod( browser, 'Link by Stripe', true );
+		if ( ! useLocalFixture ) {
+			await admin.togglePaymentMethod( browser, 'Link by Stripe', true );
+		}
 	}
 } );
