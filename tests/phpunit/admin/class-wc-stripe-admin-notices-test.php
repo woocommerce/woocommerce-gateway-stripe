@@ -4,6 +4,8 @@
  * Tests for the admin notices class.
  */
 class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
+	use WC_Stripe_Tracks_Capture_Trait;
+
 	/**
 	 * The original value of the HPOS option.
 	 *
@@ -1643,6 +1645,46 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertEquals( 'no', get_option( 'wc_stripe_show_ece_location_notice' ) );
 
 		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'] );
+	}
+
+	/**
+	 * Dismissing an Adaptive Pricing "now active" notice records a Tracks event for that notice.
+	 *
+	 * @dataProvider provide_ap_notices_to_dismiss
+	 *
+	 * @param string $notice_key Notice key in the dismiss link.
+	 * @param string $option     Option that controls the notice.
+	 * @param string $banner     Expected `banner` property of the event.
+	 */
+	public function test_hide_notices_records_tracks_event_for_ap_notices( string $notice_key, string $option, string $banner ): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+		update_option( $option, 'yes' );
+
+		$_GET['wc-stripe-hide-notice']   = $notice_key;
+		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
+
+		$this->start_capturing_tracks_events();
+		$this->create_admin_notices_instance()->hide_notices();
+		$this->stop_capturing_tracks_events();
+
+		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'] );
+
+		$this->assertSame( 'no', get_option( $option ) );
+		$events = $this->get_captured_tracks_event_properties( 'wcadmin_wcstripe_ap_banner_dismissed' );
+		$this->assertCount( 1, $events );
+		$this->assertSame( $banner, $events[0]['banner'] );
+	}
+
+	/**
+	 * Data provider for `test_hide_notices_records_tracks_event_for_ap_notices`.
+	 *
+	 * @return array
+	 */
+	public function provide_ap_notices_to_dismiss(): array {
+		return [
+			'OCS and AP notice' => [ 'ocs_ap_banner', 'wc_stripe_show_ocs_ap_banner', 'ocs_ap' ],
+			'AP only notice'    => [ 'ap_only_banner', 'wc_stripe_show_ap_only_banner', 'ap_only' ],
+		];
 	}
 
 	/**

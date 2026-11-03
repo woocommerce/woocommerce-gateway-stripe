@@ -1013,15 +1013,33 @@ class WC_Stripe_Admin_Notices {
 					break;
 				case 'ocs_ap_banner':
 					update_option( self::SHOW_OCS_AP_BANNER_OPTION, 'no' );
+					$this->record_ap_banner_dismissed_tracks_event( 'ocs_ap' );
 					break;
 				case 'ap_only_banner':
 					update_option( self::SHOW_AP_ONLY_BANNER_OPTION, 'no' );
+					$this->record_ap_banner_dismissed_tracks_event( 'ap_only' );
 					break;
 				case 'ocs_only_banner':
 					update_option( self::SHOW_OCS_ONLY_BANNER_OPTION, 'no' );
 					break;
 			}
 		}
+	}
+
+	/**
+	 * Records a Tracks event when the merchant dismisses an Adaptive Pricing "now active" notice.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param string $banner Which notice was dismissed: 'ocs_ap' or 'ap_only'.
+	 * @return void
+	 */
+	private function record_ap_banner_dismissed_tracks_event( string $banner ): void {
+		if ( ! function_exists( 'wc_admin_record_tracks_event' ) ) {
+			return;
+		}
+
+		wc_admin_record_tracks_event( 'wcstripe_ap_banner_dismissed', [ 'banner' => $banner ] );
 	}
 
 	/**
