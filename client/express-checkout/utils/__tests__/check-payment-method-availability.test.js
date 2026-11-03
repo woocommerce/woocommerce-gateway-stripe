@@ -359,6 +359,44 @@ describe( 'checkPaymentMethodIsAvailable', () => {
 		}
 	);
 
+	it.each( [ 'missing', 'error payload', 'rejection' ] )(
+		'releases waiting wallets when Stripe loading returns %s and allows a retry',
+		async ( failure ) => {
+			const loaded =
+				failure === 'rejection'
+					? Promise.reject( new Error( 'Stripe could not load' ) )
+					: Promise.resolve(
+							failure === 'missing'
+								? null
+								: {
+										error: new Error(
+											'Stripe could not load'
+										),
+								  }
+					  );
+			// The renderer double does not consume the provider promise.
+			loaded.catch( () => {} );
+			api.loadStripe.mockReturnValueOnce( loaded );
+			let availability;
+			Promise.all( checkWallets() ).then( ( result ) => {
+				availability = result;
+			} );
+			await new Promise( ( resolve ) => setTimeout( resolve ) );
+			expect( availability ).toEqual( [ false, false, false ] );
+			await new Promise( ( resolve ) => setTimeout( resolve ) );
+			expect( document.body ).toBeEmptyDOMElement();
+
+			const retry = checkWallets();
+			ready( { applePay: true, googlePay: true, link: true }, 1 );
+			expect( await Promise.all( retry ) ).toEqual( [
+				true,
+				true,
+				true,
+			] );
+			expect( createRoot ).toHaveBeenCalledTimes( 2 );
+		}
+	);
+
 	it( 'ignores a late load error after a successful ready event', async () => {
 		const first = checkWallets();
 		ready( { applePay: true, googlePay: true, link: true } );

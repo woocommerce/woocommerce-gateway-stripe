@@ -90,12 +90,24 @@ const probePaymentMethods = ( api, elementsOptions, paymentMethods ) =>
 
 		try {
 			root = createRoot( containerEl );
+			// A loader failure has no ready/loaderror event. Release the shared
+			// probe so every wallet can retry instead of caching a pending promise.
+			const stripe = Promise.resolve( api.loadStripe() ).then(
+				( loaded ) => {
+					if ( ! loaded || loaded.error ) {
+						failProbe();
+						return null;
+					}
+					return loaded;
+				},
+				() => {
+					failProbe();
+					return null;
+				}
+			);
 			root.render(
 				<ProbeErrorBoundary onError={ failProbe }>
-					<Elements
-						stripe={ api.loadStripe() }
-						options={ elementsOptions }
-					>
+					<Elements stripe={ stripe } options={ elementsOptions }>
 						<ExpressCheckoutElement
 							onLoadError={ failProbe }
 							options={ { paymentMethods } }
