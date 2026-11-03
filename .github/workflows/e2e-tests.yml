@@ -26,7 +26,11 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Block-theme jobs run a few minutes slower than Storefront, and the
+    # default project already needs close to 20 minutes when failures retry.
+    # Headroom keeps a slow run reporting its failures instead of being
+    # cancelled without a report.
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       max-parallel: 10
