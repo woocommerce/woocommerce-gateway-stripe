@@ -23,6 +23,17 @@ const testCard = async ( page, cardKey ) => {
 	const card = config.get( cardKey );
 
 	await fillCreditCardDetailsShortcode( page, card );
+	const linkSignup = page
+		.frameLocator(
+			'.payment_method_stripe #wc-stripe-upe-form .wc-stripe-upe-element iframe'
+		)
+		.getByRole( 'checkbox', {
+			name: 'Save my information for faster checkout',
+		} );
+	// Use the card payment path for card-specific error assertions.
+	if ( await linkSignup.isVisible() ) {
+		await linkSignup.uncheck();
+	}
 	await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
 
 	expect

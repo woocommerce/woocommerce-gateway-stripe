@@ -25,6 +25,14 @@ const testCard = async ( page, cardKey ) => {
 	const card = config.get( cardKey );
 
 	await fillCreditCardDetails( page, card );
+	const form = await getPaymentElementFrame( page );
+	const linkSignup = form.getByRole( 'checkbox', {
+		name: 'Save my information for faster checkout',
+	} );
+	// Use the card payment path for card-specific error assertions.
+	if ( await linkSignup.isVisible() ) {
+		await linkSignup.uncheck();
+	}
 	await clickPlaceOrder( page );
 
 	/**
@@ -33,7 +41,6 @@ const testCard = async ( page, cardKey ) => {
 	 */
 	let expected;
 	if ( cardKey === 'cards.declined-incorrect' ) {
-		const form = await getPaymentElementFrame( page );
 		expected = await form.locator( '#Field-numberError' ).innerText();
 	} else {
 		expected = await page.innerText(
