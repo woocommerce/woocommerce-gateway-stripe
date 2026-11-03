@@ -525,9 +525,14 @@ export async function setupBlocksCheckout(
 	options = {}
 ) {
 	await page.goto( '/checkout/' );
+	const stripeMethod = page.locator(
+		"label[for='radio-control-wc-payment-method-options-stripe']"
+	);
 	// Session initialization updates the cart; payment-flow tests start entering
 	// customer data only after that initial synchronization has completed.
 	if ( options.paymentFrameSelector ) {
+		// A saved token can be selected initially, leaving the new-card frame hidden.
+		await stripeMethod.click();
 		await getOCPaymentFrame(
 			page,
 			options.paymentFrameSelector,
@@ -610,11 +615,7 @@ export async function setupBlocksCheckout(
 		}
 	}
 
-	await page
-		.locator(
-			"label[for='radio-control-wc-payment-method-options-stripe']"
-		)
-		.click();
+	await stripeMethod.click();
 }
 
 /**
