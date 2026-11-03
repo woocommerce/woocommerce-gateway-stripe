@@ -35,6 +35,70 @@ test.describe( 'customer can use Link express checkout', () => {
 		await testLink( page, '/checkout-shortcode', false );
 	} );
 
+	test( 'waits for a Classic container added after document readiness', async ( {
+		page,
+	} ) => {
+		await addProductToCart( page );
+		await page.addInitScript( () => {
+			if ( ! location.pathname.includes( '/checkout-shortcode' ) ) {
+				return;
+			}
+			const observer = new MutationObserver( () => {
+				const root = document.getElementById(
+					'wc-stripe-express-checkout-element'
+				);
+				if ( root ) {
+					window.lateCheckoutContainer = root;
+					root.remove();
+					observer.disconnect();
+				}
+			} );
+			observer.observe( document, { childList: true, subtree: true } );
+		} );
+		await page.goto( '/checkout-shortcode' );
+		await page.evaluate(
+			() => new Promise( ( resolve ) => window.jQuery( resolve ) )
+		);
+		await expect(
+			page.locator( '#wc-stripe-express-checkout-element' )
+		).toHaveCount( 0 );
+		await page.evaluate( () =>
+			document
+				.querySelector( 'form.checkout' )
+				.prepend( window.lateCheckoutContainer )
+		);
+		await expect( await getLinkButton( page ) ).toBeVisible();
+	} );
+
+	test( 'rebuilds the Classic wallet iframe after updated_checkout', async ( {
+		page,
+	} ) => {
+		await addProductToCart( page );
+		const initial = page.waitForResponse(
+			( response ) =>
+				response.url().includes( 'wc-ajax=update_order_review' ) &&
+				response.ok()
+		);
+		await page.goto( '/checkout-shortcode' );
+		await initial;
+		await expect( await getLinkButton( page ) ).toBeVisible();
+		const iframe = await page
+			.locator( '#wc-stripe-express-checkout-element-link iframe' )
+			.elementHandle();
+		const updated = page.waitForResponse(
+			( response ) =>
+				response.url().includes( 'wc-ajax=update_order_review' ) &&
+				response.ok()
+		);
+		const shipping = page.locator( '#ship-to-different-address-checkbox' );
+		await shipping.setChecked( ! ( await shipping.isChecked() ) );
+		await updated;
+		await expect
+			.poll( () => iframe.evaluate( ( element ) => element.isConnected ) )
+			.toBe( false );
+		await expect( await getLinkButton( page ) ).toBeVisible();
+	} );
+
 	test( 'inside the cart page (block)', async ( { page } ) => {
 		await addProductToCart( page );
 		await testLink( page, '/cart', true );
