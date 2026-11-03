@@ -1909,6 +1909,51 @@ describe( 'Classic checkout early initialization', () => {
 		expect( groups[ 0 ].options.amount ).toBe( 2500 );
 	} );
 
+	it( 'refreshes deferred Cart totals after a failed wallet confirmation without cancel', async () => {
+		params.is_checkout_page = false;
+		params.is_cart_page = true;
+		const handlers = require( 'wcstripe/express-checkout/event-handler' );
+		const actualHandlers = jest.requireActual(
+			'wcstripe/express-checkout/event-handler'
+		);
+		handlers.onConfirmHandler.mockImplementation(
+			actualHandlers.onConfirmHandler
+		);
+		handlers.onAbortPaymentHandler.mockImplementation(
+			actualHandlers.onAbortPaymentHandler
+		);
+		loadEntrypoint();
+		await ready( groups[ 0 ] );
+		await groups[ 0 ].button.emit( 'click', { resolve: jest.fn() } );
+		trigger( 'updated_cart_totals' );
+		await settle();
+		expect( mockGetCartDetails ).not.toHaveBeenCalled();
+
+		groups[ 0 ].submit.mockResolvedValueOnce( {
+			error: { message: 'Payment declined' },
+		} );
+		const confirmation = { paymentFailed: jest.fn() };
+		await groups[ 0 ].button.emit( 'confirm', confirmation );
+		await settle();
+		expect( confirmation.paymentFailed ).toHaveBeenCalledWith( {
+			reason: 'fail',
+		} );
+		expect( mockGetCartDetails ).toHaveBeenCalledTimes( 1 );
+		expect( groups ).toHaveLength( 1 );
+		expect( groups[ 0 ].options.amount ).toBe( 2500 );
+		expect( groups[ 0 ].button.destroy ).not.toHaveBeenCalled();
+		expect( document.body ).not.toHaveClass( 'wc-stripe-ece-processing' );
+		const retry = { resolve: jest.fn() };
+		await groups[ 0 ].button.emit( 'click', retry );
+		expect( retry.resolve ).toHaveBeenCalledWith(
+			expect.objectContaining( {
+				lineItems: expect.arrayContaining( [
+					{ name: 'Updated product', amount: 2000 },
+				] ),
+			} )
+		);
+	} );
+
 	it( 'fails confirmation when checkout changed under the open wallet, then refreshes for retry', async () => {
 		loadEntrypoint();
 		await groups[ 0 ].button.emit( 'click', { resolve: jest.fn() } );
