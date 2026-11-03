@@ -166,6 +166,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 11.2.0 - xxxx-xx-xx =
+* Update - Rebuild Classic wallet wrappers without restarting supported browser frames
 * Update - Reuse the mounted express checkout buttons on cart and checkout updates instead of re-creating them on every totals refresh, and defer refreshes while the wallet sheet is open
 * Update - Start express checkout button initialization earlier on classic checkout
 * Fix - Restore express checkout after a failed order update and prepare wallet buttons before revealing them on classic checkout

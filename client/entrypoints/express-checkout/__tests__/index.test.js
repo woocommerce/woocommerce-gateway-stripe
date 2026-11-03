@@ -976,6 +976,186 @@ describe( 'Classic checkout early initialization', () => {
 		delete global.Stripe;
 	} );
 
+	it( 'replaces the public wrapper without remounting the live SDK element', async () => {
+		Element.prototype.moveBefore = jest.fn( function ( node, before ) {
+			this.insertBefore( node, before );
+		} );
+		try {
+			loadEntrypoint();
+			await ready( groups[ 0 ] );
+			const original = document.getElementById(
+				'wc-stripe-express-checkout-element-googlePay'
+			);
+			const frame = original.querySelector( 'iframe' );
+			trigger( 'updated_checkout' );
+			await settle();
+			const replacement = document.getElementById(
+				'wc-stripe-express-checkout-element-googlePay'
+			);
+			expect( replacement ).not.toBe( original );
+			expect( original.isConnected ).toBe( false );
+			expect( replacement.querySelector( 'iframe' ) ).toBe( frame );
+			expect( groups ).toHaveLength( 1 );
+			expect( groups[ 0 ].button.mount ).toHaveBeenCalledTimes( 1 );
+			expect( groups[ 0 ].button.unmount ).not.toHaveBeenCalled();
+			const event = { resolve: jest.fn() };
+			await groups[ 0 ].button.emit( 'click', event );
+			expect( event.resolve ).toHaveBeenCalledWith(
+				expect.objectContaining( {
+					lineItems: expect.arrayContaining( [
+						{ name: 'Updated product', amount: 2000 },
+					] ),
+				} )
+			);
+		} finally {
+			delete Element.prototype.moveBefore;
+		}
+	} );
+
+	it( 'replaces the public wrapper through the documented remount fallback', async () => {
+		loadEntrypoint();
+		await ready( groups[ 0 ] );
+		const original = document.getElementById(
+			'wc-stripe-express-checkout-element-googlePay'
+		);
+		trigger( 'updated_checkout' );
+		await settle();
+		expect(
+			document.getElementById(
+				'wc-stripe-express-checkout-element-googlePay'
+			)
+		).not.toBe( original );
+		expect( groups ).toHaveLength( 1 );
+		expect( groups[ 0 ].button.mount ).toHaveBeenCalledTimes( 3 );
+	} );
+
+	it( 'waits for a checkout root inserted after document readiness', async () => {
+		mockDelayReady = true;
+		document.body.innerHTML = '';
+		loadEntrypoint();
+		mockReadyCallbacks.forEach( ( callback ) => callback() );
+		expect( groups ).toHaveLength( 0 );
+		document.body.innerHTML =
+			'<div id="wc-stripe-express-checkout-element"></div>';
+		await settle();
+		expect( groups ).toHaveLength( 1 );
+	} );
+
+	it( 'rejects clicks from disposed SDK elements after a structural change', async () => {
+		loadEntrypoint();
+		const old = groups[ 0 ];
+		mockGetCartDetails.mockResolvedValue(
+			cartResponse( { currency: 'EUR' } )
+		);
+		trigger( 'updated_checkout' );
+		await settle();
+		const event = { resolve: jest.fn() };
+		await old.button.emit( 'click', event );
+		expect( event.resolve ).not.toHaveBeenCalled();
+	} );
+
+	it( 'blocks a wallet until Stripe has applied an asynchronous amount update', async () => {
+		loadEntrypoint();
+		const update = deferred();
+		groups[ 0 ].update.mockReturnValueOnce( update.promise );
+		trigger( 'updated_checkout' );
+		await settle();
+		const event = { resolve: jest.fn() };
+		await groups[ 0 ].button.emit( 'click', event );
+		expect( event.resolve ).not.toHaveBeenCalled();
+		update.resolve();
+		await settle();
+		await groups[ 0 ].button.emit( 'click', event );
+		expect( event.resolve ).toHaveBeenCalledTimes( 1 );
+	} );
+
+	it( 'fetches current totals if checkout changed before late markup arrived', async () => {
+		mockDelayReady = true;
+		document.body.innerHTML = '';
+		loadEntrypoint();
+		mockReadyCallbacks.forEach( ( callback ) => callback() );
+		trigger( 'updated_checkout' );
+		document.body.innerHTML =
+			'<div id="wc-stripe-express-checkout-element"></div>';
+		await settle();
+		expect( groups[ 0 ].options.amount ).toBe( 2500 );
+	} );
+
+	it( 'does not conventionally reinsert an already mounted wallet while restoring order', async () => {
+		Element.prototype.moveBefore = jest.fn( function ( node, before ) {
+			this.insertBefore( node, before );
+		} );
+		let conventionalMoves = 0;
+		const insertBefore = jq.fn.insertBefore;
+		const spy = jest
+			.spyOn( jq.fn, 'insertBefore' )
+			.mockImplementation( function ( ...args ) {
+				if ( this[ 0 ]?.querySelector( 'iframe' ) ) {
+					conventionalMoves++;
+				}
+				return insertBefore.apply( this, args );
+			} );
+		try {
+			params.stripe.is_apple_pay_enabled = true;
+			loadEntrypoint();
+			await ready( groups[ 0 ] );
+			await ready( groups[ 1 ] );
+			trigger( 'updated_checkout' );
+			await settle();
+			expect( groups ).toHaveLength( 2 );
+			expect(
+				groups.every(
+					( group ) => group.button.mount.mock.calls.length === 1
+				)
+			).toBe( true );
+			expect( conventionalMoves ).toBe( 0 );
+		} finally {
+			spy.mockRestore();
+			delete Element.prototype.moveBefore;
+		}
+	} );
+
+	it( 'keeps a later SDK amount update blocked when an older update completes', async () => {
+		loadEntrypoint();
+		const first = deferred();
+		const second = deferred();
+		groups[ 0 ].update
+			.mockReturnValueOnce( first.promise )
+			.mockReturnValueOnce( second.promise );
+		trigger( 'updated_checkout' );
+		await settle();
+		trigger( 'updated_checkout' );
+		await jest.advanceTimersByTimeAsync( 300 );
+		await settle();
+		expect( groups[ 0 ].update ).toHaveBeenCalledTimes( 2 );
+		first.resolve();
+		await settle();
+		const event = { resolve: jest.fn() };
+		await groups[ 0 ].button.emit( 'click', event );
+		expect( event.resolve ).not.toHaveBeenCalled();
+		second.resolve();
+		await settle();
+		await groups[ 0 ].button.emit( 'click', event );
+		expect( event.resolve ).toHaveBeenCalledTimes( 1 );
+	} );
+
+	it( 'fails closed when the SDK rejects the refreshed amount', async () => {
+		loadEntrypoint();
+		groups[ 0 ].update.mockRejectedValueOnce(
+			new Error( 'Update rejected' )
+		);
+		trigger( 'updated_checkout' );
+		await settle();
+		const event = { resolve: jest.fn() };
+		await groups[ 0 ].button.emit( 'click', event );
+		expect( event.resolve ).not.toHaveBeenCalled();
+		expect(
+			document.querySelector(
+				'#wc-stripe-express-checkout-refresh-error button'
+			).textContent
+		).toBe( 'Retry' );
+	} );
+
 	it( 'prepares Classic wallets before document ready without initializing twice', () => {
 		mockDelayReady = true;
 		loadEntrypoint();
@@ -1077,7 +1257,7 @@ describe( 'Classic checkout early initialization', () => {
 		expect( preparation.isConnected ).toBe( false );
 		expect( google.button.mount ).toHaveBeenCalledTimes( 2 );
 		expect( google.create ).toHaveBeenCalledTimes( 1 );
-		expect( google.button.unmount ).not.toHaveBeenCalled();
+		expect( google.button.unmount ).toHaveBeenCalledTimes( 1 );
 		expect(
 			[
 				...document.querySelectorAll(
@@ -1115,7 +1295,7 @@ describe( 'Classic checkout early initialization', () => {
 			await settle();
 			expect( groups ).toHaveLength( 1 );
 			expect( group.button.mount ).toHaveBeenCalledTimes( 3 );
-			expect( group.button.unmount ).toHaveBeenCalledTimes( 1 );
+			expect( group.button.unmount ).toHaveBeenCalledTimes( 2 );
 			expect(
 				document.querySelector(
 					'#wc-stripe-express-checkout-element-googlePay'
