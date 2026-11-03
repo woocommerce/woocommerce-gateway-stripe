@@ -80,6 +80,16 @@ describe( 'checkPaymentMethodIsAvailable', () => {
 		}
 	);
 
+	it( 'returns initialization errors through the eligibility promise', async () => {
+		await expect(
+			checkPaymentMethodIsAvailable(
+				'applePay',
+				api,
+				hydratedCart( { currency_code: 123 } )
+			)
+		).rejects.toThrow( TypeError );
+	} );
+
 	it.each( [
 		[
 			{ applePay: true, googlePay: false, link: true },

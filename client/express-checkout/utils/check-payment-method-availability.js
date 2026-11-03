@@ -136,7 +136,11 @@ const probePaymentMethods = ( api, elementsOptions, paymentMethods ) =>
  * @param {Object} cart          The WooCommerce cart object containing totals and currency info.
  * @return {Promise<boolean>} Promise that resolves to true if the payment method is available, false otherwise.
  */
-export const checkPaymentMethodIsAvailable = ( paymentMethod, api, cart ) => {
+export const checkPaymentMethodIsAvailable = async (
+	paymentMethod,
+	api,
+	cart
+) => {
 	// Before the cart hydrates, Blocks passes seeded totals with an empty
 	// currency_code, which makes Stripe's elements() throw. Resolve false
 	// without caching so the probe runs once the cart hydrates.
