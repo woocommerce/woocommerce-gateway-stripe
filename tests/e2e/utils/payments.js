@@ -515,9 +515,25 @@ export async function setupShortcodeCheckout(
  * If billingDetails are empty, they're skipped.
  * @param {Page} page Playwright page fixture.
  * @param {Object} billingDetails The billing details in the format provided on the test-data.
+ * @param {Object} options Optional checkout readiness configuration.
+ * @param {string} options.paymentFrameSelector Wait for this optimized payment frame before entering customer data.
+ * @param {number} options.timeout Payment frame readiness timeout.
  */
-export async function setupBlocksCheckout( page, billingDetails = null ) {
+export async function setupBlocksCheckout(
+	page,
+	billingDetails = null,
+	options = {}
+) {
 	await page.goto( '/checkout/' );
+	// Session initialization updates the cart; payment-flow tests start entering
+	// customer data only after that initial synchronization has completed.
+	if ( options.paymentFrameSelector ) {
+		await getOCPaymentFrame(
+			page,
+			options.paymentFrameSelector,
+			options.timeout
+		);
+	}
 
 	const fieldNameLabelMap = {
 		first_name: 'First name',
@@ -826,7 +842,11 @@ export const setupOptimizedCheckout = async (
 		if ( checkoutType === 'blocks' ) {
 			await setupBlocksCheckout(
 				page,
-				config.get( 'addresses.customer.billing' )
+				config.get( 'addresses.customer.billing' ),
+				{
+					paymentFrameSelector: selectors.blocks.iframe,
+					timeout: options.timeout,
+				}
 			);
 		} else {
 			await setupShortcodeCheckout(
