@@ -1536,16 +1536,6 @@ const initializeExpressCheckout = ( $ ) => {
 		},
 	};
 
-	if (
-		getExpressCheckoutData( 'is_product_page' ) ||
-		isClassicCheckout ||
-		getExpressCheckoutData( 'is_pay_for_order' ) ||
-		getExpressCheckoutData( 'is_cart_page' ) ||
-		getExpressCheckoutData( 'is_change_payment_method' )
-	) {
-		wcStripeECE.init();
-	}
-
 	// Warm the on-demand nonce bundle at the first sign of intent so wallet
 	// event handlers (tight resolve deadlines) don't pay the round trip.
 	const eceContainer = document.getElementById(
@@ -1627,6 +1617,17 @@ const initializeExpressCheckout = ( $ ) => {
 		++cartRevision;
 		refreshExpressCheckout();
 	} );
+
+	// Keep recovery listeners active if eager SDK initialization throws.
+	if (
+		getExpressCheckoutData( 'is_product_page' ) ||
+		isClassicCheckout ||
+		getExpressCheckoutData( 'is_pay_for_order' ) ||
+		getExpressCheckoutData( 'is_cart_page' ) ||
+		getExpressCheckoutData( 'is_change_payment_method' )
+	) {
+		wcStripeECE.init();
+	}
 };
 
 // Footer markup is already available on Classic checkout. Preparing wallets now
