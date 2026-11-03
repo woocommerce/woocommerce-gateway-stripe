@@ -46,6 +46,10 @@ cli sh -c "mkdir -p /var/www/html/wp-content/mu-plugins && cp /var/www/html/wp-c
 # change-payment-method specs; inert unless a spec opts in with its cookie.
 cli sh -c "cp /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/env/mu-plugins/wc-stripe-e2e-mock-gateway.php /var/www/html/wp-content/mu-plugins/"
 
+# Saved-card consent tests opt in per browser instead of toggling Link on
+# the Stripe account shared by parallel tests and CI jobs.
+cli sh -c "cp /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/env/mu-plugins/wc-stripe-e2e-card-only.php /var/www/html/wp-content/mu-plugins/"
+
 # The docker site can't receive real webhooks (no tunnel), so seed what the
 # Adaptive Pricing availability checks read: webhook data, the cached status
 # transient is_webhook_enabled() trusts without calling Stripe, and PMC.
