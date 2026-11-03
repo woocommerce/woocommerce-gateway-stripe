@@ -21,8 +21,8 @@ const {
 } = process.env;
 
 const config = {
-	globalSetup: DOCKER ? './global-setup-docker' : './global-setup',
-	globalTeardown: './global-teardown',
+	globalSetup: DOCKER ? './global-setup-docker.js' : './global-setup.js',
+	globalTeardown: './global-teardown.js',
 
 	testDir: '../tests',
 
@@ -108,6 +108,7 @@ const config = {
 				'**/becs.spec.js',
 				'**/isk.spec.js',
 				'**/free-trial-link.spec.js',
+				'**/custom-fields-link.spec.js',
 			],
 			dependencies: [ 'default-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
@@ -123,7 +124,10 @@ const config = {
 			// slow Link popup can't push the shared `default` job over its
 			// timeout and cancel the other specs.
 			name: 'express-checkout-link',
-			testMatch: '**/free-trial-link.spec.js',
+			testMatch: [
+				'**/free-trial-link.spec.js',
+				'**/custom-fields-link.spec.js',
+			],
 			dependencies: [ 'default-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},

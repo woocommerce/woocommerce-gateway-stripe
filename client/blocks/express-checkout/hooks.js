@@ -9,7 +9,9 @@ import {
 	onConfirmHandler,
 } from 'wcstripe/express-checkout/event-handler';
 import {
+	appendCheckoutLink,
 	displayExpressCheckoutNotice,
+	getDefaultShippingOptions,
 	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
 	normalizeLineItems,
@@ -55,9 +57,12 @@ export const useExpressCheckout = ( {
 	}, [] );
 
 	const abortPayment = useCallback(
-		( onConfirmEvent, message ) => {
+		( onConfirmEvent, message, options = {} ) => {
 			// If we have a multiline message using newlines, replace them with <br>.
-			const formattedMessage = message.replace( /\n/g, '<br>' );
+			let formattedMessage = message.replace( /\n/g, '<br>' );
+			if ( options?.linkToCheckout ) {
+				formattedMessage = appendCheckoutLink( formattedMessage );
+			}
 			setExpressPaymentError( formattedMessage );
 
 			onAbortPaymentHandler( onConfirmEvent, message );
@@ -92,11 +97,7 @@ export const useExpressCheckout = ( {
 
 				// Return a default shipping option, as a non-empty shippingRates array
 				// is required when shippingAddressRequired is true.
-				const defaultShippingOption =
-					getExpressCheckoutData(
-						'checkout'
-					)?.default_shipping_option;
-				return defaultShippingOption ? [ defaultShippingOption ] : [];
+				return getDefaultShippingOptions();
 			};
 
 			const lineItems = normalizeLineItems( billing.cartTotalItems ).map(

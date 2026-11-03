@@ -1677,6 +1677,102 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * An Adaptive Pricing session with no linked order yet must be re-queued a bounded number
+	 * of times instead of being dropped on the first deferred miss.
+	 *
+	 * @param int      $retry_count      Retry count carried by the deferred job being executed.
+	 * @param int|null $expected_requeue Retry count of the re-queued job, or null when the handler gives up.
+	 * @dataProvider provide_adaptive_pricing_order_lookup_retry_counts
+	 */
+	public function test_deferred_adaptive_pricing_session_without_order_retries_are_bounded( int $retry_count, ?int $expected_requeue ): void {
+		$checkout_session_id = 'cs_test_ap_retry_' . $retry_count;
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_ap_retry',
+					'metadata'       => (object) [
+						'checkout_type' => WC_Stripe_Checkout_Sessions_Ajax_Handler::ADAPTIVE_PRICING_CHECKOUT_TYPE,
+					],
+				],
+			],
+		];
+
+		$start          = time();
+		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+
+		if ( null === $expected_requeue ) {
+			$mock_scheduler->expects( $this->never() )->method( 'schedule_job' );
+		} else {
+			$mock_scheduler->expects( $this->once() )
+				->method( 'schedule_job' )
+				->with(
+					$this->callback(
+						function ( $timestamp ) use ( $start ) {
+							$this->assertIsInt( $timestamp );
+							$this->assertGreaterThanOrEqual( $start + 2 * MINUTE_IN_SECONDS, $timestamp );
+
+							return true;
+						}
+					),
+					'wc_stripe_deferred_webhook',
+					$this->callback(
+						function ( $args ) use ( $checkout_session_id, $expected_requeue ) {
+							return 'checkout.session.completed' === ( $args['type'] ?? '' )
+								&& ( $args['data']['session_id'] ?? '' ) === $checkout_session_id
+								&& ( $args['data']['retry_count'] ?? null ) === $expected_requeue;
+						}
+					)
+				);
+		}
+
+		$handler = new WC_Stripe_Webhook_Handler();
+		$prop    = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $handler, $mock_scheduler );
+
+		$fired    = 0;
+		$listener = function () use ( &$fired ) {
+			++$fired;
+		};
+		add_action( 'wc_stripe_webhook_received', $listener );
+
+		try {
+			$handler->process_deferred_webhook(
+				'checkout.session.completed',
+				[
+					'session_id'  => $checkout_session_id,
+					'retry_count' => $retry_count,
+				],
+				$notification
+			);
+		} finally {
+			remove_action( 'wc_stripe_webhook_received', $listener );
+		}
+
+		if ( null !== $expected_requeue ) {
+			$this->assertSame( 0, $fired, 'wc_stripe_webhook_received must not fire while the event is re-queued awaiting its order.' );
+		}
+	}
+
+	/**
+	 * @return array<string, array{0: int, 1: int|null}>
+	 */
+	public function provide_adaptive_pricing_order_lookup_retry_counts(): array {
+		return [
+			'first deferred run re-queues'   => [ 0, 1 ],
+			'second deferred run re-queues'  => [ 1, 2 ],
+			'last allowed retry re-queues'   => [ 2, 3 ],
+			'max retries reached — gives up' => [ 3, null ],
+		];
+	}
+
+	/**
 	 * Deferred checkout session failure events should run handle_checkout_session_failure when the job executes.
 	 *
 	 * @param string $event_type Stripe event type.
@@ -2767,6 +2863,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	public function test_process_checkout_session_failure_sets_expected_status_for_event_type( string $event_type, string $expected_note, string $expected_status ): void {
 		$checkout_session_id = 'cs_test_failed';
 		$order               = WC_Helper_Order::create_order();
+		$order->set_payment_method( 'stripe' );
 		$order->set_status( OrderStatus::PENDING );
 		$order->save();
 		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
@@ -2815,6 +2912,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	public function test_process_checkout_session_failure_returns_for_final_stripe_status(): void {
 		$checkout_session_id = 'cs_test_final_status';
 		$order               = WC_Helper_Order::create_order();
+		$order->set_payment_method( 'stripe' );
 		$order->set_status( OrderStatus::PROCESSING );
 		$order->save();
 		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
@@ -2862,6 +2960,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	public function test_process_checkout_session_failure_returns_early_when_order_already_failed( string $event_type, string $unused_note, string $unused_status ): void {
 		$checkout_session_id = 'cs_test_duplicate';
 		$order               = WC_Helper_Order::create_order();
+		$order->set_payment_method( 'stripe' );
 		$order->set_status( OrderStatus::FAILED );
 		$order->save();
 		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
@@ -2923,10 +3022,12 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 *
 	 * @param string $checkout_session_id Checkout session ID to link.
 	 * @param string $status              Status to start the order in.
+	 * @param string $payment_method      Payment method to assign to the order.
 	 * @return WC_Order
 	 */
-	private function create_checkout_session_order( string $checkout_session_id, string $status = OrderStatus::PENDING ): WC_Order {
+	private function create_checkout_session_order( string $checkout_session_id, string $status = OrderStatus::PENDING, string $payment_method = 'stripe' ): WC_Order {
 		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( $payment_method );
 		$order->set_status( $status );
 		$order->save();
 		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
@@ -2939,6 +3040,54 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		WC_Stripe_Order_Helper::set_instance( $order_helper );
 
 		return $order;
+	}
+
+	/**
+	 * Test that a stale Checkout Session cannot change an order submitted through another gateway.
+	 *
+	 * @dataProvider provide_checkout_session_failure_event_types
+	 *
+	 * @param string $event_type    Event type.
+	 * @param string $unused_note   Unused; provider shares rows with other tests.
+	 * @param string $unused_status Unused; provider shares rows with other tests.
+	 * @return void
+	 */
+	public function test_checkout_session_failure_returns_for_non_stripe_gateway( string $event_type, string $unused_note, string $unused_status ): void {
+		$session_id = 'cs_test_other_gateway_' . md5( $event_type );
+		$order      = $this->create_checkout_session_order( $session_id, OrderStatus::ON_HOLD, 'cheque' );
+		$notes      = wc_get_order_notes(
+			[
+				'order_id' => $order->get_id(),
+				'limit'    => 100,
+			]
+		);
+
+		$webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'send_failed_order_email' ] )
+			->getMock();
+		$webhook_handler->expects( $this->never() )->method( 'send_failed_order_email' );
+
+		$hook_calls = 0;
+		$hook       = function () use ( &$hook_calls ) {
+			++$hook_calls;
+		};
+		add_action( 'wc_gateway_stripe_process_webhook_payment_error', $hook, 10, 2 );
+
+		$webhook_handler->process_checkout_session_failure( $this->build_checkout_session_notification( $event_type, $session_id ) );
+
+		remove_action( 'wc_gateway_stripe_process_webhook_payment_error', $hook, 10 );
+
+		$this->assertSame( OrderStatus::ON_HOLD, wc_get_order( $order->get_id() )->get_status() );
+		$this->assertSame( 0, $hook_calls );
+		$this->assertCount(
+			count( $notes ),
+			wc_get_order_notes(
+				[
+					'order_id' => $order->get_id(),
+					'limit'    => 100,
+				]
+			)
+		);
 	}
 
 	/**
@@ -3126,6 +3275,9 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 * @return array
 	 */
 	public function provide_test_process_webhook_refund_updated() {
+		// WooCommerce renders the price markup differently across supported versions (the bidi
+		// class, `translate="no"`, and `dir="auto"` on the currency symbol appear in newer WC), so
+		// those attributes are matched optionally to keep the assertion stable across WC L..L-2.
 		return [
 			'invalid refund status' => [
 				'notification status' => 'invalid_status',
@@ -3135,12 +3287,12 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'failed refund'         => [
 				'notification status' => 'failed',
 				'email triggered'     => true,
-				'expected note'       => '/Refund failed for <span class="woocommerce-Price-amount amount"><bdi( class="woocommerce-Price-bidi")?><span class="woocommerce-Price-currencySymbol"( translate="no")?>&#36;<\/span>10.00<\/bdi><\/span> - Refund ID: refund_123 - Reason: Unknown reason Order status changed from Pending payment to Processing\./',
+				'expected note'       => '/Refund failed for <span class="woocommerce-Price-amount amount"><bdi( class="woocommerce-Price-bidi")?><span class="woocommerce-Price-currencySymbol"( translate="no")?( dir="auto")?>&#36;<\/span>10.00<\/bdi><\/span> - Refund ID: refund_123 - Reason: Unknown reason Order status changed from Pending payment to Processing\./',
 			],
 			'canceled refund'       => [
 				'notification status' => 'canceled',
 				'email triggered'     => true,
-				'expected note'       => '/Refund canceled for <span class="woocommerce-Price-amount amount"><bdi( class="woocommerce-Price-bidi")?><span class="woocommerce-Price-currencySymbol"( translate="no")?>&#36;<\/span>10.00<\/bdi><\/span> - Refund ID: refund_123 - Reason: Unknown reason Order status changed from Pending payment to Processing\./',
+				'expected note'       => '/Refund canceled for <span class="woocommerce-Price-amount amount"><bdi( class="woocommerce-Price-bidi")?><span class="woocommerce-Price-currencySymbol"( translate="no")?( dir="auto")?>&#36;<\/span>10.00<\/bdi><\/span> - Refund ID: refund_123 - Reason: Unknown reason Order status changed from Pending payment to Processing\./',
 			],
 		];
 	}
@@ -4951,7 +5103,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			if ( 'array' === $value_type ) {
 				return array_merge( [ $mode ], $test_case );
 			}
-			throw new InvalidArgumentException( 'Invalid value type: ' . $value_type );
+			throw new InvalidArgumentException( 'Invalid value type: ' . $value_type ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		};
 
 		foreach ( $test_cases as $description => $test_case ) {

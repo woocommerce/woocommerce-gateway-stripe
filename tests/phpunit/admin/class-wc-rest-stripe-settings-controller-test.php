@@ -85,6 +85,12 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		$settings['pmc_enabled']          = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
+		// Reload the shared gateway instance's in-memory settings so they carry
+		// the keys injected above. Otherwise a test that saves a gateway option
+		// (e.g. disabling the gateway) flushes the stale in-memory settings back
+		// to the DB and wipes the keys, disconnecting the account mid-request.
+		$this->get_gateway()->init_settings();
+
 		$this->controller = new WC_REST_Stripe_Settings_Controller( $this->get_gateway() );
 
 		add_action( 'rest_api_init', [ $this, 'deregister_wc_blocks_rest_api' ], 5 );
@@ -132,6 +138,68 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
 		$request->set_param( 'enabled_payment_method_ids', [ 'amazon_pay', 'card' ] );
 		$request->set_param( 'is_upe_enabled', true );
+
+		$response = $this->controller->update_settings( $request );
+		$this->assertEquals( 200, $response->get_status() );
+	}
+
+	/**
+	 * Test that a 502 response is returned when the PMC update fails.
+	 *
+	 * When the Stripe API doesn't accept a payment method configuration
+	 * update, the settings endpoint must return an HTTP 502 error. The
+	 * other settings must still be applied.
+	 */
+	public function test_update_settings_returns_502_when_pmc_update_fails() {
+		// Set up initial state with only card enabled.
+		$this->mock_payment_method_configurations( [ 'card' ], [ 'amazon_pay' ] );
+
+		// Set pmc_enabled to yes to prevent migration.
+		$stripe_settings                = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['enabled']     = 'yes';
+		$stripe_settings['pmc_enabled'] = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		// Mock the API to return a Stripe error on PMC update.
+		$this->stripe_api->expects( $this->once() )
+			->method( 'update_payment_method_configurations' )
+			->willReturn(
+				(object) [
+					'error' => (object) [
+						'type'    => 'invalid_request_error',
+						'message' => 'Invalid configuration.',
+					],
+				]
+			);
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'enabled_payment_method_ids', [ 'amazon_pay', 'card' ] );
+		$request->set_param( 'is_upe_enabled', true );
+		$request->set_param( 'is_stripe_enabled', false );
+
+		$response = $this->controller->update_settings( $request );
+		$this->assertEquals( 502, $response->get_status() );
+		$this->assertEquals( 'Unable to update payment method configuration.', $response->get_data()['message'] );
+
+		// The failure must not block the other settings: disabling the gateway
+		// still went through.
+		$this->assertSame( 'no', WC_Stripe_Helper::get_settings( null, 'enabled' ) );
+	}
+
+	/**
+	 * Test that the PMC update is skipped when enabled_payment_method_ids is absent.
+	 *
+	 * When the request does not include enabled_payment_method_ids, the settings
+	 * endpoint must not call the Stripe PMC API.
+	 */
+	public function test_update_settings_skips_pmc_update_when_payment_method_ids_absent() {
+		// No enabled_payment_method_ids param — PMC update must be skipped entirely.
+		$this->stripe_api->expects( $this->never() )
+			->method( 'update_payment_method_configurations' );
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_upe_enabled', true );
+		// Intentionally omit enabled_payment_method_ids.
 
 		$response = $this->controller->update_settings( $request );
 		$this->assertEquals( 200, $response->get_status() );
@@ -222,6 +290,120 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		return [
 			'test connected: switches to test mode' => [ true, 'yes' ],
 			'test disconnected: stays in live mode' => [ false, 'no' ],
+		];
+	}
+
+	/**
+	 * When a single request toggles the mode and changes payment methods, the PMC update must
+	 * target the initial mode, i.e. the update should run before the mode is switched.
+	 *
+	 * @param bool $start_in_test_mode Whether the store starts in test mode.
+	 *
+	 * @dataProvider provide_test_live_mode_switches
+	 */
+	public function test_update_settings_updates_pmc_before_switching_mode( bool $start_in_test_mode ): void {
+		$this->get_gateway()->update_option( 'testmode', $start_in_test_mode ? 'yes' : 'no' );
+		$initial_pmc_id = 'pmc_abcdef_' . ( $start_in_test_mode ? 'test' : 'live' );
+		$this->mock_payment_method_configurations( [ 'card' ], [ 'amazon_pay' ], $initial_pmc_id );
+
+		$is_test_mode_during_pmc_update = null;
+		$this->stripe_api->expects( $this->once() )
+			->method( 'update_payment_method_configurations' )
+			->with( $this->equalTo( $initial_pmc_id ) )
+			->willReturnCallback(
+				function () use ( &$is_test_mode_during_pmc_update ) {
+					$is_test_mode_during_pmc_update = WC_Stripe_Mode::is_test();
+					return (object) [];
+				}
+			);
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'enabled_payment_method_ids', [ 'amazon_pay', 'card' ] );
+		$request->set_param( 'is_upe_enabled', true );
+		$request->set_param( 'is_test_mode_enabled', ! $start_in_test_mode );
+
+		$response = $this->controller->update_settings( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertSame( $start_in_test_mode, $is_test_mode_during_pmc_update );
+		$this->assertSame( ! $start_in_test_mode, WC_Stripe_Mode::is_test() );
+	}
+
+	/**
+	 * Switching mode must drop the in-memory PMC so later reads in the same request resolve the
+	 * new mode's configuration instead of the one loaded for the previous mode.
+	 *
+	 * @param bool $start_in_test_mode Whether the store starts in test mode.
+	 *
+	 * @dataProvider provide_test_live_mode_switches
+	 */
+	public function test_update_settings_clears_in_memory_pmc_when_switching_mode( bool $start_in_test_mode ): void {
+		$this->get_gateway()->update_option( 'testmode', $start_in_test_mode ? 'yes' : 'no' );
+
+		WC_Stripe_Database_Cache::set_with_mode( WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, (object) [ 'id' => 'pmc_test' ], HOUR_IN_SECONDS, 'test' );
+		WC_Stripe_Database_Cache::set_with_mode( WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, (object) [ 'id' => 'pmc_live' ], HOUR_IN_SECONDS, 'live' );
+
+		// Load the starting mode's PMC into memory.
+		$this->assertSame( $start_in_test_mode ? 'pmc_test' : 'pmc_live', WC_Stripe_Payment_Method_Configurations::get_configuration_id() );
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_test_mode_enabled', ! $start_in_test_mode );
+
+		$response = $this->controller->update_settings( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertSame( $start_in_test_mode ? 'pmc_live' : 'pmc_test', WC_Stripe_Payment_Method_Configurations::get_configuration_id() );
+	}
+
+	/**
+	 * Data provider for the mode switch tests.
+	 *
+	 * @see test_update_settings_updates_pmc_before_switching_mode()
+	 * @see test_update_settings_clears_in_memory_pmc_when_switching_mode()
+	 *
+	 * @return array
+	 */
+	public function provide_test_live_mode_switches(): array {
+		return [
+			'test to live' => [ true ],
+			'live to test' => [ false ],
+		];
+	}
+
+	/**
+	 * Sending the current mode back must not touch the in-memory PMC.
+	 *
+	 * @param bool $is_test_mode Whether the store is, and stays, in test mode.
+	 *
+	 * @dataProvider provide_unchanged_modes
+	 */
+	public function test_update_settings_keeps_in_memory_pmc_when_mode_unchanged( bool $is_test_mode ): void {
+		$this->get_gateway()->update_option( 'testmode', $is_test_mode ? 'yes' : 'no' );
+
+		$primary_configuration = new ReflectionProperty( WC_Stripe_Payment_Method_Configurations::class, 'primary_configuration' );
+		$primary_configuration->setAccessible( true );
+		$cached_pmc = (object) [ 'id' => 'pmc_in_memory' ];
+		$primary_configuration->setValue( null, $cached_pmc );
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_test_mode_enabled', $is_test_mode );
+
+		$response = $this->controller->update_settings( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertSame( $is_test_mode, WC_Stripe_Mode::is_test() );
+		$this->assertSame( $cached_pmc, $primary_configuration->getValue() );
+	}
+
+	/**
+	 * Data provider for {@see test_update_settings_keeps_in_memory_pmc_when_mode_unchanged()}.
+	 *
+	 * @return array
+	 */
+	public function provide_unchanged_modes(): array {
+		return [
+			'stays in test mode' => [ true ],
+			'stays in live mode' => [ false ],
 		];
 	}
 
@@ -760,55 +942,154 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	/**
+	 * The deprecated per-method size params still update the (now shared) size, whichever
+	 * method's param is sent.
+	 *
+	 * @dataProvider provide_legacy_button_size_params
+	 *
+	 * @param string $legacy_param The deprecated per-method size param name.
+	 * @return void
+	 */
+	public function test_legacy_button_size_params_update_shared_size( string $legacy_param ) {
+		// Start from a known size so the assertions prove a real change, not a pre-set value.
+		$this->get_gateway()->update_option( 'express_checkout_button_size', 'small' );
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_upe_enabled', true );
+		$request->set_param( $legacy_param, 'large' );
+
+		$response = rest_do_request( $request );
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertSame( 'large', $this->get_gateway()->get_option( 'express_checkout_button_size' ) );
+		// The per-method options stay in step so a rollback shows the same size.
+		$this->assertSame( 'large', $this->get_gateway()->get_option( 'link_button_size' ) );
+		$this->assertSame( 'large', $this->get_gateway()->get_option( 'amazon_pay_button_size' ) );
+
+		// GET keeps exposing the deprecated fields, aliased to the shared size.
+		$data = $this->rest_get_settings()->get_data();
+		$this->assertSame( 'large', $data['link_button_size'] );
+		$this->assertSame( 'large', $data['amazon_pay_button_size'] );
+	}
+
+	/**
+	 * Data provider for test_legacy_button_size_params_update_shared_size.
+	 *
+	 * @return array
+	 */
+	public function provide_legacy_button_size_params(): array {
+		return [
+			'link'       => [ 'link_button_size' ],
+			'amazon_pay' => [ 'amazon_pay_button_size' ],
+		];
+	}
+
+	/**
+	 * When both the shared and a deprecated size param are present, the shared one wins.
+	 *
+	 * @return void
+	 */
+	public function test_shared_button_size_param_wins_over_legacy_alias() {
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_upe_enabled', true );
+		$request->set_param( 'express_checkout_button_size', 'small' );
+		$request->set_param( 'amazon_pay_button_size', 'large' );
+		$request->set_param( 'link_button_size', 'large' );
+
+		$response = rest_do_request( $request );
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertSame( 'small', $this->get_gateway()->get_option( 'express_checkout_button_size' ) );
+		$this->assertSame( 'small', $this->get_gateway()->get_option( 'amazon_pay_button_size' ) );
+		$this->assertSame( 'small', $this->get_gateway()->get_option( 'link_button_size' ) );
+	}
+
+	/**
+	 * Each method's locations are stored in its own option, so a rollback to a version
+	 * that reads those options directly keeps the merchant's choices, and GET returns
+	 * the same flat lists.
+	 *
+	 * @return void
+	 */
+	public function test_express_checkout_button_locations_are_stored_per_method() {
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_upe_enabled', true );
+		$request->set_param( 'express_checkout_button_locations', [ 'product', 'cart' ] );
+		$request->set_param( 'link_button_locations', [ 'product', 'checkout' ] );
+		$request->set_param( 'amazon_pay_button_locations', [ 'product' ] );
+
+		$response = rest_do_request( $request );
+		$this->assertEquals( 200, $response->get_status() );
+
+		$gateway = $this->get_gateway();
+		$this->assertSame( [ 'product', 'cart' ], $gateway->get_option( 'express_checkout_button_locations' ) );
+		$this->assertSame( [ 'product', 'checkout' ], $gateway->get_option( 'link_button_locations' ) );
+		$this->assertSame( [ 'product' ], $gateway->get_option( 'amazon_pay_button_locations' ) );
+
+		$data = $this->rest_get_settings()->get_data();
+		$this->assertSame( [ 'product', 'cart' ], $data['express_checkout_button_locations'] );
+		$this->assertSame( [ 'product', 'checkout' ], $data['link_button_locations'] );
+		$this->assertSame( [ 'product' ], $data['amazon_pay_button_locations'] );
+	}
+
+	/**
+	 * Saving one method's locations leaves the other methods' options alone, and an
+	 * emptied list disables that method without touching the others.
+	 *
+	 * @return void
+	 */
+	public function test_express_checkout_button_locations_partial_update_keeps_other_methods() {
+		$settings                          = WC_Stripe_Helper::get_stripe_settings();
+		$settings['link_button_locations'] = [ 'checkout' ];
+		unset( $settings['amazon_pay_button_locations'] );
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		// The gateway caches settings on load; reload so the removed key is really absent.
+		$gateway = $this->get_gateway();
+		$gateway->init_settings();
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_upe_enabled', true );
+		$request->set_param( 'express_checkout_button_locations', [] );
+
+		$response = rest_do_request( $request );
+		$this->assertEquals( 200, $response->get_status() );
+
+		$this->assertSame( [ 'checkout' ], $gateway->get_option( 'link_button_locations' ) );
+
+		$data = $this->rest_get_settings()->get_data();
+		$this->assertSame( [], $data['express_checkout_button_locations'] );
+		$this->assertSame( [ 'checkout' ], $data['link_button_locations'] );
+		// Amazon Pay was never saved, so it keeps the default placement.
+		$this->assertSame( [ 'product', 'cart' ], $data['amazon_pay_button_locations'] );
+	}
+
+	/**
 	 * Data provider for `test_enum_fields`.
 	 *
 	 * @return array
 	 */
 	public function enum_field_provider() {
 		return [
-			'express_checkout_button_theme'     => [
+			'express_checkout_button_theme' => [
 				'express_checkout_button_theme',
 				'express_checkout_button_theme',
 				'dark',
 				'light',
 				'foo',
 			],
-			'express_checkout_button_size'      => [
+			'express_checkout_button_size'  => [
 				'express_checkout_button_size',
 				'express_checkout_button_size',
 				'default',
 				'large',
 				'foo',
 			],
-			'express_checkout_button_type'      => [
+			'express_checkout_button_type'  => [
 				'express_checkout_button_type',
 				'express_checkout_button_type',
 				'buy',
 				'book',
 				'foo',
 			],
-			'express_checkout_button_locations' => [
-				'express_checkout_button_locations',
-				'express_checkout_button_locations',
-				[ 'cart' ],
-				[ 'cart', 'checkout', 'product' ],
-				[ 'foo' ],
-			],
-			'link_button_size'                  => [
-				'link_button_size',
-				'link_button_size',
-				'default',
-				'large',
-				'foo',
-			],
-			'link_button_locations'             => [
-				'link_button_locations',
-				'link_button_locations',
-				[ 'cart' ],
-				[ 'cart', 'checkout', 'product' ],
-				[ 'foo' ],
-			],
-			'optimized_checkout_layout'         => [
+			'optimized_checkout_layout'     => [
 				'oc_layout',
 				'optimized_checkout_layout',
 				'accordion',

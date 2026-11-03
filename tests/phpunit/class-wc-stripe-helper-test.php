@@ -22,6 +22,48 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * The available store currencies always contain the normalized base currency
+	 * and only valid strings added through the public filter.
+	 *
+	 * @param mixed    $filtered_currencies Filter return value.
+	 * @param string[] $expected_currencies Expected normalized currencies.
+	 * @return void
+	 * @dataProvider provide_available_store_currencies
+	 */
+	public function test_get_available_store_currencies( $filtered_currencies, array $expected_currencies ): void {
+		$store_currency_filter       = static function () {
+			return 'USD';
+		};
+		$available_currencies_filter = static function ( $currencies ) use ( $filtered_currencies ) {
+			return null === $filtered_currencies ? $currencies : $filtered_currencies;
+		};
+
+		add_filter( 'woocommerce_currency', $store_currency_filter );
+		add_filter( 'wc_stripe_available_store_currencies', $available_currencies_filter );
+
+		try {
+			$this->assertSame( $expected_currencies, WC_Stripe_Helper::get_available_store_currencies() );
+		} finally {
+			remove_filter( 'woocommerce_currency', $store_currency_filter );
+			remove_filter( 'wc_stripe_available_store_currencies', $available_currencies_filter );
+		}
+	}
+
+	/**
+	 * Data provider for test_get_available_store_currencies().
+	 *
+	 * @return array<string, array{mixed, string[]}>
+	 */
+	public function provide_available_store_currencies(): array {
+		return [
+			'normalizes and deduplicates currencies'  => [ [ 'eur', ' usd ', '', null, 123 ], [ 'USD', 'EUR' ] ],
+			'keeps the base currency'                 => [ [ 'EUR' ], [ 'USD', 'EUR' ] ],
+			'falls back when the filter is invalid'   => [ false, [ 'USD' ] ],
+			'keeps the supplied value when unchanged' => [ null, [ 'USD' ] ],
+		];
+	}
+
+	/**
 	 * Test for `get_transaction_url_for_id`.
 	 *
 	 * @param string $id           The Stripe object ID.
@@ -2241,6 +2283,65 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * A remote disable of Optimized Checkout must also disable Adaptive Pricing.
+	 *
+	 * @return void
+	 */
+	public function test_is_adaptive_pricing_supported_respects_remote_oc_disable(): void {
+		$original_stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		$new_stripe_settings = array_merge(
+			is_array( $original_stripe_settings ) ? $original_stripe_settings : [],
+			[
+				'testmode'                   => 'no',
+				'adaptive_pricing'           => 'yes',
+				'optimized_checkout_element' => 'yes',
+				'capture'                    => 'yes',
+				'pmc_enabled'                => 'yes',
+				'webhook_data'               => [
+					'id'     => 'we_live',
+					'secret' => 'whsec_live',
+				],
+			]
+		);
+		WC_Stripe_Helper::update_main_stripe_settings( $new_stripe_settings );
+
+		// is_webhook_enabled() short-circuits on a cached status, so we don't hit the Stripe API here.
+		$webhook_status_cache_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_STATUS_CACHE_KEY', 'string' );
+		WC_Stripe_Database_Cache::set_with_mode( $webhook_status_cache_key, 'enabled', HOUR_IN_SECONDS, 'live' );
+
+		add_filter( 'woocommerce_is_checkout', '__return_true' );
+		update_option( '_wcstripe_remote_config_enabled', 'yes' );
+		WC_Stripe_Remote_Config::reset_in_memory_cache();
+		delete_option( '_wcstripe_remote_config_live' );
+
+		WC()->cart->empty_cart();
+		$this->set_stripe_account_data( [ 'country' => 'US' ] );
+
+		try {
+			// Baseline: with no remote flag cached, all local conditions pass.
+			$this->assertTrue( WC_Stripe_Helper::is_adaptive_pricing_supported(), 'AP must be supported before the remote disable' );
+
+			WC_Stripe_Remote_Config::get_instance()->apply(
+				'live',
+				[
+					'flags'        => [ 'optimized_checkout' => false ],
+					'generated_at' => '2026-05-09T12:00:00Z',
+				]
+			);
+
+			$this->assertFalse( WC_Stripe_Helper::is_adaptive_pricing_supported(), 'AP must be disabled by the remote OC disable' );
+		} finally {
+			remove_filter( 'woocommerce_is_checkout', '__return_true' );
+			delete_option( '_wcstripe_remote_config_enabled' );
+			WC_Stripe_Remote_Config::reset_in_memory_cache();
+			delete_option( '_wcstripe_remote_config_live' );
+			WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'live' );
+			WC_Stripe_Helper::update_main_stripe_settings( $original_stripe_settings );
+		}
+	}
+
+	/**
 	 * Data provider for `test_is_adaptive_pricing_supported`.
 	 *
 	 * @return array
@@ -2365,12 +2466,14 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Tests for `build_line_items`.
 	 *
-	 * @param bool  $itemized       Whether itemized line items are enabled.
-	 * @param array $expected_items The expected line items.
+	 * @param bool       $itemized       Whether itemized line items are enabled.
+	 * @param array      $expected_items The expected line items.
+	 * @param ?float     $fee_amount     Optional cart fee amount to add (negative for a discount-as-fee, positive for a surcharge).
+	 * @param string     $fee_name       Name for the optional cart fee.
 	 * @return void
 	 * @dataProvider provide_test_build_line_items
 	 */
-	public function test_build_line_items( bool $itemized = false, array $expected_items = [] ): void {
+	public function test_build_line_items( bool $itemized = false, array $expected_items = [], ?float $fee_amount = null, string $fee_name = 'Cart fee' ): void {
 		update_option( 'woocommerce_calc_taxes', 'yes' );
 
 		$product = WC_Helper_Product::create_simple_product();
@@ -2387,6 +2490,12 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		WC()->cart->add_to_cart( $product->get_id(), 1 );
 		WC()->cart->add_discount( 'TESTDISCOUNT' );
+
+		if ( null !== $fee_amount ) {
+			// Mirrors how third-party discount extensions (e.g. Discount Rules "apply as fee")
+			// add a negative cart fee instead of a coupon.
+			WC()->cart->add_fee( $fee_name, $fee_amount );
+		}
 
 		$actual = WC_Stripe_Helper::build_line_items( $itemized );
 
@@ -2671,7 +2780,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_build_line_items(): array {
 		return [
-			'itemized'     => [
+			'itemized'                                                          => [
 				'itemized'       => true,
 				'expected items' => [
 					[
@@ -2694,7 +2803,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					],
 				],
 			],
-			'non-itemized' => [
+			'non-itemized'                                                      => [
 				'itemized'       => false,
 				'expected items' => array_merge(
 					[
@@ -2713,6 +2822,62 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 						],
 					],
 				),
+			],
+			// A negative cart fee (e.g. a discount extension applying its discount as a cart
+			// fee instead of a coupon) must be tagged the same way the coupon discount item
+			// is, so the express checkout client re-applies the sign. Without the `key`, the
+			// item stays positive and the summed display items exceed the cart total, which
+			// Stripe rejects. See https://github.com/woocommerce/woocommerce-gateway-stripe/issues/5926.
+			'non-itemized with a negative cart fee (discount applied as a fee)' => [
+				'itemized'       => false,
+				'expected items' => [
+					[
+						'label'  => 'Subtotal',
+						'amount' => 1000,
+					],
+					[
+						'label'  => 'Tax',
+						'amount' => 0,
+					],
+					[
+						'key'    => 'total_discount',
+						'label'  => 'Discount',
+						'amount' => 100,
+					],
+					[
+						'key'    => 'total_discount',
+						'label'  => 'Cart fee',
+						'amount' => 500,
+					],
+				],
+				'fee_amount'     => -5.0,
+				'fee_name'       => 'Cart fee',
+			],
+			// A positive cart fee (e.g. a surcharge) is not a discount and must not be
+			// negated or tagged; it is summed into the total like any other line item.
+			'non-itemized with a positive cart fee (surcharge)'                 => [
+				'itemized'       => false,
+				'expected items' => [
+					[
+						'label'  => 'Subtotal',
+						'amount' => 1000,
+					],
+					[
+						'label'  => 'Tax',
+						'amount' => 0,
+					],
+					[
+						'key'    => 'total_discount',
+						'label'  => 'Discount',
+						'amount' => 100,
+					],
+					[
+						'label'  => 'Cart fee',
+						'amount' => 500,
+					],
+				],
+				'fee_amount'     => 5.0,
+				'fee_name'       => 'Cart fee',
 			],
 		];
 	}
@@ -2907,5 +3072,45 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$registered = wp_scripts()->registered['stripe'];
 		$this->assertSame( 'https://js.stripe.com/dahlia/stripe.js', $registered->src );
 		$this->assertSame( 1, wp_scripts()->get_data( 'stripe', 'group' ), 'Stripe.js must load in the footer.' );
+	}
+
+	/**
+	 * The script gate honors the stored locations: an absent option means the default
+	 * placement and a non-array value means every location was unchecked.
+	 *
+	 * @param array|string|null $locations Stored locations value; null omits the key.
+	 * @param bool              $expected  Whether product-page scripts should load.
+	 * @return void
+	 * @dataProvider provide_should_load_scripts_location_shapes
+	 */
+	public function test_should_load_scripts_honors_stored_locations( $locations, bool $expected ) {
+		$settings = [ 'express_checkout' => 'yes' ];
+		if ( null !== $locations ) {
+			$settings['express_checkout_button_locations'] = $locations;
+		}
+		update_option( 'woocommerce_stripe_settings', $settings );
+
+		// The filter default would mask a gate miss; force it off.
+		add_filter( 'wc_stripe_load_scripts_on_product_page_when_prbs_disabled', '__return_false' );
+
+		try {
+			$this->assertSame( $expected, WC_Stripe_Helper::should_load_scripts_on_product_page() );
+		} finally {
+			remove_filter( 'wc_stripe_load_scripts_on_product_page_when_prbs_disabled', '__return_false' );
+		}
+	}
+
+	/**
+	 * Data provider for `test_should_load_scripts_honors_stored_locations`.
+	 *
+	 * @return array
+	 */
+	public function provide_should_load_scripts_location_shapes(): array {
+		return [
+			'list with product'              => [ [ 'product', 'cart' ], true ],
+			'list without product'           => [ [ 'cart' ], false ],
+			'non-array stored value'         => [ 'invalid_value', false ],
+			'absent option uses the default' => [ null, true ],
+		];
 	}
 }

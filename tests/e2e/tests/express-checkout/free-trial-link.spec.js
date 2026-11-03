@@ -146,13 +146,9 @@ test.describe( 'express checkout free trial purchases with Link', () => {
 			await waitForOrderReceivedPage( page );
 		} );
 
-		// Asserts the intended behavior; expected to fail until #5889 is
-		// fixed, so remove the test.fail() marker then.
-		// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/5889
 		test( 'accepts the saved shipping address on a free-trial cart @blocks @express-checkout @subscriptions', async ( {
 			page,
 		} ) => {
-			test.fail();
 			test.setTimeout( 240 * 1000 );
 			await addSubscriptionToCart( page, physicalProductId );
 			await page.goto( '/checkout' );
@@ -171,9 +167,12 @@ test.describe( 'express checkout free trial purchases with Link', () => {
 			await loginToLink( popup, linkEmail );
 			await addressEvaluated;
 
-			await expect( popup.getByText( 'Shipping addresses' ) ).toBeVisible(
-				{ timeout: 60 * 1000 }
-			);
+			// The deferred free-trial shipping resolves to the "Pending"
+			// placeholder rate, so the sheet shows that instead of the address
+			// form once the fix accepts the address.
+			await expect(
+				popup.getByText( 'Pending', { exact: true } )
+			).toBeVisible( { timeout: 60 * 1000 } );
 			await expect(
 				popup.getByText( 'Unavailable for this purchase' )
 			).toBeHidden();
