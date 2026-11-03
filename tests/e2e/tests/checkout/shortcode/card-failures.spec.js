@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { test, expect } from '@playwright/test';
 import config from 'config';
 import { payments } from '../../../utils';
@@ -12,10 +13,10 @@ const {
 test.beforeEach( async ( { page } ) => {
 	await emptyCart( page );
 	await setupCart( page );
-	await setupShortcodeCheckout(
-		page,
-		config.get( 'addresses.customer.billing' )
-	);
+	await setupShortcodeCheckout( page, {
+		...config.get( 'addresses.customer.billing' ),
+		email: `stripe-e2e-${ randomUUID() }@example.com`,
+	} );
 } );
 
 const testCard = async ( page, cardKey ) => {
