@@ -268,12 +268,38 @@ const initializeExpressCheckout = ( $ ) => {
 		paymentInFlight: false,
 		pendingRefresh: false,
 
-		// The only inputs elements.update() can't change.
-		getStructuralSignature: ( options ) =>
-			JSON.stringify( {
+		// Legacy refreshes reapplied wallet visibility, mode and styling. Reuse
+		// must preserve those changes while amounts and click data update in place.
+		getStructuralSignature: ( options ) => {
+			const stripe = getExpressCheckoutData( 'stripe' );
+			return JSON.stringify( {
 				currency: options.currency,
 				requestShipping: !! options.requestShipping,
-			} ),
+				locale: stripe?.locale ?? 'en',
+				hasFreeTrial: !! getExpressCheckoutData( 'has_free_trial' ),
+				taxesBasedOnBilling: !! getExpressCheckoutData(
+					'taxes_based_on_billing'
+				),
+				appearance: getExpressCheckoutButtonAppearance(),
+				wallets: Object.entries( {
+					[ EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY ]:
+						stripe?.is_apple_pay_enabled,
+					[ EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY ]:
+						stripe?.is_google_pay_enabled,
+					[ EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY ]:
+						stripe?.is_amazon_pay_enabled,
+					[ EXPRESS_PAYMENT_METHOD_SETTING_LINK ]:
+						stripe?.is_link_enabled,
+				} )
+					.filter( ( [ , enabled ] ) => enabled )
+					.map( ( [ type ] ) => ( {
+						type,
+						style: getExpressCheckoutButtonStyleSettings( type ),
+						paymentMethodTypes:
+							getPaymentMethodTypesForExpressMethod( type ),
+					} ) ),
+			} );
+		},
 
 		teardownExpressCheckout: () => {
 			wcStripeECE.mountedGroups.forEach( ( group ) => {
@@ -497,6 +523,9 @@ const initializeExpressCheckout = ( $ ) => {
 			// Reset the registry so variation/qty updates only touch the buttons
 			// mounted for this render.
 			wcStripeECE.expressCheckoutElements = [];
+			if ( ! expressPaymentTypes.length ) {
+				wcStripeECE.hide();
+			}
 
 			expressPaymentTypes.forEach( ( expressPaymentType ) => {
 				wcStripeECE.createExpressCheckoutElement( expressPaymentType, {

@@ -1636,6 +1636,85 @@ describe( 'Classic checkout early initialization', () => {
 		expect( groups[ 0 ].options.amount ).toBe( 2500 );
 	} );
 
+	it.each( [ 'enable Link', 'replace Google Pay with Apple Pay' ] )(
+		'applies changed wallet settings on checkout refresh: %s',
+		async ( change ) => {
+			loadEntrypoint();
+			await ready( groups[ 0 ] );
+			if ( change === 'enable Link' ) {
+				params.stripe.is_link_enabled = true;
+			} else {
+				params.stripe.is_google_pay_enabled = false;
+				params.stripe.is_apple_pay_enabled = true;
+			}
+			trigger( 'updated_checkout' );
+			await settle();
+			expect( groups[ 0 ].button.destroy ).toHaveBeenCalledTimes( 1 );
+			for ( const group of groups.slice( 1 ) ) {
+				await ready( group );
+			}
+			expect(
+				[
+					...document.getElementById(
+						'wc-stripe-express-checkout-element'
+					).children,
+				].map( ( element ) => element.id )
+			).toEqual(
+				( change === 'enable Link'
+					? [ 'googlePay', 'link' ]
+					: [ 'applePay' ]
+				).map(
+					( type ) => `wc-stripe-express-checkout-element-${ type }`
+				)
+			);
+		}
+	);
+
+	it( 'hides the wallet separator when the last method is disabled', async () => {
+		loadEntrypoint();
+		await ready( groups[ 0 ] );
+		params.stripe.is_google_pay_enabled = false;
+		trigger( 'updated_checkout' );
+		await settle();
+		expect(
+			document.getElementById( 'wc-stripe-express-checkout-element' )
+		).toHaveStyle( { display: 'none' } );
+		expect(
+			document.getElementById(
+				'wc-stripe-express-checkout-button-separator'
+			)
+		).toHaveStyle( { display: 'none' } );
+	} );
+
+	it.each( [
+		[ 'locale', { locale: 'fr' }, {} ],
+		[ 'free-trial mode', { mode: 'subscription' }, {} ],
+		[
+			'appearance',
+			{ appearance: { variables: { borderRadius: '12px' } } },
+			{ buttonHeight: 50 },
+		],
+	] )(
+		'applies changed %s instead of reusing stale SDK options',
+		async ( change, elementsOptions, buttonOptions ) => {
+			loadEntrypoint();
+			if ( change === 'locale' ) {
+				params.stripe.locale = 'fr';
+			} else if ( change === 'free-trial mode' ) {
+				params.has_free_trial = true;
+			} else {
+				params.button = { height: '50', radius: 12 };
+			}
+			trigger( 'updated_checkout' );
+			await settle();
+			expect( groups[ 0 ].button.destroy ).toHaveBeenCalledTimes( 1 );
+			expect( groups[ 1 ].options ).toMatchObject( elementsOptions );
+			expect( groups[ 1 ].create.mock.calls[ 0 ][ 1 ] ).toMatchObject(
+				buttonOptions
+			);
+		}
+	);
+
 	it.each( [ 'currency', 'shipping' ] )(
 		'rebuilds cleanly when the first update changes %s',
 		async ( change ) => {
