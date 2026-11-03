@@ -381,6 +381,7 @@ const initializeExpressCheckout = ( $ ) => {
 				);
 			}
 			let nextSlot;
+			let reorderFailed = false;
 			if ( isClassicCheckout ) {
 				// Readiness order must not change the merchant's wallet order.
 				nextSlot = wcStripeECE.mountedGroups
@@ -395,7 +396,12 @@ const initializeExpressCheckout = ( $ ) => {
 				if ( nextSlot && slot.nextElementSibling !== nextSlot ) {
 					// Reinserting a populated wrapper restarts its iframe too.
 					if ( typeof slot.parentElement.moveBefore === 'function' ) {
-						slot.parentElement.moveBefore( slot, nextSlot );
+						try {
+							slot.parentElement.moveBefore( slot, nextSlot );
+						} catch ( error ) {
+							// A rejected reorder needs the same SDK remount fallback as a rejected host move.
+							reorderFailed = true;
+						}
 					} else if ( ! slot.querySelector( 'iframe' ) ) {
 						nextSlot.before( slot );
 					}
@@ -411,6 +417,7 @@ const initializeExpressCheckout = ( $ ) => {
 			const host = group.mountHost ?? group.preparation;
 			if (
 				isClassicCheckout &&
+				! reorderFailed &&
 				rebuildWalletContainer( container, host )
 			) {
 				host.style.display = '';

@@ -1125,6 +1125,45 @@ describe( 'Classic checkout early initialization', () => {
 		}
 	} );
 
+	it( 'recovers wallet order when the browser rejects moving a populated wrapper', async () => {
+		params.stripe.is_apple_pay_enabled = true;
+		loadEntrypoint();
+		await ready( groups[ 0 ] );
+		await ready( groups[ 1 ] );
+		const root = document.getElementById(
+			'wc-stripe-express-checkout-element'
+		);
+		root.append( root.firstElementChild );
+		Element.prototype.moveBefore = () => {
+			throw new DOMException( 'Move rejected', 'HierarchyRequestError' );
+		};
+		try {
+			trigger( 'updated_checkout' );
+			await settle();
+			expect(
+				[ ...root.children ].map( ( element ) => element.id )
+			).toEqual( [
+				'wc-stripe-express-checkout-element-applePay',
+				'wc-stripe-express-checkout-element-googlePay',
+			] );
+			expect(
+				document.getElementById(
+					'wc-stripe-express-checkout-refresh-error'
+				)
+			).toBeNull();
+			const click = { resolve: jest.fn() };
+			await groups[ 0 ].button.emit( 'click', click );
+			expect(
+				click.resolve.mock.calls[ 0 ][ 0 ].lineItems
+			).toContainEqual( {
+				name: 'Updated product',
+				amount: 2000,
+			} );
+		} finally {
+			delete Element.prototype.moveBefore;
+		}
+	} );
+
 	it( 'submits once with current line items after repeated wrapper refreshes', async () => {
 		Element.prototype.moveBefore = function ( node, before ) {
 			this.insertBefore( node, before );
