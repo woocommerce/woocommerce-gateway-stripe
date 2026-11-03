@@ -1358,7 +1358,7 @@ const initializeExpressCheckout = ( $ ) => {
 			payment.paymentFailed( { reason: 'fail' } );
 			if ( checkoutRefreshFailed ) {
 				wcStripeECE.failCheckoutRefresh();
-			} else if ( isClassicCheckout && cartRefreshPending ) {
+			} else if ( cartRefreshPending ) {
 				wcStripeECE.init();
 			}
 		},
