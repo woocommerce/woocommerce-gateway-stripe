@@ -25,4 +25,4 @@ jobs:
     with:
       event-name: ${{ github.event_name }}
     secrets:
-      token: ${{ secrets.QUALITYOPS_DEPENDABOT_ALERTS_TOKEN }}
+      token: ${{ secrets.DEPENDABOT_ALERTS_TOKEN }}
