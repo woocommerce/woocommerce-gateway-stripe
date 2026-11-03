@@ -48,8 +48,12 @@ const payWithAdaptivePricing = async ( page, checkoutType ) => {
 	// AP orders are only marked paid by webhooks, which can't reach the
 	// tunnel-less CI site — assert the received page, not the "Paid" row.
 	await waitForOrderReceivedPage( page );
+	// Classic themes render the total as `.woocommerce-order-overview__total`;
+	// block themes render the order-confirmation summary list instead.
 	await expect(
-		page.locator( '.woocommerce-order-overview__total' )
+		page.locator(
+			'.woocommerce-order-overview__total, .wc-block-order-confirmation-summary-list-item:has-text("Total:")'
+		)
 	).toContainText( expectedTotal );
 };
 
