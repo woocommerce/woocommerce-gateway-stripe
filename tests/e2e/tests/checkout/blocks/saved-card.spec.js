@@ -35,6 +35,12 @@ test( 'customer can checkout with a saved card @smoke @blocks', async ( {
 	page,
 	browser,
 } ) => {
+	// Three full checkouts plus admin-side verification run close to the
+	// default 120s budget on a loaded CI runner, and block themes load each
+	// page slower still; the third step was timing out before the checkout
+	// had even hydrated.
+	test.setTimeout( 240 * 1000 );
+
 	// Disable Link so the store-level save checkbox is visible.
 	// When Link is enabled, the store checkbox is hidden and Link handles save consent.
 	await admin.togglePaymentMethod( browser, 'Link by Stripe', false );
@@ -85,7 +91,7 @@ test( 'customer can checkout with a saved card @smoke @blocks', async ( {
 
 			const expectedTotal = await getCartTotal( page );
 
-			await page.locator( 'text=Place order' ).click();
+			await clickPlaceOrder( page );
 
 			await waitForOrderReceivedPageAndConfirmExpectedTotal(
 				browser,
