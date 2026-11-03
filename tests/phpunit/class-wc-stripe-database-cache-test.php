@@ -213,7 +213,7 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 
 		// For null mode, verify it's stored with the current mode prefix.
 		if ( null === $mode ) {
-			$current_mode   = WC_Stripe_Mode::is_test() ? 'test' : 'live';
+			$current_mode   = WC_Stripe_Mode::get_current_mode();
 			$prefixed_key   = 'wcstripe_cache_' . $current_mode . '_' . $key;
 			$cache_contents = get_option( $prefixed_key );
 			$this->assertNotFalse( $cache_contents );

@@ -109,7 +109,7 @@ class WC_Stripe_Status {
 				<td>
 					<?php
 					$stripe_connect  = woocommerce_gateway_stripe()->connect;
-					$mode            = WC_Stripe_Mode::is_test() ? 'test' : 'live';
+					$mode            = WC_Stripe_Mode::get_current_mode();
 					$oauth_connected = (bool) $stripe_connect->is_connected_via_oauth( $mode );
 					$class           = $oauth_connected ? 'yes' : 'no';
 					?>
