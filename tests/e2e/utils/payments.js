@@ -812,6 +812,7 @@ export const setupACSSCheckout = async ( page, checkoutType = 'blocks' ) => {
  * @param {Object} options Optional configuration parameters.
  * @param {number} options.timeout Timeout in milliseconds for waiting operations (default: 10000).
  * @param {boolean} options.skipCartSetup Skip cart setup if it's already configured (default: false).
+ * @param {Object} options.billingDetails Billing data in the test-data format.
  * @param {boolean} options.skipBillingCountry Skip the WooCommerce billing country field.
  * @returns {Promise<void>} Resolves when setup is complete.
  * @throws {Error} If iframe cannot be found or initialization fails.
@@ -837,24 +838,18 @@ export const setupOptimizedCheckout = async (
 			container: '#wc-stripe-upe-form',
 		},
 	};
+	const billingDetails =
+		options.billingDetails ?? config.get( 'addresses.customer.billing' );
 
 	try {
 		// Set up appropriate checkout type
 		if ( checkoutType === 'blocks' ) {
-			await setupBlocksCheckout(
-				page,
-				config.get( 'addresses.customer.billing' ),
-				{
-					paymentFrameSelector: selectors.blocks.iframe,
-					timeout: options.timeout,
-				}
-			);
+			await setupBlocksCheckout( page, billingDetails, {
+				paymentFrameSelector: selectors.blocks.iframe,
+				timeout: options.timeout,
+			} );
 		} else {
-			await setupShortcodeCheckout(
-				page,
-				config.get( 'addresses.customer.billing' ),
-				options
-			);
+			await setupShortcodeCheckout( page, billingDetails, options );
 		}
 
 		// Get the correct selectors for this checkout type
