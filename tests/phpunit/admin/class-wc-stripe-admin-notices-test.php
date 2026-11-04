@@ -1676,7 +1676,42 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Data provider for `test_hide_notices_records_tracks_event_for_ap_notices`.
+	 * Running the dismiss again (a refresh keeps the dismiss parameters in the URL) or dismissing a notice that
+	 * is not shown records no event, so the event counts real dismissals only.
+	 *
+	 * @dataProvider provide_ap_notices_to_dismiss
+	 *
+	 * @param string $notice_key Notice key in the dismiss link.
+	 * @param string $option     Option that controls the notice.
+	 * @param string $banner     Expected `banner` property of the event.
+	 */
+	public function test_hide_notices_records_ap_tracks_event_only_when_notice_was_shown( string $notice_key, string $option, string $banner ): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+		delete_option( $option );
+
+		$_GET['wc-stripe-hide-notice']   = $notice_key;
+		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
+
+		$this->start_capturing_tracks_events();
+		$notices = $this->create_admin_notices_instance();
+		// Option missing: the notice was never shown.
+		$notices->hide_notices();
+		// Shown, dismissed, then the page is refreshed.
+		update_option( $option, 'yes' );
+		$notices->hide_notices();
+		$notices->hide_notices();
+		$this->stop_capturing_tracks_events();
+
+		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'] );
+
+		$this->assertSame( 'no', get_option( $option ) );
+		$events = $this->get_captured_tracks_event_properties( 'wcadmin_wcstripe_ap_banner_dismissed' );
+		$this->assertCount( 1, $events );
+		$this->assertSame( $banner, $events[0]['banner'] );
+	}
+
+	/**
+	 * Data provider for the Adaptive Pricing notice dismissal tests.
 	 *
 	 * @return array
 	 */

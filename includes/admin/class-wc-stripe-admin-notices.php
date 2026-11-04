@@ -1012,12 +1012,19 @@ class WC_Stripe_Admin_Notices {
 					}
 					break;
 				case 'ocs_ap_banner':
+					// The dismiss parameters stay in the URL, so a page refresh runs this again.
+					$was_shown = 'yes' === get_option( self::SHOW_OCS_AP_BANNER_OPTION, 'no' );
 					update_option( self::SHOW_OCS_AP_BANNER_OPTION, 'no' );
-					$this->record_ap_banner_dismissed_tracks_event( 'ocs_ap' );
+					if ( $was_shown ) {
+						$this->record_ap_banner_dismissed_tracks_event( 'ocs_ap' );
+					}
 					break;
 				case 'ap_only_banner':
+					$was_shown = 'yes' === get_option( self::SHOW_AP_ONLY_BANNER_OPTION, 'no' );
 					update_option( self::SHOW_AP_ONLY_BANNER_OPTION, 'no' );
-					$this->record_ap_banner_dismissed_tracks_event( 'ap_only' );
+					if ( $was_shown ) {
+						$this->record_ap_banner_dismissed_tracks_event( 'ap_only' );
+					}
 					break;
 				case 'ocs_only_banner':
 					update_option( self::SHOW_OCS_ONLY_BANNER_OPTION, 'no' );
