@@ -25,6 +25,124 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Legacy source callbacks retain their customer context and can still disable forced saving.
+	 *
+	 * @since x.x.x
+	 */
+	public function test_prepare_source_preserves_deprecated_filter_context(): void {
+		$original_post = $_POST;
+		$_POST         = [ 'stripe_token' => 'pm_context_test' ];
+		$customer      = null;
+		$filter        = function ( $force_save, $context ) use ( &$customer ) {
+			$this->assertTrue( $force_save );
+			$customer = $context;
+			return false;
+		};
+		$api_filter    = function ( $preempt, $args, $url ) {
+			return false !== strpos( $url, 'customers/cus_context_test' )
+				? $this->build_response( [ 'id' => 'cus_context_test' ] )
+				: $preempt;
+		};
+
+		$deprecation         = [];
+		$capture_deprecation = function ( $hook, $replacement, $version, $message ) use ( &$deprecation ) {
+			if ( 'wc_stripe_force_save_source' === $hook ) {
+				$deprecation = [ $replacement, $version, $message ];
+			}
+		};
+
+		add_filter( 'wc_stripe_force_save_source', $filter, 10, 2 );
+		add_filter( 'pre_http_request', $api_filter, 10, 3 );
+		add_action( 'deprecated_hook_run', $capture_deprecation, 10, 4 );
+		$this->setExpectedDeprecated( 'wc_stripe_force_save_source' );
+
+		try {
+			$source = $this->gateway->prepare_source( 0, true, 'cus_context_test' );
+		} finally {
+			remove_filter( 'wc_stripe_force_save_source', $filter, 10 );
+			remove_filter( 'pre_http_request', $api_filter, 10 );
+			remove_action( 'deprecated_hook_run', $capture_deprecation, 10 );
+			$_POST = $original_post;
+		}
+
+		$this->assertSame( [ '', '9.6.0', 'This filter has no direct replacement in legacy payment flows.' ], $deprecation );
+		$this->assertInstanceOf( WC_Stripe_Customer::class, $customer );
+		$this->assertSame( 'cus_context_test', $customer->get_id() );
+		$this->assertSame( 'pm_context_test', $source->source );
+	}
+
+	/**
+	 * Legacy intent callbacks retain their source ID and control future-use setup.
+	 *
+	 * @since x.x.x
+	 *
+	 * @dataProvider provide_deprecated_force_save_values
+	 * @param bool $force_save Whether the callback forces saving.
+	 */
+	public function test_generate_create_intent_request_preserves_deprecated_filter( bool $force_save ): void {
+		$original_post = $_POST;
+		$_POST         = [];
+		$gateway       = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->onlyMethods( [ 'generate_payment_request' ] )
+			->getMock();
+		$gateway->method( 'generate_payment_request' )->willReturn(
+			[
+				'description' => 'Legacy payment request',
+				'metadata'    => [],
+				'capture'     => 'true',
+			]
+		);
+
+		$source = (object) [
+			'customer' => 'cus_context_test',
+			'source'   => 'pm_context_test',
+		];
+		$filter = function ( $default, $source_id ) use ( $force_save ) {
+			$this->assertFalse( $default );
+			$this->assertSame( 'pm_context_test', $source_id );
+			return $force_save;
+		};
+
+		$deprecation         = [];
+		$capture_deprecation = function ( $hook, $replacement, $version, $message ) use ( &$deprecation ) {
+			if ( 'wc_stripe_force_save_source' === $hook ) {
+				$deprecation = [ $replacement, $version, $message ];
+			}
+		};
+
+		add_filter( 'wc_stripe_force_save_source', $filter, 10, 2 );
+		add_action( 'deprecated_hook_run', $capture_deprecation, 10, 4 );
+		$this->setExpectedDeprecated( 'wc_stripe_force_save_source' );
+
+		try {
+			$request = $gateway->generate_create_intent_request( WC_Helper_Order::create_order(), $source );
+		} finally {
+			remove_filter( 'wc_stripe_force_save_source', $filter, 10 );
+			remove_action( 'deprecated_hook_run', $capture_deprecation, 10 );
+			$_POST = $original_post;
+		}
+
+		$this->assertSame( [ '', '9.6.0', 'This filter has no direct replacement in legacy payment flows.' ], $deprecation );
+		$this->assertIsArray( $request['metadata'] ?? null );
+		if ( $force_save ) {
+			$this->assertArrayHasKey( 'setup_future_usage', $request );
+			$this->assertSame( 'off_session', $request['setup_future_usage'] );
+			$this->assertArrayHasKey( 'save_payment_method', $request['metadata'] );
+			$this->assertSame( 'true', $request['metadata']['save_payment_method'] );
+		} else {
+			$this->assertArrayNotHasKey( 'setup_future_usage', $request );
+			$this->assertArrayNotHasKey( 'save_payment_method', $request['metadata'] );
+		}
+	}
+
+	public function provide_deprecated_force_save_values(): array {
+		return [
+			'force saving'    => [ true ],
+			'do not force it' => [ false ],
+		];
+	}
+
+	/**
 	 * Helper function to update test order meta data
 	 */
 	private function updateOrderMeta( $order, $key, $value ) {

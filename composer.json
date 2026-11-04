@@ -2,7 +2,7 @@
     "name": "woocommerce/woocommerce-gateway-stripe",
     "description": "Take credit card payments on your store using Stripe.",
     "homepage": "https://woocommerce.com/products/woocommerce-gateway-stripe/",
-    "license": "GPL-2.0-or-later",
+    "license": "GPL-3.0-only",
     "config": {
       "platform": {
         "php": "7.4"
@@ -43,6 +43,7 @@
         "includes/class-wc-stripe-checkout-session-lifecycle.php",
         "includes/class-wc-stripe-checkout-session-manager.php",
         "includes/class-wc-stripe-co-branded-cc-compatibility.php",
+        "includes/class-wc-stripe-duplicate-payment-prevention.php",
         "includes/class-wc-stripe-exception.php",
         "includes/class-wc-stripe-hook-manager.php",
         "includes/class-wc-stripe-option-lock.php",
