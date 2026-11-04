@@ -33,6 +33,13 @@ class WC_Stripe_Test_Helper {
 			return (float) $value;
 		}
 
+		if ( 'array' === $expected_type ) {
+			if ( is_array( $value ) ) {
+				return $value;
+			}
+			throw new Exception( 'Expected array, got ' . gettype( $value ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+
 		throw new Exception( 'Invalid expected type: ' . $expected_type ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 	}
 

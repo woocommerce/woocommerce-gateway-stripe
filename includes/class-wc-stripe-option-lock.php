@@ -33,8 +33,9 @@ final class WC_Stripe_Option_Lock {
 	 *
 	 * @var string[]
 	 */
-	private const CLEANUP_LOCK_NAMES = [
+	private const SUPPORTED_LOCK_NAMES = [
 		'wc_stripe_agentic_sync_lock',
+		'wc_stripe_express_checkout_password_cleanup_lock',
 	];
 
 	/**
@@ -47,8 +48,9 @@ final class WC_Stripe_Option_Lock {
 	 *
 	 * @var string[]
 	 */
-	private const CLEANUP_LOCK_PREFIXES = [
+	private const SUPPORTED_LOCK_PREFIXES = [
 		'wc_stripe_checkout_session_lock_',
+		'wc_stripe_transaction_lock_',
 		'wc_stripe_user_customer_lock_',
 		'wc_stripe_checkout_charge_lock_',
 	];
@@ -78,6 +80,10 @@ final class WC_Stripe_Option_Lock {
 	 */
 	public static function acquire( string $name, int $ttl ): ?string {
 		global $wpdb;
+
+		if ( ! self::is_supported_lock_name( $name ) ) {
+			return null;
+		}
 
 		$owner = time() . ':' . wp_generate_uuid4();
 
@@ -131,6 +137,10 @@ final class WC_Stripe_Option_Lock {
 	public static function release( string $name, string $owner ): void {
 		global $wpdb;
 
+		if ( ! self::is_supported_lock_name( $name ) ) {
+			return;
+		}
+
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->delete(
 			$wpdb->options,
@@ -152,6 +162,10 @@ final class WC_Stripe_Option_Lock {
 	 */
 	public static function force_release( string $name ): void {
 		global $wpdb;
+
+		if ( ! self::is_supported_lock_name( $name ) ) {
+			return;
+		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->delete( $wpdb->options, [ 'option_name' => $name ] );
@@ -233,7 +247,7 @@ final class WC_Stripe_Option_Lock {
 		$deleted = 0;
 
 		// Fixed names are matched by equality so a look-alike option is never touched.
-		foreach ( self::CLEANUP_LOCK_NAMES as $name ) {
+		foreach ( self::SUPPORTED_LOCK_NAMES as $name ) {
 			if ( $deleted >= $limit ) {
 				break;
 			}
@@ -253,7 +267,7 @@ final class WC_Stripe_Option_Lock {
 		}
 
 		// Per-entity locks are matched by prefix with a LIKE wildcard.
-		foreach ( self::CLEANUP_LOCK_PREFIXES as $prefix ) {
+		foreach ( self::SUPPORTED_LOCK_PREFIXES as $prefix ) {
 			if ( $deleted >= $limit ) {
 				break;
 			}
@@ -321,5 +335,27 @@ final class WC_Stripe_Option_Lock {
 			unset( $notoptions[ $name ] );
 			wp_cache_set( 'notoptions', $notoptions, 'options' );
 		}
+	}
+
+	/**
+	 * Checks if a lock name is supported by this class.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param string $name The name of the lock to check.
+	 * @return bool True if the lock name is supported, false otherwise.
+	 */
+	private static function is_supported_lock_name( string $name ): bool {
+		if ( in_array( $name, self::SUPPORTED_LOCK_NAMES, true ) ) {
+			return true;
+		}
+
+		foreach ( self::SUPPORTED_LOCK_PREFIXES as $lock_prefix ) {
+			if ( str_starts_with( $name, $lock_prefix ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 }
