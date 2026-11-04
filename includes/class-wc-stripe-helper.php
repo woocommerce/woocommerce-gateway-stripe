@@ -44,11 +44,31 @@ class WC_Stripe_Helper {
 	public const OFFICIAL_PLUGIN_ID_KLARNA = 'klarna_payments';
 
 	/**
+	 * The Stripe.js version this plugin ships and is tested against. The checkout
+	 * client only runs Checkout Sessions on this exact build, so bump it together
+	 * with the `@stripe/stripe-js` release train in package.json.
+	 *
+	 * @var string
+	 */
+	private const STRIPE_JS_VERSION = 'dahlia';
+
+	/**
 	 * The Stripe.js SDK URL, pinned to a named major release.
 	 *
 	 * @var string
 	 */
-	protected const STRIPE_JS_URL = 'https://js.stripe.com/dahlia/stripe.js';
+	protected const STRIPE_JS_URL = 'https://js.stripe.com/' . self::STRIPE_JS_VERSION . '/stripe.js';
+
+	/**
+	 * Returns the Stripe.js version this plugin ships, for example 'dahlia'.
+	 *
+	 * @since x.x.x
+	 *
+	 * @return string
+	 */
+	public static function get_stripe_js_version(): string {
+		return self::STRIPE_JS_VERSION;
+	}
 
 	/**
 	 * List of legacy Stripe gateways.
