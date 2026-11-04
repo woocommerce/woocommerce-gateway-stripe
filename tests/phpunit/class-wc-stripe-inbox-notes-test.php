@@ -58,7 +58,6 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @return void
 	 */
 	public function tear_down(): void {
-		remove_filter( 'wp_doing_ajax', '__return_true' );
 		woocommerce_gateway_stripe()->connect = $this->stripe_connect_original;
 		WC_Stripe_Helper::delete_main_stripe_settings();
 
@@ -167,14 +166,20 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			add_filter( 'wp_doing_ajax', '__return_true' );
 		}
 
-		WC_Stripe_Inbox_Notes::create_upe_notes();
+		try {
+			WC_Stripe_Inbox_Notes::create_upe_notes();
 
-		$admin_note_store = WC_Data_Store::load( 'admin-note' );
-		$this->assertSame( $expected_note_count, count( $admin_note_store->get_notes_with_name( WC_Stripe_Whats_New_Note::NOTE_NAME ) ) );
-		$this->assertSame(
-			$expect_baseline_advanced ? WC_STRIPE_VERSION : '0.0.1',
-			get_option( WC_Stripe_Whats_New_Note::LAST_SEEN_VERSION_OPTION )
-		);
+			$admin_note_store = WC_Data_Store::load( 'admin-note' );
+			$this->assertSame( $expected_note_count, count( $admin_note_store->get_notes_with_name( WC_Stripe_Whats_New_Note::NOTE_NAME ) ) );
+			$this->assertSame(
+				$expect_baseline_advanced ? WC_STRIPE_VERSION : '0.0.1',
+				get_option( WC_Stripe_Whats_New_Note::LAST_SEEN_VERSION_OPTION )
+			);
+		} finally {
+			if ( $doing_ajax ) {
+				remove_filter( 'wp_doing_ajax', '__return_true' );
+			}
+		}
 	}
 
 	public function provider_create_upe_notes_whats_new_note_by_request_type(): array {
@@ -194,11 +199,17 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			add_filter( 'wp_doing_ajax', '__return_true' );
 		}
 
-		WC_Stripe_Inbox_Notes::create_upe_notes();
+		try {
+			WC_Stripe_Inbox_Notes::create_upe_notes();
 
-		$admin_note_store = WC_Data_Store::load( 'admin-note' );
-		$this->assertSame( $expected_note_count, count( $admin_note_store->get_notes_with_name( WC_Stripe_BNPL_Promotion_Note::NOTE_NAME ) ) );
-		$this->assertSame( $expected_note_count, count( $admin_note_store->get_notes_with_name( WC_Stripe_OC_Promotion_Note::NOTE_NAME ) ) );
+			$admin_note_store = WC_Data_Store::load( 'admin-note' );
+			$this->assertSame( $expected_note_count, count( $admin_note_store->get_notes_with_name( WC_Stripe_BNPL_Promotion_Note::NOTE_NAME ) ) );
+			$this->assertSame( $expected_note_count, count( $admin_note_store->get_notes_with_name( WC_Stripe_OC_Promotion_Note::NOTE_NAME ) ) );
+		} finally {
+			if ( $doing_ajax ) {
+				remove_filter( 'wp_doing_ajax', '__return_true' );
+			}
+		}
 	}
 
 	public function provider_create_upe_notes_promotional_notes_by_request_type(): array {
@@ -227,6 +238,7 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			WC_Stripe_Inbox_Notes::create_upe_notes();
 		} finally {
 			$wc_stripe_instance_reflection->setValue( null, $original_wc_stripe );
+			remove_filter( 'wp_doing_ajax', '__return_true' );
 		}
 	}
 }
