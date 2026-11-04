@@ -742,6 +742,13 @@ export const fillACHBankDetails = async ( page ) => {
 	await expect( button ).toBeVisible();
 	await button.click();
 
+	// Stripe's test bank now lists its accounts as radios (older builds
+	// rendered them as buttons); match either so the helper survives the
+	// rollout. The anchored prefix keeps "Success (Later Disputed)" out.
+	const successAccount = frame
+		.getByRole( 'radio', { name: /^Success ••••/ } )
+		.or( frame.getByRole( 'button', { name: 'Success ••••' } ) );
+
 	// Link registration button may or may not appear.
 	await Promise.race( [
 		frame
@@ -750,9 +757,7 @@ export const fillACHBankDetails = async ( page ) => {
 			.then( async () => {
 				await frame.getByTestId( 'link-not-now-button' ).click();
 			} ),
-		frame
-			.getByRole( 'button', { name: 'Success ••••' } )
-			.waitFor( { state: 'visible' } ),
+		successAccount.waitFor( { state: 'visible' } ),
 		frame
 			.getByTestId( 'continue-button' )
 			.waitFor( { state: 'visible' } )
@@ -761,13 +766,15 @@ export const fillACHBankDetails = async ( page ) => {
 			} ),
 	] );
 
-	// Click "Success ••••" account
-	button = frame.getByRole( 'button', { name: 'Success ••••' } );
-	await expect( button ).toBeVisible();
-	await button.click();
+	// Select the "Success ••••" account. Clicking is a no-op when the radio
+	// is already preselected, which the current test bank does.
+	await expect( successAccount ).toBeVisible();
+	await successAccount.click();
 
 	// Click Connect account button
-	button = frame.getByTestId( 'select-button' );
+	button = frame
+		.getByTestId( 'select-button' )
+		.or( frame.getByRole( 'button', { name: 'Connect account' } ) );
 	await expect( button ).toBeVisible();
 	await button.click();
 
