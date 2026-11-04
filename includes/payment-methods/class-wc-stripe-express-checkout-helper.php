@@ -989,15 +989,24 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
-		// Note that variable subscriptions extend WC_Product_Variable, so we only check for the root class.
-		if ( $is_product && $product && in_array( $product->get_type(), [ ProductType::VARIABLE, 'variable-subscription' ], true ) && $product instanceof WC_Product_Variable ) {
+		// get_available_variations() is defined on WC_Product_Variable and WC_Product_Variable_Subscription, so should be available on both class types.
+		if ( $is_product && $product && in_array( $product->get_type(), [ ProductType::VARIABLE, 'variable-subscription' ], true ) && method_exists( $product, 'get_available_variations' ) ) {
 			$some_variation_has_stock = false;
 			$all_variations           = $product->get_available_variations( 'objects' );
 
 			foreach ( $all_variations as $variation ) {
-				if ( $variation->is_in_stock() ) { // @phpstan-ignore method.nonObject (The return type is WC_Product_Variation[] when the argument is 'objects'.)
-					$some_variation_has_stock = true;
-					break;
+				// We expect get_available_variations() to return WC_Product_Variation objects, but we may
+				// get an array on older WooCommerce versions or from other variation implementations.
+				if ( is_object( $variation ) && method_exists( $variation, 'is_in_stock' ) ) {
+					if ( $variation->is_in_stock() ) {
+						$some_variation_has_stock = true;
+						break;
+					}
+				} elseif ( is_array( $variation ) && array_key_exists( 'is_in_stock', $variation ) ) {
+					if ( $variation['is_in_stock'] ) {
+						$some_variation_has_stock = true;
+						break;
+					}
 				}
 			}
 
