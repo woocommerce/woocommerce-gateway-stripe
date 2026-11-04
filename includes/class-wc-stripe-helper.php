@@ -1344,6 +1344,37 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Records a Tracks event when the plugin decides by itself whether to turn Adaptive Pricing on,
+	 * without a merchant action. Merchant changes in the settings are tracked separately.
+	 *
+	 * @internal
+	 * @since x.x.x
+	 *
+	 * @param string      $source         The flow that made the decision, e.g. 'connect' or 'ocs_ap_default_on'.
+	 * @param string|null $skipped_reason Why Adaptive Pricing was left off, or null when it was turned on.
+	 * @return void
+	 */
+	public static function record_adaptive_pricing_default_tracks_event( string $source, ?string $skipped_reason = null ): void {
+		if ( ! function_exists( 'wc_admin_record_tracks_event' ) ) {
+			return;
+		}
+
+		$properties = [
+			'test_mode' => WC_Stripe_Mode::is_test() ? 1 : 0,
+			'source'    => $source,
+		];
+
+		if ( null !== $skipped_reason ) {
+			$properties['reason'] = $skipped_reason;
+		}
+
+		wc_admin_record_tracks_event(
+			null === $skipped_reason ? 'wcstripe_ap_default_enabled' : 'wcstripe_ap_default_skipped',
+			$properties
+		);
+	}
+
+	/**
 	 * Returns the reason why adaptive pricing is not available for the current Stripe account.
 	 * Adaptive Pricing is not supported for accounts based in India, as well as for other situations.
 	 *
@@ -1566,13 +1597,11 @@ class WC_Stripe_Helper {
 		// Make sure location parameter is sanitized.
 		$location         = in_array( $location, [ 'product', 'cart' ], true ) ? $location : '';
 		$are_prbs_enabled = self::get_settings( null, 'express_checkout' ) ?? 'yes';
-		$prb_locations    = self::get_settings( null, 'express_checkout_button_locations' ) ?? [ 'product', 'cart' ];
 
-		// The scripts should be loaded when all of the following are true:
-		//   1. The PRBs are enabled; and
-		//   2. The PRB location settings have an array value (saving an empty option in the GUI results in non-array value); and
-		//   3. The PRBs are enabled at $location.
-		return 'yes' === $are_prbs_enabled && is_array( $prb_locations ) && in_array( $location, $prb_locations, true );
+		// Read through the helper so an unset option keeps the default placement and
+		// a non-array value (every location unchecked) counts as disabled.
+		return 'yes' === $are_prbs_enabled
+			&& ( new WC_Stripe_Express_Checkout_Helper() )->is_enabled_for_location( 'apple_pay_google_pay', $location );
 	}
 
 	/**

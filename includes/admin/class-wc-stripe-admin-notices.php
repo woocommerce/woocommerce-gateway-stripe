@@ -645,13 +645,22 @@ class WC_Stripe_Admin_Notices {
 			return;
 		}
 
-		$options   = WC_Stripe_Helper::get_stripe_settings();
-		$enabled   = isset( $options['express_checkout'] ) && 'yes' === $options['express_checkout'];
-		$locations = isset( $options['express_checkout_button_locations'] ) ? $options['express_checkout_button_locations'] : [];
+		$options = WC_Stripe_Helper::get_stripe_settings();
+		$enabled = isset( $options['express_checkout'] ) && 'yes' === $options['express_checkout'];
 
 		if ( ! $enabled ) {
 			return;
 		}
+
+		// Absent locations mean the default placement; the notice only targets
+		// stores that explicitly configured their locations.
+		if ( ! isset( $options['express_checkout_button_locations'] ) ) {
+			return;
+		}
+
+		// Read through the helper so a non-array value (every location unchecked) is
+		// treated as disabled instead of a misconfiguration.
+		$locations = ( new WC_Stripe_Express_Checkout_Helper() )->get_button_locations( 'apple_pay_google_pay' );
 
 		$has_product  = in_array( 'product', $locations, true );
 		$has_cart     = in_array( 'cart', $locations, true );
@@ -1003,16 +1012,41 @@ class WC_Stripe_Admin_Notices {
 					}
 					break;
 				case 'ocs_ap_banner':
+					// The dismiss parameters stay in the URL, so a page refresh runs this again.
+					$was_shown = 'yes' === get_option( self::SHOW_OCS_AP_BANNER_OPTION, 'no' );
 					update_option( self::SHOW_OCS_AP_BANNER_OPTION, 'no' );
+					if ( $was_shown ) {
+						$this->record_ap_banner_dismissed_tracks_event( 'ocs_ap' );
+					}
 					break;
 				case 'ap_only_banner':
+					$was_shown = 'yes' === get_option( self::SHOW_AP_ONLY_BANNER_OPTION, 'no' );
 					update_option( self::SHOW_AP_ONLY_BANNER_OPTION, 'no' );
+					if ( $was_shown ) {
+						$this->record_ap_banner_dismissed_tracks_event( 'ap_only' );
+					}
 					break;
 				case 'ocs_only_banner':
 					update_option( self::SHOW_OCS_ONLY_BANNER_OPTION, 'no' );
 					break;
 			}
 		}
+	}
+
+	/**
+	 * Records a Tracks event when the merchant dismisses an Adaptive Pricing "now active" notice.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param string $banner Which notice was dismissed: 'ocs_ap' or 'ap_only'.
+	 * @return void
+	 */
+	private function record_ap_banner_dismissed_tracks_event( string $banner ): void {
+		if ( ! function_exists( 'wc_admin_record_tracks_event' ) ) {
+			return;
+		}
+
+		wc_admin_record_tracks_event( 'wcstripe_ap_banner_dismissed', [ 'banner' => $banner ] );
 	}
 
 	/**
