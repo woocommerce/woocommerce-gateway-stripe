@@ -21,6 +21,7 @@ xxxx-xx-xx - version 11.2.0
 * Fix - Allow retrying a failed BLIK or Pre-Authorized Debit (ACSS) payment on the same order instead of failing every retry
 * Fix - Prevent a second charge when an interrupted checkout is resubmitted or two tabs submit the same cart at once
 * Fix - On classic checkout, show a notice naming each empty required field instead of a single generic "Please fill in all required fields" notice
+* Dev - Run every E2E test project under both a classic theme (Storefront) and a block theme (Twenty Twenty-Five) in CI, and make the shared E2E helpers theme-agnostic
 
 2026-10-16 - version 11.1.1
 * Fix - Stop blocking non-Stripe payment gateways on the Pay for Order, change payment method, and add payment method pages
@@ -83,7 +84,6 @@ xxxx-xx-xx - version 11.2.0
 
 2026-10-05 - version 11.0.1
 * Fix - Prevent non-card payment methods from failing under Optimized Checkout with Dynamic Payment Methods when the store has a statement descriptor set
-* Dev - Run every E2E test project under both a classic theme (Storefront) and a block theme (Twenty Twenty-Five) in CI, and make the shared E2E helpers theme-agnostic
 
 2026-09-08 - version 11.0.0
 * Fix - Allow express checkout payments when a wallet provides a one-word shipping name
