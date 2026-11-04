@@ -11,6 +11,7 @@ const {
 	setupACSSCheckout,
 	fillACSSDetails,
 	waitForOrderReceivedPage,
+	waitForStripeReady,
 } = payments;
 
 test.describe( 'ACSS payment tests @blocks @acss', () => {
@@ -61,6 +62,14 @@ test.describe( 'ACSS payment tests @blocks @acss', () => {
 			);
 			await setupACSSCheckout( page, 'blocks' );
 			await page.getByLabel( 'Save payment information' ).click();
+			// Toggling save-for-later updates the payment element with
+			// setup_future_usage, which can briefly remount it; an order placed
+			// mid-remount submits without payment details and the server
+			// rejects it. Wait for the element to settle first.
+			await waitForStripeReady(
+				page,
+				'#radio-control-wc-payment-method-options-stripe_acss_debit__content iframe[name^="__privateStripeFrame"]'
+			);
 			await clickPlaceOrder( page );
 			await fillACSSDetails( page );
 			await waitForOrderReceivedPage( page );

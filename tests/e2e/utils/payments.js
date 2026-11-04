@@ -560,6 +560,15 @@ export async function setupShortcodeCheckout(
 		}
 	}
 
+	// Every billing-field change above queues an update_checkout AJAX refresh,
+	// and WooCommerce overlays the order-review section with blockUI while one
+	// is in flight. A slow environment can chain those refreshes past the
+	// click's own 15s actionability budget, so wait for the storm to settle
+	// before selecting the gateway.
+	await expect( page.locator( '.blockUI.blockOverlay' ) ).toHaveCount( 0, {
+		timeout: 30000,
+	} );
+
 	await page.click( '.wc_payment_method.payment_method_stripe' );
 }
 
@@ -811,25 +820,75 @@ export const setupACSSCheckout = async ( page, checkoutType = 'blocks' ) => {
 			config.get( 'addresses.customer_canada.billing' )
 		);
 
-		// Select ACSS in blocks checkout.
+		// Select ACSS in blocks checkout. Verify the radio actually became
+		// checked: the payment options re-render while express checkout and
+		// totals settle, and a click landing mid re-render is silently lost.
+		const acssRadio = page.locator(
+			'#radio-control-wc-payment-method-options-stripe_acss_debit'
+		);
 		const acssLabel = page
 			.locator( 'label' )
 			.filter( { hasText: 'Pre-Authorized Debit' } );
 		await acssLabel.waitFor( { state: 'visible' } );
-		await acssLabel.click();
+		await retryWithBackoff( async () => {
+			if ( ! ( await acssRadio.isChecked() ) ) {
+				// Bounded so a click blocked by an in-flight re-render fails
+				// fast into the next retry instead of eating the test timeout.
+				await acssLabel.click( { timeout: 5000 } );
+			}
+			await expect( acssRadio ).toBeChecked();
+		} );
 	} else {
 		await setupShortcodeCheckout(
 			page,
 			config.get( 'addresses.customer_canada.billing' )
 		);
 
-		// Select ACSS in shortcode checkout.
-		const acssLabel = page.getByText( 'Pre-Authorized Debit' );
+		// Select ACSS in shortcode checkout. Selecting a gateway triggers an
+		// update_checkout refresh that replaces the payment-methods fragment
+		// and re-checks the method that was selected when the request was
+		// sent — a click racing that swap is silently reverted. The refresh
+		// starts a beat after the click, so a "no overlay right now" check
+		// passes in the dead window before it begins: instead wait for the
+		// blockUI overlay to show up (tolerating having missed a fast cycle)
+		// and clear, then confirm the selection survived.
+		const acssRadio = page.locator( '#payment_method_stripe_acss_debit' );
+		const acssLabel = page.locator(
+			"label[for='payment_method_stripe_acss_debit']"
+		);
+		const overlay = page.locator( '.blockUI.blockOverlay' ).first();
 		await acssLabel.waitFor( { state: 'visible' } );
-		await acssLabel.click();
-	}
+		await retryWithBackoff( async () => {
+			if ( ! ( await acssRadio.isChecked() ) ) {
+				// Bounded so a click blocked by the refresh overlay fails
+				// fast into the next retry instead of eating the test timeout.
+				await acssLabel.click( { timeout: 5000 } );
+			}
+			await overlay
+				.waitFor( { state: 'visible', timeout: 5000 } )
+				.catch( () => {} );
+			await overlay.waitFor( { state: 'hidden', timeout: 30000 } );
+			await expect( acssRadio ).toBeChecked();
+			await expect(
+				page.locator( '.payment_box.payment_method_stripe_acss_debit' )
+			).toBeVisible();
+		} );
 
-	await page.waitForTimeout( 1000 );
+		// The swapped-in fragment renders an empty element container; the
+		// ACSS element mounts into it only after the plugin creates a fresh
+		// payment intent, which can take seconds. Submitting against the
+		// half-mounted element fails Stripe's client-side validation with
+		// "Please provide your full name." (its fields configuration is not
+		// applied yet), so wait for the mounted payment element to finish
+		// loading. Match the inner-payment iframe specifically — Stripe's
+		// accessory iframes share the __privateStripeFrame name prefix and
+		// load much earlier.
+		await waitForStripeReady(
+			page,
+			'.payment_box.payment_method_stripe_acss_debit iframe[src*="elements-inner-payment"]',
+			30000
+		);
+	}
 };
 
 /**
@@ -925,8 +984,10 @@ export const fillACSSDetails = async ( page ) => {
 		.locator( 'iframe[name^="__privateStripeFrame"]' )
 		.first();
 
-	// Wait for the outer iframe to be present.
-	await expect( outerFrameElement ).toBeVisible( { timeout: 5000 } );
+	// Wait for the outer iframe to be present. The authorization lightbox
+	// opens only after the checkout request round-trips and Stripe confirms
+	// the intent, which can take well over 5s on slower environments.
+	await expect( outerFrameElement ).toBeVisible( { timeout: 20000 } );
 
 	const outerFrame = await outerFrameElement.contentFrame();
 	const innerFrameElement = await outerFrame
@@ -934,7 +995,7 @@ export const fillACSSDetails = async ( page ) => {
 		.first();
 
 	// Wait for the inner iframe to be present.
-	await expect( innerFrameElement ).toBeVisible( { timeout: 5000 } );
+	await expect( innerFrameElement ).toBeVisible( { timeout: 20000 } );
 
 	const innerFrame = await innerFrameElement.contentFrame();
 
