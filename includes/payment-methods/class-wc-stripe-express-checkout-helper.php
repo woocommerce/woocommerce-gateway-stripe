@@ -991,9 +991,18 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		// Note that variable subscriptions extend WC_Product_Variable, so we only check for the root class.
 		if ( $is_product && $product && in_array( $product->get_type(), [ ProductType::VARIABLE, 'variable-subscription' ], true ) && $product instanceof WC_Product_Variable ) {
-			$stock_availability = wp_list_pluck( $product->get_available_variations( 'objects' ), 'is_in_stock' );
+			$some_variation_has_stock = false;
+			$all_variations           = $product->get_available_variations( 'objects' );
+
+			foreach ( $all_variations as $variation ) {
+				if ( $variation->is_in_stock() ) { // @phpstan-ignore method.nonObject (The return type is WC_Product_Variation[] when the argument is 'objects'.)
+					$some_variation_has_stock = true;
+					break;
+				}
+			}
+
 			// Don't show if all product variations are out-of-stock.
-			if ( ! in_array( true, $stock_availability, true ) ) {
+			if ( ! $some_variation_has_stock ) {
 				if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
 					WC_Stripe_Logger::debug( 'Stripe Express Checkout is hidden due to product variations being out of stock. Product ID: ' . $product->get_id() );
 				}
