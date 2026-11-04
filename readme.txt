@@ -189,5 +189,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - On classic checkout, show a notice naming each empty required field instead of a single generic "Please fill in all required fields" notice
 * Fix - Render the Additional content field in the Stripe refund failed emails (customer and merchant)
 * Add - Record Tracks events for Adaptive Pricing setting changes, automatic enabling, and notice dismissals, and fix the event recorded when Optimized Checkout is turned off
+* Fix - Avoid expensive variation lookup in express checkout setup on product pages
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
