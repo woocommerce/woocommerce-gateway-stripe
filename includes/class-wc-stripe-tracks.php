@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Tracks class for WooCommerce Stripe.
+ * Tracks helper class for WooCommerce Stripe.
  *
  * @since x.x.x
  */

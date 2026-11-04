@@ -568,6 +568,9 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			$event_props = WC_Stripe_Tracks::add_default_event_properties( $event_props );
 
+			// Intentionally override `is_test_mode` based on $mode rather than on the current site mode.
+			$event_props['is_test_mode'] = 'live' !== $mode;
+
 			$event_name = null === $error_code ? 'wcstripe_stripe_connected' : 'wcstripe_stripe_connect_error';
 
 			// We're recording this directly instead of queueing it because
