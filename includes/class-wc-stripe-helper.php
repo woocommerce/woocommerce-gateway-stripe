@@ -1344,6 +1344,37 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Records a Tracks event when the plugin decides by itself whether to turn Adaptive Pricing on,
+	 * without a merchant action. Merchant changes in the settings are tracked separately.
+	 *
+	 * @internal
+	 * @since x.x.x
+	 *
+	 * @param string      $source         The flow that made the decision, e.g. 'connect' or 'ocs_ap_default_on'.
+	 * @param string|null $skipped_reason Why Adaptive Pricing was left off, or null when it was turned on.
+	 * @return void
+	 */
+	public static function record_adaptive_pricing_default_tracks_event( string $source, ?string $skipped_reason = null ): void {
+		if ( ! function_exists( 'wc_admin_record_tracks_event' ) ) {
+			return;
+		}
+
+		$properties = [
+			'test_mode' => WC_Stripe_Mode::is_test() ? 1 : 0,
+			'source'    => $source,
+		];
+
+		if ( null !== $skipped_reason ) {
+			$properties['reason'] = $skipped_reason;
+		}
+
+		wc_admin_record_tracks_event(
+			null === $skipped_reason ? 'wcstripe_ap_default_enabled' : 'wcstripe_ap_default_skipped',
+			$properties
+		);
+	}
+
+	/**
 	 * Returns the reason why adaptive pricing is not available for the current Stripe account.
 	 * Adaptive Pricing is not supported for accounts based in India, as well as for other situations.
 	 *
