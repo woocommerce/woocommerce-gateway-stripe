@@ -26,18 +26,12 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
-    # Block-theme jobs run a few minutes slower than Storefront, and the
-    # default project already needs close to 20 minutes when failures retry.
-    # Headroom keeps a slow run reporting its failures instead of being
-    # cancelled without a report.
-    timeout-minutes: 30
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       max-parallel: 10
       matrix:
-        # Every project runs under both a classic theme (Storefront) and a
-        # block theme (Twenty Twenty-Five, installed from WordPress.org) to
-        # catch regressions in either theme family.
+        # Run every project under a classic theme and a block theme.
         theme: ['storefront', 'twentytwentyfive']
         project: ['default', 'express-checkout-link', 'isk', 'acss', 'optimized-checkout', 'adaptive-pricing', 'blik', 'becs']
 
