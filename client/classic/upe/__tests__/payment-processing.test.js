@@ -152,6 +152,7 @@ const createMockPaymentElement = () => ( {
 	mount: jest.fn(),
 	on: jest.fn(),
 	update: jest.fn(),
+	destroy: jest.fn(),
 } );
 
 const MOCK_AP_CHECKOUT_CLIENT_SECRET = 'cs_test_ap_client_secret';
@@ -1286,14 +1287,36 @@ describe( 'payment-processing', () => {
 			const STALE_TOTAL_MESSAGE =
 				"We couldn't update your order total. Please refresh the page and try again.";
 
-			const mountElement = async ( api, checkoutElements ) => {
+			const mountElement = async (
+				api,
+				checkoutElements,
+				type = 'card'
+			) => {
 				checkoutElements.loadActions.mockResolvedValueOnce( {
 					type: 'success',
 				} );
 				const dom = document.createElement( 'div' );
-				dom.dataset.paymentMethodType = 'card';
+				dom.dataset.paymentMethodType = type;
 				await paymentProcessing.mountStripePaymentElement( api, dom );
 			};
+
+			const REPLACEMENT_SECRET = 'cs_test_replacement_secret';
+			const replaceSession = async ( overrides = {} ) => {
+				setNativeCheckoutSessionData( {
+					session_id: 'cs_test_replacement',
+					client_secret: REPLACEMENT_SECRET,
+					...overrides,
+				} );
+				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession();
+			};
+			const expectLastInitWithReplacement = ( api ) =>
+				expect(
+					api._stripe.initCheckoutElementsSdk
+				).toHaveBeenLastCalledWith(
+					expect.objectContaining( {
+						clientSecret: REPLACEMENT_SECRET,
+					} )
+				);
 
 			it.each( [
 				[
@@ -1372,24 +1395,85 @@ describe( 'payment-processing', () => {
 				).not.toHaveBeenCalled();
 			} );
 
-			it( 'shows a notice when the server replaced the session the element is bound to', async () => {
+			it( 'remounts against the session the server replaced the bound one with', async () => {
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				await mountElement( api, checkoutElements );
+				const [ { value: replacedElement } ] =
+					checkoutElements.createPaymentElement.mock.results;
+				stripeUtils.showErrorCheckout.mockClear();
+
+				await replaceSession();
+
+				expect( stripeUtils.showErrorCheckout ).not.toHaveBeenCalled();
+				expect( replacedElement.destroy ).toHaveBeenCalled();
+				// The updated_checkout handler mounts next and must build the element from the replacement.
+				await mountElement( api, checkoutElements );
+				expectLastInitWithReplacement( api );
+			} );
+
+			it( 'drops an element still being created when its session is replaced', async () => {
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				const staleElements = createMockElements();
+				let resolveStaleInit;
+				api._stripe.initCheckoutElementsSdk.mockReturnValueOnce(
+					new Promise( ( resolve ) => ( resolveStaleInit = resolve ) )
+				);
+				const staleMount = mountElement( api, checkoutElements );
+
+				await replaceSession();
+				resolveStaleInit( staleElements );
+				await staleMount;
+				await mountElement( api, checkoutElements );
+
+				expect(
+					staleElements.createPaymentElement
+				).not.toHaveBeenCalled();
+				expectLastInitWithReplacement( api );
+			} );
+
+			it( 'discards every element bound to the replaced session', async () => {
+				stripeUtils.getStripeServerData.mockReturnValue( {
+					...BASE_SERVER_DATA,
+					isAdaptivePricingEnabled: true,
+					paymentMethodsConfig: {
+						card: { supportsDeferredIntent: true },
+						ideal: { supportsDeferredIntent: true },
+					},
+				} );
+				paymentProcessing.initializeUPEComponents();
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				await mountElement( api, checkoutElements, 'card' );
+				await mountElement( api, checkoutElements, 'ideal' );
+
+				await replaceSession();
+
+				for ( const { value } of checkoutElements.createPaymentElement
+					.mock.results ) {
+					expect( value.destroy ).toHaveBeenCalled();
+				}
+			} );
+
+			it( 'blocks submission when the server replaced the session but reports a failure', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
 				await mountElement( api, checkoutElements );
 
-				setNativeCheckoutSessionData( {
-					session_id: 'cs_test_replacement',
-				} );
 				stripeUtils.showErrorCheckout.mockClear();
 
-				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession();
+				await replaceSession( { status: 'error' } );
 
 				expect( stripeUtils.showErrorCheckout ).toHaveBeenCalledWith(
 					STALE_TOTAL_MESSAGE
 				);
+
+				// Without a usable replacement the existing element must be kept.
+				await mountElement( api, checkoutElements );
 				expect(
-					checkoutElements.checkoutActions.runServerUpdate
-				).not.toHaveBeenCalled();
+					api._stripe.initCheckoutElementsSdk
+				).toHaveBeenCalledTimes( 1 );
 			} );
 
 			it( 'ignores a stale failing resync that settles after a newer successful one', async () => {
