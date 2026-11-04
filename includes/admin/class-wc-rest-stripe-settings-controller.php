@@ -692,7 +692,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 			$this->gateway->update_validated_option( $attribute, $value );
 
-			if ( isset( $tracks_event_prefixes[ $request_key ] ) && $value !== $current_value ) {
+			if ( isset( $tracks_event_prefixes[ $request_key ] ) && $value !== $current_value && function_exists( 'wc_admin_record_tracks_event' ) ) {
 				wc_admin_record_tracks_event(
 					$tracks_event_prefixes[ $request_key ] . ( 'yes' === $value ? '_enabled' : '_disabled' ),
 					[
