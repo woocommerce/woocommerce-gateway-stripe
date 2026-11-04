@@ -49,7 +49,7 @@ For repository-wide rules, always read the root `AGENTS.md` first.
 
 ## Theme-Agnostic Helpers (MUST)
 
-The shared helpers in `tests/e2e/utils/` must not assume the active theme. The default Docker setup installs Storefront (classic markup), but the suite is expected to run under block/FSE themes too, where WooCommerce renders different markup for the same content.
+The shared helpers in `tests/e2e/utils/` must not assume the active theme. The default Docker setup installs Storefront (classic markup), but the suite is expected to run under block themes too (for example Twenty Twenty-Five), where WooCommerce renders different markup for the same content.
 
 - **MUST** drive cart state through the Store API (`/wp-json/wc/store/v1/cart`, `.../products`), not shop-loop XPath or the header cart counter (`.cart-contents .count`) — those are classic-theme-only. `setupCart`/`clickAddToCartButton` resolve product pages and verify adds via the API.
 - **MUST** match user-facing text or roles, not classic wrapper classes, for notices and headings: order-received is a plain `h1` under block themes (not `h1.entry-title`); cart-empty and checkout errors render inside `wc-block-components-notice-banner` (not `.wc-empty-cart-message`/`.woocommerce-error`). Use `getByRole`/`getByText`, or a comma-selector covering both markups.
