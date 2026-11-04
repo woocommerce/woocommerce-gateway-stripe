@@ -1022,6 +1022,19 @@ export function getErrorNotices( page ) {
 }
 
 /**
+ * Locator for success notices regardless of the active theme: classic themes
+ * render `.woocommerce-message`, block themes a success notice banner.
+ *
+ * @param {Page} page Playwright page fixture.
+ * @returns {import('@playwright/test').Locator} Locator matching all success notices.
+ */
+export function getSuccessNotices( page ) {
+	return page.locator(
+		'.woocommerce-message, .wc-block-components-notice-banner.is-success'
+	);
+}
+
+/**
  * Handles the Cash App Pay payment on the checkout page.
  * @param {Page} page Playwright page fixture.
  */
