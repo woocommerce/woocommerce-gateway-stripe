@@ -23,6 +23,7 @@ xxxx-xx-xx - version 11.2.0
 * Fix - Prevent a second charge when an interrupted checkout is resubmitted or two tabs submit the same cart at once
 * Fix - On classic checkout, show a notice naming each empty required field instead of a single generic "Please fill in all required fields" notice
 * Fix - Render the Additional content field in the Stripe refund failed emails (customer and merchant)
+* Add - Record Tracks events for Adaptive Pricing setting changes, automatic enabling, and notice dismissals, and fix the event recorded when Optimized Checkout is turned off
 
 2026-10-16 - version 11.1.1
 * Fix - Stop blocking non-Stripe payment gateways on the Pay for Order, change payment method, and add payment method pages
