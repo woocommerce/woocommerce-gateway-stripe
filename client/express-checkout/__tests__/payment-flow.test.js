@@ -450,6 +450,47 @@ describe( 'handleManualPaymentMethodFlow', () => {
 		expect( abortPayment ).toHaveBeenCalled();
 		expect( completePayment ).not.toHaveBeenCalled();
 	} );
+	test( 'should pass the confirm return URL to confirmIntent', async () => {
+		stripe.createPaymentMethod.mockResolvedValue( {
+			paymentMethod: { id: 'pm_test_123' },
+		} );
+		api.expressCheckoutECECreateOrder.mockResolvedValue( {
+			payment_result: {
+				payment_status: 'success',
+				payment_details: [
+					{
+						key: 'redirect',
+						value: '#wc-stripe-confirm-pi:123:pi_test_secret_abc:nonce1',
+					},
+					{
+						key: 'stripe_confirm_return_url',
+						value: 'https://example.com/order-received?order_id=123',
+					},
+				],
+			},
+		} );
+		api.confirmIntent.mockReturnValue( {
+			request: Promise.resolve( 'https://example.com/thank-you' ),
+		} );
+
+		await handleManualPaymentMethodFlow( {
+			api,
+			stripe,
+			elements,
+			completePayment,
+			abortPayment,
+			event,
+		} );
+
+		expect( api.confirmIntent ).toHaveBeenCalledWith(
+			'#wc-stripe-confirm-pi:123:pi_test_secret_abc:nonce1',
+			null,
+			'https://example.com/order-received?order_id=123'
+		);
+		expect( completePayment ).toHaveBeenCalledWith(
+			'https://example.com/thank-you'
+		);
+	} );
 } );
 
 describe( 'handleConfirmationTokenFlow', () => {
@@ -571,6 +612,47 @@ describe( 'handleConfirmationTokenFlow', () => {
 			'https://example.com/order-received'
 		);
 		expect( abortPayment ).not.toHaveBeenCalled();
+	} );
+	test( 'should pass the confirm return URL to confirmIntent', async () => {
+		stripe.createConfirmationToken.mockResolvedValue( {
+			confirmationToken: { id: 'ct_test_456' },
+		} );
+		api.expressCheckoutECECreateOrder.mockResolvedValue( {
+			payment_result: {
+				payment_status: 'success',
+				payment_details: [
+					{
+						key: 'redirect',
+						value: '#wc-stripe-confirm-pi:123:pi_test_secret_abc:nonce1',
+					},
+					{
+						key: 'stripe_confirm_return_url',
+						value: 'https://example.com/order-received?order_id=123',
+					},
+				],
+			},
+		} );
+		api.confirmIntent.mockReturnValue( {
+			request: Promise.resolve( 'https://example.com/thank-you' ),
+		} );
+
+		await handleConfirmationTokenFlow( {
+			api,
+			stripe,
+			elements,
+			completePayment,
+			abortPayment,
+			event,
+		} );
+
+		expect( api.confirmIntent ).toHaveBeenCalledWith(
+			'#wc-stripe-confirm-pi:123:pi_test_secret_abc:nonce1',
+			null,
+			'https://example.com/order-received?order_id=123'
+		);
+		expect( completePayment ).toHaveBeenCalledWith(
+			'https://example.com/thank-you'
+		);
 	} );
 } );
 

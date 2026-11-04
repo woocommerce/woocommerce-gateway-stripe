@@ -35,8 +35,8 @@ const injectThirdPartyRequiredField = ( page ) =>
  * The gate that skips Stripe payment method creation must also stop WooCommerce
  * submitting. Returning early without stopping the submission posts the order with
  * no payment method, which creates an order and then fails it — the STRIPE-1402
- * shape. The shopper should instead stay on the form with an error, as they do
- * when the card number is incomplete.
+ * shape. The shopper should instead stay on the form, now with a notice naming the
+ * empty field rather than a single generic message.
  */
 test( 'keeps the shopper on the form when a third-party required field is empty', async ( {
 	page,
@@ -67,7 +67,7 @@ test( 'keeps the shopper on the form when a third-party required field is empty'
 		.dispatchEvent( 'click' );
 
 	await expect( page.locator( '.woocommerce-error' ) ).toContainText(
-		'Please fill in all required fields.'
+		'Third party field is a required field.'
 	);
 	expect( checkoutRequests ).toBe( 0 );
 	await expect( page ).toHaveURL( /checkout/ );

@@ -130,6 +130,42 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	}
 
 	/**
+	 * clear_in_memory_payment_method_configuration_cache() must only clear the in-memory cache, and should keep the database cache in place.
+	 */
+	public function test_clear_in_memory_payment_method_configuration_cache_preserves_database_cache(): void {
+		WC_Stripe_Helper::update_main_stripe_settings( $this->build_connected_test_mode_settings( 'yes' ) );
+
+		WC_Stripe_Database_Cache::set( WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, (object) [ 'id' => 'pmc_first' ] );
+		$this->assertSame( 'pmc_first', WC_Stripe_Payment_Method_Configurations::get_configuration_id() );
+
+		// Change the database entry behind the in-memory copy to show which layer each read uses.
+		WC_Stripe_Database_Cache::set( WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, (object) [ 'id' => 'pmc_second' ] );
+		$this->assertSame( 'pmc_first', WC_Stripe_Payment_Method_Configurations::get_configuration_id() );
+
+		WC_Stripe_Payment_Method_Configurations::clear_in_memory_payment_method_configuration_cache();
+
+		$this->assertSame( 'pmc_second', WC_Stripe_Payment_Method_Configurations::get_configuration_id() );
+		$this->assertSame( 'pmc_second', WC_Stripe_Database_Cache::get( WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY )->id );
+	}
+
+	/**
+	 * clear_payment_method_configuration_cache() must clear both the in-memory and database caches.
+	 */
+	public function test_clear_payment_method_configuration_cache_clears_memory_and_database(): void {
+		WC_Stripe_Helper::update_main_stripe_settings( $this->build_connected_test_mode_settings( 'yes' ) );
+
+		WC_Stripe_Database_Cache::set( WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, (object) [ 'id' => 'pmc_first' ] );
+		$this->assertSame( 'pmc_first', WC_Stripe_Payment_Method_Configurations::get_configuration_id() );
+
+		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+
+		$primary_configuration = new ReflectionProperty( WC_Stripe_Payment_Method_Configurations::class, 'primary_configuration' );
+		$primary_configuration->setAccessible( true );
+		$this->assertNull( $primary_configuration->getValue() );
+		$this->assertNull( WC_Stripe_Database_Cache::get( WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY ) );
+	}
+
+	/**
 	 * Tests the disable_payment_method_configuration_sync method.
 	 *
 	 * @return void
@@ -208,6 +244,8 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		// Get initial settings
 		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
 
+		WC_Stripe_Helper::update_main_stripe_settings( $this->build_connected_test_mode_settings( 'yes' ) );
+
 		// Mock the Stripe API response to return a valid configuration
 		$mock_api = $this->getMockBuilder( WC_Stripe_API::class )
 			->disableOriginalConstructor()
@@ -234,18 +272,20 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		$method     = $reflection->getMethod( 'get_primary_configuration' );
 		$method->setAccessible( true );
 
-		// Call the method
-		$method->invoke( null );
+		try {
+			// Call the method
+			$method->invoke( null );
 
-		// Get the updated settings
-		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+			// Get the updated settings
+			$updated_settings = WC_Stripe_Helper::get_stripe_settings();
 
-		// Verify pmc_enabled is not set to 'no'
-		$this->assertNotEquals( 'no', $updated_settings['pmc_enabled'] ?? null );
-
-		// Restore original settings and API instance
-		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
-		$property->setValue( null, null );
+			// Verify pmc_enabled is not set to 'no'
+			$this->assertNotEquals( 'no', $updated_settings['pmc_enabled'] ?? null );
+		} finally {
+			// Restore original settings and API instance
+			WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+			$property->setValue( null, null );
+		}
 	}
 
 	/**

@@ -135,6 +135,9 @@ const processOrder = async ( {
 			( detail ) => detail.key === 'errorMessage'
 		)?.value,
 		redirect: redirectUrl,
+		returnUrl: orderResponse?.payment_result?.payment_details?.find(
+			( detail ) => detail.key === 'stripe_confirm_return_url'
+		)?.value,
 	};
 };
 
@@ -177,13 +180,14 @@ export const handleManualPaymentMethodFlow = async ( {
 		}
 
 		// Kick off checkout processing step.
-		const { result, errorMessage, redirect } = await processOrder( {
-			api,
-			event,
-			paymentMethodId: paymentMethod.id,
-			order,
-			orderDetails,
-		} );
+		const { result, errorMessage, redirect, returnUrl } =
+			await processOrder( {
+				api,
+				event,
+				paymentMethodId: paymentMethod.id,
+				order,
+				orderDetails,
+			} );
 
 		if ( result !== 'success' ) {
 			return abortPayment(
@@ -194,7 +198,11 @@ export const handleManualPaymentMethodFlow = async ( {
 			);
 		}
 
-		const confirmationRequest = api.confirmIntent( redirect );
+		const confirmationRequest = api.confirmIntent(
+			redirect,
+			null,
+			returnUrl
+		);
 
 		// `true` means there is no intent to confirm.
 		if ( confirmationRequest === true ) {
@@ -252,13 +260,14 @@ export const handleConfirmationTokenFlow = async ( {
 			);
 		}
 
-		const { result, errorMessage, redirect } = await processOrder( {
-			api,
-			event,
-			confirmationTokenId: confirmationToken.id,
-			order,
-			orderDetails,
-		} );
+		const { result, errorMessage, redirect, returnUrl } =
+			await processOrder( {
+				api,
+				event,
+				confirmationTokenId: confirmationToken.id,
+				order,
+				orderDetails,
+			} );
 
 		if ( result !== 'success' ) {
 			return abortPayment(
@@ -269,7 +278,11 @@ export const handleConfirmationTokenFlow = async ( {
 			);
 		}
 
-		const confirmationRequest = api.confirmIntent( redirect );
+		const confirmationRequest = api.confirmIntent(
+			redirect,
+			null,
+			returnUrl
+		);
 
 		// `true` means there is no intent to confirm.
 		if ( confirmationRequest === true ) {
