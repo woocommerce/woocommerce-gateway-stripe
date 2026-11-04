@@ -65,7 +65,7 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 		wp_dequeue_style( $this->get_block_style_handle() );
 		wp_deregister_style( $this->get_block_style_handle() );
 
-		foreach ( array_merge( [ $this->get_block_script_handle(), 'stripe' ], $this->registered_test_scripts ) as $handle ) {
+		foreach ( array_merge( [ $this->get_block_script_handle(), 'stripe', 'wc-stripe-checkout-settings' ], $this->registered_test_scripts ) as $handle ) {
 			wp_dequeue_script( $handle );
 			wp_deregister_script( $handle );
 		}
@@ -185,6 +185,8 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 		$handles = $blocks_support->get_payment_method_script_handles();
 
 		$this->assertSame( [ $this->get_block_script_handle() ], $handles );
+		$this->assertContains( 'wc-stripe-checkout-settings', wp_scripts()->registered[ $this->get_block_script_handle() ]->deps );
+		$this->assertNotContains( 'wc-stripe-upe-classic', wp_scripts()->registered[ $this->get_block_script_handle() ]->deps );
 		$this->assertTrue( wp_style_is( $this->get_block_style_handle(), 'registered' ) );
 		$this->assertFalse( wp_style_is( $this->get_block_style_handle(), 'enqueued' ) );
 	}

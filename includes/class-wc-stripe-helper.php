@@ -70,6 +70,16 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Keep shared checkout settings available without requiring a particular checkout UI bundle.
+	 *
+	 * @since x.x.x
+	 * @return void
+	 */
+	public static function register_checkout_settings_script() {
+		wp_register_script( 'wc-stripe-checkout-settings', false, [], WC_STRIPE_VERSION, true );
+	}
+
+	/**
 	 * Validates a value against the expected Stripe object ID shape: `{prefix}_{token}`,
 	 * word characters only, at most 255 characters (Stripe's documented ceiling).
 	 *
@@ -1297,6 +1307,43 @@ class WC_Stripe_Helper {
 	 */
 	public static function has_cart_or_checkout_on_current_page() {
 		return is_cart() || is_checkout() || has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' );
+	}
+
+	/**
+	 * Preserve classic forms embedded in other layouts while avoiding their runtime on express-only pages.
+	 *
+	 * @since x.x.x
+	 * @return bool
+	 */
+	public static function should_load_classic_checkout_scripts(): bool {
+		$helper = new WC_Stripe_Express_Checkout_Helper();
+		if (
+			$helper->is_one_page_checkout() ||
+			is_add_payment_method_page() ||
+			is_wc_endpoint_url( 'order-pay' ) ||
+			isset( $_GET['change_payment_method'] ) // phpcs:ignore WordPress.Security.NonceVerification
+		) {
+			return true;
+		}
+
+		global $post;
+		if (
+			$post instanceof WP_Post &&
+			( has_shortcode( $post->post_content, 'woocommerce_checkout' ) || has_block( 'woocommerce/classic-shortcode', $post ) )
+		) {
+			return true;
+		}
+
+		if ( has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' ) ) {
+			return false;
+		}
+
+		if ( $helper->is_checkout() ) {
+			return true;
+		}
+
+		// Custom pages can embed classic payment forms without a checkout shortcode.
+		return ! $helper->is_product() && ! $helper->is_cart();
 	}
 
 	/**

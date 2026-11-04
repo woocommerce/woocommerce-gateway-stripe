@@ -502,10 +502,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				: $dependencies;
 		}
 
+		WC_Stripe_Helper::register_checkout_settings_script();
 		wp_register_script(
 			'wc-stripe-upe-classic',
 			WC_STRIPE_PLUGIN_URL . '/build/upe-classic.js',
-			array_merge( [ 'stripe', 'wc-checkout' ], $dependencies ),
+			array_merge( [ 'stripe', 'wc-checkout', 'wc-stripe-checkout-settings' ], $dependencies ),
 			$version,
 			true
 		);
@@ -536,7 +537,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$upe_params['scriptDependencies'] = $dependencies;
 
 		wp_localize_script(
-			'wc-stripe-upe-classic',
+			'wc-stripe-checkout-settings',
 			'wc_stripe_upe_params',
 			$upe_params
 		);
@@ -548,7 +549,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$version
 		);
 
-		wp_enqueue_script( 'wc-stripe-upe-classic' );
+		wp_enqueue_script( 'wc-stripe-checkout-settings' );
+		if ( WC_Stripe_Helper::should_load_classic_checkout_scripts() ) {
+			wp_enqueue_script( 'wc-stripe-upe-classic' );
+		}
 		wp_enqueue_style( 'wc-stripe-upe-classic' );
 
 		wp_register_style( 'stripelink_styles', plugins_url( 'assets/css/stripe-link.css', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION );
