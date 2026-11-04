@@ -650,7 +650,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		$is_invalid = true;
 
 		if ( $product->get_type() === 'variable-subscription' ) {
-			$products = $product->get_available_variations( 'object' );
+			$products = $product->get_available_variations( 'objects' );
 		} else {
 			$products = [ $product ];
 		}
@@ -989,8 +989,9 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
-		if ( $is_product && $product && in_array( $product->get_type(), [ ProductType::VARIABLE, 'variable-subscription' ], true ) ) {
-			$stock_availability = array_column( $product->get_available_variations(), 'is_in_stock' );
+		// Note that variable subscriptions extend WC_Product_Variable, so we only check for the root class.
+		if ( $is_product && $product && in_array( $product->get_type(), [ ProductType::VARIABLE, 'variable-subscription' ], true ) && $product instanceof WC_Product_Variable ) {
+			$stock_availability = wp_list_pluck( $product->get_available_variations( 'objects' ), 'is_in_stock' );
 			// Don't show if all product variations are out-of-stock.
 			if ( ! in_array( true, $stock_availability, true ) ) {
 				if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
