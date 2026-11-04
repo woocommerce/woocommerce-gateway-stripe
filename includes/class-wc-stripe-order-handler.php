@@ -377,13 +377,23 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 							/* translators: error message */
 							$order->update_status( OrderStatus::FAILED, sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $result->error->message ) );
 						} else {
-							$result = $this->get_latest_charge_from_intent( $result );
+							try {
+								$result = $this->get_latest_charge_from_intent( $result );
+							} catch ( WC_Stripe_Exception $e ) {
+								WC_Stripe_Logger::error( 'Error getting latest charge from intent: ' . $e->getMessage() );
+								$result = null;
+							}
 
 							// Check that we have a valid charge object.
 							$is_stripe_captured = $this->handle_capture_charge_response( $result, $order );
 						}
 					} elseif ( WC_Stripe_Intent_Status::SUCCEEDED === $intent->status ) {
-						$result = $this->get_latest_charge_from_intent( $intent );
+						try {
+							$result = $this->get_latest_charge_from_intent( $intent );
+						} catch ( WC_Stripe_Exception $e ) {
+							WC_Stripe_Logger::error( 'Error getting latest charge from intent: ' . $e->getMessage() );
+							$result = null;
+						}
 
 						// Check that we have a valid charge object.
 						$is_stripe_captured = $this->handle_capture_charge_response( $result, $order );
@@ -437,15 +447,25 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					}
 				}
 
+				// Ensure we pass in an empty object if the capture response was not an object.
+				$result_for_filter = is_object( $result ) ? $result : new stdClass();
+
 				// This hook fires when admin manually changes order status to processing or completed.
 				/**
 				 * Fires after a manually captured Stripe charge is processed.
 				 *
 				 * @param WC_Order $order  Order associated with the manual capture.
-				 * @param object   $result Stripe capture response.
+				 * @param object   $result Stripe capture response. This may be an empty object if we could not get the capture response.
 				 */
-				do_action( 'woocommerce_stripe_process_manual_capture', $order, $result );
-				return $result;
+				do_action( 'woocommerce_stripe_process_manual_capture', $order, $result_for_filter );
+
+				// If the result is not an object, return nothing.
+				if ( ! is_object( $result ) ) {
+					return;
+				}
+
+				// Cast result to stdClass
+				return (object) (array) $result;
 			}
 		}
 	}
@@ -767,8 +787,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * If we have a valid charge response, return true.
 	 * Otherwise add an order note and return false.
 	 *
-	 * @param object|string $charge_response The charge response from the capture request.
-	 * @param WC_Order      $order           The order.
+	 * @param object|string|null $charge_response The charge response from the capture request.
+	 * @param WC_Order           $order           The order.
 	 * @return bool True if the charge has been captured, false otherwise.
 	 */
 	private function handle_capture_charge_response( $charge_response, WC_Order $order ): bool {
