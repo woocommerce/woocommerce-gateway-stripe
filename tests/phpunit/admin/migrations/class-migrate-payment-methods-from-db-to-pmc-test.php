@@ -1,7 +1,8 @@
 <?php
 
 /**
- * Legacy initialization must not union Stripe methods into the merchant's choices.
+ * The retained entry point must not union Stripe methods into the merchant's choices, nor
+ * touch the confirmation flag; synchronization only resumes once the merchant confirms.
  */
 class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
@@ -20,7 +21,14 @@ class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Uni
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 		$this->stripe_api->expects( $this->never() )->method( 'update_payment_method_configurations' );
 		WC_Stripe_Payment_Method_Configurations::maybe_migrate_payment_methods_from_db_to_pmc( $force );
-		$this->assertSame( array_merge( $settings, [ 'pmc_enabled' => '' === $flag ? 'no' : $flag ] ), WC_Stripe_Helper::get_stripe_settings() );
+
+		// Asserted key by key: saving a settings array that did not exist yet makes
+		// WC_Stripe::gateway_settings_update() fill in every form-field default, so comparing
+		// the whole option would depend on what earlier tests left behind.
+		$saved = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame( $flag, $saved['pmc_enabled'] );
+		$this->assertSame( $methods, $saved['upe_checkout_experience_accepted_payments'] );
+		$this->assertSame( 'no', $saved['express_checkout'] );
 	}
 
 	public function initialization_provider(): array {

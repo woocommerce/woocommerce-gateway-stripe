@@ -19,7 +19,6 @@ const review = {
 	differs: true,
 	revision: 'revision',
 	configuration_id: 'pmc_example',
-	testmode: true,
 	local,
 	stripe: {
 		upe_checkout_experience_accepted_payments: [ 'card', 'klarna' ],

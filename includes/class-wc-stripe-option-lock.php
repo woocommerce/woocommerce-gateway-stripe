@@ -35,7 +35,6 @@ final class WC_Stripe_Option_Lock {
 	 */
 	private const CLEANUP_LOCK_NAMES = [
 		'wc_stripe_agentic_sync_lock',
-		'wc_stripe_pmc_settings_lock',
 	];
 
 	/**

@@ -32,14 +32,11 @@ const PMCSyncNotice = ( { onResolved, hasUnsavedChanges = false } ) => {
 	const [ busy, setBusy ] = useState( false );
 	const [ retry, setRetry ] = useState( 0 );
 
-	const currentSettings = useRef( settings );
-	currentSettings.current = settings;
 	const unsavedChanges = useRef( hasUnsavedChanges );
 	unsavedChanges.current = hasUnsavedChanges;
 
 	const resolve = useCallback(
 		async ( source, revision ) => {
-			const submitted = currentSettings.current;
 			setBusy( true );
 			try {
 				const saved = await apiFetch( {
@@ -47,13 +44,7 @@ const PMCSyncNotice = ( { onResolved, hasUnsavedChanges = false } ) => {
 					method: 'POST',
 					data: { source, revision },
 				} );
-				const edits = Object.fromEntries(
-					Object.entries( currentSettings.current ).filter(
-						( [ key, value ] ) =>
-							! isEqual( value, submitted[ key ] )
-					)
-				);
-				updateSettings( { ...saved, ...edits } );
+				updateSettings( saved );
 				onResolved( saved );
 				setReview( null );
 				setError( '' );
