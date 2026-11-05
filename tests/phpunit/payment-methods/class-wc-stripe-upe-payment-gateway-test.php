@@ -3090,28 +3090,50 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function test_process_checkout_session_redirect_redirects_clean_when_webhook_holds_lock() {
 		[ $order ] = $this->create_order_with_checkout_session( 'cs_test_locked' );
-		// The webhook has settled the retry by the time the handler checks, so the order is paid.
-		$order->set_status( OrderStatus::PROCESSING );
+		// A declined earlier attempt leaves the order Failed, so the paid-order shortcut does not apply.
+		$order->set_status( OrderStatus::FAILED );
 		$order->save();
+		$order_id = $order->get_id();
 
 		// The settlement webhook holds the lock, so lock_order_payment() reports it as locked.
 		$order_helper = $this->createPartialMock( WC_Stripe_Order_Helper::class, [ 'lock_order_payment', 'unlock_order_payment' ] );
-		$order_helper->method( 'lock_order_payment' )->willReturn( true );
+		$order_helper->expects( $this->once() )->method( 'lock_order_payment' )->willReturn( true );
 		WC_Stripe_Order_Helper::set_instance( $order_helper );
 
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'get_return_url', 'stripe_request', 'sleep_between_settlement_checks' ] )
+			->getMock();
+		$gateway->method( 'get_return_url' )->willReturn( self::MOCK_RETURN_URL );
 		// No Stripe API call runs on the locked branch.
-		$this->mock_gateway->expects( $this->never() )->method( 'stripe_request' );
+		$gateway->expects( $this->never() )->method( 'stripe_request' );
+		// Settling the order sends order emails, and rendering their totals fetches the Checkout
+		// Session. Turn them off so the stripe_request() check above covers only the handler.
+		add_filter( 'woocommerce_email_enabled_customer_processing_order', '__return_false' );
+		add_filter( 'woocommerce_email_enabled_new_order', '__return_false' );
+		// The webhook settles the order while the handler waits between checks.
+		$gateway->expects( $this->once() )
+			->method( 'sleep_between_settlement_checks' )
+			->willReturnCallback(
+				function () use ( $order_id ) {
+					$settled = wc_get_order( $order_id );
+					$settled->set_status( OrderStatus::PROCESSING );
+					$settled->save();
+				}
+			);
 
 		$captured = null;
 		$this->intercept_wp_redirect( $captured );
 
 		try {
-			$this->mock_gateway->process_checkout_session_redirect( $order->get_id() );
+			$gateway->process_checkout_session_redirect( $order_id );
 			$this->fail( 'Expected redirect to be triggered' );
 		} catch ( \RuntimeException $e ) {
 			$this->assertSame( 'redirect_intercepted', $e->getMessage() );
 		} finally {
 			remove_all_filters( 'wp_redirect' );
+			remove_filter( 'woocommerce_email_enabled_customer_processing_order', '__return_false' );
+			remove_filter( 'woocommerce_email_enabled_new_order', '__return_false' );
 		}
 
 		$this->assertSame( self::MOCK_RETURN_URL_AFTER_REDIRECT, $captured );
