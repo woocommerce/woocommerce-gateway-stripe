@@ -1,11 +1,7 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 11.2.0
-* Update - Rebuild Classic wallet wrappers without restarting supported browser frames
-* Update - Reuse the mounted express checkout buttons on cart and checkout updates instead of re-creating them on every totals refresh, and defer refreshes while the wallet sheet is open
-* Update - Start express checkout button initialization earlier on classic checkout
-* Tweak - Reduce duplicate wallet availability checks when loading express checkout buttons on Cart and Checkout blocks
-* Fix - Restore express checkout after a failed order update and prepare wallet buttons before revealing them on classic checkout
+* Update - Improve express checkout wallet startup, availability checks, reuse, and recovery
 * Fix - Refund or void a Stripe payment that succeeds for an order that was already cancelled, instead of leaving the shopper charged
 * Fix - Skip Inbox Note initialization during admin-ajax requests to avoid unnecessary database queries
 * Fix - Rebuild a mode's webhook on update when an earlier "Reconfigure webhooks" click registered it in the wrong mode, which had left webhooks failing in both live and test
