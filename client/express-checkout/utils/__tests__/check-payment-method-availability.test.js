@@ -6,8 +6,11 @@ jest.mock( 'react-dom/client', () => ( {
 } ) );
 
 // Babel's timer polyfill captures native timers before Jest installs fake ones.
-jest.mock( '@babel/runtime-corejs3/core-js-stable/set-timeout', () => ( ...args ) =>
-	Reflect.get( globalThis, 'setTimeout' )( ...args )
+jest.mock(
+	'@babel/runtime-corejs3/core-js-stable/set-timeout',
+	() =>
+		( ...args ) =>
+			Reflect.get( global, 'setTimeout' )( ...args )
 );
 
 describe( 'checkPaymentMethodIsAvailable', () => {
@@ -101,7 +104,9 @@ describe( 'checkPaymentMethodIsAvailable', () => {
 			jest.useFakeTimers();
 			try {
 				if ( stalledAt === 'loader' ) {
-					api.loadStripe.mockReturnValueOnce( new Promise( () => {} ) );
+					api.loadStripe.mockReturnValueOnce(
+						new Promise( () => {} )
+					);
 				}
 				const completed = jest.fn();
 				const result = Promise.all( checkWallets() ).then( completed );
@@ -111,7 +116,11 @@ describe( 'checkPaymentMethodIsAvailable', () => {
 				expect( createRoot ).toHaveBeenCalledTimes( 1 );
 				await jest.advanceTimersByTimeAsync( 1 );
 				// The assertions observe settlement without hanging on an unbounded promise.
-				expect( completed ).toHaveBeenCalledWith( [ false, false, false ] );
+				expect( completed ).toHaveBeenCalledWith( [
+					false,
+					false,
+					false,
+				] );
 				await result;
 				await jest.advanceTimersByTimeAsync( 1 );
 				expect( unmount ).toHaveBeenCalledTimes( 1 );
@@ -121,8 +130,16 @@ describe( 'checkPaymentMethodIsAvailable', () => {
 				ready( { applePay: true, googlePay: true, link: true } );
 				getRenderedExpressCheckoutElement().props.onLoadError();
 				ready( { applePay: true, googlePay: true, link: true }, 1 );
-				expect( await Promise.all( retry ) ).toEqual( [ true, true, true ] );
-				expect( await Promise.all( checkWallets() ) ).toEqual( [ true, true, true ] );
+				expect( await Promise.all( retry ) ).toEqual( [
+					true,
+					true,
+					true,
+				] );
+				expect( await Promise.all( checkWallets() ) ).toEqual( [
+					true,
+					true,
+					true,
+				] );
 				expect( createRoot ).toHaveBeenCalledTimes( 2 );
 				await jest.advanceTimersByTimeAsync( 1 );
 				expect( jest.getTimerCount() ).toBe( 0 );
@@ -301,6 +318,72 @@ describe( 'checkPaymentMethodIsAvailable', () => {
 		expect( getRenderedElements( 1 ).props.options.amount ).toBe( 2000 );
 		ready( { amazonPay: false }, 1 );
 		expect( await second ).toBe( false );
+	} );
+
+	it( 'bounds Amazon amount history without evicting the shared card-wallet result', async () => {
+		const cards = checkWallets();
+		ready( { applePay: true, googlePay: true, link: true } );
+		await Promise.all( cards );
+		for ( let amount = 1; amount <= 21; amount++ ) {
+			const result = checkPaymentMethodIsAvailable(
+				'amazonPay',
+				api,
+				hydratedCart( { total_price: String( amount ) } )
+			);
+			ready( { amazonPay: true }, render.mock.calls.length - 1 );
+			expect( await result ).toBe( true );
+		}
+		const renders = render.mock.calls.length;
+		expect(
+			await checkPaymentMethodIsAvailable(
+				'amazonPay',
+				api,
+				hydratedCart( { total_price: '21' } )
+			)
+		).toBe( true );
+		expect( await Promise.all( checkWallets() ) ).toEqual( [
+			true,
+			true,
+			true,
+		] );
+		expect( render ).toHaveBeenCalledTimes( renders );
+		const oldAmount = checkPaymentMethodIsAvailable(
+			'amazonPay',
+			api,
+			hydratedCart( { total_price: '1' } )
+		);
+		expect( render ).toHaveBeenCalledTimes( renders + 1 );
+		ready( { amazonPay: false }, renders );
+		expect( await oldAmount ).toBe( false );
+	} );
+
+	it( 'does not let an evicted Amazon failure delete a replacement probe', async () => {
+		const cart = hydratedCart( { total_price: '1' } );
+		const evicted = checkPaymentMethodIsAvailable( 'amazonPay', api, cart );
+		for ( let amount = 2; amount <= 21; amount++ ) {
+			const result = checkPaymentMethodIsAvailable(
+				'amazonPay',
+				api,
+				hydratedCart( { total_price: String( amount ) } )
+			);
+			ready( { amazonPay: true }, render.mock.calls.length - 1 );
+			await result;
+		}
+		const replacement = checkPaymentMethodIsAvailable(
+			'amazonPay',
+			api,
+			cart
+		);
+		expect( render ).toHaveBeenCalledTimes( 22 );
+		getRenderedExpressCheckoutElement().props.onLoadError();
+		expect( await evicted ).toBe( false );
+		const shared = checkPaymentMethodIsAvailable( 'amazonPay', api, cart );
+		expect( render ).toHaveBeenCalledTimes( 22 );
+		ready( { amazonPay: true }, 21 );
+		expect( await Promise.all( [ replacement, shared ] ) ).toEqual( [
+			true,
+			true,
+		] );
 	} );
 
 	it.each( [

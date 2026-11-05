@@ -17,6 +17,7 @@ import { transformPriceWithMinorUnits } from 'wcstripe/express-checkout/transfor
 
 const availabilityProbes = new Map();
 const PROBE_TIMEOUT_MS = 15000;
+const MAX_CACHED_AMAZON_PAY_PROBES = 20;
 
 const getPaymentMethodsToProbe = ( paymentMethod ) => {
 	const config = getBlocksConfiguration();
@@ -193,9 +194,13 @@ export const checkPaymentMethodIsAvailable = async (
 	};
 
 	if ( ! availabilityProbes.has( api ) ) {
-		availabilityProbes.set( api, new Map() );
+		availabilityProbes.set( api, {
+			card: new Map(),
+			amazonPay: new Map(),
+		} );
 	}
-	const probes = availabilityProbes.get( api );
+	const probes =
+		availabilityProbes.get( api )[ isAmazonPay ? 'amazonPay' : 'card' ];
 	const cacheOptions = { ...elementsOptions };
 	// Cart total changes do not affect card wallet availability, so leave it out of the key.
 	if ( ! isAmazonPay ) {
@@ -209,12 +214,19 @@ export const checkPaymentMethodIsAvailable = async (
 			paymentMethods
 		).then( ( availablePaymentMethods ) => {
 			// Errors are not cached, so a later call retries. An empty result is cached.
-			if ( availablePaymentMethods === null ) {
+			if (
+				availablePaymentMethods === null &&
+				probes.get( key ) === probe
+			) {
 				probes.delete( key );
 			}
 			return availablePaymentMethods;
 		} );
 		probes.set( key, probe );
+		// Amount-sensitive Amazon results must not grow forever or evict card discovery.
+		if ( isAmazonPay && probes.size > MAX_CACHED_AMAZON_PAY_PROBES ) {
+			probes.delete( probes.keys().next().value );
+		}
 	}
 
 	return probes
