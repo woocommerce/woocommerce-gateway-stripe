@@ -3177,6 +3177,40 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * order_is_paid() ends the settlement wait for every status the redirect handler treats as
+	 * settled, including on-hold, which the webhook sets for a pending or held charge.
+	 *
+	 * @param string $status   The order status.
+	 * @param bool   $expected Whether the wait should treat the order as settled.
+	 * @dataProvider provide_order_is_paid_statuses
+	 */
+	public function test_order_is_paid_treats_settled_statuses_as_paid( string $status, bool $expected ) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( $status );
+		$order->save();
+
+		$method = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'order_is_paid' );
+		$method->setAccessible( true );
+
+		$this->assertSame( $expected, $method->invoke( $this->mock_gateway, $order->get_id() ) );
+	}
+
+	/**
+	 * Provides order statuses and whether the settlement wait treats them as settled.
+	 *
+	 * @return array
+	 */
+	public function provide_order_is_paid_statuses(): array {
+		return [
+			'processing' => [ OrderStatus::PROCESSING, true ],
+			'completed'  => [ OrderStatus::COMPLETED, true ],
+			'on-hold'    => [ OrderStatus::ON_HOLD, true ],
+			'failed'     => [ OrderStatus::FAILED, false ],
+			'pending'    => [ OrderStatus::PENDING, false ],
+		];
+	}
+
+	/**
 	 * wait_for_checkout_session_settlement() returns true as soon as the order reaches a paid
 	 * status, sleeping between checks until then.
 	 */

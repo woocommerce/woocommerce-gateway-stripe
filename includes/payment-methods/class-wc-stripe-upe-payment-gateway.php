@@ -2901,7 +2901,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Reports whether the order is paid, with each call reloading the order details from the database.
 	 * The full reload is needed to ensure that we detect changes from other requests.
-	 * The main is paid logic fully relies on `WC_Order->is_paid()`.
+	 * Uses `WC_Order->is_paid()`, plus on-hold: the webhook holds an order whose charge is still
+	 * pending or needs review, and the redirect handler treats on-hold as settled too.
 	 *
 	 * @param int $order_id The order id.
 	 * @return bool
@@ -2918,7 +2919,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$order = wc_get_order( $order_id );
 
-		return $order instanceof WC_Order && $order->is_paid();
+		return $order instanceof WC_Order
+			&& ( $order->is_paid() || $order->has_status( OrderStatus::ON_HOLD ) );
 	}
 
 	/**
