@@ -8,6 +8,8 @@ use Automattic\WooCommerce\Blocks\Package;
  * WC_REST_Stripe_Settings_Controller_Test unit tests.
  */
 class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
+	use WC_Stripe_Tracks_Capture_Trait;
+
 	/**
 	 * Tested REST route.
 	 */
@@ -910,6 +912,63 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		return [
 			[ true, [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::GOOGLE_PAY ], [] ],
 			[ false, [], [ WC_Stripe_Payment_Methods::GOOGLE_PAY, WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::AMAZON_PAY ] ],
+		];
+	}
+
+	/**
+	 * Turning Optimized Checkout or Adaptive Pricing on or off records the matching Tracks event,
+	 * and saving the same value again records nothing.
+	 *
+	 * @dataProvider provide_oc_ap_toggle_tracks_events
+	 *
+	 * @param string      $rest_key       REST API key.
+	 * @param string      $option_name    Gateway option name.
+	 * @param string      $initial_value  Option value before the request.
+	 * @param bool        $new_value      Value sent in the request.
+	 * @param string|null $expected_event Prefixed Tracks event name, or null when no event is expected.
+	 */
+	public function test_oc_ap_toggle_records_tracks_event( string $rest_key, string $option_name, string $initial_value, bool $new_value, ?string $expected_event ): void {
+		$this->get_gateway()->update_option( $option_name, $initial_value );
+
+		$this->start_capturing_tracks_events();
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( $rest_key, $new_value );
+		$response = rest_do_request( $request );
+		$this->stop_capturing_tracks_events();
+
+		$this->assertSame( 200, $response->get_status() );
+
+		$all_toggle_events = [];
+		foreach ( [ 'wcstripe_oc_enabled', 'wcstripe_oc_disabled', 'wcstripe_ap_enabled', 'wcstripe_ap_disabled' ] as $event_name ) {
+			$events = $this->get_captured_tracks_event_properties( 'wcadmin_' . $event_name );
+			if ( ! empty( $events ) ) {
+				$all_toggle_events[ 'wcadmin_' . $event_name ] = $events;
+			}
+		}
+
+		if ( null === $expected_event ) {
+			$this->assertSame( [], $all_toggle_events );
+			return;
+		}
+
+		$this->assertSame( [ $expected_event ], array_keys( $all_toggle_events ) );
+		$this->assertCount( 1, $all_toggle_events[ $expected_event ] );
+		$this->assertSame( 'settings_rest_api', $all_toggle_events[ $expected_event ][0]['source'] );
+	}
+
+	/**
+	 * Data provider for `test_oc_ap_toggle_records_tracks_event`.
+	 *
+	 * @return array
+	 */
+	public function provide_oc_ap_toggle_tracks_events(): array {
+		return [
+			'OC turned on'  => [ 'is_oc_enabled', 'optimized_checkout_element', 'no', true, 'wcadmin_wcstripe_oc_enabled' ],
+			'OC turned off' => [ 'is_oc_enabled', 'optimized_checkout_element', 'yes', false, 'wcadmin_wcstripe_oc_disabled' ],
+			'OC unchanged'  => [ 'is_oc_enabled', 'optimized_checkout_element', 'yes', true, null ],
+			'AP turned on'  => [ 'is_ap_enabled', 'adaptive_pricing', 'no', true, 'wcadmin_wcstripe_ap_enabled' ],
+			'AP turned off' => [ 'is_ap_enabled', 'adaptive_pricing', 'yes', false, 'wcadmin_wcstripe_ap_disabled' ],
+			'AP unchanged'  => [ 'is_ap_enabled', 'adaptive_pricing', 'no', false, null ],
 		];
 	}
 
