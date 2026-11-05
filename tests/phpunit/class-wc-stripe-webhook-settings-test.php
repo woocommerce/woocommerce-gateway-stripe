@@ -435,13 +435,16 @@ class WC_Stripe_Webhook_Settings_Test extends WP_UnitTestCase {
 		$previous                     = WC_Stripe_Helper::get_stripe_settings();
 		$candidate                    = $previous;
 		$candidate['test_secret_key'] = 'sk_test_new';
-		$filter                       = static function () use ( $response ) {
+		$filter                       = static function ( $preempt, $args ) use ( $response ) {
+			if ( 'DELETE' !== $args['method'] ) {
+				return $preempt;
+			}
 			return [
 				'response' => [ 'code' => 200 ],
 				'body'     => wp_json_encode( $response ),
 			];
 		};
-		add_filter( 'pre_http_request', $filter, 20 );
+		add_filter( 'pre_http_request', $filter, 20, 2 );
 		$result = $this->webhook_settings->decommission_for_key_change( $previous, $candidate, [ 'test' ] );
 		remove_filter( 'pre_http_request', $filter, 20 );
 		$expected_data           = $previous['test_webhook_data'];
@@ -449,8 +452,8 @@ class WC_Stripe_Webhook_Settings_Test extends WP_UnitTestCase {
 		$this->assertSame( $cleared ? [] : $expected_data, $result['test_webhook_data'] );
 		$this->assertSame( $cleared ? '' : 'whsec_old', $result['test_webhook_secret'] );
 		$this->assertSame( $previous, WC_Stripe_Helper::get_stripe_settings() );
-		$this->assertSame( [ 'DELETE' ], array_column( $this->requests, 'method' ) );
-		$this->assertSame( 'sk_test_current', $this->requests[0]['key'] );
+		$this->assertSame( [ 'GET', 'DELETE' ], array_column( $this->requests, 'method' ) );
+		$this->assertSame( [ 'sk_test_current', 'sk_test_current' ], array_column( $this->requests, 'key' ) );
 		$this->assertSame( 'sk_test_current', WC_Stripe_API::get_secret_key() );
 	}
 
@@ -461,6 +464,54 @@ class WC_Stripe_Webhook_Settings_Test extends WP_UnitTestCase {
 			'rate limited'           => [ [ 'error' => [ 'code' => 'rate_limit' ] ], false ],
 			'authentication failure' => [ [ 'error' => [ 'code' => 'authentication_error' ] ], false ],
 		];
+	}
+
+	/** @dataProvider provide_decommission_lookups */
+	public function test_decommission_checks_endpoint_ownership( $mode, $change, $response, $cleared ) {
+		$prefix                              = 'test' === $mode ? 'test_' : '';
+		$other_prefix                        = 'test' === $mode ? '' : 'test_';
+		$previous                            = WC_Stripe_Helper::get_stripe_settings();
+		$candidate                           = $previous;
+		$candidate[ $prefix . 'secret_key' ] = 'disconnect' === $change ? '' : 'sk_' . $mode . '_new';
+		$this->lookup_error                  = is_wp_error( $response ) ? $response : [
+			'response' => [ 'code' => 200 ],
+			'body'     => wp_json_encode( $response ),
+		];
+
+		$result                  = $this->webhook_settings->decommission_for_key_change( $previous, $candidate, [ $mode ] );
+		$expected_data           = $previous[ $prefix . 'webhook_data' ];
+		$expected_data['secret'] = $previous[ $prefix . 'secret_key' ];
+		$this->assertSame( $cleared ? [] : $expected_data, $result[ $prefix . 'webhook_data' ] );
+		$this->assertSame( $cleared ? '' : 'whsec_old', $result[ $prefix . 'webhook_secret' ] );
+		$this->assertSame( $candidate[ $prefix . 'secret_key' ], $result[ $prefix . 'secret_key' ] );
+		$this->assertSame( $previous[ $other_prefix . 'webhook_data' ], $result[ $other_prefix . 'webhook_data' ] );
+		$this->assertSame( $previous[ $other_prefix . 'webhook_secret' ], $result[ $other_prefix . 'webhook_secret' ] );
+		$this->assertSame( $previous, WC_Stripe_Helper::get_stripe_settings() );
+		$this->assertSame( [ 'GET' ], array_column( $this->requests, 'method' ) );
+		$this->assertSame( 'we_old', $this->requests[0]['id'] );
+		$this->assertSame( $previous[ $prefix . 'secret_key' ], $this->requests[0]['key'] );
+		$this->assertSame( 'sk_test_current', WC_Stripe_API::get_secret_key() );
+	}
+
+	public function provide_decommission_lookups() {
+		$cases     = [];
+		$responses = [
+			'foreign endpoint'       => [ [ 'url' => 'https://production.example.test/?wc-api=wc_stripe' ], true ],
+			'missing endpoint'       => [ [ 'error' => [ 'code' => 'resource_missing' ] ], true ],
+			'invalid response'       => [ [], false ],
+			'missing URL'            => [ [ 'id' => 'we_old' ], false ],
+			'authentication failure' => [ [ 'error' => [ 'code' => 'api_key_expired' ] ], false ],
+			'rate limited'           => [ [ 'error' => [ 'code' => 'rate_limit' ] ], false ],
+			'network failure'        => [ new WP_Error( 'http_request_failed', 'Network error' ), false ],
+		];
+		foreach ( [ 'live', 'test' ] as $mode ) {
+			foreach ( [ 'reconnect', 'disconnect' ] as $change ) {
+				foreach ( $responses as $name => [ $response, $cleared ] ) {
+					$cases[ "$mode $change $name" ] = [ $mode, $change, $response, $cleared ];
+				}
+			}
+		}
+		return $cases;
 	}
 
 	public function test_missing_credentials_skip_without_using_the_other_mode() {

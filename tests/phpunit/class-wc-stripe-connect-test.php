@@ -530,7 +530,8 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			$this->assertSame( $new_key, $settings[ $prefix . 'webhook_data' ]['secret'] );
 			$this->assertContains( [ 'POST', WC_Stripe_API::ENDPOINT . 'webhook_endpoints', $new_auth ], $requests );
 			if ( $expired_key ) {
-				$this->assertSame( [ 'DELETE', WC_Stripe_API::ENDPOINT . 'webhook_endpoints/we_old', $old_auth ], $requests[0] );
+				$this->assertSame( [ 'GET', WC_Stripe_API::ENDPOINT . 'webhook_endpoints/we_old', $old_auth ], $requests[0] );
+				$this->assertNotContains( 'DELETE', array_column( $requests, 0 ) );
 			}
 
 			WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Webhook_Settings::WEBHOOK_STATUS_CACHE_KEY, $mode );
@@ -911,8 +912,14 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		add_filter(
 			'pre_http_request',
 			function ( $preempt, $args, $url ) use ( $requests, $fails, $mode ) {
-				if ( 'DELETE' !== $args['method'] || false === strpos( $url, '/webhook_endpoints/' ) ) {
+				if ( false === strpos( $url, '/webhook_endpoints/' ) ) {
 					return $preempt;
+				}
+				if ( 'GET' === $args['method'] ) {
+					return [
+						'response' => [ 'code' => 200 ],
+						'body'     => wp_json_encode( [ 'url' => WC_Stripe_Helper::get_webhook_url() ] ),
+					];
 				}
 				$requests->calls[] = [ basename( $url ), WC_Stripe_API::get_secret_key(), WC_Stripe_Helper::get_stripe_settings()[ 'test' === $mode ? 'test_secret_key' : 'secret_key' ] ];
 				if ( $fails ) {
