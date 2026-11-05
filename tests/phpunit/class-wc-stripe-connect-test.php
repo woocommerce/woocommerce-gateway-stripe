@@ -69,17 +69,21 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * Installation persists settings before OAuth. First-connection defaults must
 	 * still apply without overwriting saved preferences or bypassing AP eligibility.
 	 *
-	 * @param bool   $marker_set       Whether the OCS install marker is set before save.
-	 * @param string $type             Connection type ('connect' or 'app').
-	 * @param string $account_country  Country of the connected Stripe account.
-	 * @param string $expected_oc      Expected value of optimized_checkout_element after save.
-	 * @param string $expected_ap      Expected value of adaptive_pricing after save.
-	 * @param array  $preferences      Preferences saved before the first connection.
-	 * @param bool   $webhook_enabled  Whether the configured webhook is enabled.
+	 * @param bool        $marker_set      Whether the OCS install marker is set before save.
+	 * @param string      $type            Connection type ('connect' or 'app').
+	 * @param string      $account_country Country of the connected Stripe account.
+	 * @param string      $expected_oc     Expected value of optimized_checkout_element after save.
+	 * @param string      $expected_ap     Expected value of adaptive_pricing after save.
+	 * @param string|null $expected_event  Prefixed AP default Tracks event name, or null when none is expected.
+	 * @param string|null $expected_reason Expected `reason` property of the event, or null when none is expected.
+	 * @param array       $preferences     Preferences saved before the first connection.
+	 * @param bool        $webhook_enabled Whether the configured webhook is enabled.
 	 *
 	 * @dataProvider provide_save_stripe_keys_defaults_ocs_for_new_installs
 	 */
-	public function test_save_stripe_keys_defaults_ocs_and_adaptive_pricing_for_new_installs( bool $marker_set, string $type, string $account_country, string $expected_oc, string $expected_ap, array $preferences = [], bool $webhook_enabled = true ): void {
+	public function test_save_stripe_keys_defaults_ocs_and_adaptive_pricing_for_new_installs( bool $marker_set, string $type, string $account_country, string $expected_oc, string $expected_ap, ?string $expected_event, ?string $expected_reason, array $preferences = [], bool $webhook_enabled = true ): void {
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+
 		$account = $this->getMockBuilder( WC_Stripe_Account::class )
 			->disableOriginalConstructor()
 			->onlyMethods( [ 'get_cached_account_data', 'maybe_decommission_webhook', 'configure_webhooks', 'clear_cache', 'is_webhook_enabled', 'maybe_reconfigure_webhooks_on_update' ] )
@@ -112,12 +116,28 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			if ( ! $marker_set ) {
 				delete_option( 'wc_stripe_optimized_checkout_default_on' );
 			}
+			$this->start_capturing_tracks_events();
 			$method->invoke( $this->connect, $result, $type, 'test' );
 		} finally {
+			$this->stop_capturing_tracks_events();
 			remove_filter( 'pre_update_option_woocommerce_stripe_settings', [ $stripe, 'gateway_settings_update' ] );
 		}
 
 		$settings = WC_Stripe_Helper::get_stripe_settings();
+
+		$ap_default_events = array_merge(
+			$this->get_captured_tracks_event_properties( 'wcadmin_wcstripe_ap_default_enabled' ),
+			$this->get_captured_tracks_event_properties( 'wcadmin_wcstripe_ap_default_skipped' )
+		);
+		if ( null === $expected_event ) {
+			$this->assertSame( [], $ap_default_events );
+		} else {
+			$events = $this->get_captured_tracks_event_properties( $expected_event );
+			$this->assertCount( 1, $ap_default_events );
+			$this->assertCount( 1, $events );
+			$this->assertSame( 'connect', $events[0]['source'] );
+			$this->assertSame( $expected_reason, $events[0]['reason'] ?? null );
+		}
 
 		$this->assertSame( $expected_oc, $settings['optimized_checkout_element'] ?? '' );
 		$this->assertSame( $expected_ap, $settings['adaptive_pricing'] ?? '' );
@@ -138,6 +158,8 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'account_country' => 'US',
 				'expected_oc'     => 'yes',
 				'expected_ap'     => 'yes',
+				'expected_event'  => 'wcadmin_wcstripe_ap_default_enabled',
+				'expected_reason' => null,
 			],
 			'marker set + connect type + India account defaults OCS only'      => [
 				'marker_set'      => true,
@@ -145,6 +167,8 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'account_country' => 'IN',
 				'expected_oc'     => 'yes',
 				'expected_ap'     => '',
+				'expected_event'  => 'wcadmin_wcstripe_ap_default_skipped',
+				'expected_reason' => 'account-country',
 			],
 			'marker set + app type leaves both unset'                          => [
 				'marker_set'      => true,
@@ -152,6 +176,8 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'account_country' => 'US',
 				'expected_oc'     => '',
 				'expected_ap'     => '',
+				'expected_event'  => null,
+				'expected_reason' => null,
 			],
 			'no marker + connect type leaves both unset'                       => [
 				'marker_set'      => false,
@@ -159,6 +185,8 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'account_country' => 'US',
 				'expected_oc'     => '',
 				'expected_ap'     => '',
+				'expected_event'  => null,
+				'expected_reason' => null,
 			],
 			'explicit AP off preserves OCS onboarding default'                 => [
 				true,
@@ -166,6 +194,8 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'US',
 				'yes',
 				'no',
+				null,
+				null,
 				[ 'adaptive_pricing' => 'no' ],
 			],
 			'explicit OCS off and AP on are preserved'                         => [
@@ -174,6 +204,8 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'US',
 				'no',
 				'yes',
+				null,
+				null,
 				[
 					'optimized_checkout_element' => 'no',
 					'adaptive_pricing'           => 'yes',
@@ -185,6 +217,8 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'US',
 				'no',
 				'no',
+				null,
+				null,
 				[
 					'optimized_checkout_element' => 'no',
 					'adaptive_pricing'           => 'no',
@@ -196,6 +230,8 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'US',
 				'yes',
 				'',
+				'wcadmin_wcstripe_ap_default_skipped',
+				'webhooks-disabled',
 				[],
 				false,
 			],
@@ -205,6 +241,8 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'US',
 				'yes',
 				'',
+				'wcadmin_wcstripe_ap_default_skipped',
+				'manual-capture',
 				[ 'capture' => 'no' ],
 			],
 		];

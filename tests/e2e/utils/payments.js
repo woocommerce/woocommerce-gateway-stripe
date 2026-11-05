@@ -684,10 +684,22 @@ export const fillACHBankDetails = async ( page ) => {
 		.frameLocator( 'iframe[name^="__privateStripeFrame"]' )
 		.first();
 
-	// Click Agree and Continue button
+	// On the Link sign-in screen, `agree-button` starts a sign-up that needs a phone.
 	let button = frame.getByTestId( 'agree-button' );
 	await expect( button ).toBeVisible();
+	const guestButton = frame.getByTestId(
+		'pre-auth-networking-and-consent-guest'
+	);
+	if ( await guestButton.isVisible() ) {
+		button = guestButton;
+	}
 	await button.click();
+
+	// Stripe's test bank UI lists accounts as radios, or as buttons in its
+	// earlier version. The anchored prefix keeps "Success (Later Disputed)" out.
+	const successAccount = frame
+		.getByRole( 'radio', { name: /^Success ••••/ } )
+		.or( frame.getByRole( 'button', { name: 'Success ••••' } ) );
 
 	// Link registration button may or may not appear.
 	await Promise.race( [
@@ -697,9 +709,7 @@ export const fillACHBankDetails = async ( page ) => {
 			.then( async () => {
 				await frame.getByTestId( 'link-not-now-button' ).click();
 			} ),
-		frame
-			.getByRole( 'button', { name: 'Success ••••' } )
-			.waitFor( { state: 'visible' } ),
+		successAccount.waitFor( { state: 'visible' } ),
 		frame
 			.getByTestId( 'continue-button' )
 			.waitFor( { state: 'visible' } )
@@ -708,13 +718,15 @@ export const fillACHBankDetails = async ( page ) => {
 			} ),
 	] );
 
-	// Click "Success ••••" account
-	button = frame.getByRole( 'button', { name: 'Success ••••' } );
-	await expect( button ).toBeVisible();
-	await button.click();
+	// Select the "Success ••••" account. Clicking is a no-op when the radio
+	// is already preselected, which the current test bank does.
+	await expect( successAccount ).toBeVisible();
+	await successAccount.click();
 
 	// Click Connect account button
-	button = frame.getByTestId( 'select-button' );
+	button = frame
+		.getByTestId( 'select-button' )
+		.or( frame.getByRole( 'button', { name: 'Connect account' } ) );
 	await expect( button ).toBeVisible();
 	await button.click();
 
