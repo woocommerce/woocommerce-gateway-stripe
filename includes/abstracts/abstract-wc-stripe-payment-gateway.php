@@ -2857,9 +2857,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Update the saved payment method information with updated billing values.
 	 *
-	 * The signature must stay as it is: subclasses that override this method with two parameters
-	 * fatal on PHP 8 if a parameter is added here.
-	 *
 	 * @deprecated 11.2.0 Use update_saved_payment_method_address() instead.
 	 *
 	 * @param string       $payment_method_id The payment method to update.
