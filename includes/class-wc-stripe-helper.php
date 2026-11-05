@@ -44,11 +44,31 @@ class WC_Stripe_Helper {
 	public const OFFICIAL_PLUGIN_ID_KLARNA = 'klarna_payments';
 
 	/**
+	 * The Stripe.js version this plugin ships and is tested against. The checkout
+	 * client only runs Checkout Sessions on this exact build, so bump it together
+	 * with the `@stripe/stripe-js` release train in package.json.
+	 *
+	 * @var string
+	 */
+	private const STRIPE_JS_VERSION = 'dahlia';
+
+	/**
 	 * The Stripe.js SDK URL, pinned to a named major release.
 	 *
 	 * @var string
 	 */
-	protected const STRIPE_JS_URL = 'https://js.stripe.com/dahlia/stripe.js';
+	protected const STRIPE_JS_URL = 'https://js.stripe.com/' . self::STRIPE_JS_VERSION . '/stripe.js';
+
+	/**
+	 * Returns the Stripe.js version this plugin ships, for example 'dahlia'.
+	 *
+	 * @since x.x.x
+	 *
+	 * @return string
+	 */
+	public static function get_stripe_js_version(): string {
+		return self::STRIPE_JS_VERSION;
+	}
 
 	/**
 	 * List of legacy Stripe gateways.
@@ -1341,6 +1361,37 @@ class WC_Stripe_Helper {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Records a Tracks event when the plugin decides by itself whether to turn Adaptive Pricing on,
+	 * without a merchant action. Merchant changes in the settings are tracked separately.
+	 *
+	 * @internal
+	 * @since x.x.x
+	 *
+	 * @param string      $source         The flow that made the decision, e.g. 'connect' or 'ocs_ap_default_on'.
+	 * @param string|null $skipped_reason Why Adaptive Pricing was left off, or null when it was turned on.
+	 * @return void
+	 */
+	public static function record_adaptive_pricing_default_tracks_event( string $source, ?string $skipped_reason = null ): void {
+		if ( ! function_exists( 'wc_admin_record_tracks_event' ) ) {
+			return;
+		}
+
+		$properties = [
+			'test_mode' => WC_Stripe_Mode::is_test() ? 1 : 0,
+			'source'    => $source,
+		];
+
+		if ( null !== $skipped_reason ) {
+			$properties['reason'] = $skipped_reason;
+		}
+
+		wc_admin_record_tracks_event(
+			null === $skipped_reason ? 'wcstripe_ap_default_enabled' : 'wcstripe_ap_default_skipped',
+			$properties
+		);
 	}
 
 	/**
