@@ -535,9 +535,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// async init chunk; sourcing the list from the build keeps it in sync.
 		$upe_params['scriptDependencies'] = $dependencies;
 
-		// Wallets can initialize before deferred checkout scripts. Publish the same
-		// filtered configuration there so shared Stripe options and checkout mode agree.
-		// Keep the original localization for pages that dequeue the wallet script later.
+		// The wallet script can run before the checkout script, so it needs the same settings.
 		if ( wp_script_is( 'wc_stripe_express_checkout', 'enqueued' ) ) {
 			wp_localize_script( 'wc_stripe_express_checkout', 'wc_stripe_upe_params', $upe_params );
 		}

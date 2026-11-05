@@ -288,8 +288,7 @@ export const verifyOrderChargedAmount = async (
 
 		await expect( stripePayoutElement ).not.toBeEmpty();
 
-		// Zero-fee transactions omit the fee row; their payout must still
-		// reconcile to the captured total.
+		// Zero-fee payments omit the fee row but still need payout reconciliation.
 		let stripeFeeText = '0';
 		if ( await stripeFeeElement.count() ) {
 			await expect( stripeFeeElement ).toContainText( '-' );

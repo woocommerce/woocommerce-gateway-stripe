@@ -528,8 +528,7 @@ export async function setupBlocksCheckout(
 	const stripeMethod = page.locator(
 		"label[for='radio-control-wc-payment-method-options-stripe']"
 	);
-	// Session initialization updates the cart; payment-flow tests start entering
-	// customer data only after that initial synchronization has completed.
+	// Wait for initial cart synchronization so checkout updates cannot reset customer input.
 	if ( options.paymentFrameSelector ) {
 		// A saved token can be selected initially, leaving the new-card frame hidden.
 		await stripeMethod.click();

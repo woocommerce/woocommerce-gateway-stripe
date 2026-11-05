@@ -28,8 +28,7 @@ const getPaymentMethodsToProbe = ( paymentMethod ) => {
 			config.isAmazonPayEnabled,
 	};
 
-	// Amazon Pay uses a different payment method type and payment method
-	// creation flow, so it cannot share the card wallets' Elements instance.
+	// Amazon Pay needs its own method type and creation flow, so use a separate probe.
 	const isAmazonPay =
 		paymentMethod === EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY;
 	return Object.keys( enabledMethods ).filter(
@@ -79,8 +78,7 @@ const probePaymentMethods = ( api, elementsOptions, paymentMethods ) =>
 			settled = true;
 			resolve( availablePaymentMethods );
 
-			// React can report readiness or a render error during its commit
-			// phase, when synchronously unmounting another root is unsafe.
+			// Defer root cleanup because React may emit readiness or errors during commit.
 			setTimeout( () => {
 				root?.unmount();
 				containerEl.remove();
@@ -90,8 +88,7 @@ const probePaymentMethods = ( api, elementsOptions, paymentMethods ) =>
 
 		try {
 			root = createRoot( containerEl );
-			// A loader failure has no ready/loaderror event. Release the shared
-			// probe so every wallet can retry instead of caching a pending promise.
+			// Release failed loader probes so later wallet checks can retry.
 			const stripe = Promise.resolve( api.loadStripe() ).then(
 				( loaded ) => {
 					if ( ! loaded || loaded.error ) {
@@ -196,8 +193,7 @@ export const checkPaymentMethodIsAvailable = async (
 	}
 	const probes = availabilityProbes.get( api );
 	const cacheOptions = { ...elementsOptions };
-	// Keep card-wallet discovery stable during cart edits; their visible
-	// Elements receive updated payment totals independently.
+	// Cart total changes do not affect card wallet availability, so leave it out of the key.
 	if ( ! isAmazonPay ) {
 		delete cacheOptions.amount;
 	}
@@ -208,8 +204,7 @@ export const checkPaymentMethodIsAvailable = async (
 			elementsOptions,
 			paymentMethods
 		).then( ( availablePaymentMethods ) => {
-			// An error says nothing about wallet availability. An empty ready
-			// result, however, is a successful probe and can be reused.
+			// Errors are not cached, so a later call retries. An empty result is cached.
 			if ( availablePaymentMethods === null ) {
 				probes.delete( key );
 			}

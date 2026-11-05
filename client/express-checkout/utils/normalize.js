@@ -2,8 +2,7 @@ import { applyFilters } from '@wordpress/hooks';
 import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
 import { getStripeServerData } from 'wcstripe/stripe-utils/get-stripe-server-data';
 
-// Registered Blocks stores already have wp.data available. Resolve that runtime
-// only when reading a store so Classic wallets do not wait for the Blocks stack.
+// Load wp.data only when reading Blocks stores so Classic wallets can start early.
 const selectStore = ( store ) => window.wp?.data?.select?.( store );
 
 /**
