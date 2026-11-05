@@ -7130,6 +7130,18 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * The checkout client only runs Checkout Sessions on the Stripe.js version the
+	 * plugin pins, so the params must carry that version name.
+	 */
+	public function test_javascript_params_exposes_the_pinned_stripe_js_version(): void {
+		$gateway = $this->create_gateway_mock_for_javascript_params();
+
+		$params = $gateway->javascript_params();
+
+		$this->assertSame( WC_Stripe_Helper::get_stripe_js_version(), $params['stripeJsVersion'] );
+	}
+
+	/**
 	 * Build a minimal gateway mock suitable for exercising `javascript_params()`.
 	 *
 	 * All instance methods that reach out to Stripe or WooCommerce infrastructure are
