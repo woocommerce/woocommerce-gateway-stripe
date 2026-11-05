@@ -192,5 +192,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Record Tracks events for Adaptive Pricing setting changes, automatic enabling, and notice dismissals, and fix the event recorded when Optimized Checkout is turned off
 * Fix - Disable Adaptive Pricing instead of breaking checkout when another plugin loads a different version of Stripe.js
 * Dev - Fix ACH E2E tests for Stripe's updated test-mode bank account flow
+* Fix - Stop a staging or cloned site from deleting the production site's Stripe webhooks when connecting or disconnecting Stripe
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
