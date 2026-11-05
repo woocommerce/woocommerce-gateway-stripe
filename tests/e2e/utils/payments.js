@@ -699,10 +699,6 @@ export const fillACHBankDetails = async ( page ) => {
 	const frame = page
 		.frameLocator( 'iframe[name^="__privateStripeFrame"]' )
 		.first();
-	// Stripe's test account picker uses radios in newer SDK builds.
-	const successAccount = frame
-		.getByRole( 'radio', { name: /^Success ••••/ } )
-		.or( frame.getByRole( 'button', { name: 'Success ••••' } ) );
 
 	// On the Link sign-in screen, `agree-button` starts a sign-up that needs a phone.
 	let button = frame.getByTestId( 'agree-button' );
@@ -715,8 +711,7 @@ export const fillACHBankDetails = async ( page ) => {
 	}
 	await button.click();
 
-	// Stripe's test bank UI lists accounts as radios, or as buttons in its
-	// earlier version. The anchored prefix keeps "Success (Later Disputed)" out.
+	// Use an anchored prefix to exclude disputed accounts in both test-bank layouts.
 	const successAccount = frame
 		.getByRole( 'radio', { name: /^Success ••••/ } )
 		.or( frame.getByRole( 'button', { name: 'Success ••••' } ) );
@@ -738,7 +733,7 @@ export const fillACHBankDetails = async ( page ) => {
 			} ),
 	] );
 
-	// Check the success account because clicking its preselected radio may do nothing.
+	// Select the success account; its radio may already be selected.
 	await expect( successAccount ).toBeVisible();
 	await successAccount.click();
 
