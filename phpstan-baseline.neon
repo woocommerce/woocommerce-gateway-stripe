@@ -4219,7 +4219,7 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Parameter \#2 \$order of method WC_Stripe_Payment_Gateway\:\:update_saved_payment_method\(\) expects int\|WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			message: '#^Parameter \#2 \$order of method WC_Stripe_Payment_Gateway\:\:update_saved_payment_method_address\(\) expects int\|WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php

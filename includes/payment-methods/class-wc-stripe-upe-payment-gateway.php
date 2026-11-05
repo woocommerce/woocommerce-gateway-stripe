@@ -2054,7 +2054,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			try {
 				// The address update and intent confirmation must remain together so another order cannot replace the AVS address between them.
 				if ( $is_using_saved_payment_method ) {
-					$this->update_saved_payment_method( $payment_method_id, $order, $payment_method );
+					$this->update_saved_payment_method_address( $payment_method_id, $order, $payment_method );
 				}
 
 				if ( $payment_needed ) {

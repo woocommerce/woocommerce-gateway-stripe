@@ -173,7 +173,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'has_pre_order_charged_upon_release',
 					'has_pre_order',
 					'is_pre_order_completed',
-					'update_saved_payment_method',
+					'update_saved_payment_method_address',
 				]
 			)
 			->getMock();
@@ -898,7 +898,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->mock_gateway
 			->expects( $this->never() )
-			->method( 'update_saved_payment_method' );
+			->method( 'update_saved_payment_method_address' );
 
 		$response = $this->mock_gateway->process_payment( $order_id );
 
@@ -1137,7 +1137,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->mock_gateway
 			->expects( $this->never() )
-			->method( 'update_saved_payment_method' );
+			->method( 'update_saved_payment_method_address' );
 
 		$response = $this->mock_gateway->process_payment( $order_id );
 
@@ -1333,7 +1333,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->mock_gateway
 			->expects( $saved_token ? $this->once() : $this->never() )
-			->method( 'update_saved_payment_method' );
+			->method( 'update_saved_payment_method_address' );
 
 		$response   = $this->mock_gateway->process_payment( $order_id );
 		$return_url = self::MOCK_RETURN_URL;
@@ -1411,7 +1411,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->mock_gateway
 			->expects( $this->never() )
-			->method( 'update_saved_payment_method' );
+			->method( 'update_saved_payment_method_address' );
 
 		$response = $this->mock_gateway->process_payment( $order_id );
 
@@ -1478,7 +1478,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->mock_gateway
 			->expects( $this->never() )
-			->method( 'update_saved_payment_method' );
+			->method( 'update_saved_payment_method_address' );
 
 		$response = $this->mock_gateway->process_payment( $order_id );
 
@@ -1545,7 +1545,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->mock_gateway
 			->expects( $this->never() )
-			->method( 'update_saved_payment_method' );
+			->method( 'update_saved_payment_method_address' );
 
 		$response = $this->mock_gateway->process_payment( $order_id );
 
@@ -3827,7 +3827,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->mock_gateway
 			->expects( $this->once() )
-			->method( 'update_saved_payment_method' )
+			->method( 'update_saved_payment_method_address' )
 			->with(
 				$this->equalTo( $payment_method_id ),
 				$this->callback(
@@ -3895,7 +3895,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->mock_gateway
 			->expects( $this->never() )
-			->method( 'update_saved_payment_method' );
+			->method( 'update_saved_payment_method_address' );
 
 		$response     = $this->mock_gateway->process_payment( $order->get_id() );
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
@@ -4019,7 +4019,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->mock_gateway
 			->expects( $this->once() )
-			->method( 'update_saved_payment_method' )
+			->method( 'update_saved_payment_method_address' )
 			->with(
 				$this->equalTo( $payment_method_id ),
 				$this->callback(
@@ -4060,7 +4060,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$lock_option       = $this->get_payment_method_lock_option_name( $payment_method_id );
 
 		$this->mock_gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_mock' );
-		$this->mock_gateway->method( 'update_saved_payment_method' );
+		$this->mock_gateway->method( 'update_saved_payment_method_address' );
 		$this->mock_gateway->intent_controller
 			->method( 'create_and_confirm_payment_intent' )
 			->willThrowException( new WC_Stripe_Exception( 'intent failed', 'intent failed' ) );
@@ -4089,10 +4089,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->mock_gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_mock' );
 		$this->mock_gateway
-			->method( 'update_saved_payment_method' )
+			->method( 'update_saved_payment_method_address' )
 			->willReturnCallback(
 				function () use ( &$calls ) {
-					$calls[] = 'update_saved_payment_method';
+					$calls[] = 'update_saved_payment_method_address';
 				}
 			);
 
@@ -4135,7 +4135,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$response = $this->mock_gateway->process_payment( $order->get_id() );
 
 		$this->assertSame( 'success', $response['result'] );
-		$this->assertSame( [ 'update_saved_payment_method', 'create_and_confirm_payment_intent' ], $calls );
+		$this->assertSame( [ 'update_saved_payment_method_address', 'create_and_confirm_payment_intent' ], $calls );
 	}
 
 	/**
@@ -4203,7 +4203,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->mock_gateway
 			->expects( $this->once() )
-			->method( 'update_saved_payment_method' )
+			->method( 'update_saved_payment_method_address' )
 			->with(
 				$this->equalTo( $payment_method_id ),
 				$this->callback(
@@ -4276,7 +4276,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->mock_gateway
 			->expects( $this->once() )
-			->method( 'update_saved_payment_method' )
+			->method( 'update_saved_payment_method_address' )
 			->with(
 				$this->equalTo( $payment_method_id ),
 				$this->callback(
@@ -4359,7 +4359,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->mock_gateway
 			->expects( $this->once() )
-			->method( 'update_saved_payment_method' )
+			->method( 'update_saved_payment_method_address' )
 			->with(
 				$this->equalTo( $payment_method_id ),
 				$this->callback(
@@ -4464,7 +4464,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->mock_gateway
 			->expects( $this->once() )
-			->method( 'update_saved_payment_method' )
+			->method( 'update_saved_payment_method_address' )
 			->with(
 				$this->equalTo( $payment_method_id ),
 				$this->callback(
@@ -5475,7 +5475,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->mock_gateway
 			->expects( $this->once() )
-			->method( 'update_saved_payment_method' )
+			->method( 'update_saved_payment_method_address' )
 			->with(
 				$this->equalTo( $payment_method_id ),
 				$this->callback(
@@ -8374,7 +8374,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'get_intent_from_order',
 					'has_pre_order_charged_upon_release',
 					'has_pre_order',
-					'update_saved_payment_method',
+					'update_saved_payment_method_address',
 				]
 			)
 			->getMock();
@@ -8535,7 +8535,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'get_intent_from_order',
 					'has_pre_order_charged_upon_release',
 					'has_pre_order',
-					'update_saved_payment_method',
+					'update_saved_payment_method_address',
 				]
 			)
 			->getMock();

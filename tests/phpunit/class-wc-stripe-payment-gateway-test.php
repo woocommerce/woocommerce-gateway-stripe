@@ -2272,7 +2272,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * The saved method's name, email, and phone identify the original cardholder and must not be
 	 * rewritten from the order; only the address (needed for AVS) is sent.
 	 */
-	public function test_update_saved_payment_method_writes_only_the_billing_address() {
+	public function test_update_saved_payment_method_address_writes_only_the_billing_address() {
 		$order = WC_Helper_Order::create_order();
 		$order->set_billing_first_name( 'Someone' );
 		$order->set_billing_last_name( 'Else' );
@@ -2289,7 +2289,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$requests = $this->capture_stripe_requests(
 			function () use ( $order ) {
-				$this->gateway->update_saved_payment_method( 'pm_123', $order );
+				$this->gateway->update_saved_payment_method_address( 'pm_123', $order );
 			}
 		);
 
@@ -2316,10 +2316,45 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Subclasses override the deprecated method with its original two parameters. Adding a
+	 * parameter to it makes those declarations fatal on PHP 8.
+	 *
+	 * @return void
+	 */
+	public function test_update_saved_payment_method_keeps_its_original_signature(): void {
+		$this->assertSame( 2, ( new ReflectionMethod( WC_Stripe_Payment_Gateway::class, 'update_saved_payment_method' ) )->getNumberOfParameters() );
+	}
+
+	/**
+	 * The deprecated method still updates the address, through the new method.
+	 *
+	 * @return void
+	 */
+	public function test_deprecated_update_saved_payment_method_still_updates_the_address(): void {
+		$this->setExpectedDeprecated( 'WC_Stripe_Payment_Gateway::update_saved_payment_method' );
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_billing_address_1( 'WooAddress' );
+		$order->set_billing_country( 'US' );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_customer_id( $order, 'cus_mock' );
+		$order->save();
+
+		$requests = $this->capture_stripe_requests(
+			function () use ( $order ) {
+				$this->gateway->update_saved_payment_method( 'pm_123', $order );
+			}
+		);
+
+		$this->assertCount( 2, $requests );
+		$this->assertSame( 'POST', $requests[1]['method'] );
+		$this->assertSame( 'WooAddress', $requests[1]['body']['billing_details']['address']['line1'] );
+	}
+
+	/**
 	 * A PaymentMethod the caller already retrieved is trusted for the ownership check, so
 	 * checkout does not pay for a second retrieval.
 	 */
-	public function test_update_saved_payment_method_reuses_the_given_payment_method() {
+	public function test_update_saved_payment_method_address_reuses_the_given_payment_method() {
 		$order = WC_Helper_Order::create_order();
 		$order->set_billing_address_1( 'WooAddress' );
 		$order->set_billing_country( 'US' );
@@ -2333,7 +2368,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$requests = $this->capture_stripe_requests(
 			function () use ( $order, $payment_method ) {
-				$this->gateway->update_saved_payment_method( 'pm_123', $order, $payment_method );
+				$this->gateway->update_saved_payment_method_address( 'pm_123', $order, $payment_method );
 			}
 		);
 
@@ -2345,14 +2380,14 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * A PaymentMethod attached to another Stripe customer must not be changed.
 	 */
-	public function test_update_saved_payment_method_skips_customer_mismatch() {
+	public function test_update_saved_payment_method_address_skips_customer_mismatch() {
 		$order = WC_Helper_Order::create_order();
 		WC_Stripe_Order_Helper::get_instance()->update_stripe_customer_id( $order, 'cus_order' );
 		$order->save();
 
 		$requests = $this->capture_stripe_requests(
 			function () use ( $order ) {
-				$this->gateway->update_saved_payment_method( 'pm_123', $order );
+				$this->gateway->update_saved_payment_method_address( 'pm_123', $order );
 			},
 			'cus_other'
 		);
@@ -2363,9 +2398,9 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * @dataProvider provide_update_saved_payment_method_skips
+	 * @dataProvider provide_update_saved_payment_method_address_skips
 	 */
-	public function test_update_saved_payment_method_skips_the_stripe_write( string $payment_method_id, bool $clear_address ) {
+	public function test_update_saved_payment_method_address_skips_the_stripe_write( string $payment_method_id, bool $clear_address ) {
 		$order = WC_Helper_Order::create_order();
 		$order->set_billing_address_1( 'WooAddress' );
 		$order->set_billing_address_2( 'Unit 4' );
@@ -2387,7 +2422,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$requests = $this->capture_stripe_requests(
 			function () use ( $payment_method_id, $order ) {
-				$this->gateway->update_saved_payment_method( $payment_method_id, $order );
+				$this->gateway->update_saved_payment_method_address( $payment_method_id, $order );
 			}
 		);
 
@@ -2395,11 +2430,11 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Data provider for test_update_saved_payment_method_skips_the_stripe_write.
+	 * Data provider for test_update_saved_payment_method_address_skips_the_stripe_write.
 	 *
 	 * @return array
 	 */
-	public function provide_update_saved_payment_method_skips(): array {
+	public function provide_update_saved_payment_method_address_skips(): array {
 		return [
 			'legacy source id'         => [ 'src_123', false ],
 			'order without an address' => [ 'pm_123', true ],

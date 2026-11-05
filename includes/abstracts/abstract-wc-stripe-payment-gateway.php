@@ -2855,16 +2855,35 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Update the saved payment method information with updated billing values.
+	 *
+	 * The signature must stay as it is: subclasses that override this method with two parameters
+	 * fatal on PHP 8 if a parameter is added here.
+	 *
+	 * @deprecated 11.2.0 Use update_saved_payment_method_address() instead.
+	 *
+	 * @param string       $payment_method_id The payment method to update.
+	 * @param WC_Order|int $order             Order object or id.
+	 */
+	public function update_saved_payment_method( $payment_method_id, $order ) {
+		wc_deprecated_function( __METHOD__, '11.2.0', 'WC_Stripe_Payment_Gateway::update_saved_payment_method_address()' );
+		$this->update_saved_payment_method_address( $payment_method_id, $order );
+	}
+
+	/**
 	 * Copies the order's billing address onto a saved payment method in Stripe.
 	 *
 	 * Only the address is written, since the Stripe Address Validation Service needs those details.
-	 *  Name, email, and phone should not be overwritten during checkout.
+	 * Name, email, and phone should not be overwritten during checkout.
+	 *
+	 * @since x.x.x
 	 *
 	 * @param string       $payment_method_id The payment method to update.
 	 * @param WC_Order|int $order             Order object or id.
 	 * @param object|null  $payment_method    The PaymentMethod object when the caller already retrieved it, so the ownership check needs no extra request.
+	 * @return void
 	 */
-	public function update_saved_payment_method( $payment_method_id, $order, $payment_method = null ) {
+	public function update_saved_payment_method_address( $payment_method_id, $order, $payment_method = null ) {
 		$order = ! is_a( $order, 'WC_Order' ) ? wc_get_order( $order ) : $order;
 
 		if ( ! $order instanceof WC_Order || ! $this->is_type_payment_method( $payment_method_id ) ) {
