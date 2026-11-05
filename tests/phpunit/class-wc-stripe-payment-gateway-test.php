@@ -2342,7 +2342,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 	/**
 	 * A PaymentMethod the caller already retrieved is trusted for the ownership check, so
-	 * checkout does not pay for a second retrieval.
+	 * checkout does not make a second API request.
 	 */
 	public function test_update_saved_payment_method_address_reuses_the_given_payment_method() {
 		$order = WC_Helper_Order::create_order();
