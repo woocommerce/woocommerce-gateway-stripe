@@ -1266,29 +1266,36 @@ describe( 'Classic checkout early initialization', () => {
 		}
 	} );
 
-	it( 'keeps a later SDK amount update blocked when an older update completes', async () => {
-		loadEntrypoint();
-		const first = deferred();
-		const second = deferred();
-		groups[ 0 ].update
-			.mockReturnValueOnce( first.promise )
-			.mockReturnValueOnce( second.promise );
-		trigger( 'updated_checkout' );
-		await settle();
-		trigger( 'updated_checkout' );
-		await jest.advanceTimersByTimeAsync( 300 );
-		await settle();
-		expect( groups[ 0 ].update ).toHaveBeenCalledTimes( 2 );
-		first.resolve();
-		await settle();
-		const event = { resolve: jest.fn() };
-		await groups[ 0 ].button.emit( 'click', event );
-		expect( event.resolve ).not.toHaveBeenCalled();
-		second.resolve();
-		await settle();
-		await groups[ 0 ].button.emit( 'click', event );
-		expect( event.resolve ).toHaveBeenCalledTimes( 1 );
-	} );
+	it.each( [ 'older', 'newer' ] )(
+		'keeps the latest amount-update gate when the %s update settles first',
+		async ( firstToSettle ) => {
+			loadEntrypoint();
+			const first = deferred();
+			const second = deferred();
+			groups[ 0 ].update
+				.mockReturnValueOnce( first.promise )
+				.mockReturnValueOnce( second.promise );
+			trigger( 'updated_checkout' );
+			await settle();
+			trigger( 'updated_checkout' );
+			await jest.advanceTimersByTimeAsync( 300 );
+			await settle();
+			expect( groups[ 0 ].update ).toHaveBeenCalledTimes( 2 );
+			( firstToSettle === 'older' ? first : second ).resolve();
+			await settle();
+			const event = { resolve: jest.fn() };
+			await groups[ 0 ].button.emit( 'click', event );
+			expect( event.resolve ).toHaveBeenCalledTimes(
+				firstToSettle === 'older' ? 0 : 1
+			);
+			( firstToSettle === 'older' ? second : first ).resolve();
+			await settle();
+			await groups[ 0 ].button.emit( 'click', event );
+			expect( event.resolve ).toHaveBeenCalledTimes(
+				firstToSettle === 'older' ? 1 : 2
+			);
+		}
+	);
 
 	it( 'fails closed when the SDK rejects the refreshed amount', async () => {
 		loadEntrypoint();
