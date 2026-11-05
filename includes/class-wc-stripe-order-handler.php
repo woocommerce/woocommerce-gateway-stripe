@@ -12,6 +12,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.0.0
  */
 class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
+	/**
+	 * Singleton instance of the class.
+	 *
+	 * @var WC_Stripe_Order_Handler|null
+	 */
 	private static $_this;
 
 	/**
@@ -50,18 +55,27 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
+	 * @return WC_Stripe_Order_Handler
 	 */
 	public static function get_instance() {
+		if ( null === self::$_this ) {
+			self::$_this = new self();
+		}
 		return self::$_this;
 	}
 
 	/**
 	 * Shows a warning message about editing uncaptured orders.
 	 *
-	 * @param $order_id
+	 * @param int $order_id The order ID to show the warning for (if warranted).
+	 * @return void
 	 */
 	public function show_warning_for_uncaptured_orders( $order_id ) {
 		$order = wc_get_order( $order_id );
+		if ( ! $order instanceof WC_Order ) {
+			return;
+		}
+
 		// Bail if payment method is not manual capture supporting stripe method.
 		if ( ! WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
 			return;
@@ -94,9 +108,10 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @since 4.1.8 Add $previous_error parameter.
-	 * @param int  $order_id
-	 * @param bool $retry
-	 * @param mix  $previous_error Any error message from previous request.
+	 * @param int   $order_id       The order ID to process the payment for.
+	 * @param bool  $retry          Whether to retry the payment.
+	 * @param mixed $previous_error Any error message from previous request. Defaults to false.
+	 * @return void
 	 */
 	public function process_redirect_payment( $order_id, $retry = true, $previous_error = false ) {
 		$order = null;
@@ -202,13 +217,15 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					if ( $retry ) {
 						// Don't do anymore retries after this.
 						if ( 5 <= $this->retry_interval ) {
-							return $this->process_redirect_payment( $order_id, false, $response->error );
+							$this->process_redirect_payment( $order_id, false, $response->error );
+							return;
 						}
 
 						sleep( $this->retry_interval );
 
 						++$this->retry_interval;
-						return $this->process_redirect_payment( $order_id, true, $response->error );
+						$this->process_redirect_payment( $order_id, true, $response->error );
+						return;
 					} else {
 						$localized_message = __( 'Sorry, we are unable to process your payment at this time. Please retry later.', 'woocommerce-gateway-stripe' );
 						$order->add_order_note( $localized_message );
@@ -275,6 +292,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
+	 * @return void
 	 */
 	public function maybe_process_redirect_order() {
 		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
@@ -294,6 +312,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * Processes redirect payment for stores with legacy checkout experience enabled.
 	 *
 	 * @since 8.3.0
+	 * @return void
 	 */
 	private function maybe_process_legacy_redirect() {
 		if ( ! is_order_received_page() || empty( $_GET['client_secret'] ) || empty( $_GET['source'] ) ) {
@@ -310,7 +329,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 3.1.0
 	 * @version 4.0.0
-	 * @param  int $order_id
+	 * @param  int|WC_Order $order_id The order ID or WC_Order object to capture the payment for.
 	 * @return stdClass|void Result of payment capture.
 	 */
 	public function capture_payment( $order_id ) {
@@ -428,7 +447,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 3.1.0
 	 * @version 4.2.2
-	 * @param  int $order_id
+	 * @param  int $order_id The order ID to cancel the payment for.
+	 * @return void
 	 */
 	public function cancel_payment( $order_id ) {
 		$order = wc_get_order( $order_id );
@@ -462,8 +482,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * Note that this filter is only called if WC_Site_Tracking::is_tracking_enabled.
 	 *
 	 * @since 4.5.1
-	 * @param array Properties to be appended to.
-	 * @param string Event name, e.g. orders_edit_status_change.
+	 * @param mixed  $properties          Properties to be appended to.
+	 * @param string $prefixed_event_name Event name, e.g. orders_edit_status_change.
+	 * @return mixed
 	 */
 	public function woocommerce_tracks_event_properties( $properties, $prefixed_event_name ) {
 		// Not the desired event? Bail.
@@ -500,7 +521,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * to be processed to complete the payment.
 	 *
 	 * This function uses the _stripe_payment_awaiting_action meta to determine if the order is waiting for customer action, however if the order has
-	 * been pending for more than a day and still has this meta, we assume it's been abandoned and should be cancelled.
+	 * been pending for more than a day and still has this meta, we assume it's been abandoned and should be cancelled. That one-day cutoff is for
+	 * abandoned card authentication. A US bank PaymentIntent still in requires_action or requires_confirmation is waiting on verification, which
+	 * can take days, so it is kept until Stripe settles it or the verification itself ends.
 	 *
 	 * @since 6.9.0
 	 *
@@ -553,6 +576,13 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		// verified payment method at Stripe and a cancelled order, because the later
 		// setup_intent.succeeded webhook skips orders that are no longer payable.
 		if ( self::is_setup_intent_awaiting_verification( $intent ) ) {
+			return false;
+		}
+
+		// ACH is a slow PaymentIntent, so the one-day cutoff could cancel an order Stripe
+		// can still debit; and Adaptive Pricing never sets _stripe_payment_awaiting_action,
+		// so it misses that cutoff anyway. Settled states are handled above.
+		if ( self::is_payment_intent_awaiting_bank_verification( $intent, $order ) ) {
 			return false;
 		}
 
@@ -645,6 +675,56 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			],
 			true
 		);
+	}
+
+	/**
+	 * Whether a PaymentIntent is still waiting on the customer to verify a US bank account.
+	 *
+	 * Card authentication uses the same requires_action status, but only for a short challenge.
+	 * Bank verification (microdeposits, or a Financial Connections redirect) can stay open for
+	 * days. Do not match payment_method_types: a UPE intent can list card and us_bank_account
+	 * together while the customer is completing 3DS on the card.
+	 *
+	 * @since 11.2.0
+	 *
+	 * @param object   $intent The intent retrieved for the order.
+	 * @param WC_Order $order  The order about to be cancelled.
+	 * @return bool
+	 */
+	private static function is_payment_intent_awaiting_bank_verification( object $intent, WC_Order $order ): bool {
+		if ( 'payment_intent' !== ( $intent->object ?? '' ) ) {
+			return false;
+		}
+
+		if ( ! in_array(
+			$intent->status ?? '',
+			WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION_OR_ACTION_STATUSES,
+			true
+		) ) {
+			return false;
+		}
+
+		if ( 'verify_with_microdeposits' === ( $intent->next_action->type ?? '' ) ) {
+			return true;
+		}
+
+		$payment_method = $intent->payment_method ?? null;
+		if ( is_object( $payment_method ) ) {
+			return WC_Stripe_Payment_Methods::ACH === ( $payment_method->type ?? '' );
+		}
+
+		// get_intent() expands payment_method. A bare id means that expansion is unavailable,
+		// so use the method recorded on the order. An attached card must not take this path.
+		if ( ! is_string( $payment_method ) || '' === $payment_method ) {
+			return false;
+		}
+
+		$ach_gateway_id = WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_Payment_Methods::ACH;
+		if ( $ach_gateway_id === $order->get_payment_method() ) {
+			return true;
+		}
+
+		return WC_Stripe_Payment_Methods::ACH === WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_payment_type( $order );
 	}
 
 	/**

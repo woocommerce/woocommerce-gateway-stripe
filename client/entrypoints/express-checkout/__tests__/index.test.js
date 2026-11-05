@@ -97,6 +97,27 @@ const loadEntrypoint = () => {
 	require( '../index.js' );
 };
 
+// Stripe button stub that captures the bound event handlers so tests can
+// invoke them directly. The variation-breakdown describe keeps its own richer
+// stub, which also collects every created Elements group.
+const stubStripeButtonHandlers = () => {
+	const handlers = {};
+	const button = {
+		on: ( eventName, callback ) => {
+			handlers[ eventName ] = callback;
+			return button;
+		},
+		mount: jest.fn(),
+	};
+	mockGetStripe.mockReturnValue( {
+		elements: jest.fn( () => ( {
+			create: jest.fn( () => button ),
+			update: jest.fn(),
+		} ) ),
+	} );
+	return handlers;
+};
+
 describe( 'Express Checkout cart/checkout bootstrap', () => {
 	beforeEach( () => {
 		// Reset module state so the consume-once `cartBootstrapConsumed` flag
@@ -496,24 +517,6 @@ describe( 'Express Checkout per-method location gating', () => {
 } );
 
 describe( 'Express Checkout order failures', () => {
-	const stubStripeButton = () => {
-		const handlers = {};
-		const button = {
-			on: ( evt, cb ) => {
-				handlers[ evt ] = cb;
-				return button;
-			},
-			mount: jest.fn(),
-		};
-		mockGetStripe.mockReturnValue( {
-			elements: jest.fn( () => ( {
-				create: jest.fn( () => button ),
-				update: jest.fn(),
-			} ) ),
-		} );
-		return handlers;
-	};
-
 	beforeEach( () => {
 		jest.resetModules();
 		mockGetStripe.mockReset();
@@ -537,6 +540,10 @@ describe( 'Express Checkout order failures', () => {
 				requestPhone: false,
 				displayItems: [],
 			},
+			i18n: {
+				go_to_checkout:
+					'Please go to the <a href="https://example.com/checkout/">checkout page</a>.',
+			},
 		};
 	} );
 
@@ -547,38 +554,131 @@ describe( 'Express Checkout order failures', () => {
 	// The order-side abort used to skip paymentFailed(), leaving the approved wallet
 	// sheet open with nothing on screen. The third argument is the removed
 	// `isOrderError` opt-out: passing it must change nothing.
-	it( 'fails the wallet sheet and shows the message when the order errors', async () => {
-		const handlers = stubStripeButton();
-		loadEntrypoint();
+	it.each( [
+		[ 'plain message', 'Order creation error', true ],
+		[
+			'checkout link',
+			'Size <XL> is a required field.',
+			{ linkToCheckout: true },
+		],
+	] )(
+		'fails the wallet sheet and shows the %s when the order errors',
+		async ( _name, message, options ) => {
+			const handlers = stubStripeButtonHandlers();
+			loadEntrypoint();
 
-		// Resolve the mocks from the same module registry the entrypoint loaded from;
-		// `jest.resetModules()` hands each test its own copy.
-		// eslint-disable-next-line global-require
-		const jq = require( 'jquery' );
-		const {
-			onAbortPaymentHandler,
-			onConfirmHandler,
+			// Resolve the mocks from the same module registry the entrypoint loaded from;
+			// `jest.resetModules()` hands each test its own copy.
 			// eslint-disable-next-line global-require
-		} = require( 'wcstripe/express-checkout/event-handler' );
+			const jq = require( 'jquery' );
+			const {
+				onAbortPaymentHandler,
+				onConfirmHandler,
+				// eslint-disable-next-line global-require
+			} = require( 'wcstripe/express-checkout/event-handler' );
 
-		jq( document.body ).trigger( 'updated_checkout' );
+			jq( document.body ).trigger( 'updated_checkout' );
 
-		const event = { paymentFailed: jest.fn() };
-		await handlers.confirm( event );
+			const event = { paymentFailed: jest.fn() };
+			await handlers.confirm( event );
 
-		const { abortPayment } = onConfirmHandler.mock.calls[ 0 ][ 0 ];
-		abortPayment( event, 'Order creation error', true );
+			const { abortPayment } = onConfirmHandler.mock.calls[ 0 ][ 0 ];
+			abortPayment( event, message, options );
 
-		expect( event.paymentFailed ).toHaveBeenCalledWith( {
-			reason: 'fail',
-		} );
-		expect(
-			document.querySelector( '.woocommerce-error' ).textContent
-		).toBe( 'Order creation error' );
+			expect( event.paymentFailed ).toHaveBeenCalledWith( {
+				reason: 'fail',
+			} );
+			const notice = document.querySelector( '.woocommerce-error' );
+			expect(
+				notice.querySelector( 'a' )?.getAttribute( 'href' ) ?? null
+			).toBe(
+				options.linkToCheckout ? 'https://example.com/checkout/' : null
+			);
+			// A tag-like label stays visible as text, and the sentence sits on its
+			// own line -- textContent reads them as one run because <br> has no text.
+			expect( notice.innerHTML ).toBe(
+				options.linkToCheckout
+					? 'Size &lt;XL&gt; is a required field.<br>Please go to the <a href="https://example.com/checkout/">checkout page</a>.'
+					: message
+			);
 
-		// The message has to be in front of the shopper before the sheet closes.
-		expect(
-			onAbortPaymentHandler.mock.invocationCallOrder[ 0 ]
-		).toBeLessThan( event.paymentFailed.mock.invocationCallOrder[ 0 ] );
+			// The message has to be in front of the shopper before the sheet closes.
+			expect(
+				onAbortPaymentHandler.mock.invocationCallOrder[ 0 ]
+			).toBeLessThan( event.paymentFailed.mock.invocationCallOrder[ 0 ] );
+		}
+	);
+} );
+
+describe( 'Express Checkout pay-for-order phone collection', () => {
+	beforeEach( () => {
+		jest.resetModules();
+		mockGetStripe.mockReset();
+
+		document.body.innerHTML =
+			'<div id="wc-stripe-express-checkout-element"></div>';
+
+		// The order-pay page carries two localized payloads whose exact names
+		// (and inconsistent casing) come from the PHP side: the shared ECE
+		// config `wc_stripe_express_checkout_params`, set per test below, and
+		// this pay-for-order-only payload from
+		// `localize_pay_for_order_page_scripts()`.
+		global.wcStripeExpressCheckoutPayForOrderParams = {
+			order: '660',
+			orderDetails: {
+				orderKey: 'wc_order_test',
+				billingEmail: 'jane.doe@example.com',
+				shippingAddress: {},
+			},
+			displayItems: [],
+			currency: 'usd',
+			total: { amount: 4000 },
+		};
 	} );
+
+	afterEach( () => {
+		delete global.wc_stripe_express_checkout_params;
+		delete global.wcStripeExpressCheckoutPayForOrderParams;
+	} );
+
+	const payForOrderParams = ( needsPayerPhone ) => ( {
+		...baseParams(),
+		is_cart_page: false,
+		is_pay_for_order: true,
+		stripe: {
+			publishable_key: 'pk_test_123',
+			locale: 'en',
+			is_apple_pay_enabled: true,
+		},
+		checkout: { currency_code: 'usd', needs_payer_phone: needsPayerPhone },
+	} );
+
+	// The order-pay Store API route replaces the order's billing address with the
+	// wallet payload before validating it, so if the sheet never collects a phone
+	// the payment 400s whenever the checkout phone field is required.
+	it.each`
+		fieldState      | needsPayerPhone
+		${ 'required' } | ${ true }
+		${ 'optional' } | ${ false }
+	`(
+		'mirrors phoneNumberRequired ($needsPayerPhone) to the wallet when the checkout phone field is $fieldState',
+		async ( { needsPayerPhone } ) => {
+			global.wc_stripe_express_checkout_params =
+				payForOrderParams( needsPayerPhone );
+
+			const handlers = stubStripeButtonHandlers();
+			loadEntrypoint();
+
+			const event = {
+				resolve: jest.fn(),
+				expressPaymentType: 'applePay',
+			};
+			await handlers.click( event );
+
+			expect( event.resolve ).toHaveBeenCalledTimes( 1 );
+			expect(
+				event.resolve.mock.calls[ 0 ][ 0 ].phoneNumberRequired
+			).toBe( needsPayerPhone );
+		}
+	);
 } );

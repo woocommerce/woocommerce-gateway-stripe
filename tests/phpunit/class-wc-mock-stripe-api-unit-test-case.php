@@ -108,12 +108,13 @@ abstract class WC_Mock_Stripe_API_Unit_Test_Case extends WP_UnitTestCase {
 	/**
 	 * Mock the payment method configurations.
 	 *
-	 * @param array $enabled_payment_method_ids
-	 * @param array $disabled_payment_method_ids
+	 * @param array $enabled_payment_method_ids  The payment method IDs to set as enabled.
+	 * @param array $disabled_payment_method_ids The payment method IDs to set as disabled.
+	 * @param string $mock_pmc_id                The ID to use for the mocked payment method configuration.
 	 */
-	protected function mock_payment_method_configurations( $enabled_payment_method_ids = [], $disabled_payment_method_ids = [] ) {
+	protected function mock_payment_method_configurations( $enabled_payment_method_ids = [], $disabled_payment_method_ids = [], string $mock_pmc_id = 'pmc_abcdef' ): void {
 		$payment_method_configuration = [
-			'id'       => 'pmc_abcdef',
+			'id'       => $mock_pmc_id,
 			'object'   => 'payment_method_configuration',
 			'active'   => true,
 			'parent'   => WC_Stripe_Payment_Method_Configurations::TEST_MODE_CONFIGURATION_PARENT_ID,

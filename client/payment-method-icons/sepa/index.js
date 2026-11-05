@@ -1,12 +1,14 @@
 import React from 'react';
-import styled from '@emotion/styled';
+import clsx from 'clsx';
 import IconWithShell from '../styles/icon-with-shell';
 import icon from './icon.svg';
 
-const Wrapper = styled( IconWithShell )`
-	background: #10298e;
-`;
-
-const SepaIcon = ( props ) => <Wrapper { ...props } src={ icon } />;
+const SepaIcon = ( { className, ...props } ) => (
+	<IconWithShell
+		{ ...props }
+		className={ clsx( 'wc-stripe-payment-method-icon--sepa', className ) }
+		src={ icon }
+	/>
+);
 
 export default SepaIcon;

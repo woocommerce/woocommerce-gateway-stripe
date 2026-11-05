@@ -42,6 +42,7 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 		WC_Stripe_Country_Code::NETHERLANDS,
 		WC_Stripe_Country_Code::NEW_ZEALAND,
 		WC_Stripe_Country_Code::NORWAY,
+		WC_Stripe_Country_Code::PUERTO_RICO,
 		WC_Stripe_Country_Code::POLAND,
 		WC_Stripe_Country_Code::PORTUGAL,
 		WC_Stripe_Country_Code::ROMANIA,
@@ -79,6 +80,7 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 		WC_Stripe_Country_Code::NETHERLANDS,
 		WC_Stripe_Country_Code::NORWAY,
 		WC_Stripe_Country_Code::NEW_ZEALAND,
+		WC_Stripe_Country_Code::PUERTO_RICO,
 		WC_Stripe_Country_Code::POLAND,
 		WC_Stripe_Country_Code::PORTUGAL,
 		WC_Stripe_Country_Code::ROMANIA,
@@ -145,6 +147,14 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 	public function get_available_billing_countries() {
 		$account         = WC_Stripe::get_instance()->account->get_cached_account_data();
 		$account_country = strtoupper( $account['country'] );
+
+		// WooCommerce treats Puerto Rico as separate from the United States, but Stripe and Klarna treat them as the same country.
+		if ( WC_Stripe_Country_Code::UNITED_STATES === $account_country || WC_Stripe_Country_Code::PUERTO_RICO === $account_country ) {
+			return [
+				WC_Stripe_Country_Code::UNITED_STATES,
+				WC_Stripe_Country_Code::PUERTO_RICO,
+			];
+		}
 
 		// Countries in the EEA + UK and Switzerland can transact across all other EEA countries as long as the currency matches.
 		$eea_countries = array_merge( WC_Stripe_Helper::get_european_economic_area_countries(), [ WC_Stripe_Country_Code::SWITZERLAND, WC_Stripe_Country_Code::UNITED_KINGDOM ] );

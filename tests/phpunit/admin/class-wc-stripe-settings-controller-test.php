@@ -77,6 +77,77 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$this->assertStringMatchesFormat( '%aid="wc-stripe-new-account-container"%a', $output );
 	}
 
+	public function test_ajax_get_oauth_url_reports_expired_session_for_invalid_nonce() {
+		$request_backup = $_REQUEST;
+		$post_backup    = $_POST;
+
+		try {
+			$_REQUEST['nonce'] = 'invalid';
+			$_POST['nonce']    = 'invalid';
+
+			$response = $this->get_ajax_oauth_response();
+		} finally {
+			$_REQUEST = $request_backup;
+			$_POST    = $post_backup;
+		}
+
+		$this->assertFalse( $response['success'] );
+		$this->assertSame(
+			'Your session has expired. Please reload the page and try again.',
+			$response['data']['message']
+		);
+	}
+
+	/**
+	 * @dataProvider provide_oauth_connect_server_error_codes
+	 */
+	public function test_ajax_get_oauth_url_replaces_connect_server_errors_with_a_safe_message( string $error_code ) {
+		$request_backup = $_REQUEST;
+		$post_backup    = $_POST;
+		$connect_backup = WC_Stripe::get_instance()->connect;
+
+		try {
+			wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+
+			$nonce             = wp_create_nonce( 'wc_stripe_get_oauth_url' );
+			$_REQUEST['nonce'] = $nonce;
+			$_POST['nonce']    = $nonce;
+			$_POST['mode']     = 'test';
+
+			$connect = $this->getMockBuilder( WC_Stripe_Connect::class )
+				->disableOriginalConstructor()
+				->setMethods( [ 'get_oauth_url' ] )
+				->getMock();
+			$connect->expects( $this->once() )
+				->method( 'get_oauth_url' )
+				->with( '', 'test' )
+				->willReturn( new WP_Error( $error_code, 'Technical transport error.' ) );
+			WC_Stripe::get_instance()->connect = $connect;
+
+			$response = $this->get_ajax_oauth_response();
+		} finally {
+			WC_Stripe::get_instance()->connect = $connect_backup;
+			wp_set_current_user( 0 );
+			$_REQUEST = $request_backup;
+			$_POST    = $post_backup;
+		}
+
+		$this->assertFalse( $response['success'] );
+		$this->assertSame(
+			'An issue occurred generating a connection to Stripe. Please try again.',
+			$response['data']['message']
+		);
+	}
+
+	public function provide_oauth_connect_server_error_codes(): array {
+		return [
+			'server error'          => [ 'wcc_server_error' ],
+			'invalid content type'  => [ 'wcc_server_error_content_type' ],
+			'empty response'        => [ 'wcc_server_empty_response' ],
+			'server error response' => [ 'wcc_server_error_response' ],
+		];
+	}
+
 	/**
 	 * Test if `display_order_fee` and `display_order_payout` are called when viewing an order on the admin panel.
 	 *
@@ -189,6 +260,10 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 				$expected_adaptive_pricing_unavailable_reason,
 				$params['adaptive_pricing_unavailable_reason']
 			);
+			$this->assertSame(
+				WC_Stripe_Helper::get_available_store_currencies(),
+				$params['available_store_currencies']
+			);
 			$this->assertSame( 'accordion', $params['oc_layout'] );
 		} finally {
 			if ( isset( $stripe_singleton_account_backup ) ) {
@@ -206,5 +281,19 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 			'DE account + feature available'   => [ 'DE', true, true, null ],
 			'US account + feature unavailable' => [ 'US', false, false, 'disabled' ],
 		];
+	}
+
+	private function get_ajax_oauth_response(): array {
+		Ajax_Test_Helper::init_hooks();
+
+		try {
+			ob_start();
+			$this->controller->ajax_get_oauth_url();
+			$output = ob_get_clean();
+		} finally {
+			Ajax_Test_Helper::remove_hooks();
+		}
+
+		return json_decode( $output, true );
 	}
 }
