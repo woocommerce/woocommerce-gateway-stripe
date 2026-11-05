@@ -2103,8 +2103,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$order->add_order_note(
 				sprintf(
 					/* translators: %s: Stripe PaymentIntent ID. */
-					__( 'Stripe PaymentIntent %s succeeded for this cancelled order but could not be refunded automatically because it does not match the order\'s stored payment. Please refund or void it from the Stripe dashboard.', 'woocommerce-gateway-stripe' ),
-					$intent_id
+					__( 'Stripe PaymentIntent %s was paid or authorized after this order was cancelled, but it could not be refunded or voided automatically because it does not match the order\'s stored payment. Please refund or void it from the Stripe dashboard.', 'woocommerce-gateway-stripe' ),
+					esc_html( $intent_id )
 				)
 			);
 			WC_Stripe_Logger::warning( "Cancelled order {$order->get_id()} received a payment for {$intent_id} with no matching stored intent; left a manual-refund note." );

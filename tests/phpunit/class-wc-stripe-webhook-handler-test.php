@@ -555,7 +555,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$updated_order = wc_get_order( $order->get_id() );
 		$this->assertEmpty( $updated_order->get_meta( self::META_REFUNDED_AFTER_CANCELLATION ) );
-		$this->assertOrderHasNoteContaining( $updated_order, 'could not be refunded automatically' );
+		$this->assertOrderHasNoteContaining( $updated_order, 'was paid or authorized after this order was cancelled' );
+		$this->assertOrderHasNoteContaining( $updated_order, 'could not be refunded or voided automatically' );
 		$this->assertOrderHasNoteContaining( $updated_order, self::MOCK_PAYMENT_INTENT['id'] );
 	}
 
