@@ -364,7 +364,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			// If the payment intent requires confirmation or action, redirect the customer to confirm the intent.
 			if ( in_array( $payment_intent->status, WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION_OR_ACTION_STATUSES, true ) ) {
-				// Subscription intents are excluded from save_intent_to_order(), but redirect validation needs the exact SetupIntent ID.
+				// save_intent_to_order() skips subscriptions, but the redirect check needs this ID.
 				WC_Stripe_Order_Helper::get_instance()->update_stripe_setup_intent_id( $subscription, $payment_intent->id );
 
 				// Because we're filtering woocommerce_subscriptions_update_payment_via_pay_shortcode, we need to manually set this delayed update all flag here.
@@ -1038,13 +1038,11 @@ trait WC_Stripe_Subscriptions_Trait {
 		$order_helper->delete_stripe_fee( $renewal_order );
 		$order_helper->delete_stripe_net( $renewal_order );
 
-		// Delete payment and setup intent IDs so they are not reused on the renewal. The setup intent
-		// is written to the subscription for redirect validation and would otherwise be copied here,
-		// where get_order_by_setup_intent_id() could match the renewal instead of the subscription.
+		// Drop IDs copied from the subscription, so a webhook cannot match this renewal.
 		$order_helper->delete_stripe_intent_id( $renewal_order );
 		$order_helper->delete_stripe_setup_intent_id( $renewal_order );
 
-		// WooCommerce Subscriptions does not save the renewal after this filter, so the deletions are lost without this.
+		// WooCommerce Subscriptions does not save the renewal after this filter.
 		$renewal_order->save();
 
 		return $renewal_order;

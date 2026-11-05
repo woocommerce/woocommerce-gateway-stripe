@@ -2871,14 +2871,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Copies the order's billing address onto a saved payment method in Stripe.
 	 *
-	 * Only the address is written, since the Stripe Address Validation Service needs those details.
-	 * Name, email, and phone should not be overwritten during checkout.
+	 * Only the address is written: AVS needs it, and checkout must not change name, email, or phone.
 	 *
 	 * @since x.x.x
 	 *
 	 * @param string       $payment_method_id The payment method to update.
 	 * @param WC_Order|int $order             Order object or id.
-	 * @param object|null  $payment_method    The PaymentMethod object when the caller already retrieved it, so the ownership check needs no extra request.
+	 * @param object|null  $payment_method    Already-retrieved PaymentMethod, to skip a request.
 	 * @return void
 	 */
 	public function update_saved_payment_method_address( $payment_method_id, $order, $payment_method = null ) {
@@ -2908,7 +2907,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$payment_method_customer = is_object( $payment_method ) && isset( $payment_method->customer ) ? $payment_method->customer : null;
 			$order_customer          = $this->get_stripe_customer_id( $order );
 
-			// Stripe is authoritative here because public callers are not required to enter through the saved-token ownership checks.
+			// Check ownership in Stripe: public callers may skip the saved-token checks.
 			if ( ! is_string( $payment_method_customer ) || ! is_string( $order_customer ) || $payment_method_customer !== $order_customer ) {
 				WC_Stripe_Logger::warning(
 					'Skipped saved payment method address update because the customer for the order does not match the payment method.',

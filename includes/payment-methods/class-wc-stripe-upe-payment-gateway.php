@@ -2052,7 +2052,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 
 			try {
-				// The address update and intent confirmation must remain together so another order cannot replace the AVS address between them.
+				// Keep these together so another order cannot change the AVS address in between.
 				if ( $is_using_saved_payment_method ) {
 					$this->update_saved_payment_method_address( $payment_method_id, $order, $payment_method );
 				}
@@ -2184,7 +2184,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Option name of the cross-request lock serializing checkouts that reuse one saved PaymentMethod.
+	 * Lock option name for checkouts that reuse one saved PaymentMethod.
 	 *
 	 * @param string $payment_method_id Stripe PaymentMethod identifier.
 	 * @return string
@@ -2621,7 +2621,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$stored_intent_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_setup_intent_id( $order );
 
-		// The persisted Stripe identifier binds the redirect to this order even when checkout details differ from the saved cardholder identity.
+		// The stored ID ties the redirect to this order, whatever the billing details.
 		return is_string( $stored_intent_id ) && '' !== $stored_intent_id && $stored_intent_id === $intent_id;
 	}
 
