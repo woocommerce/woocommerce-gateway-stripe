@@ -387,13 +387,15 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// configured above. AP requires a working webhook endpoint, so this decision must run after
 			// configure_webhooks()
 			if ( 'connect' === $type && $should_default_optimized_checkout_on ) {
-				if ( WC_Stripe_Helper::is_adaptive_pricing_available_for_account() ) {
+				$ap_unavailable_reason = WC_Stripe_Helper::get_adaptive_pricing_account_unavailable_reason();
+				if ( null === $ap_unavailable_reason ) {
 					$settings                     = WC_Stripe_Helper::get_stripe_settings();
 					$settings['adaptive_pricing'] = 'yes';
 					WC_Stripe_Helper::update_main_stripe_settings( $settings );
 				} else {
 					WC_Stripe_Logger::info( 'OAuth: Not defaulting Adaptive Pricing on; it is not available for the connected account.' );
 				}
+				WC_Stripe_Helper::record_adaptive_pricing_default_tracks_event( 'connect', $ap_unavailable_reason );
 			}
 
 			return $result;

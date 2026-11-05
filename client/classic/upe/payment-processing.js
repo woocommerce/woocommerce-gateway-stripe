@@ -22,6 +22,7 @@ import {
 	normalizeReturnUrl,
 	getStaleCheckoutTotalMessage,
 	clearStaleCheckoutTotalNotice,
+	stripeJsSupportsCheckoutSessions,
 } from '../../stripe-utils';
 import {
 	initializeUPEAppearance,
@@ -464,7 +465,10 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	if (
 		stripeServerData?.isAdaptivePricingEnabled &&
 		supportsDeferredIntent &&
-		typeof stripe?.initCheckoutElementsSdk === 'function'
+		stripeJsSupportsCheckoutSessions(
+			stripe,
+			stripeServerData?.stripeJsVersion
+		)
 	) {
 		try {
 			const nativeSession = getNativeCheckoutSessionData();
