@@ -4151,8 +4151,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->mock_gateway->delete_renewal_meta( $order );
 
-		$this->assertEmpty( $order_helper->get_stripe_intent_id( $order ) );
-		$this->assertEmpty( $order_helper->get_stripe_setup_intent_id( $order ) );
+		// Reload from the database: WooCommerce Subscriptions does not save the renewal after this filter.
+		$stored_order = wc_get_order( $order->get_id() );
+		$this->assertEmpty( $order_helper->get_stripe_intent_id( $stored_order ) );
+		$this->assertEmpty( $order_helper->get_stripe_setup_intent_id( $stored_order ) );
 	}
 
 	/**

@@ -1044,6 +1044,9 @@ trait WC_Stripe_Subscriptions_Trait {
 		$order_helper->delete_stripe_intent_id( $renewal_order );
 		$order_helper->delete_stripe_setup_intent_id( $renewal_order );
 
+		// WooCommerce Subscriptions does not save the renewal after this filter, so the deletions are lost without this.
+		$renewal_order->save();
+
 		return $renewal_order;
 	}
 
