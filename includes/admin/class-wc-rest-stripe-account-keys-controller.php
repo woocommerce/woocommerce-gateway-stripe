@@ -503,22 +503,6 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	}
 
 	/**
-	 * Whether a Tracks event recorded now would actually be sent.
-	 *
-	 * Checks whether the WooCommerce wc_admin_record_tracks_event() function is available
-	 * and whether WooCommerce usage tracking is enabled. This allows us to skip lookups and
-	 * other expensive operations when usage tracking is disabled.
-	 *
-	 * @return bool
-	 */
-	private function can_record_tracks_events(): bool {
-		return function_exists( 'wc_admin_record_tracks_event' )
-			&& class_exists( 'WC_Site_Tracking' )
-			&& method_exists( WC_Site_Tracking::class, 'is_tracking_enabled' ) // @phpstan-ignore function.alreadyNarrowedType (Defensive check to make sure the function is available in WooCommerce.)
-			&& WC_Site_Tracking::is_tracking_enabled();
-	}
-
-	/**
 	 * Returns the modes whose publishable or secret key differs between two key sets.
 	 *
 	 * Falls back to the active mode when neither mode's keys changed, e.g. when only a webhook
@@ -561,22 +545,25 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	 * @return void
 	 */
 	private function record_manual_account_keys_tracks_event( string $event_name, string $mode, array $settings ) {
-		if ( ! $this->can_record_tracks_events() ) {
+		if ( ! WC_Stripe_Tracks::is_tracking_enabled() ) {
 			return;
 		}
 
 		$connection_type = $settings[ 'test' === $mode ? 'test_connection_type' : 'connection_type' ] ?? '';
 
 		$event_props = [
-			'is_test_mode'    => 'test' === $mode,
 			'connection_type' => is_string( $connection_type ) ? $connection_type : '',
-			'stripe_version'  => WC_STRIPE_VERSION,
 		];
 
 		$account_data = $this->account->get_cached_account_data( $mode );
 		if ( is_string( $account_data['id'] ?? null ) ) {
 			$event_props['account_id'] = $account_data['id'];
 		}
+
+		$event_props = WC_Stripe_Tracks::add_default_event_properties( $event_props );
+
+		// Intentionally override `is_test_mode` based on $mode rather than on the current site mode.
+		$event_props['is_test_mode'] = 'test' === $mode;
 
 		wc_admin_record_tracks_event( $event_name, $event_props );
 	}

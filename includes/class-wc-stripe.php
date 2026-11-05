@@ -536,9 +536,10 @@ class WC_Stripe {
 			$stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'yes';
 			$this->update_settings( $stripe_settings );
 
-			if ( class_exists( 'WC_Tracks' ) ) {
-				WC_Tracks::record_event( 'wcstripe_migrated_to_new_checkout_experience' );
-			}
+			WC_Stripe_Tracks::record_direct_event(
+				'wcstripe_migrated_to_new_checkout_experience',
+				WC_Stripe_Tracks::add_default_event_properties( [] )
+			);
 		}
 	}
 

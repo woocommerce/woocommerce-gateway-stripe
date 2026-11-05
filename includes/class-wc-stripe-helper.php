@@ -1380,8 +1380,7 @@ class WC_Stripe_Helper {
 		}
 
 		$properties = [
-			'test_mode' => WC_Stripe_Mode::is_test() ? 1 : 0,
-			'source'    => $source,
+			'source' => $source,
 		];
 
 		if ( null !== $skipped_reason ) {
@@ -1390,7 +1389,7 @@ class WC_Stripe_Helper {
 
 		wc_admin_record_tracks_event(
 			null === $skipped_reason ? 'wcstripe_ap_default_enabled' : 'wcstripe_ap_default_skipped',
-			$properties
+			WC_Stripe_Tracks::add_default_event_properties( $properties )
 		);
 	}
 

@@ -13,6 +13,7 @@ xxxx-xx-xx - version 11.2.0
 * Add - Remote configuration system for managing feature availability during incidents
 * Update - Retry failed remote-config syncs with backoff and log a warning when the cached configuration goes stale
 * Dev - Make the express checkout password cleanup next-batch delay test stable on slow CI runners
+* Dev - Add WC_Stripe_Tracks class to support more consistent events
 * Dev - Let hook @since docblocks use the x.x.x version placeholder in phpcs
 * Fix - Send shoppers to the order confirmation page instead of showing an error when processing fails after a 3D Secure payment has already succeeded
 * Dev - Add E2E coverage for paying with a non-Stripe gateway on the Pay for Order, add payment method, and change payment method pages

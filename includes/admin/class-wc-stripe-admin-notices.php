@@ -1046,7 +1046,10 @@ class WC_Stripe_Admin_Notices {
 			return;
 		}
 
-		wc_admin_record_tracks_event( 'wcstripe_ap_banner_dismissed', [ 'banner' => $banner ] );
+		wc_admin_record_tracks_event(
+			'wcstripe_ap_banner_dismissed',
+			WC_Stripe_Tracks::add_default_event_properties( [ 'banner' => $banner ] )
+		);
 	}
 
 	/**
