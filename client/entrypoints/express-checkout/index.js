@@ -137,14 +137,12 @@ const initializeExpressCheckout = ( $ ) => {
 				} ),
 		};
 
-		// The wallet sheet opens once this resolves; refreshes are deferred
-		// while it's open (see the update-event guard below).
+		// The wallet sheet opens on resolve, so defer refreshes until it closes.
 		wcStripeECE.paymentInFlight = true;
 		return event.resolve( clickOptions );
 	};
 
-	// Shared by the initial render and in-place refreshes so both derive
-	// shipping rates the same way.
+	// Share shipping rates so initial render and refreshes use the same values.
 	const getShippingRatesForOptions = ( options ) => {
 		if ( ! options.requestShipping ) {
 			return [];
@@ -268,8 +266,7 @@ const initializeExpressCheckout = ( $ ) => {
 		paymentInFlight: false,
 		pendingRefresh: false,
 
-		// Legacy refreshes reapplied wallet visibility, mode and styling. Reuse
-		// must preserve those changes while amounts and click data update in place.
+		// Reuse must apply visibility, mode and styling changes alongside fresh totals.
 		getStructuralSignature: ( options ) => {
 			const stripe = getExpressCheckoutData( 'stripe' );
 			return JSON.stringify( {
@@ -343,8 +340,7 @@ const initializeExpressCheckout = ( $ ) => {
 
 			const shippingRates = getShippingRatesForOptions( options );
 			groups.forEach( ( group ) => {
-				// The click/confirm closures read this same options object;
-				// mutate it in place so the wallet sheet stays in sync.
+				// Click and confirm handlers share this object, so update it in place.
 				Object.assign( group.options, options, { shippingRates } );
 				const update = group.elements.update( {
 					amount: options.total,
@@ -369,8 +365,7 @@ const initializeExpressCheckout = ( $ ) => {
 						} );
 				}
 
-				// updated_cart_totals re-renders the cart totals wholesale,
-				// discarding the button markup; remount instead of rebuilding.
+				// Cart totals replacement discards the markup, so remount the existing buttons.
 				const container = document.getElementById(
 					`wc-stripe-express-checkout-element-${ group.type }`
 				);
@@ -385,8 +380,7 @@ const initializeExpressCheckout = ( $ ) => {
 				}
 			} );
 
-			// Recover from a zero-total hide, but only if a group reported
-			// availability — otherwise the separator would linger empty.
+			// Only reveal the separator after a wallet is available, including after zero totals.
 			if (
 				! checkoutRefreshFailed &&
 				groups.some( ( group ) => group.available )
@@ -432,8 +426,7 @@ const initializeExpressCheckout = ( $ ) => {
 						nextSlot.before( slot );
 					}
 				}
-				// Reserve this wallet's configured height before the reused iframe
-				// is attached; an earlier wallet must not expose its initial growth.
+				// Reserve each wallet's height so reused iframes cannot reveal initial growth.
 				$( `#${ containerName }` ).css(
 					'min-height',
 					group.buttonHeight
@@ -451,8 +444,7 @@ const initializeExpressCheckout = ( $ ) => {
 				group.preparation = null;
 				return;
 			}
-			// Unsupported browsers and discarded fragments need a real SDK remount.
-			// Preserve correctness there without claiming discovery was retained.
+			// Unsupported browsers and detached fragments require a real SDK remount.
 			group.button.unmount();
 			group.preparation?.remove();
 			group.preparation = null;
@@ -516,8 +508,7 @@ const initializeExpressCheckout = ( $ ) => {
 				isLinkEnabled && EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 			].filter( Boolean );
 
-			// Dropping the old buttons unreferenced would leak their iframes
-			// and stack duplicates in the containers.
+			// Destroy discarded buttons to avoid leaked iframes and duplicate wallets.
 			wcStripeECE.teardownExpressCheckout();
 
 			// Reset the registry so variation/qty updates only touch the buttons
@@ -671,8 +662,7 @@ const initializeExpressCheckout = ( $ ) => {
 			// variation/qty change updates every group's amount.
 			wcStripeECE.expressCheckoutElements.push( elements );
 
-			// Registered before button creation so a failure below can't
-			// leave an untracked group behind.
+			// Track the group before button creation so a failure can still clean it up.
 			const group = {
 				type: expressPaymentType,
 				elements,
@@ -720,8 +710,7 @@ const initializeExpressCheckout = ( $ ) => {
 			}
 
 			eceButton.on( 'click', async function ( event ) {
-				// Wallet discovery can finish before WooCommerce's recalculation.
-				// Do not open a sheet with totals that are known to be stale.
+				// Block wallet sheets until WooCommerce finishes recalculating stale totals.
 				if (
 					isClassicCheckout &&
 					( cartRefreshPending ||
@@ -926,8 +915,7 @@ const initializeExpressCheckout = ( $ ) => {
 						wcStripeECE.hide();
 					}
 				} );
-				// Prepare each wallet independently, outside the shared visible root.
-				// Keep this same element and its handlers for the visible remount.
+				// Keep each prepared wallet and its handlers outside the visible root until remount.
 				group.preparation = document.createElement( 'div' );
 				group.preparation.id = `wc-stripe-express-prepare-${ expressPaymentType }`;
 				group.preparation.style.display = 'none';
@@ -1091,8 +1079,7 @@ const initializeExpressCheckout = ( $ ) => {
 				cartRefreshPending = true;
 				api.expressCheckoutGetCartDetails()
 					.then( ( cart ) => {
-						// An update invalidates older responses before its debounced
-						// fetch starts, and a sheet opened meanwhile must stay intact.
+						// Discard stale responses without disrupting a wallet sheet opened during the fetch.
 						if ( revision !== cartRevision ) {
 							return;
 						}
@@ -1553,12 +1540,10 @@ const initializeExpressCheckout = ( $ ) => {
 		);
 	}
 
-	// Refresh ECE data when totals update, coalescing event bursts into one
-	// cart fetch; the leading call keeps the single-event case immediate.
+	// Coalesce cart updates while keeping the first refresh immediate.
 	const refreshExpressCheckout = debounce(
 		() => {
-			// Rebuilding while the wallet sheet is open would kill the
-			// shopper's session; apply on cancel instead.
+			// Defer refreshes until cancel or abort to preserve the open wallet session.
 			if ( wcStripeECE.paymentInFlight ) {
 				wcStripeECE.pendingRefresh = true;
 				return;
@@ -1571,8 +1556,7 @@ const initializeExpressCheckout = ( $ ) => {
 
 	if ( isClassicCheckout ) {
 		let latestCheckoutRequest;
-		// WooCommerce emits updated_checkout only on success. Observe the
-		// actual request so transport failures cannot leave a visible stale wallet.
+		// Observe the request because failed updates never emit updated_checkout.
 		$( document ).on( 'ajaxSend', ( event, request, settings ) => {
 			const url = new URL( settings.url, window.location.href );
 			if (
@@ -1630,8 +1614,7 @@ const initializeExpressCheckout = ( $ ) => {
 	}
 };
 
-// Footer markup is already available on Classic checkout. Preparing wallets now
-// overlaps the deferred WooCommerce scripts instead of waiting for their ready event.
+// Prepare Classic wallets from footer markup before deferred scripts reach ready.
 const stripeServerData = getStripeServerData();
 if (
 	getExpressCheckoutData( 'is_checkout_page' ) &&

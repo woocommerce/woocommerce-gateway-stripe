@@ -17,8 +17,7 @@ add_filter(
 			return $settings;
 		}
 
-		// Use local card selection for this request without changing Stripe's
-		// shared payment-method configuration or another browser's Link state.
+		// Keep card selection local so concurrent tests retain their shared Stripe and Link settings.
 		$settings['pmc_enabled']                               = 'no';
 		$settings['upe_checkout_experience_accepted_payments'] = [ 'card' ];
 

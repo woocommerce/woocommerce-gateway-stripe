@@ -191,8 +191,7 @@ test.describe( 'customer can use Link express checkout', () => {
 			predicate: ( request ) =>
 				request.url().includes( 'wc-ajax=update_order_review' ),
 		} );
-		// Address text changes can be ignored until WooCommerce marks the
-		// address dirty; this control always requests a totals recalculation.
+		// Use a recalculation control because address text may not mark totals dirty.
 		const shippingAddress = page.locator(
 			'#ship-to-different-address-checkbox'
 		);

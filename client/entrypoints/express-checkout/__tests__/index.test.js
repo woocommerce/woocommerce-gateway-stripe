@@ -772,8 +772,7 @@ describe( 'Express Checkout group reuse on cart/checkout updates', () => {
 		require( 'jquery' )( document.body ).trigger( 'updated_cart_totals' );
 		await flushPromises();
 
-		// Same structure: no new group/session, no teardown, amount pushed
-		// in place.
+		// Totals-only updates must preserve the existing wallet session.
 		expect( elementsGroups ).toHaveLength( 1 );
 		expect( buttons[ 0 ].destroy ).not.toHaveBeenCalled();
 		expect( elementsGroups[ 0 ].update ).toHaveBeenCalledWith( {
