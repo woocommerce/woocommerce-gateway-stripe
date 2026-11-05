@@ -186,6 +186,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Allow retrying a failed BLIK or Pre-Authorized Debit (ACSS) payment on the same order instead of failing every retry
 * Fix - Prevent a second charge when an interrupted checkout is resubmitted or two tabs submit the same cart at once
 * Fix - Keep locally saved payment method selections in sync with Stripe
+* Fix - Ask before merging differing payment method selections when Stripe synchronization resumes, instead of silently re-enabling methods that were turned off
+* Fix - Preserve saved settings when reconnecting a Stripe account, including express checkout button placements and an intentionally empty payment method selection
+* Fix - Keep the enabled payment methods when Stripe API keys change, rather than resetting them to card and Link
 * Fix - On classic checkout, show a notice naming each empty required field instead of a single generic "Please fill in all required fields" notice
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

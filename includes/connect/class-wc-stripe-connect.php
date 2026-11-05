@@ -354,14 +354,9 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				$this->unschedule_connection_refresh();
 			}
 
-			// For new installs the legacy gateway gets instantiated because there is no settings in the DB yet,
-			// so we need to instantiate the UPE gateway just for the PMC migration.
+			// For new installs the legacy gateway gets instantiated because there is no settings in
+			// the DB yet; the rest of this method and its hooks expect the UPE gateway.
 			WC_Stripe::get_instance()->get_main_stripe_gateway();
-
-			// If pmc_enabled is not set (aka new install) or is not 'yes' (aka migration already done) we need to migrate the payment methods from the DB option to Stripe PMC API.
-			if ( empty( $current_options ) || ! isset( $current_options['pmc_enabled'] ) || 'yes' !== $current_options['pmc_enabled'] ) {
-				WC_Stripe_Payment_Method_Configurations::maybe_migrate_payment_methods_from_db_to_pmc( true );
-			}
 
 			// A live Standard-OAuth onboarding can also carry the account's test keys
 			if ( 'connect' === $type && 'live' === $mode ) {

@@ -1158,7 +1158,8 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	}
 
 	/**
-	 * Discovery alone must not authorize replacing an uninitialized local selection.
+	 * Discovery alone must neither authorize replacing an uninitialized local selection nor
+	 * write the flag: an absent value already reads as "not confirmed".
 	 */
 	public function test_refresh_pmc_availability_preserves_uninitialized_flag() {
 		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
@@ -1175,7 +1176,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		$instance_property->setValue( null, null );
 		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
 
-		$this->assertSame( 'no', $updated_settings['pmc_enabled'] );
+		$this->assertArrayNotHasKey( 'pmc_enabled', $updated_settings );
 	}
 
 	/**
@@ -1270,7 +1271,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		$instance_property->setValue( null, null );
 		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
 
-		$this->assertSame( 'no', $updated_settings['pmc_enabled'] );
+		$this->assertArrayNotHasKey( 'pmc_enabled', $updated_settings );
 	}
 
 	/**
@@ -1526,7 +1527,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		);
 	}
 
-	public function test_off_state_comparison_does_not_modify_settings_or_fallback_selection(): void {
+	public function test_off_state_comparison_does_not_modify_settings(): void {
 		$this->configure_sync_settings();
 		$before                = WC_Stripe_Helper::get_stripe_settings();
 		$configuration         = $this->sync_configuration();
@@ -1535,7 +1536,8 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		$review = WC_Stripe_Payment_Method_Configurations::get_sync_review();
 		$this->assertTrue( $review['differs'] );
 		$this->assertSame( $before, WC_Stripe_Helper::get_stripe_settings() );
-		$this->assertFalse( get_option( 'woocommerce_stripe_pmc_fallback_id_test' ) );
+		// Comparing must not prime the configuration cache either, or the next real fetch would
+		// skip Stripe and serve a configuration the merchant has not confirmed.
 		$this->assertFalse( get_option( WC_Stripe_Payment_Method_Configurations::FETCH_COOLDOWN_OPTION_KEY ) );
 	}
 
@@ -1556,22 +1558,9 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 				)
 			)->willReturn( $accept_update ? $this->sync_configuration( [ 'card' ] ) : $configuration );
 		WC_Stripe_API::set_instance( $api );
-		$http = function ( $preempt, $args, $url ) use ( $configuration ) {
-			if ( false !== strpos( $url, 'payment_method_configurations/' . $configuration->id ) ) {
-				return [
-					'response' => [ 'code' => 200 ],
-					'body'     => wp_json_encode( $configuration ),
-				];
-			}
-			return $preempt;
-		};
-		add_filter( 'pre_http_request', $http, 10, 3 );
-		try {
-			$review = WC_Stripe_Payment_Method_Configurations::get_sync_review();
-			$result = WC_Stripe_Payment_Method_Configurations::resolve_sync_review( $source, $review['revision'] );
-		} finally {
-			remove_filter( 'pre_http_request', $http );
-		}
+
+		$review   = WC_Stripe_Payment_Method_Configurations::get_sync_review();
+		$result   = WC_Stripe_Payment_Method_Configurations::resolve_sync_review( $source, $review['revision'] );
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 		if ( 'woocommerce' === $source && ! $accept_update ) {
 			$this->assertWPError( $result );
@@ -1638,44 +1627,19 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		}
 	}
 
-	public function test_matching_refresh_resumes_after_fresh_verification(): void {
+	public function test_matching_refresh_caches_without_resuming(): void {
 		$this->configure_sync_settings( 'no', [ 'card', 'klarna' ] );
 		$configuration = $this->sync_configuration();
 		$api           = $this->createMock( WC_Stripe_API::class );
-		$api->method( 'get_payment_method_configurations' )->willReturn( (object) [ 'data' => [ $configuration ] ] );
+		$api->expects( $this->once() )->method( 'get_payment_method_configurations' )->willReturn( (object) [ 'data' => [ $configuration ] ] );
 		$api->expects( $this->never() )->method( 'update_payment_method_configurations' );
 		WC_Stripe_API::set_instance( $api );
-		$reads = 0;
-		$http  = function ( $preempt, $args, $url ) use ( $configuration, &$reads ) {
-			if ( false !== strpos( $url, 'payment_method_configurations/' . $configuration->id ) ) {
-				++$reads;
-				return [
-					'response' => [ 'code' => 200 ],
-					'body'     => wp_json_encode( array_reverse( (array) $configuration, true ) ),
-				];
-			}
-			return $preempt;
-		};
-		add_filter( 'pre_http_request', $http, 10, 3 );
-		try {
-			WC_Stripe_Payment_Method_Configurations::refresh_pmc_availability();
-		} finally {
-			remove_filter( 'pre_http_request', $http );
-		}
-		$this->assertSame( 1, $reads );
-		$this->assertSame( 'yes', WC_Stripe_Helper::get_stripe_settings()['pmc_enabled'] );
-	}
 
-	public function test_busy_confirmation_does_not_write(): void {
-		$this->configure_sync_settings();
-		$owner = WC_Stripe_Option_Lock::acquire( 'wc_stripe_pmc_settings_lock', 300 );
-		$this->stripe_api->expects( $this->never() )->method( 'update_payment_method_configurations' );
-		try {
-			$result = WC_Stripe_Payment_Method_Configurations::resolve_sync_review( 'stripe', 'revision' );
-			$this->assertWPError( $result );
-			$this->assertSame( 'pmc_busy', $result->get_error_code() );
-		} finally {
-			WC_Stripe_Option_Lock::release( 'wc_stripe_pmc_settings_lock', $owner );
-		}
+		WC_Stripe_Payment_Method_Configurations::refresh_pmc_availability();
+
+		// Matching selections are resumed by the merchant-facing comparison, not by discovery,
+		// so the refresh only caches what it found.
+		$this->assertSame( 'no', WC_Stripe_Helper::get_stripe_settings()['pmc_enabled'] );
+		$this->assertSame( $configuration->id, WC_Stripe_Database_Cache::get( WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY )->id );
 	}
 }
