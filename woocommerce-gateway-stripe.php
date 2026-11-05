@@ -176,6 +176,7 @@ function wcstripe_deactivated(): void {
 
 	WC_Stripe_Database_Cache::unschedule_daily_async_cleanup();
 
+	WC_Stripe_Event_Reconciler::unschedule();
 	WC_Stripe_Option_Lock::unschedule_daily_cleanup();
 
 	WC_Stripe_Remote_Config_Scheduler::unschedule_daily_sync();
