@@ -7,13 +7,18 @@ jest.mock( '@wordpress/data', () => {
 	);
 } );
 
-it( 'loads the Classic wallet API and normalizes payment data without the Blocks runtime', () => {
+it( 'loads the Classic wallet entrypoint and normalizes payment data without the Blocks runtime', async () => {
 	global.wc_stripe_express_checkout_params = {
 		has_block: false,
 		is_checkout_page: true,
 	};
 	global.wc_stripe_upe_params = { isCheckout: true };
 	try {
+		require( '../../entrypoints/express-checkout' );
+		// Wait for the entrypoint's jQuery-ready callback before removing its globals.
+		await new Promise( ( resolve ) =>
+			require( 'jquery' )( () => resolve() )
+		);
 		const WCStripeAPI = require( '../../api' ).default;
 		const { normalizeOrderData } = require( '../utils/normalize' );
 		expect( new WCStripeAPI( {}, jest.fn() ) ).toBeInstanceOf(
