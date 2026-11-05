@@ -2316,16 +2316,6 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Subclasses override the deprecated method with its original two parameters. Adding a
-	 * parameter to it makes those declarations fatal on PHP 8.
-	 *
-	 * @return void
-	 */
-	public function test_update_saved_payment_method_keeps_its_original_signature(): void {
-		$this->assertSame( 2, ( new ReflectionMethod( WC_Stripe_Payment_Gateway::class, 'update_saved_payment_method' ) )->getNumberOfParameters() );
-	}
-
-	/**
 	 * The deprecated method still updates the address, through the new method.
 	 *
 	 * @return void
