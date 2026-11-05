@@ -1522,6 +1522,34 @@ describe( 'Classic checkout early initialization', () => {
 		}
 	);
 
+	it( 'recovers after a synchronous preparation mount failure', async () => {
+		const createElements = stripe.elements.getMockImplementation();
+		stripe.elements.mockImplementationOnce( ( options ) => {
+			const elements = createElements( options );
+			elements.button.mount.mockImplementationOnce( () => {
+				throw new Error( 'Mount failed' );
+			} );
+			return elements;
+		} );
+		expect( loadEntrypoint ).not.toThrow();
+		expect(
+			document.querySelector( '[id^="wc-stripe-express-prepare-"]' )
+		).toBeNull();
+		const click = { resolve: jest.fn() };
+		await groups[ 0 ].button.emit( 'ready', {
+			availablePaymentMethods: { googlePay: true },
+		} );
+		await groups[ 0 ].button.emit( 'click', click );
+		expect( click.resolve ).not.toHaveBeenCalled();
+		trigger( 'updated_checkout' );
+		await settle();
+		expect( groups ).toHaveLength( 2 );
+		expect( groups[ 0 ].button.destroy ).toHaveBeenCalledTimes( 1 );
+		await ready( groups[ 1 ] );
+		await groups[ 1 ].button.emit( 'click', click );
+		expect( click.resolve ).toHaveBeenCalledTimes( 1 );
+	} );
+
 	it( 'ignores readiness from a destroyed preparation after a structural change', async () => {
 		loadEntrypoint();
 		const old = groups[ 0 ];

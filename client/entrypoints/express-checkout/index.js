@@ -894,7 +894,7 @@ const initializeExpressCheckout = ( $ ) => {
 			} );
 
 			if ( isClassicCheckout ) {
-				eceButton.on( 'loaderror', () => {
+				const failPreparation = () => {
 					if ( group.disposed ) {
 						return;
 					}
@@ -914,13 +914,18 @@ const initializeExpressCheckout = ( $ ) => {
 					) {
 						wcStripeECE.hide();
 					}
-				} );
+				};
+				eceButton.on( 'loaderror', failPreparation );
 				// Keep each prepared wallet and its handlers outside the visible root until remount.
 				group.preparation = document.createElement( 'div' );
 				group.preparation.id = `wc-stripe-express-prepare-${ expressPaymentType }`;
 				group.preparation.style.display = 'none';
 				document.body.appendChild( group.preparation );
-				eceButton.mount( `#${ group.preparation.id }` );
+				try {
+					eceButton.mount( `#${ group.preparation.id }` );
+				} catch {
+					failPreparation();
+				}
 			}
 
 			if ( getExpressCheckoutData( 'is_product_page' ) ) {
