@@ -16,6 +16,7 @@ import {
 import { transformPriceWithMinorUnits } from 'wcstripe/express-checkout/transformers/wc-to-stripe';
 
 const availabilityProbes = new Map();
+const PROBE_TIMEOUT_MS = 15000;
 
 const getPaymentMethodsToProbe = ( paymentMethod ) => {
 	const config = getBlocksConfiguration();
@@ -76,6 +77,7 @@ const probePaymentMethods = ( api, elementsOptions, paymentMethods ) =>
 				return;
 			}
 			settled = true;
+			clearTimeout( timeout );
 			resolve( availablePaymentMethods );
 
 			// Defer root cleanup because React may emit readiness or errors during commit.
@@ -85,6 +87,8 @@ const probePaymentMethods = ( api, elementsOptions, paymentMethods ) =>
 			} );
 		};
 		const failProbe = () => settleProbe( null );
+		// A missing SDK event must not keep every compatible wallet waiting forever.
+		const timeout = setTimeout( failProbe, PROBE_TIMEOUT_MS );
 
 		try {
 			root = createRoot( containerEl );

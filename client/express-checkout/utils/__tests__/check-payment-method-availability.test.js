@@ -5,6 +5,11 @@ jest.mock( 'react-dom/client', () => ( {
 	createRoot: jest.fn(),
 } ) );
 
+// Babel's timer polyfill captures native timers before Jest installs fake ones.
+jest.mock( '@babel/runtime-corejs3/core-js-stable/set-timeout', () => ( ...args ) =>
+	Reflect.get( globalThis, 'setTimeout' )( ...args )
+);
+
 describe( 'checkPaymentMethodIsAvailable', () => {
 	let api;
 	const render = jest.fn();
@@ -89,6 +94,44 @@ describe( 'checkPaymentMethodIsAvailable', () => {
 			)
 		).rejects.toThrow( TypeError );
 	} );
+
+	it.each( [ 'loader', 'ready event' ] )(
+		'releases a probe stalled on the %s and permits a shared retry',
+		async ( stalledAt ) => {
+			jest.useFakeTimers();
+			try {
+				if ( stalledAt === 'loader' ) {
+					api.loadStripe.mockReturnValueOnce( new Promise( () => {} ) );
+				}
+				const completed = jest.fn();
+				const result = Promise.all( checkWallets() ).then( completed );
+				expect( jest.getTimerCount() ).toBe( 1 );
+				await jest.advanceTimersByTimeAsync( 14999 );
+				expect( completed ).not.toHaveBeenCalled();
+				expect( createRoot ).toHaveBeenCalledTimes( 1 );
+				await jest.advanceTimersByTimeAsync( 1 );
+				// The assertions observe settlement without hanging on an unbounded promise.
+				expect( completed ).toHaveBeenCalledWith( [ false, false, false ] );
+				await result;
+				await jest.advanceTimersByTimeAsync( 1 );
+				expect( unmount ).toHaveBeenCalledTimes( 1 );
+				expect( document.body ).toBeEmptyDOMElement();
+				const retry = checkWallets();
+				expect( createRoot ).toHaveBeenCalledTimes( 2 );
+				ready( { applePay: true, googlePay: true, link: true } );
+				getRenderedExpressCheckoutElement().props.onLoadError();
+				ready( { applePay: true, googlePay: true, link: true }, 1 );
+				expect( await Promise.all( retry ) ).toEqual( [ true, true, true ] );
+				expect( await Promise.all( checkWallets() ) ).toEqual( [ true, true, true ] );
+				expect( createRoot ).toHaveBeenCalledTimes( 2 );
+				await jest.advanceTimersByTimeAsync( 1 );
+				expect( jest.getTimerCount() ).toBe( 0 );
+				expect( unmount ).toHaveBeenCalledTimes( 2 );
+			} finally {
+				jest.useRealTimers();
+			}
+		}
+	);
 
 	it.each( [
 		[
