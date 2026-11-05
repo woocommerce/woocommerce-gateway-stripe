@@ -25,7 +25,7 @@ xxxx-xx-xx - version 11.2.0
 * Fix - Restore missing left borders on notices in the Stripe settings
 * Fix - Render the Additional content field in the Stripe refund failed emails (customer and merchant)
 * Add - Record Tracks events for Adaptive Pricing setting changes, automatic enabling, and notice dismissals, and fix the event recorded when Optimized Checkout is turned off
-* Fix - Prevent a stuck payment form on block checkout and a console error on classic checkout when Adaptive Pricing is enabled and another plugin, such as WooPayments, loads its own Stripe.js
+* Fix - Adaptive Pricing conflict with plugins that load their own Stripe.js
 
 2026-10-16 - version 11.1.1
 * Fix - Stop blocking non-Stripe payment gateways on the Pay for Order, change payment method, and add payment method pages

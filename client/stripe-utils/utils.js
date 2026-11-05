@@ -1185,13 +1185,10 @@ export const getFontSizeBase = ( defaultFontSize ) => {
 };
 
 /**
- * Whether Checkout Sessions (`initCheckoutElementsSdk`) can be used on the
- * Stripe.js build that is on the page.
+ * Whether the Stripe.js build on the page supports Checkout Sessions.
  *
- * Another plugin can win the shared `stripe` handle with a different build.
- * Method presence is not enough: Stripe keeps renamed methods as stubs that
- * throw (legacy v3 defines `initCheckoutElementsSdk` that way), so only the
- * build this plugin pins and tests against is trusted.
+ * Another plugin can load a different build, and older builds define
+ * `initCheckoutElementsSdk` as a stub that throws, so only the pinned version is trusted.
  *
  * @param {Object} stripe  The Stripe instance.
  * @param {string} version The Stripe.js version the server pins, e.g. 'dahlia'.

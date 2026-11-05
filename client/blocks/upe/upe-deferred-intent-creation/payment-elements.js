@@ -212,9 +212,7 @@ const PaymentElements = ( {
 	...props
 } ) => {
 	const stripeServerData = getBlocksConfiguration();
-	// Adaptive Pricing renders <CheckoutElementsProvider>, which calls initCheckoutElementsSdk() on mount
-	// and does not catch its errors, so a Stripe.js build that cannot run it must be detected here and
-	// sent down the standard elements flow before the provider mounts.
+	// <CheckoutElementsProvider> doesn't catch initCheckoutElementsSdk() errors, so fall back before it mounts.
 	const stripeSupportsInitCheckout = stripeJsSupportsCheckoutSessions(
 		api.getStripe(),
 		stripeServerData?.stripeJsVersion

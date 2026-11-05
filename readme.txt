@@ -190,6 +190,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Restore missing left borders on notices in the Stripe settings
 * Fix - Render the Additional content field in the Stripe refund failed emails (customer and merchant)
 * Add - Record Tracks events for Adaptive Pricing setting changes, automatic enabling, and notice dismissals, and fix the event recorded when Optimized Checkout is turned off
-* Fix - Prevent a stuck payment form on block checkout and a console error on classic checkout when Adaptive Pricing is enabled and another plugin, such as WooPayments, loads its own Stripe.js
+* Fix - Adaptive Pricing conflict with plugins that load their own Stripe.js
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
