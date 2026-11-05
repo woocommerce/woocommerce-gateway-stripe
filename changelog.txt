@@ -25,6 +25,7 @@ xxxx-xx-xx - version 11.2.0
 * Fix - Restore missing left borders on notices in the Stripe settings
 * Fix - Render the Additional content field in the Stripe refund failed emails (customer and merchant)
 * Add - Record Tracks events for Adaptive Pricing setting changes, automatic enabling, and notice dismissals, and fix the event recorded when Optimized Checkout is turned off
+* Dev - Fix ACH E2E tests for Stripe's updated test-mode bank account flow
 
 2026-10-16 - version 11.1.1
 * Fix - Stop blocking non-Stripe payment gateways on the Pay for Order, change payment method, and add payment method pages
