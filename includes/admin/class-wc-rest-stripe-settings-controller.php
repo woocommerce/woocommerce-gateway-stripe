@@ -671,10 +671,14 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return void
 	 */
 	private function update_oc_settings( WP_REST_Request $request ) {
-		$attributes = [
+		$attributes            = [
 			'is_oc_enabled' => 'optimized_checkout_element',
 			'is_ap_enabled' => 'adaptive_pricing',
 			'oc_layout'     => 'optimized_checkout_layout',
+		];
+		$tracks_event_prefixes = [
+			'is_oc_enabled' => 'wcstripe_oc',
+			'is_ap_enabled' => 'wcstripe_ap',
 		];
 		foreach ( $attributes as $request_key => $attribute ) {
 			$value = $request->get_param( $request_key );
@@ -691,9 +695,9 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 			$this->gateway->update_validated_option( $attribute, $value );
 
-			if ( 'is_oc_enabled' === $request_key && $value !== $current_value ) {
+			if ( isset( $tracks_event_prefixes[ $request_key ] ) && $value !== $current_value && function_exists( 'wc_admin_record_tracks_event' ) ) {
 				wc_admin_record_tracks_event(
-					$value ? 'wcstripe_oc_enabled' : 'wcstripe_oc_disabled',
+					$tracks_event_prefixes[ $request_key ] . ( 'yes' === $value ? '_enabled' : '_disabled' ),
 					[
 						'test_mode' => WC_Stripe_Mode::is_test() ? 1 : 0,
 						'source'    => 'settings_rest_api',

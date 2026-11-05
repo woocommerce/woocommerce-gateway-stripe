@@ -573,6 +573,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			'apiVersion'   => WC_Stripe_API::STRIPE_API_VERSION,
 		];
 
+		// Lets the client detect when another plugin's Stripe.js build won the shared `stripe` handle.
+		$stripe_params['stripeJsVersion'] = WC_Stripe_Helper::get_stripe_js_version();
+
 		$enabled_billing_fields = [];
 		foreach ( WC()->checkout()->get_checkout_fields( 'billing' ) as $billing_field => $billing_field_options ) {
 			if ( ! isset( $billing_field_options['enabled'] ) || $billing_field_options['enabled'] ) {
