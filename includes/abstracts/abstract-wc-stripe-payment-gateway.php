@@ -2867,6 +2867,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function update_saved_payment_method( $payment_method_id, $order ) {
 		wc_deprecated_function( __METHOD__, '11.2.0', 'WC_Stripe_Payment_Gateway::update_saved_payment_method_address()' );
+
 		$this->update_saved_payment_method_address( $payment_method_id, $order );
 	}
 
