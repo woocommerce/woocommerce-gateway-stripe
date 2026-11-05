@@ -1820,6 +1820,36 @@ describe( 'Classic checkout early initialization', () => {
 		expect( groups ).toHaveLength( 0 );
 	} );
 
+	it.each( [ false, true ] )(
+		'keeps product wallets clickable after checkout updates (checkout flag: %s)',
+		async ( checkoutFlag ) => {
+			params.is_product_page = true;
+			params.is_checkout_page = checkoutFlag;
+			document.body.insertAdjacentHTML(
+				'beforeend',
+				'<button class="single_add_to_cart_button"></button>'
+			);
+			params.product = {
+				total: { amount: 1500 },
+				currency: 'usd',
+				requestShipping: false,
+				displayItems: [],
+			};
+			loadEntrypoint();
+			trigger( 'updated_checkout' );
+			await settle();
+			const group = groups[ groups.length - 1 ];
+			await ready( group );
+			const click = {
+				expressPaymentType: 'googlePay',
+				resolve: jest.fn(),
+			};
+			await group.button.emit( 'click', click );
+			expect( click.resolve ).toHaveBeenCalledTimes( 1 );
+			expect( mockGetCartDetails ).not.toHaveBeenCalled();
+		}
+	);
+
 	it.each( [
 		[ 'is_product_page', true ],
 		[ 'is_product_page', false ],
