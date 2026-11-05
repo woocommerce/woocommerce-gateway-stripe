@@ -787,6 +787,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * If we have a valid charge response, return true.
 	 * Otherwise add an order note and return false.
 	 *
+	 * @since x.x.x
+	 *
 	 * @param object|string|null $charge_response The charge response from the capture request.
 	 * @param WC_Order           $order           The order.
 	 * @return bool True if the charge has been captured, false otherwise.
