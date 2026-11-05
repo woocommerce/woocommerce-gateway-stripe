@@ -2764,15 +2764,19 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			// We assume the order payment lock is held by the webhook processing.
 			// Wait for processing to complete, so we can redirect without showing an error.
-			// If we time out, return without stripping the query args so a later refresh re-runs this
-			// handler and routes the shopper correctly.
 			if ( $this->wait_for_checkout_session_settlement( $order_id ) ) {
 				wp_safe_redirect( wp_sanitize_redirect( $this->get_return_url( $order ) ) );
 				exit;
 			}
 
-			WC_Stripe_Logger::info( "Checkout session settlement wait timed out for order $order_id" );
-			return;
+			// The wait ended without the order settling. If the lock is free now, the webhook has
+			// finished, so route the shopper below with the latest order. If it is still held, return
+			// without stripping the query args so a later refresh re-runs this handler.
+			$order = $this->get_fresh_order( $order_id );
+			if ( ! $order instanceof WC_Order || $order_helper->lock_order_payment( $order ) ) {
+				WC_Stripe_Logger::info( "Checkout session settlement wait ended for order $order_id while the order payment is still locked" );
+				return;
+			}
 		}
 
 		try {
@@ -2883,11 +2887,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return bool True if the order reached a paid status within the budget.
 	 */
 	protected function wait_for_checkout_session_settlement( int $order_id ): bool {
-		$deadline = microtime( true ) + $this->get_checkout_session_settlement_timeout();
+		$deadline       = microtime( true ) + $this->get_checkout_session_settlement_timeout();
+		$initial_order  = $this->get_fresh_order( $order_id );
+		$initial_status = $initial_order instanceof WC_Order ? $initial_order->get_status() : '';
 
 		while ( true ) {
 			if ( $this->order_is_paid( $order_id ) ) {
 				return true;
+			}
+
+			// The webhook is done without paying the order: waiting longer cannot help.
+			if ( $this->has_settlement_wait_ended( $order_id, $initial_status ) ) {
+				return false;
 			}
 
 			if ( microtime( true ) >= $deadline ) {
@@ -2896,6 +2907,52 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			$this->sleep_between_settlement_checks();
 		}
+	}
+
+	/**
+	 * Reports whether the webhook has finished with the order without paying it: the order
+	 * status changed (for example to failed), or the order payment lock was released or expired.
+	 *
+	 * @param int    $order_id       The order being settled by the webhook.
+	 * @param string $initial_status The order status when the wait started.
+	 * @return bool
+	 */
+	protected function has_settlement_wait_ended( int $order_id, string $initial_status ): bool {
+		$order = $this->get_fresh_order( $order_id );
+		if ( ! $order instanceof WC_Order ) {
+			return true;
+		}
+
+		if ( $order->get_status() !== $initial_status ) {
+			return true;
+		}
+
+		// The lock value is "{expiry_timestamp}", the same format lock_order_payment() writes.
+		$lock        = WC_Stripe_Order_Helper::get_instance()->get_order_existing_payment_lock( $order );
+		$lock_expiry = is_scalar( $lock ) ? (int) explode( '|', (string) $lock )[0] : 0;
+
+		return time() > $lock_expiry;
+	}
+
+	/**
+	 * Loads the order from the database, skipping the order and post caches, so changes made by
+	 * other requests (like the webhook) are visible.
+	 *
+	 * @param int $order_id The order id.
+	 * @return WC_Order|null
+	 */
+	protected function get_fresh_order( int $order_id ): ?WC_Order {
+		if ( function_exists( 'wc_get_container' ) && class_exists( OrderCache::class ) ) {
+			$order_cache = wc_get_container()->get( OrderCache::class );
+			if ( $order_cache instanceof OrderCache ) {
+				$order_cache->remove( $order_id );
+			}
+		}
+		clean_post_cache( $order_id );
+
+		$order = wc_get_order( $order_id );
+
+		return $order instanceof WC_Order ? $order : null;
 	}
 
 	/**
@@ -2908,16 +2965,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return bool
 	 */
 	protected function order_is_paid( int $order_id ): bool {
-		// Clear/flush the OrderCache and post cache to pick up changes made by other processes.
-		if ( function_exists( 'wc_get_container' ) && class_exists( OrderCache::class ) ) {
-			$order_cache = wc_get_container()->get( OrderCache::class );
-			if ( $order_cache instanceof OrderCache ) {
-				$order_cache->remove( $order_id );
-			}
-		}
-		clean_post_cache( $order_id );
-
-		$order = wc_get_order( $order_id );
+		$order = $this->get_fresh_order( $order_id );
 
 		return $order instanceof WC_Order
 			&& ( $order->is_paid() || $order->has_status( OrderStatus::ON_HOLD ) );
