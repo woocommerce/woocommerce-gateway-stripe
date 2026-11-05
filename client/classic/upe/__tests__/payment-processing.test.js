@@ -21,6 +21,9 @@ jest.mock( 'wcstripe/stripe-utils', () => ( {
 	normalizeReturnUrl: jest.requireActual(
 		'wcstripe/stripe-utils/normalize-return-url'
 	).normalizeReturnUrl,
+	stripeJsSupportsCheckoutSessions: jest.requireActual(
+		'wcstripe/stripe-utils/utils'
+	).stripeJsSupportsCheckoutSessions,
 	getStripeServerData: jest.fn().mockReturnValue( {
 		paymentMethodsConfig: {
 			card: { supportsDeferredIntent: true },
@@ -146,7 +149,18 @@ const BASE_SERVER_DATA = {
 	shouldShowOptimizedCheckout: false,
 	isPaymentNeeded: true,
 	isChangingPayment: false,
+	stripeJsVersion: 'dahlia',
 };
+
+// The Checkout Sessions guard compares the loaded Stripe.js build with the
+// version the server pins; default to a matching build.
+beforeEach( () => {
+	window.Stripe = { version: BASE_SERVER_DATA.stripeJsVersion };
+} );
+
+afterEach( () => {
+	delete window.Stripe;
+} );
 
 const createMockPaymentElement = () => ( {
 	mount: jest.fn(),
@@ -698,6 +712,28 @@ describe( 'payment-processing', () => {
 
 				expect(
 					api.checkoutSessionsCreateSession
+				).not.toHaveBeenCalled();
+				expect( api._stripe.elements ).toHaveBeenCalled();
+			} );
+
+			it( 'skips the checkout session and uses standard elements when the legacy v3 Stripe.js defines initCheckoutElementsSdk as a throwing stub', async () => {
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				// Current v3 builds (e.g. the one WooPayments registers under the shared
+				// `stripe` handle) keep the method, but it throws an IntegrationError.
+				api._stripe.initCheckoutElementsSdk.mockImplementation( () => {
+					throw new Error(
+						'You must upgrade to the Basil release or higher to use initCheckout.'
+					);
+				} );
+				window.Stripe = { version: 3 };
+				const dom = document.createElement( 'div' );
+				dom.dataset.paymentMethodType = 'card';
+
+				await paymentProcessing.mountStripePaymentElement( api, dom );
+
+				expect(
+					api._stripe.initCheckoutElementsSdk
 				).not.toHaveBeenCalled();
 				expect( api._stripe.elements ).toHaveBeenCalled();
 			} );
