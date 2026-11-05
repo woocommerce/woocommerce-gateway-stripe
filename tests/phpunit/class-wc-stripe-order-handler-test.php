@@ -847,7 +847,8 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 
 		$this->assertNull( $result, 'No charge could be resolved from the intent.' );
 		$this->assertTrue( $hook_fired, 'The manual capture hook should still fire.' );
-		$this->assertNull( $captured_result, 'The manual capture hook should receive the unresolved charge.' );
+		$this->assertInstanceOf( stdClass::class, $captured_result );
+		$this->assertEquals( '{}', wp_json_encode( $captured_result ), 'The manual capture hook should receive an empty charge result.' );
 
 		$order = wc_get_order( $order->get_id() );
 		$notes = implode( "\n", wp_list_pluck( wc_get_order_notes( [ 'order_id' => $order->get_id() ] ), 'content' ) );
