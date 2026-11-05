@@ -1049,6 +1049,26 @@ trait WC_Stripe_Subscriptions_Trait {
 	}
 
 	/**
+	 * Keeps the Stripe setup intent ID out of data WooCommerce Subscriptions copies between a
+	 * subscription and its orders.
+	 *
+	 * The ID belongs to the object it was saved on. Early renewals from checkout and the admin
+	 * "Create pending parent order" action copy subscription data without firing
+	 * wcs_renewal_order_created, so a copy there would let a setup intent webhook match, and
+	 * complete, the new order.
+	 *
+	 * @param array|mixed $data The data to copy, keyed by meta key.
+	 * @return array|mixed The data without the setup intent ID.
+	 */
+	public function exclude_setup_intent_from_copied_data( $data ) {
+		if ( is_array( $data ) ) {
+			unset( $data['_stripe_setup_intent'] );
+		}
+
+		return $data;
+	}
+
+	/**
 	 * Update the customer_id for a subscription after using Stripe to complete a payment to make up for
 	 * an automatic renewal payment which previously failed.
 	 *

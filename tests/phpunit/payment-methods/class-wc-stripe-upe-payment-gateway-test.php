@@ -3901,6 +3901,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		$this->assertSame( 'failure', $response['result'] );
+		// Classic checkout shows only notices, so the reason must be added as one.
+		$this->assertSame( 1, wc_notice_count( 'error' ) );
 		$this->assertSame( $existing_owner, get_option( $lock_option ) );
 		$this->assertEmpty( $order_helper->get_order_existing_payment_lock( $order ) );
 		$this->assertSame( OrderStatus::PENDING, wc_get_order( $order->get_id() )->get_status() );
@@ -4155,6 +4157,40 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$stored_order = wc_get_order( $order->get_id() );
 		$this->assertEmpty( $order_helper->get_stripe_intent_id( $stored_order ) );
 		$this->assertEmpty( $order_helper->get_stripe_setup_intent_id( $stored_order ) );
+	}
+
+	/**
+	 * Data WooCommerce Subscriptions copies between a subscription and its orders must never carry
+	 * the setup intent ID, so a setup intent webhook cannot match and complete the new order.
+	 *
+	 * @param mixed $data     The data passed to the filter.
+	 * @param mixed $expected The data the filter should return.
+	 * @dataProvider provide_exclude_setup_intent_from_copied_data
+	 */
+	public function test_exclude_setup_intent_from_copied_data( $data, $expected ) {
+		$this->assertSame( $expected, $this->mock_gateway->exclude_setup_intent_from_copied_data( $data ) );
+	}
+
+	/**
+	 * Provides copied data with and without a setup intent ID.
+	 *
+	 * @return array
+	 */
+	public function provide_exclude_setup_intent_from_copied_data(): array {
+		return [
+			'setup intent removed, other meta kept' => [
+				[
+					'_stripe_setup_intent' => 'seti_mock',
+					'_stripe_customer_id'  => 'cus_mock',
+				],
+				[ '_stripe_customer_id' => 'cus_mock' ],
+			],
+			'no setup intent'                       => [
+				[ '_stripe_customer_id' => 'cus_mock' ],
+				[ '_stripe_customer_id' => 'cus_mock' ],
+			],
+			'not an array'                          => [ null, null ],
+		];
 	}
 
 	/**

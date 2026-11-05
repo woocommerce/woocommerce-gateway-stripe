@@ -2043,11 +2043,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 						$order_helper->unlock_order_payment( $order );
 					}
 
-					return [
-						'result'   => 'failure',
-						'redirect' => '',
-						'message'  => __( 'This saved payment method is already being used. Please try again.', 'woocommerce-gateway-stripe' ),
-					];
+					return $this->get_checkout_failure_response( __( 'This saved payment method is already being used. Please try again.', 'woocommerce-gateway-stripe' ) );
 				}
 			}
 
@@ -3284,6 +3280,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		add_action( 'wcs_resubscribe_order_created', [ $this, 'delete_resubscribe_meta' ], 10 );
 		// @phpstan-ignore return.void (Callers may be relying on the return value from delete_renewal_meta(), so we are keeping that in place.)
 		add_action( 'wcs_renewal_order_created', [ $this, 'delete_renewal_meta' ], 10 );
+		add_filter( 'wc_subscriptions_object_data', [ $this, 'exclude_setup_intent_from_copied_data' ], 10 );
 
 		add_filter( 'wc_stripe_display_save_payment_method_checkbox', [ $this, 'display_save_payment_method_checkbox' ] );
 
