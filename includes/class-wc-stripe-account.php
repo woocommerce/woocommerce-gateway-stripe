@@ -557,7 +557,10 @@ class WC_Stripe_Account {
 			// Registered for another site (a staging clone with production's settings): do not delete
 			// the other site's endpoint, but clear our stale copy so we stop retrying.
 			if ( ! WC_Stripe_Helper::is_webhook_url( $endpoint->url ) ) {
-				WC_Stripe_Logger::info( "Skipped decommissioning webhook {$webhook_data['id']}: its endpoint is registered for another site." );
+				WC_Stripe_Logger::info(
+					"Skipped decommissioning webhook {$webhook_data['id']}: its endpoint is registered for another site.",
+					[ 'url' => $endpoint->url ]
+				);
 				return true;
 			}
 
