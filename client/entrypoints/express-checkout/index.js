@@ -93,6 +93,7 @@ const initializeExpressCheckout = ( $ ) => {
 	let containerObserver;
 	const isClassicCheckout =
 		getExpressCheckoutData( 'is_checkout_page' ) &&
+		! getExpressCheckoutData( 'is_product_page' ) &&
 		! getExpressCheckoutData( 'is_pay_for_order' ) &&
 		! getExpressCheckoutData( 'is_change_payment_method' );
 
