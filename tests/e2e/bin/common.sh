@@ -97,5 +97,5 @@ validate_stripe_listener_credentials() {
 # --user xfs forces the wordpress:cli container to use a user with the same ID as the main wordpress container.
 # See: https://hub.docker.com/_/wordpress#running-as-an-arbitrary-user
 cli() {
-	docker run -i --rm --user 33:33 --env-file ${E2E_ROOT}/env/default.env --volumes-from "${E2E_PROJECT}-wordpress" --network container:"${E2E_PROJECT}-wordpress" wordpress:cli "$@"
+	docker run -i --rm --user 33:33 --env-file "${E2E_ROOT}/env/default.env" --volumes-from "${E2E_PROJECT}-wordpress" --network container:"${E2E_PROJECT}-wordpress" wordpress:cli "$@"
 }
