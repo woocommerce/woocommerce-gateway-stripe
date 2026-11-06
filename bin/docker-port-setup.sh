@@ -78,6 +78,25 @@ DEFAULT_WORKTREE_ID=$(sanitize_id "$(basename "$(pwd)")")
 # defaults. Drop them so only .env (sourced next) and this script decide.
 unset WORKTREE_ID WORDPRESS_PORT E2E_PROJECT E2E_WP_PORT E2E_DB_PORT
 
+# Port allocation reads every worktree's .env and then writes its own, so two
+# `worktree:setup` runs racing each other could pick the same port. Serialize
+# via a lock directory in the shared git dir; if the lock cannot be acquired
+# (a crashed run left it behind), warn and proceed rather than block setup.
+LOCK_DIR="$(git rev-parse --git-common-dir 2>/dev/null || echo /tmp)/wcstripe-worktree-setup.lock"
+lock_acquired=
+for _ in $(seq 1 50); do
+    if mkdir "$LOCK_DIR" 2>/dev/null; then
+        lock_acquired=yes
+        trap 'rmdir "$LOCK_DIR" 2>/dev/null' EXIT
+        break
+    fi
+    sleep 0.2
+done
+if [[ -z "$lock_acquired" ]]; then
+    echo "WARNING: could not acquire $LOCK_DIR after 10s; continuing without it."
+    echo "         If no other worktree:setup is running, remove that directory."
+fi
+
 if [[ -f "$ENV_FILE" ]]; then
     source "$ENV_FILE"
 fi
