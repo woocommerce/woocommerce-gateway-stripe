@@ -1,7 +1,15 @@
 import { expect } from '@playwright/test';
+import { user } from './index.js';
+
+const ADMIN_USER =
+	process.env.QIT_ADMIN_USERNAME || process.env.ADMIN_USER || 'admin';
+const ADMIN_PASSWORD =
+	process.env.QIT_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || 'password';
 
 /**
  * Get a new admin page with admin context.
+ * If in a QIT tunnel environment and the stored session is stale,
+ * re-authenticates automatically.
  * @param {Browser} browser Playwright browser fixture.
  * @returns {Promise<{context: BrowserContext, page: Page}>} The admin context and page.
  */
@@ -10,6 +18,15 @@ export const getAdminPage = async ( browser ) => {
 		storageState: process.env.ADMINSTATE,
 	} );
 	const page = await context.newPage();
+
+	// In QIT tunnel environments, auth cookies can expire between tests.
+	if ( process.env.QIT_SITE_URL ) {
+		await page.goto( '/wp-admin/' );
+		if ( page.url().includes( 'wp-login.php' ) ) {
+			await user.login( page, ADMIN_USER, ADMIN_PASSWORD );
+		}
+	}
+
 	return { context, page };
 };
 
@@ -236,7 +253,7 @@ export const getOrderTotalForLabel = ( page, label ) =>
  * Checks the following locations to ensure we are charging the expected amount:
  *  - The "Order Total" row
  *  - The "Paid" (captured) row of the order details
- *  - The sum of the "Stripe Fee" and "Stripe Payout" rows
+ *  - The sum of the Stripe payout and any displayed fee
  *
  * @param {Browser} browser       Playwright browser fixture.
  * @param {string}  orderId       The WooCommerce order ID.
@@ -265,14 +282,18 @@ export const verifyOrderChargedAmount = async (
 			expectedTotal
 		);
 
-		// Also verify that the Stripe Fee and Stripe Payout rows are present and add up to the expected amount.
+		// The payout and any displayed fee must account for the captured total.
 		const stripeFeeElement = totalElementForLabel( 'Stripe Fee' );
 		const stripePayoutElement = totalElementForLabel( 'Stripe Payout' );
 
-		await expect( stripeFeeElement ).toContainText( '-' );
 		await expect( stripePayoutElement ).not.toBeEmpty();
 
-		const stripeFeeText = await stripeFeeElement.textContent();
+		// Zero-fee payments omit the fee row but still need payout reconciliation.
+		let stripeFeeText = '0';
+		if ( await stripeFeeElement.count() ) {
+			await expect( stripeFeeElement ).toContainText( '-' );
+			stripeFeeText = await stripeFeeElement.textContent();
+		}
 		const stripePayoutText = await stripePayoutElement.textContent();
 
 		// Extract the numeric amount from the text content - ignore - and currency symbol.

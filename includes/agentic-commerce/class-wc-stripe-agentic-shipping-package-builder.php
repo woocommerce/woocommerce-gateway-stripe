@@ -162,8 +162,8 @@ class WC_Stripe_Agentic_Shipping_Package_Builder {
 				throw new Exception(
 					sprintf(
 						'Shipping package builder: product not found for line item %s with sku_id "%s".',
-						$line_item->get_id(),
-						$line_item->get_sku_id()
+						$line_item->get_id(), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+						$line_item->get_sku_id() // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 					)
 				);
 			}
@@ -184,9 +184,9 @@ class WC_Stripe_Agentic_Shipping_Package_Builder {
 				throw new Exception(
 					sprintf(
 						'Shipping package builder: invalid quantity or unit_amount for line item %s (quantity %d, unit_amount %s).',
-						$line_item->get_id(),
-						$quantity,
-						null === $unit_amount ? 'null' : (string) $unit_amount
+						$line_item->get_id(), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+						$quantity, // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+						null === $unit_amount ? 'null' : (string) $unit_amount // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 					)
 				);
 			}
@@ -209,8 +209,8 @@ class WC_Stripe_Agentic_Shipping_Package_Builder {
 					throw new Exception(
 						sprintf(
 							'Shipping package builder: no catalog price for line item %s (product ID %d).',
-							$line_item->get_id(),
-							$product->get_id()
+							$line_item->get_id(), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+							$product->get_id() // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 						)
 					);
 				}

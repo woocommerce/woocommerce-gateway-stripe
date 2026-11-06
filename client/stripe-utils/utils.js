@@ -757,7 +757,8 @@ export const getExcludedPaymentMethodTypes = () => {
 
 /**
  * Returns the OC excluded payment method types for a billing country, combining
- * the server-seeded list with the per-method `countriesByMethod` map.
+ * the server-seeded list with the per-method `countriesByMethod` map and the
+ * methods that don't support deferred intent.
  *
  * @param {string} billingCountry Two-letter ISO billing country (may be empty when unknown).
  * @return {Array<string>} Payment method types to exclude for the country.
@@ -793,6 +794,18 @@ export const getExcludedPaymentMethodTypesForBillingCountry = (
 			excluded.push( method );
 		}
 	} );
+
+	// Methods without deferred-intent support (e.g. BLIK, ACSS) render as their
+	// own entries, never inside this element, whatever the country. The
+	// subtraction above drops one the page-load country also excluded, so add
+	// them back.
+	Object.entries( getStripeServerData()?.paymentMethodsConfig || {} ).forEach(
+		( [ method, config ] ) => {
+			if ( config?.supportsDeferredIntent === false ) {
+				excluded.push( method );
+			}
+		}
+	);
 
 	return [ ...new Set( excluded ) ];
 };
@@ -1170,3 +1183,18 @@ export const getFontSizeBase = ( defaultFontSize ) => {
 
 	return defaultFontSize;
 };
+
+/**
+ * Whether the Stripe.js build on the page supports Checkout Sessions.
+ *
+ * Another plugin can load a different build, and older builds define
+ * `initCheckoutElementsSdk` as a stub that throws, so only the pinned version is trusted.
+ *
+ * @param {Object} stripe  The Stripe instance.
+ * @param {string} version The Stripe.js version the server pins, e.g. 'dahlia'.
+ * @return {boolean} True when `initCheckoutElementsSdk` can be used.
+ */
+export const stripeJsSupportsCheckoutSessions = ( stripe, version ) =>
+	typeof stripe?.initCheckoutElementsSdk === 'function' &&
+	!! version &&
+	window.Stripe?.version === version;

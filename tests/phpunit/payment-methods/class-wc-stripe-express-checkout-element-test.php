@@ -161,6 +161,79 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The notice is injected without a sanitizer, so a translation must not be able to
+	 * introduce anything but the checkout link, and a store with no resolvable checkout
+	 * URL must not get a self-linking empty anchor.
+	 *
+	 * @dataProvider provide_go_to_checkout_hardening
+	 * @param string $checkout_url What the checkout URL filter returns.
+	 * @param string $translation  What the translation filter returns for the sentence.
+	 * @param string $expected     The expected notice.
+	 * @return void
+	 */
+	public function test_javascript_params_hardens_the_go_to_checkout_notice( $checkout_url, $translation, $expected ) {
+		$ajax_handler = $this->getMockBuilder( WC_Stripe_Express_Checkout_Ajax_Handler::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $gateway ] )
+			->getMock();
+
+		$checkout_url_filter = static function () use ( $checkout_url ) {
+			return $checkout_url;
+		};
+		$translation_filter  = static function ( $translated, $text, $domain ) use ( $translation ) {
+			if ( 'woocommerce-gateway-stripe' === $domain && 0 === strpos( $text, 'Please go to the %1$s' ) ) {
+				return $translation;
+			}
+			return $translated;
+		};
+		add_filter( 'woocommerce_get_checkout_url', $checkout_url_filter );
+		add_filter( 'gettext', $translation_filter, 10, 3 );
+
+		try {
+			$element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
+			$this->assertSame( $expected, $element->javascript_params()['i18n']['go_to_checkout'] );
+		} finally {
+			remove_filter( 'gettext', $translation_filter, 10 );
+			remove_filter( 'woocommerce_get_checkout_url', $checkout_url_filter );
+		}
+	}
+
+	/**
+	 * Data provider for {@see test_javascript_params_hardens_the_go_to_checkout_notice()}.
+	 *
+	 * @return array[]
+	 */
+	public function provide_go_to_checkout_hardening() {
+		$sentence = 'Please go to the %1$scheckout page%2$s, fill in the required fields, and complete your order from there.';
+
+		return [
+			// kses re-encodes esc_url's &#038; as &amp;; both decode to a literal &.
+			'links to the filtered checkout URL' => [
+				'https://example.com/store/custom-checkout/?one=1&two=2',
+				$sentence,
+				'Please go to the <a href="https://example.com/store/custom-checkout/?one=1&amp;two=2">checkout page</a>, fill in the required fields, and complete your order from there.',
+			],
+			'no anchor without a checkout URL'   => [
+				'',
+				$sentence,
+				'Please go to the checkout page, fill in the required fields, and complete your order from there.',
+			],
+			'hostile translation is stripped'    => [
+				'https://example.com/checkout/',
+				'Go %1$shere%2$s <img src=x onerror="alert(1)"><script>alert(1)</script>',
+				'Go <a href="https://example.com/checkout/">here</a> alert(1)',
+			],
+		];
+	}
+
+	/**
 	 * Test for `scripts`.
 	 *
 	 * @return void
@@ -1154,6 +1227,66 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 				],
 				'set_amount'    => false,
 			],
+		];
+	}
+
+	/**
+	 * The pay-for-order payload must carry the order's saved billing phone so the
+	 * client can preserve it when the wallet sheet didn't collect one — the Store
+	 * API order-pay route otherwise overwrites it with an empty value.
+	 *
+	 * @return void
+	 */
+	public function test_localize_pay_for_order_includes_saved_billing_phone() {
+		// Start from a clean script registration so we read only this call's localized data.
+		wp_deregister_script( 'wc_stripe_express_checkout' );
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_billing_phone( '+14155550123' );
+		$order->save();
+
+		$this->element->localize_pay_for_order_page_scripts( $order );
+
+		$params = $this->get_localized_pay_for_order_params();
+
+		$this->assertSame( '+14155550123', $params['orderDetails']['billingPhone'] );
+	}
+
+	/**
+	 * The Store API order-pay route validates the shipping address only when the
+	 * order needs shipping, so the payload must tell the client which case it is —
+	 * otherwise the client can't know whether to backfill the shipping phone.
+	 *
+	 * @dataProvider provide_localize_pay_for_order_needs_shipping
+	 * @param bool $virtual  Whether the ordered product is virtual.
+	 * @param bool $expected Expected needsShipping value.
+	 * @return void
+	 */
+	public function test_localize_pay_for_order_includes_needs_shipping( $virtual, $expected ) {
+		// Start from a clean script registration so we read only this call's localized data.
+		wp_deregister_script( 'wc_stripe_express_checkout' );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_virtual( $virtual );
+		$product->save();
+		$order = WC_Helper_Order::create_order( 1, $product );
+
+		$this->element->localize_pay_for_order_page_scripts( $order );
+
+		$params = $this->get_localized_pay_for_order_params();
+
+		$this->assertSame( $expected, $params['orderDetails']['needsShipping'] );
+	}
+
+	/**
+	 * Provider for test_localize_pay_for_order_includes_needs_shipping.
+	 *
+	 * @return array
+	 */
+	public function provide_localize_pay_for_order_needs_shipping() {
+		return [
+			'physical product order needs shipping' => [ false, true ],
+			'virtual product order does not'        => [ true, false ],
 		];
 	}
 

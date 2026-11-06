@@ -45,6 +45,21 @@ abstract class WC_Stripe_Email_Failed_Refund extends WC_Email_Failed_Order {
 	}
 
 	/**
+	 * Get the default additional content.
+	 *
+	 * Overridden to return an empty string. Without this, these emails inherit
+	 * WC_Email_Failed_Order's default, which is written for merchants about failed
+	 * payments and would be shown to customers in a refund-failed email.
+	 *
+	 * @since x.x.x
+	 *
+	 * @return string
+	 */
+	public function get_default_additional_content() {
+		return '';
+	}
+
+	/**
 	 * Get content html.
 	 *
 	 * @return string

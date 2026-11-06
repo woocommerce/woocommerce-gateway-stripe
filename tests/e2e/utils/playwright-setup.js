@@ -1,18 +1,9 @@
-import * as dotenv from 'dotenv';
-import path from 'path';
-import fs from 'fs';
-
-import stripe from 'stripe';
-
 import { expect } from '@playwright/test';
-import { NodeSSH } from 'node-ssh';
-import { downloadRelease } from './plugin-utils';
-
-dotenv.config( {
-	path: `${ process.env.E2E_ROOT }/config/local.env`,
-} );
-
-import { user } from '.';
+import fs from 'fs';
+import path from 'path';
+import stripe from 'stripe';
+import { fileURLToPath } from 'url';
+import { user } from './index.js';
 
 const {
 	ADMIN_USER,
@@ -48,12 +39,6 @@ export const loginAdminAndSaveState = ( {
 			// Sign in as admin user and save state
 			console.log( '- Trying to log-in as admin...' );
 			await user.login( page, username, password, retries );
-
-			await page.goto( `/wp-admin` );
-
-			await expect( page.locator( 'div.wrap > h1' ) ).toHaveText(
-				'Dashboard'
-			);
 			await page.context().storageState( { path: statePath } );
 			console.log( '\u2714 Logged-in as admin successfully.' );
 			resolve();
@@ -122,9 +107,14 @@ export const installPluginFromRepository = async (
 	);
 
 	const pluginZip = `${ pluginSlug }.zip`;
-	const pluginZipPath = path.resolve( __dirname, `../../tmp/${ pluginZip }` );
+	const pluginZipPath = path.resolve(
+		fileURLToPath( import.meta.url ),
+		'../../tmp',
+		pluginZip
+	);
 
-	// Download the needed plugin.
+	// Download the needed plugin (lazy-loaded to avoid requiring axios in QIT).
+	const { downloadRelease } = await import( './plugin-utils.js' );
 	await downloadRelease( {
 		repo,
 		releaseTag: version,
@@ -183,6 +173,7 @@ export const installPluginFromRepository = async (
  * @returns The promise for the SSH connection.
  */
 const sshExecCommands = async ( commands ) => {
+	const { NodeSSH } = await import( 'node-ssh' );
 	const ssh = new NodeSSH();
 	const credentials = getServerCredentialsFromEnv();
 	return ssh.connect( credentials ).then( async () => {

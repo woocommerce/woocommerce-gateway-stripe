@@ -8,6 +8,7 @@ import {
 	getStripeServerData,
 	showErrorCheckout,
 	getExcludedPaymentMethodTypesForBillingCountry,
+	stripeJsSupportsCheckoutSessions,
 } from '../utils';
 import { initializeUPEAppearance } from '../upe-appearance';
 import { getAppearance } from '../../styles/upe';
@@ -986,6 +987,21 @@ describe( 'showErrorCheckout', () => {
 			expect( excluded ).toContain( 'amazon_pay' );
 		} );
 
+		it( 'keeps a non-deferred method excluded when the billing country becomes supported', () => {
+			// BLIK loads country-excluded (non-PL) and is also excluded because it
+			// can't render in the deferred-intent element; switching to PL only
+			// lifts the country reason.
+			setServerData( { blik: [ 'PL' ] }, [ 'amazon_pay', 'blik' ] );
+			setCountryExcludedSeed( [ 'blik' ] );
+			global.wc_stripe_upe_params.paymentMethodsConfig.blik = {
+				supportsDeferredIntent: false,
+			};
+
+			expect(
+				getExcludedPaymentMethodTypesForBillingCountry( 'PL' )
+			).toContain( 'blik' );
+		} );
+
 		it( 'preserves seed entries that are not country-derived, even when country-governed', () => {
 			// A third party excluded Klarna via `wc_stripe_upe_params` for a
 			// non-country reason: it is absent from the country-derived seed,
@@ -1036,5 +1052,63 @@ describe( 'showErrorCheckout', () => {
 				getExcludedPaymentMethodTypesForBillingCountry( 'US' )
 			).toEqual( [ 'amazon_pay' ] );
 		} );
+	} );
+} );
+
+describe( 'stripeJsSupportsCheckoutSessions', () => {
+	const stripe = { initCheckoutElementsSdk: jest.fn() };
+
+	afterEach( () => {
+		delete window.Stripe;
+	} );
+
+	it( 'returns true when the loaded build is the pinned version and defines initCheckoutElementsSdk', () => {
+		window.Stripe = { version: 'dahlia' };
+
+		expect( stripeJsSupportsCheckoutSessions( stripe, 'dahlia' ) ).toBe(
+			true
+		);
+	} );
+
+	it.each( [
+		[ 'the legacy v3 build', 3 ],
+		[ 'an older named version', 'basil' ],
+		[ 'a newer named version', 'endive' ],
+	] )(
+		'returns false when %s won the stripe handle, even though it defines initCheckoutElementsSdk',
+		( _label, version ) => {
+			// Stripe keeps renamed methods as stubs that throw, so the method's
+			// presence says nothing about whether this build can run it.
+			window.Stripe = { version };
+
+			expect( stripeJsSupportsCheckoutSessions( stripe, 'dahlia' ) ).toBe(
+				false
+			);
+		}
+	);
+
+	it( 'returns false when the pinned version is unknown', () => {
+		window.Stripe = { version: 'dahlia' };
+
+		expect( stripeJsSupportsCheckoutSessions( stripe, undefined ) ).toBe(
+			false
+		);
+	} );
+
+	it( 'returns false when Stripe.js has not defined window.Stripe', () => {
+		expect( stripeJsSupportsCheckoutSessions( stripe, 'dahlia' ) ).toBe(
+			false
+		);
+	} );
+
+	it( 'returns false when the build lacks initCheckoutElementsSdk', () => {
+		window.Stripe = { version: 'dahlia' };
+
+		expect(
+			stripeJsSupportsCheckoutSessions(
+				{ elements: jest.fn() },
+				'dahlia'
+			)
+		).toBe( false );
 	} );
 } );
