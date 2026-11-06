@@ -2,6 +2,7 @@
 
 xxxx-xx-xx - version 11.3.0
 * Update - Improve express checkout wallet startup, availability checks, reuse, and recovery
+* Fix - Keep a subscription's Stripe customer when its card is changed with 3D Secure, so renewals of subscriptions created in wp-admin or imported no longer fail with a missing customer ID
 
 xxxx-xx-xx - version 11.2.0
 * Fix - Refund or void a Stripe payment that succeeds for an order that was already cancelled, instead of leaving the shopper charged
@@ -32,7 +33,6 @@ xxxx-xx-xx - version 11.2.0
 * Fix - Disable Adaptive Pricing instead of breaking checkout when another plugin loads a different version of Stripe.js
 * Dev - Fix ACH E2E tests for Stripe's updated test-mode bank account flow
 * Fix - Stop a staging or cloned site from deleting the production site's Stripe webhooks when connecting or disconnecting Stripe
-* Fix - Keep a subscription's Stripe customer when its card is changed with 3D Secure, so renewals of subscriptions created in wp-admin or imported no longer fail with a missing customer ID
 
 2026-10-16 - version 11.1.1
 * Fix - Stop blocking non-Stripe payment gateways on the Pay for Order, change payment method, and add payment method pages
