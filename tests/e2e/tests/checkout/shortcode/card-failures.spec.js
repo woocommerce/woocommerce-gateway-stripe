@@ -4,7 +4,9 @@ import config from 'config';
 import { payments } from '../../../utils';
 
 const {
+	clickPlaceOrder,
 	emptyCart,
+	getErrorNotices,
 	setupCart,
 	setupShortcodeCheckout,
 	fillCreditCardDetailsShortcode,
@@ -23,21 +25,23 @@ const testCard = async ( page, cardKey ) => {
 	const card = config.get( cardKey );
 
 	await fillCreditCardDetailsShortcode( page, card );
+	// Scoped by src: Stripe's helper iframes share the container. Use the
+	// card payment path for card-specific error assertions.
 	const linkSignup = page
 		.frameLocator(
-			'.payment_method_stripe #wc-stripe-upe-form .wc-stripe-upe-element iframe'
+			'.payment_method_stripe #wc-stripe-upe-form .wc-stripe-upe-element iframe[src*="elements-inner-payment"]'
 		)
 		.getByRole( 'checkbox', {
 			name: 'Save my information for faster checkout',
 		} );
-	// Use the card payment path for card-specific error assertions.
 	if ( await linkSignup.isVisible() ) {
 		await linkSignup.uncheck();
 	}
-	await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
+	await clickPlaceOrder( page );
 
+	const errorNotice = getErrorNotices( page ).first();
 	expect
-		.soft( await page.innerText( '.woocommerce-error' ) )
+		.soft( await errorNotice.innerText() )
 		.toMatch( new RegExp( `(?:${ card.error.join( '|' ) })`, 'i' ) );
 };
 

@@ -3,17 +3,54 @@ import config from 'config';
 import { verifyOrderChargedAmount } from './admin';
 
 /**
- * Click the primary add to cart button for the current page.
+ * Click the primary add to cart button for the current page. Assumes the click
+ * adds exactly one item (quantity 1, no grouped products).
  *
  * @param {Page}   page  Playwright page fixture.
  * @param {string} label The expected text for the "Add to cart" button.
  */
 export async function clickAddToCartButton( page, label = 'Add to cart' ) {
-	const addToCartButton = await page
-		.getByRole( 'button', { name: label, exact: true } )
-		.first();
-	await expect( addToCartButton ).toBeEnabled();
-	await addToCartButton.click();
+	const initialCount = await getCartItemsCount( page );
+	const expectedCount = initialCount + 1;
+
+	// Block themes drop a click that lands before the Interactivity API
+	// hydrates, so confirm against the cart and re-click if the count stayed.
+	await retryWithBackoff(
+		async () => {
+			// A slow add may have landed since the last attempt.
+			if ( ( await getCartItemsCount( page ) ) < expectedCount ) {
+				// Accessible name OR text: block themes append the product
+				// name, and a selected WCS plan relabels the text "Sign up"
+				// while the stale aria-label keeps "Add to cart".
+				const addToCartButton = page
+					.getByRole( 'button', { name: label } )
+					.or( page.locator( 'button', { hasText: label } ) )
+					.first();
+				await expect( addToCartButton ).toBeEnabled();
+				await addToCartButton.click();
+			}
+			await expect
+				.poll( () => getCartItemsCount( page ), { timeout: 5000 } )
+				.toBe( expectedCount );
+		},
+		{ maxRetries: 2 }
+	);
+}
+
+/**
+ * Read the cart's item count from the Store API, which is theme-independent.
+ *
+ * @param {Page} page Playwright page fixture.
+ * @returns {Promise<number>} Total number of items in the cart.
+ */
+async function getCartItemsCount( page ) {
+	const response = await page.request.get( '/wp-json/wc/store/v1/cart' );
+	if ( ! response.ok() ) {
+		throw new Error(
+			`Failed to fetch cart: ${ response.status() } ${ response.statusText() }`
+		);
+	}
+	return ( await response.json() ).items_count;
 }
 
 export async function selectSubscriptionOption( page ) {
@@ -80,9 +117,10 @@ export async function emptyCart( page ) {
 		await page.click( '.woocommerce-remove-coupon' );
 	}
 
+	// Match the text; classic and block themes wrap the notice differently.
 	await expect(
-		page.locator( '.wc-empty-cart-message .cart-empty' )
-	).toHaveText( 'Your cart is currently empty.' );
+		page.getByText( 'Your cart is currently empty.' ).first()
+	).toBeVisible();
 }
 
 /**
@@ -101,33 +139,35 @@ export async function setupCart(
 	page,
 	lineItems = [ [ config.get( 'products.simple.name' ), 1 ] ]
 ) {
-	const cartItemsCounter = '.cart-contents .count';
-
-	await page.goto( '/shop/' );
-
-	// Get the current number of items in the cart
-	let cartSize = await page.$eval( cartItemsCounter, ( e ) =>
-		Number( e.innerText.replace( /\D/g, '' ) )
-	);
-
-	// Add items to the cart
+	// Shop-page markup and the header cart counter are theme-specific, so
+	// resolve product pages through the Store API instead.
 	for ( const line of lineItems ) {
 		let [ productTitle, qty ] = line;
 
-		while ( qty-- ) {
-			const addToCartXPath =
-				`//li[contains(@class, "type-product") and a/h2[contains(text(), "${ productTitle }")]]` +
-				'//a[contains(@class, "add_to_cart_button") and contains(@class, "ajax_add_to_cart")';
-			await page.waitForSelector( `xpath=${ addToCartXPath }]` );
-			await page.click( `xpath=${ addToCartXPath }]` );
-			await page.waitForSelector(
-				`xpath=${ addToCartXPath } and contains(@class, "added")]`
+		const response = await page.request.get(
+			`/wp-json/wc/store/v1/products?search=${ encodeURIComponent(
+				productTitle
+			) }&per_page=20`
+		);
+		if ( ! response.ok() ) {
+			throw new Error(
+				`Failed to search products: ${ response.status() } ${ response.statusText() }`
 			);
+		}
+		// The search matches substrings, so pick the exact title.
+		const product = ( await response.json() ).find(
+			( { name } ) => name === productTitle
+		);
+		if ( ! product ) {
+			throw new Error(
+				`Could not find product "${ productTitle }" via the Store API.`
+			);
+		}
 
-			// Make sure that the number of items in the cart is incremented first before adding another item.
-			await expect( page.locator( cartItemsCounter ) ).toHaveText(
-				new RegExp( `${ ++cartSize } items?` )
-			);
+		await page.goto( product.permalink );
+
+		while ( qty-- ) {
+			await clickAddToCartButton( page );
 		}
 	}
 }
@@ -301,24 +341,23 @@ export async function fillCreditCardDetails( page, card ) {
  * @param {Object} card The CC info in the format provided on the test-data.
  */
 export async function fillCreditCardDetailsShortcode( page, card ) {
-	const frameHandle = await page.waitForSelector(
-		'.payment_method_stripe #wc-stripe-upe-form .wc-stripe-upe-element iframe'
-	);
-
-	await page
+	// Stripe mounts helper iframes next to the card element, so a bare
+	// `iframe` intermittently matched more than one; scope by src.
+	const paymentIframe = page
 		.locator(
-			'.payment_method_stripe #wc-stripe-upe-form .wc-stripe-upe-element iframe'
+			'.payment_method_stripe #wc-stripe-upe-form .wc-stripe-upe-element iframe[src*="elements-inner-payment"]'
 		)
-		.scrollIntoViewIfNeeded();
+		.first();
+	await paymentIframe.waitFor( { state: 'visible' } );
+	await paymentIframe.scrollIntoViewIfNeeded();
 
-	const stripeFrame = await frameHandle.contentFrame();
+	const stripeFrame = paymentIframe.contentFrame();
 
-	await stripeFrame.fill( '[name="number"]', card.number );
-	await stripeFrame.fill(
-		'[name="expiry"]',
-		card.expires.month + card.expires.year
-	);
-	await stripeFrame.fill( '[name="cvc"]', card.cvc );
+	await stripeFrame.locator( '[name="number"]' ).fill( card.number );
+	await stripeFrame
+		.locator( '[name="expiry"]' )
+		.fill( card.expires.month + card.expires.year );
+	await stripeFrame.locator( '[name="cvc"]' ).fill( card.cvc );
 }
 
 /**
@@ -506,6 +545,12 @@ export async function setupShortcodeCheckout(
 			);
 		}
 	}
+
+	// Each billing-field change queues an update_checkout refresh that
+	// overlays the order review; let any in-flight ones clear before clicking.
+	await expect( page.locator( '.blockUI.blockOverlay' ) ).toHaveCount( 0, {
+		timeout: 30000,
+	} );
 
 	await page.click( '.wc_payment_method.payment_method_stripe' );
 }
@@ -777,25 +822,64 @@ export const setupACSSCheckout = async ( page, checkoutType = 'blocks' ) => {
 			config.get( 'addresses.customer_canada.billing' )
 		);
 
-		// Select ACSS in blocks checkout.
+		// The payment options re-render while express checkout and totals
+		// settle, and a click landing mid re-render is lost; verify the radio.
+		const acssRadio = page.locator(
+			'#radio-control-wc-payment-method-options-stripe_acss_debit'
+		);
 		const acssLabel = page
 			.locator( 'label' )
 			.filter( { hasText: 'Pre-Authorized Debit' } );
 		await acssLabel.waitFor( { state: 'visible' } );
-		await acssLabel.click();
+		await retryWithBackoff( async () => {
+			if ( ! ( await acssRadio.isChecked() ) ) {
+				// Bounded so a blocked click fails into the next retry.
+				await acssLabel.click( { timeout: 5000 } );
+			}
+			await expect( acssRadio ).toBeChecked();
+		} );
 	} else {
 		await setupShortcodeCheckout(
 			page,
 			config.get( 'addresses.customer_canada.billing' )
 		);
 
-		// Select ACSS in shortcode checkout.
-		const acssLabel = page.getByText( 'Pre-Authorized Debit' );
+		// Selecting a gateway triggers an update_checkout refresh that swaps
+		// the payment fragment and re-checks the method selected when the
+		// request was sent, reverting a click that races it. The refresh
+		// starts a beat after the click, so wait for the overlay to appear
+		// (tolerating a missed fast cycle) and clear, then verify the radio.
+		const acssRadio = page.locator( '#payment_method_stripe_acss_debit' );
+		const acssLabel = page.locator(
+			"label[for='payment_method_stripe_acss_debit']"
+		);
+		const overlay = page.locator( '.blockUI.blockOverlay' ).first();
 		await acssLabel.waitFor( { state: 'visible' } );
-		await acssLabel.click();
-	}
+		await retryWithBackoff( async () => {
+			if ( ! ( await acssRadio.isChecked() ) ) {
+				// Bounded so a blocked click fails into the next retry.
+				await acssLabel.click( { timeout: 5000 } );
+			}
+			await overlay
+				.waitFor( { state: 'visible', timeout: 5000 } )
+				.catch( () => {} );
+			await overlay.waitFor( { state: 'hidden', timeout: 30000 } );
+			await expect( acssRadio ).toBeChecked();
+			await expect(
+				page.locator( '.payment_box.payment_method_stripe_acss_debit' )
+			).toBeVisible();
+		} );
 
-	await page.waitForTimeout( 1000 );
+		// The element mounts into the swapped-in fragment only after a fresh
+		// intent is created; submitting before that fails Stripe's validation
+		// ("Please provide your full name."). Match the payment iframe, not
+		// Stripe's earlier-loading helper iframes.
+		await waitForStripeReady(
+			page,
+			'.payment_box.payment_method_stripe_acss_debit iframe[src*="elements-inner-payment"]',
+			30000
+		);
+	}
 };
 
 /**
@@ -890,8 +974,9 @@ export const fillACSSDetails = async ( page ) => {
 		.locator( 'iframe[name^="__privateStripeFrame"]' )
 		.first();
 
-	// Wait for the outer iframe to be present.
-	await expect( outerFrameElement ).toBeVisible( { timeout: 5000 } );
+	// The lightbox opens only after the checkout request round-trips and
+	// Stripe confirms the intent, which can take well over 5s.
+	await expect( outerFrameElement ).toBeVisible( { timeout: 20000 } );
 
 	const outerFrame = await outerFrameElement.contentFrame();
 	const innerFrameElement = await outerFrame
@@ -899,7 +984,7 @@ export const fillACSSDetails = async ( page ) => {
 		.first();
 
 	// Wait for the inner iframe to be present.
-	await expect( innerFrameElement ).toBeVisible( { timeout: 5000 } );
+	await expect( innerFrameElement ).toBeVisible( { timeout: 20000 } );
 
 	const innerFrame = await innerFrameElement.contentFrame();
 
@@ -955,18 +1040,16 @@ export async function handleCheckout3DSChallenge( page, action = 'authorize' ) {
  * attempt to reduce the flakiness.
  * @param {Page} page Playwright page fixture.
  */
-export async function clickPlaceOrder( page ) {
-	// Wait for the button to be enabled (i.e. clickable), to wait
-	// for any logic we are potentially depending on.
-	await expect(
-		page.getByRole( 'button', { name: 'Place order' } )
-	).toBeEnabled();
+export async function clickPlaceOrder( page, label = 'Place order' ) {
+	const placeOrderButton = page.getByRole( 'button', { name: label } );
+
+	// Enabled also means hydrated: a click dispatched before the handler is
+	// bound is silently dropped, which block themes make likely under load.
+	await expect( placeOrderButton ).toBeEnabled();
 
 	// Dispatch a click event, instead of clicking the button directly,
 	// to reduce "missed" clicks.
-	await page
-		.getByRole( 'button', { name: 'Place order' } )
-		.dispatchEvent( 'click' );
+	await placeOrderButton.dispatchEvent( 'click' );
 
 	// If we click the Place button too fast, we might sometimes get an error.
 	// One way to handle this is to always wait a few seconds before clicking Place order.
@@ -976,10 +1059,32 @@ export async function clickPlaceOrder( page ) {
 		.getByLabel( 'Checkout' )
 		.getByText( 'Your payment information is' );
 	if ( await errorElement.isVisible() ) {
-		await page
-			.getByRole( 'button', { name: 'Place order' } )
-			.dispatchEvent( 'click' );
+		await placeOrderButton.dispatchEvent( 'click' );
 	}
+}
+
+/**
+ * Error notices under both classic and block-theme markup.
+ *
+ * @param {Page} page Playwright page fixture.
+ * @returns {import('@playwright/test').Locator} Locator matching all error notices.
+ */
+export function getErrorNotices( page ) {
+	return page.locator(
+		'.woocommerce-error, .wc-block-components-notice-banner.is-error'
+	);
+}
+
+/**
+ * Success notices under both classic and block-theme markup.
+ *
+ * @param {Page} page Playwright page fixture.
+ * @returns {import('@playwright/test').Locator} Locator matching all success notices.
+ */
+export function getSuccessNotices( page ) {
+	return page.locator(
+		'.woocommerce-message, .wc-block-components-notice-banner.is-success'
+	);
 }
 
 /**
@@ -1068,6 +1173,36 @@ const getOCPaymentFrame = async ( page, iframeSelector, timeout = 10000 ) => {
 };
 
 /**
+ * Ensure the Card method is the one selected in the Optimized Checkout (OC)
+ * payment element, and return the element's iframe.
+ *
+ * @param {Page} page Playwright page fixture.
+ * @param {string} checkoutType The type of checkout ('blocks' or 'shortcode').
+ * @returns {Promise<FrameLocator>} The OC payment element frame.
+ */
+export const selectOCCardMethod = async ( page, checkoutType = 'blocks' ) => {
+	const iframeSelector =
+		checkoutType === 'blocks'
+			? '#radio-control-wc-payment-method-options-stripe__content iframe[name^="__privateStripeFrame"]'
+			: '#wc-stripe-upe-form .StripeElement iframe[name^="__privateStripeFrame"]';
+
+	const paymentFrame = await getOCPaymentFrame( page, iframeSelector );
+
+	// Expand the Card row if needed: the initial selection follows Stripe's
+	// ranking and is not guaranteed to be Card.
+	if ( ! ( await paymentFrame.locator( '[name="number"]' ).isVisible() ) ) {
+		await paymentFrame
+			.locator(
+				'[role="button"]:has-text("Card"), button:has-text("Card")'
+			)
+			.first()
+			.click();
+	}
+
+	return paymentFrame;
+};
+
+/**
  * Fill in the payment details for Optimized Checkout (OC).
  *
  * @param {Page} page Playwright page fixture.
@@ -1082,23 +1217,7 @@ export const fillOCDetails = async (
 	checkoutType = 'blocks',
 	options = {}
 ) => {
-	// Determine the appropriate iframe selector based on checkout type
-	const iframeSelector =
-		checkoutType === 'blocks'
-			? '#radio-control-wc-payment-method-options-stripe__content iframe[name^="__privateStripeFrame"]'
-			: '#wc-stripe-upe-form .StripeElement iframe[name^="__privateStripeFrame"]';
-
-	const paymentFrame = await getOCPaymentFrame( page, iframeSelector );
-
-	// Expand the Card accordion row if its fields are not showing yet.
-	if ( ! ( await paymentFrame.locator( '[name="number"]' ).isVisible() ) ) {
-		await paymentFrame
-			.locator(
-				'[role="button"]:has-text("Card"), button:has-text("Card")'
-			)
-			.first()
-			.click();
-	}
+	const paymentFrame = await selectOCCardMethod( page, checkoutType );
 
 	// Fill in test card details
 	await paymentFrame.locator( '[name="number"]' ).fill( card.number );
@@ -1329,9 +1448,10 @@ export const getOrderIdFromOrderReceivedUrl = ( url ) =>
 export const waitForOrderReceivedPage = async ( page ) => {
 	await page.waitForURL( '**/checkout/order-received/**' );
 
-	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-		'Order received'
-	);
+	// By role: only classic themes add `.entry-title` to the heading.
+	await expect(
+		page.getByRole( 'heading', { level: 1, name: 'Order received' } )
+	).toBeVisible();
 };
 
 /**

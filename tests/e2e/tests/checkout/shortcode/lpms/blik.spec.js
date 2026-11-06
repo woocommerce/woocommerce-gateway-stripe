@@ -3,6 +3,7 @@ import config from 'config';
 import { payments } from '../../../../utils';
 
 const {
+	clickPlaceOrder,
 	emptyCart,
 	setupCart,
 	setupShortcodeCheckout,
@@ -20,7 +21,7 @@ test.describe( 'BLIK payment tests @shortcode @blik', () => {
 		);
 		await page.getByText( 'BLIK', { exact: true } ).click();
 		await fillBLIKDetails( page );
-		await page.locator( 'text=Place order' ).click();
+		await clickPlaceOrder( page );
 		await waitForOrderReceivedPage( page );
 	} );
 } );

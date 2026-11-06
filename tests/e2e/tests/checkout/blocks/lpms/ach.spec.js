@@ -4,6 +4,7 @@ import config from 'config';
 import { admin, payments, api, user } from '../../../../utils';
 
 const {
+	clickPlaceOrder,
 	emptyCart,
 	setupCart,
 	setupBlocksCheckout,
@@ -49,7 +50,7 @@ test.describe( 'ACH payment tests @blocks', () => {
 		await setupACHCheckout( page, 'blocks' );
 		await fillACHBankDetails( page );
 
-		await page.locator( 'text=Place order' ).click();
+		await clickPlaceOrder( page );
 		await waitForOrderReceivedPage( page );
 	} );
 
@@ -71,7 +72,7 @@ test.describe( 'ACH payment tests @blocks', () => {
 				)
 				.click();
 
-			await page.locator( 'text=Place order' ).click();
+			await clickPlaceOrder( page );
 			await waitForOrderReceivedPage( page );
 		} );
 
@@ -88,7 +89,7 @@ test.describe( 'ACH payment tests @blocks', () => {
 				.filter( { hasText: 'Checking account ending in' } )
 				.click();
 
-			await page.locator( 'text=Place order' ).click();
+			await clickPlaceOrder( page );
 			await waitForOrderReceivedPage( page );
 		} );
 	} );

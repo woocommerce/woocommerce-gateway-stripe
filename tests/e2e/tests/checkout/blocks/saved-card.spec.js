@@ -4,6 +4,7 @@ import config from 'config';
 import { payments, api, user, admin } from '../../../utils';
 
 const {
+	clickPlaceOrder,
 	emptyCart,
 	setupCart,
 	setupBlocksCheckout,
@@ -35,6 +36,10 @@ test( 'customer can checkout with a saved card @smoke @blocks', async ( {
 	browser,
 	baseURL,
 } ) => {
+	// Three checkouts plus admin verification exceed the 120s default on a
+	// loaded CI runner, more so under block themes.
+	test.setTimeout( 240 * 1000 );
+
 	const useLocalFixture = process.env.DOCKER === 'true';
 	if ( useLocalFixture ) {
 		await page
@@ -70,7 +75,7 @@ test( 'customer can checkout with a saved card @smoke @blocks', async ( {
 
 			const expectedTotal = await getCartTotal( page );
 
-			await page.locator( 'text=Place order' ).click();
+			await clickPlaceOrder( page );
 
 			await waitForOrderReceivedPageAndConfirmExpectedTotal(
 				browser,
@@ -92,7 +97,7 @@ test( 'customer can checkout with a saved card @smoke @blocks', async ( {
 
 			const expectedTotal = await getCartTotal( page );
 
-			await page.locator( 'text=Place order' ).click();
+			await clickPlaceOrder( page );
 
 			await waitForOrderReceivedPageAndConfirmExpectedTotal(
 				browser,
@@ -129,7 +134,7 @@ test( 'customer can checkout with a saved card @smoke @blocks', async ( {
 
 			const expectedTotal = await getCartTotal( page );
 
-			await page.locator( 'text=Place order' ).click();
+			await clickPlaceOrder( page );
 
 			await waitForOrderReceivedPageAndConfirmExpectedTotal(
 				browser,

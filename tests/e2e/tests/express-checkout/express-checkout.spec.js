@@ -8,12 +8,37 @@ const addProductToCart = async ( page, productSlug = 'beanie' ) => {
 	// Add a product to the cart
 	await page.goto( `/product/${ productSlug }` );
 
+	// Verified against the cart by clickAddToCartButton; block themes render
+	// no "added to your cart" notice to wait on.
 	await clickAddToCartButton( page );
+};
 
-	// Wait for the cart update to complete - look for success message or cart count update
-	await expect(
-		page.getByText( 'has been added to your cart' )
-	).toBeVisible();
+/**
+ * Select a variation attribute: a native `<select>` on classic themes, a radio
+ * chip in the "Add to Cart with Options" block on block themes.
+ *
+ * @param {import('@playwright/test').Page} page           Playwright page.
+ * @param {string}                          attributeLabel The attribute's label (e.g. 'color').
+ * @param {string}                          value          The option to pick (e.g. 'Blue').
+ */
+const selectVariation = async ( page, attributeLabel, value ) => {
+	const dropdown = page.getByLabel( attributeLabel, { exact: true } );
+	const isSelect =
+		( await dropdown.count() ) > 0 &&
+		( await dropdown
+			.first()
+			.evaluate( ( el ) => el.tagName === 'SELECT' ) );
+	if ( isSelect ) {
+		await dropdown.selectOption( value );
+	} else {
+		// Scoped to the block so a same-named radio elsewhere can't match.
+		await page
+			.locator(
+				'.wp-block-woocommerce-add-to-cart-with-options-variation-selector'
+			)
+			.getByRole( 'radio', { name: value, exact: true } )
+			.click();
+	}
 };
 
 const testLink = async ( page, navigateTo, isBlockPage = false ) => {
@@ -299,11 +324,25 @@ test.describe( 'express checkout and variable products', () => {
 		page,
 	} ) => {
 		await page.goto( '/product/hoodie' );
-		await page
-			.getByLabel( 'color', { exact: true } )
-			.selectOption( 'Blue' );
-		await page.getByLabel( 'Logo', { exact: true } ).selectOption( 'Yes' );
+
+		const isBlockified = await page
+			.locator(
+				'.wp-block-woocommerce-add-to-cart-with-options-variation-selector'
+			)
+			.count();
+
+		await selectVariation( page, 'color', 'Blue' );
+		await selectVariation( page, 'Logo', 'Yes' );
 		const linkButton = await getLinkButton( page );
+
+		if ( isBlockified > 0 ) {
+			// The "Add to Cart with Options" block does not fire the jQuery
+			// variation events express checkout listens for, so the button
+			// never renders there (issue #5811). Pinned so it turns red once
+			// PR #5868 lands; flip this to toBeVisible then.
+			await expect( linkButton ).toBeHidden();
+			return;
+		}
 		await expect( linkButton ).toBeVisible();
 	} );
 } );
