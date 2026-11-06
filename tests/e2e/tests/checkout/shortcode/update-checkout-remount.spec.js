@@ -8,6 +8,7 @@ const {
 	setupShortcodeCheckout,
 	fillCreditCardDetailsShortcode,
 	waitForStripeReady,
+	waitForOrderReceivedPage,
 } = payments;
 
 const UPE_IFRAME_SELECTOR =
@@ -51,10 +52,5 @@ test( 'completes a classic checkout order submitted during a checkout re-render'
 		window.jQuery( document.body ).trigger( 'update_checkout' );
 	} );
 
-	await page.waitForURL( /order-received/, { timeout: 30000 } );
-	// Match by role and text: classic themes render `h1.entry-title` while
-	// block themes render a plain h1 in the order-confirmation template.
-	await expect(
-		page.getByRole( 'heading', { level: 1, name: 'Order received' } )
-	).toBeVisible();
+	await waitForOrderReceivedPage( page );
 } );

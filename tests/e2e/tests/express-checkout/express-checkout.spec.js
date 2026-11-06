@@ -8,17 +8,14 @@ const addProductToCart = async ( page, productSlug = 'beanie' ) => {
 	// Add a product to the cart
 	await page.goto( `/product/${ productSlug }` );
 
-	// clickAddToCartButton already confirms the add against the Store API cart,
-	// so there is no need to wait on the classic 'added to your cart' notice,
-	// which block themes do not render.
+	// Verified against the cart by clickAddToCartButton; block themes render
+	// no "added to your cart" notice to wait on.
 	await clickAddToCartButton( page );
 };
 
 /**
- * Select a product variation attribute regardless of the active theme. Classic
- * themes render a native `<select>` per attribute; block themes render the
- * "Add to Cart with Options" block, whose attributes are radio "chip" buttons
- * labelled by the option value.
+ * Select a variation attribute: a native `<select>` on classic themes, a radio
+ * chip in the "Add to Cart with Options" block on block themes.
  *
  * @param {import('@playwright/test').Page} page           Playwright page.
  * @param {string}                          attributeLabel The attribute's label (e.g. 'color').
@@ -34,8 +31,7 @@ const selectVariation = async ( page, attributeLabel, value ) => {
 	if ( isSelect ) {
 		await dropdown.selectOption( value );
 	} else {
-		// Scope to the variation-selector block rather than the whole page, so
-		// an unrelated same-named radio elsewhere in the template can't match.
+		// Scoped to the block so a same-named radio elsewhere can't match.
 		await page
 			.locator(
 				'.wp-block-woocommerce-add-to-cart-with-options-variation-selector'
@@ -96,23 +92,25 @@ test.describe( 'express checkout and variable products', () => {
 	} ) => {
 		await page.goto( '/product/hoodie' );
 
-		// The blockified "Add to Cart with Options" template does not fire the
-		// variation-change jQuery events express checkout relies on, so the
-		// button does not render on variable products there yet (fix in flight).
-		// Skip on that template; the classic add-to-cart form still covers this.
 		const isBlockified = await page
 			.locator(
 				'.wp-block-woocommerce-add-to-cart-with-options-variation-selector'
 			)
 			.count();
-		test.skip(
-			isBlockified > 0,
-			'Blockified add-to-cart: express checkout on variable products is a known open issue.'
-		);
 
 		await selectVariation( page, 'color', 'Blue' );
 		await selectVariation( page, 'Logo', 'Yes' );
 		const linkButton = await getLinkButton( page );
+
+		if ( isBlockified > 0 ) {
+			// The "Add to Cart with Options" block does not fire the jQuery
+			// variation events express checkout listens for, so the button
+			// never renders there. Pinned so it turns red once
+			// https://github.com/woocommerce/woocommerce-gateway-stripe/pull/5868
+			// lands; flip this to toBeVisible then.
+			await expect( linkButton ).toBeHidden();
+			return;
+		}
 		await expect( linkButton ).toBeVisible();
 	} );
 } );

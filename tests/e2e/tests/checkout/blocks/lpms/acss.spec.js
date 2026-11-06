@@ -62,13 +62,12 @@ test.describe( 'ACSS payment tests @blocks @acss', () => {
 			);
 			await setupACSSCheckout( page, 'blocks' );
 			await page.getByLabel( 'Save payment information' ).click();
-			// Toggling save-for-later updates the payment element with
-			// setup_future_usage, which can briefly remount it; an order placed
-			// mid-remount submits without payment details and the server
-			// rejects it. Wait for the element to settle first.
+			// The checkbox triggers an elements.update() with setup_future_usage;
+			// submitting while it reloads sends no payment details. Match the
+			// payment iframe itself, not Stripe's earlier-loading helper iframes.
 			await waitForStripeReady(
 				page,
-				'#radio-control-wc-payment-method-options-stripe_acss_debit__content iframe[name^="__privateStripeFrame"]'
+				'#radio-control-wc-payment-method-options-stripe_acss_debit__content iframe[src*="elements-inner-payment"]'
 			);
 			await clickPlaceOrder( page );
 			await fillACSSDetails( page );

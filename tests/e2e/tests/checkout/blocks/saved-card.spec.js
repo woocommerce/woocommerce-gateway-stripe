@@ -35,10 +35,8 @@ test( 'customer can checkout with a saved card @smoke @blocks', async ( {
 	page,
 	browser,
 } ) => {
-	// Three full checkouts plus admin-side verification run close to the
-	// default 120s budget on a loaded CI runner, and block themes load each
-	// page slower still; the third step was timing out before the checkout
-	// had even hydrated.
+	// Three checkouts plus admin verification exceed the 120s default on a
+	// loaded CI runner, more so under block themes.
 	test.setTimeout( 240 * 1000 );
 
 	// Disable Link so the store-level save checkbox is visible.

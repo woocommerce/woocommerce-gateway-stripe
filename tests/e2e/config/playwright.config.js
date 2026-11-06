@@ -42,9 +42,8 @@ const config = {
 
 	retries: 3,
 
-	// Overridable so heavier themes can lower concurrency: block/FSE themes
-	// (e.g. purple) load far more per page than a classic theme, and 5 workers
-	// against the single-container e2e site exhaust it into connection resets.
+	// Overridable: block themes load more per page, and 5 workers can push the
+	// single-container site into connection resets.
 	workers: E2E_WORKERS ? Number( E2E_WORKERS ) : CI ? 5 : undefined,
 
 	// Reporter to use. See https://playwright.dev/docs/test-reporters
@@ -76,13 +75,11 @@ const config = {
 		screenshot: 'only-on-failure',
 
 		// Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer
-		// Override with E2E_TRACE=on to record every test (view with
-		// `npx playwright show-trace <trace.zip>`).
+		// E2E_TRACE=on records every test.
 		trace: E2E_TRACE || 'retain-on-failure',
 
-		// Record video only when retrying a test for the first time. Override
-		// with E2E_VIDEO=on to screen-record every test, or
-		// E2E_VIDEO=retain-on-failure to keep only failing runs' videos.
+		// Record video only when retrying a test for the first time.
+		// E2E_VIDEO=on records every test.
 		video: E2E_VIDEO || 'on-first-retry',
 
 		viewport: { width: 1280, height: 720 },

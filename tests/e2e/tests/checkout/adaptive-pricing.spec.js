@@ -48,8 +48,7 @@ const payWithAdaptivePricing = async ( page, checkoutType ) => {
 	// AP orders are only marked paid by webhooks, which can't reach the
 	// tunnel-less CI site — assert the received page, not the "Paid" row.
 	await waitForOrderReceivedPage( page );
-	// Classic themes render the total as `.woocommerce-order-overview__total`;
-	// block themes render the order-confirmation summary list instead.
+	// Classic vs block-theme order-received total markup.
 	await expect(
 		page.locator(
 			'.woocommerce-order-overview__total, .wc-block-order-confirmation-summary-list-item:has-text("Total:")'
@@ -108,8 +107,7 @@ const payWithConvertedCurrency = async (
 	// checkout-session fetch when the page renders, so they work
 	// without the settlement webhook CI can't receive.
 	await expect(
-		// Classic themes render the notice as `.woocommerce-info`, block themes
-		// as a `wc-block-components-notice-banner`.
+		// Classic vs block-theme notice markup.
 		page.locator( '.woocommerce-info, .wc-block-components-notice-banner', {
 			hasText: 'Currency Conversion:',
 		} )

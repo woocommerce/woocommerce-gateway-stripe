@@ -184,9 +184,8 @@ test.describe( 'Optimized Checkout payment tests @shortcode', () => {
 			config.get( 'addresses.customer.billing' )
 		);
 
-		// The suppressed-save rule only applies to card/link, and the OC
-		// element's initial selection follows Stripe's ranking (it defaulted to
-		// US bank account on some runs), so pick Card explicitly.
+		// The save checkbox rule is card/link-only and the element's default
+		// selection follows Stripe's ranking, so pick Card explicitly.
 		await selectOCCardMethod( page, 'shortcode' );
 
 		const saveCheckboxWrapper = page.locator(

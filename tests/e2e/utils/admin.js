@@ -1,8 +1,6 @@
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
 import { expect } from '@playwright/test';
 import { user } from './index.js';
+import { acquireSettingsLock } from './settings-lock.js';
 
 const ADMIN_USER =
 	process.env.QIT_ADMIN_USERNAME || process.env.ADMIN_USER || 'admin';
@@ -44,15 +42,14 @@ export const togglePaymentMethod = async (
 	methodName,
 	enable = true
 ) => {
-	// The settings page submits every method's enabled state, so two workers
-	// toggling different methods at once lose one of the changes: the later
-	// save overwrites the earlier one with the stale state it loaded. One
-	// lost save disables a method (seen with Link) for the rest of the run.
-	// Serialize the load-change-save sequence across worker processes.
-	const releaseLock = await acquireSettingsLock();
 	const { context, page } = await getAdminPage( browser );
+	let releaseLock = () => {};
 
 	try {
+		// The settings page saves every method's enabled state, so concurrent
+		// toggles lose one change to a stale save (seen as Link staying
+		// disabled for the rest of a run). Serialize load-change-save.
+		releaseLock = await acquireSettingsLock();
 		await page.goto(
 			'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=methods'
 		);
@@ -92,61 +89,6 @@ export const togglePaymentMethod = async (
 	} finally {
 		await context.close();
 		releaseLock();
-	}
-};
-
-const SETTINGS_LOCK_DIR = path.join(
-	os.tmpdir(),
-	`wc-stripe-e2e-settings-${ ( process.env.BASE_URL || 'local' ).replace(
-		/[^a-z0-9]/gi,
-		'_'
-	) }.lock`
-);
-const SETTINGS_LOCK_STALE_MS = 90 * 1000;
-const SETTINGS_LOCK_WAIT_MS = 120 * 1000;
-
-/**
- * Cross-process mutex for Stripe settings writes. Playwright workers are
- * separate processes, so an in-memory lock cannot serialize them; an atomic
- * directory create on the shared filesystem can. A lock older than the stale
- * threshold is assumed to belong to a crashed worker and is reclaimed.
- *
- * @returns {Promise<Function>} Release function.
- */
-const acquireSettingsLock = async () => {
-	const deadline = Date.now() + SETTINGS_LOCK_WAIT_MS;
-	for (;;) {
-		try {
-			fs.mkdirSync( SETTINGS_LOCK_DIR );
-			return () => {
-				try {
-					fs.rmdirSync( SETTINGS_LOCK_DIR );
-				} catch ( error ) {
-					// Already reclaimed as stale by another worker.
-				}
-			};
-		} catch ( error ) {
-			if ( error.code !== 'EEXIST' ) {
-				throw error;
-			}
-			try {
-				const age =
-					Date.now() - fs.statSync( SETTINGS_LOCK_DIR ).mtimeMs;
-				if ( age > SETTINGS_LOCK_STALE_MS ) {
-					fs.rmdirSync( SETTINGS_LOCK_DIR );
-					continue;
-				}
-			} catch ( statError ) {
-				// Released between the mkdir and the stat; retry immediately.
-				continue;
-			}
-			if ( Date.now() > deadline ) {
-				throw new Error(
-					'Timed out waiting for the Stripe settings lock.'
-				);
-			}
-			await new Promise( ( resolve ) => setTimeout( resolve, 250 ) );
-		}
 	}
 };
 
