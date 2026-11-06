@@ -11,6 +11,10 @@ env_file_value() {
 	grep "^$1=" "$CWD/.env" 2>/dev/null | tail -1 | cut -d= -f2-
 }
 . "$(dirname "${BASH_SOURCE[0]}")/e2e-stack-defaults.sh"
+# Remember whether the caller targeted a project explicitly, before the
+# fallbacks below erase that distinction; the guard after error() is defined
+# lets an explicit choice through but stops an accidental default.
+E2E_PROJECT_WAS_EXPLICIT=${E2E_PROJECT:+yes}
 # Exported so docker compose can interpolate them in env/docker-compose.yml.
 export E2E_PROJECT=${E2E_PROJECT:-$(env_file_value E2E_PROJECT)}
 export E2E_PROJECT=${E2E_PROJECT:-$E2E_DEFAULT_PROJECT}
@@ -42,6 +46,20 @@ check_dep() {
 		exit 1
 	fi
 }
+
+# A worktree that never ran worktree:setup resolves to the shared default
+# project, and every e2e command would then operate on the main checkout's
+# stack — the exact cross-checkout interference this isolation exists to
+# prevent. Fail fast unless the caller explicitly asked for that project.
+# In the main checkout (git-dir == git-common-dir) and outside git the
+# defaults are the correct stack, so those pass.
+if [[ -z "$E2E_PROJECT_WAS_EXPLICIT" && "$E2E_PROJECT" == "$E2E_DEFAULT_PROJECT" ]] \
+	&& [[ "$(git rev-parse --git-dir 2>/dev/null)" != "$(git rev-parse --git-common-dir 2>/dev/null)" ]]; then
+	error "This worktree has no isolated e2e stack configured, so this command would target the shared default '$E2E_DEFAULT_PROJECT' stack (the main checkout's)."
+	echo "  Run 'npm run worktree:setup' to assign this worktree its own stack,"
+	echo "  or export E2E_PROJECT explicitly to target a specific stack."
+	exit 1
+fi
 
 load_e2e_local_env() {
 	if [[ -f "$E2E_ROOT/config/local.env" ]]; then
