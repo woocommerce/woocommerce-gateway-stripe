@@ -2965,18 +2965,6 @@ parameters:
 			path: includes/compat/class-wc-stripe-subscriptions-legacy-sepa-token-update.php
 
 		-
-			message: '#^Method WC_Stripe_Connect_API\:\:get_stripe_oauth_keys\(\) should return array but returns array\|WP_Error\.$#'
-			identifier: return.type
-			count: 2
-			path: includes/connect/class-wc-stripe-connect-api.php
-
-		-
-			message: '#^Method WC_Stripe_Connect_API\:\:refresh_stripe_app_oauth_keys\(\) should return array but returns array\|WP_Error\.$#'
-			identifier: return.type
-			count: 1
-			path: includes/connect/class-wc-stripe-connect-api.php
-
-		-
 			message: '#^Parameter \#1 \$haystack of function strpos expects string, array\|string given\.$#'
 			identifier: argument.type
 			count: 1
@@ -2993,48 +2981,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: includes/connect/class-wc-stripe-connect-api.php
-
-		-
-			message: '#^Access to property \$publishableKey on an unknown class stdObject\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/connect/class-wc-stripe-connect.php
-
-		-
-			message: '#^Access to property \$refreshToken on an unknown class stdObject\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/connect/class-wc-stripe-connect.php
-
-		-
-			message: '#^Access to property \$secretKey on an unknown class stdObject\.$#'
-			identifier: class.notFound
-			count: 2
-			path: includes/connect/class-wc-stripe-connect.php
-
-		-
-			message: '#^Call to an undefined method object\:\:get_stripe_oauth_init\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/connect/class-wc-stripe-connect.php
-
-		-
-			message: '#^Call to an undefined method object\:\:get_stripe_oauth_keys\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/connect/class-wc-stripe-connect.php
-
-		-
-			message: '#^Call to an undefined method object\:\:refresh_stripe_app_oauth_keys\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/connect/class-wc-stripe-connect.php
-
-		-
-			message: '#^Method WC_Stripe_Connect\:\:connect_oauth\(\) should return string\|WP_Error but returns stdObject\|WP_Error\.$#'
-			identifier: return.type
-			count: 1
-			path: includes/connect/class-wc-stripe-connect.php
 
 		-
 			message: '#^Method WC_Stripe_Connect\:\:get_default_stripe_config\(\) has no return type specified\.$#'
@@ -3063,12 +3009,6 @@ parameters:
 		-
 			message: '#^Method WC_Stripe_Connect\:\:refresh_connection\(\) has no return type specified\.$#'
 			identifier: missingType.return
-			count: 1
-			path: includes/connect/class-wc-stripe-connect.php
-
-		-
-			message: '#^Method WC_Stripe_Connect\:\:save_stripe_keys\(\) has invalid return type stdObject\.$#'
-			identifier: class.notFound
 			count: 1
 			path: includes/connect/class-wc-stripe-connect.php
 
@@ -3123,12 +3063,6 @@ parameters:
 		-
 			message: '#^Parameter \#4 \$mode of method WC_Stripe_Connect\:\:connect_oauth\(\) expects string, array\|string given\.$#'
 			identifier: argument.type
-			count: 1
-			path: includes/connect/class-wc-stripe-connect.php
-
-		-
-			message: '#^Parameter \$result of method WC_Stripe_Connect\:\:save_stripe_keys\(\) has invalid type stdObject\.$#'
-			identifier: class.notFound
 			count: 1
 			path: includes/connect/class-wc-stripe-connect.php
 

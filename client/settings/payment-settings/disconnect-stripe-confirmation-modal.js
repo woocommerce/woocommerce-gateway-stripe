@@ -1,16 +1,25 @@
 import React, { useState } from 'react';
 import { __ } from '@wordpress/i18n';
-import { Button } from '@wordpress/components';
+import { Button, CheckboxControl } from '@wordpress/components';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 import AlertTitle from 'wcstripe/components/confirmation-modal/alert-title';
 import { useAccountKeys } from 'wcstripe/data/account-keys/hooks';
+import { useAccount } from 'wcstripe/data/account';
+import './style.scss';
 
 const DisconnectStripeConfirmationModal = ( {
 	onClose,
 	setKeepModalContent,
 } ) => {
 	const { saveAccountKeys } = useAccountKeys();
+	const { data } = useAccount();
 	const [ status, setStatus ] = useState( false );
+	const [ shouldDeauthorize, setShouldDeauthorize ] = useState( false );
+
+	// Only classic Connect OAuth connections can be revoked
+	const canDeauthorize =
+		data?.oauth_connections?.live?.type === 'connect' ||
+		data?.oauth_connections?.test?.type === 'connect';
 
 	const handleDisconnect = async () => {
 		setStatus( 'pending' );
@@ -24,6 +33,9 @@ const DisconnectStripeConfirmationModal = ( {
 			test_secret_key: '',
 			test_webhook_secret: '',
 		};
+		if ( canDeauthorize && shouldDeauthorize ) {
+			accountKeys.deauthorize_connection = true;
+		}
 		await saveAccountKeys( accountKeys );
 
 		window.location.reload();
@@ -81,6 +93,23 @@ const DisconnectStripeConfirmationModal = ( {
 						'woocommerce-gateway-stripe'
 					) }
 				</p>
+				{ canDeauthorize && (
+					<div className="wcstripe-deauthorize-checkbox">
+						<CheckboxControl
+							checked={ shouldDeauthorize }
+							disabled={ status === 'pending' }
+							onChange={ setShouldDeauthorize }
+							label={ __(
+								'Also revoke Connect API keys',
+								'woocommerce-gateway-stripe'
+							) }
+							help={ __(
+								'Permanently revoke the API keys issued for this Stripe account through Stripe Connect. Any other stores, including staging or test copies of this store, and other tools using keys from your WooCommerce connection to this Stripe account will also stop working, including taking payments, until you re-authorize them.',
+								'woocommerce-gateway-stripe'
+							) }
+						/>
+					</div>
+				) }
 			</ConfirmationModal>
 		</>
 	);

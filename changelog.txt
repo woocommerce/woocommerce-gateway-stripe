@@ -1,6 +1,7 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 11.3.0
+* Add - Allow revoking Connect API keys when disconnecting Stripe account
 * Update - Improve express checkout wallet startup, availability checks, reuse, and recovery
 
 xxxx-xx-xx - version 11.2.0

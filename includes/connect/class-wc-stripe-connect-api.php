@@ -21,7 +21,7 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 		 * @param string $return_url The URL to return to after the OAuth is completed.
 		 * @param string $mode       Optional. The mode to connect to. 'live' or 'test'. Default is 'live'.
 		 *
-		 * @return array|WP_Error The response from the server.
+		 * @return stdClass|WP_Error The response from the server.
 		 */
 		public function get_stripe_oauth_init( $return_url, $mode = 'live' ) {
 			$current_user                   = wp_get_current_user();
@@ -74,7 +74,7 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 		 * @param string $type Optional. The type of the connection. 'connect' or 'app'. Default is 'connect'.
 		 * @param string $mode Optional. The mode to connect to. 'live' or 'test'. Default is 'live'.
 		 *
-		 * @return array
+		 * @return stdClass|WP_Error
 		 */
 		public function get_stripe_oauth_keys( $code, $type = 'connect', $mode = 'live' ) {
 			$request = [ 'code' => $code ];
@@ -101,7 +101,7 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 		 * @param string $refresh_token Stripe App OAuth refresh token.
 		 * @param string $mode          Optional. The mode to refresh keys for. 'live' or 'test'. Default is 'live'.
 		 *
-		 * @return array
+		 * @return stdClass|WP_Error
 		 */
 		public function refresh_stripe_app_oauth_keys( $refresh_token, $mode = 'live' ) {
 			$request = [
@@ -112,13 +112,102 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 		}
 
 		/**
+		 * Deauthorizes a Connect account connection via the WooCommerce Connect Server,
+		 * revoking the platform-issued API keys on Stripe's side.
+		 *
+		 * @since x.x.x
+		 *
+		 * @param string $account_id The connected Stripe account ID (acct_...).
+		 * @param string $secret_key Secret key for that account.
+		 * @param string $platform   Which platform credentials the server should deauthorize with: 'live' or 'sandbox'.
+		 *
+		 * @return stdClass|WP_Error
+		 */
+		public function deauthorize_account( $account_id, $secret_key, $platform ) {
+			$request = [
+				'accountId' => $account_id,
+				'secretKey' => $secret_key,
+				'platform'  => $platform,
+			];
+
+			$response = $this->request( 'POST', '/stripe/account/deauthorize-by-key', $request );
+
+			if ( ! is_wp_error( $response ) && ( ! is_object( $response ) || ( $response->accountId ?? '' ) !== $account_id ) ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+				return new WP_Error( 'wcc_invalid_deauthorization_response', __( 'The WooCommerce Connect server did not confirm API key revocation.', 'woocommerce-gateway-stripe' ) );
+			}
+
+			return $response;
+		}
+
+		/**
+		 * The disconnect screen waits for both modes, so retries need a bounded budget
+		 * instead of repeating the normal 60-second OAuth timeout.
+		 *
+		 * @since x.x.x
+		 *
+		 * @param string $url  Connect server URL.
+		 * @param array  $args HTTP request arguments.
+		 * @return array|WP_Error
+		 */
+		private function request_deauthorization( $url, $args ) {
+			$deadline = microtime( true ) + 15;
+			$timeout  = isset( $args['timeout'] ) && is_numeric( $args['timeout'] ) && $args['timeout'] > 0 ? min( 5, (float) $args['timeout'] ) : 5;
+
+			for ( $attempt = 0; ; ++$attempt ) {
+				$args['timeout'] = min( $timeout, max( 0.001, $deadline - microtime( true ) ) );
+				$response        = wp_remote_request( $url, $args );
+
+				if ( $attempt >= 2 || ! $this->is_retryable_deauthorization_response( $response ) ) {
+					return $response;
+				}
+
+				$delay       = 0.25 * ( 2 ** $attempt );
+				$retry_after = wp_remote_retrieve_header( $response, 'retry-after' );
+				if ( is_string( $retry_after ) && '' !== $retry_after ) {
+					$retry_after = is_numeric( $retry_after ) ? (float) $retry_after : (float) strtotime( $retry_after ) - time();
+					$delay       = max( $delay, $retry_after );
+				}
+
+				if ( $deadline - microtime( true ) <= $delay + 1 ) {
+					return $response;
+				}
+
+				usleep( (int) ( $delay * 1000000 ) );
+			}
+		}
+
+		/**
+		 * Permanent rejections must not consume the remaining retry budget.
+		 *
+		 * @since x.x.x
+		 *
+		 * @param array|WP_Error $response HTTP response.
+		 * @return bool
+		 */
+		private function is_retryable_deauthorization_response( $response ) {
+			if ( is_wp_error( $response ) ) {
+				return 'http_request_failed' === $response->get_error_code();
+			}
+
+			$status = (int) wp_remote_retrieve_response_code( $response );
+			if ( in_array( $status, [ 408, 429 ], true ) || ( $status >= 500 && $status < 600 ) ) {
+				return true;
+			}
+
+			// Connect Server reports upstream failures as this generic 400; other 400s
+			// include invalid keys and malformed requests, which retries cannot repair.
+			$body = json_decode( wp_remote_retrieve_body( $response ), true );
+			return 400 === $status && is_array( $body ) && 'Failed to deauthorize account.' === ( $body['message'] ?? '' );
+		}
+
+		/**
 		 * General OAuth request method.
 		 *
 		 * @param string $method request method.
 		 * @param string $path   path for request.
 		 * @param array  $body   request body.
 		 *
-		 * @return array|WP_Error
+		 * @return stdClass|WP_Error The decoded JSON response body (responses are json_decoded to objects, not arrays).
 		 */
 		protected function request( $method, $path, $body = [] ) {
 
@@ -216,7 +305,9 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 				);
 			}
 
-			$response      = wp_remote_request( $url, $args );
+			$response      = '/stripe/account/deauthorize-by-key' === $path
+				? $this->request_deauthorization( $url, $args )
+				: wp_remote_request( $url, $args );
 			$response_code = wp_remote_retrieve_response_code( $response );
 			$content_type  = wp_remote_retrieve_header( $response, 'content-type' );
 
