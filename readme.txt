@@ -197,5 +197,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Disable Adaptive Pricing instead of breaking checkout when another plugin loads a different version of Stripe.js
 * Dev - Fix ACH E2E tests for Stripe's updated test-mode bank account flow
 * Fix - Stop a staging or cloned site from deleting the production site's Stripe webhooks when connecting or disconnecting Stripe
+* Fix - Keep a subscription's Stripe customer when its card is changed with 3D Secure, so renewals of subscriptions created in wp-admin or imported no longer fail with a missing customer ID
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
