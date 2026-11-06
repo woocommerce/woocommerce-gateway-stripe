@@ -191,6 +191,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Allow retrying a failed BLIK or Pre-Authorized Debit (ACSS) payment on the same order instead of failing every retry
 * Fix - Prevent a second charge when an interrupted checkout is resubmitted or two tabs submit the same cart at once
 * Fix - On classic checkout, show a notice naming each empty required field instead of a single generic "Please fill in all required fields" notice
+* Fix - Show the completed order on order-received after a 3D Secure retry under Adaptive Pricing, instead of a brief failed-order notice
 * Fix - Restore missing left borders on notices in the Stripe settings
 * Fix - Render the Additional content field in the Stripe refund failed emails (customer and merchant)
 * Add - Record Tracks events for Adaptive Pricing setting changes, automatic enabling, and notice dismissals, and fix the event recorded when Optimized Checkout is turned off
