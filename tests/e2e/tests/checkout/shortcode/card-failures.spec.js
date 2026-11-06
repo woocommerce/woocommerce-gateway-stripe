@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { test, expect } from '@playwright/test';
 import config from 'config';
 import { payments } from '../../../utils';
@@ -14,16 +15,27 @@ const {
 test.beforeEach( async ( { page } ) => {
 	await emptyCart( page );
 	await setupCart( page );
-	await setupShortcodeCheckout(
-		page,
-		config.get( 'addresses.customer.billing' )
-	);
+	await setupShortcodeCheckout( page, {
+		...config.get( 'addresses.customer.billing' ),
+		email: `stripe-e2e-${ randomUUID() }@example.com`,
+	} );
 } );
 
 const testCard = async ( page, cardKey ) => {
 	const card = config.get( cardKey );
 
 	await fillCreditCardDetailsShortcode( page, card );
+	const linkSignup = page
+		.frameLocator(
+			'.payment_method_stripe #wc-stripe-upe-form .wc-stripe-upe-element iframe'
+		)
+		.getByRole( 'checkbox', {
+			name: 'Save my information for faster checkout',
+		} );
+	// Use the card payment path for card-specific error assertions.
+	if ( await linkSignup.isVisible() ) {
+		await linkSignup.uncheck();
+	}
 	await clickPlaceOrder( page );
 
 	const errorNotice = getErrorNotices( page ).first();

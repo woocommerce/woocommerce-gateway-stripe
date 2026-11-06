@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test';
 import { randomUUID } from 'crypto';
+import { test, expect } from '@playwright/test';
 import config from 'config';
 import { payments, api, user, admin } from '../../../utils';
 
@@ -21,27 +21,35 @@ test.beforeAll( async () => {
 	userEmail = randomString + '+' + config.get( 'users.customer.email' );
 	username = randomString + '.' + config.get( 'users.customer.username' );
 
-	const user = {
+	const customerData = {
 		...config.get( 'users.customer' ),
 		...config.get( 'addresses.customer' ),
 		email: userEmail,
 		username,
 	};
 
-	await api.create.customer( user );
+	await api.create.customer( customerData );
 } );
 
 test( 'customer can checkout with a saved card @smoke @blocks', async ( {
 	page,
 	browser,
+	baseURL,
 } ) => {
 	// Three checkouts plus admin verification exceed the 120s default on a
 	// loaded CI runner, more so under block themes.
 	test.setTimeout( 240 * 1000 );
 
-	// Disable Link so the store-level save checkbox is visible.
-	// When Link is enabled, the store checkbox is hidden and Link handles save consent.
-	await admin.togglePaymentMethod( browser, 'Link by Stripe', false );
+	const useLocalFixture = process.env.DOCKER === 'true';
+	if ( useLocalFixture ) {
+		await page
+			.context()
+			.addCookies( [
+				{ name: 'wc_stripe_e2e_card_only', value: '1', url: baseURL },
+			] );
+	} else {
+		await admin.togglePaymentMethod( browser, 'Link by Stripe', false );
+	}
 
 	try {
 		await test.step( 'customer login', async () => {
@@ -135,7 +143,8 @@ test( 'customer can checkout with a saved card @smoke @blocks', async ( {
 			);
 		} );
 	} finally {
-		// Re-enable Link after the test.
-		await admin.togglePaymentMethod( browser, 'Link by Stripe', true );
+		if ( ! useLocalFixture ) {
+			await admin.togglePaymentMethod( browser, 'Link by Stripe', true );
+		}
 	}
 } );

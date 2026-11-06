@@ -122,6 +122,21 @@ class WC_Stripe_OCS_AP_Default_On_Update {
 			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 		}
 
+		// Stores that already had AP on are left out: the update did not change anything for them.
+		if ( $ap_newly_enabled ) {
+			WC_Stripe_Helper::record_adaptive_pricing_default_tracks_event( 'ocs_ap_default_on' );
+		} elseif ( ! $ap_pre ) {
+			if ( null !== $ap_unavailable_reason ) {
+				$skipped_reason = $ap_unavailable_reason;
+			} elseif ( ! $oc_eligible ) {
+				$skipped_reason = 'pmc-disabled';
+			} else {
+				// The merchant likely got AP on at connection time and turned it off since.
+				$skipped_reason = 'turned-off-after-default';
+			}
+			WC_Stripe_Helper::record_adaptive_pricing_default_tracks_event( 'ocs_ap_default_on', $skipped_reason );
+		}
+
 		update_option( self::MIGRATION_FLAG_OPTION, 'yes' );
 
 		WC_Stripe_Logger::info( '[OCS+AP 10.8] Migration complete. Banner-visibility options and ran-once flag written.' );

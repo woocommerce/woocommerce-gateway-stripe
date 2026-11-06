@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test';
 import { randomUUID } from 'crypto';
+import { test, expect } from '@playwright/test';
 import config from 'config';
 import { payments, api, user, admin } from '../../../utils';
 
@@ -20,7 +20,7 @@ test.describe( 'Optimized Checkout payment tests @shortcode', () => {
 
 	test.describe.configure( { mode: 'serial' } );
 
-	test.beforeAll( async ( { browser } ) => {
+	test.beforeAll( async () => {
 		await test.step( 'Setup test environment', async () => {
 			// Create test user.
 			const randomString = randomUUID();
@@ -43,7 +43,12 @@ test.describe( 'Optimized Checkout payment tests @shortcode', () => {
 		page,
 		browser,
 	} ) => {
-		await setupOptimizedCheckout( page, 'shortcode' );
+		await setupOptimizedCheckout( page, 'shortcode', {
+			billingDetails: {
+				...config.get( 'addresses.customer.billing' ),
+				email: `stripe-e2e-${ randomUUID() }@example.com`,
+			},
+		} );
 		await fillOCDetails( page, config.get( 'cards.basic' ), 'shortcode' );
 
 		const expectedTotal = await getCartTotal( page );
