@@ -2,8 +2,9 @@
 import React, { useContext, useState } from 'react';
 import { getQuery, updateQueryString } from '@woocommerce/navigation';
 import styled from '@emotion/styled';
-import { isEmpty } from 'lodash';
+import { isEmpty, isEqual } from 'lodash';
 import SettingsLayout from '../settings-layout';
+import PMCSyncNotice from '../pmc-sync-notice';
 import PaymentSettingsPanel from '../payment-settings';
 import PaymentMethodsPanel from '../payment-methods';
 import AgenticCommerceSection from '../agentic-commerce';
@@ -67,10 +68,13 @@ const SettingsManager = () => {
 		useState( initialBannerState );
 
 	useEffect( () => {
-		if ( isLoading && ! isEmpty( settings ) ) {
+		if (
+			( isLoading || isEmpty( initialSettings ) ) &&
+			! isEmpty( settings )
+		) {
 			setInitialSettings( settings );
 		}
-	}, [ isLoading, settings ] );
+	}, [ isLoading, settings, initialSettings ] );
 
 	const [ showExitSurvey, setShowExitSurvey ] = useState( false );
 
@@ -116,6 +120,10 @@ const SettingsManager = () => {
 
 	return (
 		<SettingsLayout>
+			<PMCSyncNotice
+				onResolved={ setInitialSettings }
+				hasUnsavedChanges={ ! isEqual( settings, initialSettings ) }
+			/>
 			{ showExitSurvey && (
 				<ExitSurveyModal
 					trigger="settings_disable"

@@ -312,23 +312,16 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		// Before saving the settings, decommission any previously automatically configured webhook endpoint.
 		$settings = $this->decommission_configured_webhook_after_key_update( $settings, $current_account_keys );
 
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
-
-		// Disable all payment methods if all keys are different from the current ones
-		if ( $current_account_keys['publishable_key'] !== $settings['publishable_key']
+		$keys_changed = $current_account_keys['publishable_key'] !== $settings['publishable_key']
 			|| $current_account_keys['secret_key'] !== $settings['secret_key']
 			|| $current_account_keys['test_publishable_key'] !== $settings['test_publishable_key']
-			|| $current_account_keys['test_secret_key'] !== $settings['test_secret_key'] ) {
-
-			$upe_gateway  = new WC_Stripe_UPE_Payment_Gateway();
-			$reset_result = $upe_gateway->update_enabled_payment_methods( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ] );
-			if ( is_wp_error( $reset_result ) ) {
-				WC_Stripe_Logger::error(
-					'Failed to reset payment methods after API key change',
-					[ 'error' => $reset_result->get_error_message() ]
-				);
-			}
-
+			|| $current_account_keys['test_secret_key'] !== $settings['test_secret_key'];
+		if ( $keys_changed ) {
+			// Option-update hooks can read the PMC immediately, so disable sync before replacing credentials.
+			$settings['pmc_enabled'] = 'no';
+		}
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		if ( $keys_changed ) {
 			WC_Stripe::get_instance()->connect->clear_caches_after_key_update();
 		}
 

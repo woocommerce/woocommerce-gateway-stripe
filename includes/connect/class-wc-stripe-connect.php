@@ -274,21 +274,25 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return new WP_Error( 'invalid_credentials', 'Invalid credentials received from WooCommerce Connect server' );
 			}
 
+			// Installation saves settings before OAuth; stored keys in either mode, even expired ones, identify a reconnect.
 			$publishable_key                            = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			$secret_key                                 = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			$is_test                                    = 'live' !== $mode;
 			$prefix                                     = $is_test ? 'test_' : '';
-			$default_options                            = $this->get_default_stripe_config();
 			$current_options                            = WC_Stripe_Helper::get_stripe_settings();
-			$options                                    = array_merge( $default_options, is_array( $current_options ) ? $current_options : [] );
+			$is_first_connection                        = ! $this->is_connected( 'live' ) && ! $this->is_connected( 'test' );
+			$options                                    = $is_first_connection ? array_merge( $this->get_default_stripe_config(), $current_options ) : $current_options;
 			$options['enabled']                         = 'yes';
 			$options['testmode']                        = $is_test ? 'yes' : 'no';
 			$options['upe_checkout_experience_enabled'] = $this->get_upe_checkout_experience_enabled();
 			$options[ $prefix . 'publishable_key' ]     = $publishable_key;
 			$options[ $prefix . 'secret_key' ]          = $secret_key;
 			$options[ $prefix . 'connection_type' ]     = $type;
-			$options['pmc_enabled']                     = 'connect' === $type ? 'yes' : 'no'; // When not connected via Connect OAuth, the PMC is disabled.
-			$should_default_optimized_checkout_on       = get_option( 'wc_stripe_optimized_checkout_default_on' );
+			$options['pmc_enabled']                     = 'connect' === $type
+				&& ( $current_options['testmode'] ?? 'no' ) === $options['testmode']
+				&& ( $current_options[ $prefix . 'publishable_key' ] ?? '' ) === $publishable_key
+				? ( $current_options['pmc_enabled'] ?? 'no' ) : 'no';
+			$should_default_optimized_checkout_on       = $is_first_connection && get_option( 'wc_stripe_optimized_checkout_default_on' );
 			// Clean up the option.
 			delete_option( 'wc_stripe_optimized_checkout_default_on' );
 			if ( 'app' === $type ) {
@@ -324,7 +328,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			$this->clear_caches_after_key_update();
 
-			if ( 'connect' === $type && $should_default_optimized_checkout_on ) {
+			if ( 'connect' === $type && $should_default_optimized_checkout_on && ! array_key_exists( 'optimized_checkout_element', $current_options ) ) {
 				$options['optimized_checkout_element'] = 'yes';
 				WC_Stripe_Helper::update_main_stripe_settings( $options );
 			}
@@ -350,14 +354,9 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				$this->unschedule_connection_refresh();
 			}
 
-			// For new installs the legacy gateway gets instantiated because there is no settings in the DB yet,
-			// so we need to instantiate the UPE gateway just for the PMC migration.
+			// For new installs the legacy gateway gets instantiated because there is no settings in
+			// the DB yet; the rest of this method and its hooks expect the UPE gateway.
 			WC_Stripe::get_instance()->get_main_stripe_gateway();
-
-			// If pmc_enabled is not set (aka new install) or is not 'yes' (aka migration already done) we need to migrate the payment methods from the DB option to Stripe PMC API.
-			if ( empty( $current_options ) || ! isset( $current_options['pmc_enabled'] ) || 'yes' !== $current_options['pmc_enabled'] ) {
-				WC_Stripe_Payment_Method_Configurations::maybe_migrate_payment_methods_from_db_to_pmc( true );
-			}
 
 			// A live Standard-OAuth onboarding can also carry the account's test keys
 			if ( 'connect' === $type && 'live' === $mode ) {
@@ -386,7 +385,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// Default Adaptive Pricing on for first-time connections, now that webhooks have been
 			// configured above. AP requires a working webhook endpoint, so this decision must run after
 			// configure_webhooks()
-			if ( 'connect' === $type && $should_default_optimized_checkout_on ) {
+			if ( 'connect' === $type && $should_default_optimized_checkout_on && ! array_key_exists( 'adaptive_pricing', $current_options ) ) {
 				$ap_unavailable_reason = WC_Stripe_Helper::get_adaptive_pricing_account_unavailable_reason();
 				if ( null === $ap_unavailable_reason ) {
 					$settings                     = WC_Stripe_Helper::get_stripe_settings();
@@ -480,8 +479,8 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				}
 			}
 
-			$result['upe_checkout_experience_enabled']             = 'yes';
-			$result['upe_checkout_experience_accepted_payments'][] = WC_Stripe_Payment_Methods::LINK;
+			$result['upe_checkout_experience_enabled']           = 'yes';
+			$result['upe_checkout_experience_accepted_payments'] = [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ];
 
 			return $result;
 		}
