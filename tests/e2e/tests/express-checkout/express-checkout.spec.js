@@ -338,9 +338,8 @@ test.describe( 'express checkout and variable products', () => {
 		if ( isBlockified > 0 ) {
 			// The "Add to Cart with Options" block does not fire the jQuery
 			// variation events express checkout listens for, so the button
-			// never renders there. Pinned so it turns red once
-			// https://github.com/woocommerce/woocommerce-gateway-stripe/pull/5868
-			// lands; flip this to toBeVisible then.
+			// never renders there (issue #5811). Pinned so it turns red once
+			// PR #5868 lands; flip this to toBeVisible then.
 			await expect( linkButton ).toBeHidden();
 			return;
 		}

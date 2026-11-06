@@ -1,6 +1,5 @@
 import { expect } from '@playwright/test';
 import { user } from './index.js';
-import { acquireSettingsLock } from './settings-lock.js';
 
 const ADMIN_USER =
 	process.env.QIT_ADMIN_USERNAME || process.env.ADMIN_USER || 'admin';
@@ -43,13 +42,8 @@ export const togglePaymentMethod = async (
 	enable = true
 ) => {
 	const { context, page } = await getAdminPage( browser );
-	let releaseLock = () => {};
 
 	try {
-		// The settings page saves every method's enabled state, so concurrent
-		// toggles lose one change to a stale save (seen as Link staying
-		// disabled for the rest of a run). Serialize load-change-save.
-		releaseLock = await acquireSettingsLock();
 		await page.goto(
 			'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=methods'
 		);
@@ -88,7 +82,6 @@ export const togglePaymentMethod = async (
 		}
 	} finally {
 		await context.close();
-		releaseLock();
 	}
 };
 
