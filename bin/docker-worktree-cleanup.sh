@@ -23,6 +23,12 @@ if [[ -n "$GIT_DIR" && "$GIT_DIR" == "$GIT_COMMON_DIR" ]]; then
     exit 1
 fi
 
+# This script destroys resources, so it must act only on the worktree's
+# persisted state: values exported in the invoking shell (for example an
+# E2E_PROJECT override pointing at another worktree's stack) survive
+# `source .env` when the file lacks the key, and would redirect the teardown.
+unset WORKTREE_ID WORDPRESS_PORT E2E_PROJECT E2E_WP_PORT E2E_DB_PORT
+
 WORKTREE_ID="default"
 if [[ -f ".env" ]]; then
     source .env

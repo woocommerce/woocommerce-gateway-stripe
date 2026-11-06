@@ -66,6 +66,12 @@ find_free_port() {
 
 DEFAULT_WORKTREE_ID=$(basename "$(pwd)" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/_/g')
 
+# This script manages what is persisted in .env; values exported in the
+# invoking shell must not masquerade as persisted config, or the keys are
+# never written and every later clean shell falls back to the shared
+# defaults. Drop them so only .env (sourced next) and this script decide.
+unset WORKTREE_ID WORDPRESS_PORT E2E_PROJECT E2E_WP_PORT E2E_DB_PORT
+
 if [[ -f "$ENV_FILE" ]]; then
     source "$ENV_FILE"
 fi
