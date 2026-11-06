@@ -1,3 +1,5 @@
+@use '../../express-checkout/spinner';
+
 #wc-stripe-express-checkout-element iframe {
 	max-width: unset;
 }

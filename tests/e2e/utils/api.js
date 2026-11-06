@@ -1,12 +1,16 @@
-import wcApi from '@woocommerce/woocommerce-rest-api';
-import config from '../config/playwright.config';
+import WooCommerceRestApi from '@woocommerce/woocommerce-rest-api';
+
+// Handle CJS default export in ESM context.
+const wcApi = WooCommerceRestApi.default || WooCommerceRestApi;
+
+const baseURL = process.env.QIT_SITE_URL || process.env.BASE_URL;
 
 let api;
 
 // Ensure that global-setup.js runs before creating api client
 if ( process.env.CONSUMER_KEY && process.env.CONSUMER_SECRET ) {
 	api = new wcApi( {
-		url: config.use.baseURL,
+		url: baseURL,
 		consumerKey: process.env.CONSUMER_KEY,
 		consumerSecret: process.env.CONSUMER_SECRET,
 		version: 'wc/v3',
@@ -35,6 +39,24 @@ const throwCustomError = (
 		) }
 ` )
 	);
+};
+
+const deleteProduct = async ( id ) => {
+	await api.delete( `products/${ id }`, {
+		force: true,
+	} );
+};
+
+const createSubscriptionPlan = async ( productId, subscriptionPlan ) => {
+	await api
+		.post( `products/${ productId }/subscription-plans`, subscriptionPlan )
+		.then( ( response ) => response )
+		.catch( ( error ) => {
+			throwCustomError(
+				error,
+				'Failed to create subscription plan. See details below.'
+			);
+		} );
 };
 
 const get = {
@@ -84,8 +106,10 @@ const create = {
 		return response.data.id;
 	},
 	product: async ( product ) => {
+		const { subscriptionPlan, ...productParams } = product;
+
 		const response = await api
-			.post( 'products', product )
+			.post( 'products', productParams )
 			.then( ( response ) => response )
 			.catch( ( error ) => {
 				throwCustomError(
@@ -94,7 +118,18 @@ const create = {
 				);
 			} );
 
-		return response.data.id;
+		const productId = response.data.id;
+
+		try {
+			if ( subscriptionPlan ) {
+				await createSubscriptionPlan( productId, subscriptionPlan );
+			}
+		} catch ( error ) {
+			await deleteProduct( productId ).catch( () => {} );
+			throw error;
+		}
+
+		return productId;
 	},
 	order: async ( order ) => {
 		const response = await api
@@ -104,6 +139,19 @@ const create = {
 				throwCustomError(
 					error,
 					'Failed to create order. See details below.'
+				);
+			} );
+
+		return response.data;
+	},
+	subscription: async ( subscription ) => {
+		const response = await api
+			.post( 'subscriptions', subscription )
+			.then( ( response ) => response )
+			.catch( ( error ) => {
+				throwCustomError(
+					error,
+					'Failed to create subscription. See details below.'
 				);
 			} );
 
@@ -128,16 +176,7 @@ const update = {
 };
 
 const deletePost = {
-	product: async ( id ) => {
-		await api.delete( `products/${ id }`, {
-			force: true,
-		} );
-	},
+	product: deleteProduct,
 };
 
-module.exports = {
-	get,
-	create,
-	update,
-	deletePost,
-};
+export { get, create, update, deletePost };

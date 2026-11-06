@@ -1,0 +1,26 @@
+// Loading spinner shown over the jQuery.blockUI overlay while an Express
+// Checkout wallet payment (Amazon Pay, Apple Pay, Google Pay) is processed.
+
+@keyframes wc-stripe-ece-spin {
+	100% {
+		transform: rotate( 360deg );
+	}
+}
+
+body.wc-stripe-ece-processing .blockUI.blockOverlay::before {
+	content: '';
+	display: block;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 1em;
+	height: 1em;
+	margin-top: -0.5em;
+	margin-left: -0.5em;
+	font-size: 2em;
+	box-sizing: border-box;
+	border: 0.2em solid currentColor;
+	border-left-color: transparent;
+	border-radius: 50%;
+	animation: wc-stripe-ece-spin 1s linear infinite;
+}

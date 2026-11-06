@@ -10,7 +10,6 @@ module.exports = {
 		Backbone: false,
 		jQuery: false,
 		wp: false,
-		__PAYMENT_METHOD_FEES_ENABLED: false,
 	},
 	env: {
 		browser: true,
@@ -66,6 +65,15 @@ module.exports = {
 			'error',
 			{
 				allowedTextDomain: 'woocommerce-gateway-stripe',
+			},
+		],
+		// The package entry point bundles every icon (~94 KB), even if only one is used.
+		'no-restricted-syntax': [
+			'error',
+			{
+				selector: 'ImportDeclaration[source.value=/^gridicons$/]',
+				message:
+					"Do not import whole Gridicons, import them individually with 'gridicons/dist/icon-name'.",
 			},
 		],
 	},

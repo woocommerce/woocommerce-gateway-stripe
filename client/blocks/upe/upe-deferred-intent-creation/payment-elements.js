@@ -13,6 +13,7 @@ import WCStripeAPI from 'wcstripe/api';
 import {
 	getPaymentMethodTypes,
 	getExcludedPaymentMethodTypes,
+	stripeJsSupportsCheckoutSessions,
 } from 'wcstripe/stripe-utils';
 import { initializeUPEAppearance } from 'wcstripe/stripe-utils/upe-appearance';
 import {
@@ -62,7 +63,8 @@ const ElementsContainer = ( props ) => {
 				const response = paymentNeeded
 					? await api.createIntent(
 							stripeServerData?.orderId,
-							paymentMethodId
+							paymentMethodId,
+							stripeServerData?.orderKey
 					  )
 					: await api.initSetupIntent( paymentMethodId );
 
@@ -210,8 +212,17 @@ const PaymentElements = ( {
 	...props
 } ) => {
 	const stripeServerData = getBlocksConfiguration();
+	// <CheckoutElementsProvider> doesn't catch initCheckoutElementsSdk() errors, so fall back before it mounts.
+	const stripeSupportsInitCheckout = stripeJsSupportsCheckoutSessions(
+		api.getStripe(),
+		stripeServerData?.stripeJsVersion
+	);
+	// Non-deferred methods (BLIK, ACSS) can't render in the Checkout Session
+	// element, so their own entry keeps the standard flow, as in classic checkout.
 	const isAdaptivePricingSupported =
-		stripeServerData?.isAdaptivePricingEnabled;
+		stripeServerData?.isAdaptivePricingEnabled &&
+		supportsDeferredIntent &&
+		stripeSupportsInitCheckout;
 
 	const [ errorMessage, setErrorMessage ] = useState( null );
 	const [
@@ -219,7 +230,7 @@ const PaymentElements = ( {
 		setPaymentProcessorLoadErrorMessage,
 	] = useState( null );
 	const [ shouldLoadStripeElements, setShouldLoadStripeElements ] = useState(
-		! stripeServerData?.isAdaptivePricingEnabled
+		! isAdaptivePricingSupported
 	);
 
 	if ( errorMessage ) {
@@ -237,7 +248,6 @@ const PaymentElements = ( {
 		containerComponent = (
 			<CheckoutContainer
 				api={ api }
-				isLoggedIn={ stripeServerData?.isLoggedIn }
 				isPayerPhoneRequired={ stripeServerData?.isPayerPhoneRequired }
 				setPaymentProcessorLoadErrorMessage={
 					setPaymentProcessorLoadErrorMessage

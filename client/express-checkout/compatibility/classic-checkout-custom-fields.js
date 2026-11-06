@@ -29,7 +29,7 @@ addFilter(
 		}
 
 		const formData = new FormData( form );
-		for ( const [ fieldName, fieldValue ] of formData.entries() ) {
+		for ( const [ fieldName, fieldValue ] of formData ) {
 			const isMultiSelect = fieldName.endsWith( '[]' );
 			const key = isMultiSelect ? fieldName.slice( 0, -2 ) : fieldName;
 			if ( Object.keys( customCheckoutFields ).includes( key ) ) {

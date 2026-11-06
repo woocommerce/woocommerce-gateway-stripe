@@ -123,12 +123,12 @@ class WC_Stripe_Express_Checkout_Element {
 
 		/**
 		 * Determines whether express checkout orders should process or ignore
-		 * custom, classic checkout fields. Disabled by default.
+		 * custom, classic checkout fields. Enabled by default; return false to opt out.
 		 *
 		 * @since 9.7.0
 		 */
-		if ( apply_filters( 'wc_stripe_express_checkout_enable_classic_checkout_custom_fields', false ) ) {
-			$custom_checkout_fields_support = new WC_Stripe_Express_Checkout_Custom_Fields();
+		if ( apply_filters( 'wc_stripe_express_checkout_enable_classic_checkout_custom_fields', true ) ) {
+			$custom_checkout_fields_support = new WC_Stripe_Express_Checkout_Custom_Fields( $this->express_checkout_helper );
 			$custom_checkout_fields_support->init();
 		}
 	}
@@ -216,24 +216,20 @@ class WC_Stripe_Express_Checkout_Element {
 			'ajax_url'                   => WC_AJAX::get_endpoint( '%%endpoint%%' ),
 			'stripe'                     => [
 				'publishable_key'             => $publishable_key,
+				/** This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php. */
 				'allow_prepaid_card'          => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
 				'locale'                      => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
 				'is_link_enabled'             => $this->express_checkout_helper->is_link_enabled(),
 				'is_express_checkout_enabled' => $this->express_checkout_helper->is_express_checkout_enabled(),
 				'is_amazon_pay_enabled'       => $this->express_checkout_helper->is_amazon_pay_enabled(),
+				// `is_express_checkout_enabled` aggregates all methods, so Apple/Google Pay need their
+				// own flags; per-wallet keys keep the contract stable if the shared setting ever splits.
+				'is_apple_pay_enabled'        => $this->express_checkout_helper->is_apple_google_pay_enabled(),
+				'is_google_pay_enabled'       => $this->express_checkout_helper->is_apple_google_pay_enabled(),
 			],
+			// The wc-ajax nonces are fetched on demand (see
+			// ajax_get_express_checkout_nonces) so page caches can't serve expired copies.
 			'nonce'                      => [
-				'payment'                       => wp_create_nonce( 'wc-stripe-express-checkout' ),
-				'shipping'                      => wp_create_nonce( 'wc-stripe-express-checkout-shipping' ),
-				'normalize_address'             => wp_create_nonce( 'wc-stripe-express-checkout-normalize-address' ),
-				'get_cart_details'              => wp_create_nonce( 'wc-stripe-get-cart-details' ),
-				'update_shipping'               => wp_create_nonce( 'wc-stripe-update-shipping-method' ),
-				'checkout'                      => wp_create_nonce( 'woocommerce-process_checkout' ),
-				'add_to_cart'                   => wp_create_nonce( 'wc-stripe-add-to-cart' ),
-				'get_selected_product_data'     => wp_create_nonce( 'wc-stripe-get-selected-product-data' ),
-				'log_errors'                    => wp_create_nonce( 'wc-stripe-log-errors' ),
-				'clear_cart'                    => wp_create_nonce( 'wc-stripe-clear-cart' ),
-				'pay_for_order'                 => wp_create_nonce( 'wc-stripe-pay-for-order' ),
 				'wc_store_api'                  => wp_create_nonce( 'wc_store_api' ),
 				'wc_store_api_express_checkout' => wp_create_nonce( 'wc_store_api_express_checkout' ),
 			],
@@ -241,21 +237,28 @@ class WC_Stripe_Express_Checkout_Element {
 				'no_prepaid_card'  => __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' ),
 				/* translators: Do not translate the [option] placeholder */
 				'unknown_shipping' => __( 'Unknown shipping option "[option]".', 'woocommerce-gateway-stripe' ),
+				'go_to_checkout'   => $this->get_go_to_checkout_notice(),
 			],
 			'checkout'                   => $this->express_checkout_helper->get_checkout_data(),
 			'button'                     => $this->express_checkout_helper->get_button_settings(),
+			'link_button_height'         => $this->express_checkout_helper->get_link_button_height(),
+			'amazon_pay_button_height'   => $this->express_checkout_helper->get_amazon_pay_button_height(),
 			'is_pay_for_order'           => $this->express_checkout_helper->is_pay_for_order_page(),
 			'has_block'                  => has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' ),
 			'login_confirmation'         => $this->express_checkout_helper->get_login_confirmation_settings(),
 			'is_product_page'            => $this->is_product_page_for_ece(),
 			'is_checkout_page'           => $this->express_checkout_helper->is_checkout(),
 			'product'                    => $this->express_checkout_helper->get_product_data(),
+			'cart'                       => $this->express_checkout_helper->get_cart_render_data(),
 			'is_cart_page'               => $this->express_checkout_helper->is_cart(),
 			'taxes_based_on_billing'     => wc_tax_enabled() && get_option( 'woocommerce_tax_based_on' ) === 'billing',
 			'allowed_shipping_countries' => $this->express_checkout_helper->get_allowed_shipping_countries(),
 			'custom_checkout_fields'     => ( new WC_Stripe_Express_Checkout_Custom_Fields() )->get_custom_checkout_fields(),
 			'has_free_trial'             => $this->express_checkout_helper->has_free_trial(),
 			'is_change_payment_method'   => $this->express_checkout_helper->is_change_payment_method_page(),
+			// Bookings can only be added via the Store API cart route when its
+			// Store API integration is present (WC Bookings 3.0.0+).
+			'has_bookings_store_api'     => class_exists( 'WC_Bookings_Cart_Store_API' ),
 		];
 	}
 
@@ -301,12 +304,14 @@ class WC_Stripe_Express_Checkout_Element {
 		$items    = [];
 
 		// Allow third-party plugins to show itemization on express checkout (keep legacy hook for BC).
+		/** This filter is documented in includes/payment-methods/class-wc-stripe-express-checkout-helper.php. */
 		$hide_itemization = apply_filters_deprecated(
 			'wc_stripe_payment_request_hide_itemization',
 			[ true ],
 			'10.6.0',
 			'wc_stripe_express_checkout_hide_itemization'
 		);
+		/** This filter is documented in includes/payment-methods/class-wc-stripe-express-checkout-helper.php. */
 		$hide_itemization = apply_filters( 'wc_stripe_express_checkout_hide_itemization', $hide_itemization );
 		if ( $hide_itemization ) {
 			$items[] = [
@@ -355,16 +360,28 @@ class WC_Stripe_Express_Checkout_Element {
 		}
 
 		foreach ( $order->get_fees() as $fee ) {
-			$items[] = [
-				'label'  => $fee->get_name(),
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $fee->get_amount(), $currency ),
-			];
+			// get_total() feeds $order->get_total(); get_amount() can be empty or stale.
+			$fee_total = (float) $fee->get_total();
+			$item      = [];
+
+			// get_stripe_amount() is always non-negative, so tag negative fees for the client
+			// to re-apply the sign; otherwise the items exceed the total and Stripe rejects the sheet.
+			if ( $fee_total < 0 ) {
+				$item['key'] = WC_Stripe_Helper::EXPRESS_CHECKOUT_DISCOUNT_ITEM_KEY;
+			}
+
+			$item['label']  = $fee->get_name();
+			$item['amount'] = WC_Stripe_Helper::get_stripe_amount( abs( $fee_total ), $currency );
+
+			$items[] = $item;
 		}
 
 		$data['order']          = $order->get_id();
 		$data['orderDetails']   = [
 			'orderKey'        => $order->get_order_key(),
 			'billingEmail'    => $order->get_billing_email(),
+			'billingPhone'    => $order->get_billing_phone(),
+			'needsShipping'   => $order->needs_shipping(),
 			'shippingAddress' => [
 				'first_name' => $order->get_shipping_first_name(),
 				'last_name'  => $order->get_shipping_last_name(),
@@ -424,13 +441,37 @@ class WC_Stripe_Express_Checkout_Element {
 	private function register_express_checkout_script() {
 		$asset_data = $this->get_asset_data();
 
-		wp_register_script( 'stripe', 'https://js.stripe.com/clover/stripe.js', '', null, true );
+		WC_Stripe_Helper::register_stripe_js();
 		wp_register_script(
 			'wc_stripe_express_checkout',
 			WC_STRIPE_PLUGIN_URL . '/build/express-checkout.js',
 			array_merge( [ 'jquery', 'stripe' ], $asset_data['dependencies'] ),
 			$asset_data['version'],
 			true
+		);
+	}
+
+	/**
+	 * The guidance shown when required custom fields block an express checkout started
+	 * off the checkout page.
+	 *
+	 * Returned as ready-to-render HTML because the notice is injected without a sanitizer:
+	 * kses keeps a translation from introducing anything but the checkout link, and a store
+	 * whose checkout URL resolves to nothing degrades to the same sentence without a link.
+	 *
+	 * @return string
+	 */
+	private function get_go_to_checkout_notice() {
+		$checkout_url = wc_get_checkout_url();
+
+		return wp_kses(
+			sprintf(
+				/* translators: 1: opening checkout link, 2: closing checkout link */
+				__( 'Please go to the %1$scheckout page%2$s, fill in the required fields, and complete your order from there.', 'woocommerce-gateway-stripe' ),
+				$checkout_url ? '<a href="' . esc_url( $checkout_url ) . '">' : '',
+				$checkout_url ? '</a>' : ''
+			),
+			[ 'a' => [ 'href' => [] ] ]
 		);
 	}
 
@@ -546,6 +587,7 @@ class WC_Stripe_Express_Checkout_Element {
 		wp_localize_script(
 			'wc_stripe_express_checkout',
 			'wc_stripe_express_checkout_params',
+			/** This filter is documented in includes/class-wc-stripe-blocks-support.php. */
 			apply_filters(
 				'wc_stripe_express_checkout_params',
 				$this->javascript_params()
@@ -680,6 +722,17 @@ class WC_Stripe_Express_Checkout_Element {
 		}
 
 		$order->set_payment_method_title( $payment_method_title );
+
+		// WC Subscriptions writes a "from X to Credit Card" note before our title
+		// override runs (its label comes from the gateway, not the wallet). Add a
+		// clarifying note so the truth is visible alongside.
+		$order->add_order_note(
+			sprintf(
+				/* translators: %s: Express checkout payment method title, e.g. "Apple Pay (Stripe)". */
+				__( 'Payment method updated to %s.', 'woocommerce-gateway-stripe' ),
+				$payment_method_title
+			)
+		);
 		$order->save();
 		return true;
 	}

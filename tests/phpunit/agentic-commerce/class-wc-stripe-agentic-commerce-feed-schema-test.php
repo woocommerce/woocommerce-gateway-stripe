@@ -376,4 +376,18 @@ class WC_Stripe_Agentic_Commerce_Feed_Schema_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'enum', $schema['shipping_cost_basis']['type'] );
 		$this->assertEquals( [ 'per_order', 'per_item' ], $schema['shipping_cost_basis']['values'] );
 	}
+
+	/**
+	 * `disable_checkout` is an optional boolean and appears as a CSV column.
+	 *
+	 * @return void
+	 */
+	public function test_disable_checkout_field_present_and_boolean() {
+		$schema = \WC_Stripe_Agentic_Commerce_Feed_Schema::get_schema();
+
+		$this->assertArrayHasKey( 'disable_checkout', $schema );
+		$this->assertEquals( 'boolean', $schema['disable_checkout']['type'] );
+		$this->assertFalse( $schema['disable_checkout']['required'] );
+		$this->assertContains( 'disable_checkout', \WC_Stripe_Agentic_Commerce_Feed_Schema::get_csv_headers() );
+	}
 }

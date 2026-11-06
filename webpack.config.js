@@ -1,5 +1,4 @@
 const path = require( 'path' );
-const webpack = require( 'webpack' );
 const DependencyExtractionWebpackPlugin = require( '@woocommerce/dependency-extraction-webpack-plugin' );
 const LiveReloadWebpackPlugin = require( '@kooneko/livereload-webpack-plugin' );
 const { BundleAnalyzerPlugin } = require( 'webpack-bundle-analyzer' );
@@ -64,11 +63,6 @@ module.exports = {
 		),
 		new DependencyExtractionWebpackPlugin( {
 			injectPolyfill: true,
-		} ),
-		new webpack.DefinePlugin( {
-			__PAYMENT_METHOD_FEES_ENABLED: JSON.stringify(
-				process.env.PAYMENT_METHOD_FEES_ENABLED === 'true'
-			),
 		} ),
 		process.env.BUNDLE_ANALYZE === 'true' &&
 			new BundleAnalyzerPlugin( {
@@ -151,6 +145,8 @@ module.exports = {
 			'./client/entrypoints/express-checkout-settings/index.js',
 		'amazon-pay-settings':
 			'./client/entrypoints/amazon-pay-settings/index.js',
+		'link-settings': './client/entrypoints/link-settings/index.js',
 		'plugins-page': './client/entrypoints/plugins-page/index.js',
+		'command-palette': './client/entrypoints/command-palette/index.js',
 	},
 };

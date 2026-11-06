@@ -25,6 +25,124 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Legacy source callbacks retain their customer context and can still disable forced saving.
+	 *
+	 * @since x.x.x
+	 */
+	public function test_prepare_source_preserves_deprecated_filter_context(): void {
+		$original_post = $_POST;
+		$_POST         = [ 'stripe_token' => 'pm_context_test' ];
+		$customer      = null;
+		$filter        = function ( $force_save, $context ) use ( &$customer ) {
+			$this->assertTrue( $force_save );
+			$customer = $context;
+			return false;
+		};
+		$api_filter    = function ( $preempt, $args, $url ) {
+			return false !== strpos( $url, 'customers/cus_context_test' )
+				? $this->build_response( [ 'id' => 'cus_context_test' ] )
+				: $preempt;
+		};
+
+		$deprecation         = [];
+		$capture_deprecation = function ( $hook, $replacement, $version, $message ) use ( &$deprecation ) {
+			if ( 'wc_stripe_force_save_source' === $hook ) {
+				$deprecation = [ $replacement, $version, $message ];
+			}
+		};
+
+		add_filter( 'wc_stripe_force_save_source', $filter, 10, 2 );
+		add_filter( 'pre_http_request', $api_filter, 10, 3 );
+		add_action( 'deprecated_hook_run', $capture_deprecation, 10, 4 );
+		$this->setExpectedDeprecated( 'wc_stripe_force_save_source' );
+
+		try {
+			$source = $this->gateway->prepare_source( 0, true, 'cus_context_test' );
+		} finally {
+			remove_filter( 'wc_stripe_force_save_source', $filter, 10 );
+			remove_filter( 'pre_http_request', $api_filter, 10 );
+			remove_action( 'deprecated_hook_run', $capture_deprecation, 10 );
+			$_POST = $original_post;
+		}
+
+		$this->assertSame( [ '', '9.6.0', 'This filter has no direct replacement in legacy payment flows.' ], $deprecation );
+		$this->assertInstanceOf( WC_Stripe_Customer::class, $customer );
+		$this->assertSame( 'cus_context_test', $customer->get_id() );
+		$this->assertSame( 'pm_context_test', $source->source );
+	}
+
+	/**
+	 * Legacy intent callbacks retain their source ID and control future-use setup.
+	 *
+	 * @since x.x.x
+	 *
+	 * @dataProvider provide_deprecated_force_save_values
+	 * @param bool $force_save Whether the callback forces saving.
+	 */
+	public function test_generate_create_intent_request_preserves_deprecated_filter( bool $force_save ): void {
+		$original_post = $_POST;
+		$_POST         = [];
+		$gateway       = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->onlyMethods( [ 'generate_payment_request' ] )
+			->getMock();
+		$gateway->method( 'generate_payment_request' )->willReturn(
+			[
+				'description' => 'Legacy payment request',
+				'metadata'    => [],
+				'capture'     => 'true',
+			]
+		);
+
+		$source = (object) [
+			'customer' => 'cus_context_test',
+			'source'   => 'pm_context_test',
+		];
+		$filter = function ( $default, $source_id ) use ( $force_save ) {
+			$this->assertFalse( $default );
+			$this->assertSame( 'pm_context_test', $source_id );
+			return $force_save;
+		};
+
+		$deprecation         = [];
+		$capture_deprecation = function ( $hook, $replacement, $version, $message ) use ( &$deprecation ) {
+			if ( 'wc_stripe_force_save_source' === $hook ) {
+				$deprecation = [ $replacement, $version, $message ];
+			}
+		};
+
+		add_filter( 'wc_stripe_force_save_source', $filter, 10, 2 );
+		add_action( 'deprecated_hook_run', $capture_deprecation, 10, 4 );
+		$this->setExpectedDeprecated( 'wc_stripe_force_save_source' );
+
+		try {
+			$request = $gateway->generate_create_intent_request( WC_Helper_Order::create_order(), $source );
+		} finally {
+			remove_filter( 'wc_stripe_force_save_source', $filter, 10 );
+			remove_action( 'deprecated_hook_run', $capture_deprecation, 10 );
+			$_POST = $original_post;
+		}
+
+		$this->assertSame( [ '', '9.6.0', 'This filter has no direct replacement in legacy payment flows.' ], $deprecation );
+		$this->assertIsArray( $request['metadata'] ?? null );
+		if ( $force_save ) {
+			$this->assertArrayHasKey( 'setup_future_usage', $request );
+			$this->assertSame( 'off_session', $request['setup_future_usage'] );
+			$this->assertArrayHasKey( 'save_payment_method', $request['metadata'] );
+			$this->assertSame( 'true', $request['metadata']['save_payment_method'] );
+		} else {
+			$this->assertArrayNotHasKey( 'setup_future_usage', $request );
+			$this->assertArrayNotHasKey( 'save_payment_method', $request['metadata'] );
+		}
+	}
+
+	public function provide_deprecated_force_save_values(): array {
+		return [
+			'force saving'    => [ true ],
+			'do not force it' => [ false ],
+		];
+	}
+
+	/**
 	 * Helper function to update test order meta data
 	 */
 	private function updateOrderMeta( $order, $key, $value ) {
@@ -367,7 +485,11 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					'brand' => 'mastercard',
 					'last4' => '1234',
 				],
-				'expected_result'       => 'Via MasterCard card ending in 1234',
+				// Derive the brand label from WooCommerce so the assertion tracks
+				// the running WC version (it relabelled 'mastercard' from
+				// 'MasterCard' to 'Mastercard'), matching the plugin's own use of
+				// wc_get_credit_card_type_label() to render the title.
+				'expected_result'       => sprintf( 'Via %s card ending in 1234', wc_get_credit_card_type_label( 'mastercard' ) ),
 			],
 			'American Express card ending in 5678'    => [
 				'payment_method_type'   => 'card',
@@ -392,6 +514,33 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					'last4' => '0000',
 				],
 				'expected_result'       => 'Via Dummy card ending in 0000',
+			],
+			'Google Pay card ending in 4040'          => [
+				'payment_method_type'   => 'card',
+				'payment_method_fields' => [
+					'brand'  => 'visa',
+					'last4'  => '4040',
+					'wallet' => [ 'type' => 'google_pay' ],
+				],
+				'expected_result'       => 'Via Google Pay (Visa) ending in 4040',
+			],
+			'Apple Pay card ending in 4444'           => [
+				'payment_method_type'   => 'card',
+				'payment_method_fields' => [
+					'brand'  => 'mastercard',
+					'last4'  => '4444',
+					'wallet' => [ 'type' => 'apple_pay' ],
+				],
+				'expected_result'       => sprintf( 'Via Apple Pay (%s) ending in 4444', wc_get_credit_card_type_label( 'mastercard' ) ),
+			],
+			'Link wallet card stays bare'             => [
+				'payment_method_type'   => 'card',
+				'payment_method_fields' => [
+					'brand'  => 'visa',
+					'last4'  => '1881',
+					'wallet' => [ 'type' => 'link' ],
+				],
+				'expected_result'       => 'Via Visa card ending in 1881',
 			],
 			'SEPA Debit ending in 1234'               => [
 				'payment_method_type'   => 'sepa_debit',
@@ -540,6 +689,92 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * When a saved token backs the subscription's PaymentMethod, its pinned wallet_type
+	 * is authoritative over the live PaymentMethod's wallet, so the subscription row matches
+	 * the saved-token list.
+	 *
+	 * @see WC_Stripe_Subscriptions_Trait::maybe_render_subscription_payment_method()
+	 * @dataProvider provide_test_render_subscription_prefers_saved_token_wallet_type
+	 *
+	 * @param string $token_wallet_type   wallet_type pinned on the saved token.
+	 * @param string $live_wallet_type    wallet type reported by the live Stripe PaymentMethod.
+	 * @param string $expected_result     Expected rendered row text.
+	 */
+	public function test_render_subscription_prefers_saved_token_wallet_type( string $token_wallet_type, string $live_wallet_type, string $expected_result ) {
+		$user_id           = $this->factory()->user->create();
+		$payment_method_id = 'pm_mock_shared_card';
+
+		$mock_subscription = WC_Helper_Order::create_order( $user_id );
+		$mock_subscription->set_payment_method( 'stripe' );
+		$mock_subscription->update_meta_data( '_stripe_source_id', $payment_method_id );
+		$mock_subscription->update_meta_data( '_stripe_customer_id', 'cus_mock' );
+		$mock_subscription->save();
+
+		// Saved token for the same card, pinned to $token_wallet_type.
+		$token = new WC_Stripe_Payment_Token_CC();
+		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$token->set_token( $payment_method_id );
+		$token->set_card_type( 'visa' );
+		$token->set_last4( '4242' );
+		$token->set_expiry_month( '12' );
+		$token->set_expiry_year( '2030' );
+		$token->set_wallet_type( $token_wallet_type );
+		$token->set_user_id( $user_id );
+		$token->save();
+
+		$card_fields = [
+			'brand' => 'visa',
+			'last4' => '4242',
+		];
+		if ( '' !== $live_wallet_type ) {
+			$card_fields['wallet'] = [ 'type' => $live_wallet_type ];
+		}
+
+		$mock_payment_method_data = [
+			'id'       => $payment_method_id,
+			'type'     => WC_Stripe_Payment_Methods::CARD,
+			'customer' => 'cus_mock',
+			'card'     => $card_fields,
+		];
+
+		$expected_url            = '/v1/payment_methods/' . $payment_method_id;
+		$mock_payment_method_api = function ( $preempt, $request_args, $url ) use ( $expected_url, $mock_payment_method_data ) {
+			if ( str_ends_with( $url, $expected_url ) ) {
+				return [
+					'headers'  => [],
+					'body'     => wp_json_encode( $mock_payment_method_data ),
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+				];
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $mock_payment_method_api, 10, 3 );
+
+		$result = $this->gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription );
+
+		remove_filter( 'pre_http_request', $mock_payment_method_api );
+
+		$this->assertEquals( $expected_result, $result );
+	}
+
+	/**
+	 * Data provider for test_render_subscription_prefers_saved_token_wallet_type.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_render_subscription_prefers_saved_token_wallet_type(): array {
+		return [
+			'pinned bare card wins over live wallet' => [ '', 'google_pay', 'Via Visa card ending in 4242' ],
+			'pinned wallet wins over bare live card' => [ 'google_pay', '', 'Via Google Pay (Visa) ending in 4242' ],
+			'pinned wallet matches live wallet'      => [ 'apple_pay', 'apple_pay', 'Via Apple Pay (Visa) ending in 4242' ],
+		];
+	}
+
+	/**
 	 * Tests zero amount refunds.
 	 */
 	public function test_process_refund_on_zero_amount() {
@@ -554,16 +789,99 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Tests that process_refund returns false for negative amounts.
+	 * Tests that a failed captured-state lookup surfaces the lookup error instead of
+	 * being treated as an uncaptured charge (which would suggest a manual refund for
+	 * money Stripe may still hold).
 	 */
-	public function test_process_refund_fails_on_negative_amount() {
+	public function test_process_refund_fails_when_captured_state_cannot_be_resolved() {
 		$order = WC_Helper_Order::create_order();
 		$order->set_transaction_id( 'ch_123' );
 		$order->save();
 		$order_id = $order->get_id();
 
+		// No captured flag recorded, so process_refund resolves it by fetching the charge.
+		$callback = function ( $preempt, $request_args, $url ) {
+			if ( strpos( $url, 'charges/ch_123' ) !== false ) {
+				return $this->build_response(
+					[
+						'error' => (object) [
+							'type'    => 'invalid_request_error',
+							'message' => 'No such charge: ch_123',
+						],
+					]
+				);
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		$result = $this->gateway->process_refund( $order_id, 10.00 );
+
+		remove_filter( 'pre_http_request', $callback );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'stripe_error', $result->get_error_code() );
+		// The lookup failure itself reaches the merchant, not uncaptured-charge guidance.
+		$this->assertStringContainsString( 'No such charge: ch_123', $result->get_error_message() );
+
+		// Nothing was recorded from the failed resolution: the flag stays unwritten so a
+		// later attempt resolves again instead of trusting a fabricated value.
+		$this->assertSame( '', wc_get_order( $order_id )->get_meta( '_stripe_charge_captured' ) );
+	}
+
+	/**
+	 * Tests that process_refund rejects negative amounts without contacting Stripe.
+	 * WC_Stripe_Helper::get_stripe_amount() strips the sign, so an unguarded negative
+	 * amount would refund the absolute value instead of failing.
+	 *
+	 * @dataProvider provide_test_process_refund_fails_on_negative_amount
+	 * @param string $captured_meta Stored _stripe_charge_captured value ('' = never recorded).
+	 */
+	public function test_process_refund_fails_on_negative_amount( string $captured_meta ) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		$order->set_transaction_id( 'ch_123' );
+		if ( '' !== $captured_meta ) {
+			$this->updateOrderMeta( $order, '_stripe_charge_captured', $captured_meta );
+		}
+		$order->save();
+		$order_id = $order->get_id();
+
+		$requested_urls = [];
+
+		$callback = function ( $preempt, $request_args, $url ) use ( &$requested_urls ) {
+			$requested_urls[] = $url;
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
 		$result = $this->gateway->process_refund( $order_id, -10 );
-		$this->assertSame( null, $result );
+
+		remove_filter( 'pre_http_request', $callback );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'stripe_error', $result->get_error_code() );
+		$this->assertStringContainsString( 'must be greater than or equal to zero', $result->get_error_message() );
+
+		// No request reached Stripe: an unguarded -10 would have refunded +10, and a
+		// missing captured flag must not trigger the charge lookup for a doomed refund.
+		$this->assertSame( [], $requested_urls );
+	}
+
+	/**
+	 * Data provider for test_process_refund_fails_on_negative_amount.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_process_refund_fails_on_negative_amount(): array {
+		return [
+			'captured charge'               => [ 'yes' ],
+			'authorize-only charge'         => [ 'no' ],
+			'captured state never recorded' => [ '' ],
+			'unexpected stored value'       => [ 'maybe' ],
+		];
 	}
 
 	/**
@@ -607,7 +925,172 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$result = $this->gateway->process_refund( $order_id, 10.00, 'Customer requested' );
 		$this->assertTrue( $result );
 
+		// A direct call with no WC refund record (e.g. voiding via cancel_payment) must not fatal.
+		$this->assertCount( 0, wc_get_order( $order_id )->get_refunds() );
+
 		remove_filter( 'pre_http_request', $callback );
+	}
+
+	/**
+	 * Tests that process_refund stores the Stripe refund ID on the WC refund record.
+	 */
+	public function test_process_refund_stores_refund_id_on_refund_record() {
+		$refund_meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Order_Helper::class, 'META_STRIPE_REFUND_ID', 'string' );
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		$order->set_transaction_id( 'ch_123' );
+		$order->update_meta_data( '_stripe_charge_captured', 'yes' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		// WC core creates and saves the refund record before invoking the gateway.
+		$refund = wc_create_refund(
+			[
+				'order_id' => $order_id,
+				'amount'   => 10.00,
+				'reason'   => 'Customer requested',
+			]
+		);
+		$this->assertNotWPError( $refund );
+
+		$callback = function ( $preempt, $request_args, $url ) {
+			if ( strpos( $url, 'refunds' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'       => 're_123',
+						'object'   => 'refund',
+						'amount'   => 1000,
+						'currency' => 'usd',
+						'charge'   => 'ch_123',
+						'status'   => 'succeeded',
+					]
+				);
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		$result = $this->gateway->process_refund( $order_id, 10.00, 'Customer requested' );
+		$this->assertTrue( $result );
+
+		remove_filter( 'pre_http_request', $callback );
+
+		$reloaded_refund = wc_get_order( $refund->get_id() );
+		$this->assertSame( 're_123', $reloaded_refund->get_meta( $refund_meta_key ) );
+		$this->assertSame( 're_123', WC_Stripe_Order_Helper::get_instance()->get_stripe_refund_id( wc_get_order( $order_id ) ) );
+	}
+
+	/**
+	 * Tests that multiple partial refunds each keep their own Stripe refund ID.
+	 */
+	public function test_process_refund_multiple_refunds_keep_distinct_ids() {
+		$refund_meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Order_Helper::class, 'META_STRIPE_REFUND_ID', 'string' );
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		$order->set_transaction_id( 'ch_123' );
+		$order->update_meta_data( '_stripe_charge_captured', 'yes' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$mock_refund_id     = 're_1';
+		$mock_refund_amount = 500;
+
+		$callback = function ( $preempt, $request_args, $url ) use ( &$mock_refund_id, &$mock_refund_amount ) {
+			if ( strpos( $url, 'refunds' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'       => $mock_refund_id,
+						'object'   => 'refund',
+						'amount'   => $mock_refund_amount,
+						'currency' => 'usd',
+						'charge'   => 'ch_123',
+						'status'   => 'succeeded',
+					]
+				);
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		$wc_refund_1 = wc_create_refund(
+			[
+				'order_id' => $order_id,
+				'amount'   => 5.00,
+			]
+		);
+		$this->assertNotWPError( $wc_refund_1 );
+		$this->assertTrue( $this->gateway->process_refund( $order_id, 5.00 ) );
+
+		$mock_refund_id     = 're_2';
+		$mock_refund_amount = 700;
+
+		$wc_refund_2 = wc_create_refund(
+			[
+				'order_id' => $order_id,
+				'amount'   => 7.00,
+			]
+		);
+		$this->assertNotWPError( $wc_refund_2 );
+		$this->assertTrue( $this->gateway->process_refund( $order_id, 7.00 ) );
+
+		remove_filter( 'pre_http_request', $callback );
+
+		$this->assertSame( 're_1', wc_get_order( $wc_refund_1->get_id() )->get_meta( $refund_meta_key ) );
+		$this->assertSame( 're_2', wc_get_order( $wc_refund_2->get_id() )->get_meta( $refund_meta_key ) );
+		$this->assertSame( 're_2', WC_Stripe_Order_Helper::get_instance()->get_stripe_refund_id( wc_get_order( $order_id ) ) );
+	}
+
+	/**
+	 * Tests that a refund record whose amount does not match the Stripe response is left untagged.
+	 */
+	public function test_process_refund_skips_refund_record_on_amount_mismatch() {
+		$refund_meta_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Order_Helper::class, 'META_STRIPE_REFUND_ID', 'string' );
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		$order->set_transaction_id( 'ch_123' );
+		$order->update_meta_data( '_stripe_charge_captured', 'yes' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		// Record for a different amount than what Stripe reports refunded.
+		$refund = wc_create_refund(
+			[
+				'order_id' => $order_id,
+				'amount'   => 5.00,
+			]
+		);
+		$this->assertNotWPError( $refund );
+
+		$callback = function ( $preempt, $request_args, $url ) {
+			if ( strpos( $url, 'refunds' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'       => 're_123',
+						'object'   => 'refund',
+						'amount'   => 1000,
+						'currency' => 'usd',
+						'charge'   => 'ch_123',
+						'status'   => 'succeeded',
+					]
+				);
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		$result = $this->gateway->process_refund( $order_id, 10.00 );
+		$this->assertTrue( $result );
+
+		remove_filter( 'pre_http_request', $callback );
+
+		$this->assertSame( '', wc_get_order( $refund->get_id() )->get_meta( $refund_meta_key ) );
+		$this->assertSame( 're_123', WC_Stripe_Order_Helper::get_instance()->get_stripe_refund_id( wc_get_order( $order_id ) ) );
 	}
 
 	/**
@@ -803,6 +1286,56 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertFalse( $result );
 
 		remove_filter( 'pre_http_request', $callback );
+	}
+
+	/**
+	 * Tests that process_refund reconciles a missing captured flag from the charge itself.
+	 * Async-confirmed orders (e.g. ACH microdeposits) never write the meta at checkout,
+	 * and treating that as "not captured" used to silently skip the refund request.
+	 */
+	public function test_process_refund_reconciles_missing_captured_meta_from_charge() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		// Transaction ID back-filled by the async completion webhooks; captured meta never written.
+		$order->set_transaction_id( 'py_123' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$callback = function ( $preempt, $request_args, $url ) {
+			if ( strpos( $url, 'charges/py_123' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'       => 'py_123',
+						'object'   => 'charge',
+						'captured' => true,
+						'status'   => 'succeeded',
+					]
+				);
+			}
+			if ( strpos( $url, 'refunds' ) !== false ) {
+				return $this->build_response(
+					[
+						'id'       => 're_123',
+						'object'   => 'refund',
+						'amount'   => 1000,
+						'currency' => 'usd',
+						'charge'   => 'py_123',
+						'status'   => 'succeeded',
+					]
+				);
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		$result = $this->gateway->process_refund( $order_id, 10.00, 'Customer requested' );
+		$this->assertTrue( $result );
+
+		remove_filter( 'pre_http_request', $callback );
+
+		// The reconciled captured state is persisted for subsequent refund paths.
+		$this->assertSame( 'yes', wc_get_order( $order_id )->get_meta( '_stripe_charge_captured' ) );
 	}
 
 	/**
@@ -1299,6 +1832,96 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * @dataProvider provide_test_display_order_currency_cases
+	 *
+	 * @param string $order_currency                   The order currency.
+	 * @param string $stripe_currency                  The Stripe currency.
+	 * @param bool   $expect_stripe_currency_in_output Whether the Stripe currency is expected in the output.
+	 */
+	public function test_display_order_fee( string $order_currency, string $stripe_currency, bool $expect_stripe_currency_in_output ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( $order_currency );
+		$order->save();
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->update_stripe_fee( $order, '0.59' );
+		$order_helper->update_stripe_currency( $order, $stripe_currency );
+		$order->save();
+
+		ob_start();
+		$this->gateway->display_order_fee( $order->get_id() );
+		$output = ob_get_clean();
+
+		if ( $expect_stripe_currency_in_output ) {
+			$this->assertStringContainsString( ' ' . $stripe_currency, $output );
+		} else {
+			$this->assertStringNotContainsString( $stripe_currency, $output );
+		}
+	}
+
+	/**
+	 * @dataProvider provide_test_display_order_currency_cases
+	 *
+	 * @param string $order_currency                   The order currency.
+	 * @param string $stripe_currency                  The Stripe currency.
+	 * @param bool   $expect_stripe_currency_in_output Whether the Stripe currency is expected in the output.
+	 */
+	public function test_display_order_payout( string $order_currency, string $stripe_currency, bool $expect_stripe_currency_in_output ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( $order_currency );
+		$order->save();
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->update_stripe_net( $order, '19.41' );
+		$order_helper->update_stripe_currency( $order, $stripe_currency );
+		$order->save();
+
+		ob_start();
+		$this->gateway->display_order_payout( $order->get_id() );
+		$output = ob_get_clean();
+
+		if ( $expect_stripe_currency_in_output ) {
+			$this->assertStringContainsString( ' ' . $stripe_currency, $output );
+		} else {
+			$this->assertStringNotContainsString( $stripe_currency, $output );
+		}
+	}
+
+	/**
+	 * Data provider for {@see test_display_order_fee()} and {@see test_display_order_payout()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_display_order_currency_cases() {
+		return [
+			'same currency'      => [ 'USD', 'USD', false ],
+			'different currency' => [ 'USD', 'EUR', true ],
+		];
+	}
+
+	/**
+	 * display_order_fee() returns early and outputs nothing when the order does not exist.
+	 */
+	public function test_display_order_fee_invalid_order_returns_early() {
+		ob_start();
+		$this->gateway->display_order_fee( 999999 );
+		$output = ob_get_clean();
+
+		$this->assertEmpty( $output );
+	}
+
+	/**
+	 * display_order_payout() returns early and outputs nothing when the order does not exist.
+	 */
+	public function test_display_order_payout_invalid_order_returns_early() {
+		ob_start();
+		$this->gateway->display_order_payout( 999999 );
+		$output = ob_get_clean();
+
+		$this->assertEmpty( $output );
+	}
+
+	/**
 	 * Tests that generate_payment_request includes the shipping phone in the shipping object so it
 	 * reaches Stripe for risk decisioning (STRIPE-973).
 	 *
@@ -1345,6 +1968,272 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		return [
 			'phone present' => [ '+1 555-333-4444', true ],
 			'phone empty'   => [ '', false ],
+		];
+	}
+
+	/**
+	 * Builds the minimal succeeded charge `process_response()` needs, keeping the fee lookup and token
+	 * update branches out of the path.
+	 *
+	 * @param string $charge_id The Stripe charge ID.
+	 * @return object
+	 */
+	private function build_succeeded_charge( string $charge_id ) {
+		return (object) [
+			'id'       => $charge_id,
+			'captured' => true,
+			'status'   => 'succeeded',
+		];
+	}
+
+	/**
+	 * An empty ID cannot identify a shared transaction, so processing must continue without attempting
+	 * a transaction lock.
+	 *
+	 * @dataProvider provide_empty_transaction_ids
+	 *
+	 * @param string|null $transaction_id The empty transaction ID.
+	 * @return void
+	 */
+	public function test_process_response_skips_transaction_lock_for_empty_transaction_id( $transaction_id ) {
+		global $wpdb;
+
+		$order              = WC_Helper_Order::create_order();
+		$response           = (object) [
+			'id'       => $transaction_id,
+			'captured' => true,
+			'status'   => 'succeeded',
+		];
+		$stop_at_processing = static function () {
+			throw new RuntimeException( 'Response processing reached.' );
+		};
+
+		add_action( 'wc_gateway_stripe_process_payment_charge', $stop_at_processing, 10, 0 );
+
+		try {
+			try {
+				$this->gateway->process_response( $response, $order );
+				$this->fail( 'Expected charge processing to be reached.' );
+			} catch ( RuntimeException $exception ) {
+				$this->assertSame( 'Response processing reached.', $exception->getMessage() );
+			}
+
+			// The lock option name is the prefix plus the transaction ID, so locking on an empty ID would
+			// write the bare prefix and block every other transaction that also arrives without an ID.
+			$this->assertNull(
+				$wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", 'wc_stripe_transaction_lock_' ) ),
+				'No transaction lock should be taken out when the transaction ID is empty.'
+			);
+		} finally {
+			remove_action( 'wc_gateway_stripe_process_payment_charge', $stop_at_processing );
+		}
+	}
+
+	/**
+	 * Locks the fieldset > p.woocommerce-SavedPaymentMethods-saveNew structure the
+	 * empty-box hide rule in client/classic/upe/style.scss depends on.
+	 *
+	 * @param bool $force_checked Whether saving is mandatory (e.g. subscription in cart):
+	 *                            the checkbox renders pre-checked and its wrapper hidden
+	 *                            so the shopper cannot opt out.
+	 * @dataProvider provide_test_save_payment_method_checkbox
+	 */
+	public function test_save_payment_method_checkbox_renders_hideable_fieldset_wrapper( bool $force_checked ) {
+		ob_start();
+		$this->gateway->save_payment_method_checkbox( $force_checked );
+		$output = ob_get_clean();
+
+		$this->assertMatchesRegularExpression( '/^\s*<fieldset[^>]*>\s*<p class="form-row woocommerce-SavedPaymentMethods-saveNew/', $output );
+
+		if ( $force_checked ) {
+			$this->assertStringContainsString( '<fieldset style="display: none;">', $output );
+			$this->assertStringContainsString( 'checked', $output );
+		} else {
+			$this->assertStringNotContainsString( '<fieldset style="display: none;">', $output );
+			$this->assertStringNotContainsString( 'checked', $output );
+		}
+	}
+
+	/**
+	 * Provides transaction IDs that cannot be used as lock keys.
+	 *
+	 * @return array
+	 */
+	public function provide_empty_transaction_ids(): array {
+		return [
+			'null'         => [ null ],
+			'empty string' => [ '' ],
+		];
+	}
+
+	/**
+	 * Reproduces the reported race: a second worker enters `process_response()` while the first is
+	 * inside the window between the ownership lookup and the transaction ID write. The charge may be
+	 * linked to only one order, and the loser has to stay payable rather than complete against someone
+	 * else's payment.
+	 *
+	 * @dataProvider provide_order_storage
+	 *
+	 * @param bool $use_hpos Whether to run against HPOS or legacy post storage.
+	 * @return void
+	 */
+	public function test_process_response_denies_an_order_racing_for_a_locked_charge( bool $use_hpos ) {
+		$previous_hpos_setting = get_option( 'woocommerce_custom_orders_table_enabled', 'no' );
+		$new_hpos_setting      = $use_hpos ? 'yes' : 'no';
+
+		try {
+			// Allow HPOS to be toggled regardless of database state.
+			add_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+
+			if ( $new_hpos_setting !== $previous_hpos_setting ) {
+				update_option( 'woocommerce_custom_orders_table_enabled', $new_hpos_setting );
+			}
+
+			$second_order = WC_Helper_Order::create_order();
+			$charge       = $this->build_succeeded_charge( 'ch_race_' . $new_hpos_setting );
+			$lock_name    = 'wc_stripe_transaction_lock_' . $charge->id;
+
+			// The first worker is inside the window: holding the lock, transaction ID not yet written.
+			$lock_owner = WC_Stripe_Option_Lock::acquire( $lock_name, 5 * MINUTE_IN_SECONDS );
+			$this->assertIsString( $lock_owner );
+
+			$exception = null;
+			try {
+				$this->gateway->process_response( $charge, $second_order );
+			} catch ( WC_Stripe_Exception $e ) {
+				$exception = $e;
+			}
+
+			$this->assertInstanceOf( WC_Stripe_Exception::class, $exception );
+
+			$second_order = wc_get_order( $second_order->get_id() );
+			$this->assertEmpty( $second_order->get_transaction_id() );
+			$this->assertFalse( $second_order->is_paid() );
+		} finally {
+			if ( isset( $lock_owner ) ) {
+				WC_Stripe_Option_Lock::release( $lock_name, $lock_owner );
+			}
+			if ( $new_hpos_setting !== $previous_hpos_setting ) {
+				update_option( 'woocommerce_custom_orders_table_enabled', $previous_hpos_setting );
+			}
+			remove_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+		}
+	}
+
+	/**
+	 * Data provider for `test_process_response_denies_an_order_racing_for_a_locked_charge`.
+	 *
+	 * @return array
+	 */
+	public function provide_order_storage(): array {
+		return [
+			'HPOS'           => [ true ],
+			'legacy storage' => [ false ],
+		];
+	}
+
+	/**
+	 * After one request has linked the charge, a later request for the same order can safely repeat it.
+	 *
+	 * @return void
+	 */
+	public function test_process_response_is_idempotent_for_the_owning_order() {
+		$order  = WC_Helper_Order::create_order();
+		$charge = $this->build_succeeded_charge( 'ch_idempotent' );
+
+		$this->gateway->process_response( $charge, $order );
+		$this->gateway->process_response( $charge, $order );
+
+		$order = wc_get_order( $order->get_id() );
+		$this->assertSame( $charge->id, $order->get_transaction_id() );
+		$this->assertTrue( $order->is_paid() );
+	}
+
+	/**
+	 * A request that fails before persisting the transaction-to-order mapping must not release the lock.
+	 * @return void
+	 */
+	public function test_process_response_pre_persistence_failure_retains_the_lock() {
+		$first_order        = WC_Helper_Order::create_order();
+		$competing_order    = WC_Helper_Order::create_order();
+		$charge             = $this->build_succeeded_charge( 'ch_owner_failure' );
+		$lock_name          = 'wc_stripe_transaction_lock_' . $charge->id;
+		$processing_failure = static function () {
+			throw new RuntimeException( 'Stop before the transaction ID is persisted.' );
+		};
+
+		add_action( 'wc_gateway_stripe_process_payment_charge', $processing_failure );
+
+		try {
+			try {
+				$this->gateway->process_response( $charge, $first_order );
+				$this->fail( 'Expected charge processing to fail before persisting the transaction ID.' );
+			} catch ( RuntimeException $exception ) {
+				$this->assertSame( 'Stop before the transaction ID is persisted.', $exception->getMessage() );
+			}
+
+			$this->assertNull( WC_Stripe_Option_Lock::acquire( $lock_name, 5 * MINUTE_IN_SECONDS ), 'A failed request must retain the lock until its lease expires.' );
+			try {
+				$this->gateway->process_response( $charge, $competing_order );
+				$this->fail( 'Expected the competing order to be denied.' );
+			} catch ( WC_Stripe_Exception $exception ) {
+				$this->assertEmpty( $competing_order->get_transaction_id() );
+			}
+		} finally {
+			remove_action( 'wc_gateway_stripe_process_payment_charge', $processing_failure );
+			WC_Stripe_Option_Lock::force_release( $lock_name );
+		}
+	}
+
+	/**
+	 * The lock is released once the charge is linked, so from that point the persisted transaction
+	 * ID is what has to keep a second order out.
+	 *
+	 * @return void
+	 */
+	public function test_process_response_rejects_a_second_order_once_the_charge_is_linked() {
+		$first_order  = WC_Helper_Order::create_order();
+		$second_order = WC_Helper_Order::create_order();
+		$third_order  = WC_Helper_Order::create_order();
+		$charge       = $this->build_succeeded_charge( 'ch_linked' );
+		$lock_name    = 'wc_stripe_transaction_lock_' . $charge->id;
+
+		$this->gateway->process_response( $charge, $first_order );
+
+		// Nothing is holding the lock any more, so the rejection below cannot come from the lock.
+		$lock_owner = WC_Stripe_Option_Lock::acquire( $lock_name, 5 * MINUTE_IN_SECONDS );
+		$this->assertIsString( $lock_owner );
+		WC_Stripe_Option_Lock::release( $lock_name, $lock_owner );
+
+		$exception = null;
+		try {
+			$this->gateway->process_response( $charge, $second_order );
+		} catch ( WC_Stripe_Exception $e ) {
+			$exception = $e;
+		}
+
+		$this->assertInstanceOf( WC_Stripe_Exception::class, $exception );
+
+		$second_order = wc_get_order( $second_order->get_id() );
+		$this->assertEmpty( $second_order->get_transaction_id() );
+		$this->assertFalse( $second_order->is_paid() );
+
+		// The persisted mapping makes releasing the rejected request's lock safe and avoids blocking the
+		// order that already owns the transaction until the lock expires.
+		$lock_owner = WC_Stripe_Option_Lock::acquire( $lock_name, 5 * MINUTE_IN_SECONDS );
+		$this->assertIsString( $lock_owner );
+		WC_Stripe_Option_Lock::release( $lock_name, $lock_owner );
+	}
+
+	/**
+	 * Data provider for test_save_payment_method_checkbox_renders_hideable_fieldset_wrapper.
+	 *
+	 * @return array
+	 */
+	public function provide_test_save_payment_method_checkbox(): array {
+		return [
+			'default'      => [ false ],
+			'force saving' => [ true ],
 		];
 	}
 }

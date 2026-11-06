@@ -55,7 +55,11 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 		// Cash App Pay supports subscriptions. Init subscriptions so it can process subscription payments.
 		$this->maybe_init_subscriptions();
 
-		add_filter( 'woocommerce_thankyou_order_received_text', [ $this, 'order_received_text_for_wallet_failure' ], 10, 2 );
+		$this->register_instance_hooks_once(
+			function () {
+				add_filter( 'woocommerce_thankyou_order_received_text', [ $this, 'order_received_text_for_wallet_failure' ], 10, 2 );
+			}
+		);
 	}
 
 	/**

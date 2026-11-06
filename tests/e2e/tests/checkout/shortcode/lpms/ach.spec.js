@@ -10,6 +10,7 @@ const {
 	setupShortcodeCheckout,
 	setupACHCheckout,
 	fillACHBankDetails,
+	waitForOrderReceivedPage,
 } = payments;
 
 test.describe( 'ACH payment tests @shortcode', () => {
@@ -50,10 +51,7 @@ test.describe( 'ACH payment tests @shortcode', () => {
 		await fillACHBankDetails( page );
 
 		await page.locator( 'text=Place order' ).click();
-		await page.waitForURL( '**/checkout/order-received/**' );
-		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-			'Order received'
-		);
+		await waitForOrderReceivedPage( page );
 	} );
 
 	test( 'customer can save and reuse ACH payment method @smoke', async ( {
@@ -76,10 +74,7 @@ test.describe( 'ACH payment tests @shortcode', () => {
 				.click();
 
 			await clickPlaceOrder( page );
-			await page.waitForURL( '**/checkout/order-received/**' );
-			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-				'Order received'
-			);
+			await waitForOrderReceivedPage( page );
 		} );
 
 		// Second order - Use saved payment method
@@ -102,10 +97,7 @@ test.describe( 'ACH payment tests @shortcode', () => {
 				.click();
 
 			await clickPlaceOrder( page );
-			await page.waitForURL( '**/checkout/order-received/**' );
-			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-				'Order received'
-			);
+			await waitForOrderReceivedPage( page );
 		} );
 	} );
 } );

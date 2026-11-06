@@ -8,6 +8,9 @@ const {
 	setupCart,
 	setupShortcodeCheckout,
 	fillCreditCardDetailsShortcode,
+	getCartTotal,
+	getOrderIdFromOrderReceivedUrl,
+	waitForOrderReceivedPageAndConfirmExpectedTotal,
 } = payments;
 
 test( 'merchant can issue a full refund @smoke', async ( { browser } ) => {
@@ -33,15 +36,19 @@ test( 'merchant can issue a full refund @smoke', async ( { browser } ) => {
 			userPage,
 			config.get( 'cards.basic' )
 		);
-		await userPage.locator( 'text=Place order' ).dispatchEvent( 'click' );
-		await userPage.waitForURL( '**/checkout/order-received/**' );
 
-		await expect( userPage.locator( 'h1.entry-title' ) ).toHaveText(
-			'Order received'
+		const expectedTotal = await getCartTotal( userPage );
+
+		await userPage.locator( 'text=Place order' ).dispatchEvent( 'click' );
+
+		// Confirm the order was charged the expected amount before refunding.
+		await waitForOrderReceivedPageAndConfirmExpectedTotal(
+			browser,
+			userPage,
+			expectedTotal
 		);
 
-		const orderUrl = await userPage.url();
-		orderId = orderUrl.split( 'order-received/' )[ 1 ].split( '/?' )[ 0 ];
+		orderId = getOrderIdFromOrderReceivedUrl( userPage.url() );
 
 		await userPage.close();
 	} );

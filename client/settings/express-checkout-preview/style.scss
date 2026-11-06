@@ -1,0 +1,18 @@
+@use '../../styles/abstracts/styles';
+
+.wcstripe-express-checkout-preview {
+	box-sizing: border-box;
+	border: none;
+	border-radius: 4px;
+	padding: 24px;
+
+	// The "light" theme renders white buttons, so the preview needs a dark
+	// surface for them to be visible against the white settings card.
+	&[data-theme='light'] {
+		background: styles.$gray-800;
+	}
+
+	&[data-theme='light-outline'] {
+		background: styles.$gray-100;
+	}
+}

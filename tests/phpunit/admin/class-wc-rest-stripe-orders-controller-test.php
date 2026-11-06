@@ -122,6 +122,7 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 							'data' => [
 								[
 									'id'                  => 'ch_12345',
+									'captured'            => false,
 									'balance_transaction' => [
 										'id' => 'txn_12345',
 									],
@@ -228,6 +229,7 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 							'data' => [
 								[
 									'id'                  => 'ch_12345',
+									'captured'            => false,
 									'balance_transaction' => [
 										'id' => 'txn_12345',
 									],
@@ -273,6 +275,7 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 							'data' => [
 								[
 									'id'                  => 'ch_12345',
+									'captured'            => false,
 									'balance_transaction' => [
 										'id' => 'txn_12345',
 									],
@@ -329,8 +332,9 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 							'charges' => [
 								'data' => [
 									[
-										'id'     => 'ch_12345',
-										'status' => 'succeeded',
+										'id'       => 'ch_12345',
+										'captured' => false,
+										'status'   => 'succeeded',
 									],
 								],
 							],

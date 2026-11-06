@@ -1,6 +1,8 @@
 /* global wc_stripe_express_checkout_params */
 import jQuery from 'jquery';
-import { isAmazonPayEnabled, isLinkEnabled } from 'wcstripe/stripe-utils';
+import { __ } from '@wordpress/i18n';
+import { isAmazonPayEnabled } from 'wcstripe/stripe-utils/is-amazon-pay-enabled';
+import { isLinkEnabled } from 'wcstripe/stripe-utils/is-link-enabled';
 import { EXPRESS_CHECKOUT_NOTICE_DELAY } from 'wcstripe/data/constants';
 import {
 	EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
@@ -13,6 +15,7 @@ import {
 } from 'wcstripe/stripe-utils/constants';
 
 export * from './normalize';
+export * from './bookings';
 
 /**
  * Get error messages from WooCommerce notice.
@@ -31,6 +34,28 @@ export const getErrorMessageFromNotice = ( notice ) => {
 };
 
 /**
+ * Resolves the message shown when an express checkout payment is aborted.
+ *
+ * Stripe errors and Store API responses can both arrive without a usable message — a
+ * non-success payment status with nothing attached, or a Stripe error whose `message`
+ * is unset — and aborting with an empty one leaves the shopper with no explanation.
+ *
+ * Takes the message as-is: callers that receive a WooCommerce notice run it through
+ * `getErrorMessageFromNotice()` first, and parsing a plain Stripe message as HTML would
+ * truncate it at anything tag-like (e.g. an email address in angle brackets).
+ *
+ * @param {string|undefined} message The message reported by Stripe or the server, if any.
+ * @return {string} The message to display.
+ */
+export const getExpressCheckoutErrorMessage = ( message ) =>
+	message?.trim()
+		? message
+		: __(
+				'There was a problem processing the order.',
+				'woocommerce-gateway-stripe'
+		  );
+
+/**
  * Retrieves express checkout data from global variable.
  *
  * @param {string} key The object property key.
@@ -39,6 +64,23 @@ export const getErrorMessageFromNotice = ( notice ) => {
 export const getExpressCheckoutData = ( key ) =>
 	// eslint-disable-next-line camelcase
 	wc_stripe_express_checkout_params?.[ key ] ?? null;
+
+/**
+ * Returns the server-provided default shipping option as a single-element rates
+ * array, or an empty array when none is configured.
+ *
+ * Express Checkout requires a non-empty shipping-rates array whenever shipping
+ * is required. The classic, Blocks, and event-handler flows share this fallback
+ * for when the cart yields no real rates (e.g. free-trial carts that defer
+ * shipping to the recurring payment).
+ *
+ * @return {Array} The default shipping options array, empty when none is set.
+ */
+export const getDefaultShippingOptions = () => {
+	const defaultShippingOption =
+		getExpressCheckoutData( 'checkout' )?.default_shipping_option;
+	return defaultShippingOption ? [ defaultShippingOption ] : [];
+};
 
 /**
  * Construct Express Checkout AJAX endpoint URL.
@@ -120,8 +162,10 @@ export const getExpressCheckoutButtonAppearance = () => {
 
 /**
  * Returns the style settings for the Express Checkout buttons.
+ *
+ * @param {string} [expressPaymentType] The express payment method type.
  */
-export const getExpressCheckoutButtonStyleSettings = () => {
+export const getExpressCheckoutButtonStyleSettings = ( expressPaymentType ) => {
 	const buttonSettings = getExpressCheckoutData( 'button' );
 
 	// Maps the WC Stripe theme from settings to the button theme.
@@ -149,6 +193,21 @@ export const getExpressCheckoutButtonStyleSettings = () => {
 			? 'plain'
 			: buttonSettings?.type ?? 'buy';
 
+	const getButtonHeight = () => {
+		// Link and Amazon Pay each carry their own size setting; every other
+		// method uses the shared Express Checkout (Apple/Google Pay) height.
+		if ( expressPaymentType === EXPRESS_PAYMENT_METHOD_SETTING_LINK ) {
+			return getExpressCheckoutData( 'link_button_height' ) ?? '48';
+		}
+		if (
+			expressPaymentType === EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY
+		) {
+			return getExpressCheckoutData( 'amazon_pay_button_height' ) ?? '48';
+		}
+		return buttonSettings?.height ?? '48';
+	};
+	const height = parseInt( getButtonHeight(), 10 );
+
 	return {
 		paymentMethods: {
 			amazonPay: 'auto',
@@ -173,10 +232,7 @@ export const getExpressCheckoutButtonStyleSettings = () => {
 			applePay: buttonMethodType,
 		},
 		// Allowed height must be 40px to 55px.
-		buttonHeight: Math.min(
-			Math.max( parseInt( buttonSettings?.height ?? '48', 10 ), 40 ),
-			55
-		),
+		buttonHeight: Math.min( Math.max( height, 40 ), 55 ),
 	};
 };
 
@@ -350,16 +406,32 @@ export const getPaymentMethodTypesForExpressMethod = ( paymentMethodType ) => {
 };
 
 /**
+ * Appends the "go to the checkout page" sentence to a notice.
+ *
+ * The sentence is rendered server-side with the page's own checkout URL, so the
+ * client never builds link markup from message text.
+ *
+ * @param {string} noticeHtml The notice as safe HTML.
+ * @return {string} The notice with the linked sentence appended, when available.
+ */
+export const appendCheckoutLink = ( noticeHtml ) => {
+	const sentence = getExpressCheckoutData( 'i18n' )?.go_to_checkout;
+	return sentence ? `${ noticeHtml }<br>${ sentence }` : noticeHtml;
+};
+
+/**
  * Display a notice on the checkout page (for Express Checkout Element).
  *
  * @param {string} message           The message to display.
  * @param {string} type              The type of notice.
  * @param {Array}  additionalClasses Additional classes to add to the notice.
+ * @param {Object} options           Set `linkToCheckout` to append a link to the checkout page.
  */
 export const displayExpressCheckoutNotice = (
 	message,
 	type,
-	additionalClasses
+	additionalClasses,
+	options = {}
 ) => {
 	const isBlockCheckout = getExpressCheckoutData( 'has_block' );
 	const mainNoticeClass = `woocommerce-${ type }`;
@@ -376,29 +448,38 @@ export const displayExpressCheckoutNotice = (
 		: 'woocommerce-notices-wrapper';
 	const $container = jQuery( '.' + containerClass ).first();
 
-	if ( $container.length ) {
-		const safeMessage = jQuery( '<div>' )
-			.text( message )
-			.html()
-			.replace( /\n/g, '<br>' );
-		const note = jQuery(
-			`<div class="${ classNames.join( ' ' ) }" role="note" />`
-		).html( safeMessage );
-		if ( isBlockCheckout ) {
-			$container.prepend( note );
-		} else {
-			$container.append( note );
+	let safeMessage = jQuery( '<div>' )
+		.text( message )
+		.html()
+		.replace( /\n/g, '<br>' );
+	if ( options?.linkToCheckout ) {
+		safeMessage = appendCheckoutLink( safeMessage );
+	}
+	const note = jQuery(
+		`<div class="${ classNames.join( ' ' ) }" role="note" />`
+	).html( safeMessage );
+
+	if ( ! $container.length ) {
+		// Product pages, and themes that render no notices wrapper, would drop the
+		// message entirely. Fall back to the classic express checkout container; it
+		// sits where the shopper just tapped, so no scrolling is needed (and none is
+		// wanted, with a wallet sheet opening over the page).
+		const $button = jQuery( '#wc-stripe-express-checkout-element' );
+		if ( $button.length ) {
+			$button.before( note );
 		}
 
-		// Scroll to notices.
-		jQuery( 'html, body' ).animate(
-			{
-				scrollTop: $container.find( `.${ mainNoticeClass }` ).offset()
-					.top,
-			},
-			600
-		);
+		return;
 	}
+
+	if ( isBlockCheckout ) {
+		$container.prepend( note );
+	} else {
+		$container.append( note );
+	}
+
+	// Scroll to the notice.
+	jQuery( 'html, body' ).animate( { scrollTop: note.offset().top }, 600 );
 };
 
 /**

@@ -14,9 +14,9 @@ const PaymentMethodMissingCurrencyPill = ( { id, label } ) => {
 		>
 			{ interpolateComponents( {
 				mixedString: sprintf(
-					/* translators: $1: a payment method name. %2: Currency(ies). */
+					/* translators: %1$s: Payment method name. %2$s: Supported currency codes. */
 					__(
-						'%1$s requires store currency to be set to %2$s. {{currencySettingsLink}}Set currency{{/currencySettingsLink}}',
+						'%1$s requires store currency to be %2$s. {{currencySettingsLink}}Set currency{{/currencySettingsLink}}',
 						'woocommerce-gateway-stripe'
 					),
 					label,

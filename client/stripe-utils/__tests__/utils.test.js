@@ -1,14 +1,31 @@
+import { getSetting } from '@woocommerce/settings';
 import {
 	getFontSizeBase,
 	getDefaultValues,
+	getBillingDetailsForDeferredFlow,
 	getHiddenBillingFields,
+	getUserDataForCheckoutSession,
+	getStripeServerData,
+	showErrorCheckout,
+	getExcludedPaymentMethodTypesForBillingCountry,
+	stripeJsSupportsCheckoutSessions,
 } from '../utils';
 import { initializeUPEAppearance } from '../upe-appearance';
 import { getAppearance } from '../../styles/upe';
+import { dispatch } from '@wordpress/data';
 
 jest.mock( '../../styles/upe', () => ( {
 	getAppearance: jest.fn(),
 	getExpandedOptimizedCheckoutRules: jest.fn( ( rules ) => rules ),
+} ) );
+
+jest.mock( '@woocommerce/settings', () => ( {
+	getSetting: jest.fn(),
+} ) );
+
+jest.mock( '@wordpress/data', () => ( {
+	...jest.requireActual( '@wordpress/data' ),
+	dispatch: jest.fn(),
 } ) );
 
 describe( 'utils', () => {
@@ -61,8 +78,7 @@ describe( 'utils', () => {
 			};
 
 			// Mock document.getElementById for fallback behavior
-			mockGetElementById = jest.fn();
-			document.getElementById = mockGetElementById;
+			mockGetElementById = jest.spyOn( document, 'getElementById' );
 		} );
 
 		afterEach( () => {
@@ -252,6 +268,102 @@ describe( 'utils', () => {
 					},
 				} );
 			} );
+		} );
+	} );
+
+	describe( 'getBillingDetailsForDeferredFlow', () => {
+		const globalValues = global.wc_stripe_upe_params;
+
+		afterEach( () => {
+			global.wc_stripe_upe_params = globalValues;
+		} );
+
+		it.each( [ 'isOrderPay', 'isChangingPayment', 'isAddPaymentMethod' ] )(
+			'returns billing_details from customerBillingData when %s is true',
+			( flag ) => {
+				global.wc_stripe_upe_params = {
+					[ flag ]: true,
+					customerBillingData: {
+						name: 'John Doe',
+						email: 'john@example.com',
+						phone: '+1234567890',
+						address: {
+							country: 'us', // lowercase, should be uppercased
+							line1: '123 Main St',
+							line2: 'Apt 4B',
+							city: 'New York',
+							state: 'NY',
+							postal_code: '10001',
+						},
+					},
+				};
+
+				expect( getBillingDetailsForDeferredFlow() ).toEqual( {
+					name: 'John Doe',
+					email: 'john@example.com',
+					phone: '+1234567890',
+					address: {
+						country: 'US',
+						line1: '123 Main St',
+						line2: 'Apt 4B',
+						city: 'New York',
+						state: 'NY',
+						postal_code: '10001',
+					},
+				} );
+			}
+		);
+
+		it( 'omits empty address fields, trims values, and uppercases the country', () => {
+			global.wc_stripe_upe_params = {
+				isOrderPay: true,
+				customerBillingData: {
+					name: '  John Doe  ',
+					email: '  john@example.com  ',
+					phone: '',
+					address: {
+						country: 'gb',
+						line1: '10 Downing St',
+						line2: '',
+						city: '',
+						state: '',
+						postal_code: 'SW1A 2AA',
+					},
+				},
+			};
+
+			expect( getBillingDetailsForDeferredFlow() ).toEqual( {
+				name: 'John Doe',
+				email: 'john@example.com',
+				address: {
+					country: 'GB',
+					line1: '10 Downing St',
+					postal_code: 'SW1A 2AA',
+				},
+			} );
+		} );
+
+		it( 'returns null on standard checkout', () => {
+			global.wc_stripe_upe_params = {
+				isCheckout: true,
+				customerBillingData: {
+					email: 'john@example.com',
+				},
+			};
+
+			expect( getBillingDetailsForDeferredFlow() ).toBeNull();
+		} );
+
+		it( 'returns null when customer email is missing', () => {
+			global.wc_stripe_upe_params = {
+				isOrderPay: true,
+				customerBillingData: {
+					name: 'John Doe',
+					address: { line1: '123 Main St' },
+				},
+			};
+
+			expect( getBillingDetailsForDeferredFlow() ).toBeNull();
 		} );
 	} );
 
@@ -618,5 +730,385 @@ describe( 'utils', () => {
 				'auto'
 			);
 		} );
+	} );
+
+	describe( 'getUserDataForCheckoutSession', () => {
+		const globalValues = global.wc_stripe_upe_params;
+
+		beforeEach( () => {
+			global.wc_stripe_upe_params = {
+				isPayerPhoneRequired: false,
+			};
+		} );
+
+		afterEach( () => {
+			global.wc_stripe_upe_params = globalValues;
+			document.body.innerHTML = '';
+		} );
+
+		it( 'omits the billing address when the billing country is missing', () => {
+			document.body.innerHTML = `
+				<input id="billing_first_name" value="Jane" />
+				<input id="billing_last_name" value="Doe" />
+				<input id="billing_email" value="jane@example.com" />
+			`;
+
+			const result = getUserDataForCheckoutSession();
+
+			expect( result ).not.toHaveProperty( 'billingAddress' );
+			expect( result.email ).toBe( 'jane@example.com' );
+		} );
+
+		it( 'includes the billing address when the billing country is present', () => {
+			document.body.innerHTML = `
+				<input id="billing_first_name" value="Jane" />
+				<input id="billing_last_name" value="Doe" />
+				<input id="billing_country" value="uy" />
+			`;
+
+			expect( getUserDataForCheckoutSession().billingAddress ).toEqual( {
+				name: 'Jane Doe',
+				address: {
+					country: 'UY',
+					line1: undefined,
+					line2: undefined,
+					state: undefined,
+					city: undefined,
+					postal_code: undefined,
+				},
+			} );
+		} );
+	} );
+
+	describe( 'getStripeServerData', () => {
+		const globalValues = global.wc_stripe_upe_params;
+
+		afterEach( () => {
+			global.wc_stripe_upe_params = globalValues;
+			getSetting.mockReset();
+		} );
+
+		it( 'returns the UPE params global when present', () => {
+			global.wc_stripe_upe_params = { key: 'pk_test_123' };
+
+			expect( getStripeServerData() ).toEqual( { key: 'pk_test_123' } );
+		} );
+
+		it( 'falls back to the Blocks stripe_data setting', () => {
+			global.wc_stripe_upe_params = undefined;
+			getSetting.mockReturnValue( { key: 'pk_test_blocks' } );
+
+			expect( getStripeServerData() ).toEqual( {
+				key: 'pk_test_blocks',
+			} );
+		} );
+
+		it( 'returns null when no data is localized', () => {
+			global.wc_stripe_upe_params = undefined;
+			getSetting.mockReturnValue( null );
+
+			expect( () => getStripeServerData() ).not.toThrow();
+			expect( getStripeServerData() ).toBeNull();
+		} );
+	} );
+} );
+
+describe( 'showErrorCheckout', () => {
+	let container;
+	let checkoutForm;
+	let hasNoticesWrapper;
+	const originalJQuery = global.jQuery;
+	const originalWcSettings = global.wcSettings;
+	const originalWc = global.wc;
+
+	beforeEach( () => {
+		hasNoticesWrapper = true;
+		container = {
+			length: 1,
+			find: jest.fn().mockReturnThis(),
+			remove: jest.fn().mockReturnThis(),
+			prepend: jest.fn().mockReturnThis(),
+		};
+		checkoutForm = {
+			length: 1,
+			find: jest.fn( () => ( { length: 0, remove: jest.fn() } ) ),
+			prepend: jest.fn().mockReturnThis(),
+		};
+
+		const jQueryMock = jest.fn( ( selector ) => {
+			if ( selector === '.woocommerce-notices-wrapper' ) {
+				return {
+					first: () =>
+						hasNoticesWrapper ? container : { length: 0 },
+				};
+			}
+			if ( selector === '.woocommerce-MyAccount-content' ) {
+				return { length: 0 };
+			}
+			if ( selector === 'form.checkout' ) {
+				return {
+					first: () => checkoutForm,
+					find: checkoutForm.find,
+				};
+			}
+			return { trigger: jest.fn().mockReturnThis(), each: jest.fn() };
+		} );
+		jQueryMock.scroll_to_notices = jest.fn();
+		global.jQuery = jQueryMock;
+
+		// A classic-shortcode page never mounts the Blocks checkout StoreNotice helper.
+		delete global.wc;
+	} );
+
+	afterEach( () => {
+		global.jQuery = originalJQuery;
+		global.wcSettings = originalWcSettings;
+		global.wc = originalWc;
+		dispatch.mockReset();
+	} );
+
+	it( 'uses the WC Blocks notices store when it is registered', () => {
+		const createErrorNotice = jest.fn();
+		dispatch.mockReturnValue( { createErrorNotice } );
+		global.wcSettings = { wcBlocksConfig: { foo: true } };
+
+		showErrorCheckout( 'Your card was declined.' );
+
+		expect( createErrorNotice ).toHaveBeenCalledWith(
+			'Your card was declined.',
+			{ context: 'wc/checkout/payments' }
+		);
+		// The classic notice markup must not also be prepended.
+		expect( container.prepend ).not.toHaveBeenCalled();
+	} );
+
+	// Regression: on a woocommerce/classic-shortcode page wcBlocksConfig is truthy but the
+	// core/notices store isn't registered, so dispatch() returns null. The error must not be
+	// silently dropped via an uncaught TypeError.
+	it( 'falls back to the classic notice when core/notices is not registered', () => {
+		dispatch.mockReturnValue( null );
+		global.wcSettings = { wcBlocksConfig: { foo: true } };
+
+		expect( () =>
+			showErrorCheckout( 'Your card was declined.' )
+		).not.toThrow();
+
+		expect( container.prepend ).toHaveBeenCalledWith(
+			expect.stringContaining( 'woocommerce-error' )
+		);
+	} );
+
+	it( 'renders the classic notice when not in a block context', () => {
+		dispatch.mockReturnValue( null );
+		global.wcSettings = { wcBlocksConfig: false };
+
+		showErrorCheckout( 'Your card was declined.' );
+
+		expect( container.prepend ).toHaveBeenCalledWith(
+			expect.stringContaining( 'Your card was declined.' )
+		);
+	} );
+
+	it( 'falls back to the checkout form when the notices wrapper is missing', () => {
+		hasNoticesWrapper = false;
+		dispatch.mockReturnValue( null );
+		global.wcSettings = { wcBlocksConfig: false };
+
+		showErrorCheckout( 'Your card was declined.' );
+
+		expect( checkoutForm.prepend ).toHaveBeenCalledWith(
+			expect.stringContaining( 'Your card was declined.' )
+		);
+		expect( global.jQuery.scroll_to_notices ).toHaveBeenCalledWith(
+			checkoutForm
+		);
+	} );
+
+	describe( 'getExcludedPaymentMethodTypesForBillingCountry', () => {
+		const globalValues = global.wc_stripe_upe_params;
+
+		afterEach( () => {
+			global.wc_stripe_upe_params = globalValues;
+		} );
+
+		const setServerData = (
+			countriesByMethod,
+			excludedPaymentMethodTypes
+		) => {
+			global.wc_stripe_upe_params = {
+				excludedPaymentMethodTypes,
+				paymentMethodsConfig: {
+					card: { countriesByMethod },
+				},
+			};
+		};
+
+		const setCountryExcludedSeed = (
+			countryExcludedPaymentMethodTypes
+		) => {
+			global.wc_stripe_upe_params.countryExcludedPaymentMethodTypes =
+				countryExcludedPaymentMethodTypes;
+		};
+
+		it( 'excludes a country-restricted method when the billing country is unsupported', () => {
+			setServerData( { ideal: [ 'NL' ] }, [ 'amazon_pay' ] );
+
+			expect(
+				getExcludedPaymentMethodTypesForBillingCountry( 'US' )
+			).toEqual( expect.arrayContaining( [ 'amazon_pay', 'ideal' ] ) );
+		} );
+
+		it( 'keeps a country-restricted method when the billing country is supported', () => {
+			setServerData( { ideal: [ 'NL' ] }, [ 'amazon_pay' ] );
+
+			expect(
+				getExcludedPaymentMethodTypesForBillingCountry( 'NL' )
+			).not.toContain( 'ideal' );
+		} );
+
+		it( 'excludes country-restricted methods when the billing country is unknown', () => {
+			setServerData( { ideal: [ 'NL' ] }, [ 'amazon_pay' ] );
+
+			expect(
+				getExcludedPaymentMethodTypesForBillingCountry( '' )
+			).toContain( 'ideal' );
+		} );
+
+		it( 're-surfaces a server-seeded exclusion when the billing country becomes supported', () => {
+			// The server seeds exclusions for the page-load country (e.g. US);
+			// switching to a supported country must drop the stale exclusion.
+			setServerData( { ideal: [ 'NL' ] }, [ 'amazon_pay', 'ideal' ] );
+			setCountryExcludedSeed( [ 'ideal' ] );
+
+			const excluded =
+				getExcludedPaymentMethodTypesForBillingCountry( 'NL' );
+
+			expect( excluded ).not.toContain( 'ideal' );
+			expect( excluded ).toContain( 'amazon_pay' );
+		} );
+
+		it( 'keeps a non-deferred method excluded when the billing country becomes supported', () => {
+			// BLIK loads country-excluded (non-PL) and is also excluded because it
+			// can't render in the deferred-intent element; switching to PL only
+			// lifts the country reason.
+			setServerData( { blik: [ 'PL' ] }, [ 'amazon_pay', 'blik' ] );
+			setCountryExcludedSeed( [ 'blik' ] );
+			global.wc_stripe_upe_params.paymentMethodsConfig.blik = {
+				supportsDeferredIntent: false,
+			};
+
+			expect(
+				getExcludedPaymentMethodTypesForBillingCountry( 'PL' )
+			).toContain( 'blik' );
+		} );
+
+		it( 'preserves seed entries that are not country-derived, even when country-governed', () => {
+			// A third party excluded Klarna via `wc_stripe_upe_params` for a
+			// non-country reason: it is absent from the country-derived seed,
+			// so the recompute must not drop it for a supported country.
+			setServerData( { klarna: [ 'US', 'NL' ] }, [
+				'amazon_pay',
+				'klarna',
+			] );
+			setCountryExcludedSeed( [] );
+
+			expect(
+				getExcludedPaymentMethodTypesForBillingCountry( 'NL' )
+			).toContain( 'klarna' );
+		} );
+
+		it( 'matches billing countries case-insensitively', () => {
+			setServerData( { ideal: [ 'NL' ] }, [ 'amazon_pay' ] );
+
+			expect(
+				getExcludedPaymentMethodTypesForBillingCountry( 'nl' )
+			).not.toContain( 'ideal' );
+		} );
+
+		it( 'keeps Amazon Pay excluded even when its country list allows the billing country', () => {
+			setServerData( { amazon_pay: [ 'US' ] }, [ 'amazon_pay' ] );
+
+			expect(
+				getExcludedPaymentMethodTypesForBillingCountry( 'US' )
+			).toContain( 'amazon_pay' );
+		} );
+
+		it( 'preserves the server-provided exclusions and de-duplicates', () => {
+			setServerData( { ideal: [ 'NL' ] }, [ 'amazon_pay', 'ideal' ] );
+
+			const excluded =
+				getExcludedPaymentMethodTypesForBillingCountry( 'US' );
+
+			expect(
+				excluded.filter( ( type ) => type === 'ideal' )
+			).toHaveLength( 1 );
+			expect( excluded ).toContain( 'amazon_pay' );
+		} );
+
+		it( 'falls back to the Amazon Pay exclusion when no country map is present', () => {
+			global.wc_stripe_upe_params = {};
+
+			expect(
+				getExcludedPaymentMethodTypesForBillingCountry( 'US' )
+			).toEqual( [ 'amazon_pay' ] );
+		} );
+	} );
+} );
+
+describe( 'stripeJsSupportsCheckoutSessions', () => {
+	const stripe = { initCheckoutElementsSdk: jest.fn() };
+
+	afterEach( () => {
+		delete window.Stripe;
+	} );
+
+	it( 'returns true when the loaded build is the pinned version and defines initCheckoutElementsSdk', () => {
+		window.Stripe = { version: 'dahlia' };
+
+		expect( stripeJsSupportsCheckoutSessions( stripe, 'dahlia' ) ).toBe(
+			true
+		);
+	} );
+
+	it.each( [
+		[ 'the legacy v3 build', 3 ],
+		[ 'an older named version', 'basil' ],
+		[ 'a newer named version', 'endive' ],
+	] )(
+		'returns false when %s won the stripe handle, even though it defines initCheckoutElementsSdk',
+		( _label, version ) => {
+			// Stripe keeps renamed methods as stubs that throw, so the method's
+			// presence says nothing about whether this build can run it.
+			window.Stripe = { version };
+
+			expect( stripeJsSupportsCheckoutSessions( stripe, 'dahlia' ) ).toBe(
+				false
+			);
+		}
+	);
+
+	it( 'returns false when the pinned version is unknown', () => {
+		window.Stripe = { version: 'dahlia' };
+
+		expect( stripeJsSupportsCheckoutSessions( stripe, undefined ) ).toBe(
+			false
+		);
+	} );
+
+	it( 'returns false when Stripe.js has not defined window.Stripe', () => {
+		expect( stripeJsSupportsCheckoutSessions( stripe, 'dahlia' ) ).toBe(
+			false
+		);
+	} );
+
+	it( 'returns false when the build lacks initCheckoutElementsSdk', () => {
+		window.Stripe = { version: 'dahlia' };
+
+		expect(
+			stripeJsSupportsCheckoutSessions(
+				{ elements: jest.fn() },
+				'dahlia'
+			)
+		).toBe( false );
 	} );
 } );

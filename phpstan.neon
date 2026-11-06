@@ -22,6 +22,14 @@ parameters:
 	ignoreErrors:
 		-
 			identifier: missingType.iterableValue
+		# The WordPress stubs declare WP_REST_Request as generic over its parameter shape
+		# (@phpstan-template T of array), so PHPStan asks every type hint to spell out
+		# WP_REST_Request<T>. Our REST handlers treat request params as mixed (get_param()
+		# or untyped array access) and never depend on a per-route param shape, so
+		# specifying T on every handler adds noise without adding safety.
+		-
+			message: '#generic class WP_REST_Request (but )?does not specify its types#'
+			identifier: missingType.generics
 		# WCS_Retry / WCS_Retry_Manager are provided by the WooCommerce Subscriptions plugin,
 		# which is an optional runtime dependency. The phpstan-stubs/ and tests/phpunit/helpers/
 		# stand-ins declare these methods so PHPStan can resolve the calls, but the defensive

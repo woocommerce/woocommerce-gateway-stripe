@@ -30,6 +30,7 @@ const getMockPaymentRequestEnabledSettings = (
 
 describe( 'PaymentRequestSection', () => {
 	const globalValues = global.wc_stripe_settings_params;
+	const globalSettings = global.wcSettings;
 
 	beforeEach( () => {
 		useExpressCheckoutEnabledSettings.mockReturnValue(
@@ -49,15 +50,19 @@ describe( 'PaymentRequestSection', () => {
 		useIsAdaptivePricingEnabled.mockReturnValue( [ false, jest.fn() ] );
 		global.wc_stripe_settings_params = {
 			...globalValues,
-			is_amazon_pay_available: true,
 			taxes_based_on_billing: false,
 			is_card_method_enabled: true,
+		};
+		global.wcSettings = {
+			...globalSettings,
+			currency: { code: 'USD' },
 		};
 	} );
 
 	afterEach( () => {
 		jest.clearAllMocks();
 		global.wc_stripe_settings_params = globalValues;
+		global.wcSettings = globalSettings;
 	} );
 
 	it( 'renders settings with defaults', () => {
@@ -99,22 +104,17 @@ describe( 'PaymentRequestSection', () => {
 		expect( linkCheckbox ).not.toBeChecked();
 	} );
 
-	it( 'render Amazon Pay if feature flag is on', () => {
-		global.wc_stripe_settings_params = {
-			...globalValues,
-			is_amazon_pay_available: true,
-		};
-
+	it( 'render Amazon Pay if it is an available payment method', () => {
 		render( <PaymentRequestSection /> );
 
 		expect( screen.queryByText( 'Amazon Pay' ) ).toBeInTheDocument();
 	} );
 
-	it( 'hide Amazon Pay if feature flag is off', () => {
-		global.wc_stripe_settings_params = {
-			...globalValues,
-			is_amazon_pay_available: false,
-		};
+	it( 'hide Amazon Pay if it is not an available payment method', () => {
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			PAYMENT_METHOD_CARD,
+			PAYMENT_METHOD_LINK,
+		] );
 
 		render( <PaymentRequestSection /> );
 
@@ -142,7 +142,6 @@ describe( 'PaymentRequestSection', () => {
 	it( 'Amazon Pay checkbox disabled', () => {
 		global.wc_stripe_settings_params = {
 			...globalValues,
-			is_amazon_pay_available: true,
 			taxes_based_on_billing: true,
 		};
 
@@ -151,6 +150,26 @@ describe( 'PaymentRequestSection', () => {
 			name: /Amazon Pay Input/i,
 		} );
 		expect( amazonPayCheckbox ).toBeDisabled();
+	} );
+
+	it( 'Amazon Pay checkbox enabled when a currency supplied by a multi-currency plugin is supported', () => {
+		global.wc_stripe_settings_params = {
+			...global.wc_stripe_settings_params,
+			available_store_currencies: [ 'CHF', 'USD' ],
+		};
+		global.wcSettings = {
+			...globalSettings,
+			currency: { code: 'CHF' },
+		};
+
+		const container = render( <PaymentRequestSection /> );
+		const amazonPayCheckbox = container.getByRole( 'checkbox', {
+			name: /Amazon Pay Input/i,
+		} );
+		expect( amazonPayCheckbox ).toBeEnabled();
+		expect(
+			screen.queryByText( 'Requires currency' )
+		).not.toBeInTheDocument();
 	} );
 
 	it( 'Apple Pay / Google Pay checkbox disabled', () => {

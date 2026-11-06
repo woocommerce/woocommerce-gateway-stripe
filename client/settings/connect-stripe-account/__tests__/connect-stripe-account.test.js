@@ -4,12 +4,18 @@ import userEvent from '@testing-library/user-event';
 import ConnectStripeAccount from '..';
 import { recordEvent } from 'wcstripe/tracking';
 
+const mockGetQuery = jest.fn();
+
 jest.mock( 'wcstripe/data/account', () => ( {
 	useAccount: jest.fn(),
 } ) );
 
 jest.mock( 'wcstripe/tracking', () => ( {
 	recordEvent: jest.fn(),
+} ) );
+
+jest.mock( '@woocommerce/navigation', () => ( {
+	getQuery: ( ...args ) => mockGetQuery( ...args ),
 } ) );
 
 // Mock global variables
@@ -21,6 +27,32 @@ global.ajaxurl = '/wp-admin/admin-ajax.php';
 describe( 'ConnectStripeAccount', () => {
 	beforeEach( () => {
 		jest.clearAllMocks();
+		mockGetQuery.mockReturnValue( {} );
+	} );
+
+	it( 'should show the expired-nonce error notice when the redirect marker is present', () => {
+		mockGetQuery.mockReturnValue( {
+			wc_stripe_connect_error: 'expired_nonce',
+		} );
+
+		const { container } = render( <ConnectStripeAccount /> );
+
+		expect( container ).toHaveTextContent(
+			'Your Stripe connection attempt expired or was interrupted before it could complete. Please try again.'
+		);
+	} );
+
+	it( 'should not show a connection error notice when no redirect marker is present', () => {
+		mockGetQuery.mockReturnValue( {} );
+
+		const { container } = render( <ConnectStripeAccount /> );
+
+		expect( container ).not.toHaveTextContent(
+			'Your Stripe connection attempt expired'
+		);
+		expect( container ).not.toHaveTextContent(
+			'An issue occurred generating a connection to Stripe'
+		);
 	} );
 
 	it( 'should render the information', () => {
@@ -102,6 +134,7 @@ describe( 'ConnectStripeAccount', () => {
 
 		expect( global.jQuery.ajax ).toHaveBeenCalledWith(
 			expect.objectContaining( {
+				dataType: 'json',
 				data: expect.objectContaining( {
 					action: 'wc_stripe_get_oauth_url',
 					mode: 'live',
@@ -166,6 +199,32 @@ describe( 'ConnectStripeAccount', () => {
 		Object.defineProperty( window, 'location', {
 			value: { assign },
 		} );
+	} );
+
+	it( 'should display the server error when the OAuth URL request fails', async () => {
+		global.jQuery = {
+			ajax: jest.fn().mockResolvedValue( {
+				success: false,
+				data: { message: 'The connection request was rejected.' },
+			} ),
+		};
+
+		const { container } = render( <ConnectStripeAccount /> );
+
+		await act( async () => {
+			await userEvent.click(
+				screen.getByText( 'Create or connect a test account' )
+			);
+		} );
+
+		await waitFor( () => {
+			expect( container ).toHaveTextContent(
+				'The connection request was rejected.'
+			);
+		} );
+		expect(
+			screen.queryByText( /valid SSL certificate/ )
+		).not.toBeInTheDocument();
 	} );
 
 	it( 'should disable the live button and show tooltip when SSL is not enabled', async () => {

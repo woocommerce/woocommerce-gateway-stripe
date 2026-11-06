@@ -1,7 +1,7 @@
-import { test, expect } from '@playwright/test';
 import { randomUUID } from 'crypto';
+import { test, expect } from '@playwright/test';
 import config from 'config';
-import { admin, payments, api, user } from '../../../../utils';
+import { payments, api, user } from '../../../../utils';
 
 const {
 	clickPlaceOrder,
@@ -10,6 +10,7 @@ const {
 	setupBlocksCheckout,
 	setupACSSCheckout,
 	fillACSSDetails,
+	waitForOrderReceivedPage,
 } = payments;
 
 test.describe( 'ACSS payment tests @blocks @acss', () => {
@@ -17,7 +18,7 @@ test.describe( 'ACSS payment tests @blocks @acss', () => {
 
 	test.describe.configure( { mode: 'serial' } );
 
-	test.beforeAll( async ( { browser } ) => {
+	test.beforeAll( async () => {
 		await test.step( 'Setup test environment', async () => {
 			// Create test user.
 			const randomString = randomUUID();
@@ -38,6 +39,10 @@ test.describe( 'ACSS payment tests @blocks @acss', () => {
 
 	test( 'customer can pay with ACSS @smoke', async ( { page } ) => {
 		await setupACSSCheckout( page, 'blocks' );
+		// Parallel guest checkouts must not share the duplicate-payment identity.
+		await page
+			.getByLabel( 'Email address', { exact: true } )
+			.fill( `stripe-e2e-${ randomUUID() }@example.com` );
 		await expect(
 			page.getByText(
 				'After submission, you will need to authorize the payment with your bank.'
@@ -45,10 +50,7 @@ test.describe( 'ACSS payment tests @blocks @acss', () => {
 		).toBeVisible();
 		await clickPlaceOrder( page );
 		await fillACSSDetails( page );
-		await page.waitForURL( '**/checkout/order-received/**' );
-		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-			'Order received'
-		);
+		await waitForOrderReceivedPage( page );
 	} );
 
 	test( 'customer can save and reuse ACSS payment method @smoke', async ( {
@@ -65,10 +67,7 @@ test.describe( 'ACSS payment tests @blocks @acss', () => {
 			await page.getByLabel( 'Save payment information' ).click();
 			await clickPlaceOrder( page );
 			await fillACSSDetails( page );
-			await page.waitForURL( '**/checkout/order-received/**' );
-			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-				'Order received'
-			);
+			await waitForOrderReceivedPage( page );
 		} );
 
 		// Second order - Use saved payment method.
@@ -84,10 +83,7 @@ test.describe( 'ACSS payment tests @blocks @acss', () => {
 				.filter( { hasText: 'STRIPE TEST BANK ending in' } )
 				.click();
 			await clickPlaceOrder( page );
-			await page.waitForURL( '**/checkout/order-received/**' );
-			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-				'Order received'
-			);
+			await waitForOrderReceivedPage( page );
 		} );
 	} );
 } );

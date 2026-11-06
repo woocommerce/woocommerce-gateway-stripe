@@ -269,13 +269,10 @@ class WC_Stripe_Subscriptions_Helper {
 				__( 'Payment method page &rarr;', 'woocommerce-gateway-stripe' )
 			)
 		);
-		$customer_stripe_page = sprintf(
-			'<a href="%s">%s</a>',
-			esc_url( self::STRIPE_CUSTOMER_PAGE_BASE_URL . $subscription['customer_id'] ),
-			esc_html(
+		$customer_stripe_page = WC_Stripe_Helper::get_external_link(
+			self::STRIPE_CUSTOMER_PAGE_BASE_URL . $subscription['customer_id'],
 			/* translators: this is a text for a link pointing to the customer's page on Stripe */
-				__( 'Stripe customer page &rarr;', 'woocommerce-gateway-stripe' )
-			)
+			__( 'Stripe customer page &rarr;', 'woocommerce-gateway-stripe' )
 		);
 		return sprintf(
 		/* translators: %1$s is the subscription ID. %2$s is a customer payment method page. %3$s is the customer's page on Stripe */

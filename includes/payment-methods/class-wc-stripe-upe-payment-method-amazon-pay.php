@@ -161,11 +161,6 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay extends WC_Stripe_UPE_Payment_Meth
 	 * @return bool
 	 */
 	public static function is_amazon_pay_enabled( WC_Stripe_Payment_Gateway $gateway ) {
-		// Amazon Pay is disabled if feature flag is disabled.
-		if ( ! WC_Stripe_Feature_Flags::is_amazon_pay_available() ) {
-			return false;
-		}
-
 		$upe_enabled_method_ids = $gateway->get_upe_enabled_payment_method_ids();
 
 		return is_array( $upe_enabled_method_ids ) && in_array( self::STRIPE_ID, $upe_enabled_method_ids, true );

@@ -182,8 +182,16 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 	 * @since 5.8.0
 	 */
 	public function get_supported_currency() {
+		$payment_method_id = $this->stripe_id;
+		/**
+		 * Filters the currencies supported by a voucher payment method.
+		 *
+		 * The dynamic portion of the hook name is the Stripe payment method ID.
+		 *
+		 * @param string[] $supported_currencies Supported currency codes.
+		 */
 		return apply_filters(
-			'wc_stripe_' . $this->stripe_id . '_supported_currencies',
+			"wc_stripe_{$payment_method_id}_supported_currencies",
 			$this->supported_currencies
 		);
 	}
@@ -284,8 +292,12 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
 			WC_Stripe_Logger::error( 'Error processing voucher payment', [ 'error_message' => $e->getMessage() ] );
 
+			/**
+			 * This action is documented in includes/compat/trait-wc-stripe-subscriptions.php.
+			 */
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
+			/** This filter is documented in includes/class-wc-stripe-webhook-handler.php. */
 			$statuses = apply_filters(
 				'wc_stripe_allowed_payment_processing_statuses',
 				[ OrderStatus::PENDING, OrderStatus::FAILED ],
@@ -344,7 +356,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 		);
 
 		if ( ! empty( $payment_intent->error ) ) {
-			throw new Exception( $payment_intent->error->message );
+			throw new Exception( $payment_intent->error->message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		return $payment_intent;

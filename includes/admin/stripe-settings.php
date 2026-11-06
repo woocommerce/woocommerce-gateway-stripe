@@ -6,18 +6,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 $is_gte_wc6_6 = defined( WC_VERSION ) && version_compare( WC_VERSION, '6.6', '>=' );
 
 $wc_stripe_express_checkout_location_options = [
-	'product'  => __( 'Product', 'woocommerce-gateway-stripe' ),
-	'cart'     => __( 'Cart', 'woocommerce-gateway-stripe' ),
-	'checkout' => __( 'Checkout', 'woocommerce-gateway-stripe' ),
+	'product'               => __( 'Product', 'woocommerce-gateway-stripe' ),
+	'cart'                  => __( 'Cart', 'woocommerce-gateway-stripe' ),
+	'checkout'              => __( 'Checkout', 'woocommerce-gateway-stripe' ),
+	'change_payment_method' => __( 'Change payment method (subscriptions)', 'woocommerce-gateway-stripe' ),
 ];
 
 $wc_stripe_default_express_checkout_locations = [ 'product', 'cart', 'checkout' ];
 
+$wc_stripe_default_button_locations = $wc_stripe_default_express_checkout_locations;
+
 if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
-	$wc_stripe_express_checkout_location_options['change_payment_method'] = __( 'Change payment method (subscriptions)', 'woocommerce-gateway-stripe' );
-	$wc_stripe_default_express_checkout_locations[]                       = 'change_payment_method';
+	$wc_stripe_default_express_checkout_locations[] = 'change_payment_method';
 }
 
+/**
+ * Filters the Stripe gateway settings fields.
+ *
+ * @param array $settings Stripe gateway settings fields.
+ */
 return apply_filters(
 	'wc_stripe_settings',
 	[
@@ -126,7 +133,7 @@ return apply_filters(
 			'title'       => __( 'Capture', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Capture charge immediately', 'woocommerce-gateway-stripe' ),
 			'type'        => 'checkbox',
-			'description' => __( 'Whether or not to immediately capture the charge. When unchecked, the charge issues an authorization and will need to be captured later. Uncaptured charges expire in 7 days.', 'woocommerce-gateway-stripe' ),
+			'description' => __( 'Whether or not to immediately capture the charge. When unchecked, the charge issues an authorization and will need to be captured later. Uncaptured charges expire in 7 days. Agentic Commerce purchases follow the capture setting in your Stripe agentic commerce dashboard, not this option.', 'woocommerce-gateway-stripe' ),
 			'default'     => 'yes',
 			'desc_tip'    => true,
 		],
@@ -136,9 +143,9 @@ return apply_filters(
 				/* translators: 1) br tag 2) Stripe anchor tag 3) Apple anchor tag 4) Stripe dashboard opening anchor tag 5) Stripe dashboard closing anchor tag */
 				__( 'Enable Express Checkout Buttons. (Apple Pay/Google Pay) %1$sBy using Apple Pay, you agree to %2$s and %3$s\'s terms of service. (Apple Pay domain verification is performed automatically in live mode; configuration can be found on the %4$sStripe dashboard%5$s.)', 'woocommerce-gateway-stripe' ),
 				'<br />',
-				'<a href="https://stripe.com/apple-pay/legal" target="_blank">Stripe</a>',
-				'<a href="https://developer.apple.com/apple-pay/acceptable-use-guidelines-for-websites/" target="_blank">Apple</a>',
-				'<a href="https://dashboard.stripe.com/settings/payments/apple_pay" target="_blank">',
+				WC_Stripe_Helper::get_external_link_open_tag( 'https://stripe.com/apple-pay/legal' ) . 'Stripe</a>',
+				WC_Stripe_Helper::get_external_link_open_tag( 'https://developer.apple.com/apple-pay/acceptable-use-guidelines-for-websites/' ) . 'Apple</a>',
+				WC_Stripe_Helper::get_external_link_open_tag( 'https://dashboard.stripe.com/settings/payments/apple_pay' ),
 				'</a>'
 			),
 			'type'        => 'checkbox',
@@ -268,13 +275,37 @@ return apply_filters(
 				'cart'     => __( 'Cart', 'woocommerce-gateway-stripe' ),
 				'checkout' => __( 'Checkout', 'woocommerce-gateway-stripe' ),
 			],
-			'default'           => [ 'product', 'cart', 'checkout' ],
+			'default'           => $wc_stripe_default_button_locations,
 			'custom_attributes' => [
 				'data-placeholder' => __( 'Select pages', 'woocommerce-gateway-stripe' ),
 			],
 		],
 		'amazon_pay_button_size'               => [
 			'title'       => __( 'Amazon Pay Button Size', 'woocommerce-gateway-stripe' ),
+			'type'        => 'select',
+			'description' => __( 'Select the size of the button.', 'woocommerce-gateway-stripe' ),
+			'default'     => 'default',
+			'desc_tip'    => true,
+			'options'     => [
+				'small'   => __( 'Small (40px)', 'woocommerce-gateway-stripe' ),
+				'default' => __( 'Default (48px)', 'woocommerce-gateway-stripe' ),
+				'large'   => __( 'Large (56px)', 'woocommerce-gateway-stripe' ),
+			],
+		],
+		'link_button_locations'                => [
+			'title'             => __( 'Link Button Locations', 'woocommerce-gateway-stripe' ),
+			'type'              => 'multiselect',
+			'description'       => __( 'Select where you would like Link by Stripe button to be displayed', 'woocommerce-gateway-stripe' ),
+			'desc_tip'          => true,
+			'class'             => 'wc-enhanced-select',
+			'options'           => $wc_stripe_express_checkout_location_options,
+			'default'           => $wc_stripe_default_express_checkout_locations,
+			'custom_attributes' => [
+				'data-placeholder' => __( 'Select pages', 'woocommerce-gateway-stripe' ),
+			],
+		],
+		'link_button_size'                     => [
+			'title'       => __( 'Link Button Size', 'woocommerce-gateway-stripe' ),
 			'type'        => 'select',
 			'description' => __( 'Select the size of the button.', 'woocommerce-gateway-stripe' ),
 			'default'     => 'default',

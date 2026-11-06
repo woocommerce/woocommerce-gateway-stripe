@@ -8,9 +8,73 @@ jest.mock( 'wcstripe/data', () => ( {
 	useManualCapture: jest.fn(),
 } ) );
 
+const agenticNote =
+	/Agentic Commerce purchases follow the capture setting in your Stripe agentic commerce dashboard, not this option\./;
+
 describe( 'ManualCaptureControl', () => {
 	beforeEach( () => {
 		useManualCapture.mockReturnValue( [ false, () => null ] );
+		global.wc_stripe_settings_params = {
+			is_agentic_commerce_merchant_enabled: false,
+		};
+	} );
+
+	afterEach( () => {
+		delete global.wc_stripe_settings_params;
+	} );
+
+	it( 'opens the help link in a new tab', () => {
+		render( <ManualCaptureControl /> );
+
+		const learnMoreLink = screen.getByRole( 'link', {
+			name: 'Learn more (opens in a new tab)',
+		} );
+
+		expect( learnMoreLink ).toHaveAttribute( 'target', '_blank' );
+		expect( learnMoreLink ).toHaveAttribute(
+			'rel',
+			'external noreferrer noopener'
+		);
+		expect( learnMoreLink ).toHaveAttribute(
+			'href',
+			'https://woocommerce.com/document/stripe/admin-experience/authorize-and-capture/'
+		);
+	} );
+
+	it( 'notes in the confirmation modal that agentic purchases follow the Stripe dashboard capture setting when agentic commerce is enabled', async () => {
+		global.wc_stripe_settings_params.is_agentic_commerce_merchant_enabled = true;
+		useManualCapture.mockReturnValue( [ false, jest.fn() ] );
+
+		render( <ManualCaptureControl /> );
+
+		// The note is scoped to the enable-time modal, so it isn't visible up front.
+		expect( screen.queryByText( agenticNote ) ).not.toBeInTheDocument();
+
+		await userEvent.click(
+			screen.getByLabelText(
+				'Issue an authorization on checkout, and capture later'
+			)
+		);
+
+		expect( screen.getByText( agenticNote ) ).toBeInTheDocument();
+	} );
+
+	it( 'omits the agentic capture note when agentic commerce is disabled', async () => {
+		global.wc_stripe_settings_params.is_agentic_commerce_merchant_enabled = false;
+		useManualCapture.mockReturnValue( [ false, jest.fn() ] );
+
+		render( <ManualCaptureControl /> );
+
+		await userEvent.click(
+			screen.getByLabelText(
+				'Issue an authorization on checkout, and capture later'
+			)
+		);
+
+		expect(
+			screen.queryByText( 'Enable manual capture' )
+		).toBeInTheDocument();
+		expect( screen.queryByText( agenticNote ) ).not.toBeInTheDocument();
 	} );
 
 	it( 'should render the confirmation modal', async () => {

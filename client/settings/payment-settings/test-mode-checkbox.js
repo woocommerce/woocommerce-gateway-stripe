@@ -1,7 +1,7 @@
 import { React } from 'react';
 import interpolateComponents from '@automattic/interpolate-components';
 import { __ } from '@wordpress/i18n';
-import { CheckboxControl } from '@wordpress/components';
+import { CheckboxControl, ExternalLink } from '@wordpress/components';
 import { useTestMode } from 'wcstripe/data';
 import { useAccount } from 'wcstripe/data/account';
 
@@ -23,6 +23,8 @@ const TestModeCheckbox = () => {
 	// otherwise the gateway would run in test mode without test keys.
 	const isLockedToLiveMode = ! isTestModeEnabled && ! isTestAccountConnected;
 
+	const isLocked = isLockedToTestMode || isLockedToLiveMode;
+
 	const handleCheckboxChange = ( isChecked ) => {
 		setTestMode( isChecked );
 	};
@@ -34,12 +36,10 @@ const TestModeCheckbox = () => {
 		),
 		components: {
 			testCardNumbersLink: (
-				// eslint-disable-next-line jsx-a11y/anchor-has-content
-				<a href="https://docs.stripe.com/testing#cards" />
+				<ExternalLink href="https://docs.stripe.com/testing#cards" />
 			),
 			learnMoreLink: (
-				// eslint-disable-next-line jsx-a11y/anchor-has-content
-				<a href="https://woocommerce.com/document/stripe/customer-experience/testing/" />
+				<ExternalLink href="https://woocommerce.com/document/stripe/customer-experience/testing/" />
 			),
 		},
 	} );
@@ -49,7 +49,7 @@ const TestModeCheckbox = () => {
 			<h4>{ __( 'Test mode', 'woocommerce-gateway-stripe' ) }</h4>
 			<CheckboxControl
 				checked={ isTestModeEnabled }
-				disabled={ isLockedToTestMode || isLockedToLiveMode }
+				disabled={ isLocked }
 				onChange={ handleCheckboxChange }
 				label={ __( 'Enable test mode', 'woocommerce-gateway-stripe' ) }
 				help={

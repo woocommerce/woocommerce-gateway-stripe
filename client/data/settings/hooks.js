@@ -141,12 +141,12 @@ export const useAmazonPayEnabledSettings = () => {
 
 	return [ isAmazonPayEnabled, updateIsAmazonPayEnabled ];
 };
-export const useAmazonPayButtonSize = makeSettingsHook(
-	'amazon_pay_button_size',
-	''
-);
 export const useAmazonPayLocations = makeSettingsHook(
 	'amazon_pay_button_locations',
+	EMPTY_ARR
+);
+export const useLinkLocations = makeSettingsHook(
+	'link_button_locations',
 	EMPTY_ARR
 );
 export const useIsStripeEnabled = makeSettingsHook( 'is_stripe_enabled' );

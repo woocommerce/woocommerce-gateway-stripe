@@ -1,5 +1,5 @@
 import React from 'react';
-import classNames from 'classnames';
+import clsx from 'clsx';
 import { Modal } from '@wordpress/components';
 import { HorizontalRule } from '@wordpress/primitives';
 
@@ -7,7 +7,7 @@ import './style.scss';
 
 const ConfirmationModal = ( { children, actions, className, ...props } ) => (
 	<Modal
-		className={ classNames( 'wcstripe-confirmation-modal', className ) }
+		className={ clsx( 'wcstripe-confirmation-modal', className ) }
 		{ ...props }
 	>
 		{ children }

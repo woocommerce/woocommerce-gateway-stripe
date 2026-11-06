@@ -84,6 +84,11 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 				return $this->request( 'POST', '/stripe/app-oauth-keys', $request );
 			}
 
+			// Ask the Connect server to additionally return the account's test-mode keys
+			if ( 'live' === $mode ) {
+				$request['fetchTestKeys'] = true;
+			}
+
 			$path = 'test' === $mode ? '/stripe-sandbox/oauth-keys' : '/stripe/oauth-keys';
 			return $this->request( 'POST', $path, $request );
 		}
@@ -125,6 +130,12 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 			}
 
 			$url = trailingslashit( WOOCOMMERCE_CONNECT_SERVER_URL );
+			/**
+			 * Filters the URL for the WooCommerce Connect server.
+			 *
+			 * @deprecated 9.6.0
+			 * @param string $url The URL for the WooCommerce Connect server.
+			 */
 			$url = apply_filters_deprecated(
 				'wc_connect_server_url',
 				[ $url ],
@@ -138,6 +149,12 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 			if ( in_array( $method, [ 'POST', 'PUT' ], true ) ) {
 				$body = $this->request_body( $body );
 				$body = wp_json_encode(
+					/**
+					 * Filters the body that will be sent to the WooCommerce Connect server.
+					 *
+					 * @deprecated 9.6.0
+					 * @param array $body The body that will be sent to the WooCommerce Connect server.
+					 */
 					apply_filters_deprecated(
 						'wc_connect_api_client_body',
 						[ $body ],
@@ -171,6 +188,12 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 				'timeout'     => $http_timeout,
 			];
 
+			/**
+			 * Filters the arguments for the WooCommerce Connect server request.
+			 *
+			 * @deprecated 9.6.0
+			 * @param array $args The arguments for the WooCommerce Connect server request.
+			 */
 			$args = apply_filters_deprecated(
 				'wc_connect_request_args',
 				[ $args ],

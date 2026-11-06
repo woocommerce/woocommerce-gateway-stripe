@@ -17,13 +17,14 @@ jobs:
   php-unit-tests:
     name: PHP Unit - WP=${{ inputs.wp-version }}, WC=${{ inputs.wc-version }}, PHP=${{ inputs.php-version }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       WP_VERSION: ${{ inputs.wp-version }}
       WC_VERSION: ${{ inputs.wc-version }}
       PHP_VERSION: ${{ inputs.php-version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup PHP and Node
         uses: ./.github/actions/setup-env

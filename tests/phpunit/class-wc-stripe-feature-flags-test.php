@@ -20,6 +20,16 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * `is_amazon_pay_available()` is deprecated but must keep returning true so any
+	 * lingering third-party callers continue to treat Amazon Pay as permanently enabled.
+	 */
+	public function test_is_amazon_pay_available_is_deprecated(): void {
+		$this->setExpectedDeprecated( 'WC_Stripe_Feature_Flags::is_amazon_pay_available' );
+
+		$this->assertTrue( WC_Stripe_Feature_Flags::is_amazon_pay_available() );
+	}
+
+	/**
 	 * Test for `is_oc_available`.
 	 *
 	 * @param bool $pmc_enabled Whether the Payment Method Configuration API is enabled.
@@ -85,131 +95,80 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Test for `is_checkout_sessions_available`.
+	 * Test that is_oc_offered routes its result through the remote-config resolver.
 	 *
-	 * @param bool   $pmc_enabled           Whether the Payment Method Configuration API is enabled.
-	 * @param bool   $oc_enabled             Whether the Optimized Checkout is enabled.
-	 * @param bool   $automatic_capture      Whether automatic capture is enabled.
-	 * @param string $filter_function        The filter function to apply.
-	 * @param bool   $expected               The expected result.
-	 * @return void
-	 * @dataProvider provide_test_is_checkout_sessions_available
+	 * is_oc_available() must stay independent of remote-config: the merchant
+	 * can still edit the settings whatever the remote flag says. Only the
+	 * runtime predicate is_oc_offered() follows the remote flag.
+	 *
+	 * @dataProvider provide_test_is_oc_offered_with_remote_config
 	 */
-	public function test_is_checkout_sessions_available(
+	public function test_is_oc_offered_routes_through_remote_config(
 		bool $pmc_enabled,
-		bool $oc_enabled,
-		bool $automatic_capture,
-		string $filter_function,
+		?bool $remote_value,
 		bool $expected
 	): void {
-		// Mock the payment method configuration for the test, to avoid it being disabled by default.
+		update_option( '_wcstripe_remote_config_enabled', 'yes' );
 		PMC_Test_Helper::cache_mocked_configuration();
-
 		if ( $pmc_enabled ) {
 			PMC_Test_Helper::enable_pmc();
 		} else {
 			PMC_Test_Helper::disable_pmc();
 		}
 
-		if ( $oc_enabled ) {
-			OC_Test_Helper::enable_oc();
-		} else {
-			OC_Test_Helper::disable_oc();
+		WC_Stripe_Remote_Config::reset_in_memory_cache();
+		delete_option( '_wcstripe_remote_config_live' );
+
+		// Force live mode so we hit the live cache.
+		$settings             = WC_Stripe_Helper::get_stripe_settings();
+		$settings['testmode'] = 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		if ( null !== $remote_value ) {
+			( new WC_Stripe_Remote_Config() )->apply(
+				'live',
+				[
+					'flags'        => [ 'optimized_checkout' => $remote_value ],
+					'generated_at' => '2026-05-09T12:00:00Z',
+				]
+			);
 		}
 
-		$stripe_settings            = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['capture'] = $automatic_capture ? 'yes' : 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		$actual       = WC_Stripe_Feature_Flags::is_oc_offered();
+		$is_available = WC_Stripe_Feature_Flags::is_oc_available();
 
-		if ( ! empty( $filter_function ) ) {
-			add_filter( 'wc_stripe_is_checkout_sessions_available', $filter_function );
-		}
-
-		$actual = WC_Stripe_Feature_Flags::is_checkout_sessions_available();
-
-		// Clean up
+		// Cleanup
+		delete_option( '_wcstripe_remote_config_enabled' );
 		PMC_Test_Helper::disable_pmc();
 		PMC_Test_Helper::delete_cached_configuration();
-		OC_Test_Helper::disable_oc();
-		$stripe_settings['capture'] = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-
-		if ( ! empty( $filter_function ) ) {
-			remove_filter( 'wc_stripe_is_checkout_sessions_available', $filter_function );
-		}
+		WC_Stripe_Remote_Config::reset_in_memory_cache();
+		delete_option( '_wcstripe_remote_config_live' );
 
 		$this->assertSame( $expected, $actual );
+		$this->assertSame( $pmc_enabled, $is_available, 'is_oc_available() must ignore the remote config flag' );
 	}
 
-	/**
-	 * Provider for `test_is_checkout_sessions_available`.
-	 *
-	 * @return array
-	 */
-	public function provide_test_is_checkout_sessions_available(): array {
+	public function provide_test_is_oc_offered_with_remote_config(): array {
 		return [
-			'All prerequisites met, feature flag enabled'                      => [
-				'PMC enabled'       => true,
-				'OC enabled'        => true,
-				'automatic capture' => true,
-				'filter function'   => '',
-				'expected'          => true,
+			'no remote, PMC enabled -> local true'                   => [
+				'PMC enabled'  => true,
+				'remote value' => null,
+				'expected'     => true,
 			],
-			'PMC disabled'                                                     => [
-				'PMC enabled'       => false,
-				'OC enabled'        => true,
-				'automatic capture' => true,
-				'filter function'   => '',
-				'expected'          => false,
+			'no remote, PMC disabled -> local false'                 => [
+				'PMC enabled'  => false,
+				'remote value' => null,
+				'expected'     => false,
 			],
-			'OC disabled'                                                      => [
-				'PMC enabled'       => true,
-				'OC enabled'        => false,
-				'automatic capture' => true,
-				'filter function'   => '',
-				'expected'          => false,
+			'remote false disables when locally enabled'             => [
+				'PMC enabled'  => true,
+				'remote value' => false,
+				'expected'     => false,
 			],
-			'Manual capture enabled'                                           => [
-				'PMC enabled'       => true,
-				'OC enabled'        => true,
-				'automatic capture' => false,
-				'filter function'   => '',
-				'expected'          => false,
-			],
-			'PMC disabled, filter set to true (filter ignored)'                => [
-				'PMC enabled'       => false,
-				'OC enabled'        => true,
-				'automatic capture' => true,
-				'filter function'   => '__return_true',
-				'expected'          => false,
-			],
-			'OC disabled, filter set to true (filter ignored)'                 => [
-				'PMC enabled'       => true,
-				'OC enabled'        => false,
-				'automatic capture' => true,
-				'filter function'   => '__return_true',
-				'expected'          => false,
-			],
-			'Manual capture, filter set to true (filter ignored)'              => [
-				'PMC enabled'       => true,
-				'OC enabled'        => true,
-				'automatic capture' => false,
-				'filter function'   => '__return_true',
-				'expected'          => false,
-			],
-			'All prerequisites met, feature flag enabled, filter set to true'  => [
-				'PMC enabled'       => true,
-				'OC enabled'        => true,
-				'automatic capture' => true,
-				'filter function'   => '__return_true',
-				'expected'          => true,
-			],
-			'All prerequisites met, feature flag enabled, filter set to false' => [
-				'PMC enabled'       => true,
-				'OC enabled'        => true,
-				'automatic capture' => true,
-				'filter function'   => '__return_false',
-				'expected'          => false,
+			'remote true cannot force-enable when PMC gate disables' => [
+				'PMC enabled'  => false,
+				'remote value' => true,
+				'expected'     => false,
 			],
 		];
 	}

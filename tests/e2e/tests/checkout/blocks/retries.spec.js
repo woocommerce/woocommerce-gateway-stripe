@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { test, expect } from '@playwright/test';
 import config from 'config';
 import { payments } from '../../../utils';
@@ -10,6 +11,9 @@ const {
 	handleCheckout3DSChallenge,
 	clickPlaceOrder,
 	handleCheckoutCashAppPay,
+	getCartTotal,
+	waitForOrderReceivedPage,
+	waitForOrderReceivedPageAndConfirmExpectedTotal,
 } = payments;
 
 test.beforeAll( 'enable Cash App Pay', async ( { browser } ) => {
@@ -31,10 +35,10 @@ test.beforeAll( 'enable Cash App Pay', async ( { browser } ) => {
 test.beforeEach( async ( { page } ) => {
 	await emptyCart( page );
 	await setupCart( page );
-	await setupBlocksCheckout(
-		page,
-		config.get( 'addresses.customer.billing' )
-	);
+	await setupBlocksCheckout( page, {
+		...config.get( 'addresses.customer.billing' ),
+		email: `stripe-e2e-${ randomUUID() }@example.com`,
+	} );
 } );
 /**
  * When retrying payments, we will reuse a compatible payment intent, if the order already has one.
@@ -44,7 +48,10 @@ test.beforeEach( async ( { page } ) => {
  */
 test( 'customer can retry payment, with a different card @smoke', async ( {
 	page,
+	browser,
 } ) => {
+	const expectedTotal = await getCartTotal( page );
+
 	await fillCreditCardDetails( page, config.get( 'cards.declined' ) );
 	await clickPlaceOrder( page );
 
@@ -56,11 +63,11 @@ test( 'customer can retry payment, with a different card @smoke', async ( {
 	// Change to a working card
 	await fillCreditCardDetails( page, config.get( 'cards.basic' ) );
 	await clickPlaceOrder( page );
-	await page.waitForURL( '**/order-received/**' );
 
-	// Expect the order to succeed
-	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-		'Order received'
+	await waitForOrderReceivedPageAndConfirmExpectedTotal(
+		browser,
+		page,
+		expectedTotal
 	);
 } );
 
@@ -72,6 +79,7 @@ test( 'customer can retry payment, with a different card @smoke', async ( {
  */
 test( 'customer can retry payment, with changed billing details @smoke', async ( {
 	page,
+	browser,
 } ) => {
 	await fillCreditCardDetails( page, config.get( 'cards.3ds' ) );
 	await clickPlaceOrder( page );
@@ -82,18 +90,19 @@ test( 'customer can retry payment, with changed billing details @smoke', async (
 	// Change billing details
 	await page.getByLabel( 'ZIP Code' ).fill( '12345' );
 
+	// Get cart total after changing the zip/post code to ensure current taxes and shipping are applied.
+	const expectedTotal = await getCartTotal( page );
+
 	// Retry the payment
 	await clickPlaceOrder( page );
 
 	// Complete the 3DS challenge
 	await handleCheckout3DSChallenge( page );
 
-	// Expect the order to succeed
-	await page.waitForURL( '**/order-received/**' );
-
-	// Expect the order to succeed
-	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-		'Order received'
+	await waitForOrderReceivedPageAndConfirmExpectedTotal(
+		browser,
+		page,
+		expectedTotal
 	);
 } );
 
@@ -116,8 +125,8 @@ test( 'customer can retry payment, using a different payment method @smoke', asy
 	await handleCheckoutCashAppPay( page, '.wcstripe-payment-element' );
 
 	// Expect the order to succeed
-	await page.waitForURL( '**/order-received/**' );
-	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-		'Order received'
-	);
+	await waitForOrderReceivedPage( page );
+
+	// No charged-amount verification here: Cash App Pay is not a synchronous
+	// card capture, so the order has no "Paid"/Stripe Fee/Payout rows to check.
 } );

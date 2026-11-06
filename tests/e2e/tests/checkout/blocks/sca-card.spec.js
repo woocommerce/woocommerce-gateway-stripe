@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { randomUUID } from 'crypto';
+import { test } from '@playwright/test';
 import config from 'config';
 import { payments } from '../../../utils';
 
@@ -9,25 +10,31 @@ const {
 	fillCreditCardDetails,
 	clickPlaceOrder,
 	handleCheckout3DSChallenge,
+	getCartTotal,
+	waitForOrderReceivedPageAndConfirmExpectedTotal,
 } = payments;
 
 test( 'customer can checkout with a SCA card @smoke @blocks', async ( {
 	page,
+	browser,
 } ) => {
 	await emptyCart( page );
 	await setupCart( page );
-	await setupBlocksCheckout(
-		page,
-		config.get( 'addresses.customer.billing' )
-	);
+	await setupBlocksCheckout( page, {
+		...config.get( 'addresses.customer.billing' ),
+		email: `stripe-e2e-${ randomUUID() }@example.com`,
+	} );
 	await fillCreditCardDetails( page, config.get( 'cards.3ds' ) );
+
+	const expectedTotal = await getCartTotal( page );
+
 	await clickPlaceOrder( page );
 
 	await handleCheckout3DSChallenge( page );
 
-	await page.waitForURL( '**/checkout/order-received/**' );
-
-	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-		'Order received'
+	await waitForOrderReceivedPageAndConfirmExpectedTotal(
+		browser,
+		page,
+		expectedTotal
 	);
 } );
