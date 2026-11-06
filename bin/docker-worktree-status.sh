@@ -46,6 +46,13 @@ e2e_container_project() {
     echo "$1" | sed -E 's/-(wordpress|mysql|stripe-listener)$//'
 }
 
+# Last occurrence wins, matching how `source .env` and the e2e scripts'
+# env_file_value resolve duplicate keys; grepping all occurrences would turn
+# a duplicated key into a multiline value that corrupts every comparison.
+env_last_value() {
+    grep "^$2=" "$1/.env" 2>/dev/null | tail -1 | cut -d= -f2-
+}
+
 echo ""
 echo -e "${BOLD}Worktree Status${NC}"
 echo ""
@@ -65,10 +72,10 @@ for worktree_path in "${worktrees[@]}"; do
     e2e_status="no stack"
 
     if [[ -f "$worktree_path/.env" ]]; then
-        port=$(grep '^WORDPRESS_PORT=' "$worktree_path/.env" 2>/dev/null | cut -d= -f2)
-        worktree_id=$(grep '^WORKTREE_ID=' "$worktree_path/.env" 2>/dev/null | cut -d= -f2)
-        e2e_project=$(grep '^E2E_PROJECT=' "$worktree_path/.env" 2>/dev/null | cut -d= -f2)
-        e2e_port=$(grep '^E2E_WP_PORT=' "$worktree_path/.env" 2>/dev/null | cut -d= -f2)
+        port=$(env_last_value "$worktree_path" WORDPRESS_PORT)
+        worktree_id=$(env_last_value "$worktree_path" WORKTREE_ID)
+        e2e_project=$(env_last_value "$worktree_path" E2E_PROJECT)
+        e2e_port=$(env_last_value "$worktree_path" E2E_WP_PORT)
     fi
 
     if [[ -z "$worktree_id" ]]; then
@@ -121,7 +128,7 @@ for container_name in $containers; do
     for worktree_path in "${worktrees[@]}"; do
         worktree_name=$(basename "$worktree_path")
         if [[ -f "$worktree_path/.env" ]]; then
-            worktree_id=$(grep '^WORKTREE_ID=' "$worktree_path/.env" 2>/dev/null | cut -d= -f2)
+            worktree_id=$(env_last_value "$worktree_path" WORKTREE_ID)
             [[ -z "$worktree_id" ]] && worktree_id=$(generate_worktree_id "$worktree_name")
         elif [[ "$worktree_path" == "$MAIN_CHECKOUT" ]]; then
             worktree_id="default"
