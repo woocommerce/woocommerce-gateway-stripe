@@ -166,7 +166,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 11.3.0 - xxxx-xx-xx =
-* Fix - Let customers change a subscription's payment method to Klarna and other methods that redirect to authorize; previously they landed on the dashboard and the subscription kept its old payment method
+* Fix - Changing a subscription's payment method to Klarna and other redirect-based methods
 * Update - Improve express checkout wallet startup, availability checks, reuse, and recovery
 
 = 11.2.0 - xxxx-xx-xx =

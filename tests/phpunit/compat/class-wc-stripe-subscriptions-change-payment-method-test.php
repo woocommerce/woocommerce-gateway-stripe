@@ -131,8 +131,7 @@ class WC_Stripe_Subscriptions_Change_Payment_Method_Test extends WP_UnitTestCase
 	}
 
 	/**
-	 * The change payment method form sends the customer to Stripe when the setup intent
-	 * needs a redirect, instead of letting wp_safe_redirect() replace the URL with admin_url().
+	 * A setup intent that needs a redirect sends the customer to Stripe, not admin_url().
 	 *
 	 * @dataProvider provide_change_payment_setup_intents_requiring_action
 	 *
@@ -176,8 +175,7 @@ class WC_Stripe_Subscriptions_Change_Payment_Method_Test extends WP_UnitTestCase
 	}
 
 	/**
-	 * Provides gateway IDs a subscription can be changed to, and whether Subscriptions
-	 * should update the subscription before the setup intent is confirmed.
+	 * Provides new gateway IDs and whether Subscriptions may update right away.
 	 *
 	 * @return array
 	 */
@@ -191,8 +189,7 @@ class WC_Stripe_Subscriptions_Change_Payment_Method_Test extends WP_UnitTestCase
 	}
 
 	/**
-	 * Subscriptions must not switch the subscription to a Stripe payment method before the
-	 * setup intent is confirmed, including methods that submit their own gateway ID.
+	 * Subscriptions must not switch to any Stripe gateway before the setup intent is confirmed.
 	 *
 	 * @dataProvider provide_new_payment_methods
 	 *
@@ -206,8 +203,7 @@ class WC_Stripe_Subscriptions_Change_Payment_Method_Test extends WP_UnitTestCase
 	}
 
 	/**
-	 * After a successful redirect, the confirmed setup intent becomes the subscription's
-	 * payment method and the customer lands on the subscription.
+	 * A successful return applies the setup intent and lands on the subscription.
 	 */
 	public function test_change_payment_method_redirect_success_updates_subscription() {
 		$this->set_redirect_return_request( 'succeeded' );
@@ -275,8 +271,7 @@ class WC_Stripe_Subscriptions_Change_Payment_Method_Test extends WP_UnitTestCase
 	}
 
 	/**
-	 * A payment method other than cards gets its own title, not its gateway ID, because
-	 * Subscriptions only finds titles for gateways available on the current page.
+	 * A non-card payment method gets its title, not its gateway ID.
 	 */
 	public function test_complete_change_payment_sets_title_for_non_card_payment_methods() {
 		$gateway_id = WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_Payment_Methods::KLARNA;
@@ -284,7 +279,6 @@ class WC_Stripe_Subscriptions_Change_Payment_Method_Test extends WP_UnitTestCase
 		$registered_gateways = WC()->payment_gateways()->payment_gateways();
 		$this->assertArrayHasKey( $gateway_id, $registered_gateways );
 
-		// Mirrors what Subscriptions stores when the gateway isn't available on the page.
 		$this->subscription->set_payment_method_title( $gateway_id );
 		$this->subscription->save();
 

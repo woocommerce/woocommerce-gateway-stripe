@@ -384,9 +384,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 				$redirect_url = $this->get_redirect_url( $redirect, $payment_intent, $payment_information, $subscription, false );
 				if ( $this->is_stripe_hosted_url( $redirect_url ) ) {
-					// Redirect-based methods such as Klarna return Stripe's next_action URL, which
-					// wp_safe_redirect() would replace with admin_url() because Stripe's hosts are
-					// not allowed redirect hosts.
+					// wp_safe_redirect() would replace Stripe's URL with admin_url().
 					wp_redirect( $redirect_url ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect
 				} else {
 					wp_safe_redirect( $redirect_url );
@@ -1769,16 +1767,11 @@ trait WC_Stripe_Subscriptions_Trait {
 	}
 
 	/**
-	 * Completes a subscription payment method change when the customer returns from a
-	 * redirect-based payment method such as Klarna.
-	 *
-	 * The setup intent is confirmed off-site, so the in-page confirmation request that
-	 * applies the new payment method never runs. Without this, the subscription keeps
-	 * the old payment method.
+	 * Applies the new payment method when the customer returns from a redirect, such as Klarna.
 	 *
 	 * @since x.x.x
 	 *
-	 * @return bool Whether the request was a change payment method return and was handled.
+	 * @return bool Whether the request was handled.
 	 */
 	public function maybe_process_change_payment_method_redirect(): bool {
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- The nonce is verified below.
@@ -1857,9 +1850,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	}
 
 	/**
-	 * Whether a gateway ID belongs to this gateway or one of its payment methods.
-	 *
-	 * Payment methods other than cards submit their own gateway ID (for example `stripe_klarna`).
+	 * Whether a gateway ID is this gateway or one of its payment methods (e.g. `stripe_klarna`).
 	 *
 	 * @param mixed $gateway_id The gateway ID.
 	 *

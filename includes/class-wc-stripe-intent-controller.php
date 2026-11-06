@@ -1797,17 +1797,14 @@ class WC_Stripe_Intent_Controller {
 	/**
 	 * Applies a confirmed setup intent as the subscription's new payment method.
 	 *
-	 * Shared by the in-page confirmation (AJAX) and the return from a redirect-based
-	 * payment method, where the page reload means the AJAX request never runs.
-	 *
 	 * @since x.x.x
 	 *
-	 * @param WC_Subscription $subscription    The subscription whose payment method is changing.
-	 * @param string          $setup_intent_id The confirmed setup intent ID.
+	 * @param WC_Subscription $subscription    The subscription.
+	 * @param string          $setup_intent_id The setup intent ID.
 	 *
-	 * @return string The notice to show the customer.
+	 * @return string The notice for the customer.
 	 *
-	 * @throws WC_Stripe_Exception When the payment method token can't be created.
+	 * @throws WC_Stripe_Exception When the token can't be created.
 	 */
 	public function complete_change_payment_from_setup_intent( $subscription, string $setup_intent_id ): string {
 		$gateway = $this->get_upe_gateway();
@@ -1822,8 +1819,7 @@ class WC_Stripe_Intent_Controller {
 		// Manually update the payment method for the subscription now that we have confirmed the payment method.
 		WC_Subscriptions_Change_Payment_Gateway::update_payment_method( $subscription, $token->get_gateway_id() );
 
-		// Subscriptions reads the title from the available gateways. Payment methods other than
-		// cards aren't available outside checkout, so the title would fall back to the gateway ID.
+		// Non-card methods aren't available gateways here, so Subscriptions saves the gateway ID as the title.
 		if ( $subscription->get_payment_method_title() === $token->get_gateway_id() ) {
 			$registered_gateways = WC()->payment_gateways()->payment_gateways();
 			if ( isset( $registered_gateways[ $token->get_gateway_id() ] ) ) {
