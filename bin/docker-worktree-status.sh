@@ -37,7 +37,11 @@ MAIN_CHECKOUT="${worktrees[0]}"
 
 . "$SCRIPT_DIR/../tests/e2e/bin/e2e-stack-defaults.sh"
 
+# Query docker once up front; the per-worktree loop greps these snapshots
+# instead of paying two `docker ps` round-trips per worktree.
 containers=$(docker ps -a --filter "name=wcstripe_wp_" --format '{{.Names}}' 2>/dev/null || true)
+running_containers=$(docker ps --format '{{.Names}}' 2>/dev/null || true)
+all_containers=$(docker ps -a --format '{{.Names}}' 2>/dev/null || true)
 e2e_containers=$(docker ps -a --filter "name=$E2E_DEFAULT_PROJECT" --format '{{.Names}}' 2>/dev/null || true)
 
 # Compose project of an e2e container name (project is the prefix before the
@@ -97,16 +101,16 @@ for worktree_path in "${worktrees[@]}"; do
 
     container_name="wcstripe_wp_$worktree_id"
 
-    if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${container_name}$"; then
+    if grep -q "^${container_name}$" <<< "$running_containers"; then
         status="running"
-    elif docker ps -a --format '{{.Names}}' 2>/dev/null | grep -q "^${container_name}$"; then
+    elif grep -q "^${container_name}$" <<< "$all_containers"; then
         status="stopped"
     fi
 
     if [[ -n "$e2e_project" ]]; then
-        if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${e2e_project}-wordpress$"; then
+        if grep -q "^${e2e_project}-wordpress$" <<< "$running_containers"; then
             e2e_status="running"
-        elif docker ps -a --format '{{.Names}}' 2>/dev/null | grep -q "^${e2e_project}-wordpress$"; then
+        elif grep -q "^${e2e_project}-wordpress$" <<< "$all_containers"; then
             e2e_status="stopped"
         fi
     fi
