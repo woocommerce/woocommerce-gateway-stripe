@@ -42,13 +42,9 @@ MAIN_CHECKOUT="${worktrees[0]}"
 containers=$(docker ps -a --filter "name=wcstripe_wp_" --format '{{.Names}}' 2>/dev/null || true)
 running_containers=$(docker ps --format '{{.Names}}' 2>/dev/null || true)
 all_containers=$(docker ps -a --format '{{.Names}}' 2>/dev/null || true)
-e2e_containers=$(docker ps -a --filter "name=$E2E_DEFAULT_PROJECT" --format '{{.Names}}' 2>/dev/null || true)
-
-# Compose project of an e2e container name (project is the prefix before the
-# service suffix, e.g. wcstripe-e2e-foo-wordpress -> wcstripe-e2e-foo).
-e2e_container_project() {
-    echo "$1" | sed -E 's/-(wordpress|mysql|stripe-listener)$//'
-}
+# E2E stacks with their exact compose project and the directory compose ran
+# from, read from labels rather than parsed out of container names.
+e2e_stack_labels=$(docker ps -a --filter "name=$E2E_DEFAULT_PROJECT" --format '{{.Label "com.docker.compose.project"}}	{{.Label "com.docker.compose.project.working_dir"}}' 2>/dev/null | sort -u || true)
 
 # Last occurrence wins, matching how `source .env` and the e2e scripts'
 # env_file_value resolve duplicate keys; grepping all occurrences would turn
@@ -147,11 +143,14 @@ done
 
 # E2E stacks whose worktree is gone (or whose .env no longer references them)
 # keep three containers plus a named volume alive; surface them for cleanup.
+# Ownership comes from the compose working-dir label: a stack whose directory
+# is not one of this repo's worktrees (a second clone, some other project)
+# is not ours to flag, let alone to suggest tearing down.
 orphan_e2e_projects=()
+orphan_e2e_display=()
 seen_e2e_projects=" "
-for container_name in $e2e_containers; do
-    [[ -z "$container_name" ]] && continue
-    project=$(e2e_container_project "$container_name")
+while IFS=$'\t' read -r project workdir; do
+    [[ -z "$project" ]] && continue
     [[ "$seen_e2e_projects" == *" $project "* ]] && continue
     seen_e2e_projects="$seen_e2e_projects$project "
 
@@ -159,9 +158,22 @@ for container_name in $e2e_containers; do
     for known in "${known_e2e_projects[@]}"; do
         [[ "$project" == "$known" ]] && found=true && break
     done
+    [[ "$found" == "true" ]] && continue
 
-    [[ "$found" == "false" ]] && orphan_e2e_projects+=("$project")
-done
+    if [[ -n "$workdir" && -d "$workdir" ]]; then
+        owned_by_us=false
+        for worktree_path in "${worktrees[@]}"; do
+            [[ "$workdir" == "$worktree_path" ]] && owned_by_us=true && break
+        done
+        # An existing directory outside this repo's worktrees owns its stack.
+        [[ "$owned_by_us" == "false" ]] && continue
+    fi
+
+    state="stopped"
+    grep -q "^${project}-" <<< "$running_containers" && state="RUNNING"
+    orphan_e2e_projects+=("$project")
+    orphan_e2e_display+=("$project ($state, from ${workdir:-unknown dir})")
+done <<< "$e2e_stack_labels"
 
 if [[ ${#orphan_containers[@]} -gt 0 || ${#orphan_e2e_projects[@]} -gt 0 ]]; then
     echo ""
@@ -169,15 +181,15 @@ if [[ ${#orphan_containers[@]} -gt 0 || ${#orphan_e2e_projects[@]} -gt 0 ]]; the
     for orphan in "${orphan_containers[@]}"; do
         echo "  - Orphan container: $orphan (no matching worktree)"
     done
-    for orphan in "${orphan_e2e_projects[@]}"; do
-        echo "  - Orphan e2e stack: $orphan (no worktree .env references it)"
+    for orphan in "${orphan_e2e_display[@]}"; do
+        echo "  - Orphan e2e stack: $orphan — no worktree .env references it"
     done
     echo ""
     if [[ ${#orphan_containers[@]} -gt 0 ]]; then
         echo "  To clean up: docker rm -f ${orphan_containers[*]}"
     fi
     for orphan in "${orphan_e2e_projects[@]}"; do
-        echo "  To clean up: docker compose -p $orphan down --volumes"
+        echo "  To clean up (verify it is not in use first): docker compose -p $orphan down --volumes"
     done
 fi
 
