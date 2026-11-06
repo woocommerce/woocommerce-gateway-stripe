@@ -167,7 +167,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 11.3.0 - xxxx-xx-xx =
 * Update - Improve express checkout wallet startup, availability checks, reuse, and recovery
-* Fix - Keep a subscription's Stripe customer when its card is changed with 3D Secure, so renewals of subscriptions created in wp-admin or imported no longer fail with a missing customer ID
+* Fix - Keep a subscription's Stripe customer when its card is changed with 3D Secure, so renewals don't fail
 
 = 11.2.0 - xxxx-xx-xx =
 * Fix - Refund or void a Stripe payment that succeeds for an order that was already cancelled, instead of leaving the shopper charged
