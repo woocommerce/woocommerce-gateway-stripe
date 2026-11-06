@@ -2513,6 +2513,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		if ( $this->maybe_process_change_payment_method_redirect() ) {
+			return;
+		}
+
 		if ( ! parent::is_valid_order_received_endpoint() ) {
 			return;
 		}

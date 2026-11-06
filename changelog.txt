@@ -1,6 +1,7 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 11.3.0
+* Fix - Let customers change a subscription's payment method to Klarna and other methods that redirect to authorize; previously they landed on the dashboard and the subscription kept its old payment method
 * Update - Improve express checkout wallet startup, availability checks, reuse, and recovery
 
 xxxx-xx-xx - version 11.2.0
