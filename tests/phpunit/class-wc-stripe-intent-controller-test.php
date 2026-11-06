@@ -2258,9 +2258,11 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 			$this->assertTrue( $response['success'] );
 
-			$order_helper = WC_Stripe_Order_Helper::get_instance();
-			$this->assertSame( $expected_customer_id, $order_helper->get_stripe_customer_id( $subscription ) );
-			$this->assertSame( 'pm_new_card', $order_helper->get_stripe_source_id( $subscription ) );
+			// Reload from the database to prove the values were persisted, not only set on the object.
+			$saved_subscription = new WC_Subscription( $subscription->get_id() );
+			$order_helper       = WC_Stripe_Order_Helper::get_instance();
+			$this->assertSame( $expected_customer_id, $order_helper->get_stripe_customer_id( $saved_subscription ) );
+			$this->assertSame( 'pm_new_card', $order_helper->get_stripe_source_id( $saved_subscription ) );
 		} finally {
 			unset( $_POST['order_id'], $_POST['intent_id'], $_REQUEST['_ajax_nonce'] );
 			WC_Subscriptions::set_wcs_get_subscription( null );
