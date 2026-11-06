@@ -1,14 +1,29 @@
 name: Detect code changes
 description: |
-  Reports whether a PR contains code changes (anything outside docs and
-  release-notes files). Workflows can gate jobs on the `code` output to skip CI
-  on docs-only PRs — skipped jobs still post a status check, so workflows wired
-  in as required checks stay satisfied.
+  Classifies a PR's changed files for gating CI. Two independent outputs:
+
+  - `code`: true when any changed file is not docs/release-notes. Used to skip
+    most CI on docs-only PRs.
+  - `manual_testing`: true when any changed file could change runtime behavior a
+    human would exercise on a live test site. It excludes everything `code`
+    excludes, plus automated tests, CI, linters/static-analysis/dev tooling
+    config, local dev environment files, and dependency bumps that touch only
+    development dependencies. Used to skip building a Jurassic Ninja live branch
+    when nothing needs manual testing.
+
+  Both default to true outside pull_request events, and `manual_testing` falls
+  back to true whenever a dependency change cannot be proven dev-only, so the
+  live branch is never skipped for a change that might need testing. Skipped jobs
+  still post a status check, so workflows wired in as required checks stay
+  satisfied.
 
 outputs:
   code:
     description: 'true when at least one changed file is not docs/release-notes; true outside pull_request events'
     value: ${{ steps.filter.outputs.code }}
+  manual_testing:
+    description: 'true when at least one changed file could need manual testing on a live site; true outside pull_request events'
+    value: ${{ steps.filter.outputs.manual_testing }}
 
 runs:
   using: composite
@@ -19,23 +34,91 @@ runs:
         GH_TOKEN: ${{ github.token }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
         REPO: ${{ github.repository }}
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       run: |
         if [ -z "$PR_NUMBER" ]; then
           # Non-PR event (workflow_dispatch, push, etc.) — don't gate, just run.
           echo "No PR number defined; assuming we have code to check"
           echo "code=true" >> "$GITHUB_OUTPUT"
+          echo "manual_testing=true" >> "$GITHUB_OUTPUT"
           exit 0
         fi
+
+        # Fetch a file's contents at a given ref. Empty output means the file is
+        # absent, too large for the contents API (>1MB returns no inline content),
+        # or otherwise unreadable — callers treat that as "cannot prove dev-only".
+        get_blob() {
+          gh api "repos/$REPO/contents/$2?ref=$1" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null
+        }
+
+        # True when a dependency manifest/lock change leaves the production
+        # dependency set untouched, i.e. only development dependencies changed.
+        # Any fetch or parse failure returns false so we fall back to running.
+        dependency_change_is_dev_only() {
+          local f="$1" filter base head a b
+          case "$f" in
+            composer.json)     filter='.require // {}' ;;
+            composer.lock)     filter='[ (.packages // [])[] | { n: .name, v: .version } ] | sort_by(.n)' ;;
+            package.json)      filter='.dependencies // {}' ;;
+            package-lock.json) filter='[ (.packages // {}) | to_entries[] | select((.value.dev // false) != true and (.value.devOptional // false) != true) | { k: .key, v: .value.version, r: .value.resolved } ] | sort_by(.k)' ;;
+            *) return 1 ;;
+          esac
+
+          base=$(get_blob "$BASE_SHA" "$f")
+          head=$(get_blob "$HEAD_SHA" "$f")
+          [ -z "$base" ] && return 1
+          [ -z "$head" ] && return 1
+
+          a=$(printf '%s' "$base" | jq -cS "$filter" 2>/dev/null) || return 1
+          b=$(printf '%s' "$head" | jq -cS "$filter" 2>/dev/null) || return 1
+          [ -n "$a" ] && [ "$a" = "$b" ]
+        }
+
+        # True when a changed file could change runtime behavior a tester would
+        # exercise on a live site.
+        needs_manual_testing() {
+          case "$1" in
+            # Docs and release notes.
+            *.md|docs/*|.github/ISSUE_TEMPLATE/*|LICENSE.txt|changelog.txt|readme.txt) return 1 ;;
+            # Automated tests and CI: never shipped to a live site.
+            tests/*|.github/*) return 1 ;;
+            # Linters, static analysis, and editor/dev tooling config.
+            .editorconfig|.gitattributes|.gitignore|.nvmrc|.jshintrc|lint-staged.config.js|.coderabbit.yml|qit.json) return 1 ;;
+            .eslintrc.js|.eslintignore|.prettierrc.js|.prettierignore|.stylelintrc.json|.stylelintignore) return 1 ;;
+            phpcs.xml.dist|phpstan.neon|phpstan-baseline.neon|phpunit.xml.dist|phpunit-parallel.xml.dist) return 1 ;;
+            # Local dev environment, not part of the shipped plugin.
+            docker-compose.yml|docker-compose.infra.yml|.env.example|.husky/*|.vscode/*|.idea/*) return 1 ;;
+            # Dependency manifests and locks: skip only when the change is dev-only.
+            # Build config (webpack/babel/tasks) and production deps fall through
+            # to the catch-all below, so they still trigger a live branch.
+            composer.json|composer.lock|package.json|package-lock.json)
+              if dependency_change_is_dev_only "$1"; then return 1; fi
+              return 0 ;;
+            *) return 0 ;;
+          esac
+        }
 
         FILES=$(gh api "repos/$REPO/pulls/$PR_NUMBER/files" --paginate --jq '.[].filename')
 
         CODE=false
+        MANUAL=false
         while IFS= read -r f; do
           [ -z "$f" ] && continue
-          case "$f" in
-            *.md|docs/*|.github/ISSUE_TEMPLATE/*|LICENSE.txt|changelog.txt|readme.txt) ;;
-            *) CODE=true; break ;;
-          esac
+
+          if [ "$CODE" = false ]; then
+            case "$f" in
+              *.md|docs/*|.github/ISSUE_TEMPLATE/*|LICENSE.txt|changelog.txt|readme.txt) ;;
+              *) CODE=true ;;
+            esac
+          fi
+
+          if [ "$MANUAL" = false ] && needs_manual_testing "$f"; then
+            MANUAL=true
+          fi
+
+          [ "$CODE" = true ] && [ "$MANUAL" = true ] && break
         done <<< "$FILES"
 
         echo "code=$CODE" >> "$GITHUB_OUTPUT"
+        echo "manual_testing=$MANUAL" >> "$GITHUB_OUTPUT"

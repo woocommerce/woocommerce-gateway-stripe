@@ -20,7 +20,7 @@ jobs:
       contents: read
       pull-requests: read
     outputs:
-      code: ${{ steps.detect.outputs.code }}
+      manual_testing: ${{ steps.detect.outputs.manual_testing }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - id: detect
@@ -29,7 +29,9 @@ jobs:
   build-and-inform-zip-file:
     name: "Build and inform the zip file"
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    # Only build a live branch when a changed file could need manual testing.
+    # Docs, automated tests, CI, dev tooling, and dev-only dependency bumps skip it.
+    if: needs.changes.outputs.manual_testing == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
