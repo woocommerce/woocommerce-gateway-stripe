@@ -78,6 +78,8 @@ The SSH and admin credentials are mandatory (view the parameters `--with_woo_set
 
 **Test execution**
 
+Run only one test runner at a time against a shared store, including the local Docker stack. Projects change store-wide settings and install or remove fixtures. Concurrent runners need separate stores; parallel CI jobs each use their own Docker stack.
+
 `npm run test:e2e -- --base_url=SOME_URL_HERE`
 
 The default command to run the tests. It'll run the tests in the URL indicated by the `--base_url` parameter.
