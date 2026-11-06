@@ -2208,6 +2208,81 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @dataProvider provide_confirm_change_payment_customer_ids
+	 *
+	 * @param string $user_customer_id         Stripe customer ID stored on the user profile.
+	 * @param string $subscription_customer_id Stripe customer ID stored on the subscription.
+	 * @param string $expected_customer_id     Stripe customer ID the subscription must end up with.
+	 */
+	public function test_confirm_change_payment_keeps_subscription_customer_id( string $user_customer_id, string $subscription_customer_id, string $expected_customer_id ): void {
+		Ajax_Test_Helper::init_hooks();
+
+		$owner = $this->factory->user->create( [ 'role' => 'customer' ] );
+		if ( '' !== $user_customer_id ) {
+			update_user_option( $owner, '_stripe_customer_id', $user_customer_id, false );
+		}
+
+		$subscription = $this->create_mock_subscription( $owner );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_customer_id( $subscription, $subscription_customer_id );
+		$subscription->save();
+		wp_set_current_user( $owner );
+
+		$token = new WC_Stripe_Payment_Token_CC();
+		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$token->set_token( 'pm_new_card' );
+		$token->set_card_type( 'visa' );
+		$token->set_last4( '3184' );
+		$token->set_expiry_month( '12' );
+		$token->set_expiry_year( '2030' );
+
+		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'create_token_from_setup_intent' ] )
+			->getMock();
+		$gateway->method( 'create_token_from_setup_intent' )->willReturn( $token );
+
+		$controller = $this->getMockBuilder( 'WC_Stripe_Intent_Controller' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'get_upe_gateway' ] )
+			->getMock();
+		$controller->method( 'get_upe_gateway' )->willReturn( $gateway );
+
+		$_POST['order_id']       = $subscription->get_id();
+		$_POST['intent_id']      = 'seti_mock_123';
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_update_order_status_nonce' );
+
+		try {
+			ob_start();
+			$controller->confirm_change_payment_from_setup_intent_ajax();
+			$response = json_decode( ob_get_clean(), true );
+
+			$this->assertTrue( $response['success'] );
+
+			$order_helper = WC_Stripe_Order_Helper::get_instance();
+			$this->assertSame( $expected_customer_id, $order_helper->get_stripe_customer_id( $subscription ) );
+			$this->assertSame( 'pm_new_card', $order_helper->get_stripe_source_id( $subscription ) );
+		} finally {
+			unset( $_POST['order_id'], $_POST['intent_id'], $_REQUEST['_ajax_nonce'] );
+			WC_Subscriptions::set_wcs_get_subscription( null );
+			Ajax_Test_Helper::remove_hooks();
+		}
+	}
+
+	/**
+	 * Provides the user and subscription customer IDs a change-payment confirmation can start from.
+	 *
+	 * @return array
+	 */
+	public function provide_confirm_change_payment_customer_ids(): array {
+		return [
+			'subscription only, e.g. created in wp-admin or imported' => [ '', 'cus_subscription', 'cus_subscription' ],
+			'user and subscription differ'                            => [ 'cus_user', 'cus_subscription', 'cus_subscription' ],
+			'user and subscription match'                             => [ 'cus_same', 'cus_same', 'cus_same' ],
+			'user only, customer created during the change'           => [ 'cus_user', '', 'cus_user' ],
+		];
+	}
+
+	/**
 	 * Mocks the Stripe API for update_intent() with a stored intent and a new one submitted on retry.
 	 *
 	 * @param array      $old_intent    The stored intent's fields.
