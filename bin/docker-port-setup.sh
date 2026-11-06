@@ -130,12 +130,29 @@ fi
 # The e2e Docker stack's compose project name and host ports are machine-global
 # (see tests/e2e/bin/common.sh), so give each worktree its own trio. The main
 # checkout keeps the historical defaults so existing usage is unchanged.
+e2e_project_is_new=
 if [[ -z "$E2E_PROJECT" ]]; then
     if is_main_checkout; then
         E2E_PROJECT="$E2E_DEFAULT_PROJECT"
     else
         E2E_PROJECT="$E2E_DEFAULT_PROJECT-$(sanitize_id "$WORKTREE_ID")"
     fi
+    e2e_project_is_new=yes
+fi
+
+# Sanitizing maps distinct directory names (foo-bar, foo.bar) to the same id,
+# and two worktrees sharing a project would force-recreate each other's e2e
+# stack. Refuse before persisting a new value, and also flag an existing .env
+# that already collides. The main-checkout default is left to the
+# copied-.env warning below.
+if ! is_main_checkout && [[ "$E2E_PROJECT" != "$E2E_DEFAULT_PROJECT" ]] \
+    && get_reserved_ports E2E_PROJECT | grep -qxF "$E2E_PROJECT"; then
+    echo "Error: E2E_PROJECT=$E2E_PROJECT is already used by another worktree's .env."
+    echo "       Set a unique WORKTREE_ID (or E2E_PROJECT) in $(pwd)/$ENV_FILE and re-run."
+    exit 1
+fi
+
+if [[ -n "$e2e_project_is_new" ]]; then
     echo "E2E_PROJECT=$E2E_PROJECT" >> "$ENV_FILE"
     echo "Set E2E_PROJECT=$E2E_PROJECT"
 fi
