@@ -1,0 +1,28 @@
+# Merges Dependabot security PRs that pass the shared gates (security advisory,
+# CVSS 7.0 or higher, compatibility score, 7 days open). PRs that fail a gate get
+# the `sirt-review-required` label and wait for a person.
+# Docs: https://github.com/Automattic/dependabot-auto-merge-action
+name: Dependabot auto-merge
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, labeled, auto_merge_enabled]
+  schedule:
+    - cron: '0 9 * * *'
+
+permissions:
+  pull-requests: write
+  contents: write
+  statuses: write
+
+jobs:
+  dependabot-auto-merge:
+    uses: Automattic/dependabot-auto-merge-action/.github/workflows/dependabot-auto-merge.yml@4c5a1f301898cbdaf3a8a045ae2e0f7010cf7bc8 # v1.7.1
+    permissions:
+      pull-requests: write
+      contents: write
+      statuses: write
+    with:
+      event-name: ${{ github.event_name }}
+    secrets:
+      token: ${{ secrets.DEPENDABOT_ALERTS_TOKEN }}
