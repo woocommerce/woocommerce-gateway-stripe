@@ -1,7 +1,9 @@
-import { select } from '@wordpress/data';
 import { applyFilters } from '@wordpress/hooks';
 import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
 import { getStripeServerData } from 'wcstripe/stripe-utils/get-stripe-server-data';
+
+// Load wp.data only when reading Blocks stores so Classic wallets can start early.
+const selectStore = ( store ) => window.wp?.data?.select?.( store );
 
 /**
  * Normalizes incoming cart total items for use as a displayItems with the Stripe api.
@@ -159,7 +161,7 @@ const getCustomerDataFromStore = () => {
 		return {};
 	}
 
-	const store = select( cartStore );
+	const store = selectStore( cartStore );
 	if ( ! store ) {
 		return {};
 	}
@@ -279,7 +281,7 @@ const getAdditionalFieldsDataFromStore = () => {
 		return {};
 	}
 
-	const store = select( checkoutStore );
+	const store = selectStore( checkoutStore );
 	if ( ! store ) {
 		return {};
 	}
@@ -321,7 +323,7 @@ const getExtensionDataFromStore = () => {
 		return {};
 	}
 
-	const store = select( checkoutStore );
+	const store = selectStore( checkoutStore );
 	if ( ! store ) {
 		return {};
 	}

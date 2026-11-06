@@ -74,6 +74,8 @@ class WC_Stripe_Ability_Base_Test extends WP_UnitTestCase {
 					'code'    => 401,
 					'message' => 'Unauthorized',
 				],
+				'body'     => '{"error":{"message":"Invalid API key"}}',
+				'headers'  => [],
 			];
 		};
 		add_filter( 'pre_http_request', $mock_unauthorized_filter );
