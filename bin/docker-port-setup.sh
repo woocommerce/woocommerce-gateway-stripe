@@ -64,7 +64,13 @@ find_free_port() {
     return 1
 }
 
-DEFAULT_WORKTREE_ID=$(basename "$(pwd)" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/_/g')
+# Compose project names only allow [a-z0-9_-], so anything that feeds one
+# (including a hand-edited WORKTREE_ID from .env) must pass through this.
+sanitize_id() {
+    echo "$1" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/_/g'
+}
+
+DEFAULT_WORKTREE_ID=$(sanitize_id "$(basename "$(pwd)")")
 
 # This script manages what is persisted in .env; values exported in the
 # invoking shell must not masquerade as persisted config, or the keys are
@@ -109,7 +115,7 @@ if [[ -z "$E2E_PROJECT" ]]; then
     if is_main_checkout; then
         E2E_PROJECT="$E2E_DEFAULT_PROJECT"
     else
-        E2E_PROJECT="$E2E_DEFAULT_PROJECT-$WORKTREE_ID"
+        E2E_PROJECT="$E2E_DEFAULT_PROJECT-$(sanitize_id "$WORKTREE_ID")"
     fi
     echo "E2E_PROJECT=$E2E_PROJECT" >> "$ENV_FILE"
     echo "Set E2E_PROJECT=$E2E_PROJECT"

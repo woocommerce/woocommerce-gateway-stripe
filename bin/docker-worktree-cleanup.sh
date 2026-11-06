@@ -66,7 +66,8 @@ fi
 # skip it (worktree:setup warns about such .env files).
 . "$(dirname "${BASH_SOURCE[0]}")/../tests/e2e/bin/e2e-stack-defaults.sh"
 if [[ -z "$E2E_PROJECT" ]]; then
-    E2E_PROJECT="$E2E_DEFAULT_PROJECT-${WORKTREE_ID}"
+    # Same sanitization worktree:setup applies when deriving the project name.
+    E2E_PROJECT="$E2E_DEFAULT_PROJECT-$(echo "$WORKTREE_ID" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/_/g')"
 fi
 if [[ "$E2E_PROJECT" == "$E2E_DEFAULT_PROJECT" ]]; then
     echo "Skipping e2e stack teardown: E2E_PROJECT is the main-checkout default ($E2E_DEFAULT_PROJECT)."
