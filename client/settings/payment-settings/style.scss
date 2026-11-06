@@ -1,8 +1,26 @@
 @use '../../styles/abstracts/styles';
 
+.wc-stripe-account-settings-menu {
+	.components-button.is-destructive {
+		font-weight: 600;
+	}
+}
+
 .wcstripe-modal-button-group-container {
 	display: flex;
 	gap: styles.$grid-unit-20;
+}
+
+.wcstripe-deauthorize-checkbox {
+	background-color: styles.$wp-gray-0;
+	border: 1px solid styles.$wp-gray-5;
+	border-radius: 4px;
+	padding: styles.$grid-unit-20;
+	margin-top: styles.$grid-unit-20;
+
+	.components-base-control__field {
+		margin-bottom: 0;
+	}
 }
 
 .account-details {

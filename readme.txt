@@ -166,6 +166,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 11.3.0 - xxxx-xx-xx =
+* Add - Allow revoking Connect API keys when disconnecting Stripe account
 * Update - Improve express checkout wallet startup, availability checks, reuse, and recovery
 
 = 11.2.0 - xxxx-xx-xx =

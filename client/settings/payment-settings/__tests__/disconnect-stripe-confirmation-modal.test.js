@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import DisconnectStripeConfirmationModal from '../disconnect-stripe-confirmation-modal';
 import { useDispatch } from '@wordpress/data';
 import { useAccountKeys } from 'wcstripe/data/account-keys/hooks';
+import { useAccount } from 'wcstripe/data/account';
 
 jest.mock( '@wordpress/data', () => ( {
 	useSelect: jest.fn(),
@@ -15,6 +16,9 @@ jest.mock( '@wordpress/data', () => ( {
 } ) );
 jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
 	useAccountKeys: jest.fn(),
+} ) );
+jest.mock( 'wcstripe/data/account', () => ( {
+	useAccount: jest.fn(),
 } ) );
 
 describe( 'DisconnectStripeConfirmationModal', () => {
@@ -32,6 +36,7 @@ describe( 'DisconnectStripeConfirmationModal', () => {
 			updateAccountKeys: jest.fn().mockReturnValue( {} ),
 			saveAccountKeys: saveAccountKeysMock,
 		} ) );
+		useAccount.mockImplementation( () => ( { data: {} } ) );
 		useDispatch.mockReturnValue( {} );
 
 		delete window.location;
@@ -106,5 +111,93 @@ describe( 'DisconnectStripeConfirmationModal', () => {
 		expect( handleCloseMock ).not.toHaveBeenCalled();
 		expect( window.location.reload ).toHaveBeenCalled();
 		expect( setKeepModalContentMock ).toHaveBeenCalled();
+	} );
+
+	it( 'should not render the revoke checkbox without a classic Connect connection', () => {
+		useAccount.mockImplementation( () => ( {
+			data: {
+				oauth_connections: {
+					live: { connected: true, type: 'app' },
+					test: { connected: false, type: '' },
+				},
+			},
+		} ) );
+
+		render(
+			<DisconnectStripeConfirmationModal
+				onClose={ handleCloseMock }
+				setKeepModalContent={ setKeepModalContentMock }
+			/>
+		);
+
+		expect(
+			screen.queryByLabelText( 'Also revoke Connect API keys' )
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'should disconnect without deauthorizing when the revoke checkbox is unchecked', async () => {
+		useAccount.mockImplementation( () => ( {
+			data: {
+				oauth_connections: {
+					live: { connected: true, type: 'connect' },
+					test: { connected: false, type: '' },
+				},
+			},
+		} ) );
+
+		render(
+			<DisconnectStripeConfirmationModal
+				onClose={ handleCloseMock }
+				setKeepModalContent={ setKeepModalContentMock }
+			/>
+		);
+
+		expect(
+			screen.getByLabelText( 'Also revoke Connect API keys' )
+		).not.toBeChecked();
+
+		await userEvent.click(
+			screen.getByRole( 'button', { name: 'Disconnect' } )
+		);
+
+		expect( saveAccountKeysMock ).toHaveBeenCalledWith(
+			expect.not.objectContaining( { deauthorize_connection: true } )
+		);
+	} );
+
+	it( 'should request deauthorization when the revoke checkbox is checked', async () => {
+		useAccount.mockImplementation( () => ( {
+			data: {
+				oauth_connections: {
+					live: { connected: false, type: '' },
+					test: { connected: true, type: 'connect' },
+				},
+			},
+		} ) );
+
+		render(
+			<DisconnectStripeConfirmationModal
+				onClose={ handleCloseMock }
+				setKeepModalContent={ setKeepModalContentMock }
+			/>
+		);
+
+		await userEvent.click(
+			screen.getByLabelText( 'Also revoke Connect API keys' )
+		);
+
+		await userEvent.click(
+			screen.getByRole( 'button', { name: 'Disconnect' } )
+		);
+
+		expect( saveAccountKeysMock ).toHaveBeenCalledWith(
+			expect.objectContaining( {
+				publishable_key: '',
+				secret_key: '',
+				test_publishable_key: '',
+				test_secret_key: '',
+				deauthorize_connection: true,
+			} )
+		);
 	} );
 } );

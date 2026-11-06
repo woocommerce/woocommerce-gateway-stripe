@@ -63,7 +63,9 @@ export function* saveAccountKeys( accountKeys ) {
 		yield refreshAccount();
 
 		// update keys on the state
-		yield updateAccountKeysValues( accountKeys );
+		const accountKeysValues = { ...accountKeys };
+		delete accountKeysValues.deauthorize_connection;
+		yield updateAccountKeysValues( accountKeysValues );
 
 		yield dispatch( 'core/notices' ).createSuccessNotice(
 			isDisconnecting
