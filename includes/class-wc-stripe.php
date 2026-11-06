@@ -267,6 +267,12 @@ class WC_Stripe {
 			$checkout_session_lifecycle = new WC_Stripe_Checkout_Session_Lifecycle();
 			$checkout_session_lifecycle->init_classic_hooks();
 			WC_Stripe_Checkout_Session_Context::init_hooks();
+
+			// DRAFT: experimental payment settings screen. Registered here (not in the is_admin()
+			// block) because its REST record route fires on rest_api_init, which is not an admin
+			// context. init_hooks() defers the actual gating to `init` and is a no-op unless
+			// WooCommerce's experimental admin-screens feature is enabled.
+			( new WC_Stripe_Settings_Screen() )->init_hooks();
 		}
 
 		if ( is_admin() ) {
