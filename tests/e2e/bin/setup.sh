@@ -138,6 +138,13 @@ redirect_output cli wp core install \
 	--admin_email="${ADMIN_EMAIL}" \
 	--skip-email
 
+# `wp core install` is a no-op when the DB (a bind mount that outlives
+# `down --volumes`) already holds an install, so a stack re-created on a
+# different host port would keep 301-redirecting to the old one. Pin the
+# URLs to this run's port explicitly.
+redirect_output cli wp option update home "http://localhost:${E2E_WP_PORT}"
+redirect_output cli wp option update siteurl "http://localhost:${E2E_WP_PORT}"
+
 if [[ -n "$WP_VERSION" && "$WP_VERSION" != "latest" ]]; then
 	echo " - Installing WordPress ${WP_VERSION}..."
 	redirect_output cli wp core update --version="$WP_VERSION" --force --quiet
