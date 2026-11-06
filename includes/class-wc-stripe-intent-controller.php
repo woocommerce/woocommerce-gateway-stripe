@@ -1769,35 +1769,7 @@ class WC_Stripe_Intent_Controller {
 				throw new WC_Stripe_Exception( 'intent_not_found', __( "We're not able to process this subscription change payment request payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
 
-			$gateway = $this->get_upe_gateway();
-			$token   = $gateway->create_token_from_setup_intent( $setup_intent_id, $subscription->get_user() );
-
-			if ( ! $token ) {
-				throw new WC_Stripe_Exception( 'token_creation_failed', __( "We can't process your payment method change at this time. Please try again later.", 'woocommerce-gateway-stripe' ) );
-			}
-
-			$notice = __( 'Payment method updated.', 'woocommerce-gateway-stripe' );
-
-			// Manually update the payment method for the subscription now that we have confirmed the payment method.
-			WC_Subscriptions_Change_Payment_Gateway::update_payment_method( $subscription, $token->get_gateway_id() );
-
-			// Set the new Stripe payment method ID and customer ID on the subscription.
-			$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
-			$gateway->set_customer_id_for_subscription( $subscription, $customer->get_id() );
-			$gateway->set_payment_method_id_for_subscription( $subscription, $token->get_token() );
-
-			// Update the saved token details to capture the current details for display purposes.
-			// Errors are intentionally ignored as the changes are cosmetic and don't impact renewals.
-			if ( ! WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, $token->get_token() ) ) {
-				WC_Stripe_Logger::error( 'Could not re-associate the saved token after 3DS change-payment for subscription: ' . $subscription_id );
-			}
-
-			// Check if the subscription has the delayed update all flag and attempt to update all subscriptions after the intent has been confirmed. If successful, display the "updated all subscriptions" notice.
-			if ( WC_Subscriptions_Change_Payment_Gateway::will_subscription_update_all_payment_methods( $subscription ) && WC_Subscriptions_Change_Payment_Gateway::update_all_payment_methods_from_subscription( $subscription, $token->get_gateway_id() ) ) {
-				$notice = __( 'Payment method updated for all your current subscriptions.', 'woocommerce-gateway-stripe' );
-			}
-
-			wc_add_notice( $notice );
+			wc_add_notice( $this->complete_change_payment_from_setup_intent( $subscription, $setup_intent_id ) );
 			wp_send_json_success(
 				[
 					'return_url' => $subscription->get_view_order_url(),
@@ -1820,6 +1792,56 @@ class WC_Stripe_Intent_Controller {
 				]
 			);
 		}
+	}
+
+	/**
+	 * Applies a confirmed setup intent as the subscription's new payment method.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Subscription $subscription    The subscription.
+	 * @param string          $setup_intent_id The setup intent ID.
+	 *
+	 * @return string The notice for the customer.
+	 *
+	 * @throws WC_Stripe_Exception When the token can't be created.
+	 */
+	public function complete_change_payment_from_setup_intent( $subscription, string $setup_intent_id ): string {
+		$gateway = $this->get_upe_gateway();
+		$token   = $gateway->create_token_from_setup_intent( $setup_intent_id, $subscription->get_user() );
+
+		if ( ! $token ) {
+			throw new WC_Stripe_Exception( 'token_creation_failed', __( "We can't process your payment method change at this time. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+
+		$notice = __( 'Payment method updated.', 'woocommerce-gateway-stripe' );
+
+		WC_Subscriptions_Change_Payment_Gateway::update_payment_method( $subscription, $token->get_gateway_id() );
+
+		// Subscriptions saves the gateway ID as the title for non-card methods.
+		if ( $subscription->get_payment_method_title() === $token->get_gateway_id() ) {
+			$registered_gateways = WC()->payment_gateways()->payment_gateways();
+			if ( isset( $registered_gateways[ $token->get_gateway_id() ] ) ) {
+				$subscription->set_payment_method_title( $registered_gateways[ $token->get_gateway_id() ]->get_title() );
+				$subscription->save();
+			}
+		}
+
+		$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
+		$gateway->set_customer_id_for_subscription( $subscription, $customer->get_id() );
+		$gateway->set_payment_method_id_for_subscription( $subscription, $token->get_token() );
+
+		// Display only; a failure doesn't affect renewals.
+		if ( ! WC_Stripe_Express_Checkout_Helper::replace_subscription_payment_token( $subscription, $token->get_token() ) ) {
+			WC_Stripe_Logger::error( 'Could not re-associate the saved token after change-payment for subscription: ' . $subscription->get_id() );
+		}
+
+		// Apply the delayed "update all subscriptions" choice now that the intent is confirmed.
+		if ( WC_Subscriptions_Change_Payment_Gateway::will_subscription_update_all_payment_methods( $subscription ) && WC_Subscriptions_Change_Payment_Gateway::update_all_payment_methods_from_subscription( $subscription, $token->get_gateway_id() ) ) {
+			$notice = __( 'Payment method updated for all your current subscriptions.', 'woocommerce-gateway-stripe' );
+		}
+
+		return $notice;
 	}
 
 	/**
