@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { randomUUID } from 'crypto';
+import { test } from '@playwright/test';
 import config from 'config';
 import { payments } from '../../../utils';
 
@@ -19,10 +20,10 @@ test( 'customer can checkout with a SCA card @smoke @blocks', async ( {
 } ) => {
 	await emptyCart( page );
 	await setupCart( page );
-	await setupBlocksCheckout(
-		page,
-		config.get( 'addresses.customer.billing' )
-	);
+	await setupBlocksCheckout( page, {
+		...config.get( 'addresses.customer.billing' ),
+		email: `stripe-e2e-${ randomUUID() }@example.com`,
+	} );
 	await fillCreditCardDetails( page, config.get( 'cards.3ds' ) );
 
 	const expectedTotal = await getCartTotal( page );
