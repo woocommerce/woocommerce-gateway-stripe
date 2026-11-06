@@ -123,6 +123,16 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_MANDATE_ID = '_stripe_mandate_id';
 
 	/**
+	 * Meta key for the last `mandate.updated` webhook event applied to an order.
+	 *
+	 * Stored as `<event created timestamp>|<mandate status>`, so redelivered and
+	 * out-of-order events can be detected without relying on the order status.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_MANDATE_LAST_EVENT = '_stripe_mandate_last_event';
+
+	/**
 	 * Meta key for the Stripe Multibanco data.
 	 *
 	 * @var string
@@ -801,6 +811,156 @@ class WC_Stripe_Order_Helper {
 	 */
 	public function update_stripe_mandate_id( ?WC_Order $order = null, string $mandate_id = '' ) {
 		return $this->update_order_meta( $order, self::META_STRIPE_MANDATE_ID, $mandate_id );
+	}
+
+	/**
+	 * Gets the last `mandate.updated` event applied to an order.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Order|null $order The order.
+	 * @return array{created: int, status: string}|null The event, or null if none was recorded.
+	 */
+	public function get_stripe_mandate_last_event( ?WC_Order $order = null ): ?array {
+		$value = $this->get_order_meta( $order, self::META_STRIPE_MANDATE_LAST_EVENT );
+		if ( ! is_string( $value ) || false === strpos( $value, '|' ) ) {
+			return null;
+		}
+
+		[ $created, $status ] = explode( '|', $value, 2 );
+
+		return [
+			'created' => (int) $created,
+			'status'  => $status,
+		];
+	}
+
+	/**
+	 * Records the last `mandate.updated` event applied to an order. The caller must save the order.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Order|null $order   The order.
+	 * @param int           $created The Stripe event `created` timestamp.
+	 * @param string        $status  The mandate status carried by the event.
+	 * @return false|void
+	 */
+	public function update_stripe_mandate_last_event( ?WC_Order $order, int $created, string $status ) {
+		return $this->update_order_meta( $order, self::META_STRIPE_MANDATE_LAST_EVENT, $created . '|' . $status );
+	}
+
+	/**
+	 * Gets the most recent non-terminal order by Stripe mandate ID.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param string $mandate_id The Stripe mandate ID.
+	 * @return WC_Order|null The order, or null if not found.
+	 */
+	public function get_order_by_mandate_id( string $mandate_id ): ?WC_Order {
+		if ( empty( $mandate_id ) ) {
+			return null;
+		}
+
+		$statuses = $this->get_mandate_lookup_order_statuses( $mandate_id );
+		if ( empty( $statuses ) ) {
+			return null;
+		}
+
+		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
+			$orders = wc_get_orders(
+				[
+					'limit'      => 1,
+					'status'     => $statuses,
+					'orderby'    => 'date',
+					'order'      => 'DESC',
+					'meta_query' => [
+						[
+							'key'   => self::META_STRIPE_MANDATE_ID,
+							'value' => $mandate_id,
+						],
+					],
+				]
+			);
+
+			if ( is_array( $orders ) && ! empty( $orders ) && $orders[0] instanceof WC_Order ) {
+				return $orders[0];
+			}
+
+			return null;
+		}
+
+		global $wpdb;
+
+		$post_statuses       = array_map(
+			static function ( string $status ): string {
+				return 'wc-' . $status;
+			},
+			$statuses
+		);
+		$status_placeholders = implode( ', ', array_fill( 0, count( $post_statuses ), '%s' ) );
+
+		// An inner join (not LEFT JOIN): the WHERE clause needs a matching meta row
+		// anyway, and it lets MySQL start from the selective meta_key index on
+		// postmeta, which holds very few rows for any one mandate.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $status_placeholders only holds %s placeholders.
+		$order_id = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT DISTINCT posts.ID FROM $wpdb->posts AS posts INNER JOIN $wpdb->postmeta AS meta ON posts.ID = meta.post_id WHERE meta.meta_key = %s AND meta.meta_value = %s AND posts.post_status IN ( $status_placeholders ) ORDER BY posts.post_date DESC, posts.ID DESC LIMIT 1",
+				array_merge( [ self::META_STRIPE_MANDATE_ID, $mandate_id ], $post_statuses )
+			)
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		if ( ! empty( $order_id ) ) {
+			$order = wc_get_order( $order_id );
+			if ( $order instanceof WC_Order ) {
+				return $order;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Gets the order statuses that a mandate lookup may return.
+	 *
+	 * Stores can register custom order statuses for live orders, so the list is
+	 * filterable. Terminal statuses are left out by default: a mandate update must
+	 * not change a cancelled, refunded or failed order.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param string $mandate_id The Stripe mandate ID being looked up.
+	 * @return string[] Order statuses, without the `wc-` prefix.
+	 */
+	private function get_mandate_lookup_order_statuses( string $mandate_id ): array {
+		$default_statuses = [ OrderStatus::PENDING, OrderStatus::PROCESSING, OrderStatus::COMPLETED, OrderStatus::ON_HOLD ];
+
+		/**
+		 * Filters the order statuses that a Stripe mandate lookup may return.
+		 *
+		 * @since x.x.x
+		 *
+		 * @param string[] $statuses   Order statuses, without the `wc-` prefix.
+		 * @param string   $mandate_id The Stripe mandate ID being looked up.
+		 */
+		$statuses = apply_filters( 'wc_stripe_mandate_order_statuses', $default_statuses, $mandate_id );
+
+		if ( ! is_array( $statuses ) ) {
+			return $default_statuses;
+		}
+
+		$normalized = [];
+		foreach ( $statuses as $status ) {
+			if ( ! is_string( $status ) || '' === $status ) {
+				continue;
+			}
+			// Accept both `on-hold` and `wc-on-hold`, as both forms are common in custom code.
+			$normalized[] = 0 === strpos( $status, 'wc-' ) ? substr( $status, 3 ) : $status;
+		}
+
+		return array_values( array_unique( $normalized ) );
 	}
 
 	/**

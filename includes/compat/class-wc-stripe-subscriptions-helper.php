@@ -36,6 +36,14 @@ class WC_Stripe_Subscriptions_Helper {
 	private const MAX_EXECUTION_TIME_FALLBACK = 30;
 
 	/**
+	 * Subscription meta recording which Stripe mandate put it on hold, so an
+	 * `active` mandate event can only reactivate holds that mandate created.
+	 *
+	 * @var string
+	 */
+	public const META_MANDATE_HOLD = '_stripe_mandate_hold';
+
+	/**
 	 * Checks if subscriptions are enabled on the site.
 	 *
 	 * @return bool Whether subscriptions is enabled or not.
@@ -339,5 +347,81 @@ class WC_Stripe_Subscriptions_Helper {
 		}
 
 		return isset( $query_params['post'] ) && 'shop_subscription' === get_post_type( $query_params['post'] );
+	}
+
+	/**
+	 * Updates the subscriptions linked to an order after its Stripe mandate changes status.
+	 *
+	 * An inactive mandate puts active subscriptions on hold. An active mandate lifts
+	 * only the holds that the same mandate created.
+	 *
+	 * @since x.x.x
+	 * @param WC_Order    $order             The order linked to the mandate.
+	 * @param string      $mandate_id        The Stripe mandate ID.
+	 * @param string      $mandate_status    The new mandate status.
+	 * @param string|null $revocation_reason The revocation reason, if applicable.
+	 * @return void
+	 */
+	public static function update_subscriptions_for_mandate( WC_Order $order, string $mandate_id, string $mandate_status, ?string $revocation_reason ): void {
+		if ( ! self::is_subscriptions_enabled() || ! function_exists( 'wcs_get_subscriptions_for_order' ) ) {
+			return;
+		}
+
+		// order_type 'any': after the first renewal, the most recent order carrying
+		// the mandate is a renewal order, which the default ['parent','switch']
+		// lookup excludes, so the sync would stop working from then on.
+		$subscriptions = wcs_get_subscriptions_for_order( $order, [ 'order_type' => 'any' ] );
+
+		if ( empty( $subscriptions ) ) {
+			return;
+		}
+
+		foreach ( $subscriptions as $subscription ) {
+			$log_context = [
+				'order_id'            => $order->get_id(),
+				'subscription_id'     => $subscription->get_id(),
+				'subscription_status' => $subscription->get_status(),
+				'mandate_id'          => $mandate_id,
+				'mandate_status'      => $mandate_status,
+			];
+
+			// A delayed webhook must never revive a subscription that has already ended.
+			if ( $subscription->has_status( [ 'cancelled', 'expired', 'pending-cancel', 'trash' ] ) ) {
+				WC_Stripe_Logger::info( 'No subscription change for mandate update: the subscription has ended.', $log_context );
+				continue;
+			}
+
+			try {
+				if ( 'inactive' === $mandate_status && ! $subscription->has_status( 'on-hold' ) ) {
+					// Generic wording on purpose: Stripe reports `inactive` for both
+					// paused and revoked mandates, and a revocation is not necessarily
+					// customer-initiated, so the note must not claim it is.
+					$note = __( 'Subscription put on hold because the Stripe mandate became inactive.', 'woocommerce-gateway-stripe' );
+					if ( $revocation_reason ) {
+						/* translators: %s: the mandate revocation reason reported by Stripe. */
+						$note .= ' ' . sprintf( __( 'Revocation reason: %s.', 'woocommerce-gateway-stripe' ), $revocation_reason );
+					}
+
+					// Record which mandate created this hold, so an `active` event
+					// cannot reactivate a subscription some other flow put on hold.
+					$subscription->update_meta_data( self::META_MANDATE_HOLD, $mandate_id );
+					$subscription->save();
+					$subscription->update_status( 'on-hold', $note );
+				} elseif ( 'active' === $mandate_status && $subscription->has_status( 'on-hold' ) && $mandate_id === $subscription->get_meta( self::META_MANDATE_HOLD ) ) {
+					$subscription->delete_meta_data( self::META_MANDATE_HOLD );
+					$subscription->save();
+					$subscription->update_status( 'active', __( 'Subscription reactivated because the Stripe mandate became active.', 'woocommerce-gateway-stripe' ) );
+				} else {
+					// For example: already on hold, on hold for another reason, or a
+					// mandate status that needs no subscription change.
+					WC_Stripe_Logger::info( 'No subscription change for mandate update.', $log_context );
+				}
+			} catch ( Exception $e ) {
+				WC_Stripe_Logger::error(
+					'Failed to update subscription for mandate.updated webhook.',
+					array_merge( $log_context, [ 'error' => $e->getMessage() ] )
+				);
+			}
+		}
 	}
 }
