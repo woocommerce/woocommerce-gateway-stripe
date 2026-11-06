@@ -71,11 +71,35 @@ if [[ -z "$E2E_PROJECT" ]]; then
 fi
 if [[ "$E2E_PROJECT" == "$E2E_DEFAULT_PROJECT" ]]; then
     echo "Skipping e2e stack teardown: E2E_PROJECT is the main-checkout default ($E2E_DEFAULT_PROJECT)."
-elif [[ -n "$(docker compose -p "$E2E_PROJECT" ps -a -q 2>/dev/null)" ]]; then
-    echo "Tearing down e2e Docker stack: ${E2E_PROJECT}"
-    docker compose -p "$E2E_PROJECT" down --volumes --remove-orphans
 else
-    echo "No e2e Docker stack found for this worktree."
+    if [[ -n "$(docker compose -p "$E2E_PROJECT" ps -a -q 2>/dev/null)" ]]; then
+        echo "Tearing down e2e Docker stack: ${E2E_PROJECT}"
+        docker compose -p "$E2E_PROJECT" down --volumes --remove-orphans
+    else
+        echo "No e2e containers found for this worktree."
+    fi
+
+    # `test:e2e-down` removes the containers without --volumes, so the named
+    # volume can outlive them and would dangle after the worktree is removed.
+    leftover_volumes=$(docker volume ls -q --filter "label=com.docker.compose.project=$E2E_PROJECT" 2>/dev/null || true)
+    if [[ -n "$leftover_volumes" ]]; then
+        echo "Removing leftover e2e volumes: $leftover_volumes"
+        # shellcheck disable=SC2086 # volume ids are newline-separated words
+        docker volume rm $leftover_volumes > /dev/null
+    fi
+
+    # The WP install, mariadb datadir, and logs are bind mounts under
+    # tests/e2e/env/docker, which `down --volumes` never touches. On Linux the
+    # DB files are owned by the container's uid, which makes the host-side
+    # `git worktree remove` fail; delete via a container when rm cannot.
+    E2E_DATA_DIR="tests/e2e/env/docker"
+    if [[ -d "$E2E_DATA_DIR" ]]; then
+        echo "Removing e2e bind-mount data: $E2E_DATA_DIR"
+        if ! rm -rf "$E2E_DATA_DIR" 2>/dev/null; then
+            docker run --rm -v "$(pwd)/$E2E_DATA_DIR":/data alpine sh -c 'find /data -mindepth 1 -delete'
+            rmdir "$E2E_DATA_DIR"
+        fi
+    fi
 fi
 
 if [[ -f ".env" ]]; then
