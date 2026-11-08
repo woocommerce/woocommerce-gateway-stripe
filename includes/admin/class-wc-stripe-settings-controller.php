@@ -290,6 +290,7 @@ class WC_Stripe_Settings_Controller {
 				? WC_Stripe_Agentic_Commerce_Product_List_Table::get_excluded_products_url()
 				: '',
 			'show_stripe_first_method_notice'        => WC_Stripe_Helper::should_show_stripe_first_method_notice(),
+			'stripe_first_method_notice_type'        => WC_Stripe_Helper::get_stripe_first_method_notice_type(),
 		];
 		$params = array_merge( $params, WC_Stripe_Helper::get_exit_survey_params( $this->account ) );
 		wp_localize_script(

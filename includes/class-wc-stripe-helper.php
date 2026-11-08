@@ -811,8 +811,18 @@ class WC_Stripe_Helper {
 	 * @return bool
 	 */
 	public static function should_show_stripe_first_method_notice(): bool {
+		return '' !== self::get_stripe_first_method_notice_type();
+	}
+
+	/**
+	 * Determines which ordering notice to show.
+	 *
+	 * @since x.x.x
+	 * @return string Empty when hidden, or the notice type.
+	 */
+	public static function get_stripe_first_method_notice_type(): string {
 		if ( get_option( 'wc_stripe_show_stripe_first_method_notice', 'yes' ) === 'no' ) {
-			return false;
+			return '';
 		}
 
 		$gateways                   = WC()->payment_gateways->payment_gateways ?? [];
@@ -839,22 +849,30 @@ class WC_Stripe_Helper {
 			}
 		}
 
-		$woopayments_before_stripe   = false;
-		$other_gateway_before_stripe = false;
+		$woopayments_before_stripe     = false;
+		$other_gateway_before_stripe   = false;
+		$offline_gateway_before_stripe = false;
 		foreach ( $gateways as $gateway ) {
 			if ( WC_Stripe_UPE_Payment_Gateway::ID === $gateway->id || 0 === strpos( $gateway->id, 'stripe_' ) ) {
 				if ( $woopayments_before_stripe ) {
-					return false;
+					return '';
 				}
-				return $other_gateway_before_stripe;
+				if ( $other_gateway_before_stripe ) {
+					return 'default';
+				}
+				return $offline_gateway_before_stripe ? 'offline' : '';
 			}
 			if ( 'woocommerce_payments' === $gateway->id && 'yes' === $gateway->enabled ) {
 				$woopayments_before_stripe = true;
-			} elseif ( 'yes' === $gateway->enabled && ( ! $offline_group_after_stripe || ! in_array( $gateway->id, [ 'bacs', 'cheque', 'cod' ], true ) ) ) {
-				$other_gateway_before_stripe = true;
+			} elseif ( 'yes' === $gateway->enabled ) {
+				if ( $offline_group_after_stripe && in_array( $gateway->id, [ 'bacs', 'cheque', 'cod' ], true ) ) {
+					$offline_gateway_before_stripe = true;
+				} else {
+					$other_gateway_before_stripe = true;
+				}
 			}
 		}
-		return ! WC_Stripe_Helper::is_stripe_in_position_one_in_woocommerce_gateway_order();
+		return self::is_stripe_in_position_one_in_woocommerce_gateway_order() ? '' : 'default';
 	}
 
 	/**

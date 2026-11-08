@@ -166,7 +166,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 11.3.0 - xxxx-xx-xx =
-* Fix - Hide the Stripe ordering notice when WooPayments is preferred or the offline payment group is displayed below Stripe
+* Fix - Avoid suggesting Stripe over preferred WooPayments and clarify the notice when an offline method is first at checkout
 * Update - Improve express checkout wallet startup, availability checks, reuse, and recovery
 
 = 11.2.0 - xxxx-xx-xx =

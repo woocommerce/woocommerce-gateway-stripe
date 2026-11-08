@@ -1585,9 +1585,9 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @dataProvider provide_offline_group_notice_cases
 	 * @param array $order Gateway and offline group positions.
 	 * @param array $gateways Loaded gateways in checkout order.
-	 * @param bool  $expected Expected notice visibility.
+	 * @param string $expected Expected notice type.
 	 */
-	public function test_notice_respects_offline_group_position( array $order, array $gateways, bool $expected ): void {
+	public function test_notice_respects_offline_group_position( array $order, array $gateways, string $expected ): void {
 		if ( ! class_exists( '\\Automattic\\WooCommerce\\Internal\\Admin\\Settings\\PaymentsProviders' ) ) {
 			$this->markTestSkipped( 'This WooCommerce version does not group offline payment methods.' );
 		}
@@ -1598,7 +1598,8 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		WC()->payment_gateways->payment_gateways = $this->build_gateway_stubs( $gateways );
 
 		try {
-			$this->assertSame( $expected, WC_Stripe_Helper::should_show_stripe_first_method_notice() );
+			$this->assertSame( $expected, WC_Stripe_Helper::get_stripe_first_method_notice_type() );
+			$this->assertSame( '' !== $expected, WC_Stripe_Helper::should_show_stripe_first_method_notice() );
 		} finally {
 			WC()->payment_gateways->payment_gateways = $original_gateways;
 			update_option( 'woocommerce_gateway_order', $original_order );
@@ -1617,7 +1618,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					'cod'    => true,
 					'stripe' => true,
 				],
-				false,
+				'offline',
 			],
 			'offline group above Stripe'                       => [
 				[
@@ -1629,7 +1630,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					'cod'    => true,
 					'stripe' => true,
 				],
-				true,
+				'default',
 			],
 			'another provider remains above Stripe'            => [
 				[
@@ -1643,7 +1644,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					'paypal' => true,
 					'stripe' => true,
 				],
-				true,
+				'default',
 			],
 			'WooPayments above Stripe still suppresses'        => [
 				[
@@ -1657,7 +1658,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					'woocommerce_payments' => true,
 					'stripe'               => true,
 				],
-				false,
+				'',
 			],
 			'group missing and a later offline gateway exists' => [
 				[
@@ -1670,7 +1671,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					'stripe' => true,
 					'bacs'   => false,
 				],
-				false,
+				'offline',
 			],
 		];
 	}
