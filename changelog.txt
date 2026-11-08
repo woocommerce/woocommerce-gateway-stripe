@@ -1,6 +1,7 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 11.3.0
+* Fix - Hide the Stripe ordering notice when WooPayments is preferred or the offline payment group is displayed below Stripe
 * Update - Improve express checkout wallet startup, availability checks, reuse, and recovery
 
 xxxx-xx-xx - version 11.2.0
