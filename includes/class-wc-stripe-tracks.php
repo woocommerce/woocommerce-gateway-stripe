@@ -64,9 +64,8 @@ final class WC_Stripe_Tracks {
 	 */
 	private static function get_default_properties(): array {
 		return [
-			'is_test_mode'        => WC_Stripe_Mode::is_test(),
-			'stripe_version'      => WC_STRIPE_VERSION,
-			'woocommerce_version' => WC_VERSION,
+			'is_test_mode'   => WC_Stripe_Mode::is_test(),
+			'stripe_version' => WC_STRIPE_VERSION,
 		];
 	}
 }
