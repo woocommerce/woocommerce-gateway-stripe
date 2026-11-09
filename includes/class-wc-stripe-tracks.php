@@ -13,6 +13,8 @@ final class WC_Stripe_Tracks {
 	/**
 	 * Whether site tracking is available and enabled.
 	 *
+	 * @since x.x.x
+	 *
 	 * @return bool Whether site tracking is available and enabled.
 	 */
 	public static function is_tracking_enabled(): bool {
@@ -25,6 +27,8 @@ final class WC_Stripe_Tracks {
 	/**
 	 * Add the default event properties to the supplied event properties array.
 	 * Note that the default properties take precedence over supplied properties.
+	 *
+	 * @since x.x.x
 	 *
 	 * @param array $event_properties The event properties to add the default properties to.
 	 * @return array The event properties with the default properties added.
@@ -40,6 +44,8 @@ final class WC_Stripe_Tracks {
 	/**
 	 * Record a Tracks event by calling WC_Tracks::record_event() directly.
 	 * This should be used when a redirect may occur in the current request.
+	 *
+	 * @since x.x.x
 	 *
 	 * @param string $event_name       The name of the event to record.
 	 * @param array  $event_properties The event properties to record.
@@ -59,6 +65,8 @@ final class WC_Stripe_Tracks {
 
 	/**
 	 * Get the default event properties.
+	 *
+	 * @since x.x.x
 	 *
 	 * @return array The default event properties.
 	 */
