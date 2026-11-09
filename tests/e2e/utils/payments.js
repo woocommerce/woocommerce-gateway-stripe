@@ -700,12 +700,14 @@ export const fillACHBankDetails = async ( page ) => {
 		.frameLocator( 'iframe[name^="__privateStripeFrame"]' )
 		.first();
 
-	// On the Link sign-in screen, `agree-button` starts a sign-up that needs a phone.
+	// Link can omit the consent button; prefer its guest action to avoid phone enrollment.
 	let button = frame.getByTestId( 'agree-button' );
-	await expect( button ).toBeVisible();
 	const guestButton = frame.getByTestId(
 		'pre-auth-networking-and-consent-guest'
 	);
+	await expect(
+		guestButton.or( button ).filter( { visible: true } ).first()
+	).toBeVisible();
 	if ( await guestButton.isVisible() ) {
 		button = guestButton;
 	}
