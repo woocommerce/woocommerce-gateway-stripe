@@ -167,6 +167,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 11.3.0 - xxxx-xx-xx =
 * Update - Improve express checkout wallet startup, availability checks, reuse, and recovery
+* Dev - Run every E2E test project under both a classic theme (Storefront) and a block theme (Twenty Twenty-Five) in CI, and make the shared E2E helpers theme-agnostic
 
 = 11.2.0 - xxxx-xx-xx =
 * Fix - Refund or void a Stripe payment that succeeds for an order that was already cancelled, instead of leaving the shopper charged
@@ -197,6 +198,5 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Disable Adaptive Pricing instead of breaking checkout when another plugin loads a different version of Stripe.js
 * Dev - Fix ACH E2E tests for Stripe's updated test-mode bank account flow
 * Fix - Stop a staging or cloned site from deleting the production site's Stripe webhooks when connecting or disconnecting Stripe
-* Dev - Run every E2E test project under both a classic theme (Storefront) and a block theme (Twenty Twenty-Five) in CI, and make the shared E2E helpers theme-agnostic
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

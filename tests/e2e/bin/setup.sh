@@ -208,7 +208,7 @@ redirect_output cli wp option set woocommerce_product_type "both"
 redirect_output cli wp option set woocommerce_allow_tracking "no"
 redirect_output cli wp option set woocommerce_coming_soon "no"
 
-step "Installing theme: $WP_THEME"
+echo " - Installing $WP_THEME theme"
 redirect_output cli wp theme install "$WP_THEME" --activate
 
 redirect_output cli wp --user=${ADMIN_USER} wc tool run install_pages
