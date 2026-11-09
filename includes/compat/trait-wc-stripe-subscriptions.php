@@ -382,7 +382,13 @@ trait WC_Stripe_Subscriptions_Trait {
 				}
 				$subscription->save();
 
-				wp_safe_redirect( $this->get_redirect_url( $redirect, $payment_intent, $payment_information, $subscription, false ) );
+				$redirect_url = $this->get_redirect_url( $redirect, $payment_intent, $payment_information, $subscription, false );
+				if ( $this->is_stripe_hosted_url( $redirect_url ) ) {
+					// wp_safe_redirect() would replace Stripe's URL with admin_url().
+					wp_redirect( $redirect_url ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect
+				} else {
+					wp_safe_redirect( $redirect_url );
+				}
 				exit;
 			} else {
 				// Update the payment method for the subscription.
@@ -1753,8 +1759,116 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return bool
 	 */
 	public function update_payment_after_deferred_intent( $update_payment_method, $new_payment_method, $subscription ) {
-		if ( ! $this->is_changing_payment_method_for_subscription() || $new_payment_method !== $this->id ) {
+		if ( ! $this->is_changing_payment_method_for_subscription() || ! $this->is_stripe_upe_gateway_id( $new_payment_method ) ) {
 			return $update_payment_method;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Applies the new payment method when the customer returns from a redirect, such as Klarna.
+	 *
+	 * @since x.x.x
+	 *
+	 * @return bool Whether the request was handled.
+	 */
+	public function maybe_process_change_payment_method_redirect(): bool {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- The nonce is verified below.
+		if ( empty( $_GET['setup_intent'] ) || empty( $_GET['order_id'] ) || empty( $_GET['redirect_status'] ) ) {
+			return false;
+		}
+
+		if ( ! isset( $_GET['wc_payment_method'] ) || $this->id !== $_GET['wc_payment_method'] ) {
+			return false;
+		}
+
+		if ( ! function_exists( 'wcs_is_subscription' ) || ! class_exists( 'WC_Subscriptions_Change_Payment_Gateway' ) ) {
+			return false;
+		}
+
+		$subscription_id = absint( wp_unslash( $_GET['order_id'] ) );
+		if ( ! wcs_is_subscription( $subscription_id ) ) {
+			return false;
+		}
+
+		$nonce = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '';
+		if ( ! wp_verify_nonce( $nonce, 'wc_stripe_process_redirect_order_nonce' ) ) {
+			return false;
+		}
+
+		$subscription = wcs_get_subscription( $subscription_id );
+		if ( ! $subscription || $subscription->get_user_id() !== get_current_user_id() ) {
+			return false;
+		}
+
+		$setup_intent_id = sanitize_text_field( wp_unslash( $_GET['setup_intent'] ) );
+		$redirect_status = sanitize_text_field( wp_unslash( $_GET['redirect_status'] ) );
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+		$redirect_url = $subscription->get_view_order_url();
+
+		if ( 'succeeded' !== $redirect_status ) {
+			wc_add_notice( __( 'Your payment method was not updated. Please try again or use a different payment method.', 'woocommerce-gateway-stripe' ), 'error' );
+			wp_safe_redirect( $redirect_url );
+			exit;
+		}
+
+		try {
+			wc_add_notice( $this->intent_controller->complete_change_payment_from_setup_intent( $subscription, $setup_intent_id ) );
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::error(
+				'Change subscription payment method error after redirect.',
+				[
+					'subscription_id' => $subscription_id,
+					'error_message'   => $e->getMessage(),
+				]
+			);
+			wc_add_notice( $e->getLocalizedMessage(), 'error' );
+		}
+
+		wp_safe_redirect( $redirect_url );
+		exit;
+	}
+
+	/**
+	 * Whether a URL points to a Stripe-hosted page over HTTPS.
+	 *
+	 * @param string $url The URL.
+	 *
+	 * @return bool
+	 */
+	private function is_stripe_hosted_url( string $url ): bool {
+		$parts = wp_parse_url( $url );
+		if ( ! is_array( $parts ) || 'https' !== ( $parts['scheme'] ?? '' ) || empty( $parts['host'] ) ) {
+			return false;
+		}
+
+		$host = strtolower( $parts['host'] );
+
+		return 'stripe.com' === $host || '.stripe.com' === substr( $host, -strlen( '.stripe.com' ) );
+	}
+
+	/**
+	 * Whether a gateway ID is this gateway or one of its payment methods (e.g. `stripe_klarna`).
+	 *
+	 * @param mixed $gateway_id The gateway ID.
+	 *
+	 * @return bool
+	 */
+	private function is_stripe_upe_gateway_id( $gateway_id ): bool {
+		if ( ! is_string( $gateway_id ) ) {
+			return false;
+		}
+
+		if ( $gateway_id === $this->id ) {
+			return true;
+		}
+
+		foreach ( $this->payment_methods ?? [] as $payment_method ) {
+			if ( isset( $payment_method->id ) && $gateway_id === $payment_method->id ) {
+				return true;
+			}
 		}
 
 		return false;
