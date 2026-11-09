@@ -700,11 +700,13 @@ export const fillACHBankDetails = async ( page ) => {
 		.frameLocator( 'iframe[name^="__privateStripeFrame"]' )
 		.first();
 
-	// Link can omit the consent button; prefer its guest action to avoid phone enrollment.
+	// Link uses different guest actions on its sign-in and bank-consent screens.
 	let button = frame.getByTestId( 'agree-button' );
-	const guestButton = frame.getByTestId(
-		'pre-auth-networking-and-consent-guest'
-	);
+	const guestButton = frame
+		.getByTestId( 'pre-auth-networking-and-consent-guest' )
+		.or( frame.getByTestId( 'link-not-now-button' ) )
+		.filter( { visible: true } )
+		.first();
 	await expect(
 		guestButton.or( button ).filter( { visible: true } ).first()
 	).toBeVisible();
