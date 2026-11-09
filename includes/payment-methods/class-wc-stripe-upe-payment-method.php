@@ -330,6 +330,13 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			}
 		}
 
+		// No method can take a total Stripe cannot charge, so all become unavailable; otherwise the
+		// card option would render a Payment Element that can only fail on submit. This runs ahead of
+		// the optimized checkout branch, which keeps the container available on the checkout block.
+		if ( ! $this->is_current_order_amount_supported( $this->get_woocommerce_currency() ) ) {
+			return false;
+		}
+
 		// When OC is enabled _and_ we are on a page where OC is permitted, we use the OC payment container to render all the methods.
 		// Non-deferred-intent methods (e.g. BLIK, ACSS) cannot render inside the OC Payment Element,
 		// so they skip this check and keep their normal availability as their own entries.
@@ -973,13 +980,67 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return float|int|string
 	 */
 	public function get_current_order_amount() {
-		if ( is_wc_endpoint_url( 'order-pay' ) && isset( $_GET['key'] ) ) {
-			$order = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
+		$order = $this->get_order_being_paid();
+		if ( $order instanceof WC_Order ) {
 			return $order->get_total( '' );
-		} elseif ( WC()->cart ) {
+		}
+		if ( WC()->cart ) {
 			return WC()->cart->get_total( '' );
 		}
 		return 0;
+	}
+
+	/**
+	 * Returns the order the current request is paying for, if any.
+	 *
+	 * Covers the Pay for Order page and the Store API checkout-order route the express
+	 * checkout buttons use on that page; the session cart is irrelevant to either. Both
+	 * carry the order key as the `key` query parameter, which must match the order.
+	 *
+	 * @since x.x.x
+	 * @return WC_Order|null
+	 */
+	private function get_order_being_paid(): ?WC_Order {
+		$key = isset( $_GET['key'] ) ? wc_clean( wp_unslash( $_GET['key'] ) ) : '';
+		if ( ! is_string( $key ) || '' === $key ) {
+			return null;
+		}
+
+		if ( is_wc_endpoint_url( 'order-pay' ) ) {
+			$order_id = absint( get_query_var( 'order-pay' ) );
+		} else {
+			// WP sets this query var for every REST request; CLI and cron requests have no WP object at all.
+			$rest_route = isset( $GLOBALS['wp']->query_vars['rest_route'] ) ? (string) $GLOBALS['wp']->query_vars['rest_route'] : '';
+			$order_id   = preg_match( '#/wc/store(?:/v\d+)?/checkout/(\d+)$#', $rest_route, $matches ) ? absint( $matches[1] ) : 0;
+		}
+
+		if ( ! $order_id ) {
+			return null;
+		}
+
+		$order = wc_get_order( $order_id );
+		if ( ! $order instanceof WC_Order || ! $order->key_is_valid( $key ) ) {
+			return null;
+		}
+
+		return $order;
+	}
+
+	/**
+	 * Determines whether the current cart or order total converts to an amount Stripe can charge.
+	 *
+	 * @since x.x.x
+	 * @param string $current_store_currency The store's currency.
+	 * @return bool
+	 */
+	private function is_current_order_amount_supported( $current_store_currency ): bool {
+		try {
+			WC_Stripe_Helper::get_stripe_amount( (float) $this->get_current_order_amount(), strtolower( $current_store_currency ) );
+		} catch ( WC_Stripe_Exception $e ) {
+			return false;
+		}
+
+		return true;
 	}
 
 	/**
@@ -991,7 +1052,12 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	public function is_inside_currency_limits( $current_store_currency ): bool {
 		// Pay for order page will check for the current order total instead of the cart's.
 		$order_amount = $this->get_current_order_amount();
-		$amount       = WC_Stripe_Helper::get_stripe_amount( $order_amount, strtolower( $current_store_currency ) );
+		try {
+			$amount = WC_Stripe_Helper::get_stripe_amount( $order_amount, strtolower( $current_store_currency ) );
+		} catch ( WC_Stripe_Exception $e ) {
+			// Availability checks also run when rendering other gateways and refreshing checkout fragments.
+			return false;
+		}
 
 		// Don't engage in limits verification in non-checkout context (cart is not available or empty).
 		if ( $amount <= 0 ) {

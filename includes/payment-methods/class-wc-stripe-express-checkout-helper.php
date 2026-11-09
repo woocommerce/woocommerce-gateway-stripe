@@ -352,16 +352,23 @@ class WC_Stripe_Express_Checkout_Helper {
 		$items     = [];
 		$price     = $this->get_product_price( $product );
 		$currency  = get_woocommerce_currency();
-		$total_tax = 0;
+		$taxes     = $this->get_taxes_like_cart( $product, $price );
+		$total_tax = array_sum( $taxes );
+
+		// The total is the largest amount below, so one check covers every line item. A price
+		// Stripe cannot charge must not take the product page down; the button simply does not render.
+		try {
+			$total_amount = WC_Stripe_Helper::get_stripe_amount( $price + $total_tax, $currency );
+		} catch ( WC_Stripe_Exception $e ) {
+			return false;
+		}
 
 		$items[] = [
 			'label'  => $product->get_name(),
 			'amount' => WC_Stripe_Helper::get_stripe_amount( $price ),
 		];
 
-		foreach ( $this->get_taxes_like_cart( $product, $price ) as $tax ) {
-			$total_tax += $tax;
-
+		foreach ( $taxes as $tax ) {
 			$items[] = [
 				'label'   => __( 'Tax', 'woocommerce-gateway-stripe' ),
 				'amount'  => WC_Stripe_Helper::get_stripe_amount( $tax, $currency ),
@@ -387,7 +394,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			 * @param string $label Total label.
 			 */
 			'label'   => apply_filters( 'wc_stripe_payment_request_total_label', $this->total_label ),
-			'amount'  => WC_Stripe_Helper::get_stripe_amount( $price + $total_tax, $currency ),
+			'amount'  => $total_amount,
 			'pending' => true,
 		];
 
@@ -425,7 +432,13 @@ class WC_Stripe_Express_Checkout_Helper {
 			return null;
 		}
 
-		$display_items = $this->build_display_items();
+		try {
+			$display_items = $this->build_display_items();
+		} catch ( WC_Stripe_Exception $e ) {
+			// Oversized totals must not break the page; the client falls back to the Store API cart.
+			return null;
+		}
+
 		// Round before casting: the total passes through the `wc_stripe_calculated_total`
 		// filter, which can hand back a non-integer minor-unit value. A bare (int) cast
 		// would truncate it and drop a minor unit from the first-paint total.

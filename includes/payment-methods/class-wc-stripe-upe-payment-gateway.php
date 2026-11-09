@@ -683,13 +683,19 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$stripe_params['hasAffirmGatewayPlugin'] = WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM );
 		$stripe_params['hasKlarnaGatewayPlugin'] = WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_KLARNA );
 
-		$cart_total = ( WC()->cart ? WC()->cart->get_total( '' ) : 0 );
-		$currency   = get_woocommerce_currency();
-
-		$stripe_params['cartTotal'] = WC_Stripe_Helper::get_stripe_amount( $cart_total, strtolower( $currency ) );
-		$stripe_params['currency']  = $currency;
-
+		$cart_total       = ( WC()->cart ? WC()->cart->get_total( '' ) : 0 );
+		$currency         = get_woocommerce_currency();
 		$is_pay_for_order = parent::is_valid_pay_for_order_endpoint();
+
+		try {
+			// Pay for Order charges the order total set below; the session cart is irrelevant there.
+			$stripe_params['cartTotal'] = $is_pay_for_order ? 0 : WC_Stripe_Helper::get_stripe_amount( $cart_total, strtolower( $currency ) );
+		} catch ( WC_Stripe_Exception $e ) {
+			// An unsupported total must not interrupt checkout page rendering.
+			return [];
+		}
+
+		$stripe_params['currency'] = $currency;
 
 		// Pass billing details for preloading Payment Element fields and for Radar AVS
 		// checks on the Pay for Order, Change Payment Method, and Add Payment Method pages.
@@ -737,10 +743,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$stripe_params['isOrderPay'] = true;
 
 			// Additional params for order pay page, when the order was successfully loaded.
-			if ( is_a( $order, 'WC_Order' ) ) {
-				$order_currency                  = $order->get_currency();
+			if ( $order instanceof WC_Order ) {
+				$order_currency = $order->get_currency();
+
+				try {
+					$stripe_params['cartTotal'] = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order_currency );
+				} catch ( WC_Stripe_Exception $e ) {
+					return [];
+				}
+
 				$stripe_params['currency']       = $order_currency;
-				$stripe_params['cartTotal']      = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order_currency );
 				$stripe_params['orderKey']       = $order->get_order_key();
 				$stripe_params['orderReturnURL'] = esc_url_raw(
 					add_query_arg(
@@ -760,7 +772,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Pre-orders and free trial subscriptions don't require payments.
-		$stripe_params['isPaymentNeeded'] = $this->is_payment_needed( isset( $order_id ) ? $order_id : null );
+		try {
+			$stripe_params['isPaymentNeeded'] = $this->is_payment_needed( isset( $order_id ) ? $order_id : null );
+		} catch ( WC_Stripe_Exception $e ) {
+			return [];
+		}
 
 		// Some saved tokens need to override the default token label on the checkout.
 		if ( has_block( 'woocommerce/checkout' ) ) {
