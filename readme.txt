@@ -163,6 +163,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
+= 11.1.2 - xxxx-xx-xx =
+
+* Fix - Strengthen order matching when processing payment notifications
+
 = 11.1.1 - 2026-10-16 =
 
 **Important Fixes and Updates**

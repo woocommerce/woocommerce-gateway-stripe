@@ -2205,7 +2205,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 					'charges'            => [
 						[
 							'metadata' => [
-								'order_id' => $order->get_id(),
+								'order_id'  => $order->get_id(),
+								'order_key' => $order->get_order_key(),
 							],
 						],
 					],
@@ -2467,6 +2468,219 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$final_order = wc_get_order( $order->get_id() );
 		$this->assertSame( OrderStatus::ON_HOLD, $final_order->get_status() );
 		$this->assertSame( 0, $process_charge->get_call_count() );
+	}
+
+	/**
+	 * @dataProvider provide_payment_intent_order_bindings
+	 */
+	public function test_payment_intent_metadata_requires_order_binding( string $location, string $stored_intent, array $metadata, array $payment_methods, bool $accepted ): void {
+		update_option( 'siteurl', 'https://example.org/store-a/wordpress' );
+		update_option( 'home', 'https://example.org/store-a' );
+
+		$order = WC_Helper_Order::create_order();
+		if ( '' !== $stored_intent ) {
+			WC_Stripe_Order_Helper::get_instance()->add_payment_intent_to_order( $stored_intent, $order );
+		}
+		$order->save();
+
+		$metadata['order_id'] = $order->get_id();
+		if ( 'local' === ( $metadata['order_key'] ?? null ) ) {
+			$metadata['order_key'] = $order->get_order_key();
+		}
+		if ( isset( $metadata['signature'] ) ) {
+			$metadata['signature'] = $order->get_id() . ':foreign_signature';
+		}
+		$intent = [
+			'id'                   => 'pi_local',
+			'payment_method_types' => $payment_methods,
+			'last_payment_error'   => [ 'message' => 'Declined' ],
+		];
+		if ( 'intent' === $location ) {
+			$intent['metadata'] = $metadata;
+		} else {
+			$intent['charges'] = [ [ 'metadata' => $metadata ] ];
+		}
+
+		$original_server = $_SERVER;
+		try {
+			$_SERVER['HTTPS'] = 'on';
+			$this->mock_webhook_handler->process_payment_intent(
+				json_decode(
+					wp_json_encode(
+						[
+							'type' => 'payment_intent.payment_failed',
+							'data' => [ 'object' => $intent ],
+						]
+					)
+				)
+			);
+		} finally {
+			$_SERVER = $original_server;
+		}
+
+		$updated_order = wc_get_order( $order->get_id() );
+		$this->assertSame( $accepted ? OrderStatus::FAILED : OrderStatus::PENDING, $updated_order->get_status() );
+		$this->assertSame( '', $updated_order->get_transaction_id() );
+		$this->assertNull( $updated_order->get_date_paid() );
+	}
+
+	public function provide_payment_intent_order_bindings(): array {
+		$terminal = [ WC_Stripe_Payment_Methods::CARD_PRESENT ];
+		$site_url = 'https://example.org/store-a/wordpress';
+		$cases    = [
+			'matching stored intent'              => [ 'pi_local', [], [], true ],
+			'conflicting stored intent'           => [ 'pi_other', [ 'order_key' => 'local' ], [], false ],
+			'matching order key without intent'   => [ '', [ 'order_key' => 'local' ], [], true ],
+			'foreign order key'                   => [ '', [ 'order_key' => 'wc_order_foreign' ], [], false ],
+			'absent order key'                    => [ '', [], [], false ],
+			'empty order key'                     => [ '', [ 'order_key' => '' ], [], false ],
+			'invalid order key type'              => [ '', [ 'order_key' => [ 'local' ] ], [], false ],
+			'foreign signature without intent'    => [ '', [ 'signature' => 'foreign' ], [], false ],
+			'foreign signature with local intent' => [ 'pi_other', [ 'signature' => 'foreign' ], [], false ],
+			'legacy Terminal site URL'            => [ '', [ 'site_url' => $site_url ], $terminal, true ],
+			'legacy Terminal trailing slash'      => [ '', [ 'site_url' => $site_url . '/' ], $terminal, true ],
+			'legacy Terminal home URL'            => [ '', [ 'site_url' => 'https://example.org/store-a/' ], $terminal, true ],
+			'Interac only'                        => [ '', [ 'site_url' => $site_url ], [ 'interac_present' ], false ],
+			'Terminal with Interac'               => [ '', [ 'site_url' => $site_url ], [ WC_Stripe_Payment_Methods::CARD_PRESENT, 'interac_present' ], false ],
+			'Terminal foreign host'               => [ '', [ 'site_url' => 'https://foreign.example/store-a/wordpress' ], $terminal, false ],
+			'Terminal foreign subdirectory'       => [ '', [ 'site_url' => 'https://example.org/store-b' ], $terminal, false ],
+			'Terminal URL prefix'                 => [ '', [ 'site_url' => $site_url . '-other' ], $terminal, false ],
+			'Terminal foreign port'               => [ '', [ 'site_url' => 'https://example.org:8443/store-a/wordpress' ], $terminal, false ],
+			'Terminal missing URL'                => [ '', [], $terminal, false ],
+			'Terminal invalid URL type'           => [ '', [ 'site_url' => [ $site_url ] ], $terminal, false ],
+			'Terminal conflicting intent'         => [ 'pi_other', [ 'site_url' => $site_url ], $terminal, false ],
+			'Terminal invalid key'                => [
+				'',
+				[
+					'site_url'  => $site_url,
+					'order_key' => 'wc_order_foreign',
+				],
+				$terminal,
+				false,
+			],
+			'Terminal empty key'                  => [
+				'',
+				[
+					'site_url'  => $site_url,
+					'order_key' => '',
+				],
+				$terminal,
+				false,
+			],
+			'Terminal invalid signature'          => [
+				'',
+				[
+					'site_url'  => $site_url,
+					'signature' => 'foreign',
+				],
+				$terminal,
+				false,
+			],
+			'online payment with local URL'       => [ '', [ 'site_url' => $site_url ], [ WC_Stripe_Payment_Methods::CARD ], false ],
+			'mixed online and Terminal types'     => [ '', [ 'site_url' => $site_url ], [ WC_Stripe_Payment_Methods::CARD_PRESENT, WC_Stripe_Payment_Methods::CARD ], false ],
+		];
+
+		$datasets = [];
+		foreach ( [ 'intent', 'charge' ] as $location ) {
+			foreach ( $cases as $name => $case ) {
+				$datasets[ $location . ': ' . $name ] = array_merge( [ $location ], $case );
+			}
+		}
+		return $datasets;
+	}
+
+	public function test_payment_intent_signature_recovers_order_without_stored_intent(): void {
+		$order    = WC_Helper_Order::create_order();
+		$metadata = $this->mock_webhook_handler->get_metadata_from_order( $order );
+		unset( $metadata['order_key'] );
+
+		$this->mock_webhook_handler->process_payment_intent(
+			json_decode(
+				wp_json_encode(
+					[
+						'type' => 'payment_intent.payment_failed',
+						'data' => [
+							'object' => [
+								'id'       => 'pi_local',
+								'metadata' => $metadata,
+							],
+						],
+					]
+				)
+			)
+		);
+
+		$this->assertSame( OrderStatus::FAILED, wc_get_order( $order->get_id() )->get_status() );
+	}
+
+	/**
+	 * @dataProvider provide_foreign_async_payment_orders
+	 */
+	public function test_signed_foreign_async_payment_cannot_complete_local_order( string $status, bool $has_intent, int $amount, string $currency ): void {
+		$this->configure_webhook_secrets();
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( $status );
+		$order->set_total( 500 );
+		$order->set_currency( 'USD' );
+		if ( $has_intent ) {
+			WC_Stripe_Order_Helper::get_instance()->add_payment_intent_to_order( 'pi_local', $order );
+		}
+		$order->save();
+
+		$charge = [
+			'id'                     => 'ch_foreign',
+			'payment_intent'         => 'pi_foreign',
+			'captured'               => true,
+			'status'                 => 'succeeded',
+			'amount'                 => $amount,
+			'currency'               => $currency,
+			'payment_method_details' => [ 'type' => WC_Stripe_Payment_Methods::SEPA ],
+		];
+		$intent = [
+			'id'                   => 'pi_foreign',
+			'amount'               => $amount,
+			'currency'             => $currency,
+			'payment_method_types' => [ WC_Stripe_Payment_Methods::SEPA ],
+			'charges'              => [ 'data' => [ $charge ] ],
+			'metadata'             => [
+				'order_id'  => $order->get_id(),
+				'order_key' => 'wc_order_foreign',
+				'signature' => $order->get_id() . ':foreign_signature',
+				'site_url'  => 'https://foreign.example',
+			],
+		];
+		$event  = [
+			'id'               => 'evt_foreign_processing',
+			'created'          => time(),
+			'pending_webhooks' => 1,
+			'type'             => 'payment_intent.processing',
+			'data'             => [ 'object' => $intent ],
+		];
+		$this->assertSame( 200, $this->dispatch_signed_webhook( wp_json_encode( $event ) ) );
+		$after_processing = wc_get_order( $order->get_id() );
+		$this->assertSame( $status, $after_processing->get_status() );
+		$this->assertSame( '', $after_processing->get_transaction_id() );
+
+		$event['id']             = 'evt_foreign_succeeded';
+		$event['type']           = 'charge.succeeded';
+		$event['data']['object'] = $charge;
+		$this->assertSame( 200, $this->dispatch_signed_webhook( wp_json_encode( $event ) ) );
+
+		$updated_order = wc_get_order( $order->get_id() );
+		$this->assertSame( $status, $updated_order->get_status() );
+		$this->assertSame( '', $updated_order->get_transaction_id() );
+		$this->assertNull( $updated_order->get_date_paid() );
+		$this->assertEquals( 500, $updated_order->get_total() );
+		$this->assertSame( 'USD', $updated_order->get_currency() );
+	}
+
+	public function provide_foreign_async_payment_orders(): array {
+		return [
+			'failed order with intent, different amount and currency' => [ OrderStatus::FAILED, true, 100, 'eur' ],
+			'pending order without intent, different amount'          => [ OrderStatus::PENDING, false, 100, 'usd' ],
+			'pending order with intent, different currency'           => [ OrderStatus::PENDING, true, 50000, 'eur' ],
+			'failed order without intent, matching amount/currency'   => [ OrderStatus::FAILED, false, 50000, 'usd' ],
+		];
 	}
 
 	/**
