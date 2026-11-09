@@ -555,7 +555,7 @@ class WC_Stripe_REST_Gateway_Settings_Protection_Test extends WP_UnitTestCase {
 
 		return [
 			'API key, placeholder sent back' => [ false, $placeholder, 'sk_live_keepme', $placeholder, true ],
-			'cookie, placeholder sent back'  => [ true, $placeholder, 'sk_live_keepme', 'sk_live_keepme', false ],
+			'cookie, placeholder sent back'  => [ true, $placeholder, 'sk_live_keepme', WC_Stripe_Helper::mask_key_value( 'sk_live_keepme' ), false ],
 			'API key, secret cleared'        => [ false, '', '', '', false ],
 			'cookie, secret cleared'         => [ true, '', '', '', false ],
 		];

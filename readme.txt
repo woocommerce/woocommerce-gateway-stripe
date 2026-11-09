@@ -169,6 +169,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent the same payment intent from being linked to more than one order at checkout
 * Fix - Reject checkout totals too large to convert to a Stripe amount
 * Fix - Protect account credentials in REST API responses
+* Fix - Return Stripe secret keys and webhook secrets masked from the WooCommerce payment gateways REST API
 
 = 11.1.1 - 2026-10-16 =
 
