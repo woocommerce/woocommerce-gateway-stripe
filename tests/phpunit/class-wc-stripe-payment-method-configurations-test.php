@@ -1179,24 +1179,48 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	}
 
 	/**
-	 * Usable PMC returned with pmc_enabled='no': flag flips back to 'yes' (recovery path).
+	 * A rejected update must not overwrite local selections with the pre-update PMC.
+	 *
+	 * @dataProvider recovery_selections_provider
 	 */
-	public function test_refresh_pmc_availability_recovers_from_no_state() {
-		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
-		WC_Stripe_Helper::update_main_stripe_settings( $this->build_connected_test_mode_settings( 'no' ) );
+	public function test_refresh_pmc_availability_recovers_from_no_state( array $local_methods, array $expected_methods, bool $update_fails ): void {
+		$settings = $this->build_connected_test_mode_settings( 'no' );
+		$settings['upe_checkout_experience_accepted_payments'] = $local_methods;
+		$settings['express_checkout']                          = 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		$this->reset_payment_method_configuration_state();
 
-		$instance_property = $this->mock_get_payment_method_configurations_response(
-			(object) [ 'data' => [ (object) self::MOCK_CHILD_TEST_PMC ] ]
-		);
+		$api = $this->createMock( WC_Stripe_API::class );
+		$api->expects( $this->once() )
+			->method( 'get_payment_method_configurations' )
+			->willReturn( (object) [ 'data' => [ $this->mirrored_configuration( [ 'klarna', 'apple_pay' ] ) ] ] );
+		$api->expects( $local_methods ? $this->once() : $this->never() )
+			->method( 'update_payment_method_configurations' )
+			->willReturn(
+				$update_fails
+					? (object) [ 'error' => (object) [ 'message' => 'Update rejected' ] ]
+					: $this->mirrored_configuration( [ 'card', 'klarna', 'apple_pay' ] )
+			);
+		WC_Stripe_API::set_instance( $api );
 
 		WC_Stripe_Payment_Method_Configurations::refresh_pmc_availability();
 
 		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame( 'yes', $updated_settings['pmc_enabled'] );
+		$this->assertSame( $expected_methods, $updated_settings['upe_checkout_experience_accepted_payments'] );
+		$this->assertSame( $update_fails ? 'no' : 'yes', $updated_settings['express_checkout'] );
+		$this->assertSame(
+			$local_methods && ! $update_fails ? [ 'card', 'klarna', 'apple_pay' ] : [ 'klarna', 'apple_pay' ],
+			WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids()
+		);
+	}
 
-		$instance_property->setValue( null, null );
-		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
-
-		$this->assertEquals( 'yes', $updated_settings['pmc_enabled'] );
+	public function recovery_selections_provider(): array {
+		return [
+			'updated PMC'      => [ [ 'card' ], [ 'card', 'klarna' ], false ],
+			'no local methods' => [ [], [ 'klarna' ], false ],
+			'rejected update'  => [ [ 'card' ], [ 'card' ], true ],
+		];
 	}
 
 	/**
@@ -1356,5 +1380,150 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
 
 		$this->assertEquals( 'yes', $updated_settings['pmc_enabled'] );
+	}
+
+	private function mirrored_configuration( array $enabled ): object {
+		$configuration = (object) self::MOCK_CHILD_TEST_PMC;
+		foreach ( [ 'card', 'klarna', 'apple_pay', 'google_pay', 'unsupported_method' ] as $id ) {
+			$configuration->$id = (object) [ 'display_preference' => (object) [ 'value' => in_array( $id, $enabled, true ) ? 'on' : 'off' ] ];
+		}
+		return $configuration;
+	}
+
+	/**
+	 * Reading or saving a PMC updates the fallback only when the effective selections differ.
+	 *
+	 * @dataProvider mirrored_configuration_provider
+	 */
+	public function test_pmc_mirrors_changed_selections( string $path, array $remote, array $expected, string $wallets, bool $active = true ): void {
+		$gateway  = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$settings = array_merge(
+			$this->build_connected_test_mode_settings( 'yes' ),
+			[
+				'upe_checkout_experience_accepted_payments' => [ 'card' ],
+				'express_checkout'                          => 'no',
+				'saved_cards'                               => 'yes',
+				'express_checkout_button_locations'         => [ 'checkout' ],
+			]
+		);
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		$this->reset_payment_method_configuration_state();
+		$configuration         = $this->mirrored_configuration( $remote );
+		$configuration->active = $active;
+		$api                   = $this->createMock( WC_Stripe_API::class );
+		$api->expects( in_array( $path, [ 'fetch', 'refresh' ], true ) ? $this->once() : $this->never() )
+			->method( 'get_payment_method_configurations' )
+			->willReturn( (object) [ 'data' => [ $configuration ] ] );
+		$api->expects( 'update' === $path ? $this->once() : $this->never() )
+			->method( 'update_payment_method_configurations' )
+			->willReturn( $configuration );
+		WC_Stripe_API::set_instance( $api );
+		if ( in_array( $path, [ 'cache', 'update' ], true ) ) {
+			WC_Stripe_Database_Cache::set(
+				WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY,
+				'cache' === $path ? $configuration : $this->mirrored_configuration( [ 'card' ] )
+			);
+		}
+
+		$writes      = 0;
+		$count_write = function () use ( &$writes ) {
+			++$writes;
+		};
+		add_action( 'update_option_woocommerce_stripe_settings', $count_write );
+		try {
+			if ( 'update' === $path ) {
+				$this->assertTrue( WC_Stripe_Payment_Method_Configurations::update_payment_method_configuration( $remote, [ 'card', 'klarna', 'apple_pay', 'google_pay' ] ) );
+			} else {
+				if ( 'refresh' === $path ) {
+					WC_Stripe_Payment_Method_Configurations::refresh_pmc_availability();
+				}
+				WC_Stripe_Payment_Method_Configurations::get_configuration_id();
+				WC_Stripe_Payment_Method_Configurations::get_configuration_id();
+			}
+			$this->assertSame( [ 'card' ] === $expected && 'no' === $wallets ? 0 : 1, $writes );
+		} finally {
+			remove_action( 'update_option_woocommerce_stripe_settings', $count_write );
+		}
+
+		$gateway->update_option( 'saved_cards', 'no' );
+		$updated = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame( $expected, $updated['upe_checkout_experience_accepted_payments'] );
+		$this->assertSame( $wallets, $updated['express_checkout'] );
+		$this->assertSame( [ 'checkout' ], $updated['express_checkout_button_locations'] );
+		$this->assertSame( 'yes', $updated['pmc_enabled'] );
+
+		$updated['pmc_enabled'] = 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $updated );
+		$this->assertSame( $expected ? $expected : [ 'card' ], WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids() );
+	}
+
+	public function mirrored_configuration_provider(): array {
+		$selections = [
+			'unchanged'   => [ [ 'card' ], [ 'card' ], 'no' ],
+			'methods'     => [ [ 'card', 'klarna' ], [ 'card', 'klarna' ], 'no' ],
+			'Apple only'  => [ [ 'card', 'apple_pay' ], [ 'card' ], 'yes' ],
+			'Google only' => [ [ 'card', 'google_pay' ], [ 'card' ], 'yes' ],
+			'both'        => [ [ 'card', 'apple_pay', 'google_pay' ], [ 'card' ], 'yes' ],
+			'empty'       => [ [], [], 'no' ],
+			'unsupported' => [ [ 'card', 'unsupported_method' ], [ 'card' ], 'no' ],
+			'inactive'    => [ [ 'card', 'klarna' ], [ 'card', 'klarna' ], 'no', false ],
+		];
+		$cases      = [];
+		foreach ( [ 'fetch', 'cache', 'refresh', 'update' ] as $path ) {
+			foreach ( $selections as $name => $selection ) {
+				$cases[ $path . ' ' . $name ] = array_merge( [ $path ], $selection );
+			}
+		}
+		return $cases;
+	}
+
+	/**
+	 * @dataProvider unmirrored_configuration_provider
+	 */
+	public function test_pmc_keeps_local_selections_when_sync_is_not_ready( string $pmc_enabled, array $overrides ): void {
+		$settings = array_merge(
+			$this->build_connected_test_mode_settings( $pmc_enabled ),
+			[
+				'upe_checkout_experience_accepted_payments' => [ 'card', 'klarna' ],
+				'express_checkout'                          => 'yes',
+			]
+		);
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		WC_Stripe_Database_Cache::set(
+			WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY,
+			(object) array_merge( (array) $this->mirrored_configuration( [] ), $overrides )
+		);
+
+		WC_Stripe_Payment_Method_Configurations::get_configuration_id();
+
+		$this->assertSame( $settings, WC_Stripe_Helper::get_stripe_settings() );
+	}
+
+	public function unmirrored_configuration_provider(): array {
+		return [
+			'sync disabled'     => [ 'no', [] ],
+			'migration pending' => [ '', [] ],
+			'wrong mode'        => [ 'yes', [ 'livemode' => true ] ],
+			'incomplete'        => [ 'yes', [ 'card' => null ] ],
+			'API error'         => [ 'yes', [ 'error' => (object) [ 'message' => 'Unavailable' ] ] ],
+		];
+	}
+
+	public function test_pmc_persists_a_missing_wallet_setting(): void {
+		WC_Stripe_Helper::update_main_stripe_settings( $this->build_connected_test_mode_settings( 'yes' ) );
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings['upe_checkout_experience_accepted_payments'] = [ 'card' ];
+		unset( $settings['express_checkout'] );
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		$this->assertArrayNotHasKey( 'express_checkout', WC_Stripe_Helper::get_stripe_settings() );
+		WC_Stripe_Database_Cache::set(
+			WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY,
+			$this->mirrored_configuration( [ 'card', 'apple_pay' ] )
+		);
+
+		WC_Stripe_Payment_Method_Configurations::get_configuration_id();
+
+		$this->assertSame( 'yes', WC_Stripe_Helper::get_stripe_settings()['express_checkout'] );
 	}
 }
