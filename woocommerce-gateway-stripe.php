@@ -8,7 +8,6 @@
  * Version: 11.1.1
  * Requires Plugins: woocommerce
  * Requires at least: 6.9
- * Tested up to: 7.1
  * WC requires at least: 11.0
  * WC tested up to: 11.2
  * License: GPLv3
