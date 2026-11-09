@@ -945,6 +945,21 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	public function test_configure_webhooks_records_signing_secret_and_stamps_endpoint() {
 		update_option( WC_Stripe_Account::get_webhook_manual_secret_notice_option( 'test' ), 'yes' );
 		update_option( WC_Stripe_Account::get_webhook_missing_notice_option( 'test' ), 'yes' );
+		$settings            = WC_Stripe_Helper::get_stripe_settings();
+		$settings['logging'] = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$logged_responses = [];
+		$logger           = $this->createMock( WC_Logger::class );
+		$logger->method( 'debug' )->willReturnCallback(
+			function ( $message, $context ) use ( &$logged_responses ) {
+				if ( 'Stripe API response: POST webhook_endpoints' === $message ) {
+					$logged_responses[] = $context['response'];
+				}
+			}
+		);
+		$previous_logger          = WC_Stripe_Logger::$logger;
+		WC_Stripe_Logger::$logger = $logger;
 
 		// No pre-existing endpoints for the post-create cleanup pass.
 		WC_Helper_Stripe_Api::$retrieve_response = (object) [ 'data' => [] ];
@@ -971,9 +986,10 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		add_filter( 'pre_http_request', $mock_request, 10, 3 );
 
 		try {
-			$this->account->configure_webhooks( 'test' );
+			$response = $this->account->configure_webhooks( 'test' );
 		} finally {
 			remove_filter( 'pre_http_request', $mock_request, 10 );
+			WC_Stripe_Logger::$logger = $previous_logger;
 		}
 
 		if ( is_string( $captured_body ) ) {
@@ -989,6 +1005,9 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$this->assertSame( 'whsec_new', $settings['test_webhook_secret'] );
 		$this->assertSame( 'whsec_new', $settings['test_webhook_data']['signing_secret'] );
 		$this->assertSame( 'we_new', $settings['test_webhook_data']['id'] );
+		$this->assertSame( 'whsec_new', $response->secret );
+		$this->assertCount( 1, $logged_responses );
+		$this->assertSame( '[REDACTED]', $logged_responses[0]['secret'] );
 
 		$this->assertFalse( get_option( WC_Stripe_Account::get_webhook_manual_secret_notice_option( 'test' ) ) );
 		$this->assertFalse( get_option( WC_Stripe_Account::get_webhook_missing_notice_option( 'test' ) ) );
