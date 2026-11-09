@@ -4,6 +4,7 @@ xxxx-xx-xx - version 11.1.2
 * Fix - Strengthen order matching when processing payment notifications
 * Fix - Prevent the same payment intent from being linked to more than one order at checkout
 * Fix - Reject checkout totals too large to convert to a Stripe amount
+* Fix - Protect account credentials in REST API responses
 
 2026-10-16 - version 11.1.1
 * Fix - Stop blocking non-Stripe payment gateways on the Pay for Order, change payment method, and add payment method pages

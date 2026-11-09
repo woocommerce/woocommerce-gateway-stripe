@@ -168,6 +168,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Strengthen order matching when processing payment notifications
 * Fix - Prevent the same payment intent from being linked to more than one order at checkout
 * Fix - Reject checkout totals too large to convert to a Stripe amount
+* Fix - Protect account credentials in REST API responses
 
 = 11.1.1 - 2026-10-16 =
 
