@@ -1972,6 +1972,147 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * @since x.x.x
+	 * @dataProvider provide_invalid_authorization_responses
+	 * @param array|null $response Stripe response that cannot authorize an order.
+	 */
+	public function test_process_response_rejects_invalid_authorizations( ?array $response ): void {
+		$order    = WC_Helper_Order::create_order( 0 );
+		$response = null === $response ? null : (object) $response;
+
+		try {
+			$this->gateway->process_response( $response, $order );
+			$this->fail( 'Expected an invalid authorization to be rejected.' );
+		} catch ( WC_Stripe_Exception $exception ) {
+			$this->assertSame( 'invalid_charge_response', $exception->getMessage() );
+			$this->assertSame( 'Payment processing failed. Please retry.', $exception->getLocalizedMessage() );
+		}
+
+		$this->assertSame( 'pending', $order->get_status() );
+		$this->assertSame( '', $order->get_transaction_id() );
+		$this->assertNull( $order->get_date_paid() );
+		$this->assertSame( '', $order->get_meta( '_stripe_charge_captured' ) );
+		$this->assertFalse( $order->get_data_store()->get_stock_reduced( $order->get_id() ) );
+		$this->assertFalse( get_option( 'wc_stripe_transaction_lock_' . ( $response->id ?? '' ) ) );
+		$notes = wc_get_order_notes( [ 'order_id' => $order->get_id() ] );
+		$this->assertSame( $response->outcome->seller_message ?? 'Payment processing failed. Please retry.', $notes[0]->content );
+	}
+
+	/**
+	 * @since x.x.x
+	 */
+	public function test_authorized_charge_can_be_captured_by_staff_status_change(): void {
+		$order = WC_Helper_Order::create_order( 0 );
+		$order->set_payment_method( 'stripe' );
+		$order->update_meta_data( '_stripe_intent_id', 'pi_authorized' );
+		$order->save();
+		$charge           = $this->build_succeeded_charge( 'ch_authorized' );
+		$charge->captured = false;
+		$this->gateway->process_response( $charge, $order );
+		$this->assertSame( 'on-hold', $order->get_status() );
+		$this->assertSame( 'no', $order->get_meta( '_stripe_charge_captured' ) );
+		$this->assertNull( $order->get_date_paid() );
+
+		$capture_requests = 0;
+		$api_response     = function ( $preempt, $args, $url ) use ( $charge, &$capture_requests ) {
+			if ( false === strpos( $url, 'payment_intents/pi_authorized' ) ) {
+				return $preempt;
+			}
+			$is_capture = false !== strpos( $url, '/capture' );
+			if ( $is_capture ) {
+				++$capture_requests;
+				$this->assertSame( 'POST', $args['method'] );
+			}
+			$response_charge           = clone $charge;
+			$response_charge->captured = $is_capture;
+			return [
+				'response' => [ 'code' => 200 ],
+				'headers'  => [],
+				'body'     => wp_json_encode(
+					[
+						'id'      => 'pi_authorized',
+						'status'  => $is_capture ? 'succeeded' : 'requires_capture',
+						'charges' => [ 'data' => [ $response_charge ] ],
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $api_response, 10, 3 );
+		try {
+			$order->update_status( 'processing' );
+		} finally {
+			remove_filter( 'pre_http_request', $api_response, 10 );
+		}
+
+		$order = wc_get_order( $order->get_id() );
+		$this->assertSame( 1, $capture_requests );
+		$this->assertSame( 'processing', $order->get_status() );
+		$this->assertSame( 'yes', $order->get_meta( '_stripe_charge_captured' ) );
+		$this->assertSame( $charge->id, $order->get_transaction_id() );
+		$this->assertNotNull( $order->get_date_paid() );
+	}
+
+	public function provide_invalid_authorization_responses(): array {
+		return [
+			'no charge'                 => [ null ],
+			'awaiting authentication'   => [
+				[
+					'id'            => 'pi_action',
+					'status'        => 'requires_action',
+					'client_secret' => 'pi_action_secret_test',
+				],
+			],
+			'processing intent'         => [
+				[
+					'id'     => 'pi_processing',
+					'status' => 'processing',
+				],
+			],
+			'succeeded intent'          => [
+				[
+					'id'     => 'pi_succeeded',
+					'status' => 'succeeded',
+				],
+			],
+			'failed uncaptured charge'  => [
+				[
+					'id'       => 'ch_failed',
+					'captured' => false,
+					'status'   => 'failed',
+					'outcome'  => (object) [ 'seller_message' => 'The bank declined the payment.' ],
+				],
+			],
+			'pending uncaptured charge' => [
+				[
+					'id'       => 'ch_pending',
+					'captured' => false,
+					'status'   => 'pending',
+				],
+			],
+			'missing charge status'     => [
+				[
+					'id'       => 'ch_missing',
+					'captured' => false,
+				],
+			],
+			'unknown charge status'     => [
+				[
+					'id'       => 'ch_unknown',
+					'captured' => false,
+					'status'   => 'unknown',
+				],
+			],
+			'null captured flag'        => [
+				[
+					'id'       => 'ch_null',
+					'captured' => null,
+					'status'   => 'succeeded',
+				],
+			],
+		];
+	}
+
+	/**
 	 * Builds the minimal succeeded charge `process_response()` needs, keeping the fee lookup and token
 	 * update branches out of the path.
 	 *

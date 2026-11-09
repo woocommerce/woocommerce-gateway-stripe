@@ -1507,6 +1507,93 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @since x.x.x
+	 * @dataProvider provide_unpaid_failed_order_requests
+	 * @param bool   $has_failed_charge Whether an earlier attempt produced a declined charge.
+	 * @param string $capture_setting   Automatic or manual capture setting.
+	 */
+	public function test_update_failed_order_does_not_authorize_unpaid_order( bool $has_failed_charge, string $capture_setting ): void {
+		wp_set_current_user( 0 );
+		Ajax_Test_Helper::init_hooks();
+		$original_post    = $_POST;
+		$original_request = $_REQUEST;
+		$order            = WC_Helper_Order::create_order( 0 );
+		$intent_id        = 'pi_unpaid';
+		$order->set_payment_method( 'stripe' );
+		$order->update_meta_data( '_stripe_intent_id', $intent_id );
+		$order->save();
+		$this->gateway->settings['capture'] = $capture_setting;
+
+		$intent       = [
+			'id'                 => $intent_id,
+			'object'             => 'payment_intent',
+			'status'             => 'requires_action',
+			'last_payment_error' => null,
+			'error'              => null,
+			'latest_charge'      => $has_failed_charge ? 'ch_declined' : null,
+		];
+		$api_response = function ( $preempt, $args, $url ) use ( $intent, $intent_id ) {
+			if ( false !== strpos( $url, 'charges/ch_declined' ) ) {
+				return [
+					'response' => [ 'code' => 200 ],
+					'headers'  => [],
+					'body'     => wp_json_encode(
+						[
+							'id'       => 'ch_declined',
+							'captured' => false,
+							'status'   => 'failed',
+						]
+					),
+				];
+			}
+			if ( false === strpos( $url, 'payment_intents/' . $intent_id ) ) {
+				return $preempt;
+			}
+			return [
+				'response' => [ 'code' => 200 ],
+				'headers'  => [],
+				'body'     => wp_json_encode( $intent ),
+			];
+		};
+		add_filter( 'pre_http_request', $api_response, 10, 3 );
+		$_POST                   = [
+			'order_id'  => $order->get_id(),
+			'intent_id' => $intent_id,
+		];
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_update_failed_order_nonce' );
+
+		ob_start();
+		try {
+			$this->mock_controller->update_failed_order_ajax();
+		} finally {
+			ob_end_clean();
+			remove_filter( 'pre_http_request', $api_response, 10 );
+			Ajax_Test_Helper::remove_hooks();
+			$_POST    = $original_post;
+			$_REQUEST = $original_request;
+		}
+
+		$order = wc_get_order( $order->get_id() );
+		$this->assertSame( 'failed', $order->get_status() );
+		$this->assertSame( '', $order->get_transaction_id() );
+		$this->assertSame( '', $order->get_meta( '_stripe_charge_captured' ) );
+		$this->assertNull( $order->get_date_paid() );
+		$this->assertFalse( $order->get_data_store()->get_stock_reduced( $order->get_id() ) );
+		foreach ( wc_get_order_notes( [ 'order_id' => $order->get_id() ] ) as $note ) {
+			$this->assertStringNotContainsString( 'Stripe charge authorized', $note->content );
+		}
+	}
+
+	public function provide_unpaid_failed_order_requests(): array {
+		return [
+			'no charge, automatic capture'     => [ false, 'yes' ],
+			'no charge, manual capture'        => [ false, 'no' ],
+			'failed charge, automatic capture' => [ true, 'yes' ],
+			'failed charge, manual capture'    => [ true, 'no' ],
+		];
+	}
+
+	/**
 	 * Test that update_order_status_ajax does not fail the order when a customer cancels the payment
 	 * (e.g. closes the Klarna popup), and returns an appropriate JSON error response.
 	 */

@@ -233,7 +233,7 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 									'balance_transaction' => [
 										'id' => 'txn_12345',
 									],
-									'status'              => 'failed',
+									'status'              => false !== strpos( $url, '/capture' ) ? 'failed' : 'succeeded',
 								],
 							],
 						],
