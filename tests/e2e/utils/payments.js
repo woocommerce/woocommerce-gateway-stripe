@@ -1036,6 +1036,21 @@ export async function handleCheckout3DSChallenge( page, action = 'authorize' ) {
 }
 
 /**
+ * Ticks the "Save payment information" checkbox on the Blocks checkout.
+ *
+ * Under block themes the checkbox sits below the fold and the page is still
+ * scrolling when Playwright aims a physical click, so the click lands beside
+ * the checkbox and is lost without an error. A dispatched click cannot miss.
+ *
+ * @param {Page} page Playwright page fixture.
+ */
+export async function tickSavePaymentMethodBlocks( page ) {
+	const checkbox = page.getByLabel( 'Save payment information' );
+	await checkbox.dispatchEvent( 'click' );
+	await expect( checkbox ).toBeChecked();
+}
+
+/**
  * This roundabout way of clicking the Place Order button is an
  * attempt to reduce the flakiness.
  * @param {Page} page Playwright page fixture.
