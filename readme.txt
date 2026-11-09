@@ -166,6 +166,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 = 11.1.2 - xxxx-xx-xx =
 
 * Fix - Strengthen order matching when processing payment notifications
+* Fix - Prevent the same payment intent from being linked to more than one order at checkout
 
 = 11.1.1 - 2026-10-16 =
 
