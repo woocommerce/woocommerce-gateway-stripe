@@ -47,10 +47,13 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 * Mock card payment intent template.
 	 */
 	const MOCK_PAYMENT_INTENT = [
-		'id'      => 'pi_mock',
-		'object'  => 'payment_intent',
-		'status'  => WC_Stripe_Intent_Status::SUCCEEDED,
-		'charges' => [
+		'amount'               => 5000,
+		'currency'             => 'usd',
+		'payment_method_types' => [ 'card' ],
+		'id'                   => 'pi_mock',
+		'object'               => 'payment_intent',
+		'status'               => WC_Stripe_Intent_Status::SUCCEEDED,
+		'charges'              => [
 			'total_count' => 1,
 			'data'        => [
 				[
@@ -786,9 +789,12 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'type' => 'payment_intent.processing',
 			'data' => (object) [
 				'object' => (object) [
-					'id'     => self::MOCK_PAYMENT_INTENT['id'],
-					'object' => 'payment_intent',
-					'status' => WC_Stripe_Intent_Status::PROCESSING,
+					'id'                   => self::MOCK_PAYMENT_INTENT['id'],
+					'object'               => 'payment_intent',
+					'status'               => WC_Stripe_Intent_Status::PROCESSING,
+					'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ),
+					'currency'             => strtolower( $order->get_currency() ),
+					'payment_method_types' => [ 'card' ],
 				],
 			],
 		];
@@ -2201,8 +2207,12 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'type' => $event_type,
 			'data' => [
 				'object' => [
-					'id'                 => 'pi_mock',
-					'charges'            => [
+					'object'               => 'payment_intent',
+					'amount'               => 5000,
+					'currency'             => 'usd',
+					'payment_method_types' => [ 'card' ],
+					'id'                   => 'pi_mock',
+					'charges'              => [
 						[
 							'metadata' => [
 								'order_id'  => $order->get_id(),
@@ -2210,7 +2220,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 							],
 						],
 					],
-					'last_payment_error' => [
+					'last_payment_error'   => [
 						'message' => 'Your card was declined. You can call your bank for details.',
 					],
 				],
@@ -2241,8 +2251,12 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'type' => 'payment_intent.processing',
 			'data' => (object) [
 				'object' => (object) [
-					'id'      => 'pi_mock',
-					'charges' => (object) [
+					'object'               => 'payment_intent',
+					'amount'               => 5000,
+					'currency'             => 'usd',
+					'payment_method_types' => [ 'card' ],
+					'id'                   => 'pi_mock',
+					'charges'              => (object) [
 						'data' => [
 							(object) [
 								'id'       => 'ch_mock',
@@ -2348,7 +2362,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$final_order = wc_get_order( $order->get_id() );
 		$this->assertSame( OrderStatus::ON_HOLD, $final_order->get_status() );
 		$this->assertSame( 0, $process_charge->get_call_count() );
-		$this->assert_order_has_note_matching( '/placed on hold for manual review/i', $final_order->get_id() );
+		$this->assert_order_has_note_matching( '/does not match this order.*on hold for manual review/i', $final_order->get_id() );
 	}
 
 	/**
@@ -2402,7 +2416,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$final_order = wc_get_order( $order->get_id() );
 		$this->assertSame( OrderStatus::ON_HOLD, $final_order->get_status() );
-		$this->assert_order_has_note_matching( '/placed on hold for manual review/i', $final_order->get_id() );
+		$this->assert_order_has_note_matching( '/does not match this order.*on hold for manual review/i', $final_order->get_id() );
 	}
 
 	/**
@@ -2440,7 +2454,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$final_order = wc_get_order( $order->get_id() );
 		$this->assertSame( OrderStatus::ON_HOLD, $final_order->get_status() );
-		$this->assert_order_has_note_matching( '/placed on hold for manual review/i', $final_order->get_id() );
+		$this->assert_order_has_note_matching( '/does not match this order.*on hold for manual review/i', $final_order->get_id() );
 	}
 
 	/**

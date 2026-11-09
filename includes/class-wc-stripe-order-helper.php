@@ -1357,6 +1357,39 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Holds an order for reconciliation when Stripe has taken a payment that no longer matches it.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Order $order  The order being settled.
+	 * @param object   $intent The successful PaymentIntent from Stripe.
+	 * @return bool Whether settlement may proceed.
+	 */
+	public function validate_successful_intent_or_hold_order( WC_Order $order, object $intent ): bool {
+		try {
+			$this->validate_intent_for_order( $order, $intent, '' );
+			return true;
+		} catch ( Exception $e ) {
+			$intent_amount = isset( $intent->amount, $intent->currency )
+				? strtoupper( $intent->currency ) . ' ' . WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( $intent->amount, $intent->currency )
+				: __( 'unknown amount', 'woocommerce-gateway-stripe' );
+			$order->add_order_note(
+				sprintf(
+					/* translators: 1) PaymentIntent ID 2) payment amount and currency 3) order total and currency. */
+					__( 'Stripe PaymentIntent %1$s (%2$s) does not match this order (%3$s). The order is on hold for manual review.', 'woocommerce-gateway-stripe' ),
+					$intent->id ?? '',
+					$intent_amount,
+					$order->get_currency() . ' ' . $order->get_total()
+				)
+			);
+			// The payment needs manual reconciliation before the order can be fulfilled.
+			$order->update_status( OrderStatus::ON_HOLD );
+			return false;
+		}
+	}
+
+
+	/**
 	 * Whether the succeeded PaymentIntent settled for the order's amount.
 	 *
 	 * Returns true when there is no comparable amount to check: setup intents and intents that omit

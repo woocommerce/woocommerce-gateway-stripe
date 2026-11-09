@@ -3492,6 +3492,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			// If the intent is already successful, return it to prevent duplicate charges
 			if ( isset( $intent->status ) && in_array( $intent->status, WC_Stripe_Intent_Status::SUCCESSFUL_STATUSES, true ) ) {
+				// A retry can change the order total after payment. The newly selected method
+				// did not fund this intent, so only its amount, currency and identity must match.
+				try {
+					WC_Stripe_Order_Helper::get_instance()->validate_intent_for_order( $order, $intent, '' );
+				} catch ( Exception $e ) {
+					throw new WC_Stripe_Exception(
+						'The successful payment intent stored on the order no longer matches the order.',
+						__( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+					);
+				}
 				return $intent;
 			}
 		}
@@ -5086,6 +5096,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return void
 	 */
 	protected function handle_intent_verification_success( \WC_Order $order, stdClass $intent ): void {
+		if ( ! WC_Stripe_Order_Helper::get_instance()->validate_successful_intent_or_hold_order( $order, $intent ) ) {
+			return;
+		}
+
 		$this->process_response( $this->get_latest_charge_from_intent( $intent ), $order );
 		$this->maybe_process_subscription_early_renewal_success( $order, $intent );
 	}

@@ -607,6 +607,10 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		$intent_status = $intent->status ?? '';
 
 		try {
+			if ( ! $order_helper->validate_successful_intent_or_hold_order( $order, $intent ) ) {
+				return;
+			}
+
 			$charge = $this->get_latest_charge_from_intent( $intent );
 
 			if ( ! is_object( $charge ) ) {
