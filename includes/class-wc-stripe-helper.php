@@ -178,6 +178,19 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Masks an API key or webhook secret so that it can be sent to the client.
+	 * Only the first ten and the last two characters stay visible.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param string $value The key or secret.
+	 * @return string
+	 */
+	public static function mask_key_value( $value ): string {
+		return substr( $value, 0, 10 ) . str_repeat( '*', 50 ) . substr( $value, -2 );
+	}
+
+	/**
 	 * Delete the main Stripe settings option.
 	 *
 	 * @return void
