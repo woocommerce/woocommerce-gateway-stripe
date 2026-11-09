@@ -991,27 +991,11 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		// get_available_variations() is defined on WC_Product_Variable and WC_Product_Variable_Subscription, so should be available on both class types.
 		if ( $is_product && $product && in_array( $product->get_type(), [ ProductType::VARIABLE, 'variable-subscription' ], true ) && method_exists( $product, 'get_available_variations' ) ) {
-			$some_variation_has_stock = false;
-			$all_variations           = $product->get_available_variations( 'objects' );
-
-			foreach ( $all_variations as $variation ) {
-				// We expect get_available_variations() to return WC_Product_Variation objects, but we may
-				// get an array on older WooCommerce versions or from other variation implementations.
-				if ( is_object( $variation ) && method_exists( $variation, 'is_in_stock' ) ) {
-					if ( $variation->is_in_stock() ) {
-						$some_variation_has_stock = true;
-						break;
-					}
-				} elseif ( is_array( $variation ) && array_key_exists( 'is_in_stock', $variation ) ) {
-					if ( $variation['is_in_stock'] ) {
-						$some_variation_has_stock = true;
-						break;
-					}
-				}
-			}
+			// Request the variations as objects to avoid unnecessary render work.
+			$all_variations = $product->get_available_variations( 'objects' );
 
 			// Don't show if all product variations are out-of-stock.
-			if ( ! $some_variation_has_stock ) {
+			if ( ! $this->some_variation_has_stock( $all_variations ) ) {
 				if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
 					WC_Stripe_Logger::debug( 'Stripe Express Checkout is hidden due to product variations being out of stock. Product ID: ' . $product->get_id() );
 				}
@@ -1050,6 +1034,34 @@ class WC_Stripe_Express_Checkout_Helper {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Returns true if one of the variations has stock, false otherwise.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param array $variations The variations to check.
+	 * @return bool True if one of the variations has stock, false otherwise.
+	 */
+	private function some_variation_has_stock( $variations ): bool {
+		if ( ! is_array( $variations ) ) {
+			return false;
+		}
+
+		foreach ( $variations as $variation ) {
+			// We expect get_available_variations() to return WC_Product_Variation objects, but we may
+			// get an array on older WooCommerce versions or from other variation implementations.
+			if ( is_object( $variation ) && method_exists( $variation, 'is_in_stock' ) && $variation->is_in_stock() ) {
+				return true;
+			}
+
+			if ( is_array( $variation ) && array_key_exists( 'is_in_stock', $variation ) && $variation['is_in_stock'] ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
