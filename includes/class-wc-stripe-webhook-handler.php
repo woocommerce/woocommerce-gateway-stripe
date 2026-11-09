@@ -2565,25 +2565,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$order_helper->add_payment_intent_to_order( $intent_id, $order );
 			}
 
-			// Add presentment details if available.
+			// Add presentment details if available. The order note is added only after a charge
+			// exists, so a missing-charge retry does not record it again.
 			$presentment_details = $checkout_session->presentment_details ?? null;
 			if ( $presentment_details && isset( $presentment_details->presentment_currency, $presentment_details->presentment_amount ) ) {
 				$order_helper->update_stripe_presentment_currency( $order, $presentment_details->presentment_currency );
 				$order_helper->update_stripe_presentment_amount( $order, $presentment_details->presentment_amount );
-
-				$amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
-					$presentment_details->presentment_amount,
-					$presentment_details->presentment_currency
-				);
-
-				$order->add_order_note(
-					sprintf(
-						/* translators: 1) presentment currency 2) presentment amount */
-						__( 'Local currency purchase via Adaptive Pricing. Amount paid was: %1$s %2$s', 'woocommerce-gateway-stripe' ),
-						strtoupper( $presentment_details->presentment_currency ),
-						$amount
-					)
-				);
 			}
 
 			$intent = $this->get_intent_from_order( $order );
@@ -2635,10 +2622,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			$order->save();
 
-			// A completed Checkout Session can race the charge becoming available on the PaymentIntent.
-			// Assigning to a null charge fatals the webhook; defer like the locked-order path so a later
-			// retry can settle once get_latest_charge_from_intent() returns an object. Bound retries with
-			// the Adaptive Pricing order-lookup budget so a session that never gains a charge stops.
+			// Make sure we have a charge. If not, log a note and queue up a deferred retry.
+			// We will only retry up to $this->adaptive_pricing_order_lookup_max_retries times.
 			if ( ! $charge ) {
 				WC_Stripe_Logger::info(
 					'Checkout session settlement deferred: no charge on PaymentIntent yet.',
@@ -2672,6 +2657,22 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					]
 				);
 				return false;
+			}
+
+			if ( $presentment_details && isset( $presentment_details->presentment_currency, $presentment_details->presentment_amount ) ) {
+				$amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
+					$presentment_details->presentment_amount,
+					$presentment_details->presentment_currency
+				);
+
+				$order->add_order_note(
+					sprintf(
+						/* translators: 1) presentment currency 2) presentment amount */
+						__( 'Local currency purchase via Adaptive Pricing. Amount paid was: %1$s %2$s', 'woocommerce-gateway-stripe' ),
+						strtoupper( $presentment_details->presentment_currency ),
+						$amount
+					)
+				);
 			}
 
 			$charge->is_webhook_response = true;
