@@ -1472,6 +1472,15 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				if ( $is_voucher_payment || $is_wallet_payment || $is_blik_payment || ( ! $process_webhook_async && ! $is_awaiting_action ) ) {
 					$charge = $this->get_latest_charge_from_intent( $intent );
 
+					// Confirm the intent settled for the order's amount before recording payment.
+					// Checked ahead of the pre-order branch so a charged-upfront pre-order whose
+					// total drifted above the charge is held, not marked paid. The check holds the
+					// order on a mismatch.
+					if ( $this->maybe_hold_order_for_amount_mismatch( $order, $intent ) ) {
+						$this->run_webhook_received_action( (string) $notification->type, $notification );
+						break;
+					}
+
 					if ( $this->maybe_mark_order_as_pre_ordered( $order, $charge ) ) {
 						$this->run_webhook_received_action( (string) $notification->type, $notification );
 						break;
@@ -1961,6 +1970,24 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Holds the order and returns true when the succeeded intent settled for a different amount.
+	 *
+	 * @param WC_Order $order  The order being settled.
+	 * @param object   $intent The succeeded PaymentIntent.
+	 * @return bool True when the order was held for an amount mismatch; false when settlement may proceed.
+	 */
+	private function maybe_hold_order_for_amount_mismatch( $order, $intent ): bool {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		if ( $order_helper->intent_amount_matches_order( $order, $intent ) ) {
+			return false;
+		}
+
+		$order_helper->hold_order_for_amount_mismatch( $order, $intent );
+		return true;
+	}
+
+	/**
 	 * Handles a deferred payment_intent.succeeded event.
 	 *
 	 * @param WC_Order $order     The order object.
@@ -1982,6 +2009,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		WC_Stripe_Logger::info( "Processing Stripe PaymentIntent {$intent_id} for order {$order->get_id()} via deferred webhook." );
+
+		// Confirm the intent settled for the order's amount before recording payment. Checked
+		// ahead of the pre-order branch so a charged-upfront pre-order whose total drifted above
+		// the charge is held, not marked paid. The check holds the order on a mismatch.
+		if ( $this->maybe_hold_order_for_amount_mismatch( $order, $intent ) ) {
+			return;
+		}
 
 		if ( $this->maybe_mark_order_as_pre_ordered( $order, $charge ) ) {
 			return;

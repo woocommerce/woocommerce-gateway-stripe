@@ -4997,6 +4997,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @param \WC_Order $order The order which is in a transitional state.
 	 * @return void
+	 * @throws WC_Stripe_Exception When the confirmed intent no longer matches the order (amount, currency, or payment type).
 	 */
 	public function verify_intent_after_checkout( \WC_Order $order ): void {
 		$payment_method = $order->get_payment_method();
@@ -5041,6 +5042,25 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				$order->payment_complete();
 			}
 		} elseif ( WC_Stripe_Intent_Status::SUCCEEDED === $intent->status || WC_Stripe_Intent_Status::REQUIRES_CAPTURE === $intent->status ) {
+			// The order total can drift above the amount authorized on the intent between
+			// intent creation and this confirmation (for example when Store API coupon
+			// revalidation drops a coupon and persists a higher total without re-syncing the
+			// intent). Confirm the settled amount still matches before completing, so the order
+			// cannot be marked paid for more than Stripe authorized. Only the amount can drift on
+			// this path (the intent is the order's own succeeded intent), so this checks the amount
+			// rather than validate_intent_for_order(), whose note would otherwise blame the amount
+			// for a currency or payment-type difference.
+			// $order is already confirmed to be a WC_Order by the has_status() call above; the
+			// guard only narrows the type for the amount check.
+			if ( $order instanceof WC_Order && ! $order_helper->intent_amount_matches_order( $order, $intent ) ) {
+				// Stripe already charged the smaller amount, so hold the order for review with a note
+				// instead of leaving it pending with nothing recorded, and clear the awaiting-action meta.
+				$order_helper->hold_order_for_amount_mismatch( $order, $intent );
+				$order_helper->unlock_order_payment( $order );
+				$order_helper->remove_payment_awaiting_action( $order );
+				throw new WC_Stripe_Exception( 'intent_order_mismatch', __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			}
+
 			// Proceed with the payment completion.
 			$this->handle_intent_verification_success( $order, $intent );
 		} elseif ( WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD === $intent->status ) {
