@@ -559,11 +559,62 @@ class WC_Stripe_Intent_Controller {
 			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
+		// The request-supplied intent could already belong to another order (BLIK/ACSS reuse it).
+		// Lock the ownership check and the write so a concurrent request cannot double-link it.
+		$is_lockable_intent = is_string( $intent_id ) && ( 0 === strpos( $intent_id, 'pi_' ) || 0 === strpos( $intent_id, 'seti_' ) );
+		$lock_name          = $is_lockable_intent ? 'wc_stripe_intent_lock_' . $intent_id : '';
+		$lock_owner         = $is_lockable_intent ? WC_Stripe_Option_Lock::acquire( $lock_name, 5 * MINUTE_IN_SECONDS ) : null;
+
+		if ( $is_lockable_intent && null === $lock_owner ) {
+			WC_Stripe_Logger::error(
+				'Intent is being processed by another request.',
+				[
+					'intent_id' => $intent_id,
+					'order_id'  => $order_id,
+				]
+			);
+			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+
+		try {
+			if ( $is_lockable_intent && $this->is_intent_linked_to_another_order( $intent_id, $order ) ) {
+				WC_Stripe_Logger::error(
+					'Intent is already linked to another order.',
+					[
+						'intent_id' => $intent_id,
+						'order_id'  => $order_id,
+					]
+				);
+				throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			}
+
+			return $this->update_locked_intent( $intent_id, $order, (bool) $save_payment_method, (string) $selected_upe_payment_type );
+		} finally {
+			if ( null !== $lock_owner ) {
+				WC_Stripe_Option_Lock::release( $lock_name, $lock_owner );
+			}
+		}
+	}
+
+	/**
+	 * Updates the Stripe intent and binds it to the order, under the per-intent lock update_intent() holds.
+	 *
+	 * @param string   $intent_id                 The intent id to update.
+	 * @param WC_Order $order                     The order to bind it to.
+	 * @param boolean  $save_payment_method       True if saving the payment method.
+	 * @param string   $selected_upe_payment_type The selected UPE payment type, or empty string.
+	 *
+	 * @throws Exception If the update intent call returns with an error.
+	 * @return array
+	 */
+	private function update_locked_intent( string $intent_id, WC_Order $order, bool $save_payment_method, string $selected_upe_payment_type ) {
+		$order_id = $order->get_id();
+
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
-		$selected_payment_type = '' !== $selected_upe_payment_type && is_string( $selected_upe_payment_type ) ? $selected_upe_payment_type : null;
+		$selected_payment_type = '' !== $selected_upe_payment_type ? $selected_upe_payment_type : null;
 		$intent                = $intent_id;
-		if ( is_string( $intent_id ) && '' !== $intent_id ) {
+		if ( '' !== $intent_id ) {
 			$intent = $this->retrieve_intent( $intent_id ) ?? $intent_id;
 			if ( is_object( $intent ) && empty( $intent->error ) ) {
 				$this->maybe_release_stale_order_intent( $order, $intent, $selected_payment_type );
@@ -683,6 +734,31 @@ class WC_Stripe_Intent_Controller {
 		return [
 			'success' => true,
 		];
+	}
+
+	/**
+	 * Whether the intent id is already stored on a different order (as a payment or setup intent).
+	 *
+	 * @param string   $intent_id The intent id from the request.
+	 * @param WC_Order $order     The order being updated, excluded from the match.
+	 * @return bool
+	 */
+	private function is_intent_linked_to_another_order( string $intent_id, WC_Order $order ): bool {
+		$order_id = $order->get_id();
+
+		$linked = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
+		if ( $linked instanceof WC_Order && $linked->get_id() !== $order_id ) {
+			return true;
+		}
+
+		if ( 0 === strpos( $intent_id, 'seti_' ) ) {
+			$linked = WC_Stripe_Helper::get_order_by_setup_intent_id( $intent_id );
+			if ( $linked instanceof WC_Order && $linked->get_id() !== $order_id ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**

@@ -2053,12 +2053,6 @@ parameters:
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
-			message: '#^Parameter \#1 \$order_id of method WC_Stripe_Payment_Gateway\:\:has_subscription\(\) expects int, int\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
 			message: '#^Parameter \#1 \$payment_method_id of static method WC_Stripe_API\:\:get_payment_method\(\) expects string, array\|string given\.$#'
 			identifier: argument.type
 			count: 1

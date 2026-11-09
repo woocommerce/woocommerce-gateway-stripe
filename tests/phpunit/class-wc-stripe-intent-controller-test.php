@@ -2486,6 +2486,117 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Records whether any Stripe API call is made, preempting it so no real request goes out.
+	 *
+	 * @param bool $called Set to true by reference when api.stripe.com is contacted.
+	 * @return void
+	 */
+	private function spy_on_stripe_requests( bool &$called ): void {
+		add_filter(
+			'pre_http_request',
+			function ( $preempt, $args, $url ) use ( &$called ) {
+				if ( false !== strpos( (string) $url, 'api.stripe.com' ) ) {
+					$called = true;
+					return [
+						'response' => [ 'code' => 200 ],
+						'headers'  => [ 'Content-Type' => 'application/json' ],
+						'body'     => wp_json_encode( [ 'error' => [ 'message' => 'unexpected call in test' ] ] ),
+					];
+				}
+				return $preempt;
+			},
+			10,
+			3
+		);
+	}
+
+	/**
+	 * A payment intent stored on another order is refused before any Stripe call, and the order keeps no intent.
+	 *
+	 * @return void
+	 */
+	public function test_update_intent_rejects_a_payment_intent_linked_to_another_order(): void {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$other_order  = WC_Helper_Order::create_order();
+		$order_helper->update_stripe_intent_id( $other_order, 'pi_shared' );
+		$other_order->save();
+
+		$stripe_called = false;
+		$this->spy_on_stripe_requests( $stripe_called );
+
+		$threw = false;
+		try {
+			$this->mock_controller->update_intent( 'pi_shared', $this->order->get_id(), false, WC_Stripe_Payment_Methods::BLIK );
+		} catch ( Exception $e ) {
+			$threw = true;
+		}
+
+		$this->assertTrue( $threw, 'update_intent should refuse an intent already linked to another order.' );
+		$this->assertFalse( $stripe_called, 'The cross-order check must reject before any Stripe call.' );
+		$this->assertSame( '', $order_helper->get_stripe_intent_id( wc_get_order( $this->order->get_id() ) ) );
+
+		// The lock must be released on rejection, or the shopper is locked out of retrying for its TTL.
+		$owner = WC_Stripe_Option_Lock::acquire( 'wc_stripe_intent_lock_pi_shared', 60 );
+		$this->assertIsString( $owner, 'The per-intent lock should be free after a rejected update_intent().' );
+		WC_Stripe_Option_Lock::release( 'wc_stripe_intent_lock_pi_shared', $owner );
+	}
+
+	/**
+	 * A setup intent stored on another order (in _stripe_setup_intent) is refused before any Stripe call.
+	 *
+	 * @return void
+	 */
+	public function test_update_intent_rejects_a_setup_intent_linked_to_another_order(): void {
+		$other_order = WC_Helper_Order::create_order();
+		$other_order->update_meta_data( '_stripe_setup_intent', 'seti_shared' );
+		$other_order->save();
+
+		$stripe_called = false;
+		$this->spy_on_stripe_requests( $stripe_called );
+
+		$threw = false;
+		try {
+			$this->mock_controller->update_intent( 'seti_shared', $this->order->get_id(), false, WC_Stripe_Payment_Methods::BLIK );
+		} catch ( Exception $e ) {
+			$threw = true;
+		}
+
+		$this->assertTrue( $threw, 'update_intent should refuse a setup intent already linked to another order.' );
+		$this->assertFalse( $stripe_called, 'The cross-order check must reject before any Stripe call.' );
+
+		// The lock must be released on rejection, or the shopper is locked out of retrying for its TTL.
+		$owner = WC_Stripe_Option_Lock::acquire( 'wc_stripe_intent_lock_seti_shared', 60 );
+		$this->assertIsString( $owner, 'The per-intent lock should be free after a rejected update_intent().' );
+		WC_Stripe_Option_Lock::release( 'wc_stripe_intent_lock_seti_shared', $owner );
+	}
+
+	/**
+	 * While the per-intent lock is held, a second update_intent() for that intent is refused before any Stripe call.
+	 *
+	 * @return void
+	 */
+	public function test_update_intent_rejects_when_the_intent_lock_is_held(): void {
+		$lock_name = 'wc_stripe_intent_lock_pi_locked';
+		$owner     = WC_Stripe_Option_Lock::acquire( $lock_name, 5 * MINUTE_IN_SECONDS );
+		$this->assertIsString( $owner );
+
+		$stripe_called = false;
+		$this->spy_on_stripe_requests( $stripe_called );
+
+		$threw = false;
+		try {
+			$this->mock_controller->update_intent( 'pi_locked', $this->order->get_id(), false, WC_Stripe_Payment_Methods::BLIK );
+		} catch ( Exception $e ) {
+			$threw = true;
+		} finally {
+			WC_Stripe_Option_Lock::release( $lock_name, $owner );
+		}
+
+		$this->assertTrue( $threw, 'update_intent should refuse while the intent lock is held.' );
+		$this->assertFalse( $stripe_called, 'A held intent lock must reject before any Stripe call.' );
+	}
+
+	/**
 	 * Malformed intent IDs must be rejected before any Stripe request is sent.
 	 *
 	 * @dataProvider provide_malformed_intent_ids
