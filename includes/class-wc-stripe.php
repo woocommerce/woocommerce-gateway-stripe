@@ -227,6 +227,7 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-payment-tokens.php';
 		if ( self::$instance === $this ) {
 			( new WC_Stripe_Payment_Tokens() )->register_hooks();
+			( new WC_Stripe_REST_Gateway_Settings_Protection() )->register_hooks();
 		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-customer.php';
