@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { expect } from '@playwright/test';
 import config from 'config';
 import { verifyOrderChargedAmount } from './admin';
@@ -471,6 +472,23 @@ export async function fillCreditCardDetailsShortcodeLegacy( page, card ) {
 }
 
 /**
+ * Every fixture address shares one billing email, and the plugin's duplicate-payment
+ * guard refuses a checkout whose cart and email match another one in flight. Tests
+ * running in parallel buy the same product, so each checkout gets its own email
+ * unless the caller chose one.
+ *
+ * @param {Object|null} billingDetails The billing details in the format provided on the test-data.
+ * @returns {Object|null} The billing details to enter.
+ */
+const withUniqueEmail = ( billingDetails ) =>
+	billingDetails?.email === config.get( 'addresses.customer.billing.email' )
+		? {
+				...billingDetails,
+				email: `stripe-e2e-${ randomUUID() }@example.com`,
+		  }
+		: billingDetails;
+
+/**
  * Go to the shortcode checkout page, enter the billing information, and select the payment gateway.
  * If billingDetails are empty, they're skipped.
  * @param {Page} page Playwright page fixture.
@@ -483,6 +501,7 @@ export async function setupShortcodeCheckout(
 	billingDetails = null,
 	options = {}
 ) {
+	billingDetails = withUniqueEmail( billingDetails );
 	await page.goto( '/checkout-shortcode/' );
 
 	if ( billingDetails ) {
@@ -542,6 +561,7 @@ export async function setupBlocksCheckout(
 	billingDetails = null,
 	options = {}
 ) {
+	billingDetails = withUniqueEmail( billingDetails );
 	await page.goto( '/checkout/' );
 	const stripeMethod = page.locator(
 		"label[for='radio-control-wc-payment-method-options-stripe']"
@@ -636,6 +656,65 @@ export async function setupBlocksCheckout(
 }
 
 /**
+ * Select a payment method on the Blocks checkout and confirm it took.
+ *
+ * The payment options re-render while express checkout and totals settle, and
+ * a click landing mid re-render is lost, so re-click until the radio is checked.
+ *
+ * @param {Page}   page      Playwright page fixture.
+ * @param {string} gatewayId The gateway ID, e.g. `stripe_us_bank_account`.
+ */
+const selectBlocksPaymentMethod = async ( page, gatewayId ) => {
+	const radio = page.locator(
+		`#radio-control-wc-payment-method-options-${ gatewayId }`
+	);
+	const label = page.locator(
+		`label[for='radio-control-wc-payment-method-options-${ gatewayId }']`
+	);
+	await label.waitFor( { state: 'visible' } );
+	await retryWithBackoff( async () => {
+		if ( ! ( await radio.isChecked() ) ) {
+			// Bounded so a blocked click fails into the next retry.
+			await label.click( { timeout: 5000 } );
+		}
+		await expect( radio ).toBeChecked( { timeout: 5000 } );
+	} );
+};
+
+/**
+ * Select a payment method on the shortcode checkout and confirm it took.
+ *
+ * Selecting a gateway triggers an update_checkout refresh that swaps the
+ * payment fragment and re-checks the method selected when the request was
+ * sent, reverting a click that races it. The refresh starts a beat after the
+ * click, so wait for the overlay to appear (tolerating a missed fast cycle)
+ * and clear, then verify the radio.
+ *
+ * @param {Page}   page      Playwright page fixture.
+ * @param {string} gatewayId The gateway ID, e.g. `stripe_us_bank_account`.
+ */
+const selectShortcodePaymentMethod = async ( page, gatewayId ) => {
+	const radio = page.locator( `#payment_method_${ gatewayId }` );
+	const label = page.locator( `label[for='payment_method_${ gatewayId }']` );
+	const overlay = page.locator( '.blockUI.blockOverlay' ).first();
+	await label.waitFor( { state: 'visible' } );
+	await retryWithBackoff( async () => {
+		if ( ! ( await radio.isChecked() ) ) {
+			// Bounded so a blocked click fails into the next retry.
+			await label.click( { timeout: 5000 } );
+		}
+		await overlay
+			.waitFor( { state: 'visible', timeout: 5000 } )
+			.catch( () => {} );
+		await overlay.waitFor( { state: 'hidden', timeout: 30000 } );
+		await expect( radio ).toBeChecked();
+		await expect(
+			page.locator( `.payment_box.payment_method_${ gatewayId }` )
+		).toBeVisible();
+	} );
+};
+
+/**
  * Set up the checkout page for ACH payment.
  * @param {Page} page Playwright page fixture.
  * @param {string} checkoutType The type of checkout ('blocks' or 'shortcode').
@@ -658,18 +737,7 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 			config.get( 'addresses.customer.billing' )
 		);
 
-		// Select ACH in blocks checkout via the associated label, since the
-		// underlying input can be covered by parent elements during animation.
-		const achOption = page.locator(
-			'#radio-control-wc-payment-method-options-stripe_us_bank_account'
-		);
-		const achOptionLabel = page.locator(
-			"label[for='radio-control-wc-payment-method-options-stripe_us_bank_account']"
-		);
-		await achOption.waitFor( { state: 'attached' } );
-		await expect( achOptionLabel ).toContainText( 'ACH Direct Debit' );
-		await achOptionLabel.click();
-		await expect( achOption ).toBeChecked();
+		await selectBlocksPaymentMethod( page, 'stripe_us_bank_account' );
 	} else {
 		paymentMethodContentSelector =
 			'.wc_payment_method.payment_method_stripe_us_bank_account';
@@ -680,18 +748,7 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 			config.get( 'addresses.customer.billing' )
 		);
 
-		// Select ACH in shortcode checkout via the associated label, since direct
-		// clicks on the hidden radio input can be intercepted.
-		const achOption = page.locator(
-			'#payment_method_stripe_us_bank_account'
-		);
-		const achOptionLabel = page.locator(
-			"label[for='payment_method_stripe_us_bank_account']"
-		);
-		await achOption.waitFor( { state: 'attached' } );
-		await expect( achOptionLabel ).toContainText( 'ACH Direct Debit' );
-		await achOptionLabel.click();
-		await expect( achOption ).toBeChecked();
+		await selectShortcodePaymentMethod( page, 'stripe_us_bank_account' );
 	}
 
 	await expect( page.locator( paymentMethodContentSelector ) ).toBeVisible();
@@ -795,53 +852,14 @@ export const setupACSSCheckout = async ( page, checkoutType = 'blocks' ) => {
 			config.get( 'addresses.customer_canada.billing' )
 		);
 
-		// The payment options re-render while express checkout and totals
-		// settle, and a click landing mid re-render is lost; verify the radio.
-		const acssRadio = page.locator(
-			'#radio-control-wc-payment-method-options-stripe_acss_debit'
-		);
-		const acssLabel = page
-			.locator( 'label' )
-			.filter( { hasText: 'Pre-Authorized Debit' } );
-		await acssLabel.waitFor( { state: 'visible' } );
-		await retryWithBackoff( async () => {
-			if ( ! ( await acssRadio.isChecked() ) ) {
-				// Bounded so a blocked click fails into the next retry.
-				await acssLabel.click( { timeout: 5000 } );
-			}
-			await expect( acssRadio ).toBeChecked();
-		} );
+		await selectBlocksPaymentMethod( page, 'stripe_acss_debit' );
 	} else {
 		await setupShortcodeCheckout(
 			page,
 			config.get( 'addresses.customer_canada.billing' )
 		);
 
-		// Selecting a gateway triggers an update_checkout refresh that swaps
-		// the payment fragment and re-checks the method selected when the
-		// request was sent, reverting a click that races it. The refresh
-		// starts a beat after the click, so wait for the overlay to appear
-		// (tolerating a missed fast cycle) and clear, then verify the radio.
-		const acssRadio = page.locator( '#payment_method_stripe_acss_debit' );
-		const acssLabel = page.locator(
-			"label[for='payment_method_stripe_acss_debit']"
-		);
-		const overlay = page.locator( '.blockUI.blockOverlay' ).first();
-		await acssLabel.waitFor( { state: 'visible' } );
-		await retryWithBackoff( async () => {
-			if ( ! ( await acssRadio.isChecked() ) ) {
-				// Bounded so a blocked click fails into the next retry.
-				await acssLabel.click( { timeout: 5000 } );
-			}
-			await overlay
-				.waitFor( { state: 'visible', timeout: 5000 } )
-				.catch( () => {} );
-			await overlay.waitFor( { state: 'hidden', timeout: 30000 } );
-			await expect( acssRadio ).toBeChecked();
-			await expect(
-				page.locator( '.payment_box.payment_method_stripe_acss_debit' )
-			).toBeVisible();
-		} );
+		await selectShortcodePaymentMethod( page, 'stripe_acss_debit' );
 
 		// The element mounts into the swapped-in fragment only after a fresh
 		// intent is created; submitting before that fails Stripe's validation
@@ -1367,9 +1385,7 @@ export const setupAffirmCheckout = async ( page, checkoutType = 'blocks' ) => {
 
 	// Wait for the payment method selector to be available
 	if ( isBlocks ) {
-		const affirmLabel = page.locator( 'label', { hasText: 'Affirm' } );
-		await affirmLabel.waitFor( { state: 'visible' } );
-		await affirmLabel.click();
+		await selectBlocksPaymentMethod( page, 'stripe_affirm' );
 		await expect(
 			page
 				.frameLocator(
@@ -1378,9 +1394,7 @@ export const setupAffirmCheckout = async ( page, checkoutType = 'blocks' ) => {
 				.getByTestId( 'next-action-text' )
 		).toBeAttached();
 	} else {
-		const affirmLabel = page.getByText( 'Affirm' );
-		await affirmLabel.waitFor( { state: 'visible' } );
-		await affirmLabel.click();
+		await selectShortcodePaymentMethod( page, 'stripe_affirm' );
 		await expect(
 			page
 				.frameLocator(
@@ -1413,9 +1427,7 @@ export const setupKlarnaCheckout = async ( page, checkoutType = 'blocks' ) => {
 
 	// Wait for the payment method selector to be available
 	if ( isBlocks ) {
-		const klarnaLabel = page.locator( 'label', { hasText: 'Klarna' } );
-		await klarnaLabel.waitFor( { state: 'visible' } );
-		await klarnaLabel.click();
+		await selectBlocksPaymentMethod( page, 'stripe_klarna' );
 		await expect(
 			page
 				.frameLocator(
@@ -1424,9 +1436,7 @@ export const setupKlarnaCheckout = async ( page, checkoutType = 'blocks' ) => {
 				.getByTestId( 'next-action-text' )
 		).toBeVisible();
 	} else {
-		const klarnaLabel = page.getByText( 'Klarna' );
-		await klarnaLabel.waitFor( { state: 'visible' } );
-		await klarnaLabel.click();
+		await selectShortcodePaymentMethod( page, 'stripe_klarna' );
 		await expect(
 			page
 				.frameLocator(
