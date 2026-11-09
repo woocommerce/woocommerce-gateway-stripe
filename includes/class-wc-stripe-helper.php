@@ -1360,7 +1360,10 @@ class WC_Stripe_Helper {
 		}
 
 		$properties = [
-			'source' => $source,
+			// Note that the default event property is `is_test_mode`, but `test_mode` is
+			// needed for backwards compatibility.
+			'test_mode' => WC_Stripe_Mode::is_test() ? 1 : 0,
+			'source'    => $source,
 		];
 
 		if ( null !== $skipped_reason ) {
