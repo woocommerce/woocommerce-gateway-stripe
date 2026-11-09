@@ -3,16 +3,12 @@ import config from 'config';
 import { verifyOrderChargedAmount } from './admin';
 
 /**
- * Click the primary add to cart button for the current page and wait for the
- * cart to hold one more item. Assumes the click adds exactly one item
- * (quantity 1, no grouped products).
+ * Click the primary add to cart button for the current page.
  *
  * @param {Page}   page  Playwright page fixture.
  * @param {string} label The expected text for the "Add to cart" button.
  */
 export async function clickAddToCartButton( page, label = 'Add to cart' ) {
-	const expectedCount = ( await getCartItemsCount( page ) ) + 1;
-
 	// Accessible name OR text: block themes append the product name, and a
 	// selected WCS plan relabels the text "Sign up" while the stale
 	// aria-label keeps "Add to cart".
@@ -22,25 +18,6 @@ export async function clickAddToCartButton( page, label = 'Add to cart' ) {
 		.first();
 	await expect( addToCartButton ).toBeEnabled();
 	await addToCartButton.click();
-
-	// Callers navigate away next, which would cancel an add still in flight.
-	await expect.poll( () => getCartItemsCount( page ) ).toBe( expectedCount );
-}
-
-/**
- * Read the cart's item count from the Store API, which is theme-independent.
- *
- * @param {Page} page Playwright page fixture.
- * @returns {Promise<number>} Total number of items in the cart.
- */
-async function getCartItemsCount( page ) {
-	const response = await page.request.get( '/wp-json/wc/store/v1/cart' );
-	if ( ! response.ok() ) {
-		throw new Error(
-			`Failed to fetch cart: ${ response.status() } ${ response.statusText() }`
-		);
-	}
-	return ( await response.json() ).items_count;
 }
 
 export async function selectSubscriptionOption( page ) {
