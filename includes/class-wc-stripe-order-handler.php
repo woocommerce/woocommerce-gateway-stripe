@@ -341,7 +341,10 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
+		// Require 'edit' mode so we get the raw, unfiltered payment method.
+		$payment_method = $order->get_payment_method( 'edit' );
+
+		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $payment_method ) ) {
 			$charge             = $order->get_transaction_id();
 			$is_stripe_captured = false;
 
@@ -374,11 +377,26 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 							/* translators: error message */
 							$order->update_status( OrderStatus::FAILED, sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $result->error->message ) );
 						} else {
-							$is_stripe_captured = true;
-							$result             = $this->get_latest_charge_from_intent( $result );
+							try {
+								$result = $this->get_latest_charge_from_intent( $result );
+							} catch ( WC_Stripe_Exception $e ) {
+								WC_Stripe_Logger::error( 'Error getting latest charge from intent: ' . $e->getMessage() );
+								$result = null;
+							}
+
+							// Check that we have a valid charge object.
+							$is_stripe_captured = $this->handle_capture_charge_response( $result, $order );
 						}
 					} elseif ( WC_Stripe_Intent_Status::SUCCEEDED === $intent->status ) {
-						$is_stripe_captured = true;
+						try {
+							$result = $this->get_latest_charge_from_intent( $intent );
+						} catch ( WC_Stripe_Exception $e ) {
+							WC_Stripe_Logger::error( 'Error getting latest charge from intent: ' . $e->getMessage() );
+							$result = null;
+						}
+
+						// Check that we have a valid charge object.
+						$is_stripe_captured = $this->handle_capture_charge_response( $result, $order );
 					}
 				} else {
 					// The order doesn't have a Payment Intent, fall back to capturing the Charge directly
@@ -429,15 +447,25 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					}
 				}
 
+				// Ensure we pass in an empty object if the capture response was not an object.
+				$result_for_filter = is_object( $result ) ? $result : new stdClass();
+
 				// This hook fires when admin manually changes order status to processing or completed.
 				/**
 				 * Fires after a manually captured Stripe charge is processed.
 				 *
 				 * @param WC_Order $order  Order associated with the manual capture.
-				 * @param object   $result Stripe capture response.
+				 * @param object   $result Stripe capture response. This may be an empty object if we could not get the capture response.
 				 */
-				do_action( 'woocommerce_stripe_process_manual_capture', $order, $result );
-				return $result;
+				do_action( 'woocommerce_stripe_process_manual_capture', $order, $result_for_filter );
+
+				// If the result is not an object, return nothing.
+				if ( ! is_object( $result ) ) {
+					return;
+				}
+
+				// Cast result to stdClass
+				return (object) (array) $result;
 			}
 		}
 	}
@@ -752,5 +780,47 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		 * @param WC_Order $order The paid order whose cancellation was prevented.
 		 */
 		do_action( 'wc_stripe_paid_order_cancellation_prevented', $order );
+	}
+
+	/**
+	 * Check whether we have a valid, non-error charge response for a capture request.
+	 * If we have a valid charge response, return true.
+	 * Otherwise add an order note and return false.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param object|string|null $charge_response The charge response from the capture request.
+	 * @param WC_Order           $order           The order.
+	 * @return bool True if the charge has been captured, false otherwise.
+	 */
+	private function handle_capture_charge_response( $charge_response, WC_Order $order ): bool {
+		$default_note = __( 'Unable to verify whether charge has been captured.', 'woocommerce-gateway-stripe' );
+
+		if ( empty( $charge_response ) || ! is_object( $charge_response ) ) {
+			$order->add_order_note( $default_note );
+			return false;
+		}
+
+		if ( ! empty( $charge_response->error ) ) {
+			if ( is_string( $charge_response->error->message ?? null ) ) {
+				$order->add_order_note(
+					sprintf(
+						/* translators: %s is an error message from Stripe */
+						__( 'Unable to verify whether charge has been captured: %s', 'woocommerce-gateway-stripe' ),
+						$charge_response->error->message
+					)
+				);
+			} else {
+				$order->add_order_note( $default_note );
+			}
+			return false;
+		}
+
+		if ( 'charge' !== ( $charge_response->object ?? '' ) ) {
+			$order->add_order_note( $default_note );
+			return false;
+		}
+
+		return true;
 	}
 }
