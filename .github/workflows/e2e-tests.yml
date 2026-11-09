@@ -116,7 +116,7 @@ jobs:
         run: npm run test:e2e-run -- --project=${{ matrix.project }}
 
       - name: Upload E2E-${{ matrix.project }}-${{ matrix.theme }}-WP_latest-WC_latest-results
-        if: ${{ failure() || cancelled() }}
+        if: ${{ failure() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: E2E-${{ matrix.project }}-${{ matrix.theme }}-WP_latest-WC_latest-results
