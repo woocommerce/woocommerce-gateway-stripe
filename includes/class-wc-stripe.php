@@ -17,6 +17,11 @@ class WC_Stripe {
 	public const SETTINGS_OPTION_NAME = 'woocommerce_stripe_settings';
 
 	/**
+	 * The gateway form fields that hold credentials. Their values must only reach the client masked.
+	 */
+	private const SECRET_FORM_FIELDS = [ 'secret_key', 'test_secret_key', 'webhook_secret', 'test_webhook_secret' ];
+
+	/**
 	 * Get the Stripe settings option. Always returns an array.
 	 *
 	 * @since 10.9.0
@@ -227,6 +232,7 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-payment-tokens.php';
 		if ( self::$instance === $this ) {
 			( new WC_Stripe_Payment_Tokens() )->register_hooks();
+			( new WC_Stripe_REST_Gateway_Settings_Protection() )->register_hooks();
 		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-customer.php';
@@ -323,6 +329,8 @@ class WC_Stripe {
 		if ( self::$instance === $this ) {
 			add_filter( 'woocommerce_payment_gateways', [ $this, 'add_gateways' ] );
 			add_filter( 'pre_update_option_' . self::SETTINGS_OPTION_NAME, [ $this, 'gateway_settings_update' ], 10, 2 );
+			add_filter( 'woocommerce_rest_prepare_payment_gateway', [ $this, 'mask_secrets_in_payment_gateway_response' ], 10, 2 );
+			add_filter( 'rest_request_before_callbacks', [ $this, 'restrict_settings_option_rest_access' ], 10, 3 );
 			add_filter( 'plugin_action_links_' . plugin_basename( WC_STRIPE_MAIN_FILE ), [ $this, 'plugin_action_links' ] );
 			add_filter( 'plugin_row_meta', [ $this, 'plugin_row_meta' ], 10, 2 );
 			add_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
@@ -771,10 +779,79 @@ class WC_Stripe {
 			$settings     = array_merge( $old_settings, $settings );
 		}
 
+		// Clients only ever see the masked secrets, so a mask that comes back means "unchanged".
+		foreach ( self::SECRET_FORM_FIELDS as $key ) {
+			$old_value = $old_settings[ $key ] ?? '';
+			if ( is_string( $old_value ) && '' !== $old_value && isset( $settings[ $key ] ) && WC_Stripe_Helper::mask_key_value( $old_value ) === $settings[ $key ] ) {
+				$settings[ $key ] = $old_value;
+			}
+		}
+
 		// Note that we need to run these checks before we call toggle_upe() below.
 		$this->maybe_reset_stripe_in_memory_key( $settings, $old_settings );
 
 		return $this->toggle_upe( $settings, $old_settings );
+	}
+
+	/**
+	 * Masks the secret keys and webhook secrets in WooCommerce's `payment_gateways` REST responses,
+	 * the same way the `wc_stripe/account_keys` route does.
+	 *
+	 * WooCommerce returns the stored value of every gateway form field, whatever its type.
+	 *
+	 * @param WP_REST_Response   $response The response object.
+	 * @param WC_Payment_Gateway $gateway  The payment gateway the response describes.
+	 * @return WP_REST_Response
+	 */
+	public function mask_secrets_in_payment_gateway_response( $response, $gateway ) {
+		// A filter value is not guaranteed: an earlier callback may return a non-response, and
+		// third-party code can pass an unexpected gateway. Only act on the shapes we rely on.
+		if ( ! $response instanceof WP_REST_Response || ! $gateway instanceof WC_Payment_Gateway || WC_Stripe_UPE_Payment_Gateway::ID !== $gateway->id ) {
+			return $response;
+		}
+
+		$data = $response->get_data();
+		foreach ( self::SECRET_FORM_FIELDS as $key ) {
+			$value = $data['settings'][ $key ]['value'] ?? '';
+			if ( ! empty( $value ) ) {
+				// A value that is not a string cannot be masked, so send nothing rather than send it as stored.
+				$data['settings'][ $key ]['value'] = is_string( $value ) ? WC_Stripe_Helper::mask_key_value( $value ) : '';
+			}
+		}
+		$response->set_data( $data );
+
+		return $response;
+	}
+
+	/**
+	 * Blocks reads and writes of the Stripe settings option through WooCommerce's deprecated `wc-admin/options` REST route.
+	 *
+	 * @param WP_REST_Response|WP_HTTP_Response|WP_Error|mixed $response The result to send to the client, if any.
+	 * @param array                                            $handler  The route handler used for the request.
+	 * @param WP_REST_Request                                  $request  The request.
+	 * @return WP_REST_Response|WP_HTTP_Response|WP_Error|mixed
+	 */
+	public function restrict_settings_option_rest_access( $response, $handler, $request ) {
+		// Check the handler instead of the route, which WordPress matches case-insensitively.
+		$controller = is_array( $handler['callback'] ?? null ) ? $handler['callback'][0] : null;
+		if ( ! $controller instanceof \Automattic\WooCommerce\Admin\API\Options ) {
+			return $response;
+		}
+
+		// Reads name the options in the `options` parameter; writes send them as the keys of the JSON body.
+		$options = is_string( $request['options'] ) ? explode( ',', $request['options'] ) : [];
+		$body    = $request->get_json_params();
+		if ( is_array( $body ) ) {
+			$options = array_merge( $options, array_map( 'strval', array_keys( $body ) ) );
+		}
+
+		// get_option() and update_option() trim the name, and the options table compares names case-insensitively.
+		$options = array_map( 'strtolower', array_map( 'trim', $options ) );
+		if ( in_array( self::SETTINGS_OPTION_NAME, $options, true ) ) {
+			return new WP_Error( 'woocommerce_rest_cannot_view', __( 'Sorry, you cannot view or change these options.', 'woocommerce-gateway-stripe' ), [ 'status' => rest_authorization_required_code() ] );
+		}
+
+		return $response;
 	}
 
 

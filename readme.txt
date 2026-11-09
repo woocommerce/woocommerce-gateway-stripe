@@ -181,6 +181,15 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Stop a staging or cloned site from deleting the production site's Stripe webhooks when connecting or disconnecting Stripe
 * Fix - Rebuild a mode's webhook on update when an earlier "Reconfigure webhooks" click registered it in the wrong mode, which had left webhooks failing in both live and test
 * Fix - Use the account API key for webhook status, cleanup, and manual setup
+* Fix - Only accept Stripe Checkout Session payments on stores where the feature is available
+* Fix - Respect WooCommerce's guest email verification on the Pay for Order page
+* Fix - Only save a payment method from a setup intent that belongs to the current user's Stripe customer
+* Fix - Validate payment and setup intent identifiers before using them in Stripe API requests
+* Fix - Strengthen order matching when processing payment notifications
+* Fix - Prevent the same payment intent from being linked to more than one order at checkout
+* Fix - Reject checkout totals too large to convert to a Stripe amount
+* Fix - Protect account credentials in REST API responses
+* Fix - Return Stripe secret keys and webhook secrets masked from the WooCommerce payment gateways REST API
 * Update - Unify express checkout button sizes across Apple Pay / Google Pay, Link, and Amazon Pay
 
 **Other Fixes and Updates**

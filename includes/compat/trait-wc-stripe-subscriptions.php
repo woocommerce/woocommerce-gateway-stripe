@@ -837,6 +837,17 @@ trait WC_Stripe_Subscriptions_Trait {
 
 				// Use the last charge within the intent or the full response body in case of SEPA.
 				$latest_charge = $this->get_latest_charge_from_intent( $response );
+
+				if (
+					'payment_intent' === ( $response->object ?? '' )
+					&& WC_Stripe_Intent_Status::PROCESSING === ( $response->status ?? '' )
+					&& null === $latest_charge
+				) {
+					// The saved intent lets a later webhook complete the renewal.
+					// Reporting failure now could prompt a retry while payment is still processing.
+					return;
+				}
+
 				$this->process_response( ( ! empty( $latest_charge ) && is_object( $latest_charge ) ) ? $latest_charge : $response, $renewal_order );
 			}
 		} catch ( WC_Stripe_Exception $e ) {

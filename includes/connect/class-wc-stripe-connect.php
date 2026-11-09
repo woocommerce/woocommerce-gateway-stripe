@@ -717,11 +717,15 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				'secretKey',
 				'testSecretKey',
 				'refreshToken',
+				'refresh_token',
+				'test_refresh_token',
 				'secret',
+				'client_secret',
 				'secret_key',
 				'test_secret_key',
 				'webhook_secret',
 				'test_webhook_secret',
+				'signing_secret',
 			];
 
 			if ( is_object( $data ) ) {
