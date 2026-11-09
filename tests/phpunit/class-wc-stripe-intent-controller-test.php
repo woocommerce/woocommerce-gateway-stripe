@@ -762,6 +762,53 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Capture method on payment_information and the top-level capture_method expected
+	 * in the confirm request: manual sends manual, automatic and method-level send none.
+	 *
+	 * @since x.x.x
+	 * @dataProvider provide_confirmation_token_capture_methods
+	 */
+	public function test_confirmation_token_capture_method_on_retry( $capture_method, $expected_capture_method ) {
+		$payment_information = $this->get_confirmation_token_payment_information( 'card', [ 'card', 'link' ] );
+		if ( null !== $capture_method ) {
+			$payment_information['capture_method'] = $capture_method;
+		}
+
+		$requests = [];
+		$filter   = static function ( $preempt, $args, $url ) use ( &$requests ) {
+			if ( WC_Stripe_API::ENDPOINT . 'payment_intents/pi_mock/confirm' !== $url ) {
+				return $preempt;
+			}
+			$requests[] = $args['body'];
+			return [
+				'response' => [ 'code' => 200 ],
+				'body'     => wp_json_encode( [ 'id' => 'pi_mock' ] ),
+			];
+		};
+		add_filter( 'pre_http_request', $filter, 10, 3 );
+		try {
+			$this->mock_controller->update_and_confirm_payment_intent( (object) [ 'id' => 'pi_mock' ], $payment_information );
+		} finally {
+			remove_filter( 'pre_http_request', $filter );
+		}
+
+		$this->assertCount( 1, $requests );
+		$this->assertSame( 'ctoken_mock', $requests[0]['confirmation_token'] );
+		$this->assertSame( $expected_capture_method, $requests[0]['capture_method'] ?? null );
+	}
+
+	/**
+	 * @since x.x.x
+	 */
+	public function provide_confirmation_token_capture_methods() {
+		return [
+			'manual capture'       => [ 'manual', 'manual' ],
+			'automatic capture'    => [ 'automatic', null ],
+			'method-level capture' => [ null, null ],
+		];
+	}
+
+	/**
 	 * Provider for the confirmation-token level3 gating tests.
 	 *
 	 * @return array

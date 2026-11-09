@@ -5630,6 +5630,118 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Manual capture must follow the confirmation token's real payment type, not the
+	 * posted payment method, across classic, express, and optimized checkout.
+	 *
+	 * @since x.x.x
+	 * @dataProvider provide_confirmation_token_capture_requests
+	 */
+	public function test_confirmation_token_capture_request( $optimized_checkout, $payment_method, $express_type, $token_type, $capture_setting ) {
+		PMC_Test_Helper::enable_pmc( true );
+		$this->mock_payment_method_configurations( [ 'card', 'link', 'amazon_pay' ] );
+
+		$gateway_class = $optimized_checkout ? WC_Stripe_OCS_Payment_Gateway::class : WC_Stripe_UPE_Payment_Gateway::class;
+		$gateway       = $this->getMockBuilder( $gateway_class )
+			->onlyMethods( [ 'get_stripe_customer_id', 'has_subscription' ] )
+			->getMock();
+		$gateway->method( 'get_stripe_customer_id' )->willReturn( 'cus_mock' );
+		$gateway->method( 'has_subscription' )->willReturn( false );
+		$gateway->oc_enabled          = $optimized_checkout;
+		$gateway->settings['capture'] = $capture_setting;
+		// Gateway construction can disable PMC while reconciling the mocked account.
+		PMC_Test_Helper::enable_pmc( true );
+
+		$order = WC_Helper_Order::create_order();
+		$_POST = [
+			'payment_method'               => $payment_method,
+			'wc-stripe-confirmation-token' => 'ctoken_mock',
+		];
+		if ( null !== $express_type ) {
+			$_POST['express_payment_type'] = $express_type;
+		}
+
+		$controller = $this->getMockBuilder( WC_Stripe_Intent_Controller::class )
+			->onlyMethods( [ 'get_gateway' ] )
+			->getMock();
+		$controller->method( 'get_gateway' )->willReturn( $gateway );
+
+		$requests = [];
+		$filter   = static function ( $preempt, $args, $url ) use ( &$requests ) {
+			if ( WC_Stripe_API::ENDPOINT . 'payment_intents' !== $url ) {
+				return $preempt;
+			}
+			$requests[] = $args['body'];
+			return [
+				'response' => [ 'code' => 200 ],
+				'body'     => wp_json_encode( [ 'id' => 'pi_mock' ] ),
+			];
+		};
+		add_filter( 'pre_http_request', $filter, 10, 3 );
+
+		try {
+			$prepare = new ReflectionMethod( WC_Stripe_UPE_Payment_Gateway::class, 'prepare_payment_information_from_request' );
+			$prepare->setAccessible( true );
+			$controller->create_and_confirm_payment_intent( $prepare->invoke( $gateway, $order ) );
+		} finally {
+			remove_filter( 'pre_http_request', $filter );
+			$_POST = [];
+		}
+
+		$this->assertCount( 1, $requests );
+		$request = $requests[0];
+		$this->assertSame( 'ctoken_mock', $request['confirmation_token'] );
+		$this->assertArrayNotHasKey( 'payment_method', $request );
+
+		$uses_automatic_methods = $optimized_checkout && null === $express_type;
+		$this->assertSame( $uses_automatic_methods, isset( $request['automatic_payment_methods'] ) );
+		if ( $uses_automatic_methods ) {
+			$this->assertArrayNotHasKey( 'payment_method_types', $request );
+		} else {
+			$this->assertContains( $token_type, $request['payment_method_types'] );
+		}
+
+		if ( 'no' === $capture_setting ) {
+			$effective_capture = $request['payment_method_options'][ $token_type ]['capture_method'] ?? $request['capture_method'] ?? null;
+			$this->assertSame( 'manual', $effective_capture, 'Capture must cover the token type even when it differs from the posted payment method.' );
+			if ( 'amazon_pay' === $express_type ) {
+				$this->assertArrayNotHasKey( 'capture_method', $request );
+				$this->assertSame( 'manual', $request['payment_method_options']['amazon_pay']['capture_method'] );
+			} else {
+				$this->assertSame( 'manual', $request['capture_method'] );
+			}
+		} else {
+			$this->assertArrayNotHasKey( 'capture_method', $request );
+			$this->assertArrayNotHasKey( 'capture_method', $request['payment_method_options'][ $token_type ] ?? [] );
+		}
+	}
+
+	/**
+	 * Confirmation token flows, matched and mismatched token types, each with capture
+	 * on and off.
+	 *
+	 * @since x.x.x
+	 */
+	public function provide_confirmation_token_capture_requests() {
+		$flows = [
+			'card checkout with Link token'    => [ false, 'stripe', null, 'link' ],
+			'Link express with Link token'     => [ false, 'stripe', 'link', 'link' ],
+			'Link express with card token'     => [ false, 'stripe_link', 'link', 'card' ],
+			'Google Pay with mismatched type'  => [ false, 'stripe_link', 'google_pay', 'card' ],
+			'optimized card with Link token'   => [ true, 'stripe', null, 'link' ],
+			'optimized Link with card token'   => [ true, 'stripe_link', null, 'card' ],
+			'optimized Amazon with card token' => [ true, 'stripe_amazon_pay', null, 'card' ],
+			'Amazon express'                   => [ false, 'stripe', 'amazon_pay', 'amazon_pay' ],
+			'optimized Amazon express'         => [ true, 'stripe', 'amazon_pay', 'amazon_pay' ],
+		];
+
+		foreach ( $flows as $name => $flow ) {
+			foreach ( [ 'yes', 'no' ] as $capture_setting ) {
+				yield $name . ' capture=' . $capture_setting => array_merge( $flow, [ $capture_setting ] );
+			}
+		}
+	}
+
+	/**
 	 * Paid statuses for which WC core's payment_complete() skips set_transaction_id().
 	 *
 	 * @return array<string, array{0: string}>

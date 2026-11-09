@@ -4019,9 +4019,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 		}
 
-		// Some payment methods such as Amazon Pay will only accept a capture_method of 'manual'
-		// under payment_method_options instead of at the top level.
-		if ( 'manual' === $capture_method ) {
+		// Amazon Pay requires manual capture under payment_method_options. Only omit the
+		// intent-level setting when no other type can be charged by the confirmation token.
+		if ( 'manual' === $capture_method
+			&& WC_Stripe_Payment_Methods::AMAZON_PAY === $selected_payment_type
+			&& [ WC_Stripe_Payment_Methods::AMAZON_PAY ] === $payment_information['payment_method_types']
+			&& empty( $payment_information['automatic_payment_methods'] ) ) {
 			unset( $payment_information['capture_method'] );
 			$payment_information['payment_method_options'][ $selected_payment_type ]['capture_method'] = 'manual';
 		}

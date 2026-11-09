@@ -1499,6 +1499,10 @@ class WC_Stripe_Intent_Controller {
 		$is_using_confirmation_token = ! empty( $payment_information['confirmation_token'] );
 		if ( $is_using_confirmation_token ) {
 			$request['confirmation_token'] = $payment_information['confirmation_token'];
+			// The token can charge a different type than the one selected in the checkout request.
+			if ( 'manual' === ( $payment_information['capture_method'] ?? null ) ) {
+				$request['capture_method'] = 'manual';
+			}
 		} else {
 			$request['payment_method'] = $payment_information['payment_method'];
 			$request['capture_method'] = $payment_information['capture_method'];
