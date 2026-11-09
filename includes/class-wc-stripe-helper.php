@@ -1333,10 +1333,11 @@ class WC_Stripe_Helper {
 	 * Preserve classic forms embedded in other layouts while avoiding their runtime on express-only pages.
 	 *
 	 * @since x.x.x
+	 * @param WC_Stripe_Express_Checkout_Helper|null $helper Existing helper to avoid repeating gateway and settings initialization.
 	 * @return bool
 	 */
-	public static function should_load_classic_checkout_scripts(): bool {
-		$helper = new WC_Stripe_Express_Checkout_Helper();
+	public static function should_load_classic_checkout_scripts( ?WC_Stripe_Express_Checkout_Helper $helper = null ): bool {
+		$helper = $helper ?? new WC_Stripe_Express_Checkout_Helper();
 		if (
 			$helper->is_one_page_checkout() ||
 			is_add_payment_method_page() ||

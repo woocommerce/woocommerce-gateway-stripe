@@ -371,6 +371,62 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * One Page Checkout can become active after preload hints have already been generated.
+	 *
+	 * @since x.x.x
+	 * @return void
+	 */
+	public function test_layout_checks_reuse_helper_without_caching_checkout_context(): void {
+		$page = self::factory()->post->create(
+			[
+				'post_type'    => 'page',
+				'post_content' => '<!-- wp:woocommerce/checkout /-->',
+			]
+		);
+		$this->go_to( get_permalink( $page ) );
+
+		$is_one_page_checkout = false;
+		$helper               = $this->createMock( WC_Stripe_Express_Checkout_Helper::class );
+		$helper->method( 'is_page_supported' )->willReturn( true );
+		$helper->method( 'should_show_express_checkout_button' )->willReturn( true );
+		$helper->method( 'is_one_page_checkout' )->willReturnCallback(
+			static function () use ( &$is_one_page_checkout ) {
+				return $is_one_page_checkout;
+			}
+		);
+		$element                          = $this->getMockBuilder( WC_Stripe_Express_Checkout_Element::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'javascript_params' ] )
+			->getMock();
+		$element->express_checkout_helper = $helper;
+		$element->method( 'javascript_params' )->willReturn( [] );
+
+		foreach ( [ 'wc_stripe_express_checkout', 'wc-stripe-checkout-settings' ] as $handle ) {
+			wp_dequeue_script( $handle );
+			wp_deregister_script( $handle );
+		}
+
+		try {
+			$hints = $element->add_preload_resources( [] );
+			$this->assertCount( 1, $hints );
+			$this->assertStringContainsString( '/build/upe-blocks.js', $hints[0]['href'] );
+
+			$is_one_page_checkout = true;
+			$element->scripts();
+			$this->assertTrue( wp_script_is( 'wc_stripe_express_checkout', 'enqueued' ) );
+			$hints = $element->add_preload_resources( [] );
+			$this->assertStringContainsString( '/build/express-checkout.js', $hints[0]['href'] );
+		} finally {
+			foreach ( [ 'wc_stripe_express_checkout', 'wc-stripe-checkout-settings' ] as $handle ) {
+				wp_dequeue_script( $handle );
+				wp_deregister_script( $handle );
+			}
+			wp_dequeue_style( 'wc_stripe_express_checkout_style' );
+			wp_deregister_style( 'wc_stripe_express_checkout_style' );
+		}
+	}
+
+	/**
 	 * Build an element with helper mocks for both guards.
 	 *
 	 * @param bool $page_supported Return value for is_page_supported().

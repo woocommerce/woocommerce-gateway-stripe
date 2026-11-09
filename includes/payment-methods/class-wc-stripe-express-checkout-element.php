@@ -610,7 +610,7 @@ class WC_Stripe_Express_Checkout_Element {
 	 * @return bool
 	 */
 	private function should_load_classic_express_checkout_script(): bool {
-		return WC_Stripe_Helper::should_load_classic_checkout_scripts() ||
+		return WC_Stripe_Helper::should_load_classic_checkout_scripts( $this->express_checkout_helper ) ||
 			( ! has_block( 'woocommerce/cart' ) && ! has_block( 'woocommerce/checkout' ) );
 	}
 
