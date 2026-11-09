@@ -736,7 +736,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 				if ( $this->is_setup_intent_success_creation_redirection() && isset( $_GET['_wpnonce'] ) && wp_verify_nonce( wc_clean( wp_unslash( $_GET['_wpnonce'] ) ) ) ) {
 					$setup_intent_id = isset( $_GET['setup_intent'] ) ? wc_clean( wp_unslash( $_GET['setup_intent'] ) ) : '';
-					$token           = $this->create_token_from_setup_intent( $setup_intent_id, wp_get_current_user() );
+					$token           = $this->create_token_from_setup_intent( $setup_intent_id, wp_get_current_user(), $order );
 					if ( $token ) {
 						$stripe_params['newTokenFormId'] = '#wc-' . $token->get_gateway_id() . '-payment-token-' . $token->get_id();
 					}
@@ -2482,7 +2482,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 					// billing info will be updated when the customer makes a purchase anyway.
 					try {
 						$setup_intent_id = isset( $_GET['setup_intent'] ) ? wc_clean( wp_unslash( $_GET['setup_intent'] ) ) : '';
-						$token           = $this->create_token_from_setup_intent( $setup_intent_id, wp_get_current_user() );
+						$subscription    = $this->is_changing_payment_method_for_subscription() ? wcs_get_subscription( absint( $_GET['change_payment_method'] ?? 0 ) ) : null;
+						$token           = $this->create_token_from_setup_intent( $setup_intent_id, wp_get_current_user(), $subscription );
 						if ( ! $token ) {
 							throw new Exception( __( 'Unable to create token for the payment method.', 'woocommerce-gateway-stripe' ) );
 						}
@@ -3550,6 +3551,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Adds a token to current user from a setup intent id.
 	 *
+	 * When a subscription's payment method is changing, callers pass the subscription as a third
+	 * argument. It is read with func_get_arg() instead of a declared parameter, so subclasses that
+	 * override this method with the original two parameters keep working.
+	 *
 	 * @param string  $setup_intent_id ID of the setup intent.
 	 * @param WP_User $user            User to add token to.
 	 *
@@ -3564,6 +3569,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$setup_intent = $this->stripe_request( 'setup_intents/' . $setup_intent_id . '?&expand[]=latest_attempt' );
 			if ( ! empty( $setup_intent->last_payment_error ) ) {
 				WC_Stripe_Logger::error( 'Setup intent has payment error, cannot create token.', [ 'error' => $setup_intent->last_payment_error ] );
+				throw new WC_Stripe_Exception( __( "We're not able to add this payment method. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			}
+
+			// Only save a card from a setup intent created for this user's own Stripe customer.
+			$subscription = func_num_args() > 2 ? func_get_arg( 2 ) : null;
+			if ( ! $this->is_setup_intent_associated_to_user( $setup_intent, $user->ID, $subscription ) ) {
+				WC_Stripe_Logger::error( 'Setup intent does not belong to the Stripe customer of the user, cannot create token.', [ 'user_id' => $user->ID ] );
 				throw new WC_Stripe_Exception( __( "We're not able to add this payment method. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
 
@@ -3594,6 +3606,33 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			WC_Stripe_Logger::error( 'Error in creating token from setup intent.', [ 'error_message' => $e->getMessage() ] );
 			return null;
 		}
+	}
+
+	/**
+	 * Whether the setup intent was created for the Stripe customer linked to the user.
+	 *
+	 * Setup intents for a subscription payment method change use the subscription's Stripe
+	 * customer, which can differ from the user's: a privacy erasure deletes the user's customer ID
+	 * but keeps it on active subscriptions, and a recreated customer only updates the user. So the
+	 * subscription's customer is also accepted, but only when the subscription belongs to the user.
+	 *
+	 * @param object        $setup_intent Setup intent from Stripe.
+	 * @param int           $user_id      User the payment method is saved for.
+	 * @param WC_Order|null $subscription Subscription whose payment method is changing, if any.
+	 * @return bool
+	 */
+	private function is_setup_intent_associated_to_user( $setup_intent, $user_id, $subscription = null ): bool {
+		if ( empty( $setup_intent->customer ) ) {
+			return false;
+		}
+
+		$allowed_customer_ids = [ ( new WC_Stripe_Customer( $user_id ) )->get_id() ];
+
+		if ( $subscription instanceof WC_Order && (int) $subscription->get_customer_id() === (int) $user_id ) {
+			$allowed_customer_ids[] = WC_Stripe_Order_Helper::get_instance()->get_stripe_customer_id( $subscription );
+		}
+
+		return in_array( $setup_intent->customer, array_filter( $allowed_customer_ids ), true );
 	}
 
 	/**
@@ -4439,6 +4478,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			if ( ! empty( $setup_intent->last_payment_error ) ) {
 				throw new WC_Stripe_Exception( sprintf( 'Error fetching the setup intent (ID %s) from Stripe: %s.', $setup_intent_id, ! empty( $setup_intent->last_payment_error->message ) ? $setup_intent->last_payment_error->message : 'Unknown error' ) );
+			}
+
+			if ( ! $this->is_setup_intent_associated_to_user( $setup_intent, $user->ID ) ) {
+				throw new WC_Stripe_Exception( 'The setup intent does not belong to the Stripe customer of the user.' );
 			}
 
 			$payment_method_id     = $setup_intent->payment_method;

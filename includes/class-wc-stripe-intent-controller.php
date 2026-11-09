@@ -1770,7 +1770,7 @@ class WC_Stripe_Intent_Controller {
 			}
 
 			$gateway = $this->get_upe_gateway();
-			$token   = $gateway->create_token_from_setup_intent( $setup_intent_id, $subscription->get_user() );
+			$token   = $gateway->create_token_from_setup_intent( $setup_intent_id, $subscription->get_user(), $subscription );
 
 			if ( ! $token ) {
 				throw new WC_Stripe_Exception( 'token_creation_failed', __( "We can't process your payment method change at this time. Please try again later.", 'woocommerce-gateway-stripe' ) );

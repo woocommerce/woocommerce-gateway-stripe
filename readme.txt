@@ -196,5 +196,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Stop a staging or cloned site from deleting the production site's Stripe webhooks when connecting or disconnecting Stripe
 * Fix - Only accept Stripe Checkout Session payments on stores where the feature is available
 * Fix - Respect WooCommerce's guest email verification on the Pay for Order page
+* Fix - Only save a payment method from a setup intent that belongs to the current user's Stripe customer
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

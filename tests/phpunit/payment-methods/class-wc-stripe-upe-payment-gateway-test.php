@@ -2215,6 +2215,146 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Setup intent customers, and whether a user linked to `cus_mock` may save the intent's payment method.
+	 *
+	 * @return array
+	 */
+	public function provide_setup_intent_customers(): array {
+		return [
+			'own customer'     => [ 'cus_mock', 'cus_mock', true ],
+			'another customer' => [ 'cus_mock', 'cus_other', false ],
+			'no customer'      => [ 'cus_mock', null, false ],
+			'user not linked'  => [ '', 'cus_other', false ],
+		];
+	}
+
+	/**
+	 * Builds the Stripe responses for saving a card from a setup intent.
+	 *
+	 * @param string|null $intent_customer_id Customer the setup intent was created for.
+	 * @param bool        $should_save        Whether the card is expected to be saved.
+	 */
+	private function mock_setup_intent_requests( $intent_customer_id, bool $should_save ) {
+		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
+		$payment_method_mock['id']               = 'pm_mock';
+		$payment_method_mock['card']['exp_year'] = '2099';
+
+		$setup_intent_mock                   = self::MOCK_CARD_SETUP_INTENT_TEMPLATE;
+		$setup_intent_mock['id']             = 'seti_mock';
+		$setup_intent_mock['customer']       = $intent_customer_id;
+		$setup_intent_mock['payment_method'] = 'pm_mock';
+		$setup_intent_mock['latest_attempt'] = [
+			'payment_method_details' => [ 'type' => WC_Stripe_Payment_Methods::CARD ],
+		];
+
+		$this->mock_gateway->expects( $this->exactly( $should_save ? 2 : 1 ) )
+			->method( 'stripe_request' )
+			->willReturnOnConsecutiveCalls(
+				$this->array_to_object( $setup_intent_mock ),
+				$this->array_to_object( $payment_method_mock )
+			);
+	}
+
+	/**
+	 * A token is only created from a setup intent that belongs to the user's Stripe customer.
+	 *
+	 * @dataProvider provide_setup_intent_customers
+	 * @param string      $user_customer_id   Customer linked to the user.
+	 * @param string|null $intent_customer_id Customer the setup intent was created for.
+	 * @param bool        $should_save        Whether the token is expected to be created.
+	 */
+	public function test_create_token_from_setup_intent_requires_users_customer( $user_customer_id, $intent_customer_id, $should_save ) {
+		$user = self::factory()->user->create_and_get();
+		update_user_option( $user->ID, '_stripe_customer_id', $user_customer_id );
+
+		$this->mock_setup_intent_requests( $intent_customer_id, $should_save );
+
+		$token = $this->mock_gateway->create_token_from_setup_intent( 'seti_mock', $user );
+
+		if ( $should_save ) {
+			$this->assertInstanceOf( WC_Payment_Token::class, $token );
+			$this->assertSame( 'pm_mock', $token->get_token() );
+			$this->assertSame( $user->ID, $token->get_user_id() );
+		} else {
+			$this->assertNull( $token );
+			$this->assertEmpty( WC_Payment_Tokens::get_customer_tokens( $user->ID ) );
+		}
+	}
+
+	/**
+	 * Setup intent customers for a subscription payment method change, and whether the card may be saved.
+	 *
+	 * @return array
+	 */
+	public function provide_subscription_setup_intent_customers(): array {
+		return [
+			'user erased, intent for the subscription customer'             => [ '', 'cus_sub', true, 'cus_sub', true ],
+			'user customer recreated, intent for the subscription customer' => [ 'cus_new', 'cus_sub', true, 'cus_sub', true ],
+			'intent for the user customer'                                  => [ 'cus_new', 'cus_sub', true, 'cus_new', true ],
+			'intent for another customer'                                   => [ 'cus_new', 'cus_sub', true, 'cus_other', false ],
+			'subscription of another user'                                  => [ '', 'cus_sub', false, 'cus_sub', false ],
+			'subscription without a customer'                               => [ '', '', true, 'cus_sub', false ],
+		];
+	}
+
+	/**
+	 * When a subscription's payment method changes, the setup intent may use the subscription's
+	 * Stripe customer, but only for a subscription that belongs to the user.
+	 *
+	 * @dataProvider provide_subscription_setup_intent_customers
+	 * @param string $user_customer_id         Customer linked to the user.
+	 * @param string $subscription_customer_id Customer stored on the subscription.
+	 * @param bool   $is_users_subscription    Whether the subscription belongs to the user.
+	 * @param string $intent_customer_id       Customer the setup intent was created for.
+	 * @param bool   $should_save              Whether the token is expected to be created.
+	 */
+	public function test_create_token_from_setup_intent_accepts_own_subscription_customer( $user_customer_id, $subscription_customer_id, $is_users_subscription, $intent_customer_id, $should_save ) {
+		$user = self::factory()->user->create_and_get();
+		update_user_option( $user->ID, '_stripe_customer_id', $user_customer_id );
+
+		$subscription = new WC_Subscription();
+		$subscription->set_customer_id( $is_users_subscription ? $user->ID : self::factory()->user->create() );
+		$subscription->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_customer_id( $subscription, $subscription_customer_id );
+		$subscription->save();
+
+		$this->mock_setup_intent_requests( $intent_customer_id, $should_save );
+
+		$token = $this->mock_gateway->create_token_from_setup_intent( 'seti_mock', $user, $subscription );
+
+		if ( $should_save ) {
+			$this->assertInstanceOf( WC_Payment_Token::class, $token );
+			$this->assertSame( $user->ID, $token->get_user_id() );
+		} else {
+			$this->assertNull( $token );
+			$this->assertEmpty( WC_Payment_Tokens::get_customer_tokens( $user->ID ) );
+		}
+	}
+
+	/**
+	 * A payment method is only added from a setup intent that belongs to the user's Stripe customer.
+	 *
+	 * @dataProvider provide_setup_intent_customers
+	 * @param string      $user_customer_id   Customer linked to the user.
+	 * @param string|null $intent_customer_id Customer the setup intent was created for.
+	 * @param bool        $should_save        Whether the payment method is expected to be added.
+	 */
+	public function test_add_payment_method_requires_users_customer( $user_customer_id, $intent_customer_id, $should_save ) {
+		$user_id = self::factory()->user->create();
+		update_user_option( $user_id, '_stripe_customer_id', $user_customer_id );
+		wp_set_current_user( $user_id );
+
+		$_POST['wc-stripe-setup-intent'] = 'seti_mock';
+
+		$this->mock_setup_intent_requests( $intent_customer_id, $should_save );
+
+		$result = $this->mock_gateway->add_payment_method();
+
+		$this->assertSame( $should_save ? 'success' : 'failure', $result['result'] );
+		$this->assertCount( $should_save ? 1 : 0, WC_Payment_Tokens::get_customer_tokens( $user_id ) );
+	}
+
+	/**
 	 * A callback that throws after a 3DS or redirect charge must not stop the paid cart from
 	 * being recorded, or the shopper's resubmit would charge the card again.
 	 *
