@@ -107,10 +107,12 @@ export async function setupCart(
 	lineItems = [ [ config.get( 'products.simple.name' ), 1 ] ]
 ) {
 	// The shop page's product grid and the header cart counter look different
-	// under classic and block themes, so add from each product's own page.
-	for ( const line of lineItems ) {
-		let [ productTitle, qty ] = line;
+	// under classic and block themes, so fill the cart through the Store API.
+	// Cart writes need the nonce that any cart read returns.
+	const cart = await page.request.get( '/wp-json/wc/store/v1/cart' );
+	const nonce = cart.headers().nonce;
 
+	for ( const [ productTitle, quantity ] of lineItems ) {
 		const response = await page.request.get(
 			`/wp-json/wc/store/v1/products?search=${ encodeURIComponent(
 				productTitle
@@ -131,10 +133,14 @@ export async function setupCart(
 			);
 		}
 
-		await page.goto( product.permalink );
-
-		while ( qty-- ) {
-			await clickAddToCartButton( page );
+		const added = await page.request.post(
+			'/wp-json/wc/store/v1/cart/add-item',
+			{ headers: { Nonce: nonce }, data: { id: product.id, quantity } }
+		);
+		if ( ! added.ok() ) {
+			throw new Error(
+				`Failed to add "${ productTitle }" to the cart: ${ added.status() } ${ await added.text() }`
+			);
 		}
 	}
 }
