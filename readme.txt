@@ -198,5 +198,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Respect WooCommerce's guest email verification on the Pay for Order page
 * Fix - Only save a payment method from a setup intent that belongs to the current user's Stripe customer
 * Fix - Validate payment and setup intent identifiers before using them in Stripe API requests
+* Fix - Strengthen order matching when processing payment notifications
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

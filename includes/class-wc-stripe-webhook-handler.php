@@ -3069,7 +3069,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 					/**
 					 * If the order has no intent ID stored, we may have failed to store it during the initial payment request.
-					 * Confirm that the signature matches the order, otherwise fall back to finding the order via the intent ID.
+					 * Confirm that the signature matches the order before trying the other order bindings below.
 					 */
 					if ( empty( $intent_id ) && $this->get_order_signature( $order ) === $signature ) {
 						return $order;
@@ -3081,7 +3081,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			if ( isset( $intent->metadata->order_id ) ) {
 				$order = wc_get_order( absint( $intent->metadata->order_id ) );
 
-				if ( $order instanceof WC_Order ) {
+				if ( $order instanceof WC_Order && $this->is_intent_for_order( $intent, $intent->metadata, $order ) ) {
 					return $order;
 				}
 				return false;
@@ -3095,7 +3095,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			if ( $order_id ) {
 				$order = wc_get_order( $order_id );
 
-				if ( $order instanceof WC_Order ) {
+				if ( $order instanceof WC_Order && $this->is_intent_for_order( $intent, $charge->metadata, $order ) ) {
 					return $order;
 				}
 			}
@@ -3104,6 +3104,52 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		// Fall back to finding the order via the intent ID.
 		return WC_Stripe_Helper::get_order_by_intent_id( $intent->id );
+	}
+
+	private function is_intent_for_order( object $intent, object $metadata, WC_Order $order ): bool {
+		$intent_id = WC_Stripe_Order_Helper::get_instance()->get_intent_id_from_order( $order );
+
+		if ( ! empty( $intent_id ) ) {
+			$matches = ( $intent->id ?? null ) === $intent_id;
+
+			if ( ! $matches ) {
+				WC_Stripe_Logger::warning(
+					'Webhook intent does not match the stored intent for the candidate order.',
+					[
+						'candidate_order_id' => $order->get_id(),
+						'webhook_intent_id'  => $intent->id ?? null,
+						'stored_intent_id'   => $intent_id,
+					]
+				);
+			}
+
+			return $matches;
+		}
+
+		if ( isset( $metadata->order_key ) ) {
+			return is_string( $metadata->order_key ) && '' !== $metadata->order_key && $order->key_is_valid( $metadata->order_key );
+		}
+
+		// Some Terminal clients omit the order key before the intent is saved locally.
+		// Only allow that legacy binding for card-present intents and this site's full URL,
+		// including its path: stores in a subdirectory network can share the same host.
+		// Mobile clients may use the home URL when WordPress lives in a separate directory.
+		$payment_method_types = $intent->payment_method_types ?? [];
+		$site_url             = $metadata->site_url ?? '';
+		if ( isset( $metadata->signature )
+			|| ! is_array( $payment_method_types )
+			|| empty( $payment_method_types )
+			|| array_diff( $payment_method_types, [ WC_Stripe_Payment_Methods::CARD_PRESENT ] )
+			|| ! is_string( $site_url )
+			|| '' === $site_url ) {
+			return false;
+		}
+
+		return in_array(
+			untrailingslashit( $site_url ),
+			[ untrailingslashit( get_site_url() ), untrailingslashit( home_url() ) ],
+			true
+		);
 	}
 
 	/**
