@@ -697,17 +697,21 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$is_pay_for_order = parent::is_valid_pay_for_order_endpoint();
 
+		// The order key alone validates the endpoint for guest orders, but WooCommerce may
+		// still be showing its verify-email form instead of the payment form. Both this
+		// array and the Blocks payment method data are printed regardless of that form,
+		// so nothing read from the order may be added until verification has passed.
+		$pay_for_order_order = null;
+		if ( $is_pay_for_order ) {
+			$order = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
+			if ( $order instanceof WC_Order && ! $this->is_pay_for_order_email_verification_pending( $order ) ) {
+				$pay_for_order_order = $order;
+			}
+		}
+
 		// Pass billing details for preloading Payment Element fields and for Radar AVS
 		// checks on the Pay for Order, Change Payment Method, and Add Payment Method pages.
 		if ( is_wc_endpoint_url( 'add-payment-method' ) || $is_pay_for_order || $is_change_payment_method ) {
-			// On the pay-for-order page, the order (loaded only for the order-key-validated
-			// endpoint) is the billing source; elsewhere the logged-in customer is.
-			$pay_for_order_order = null;
-			if ( $is_pay_for_order ) {
-				$order               = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
-				$pay_for_order_order = $order instanceof WC_Order ? $order : null;
-			}
-
 			$customer     = WC()->customer instanceof WC_Customer ? WC()->customer : null;
 			$billing_data = $this->get_deferred_flow_billing_data( $is_pay_for_order, $pay_for_order_order, $customer );
 			if ( null !== $billing_data ) {
@@ -717,12 +721,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		if ( $is_pay_for_order || $is_change_payment_method ) {
 			$order_id = absint( get_query_var( 'order-pay' ) );
-			$order    = wc_get_order( $order_id );
+			$order    = $is_pay_for_order ? $pay_for_order_order : wc_get_order( $order_id );
 
 			$stripe_params['orderId'] = $order_id;
 
 			// Make billing country available for subscriptions as well, so country-restricted payment methods can be shown.
-			if ( is_a( $order, 'WC_Order' ) ) {
+			if ( $order instanceof WC_Order ) {
 				$stripe_params['customerData'] = [ 'billing_country' => $order->get_billing_country() ];
 			}
 
@@ -743,7 +747,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$stripe_params['isOrderPay'] = true;
 
 			// Additional params for order pay page, when the order was successfully loaded.
-			if ( is_a( $order, 'WC_Order' ) ) {
+			if ( $order instanceof WC_Order ) {
 				$order_currency                  = $order->get_currency();
 				$stripe_params['currency']       = $order_currency;
 				$stripe_params['cartTotal']      = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order_currency );

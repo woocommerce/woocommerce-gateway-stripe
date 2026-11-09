@@ -6962,18 +6962,22 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * stubbed; everything else (including `apply_filters`) runs for real so that
 	 * filter-based behaviour can be asserted.
 	 *
+	 * @param string[] $additional_methods Further methods to stub, for the caller to configure.
 	 * @return WC_Stripe_UPE_Payment_Gateway
 	 */
-	private function create_gateway_mock_for_javascript_params(): WC_Stripe_UPE_Payment_Gateway {
+	private function create_gateway_mock_for_javascript_params( array $additional_methods = [] ): WC_Stripe_UPE_Payment_Gateway {
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->setConstructorArgs( [] )
 			->onlyMethods(
-				[
-					'get_return_url',
-					'get_stripe_return_url',
-					'is_changing_payment_method_for_subscription',
-					'is_subscription_item_in_cart',
-				]
+				array_merge(
+					[
+						'get_return_url',
+						'get_stripe_return_url',
+						'is_changing_payment_method_for_subscription',
+						'is_subscription_item_in_cart',
+					],
+					$additional_methods
+				)
 			)
 			->getMock();
 
@@ -7022,6 +7026,109 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$wp_query->query_vars = $original_query_vars;
 			wp_set_current_user( $original_current_user_id );
 		}
+	}
+
+	/**
+	 * Tests that order-derived data is withheld from the pay-for-order page while WooCommerce
+	 * still requires a guest to verify the order's billing email.
+	 *
+	 * @dataProvider provide_javascript_params_pay_for_order_email_verification
+	 *
+	 * @param bool        $is_registered_customer Whether the order belongs to the (logged-in) current user.
+	 * @param bool        $within_grace_period    Whether the order is younger than WooCommerce's grace period.
+	 * @param string|null $posted_email           Email posted to the verify-email form, or null for none.
+	 * @param bool        $valid_nonce            Whether the posted verify-email nonce is valid.
+	 * @param bool        $expect_order_data      Whether order-derived data should be localized.
+	 * @param bool        $helper_available       Whether WooCommerce's email verification helper is callable.
+	 */
+	public function test_javascript_params_withholds_order_data_until_guest_email_is_verified(
+		bool $is_registered_customer,
+		bool $within_grace_period,
+		?string $posted_email,
+		bool $valid_nonce,
+		bool $expect_order_data,
+		bool $helper_available = true
+	): void {
+		global $wp, $wp_query;
+
+		$original_get             = $_GET;
+		$original_post            = $_POST;
+		$original_wp_query_vars   = $wp->query_vars;
+		$original_query_vars      = $wp_query->query_vars;
+		$original_current_user_id = get_current_user_id();
+		$original_customer        = WC()->customer;
+
+		$user_id = $is_registered_customer ? self::factory()->user->create( [ 'role' => 'customer' ] ) : 0;
+		wp_set_current_user( $user_id );
+
+		$gateway = $this->create_gateway_mock_for_javascript_params( [ 'is_order_email_verification_helper_available' ] );
+		$gateway->method( 'is_order_email_verification_helper_available' )->willReturn( $helper_available );
+		$order = WC_Helper_Order::create_order( $user_id );
+		if ( ! $within_grace_period ) {
+			$order->set_date_created( time() - HOUR_IN_SECONDS );
+			$order->save();
+		}
+
+		$wp->query_vars['order-pay'] = $order->get_id();
+		$wp_query->set( 'order-pay', $order->get_id() );
+		$_GET['pay_for_order'] = 'true';
+		$_GET['key']           = $order->get_order_key();
+
+		if ( null !== $posted_email ) {
+			$_POST['email']            = $posted_email;
+			$_POST['check_submission'] = $valid_nonce ? wp_create_nonce( 'wc_verify_email' ) : 'invalid';
+		}
+
+		// Without a session customer, any billing data in the params can only come from the order.
+		WC()->customer = null;
+
+		try {
+			$params = $gateway->javascript_params();
+
+			// Needed by the client after the form submits, and not order-derived.
+			$this->assertTrue( $params['isOrderPay'] );
+			$this->assertSame( $order->get_id(), $params['orderId'] );
+
+			if ( $expect_order_data ) {
+				$this->assertSame( $order->get_billing_email(), $params['customerBillingData']['email'] );
+				$this->assertSame( $order->get_billing_country(), $params['customerData']['billing_country'] );
+				$this->assertSame( $order->get_order_key(), $params['orderKey'] );
+				$this->assertArrayHasKey( 'orderReturnURL', $params );
+			} else {
+				$this->assertArrayNotHasKey( 'customerBillingData', $params );
+				$this->assertArrayNotHasKey( 'customerData', $params );
+				$this->assertArrayNotHasKey( 'orderKey', $params );
+				$this->assertArrayNotHasKey( 'orderReturnURL', $params );
+			}
+		} finally {
+			$_GET                 = $original_get;
+			$_POST                = $original_post;
+			$wp->query_vars       = $original_wp_query_vars;
+			$wp_query->query_vars = $original_query_vars;
+			WC()->customer        = $original_customer;
+			wp_set_current_user( $original_current_user_id );
+		}
+	}
+
+	/**
+	 * Data provider for {@see test_javascript_params_withholds_order_data_until_guest_email_is_verified()}.
+	 *
+	 * @return array<string, array{0: bool, 1: bool, 2: string|null, 3: bool, 4: bool, 5?: bool}>
+	 */
+	public function provide_javascript_params_pay_for_order_email_verification(): array {
+		return [
+			'guest, within grace period'                => [ false, true, null, false, true ],
+			'guest, past grace period, no email'        => [ false, false, null, false, false ],
+			'guest, past grace period, wrong email'     => [ false, false, 'someone-else@example.org', true, false ],
+			'guest, past grace period, invalid nonce'   => [ false, false, 'admin@example.org', false, false ],
+			'guest, past grace period, verified email'  => [ false, false, 'admin@example.org', true, true ],
+			'registered customer viewing own order'     => [ true, false, null, false, true ],
+			// Without WooCommerce's helper, guests are withheld even when they would pass,
+			// but the order's own customer must still get the data the payment form needs.
+			'helper missing, guest within grace period' => [ false, true, null, false, false, false ],
+			'helper missing, guest with verified email' => [ false, false, 'admin@example.org', true, false, false ],
+			'helper missing, registered customer'       => [ true, false, null, false, true, false ],
+		];
 	}
 
 	/**

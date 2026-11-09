@@ -2380,6 +2380,47 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Whether WooCommerce is still asking the visitor to verify the order's billing email
+	 * before showing the pay-for-order form.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Order $order The order being paid.
+	 * @return bool True when verification is still pending, or cannot be determined for a guest.
+	 */
+	protected function is_pay_for_order_email_verification_pending( WC_Order $order ): bool {
+		if ( ! $this->is_order_email_verification_helper_available() ) {
+			// Fail closed
+			WC_Stripe_Logger::error( 'WooCommerce order email verification helper is unavailable; withholding order data from guest pay-for-order pages.' );
+
+			$customer_id = $order->get_customer_id();
+			return ! ( $customer_id && get_current_user_id() === $customer_id );
+		}
+
+		$supplied_email = null;
+		$nonce          = isset( $_POST['check_submission'] ) ? sanitize_text_field( wp_unslash( $_POST['check_submission'] ) ) : '';
+		if ( '' !== $nonce && wp_verify_nonce( $nonce, 'wc_verify_email' ) && isset( $_POST['email'] ) ) {
+			$supplied_email = sanitize_email( wp_unslash( $_POST['email'] ) );
+		}
+
+		return (bool) \Automattic\WooCommerce\Internal\Utilities\Users::should_user_verify_order_email( $order->get_id(), $supplied_email, 'order-pay' );
+	}
+
+	/**
+	 * Whether WooCommerce's order email verification helper can be called.
+	 *
+	 * The helper lives in WooCommerce's internal namespace, which carries no stability
+	 * guarantee, so its presence is checked rather than assumed.
+	 *
+	 * @since x.x.x
+	 *
+	 * @return bool
+	 */
+	protected function is_order_email_verification_helper_available(): bool {
+		return is_callable( [ \Automattic\WooCommerce\Internal\Utilities\Users::class, 'should_user_verify_order_email' ] );
+	}
+
+	/**
 	 * Checks if the current page is the order received page and the current user is allowed to manage the order.
 	 *
 	 * @return bool
@@ -2590,11 +2631,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		];
 
 		// If we're on the pay page we need to pass stripe.js the address of the order.
-		if ( $this->is_valid_pay_for_order_endpoint() || $this->is_changing_payment_method_for_subscription() ) {
+		$is_pay_for_order = $this->is_valid_pay_for_order_endpoint();
+		if ( $is_pay_for_order || $this->is_changing_payment_method_for_subscription() ) {
 			$order_id = absint( get_query_var( 'order-pay' ) );
 			$order    = wc_get_order( $order_id );
 
-			if ( is_a( $order, 'WC_Order' ) ) {
+			if ( is_a( $order, 'WC_Order' ) && ( ! $is_pay_for_order || ! $this->is_pay_for_order_email_verification_pending( $order ) ) ) {
 				$stripe_params['billing_first_name'] = $order->get_billing_first_name();
 				$stripe_params['billing_last_name']  = $order->get_billing_last_name();
 				$stripe_params['billing_address_1']  = $order->get_billing_address_1();

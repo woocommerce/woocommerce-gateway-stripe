@@ -195,5 +195,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Fix ACH E2E tests for Stripe's updated test-mode bank account flow
 * Fix - Stop a staging or cloned site from deleting the production site's Stripe webhooks when connecting or disconnecting Stripe
 * Fix - Only accept Stripe Checkout Session payments on stores where the feature is available
+* Fix - Respect WooCommerce's guest email verification on the Pay for Order page
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
