@@ -1010,6 +1010,7 @@ class WC_Stripe_Intent_Controller {
 			if ( empty( $intent_id_received ) || $intent_id_received !== $intent_id ) {
 				throw new WC_Stripe_Exception( 'invalid_intent_id', __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
+			$this->validate_order_not_refunded_after_cancellation( $order );
 			$save_payment_method = isset( $_POST['payment_method_id'] ) && ! empty( wc_clean( wp_unslash( $_POST['payment_method_id'] ) ) );
 
 			$gateway = $this->get_upe_gateway();
@@ -1033,6 +1034,7 @@ class WC_Stripe_Intent_Controller {
 					$order = $this->get_fresh_order( $order );
 
 					try {
+						$this->validate_order_not_refunded_after_cancellation( $order );
 						if ( $order_helper->is_order_payment_settled( $order ) ) {
 							WC_Stripe_Logger::info( "Skipping update_order_status_ajax for order $order_id; order was settled by a concurrent request." );
 						} else {
@@ -1126,6 +1128,19 @@ class WC_Stripe_Intent_Controller {
 	}
 
 	/**
+	 * A completed automatic refund must not be undone by a delayed browser callback.
+	 *
+	 * @since x.x.x
+	 * @param WC_Order $order The order being confirmed.
+	 * @throws WC_Stripe_Exception When payment processing has been closed.
+	 */
+	private function validate_order_not_refunded_after_cancellation( WC_Order $order ): void {
+		if ( WC_Stripe_Order_Helper::get_instance()->is_refunded_after_cancellation( $order ) ) {
+			throw new WC_Stripe_Exception( 'Order payment is no longer available for confirmation.', __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+	}
+
+	/**
 	 * Reloads an order from storage, bypassing the copy this request already holds, so a
 	 * change a concurrent request made is visible (wc_get_order() would return the cached copy).
 	 *
@@ -1202,7 +1217,12 @@ class WC_Stripe_Intent_Controller {
 				wp_send_json_error( __( 'Unable to verify your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			if ( ! empty( $order_id ) && ! empty( $intent_id ) && $order instanceof WC_Order ) {
+			// An error callback from an old checkout cannot change a hold or a terminal payment decision.
+			if ( ! $order instanceof WC_Order || ! $order->has_status( [ OrderStatus::PENDING, OrderStatus::FAILED ] ) || WC_Stripe_Order_Helper::get_instance()->is_refunded_after_cancellation( $order ) || WC_Stripe_Order_Helper::get_instance()->is_stripe_status_final( $order ) ) {
+				wp_send_json_error( __( 'Unable to verify your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) );
+			}
+
+			if ( ! empty( $order_id ) && ! empty( $intent_id ) ) {
 				$payment_needed = 0 < $order->get_total();
 				if ( $payment_needed ) {
 					$intent = WC_Stripe_API::retrieve( "payment_intents/$intent_id" );

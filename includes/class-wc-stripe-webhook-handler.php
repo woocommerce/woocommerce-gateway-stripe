@@ -1510,21 +1510,24 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 						break;
 					}
 
-					/**
-					 * Fires after a webhook charge is processed.
-					 * Deprecated in favor of wc_gateway_stripe_process_payment_charge.
-					 *
-					 * @deprecated 9.7.0
-					 * @param object   $charge The charge object.
-					 * @param WC_Order $order  The order object.
-					*/
-					do_action_deprecated(
-						'wc_gateway_stripe_process_payment',
-						[ $charge, $order ],
-						'9.7.0',
-						'wc_gateway_stripe_process_payment_charge',
-						'The wc_gateway_stripe_process_payment action is deprecated. Use wc_gateway_stripe_process_payment_charge instead.'
-					);
+					// Legacy callbacks run before process_response() can reject reversed charges.
+					if ( ! $this->is_charge_refunded_or_disputed( $charge ) ) {
+						/**
+						 * Fires after a webhook charge is processed.
+						 * Deprecated in favor of wc_gateway_stripe_process_payment_charge.
+						 *
+						 * @deprecated 9.7.0
+						 * @param object   $charge The charge object.
+						 * @param WC_Order $order  The order object.
+						 */
+						do_action_deprecated(
+							'wc_gateway_stripe_process_payment',
+							[ $charge, $order ],
+							'9.7.0',
+							'wc_gateway_stripe_process_payment_charge',
+							'The wc_gateway_stripe_process_payment action is deprecated. Use wc_gateway_stripe_process_payment_charge instead.'
+						);
+					}
 
 					$charge->is_webhook_response = true;
 					$this->process_response( $charge, $order );
@@ -2049,14 +2052,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		/** This action is documented in includes/class-wc-stripe-webhook-handler.php. */
-		do_action_deprecated(
-			'wc_gateway_stripe_process_payment',
-			[ $charge, $order ],
-			'9.7.0',
-			'wc_gateway_stripe_process_payment_charge',
-			'The wc_gateway_stripe_process_payment action is deprecated. Use wc_gateway_stripe_process_payment_charge instead.'
-		);
+		// Legacy callbacks run before process_response() can reject reversed charges.
+		if ( ! $this->is_charge_refunded_or_disputed( $charge ) ) {
+			/** This action is documented in includes/class-wc-stripe-webhook-handler.php. */
+			do_action_deprecated(
+				'wc_gateway_stripe_process_payment',
+				[ $charge, $order ],
+				'9.7.0',
+				'wc_gateway_stripe_process_payment_charge',
+				'The wc_gateway_stripe_process_payment action is deprecated. Use wc_gateway_stripe_process_payment_charge instead.'
+			);
+		}
 
 		$charge->is_webhook_response = true;
 		$this->process_response( $charge, $order );
@@ -2075,6 +2081,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	protected function maybe_mark_order_as_pre_ordered( $order, $charge = null ): bool {
 		if ( ! $this->is_unreleased_charged_upfront_pre_order( $order ) ) {
+			return false;
+		}
+
+		// Let normal charge validation reject the payment before the pre-order lifecycle starts.
+		if ( $this->is_charge_refunded_or_disputed( $charge ) ) {
 			return false;
 		}
 

@@ -633,6 +633,18 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Refunds and disputes can invalidate a charge while its payment status remains succeeded.
+	 *
+	 * @since x.x.x
+	 * @param mixed $charge The charge, or an absent or unexpanded charge reference.
+	 * @return bool
+	 */
+	protected function is_charge_refunded_or_disputed( $charge ): bool {
+		// A partial capture can report its released remainder as amount_refunded.
+		return is_object( $charge ) && ( ! empty( $charge->refunded ) || ! empty( $charge->disputed ) );
+	}
+
+	/**
 	 * Stores the charge data on the order while the Stripe transaction lock is held.
 	 *
 	 * @param object $response The Charge response from Stripe.
@@ -646,6 +658,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	private function process_locked_response( $response, $order, $linked_order ) {
 		if ( $linked_order && $linked_order->get_id() !== $order->get_id() ) {
 			WC_Stripe_Logger::error( 'Aborting, transaction already consumed by another order.' );
+			$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
+			throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+
+		// A succeeded charge can remain captured after a refund or dispute, so its status
+		// alone cannot authorize fulfilment or the payment hooks below.
+		if ( $this->is_charge_refunded_or_disputed( $response ) ) {
+			WC_Stripe_Logger::error( 'Aborting, charge has been refunded or disputed.' );
 			$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
 			throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}

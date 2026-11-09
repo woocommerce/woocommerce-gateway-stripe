@@ -4645,9 +4645,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 
 	/**
-	 * Pre-order payment is successful.
+	 * Prepaid pre-orders require a usable charge before entering the pre-order lifecycle.
+	 *
+	 * @dataProvider provide_reused_intent_charge_states
+	 * @param array  $charge_properties Refund or dispute state of the charge.
+	 * @param string $expected_result Expected payment result.
 	 */
-	public function test_pre_order_payment_is_successful() {
+	public function test_pre_order_payment_charge_validation( array $charge_properties, string $expected_result ) {
 		$payment_intent_id = 'pi_mock';
 		$payment_method_id = 'pm_mock';
 		$customer_id       = 'cus_mock';
@@ -4705,19 +4709,28 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			->with( wc_get_order( $order_id ) )
 			->will( $this->returnValue( true ) );
 
-		$this->mock_gateway->expects( $this->once() )
+		$this->mock_gateway->expects( 'success' === $expected_result ? $this->once() : $this->never() )
 			->method( 'mark_order_as_pre_ordered' );
 
-		$charge = [
-			'id'                     => 'ch_mock',
-			'captured'               => true,
-			'status'                 => 'succeeded',
-			'payment_method_details' => $payment_method_mock,
-		];
+		$charge = array_merge(
+			[
+				'id'                     => 'ch_mock',
+				'captured'               => true,
+				'status'                 => 'succeeded',
+				'payment_method_details' => $payment_method_mock,
+			],
+			$charge_properties
+		);
 		$this->mock_gateway
-			->expects( $this->exactly( 2 ) )
+			->expects( $this->exactly( 'success' === $expected_result ? 3 : 2 ) )
 			->method( 'get_latest_charge_from_intent' )
 			->willReturn( $this->array_to_object( $charge ) );
+
+		if ( 'success' !== $expected_result ) {
+			$this->expectException( WC_Stripe_Exception::class );
+			$this->mock_gateway->process_order_for_confirmed_intent( $order, $payment_intent_id, false );
+			return;
+		}
 
 		$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, false );
 
@@ -5069,6 +5082,24 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		);
 
 		$mock_payment_method = (object) self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
+		$this->mock_gateway->method( 'get_latest_charge_from_intent' )->willReturnCallback(
+			static function ( $intent ) {
+				return $intent->charges->data[0];
+			}
+		);
+		$new_intent          = clone $mock_intent;
+		$new_intent->id      = 'pi_new';
+		$new_intent->charges = (object) [
+			'data' => [
+				(object) [
+					'id'       => 'ch_new',
+					'captured' => true,
+					'status'   => 'succeeded',
+					'refunded' => false,
+					'disputed' => false,
+				],
+			],
+		];
 
 		$_POST = [
 			'payment_method'           => 'stripe',
@@ -5282,17 +5313,26 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * Test that a successful payment intent is reused instead of creating a new one.
-	 * This prevents duplicate charges when the shopper retries a payment after
-	 * a successful charge but failed order completion.
+	 * A usable charge prevents double payment; a reversed charge must allow a new payment.
 	 *
+	 * @dataProvider provide_reused_intent_charge_states
+	 * @param array  $charge_properties Current refund or dispute state of the charge.
+	 * @param string $expected_result Whether the existing charge can settle the order.
 	 * @return void
 	 * @throws Exception If test fails.
 	 */
-	public function test_process_payment_reuses_successful_payment_intent() {
-		$customer_id = 'cus_mock';
-		$order       = WC_Helper_Order::create_order();
-		$order_id    = $order->get_id();
+	public function test_process_payment_reuses_successful_payment_intent( array $charge_properties, string $expected_result ) {
+		$customer_id  = 'cus_mock';
+		$order        = WC_Helper_Order::create_order();
+		$order_id     = $order->get_id();
+		$reuse_intent = 'success' === $expected_result;
+		$order->set_status( OrderStatus::FAILED );
+		$order->set_transaction_id( 'ch_reused' );
+		$order->update_meta_data( '_stripe_intent_id', 'pi_mock' );
+		if ( ! empty( $charge_properties['disputed'] ) ) {
+			WC_Stripe_Order_Helper::get_instance()->set_stripe_status_final( $order, true );
+		}
+		$order->save();
 
 		$mock_intent = (object) wp_parse_args(
 			[
@@ -5303,11 +5343,14 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'currency'             => strtolower( $order->get_currency() ),
 				'charges'              => (object) [
 					'data' => [
-						(object) [
-							'id'       => $order_id,
-							'captured' => 'yes',
-							'status'   => 'succeeded',
-						],
+						(object) array_merge(
+							[
+								'id'       => 'ch_reused',
+								'captured' => true,
+								'status'   => 'succeeded',
+							],
+							$charge_properties
+						),
 					],
 				],
 				'status'               => WC_Stripe_Intent_Status::SUCCEEDED,
@@ -5316,6 +5359,24 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		);
 
 		$mock_payment_method = (object) self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
+		$this->mock_gateway->method( 'get_latest_charge_from_intent' )->willReturnCallback(
+			static function ( $intent ) {
+				return $intent->charges->data[0];
+			}
+		);
+		$new_intent          = clone $mock_intent;
+		$new_intent->id      = 'pi_new';
+		$new_intent->charges = (object) [
+			'data' => [
+				(object) [
+					'id'       => 'ch_new',
+					'captured' => true,
+					'status'   => 'succeeded',
+					'refunded' => false,
+					'disputed' => false,
+				],
+			],
+		];
 
 		$_POST = [
 			'payment_method'           => 'stripe',
@@ -5324,7 +5385,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		// Mock that we find an existing successful intent on the order
 		$this->mock_gateway
-			->expects( $this->exactly( 1 ) )
+			->expects( $this->exactly( $reuse_intent ? 1 : 2 ) )
 			->method( 'get_intent_from_order' )
 			->willReturn( $mock_intent );
 
@@ -5341,10 +5402,17 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				$mock_intent
 			);
 
-		// We should never try to create a new intent since we have a successful one
 		$this->mock_gateway->intent_controller
-			->expects( $this->never() )
-			->method( 'create_and_confirm_payment_intent' );
+			->expects( $reuse_intent ? $this->never() : $this->once() )
+			->method( 'create_and_confirm_payment_intent' )
+			->with(
+				$this->callback(
+					static function ( $information ) {
+						return 'pm_mock' === $information['payment_method'];
+					}
+				)
+			)
+			->willReturn( $new_intent );
 
 		$this->mock_gateway
 			->expects( $this->once() )
@@ -5353,8 +5421,45 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$response = $this->mock_gateway->process_payment( $order_id );
 
-		// Verify the response indicates success
-		$this->assertEquals( 'success', $response['result'] );
+		$this->assertSame( 'success', $response['result'] );
+		$final_order = wc_get_order( $order_id );
+		$this->assertTrue( $final_order->is_paid() );
+		$this->assertSame( $reuse_intent ? 'ch_reused' : 'ch_new', $final_order->get_transaction_id() );
+		$this->assertSame( $reuse_intent ? 'pi_mock' : 'pi_new', $final_order->get_meta( '_stripe_intent_id' ) );
+	}
+
+	/**
+	 * Provider for `test_process_payment_reuses_successful_payment_intent`.
+	 *
+	 * @since x.x.x
+	 * @return array
+	 */
+	public function provide_reused_intent_charge_states(): array {
+		return [
+			'valid charge'       => [
+				[
+					'refunded'        => false,
+					'amount_refunded' => 0,
+					'disputed'        => false,
+				],
+				'success',
+			],
+			'fully refunded'     => [
+				[
+					'refunded'        => true,
+					'amount_refunded' => 5000,
+				],
+				'failure',
+			],
+			'partially refunded' => [
+				[
+					'refunded'        => false,
+					'amount_refunded' => 100,
+				],
+				'success',
+			],
+			'disputed'           => [ [ 'disputed' => true ], 'failure' ],
+		];
 	}
 
 	/**

@@ -158,6 +158,13 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_STATUS_FINAL = '_stripe_status_final';
 
 	/**
+	 * Meta key for a cancelled order's returned payment.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_REFUNDED_AFTER_CANCELLATION = '_stripe_refunded_after_cancellation';
+
+	/**
 	 * Meta key for Stripe refund failure reason.
 	 *
 	 * @var string
@@ -1002,6 +1009,19 @@ class WC_Stripe_Order_Helper {
 	 */
 	public function set_stripe_status_final( WC_Order $order, bool $is_final = true ): void {
 		$this->update_order_meta( $order, self::META_STRIPE_STATUS_FINAL, wc_bool_to_string( $is_final ) );
+	}
+
+	/**
+	 * A false refund marker must not block legitimate checkout callbacks.
+	 *
+	 * @since x.x.x
+	 * @param WC_Order $order The order to check.
+	 * @return bool
+	 */
+	public function is_refunded_after_cancellation( WC_Order $order ): bool {
+		return wc_string_to_bool(
+			$this->get_order_meta( $order, self::META_STRIPE_REFUNDED_AFTER_CANCELLATION ) ?? ''
+		);
 	}
 
 	/**
