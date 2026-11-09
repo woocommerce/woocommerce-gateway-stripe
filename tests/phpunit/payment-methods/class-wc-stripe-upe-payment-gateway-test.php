@@ -4950,6 +4950,91 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		do_action( 'woocommerce_admin_order_totals_after_total', $order->get_id() );
 	}
+
+	/**
+	 * Both deferred-intent paths must reject oversized totals without completing the order.
+	 *
+	 * @dataProvider provide_oversized_checkout_totals
+	 */
+	public function test_process_payment_rejects_oversized_total( string $total, bool $use_confirmation_token ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		$order->set_total( $total );
+		$order->save();
+
+		$_POST                          = [
+			'payment_method'               => 'stripe',
+			'wc-stripe-payment-method'     => $use_confirmation_token ? '' : 'pm_mock',
+			'wc-stripe-confirmation-token' => $use_confirmation_token ? 'ctoken_mock' : '',
+		];
+		$this->mock_gateway->oc_enabled = $use_confirmation_token;
+		$this->mock_gateway->intent_controller->expects( $this->never() )->method( 'create_and_confirm_setup_intent' );
+		$this->mock_gateway->intent_controller
+			->expects( $this->never() )
+			->method( 'create_and_confirm_payment_intent' );
+
+		$response = $this->mock_gateway->process_payment( $order->get_id() );
+
+		$this->assertSame( 'failure', $response['result'] );
+		$this->assertSame( 1, wc_notice_count( 'error' ) );
+		$this->assertStringContainsString( 'The amount is too large to process with this payment method.', wc_get_notices( 'error' )[0]['notice'] );
+		$order = wc_get_order( $order->get_id() );
+		$this->assertFalse( $order->is_paid() );
+		$this->assertNull( $order->get_date_paid() );
+		$this->assertSame( '', $order->get_transaction_id() );
+		wc_clear_notices();
+	}
+
+	public function provide_oversized_checkout_totals(): array {
+		return [
+			'payment method, Stripe limit'     => [ '10000000000.00', false ],
+			'confirmation token, Stripe limit' => [ '10000000000.00', true ],
+			'payment method, zero wrap'        => [ '184467440737095520.00', false ],
+			'payment method, small wrap'       => [ '184467440737095600.00', false ],
+			'confirmation token, zero wrap'    => [ '184467440737095520.00', true ],
+			'confirmation token, small wrap'   => [ '184467440737095600.00', true ],
+		];
+	}
+
+	/**
+	 * The payment fragment refresh must remain usable before an oversized payment is rejected.
+	 *
+	 * @dataProvider provide_oversized_checkout_totals
+	 */
+	public function test_oversized_total_does_not_abort_payment_fragment( string $total, bool $oc_enabled ): void {
+		$this->set_stripe_account_data(
+			[
+				'country'          => 'US',
+				'default_currency' => 'usd',
+				'capabilities'     => [
+					'card_payments'   => 'active',
+					'klarna_payments' => 'active',
+				],
+			]
+		);
+		$this->mock_payment_method_configurations( [ 'card', 'klarna' ] );
+		WC()->cart->set_total( $total );
+		$gateway                   = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$original_oc_enabled       = $gateway->oc_enabled;
+		$gateway->oc_enabled       = $oc_enabled;
+		$gateways                  = WC()->payment_gateways()->payment_gateways();
+		$bacs_enabled              = $gateways['bacs']->enabled;
+		$gateways['bacs']->enabled = 'yes';
+
+		ob_start();
+		try {
+			woocommerce_checkout_payment();
+			$html = ob_get_contents();
+			$this->assertStringContainsString( 'payment_method_bacs', $html );
+			$this->assertStringContainsString( 'woocommerce-process-checkout-nonce', $html );
+		} finally {
+			ob_end_clean();
+			WC()->cart->empty_cart();
+			$gateway->oc_enabled       = $original_oc_enabled;
+			$gateways['bacs']->enabled = $bacs_enabled;
+		}
+	}
+
 	/**
 	 * Test for `process_payment` when the order has an existing payment intent attached.
 	 *
@@ -7399,6 +7484,101 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->set_stripe_account_data( [ 'country' => 'US' ] );
 
 		return $gateway;
+	}
+
+	/**
+	 * @dataProvider provide_javascript_params_cart_totals
+	 */
+	public function test_javascript_params_for_cart_total( string $total, ?int $expected_amount ): void {
+		$gateway        = $this->create_gateway_mock_for_javascript_params();
+		$original_total = WC()->cart->get_total( '' );
+		WC()->cart->set_total( $total );
+
+		try {
+			$params = $gateway->javascript_params();
+
+			if ( null === $expected_amount ) {
+				$this->assertSame( [], $params );
+				return;
+			}
+
+			$this->assertSame( $expected_amount, $params['cartTotal'] );
+			$this->assertSame( 0 < $expected_amount, $params['isPaymentNeeded'] );
+		} finally {
+			WC()->cart->set_total( $original_total );
+		}
+	}
+
+	public function provide_javascript_params_cart_totals(): array {
+		return [
+			'normal total'       => [ '10.23', 1023 ],
+			'zero total'         => [ '0', 0 ],
+			'above Stripe limit' => [ '10000000000.00', null ],
+			'integer wraparound' => [ '184467440737095520.00', null ],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_javascript_params_order_totals
+	 */
+	public function test_javascript_params_for_order_total( string $total, string $currency, ?int $expected_amount, string $cart_total = '0' ): void {
+		global $wp, $wp_query;
+
+		$gateway = $this->create_gateway_mock_for_javascript_params();
+		$order   = WC_Helper_Order::create_order( 0 );
+		$order->set_currency( $currency );
+		$order->set_total( $total );
+		$order->save();
+
+		$original_get                = $_GET;
+		$original_wp_query_vars      = $wp->query_vars;
+		$original_query_vars         = $wp_query->query_vars;
+		$original_current_user_id    = get_current_user_id();
+		$original_total              = WC()->cart->get_total( '' );
+		$wp->query_vars['order-pay'] = $order->get_id();
+		$wp_query->set( 'order-pay', $order->get_id() );
+		$_GET['pay_for_order'] = 'true';
+		$_GET['key']           = $order->get_order_key();
+		wp_set_current_user( 0 );
+		WC()->cart->set_total( $cart_total );
+
+		try {
+			$params = $gateway->javascript_params();
+
+			if ( null === $expected_amount ) {
+				$this->assertSame( [], $params );
+				return;
+			}
+
+			$this->assertSame( $expected_amount, $params['cartTotal'] );
+			$this->assertSame( 0 < $expected_amount, $params['isPaymentNeeded'] );
+			$this->assertSame( $currency, $params['currency'] );
+			if ( 0 === $expected_amount ) {
+				// Orders that do not need payment are not valid pay-for-order endpoints.
+				$this->assertArrayNotHasKey( 'orderId', $params );
+			} else {
+				$this->assertSame( $order->get_id(), $params['orderId'] );
+			}
+		} finally {
+			$_GET                 = $original_get;
+			$wp->query_vars       = $original_wp_query_vars;
+			$wp_query->query_vars = $original_query_vars;
+			wp_set_current_user( $original_current_user_id );
+			WC()->cart->set_total( $original_total );
+		}
+	}
+
+	public function provide_javascript_params_order_totals(): array {
+		return [
+			'normal total'                            => [ '10.23', 'USD', 1023 ],
+			'zero total'                              => [ '0', 'USD', 0 ],
+			'above Stripe limit'                      => [ '10000000000.00', 'USD', null ],
+			'integer wraparound'                      => [ '184467440737095520.00', 'USD', null ],
+			// is_payment_needed() converts using the store currency, even when the order currency differs.
+			'payment needed conversion exceeds limit' => [ '10000000000', 'JPY', null ],
+			// Paying an order must not depend on whatever is left in the session cart.
+			'oversized session cart is ignored'       => [ '10.23', 'USD', 1023, '184467440737095520.00' ],
+		];
 	}
 
 	/**

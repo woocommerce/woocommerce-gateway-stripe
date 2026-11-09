@@ -200,5 +200,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Validate payment and setup intent identifiers before using them in Stripe API requests
 * Fix - Strengthen order matching when processing payment notifications
 * Fix - Prevent the same payment intent from being linked to more than one order at checkout
+* Fix - Reject checkout totals too large to convert to a Stripe amount
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
