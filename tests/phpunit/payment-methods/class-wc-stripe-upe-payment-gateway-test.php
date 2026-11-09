@@ -1,5 +1,6 @@
 <?php
 
+use Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils;
 use Automattic\WooCommerce\Enums\OrderStatus;
 
 /**
@@ -6879,10 +6880,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @param bool   $is_checkout Whether WooCommerce identifies the page as checkout.
 	 * @param string $endpoint Special checkout endpoint, if any.
 	 * @param bool   $expected_classic Whether the classic runtime is required.
+	 * @param bool   $is_cart Whether this is the configured cart page.
 	 * @return void
 	 */
-	public function test_payment_scripts_for_checkout_layouts( $content, $is_checkout, $endpoint, $expected_classic ): void {
+	public function test_payment_scripts_for_checkout_layouts( $content, $is_checkout, $endpoint, $expected_classic, $is_cart = false ): void {
 		$original_account_page = get_option( 'woocommerce_myaccount_page_id' );
+		$original_cart_page    = get_option( 'woocommerce_cart_page_id' );
 		$page                  = self::factory()->post->create(
 			[
 				'post_type'    => 'page',
@@ -6891,6 +6894,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		);
 		if ( 'add-payment-method' === $endpoint ) {
 			update_option( 'woocommerce_myaccount_page_id', $page );
+		}
+		if ( $is_cart ) {
+			update_option( 'woocommerce_cart_page_id', $page );
 		}
 		$this->go_to( get_permalink( $page ) );
 		$checkout_filter = static function () use ( $is_checkout ) {
@@ -6916,7 +6922,19 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$gateway->enabled = 'yes';
 		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ] );
 
+		$cart_page_cache = null;
+		if ( $is_cart && property_exists( CartCheckoutUtils::class, 'is_cart_page' ) ) {
+			// WooCommerce's request cache survives navigation between fixtures in the same PHP process.
+			$cart_page_cache = new ReflectionProperty( CartCheckoutUtils::class, 'is_cart_page' );
+			$cart_page_cache->setAccessible( true );
+			$original_cart_page_cache = $cart_page_cache->getValue();
+			$cart_page_cache->setValue( null, null );
+		}
+
 		try {
+			if ( $is_cart ) {
+				$this->assertTrue( is_cart() );
+			}
 			$gateway->payment_scripts();
 			$this->assertSame( $expected_classic, wp_script_is( 'wc-stripe-upe-classic', 'enqueued' ) );
 			$this->assertTrue( wp_script_is( 'wc-stripe-checkout-settings', 'enqueued' ) );
@@ -6928,6 +6946,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$this->assertContains( 'wc-stripe-checkout-settings', wp_scripts()->registered['wc-stripe-upe-classic']->deps );
 		} finally {
 			update_option( 'woocommerce_myaccount_page_id', $original_account_page );
+			if ( $is_cart ) {
+				update_option( 'woocommerce_cart_page_id', $original_cart_page );
+			}
+			if ( $cart_page_cache ) {
+				$cart_page_cache->setValue( null, $original_cart_page_cache );
+			}
 			remove_filter( 'woocommerce_is_checkout', $checkout_filter );
 			remove_filter( 'wc_stripe_upe_params', $params_filter );
 			unset( $_GET['change_payment_method'], $GLOBALS['wp']->query_vars[ $endpoint ] );
@@ -6946,6 +6970,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			'Blocks checkout on custom page' => [ '<!-- wp:woocommerce/checkout /-->', false, '', false ],
 			'classic checkout'               => [ '[woocommerce_checkout]', true, '', true ],
 			'classic shortcode block'        => [ '<!-- wp:woocommerce/classic-shortcode {"shortcode":"checkout"} /-->', true, '', true ],
+			'classic cart'                   => [ '[woocommerce_cart]', false, '', false, true ],
+			'classic cart block'             => [ '<!-- wp:woocommerce/classic-shortcode {"shortcode":"cart"} /-->', false, '', false, true ],
+			'default classic cart block'     => [ '<!-- wp:woocommerce/classic-shortcode /-->', false, '', false, true ],
+			'nested classic cart block'      => [ '<!-- wp:group --><!-- wp:woocommerce/classic-shortcode {"shortcode":"cart"} /--><!-- /wp:group -->', false, '', false, true ],
+			'checkout block on cart page'    => [ '<!-- wp:woocommerce/classic-shortcode {"shortcode":"cart"} /--><!-- wp:woocommerce/classic-shortcode {"shortcode":"checkout"} /-->', false, '', true, true ],
+			'nested checkout with Blocks'    => [ '<!-- wp:woocommerce/cart /--><!-- wp:group --><!-- wp:woocommerce/classic-shortcode {"shortcode":"checkout"} /--><!-- /wp:group -->', false, '', true ],
+			'Blocks with classic cart block' => [ '<!-- wp:woocommerce/checkout /--><!-- wp:woocommerce/classic-shortcode {"shortcode":"cart"} /-->', true, '', false ],
 			'mixed classic and Blocks'       => [ '<!-- wp:woocommerce/cart /-->[woocommerce_checkout]', true, '', true ],
 			'pay for order on Blocks page'   => [ '<!-- wp:woocommerce/checkout /-->', true, 'order-pay', true ],
 			'add payment method'             => [ '[woocommerce_my_account]', false, 'add-payment-method', true ],

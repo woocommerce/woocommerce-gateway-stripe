@@ -1348,11 +1348,24 @@ class WC_Stripe_Helper {
 		}
 
 		global $post;
-		if (
-			$post instanceof WP_Post &&
-			( has_shortcode( $post->post_content, 'woocommerce_checkout' ) || has_block( 'woocommerce/classic-shortcode', $post ) )
-		) {
-			return true;
+		if ( $post instanceof WP_Post ) {
+			if ( has_shortcode( $post->post_content, 'woocommerce_checkout' ) ) {
+				return true;
+			}
+
+			// Classic Cart and Checkout share a block name and can be nested inside layout blocks.
+			if ( has_block( 'woocommerce/classic-shortcode', $post ) ) {
+				$blocks = parse_blocks( $post->post_content );
+				while ( $blocks ) {
+					$block = array_pop( $blocks );
+					if ( 'woocommerce/classic-shortcode' === $block['blockName'] && 'checkout' === ( $block['attrs']['shortcode'] ?? '' ) ) {
+						return true;
+					}
+					foreach ( $block['innerBlocks'] as $inner_block ) {
+						$blocks[] = $inner_block;
+					}
+				}
+			}
 		}
 
 		if ( has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' ) ) {

@@ -1,5 +1,7 @@
 <?php
 
+use Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils;
+
 /**
  * These tests make assertions against class WC_Stripe_Express_Checkout_Element.
  *
@@ -308,15 +310,20 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	 * @param string $content Page content.
 	 * @param string $endpoint Special endpoint, if any.
 	 * @param bool   $expected_classic Whether classic express checkout is needed.
+	 * @param bool   $is_cart Whether this is the configured cart page.
 	 * @return void
 	 */
-	public function test_express_scripts_and_preload_follow_layout( $content, $endpoint, $expected_classic ): void {
-		$page = self::factory()->post->create(
+	public function test_express_scripts_and_preload_follow_layout( $content, $endpoint, $expected_classic, $is_cart = false ): void {
+		$original_cart_page = get_option( 'woocommerce_cart_page_id' );
+		$page               = self::factory()->post->create(
 			[
 				'post_type'    => 'page',
 				'post_content' => $content,
 			]
 		);
+		if ( $is_cart ) {
+			update_option( 'woocommerce_cart_page_id', $page );
+		}
 		$this->go_to( get_permalink( $page ) );
 		if ( $endpoint ) {
 			$GLOBALS['wp']->query_vars[ $endpoint ] = 123;
@@ -326,12 +333,23 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 			return $params;
 		};
 		add_filter( 'wc_stripe_express_checkout_params', $filter );
+		$cart_page_cache = null;
+		if ( $is_cart && property_exists( CartCheckoutUtils::class, 'is_cart_page' ) ) {
+			// WooCommerce's request cache survives navigation between fixtures in the same PHP process.
+			$cart_page_cache = new ReflectionProperty( CartCheckoutUtils::class, 'is_cart_page' );
+			$cart_page_cache->setAccessible( true );
+			$original_cart_page_cache = $cart_page_cache->getValue();
+			$cart_page_cache->setValue( null, null );
+		}
 		foreach ( [ 'wc_stripe_express_checkout', 'wc-stripe-checkout-settings' ] as $handle ) {
 			wp_dequeue_script( $handle );
 			wp_deregister_script( $handle );
 		}
 
 		try {
+			if ( $is_cart ) {
+				$this->assertTrue( is_cart() );
+			}
 			$element = $this->build_element_with_guards( true, true );
 			$element->scripts();
 			$this->assertSame( $expected_classic, wp_script_is( 'wc_stripe_express_checkout', 'enqueued' ) );
@@ -346,6 +364,12 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 			$this->assertCount( 1, $hints );
 			$this->assertSame( WC_STRIPE_PLUGIN_URL . '/build/' . $bundle . '.js?ver=' . $asset['version'], $hints[0]['href'] );
 		} finally {
+			if ( $is_cart ) {
+				update_option( 'woocommerce_cart_page_id', $original_cart_page );
+			}
+			if ( $cart_page_cache ) {
+				$cart_page_cache->setValue( null, $original_cart_page_cache );
+			}
 			remove_filter( 'wc_stripe_express_checkout_params', $filter );
 			unset( $GLOBALS['wp']->query_vars[ $endpoint ] );
 			foreach ( [ 'wc_stripe_express_checkout', 'wc-stripe-checkout-settings' ] as $handle ) {
@@ -363,7 +387,9 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 		return [
 			'Blocks cart'              => [ '<!-- wp:woocommerce/cart /-->', '', false ],
 			'Blocks checkout'          => [ '<!-- wp:woocommerce/checkout /-->', '', false ],
-			'classic cart'             => [ '[woocommerce_cart]', '', true ],
+			'classic cart'             => [ '[woocommerce_cart]', '', true, true ],
+			'classic cart block'       => [ '<!-- wp:woocommerce/classic-shortcode {"shortcode":"cart"} /-->', '', true, true ],
+			'nested classic cart'      => [ '<!-- wp:group --><!-- wp:woocommerce/classic-shortcode {"shortcode":"cart"} /--><!-- /wp:group -->', '', true, true ],
 			'classic checkout'         => [ '[woocommerce_checkout]', '', true ],
 			'pay for order'            => [ '<!-- wp:woocommerce/checkout /-->', 'order-pay', true ],
 			'mixed classic and Blocks' => [ '<!-- wp:woocommerce/cart /-->[woocommerce_checkout]', '', true ],
