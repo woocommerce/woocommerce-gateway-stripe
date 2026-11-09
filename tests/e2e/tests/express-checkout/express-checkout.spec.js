@@ -9,34 +9,11 @@ const addProductToCart = async ( page, productSlug = 'beanie' ) => {
 	await page.goto( `/product/${ productSlug }` );
 
 	await clickAddToCartButton( page );
-};
 
-/**
- * Select a variation attribute: a native `<select>` on classic themes, a radio
- * chip in the "Add to Cart with Options" block on block themes.
- *
- * @param {import('@playwright/test').Page} page           Playwright page.
- * @param {string}                          attributeLabel The attribute's label (e.g. 'color').
- * @param {string}                          value          The option to pick (e.g. 'Blue').
- */
-const selectVariation = async ( page, attributeLabel, value ) => {
-	const dropdown = page.getByLabel( attributeLabel, { exact: true } );
-	const isSelect =
-		( await dropdown.count() ) > 0 &&
-		( await dropdown
-			.first()
-			.evaluate( ( el ) => el.tagName === 'SELECT' ) );
-	if ( isSelect ) {
-		await dropdown.selectOption( value );
-	} else {
-		// Scoped to the block so a same-named radio elsewhere can't match.
-		await page
-			.locator(
-				'.wp-block-woocommerce-add-to-cart-with-options-variation-selector'
-			)
-			.getByRole( 'radio', { name: value, exact: true } )
-			.click();
-	}
+	// Wait for the cart update to complete - look for success message or cart count update
+	await expect(
+		page.getByText( 'has been added to your cart' )
+	).toBeVisible();
 };
 
 const testLink = async ( page, navigateTo, isBlockPage = false ) => {
@@ -303,11 +280,6 @@ test.describe( 'customer can use Link express checkout', () => {
 } );
 
 test.describe( 'express checkout and variable products', () => {
-	const getLinkFrame = ( page ) =>
-		page.locator(
-			'#wc-stripe-express-checkout-element-link iframe[name^="__privateStripeFrame"]'
-		);
-
 	test( 'is hidden when no product variation is selected', async ( {
 		page,
 	} ) => {
@@ -316,7 +288,9 @@ test.describe( 'express checkout and variable products', () => {
 		// We want to wait for the express checkout element to be loaded,
 		// before asserting that it is hidden. Immedidately asserting that it is hidden
 		// might cause the test to pass only because the element is not yet loaded.
-		const linkContainer = getLinkFrame( page );
+		const linkContainer = page.locator(
+			'#wc-stripe-express-checkout-element-link iframe[name^="__privateStripeFrame"]'
+		);
 		await expect( linkContainer ).toHaveCount( 1 );
 		await expect( linkContainer ).toBeHidden();
 	} );
@@ -325,28 +299,11 @@ test.describe( 'express checkout and variable products', () => {
 		page,
 	} ) => {
 		await page.goto( '/product/hoodie' );
-
-		const isBlockified =
-			( await page
-				.locator(
-					'.wp-block-woocommerce-add-to-cart-with-options-variation-selector'
-				)
-				.count() ) > 0;
-
-		await selectVariation( page, 'color', 'Blue' );
-		await selectVariation( page, 'Logo', 'Yes' );
-
-		if ( isBlockified ) {
-			// The "Add to Cart with Options" block does not fire the jQuery
-			// variation events express checkout listens for, so the button
-			// stays hidden there (issue #5811). Pinned so it turns red once
-			// PR #5868 lands; flip this to toBeVisible then. As above, wait
-			// for the element to mount so "hidden" is not "not loaded yet".
-			const linkContainer = getLinkFrame( page );
-			await expect( linkContainer ).toHaveCount( 1 );
-			await expect( linkContainer ).toBeHidden();
-			return;
-		}
-		await expect( await getLinkButton( page ) ).toBeVisible();
+		await page
+			.getByLabel( 'color', { exact: true } )
+			.selectOption( 'Blue' );
+		await page.getByLabel( 'Logo', { exact: true } ).selectOption( 'Yes' );
+		const linkButton = await getLinkButton( page );
+		await expect( linkButton ).toBeVisible();
 	} );
 } );
