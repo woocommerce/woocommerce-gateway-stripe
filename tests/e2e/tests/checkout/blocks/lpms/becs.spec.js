@@ -10,6 +10,7 @@ const {
 	setupBlocksCheckout,
 	setupBECSCheckout,
 	fillBECSDetails,
+	tickSavePaymentMethodBlocks,
 	waitForOrderReceivedPage,
 } = payments;
 
@@ -56,7 +57,7 @@ test.describe( 'BECS payment tests @blocks @becs', () => {
 			);
 			await setupBECSCheckout( page, 'blocks' );
 			await fillBECSDetails( page );
-			await page.getByLabel( 'Save payment information' ).click();
+			await tickSavePaymentMethodBlocks( page );
 			await clickPlaceOrder( page );
 			await waitForOrderReceivedPage( page );
 		} );

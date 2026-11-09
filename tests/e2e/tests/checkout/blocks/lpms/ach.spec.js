@@ -10,6 +10,7 @@ const {
 	setupBlocksCheckout,
 	fillACHBankDetails,
 	setupACHCheckout,
+	tickSavePaymentMethodBlocks,
 	waitForOrderReceivedPage,
 } = payments;
 
@@ -66,11 +67,7 @@ test.describe( 'ACH payment tests @blocks', () => {
 			);
 			await setupACHCheckout( page, 'blocks' );
 			await fillACHBankDetails( page );
-			await page
-				.locator(
-					'.wc-block-components-payment-methods__save-card-info'
-				)
-				.click();
+			await tickSavePaymentMethodBlocks( page );
 
 			await clickPlaceOrder( page );
 			await waitForOrderReceivedPage( page );
