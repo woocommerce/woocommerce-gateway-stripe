@@ -1013,6 +1013,10 @@ export async function handleCheckout3DSChallenge( page, action = 'authorize' ) {
  */
 export async function tickSavePaymentMethodBlocks( page ) {
 	const checkbox = page.getByLabel( 'Save payment information' );
+	// A dispatched click also lands on a hidden element, and the plugin hides
+	// this checkbox when Link handles saving, so check a shopper could use it.
+	await expect( checkbox ).toBeVisible();
+	await expect( checkbox ).toBeEnabled();
 	await checkbox.dispatchEvent( 'click' );
 	await expect( checkbox ).toBeChecked();
 }

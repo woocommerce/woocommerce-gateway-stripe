@@ -303,6 +303,11 @@ test.describe( 'customer can use Link express checkout', () => {
 } );
 
 test.describe( 'express checkout and variable products', () => {
+	const getLinkFrame = ( page ) =>
+		page.locator(
+			'#wc-stripe-express-checkout-element-link iframe[name^="__privateStripeFrame"]'
+		);
+
 	test( 'is hidden when no product variation is selected', async ( {
 		page,
 	} ) => {
@@ -311,9 +316,7 @@ test.describe( 'express checkout and variable products', () => {
 		// We want to wait for the express checkout element to be loaded,
 		// before asserting that it is hidden. Immedidately asserting that it is hidden
 		// might cause the test to pass only because the element is not yet loaded.
-		const linkContainer = page.locator(
-			'#wc-stripe-express-checkout-element-link iframe[name^="__privateStripeFrame"]'
-		);
+		const linkContainer = getLinkFrame( page );
 		await expect( linkContainer ).toHaveCount( 1 );
 		await expect( linkContainer ).toBeHidden();
 	} );
@@ -332,16 +335,18 @@ test.describe( 'express checkout and variable products', () => {
 
 		await selectVariation( page, 'color', 'Blue' );
 		await selectVariation( page, 'Logo', 'Yes' );
-		const linkButton = await getLinkButton( page );
 
 		if ( isBlockified ) {
 			// The "Add to Cart with Options" block does not fire the jQuery
 			// variation events express checkout listens for, so the button
-			// never renders there (issue #5811). Pinned so it turns red once
-			// PR #5868 lands; flip this to toBeVisible then.
-			await expect( linkButton ).toBeHidden();
+			// stays hidden there (issue #5811). Pinned so it turns red once
+			// PR #5868 lands; flip this to toBeVisible then. As above, wait
+			// for the element to mount so "hidden" is not "not loaded yet".
+			const linkContainer = getLinkFrame( page );
+			await expect( linkContainer ).toHaveCount( 1 );
+			await expect( linkContainer ).toBeHidden();
 			return;
 		}
-		await expect( linkButton ).toBeVisible();
+		await expect( await getLinkButton( page ) ).toBeVisible();
 	} );
 } );
