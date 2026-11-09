@@ -1797,18 +1797,21 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 	/**
 	 * When a completed Checkout Session's PaymentIntent has no charge yet, settlement must defer
-	 * instead of fataling on `$charge->is_webhook_response = true`.
+	 * instead of fataling on `$charge->is_webhook_response = true`, and must leave the
+	 * save-payment-method flag in place so the retry can save the SEPA mandate from the charge.
 	 *
 	 * @return void
 	 */
 	public function test_handle_checkout_session_success_defers_when_charge_missing(): void {
 		$checkout_session_id = 'cs_test_missing_charge';
 		$intent_id           = 'pi_test_missing_charge';
+		$order_helper        = WC_Stripe_Order_Helper::get_instance();
 
 		$order = WC_Helper_Order::create_order();
 		$order->set_status( OrderStatus::PENDING );
 		$order->save();
-		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order_helper->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order_helper->update_should_save_stripe_payment_method( $order, true );
 		$order->save_meta_data();
 
 		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
@@ -1855,7 +1858,18 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			->getMock();
 
 		$handler->method( 'get_intent_from_order' )
-			->willReturn( (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'id' => $intent_id, 'payment_method' => null ] ) );
+			->willReturn(
+				(object) array_merge(
+					self::MOCK_PAYMENT_INTENT,
+					[
+						'id'             => $intent_id,
+						'payment_method' => (object) [
+							'id'   => 'pm_test_ideal',
+							'type' => WC_Stripe_Payment_Methods::IDEAL,
+						],
+					]
+				)
+			);
 		$handler->method( 'get_latest_charge_from_intent' )->willReturn( null );
 		$handler->expects( $this->never() )->method( 'process_response' );
 
@@ -1865,7 +1879,9 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$handler->process_checkout_session_success( $notification );
 
-		$this->assertTrue( wc_get_order( $order->get_id() )->has_status( OrderStatus::PENDING ) );
+		$updated_order = wc_get_order( $order->get_id() );
+		$this->assertTrue( $updated_order->has_status( OrderStatus::PENDING ) );
+		$this->assertTrue( $order_helper->get_should_save_stripe_payment_method( $updated_order ) );
 	}
 
 	/**
@@ -1934,7 +1950,15 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			->getMock();
 
 		$handler->method( 'get_intent_from_order' )
-			->willReturn( (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'id' => $intent_id, 'payment_method' => null ] ) );
+			->willReturn(
+				(object) array_merge(
+					self::MOCK_PAYMENT_INTENT,
+					[
+						'id'             => $intent_id,
+						'payment_method' => null,
+					]
+				)
+			);
 		$handler->method( 'get_latest_charge_from_intent' )->willReturn( null );
 		$handler->expects( $this->never() )->method( 'process_response' );
 
@@ -1977,7 +2001,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		return [
 			'retry below the limit increments the count' => [ 1, true ],
 			'last permitted retry increments the count'  => [ 2, true ],
-			'retry limit schedules no further job'        => [ 3, false ],
+			'retry limit schedules no further job'       => [ 3, false ],
 		];
 	}
 

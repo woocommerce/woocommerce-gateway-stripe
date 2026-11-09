@@ -2592,39 +2592,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			// Fetch the charge once; reused below.
 			$charge = $this->get_latest_charge_from_intent( $intent );
 
-			// Save payment method to store if the customer requested it during checkout.
-			if ( $order_helper->get_should_save_stripe_payment_method( $order ) && ! empty( $payment_method_id ) ) {
-				$upe_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
-
-				$payment_method_object = is_object( $intent->payment_method ) ? $intent->payment_method : WC_Stripe_API::retrieve( 'payment_methods/' . $payment_method_id );
-				if ( $upe_gateway instanceof WC_Stripe_UPE_Payment_Gateway && ! is_wp_error( $payment_method_object ) && empty( $payment_method_object->error ) && ! empty( $payment_method_object ) ) {
-					// Get the payment method details that should be saved. That may be different from the
-					// original payment method, e.g. for Bancontact and iDEAL/Wero, which are saved as SEPA.
-					$payment_method_to_save = $upe_gateway->get_reusable_payment_method_for_saving( $payment_method_object, $charge );
-
-					if ( is_object( $payment_method_to_save ) && ! empty( $payment_method_to_save->type ) ) {
-						$upe_gateway->handle_saving_payment_method( $order, $payment_method_to_save, $payment_method_to_save->type );
-					}
-
-					// Clear the flag so retries don't re-run this, even when nothing was saved.
-					$order_helper->delete_should_save_stripe_payment_method( $order );
-				}
-			}
-
-			// Set the payment method title on the order based on the actual payment method used.
-			$upe_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
-			if ( $upe_gateway instanceof WC_Stripe_UPE_Payment_Gateway ) {
-				$payment_method_type = is_object( $intent->payment_method ) && isset( $intent->payment_method->type ) ? $intent->payment_method->type : '';
-				if ( ! empty( $payment_method_type ) ) {
-					$upe_gateway->set_payment_method_title_for_order( $order, $payment_method_type, $intent->payment_method ?? false );
-				}
-			}
-
-			$order->save();
-
 			// Make sure we have a charge. If not, log a note and queue up a deferred retry.
 			// We will only retry up to $this->adaptive_pricing_order_lookup_max_retries times.
+			// This must run before saving the payment method: Bancontact and iDEAL/Wero need the
+			// charge to save the SEPA mandate, and that step clears the save flag either way.
 			if ( ! $charge ) {
+				$order->save();
+
 				WC_Stripe_Logger::info(
 					'Checkout session settlement deferred: no charge on PaymentIntent yet.',
 					[
@@ -2658,6 +2632,36 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				);
 				return false;
 			}
+
+			// Save payment method to store if the customer requested it during checkout.
+			if ( $order_helper->get_should_save_stripe_payment_method( $order ) && ! empty( $payment_method_id ) ) {
+				$upe_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+
+				$payment_method_object = is_object( $intent->payment_method ) ? $intent->payment_method : WC_Stripe_API::retrieve( 'payment_methods/' . $payment_method_id );
+				if ( $upe_gateway instanceof WC_Stripe_UPE_Payment_Gateway && ! is_wp_error( $payment_method_object ) && empty( $payment_method_object->error ) && ! empty( $payment_method_object ) ) {
+					// Get the payment method details that should be saved. That may be different from the
+					// original payment method, e.g. for Bancontact and iDEAL/Wero, which are saved as SEPA.
+					$payment_method_to_save = $upe_gateway->get_reusable_payment_method_for_saving( $payment_method_object, $charge );
+
+					if ( is_object( $payment_method_to_save ) && ! empty( $payment_method_to_save->type ) ) {
+						$upe_gateway->handle_saving_payment_method( $order, $payment_method_to_save, $payment_method_to_save->type );
+					}
+
+					// Clear the flag so retries don't re-run this, even when nothing was saved.
+					$order_helper->delete_should_save_stripe_payment_method( $order );
+				}
+			}
+
+			// Set the payment method title on the order based on the actual payment method used.
+			$upe_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+			if ( $upe_gateway instanceof WC_Stripe_UPE_Payment_Gateway ) {
+				$payment_method_type = is_object( $intent->payment_method ) && isset( $intent->payment_method->type ) ? $intent->payment_method->type : '';
+				if ( ! empty( $payment_method_type ) ) {
+					$upe_gateway->set_payment_method_title_for_order( $order, $payment_method_type, $intent->payment_method ?? false );
+				}
+			}
+
+			$order->save();
 
 			if ( $presentment_details && isset( $presentment_details->presentment_currency, $presentment_details->presentment_amount ) ) {
 				$amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
