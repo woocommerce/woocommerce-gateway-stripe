@@ -2382,6 +2382,196 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Builds a succeeded webhook whose PaymentIntent is for `$intent_amount_cents`, targeting `$order`.
+	 *
+	 * @param WC_Order $order               The order the webhook targets.
+	 * @param int      $intent_amount_cents The amount authorized on the intent, in the smallest unit.
+	 * @return object The decoded webhook notification.
+	 */
+	private function build_succeeded_intent_notification( $order, int $intent_amount_cents ) {
+		return json_decode(
+			wp_json_encode(
+				[
+					'type' => 'payment_intent.succeeded',
+					'data' => [
+						'object' => [
+							'id'                   => 'pi_mock',
+							'object'               => 'payment_intent',
+							'status'               => 'succeeded',
+							'amount'               => $intent_amount_cents,
+							'currency'             => strtolower( $order->get_currency() ),
+							'payment_method_types' => [ WC_Stripe_Payment_Methods::BOLETO ],
+							'metadata'             => [ 'order_id' => $order->get_id() ],
+						],
+					],
+				]
+			)
+		);
+	}
+
+	/**
+	 * Prepares a pending Boleto (immediate-path) order with the intent stored on it.
+	 *
+	 * @return WC_Order
+	 */
+	private function prepare_pending_voucher_order() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+
+		WC_Stripe_Order_Helper::set_instance( null );
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->update_stripe_upe_payment_type( $order, WC_Stripe_Payment_Methods::BOLETO );
+		$order_helper->update_stripe_intent_id( $order, 'pi_mock' );
+		$order->save_meta_data();
+		$order->save();
+
+		return $order;
+	}
+
+	/**
+	 * An immediate webhook whose intent amount is below the order total holds the order, not settles it.
+	 */
+	public function test_process_payment_intent_holds_order_when_intent_amount_below_total() {
+		$process_charge = new MockAction();
+		add_action( 'wc_gateway_stripe_process_payment_charge', [ &$process_charge, 'action' ] );
+
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+
+		$order = $this->prepare_pending_voucher_order();
+
+		// Intent authorized for less than the current order total, i.e. the drift.
+		$intent_amount = (int) WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ) - 500;
+		$notification  = $this->build_succeeded_intent_notification( $order, $intent_amount );
+
+		$this->mock_webhook_handler->process_payment_intent( $notification );
+
+		$final_order = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::ON_HOLD, $final_order->get_status() );
+		$this->assertSame( 0, $process_charge->get_call_count() );
+		$this->assert_order_has_note_matching( '/placed on hold for manual review/i', $final_order->get_id() );
+	}
+
+	/**
+	 * A webhook whose intent amount matches the order total still settles the order.
+	 */
+	public function test_process_payment_intent_settles_when_intent_amount_matches() {
+		$process_charge = new MockAction();
+		add_action( 'wc_gateway_stripe_process_payment_charge', [ &$process_charge, 'action' ] );
+
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+
+		$order = $this->prepare_pending_voucher_order();
+
+		$intent_amount = (int) WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
+		$notification  = $this->build_succeeded_intent_notification( $order, $intent_amount );
+
+		$this->mock_webhook_handler->process_payment_intent( $notification );
+
+		$final_order = wc_get_order( $order->get_id() );
+		$this->assertNotSame( OrderStatus::ON_HOLD, $final_order->get_status() );
+		$this->assertSame( 1, $process_charge->get_call_count() );
+	}
+
+	/**
+	 * The deferred webhook path also holds an order whose total drifted above the intent amount.
+	 */
+	public function test_deferred_webhook_holds_order_when_intent_amount_below_total() {
+		$this->mock_webhook_handler( [ 'handle_deferred_payment_intent_succeeded' ] );
+
+		$order = $this->prepare_pending_voucher_order();
+
+		$intent_amount = (int) WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ) - 500;
+		$intent        = $this->build_succeeded_intent_notification( $order, $intent_amount )->data->object;
+
+		$this->mock_webhook_handler->method( 'get_intent_from_order' )->willReturn( $intent );
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+		$this->mock_webhook_handler->expects( $this->never() )->method( 'process_response' );
+
+		$data         = [
+			'order_id'  => $order->get_id(),
+			'intent_id' => 'pi_mock',
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [ 'object' => $intent ],
+		];
+
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+
+		$final_order = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::ON_HOLD, $final_order->get_status() );
+		$this->assert_order_has_note_matching( '/placed on hold for manual review/i', $final_order->get_id() );
+	}
+
+	/**
+	 * A charged-upfront pre-order whose total drifted above the intent amount must be held on the
+	 * deferred path, not marked pre-ordered. The amount check has to run before the pre-order
+	 * branch, otherwise the order is moved into its paid pre-ordered state before the amount is
+	 * compared.
+	 */
+	public function test_deferred_webhook_holds_pre_order_before_marking_when_amount_drifts() {
+		$order = $this->prepare_pending_voucher_order();
+
+		$intent_amount = (int) WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ) - 500;
+		$intent        = $this->build_succeeded_intent_notification( $order, $intent_amount )->data->object;
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'maybe_mark_order_as_pre_ordered', 'process_response' ] )
+			->getMock();
+		$handler->method( 'get_intent_from_order' )->willReturn( $intent );
+		$handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+		// A mismatch must stop settlement before either the pre-order branch or process_response.
+		$handler->expects( $this->never() )->method( 'maybe_mark_order_as_pre_ordered' );
+		$handler->expects( $this->never() )->method( 'process_response' );
+
+		$data         = [
+			'order_id'  => $order->get_id(),
+			'intent_id' => 'pi_mock',
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [ 'object' => $intent ],
+		];
+
+		$handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+
+		$final_order = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::ON_HOLD, $final_order->get_status() );
+		$this->assert_order_has_note_matching( '/placed on hold for manual review/i', $final_order->get_id() );
+	}
+
+	/**
+	 * The same pre-order hold must apply on the immediate webhook path (voucher, wallet, BLIK):
+	 * a drifted amount holds the order before the pre-order branch marks it paid.
+	 */
+	public function test_process_payment_intent_holds_pre_order_before_marking_when_amount_drifts() {
+		$process_charge = new MockAction();
+		add_action( 'wc_gateway_stripe_process_payment_charge', [ &$process_charge, 'action' ] );
+
+		$order = $this->prepare_pending_voucher_order();
+
+		$intent_amount = (int) WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ) - 500;
+		$notification  = $this->build_succeeded_intent_notification( $order, $intent_amount );
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'get_latest_charge_from_intent', 'maybe_mark_order_as_pre_ordered' ] )
+			->getMock();
+		$handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+		$handler->expects( $this->never() )->method( 'maybe_mark_order_as_pre_ordered' );
+
+		$handler->process_payment_intent( $notification );
+
+		$final_order = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::ON_HOLD, $final_order->get_status() );
+		$this->assertSame( 0, $process_charge->get_call_count() );
+	}
+
+	/**
 	 * Provider for `test_process_payment_intent`.
 	 *
 	 * @return array

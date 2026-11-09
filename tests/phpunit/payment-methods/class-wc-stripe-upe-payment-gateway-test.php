@@ -1701,6 +1701,79 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * verify_intent holds an order for review when its total rose above the authorized intent amount.
+	 */
+	public function test_verify_intent_after_checkout_rejects_intent_amount_below_order_total() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		$order_id = $order->get_id();
+
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, 'pi_mock' );
+		$order->save();
+
+		$intent             = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$intent['id']       = 'pi_mock';
+		$intent['currency'] = strtolower( $order->get_currency() );
+		// Intent authorized for less than the current order total, i.e. the drift.
+		$intent['amount'] = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ) - 500;
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'get_intent_from_order', 'handle_intent_verification_success', 'get_return_url' ] )
+			->getMock();
+		$gateway->method( 'get_intent_from_order' )->willReturn( $this->array_to_object( $intent ) );
+		$gateway->method( 'get_return_url' )->willReturn( self::MOCK_RETURN_URL );
+		// The order must never reach settlement.
+		$gateway->expects( $this->never() )->method( 'handle_intent_verification_success' );
+
+		$exception = null;
+		try {
+			$gateway->verify_intent_after_checkout( $order );
+		} catch ( WC_Stripe_Exception $e ) {
+			$exception = $e;
+		}
+
+		$this->assertInstanceOf( WC_Stripe_Exception::class, $exception );
+		$this->assertEquals( 'intent_order_mismatch', $exception->getMessage() );
+
+		// The order is held for review with an explaining note, not left pending or settled.
+		$held_order = wc_get_order( $order_id );
+		$this->assertEquals( OrderStatus::ON_HOLD, $held_order->get_status() );
+		$notes = wp_list_pluck( wc_get_order_notes( [ 'order_id' => $order_id ] ), 'content' );
+		$this->assertNotEmpty( preg_grep( '/placed on hold for manual review/i', $notes ) );
+	}
+
+	/**
+	 * A confirmation whose intent amount matches the order total still settles.
+	 */
+	public function test_verify_intent_after_checkout_settles_when_intent_amount_matches_order_total() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, 'pi_mock' );
+		$order->save();
+
+		$intent             = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$intent['id']       = 'pi_mock';
+		$intent['currency'] = strtolower( $order->get_currency() );
+		$intent['amount']   = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'get_intent_from_order', 'handle_intent_verification_success', 'get_return_url' ] )
+			->getMock();
+		$gateway->method( 'get_intent_from_order' )->willReturn( $this->array_to_object( $intent ) );
+		$gateway->method( 'get_return_url' )->willReturn( self::MOCK_RETURN_URL );
+		$gateway->expects( $this->once() )->method( 'handle_intent_verification_success' );
+
+		$gateway->verify_intent_after_checkout( $order );
+	}
+
+	/**
 	 * Test checkout flow with setup intents.
 	 */
 	public function test_checkout_without_payment_uses_setup_intents() {
