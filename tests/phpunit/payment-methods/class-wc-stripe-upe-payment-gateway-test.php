@@ -2517,11 +2517,26 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Enables the settings Checkout Sessions require (PMC, Optimized Checkout, automatic capture).
+	 *
+	 * @return void
+	 */
+	private function enable_checkout_sessions(): void {
+		$settings                               = WC_Stripe_Helper::get_stripe_settings();
+		$settings['pmc_enabled']                = 'yes';
+		$settings['optimized_checkout_element'] = 'yes';
+		$settings['capture']                    = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+	}
+
+	/**
 	 * Test that the Checkout Sessions return URL carries the disambiguation params
 	 * + the `wc_stripe_process_checkout_session_redirect_nonce` so the handler can
 	 * recognise the customer return.
 	 */
 	public function test_process_payment_with_checkout_session_returns_disambiguation_url() {
+		$this->enable_checkout_sessions();
+
 		$_POST['wc_stripe_checkout_session_id'] = 'cs_test_disambig';
 		$_POST['payment_method']                = WC_Stripe_UPE_Payment_Gateway::ID;
 		$_POST['wc-stripe-payment-method']      = WC_Stripe_UPE_Payment_Gateway::ID;
@@ -2569,6 +2584,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * Checkout Session payment processing requires context from the session creation request.
 	 */
 	public function test_process_payment_with_checkout_session_rejects_missing_context() {
+		$this->enable_checkout_sessions();
+
 		$session_id = 'cs_test_missing_context';
 		wc_clear_notices();
 
@@ -2610,9 +2627,68 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * A Checkout Session submitted on a store where Checkout Sessions are not available is refused before any processing.
+	 *
+	 * @dataProvider provide_checkout_sessions_unavailable_settings
+	 * @param string $disabled_setting Setting to leave off so the feature is unavailable.
+	 * @return void
+	 */
+	public function test_process_payment_with_checkout_session_refused_when_unavailable( string $disabled_setting ): void {
+		$this->enable_checkout_sessions();
+
+		$settings                      = WC_Stripe_Helper::get_stripe_settings();
+		$settings[ $disabled_setting ] = 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		wc_clear_notices();
+
+		$session_id                             = 'cs_test_unavailable';
+		$_POST['wc_stripe_checkout_session_id'] = $session_id;
+		$_POST['payment_method']                = WC_Stripe_UPE_Payment_Gateway::ID;
+		$_POST['wc-stripe-payment-method']      = WC_Stripe_UPE_Payment_Gateway::ID;
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+
+		// A fully valid context: the only reason this checkout fails is the gate.
+		$this->store_checkout_session_context_for_order( $session_id, $order );
+
+		try {
+			$result = $this->mock_gateway->process_payment( $order->get_id() );
+		} finally {
+			WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
+			unset( $_POST['wc_stripe_checkout_session_id'], $_POST['payment_method'], $_POST['wc-stripe-payment-method'] );
+		}
+
+		$this->assertSame( 'failure', $result['result'] );
+		$this->assertSame( WC_Stripe_Checkout_Session_Context::get_unavailable_message(), $result['message'] );
+		$this->assertEmpty(
+			WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( wc_get_order( $order->get_id() ) )
+		);
+
+		wc_clear_notices();
+	}
+
+	/**
+	 * Settings that each, when off, make Checkout Sessions unavailable.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public function provide_checkout_sessions_unavailable_settings(): array {
+		return [
+			'PMC disabled'                => [ 'pmc_enabled' ],
+			'Optimized Checkout disabled' => [ 'optimized_checkout_element' ],
+			'manual capture'              => [ 'capture' ],
+		];
+	}
+
+	/**
 	 * A Checkout Session amount mismatch fails only that checkout: the Session is invalidated and the customer session is flagged.
 	 */
 	public function test_process_payment_with_checkout_session_rejects_amount_mismatch() {
+		$this->enable_checkout_sessions();
+
 		$session_id       = 'cs_test_amount_mismatch';
 		$expected_message = 'The payment amount no longer matches the order total. Please refresh the page and try again.';
 		wc_clear_notices();
@@ -2666,6 +2742,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * Checkout Session payment processing rejects sessions created by a different browser session.
 	 */
 	public function test_process_payment_with_checkout_session_rejects_other_owner() {
+		$this->enable_checkout_sessions();
+
 		$session_id = 'cs_test_other_owner';
 		wc_clear_notices();
 
@@ -2701,6 +2779,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * Checkout Session ownership stays valid when Woo logs a guest in while processing checkout.
 	 */
 	public function test_process_payment_with_checkout_session_allows_guest_session_after_checkout_login() {
+		$this->enable_checkout_sessions();
+
 		$session_id = 'cs_test_guest_to_login';
 
 		wc_clear_notices();
@@ -2750,6 +2830,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * disambiguation URL so the handler can short-circuit cleanly on a refresh.
 	 */
 	public function test_process_payment_with_checkout_session_returns_disambiguation_url_for_already_paid_order() {
+		$this->enable_checkout_sessions();
+
 		$_POST['wc_stripe_checkout_session_id'] = 'cs_test_already_paid';
 		$_POST['payment_method']                = WC_Stripe_UPE_Payment_Gateway::ID;
 		$_POST['wc-stripe-payment-method']      = WC_Stripe_UPE_Payment_Gateway::ID;
@@ -3031,6 +3113,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @param string $payment_method_type The UPE payment method type selected at checkout.
 	 */
 	public function test_process_payment_with_checkout_session_persists_save_flag_without_session_update( string $payment_method_type ) {
+		$this->enable_checkout_sessions();
+
 		$session_id = 'cs_test_save_' . $payment_method_type;
 
 		$_POST['wc_stripe_checkout_session_id'] = $session_id;

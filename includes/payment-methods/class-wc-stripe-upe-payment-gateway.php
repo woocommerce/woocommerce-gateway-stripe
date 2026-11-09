@@ -1629,6 +1629,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// Checkout Session is confirmed client-side and the saved-token path never reaches that code,
 		// so routing there would return success for an order nothing ever charged.
 		if ( is_string( $checkout_session_id ) && ! empty( $checkout_session_id ) && ! $this->is_using_saved_payment_method() ) {
+			// A Checkout Session captures with its own settings, not the store's capture method, so a
+			// session stored before the merchant switched to manual capture must not be accepted here.
+			if ( ! WC_Stripe_Helper::is_checkout_sessions_available() ) {
+				WC_Stripe_Logger::error( 'Checkout Session submitted on a store where Checkout Sessions are not available.', [ 'checkout_session_id' => $checkout_session_id ] );
+				return $this->get_checkout_failure_response( WC_Stripe_Checkout_Session_Context::get_unavailable_message() );
+			}
+
 			return $this->process_payment_with_checkout_session( $order_id, $checkout_session_id, $save_payment_method, $selected_payment_type );
 		}
 

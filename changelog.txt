@@ -29,6 +29,7 @@ xxxx-xx-xx - version 11.2.0
 * Fix - Disable Adaptive Pricing instead of breaking checkout when another plugin loads a different version of Stripe.js
 * Dev - Fix ACH E2E tests for Stripe's updated test-mode bank account flow
 * Fix - Stop a staging or cloned site from deleting the production site's Stripe webhooks when connecting or disconnecting Stripe
+* Fix - Only accept Stripe Checkout Session payments on stores where the feature is available
 
 2026-10-16 - version 11.1.1
 * Fix - Stop blocking non-Stripe payment gateways on the Pay for Order, change payment method, and add payment method pages
