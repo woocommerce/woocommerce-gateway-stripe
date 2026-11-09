@@ -31,7 +31,7 @@ jobs:
       fail-fast: false
       max-parallel: 10
       matrix:
-        # Run every project under a classic theme and a block theme.
+        # Run every project under a classic theme (storefront) and a block theme (twentytwentyfive).
         theme: ['storefront', 'twentytwentyfive']
         project: ['default', 'express-checkout-link', 'isk', 'acss', 'optimized-checkout', 'adaptive-pricing', 'blik', 'becs']
 

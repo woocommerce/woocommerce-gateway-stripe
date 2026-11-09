@@ -13,7 +13,7 @@ on:
         type: string
         default: '7.4'
       theme:
-        description: Theme slug to install and activate for the run (e.g. storefront, twentytwentyfive).
+        description: Theme slug to install and activate for the run. storefront is a classic theme, twentytwentyfive is a block theme.
         type: string
         default: 'storefront'
       branch:

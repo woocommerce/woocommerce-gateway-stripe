@@ -23,7 +23,7 @@ For repository-wide rules, always read the root `AGENTS.md` first.
 | Run specific project | `npm run test:e2e-run -- --project=<name> --base_url=<url>` | Project names include `default`, `acss`, `becs`, `blik`, `optimized-checkout`. |
 | Debug run | `npm run test:e2e-debug -- --base_url=<url>` | Playwright debug mode. |
 | Docker setup/run | `npm run test:e2e-setup` then `npm run test:e2e` | Local Docker path (`http://localhost:8088`). |
-| Setup under a specific theme | `WP_THEME=<slug> npm run test:e2e-setup` | Defaults to `storefront`. For a theme not on WordPress.org also set `WP_THEME_TARBALL_URL` to a Git tarball with a `<slug>/` top-level directory. CI runs every project under Storefront and Twenty Twenty-Five (`.github/workflows/e2e-tests.yml`). |
+| Setup under a specific theme | `WP_THEME=<slug> npm run test:e2e-setup` | Defaults to `storefront`. Takes a WordPress.org theme slug. CI runs every project under Storefront and Twenty Twenty-Five (`.github/workflows/e2e-tests.yml`). |
 | Tear down Docker | `npm run test:e2e-down` | Stops E2E containers. |
 
 ## File Layout

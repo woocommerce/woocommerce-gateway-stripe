@@ -1058,8 +1058,6 @@ export async function tickSavePaymentMethodBlocks( page ) {
 export async function clickPlaceOrder( page, label = 'Place order' ) {
 	const placeOrderButton = page.getByRole( 'button', { name: label } );
 
-	// Enabled also means hydrated: a click dispatched before the handler is
-	// bound is silently dropped, which block themes make likely under load.
 	await expect( placeOrderButton ).toBeEnabled();
 
 	// Dispatch a click event, instead of clicking the button directly,

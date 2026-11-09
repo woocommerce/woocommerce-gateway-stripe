@@ -37,10 +37,6 @@ test( 'customer can checkout with a saved card @smoke @blocks', async ( {
 	browser,
 	baseURL,
 } ) => {
-	// Three checkouts plus admin verification exceed the 120s default on a
-	// loaded CI runner, more so under block themes.
-	test.setTimeout( 240 * 1000 );
-
 	const useLocalFixture = process.env.DOCKER === 'true';
 	if ( useLocalFixture ) {
 		await page

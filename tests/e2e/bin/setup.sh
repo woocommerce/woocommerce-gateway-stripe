@@ -20,11 +20,8 @@ DEBUG=false
 ADMIN_USER=admin
 ADMIN_PASSWORD=admin
 
-# Theme to activate. WP_THEME is a WordPress.org slug; for a theme that is not
-# on WordPress.org, WP_THEME_TARBALL_URL points at a Git tarball containing a
-# "$WP_THEME/" directory at its top level.
+# WordPress.org slug of the theme to install and activate.
 WP_THEME=${WP_THEME:-storefront}
-WP_THEME_TARBALL_URL=${WP_THEME_TARBALL_URL:-}
 
 DEPS_DIR="$E2E_ROOT/deps"
 
@@ -95,47 +92,6 @@ fetch_plugin_zip() {
 
 	missing_plugin_zip_error "$zip"
 	exit 1
-}
-
-# Installs and activates $WP_THEME, zipping the "$WP_THEME/" subdirectory of
-# WP_THEME_TARBALL_URL when set (monorepo themes have no per-theme zip URL).
-install_theme() {
-	if [[ -z "$WP_THEME_TARBALL_URL" ]]; then
-		echo " - Installing theme '$WP_THEME' from WordPress.org"
-		redirect_output cli wp theme install "$WP_THEME" --activate
-		return
-	fi
-
-	check_dep 'tar'
-	check_dep 'zip'
-
-	echo " - Fetching theme '$WP_THEME' from $WP_THEME_TARBALL_URL"
-	mkdir -p "$DEPS_DIR"
-	local work
-	work=$(mktemp -d)
-	# --strip-components=1 drops the "<repo>-<ref>/" wrapper directory.
-	if ! curl -sfL "$WP_THEME_TARBALL_URL" | tar -xz -C "$work" --strip-components=1; then
-		rm -rf "$work"
-		error "Could not download or extract theme tarball from $WP_THEME_TARBALL_URL"
-		exit 1
-	fi
-
-	if [[ ! -d "$work/$WP_THEME" ]]; then
-		rm -rf "$work"
-		error "Tarball has no '$WP_THEME/' directory at its top level."
-		exit 1
-	fi
-
-	# wp theme install expects the theme directory as the zip's only top-level entry.
-	rm -f "$DEPS_DIR/$WP_THEME.zip"
-	( cd "$work" && zip -qr "$DEPS_DIR/$WP_THEME.zip" "$WP_THEME" )
-	rm -rf "$work"
-
-	# --force: the themes volume survives DB resets, and a re-run would
-	# otherwise abort with "Destination folder already exists".
-	redirect_output cli wp theme install \
-		"/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/deps/$WP_THEME.zip" \
-		--force --activate
 }
 
 if ! docker info > /dev/null 2>&1; then
@@ -253,7 +209,7 @@ redirect_output cli wp option set woocommerce_allow_tracking "no"
 redirect_output cli wp option set woocommerce_coming_soon "no"
 
 step "Installing theme: $WP_THEME"
-install_theme
+redirect_output cli wp theme install "$WP_THEME" --activate
 
 redirect_output cli wp --user=${ADMIN_USER} wc tool run install_pages
 
