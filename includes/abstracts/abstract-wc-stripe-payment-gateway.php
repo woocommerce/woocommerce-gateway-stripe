@@ -607,6 +607,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			]
 		);
 
+		// A missing or unsuccessful charge cannot authorize an order. Reject it before
+		// recording capture metadata or reserving its transaction ID for processing.
+		if ( ! isset( $response->captured ) || ( ! $response->captured && 'succeeded' !== ( $response->status ?? '' ) ) ) {
+			$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
+			$order->add_order_note( $response->outcome->seller_message ?? $localized_message );
+
+			throw new WC_Stripe_Exception( 'invalid_charge_response', $localized_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+
 		$transaction_id = $response->id;
 		$lock_name      = 'wc_stripe_transaction_lock_' . $transaction_id;
 

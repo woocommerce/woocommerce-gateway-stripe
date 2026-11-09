@@ -2213,6 +2213,47 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * @since x.x.x
+	 * @dataProvider provide_unconfirmed_intent_statuses
+	 * @param string $status The intent state after a failed charge attempt.
+	 */
+	public function test_process_order_for_confirmed_intent_rejects_failed_charge( string $status ): void {
+		$order              = WC_Helper_Order::create_order( 0 );
+		list( $amount )     = $this->get_order_details( $order );
+		$intent             = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$intent['amount']   = $amount;
+		$intent['currency'] = strtolower( $order->get_currency() );
+		$intent['status']   = $status;
+		$charge             = (object) [
+			'id'                     => 'ch_previous_decline',
+			'captured'               => false,
+			'status'                 => 'failed',
+			'payment_method_details' => (object) [ 'type' => WC_Stripe_Payment_Methods::CARD ],
+		];
+		$this->mock_gateway->method( 'stripe_request' )->willReturn( $this->array_to_object( $intent ) );
+		$this->mock_gateway->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
+
+		try {
+			$this->mock_gateway->process_order_for_confirmed_intent( $order, 'pi_mock', false );
+			$this->fail( 'Expected the previous decline to be rejected.' );
+		} catch ( WC_Stripe_Exception $exception ) {
+			$this->assertSame( 'Payment processing failed. Please retry.', $exception->getLocalizedMessage() );
+		}
+
+		$this->assertSame( OrderStatus::PENDING, $order->get_status() );
+		$this->assertSame( '', $order->get_transaction_id() );
+		$this->assertNull( $order->get_date_paid() );
+		$this->assertFalse( $order->get_data_store()->get_stock_reduced( $order->get_id() ) );
+	}
+
+	public function provide_unconfirmed_intent_statuses(): array {
+		return [
+			'awaiting authentication' => [ WC_Stripe_Intent_Status::REQUIRES_ACTION ],
+			'awaiting payment method' => [ WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD ],
+		];
+	}
+
+	/**
 	 * Test that customer-cancelled redirects throw WC_Stripe_Payment_Cancelled_Exception so
 	 * the order is not permanently failed.
 	 *
