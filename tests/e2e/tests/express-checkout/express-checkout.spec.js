@@ -8,8 +8,6 @@ const addProductToCart = async ( page, productSlug = 'beanie' ) => {
 	// Add a product to the cart
 	await page.goto( `/product/${ productSlug }` );
 
-	// Verified against the cart by clickAddToCartButton; block themes render
-	// no "added to your cart" notice to wait on.
 	await clickAddToCartButton( page );
 };
 
@@ -325,17 +323,18 @@ test.describe( 'express checkout and variable products', () => {
 	} ) => {
 		await page.goto( '/product/hoodie' );
 
-		const isBlockified = await page
-			.locator(
-				'.wp-block-woocommerce-add-to-cart-with-options-variation-selector'
-			)
-			.count();
+		const isBlockified =
+			( await page
+				.locator(
+					'.wp-block-woocommerce-add-to-cart-with-options-variation-selector'
+				)
+				.count() ) > 0;
 
 		await selectVariation( page, 'color', 'Blue' );
 		await selectVariation( page, 'Logo', 'Yes' );
 		const linkButton = await getLinkButton( page );
 
-		if ( isBlockified > 0 ) {
+		if ( isBlockified ) {
 			// The "Add to Cart with Options" block does not fire the jQuery
 			// variation events express checkout listens for, so the button
 			// never renders there (issue #5811). Pinned so it turns red once

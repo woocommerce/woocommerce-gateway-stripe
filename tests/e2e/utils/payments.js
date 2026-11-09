@@ -1101,6 +1101,18 @@ export function getSuccessNotices( page ) {
 }
 
 /**
+ * Info notices under both classic and block-theme markup.
+ *
+ * @param {Page} page Playwright page fixture.
+ * @returns {import('@playwright/test').Locator} Locator matching all info notices.
+ */
+export function getInfoNotices( page ) {
+	return page.locator(
+		'.woocommerce-info, .wc-block-components-notice-banner.is-info'
+	);
+}
+
+/**
  * Handles the Cash App Pay payment on the checkout page.
  * @param {Page} page Playwright page fixture.
  */
@@ -1466,6 +1478,17 @@ export const waitForOrderReceivedPage = async ( page ) => {
 		page.getByRole( 'heading', { level: 1, name: 'Order received' } )
 	).toBeVisible();
 };
+
+/**
+ * Order total on the order received page, under both classic and block-theme markup.
+ *
+ * @param {Page} page Playwright page fixture.
+ * @returns {import('@playwright/test').Locator} Locator matching the order total.
+ */
+export const getOrderReceivedTotal = ( page ) =>
+	page.locator(
+		'.woocommerce-order-overview__total, .wc-block-order-confirmation-summary-list-item:has-text("Total:")'
+	);
 
 /**
  * Wait for the order received page to load and optionally confirm the expected total amount was charged.
