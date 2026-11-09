@@ -167,10 +167,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 11.2.0 - xxxx-xx-xx =
 
-**New Features**
-* Add - Remote configuration system for managing feature availability during incidents
-
 **Important Fixes and Updates**
+
 * Fix - Refund or void a Stripe payment that succeeds for an order that was already cancelled, instead of leaving the shopper charged
 * Fix - Prevent a second charge when an interrupted checkout is resubmitted or two tabs submit the same cart at once
 * Fix - Send shoppers to the order confirmation page instead of showing an error when processing fails after a 3D Secure payment has already succeeded
@@ -183,19 +181,22 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Stop a staging or cloned site from deleting the production site's Stripe webhooks when connecting or disconnecting Stripe
 * Fix - Rebuild a mode's webhook on update when an earlier "Reconfigure webhooks" click registered it in the wrong mode, which had left webhooks failing in both live and test
 * Fix - Use the account API key for webhook status, cleanup, and manual setup
-* Fix - Complete deprecation of wc_stripe_force_save_source
 * Update - Unify express checkout button sizes across Apple Pay / Google Pay, Link, and Amazon Pay
 
 **Other Fixes and Updates**
+
 * Fix - On classic checkout, show a notice naming each empty required field instead of a single generic "Please fill in all required fields" notice
+* Fix - Complete deprecation of wc_stripe_force_save_source
 * Fix - Render the Additional content field in the Stripe refund failed emails (customer and merchant)
 * Fix - Restore missing left borders on notices in the Stripe settings
 * Fix - Skip Inbox Note initialization during admin-ajax requests to avoid unnecessary database queries
-* Update - Retry failed remote-config syncs with backoff and log a warning when the cached configuration goes stale
 * Tweak - Minor improvement to error logging when saving new keys
 
 **Internal Changes and Upcoming Features**
+
+* Add - Remote configuration system for managing feature availability during incidents
 * Add - Record Tracks events for Adaptive Pricing setting changes, automatic enabling, and notice dismissals, and fix the event recorded when Optimized Checkout is turned off
+* Update - Retry failed remote-config syncs with backoff and log a warning when the cached configuration goes stale
 * Dev - Remove expired lock rows from the options table once a day
 * Dev - Fix the Format Release Notes workflow running out of turns before it could open its pull request
 * Dev - Make the express checkout password cleanup next-batch delay test stable on slow CI runners
