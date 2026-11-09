@@ -26,19 +26,19 @@ final class WC_Stripe_Tracks {
 
 	/**
 	 * Add the default event properties to the supplied event properties array.
-	 * Note that the default properties take precedence over supplied properties.
+	 * Note that the supplied properties take precedence over the default properties.
 	 *
 	 * @since x.x.x
 	 *
 	 * @param array $event_properties The event properties to add the default properties to.
-	 * @return array The event properties with the default properties added.
+	 * @return array The combined set of event properties.
 	 */
 	public static function add_default_event_properties( array $event_properties = [] ): array {
 		if ( [] === $event_properties ) {
 			return self::get_default_properties();
 		}
 
-		return array_merge( $event_properties, self::get_default_properties() );
+		return array_merge( self::get_default_properties(), $event_properties );
 	}
 
 	/**
