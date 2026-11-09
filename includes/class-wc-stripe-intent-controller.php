@@ -554,6 +554,11 @@ class WC_Stripe_Intent_Controller {
 			];
 		}
 
+		// A crafted id could retarget the Stripe API GETs below, so validate it before it enters the path.
+		if ( '' !== $intent_id && ! WC_Stripe_Helper::is_valid_stripe_id( $intent_id, [ 'pi', 'seti' ] ) ) {
+			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
 		$selected_payment_type = '' !== $selected_upe_payment_type && is_string( $selected_upe_payment_type ) ? $selected_upe_payment_type : null;

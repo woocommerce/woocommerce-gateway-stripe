@@ -5988,6 +5988,53 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Malformed setup intent IDs must be rejected before any Stripe request is sent.
+	 *
+	 * @param string $setup_intent_id The malformed setup intent ID.
+	 * @dataProvider provide_malformed_setup_intent_ids
+	 */
+	public function test_malformed_setup_intent_id_is_rejected_before_api_request( string $setup_intent_id ) {
+		$order = WC_Helper_Order::create_order();
+		wp_set_current_user( self::factory()->user->create() );
+
+		$this->mock_gateway
+			->expects( $this->never() )
+			->method( 'stripe_request' );
+
+		$reflection = new \ReflectionClass( WC_Stripe_UPE_Payment_Gateway::class );
+		$method     = $reflection->getMethod( 'is_order_associated_to_setup_intent' );
+		$method->setAccessible( true );
+
+		$_POST = [ 'wc-stripe-setup-intent' => $setup_intent_id ];
+		try {
+			$add_payment_method_result = $this->mock_gateway->add_payment_method();
+		} finally {
+			$_POST = [];
+		}
+
+		$this->assertSame( [ 'result' => 'failure' ], $add_payment_method_result );
+		$this->assertNull( $this->mock_gateway->create_token_from_setup_intent( $setup_intent_id, wp_get_current_user() ) );
+		$this->assertFalse( $method->invoke( $this->mock_gateway, $order->get_id(), $setup_intent_id ) );
+	}
+
+	/**
+	 * Provides setup intent IDs containing URL structural characters, or of another object type.
+	 *
+	 * @return array<string, array{string}>
+	 */
+	public function provide_malformed_setup_intent_ids(): array {
+		return [
+			'path traversal and fragment' => [ '../coupons/STAFF-90-OFF#' ],
+			'traversal after a valid id'  => [ 'seti_1AbC/../../coupons/STAFF-90-OFF#' ],
+			'sub-resource'                => [ 'seti_1AbC/cancel' ],
+			'query delimiter'             => [ 'seti_1AbC?foo' ],
+			'fragment'                    => [ 'seti_1AbC#foo' ],
+			'another object type'         => [ 'pi_1AbC' ],
+			'empty'                       => [ '' ],
+		];
+	}
+
+	/**
 	 * A valid PaymentMethod ID passes the boundary check and the ACH flow proceeds unchanged: the
 	 * preliminary PaymentMethod lookup fires first, then the attach. This proves the security check
 	 * does not break the checkout flow it protects.

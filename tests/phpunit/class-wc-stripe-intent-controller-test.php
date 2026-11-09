@@ -2484,4 +2484,44 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 			'logged-in keeps the stored customer'                            => [ false, 'self', true, false ],
 		];
 	}
+
+	/**
+	 * Malformed intent IDs must be rejected before any Stripe request is sent.
+	 *
+	 * @dataProvider provide_malformed_intent_ids
+	 * @param mixed $intent_id The malformed intent ID.
+	 * @return void
+	 */
+	public function test_update_intent_rejects_malformed_intent_id_before_api_request( $intent_id ): void {
+		$requests = $this->mock_retry_intents( [], [] );
+
+		$thrown = false;
+		try {
+			$this->mock_controller->update_intent( $intent_id, $this->order->get_id(), false, WC_Stripe_Payment_Methods::BLIK );
+		} catch ( Exception $e ) {
+			$thrown = true;
+		}
+
+		$this->assertTrue( $thrown );
+		$this->assertCount( 0, $requests );
+	}
+
+	/**
+	 * Data provider for `test_update_intent_rejects_malformed_intent_id_before_api_request`.
+	 *
+	 * @return array
+	 */
+	public function provide_malformed_intent_ids(): array {
+		return [
+			'path traversal and fragment' => [ '../coupons/STAFF-90-OFF#' ],
+			'traversal after a valid id'  => [ 'pi_new/../../coupons/STAFF-90-OFF#' ],
+			'setup intent traversal'      => [ 'seti_new/../../coupons/STAFF-90-OFF#' ],
+			'sub-resource'                => [ 'pi_new/cancel' ],
+			'query delimiter'             => [ 'pi_new?limit=1' ],
+			'fragment'                    => [ 'pi_new#' ],
+			'control byte'                => [ "pi_new\n" ],
+			'another object type'         => [ 'cus_new' ],
+			'not a string'                => [ [ 'pi_new' ] ],
+		];
+	}
 }

@@ -2588,6 +2588,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return false;
 		}
 
+		// A crafted id could retarget the Stripe API GET below, so validate it before it enters the path.
+		if ( ! WC_Stripe_Helper::is_valid_stripe_id( $intent_id, 'seti' ) ) {
+			return false;
+		}
+
 		$intent = $this->stripe_request( 'setup_intents/' . $intent_id . '?expand[]=payment_method.billing_details' );
 		if ( ! $intent ) {
 			return false;
@@ -3566,6 +3571,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	public function create_token_from_setup_intent( $setup_intent_id, $user ) {
 		$setup_intent = '123';
 		try {
+			// A crafted id could retarget the Stripe API GET below, so validate it before it enters the path.
+			if ( ! WC_Stripe_Helper::is_valid_stripe_id( $setup_intent_id, 'seti' ) ) {
+				throw new WC_Stripe_Exception( __( "We're not able to add this payment method. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			}
+
 			$setup_intent = $this->stripe_request( 'setup_intents/' . $setup_intent_id . '?&expand[]=latest_attempt' );
 			if ( ! empty( $setup_intent->last_payment_error ) ) {
 				WC_Stripe_Logger::error( 'Setup intent has payment error, cannot create token.', [ 'error' => $setup_intent->last_payment_error ] );
@@ -4477,7 +4487,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			$user            = wp_get_current_user();
 			$setup_intent_id = wc_clean( wp_unslash( $_POST['wc-stripe-setup-intent'] ) );
-			$setup_intent    = $this->stripe_request( 'setup_intents/' . $setup_intent_id );
+
+			// A crafted id could retarget the Stripe API GET below, so validate it before it enters the path.
+			if ( ! WC_Stripe_Helper::is_valid_stripe_id( $setup_intent_id, 'seti' ) ) {
+				throw new WC_Stripe_Exception( 'Stripe setup intent is invalid.' );
+			}
+
+			$setup_intent = $this->stripe_request( 'setup_intents/' . $setup_intent_id );
 
 			if ( ! empty( $setup_intent->last_payment_error ) ) {
 				throw new WC_Stripe_Exception( sprintf( 'Error fetching the setup intent (ID %s) from Stripe: %s.', $setup_intent_id, ! empty( $setup_intent->last_payment_error->message ) ? $setup_intent->last_payment_error->message : 'Unknown error' ) );
