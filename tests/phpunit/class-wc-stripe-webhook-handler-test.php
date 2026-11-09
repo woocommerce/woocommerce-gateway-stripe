@@ -1796,6 +1796,79 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * When a completed Checkout Session's PaymentIntent has no charge yet, settlement must defer
+	 * instead of fataling on `$charge->is_webhook_response = true`.
+	 *
+	 * @return void
+	 */
+	public function test_handle_checkout_session_success_defers_when_charge_missing(): void {
+		$checkout_session_id = 'cs_test_missing_charge';
+		$intent_id           = 'pi_test_missing_charge';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => $intent_id,
+					'amount_total'   => WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $order->get_currency() ),
+					'currency'       => strtolower( $order->get_currency() ),
+				],
+			],
+		];
+
+		$start          = time();
+		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+		$mock_scheduler->expects( $this->once() )
+			->method( 'schedule_job' )
+			->with(
+				$this->callback(
+					function ( $timestamp ) use ( $start ) {
+						$this->assertIsInt( $timestamp );
+						$this->assertGreaterThanOrEqual( $start + 10, $timestamp );
+						$this->assertLessThan( $start + MINUTE_IN_SECONDS, $timestamp );
+
+						return true;
+					}
+				),
+				'wc_stripe_deferred_webhook',
+				$this->callback(
+					function ( $args ) use ( $checkout_session_id ) {
+						return 'checkout.session.completed' === ( $args['type'] ?? '' )
+							&& ( $args['data']['session_id'] ?? '' ) === $checkout_session_id
+							&& 1 === (int) ( $args['data']['retry_count'] ?? 0 );
+					}
+				)
+			);
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->getMock();
+
+		$handler->method( 'get_intent_from_order' )
+			->willReturn( (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'id' => $intent_id, 'payment_method' => null ] ) );
+		$handler->method( 'get_latest_charge_from_intent' )->willReturn( null );
+		$handler->expects( $this->never() )->method( 'process_response' );
+
+		$prop = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $handler, $mock_scheduler );
+
+		$handler->process_checkout_session_success( $notification );
+
+		$this->assertTrue( wc_get_order( $order->get_id() )->has_status( OrderStatus::PENDING ) );
+	}
+
+	/**
 	 * Regression: when the order is locked and settlement is re-queued, process_webhook must NOT fire
 	 * wc_stripe_webhook_received on this live pass. Settlement hasn't happened yet; the action fires
 	 * once from the retry. Firing here would double-dispatch and run before the payment settles.

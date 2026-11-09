@@ -2635,6 +2635,45 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			$order->save();
 
+			// A completed Checkout Session can race the charge becoming available on the PaymentIntent.
+			// Assigning to a null charge fatals the webhook; defer like the locked-order path so a later
+			// retry can settle once get_latest_charge_from_intent() returns an object. Bound retries with
+			// the Adaptive Pricing order-lookup budget so a session that never gains a charge stops.
+			if ( ! $charge ) {
+				WC_Stripe_Logger::info(
+					'Checkout session settlement deferred: no charge on PaymentIntent yet.',
+					[
+						'session_id'  => $session_id,
+						'order_id'    => $order->get_id(),
+						'intent_id'   => $intent_id,
+						'retry_count' => $retry_count,
+					]
+				);
+
+				if ( $retry_count < $this->adaptive_pricing_order_lookup_max_retries ) {
+					$this->defer_webhook_processing(
+						$notification,
+						[
+							'session_id'  => $session_id,
+							'retry_count' => $retry_count + 1,
+						],
+						$this->locked_order_retry_delay
+					);
+					return true;
+				}
+
+				WC_Stripe_Logger::error(
+					'Checkout session settlement skipped: PaymentIntent still has no charge after retries.',
+					[
+						'session_id'  => $session_id,
+						'order_id'    => $order->get_id(),
+						'intent_id'   => $intent_id,
+						'retry_count' => $retry_count,
+					]
+				);
+				return false;
+			}
+
 			$charge->is_webhook_response = true;
 			$this->process_response( $charge, $order );
 
