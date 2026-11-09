@@ -5214,6 +5214,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'id'                   => 'pi_mock',
 				'payment_method'       => 'pm_mock',
 				'payment_method_types' => [ WC_Stripe_Payment_Methods::CARD ],
+				'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ),
+				'currency'             => strtolower( $order->get_currency() ),
 				'charges'              => (object) [
 					'data' => [
 						(object) [
@@ -6435,6 +6437,115 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'has_checkout_session' => true,
 				'expected_action_keys' => [ 'view' ],
 			],
+		];
+	}
+
+	/**
+	 * Test that a successful payment intent is reused instead of creating a new one.
+	 * This prevents duplicate charges when the shopper retries a payment after
+	 * a successful charge but failed order completion.
+	 *
+	 * @dataProvider provide_successful_intent_retries
+	 * @param string $change Change to the order after payment.
+	 * @param bool $confirmation_token Whether to use the confirmation-token checkout path.
+	 * @return void
+	 * @throws Exception If test fails.
+	 */
+	public function test_process_payment_validates_successful_payment_intent_against_order( string $change, bool $confirmation_token ) {
+		$customer_id = 'cus_mock';
+		$order       = WC_Helper_Order::create_order();
+		$order_id    = $order->get_id();
+
+		$mock_intent = (object) wp_parse_args(
+			[
+				'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ),
+				'currency'             => strtolower( $order->get_currency() ),
+				'id'                   => 'pi_mock',
+				'payment_method'       => 'pm_mock',
+				'payment_method_types' => [ WC_Stripe_Payment_Methods::CARD ],
+				'charges'              => (object) [
+					'data' => [
+						(object) [
+							'id'       => 'ch_reused_' . $order_id,
+							'captured' => 'yes',
+							'status'   => 'succeeded',
+						],
+					],
+				],
+				'status'               => WC_Stripe_Intent_Status::SUCCEEDED,
+			],
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
+		);
+
+		if ( 'total' === $change ) {
+			$order->set_total( 60 );
+		} elseif ( 'currency' === $change ) {
+			$order->set_currency( 'EUR' );
+		}
+		$order->save();
+		$matches = 'unchanged' === $change;
+		$this->mock_gateway->method( 'get_latest_charge_from_intent' )->willReturn( $mock_intent->charges->data[0] );
+
+		$mock_payment_method = (object) self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
+
+		$_POST = [
+			'payment_method'               => 'stripe',
+			'wc-stripe-payment-method'     => $confirmation_token ? '' : 'pm_mock',
+			'wc-stripe-confirmation-token' => $confirmation_token ? 'ctoken_mock' : '',
+		];
+
+		// Mock that we find an existing successful intent on the order
+		$this->mock_gateway
+			->expects( $this->exactly( 1 ) )
+			->method( 'get_intent_from_order' )
+			->willReturn( $mock_intent );
+
+		$this->mock_gateway
+			->expects( $this->exactly( $confirmation_token && ! $matches ? 1 : 2 ) )
+			->method( 'stripe_request' )
+			->willReturnCallback(
+				function ( $path ) use ( $mock_payment_method, $mock_intent ) {
+					$this->assertContains( $path, [ 'payment_methods/pm_mock', 'payment_intents/pi_mock' ] );
+					return 'payment_methods/pm_mock' === $path ? $mock_payment_method : $mock_intent;
+				}
+			);
+
+		// We should never try to create a new intent since we have a successful one
+		$this->mock_gateway->intent_controller
+			->expects( $this->never() )
+			->method( 'create_and_confirm_payment_intent' );
+
+		$this->mock_gateway
+			->expects( $this->once() )
+			->method( 'get_stripe_customer_id' )
+			->willReturn( $customer_id );
+
+		$this->mock_gateway->intent_controller->expects( $this->never() )->method( 'update_and_confirm_payment_intent' );
+
+		$response = $this->mock_gateway->process_payment( $order_id );
+
+		$this->assertEquals( $matches ? 'success' : 'failure', $response['result'] );
+		$order = wc_get_order( $order_id );
+		$this->assertSame( $matches, (bool) $order->get_date_paid() );
+		$this->assertSame( $matches ? 'processing' : 'failed', $order->get_status() );
+		$this->assertSame( $matches ? 'ch_reused_' . $order_id : '', $order->get_transaction_id() );
+	}
+
+	/**
+	 * Provides order changes for payment-method and confirmation-token retries.
+	 *
+	 * @since x.x.x
+	 *
+	 * @return array
+	 */
+	public function provide_successful_intent_retries(): array {
+		return [
+			'payment method, unchanged'            => [ 'unchanged', false ],
+			'payment method, changed total'        => [ 'total', false ],
+			'payment method, changed currency'     => [ 'currency', false ],
+			'confirmation token, unchanged'        => [ 'unchanged', true ],
+			'confirmation token, changed total'    => [ 'total', true ],
+			'confirmation token, changed currency' => [ 'currency', true ],
 		];
 	}
 

@@ -1442,6 +1442,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			// Asynchronous payment methods such as bank debits will only provide a charge ID at `payment_intent.processing`, once the required actions are taken by the customer.
 			// We need to update the order transaction ID, so that the `payment_intent.succeeded` webhook is able to process the order.
 			case 'payment_intent.processing':
+				if ( ! $order_helper->validate_successful_intent_or_hold_order( $order, $intent ) ) {
+					break;
+				}
+
 				$charge = $this->get_latest_charge_from_intent( $intent );
 				if ( $charge ) {
 					$order->set_transaction_id( $charge->id );
@@ -1486,6 +1490,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 				// Process the webhook now if it's for a voucher, wallet, or BLIK payment, or if filtered to process immediately and order is not awaiting action.
 				if ( $is_voucher_payment || $is_wallet_payment || $is_blik_payment || ( ! $process_webhook_async && ! $is_awaiting_action ) ) {
+					if ( ! $order_helper->validate_successful_intent_or_hold_order( $order, $intent ) ) {
+						break;
+					}
+
 					$charge = $this->get_latest_charge_from_intent( $intent );
 
 					// Confirm the intent settled for the order's amount before recording payment.
@@ -2014,6 +2022,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		if ( ! $intent || $intent->id !== $intent_id ) {
 			WC_Stripe_Logger::debug( "Skipped processing deferred webhook for Stripe PaymentIntent {$intent_id} for order {$order->get_id()} - intent ID stored on order ({$intent->id}) doesn't match." );
+			return;
+		}
+
+		if ( ! WC_Stripe_Order_Helper::get_instance()->validate_successful_intent_or_hold_order( $order, $intent ) ) {
 			return;
 		}
 

@@ -1126,7 +1126,7 @@ class WC_Stripe_Intent_Controller {
 				wp_send_json_error( __( 'Unable to verify your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			if ( ! empty( $order_id ) && ! empty( $intent_id ) && is_object( $order ) ) {
+			if ( ! empty( $order_id ) && ! empty( $intent_id ) && $order instanceof WC_Order ) {
 				$payment_needed = 0 < $order->get_total();
 				if ( $payment_needed ) {
 					$intent = WC_Stripe_API::retrieve( "payment_intents/$intent_id" );
@@ -1138,6 +1138,17 @@ class WC_Stripe_Intent_Controller {
 				if ( ! empty( $error ) ) {
 					WC_Stripe_Logger::error( 'Error when processing payment: ' . $error->message );
 					throw new WC_Stripe_Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
+				}
+
+				if ( $payment_needed ) {
+					try {
+						WC_Stripe_Order_Helper::get_instance()->validate_intent_for_order( $order, $intent, '' );
+					} catch ( Exception $e ) {
+						throw new WC_Stripe_Exception(
+							'The payment intent does not match the order.',
+							__( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+						);
+					}
 				}
 
 				// Use the last charge within the intent to proceed.
