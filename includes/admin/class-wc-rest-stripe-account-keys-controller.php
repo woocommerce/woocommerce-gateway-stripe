@@ -553,6 +553,8 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 
 		$event_props = [
 			'connection_type' => is_string( $connection_type ) ? $connection_type : '',
+			// Intentionally override `is_test_mode` based on $mode rather than on the current site mode.
+			'is_test_mode'    => 'test' === $mode,
 		];
 
 		$account_data = $this->account->get_cached_account_data( $mode );
@@ -561,9 +563,6 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		}
 
 		$event_props = WC_Stripe_Tracks::add_default_event_properties( $event_props );
-
-		// Intentionally override `is_test_mode` based on $mode rather than on the current site mode.
-		$event_props['is_test_mode'] = 'test' === $mode;
 
 		wc_admin_record_tracks_event( $event_name, $event_props );
 	}

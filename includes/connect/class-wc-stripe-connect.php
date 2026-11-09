@@ -554,6 +554,8 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			$event_props = [
 				'connection_type' => $connection_type,
+				// Intentionally override `is_test_mode` based on $mode rather than on the current site mode.
+				'is_test_mode'    => 'live' !== $mode,
 			];
 
 			// Include the account ID if we have it, as some errors occur after the keys have been saved.
@@ -567,9 +569,6 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			}
 
 			$event_props = WC_Stripe_Tracks::add_default_event_properties( $event_props );
-
-			// Intentionally override `is_test_mode` based on $mode rather than on the current site mode.
-			$event_props['is_test_mode'] = 'live' !== $mode;
 
 			$event_name = null === $error_code ? 'wcstripe_stripe_connected' : 'wcstripe_stripe_connect_error';
 
