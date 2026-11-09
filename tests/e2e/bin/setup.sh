@@ -220,8 +220,6 @@ redirect_output cli wp --user=${ADMIN_USER} wc shipping_zone_method create 1 --m
 redirect_output cli wp option update --format=json woocommerce_flat_rate_1_settings '{"title":"Flat rate","tax_status":"taxable","cost":"10"}'
 
 echo " - Creating Cart and Checkout shortcode pages"
-# No --page_template: Storefront's template-fullwidth.php is rejected by wp-cli
-# under any other theme, and the tests target the shortcode markup, not the page chrome.
 if ! cli wp post list --post_type=page --field=post_name | grep -q 'cart-shortcode'; then
 	redirect_output cli wp post create --post_type=page --post_title='Cart Shortcode' --post_name='cart-shortcode' --post_status=publish --post_content='<!-- wp:shortcode -->[woocommerce_cart]<!-- /wp:shortcode -->'
 fi

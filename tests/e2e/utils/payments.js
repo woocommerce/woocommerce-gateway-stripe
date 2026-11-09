@@ -106,8 +106,8 @@ export async function setupCart(
 	page,
 	lineItems = [ [ config.get( 'products.simple.name' ), 1 ] ]
 ) {
-	// Shop-page markup and the header cart counter are theme-specific, so
-	// resolve product pages through the Store API instead.
+	// The shop page's product grid and the header cart counter look different
+	// under classic and block themes, so add from each product's own page.
 	for ( const line of lineItems ) {
 		let [ productTitle, qty ] = line;
 
