@@ -3,38 +3,28 @@ import config from 'config';
 import { verifyOrderChargedAmount } from './admin';
 
 /**
- * Click the primary add to cart button for the current page. Assumes the click
- * adds exactly one item (quantity 1, no grouped products).
+ * Click the primary add to cart button for the current page and wait for the
+ * cart to hold one more item. Assumes the click adds exactly one item
+ * (quantity 1, no grouped products).
  *
  * @param {Page}   page  Playwright page fixture.
  * @param {string} label The expected text for the "Add to cart" button.
  */
 export async function clickAddToCartButton( page, label = 'Add to cart' ) {
-	const initialCount = await getCartItemsCount( page );
-	const expectedCount = initialCount + 1;
+	const expectedCount = ( await getCartItemsCount( page ) ) + 1;
 
-	// Block themes drop a click that lands before the Interactivity API
-	// hydrates, so confirm against the cart and re-click if the count stayed.
-	await retryWithBackoff(
-		async () => {
-			// A slow add may have landed since the last attempt.
-			if ( ( await getCartItemsCount( page ) ) < expectedCount ) {
-				// Accessible name OR text: block themes append the product
-				// name, and a selected WCS plan relabels the text "Sign up"
-				// while the stale aria-label keeps "Add to cart".
-				const addToCartButton = page
-					.getByRole( 'button', { name: label } )
-					.or( page.locator( 'button', { hasText: label } ) )
-					.first();
-				await expect( addToCartButton ).toBeEnabled();
-				await addToCartButton.click();
-			}
-			await expect
-				.poll( () => getCartItemsCount( page ), { timeout: 5000 } )
-				.toBe( expectedCount );
-		},
-		{ maxRetries: 2 }
-	);
+	// Accessible name OR text: block themes append the product name, and a
+	// selected WCS plan relabels the text "Sign up" while the stale
+	// aria-label keeps "Add to cart".
+	const addToCartButton = page
+		.getByRole( 'button', { name: label } )
+		.or( page.locator( 'button', { hasText: label } ) )
+		.first();
+	await expect( addToCartButton ).toBeEnabled();
+	await addToCartButton.click();
+
+	// Callers navigate away next, which would cancel an add still in flight.
+	await expect.poll( () => getCartItemsCount( page ) ).toBe( expectedCount );
 }
 
 /**
@@ -974,8 +964,8 @@ export const fillACSSDetails = async ( page ) => {
 		.locator( 'iframe[name^="__privateStripeFrame"]' )
 		.first();
 
-	// The lightbox opens only after the checkout request round-trips and
-	// Stripe confirms the intent, which can take well over 5s.
+	// Stripe's bank account dialog opens only after the checkout request
+	// round-trips and Stripe confirms the intent, which can take well over 5s.
 	await expect( outerFrameElement ).toBeVisible( { timeout: 20000 } );
 
 	const outerFrame = await outerFrameElement.contentFrame();
