@@ -1869,6 +1869,94 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * A succeeded charge can have its funds reversed without changing its status.
+	 *
+	 * @since x.x.x
+	 * @dataProvider provide_reversed_charges
+	 * @param array $charge_properties Refund or dispute state returned by Stripe.
+	 */
+	public function test_process_response_rejects_reversed_charges( array $charge_properties ): void {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_manage_stock( true );
+		$product->set_stock_quantity( 10 );
+		$product->save();
+		$order  = WC_Helper_Order::create_order( 1, $product );
+		$charge = (object) array_merge(
+			(array) $this->build_succeeded_charge( 'ch_reversed' ),
+			[
+				'object'          => 'charge',
+				'paid'            => true,
+				'amount'          => 5000,
+				'refunded'        => false,
+				'amount_refunded' => 0,
+				'disputed'        => false,
+			],
+			$charge_properties
+		);
+
+		$payment_complete = new MockAction();
+		$process_charge   = new MockAction();
+		$process_response = new MockAction();
+		add_action( 'woocommerce_payment_complete', [ $payment_complete, 'action' ] );
+		add_action( 'wc_gateway_stripe_process_payment_charge', [ $process_charge, 'action' ] );
+		add_action( 'wc_gateway_stripe_process_response', [ $process_response, 'action' ] );
+
+		$exception = null;
+		try {
+			$this->gateway->process_response( $charge, $order );
+		} catch ( WC_Stripe_Exception $e ) {
+			$exception = $e;
+		} finally {
+			remove_action( 'woocommerce_payment_complete', [ $payment_complete, 'action' ] );
+			remove_action( 'wc_gateway_stripe_process_payment_charge', [ $process_charge, 'action' ] );
+			remove_action( 'wc_gateway_stripe_process_response', [ $process_response, 'action' ] );
+		}
+
+		$this->assertInstanceOf( WC_Stripe_Exception::class, $exception );
+		$order = wc_get_order( $order->get_id() );
+		$this->assertSame( 'pending', $order->get_status() );
+		$this->assertNull( $order->get_date_paid() );
+		$this->assertEmpty( $order->get_transaction_id() );
+		$this->assertEmpty( $order->get_meta( '_stripe_charge_captured', true ) );
+		$this->assertEmpty( wc_get_order_notes( [ 'order_id' => $order->get_id() ] ) );
+		$this->assertSame( 10, wc_get_product( $product->get_id() )->get_stock_quantity() );
+		$this->assertSame( 0, $payment_complete->get_call_count() );
+		$this->assertSame( 0, $process_charge->get_call_count() );
+		$this->assertSame( 0, $process_response->get_call_count() );
+	}
+
+	/**
+	 * Provider for `test_process_response_rejects_reversed_charges`.
+	 *
+	 * @since x.x.x
+	 * @return array
+	 */
+	public function provide_reversed_charges(): array {
+		return [
+			'fully refunded'                    => [
+				[
+					'refunded'        => true,
+					'amount_refunded' => 5000,
+				],
+			],
+			'refund flag without amount'        => [ [ 'refunded' => true ] ],
+			'disputed'                          => [ [ 'disputed' => true ] ],
+			'refunded and disputed'             => [
+				[
+					'refunded' => true,
+					'disputed' => true,
+				],
+			],
+			'released uncaptured authorization' => [
+				[
+					'captured' => false,
+					'refunded' => true,
+				],
+			],
+		];
+	}
+
+	/**
 	 * An empty ID cannot identify a shared transaction, so processing must continue without attempting
 	 * a transaction lock.
 	 *

@@ -1049,10 +1049,12 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 * A pre-order settled by the webhook must keep the charge on the order, including an
 	 * uncaptured one, so a later capture or refund can find it.
 	 *
-	 * @param bool $captured Whether the charge is already captured.
+	 * @param bool  $captured Whether the charge is already captured.
+	 * @param array $charge_properties Refund or dispute state of the charge.
+	 * @param bool  $valid Whether the charge can place a pre-order.
 	 * @dataProvider provide_pre_order_charge_states
 	 */
-	public function test_deferred_payment_intent_succeeded_records_charge_on_pre_order( bool $captured ): void {
+	public function test_deferred_payment_intent_succeeded_records_charge_on_pre_order( bool $captured, array $charge_properties, bool $valid ): void {
 		$order = WC_Helper_Order::create_order();
 		$order->set_status( OrderStatus::PENDING );
 		$order->save();
@@ -1067,17 +1069,20 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'object' => (object) self::MOCK_PAYMENT_INTENT,
 			],
 		];
-		$charge       = (object) [
-			'id'       => 'ch_pre_order',
-			'captured' => $captured,
-		];
+		$charge       = (object) array_merge(
+			[
+				'id'       => 'ch_pre_order',
+				'captured' => $captured,
+				'status'   => 'succeeded',
+			],
+			$charge_properties
+		);
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
 			->setMethods(
 				[
 					'get_intent_from_order',
 					'get_latest_charge_from_intent',
-					'process_response',
 					'is_unreleased_charged_upfront_pre_order',
 				]
 			)
@@ -1085,13 +1090,24 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$handler->method( 'get_intent_from_order' )->willReturn( (object) self::MOCK_PAYMENT_INTENT );
 		$handler->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
 		$handler->method( 'is_unreleased_charged_upfront_pre_order' )->willReturn( true );
-		$handler->expects( $this->never() )->method( 'process_response' );
-
-		$handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+		$exception = null;
+		try {
+			$handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+		} catch ( WC_Stripe_Exception $e ) {
+			$exception = $e;
+		}
 
 		$order = wc_get_order( $order->get_id() );
-		$this->assertSame( 'ch_pre_order', $order->get_transaction_id() );
-		$this->assertSame( wc_bool_to_string( $captured ), WC_Stripe_Order_Helper::get_instance()->get_stripe_charge_captured( $order ) );
+		if ( $valid ) {
+			$this->assertNull( $exception );
+			$this->assertSame( 'ch_pre_order', $order->get_transaction_id() );
+			$this->assertSame( wc_bool_to_string( $captured ), WC_Stripe_Order_Helper::get_instance()->get_stripe_charge_captured( $order ) );
+		} else {
+			$this->assertInstanceOf( WC_Stripe_Exception::class, $exception );
+			$this->assertSame( OrderStatus::PENDING, $order->get_status() );
+			$this->assertNull( $order->get_date_paid() );
+			$this->assertEmpty( $order->get_transaction_id() );
+		}
 	}
 
 	/**
@@ -1101,9 +1117,118 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 */
 	public function provide_pre_order_charge_states(): array {
 		return [
-			'captured'   => [ 'captured' => true ],
-			'uncaptured' => [ 'captured' => false ],
+			'captured'           => [ true, [], true ],
+			'uncaptured'         => [ false, [], true ],
+			'partially captured' => [ true, [ 'amount_refunded' => 100 ], true ],
+			'fully refunded'     => [ true, [ 'refunded' => true ], false ],
+			'disputed'           => [ true, [ 'disputed' => true ], false ],
 		];
+	}
+
+	/**
+	 * Reversed charges must not reach payment callbacks, including the deprecated hook
+	 * that runs before the common charge validation.
+	 *
+	 * @dataProvider provide_webhook_payment_hook_charge_states
+	 * @param bool  $deferred Whether the webhook is processed by the deferred job.
+	 * @param array $charge_properties Refund or dispute state of the charge.
+	 * @param bool  $pre_order Whether this is an unreleased charged-upfront pre-order.
+	 * @param bool  $valid Whether the charge can settle the order.
+	 */
+	public function test_payment_intent_webhook_payment_hooks( bool $deferred, array $charge_properties, bool $pre_order, bool $valid ): void {
+		$order            = WC_Helper_Order::create_order();
+		$intent           = (object) self::MOCK_PAYMENT_INTENT;
+		$intent->metadata = (object) [
+			'order_id'  => $order->get_id(),
+			'order_key' => $order->get_order_key(),
+		];
+		$charge           = (object) array_merge( self::MOCK_PAYMENT_INTENT['charges']['data'][0], $charge_properties );
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'is_unreleased_charged_upfront_pre_order' ] )
+			->getMock();
+		$handler->method( 'get_intent_from_order' )->willReturn( $intent );
+		$handler->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
+		$handler->method( 'is_unreleased_charged_upfront_pre_order' )->willReturn( $pre_order );
+
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [ 'object' => $intent ],
+		];
+		$hooks        = [
+			'wc_gateway_stripe_process_payment',
+			'wc_gateway_stripe_process_payment_charge',
+			'woocommerce_payment_complete',
+		];
+		$fired        = [];
+		$listener     = static function () use ( &$fired ) {
+			$fired[] = current_filter();
+		};
+		foreach ( $hooks as $hook ) {
+			add_action( $hook, $listener );
+		}
+		if ( $valid ) {
+			$this->setExpectedDeprecated( 'wc_gateway_stripe_process_payment' );
+		}
+		add_filter( 'wc_stripe_process_payment_intent_webhook_async', '__return_false' );
+
+		$exception = null;
+		try {
+			if ( $deferred ) {
+				$handler->process_deferred_webhook(
+					$notification->type,
+					[
+						'order_id'  => $order->get_id(),
+						'intent_id' => $intent->id,
+					],
+					$notification
+				);
+			} else {
+				$handler->process_payment_intent( $notification );
+			}
+		} catch ( WC_Stripe_Exception $e ) {
+			$exception = $e;
+		} finally {
+			remove_filter( 'wc_stripe_process_payment_intent_webhook_async', '__return_false' );
+			foreach ( $hooks as $hook ) {
+				remove_action( $hook, $listener );
+			}
+		}
+
+		$this->assertSame( $valid ? $hooks : [], $fired );
+		$order = wc_get_order( $order->get_id() );
+		if ( $valid ) {
+			$this->assertNull( $exception );
+			$this->assertTrue( $order->is_paid() );
+			$this->assertSame( $charge->id, $order->get_transaction_id() );
+		} else {
+			$this->assertInstanceOf( WC_Stripe_Exception::class, $exception );
+			$this->assertSame( OrderStatus::PENDING, $order->get_status() );
+			$this->assertNull( $order->get_date_paid() );
+			$this->assertEmpty( $order->get_transaction_id() );
+		}
+	}
+
+	/**
+	 * Covers both webhook paths with usable charges and reversals on ordinary orders and pre-orders.
+	 *
+	 * @return array
+	 */
+	public function provide_webhook_payment_hook_charge_states(): array {
+		$cases = [];
+		$paths = [
+			'immediate' => false,
+			'deferred'  => true,
+		];
+		foreach ( $paths as $path => $deferred ) {
+			$cases[ "$path valid" ]              = [ $deferred, [], false, true ];
+			$cases[ "$path partially captured" ] = [ $deferred, [ 'amount_refunded' => 100 ], false, true ];
+			$cases[ "$path refunded" ]           = [ $deferred, [ 'refunded' => true ], false, false ];
+			$cases[ "$path disputed" ]           = [ $deferred, [ 'disputed' => true ], false, false ];
+			$cases[ "$path refunded pre-order" ] = [ $deferred, [ 'refunded' => true ], true, false ];
+			$cases[ "$path disputed pre-order" ] = [ $deferred, [ 'disputed' => true ], true, false ];
+		}
+		return $cases;
 	}
 
 	/**

@@ -2791,6 +2791,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$is_pre_order = false;
 		if ( $this->has_pre_order( $order->get_id() ) ) {
+			// Prepaid pre-orders bypass process_response(), but must meet the same payment requirements.
+			if ( $payment_needed && $this->is_charge_refunded_or_disputed( $this->get_latest_charge_from_intent( $intent ) ) ) {
+				throw new WC_Stripe_Exception( 'Pre-order charge is refunded or disputed.', __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			}
+
 			// If this is a pre-order, simply mark the order as pre-ordered and allow
 			// the subsequent logic to save the payment method and proceed to complete the order.
 			$this->mark_order_as_pre_ordered( $order->get_id() );
@@ -3506,19 +3511,23 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			// Fetch the latest intent data from Stripe
 			$intent = $this->stripe_request( 'payment_intents/' . $existing_intent->id );
 
-			// If the intent is already successful, return it to prevent duplicate charges
+			// Stripe keeps an intent succeeded after a reversal. Only a charge that still
+			// pays for this order can replace a new payment with the submitted method.
 			if ( isset( $intent->status ) && in_array( $intent->status, WC_Stripe_Intent_Status::SUCCESSFUL_STATUSES, true ) ) {
-				// A retry can change the order total after payment. The newly selected method
-				// did not fund this intent, so only its amount, currency and identity must match.
-				try {
-					WC_Stripe_Order_Helper::get_instance()->validate_intent_for_order( $order, $intent, '' );
-				} catch ( Exception $e ) {
-					throw new WC_Stripe_Exception(
-						'The successful payment intent stored on the order no longer matches the order.',
-						__( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-					);
+				$charge = $this->get_latest_charge_from_intent( $intent );
+				if ( ! $this->is_charge_refunded_or_disputed( $charge ) ) {
+					// A retry can change the order total after payment. The newly selected method
+					// did not fund this intent, so only its amount, currency and identity must match.
+					try {
+						WC_Stripe_Order_Helper::get_instance()->validate_intent_for_order( $order, $intent, '' );
+					} catch ( Exception $e ) {
+						throw new WC_Stripe_Exception(
+							'The successful payment intent stored on the order no longer matches the order.',
+							__( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+						);
+					}
+					return $intent;
 				}
-				return $intent;
 			}
 		}
 
