@@ -165,7 +165,13 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
+= 11.3.0 - xxxx-xx-xx =
+* Update - Improve express checkout wallet startup, availability checks, reuse, and recovery
+* Fix - Avoid expensive variation lookup in express checkout setup on product pages
+
 = 11.2.0 - xxxx-xx-xx =
+* Fix - Refund or void a Stripe payment that succeeds for an order that was already cancelled, instead of leaving the shopper charged
+* Fix - Skip Inbox Note initialization during admin-ajax requests to avoid unnecessary database queries
 * Fix - Rebuild a mode's webhook on update when an earlier "Reconfigure webhooks" click registered it in the wrong mode, which had left webhooks failing in both live and test
 * Fix - Complete deprecation of wc_stripe_force_save_source
 * Update - Avoid loading unnecessary Stripe checkout scripts on product, cart, and Blocks checkout pages
@@ -187,5 +193,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Allow retrying a failed BLIK or Pre-Authorized Debit (ACSS) payment on the same order instead of failing every retry
 * Fix - Prevent a second charge when an interrupted checkout is resubmitted or two tabs submit the same cart at once
 * Fix - On classic checkout, show a notice naming each empty required field instead of a single generic "Please fill in all required fields" notice
+* Fix - Restore missing left borders on notices in the Stripe settings
+* Fix - Render the Additional content field in the Stripe refund failed emails (customer and merchant)
+* Add - Record Tracks events for Adaptive Pricing setting changes, automatic enabling, and notice dismissals, and fix the event recorded when Optimized Checkout is turned off
+* Fix - Disable Adaptive Pricing instead of breaking checkout when another plugin loads a different version of Stripe.js
+* Dev - Fix ACH E2E tests for Stripe's updated test-mode bank account flow
+* Fix - Stop a staging or cloned site from deleting the production site's Stripe webhooks when connecting or disconnecting Stripe
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
