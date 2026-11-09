@@ -168,6 +168,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 = 11.3.0 - xxxx-xx-xx =
 * Update - Improve express checkout wallet startup, availability checks, reuse, and recovery
 * Fix - Avoid expensive variation lookup in express checkout setup on product pages
+* Dev - Add WC_Stripe_Tracks class to support more consistent events
 
 = 11.2.0 - xxxx-xx-xx =
 * Fix - Refund or void a Stripe payment that succeeds for an order that was already cancelled, instead of leaving the shopper charged
@@ -183,7 +184,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Remote configuration system for managing feature availability during incidents
 * Update - Retry failed remote-config syncs with backoff and log a warning when the cached configuration goes stale
 * Dev - Make the express checkout password cleanup next-batch delay test stable on slow CI runners
-* Dev - Add WC_Stripe_Tracks class to support more consistent events
 * Dev - Let hook @since docblocks use the x.x.x version placeholder in phpcs
 * Fix - Send shoppers to the order confirmation page instead of showing an error when processing fails after a 3D Secure payment has already succeeded
 * Dev - Add E2E coverage for paying with a non-Stripe gateway on the Pay for Order, add payment method, and change payment method pages
