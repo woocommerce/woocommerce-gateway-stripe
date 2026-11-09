@@ -572,7 +572,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 	/**
 	 * The bootstrap derives its readiness gate from `scriptDependencies`, so the
-	 * localized list must match the script's registered build dependencies.
+	 * localized list must match the build dependencies and precede early wallets.
 	 */
 	public function test_payment_scripts_localizes_script_dependencies(): void {
 		$asset_path            = WC_STRIPE_PLUGIN_PATH . '/build/upe-classic.asset.php';
@@ -597,36 +597,63 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$gateway->method( 'get_return_url' )->willReturn( self::MOCK_RETURN_URL );
 		$gateway->enabled = 'yes';
 
+		$express_helper = $this->createMock( WC_Stripe_Express_Checkout_Helper::class );
+		$express_helper->method( 'is_page_supported' )->willReturn( true );
+		$express_helper->method( 'should_show_express_checkout_button' )->willReturn( true );
+		$express                          = $this->getMockBuilder( WC_Stripe_Express_Checkout_Element::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'javascript_params' ] )
+			->getMock();
+		$express->express_checkout_helper = $express_helper;
+		$express->method( 'javascript_params' )->willReturn( [] );
+
+		$original_scripts = wp_scripts();
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Isolate script registration and printing state from other tests.
+		$GLOBALS['wp_scripts'] = clone $original_scripts;
+		wp_scripts()->done     = [];
 		add_filter( 'woocommerce_is_checkout', '__return_true' );
 		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
 		$this->clean_up_scripts( [ 'wc_stripe_express_checkout' ] );
-		wp_register_script( 'wc_stripe_express_checkout', 'https://example.test/express.js', [], null, true );
-		wp_enqueue_script( 'wc_stripe_express_checkout' );
 
 		$add_marker = static function ( $params ) {
 			$params['extensionMarker'] = 'extension-value';
 			return $params;
 		};
 		add_filter( 'wc_stripe_upe_params', $add_marker );
-		$gateway->payment_scripts();
-		$localized         = wp_scripts()->get_data( 'wc-stripe-checkout-settings', 'data' );
-		$express_localized = wp_scripts()->get_data( 'wc_stripe_express_checkout', 'data' );
 
-		remove_filter( 'wc_stripe_upe_params', $add_marker );
-		remove_filter( 'woocommerce_is_checkout', '__return_true' );
-		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
-		$this->clean_up_scripts( [ 'wc_stripe_express_checkout' ] );
+		try {
+			WC_Frontend_Scripts::load_scripts();
+			$express->scripts();
+			$gateway->payment_scripts();
+			$localized = wp_scripts()->get_data( 'wc-stripe-checkout-settings', 'data' );
+			$this->assertContains( 'wc-stripe-checkout-settings', wp_scripts()->registered['wc_stripe_express_checkout']->deps );
+			$this->assertIsString( $localized, 'wc_stripe_upe_params was not localized' );
+			$this->assertStringContainsString( 'extension-value', $localized );
+			$this->assertMatchesRegularExpression( '/var wc_stripe_upe_params = (\{.*\});/s', $localized );
+			preg_match( '/var wc_stripe_upe_params = (\{.*\});/s', $localized, $matches );
+			$params = json_decode( $matches[1], true );
 
-		$this->assertSame( $localized, $express_localized, 'Early wallets must receive the same filtered gateway configuration before initialization.' );
-		$this->assertStringContainsString( 'extension-value', $localized );
-		$this->assertStringContainsString( 'extension-value', $express_localized );
-		$this->assertIsString( $localized, 'wc_stripe_upe_params was not localized' );
-		$this->assertMatchesRegularExpression( '/var wc_stripe_upe_params = (\{.*\});/s', $localized );
-		preg_match( '/var wc_stripe_upe_params = (\{.*\});/s', $localized, $matches );
-		$params = json_decode( $matches[1], true );
+			$this->assertArrayHasKey( 'scriptDependencies', $params );
+			$this->assertSame( $expected_dependencies, $params['scriptDependencies'] );
 
-		$this->assertArrayHasKey( 'scriptDependencies', $params );
-		$this->assertSame( $expected_dependencies, $params['scriptDependencies'] );
+			ob_start();
+			wp_scripts()->do_items( [ 'wc_stripe_express_checkout', 'wc-stripe-upe-classic' ], 1 );
+			$output = ob_get_clean();
+
+			$this->assertSame( 1, substr_count( $output, 'var wc_stripe_upe_params = ' ) );
+			$this->assertStringContainsString( 'extension-value', $output );
+			$settings_position = strpos( $output, 'var wc_stripe_upe_params = ' );
+			$express_position  = strpos( $output, 'id="wc_stripe_express_checkout-js"' );
+			$this->assertIsInt( $settings_position );
+			$this->assertIsInt( $express_position );
+			$this->assertLessThan( $express_position, $settings_position, 'Early wallets must receive filtered settings before initialization.' );
+		} finally {
+			remove_filter( 'wc_stripe_upe_params', $add_marker );
+			remove_filter( 'woocommerce_is_checkout', '__return_true' );
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restore the script registry after printing the checkout bundles.
+			$GLOBALS['wp_scripts'] = $original_scripts;
+			$this->clean_up_scripts( [], [ 'stripelink_styles', 'wc-stripe-upe-classic', 'wc_stripe_express_checkout_style' ] );
+		}
 	}
 
 	/**
