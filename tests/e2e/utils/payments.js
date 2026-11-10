@@ -33,6 +33,31 @@ export async function selectSubscriptionOption( page ) {
 }
 
 /**
+ * Add an APFS subscription product to the cart from its product page.
+ *
+ * APFS products offer a one-time vs subscription choice, so pick the
+ * subscription option before adding to the cart.
+ *
+ * @param {Page}   page      Playwright page fixture.
+ * @param {number} productId The product ID.
+ */
+export async function addSubscriptionToCart( page, productId ) {
+	await page.goto( `?p=${ productId }` );
+	await selectSubscriptionOption( page );
+	// Click the cart form's submit rather than matching the button copy: the
+	// label varies with the WC/WCS combination ("Sign up" on WC <= 11.0,
+	// "Add to cart" on 11.1) and with the store locale.
+	const addToCartButton = page
+		.locator( 'form.cart button[type="submit"]' )
+		.first();
+	await expect( addToCartButton ).toBeEnabled();
+	await addToCartButton.click();
+	await expect(
+		page.getByText( 'has been added to your cart' )
+	).toBeVisible();
+}
+
+/**
  * Empty the WC cart.
  * @param {Page} page Playwright page fixture.
  */
@@ -438,15 +463,23 @@ export async function fillCreditCardDetailsShortcodeLegacy( page, card ) {
  * If billingDetails are empty, they're skipped.
  * @param {Page} page Playwright page fixture.
  * @param {Object} billingDetails The billing details in the format provided on the test-data.
+ * @param {Object} options Optional checkout configuration.
+ * @param {boolean} options.skipBillingCountry Skip the WooCommerce billing country field.
  */
-export async function setupShortcodeCheckout( page, billingDetails = null ) {
+export async function setupShortcodeCheckout(
+	page,
+	billingDetails = null,
+	options = {}
+) {
 	await page.goto( '/checkout-shortcode/' );
 
 	if ( billingDetails ) {
-		await page.selectOption(
-			'#billing_country',
-			billingDetails[ 'country_iso' ]
-		);
+		if ( ! options.skipBillingCountry ) {
+			await page.selectOption(
+				'#billing_country',
+				billingDetails[ 'country_iso' ]
+			);
+		}
 
 		if ( billingDetails[ 'state_iso' ] ) {
 			await page.selectOption(
@@ -482,9 +515,29 @@ export async function setupShortcodeCheckout( page, billingDetails = null ) {
  * If billingDetails are empty, they're skipped.
  * @param {Page} page Playwright page fixture.
  * @param {Object} billingDetails The billing details in the format provided on the test-data.
+ * @param {Object} options Optional checkout readiness configuration.
+ * @param {string} options.paymentFrameSelector Wait for this optimized payment frame before entering customer data.
+ * @param {number} options.timeout Payment frame readiness timeout.
  */
-export async function setupBlocksCheckout( page, billingDetails = null ) {
+export async function setupBlocksCheckout(
+	page,
+	billingDetails = null,
+	options = {}
+) {
 	await page.goto( '/checkout/' );
+	const stripeMethod = page.locator(
+		"label[for='radio-control-wc-payment-method-options-stripe']"
+	);
+	// Wait for initial cart synchronization so checkout updates cannot reset customer input.
+	if ( options.paymentFrameSelector ) {
+		// A saved token can be selected initially, leaving the new-card frame hidden.
+		await stripeMethod.click();
+		await getOCPaymentFrame(
+			page,
+			options.paymentFrameSelector,
+			options.timeout
+		);
+	}
 
 	const fieldNameLabelMap = {
 		first_name: 'First name',
@@ -561,11 +614,7 @@ export async function setupBlocksCheckout( page, billingDetails = null ) {
 		}
 	}
 
-	await page
-		.locator(
-			"label[for='radio-control-wc-payment-method-options-stripe']"
-		)
-		.click();
+	await stripeMethod.click();
 }
 
 /**
@@ -651,10 +700,21 @@ export const fillACHBankDetails = async ( page ) => {
 		.frameLocator( 'iframe[name^="__privateStripeFrame"]' )
 		.first();
 
-	// Click Agree and Continue button
+	// On the Link sign-in screen, `agree-button` starts a sign-up that needs a phone.
 	let button = frame.getByTestId( 'agree-button' );
 	await expect( button ).toBeVisible();
+	const guestButton = frame.getByTestId(
+		'pre-auth-networking-and-consent-guest'
+	);
+	if ( await guestButton.isVisible() ) {
+		button = guestButton;
+	}
 	await button.click();
+
+	// Use an anchored prefix to exclude disputed accounts in both test-bank layouts.
+	const successAccount = frame
+		.getByRole( 'radio', { name: /^Success ••••/ } )
+		.or( frame.getByRole( 'button', { name: 'Success ••••' } ) );
 
 	// Link registration button may or may not appear.
 	await Promise.race( [
@@ -664,9 +724,7 @@ export const fillACHBankDetails = async ( page ) => {
 			.then( async () => {
 				await frame.getByTestId( 'link-not-now-button' ).click();
 			} ),
-		frame
-			.getByRole( 'button', { name: 'Success ••••' } )
-			.waitFor( { state: 'visible' } ),
+		successAccount.waitFor( { state: 'visible' } ),
 		frame
 			.getByTestId( 'continue-button' )
 			.waitFor( { state: 'visible' } )
@@ -675,13 +733,14 @@ export const fillACHBankDetails = async ( page ) => {
 			} ),
 	] );
 
-	// Click "Success ••••" account
-	button = frame.getByRole( 'button', { name: 'Success ••••' } );
-	await expect( button ).toBeVisible();
-	await button.click();
+	// Select the success account; its radio may already be selected.
+	await expect( successAccount ).toBeVisible();
+	await successAccount.click();
 
 	// Click Connect account button
-	button = frame.getByTestId( 'select-button' );
+	button = frame
+		.getByTestId( 'select-button' )
+		.or( frame.getByRole( 'button', { name: 'Connect account' } ) );
 	await expect( button ).toBeVisible();
 	await button.click();
 
@@ -747,6 +806,8 @@ export const setupACSSCheckout = async ( page, checkoutType = 'blocks' ) => {
  * @param {Object} options Optional configuration parameters.
  * @param {number} options.timeout Timeout in milliseconds for waiting operations (default: 10000).
  * @param {boolean} options.skipCartSetup Skip cart setup if it's already configured (default: false).
+ * @param {Object} options.billingDetails Billing data in the test-data format.
+ * @param {boolean} options.skipBillingCountry Skip the WooCommerce billing country field.
  * @returns {Promise<void>} Resolves when setup is complete.
  * @throws {Error} If iframe cannot be found or initialization fails.
  */
@@ -771,19 +832,18 @@ export const setupOptimizedCheckout = async (
 			container: '#wc-stripe-upe-form',
 		},
 	};
+	const billingDetails =
+		options.billingDetails ?? config.get( 'addresses.customer.billing' );
 
 	try {
 		// Set up appropriate checkout type
 		if ( checkoutType === 'blocks' ) {
-			await setupBlocksCheckout(
-				page,
-				config.get( 'addresses.customer.billing' )
-			);
+			await setupBlocksCheckout( page, billingDetails, {
+				paymentFrameSelector: selectors.blocks.iframe,
+				timeout: options.timeout,
+			} );
 		} else {
-			await setupShortcodeCheckout(
-				page,
-				config.get( 'addresses.customer.billing' )
-			);
+			await setupShortcodeCheckout( page, billingDetails, options );
 		}
 
 		// Get the correct selectors for this checkout type
@@ -1013,8 +1073,15 @@ const getOCPaymentFrame = async ( page, iframeSelector, timeout = 10000 ) => {
  * @param {Page} page Playwright page fixture.
  * @param {Object} card The CC info in the format provided on the test-data.
  * @param {string} checkoutType The type of checkout ('blocks' or 'shortcode').
+ * @param {Object} options Optional payment details.
+ * @param {string} options.billingCountry Country collected by Stripe.
  */
-export const fillOCDetails = async ( page, card, checkoutType = 'blocks' ) => {
+export const fillOCDetails = async (
+	page,
+	card,
+	checkoutType = 'blocks',
+	options = {}
+) => {
 	// Determine the appropriate iframe selector based on checkout type
 	const iframeSelector =
 		checkoutType === 'blocks'
@@ -1039,6 +1106,12 @@ export const fillOCDetails = async ( page, card, checkoutType = 'blocks' ) => {
 		.locator( '[name="expiry"]' )
 		.fill( card.expires.month + card.expires.year );
 	await paymentFrame.locator( '[name="cvc"]' ).fill( card.cvc );
+
+	if ( options.billingCountry ) {
+		await paymentFrame
+			.locator( '[name="country"]' )
+			.selectOption( options.billingCountry );
+	}
 
 	// For emails Link doesn't recognize, it offers signup with "Save my
 	// information" pre-checked, which requires a mobile number the tests

@@ -77,7 +77,7 @@ final class Hook_Markdown_Generator {
 	public function run(): void {
 		$schema = $this->read_json_file( $this->schema_file );
 		if ( 'HooksContainer' !== ( $schema['title'] ?? null ) ) {
-			throw new RuntimeException( "Unexpected hook schema in {$this->schema_file}." );
+			throw new RuntimeException( "Unexpected hook schema in {$this->schema_file}." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		$markdown = $this->render_document(
@@ -87,11 +87,11 @@ final class Hook_Markdown_Generator {
 
 		$output_dir = dirname( $this->output_file );
 		if ( ! is_dir( $output_dir ) && ! mkdir( $output_dir, 0777, true ) && ! is_dir( $output_dir ) ) {
-			throw new RuntimeException( "Unable to create output directory: {$output_dir}" );
+			throw new RuntimeException( "Unable to create output directory: {$output_dir}" ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		if ( false === file_put_contents( $this->output_file, $markdown ) ) {
-			throw new RuntimeException( "Unable to write hook documentation to {$this->output_file}." );
+			throw new RuntimeException( "Unable to write hook documentation to {$this->output_file}." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
@@ -121,12 +121,12 @@ final class Hook_Markdown_Generator {
 	private function read_json_file( string $path ): array {
 		$contents = file_get_contents( $path );
 		if ( false === $contents ) {
-			throw new RuntimeException( "Unable to read {$path}" );
+			throw new RuntimeException( "Unable to read {$path}" ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		$data = json_decode( $contents, true );
 		if ( ! is_array( $data ) ) {
-			throw new RuntimeException( "Unable to decode JSON from {$path}" );
+			throw new RuntimeException( "Unable to decode JSON from {$path}" ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		return $data;
@@ -142,7 +142,7 @@ final class Hook_Markdown_Generator {
 		$data = $this->read_json_file( $path );
 
 		if ( ! isset( $data['$schema'], $data['hooks'] ) || ! is_array( $data['hooks'] ) ) {
-			throw new RuntimeException( "{$path} does not match the expected hooks container schema from {$this->schema_file}" );
+			throw new RuntimeException( "{$path} does not match the expected hooks container schema from {$this->schema_file}" ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		foreach ( $data['hooks'] as $index => $hook ) {
@@ -162,12 +162,12 @@ final class Hook_Markdown_Generator {
 		$required = [ 'name', 'file', 'type', 'doc', 'args' ];
 		foreach ( $required as $property ) {
 			if ( ! is_array( $hook ) || ! array_key_exists( $property, $hook ) ) {
-				throw new RuntimeException( "{$label} is missing {$property}; expected schema {$this->schema_file}" );
+				throw new RuntimeException( "{$label} is missing {$property}; expected schema {$this->schema_file}" ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			}
 		}
 
 		if ( ! is_array( $hook['doc'] ) || ! isset( $hook['doc']['description'], $hook['doc']['long_description'], $hook['doc']['tags'] ) || ! is_array( $hook['doc']['tags'] ) ) {
-			throw new RuntimeException( "{$label} has an invalid doc object; expected schema {$this->schema_file}" );
+			throw new RuntimeException( "{$label} has an invalid doc object; expected schema {$this->schema_file}" ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 	}
 

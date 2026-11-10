@@ -441,6 +441,168 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * When a Link customer re-enrolls with a different card, a new Link PM is
+	 * attached while the old one remains in Stripe's list. The email-matched
+	 * token must repoint to the newer PM, or subscription renewals keep
+	 * charging the card behind the old PM.
+	 *
+	 * Reproduces STRIPE-1303.
+	 *
+	 * @return void
+	 */
+	public function test_add_token_to_user_repoints_link_token_to_newer_payment_method() {
+		$user_id = $this->factory->user->create();
+		update_user_option( $user_id, '_stripe_customer_id', 'cus_test_link_1303', false );
+
+		$seed_token = new WC_Payment_Token_Link();
+		$seed_token->set_token( 'pm_link_old' );
+		$seed_token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$seed_token->set_user_id( $user_id );
+		$seed_token->set_email( 'link@example.com' );
+		$seed_token->save();
+		$seed_token_id = $seed_token->get_id();
+
+		$old_pm = (object) [
+			'id'      => 'pm_link_old',
+			'type'    => WC_Stripe_Payment_Methods::LINK,
+			'created' => 1700000000,
+			'link'    => (object) [ 'email' => 'link@example.com' ],
+		];
+		$new_pm = (object) [
+			'id'      => 'pm_link_new',
+			'type'    => WC_Stripe_Payment_Methods::LINK,
+			'created' => 1700000100,
+			'link'    => (object) [ 'email' => 'link@example.com' ],
+		];
+
+		$customer = new WC_Stripe_Customer( $user_id );
+
+		$reflection = new ReflectionMethod( WC_Stripe_Payment_Tokens::class, 'add_token_to_user' );
+		$reflection->setAccessible( true );
+		$result = $reflection->invoke( $this->stripe_payment_tokens, $new_pm, $customer, [ $new_pm, $old_pm ] );
+
+		$this->assertSame( $seed_token_id, $result->get_id(), 'Email-matched Link token should be reused, not recreated.' );
+		$this->assertSame( 'pm_link_new', $result->get_token() );
+
+		$reloaded = WC_Payment_Tokens::get( $seed_token_id );
+		$this->assertSame( 'pm_link_new', $reloaded->get_token(), 'Repointed PM id must be persisted.' );
+	}
+
+	/**
+	 * The sync loop feeds every attached PM through `add_token_to_user` in
+	 * Stripe's list order. An incoming Link PM older than the one stored must
+	 * not repoint the token, or the sync would flap between the two PMs while
+	 * both stay attached.
+	 *
+	 * @return void
+	 */
+	public function test_add_token_to_user_keeps_link_token_on_older_payment_method() {
+		$user_id = $this->factory->user->create();
+		update_user_option( $user_id, '_stripe_customer_id', 'cus_test_link_older', false );
+
+		$seed_token = new WC_Payment_Token_Link();
+		$seed_token->set_token( 'pm_link_new' );
+		$seed_token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$seed_token->set_user_id( $user_id );
+		$seed_token->set_email( 'link@example.com' );
+		$seed_token->save();
+		$seed_token_id = $seed_token->get_id();
+
+		$old_pm = (object) [
+			'id'      => 'pm_link_old',
+			'type'    => WC_Stripe_Payment_Methods::LINK,
+			'created' => 1700000000,
+			'link'    => (object) [ 'email' => 'link@example.com' ],
+		];
+		$new_pm = (object) [
+			'id'      => 'pm_link_new',
+			'type'    => WC_Stripe_Payment_Methods::LINK,
+			'created' => 1700000100,
+			'link'    => (object) [ 'email' => 'link@example.com' ],
+		];
+
+		$customer = new WC_Stripe_Customer( $user_id );
+
+		$reflection = new ReflectionMethod( WC_Stripe_Payment_Tokens::class, 'add_token_to_user' );
+		$reflection->setAccessible( true );
+		$result = $reflection->invoke( $this->stripe_payment_tokens, $old_pm, $customer, [ $new_pm, $old_pm ] );
+
+		$this->assertSame( $seed_token_id, $result->get_id() );
+		$this->assertSame( 'pm_link_new', $result->get_token(), 'An older Link PM must not displace the newer one.' );
+
+		$reloaded = WC_Payment_Tokens::get( $seed_token_id );
+		$this->assertSame( 'pm_link_new', $reloaded->get_token() );
+	}
+
+	/**
+	 * Data provider for equal-timestamp Link PM tie-break scenarios. Stripe's
+	 * `created` has one-second resolution, so a re-enrollment can attach a PM
+	 * with the same timestamp as the replaced one; the tie must be broken by
+	 * Stripe's list order (most recently created first).
+	 *
+	 * @return array<string, array{stored_pm: string, incoming_pm: string, list_order: string[], expected_token: string}>
+	 */
+	public function provide_link_equal_created_tie_break() {
+		return [
+			'incoming listed first repoints the token' => [
+				'stored_pm'      => 'pm_link_old',
+				'incoming_pm'    => 'pm_link_new',
+				'list_order'     => [ 'pm_link_new', 'pm_link_old' ],
+				'expected_token' => 'pm_link_new',
+			],
+			'incoming listed last keeps the token'     => [
+				'stored_pm'      => 'pm_link_new',
+				'incoming_pm'    => 'pm_link_old',
+				'list_order'     => [ 'pm_link_new', 'pm_link_old' ],
+				'expected_token' => 'pm_link_new',
+			],
+		];
+	}
+
+	/**
+	 * When two Link PMs share the same `created` timestamp, the token must
+	 * follow Stripe's list order (most recent first): a same-second
+	 * re-enrollment still repoints the token, and the older PM cannot
+	 * displace the newer one when processed later in the sync loop.
+	 *
+	 * @dataProvider provide_link_equal_created_tie_break
+	 */
+	public function test_add_token_to_user_breaks_equal_created_tie_with_list_order( string $stored_pm, string $incoming_pm, array $list_order, string $expected_token ) {
+		$user_id = $this->factory->user->create();
+		update_user_option( $user_id, '_stripe_customer_id', 'cus_test_link_tie', false );
+
+		$seed_token = new WC_Payment_Token_Link();
+		$seed_token->set_token( $stored_pm );
+		$seed_token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$seed_token->set_user_id( $user_id );
+		$seed_token->set_email( 'link@example.com' );
+		$seed_token->save();
+		$seed_token_id = $seed_token->get_id();
+
+		$pms = [];
+		foreach ( $list_order as $pm_id ) {
+			$pms[ $pm_id ] = (object) [
+				'id'      => $pm_id,
+				'type'    => WC_Stripe_Payment_Methods::LINK,
+				'created' => 1700000100,
+				'link'    => (object) [ 'email' => 'link@example.com' ],
+			];
+		}
+
+		$customer = new WC_Stripe_Customer( $user_id );
+
+		$reflection = new ReflectionMethod( WC_Stripe_Payment_Tokens::class, 'add_token_to_user' );
+		$reflection->setAccessible( true );
+		$result = $reflection->invoke( $this->stripe_payment_tokens, $pms[ $incoming_pm ], $customer, array_values( $pms ) );
+
+		$this->assertSame( $seed_token_id, $result->get_id() );
+		$this->assertSame( $expected_token, $result->get_token() );
+
+		$reloaded = WC_Payment_Tokens::get( $seed_token_id );
+		$this->assertSame( $expected_token, $reloaded->get_token() );
+	}
+
+	/**
 	 * Test for `woocommerce_payment_token_class`.
 	 *
 	 * @return void
@@ -683,7 +845,10 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 		return [
 			'Apple Pay + visa'                           => [ 'Apple Pay (visa)', 'Apple Pay (Visa)' ],
 			'Google Pay + visa'                          => [ 'Google Pay (visa)', 'Google Pay (Visa)' ],
-			'Google Pay + mastercard'                    => [ 'Google Pay (mastercard)', 'Google Pay (MasterCard)' ],
+			// Expected label comes from WooCommerce (via the normalize helper's own
+			// wc_get_credit_card_type_label() call) so it survives WC relabelling
+			// 'mastercard' from 'MasterCard' to 'Mastercard'.
+			'Google Pay + mastercard'                    => [ 'Google Pay (mastercard)', sprintf( 'Google Pay (%s)', wc_get_credit_card_type_label( 'mastercard' ) ) ],
 			'Apple Pay + amex'                           => [ 'Apple Pay (american express)', 'Apple Pay (American Express)' ],
 			// Multi-word brands: ucwords leaves the first inner letter lowercase
 			// (because `(` isn't a word boundary) but capitalizes the second word.
@@ -787,19 +952,244 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * When the number of existing tokens has reached the posts_per_page limit the
-	 * tokens array must be returned unchanged (no sync happens).
+	 * Tokens for a missing Stripe customer are deleted, below and at the
+	 * posts_per_page cap (which previously skipped the sync entirely).
+	 *
+	 * @param bool $at_limit Whether the customer has posts_per_page saved tokens.
+	 * @dataProvider provide_test_deletes_stale_tokens_when_stripe_customer_missing
 	 */
-	public function test_woocommerce_get_customer_payment_tokens_returns_unchanged_when_at_token_limit(): void {
+	public function test_woocommerce_get_customer_payment_tokens_deletes_stale_tokens_when_stripe_customer_missing( bool $at_limit ): void {
 		$user_id = $this->factory->user->create();
 		wp_set_current_user( $user_id );
+		update_user_option( $user_id, '_stripe_customer_id', 'cus_missing_' . ( $at_limit ? 'at_limit_' : 'below_limit_' ) . $user_id, false );
 
-		$limit          = (int) get_option( 'posts_per_page', 10 );
-		$initial_tokens = array_fill( 0, $limit, new WC_Payment_Token_CC() );
+		$token_count = $at_limit ? (int) get_option( 'posts_per_page', 10 ) : 1;
+		$tokens      = [];
+		for ( $i = 0; $i < $token_count; $i++ ) {
+			$token                      = $this->create_saved_cc_token( $user_id, "pm_stale_{$i}" );
+			$tokens[ $token->get_id() ] = $token;
+		}
 
-		$result = $this->stripe_payment_tokens->woocommerce_get_customer_payment_tokens( $initial_tokens, $user_id, WC_Stripe_UPE_Payment_Gateway::ID );
+		$mock_http = $this->mock_stripe_payment_methods_http_response(
+			[
+				'error' => [
+					'code'    => 'resource_missing',
+					'message' => 'No such customer',
+					'param'   => 'customer',
+					'type'    => 'invalid_request_error',
+				],
+			],
+			404
+		);
+		add_filter( 'pre_http_request', $mock_http, 10, 3 );
 
-		$this->assertSame( $initial_tokens, $result );
+		$this->set_main_gateway( $this->get_mock_gateway( false ) );
+
+		try {
+			$result = $this->stripe_payment_tokens->woocommerce_get_customer_payment_tokens( $tokens, $user_id, WC_Stripe_UPE_Payment_Gateway::ID );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_http, 10 );
+		}
+
+		$this->assertSame( [], $result );
+		$this->assertSame(
+			[],
+			WC_Payment_Tokens::get_tokens(
+				[
+					'user_id'    => $user_id,
+					'gateway_id' => WC_Stripe_UPE_Payment_Gateway::ID,
+				]
+			),
+			'Stale tokens for a missing Stripe customer must be deleted from the data store.'
+		);
+	}
+
+	/**
+	 * Data provider for `test_woocommerce_get_customer_payment_tokens_deletes_stale_tokens_when_stripe_customer_missing`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_deletes_stale_tokens_when_stripe_customer_missing(): array {
+		return [
+			'below the token cap' => [ false ],
+			'at the token cap'    => [ true ],
+		];
+	}
+
+	/**
+	 * A generic Stripe API error keeps local tokens instead of deleting them as orphaned.
+	 */
+	public function test_woocommerce_get_customer_payment_tokens_keeps_tokens_on_generic_api_error(): void {
+		$user_id = $this->factory->user->create();
+		wp_set_current_user( $user_id );
+		update_user_option( $user_id, '_stripe_customer_id', 'cus_api_error_' . $user_id, false );
+
+		$token  = $this->create_saved_cc_token( $user_id, 'pm_kept_on_error' );
+		$tokens = [ $token->get_id() => $token ];
+
+		$mock_http = $this->mock_stripe_payment_methods_http_response(
+			[
+				'error' => [
+					'code'    => 'rate_limit',
+					'message' => 'Too many requests.',
+					'type'    => 'api_error',
+				],
+			],
+			429
+		);
+		add_filter( 'pre_http_request', $mock_http, 10, 3 );
+
+		$this->set_main_gateway( $this->get_mock_gateway( false ) );
+
+		try {
+			$result = $this->stripe_payment_tokens->woocommerce_get_customer_payment_tokens( $tokens, $user_id, WC_Stripe_UPE_Payment_Gateway::ID );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_http, 10 );
+		}
+
+		$this->assertSame( $tokens, $result );
+		$this->assertCount(
+			1,
+			WC_Payment_Tokens::get_tokens(
+				[
+					'user_id'    => $user_id,
+					'gateway_id' => WC_Stripe_UPE_Payment_Gateway::ID,
+				]
+			),
+			'Tokens must survive a transient Stripe API failure.'
+		);
+	}
+
+	/**
+	 * At the token cap the sync still deletes stale tokens but adds no new ones.
+	 */
+	public function test_woocommerce_get_customer_payment_tokens_verifies_but_does_not_add_tokens_at_token_limit(): void {
+		$user_id = $this->factory->user->create();
+		wp_set_current_user( $user_id );
+		update_user_option( $user_id, '_stripe_customer_id', 'cus_at_limit_' . $user_id, false );
+
+		$limit  = (int) get_option( 'posts_per_page', 10 );
+		$tokens = [];
+		for ( $i = 0; $i < $limit - 1; $i++ ) {
+			$token                      = $this->create_saved_cc_token( $user_id, "pm_kept_{$i}" );
+			$tokens[ $token->get_id() ] = $token;
+		}
+		$stale_token                      = $this->create_saved_cc_token( $user_id, 'pm_stale_at_limit' );
+		$tokens[ $stale_token->get_id() ] = $stale_token;
+
+		// Stripe still has every kept payment method plus one the store has never seen,
+		// but not the stale one.
+		$stripe_payment_methods = [];
+		for ( $i = 0; $i < $limit - 1; $i++ ) {
+			$stripe_payment_methods[] = $this->get_stripe_card_payment_method_data( "pm_kept_{$i}" );
+		}
+		$stripe_payment_methods[] = $this->get_stripe_card_payment_method_data( 'pm_new_beyond_cap' );
+
+		$mock_http = $this->mock_stripe_payment_methods_http_response(
+			[
+				'data'     => $stripe_payment_methods,
+				'has_more' => false,
+			]
+		);
+		add_filter( 'pre_http_request', $mock_http, 10, 3 );
+
+		$mock_cc_pm = $this->getMockBuilder( WC_Stripe_UPE_Payment_Method_CC::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'is_enabled', 'is_enabled_at_checkout' ] )
+			->getMock();
+		$mock_cc_pm->method( 'is_enabled' )->willReturn( true );
+		$mock_cc_pm->method( 'is_enabled_at_checkout' )->willReturn( true );
+
+		$mock_gateway = $this->get_mock_gateway( false );
+		$mock_gateway->payment_methods[ WC_Stripe_Payment_Methods::CARD ] = $mock_cc_pm;
+		$this->set_main_gateway( $mock_gateway );
+
+		try {
+			$result = $this->stripe_payment_tokens->woocommerce_get_customer_payment_tokens( $tokens, $user_id, WC_Stripe_UPE_Payment_Gateway::ID );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_http, 10 );
+		}
+
+		$result_token_ids = array_map( fn( $token ) => $token->get_token(), $result );
+		$this->assertNotContains( 'pm_stale_at_limit', $result_token_ids, 'A stale token must be removed even at the token cap.' );
+		$this->assertNotContains( 'pm_new_beyond_cap', $result_token_ids, 'New Stripe payment methods must not be added at the token cap.' );
+		$this->assertCount( $limit - 1, $result );
+
+		$db_token_ids = array_map(
+			fn( $token ) => $token->get_token(),
+			WC_Payment_Tokens::get_tokens(
+				[
+					'user_id'    => $user_id,
+					'gateway_id' => WC_Stripe_UPE_Payment_Gateway::ID,
+				]
+			)
+		);
+		$this->assertNotContains( 'pm_stale_at_limit', $db_token_ids );
+		$this->assertNotContains( 'pm_new_beyond_cap', $db_token_ids );
+	}
+
+	/**
+	 * Creates and saves a card token for a user under the main Stripe gateway.
+	 *
+	 * @param int    $user_id The user ID.
+	 * @param string $pm_id   The Stripe payment method ID.
+	 * @return WC_Stripe_Payment_Token_CC
+	 */
+	private function create_saved_cc_token( int $user_id, string $pm_id ): WC_Stripe_Payment_Token_CC {
+		$token = new WC_Stripe_Payment_Token_CC();
+		$token->set_token( $pm_id );
+		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$token->set_card_type( 'visa' );
+		$token->set_last4( '4242' );
+		$token->set_expiry_month( 4 );
+		$token->set_expiry_year( 2050 );
+		$token->set_fingerprint( 'fingerprint_' . $pm_id );
+		$token->set_user_id( $user_id );
+		$token->save();
+		return $token;
+	}
+
+	/**
+	 * Returns Stripe API response data for a card payment method.
+	 *
+	 * @param string $pm_id The Stripe payment method ID.
+	 * @return array
+	 */
+	private function get_stripe_card_payment_method_data( string $pm_id ): array {
+		return [
+			'id'   => $pm_id,
+			'type' => WC_Stripe_Payment_Methods::CARD,
+			'card' => [
+				'brand'       => 'visa',
+				'exp_month'   => 4,
+				'exp_year'    => 2050,
+				'last4'       => '4242',
+				'fingerprint' => 'fingerprint_' . $pm_id,
+			],
+		];
+	}
+
+	/**
+	 * Builds a pre_http_request callback that intercepts Stripe payment_methods requests.
+	 *
+	 * @param array $body        The decoded response body to return.
+	 * @param int   $status_code The HTTP status code to return.
+	 * @return callable
+	 */
+	private function mock_stripe_payment_methods_http_response( array $body, int $status_code = 200 ): callable {
+		return function ( $preempt, $request_args, $url ) use ( $body, $status_code ) {
+			if ( false === strpos( $url, 'payment_methods' ) ) {
+				return $preempt;
+			}
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode( $body ),
+				'response' => [
+					'code'    => $status_code,
+					'message' => 'OK',
+				],
+			];
+		};
 	}
 
 	/**

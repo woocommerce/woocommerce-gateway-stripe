@@ -9,9 +9,14 @@ class PMC_Test_Helper {
 	 *
 	 * @return void
 	 */
-	public static function enable_pmc() {
+	public static function enable_pmc( bool $with_connection_details = false ) {
 		$stripe_settings                = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['pmc_enabled'] = 'yes';
+		if ( $with_connection_details ) {
+			$stripe_settings['testmode']             = 'yes';
+			$stripe_settings['test_publishable_key'] = 'pk_test_mock';
+			$stripe_settings['test_secret_key']      = 'sk_test_mock';
+		}
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 	}
 
@@ -31,9 +36,9 @@ class PMC_Test_Helper {
 	 *
 	 * @return void
 	 */
-	public static function cache_mocked_configuration() {
-		$payment_method_configuration = [
-			'id'                            => 'pmc_abcdef',
+	public static function cache_mocked_configuration( string $configuration_id = 'pmc_abcdef' ) {
+		$payment_method_configuration = (object) [
+			'id'                            => $configuration_id,
 			'object'                        => 'payment_method_configuration',
 			'active'                        => true,
 			'parent'                        => WC_Stripe_Payment_Method_Configurations::TEST_MODE_CONFIGURATION_PARENT_ID,

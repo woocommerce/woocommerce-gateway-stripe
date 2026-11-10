@@ -1,5 +1,7 @@
 <?php
 
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -626,6 +628,18 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Deletes the Stripe checkout session ID for an order.
+	 *
+	 * @since 11.1.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|void
+	 */
+	public function delete_stripe_checkout_session_id( ?WC_Order $order = null ) {
+		return $this->delete_order_meta( $order, self::META_STRIPE_CHECKOUT_SESSION_ID );
+	}
+
+	/**
 	 * Gets whether the payment method should be saved to the store after a checkout session payment.
 	 *
 	 * @param WC_Order|null $order
@@ -1065,6 +1079,20 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Whether a settlement path has already finished with this order.
+	 *
+	 * A paid status covers the webhook and redirect paths; the redirect-processed flag
+	 * covers a confirmed intent whose status transition is still pending.
+	 *
+	 * @param WC_Order $order The order.
+	 * @return bool
+	 */
+	public function is_order_payment_settled( WC_Order $order ): bool {
+		return $order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED, OrderStatus::ON_HOLD ] )
+			|| (bool) $this->get_stripe_upe_redirect_processed( $order );
+	}
+
+	/**
 	 * Updates the Stripe UPE redirect processed for order.
 	 *
 	 * @since 10.0.0
@@ -1265,7 +1293,7 @@ class WC_Stripe_Order_Helper {
 		}
 
 		if ( ! is_object( $intent ) ) {
-			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		if ( null === $intent_id ) {
@@ -1281,7 +1309,7 @@ class WC_Stripe_Order_Helper {
 					'error'     => $intent->error,
 				]
 			);
-			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		if ( null === $selected_payment_type ) {
@@ -1325,7 +1353,7 @@ class WC_Stripe_Order_Helper {
 			]
 		);
 
-		throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+		throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 	}
 
 	/**
@@ -1350,7 +1378,7 @@ class WC_Stripe_Order_Helper {
 	public function validate_minimum_order_amount( WC_Order $order ): void {
 		if ( $order->get_total() * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
 			/* translators: 1) amount (including currency symbol) */
-			throw new WC_Stripe_Exception( 'Did not meet minimum amount', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
+			throw new WC_Stripe_Exception( 'Did not meet minimum amount', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 	}
 

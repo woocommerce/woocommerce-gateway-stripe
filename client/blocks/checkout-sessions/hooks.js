@@ -5,6 +5,7 @@ import { dispatch, select } from '@wordpress/data';
 import { isSavePaymentMethodCheckboxChecked } from 'wcstripe/blocks/utils';
 import { normalizeReturnUrl } from 'wcstripe/stripe-utils/normalize-return-url';
 import { getStaleCheckoutTotalMessage } from 'wcstripe/stripe-utils/utils';
+import { CHECKOUT_SESSION_INPUT_ID } from 'wcstripe/stripe-utils/constants';
 import { waitForPaymentElementCompletion } from 'wcstripe/blocks/wait-for-payment-element-completion';
 
 /**
@@ -117,7 +118,7 @@ export const usePaymentSetupHandler = (
 									isSavePaymentMethodCheckboxChecked()
 										? 'yes'
 										: 'no',
-								wc_stripe_checkout_session_id:
+								[ CHECKOUT_SESSION_INPUT_ID ]:
 									checkoutSessionId,
 								wc_stripe_selected_upe_payment_type:
 									selectedPaymentType ?? '',
@@ -143,18 +144,18 @@ export const usePaymentSetupHandler = (
 /**
  * Handles the Block Checkout onCheckoutSuccess event for the Checkout Sessions integration.
  *
- * @param {*}       checkoutState        The checkout state.
- * @param {*}       onCheckoutSuccess    The onCheckoutSuccess event.
- * @param {Object}  billing              The billing data from WooCommerce Blocks, containing billingAddress.
- * @param {boolean} isLoggedIn           Whether the customer is logged-in.
- * @param {boolean} isPayerPhoneRequired Whether the payer phone information is required.
- * @param {Object}  shippingData         The shipping data from WooCommerce Blocks, containing shippingAddress.
+ * @param {*}       checkoutState            The checkout state.
+ * @param {*}       onCheckoutSuccess        The onCheckoutSuccess event.
+ * @param {Object}  billing                  The billing data from WooCommerce Blocks, containing billingAddress.
+ * @param {boolean} savePaymentMethodEnabled Whether the Checkout Session was created with payment method saving enabled.
+ * @param {boolean} isPayerPhoneRequired     Whether the payer phone information is required.
+ * @param {Object}  shippingData             The shipping data from WooCommerce Blocks, containing shippingAddress.
  */
 export const useCheckoutSuccessHandler = (
 	checkoutState,
 	onCheckoutSuccess,
 	billing,
-	isLoggedIn,
+	savePaymentMethodEnabled,
 	isPayerPhoneRequired,
 	shippingData
 ) => {
@@ -196,7 +197,9 @@ export const useCheckoutSuccessHandler = (
 						redirect: 'if_required',
 					};
 
-					if ( isLoggedIn ) {
+					// Stripe rejects savePaymentMethod when the session was created
+					// without save support (e.g. as a guest).
+					if ( savePaymentMethodEnabled ) {
 						confirmArgs.savePaymentMethod =
 							isSavePaymentMethodCheckboxChecked();
 					}
@@ -285,7 +288,7 @@ export const useCheckoutSuccessHandler = (
 			onCheckoutSuccess,
 			checkoutState,
 			billing,
-			isLoggedIn,
+			savePaymentMethodEnabled,
 			isPayerPhoneRequired,
 			shippingData,
 		]

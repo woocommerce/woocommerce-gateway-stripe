@@ -18,8 +18,6 @@ import {
 	useManualCapture,
 	useAmazonPayEnabledSettings,
 	useAmazonPayLocations,
-	useAmazonPayButtonSize,
-	useLinkButtonSize,
 	useLinkLocations,
 	useSepaTokensForIdeal,
 	useSepaTokensForBancontact,
@@ -271,23 +269,11 @@ describe( 'Settings hooks tests', () => {
 			testedValue: [ 'checkout', 'cart' ],
 			fallbackValue: [],
 		},
-		useAmazonPayButtonSize: {
-			hook: useAmazonPayButtonSize,
-			storeKey: 'amazon_pay_button_size',
-			testedValue: 'large',
-			fallbackValue: '',
-		},
 		useAmazonPayLocations: {
 			hook: useAmazonPayLocations,
 			storeKey: 'amazon_pay_button_locations',
 			testedValue: [ 'checkout', 'cart' ],
 			fallbackValue: [],
-		},
-		useLinkButtonSize: {
-			hook: useLinkButtonSize,
-			storeKey: 'link_button_size',
-			testedValue: 'large',
-			fallbackValue: 'default',
 		},
 		useLinkLocations: {
 			hook: useLinkLocations,

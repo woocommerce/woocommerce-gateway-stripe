@@ -1050,6 +1050,9 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$settings['test_secret_key'] = 'sk_test_fake';
 		update_option( 'woocommerce_stripe_settings', $settings );
 
+		// Onboarding must be complete for the sync to push (merchant toggle is set in set_up()).
+		update_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION, 'whsec_test' );
+
 		// Create a simple product so the walker finds at least one.
 		$product = $this->create_feed_product();
 
@@ -1311,6 +1314,28 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * GET /settings reports the add-on auto-handling toggles. Auto-exclude
+	 * defaults on (add-on/configurator products can't be priced in the feed),
+	 * while the redirect toggle defaults off.
+	 */
+	public function test_get_settings_reflects_addon_toggles(): void {
+		$request = new WP_REST_Request( 'GET', self::REST_BASE . '/settings' );
+
+		$data = rest_do_request( $request )->get_data();
+		$this->assertArrayHasKey( 'auto_exclude_addons', $data );
+		$this->assertArrayHasKey( 'auto_redirect_checkout_addons', $data );
+		$this->assertTrue( $data['auto_exclude_addons'] );
+		$this->assertFalse( $data['auto_redirect_checkout_addons'] );
+
+		update_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION, 'yes' );
+		update_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_REDIRECT_CHECKOUT_ADDONS_OPTION, 'yes' );
+
+		$data = rest_do_request( $request )->get_data();
+		$this->assertTrue( $data['auto_exclude_addons'] );
+		$this->assertTrue( $data['auto_redirect_checkout_addons'] );
+	}
+
+	/**
 	 * Unauthenticated GET /settings requests should be refused.
 	 */
 	public function test_get_settings_requires_auth(): void {
@@ -1363,6 +1388,47 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * POST /settings persists the add-on auto-handling toggles to their options.
+	 */
+	public function test_update_settings_persists_addon_toggles(): void {
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_body(
+			wp_json_encode(
+				[
+					'auto_exclude_addons'           => true,
+					'auto_redirect_checkout_addons' => true,
+				]
+			)
+		);
+		$request->set_header( 'content-type', 'application/json' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertTrue( $response->get_data()['auto_exclude_addons'] );
+		$this->assertTrue( $response->get_data()['auto_redirect_checkout_addons'] );
+		$this->assertSame( 'yes', get_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION ) );
+		$this->assertSame( 'yes', get_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_REDIRECT_CHECKOUT_ADDONS_OPTION ) );
+
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_body(
+			wp_json_encode(
+				[
+					'auto_exclude_addons'           => false,
+					'auto_redirect_checkout_addons' => false,
+				]
+			)
+		);
+		$request->set_header( 'content-type', 'application/json' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertFalse( $response->get_data()['auto_exclude_addons'] );
+		$this->assertFalse( $response->get_data()['auto_redirect_checkout_addons'] );
+		$this->assertSame( 'no', get_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_EXCLUDE_ADDONS_OPTION ) );
+		$this->assertSame( 'no', get_option( WC_Stripe_Agentic_Commerce_Integration::AUTO_REDIRECT_CHECKOUT_ADDONS_OPTION ) );
+	}
+
+	/**
 	 * POST /settings disables the feature flag.
 	 */
 	public function test_update_settings_disables_feature(): void {
@@ -1379,6 +1445,90 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Disabling (yes -> no) must queue the final-feed teardown push.
+	 */
+	public function test_update_settings_disable_schedules_final_feed_push(): void {
+		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		// setUp() leaves the merchant toggle on, so this is a yes -> no transition.
+		as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' );
+		// Without this, an action left over from another test would satisfy the
+		// assertion below even if the request scheduled nothing.
+		$this->assertFalse(
+			as_has_scheduled_action( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' ),
+			'No final-feed action should be queued before the request.'
+		);
+
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_body( wp_json_encode( [ 'is_enabled' => false ] ) );
+		$request->set_header( 'content-type', 'application/json' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertNotFalse(
+			as_has_scheduled_action( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' ),
+			'Disabling must queue the final checkout-disabled feed push.'
+		);
+
+		as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' );
+	}
+
+	/**
+	 * Re-enabling (no -> yes) must cancel a final-feed push queued by a prior disable.
+	 */
+	public function test_update_settings_enable_cancels_pending_final_feed_push(): void {
+		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'no' );
+		( new WC_Stripe_Agentic_Commerce_Integration() )->schedule_final_checkout_disabled_feed();
+		$this->assertNotFalse(
+			as_has_scheduled_action( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' )
+		);
+
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_body( wp_json_encode( [ 'is_enabled' => true ] ) );
+		$request->set_header( 'content-type', 'application/json' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertFalse(
+			as_has_scheduled_action( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' ),
+			'Re-enabling must cancel the pending final-feed push.'
+		);
+	}
+
+	/**
+	 * A no-op save (yes -> yes) must not queue a teardown push.
+	 */
+	public function test_update_settings_noop_enable_does_not_schedule_final_feed_push(): void {
+		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		// setUp() already enabled the merchant toggle.
+		as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' );
+		$this->assertFalse(
+			as_has_scheduled_action( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' ),
+			'No final-feed action should be queued before the request.'
+		);
+
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_body( wp_json_encode( [ 'is_enabled' => true ] ) );
+		$request->set_header( 'content-type', 'application/json' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertFalse(
+			as_has_scheduled_action( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' ),
+			'A no-op save must not queue a teardown push.'
+		);
+	}
+
+	/**
 	 * POST /settings stores the webhook secret and returns the masked placeholder.
 	 */
 	public function test_update_settings_stores_webhook_secret(): void {
@@ -1391,6 +1541,74 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		// Response must return the masked placeholder, not the real secret.
 		$this->assertSame( WC_REST_Stripe_Agentic_Commerce_Controller::MASKED_WEBHOOK_SECRET, $response->get_data()['webhook_secret'] );
 		$this->assertSame( 'whsec_abc123', get_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION ) );
+	}
+
+	/**
+	 * Saving settings schedules a flush of archives queued while onboarding was
+	 * incomplete, but only once onboarding is complete.
+	 *
+	 * @param string $webhook_secret  The secret submitted with the toggle on.
+	 * @param bool   $expect_schedule Whether the archive action must be scheduled.
+	 * @dataProvider provide_archive_flush_on_settings_update_cases
+	 */
+	public function test_update_settings_schedules_pending_archive_flush( string $webhook_secret, bool $expect_schedule ): void {
+		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
+			$this->markTestSkipped( 'Action Scheduler not available.' );
+		}
+
+		as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION );
+		update_option(
+			WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION,
+			[
+				123 => [
+					'id'           => '123',
+					'availability' => 'out_of_stock',
+				],
+			],
+			false
+		);
+
+		$request = new WP_REST_Request( 'POST', self::REST_BASE . '/settings' );
+		$request->set_body(
+			wp_json_encode(
+				[
+					'is_enabled'     => true,
+					'webhook_secret' => $webhook_secret,
+				]
+			)
+		);
+		$request->set_header( 'content-type', 'application/json' );
+
+		try {
+			$response = rest_do_request( $request );
+
+			$this->assertEquals( 200, $response->get_status() );
+			$this->assertSame(
+				$expect_schedule,
+				as_has_scheduled_action( WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION )
+			);
+		} finally {
+			as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION );
+			delete_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION );
+		}
+	}
+
+	/**
+	 * Data provider for `test_update_settings_schedules_pending_archive_flush`.
+	 *
+	 * @return array
+	 */
+	public function provide_archive_flush_on_settings_update_cases(): array {
+		return [
+			'secret saved, onboarding complete' => [
+				'webhook_secret'  => 'whsec_abc123',
+				'expect_schedule' => true,
+			],
+			'empty secret, still incomplete'    => [
+				'webhook_secret'  => '',
+				'expect_schedule' => false,
+			],
+		];
 	}
 
 	/**
@@ -1606,6 +1824,9 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$settings['test_secret_key'] = 'sk_test_fake';
 		update_option( 'woocommerce_stripe_settings', $settings );
 
+		// Onboarding must be complete for the sync to push (merchant toggle is set in set_up()).
+		update_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION, 'whsec_test' );
+
 		// Create a simple product so the walker finds at least one.
 		$product = $this->create_feed_product();
 
@@ -1684,6 +1905,9 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 		$settings['testmode']        = 'yes';
 		$settings['test_secret_key'] = 'sk_test_fake';
 		update_option( 'woocommerce_stripe_settings', $settings );
+
+		// Onboarding must be complete for the sync to push (merchant toggle is set in set_up()).
+		update_option( WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION, 'whsec_test' );
 
 		$product = $this->create_feed_product();
 

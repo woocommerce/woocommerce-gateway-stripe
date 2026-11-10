@@ -320,7 +320,7 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 			'change_payment_method_url' => 'https://example.com/my-account/subscription-payment-method/1',
 		];
 
-		$expected = '#1: <a href="https://example.com/my-account/subscription-payment-method/1">Payment method page &rarr;</a> | <a href="https://dashboard.stripe.com/customers/cus_123">Stripe customer page &rarr;</a><br/>';
+		$expected = '#1: <a href="https://example.com/my-account/subscription-payment-method/1">Payment method page &rarr;</a> | <a href="https://dashboard.stripe.com/customers/cus_123" target="_blank" rel="noopener noreferrer">Stripe customer page &rarr;</a><br/>';
 		$actual   = WC_Stripe_Subscriptions_Helper::build_subscription_detached_message( $subscription_data );
 		$this->assertEquals( $expected, $actual );
 	}

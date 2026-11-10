@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test';
 import { randomUUID } from 'crypto';
+import { test, expect } from '@playwright/test';
 import config from 'config';
 import { payments, api, user, admin } from '../../../utils';
 
@@ -20,23 +20,31 @@ test.beforeAll( async () => {
 	userEmail = randomString + '+' + config.get( 'users.customer.email' );
 	username = randomString + '.' + config.get( 'users.customer.username' );
 
-	const user = {
+	const customerData = {
 		...config.get( 'users.customer' ),
 		...config.get( 'addresses.customer' ),
 		email: userEmail,
 		username,
 	};
 
-	await api.create.customer( user );
+	await api.create.customer( customerData );
 } );
 
 test( 'customer can checkout with a saved card @smoke @blocks', async ( {
 	page,
 	browser,
+	baseURL,
 } ) => {
-	// Disable Link so the store-level save checkbox is visible.
-	// When Link is enabled, the store checkbox is hidden and Link handles save consent.
-	await admin.togglePaymentMethod( browser, 'Link by Stripe', false );
+	const useLocalFixture = process.env.DOCKER === 'true';
+	if ( useLocalFixture ) {
+		await page
+			.context()
+			.addCookies( [
+				{ name: 'wc_stripe_e2e_card_only', value: '1', url: baseURL },
+			] );
+	} else {
+		await admin.togglePaymentMethod( browser, 'Link by Stripe', false );
+	}
 
 	try {
 		await test.step( 'customer login', async () => {
@@ -71,21 +79,14 @@ test( 'customer can checkout with a saved card @smoke @blocks', async ( {
 			);
 		} );
 
-		await test.step( 'checkout and pay with the saved card', async () => {
+		await test.step( 'save a second card and make it the default', async () => {
 			await emptyCart( page );
 			await setupCart( page );
-			await setupBlocksCheckout( page, null, true );
-
-			// check that there are saved payment methods.
-			await expect(
-				page.locator(
-					'input[id^="radio-control-wc-payment-method-saved-tokens-"]'
-				)
-			).toHaveCount( 1 );
-
+			await setupBlocksCheckout( page );
+			await fillCreditCardDetails( page, config.get( 'cards.basic2' ) );
 			await page
 				.locator(
-					'input[id^="radio-control-wc-payment-method-saved-tokens-"]'
+					'.wc-block-components-payment-methods__save-card-info'
 				)
 				.click();
 
@@ -98,9 +99,47 @@ test( 'customer can checkout with a saved card @smoke @blocks', async ( {
 				page,
 				expectedTotal
 			);
+
+			await page.goto( '/my-account/payment-methods/' );
+			const secondCardRow = page
+				.locator( 'tr.payment-method' )
+				.filter( { hasText: 'Visa ending in 1111' } );
+			await secondCardRow
+				.getByRole( 'link', { name: 'Make default' } )
+				.click();
+			await expect( secondCardRow ).toHaveClass(
+				/default-payment-method/
+			);
+		} );
+
+		await test.step( 'checkout with the default saved card', async () => {
+			await emptyCart( page );
+			await setupCart( page );
+			await page.goto( '/checkout/' );
+
+			await expect(
+				page.locator(
+					'input[id^="radio-control-wc-payment-method-saved-tokens-"]'
+				)
+			).toHaveCount( 2 );
+
+			await expect(
+				page.getByLabel( /Visa ending in 1111/ )
+			).toBeChecked();
+
+			const expectedTotal = await getCartTotal( page );
+
+			await page.locator( 'text=Place order' ).click();
+
+			await waitForOrderReceivedPageAndConfirmExpectedTotal(
+				browser,
+				page,
+				expectedTotal
+			);
 		} );
 	} finally {
-		// Re-enable Link after the test.
-		await admin.togglePaymentMethod( browser, 'Link by Stripe', true );
+		if ( ! useLocalFixture ) {
+			await admin.togglePaymentMethod( browser, 'Link by Stripe', true );
+		}
 	}
 } );

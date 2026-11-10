@@ -327,6 +327,9 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		 * as it can cause issues for express checkout flows. Also ensure that data is correctly sanitized and checked
 		 * as it will be visible to shoppers.
 		 *
+		 * Since 11.0.0 the client merges the returned addresses over the ones it sent, so removing a field
+		 * from an address no longer clears it. Return an empty string to clear a field.
+		 *
 		 * @since 10.2.0
 		 *
 		 * @param array $normalized_data The normalized address data.

@@ -776,4 +776,172 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 			remove_filter( 'pre_http_request', $spy, 10 );
 		}
 	}
+
+	/**
+	 * Builds a pre_http_request callback that answers Stripe payment_methods requests with the given body.
+	 *
+	 * @param array $body        The decoded response body to return.
+	 * @param int   $status_code The HTTP status code to return.
+	 * @return callable
+	 */
+	private function mock_payment_methods_http_response( array $body, int $status_code ): callable {
+		return function ( $preempt, $parsed_args, $url ) use ( $body, $status_code ) {
+			if ( false === strpos( $url, 'payment_methods' ) ) {
+				return $preempt;
+			}
+			return [
+				'headers'  => [],
+				'body'     => wp_json_encode( $body ),
+				'response' => [
+					'code'    => $status_code,
+					'message' => 'OK',
+				],
+			];
+		};
+	}
+
+	/**
+	 * A generic API error throws when requested and does not cache an empty list.
+	 */
+	public function test_get_all_payment_methods_throws_on_generic_error_when_requested() {
+		$user_id = $this->factory->user->create();
+		update_user_option( $user_id, '_stripe_customer_id', 'cus_generic_error_' . $user_id, false );
+		$customer = new \WC_Stripe_Customer( $user_id );
+
+		$mock_http = $this->mock_payment_methods_http_response(
+			[
+				'error' => [
+					'code'    => 'rate_limit',
+					'message' => 'Too many requests.',
+					'type'    => 'api_error',
+				],
+			],
+			429
+		);
+		add_filter( 'pre_http_request', $mock_http, 10, 3 );
+
+		try {
+			$this->expectException( \WC_Stripe_Exception::class );
+			$customer->get_all_payment_methods( [], -1, true );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_http, 10 );
+			$this->assertFalse(
+				get_transient( \WC_Stripe_Customer::PAYMENT_METHODS_TRANSIENT_KEY . '__all_cus_generic_error_' . $user_id ),
+				'A generic API error must not cache an empty payment methods list.'
+			);
+		}
+	}
+
+	/**
+	 * A missing customer returns and caches an empty list even with $throw_on_error.
+	 */
+	public function test_get_all_payment_methods_returns_empty_when_customer_missing_even_with_throw_on_error() {
+		$user_id = $this->factory->user->create();
+		update_user_option( $user_id, '_stripe_customer_id', 'cus_gone_' . $user_id, false );
+		$customer = new \WC_Stripe_Customer( $user_id );
+
+		$mock_http = $this->mock_payment_methods_http_response(
+			[
+				'error' => [
+					'code'    => 'resource_missing',
+					'message' => 'No such customer',
+					'param'   => 'customer',
+					'type'    => 'invalid_request_error',
+				],
+			],
+			404
+		);
+		add_filter( 'pre_http_request', $mock_http, 10, 3 );
+
+		try {
+			$result = $customer->get_all_payment_methods( [], -1, true );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_http, 10 );
+		}
+
+		$this->assertSame( [], $result );
+		$this->assertSame(
+			[],
+			get_transient( \WC_Stripe_Customer::PAYMENT_METHODS_TRANSIENT_KEY . '__all_cus_gone_' . $user_id ),
+			'A missing customer must cache the empty payment methods list.'
+		);
+	}
+
+	/**
+	 * By default a generic API error still returns an empty array.
+	 */
+	public function test_get_all_payment_methods_returns_empty_on_generic_error_by_default() {
+		$user_id = $this->factory->user->create();
+		update_user_option( $user_id, '_stripe_customer_id', 'cus_default_error_' . $user_id, false );
+		$customer = new \WC_Stripe_Customer( $user_id );
+
+		$mock_http = $this->mock_payment_methods_http_response(
+			[
+				'error' => [
+					'code'    => 'rate_limit',
+					'message' => 'Too many requests.',
+					'type'    => 'api_error',
+				],
+			],
+			429
+		);
+		add_filter( 'pre_http_request', $mock_http, 10, 3 );
+
+		try {
+			$result = $customer->get_all_payment_methods();
+		} finally {
+			remove_filter( 'pre_http_request', $mock_http, 10 );
+		}
+
+		$this->assertSame( [], $result );
+	}
+
+	/**
+	 * is_no_such_customer_error() must recognize both error shapes Stripe returns for a
+	 * missing customer and reject unrelated errors.
+	 *
+	 * @param object|null $error    The error object under test.
+	 * @param bool        $expected Whether the error identifies a missing customer.
+	 *
+	 * @dataProvider provide_is_no_such_customer_error_cases
+	 */
+	public function test_is_no_such_customer_error( ?object $error, bool $expected ) {
+		$customer = new \WC_Stripe_Customer();
+
+		$this->assertSame( $expected, (bool) $customer->is_no_such_customer_error( $error ) );
+	}
+
+	/**
+	 * Cases for test_is_no_such_customer_error.
+	 *
+	 * @return array[]
+	 */
+	public function provide_is_no_such_customer_error_cases(): array {
+		return [
+			'code and param pair' => [
+				(object) [
+					'code'  => 'resource_missing',
+					'param' => 'customer',
+				],
+				true,
+			],
+			'message only'        => [
+				(object) [
+					'type'    => 'invalid_request_error',
+					'message' => "No such customer: 'cus_123'",
+				],
+				true,
+			],
+			'unrelated error'     => [
+				(object) [
+					'code'    => 'card_declined',
+					'param'   => 'card',
+					'type'    => 'card_error',
+					'message' => 'Your card was declined.',
+				],
+				false,
+			],
+			'no error'            => [ null, false ],
+		];
+	}
 }
