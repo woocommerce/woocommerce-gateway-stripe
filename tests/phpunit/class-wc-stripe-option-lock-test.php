@@ -222,6 +222,8 @@ class WC_Stripe_Option_Lock_Test extends WP_UnitTestCase {
 			'abandoned session lock'          => [ 'wc_stripe_checkout_session_lock_abc', 2 * DAY_IN_SECONDS, false, true ],
 			'live session lock'               => [ 'wc_stripe_checkout_session_lock_def', 30, false, false ],
 			'abandoned bare-timestamp lock'   => [ 'wc_stripe_user_customer_lock_42', 2 * DAY_IN_SECONDS, true, true ],
+			'abandoned intent lock'           => [ 'wc_stripe_intent_lock_pi_123', 2 * DAY_IN_SECONDS, false, true ],
+			'live intent lock'                => [ 'wc_stripe_intent_lock_pi_456', 30, false, false ],
 			'abandoned fixed-name lock'       => [ 'wc_stripe_agentic_sync_lock', 2 * DAY_IN_SECONDS, false, true ],
 			'fixed-name look-alike kept'      => [ 'wc_stripe_agentic_sync_lock_backup', 2 * DAY_IN_SECONDS, false, false ],
 			'old option outside the prefixes' => [ 'wc_stripe_other_lock_1', 2 * DAY_IN_SECONDS, false, false ],

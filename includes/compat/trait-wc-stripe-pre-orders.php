@@ -303,8 +303,20 @@ trait WC_Stripe_Pre_Orders_Trait {
 
 				throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
 			} else {
+				$latest_charge = $this->get_latest_charge_from_intent( $response ); // @phpstan-ignore-line (get_latest_charge_from_intent is defined in the classes that use this trait)
+
+				if (
+					'payment_intent' === ( $response->object ?? '' )
+					&& WC_Stripe_Intent_Status::PROCESSING === ( $response->status ?? '' )
+					&& null === $latest_charge
+				) {
+					// The saved intent lets a later webhook complete the release payment.
+					// Failing the order now could prompt a retry while payment is still processing.
+					return;
+				}
+
 				// Successful
-				$this->process_response( $this->get_latest_charge_from_intent( $response ), $order ); // @phpstan-ignore-line (process_response is defined in the classes that use this trait)
+				$this->process_response( $latest_charge, $order ); // @phpstan-ignore-line (process_response is defined in the classes that use this trait)
 			}
 		} catch ( Exception $e ) {
 			$error_message = is_callable( [ $e, 'getLocalizedMessage' ] ) ? $e->getLocalizedMessage() : $e->getMessage();

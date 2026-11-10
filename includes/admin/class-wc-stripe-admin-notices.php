@@ -1036,7 +1036,7 @@ class WC_Stripe_Admin_Notices {
 	/**
 	 * Records a Tracks event when the merchant dismisses an Adaptive Pricing "now active" notice.
 	 *
-	 * @since x.x.x
+	 * @since 11.2.0
 	 *
 	 * @param string $banner Which notice was dismissed: 'ocs_ap' or 'ap_only'.
 	 * @return void
