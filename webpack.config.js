@@ -63,6 +63,15 @@ module.exports = {
 		),
 		new DependencyExtractionWebpackPlugin( {
 			injectPolyfill: true,
+			// The WooCommerce wrapper is built on an older @wordpress/dependency-extraction-webpack-plugin
+			// that predates react/jsx-runtime, so without this it gets bundled. A bundled React 18 runtime
+			// breaks once core ships React 19, and Plugin Check rejects it.
+			requestToExternal: ( request ) =>
+				request === 'react/jsx-runtime' ? 'ReactJSXRuntime' : undefined,
+			requestToHandle: ( request ) =>
+				request === 'react/jsx-runtime'
+					? 'react-jsx-runtime'
+					: undefined,
 		} ),
 		process.env.BUNDLE_ANALYZE === 'true' &&
 			new BundleAnalyzerPlugin( {

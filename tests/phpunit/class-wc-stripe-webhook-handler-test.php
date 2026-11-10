@@ -47,10 +47,13 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 * Mock card payment intent template.
 	 */
 	const MOCK_PAYMENT_INTENT = [
-		'id'      => 'pi_mock',
-		'object'  => 'payment_intent',
-		'status'  => WC_Stripe_Intent_Status::SUCCEEDED,
-		'charges' => [
+		'amount'               => 5000,
+		'currency'             => 'usd',
+		'payment_method_types' => [ 'card' ],
+		'id'                   => 'pi_mock',
+		'object'               => 'payment_intent',
+		'status'               => WC_Stripe_Intent_Status::SUCCEEDED,
+		'charges'              => [
 			'total_count' => 1,
 			'data'        => [
 				[
@@ -888,9 +891,12 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'type' => 'payment_intent.processing',
 			'data' => (object) [
 				'object' => (object) [
-					'id'     => self::MOCK_PAYMENT_INTENT['id'],
-					'object' => 'payment_intent',
-					'status' => WC_Stripe_Intent_Status::PROCESSING,
+					'id'                   => self::MOCK_PAYMENT_INTENT['id'],
+					'object'               => 'payment_intent',
+					'status'               => WC_Stripe_Intent_Status::PROCESSING,
+					'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ),
+					'currency'             => strtolower( $order->get_currency() ),
+					'payment_method_types' => [ 'card' ],
 				],
 			],
 		];
@@ -1145,10 +1151,12 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 * A pre-order settled by the webhook must keep the charge on the order, including an
 	 * uncaptured one, so a later capture or refund can find it.
 	 *
-	 * @param bool $captured Whether the charge is already captured.
+	 * @param bool  $captured Whether the charge is already captured.
+	 * @param array $charge_properties Refund or dispute state of the charge.
+	 * @param bool  $valid Whether the charge can place a pre-order.
 	 * @dataProvider provide_pre_order_charge_states
 	 */
-	public function test_deferred_payment_intent_succeeded_records_charge_on_pre_order( bool $captured ): void {
+	public function test_deferred_payment_intent_succeeded_records_charge_on_pre_order( bool $captured, array $charge_properties, bool $valid ): void {
 		$order = WC_Helper_Order::create_order();
 		$order->set_status( OrderStatus::PENDING );
 		$order->save();
@@ -1163,17 +1171,20 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'object' => (object) self::MOCK_PAYMENT_INTENT,
 			],
 		];
-		$charge       = (object) [
-			'id'       => 'ch_pre_order',
-			'captured' => $captured,
-		];
+		$charge       = (object) array_merge(
+			[
+				'id'       => 'ch_pre_order',
+				'captured' => $captured,
+				'status'   => 'succeeded',
+			],
+			$charge_properties
+		);
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
 			->setMethods(
 				[
 					'get_intent_from_order',
 					'get_latest_charge_from_intent',
-					'process_response',
 					'is_unreleased_charged_upfront_pre_order',
 				]
 			)
@@ -1181,13 +1192,24 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$handler->method( 'get_intent_from_order' )->willReturn( (object) self::MOCK_PAYMENT_INTENT );
 		$handler->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
 		$handler->method( 'is_unreleased_charged_upfront_pre_order' )->willReturn( true );
-		$handler->expects( $this->never() )->method( 'process_response' );
-
-		$handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+		$exception = null;
+		try {
+			$handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+		} catch ( WC_Stripe_Exception $e ) {
+			$exception = $e;
+		}
 
 		$order = wc_get_order( $order->get_id() );
-		$this->assertSame( 'ch_pre_order', $order->get_transaction_id() );
-		$this->assertSame( wc_bool_to_string( $captured ), WC_Stripe_Order_Helper::get_instance()->get_stripe_charge_captured( $order ) );
+		if ( $valid ) {
+			$this->assertNull( $exception );
+			$this->assertSame( 'ch_pre_order', $order->get_transaction_id() );
+			$this->assertSame( wc_bool_to_string( $captured ), WC_Stripe_Order_Helper::get_instance()->get_stripe_charge_captured( $order ) );
+		} else {
+			$this->assertInstanceOf( WC_Stripe_Exception::class, $exception );
+			$this->assertSame( OrderStatus::PENDING, $order->get_status() );
+			$this->assertNull( $order->get_date_paid() );
+			$this->assertEmpty( $order->get_transaction_id() );
+		}
 	}
 
 	/**
@@ -1197,9 +1219,118 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 */
 	public function provide_pre_order_charge_states(): array {
 		return [
-			'captured'   => [ 'captured' => true ],
-			'uncaptured' => [ 'captured' => false ],
+			'captured'           => [ true, [], true ],
+			'uncaptured'         => [ false, [], true ],
+			'partially captured' => [ true, [ 'amount_refunded' => 100 ], true ],
+			'fully refunded'     => [ true, [ 'refunded' => true ], false ],
+			'disputed'           => [ true, [ 'disputed' => true ], false ],
 		];
+	}
+
+	/**
+	 * Reversed charges must not reach payment callbacks, including the deprecated hook
+	 * that runs before the common charge validation.
+	 *
+	 * @dataProvider provide_webhook_payment_hook_charge_states
+	 * @param bool  $deferred Whether the webhook is processed by the deferred job.
+	 * @param array $charge_properties Refund or dispute state of the charge.
+	 * @param bool  $pre_order Whether this is an unreleased charged-upfront pre-order.
+	 * @param bool  $valid Whether the charge can settle the order.
+	 */
+	public function test_payment_intent_webhook_payment_hooks( bool $deferred, array $charge_properties, bool $pre_order, bool $valid ): void {
+		$order            = WC_Helper_Order::create_order();
+		$intent           = (object) self::MOCK_PAYMENT_INTENT;
+		$intent->metadata = (object) [
+			'order_id'  => $order->get_id(),
+			'order_key' => $order->get_order_key(),
+		];
+		$charge           = (object) array_merge( self::MOCK_PAYMENT_INTENT['charges']['data'][0], $charge_properties );
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'is_unreleased_charged_upfront_pre_order' ] )
+			->getMock();
+		$handler->method( 'get_intent_from_order' )->willReturn( $intent );
+		$handler->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
+		$handler->method( 'is_unreleased_charged_upfront_pre_order' )->willReturn( $pre_order );
+
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [ 'object' => $intent ],
+		];
+		$hooks        = [
+			'wc_gateway_stripe_process_payment',
+			'wc_gateway_stripe_process_payment_charge',
+			'woocommerce_payment_complete',
+		];
+		$fired        = [];
+		$listener     = static function () use ( &$fired ) {
+			$fired[] = current_filter();
+		};
+		foreach ( $hooks as $hook ) {
+			add_action( $hook, $listener );
+		}
+		if ( $valid ) {
+			$this->setExpectedDeprecated( 'wc_gateway_stripe_process_payment' );
+		}
+		add_filter( 'wc_stripe_process_payment_intent_webhook_async', '__return_false' );
+
+		$exception = null;
+		try {
+			if ( $deferred ) {
+				$handler->process_deferred_webhook(
+					$notification->type,
+					[
+						'order_id'  => $order->get_id(),
+						'intent_id' => $intent->id,
+					],
+					$notification
+				);
+			} else {
+				$handler->process_payment_intent( $notification );
+			}
+		} catch ( WC_Stripe_Exception $e ) {
+			$exception = $e;
+		} finally {
+			remove_filter( 'wc_stripe_process_payment_intent_webhook_async', '__return_false' );
+			foreach ( $hooks as $hook ) {
+				remove_action( $hook, $listener );
+			}
+		}
+
+		$this->assertSame( $valid ? $hooks : [], $fired );
+		$order = wc_get_order( $order->get_id() );
+		if ( $valid ) {
+			$this->assertNull( $exception );
+			$this->assertTrue( $order->is_paid() );
+			$this->assertSame( $charge->id, $order->get_transaction_id() );
+		} else {
+			$this->assertInstanceOf( WC_Stripe_Exception::class, $exception );
+			$this->assertSame( OrderStatus::PENDING, $order->get_status() );
+			$this->assertNull( $order->get_date_paid() );
+			$this->assertEmpty( $order->get_transaction_id() );
+		}
+	}
+
+	/**
+	 * Covers both webhook paths with usable charges and reversals on ordinary orders and pre-orders.
+	 *
+	 * @return array
+	 */
+	public function provide_webhook_payment_hook_charge_states(): array {
+		$cases = [];
+		$paths = [
+			'immediate' => false,
+			'deferred'  => true,
+		];
+		foreach ( $paths as $path => $deferred ) {
+			$cases[ "$path valid" ]              = [ $deferred, [], false, true ];
+			$cases[ "$path partially captured" ] = [ $deferred, [ 'amount_refunded' => 100 ], false, true ];
+			$cases[ "$path refunded" ]           = [ $deferred, [ 'refunded' => true ], false, false ];
+			$cases[ "$path disputed" ]           = [ $deferred, [ 'disputed' => true ], false, false ];
+			$cases[ "$path refunded pre-order" ] = [ $deferred, [ 'refunded' => true ], true, false ];
+			$cases[ "$path disputed pre-order" ] = [ $deferred, [ 'disputed' => true ], true, false ];
+		}
+		return $cases;
 	}
 
 	/**
@@ -2303,15 +2434,20 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'type' => $event_type,
 			'data' => [
 				'object' => [
-					'id'                 => 'pi_mock',
-					'charges'            => [
+					'object'               => 'payment_intent',
+					'amount'               => 5000,
+					'currency'             => 'usd',
+					'payment_method_types' => [ 'card' ],
+					'id'                   => 'pi_mock',
+					'charges'              => [
 						[
 							'metadata' => [
-								'order_id' => $order->get_id(),
+								'order_id'  => $order->get_id(),
+								'order_key' => $order->get_order_key(),
 							],
 						],
 					],
-					'last_payment_error' => [
+					'last_payment_error'   => [
 						'message' => 'Your card was declined. You can call your bank for details.',
 					],
 				],
@@ -2342,8 +2478,12 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'type' => 'payment_intent.processing',
 			'data' => (object) [
 				'object' => (object) [
-					'id'      => 'pi_mock',
-					'charges' => (object) [
+					'object'               => 'payment_intent',
+					'amount'               => 5000,
+					'currency'             => 'usd',
+					'payment_method_types' => [ 'card' ],
+					'id'                   => 'pi_mock',
+					'charges'              => (object) [
 						'data' => [
 							(object) [
 								'id'       => 'ch_mock',
@@ -2379,6 +2519,409 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		// Verify the awaiting-payment note was added to the order.
 		$this->assert_order_has_note_containing( 'Stripe charge awaiting payment: ch_mock.', $updated_order->get_id() );
+	}
+
+	/**
+	 * Builds a succeeded webhook whose PaymentIntent is for `$intent_amount_cents`, targeting `$order`.
+	 *
+	 * @param WC_Order $order               The order the webhook targets.
+	 * @param int      $intent_amount_cents The amount authorized on the intent, in the smallest unit.
+	 * @return object The decoded webhook notification.
+	 */
+	private function build_succeeded_intent_notification( $order, int $intent_amount_cents ) {
+		return json_decode(
+			wp_json_encode(
+				[
+					'type' => 'payment_intent.succeeded',
+					'data' => [
+						'object' => [
+							'id'                   => 'pi_mock',
+							'object'               => 'payment_intent',
+							'status'               => 'succeeded',
+							'amount'               => $intent_amount_cents,
+							'currency'             => strtolower( $order->get_currency() ),
+							'payment_method_types' => [ WC_Stripe_Payment_Methods::BOLETO ],
+							'metadata'             => [ 'order_id' => $order->get_id() ],
+						],
+					],
+				]
+			)
+		);
+	}
+
+	/**
+	 * Prepares a pending Boleto (immediate-path) order with the intent stored on it.
+	 *
+	 * @return WC_Order
+	 */
+	private function prepare_pending_voucher_order() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+
+		WC_Stripe_Order_Helper::set_instance( null );
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->update_stripe_upe_payment_type( $order, WC_Stripe_Payment_Methods::BOLETO );
+		$order_helper->update_stripe_intent_id( $order, 'pi_mock' );
+		$order->save_meta_data();
+		$order->save();
+
+		return $order;
+	}
+
+	/**
+	 * An immediate webhook whose intent amount is below the order total holds the order, not settles it.
+	 */
+	public function test_process_payment_intent_holds_order_when_intent_amount_below_total() {
+		$process_charge = new MockAction();
+		add_action( 'wc_gateway_stripe_process_payment_charge', [ &$process_charge, 'action' ] );
+
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+
+		$order = $this->prepare_pending_voucher_order();
+
+		// Intent authorized for less than the current order total, i.e. the drift.
+		$intent_amount = (int) WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ) - 500;
+		$notification  = $this->build_succeeded_intent_notification( $order, $intent_amount );
+
+		$this->mock_webhook_handler->process_payment_intent( $notification );
+
+		$final_order = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::ON_HOLD, $final_order->get_status() );
+		$this->assertSame( 0, $process_charge->get_call_count() );
+		$this->assert_order_has_note_matching( '/does not match this order.*on hold for manual review/i', $final_order->get_id() );
+	}
+
+	/**
+	 * A webhook whose intent amount matches the order total still settles the order.
+	 */
+	public function test_process_payment_intent_settles_when_intent_amount_matches() {
+		$process_charge = new MockAction();
+		add_action( 'wc_gateway_stripe_process_payment_charge', [ &$process_charge, 'action' ] );
+
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+
+		$order = $this->prepare_pending_voucher_order();
+
+		$intent_amount = (int) WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
+		$notification  = $this->build_succeeded_intent_notification( $order, $intent_amount );
+
+		$this->mock_webhook_handler->process_payment_intent( $notification );
+
+		$final_order = wc_get_order( $order->get_id() );
+		$this->assertNotSame( OrderStatus::ON_HOLD, $final_order->get_status() );
+		$this->assertSame( 1, $process_charge->get_call_count() );
+	}
+
+	/**
+	 * The deferred webhook path also holds an order whose total drifted above the intent amount.
+	 */
+	public function test_deferred_webhook_holds_order_when_intent_amount_below_total() {
+		$this->mock_webhook_handler( [ 'handle_deferred_payment_intent_succeeded' ] );
+
+		$order = $this->prepare_pending_voucher_order();
+
+		$intent_amount = (int) WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ) - 500;
+		$intent        = $this->build_succeeded_intent_notification( $order, $intent_amount )->data->object;
+
+		$this->mock_webhook_handler->method( 'get_intent_from_order' )->willReturn( $intent );
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+		$this->mock_webhook_handler->expects( $this->never() )->method( 'process_response' );
+
+		$data         = [
+			'order_id'  => $order->get_id(),
+			'intent_id' => 'pi_mock',
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [ 'object' => $intent ],
+		];
+
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+
+		$final_order = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::ON_HOLD, $final_order->get_status() );
+		$this->assert_order_has_note_matching( '/does not match this order.*on hold for manual review/i', $final_order->get_id() );
+	}
+
+	/**
+	 * A charged-upfront pre-order whose total drifted above the intent amount must be held on the
+	 * deferred path, not marked pre-ordered. The amount check has to run before the pre-order
+	 * branch, otherwise the order is moved into its paid pre-ordered state before the amount is
+	 * compared.
+	 */
+	public function test_deferred_webhook_holds_pre_order_before_marking_when_amount_drifts() {
+		$order = $this->prepare_pending_voucher_order();
+
+		$intent_amount = (int) WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ) - 500;
+		$intent        = $this->build_succeeded_intent_notification( $order, $intent_amount )->data->object;
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'maybe_mark_order_as_pre_ordered', 'process_response' ] )
+			->getMock();
+		$handler->method( 'get_intent_from_order' )->willReturn( $intent );
+		$handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+		// A mismatch must stop settlement before either the pre-order branch or process_response.
+		$handler->expects( $this->never() )->method( 'maybe_mark_order_as_pre_ordered' );
+		$handler->expects( $this->never() )->method( 'process_response' );
+
+		$data         = [
+			'order_id'  => $order->get_id(),
+			'intent_id' => 'pi_mock',
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [ 'object' => $intent ],
+		];
+
+		$handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+
+		$final_order = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::ON_HOLD, $final_order->get_status() );
+		$this->assert_order_has_note_matching( '/does not match this order.*on hold for manual review/i', $final_order->get_id() );
+	}
+
+	/**
+	 * The same pre-order hold must apply on the immediate webhook path (voucher, wallet, BLIK):
+	 * a drifted amount holds the order before the pre-order branch marks it paid.
+	 */
+	public function test_process_payment_intent_holds_pre_order_before_marking_when_amount_drifts() {
+		$process_charge = new MockAction();
+		add_action( 'wc_gateway_stripe_process_payment_charge', [ &$process_charge, 'action' ] );
+
+		$order = $this->prepare_pending_voucher_order();
+
+		$intent_amount = (int) WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ) - 500;
+		$notification  = $this->build_succeeded_intent_notification( $order, $intent_amount );
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'get_latest_charge_from_intent', 'maybe_mark_order_as_pre_ordered' ] )
+			->getMock();
+		$handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+		$handler->expects( $this->never() )->method( 'maybe_mark_order_as_pre_ordered' );
+
+		$handler->process_payment_intent( $notification );
+
+		$final_order = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::ON_HOLD, $final_order->get_status() );
+		$this->assertSame( 0, $process_charge->get_call_count() );
+	}
+
+	/**
+	 * @dataProvider provide_payment_intent_order_bindings
+	 */
+	public function test_payment_intent_metadata_requires_order_binding( string $location, string $stored_intent, array $metadata, array $payment_methods, bool $accepted ): void {
+		update_option( 'siteurl', 'https://example.org/store-a/wordpress' );
+		update_option( 'home', 'https://example.org/store-a' );
+
+		$order = WC_Helper_Order::create_order();
+		if ( '' !== $stored_intent ) {
+			WC_Stripe_Order_Helper::get_instance()->add_payment_intent_to_order( $stored_intent, $order );
+		}
+		$order->save();
+
+		$metadata['order_id'] = $order->get_id();
+		if ( 'local' === ( $metadata['order_key'] ?? null ) ) {
+			$metadata['order_key'] = $order->get_order_key();
+		}
+		if ( isset( $metadata['signature'] ) ) {
+			$metadata['signature'] = $order->get_id() . ':foreign_signature';
+		}
+		$intent = [
+			'id'                   => 'pi_local',
+			'payment_method_types' => $payment_methods,
+			'last_payment_error'   => [ 'message' => 'Declined' ],
+		];
+		if ( 'intent' === $location ) {
+			$intent['metadata'] = $metadata;
+		} else {
+			$intent['charges'] = [ [ 'metadata' => $metadata ] ];
+		}
+
+		$original_server = $_SERVER;
+		try {
+			$_SERVER['HTTPS'] = 'on';
+			$this->mock_webhook_handler->process_payment_intent(
+				json_decode(
+					wp_json_encode(
+						[
+							'type' => 'payment_intent.payment_failed',
+							'data' => [ 'object' => $intent ],
+						]
+					)
+				)
+			);
+		} finally {
+			$_SERVER = $original_server;
+		}
+
+		$updated_order = wc_get_order( $order->get_id() );
+		$this->assertSame( $accepted ? OrderStatus::FAILED : OrderStatus::PENDING, $updated_order->get_status() );
+		$this->assertSame( '', $updated_order->get_transaction_id() );
+		$this->assertNull( $updated_order->get_date_paid() );
+	}
+
+	public function provide_payment_intent_order_bindings(): array {
+		$terminal = [ WC_Stripe_Payment_Methods::CARD_PRESENT ];
+		$site_url = 'https://example.org/store-a/wordpress';
+		$cases    = [
+			'matching stored intent'              => [ 'pi_local', [], [], true ],
+			'conflicting stored intent'           => [ 'pi_other', [ 'order_key' => 'local' ], [], false ],
+			'matching order key without intent'   => [ '', [ 'order_key' => 'local' ], [], true ],
+			'foreign order key'                   => [ '', [ 'order_key' => 'wc_order_foreign' ], [], false ],
+			'absent order key'                    => [ '', [], [], false ],
+			'empty order key'                     => [ '', [ 'order_key' => '' ], [], false ],
+			'invalid order key type'              => [ '', [ 'order_key' => [ 'local' ] ], [], false ],
+			'foreign signature without intent'    => [ '', [ 'signature' => 'foreign' ], [], false ],
+			'foreign signature with local intent' => [ 'pi_other', [ 'signature' => 'foreign' ], [], false ],
+			'legacy Terminal site URL'            => [ '', [ 'site_url' => $site_url ], $terminal, true ],
+			'legacy Terminal trailing slash'      => [ '', [ 'site_url' => $site_url . '/' ], $terminal, true ],
+			'legacy Terminal home URL'            => [ '', [ 'site_url' => 'https://example.org/store-a/' ], $terminal, true ],
+			'Interac only'                        => [ '', [ 'site_url' => $site_url ], [ 'interac_present' ], false ],
+			'Terminal with Interac'               => [ '', [ 'site_url' => $site_url ], [ WC_Stripe_Payment_Methods::CARD_PRESENT, 'interac_present' ], false ],
+			'Terminal foreign host'               => [ '', [ 'site_url' => 'https://foreign.example/store-a/wordpress' ], $terminal, false ],
+			'Terminal foreign subdirectory'       => [ '', [ 'site_url' => 'https://example.org/store-b' ], $terminal, false ],
+			'Terminal URL prefix'                 => [ '', [ 'site_url' => $site_url . '-other' ], $terminal, false ],
+			'Terminal foreign port'               => [ '', [ 'site_url' => 'https://example.org:8443/store-a/wordpress' ], $terminal, false ],
+			'Terminal missing URL'                => [ '', [], $terminal, false ],
+			'Terminal invalid URL type'           => [ '', [ 'site_url' => [ $site_url ] ], $terminal, false ],
+			'Terminal conflicting intent'         => [ 'pi_other', [ 'site_url' => $site_url ], $terminal, false ],
+			'Terminal invalid key'                => [
+				'',
+				[
+					'site_url'  => $site_url,
+					'order_key' => 'wc_order_foreign',
+				],
+				$terminal,
+				false,
+			],
+			'Terminal empty key'                  => [
+				'',
+				[
+					'site_url'  => $site_url,
+					'order_key' => '',
+				],
+				$terminal,
+				false,
+			],
+			'Terminal invalid signature'          => [
+				'',
+				[
+					'site_url'  => $site_url,
+					'signature' => 'foreign',
+				],
+				$terminal,
+				false,
+			],
+			'online payment with local URL'       => [ '', [ 'site_url' => $site_url ], [ WC_Stripe_Payment_Methods::CARD ], false ],
+			'mixed online and Terminal types'     => [ '', [ 'site_url' => $site_url ], [ WC_Stripe_Payment_Methods::CARD_PRESENT, WC_Stripe_Payment_Methods::CARD ], false ],
+		];
+
+		$datasets = [];
+		foreach ( [ 'intent', 'charge' ] as $location ) {
+			foreach ( $cases as $name => $case ) {
+				$datasets[ $location . ': ' . $name ] = array_merge( [ $location ], $case );
+			}
+		}
+		return $datasets;
+	}
+
+	public function test_payment_intent_signature_recovers_order_without_stored_intent(): void {
+		$order    = WC_Helper_Order::create_order();
+		$metadata = $this->mock_webhook_handler->get_metadata_from_order( $order );
+		unset( $metadata['order_key'] );
+
+		$this->mock_webhook_handler->process_payment_intent(
+			json_decode(
+				wp_json_encode(
+					[
+						'type' => 'payment_intent.payment_failed',
+						'data' => [
+							'object' => [
+								'id'       => 'pi_local',
+								'metadata' => $metadata,
+							],
+						],
+					]
+				)
+			)
+		);
+
+		$this->assertSame( OrderStatus::FAILED, wc_get_order( $order->get_id() )->get_status() );
+	}
+
+	/**
+	 * @dataProvider provide_foreign_async_payment_orders
+	 */
+	public function test_signed_foreign_async_payment_cannot_complete_local_order( string $status, bool $has_intent, int $amount, string $currency ): void {
+		$this->configure_webhook_secrets();
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( $status );
+		$order->set_total( 500 );
+		$order->set_currency( 'USD' );
+		if ( $has_intent ) {
+			WC_Stripe_Order_Helper::get_instance()->add_payment_intent_to_order( 'pi_local', $order );
+		}
+		$order->save();
+
+		$charge = [
+			'id'                     => 'ch_foreign',
+			'payment_intent'         => 'pi_foreign',
+			'captured'               => true,
+			'status'                 => 'succeeded',
+			'amount'                 => $amount,
+			'currency'               => $currency,
+			'payment_method_details' => [ 'type' => WC_Stripe_Payment_Methods::SEPA ],
+		];
+		$intent = [
+			'id'                   => 'pi_foreign',
+			'amount'               => $amount,
+			'currency'             => $currency,
+			'payment_method_types' => [ WC_Stripe_Payment_Methods::SEPA ],
+			'charges'              => [ 'data' => [ $charge ] ],
+			'metadata'             => [
+				'order_id'  => $order->get_id(),
+				'order_key' => 'wc_order_foreign',
+				'signature' => $order->get_id() . ':foreign_signature',
+				'site_url'  => 'https://foreign.example',
+			],
+		];
+		$event  = [
+			'id'               => 'evt_foreign_processing',
+			'created'          => time(),
+			'pending_webhooks' => 1,
+			'type'             => 'payment_intent.processing',
+			'data'             => [ 'object' => $intent ],
+		];
+		$this->assertSame( 200, $this->dispatch_signed_webhook( wp_json_encode( $event ) ) );
+		$after_processing = wc_get_order( $order->get_id() );
+		$this->assertSame( $status, $after_processing->get_status() );
+		$this->assertSame( '', $after_processing->get_transaction_id() );
+
+		$event['id']             = 'evt_foreign_succeeded';
+		$event['type']           = 'charge.succeeded';
+		$event['data']['object'] = $charge;
+		$this->assertSame( 200, $this->dispatch_signed_webhook( wp_json_encode( $event ) ) );
+
+		$updated_order = wc_get_order( $order->get_id() );
+		$this->assertSame( $status, $updated_order->get_status() );
+		$this->assertSame( '', $updated_order->get_transaction_id() );
+		$this->assertNull( $updated_order->get_date_paid() );
+		$this->assertEquals( 500, $updated_order->get_total() );
+		$this->assertSame( 'USD', $updated_order->get_currency() );
+	}
+
+	public function provide_foreign_async_payment_orders(): array {
+		return [
+			'failed order with intent, different amount and currency' => [ OrderStatus::FAILED, true, 100, 'eur' ],
+			'pending order without intent, different amount'          => [ OrderStatus::PENDING, false, 100, 'usd' ],
+			'pending order with intent, different currency'           => [ OrderStatus::PENDING, true, 50000, 'eur' ],
+			'failed order without intent, matching amount/currency'   => [ OrderStatus::FAILED, false, 50000, 'usd' ],
+		];
 	}
 
 	/**
