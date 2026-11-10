@@ -606,7 +606,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			->onlyMethods( [ 'javascript_params' ] )
 			->getMock();
 		$express->express_checkout_helper = $express_helper;
-		$express->method( 'javascript_params' )->willReturn( [] );
+		$express->method( 'javascript_params' )->willReturn( [ 'button' => [ 'theme' => 'white' ] ] );
 
 		$original_scripts = wp_scripts();
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Isolate script registration and printing state from other tests.
@@ -646,12 +646,17 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$output = ob_get_clean();
 
 			$this->assertSame( 1, substr_count( $output, 'var wc_stripe_upe_params = ' ) );
+			$this->assertSame( 1, substr_count( $output, 'var wc_stripe_express_checkout_params = ' ) );
 			$this->assertStringContainsString( 'extension-value', $output );
-			$settings_position = strpos( $output, 'var wc_stripe_upe_params = ' );
-			$express_position  = strpos( $output, 'id="wc_stripe_express_checkout-js"' );
+			$this->assertStringContainsString( 'var wc_stripe_express_checkout_params = {"button":{"theme":"white"}};', $output );
+			$settings_position         = strpos( $output, 'var wc_stripe_upe_params = ' );
+			$express_settings_position = strpos( $output, 'var wc_stripe_express_checkout_params = ' );
+			$express_position          = strpos( $output, 'id="wc_stripe_express_checkout-js"' );
 			$this->assertIsInt( $settings_position );
+			$this->assertIsInt( $express_settings_position );
 			$this->assertIsInt( $express_position );
 			$this->assertLessThan( $express_position, $settings_position, 'Early wallets must receive filtered settings before initialization.' );
+			$this->assertLessThan( $express_position, $express_settings_position, 'Express settings must be available before initialization.' );
 		} finally {
 			remove_filter( 'wc_stripe_upe_params', $add_marker );
 			remove_filter( 'woocommerce_is_checkout', '__return_true' );
