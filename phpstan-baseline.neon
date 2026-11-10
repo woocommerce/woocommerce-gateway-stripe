@@ -1141,12 +1141,6 @@ parameters:
 			path: includes/admin/class-wc-rest-stripe-orders-controller.php
 
 		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:record_payment_method_settings_event\(\) is unused\.$#'
-			identifier: method.unused
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
-
-		-
 			message: '#^Constant WC_Stripe_Admin_Notices\:\:STRIPE_CUSTOMER_PAGE_BASE_URL is unused\.$#'
 			identifier: classConstant.unused
 			count: 1

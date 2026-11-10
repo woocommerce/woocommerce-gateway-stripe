@@ -1380,6 +1380,8 @@ class WC_Stripe_Helper {
 		}
 
 		$properties = [
+			// Note that the default event property is `is_test_mode`, but `test_mode` is
+			// needed for backwards compatibility.
 			'test_mode' => WC_Stripe_Mode::is_test() ? 1 : 0,
 			'source'    => $source,
 		];
@@ -1390,7 +1392,7 @@ class WC_Stripe_Helper {
 
 		wc_admin_record_tracks_event(
 			null === $skipped_reason ? 'wcstripe_ap_default_enabled' : 'wcstripe_ap_default_skipped',
-			$properties
+			WC_Stripe_Tracks::add_default_event_properties( $properties )
 		);
 	}
 
