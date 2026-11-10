@@ -1099,7 +1099,7 @@ jQuery( function ( $ ) {
 			const message = document.createElement( 'p' );
 			message.className = 'wc-stripe-ece-retry-modal__message';
 			message.textContent = __(
-				'This is taking a little longer than usual. Hang tight while we get your order ready.',
+				'We are getting your order ready.',
 				'woocommerce-gateway-stripe'
 			);
 
