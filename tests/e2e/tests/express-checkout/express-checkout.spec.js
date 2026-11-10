@@ -43,7 +43,7 @@ const testLink = async (
 	if ( needsClassicCheckout ) {
 		expectedBundles.push( 'upe-classic.js' );
 	}
-	await expect( bundles ).toEqual( expectedBundles.sort() );
+	expect( bundles ).toEqual( expectedBundles.sort() );
 };
 
 test.describe( 'customer can use Link express checkout', () => {
