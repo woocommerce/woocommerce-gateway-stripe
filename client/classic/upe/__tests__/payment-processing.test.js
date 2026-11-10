@@ -992,6 +992,35 @@ describe( 'payment-processing', () => {
 				expect( window.location.href ).toBe( orderReceivedUrl );
 			} );
 
+			it( 'redirects without confirming when the order was already paid', async () => {
+				const orderReceivedUrl =
+					'https://shop.com/checkout/order-received/123/';
+				const mockActions = {
+					getSession: jest.fn().mockResolvedValue( {} ),
+					confirm: jest.fn(),
+				};
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+
+				mockJQueryAjax.mockResolvedValue( {
+					result: 'success',
+					redirect: orderReceivedUrl,
+					wc_stripe_checkout_session_already_paid: 'yes',
+				} );
+
+				await mountAndConfigureForProcess( api, checkoutElements, {
+					type: 'success',
+					actions: mockActions,
+				} );
+
+				const form = createMockForm();
+				paymentProcessing.processPayment( api, form, 'card' );
+				await flushPromises();
+
+				expect( mockActions.confirm ).not.toHaveBeenCalled();
+				expect( window.location.href ).toBe( orderReceivedUrl );
+			} );
+
 			it( 'confirms with an absolute returnUrl when the server returns a relative redirect', async () => {
 				const relativeRedirect =
 					'/checkout/order-received/123/?key=abc';
