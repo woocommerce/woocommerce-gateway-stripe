@@ -371,7 +371,9 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 				$cart_page_cache->setValue( null, $original_cart_page_cache );
 			}
 			remove_filter( 'wc_stripe_express_checkout_params', $filter );
-			unset( $GLOBALS['wp']->query_vars[ $endpoint ] );
+			if ( $endpoint ) {
+				unset( $GLOBALS['wp']->query_vars[ $endpoint ] );
+			}
 			foreach ( [ 'wc_stripe_express_checkout', 'wc-stripe-checkout-settings' ] as $handle ) {
 				wp_dequeue_script( $handle );
 				wp_deregister_script( $handle );

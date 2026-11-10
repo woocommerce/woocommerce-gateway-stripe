@@ -6963,7 +6963,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			}
 			remove_filter( 'woocommerce_is_checkout', $checkout_filter );
 			remove_filter( 'wc_stripe_upe_params', $params_filter );
-			unset( $_GET['change_payment_method'], $GLOBALS['wp']->query_vars[ $endpoint ] );
+			if ( 'change_payment_method' === $endpoint ) {
+				unset( $_GET[ $endpoint ] );
+			} elseif ( $endpoint ) {
+				unset( $GLOBALS['wp']->query_vars[ $endpoint ] );
+			}
 			$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
 		}
 	}
