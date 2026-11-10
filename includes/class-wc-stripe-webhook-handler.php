@@ -2565,13 +2565,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$order_helper->add_payment_intent_to_order( $intent_id, $order );
 			}
 
-			// Add presentment details if available. The order note is added only after a charge
-			// exists, so a missing-charge retry does not record it again.
+			// Add presentment details if available.
 			$presentment_details = $checkout_session->presentment_details ?? null;
 			if ( $presentment_details && isset( $presentment_details->presentment_currency, $presentment_details->presentment_amount ) ) {
 				$order_helper->update_stripe_presentment_currency( $order, $presentment_details->presentment_currency );
 				$order_helper->update_stripe_presentment_amount( $order, $presentment_details->presentment_amount );
 			}
+
+			$this->maybe_add_order_note_for_adaptive_pricing( $order, $presentment_details );
 
 			$intent = $this->get_intent_from_order( $order );
 
@@ -2596,7 +2597,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			// We will only retry up to $this->adaptive_pricing_order_lookup_max_retries times.
 			// This must run before saving the payment method: Bancontact and iDEAL/Wero need the
 			// charge to save the SEPA mandate, and that step clears the save flag either way.
-			if ( ! $charge ) {
+			// Stripe API responses are decoded to stdClass, which is also the only object type that
+			// accepts the dynamic `is_webhook_response` property set below without a deprecation.
+			if ( ! $charge instanceof stdClass ) {
 				$order->save();
 
 				WC_Stripe_Logger::info(
@@ -2662,22 +2665,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 
 			$order->save();
-
-			if ( $presentment_details && isset( $presentment_details->presentment_currency, $presentment_details->presentment_amount ) ) {
-				$amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
-					$presentment_details->presentment_amount,
-					$presentment_details->presentment_currency
-				);
-
-				$order->add_order_note(
-					sprintf(
-						/* translators: 1) presentment currency 2) presentment amount */
-						__( 'Local currency purchase via Adaptive Pricing. Amount paid was: %1$s %2$s', 'woocommerce-gateway-stripe' ),
-						strtoupper( $presentment_details->presentment_currency ),
-						$amount
-					)
-				);
-			}
 
 			$charge->is_webhook_response = true;
 			$this->process_response( $charge, $order );
@@ -2764,6 +2751,44 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		if ( $user_id > 0 ) {
 			$this->attach_customer_to_user( $user_id, $customer_id );
 		}
+	}
+
+	/**
+	 * Adds the Adaptive Pricing local-currency order note, once per order.
+	 *
+	 * Checkout Session settlement can run more than once for the same order (for example while
+	 * waiting for the PaymentIntent charge), so a meta flag keeps the note from repeating. The
+	 * flag is saved immediately so it stays in step with the note on every early return.
+	 *
+	 * @param WC_Order $order               The order the session settled.
+	 * @param mixed    $presentment_details The Checkout Session's presentment_details, if any.
+	 */
+	private function maybe_add_order_note_for_adaptive_pricing( WC_Order $order, $presentment_details ): void {
+		if ( ! is_object( $presentment_details ) || ! isset( $presentment_details->presentment_currency, $presentment_details->presentment_amount ) ) {
+			return;
+		}
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		if ( $order_helper->get_stripe_adaptive_pricing_note_added( $order ) ) {
+			return;
+		}
+
+		$amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
+			$presentment_details->presentment_amount,
+			$presentment_details->presentment_currency
+		);
+
+		$order->add_order_note(
+			sprintf(
+				/* translators: 1) presentment currency 2) presentment amount */
+				__( 'Local currency purchase via Adaptive Pricing. Amount paid was: %1$s %2$s', 'woocommerce-gateway-stripe' ),
+				strtoupper( $presentment_details->presentment_currency ),
+				$amount
+			)
+		);
+
+		$order_helper->update_stripe_adaptive_pricing_note_added( $order, true );
+		$order->save_meta_data();
 	}
 
 	/**
