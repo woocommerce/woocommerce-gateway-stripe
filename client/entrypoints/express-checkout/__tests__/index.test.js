@@ -395,6 +395,96 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		] );
 	} );
 
+	it( 'refreshes the breakdown when the blockified quantity input dispatches change', async () => {
+		jest.useFakeTimers();
+		global.wc_stripe_express_checkout_params = productParams();
+
+		// The blockified steppers write the value property and dispatch a
+		// synthetic `change` (no `input` event), so that is the signal to catch.
+		document.body.innerHTML = `
+			<div id="wc-stripe-express-checkout-element"></div>
+			<form class="wp-block-add-to-cart-with-options wc-block-add-to-cart-with-options">
+				<input type="hidden" name="attribute_color" value="red" />
+				<div class="quantity"><input type="number" class="qty" name="quantity" value="1" /></div>
+				<button type="submit" class="single_add_to_cart_button" value="1048">Add</button>
+				<div class="single_variation_wrap">
+					<input type="hidden" name="product_id" value="1048" />
+					<input type="hidden" name="variation_id" value="123" />
+				</div>
+			</form>`;
+		mockGetSelectedProductData.mockResolvedValue( {
+			total: { amount: 2000 },
+			currency: 'usd',
+			requestShipping: false,
+			displayItems: [ { label: 'Red variation', amount: 2000 } ],
+		} );
+
+		stubStripeButton();
+		loadEntrypoint();
+
+		try {
+			const qtyInput = document.querySelector( '.qty' );
+			qtyInput.value = '2';
+			qtyInput.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+			await jest.advanceTimersByTimeAsync( 300 );
+		} finally {
+			jest.useRealTimers();
+		}
+
+		expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 1 );
+		expect( mockGetSelectedProductData ).toHaveBeenCalledWith(
+			expect.objectContaining( { qty: '2' } )
+		);
+	} );
+
+	it( 'blocks the click and refreshes when the form changed without a preview refresh', async () => {
+		global.wc_stripe_express_checkout_params = productParams();
+
+		mockGetSelectedProductData.mockResolvedValue( {
+			total: { amount: 3000 },
+			currency: 'usd',
+			requestShipping: false,
+			displayItems: [ { label: 'Red variation', amount: 3000 } ],
+		} );
+		mockAddToCart.mockResolvedValue( { items_count: 1 } );
+		mockEmptyCartLegacy.mockResolvedValue( {} );
+		const alertSpy = jest
+			.spyOn( window, 'alert' )
+			.mockImplementation( () => {} );
+
+		const { handlers } = stubStripeButton();
+		loadEntrypoint();
+
+		try {
+			// A quantity change no listener caught: the preview still prices qty 1.
+			document.querySelector( '.qty' ).value = '3';
+
+			const event = {
+				resolve: jest.fn(),
+				expressPaymentType: 'googlePay',
+			};
+			await handlers.click( event );
+			expect( event.resolve ).not.toHaveBeenCalled();
+			expect( mockAddToCart ).not.toHaveBeenCalled();
+			expect( alertSpy ).toHaveBeenCalledWith(
+				expect.stringContaining( 'price is being updated' )
+			);
+			expect( mockGetSelectedProductData ).toHaveBeenCalledWith(
+				expect.objectContaining( { qty: '3' } )
+			);
+
+			// Once the refresh caught up, the next tap goes through at the new amount.
+			await flushPromises();
+			await handlers.click( event );
+			expect( event.resolve ).toHaveBeenCalledTimes( 1 );
+			expect( event.resolve.mock.calls[ 0 ][ 0 ].lineItems ).toEqual( [
+				{ name: 'Red variation', amount: 3000 },
+			] );
+		} finally {
+			alertSpy.mockRestore();
+		}
+	} );
+
 	it.each( [
 		[ 'null', null ],
 		[ 'a primitive', 'oops' ],

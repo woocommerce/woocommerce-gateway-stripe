@@ -21,7 +21,6 @@ import {
 	isAddToCartUnavailable,
 	isManualPaymentMethodCreation,
 	isSelectedVariationUnavailable,
-	observeQuantitySteppers,
 	observeVariationSelection,
 	normalizeLineItems,
 	transformVariationAttributesForStoreApi,
@@ -572,6 +571,24 @@ const initializeExpressCheckout = ( $ ) => {
 				if ( wcStripeECEError ) {
 					// eslint-disable-next-line no-alert
 					window.alert( wcStripeECEError );
+					return;
+				}
+
+				if (
+					wcStripeECE.previewSelectionKey !== null &&
+					wcStripeECE.getSelectionKey() !==
+						wcStripeECE.previewSelectionKey
+				) {
+					// The preview can't be refreshed within Stripe's 1s click
+					// deadline, so catch it up for the next tap instead.
+					wcStripeECE.onVariationChanged();
+					// eslint-disable-next-line no-alert
+					window.alert(
+						__(
+							'The price is being updated for your selection. Please try again in a moment.',
+							'woocommerce-gateway-stripe'
+						)
+					);
 					return;
 				}
 
@@ -1153,7 +1170,16 @@ const initializeExpressCheckout = ( $ ) => {
 
 		getAttributes: () => getSelectedVariationAttributes(),
 
-		getSelectedProductData: () => {
+		// The selection the cached preview was priced for. Compared against the
+		// form at click time: the blockified template's change signals are
+		// inferred from shopper gestures, so a missed one must cost a retry,
+		// never a sheet at a stale amount.
+		previewSelectionKey: null,
+
+		getSelectionKey: () =>
+			JSON.stringify( wcStripeECE.getSelectedProductRequestData() ),
+
+		getSelectedProductRequestData: () => {
 			let productId = $( '.single_add_to_cart_button' ).val();
 
 			// Check if product is a variable product.
@@ -1188,7 +1214,7 @@ const initializeExpressCheckout = ( $ ) => {
 				).val();
 			}
 
-			const data = {
+			return {
 				product_id: productId,
 				qty: $( quantityInputSelector ).val(),
 				attributes: hasVariationUi
@@ -1197,9 +1223,12 @@ const initializeExpressCheckout = ( $ ) => {
 				addon_value: addonValue,
 				...depositObject,
 			};
-
-			return api.expressCheckoutGetSelectedProductData( data );
 		},
+
+		getSelectedProductData: ( data ) =>
+			api.expressCheckoutGetSelectedProductData(
+				data ?? wcStripeECE.getSelectedProductRequestData()
+			),
 
 		/**
 		 * Adds the item to the cart and return cart details.
@@ -1339,7 +1368,7 @@ const initializeExpressCheckout = ( $ ) => {
 		// Refresh the express checkout amount/items for the selected variation.
 		// Wired to both templates' change signals: the classic
 		// `woocommerce_variation_has_changed` jQuery event and the blockified
-		// template's `variation_id` input observer.
+		// selector's gesture listeners.
 		onVariationChanged: () => {
 			if ( isVariationSelectionNeeded() ) {
 				// Keep the buttons visible: an incomplete selection is
@@ -1353,7 +1382,10 @@ const initializeExpressCheckout = ( $ ) => {
 			wcStripeECE.blockExpressCheckoutButton();
 			wcStripeECEError = '';
 
-			$.when( wcStripeECE.getSelectedProductData() )
+			const requestData = wcStripeECE.getSelectedProductRequestData();
+			const selectionKey = JSON.stringify( requestData );
+
+			$.when( wcStripeECE.getSelectedProductData( requestData ) )
 				.then( ( response ) => {
 					// A null or primitive response can't be applied: record
 					// the error (surfaced on the next click) and keep the
@@ -1392,6 +1424,7 @@ const initializeExpressCheckout = ( $ ) => {
 							);
 						}
 
+						wcStripeECE.previewSelectionKey = selectionKey;
 						wcStripeECE.show();
 					}
 				} )
@@ -1428,16 +1461,18 @@ const initializeExpressCheckout = ( $ ) => {
 
 			// The jQuery event handled above only exists on the classic
 			// template (its script fires it). On the blockified template,
-			// observe the variation input directly instead.
+			// listen for the shopper's gestures on the selector instead.
 			if ( ! hasClassicVariationForm ) {
 				// `attachProductPageEventListeners` runs again on re-init;
-				// drop the previous observer so changes aren't handled twice.
-				wcStripeECE.variationIdObserver?.disconnect();
-				// Debounced because one selection change can mutate the
-				// observed attribute several times in quick succession.
-				wcStripeECE.variationIdObserver = observeVariationSelection(
-					debounce( wcStripeECE.onVariationChanged, 250 )
-				);
+				// drop the previous listeners so changes aren't handled twice.
+				wcStripeECE.variationSelectionListener?.disconnect();
+				// Debounced: the block re-renders the compat `variation_id`
+				// input after the gesture, and one selection fires several
+				// gesture events.
+				wcStripeECE.variationSelectionListener =
+					observeVariationSelection(
+						debounce( wcStripeECE.onVariationChanged, 250 )
+					);
 			}
 
 			$( '.quantity' )
@@ -1448,25 +1483,31 @@ const initializeExpressCheckout = ( $ ) => {
 					debounce( wcStripeECE.onQuantityChanged, 250 )
 				);
 
-			// The blockified template's stepper buttons update the quantity
-			// without firing input events, so listen for the presses
-			// themselves. observeQuantitySteppers only matches the blockified
-			// form (simple products render it too), so unlike the variation
-			// observer above it needs no template check here.
-			wcStripeECE.quantityStepperListener?.disconnect();
-			wcStripeECE.quantityStepperListener = observeQuantitySteppers(
-				debounce( wcStripeECE.onQuantityChanged, 250 )
-			);
+			// The blockified steppers fire no input event; the block
+			// dispatches a synthetic `change` on the input for extensions
+			// instead (also after clamping the quantity to a variation's
+			// limits), so listen for that too. Simple products render the
+			// same block, so this needs no variable-product check.
+			$( '.wc-block-add-to-cart-with-options .quantity' )
+				.off( 'change', '.qty' )
+				.on(
+					'change',
+					'.qty',
+					debounce( wcStripeECE.onQuantityChanged, 250 )
+				);
 		},
 
 		// Refresh the express checkout amount/items for the current quantity.
-		// Wired to both the quantity input event and, on the blockified
-		// template, the stepper listener.
+		// Wired to the quantity input's `input` event and, on the blockified
+		// template, its `change` event.
 		onQuantityChanged: () => {
 			wcStripeECE.blockExpressCheckoutButton();
 			wcStripeECEError = '';
 
-			$.when( wcStripeECE.getSelectedProductData() )
+			const requestData = wcStripeECE.getSelectedProductRequestData();
+			const selectionKey = JSON.stringify( requestData );
+
+			$.when( wcStripeECE.getSelectedProductData( requestData ) )
 				.then(
 					( response ) => {
 						// A null or primitive response can't be applied:
@@ -1492,6 +1533,8 @@ const initializeExpressCheckout = ( $ ) => {
 								response
 							);
 						}
+
+						wcStripeECE.previewSelectionKey = selectionKey;
 					},
 					( response ) => {
 						if ( response.responseJSON ) {
@@ -1551,6 +1594,11 @@ const initializeExpressCheckout = ( $ ) => {
 			$( '#wc-stripe-express-checkout-element' ).unblock();
 		},
 	};
+
+	if ( getExpressCheckoutData( 'is_product_page' ) ) {
+		// The localized preview was priced for the form as served.
+		wcStripeECE.previewSelectionKey = wcStripeECE.getSelectionKey();
+	}
 
 	// Warm the on-demand nonce bundle at the first sign of intent so wallet
 	// event handlers (tight resolve deadlines) don't pay the round trip.

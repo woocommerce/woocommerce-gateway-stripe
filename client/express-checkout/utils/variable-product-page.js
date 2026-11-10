@@ -149,38 +149,29 @@ export const getSelectedVariationAttributes = () => {
 /**
  * Watches the blockified template for variation selection changes.
  *
- * The blockified block fires no jQuery variation events, so two DOM
- * signals are combined (callers debounce, so overlap collapses):
- * - shopper interactions (click/change) on the variation selector, which
- *   only depend on user gestures;
- * - mutations of the compat `variation_id` input's value attribute. The
- *   documented bind contract only promises the value *property*, so the
- *   attribute write is treated as a bonus signal, not relied upon.
+ * The block fires no variation event and core declined to add one (its
+ * Interactivity API state is the intended signal, but that store is private),
+ * so the shopper's gestures on the selector are the only supported signal.
+ * The block re-renders the compat `variation_id` input after the gesture, so
+ * callers must read the selection after a short delay; core's auto-selection
+ * of the remaining attribute runs inside the same gesture and needs no extra
+ * signal.
  *
  * @param {Function} onChange Called whenever the selection may have changed.
  * @return {{disconnect: Function}|null} Disconnectable handle, or null when
- *                                       the input isn't present.
+ *                                       the page has no variation selector.
  */
 export const observeVariationSelection = ( onChange ) => {
-	const variationIdInput = document.querySelector(
-		'input[name="variation_id"]'
-	);
-	if ( ! variationIdInput ) {
-		return null;
-	}
-
-	const observer = new MutationObserver( onChange );
-	observer.observe( variationIdInput, {
-		attributes: true,
-		attributeFilter: [ 'value' ],
-	} );
-
 	// keyup included: the chips variant selects via a keydown handler on
 	// buttons, which fires neither click nor change.
 	const gestureEvents = [ 'click', 'change', 'keyup' ];
 	const selectors = document.querySelectorAll(
 		'.wc-block-add-to-cart-with-options [class*="variation-selector"]'
 	);
+	if ( ! selectors.length ) {
+		return null;
+	}
+
 	selectors.forEach( ( el ) =>
 		gestureEvents.forEach( ( eventName ) =>
 			el.addEventListener( eventName, onChange )
@@ -189,46 +180,11 @@ export const observeVariationSelection = ( onChange ) => {
 
 	return {
 		disconnect: () => {
-			observer.disconnect();
 			selectors.forEach( ( el ) =>
 				gestureEvents.forEach( ( eventName ) =>
 					el.removeEventListener( eventName, onChange )
 				)
 			);
 		},
-	};
-};
-
-/**
- * Watches the blockified template's quantity stepper buttons.
- *
- * The steppers update the input's value property only — no input event, no
- * attribute write — so the button press is the only observable signal.
- * Typed changes fire input events and are handled by callers directly.
- *
- * @param {Function} onChange Called whenever a stepper button is pressed.
- * @return {{disconnect: Function}|null} Disconnectable handle, or null when
- *                                       no blockified quantity container is
- *                                       present (classic template, products
- *                                       sold individually, non-product pages).
- */
-export const observeQuantitySteppers = ( onChange ) => {
-	const quantityContainer = document.querySelector(
-		'.wc-block-add-to-cart-with-options .quantity'
-	);
-	if ( ! quantityContainer ) {
-		return null;
-	}
-
-	const handleClick = ( event ) => {
-		if ( event.target.closest( 'button' ) ) {
-			onChange();
-		}
-	};
-	quantityContainer.addEventListener( 'click', handleClick );
-
-	return {
-		disconnect: () =>
-			quantityContainer.removeEventListener( 'click', handleClick ),
 	};
 };
