@@ -580,21 +580,24 @@ class WC_Stripe_Payment_Method_Configurations {
 			return;
 		}
 
+		// Get the default event properties once and then re-use in the loops below.
+		$default_event_properties = WC_Stripe_Tracks::get_default_event_properties();
+
 		// Track the events for both arrays.
 		array_map(
-			function ( $id ) {
+			function ( $id ) use ( $default_event_properties ) {
 				wc_admin_record_tracks_event(
 					'wcstripe_payment_method_settings_enabled',
-					WC_Stripe_Tracks::add_default_event_properties( [ 'payment_method' => $id ] )
+					array_merge( $default_event_properties, [ 'payment_method' => $id ] )
 				);
 			},
 			$enabled_methods
 		);
 		array_map(
-			function ( $id ) {
+			function ( $id ) use ( $default_event_properties ) {
 				wc_admin_record_tracks_event(
 					'wcstripe_payment_method_settings_disabled',
-					WC_Stripe_Tracks::add_default_event_properties( [ 'payment_method' => $id ] )
+					array_merge( $default_event_properties, [ 'payment_method' => $id ] )
 				);
 			},
 			$disabled_methods

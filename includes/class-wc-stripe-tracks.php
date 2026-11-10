@@ -35,10 +35,10 @@ final class WC_Stripe_Tracks {
 	 */
 	public static function add_default_event_properties( array $event_properties = [] ): array {
 		if ( [] === $event_properties ) {
-			return self::get_default_properties();
+			return self::get_default_event_properties();
 		}
 
-		return array_merge( self::get_default_properties(), $event_properties );
+		return array_merge( self::get_default_event_properties(), $event_properties );
 	}
 
 	/**
@@ -64,13 +64,16 @@ final class WC_Stripe_Tracks {
 	}
 
 	/**
-	 * Get the default event properties.
+	 * Get the default event properties. Callers should generally call {@see add_default_event_properties()}.
+	 *
+	 * This method should only be called within loops to avoid unnecessary overhead.
 	 *
 	 * @since x.x.x
+	 * @internal
 	 *
 	 * @return array The default event properties.
 	 */
-	private static function get_default_properties(): array {
+	public static function get_default_event_properties(): array {
 		return [
 			'is_test_mode'   => WC_Stripe_Mode::is_test(),
 			'stripe_version' => WC_STRIPE_VERSION,
