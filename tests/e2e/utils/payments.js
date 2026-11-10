@@ -700,17 +700,22 @@ export const fillACHBankDetails = async ( page ) => {
 		.frameLocator( 'iframe[name^="__privateStripeFrame"]' )
 		.first();
 
+	// Stripe can leave the previous panel visible with disabled controls.
+	const enabledButtons = frame.getByRole( 'button', { disabled: false } );
 	const consentButton = frame
 		.getByTestId( 'agree-button' )
+		.and( enabledButtons )
 		.filter( { visible: true } )
 		.first();
 	const guestButton = frame
 		.getByTestId( 'pre-auth-networking-and-consent-guest' )
 		.or( frame.getByTestId( 'link-not-now-button' ) )
+		.and( enabledButtons )
 		.filter( { visible: true } )
 		.first();
 	const continueButton = frame
 		.getByTestId( 'continue-button' )
+		.and( enabledButtons )
 		.filter( { visible: true } )
 		.first();
 
@@ -721,6 +726,7 @@ export const fillACHBankDetails = async ( page ) => {
 
 	// Guest sign-in can precede bank consent. Handle one screen at a time so
 	// an earlier waiter cannot click a control on a later screen.
+	let previousControlId;
 	for ( let step = 0; step < 4; step++ ) {
 		await expect(
 			successAccount
@@ -740,12 +746,18 @@ export const fillACHBankDetails = async ( page ) => {
 			action = consentButton;
 		}
 		// Bind this wait to the chosen control, not the next guest-action variant.
+		const controlId = await action.getAttribute( 'data-testid' );
+		expect( controlId, 'ACH consent flow did not advance' ).not.toBe(
+			previousControlId
+		);
+		previousControlId = controlId;
 		const clickedControl = frame
-			.getByTestId( await action.getAttribute( 'data-testid' ) )
+			.getByTestId( controlId )
+			.and( enabledButtons )
 			.filter( { visible: true } )
 			.first();
 		await clickedControl.click();
-		await expect( clickedControl ).toBeHidden();
+		await expect( clickedControl ).toHaveCount( 0 );
 	}
 
 	// Select the success account; its radio may already be selected.
