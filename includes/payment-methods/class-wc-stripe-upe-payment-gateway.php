@@ -2653,15 +2653,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return false;
 		}
 
-		$intent = $this->stripe_request( 'setup_intents/' . $intent_id . '?expand[]=payment_method.billing_details' );
-		if ( ! $intent ) {
-			return false;
-		}
-
-		if ( ! isset( $intent->payment_method ) || ! isset( $intent->payment_method->billing_details ) ) {
-			return false;
-		}
-
 		$stored_intent_id = WC_Stripe_Order_Helper::get_instance()->get_stripe_setup_intent_id( $order );
 
 		// The stored ID ties the redirect to this order, whatever the billing details.
