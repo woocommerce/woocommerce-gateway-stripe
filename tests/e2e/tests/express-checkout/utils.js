@@ -18,7 +18,11 @@ export const getLinkButton = async ( page, isBlockPage = false ) => {
 	} );
 };
 
-export const openLinkPopup = async ( page, isBlockPage = false ) => {
+export const openLinkPopup = async (
+	page,
+	isBlockPage = false,
+	{ maxRetries = 1 } = {}
+) => {
 	const context = page.context();
 	let isFirstAttempt = true;
 
@@ -86,7 +90,7 @@ export const openLinkPopup = async ( page, isBlockPage = false ) => {
 			}
 			return newPage;
 		},
-		{ maxRetries: 1 }
+		{ maxRetries }
 	);
 
 	await popup.waitForLoadState();
