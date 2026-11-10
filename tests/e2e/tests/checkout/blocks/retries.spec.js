@@ -121,6 +121,17 @@ test( 'customer can retry payment, using a different payment method @smoke', asy
 		page.locator( '.wc-block-store-notice.is-error' )
 	).toBeVisible();
 
+	const loadedClassicBundle = await page.evaluate( () =>
+		performance
+			.getEntriesByType( 'resource' )
+			.some( ( resource ) =>
+				new URL( resource.name ).pathname.endsWith(
+					'/build/upe-classic.js'
+				)
+			)
+	);
+	expect( loadedClassicBundle ).toBe( false );
+
 	// Change to Cash App Pay
 	await handleCheckoutCashAppPay( page, '.wcstripe-payment-element' );
 
