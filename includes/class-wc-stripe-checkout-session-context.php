@@ -287,6 +287,36 @@ class WC_Stripe_Checkout_Session_Context {
 	}
 
 	/**
+	 * Whether the current browser session created the Checkout Session and it is free to be used
+	 * for the given order, i.e. it is not already linked to a different one.
+	 *
+	 * Unlike validate_for_order() this does not compare amounts, so it has no side effects and is
+	 * safe to call when the Session is about to be closed rather than paid.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param string   $session_id Stripe Checkout Session ID.
+	 * @param WC_Order $order WooCommerce order.
+	 * @return bool
+	 */
+	public static function is_usable_by_current_shopper_for_order( string $session_id, WC_Order $order ): bool {
+		$context = self::get_context( $session_id );
+		if ( empty( $context ) ) {
+			return false;
+		}
+
+		try {
+			self::validate_owner( $context );
+		} catch ( Exception $e ) {
+			return false;
+		}
+
+		$context_order_id = isset( $context['order_id'] ) ? (int) $context['order_id'] : 0;
+
+		return 0 === $context_order_id || $context_order_id === $order->get_id();
+	}
+
+	/**
 	 * Mark the Checkout Session context as linked to an order.
 	 *
 	 * @param string   $session_id Stripe Checkout Session ID.
