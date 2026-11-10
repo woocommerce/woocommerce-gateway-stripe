@@ -169,5 +169,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Improve express checkout wallet startup, availability checks, reuse, and recovery
 * Fix - Avoid expensive variation lookup in express checkout setup on product pages
 * Dev - Add WC_Stripe_Tracks class to support more consistent events
+* Fix - Prevent a second charge when a shopper pays again through Adaptive Pricing for an order an earlier payment attempt already paid
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
