@@ -8,6 +8,7 @@ const {
 	emptyCart,
 	setupCart,
 	setupBlocksCheckout,
+	selectBlocksPaymentMethod,
 	fillBLIKDetails,
 	waitForOrderReceivedPage,
 } = payments;
@@ -43,7 +44,7 @@ test.describe( 'BLIK payment tests @blocks @blik', () => {
 			page,
 			config.get( 'addresses.customer_poland.billing' )
 		);
-		await page.getByLabel( /blik/i ).check();
+		await selectBlocksPaymentMethod( page, 'stripe_blik' );
 		await fillBLIKDetails( page );
 		await clickPlaceOrder( page );
 		await waitForOrderReceivedPage( page );

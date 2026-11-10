@@ -7,6 +7,7 @@ const {
 	emptyCart,
 	setupCart,
 	setupShortcodeCheckout,
+	selectShortcodePaymentMethod,
 	fillBLIKDetails,
 	waitForOrderReceivedPage,
 } = payments;
@@ -19,7 +20,7 @@ test.describe( 'BLIK payment tests @shortcode @blik', () => {
 			page,
 			config.get( 'addresses.customer_poland.billing' )
 		);
-		await page.getByText( 'BLIK', { exact: true } ).click();
+		await selectShortcodePaymentMethod( page, 'stripe_blik' );
 		await fillBLIKDetails( page );
 		await clickPlaceOrder( page );
 		await waitForOrderReceivedPage( page );

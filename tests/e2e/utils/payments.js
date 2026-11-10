@@ -663,7 +663,7 @@ export async function setupBlocksCheckout(
  * @param {Page}   page      Playwright page fixture.
  * @param {string} gatewayId The gateway ID, e.g. `stripe_us_bank_account`.
  */
-const selectBlocksPaymentMethod = async ( page, gatewayId ) => {
+export const selectBlocksPaymentMethod = async ( page, gatewayId ) => {
 	const radio = page.locator(
 		`#radio-control-wc-payment-method-options-${ gatewayId }`
 	);
@@ -692,7 +692,7 @@ const selectBlocksPaymentMethod = async ( page, gatewayId ) => {
  * @param {Page}   page      Playwright page fixture.
  * @param {string} gatewayId The gateway ID, e.g. `stripe_us_bank_account`.
  */
-const selectShortcodePaymentMethod = async ( page, gatewayId ) => {
+export const selectShortcodePaymentMethod = async ( page, gatewayId ) => {
 	const radio = page.locator( `#payment_method_${ gatewayId }` );
 	const label = page.locator( `label[for='payment_method_${ gatewayId }']` );
 	const overlay = page.locator( '.blockUI.blockOverlay' ).first();
