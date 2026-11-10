@@ -611,7 +611,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$original_scripts = wp_scripts();
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Isolate script registration and printing state from other tests.
 		$GLOBALS['wp_scripts'] = clone $original_scripts;
-		wp_scripts()->done     = [];
+		// Registered dependencies are objects, so cloning only the registry would share their mutable state.
+		foreach ( wp_scripts()->registered as $handle => $dependency ) {
+			wp_scripts()->registered[ $handle ] = clone $dependency;
+		}
+		wp_scripts()->done = [];
 		add_filter( 'woocommerce_is_checkout', '__return_true' );
 		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
 		$this->clean_up_scripts( [ 'wc_stripe_express_checkout' ] );
