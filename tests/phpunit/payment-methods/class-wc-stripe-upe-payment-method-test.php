@@ -1567,4 +1567,181 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 			'force saving' => [ true ],
 		];
 	}
+
+
+	/**
+	 * A total Stripe cannot charge must hide every payment method, including card, so the
+	 * checkout does not render a Payment Element that can only fail on submit.
+	 *
+	 * @dataProvider provide_order_amounts_for_availability
+	 *
+	 * @param mixed $order_amount       Cart or order total.
+	 * @param bool  $expected_available Whether the card method must be available.
+	 */
+	public function test_card_availability_for_order_amount( $order_amount, bool $expected_available ) {
+		WC_Stripe_Helper::update_main_stripe_settings( [ 'testmode' => 'yes' ] );
+		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'get_cached_account_data' ] )
+			->getMock();
+		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn(
+			[
+				'country'          => 'US',
+				'default_currency' => WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
+			]
+		);
+
+		$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR, true );
+		$this->set_mock_payment_method_return_value( 'get_current_order_amount', $order_amount );
+		$this->set_mock_payment_method_return_value( 'is_inside_currency_limits', true );
+
+		foreach ( $this->mock_payment_methods as $payment_method ) {
+			$payment_method->enabled = 'yes';
+		}
+		$card_method = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::CARD ];
+
+		$this->assertSame( $expected_available, $card_method->is_available() );
+
+		if ( ! $expected_available ) {
+			foreach ( $this->mock_payment_methods as $payment_method_id => $payment_method ) {
+				$this->assertFalse( $payment_method->is_available(), "Payment method {$payment_method_id} is available" );
+			}
+		}
+	}
+
+	public function provide_order_amounts_for_availability(): array {
+		return [
+			'normal total'       => [ 150, true ],
+			'zero total'         => [ 0, true ],
+			'above Stripe limit' => [ '10000000000.00', false ],
+			'integer wraparound' => [ '184467440737095520.00', false ],
+		];
+	}
+
+
+	/**
+	 * Express checkout pays an order through the Store API checkout-order route, a REST request
+	 * with no order-pay endpoint, so the amount must come from the routed order, not the cart.
+	 *
+	 * @dataProvider provide_store_api_checkout_order_routes
+	 *
+	 * @param string      $rest_route    REST route being served, with %d replaced by the order ID.
+	 * @param string|null $key           Order key to send: 'valid', 'wrong', or null to omit it.
+	 * @param bool        $expects_order Whether the order total must be used instead of the cart total.
+	 */
+	public function test_get_current_order_amount_for_store_api_route( string $rest_route, ?string $key, bool $expects_order ) {
+		global $wp;
+
+		$this->reset_payment_method_mocks( [ 'get_current_order_amount' ] );
+		$card_method = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::CARD ];
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_total( '10.23' );
+		$order->save();
+
+		$original_get        = $_GET;
+		$original_query_vars = $wp->query_vars;
+		$original_cart_total = WC()->cart->get_total( '' );
+		$wp->query_vars      = [ 'rest_route' => sprintf( $rest_route, $order->get_id() ) ];
+		unset( $_GET['key'] );
+		if ( 'valid' === $key ) {
+			$_GET['key'] = $order->get_order_key();
+		} elseif ( 'wrong' === $key ) {
+			$_GET['key'] = 'wc_order_wrong';
+		}
+		WC()->cart->set_total( '184467440737095520.00' );
+
+		try {
+			$amount = $card_method->get_current_order_amount();
+		} finally {
+			$_GET           = $original_get;
+			$wp->query_vars = $original_query_vars;
+			WC()->cart->set_total( $original_cart_total );
+		}
+
+		$this->assertSame( $expects_order ? '10.23' : '184467440737095520.00', $amount );
+	}
+
+	public function provide_store_api_checkout_order_routes(): array {
+		return [
+			'checkout-order route'              => [ '/wc/store/v1/checkout/%d', 'valid', true ],
+			'unversioned checkout-order'        => [ '/wc/store/checkout/%d', 'valid', true ],
+			'checkout-order route, wrong key'   => [ '/wc/store/v1/checkout/%d', 'wrong', false ],
+			'checkout-order route, missing key' => [ '/wc/store/v1/checkout/%d', null, false ],
+			'cart route'                        => [ '/wc/store/v1/cart', 'valid', false ],
+			'checkout route without id'         => [ '/wc/store/v1/checkout', 'valid', false ],
+		];
+	}
+
+	/**
+	 * An oversized session cart must not make Stripe unavailable for a payable order on the
+	 * Store API checkout-order route, and an oversized order must still be rejected there.
+	 *
+	 * @dataProvider provide_store_api_order_totals_for_availability
+	 */
+	public function test_card_availability_for_store_api_order_total( string $order_total, bool $expected_available ) {
+		global $wp;
+
+		$this->reset_payment_method_mocks( [ 'get_current_order_amount' ] );
+		$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR );
+		$this->set_mock_payment_method_return_value( 'is_inside_currency_limits', true );
+		$card_method          = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::CARD ];
+		$card_method->enabled = 'yes';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		$order->set_total( $order_total );
+		$order->save();
+
+		$original_get        = $_GET;
+		$original_query_vars = $wp->query_vars;
+		$original_cart_total = WC()->cart->get_total( '' );
+		$wp->query_vars      = [ 'rest_route' => '/wc/store/v1/checkout/' . $order->get_id() ];
+		$_GET['key']         = $order->get_order_key();
+		WC()->cart->set_total( '184467440737095520.00' );
+
+		try {
+			$available = $card_method->is_available();
+		} finally {
+			$_GET           = $original_get;
+			$wp->query_vars = $original_query_vars;
+			WC()->cart->set_total( $original_cart_total );
+		}
+
+		$this->assertSame( $expected_available, $available );
+	}
+
+	public function provide_store_api_order_totals_for_availability(): array {
+		return [
+			'payable order with oversized cart' => [ '10.23', true ],
+			'oversized order'                   => [ '184467440737095520.00', false ],
+		];
+	}
+
+
+	/**
+	 * Under optimized checkout the card method's availability comes from the OC container branch,
+	 * which bypasses is_enabled_at_checkout(), so is_available() itself must reject an oversized total.
+	 *
+	 * @dataProvider provide_order_amounts_for_is_available
+	 */
+	public function test_is_available_for_order_amount( $order_amount, bool $expected ) {
+		$mocked_payment_method = $this->getMockBuilder( WC_Stripe_UPE_Payment_Method_CC::class )
+			->onlyMethods( [ 'get_capabilities_response', 'get_woocommerce_currency', 'get_current_order_amount', 'is_enabled_at_checkout' ] )
+			->getMock();
+		$mocked_payment_method->method( 'is_enabled_at_checkout' )->willReturn( true );
+		$mocked_payment_method->method( 'get_woocommerce_currency' )->willReturn( WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR );
+		$mocked_payment_method->method( 'get_current_order_amount' )->willReturn( $order_amount );
+		$mocked_payment_method->enabled = 'yes';
+
+		$this->assertSame( $expected, $mocked_payment_method->is_available() );
+	}
+
+	public function provide_order_amounts_for_is_available(): array {
+		return [
+			'normal total'       => [ 150, true ],
+			'above Stripe limit' => [ '10000000000.00', false ],
+			'integer wraparound' => [ '184467440737095520.00', false ],
+		];
+	}
 }

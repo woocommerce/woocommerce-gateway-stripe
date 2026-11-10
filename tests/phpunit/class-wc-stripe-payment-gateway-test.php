@@ -25,6 +25,124 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Legacy source callbacks retain their customer context and can still disable forced saving.
+	 *
+	 * @since x.x.x
+	 */
+	public function test_prepare_source_preserves_deprecated_filter_context(): void {
+		$original_post = $_POST;
+		$_POST         = [ 'stripe_token' => 'pm_context_test' ];
+		$customer      = null;
+		$filter        = function ( $force_save, $context ) use ( &$customer ) {
+			$this->assertTrue( $force_save );
+			$customer = $context;
+			return false;
+		};
+		$api_filter    = function ( $preempt, $args, $url ) {
+			return false !== strpos( $url, 'customers/cus_context_test' )
+				? $this->build_response( [ 'id' => 'cus_context_test' ] )
+				: $preempt;
+		};
+
+		$deprecation         = [];
+		$capture_deprecation = function ( $hook, $replacement, $version, $message ) use ( &$deprecation ) {
+			if ( 'wc_stripe_force_save_source' === $hook ) {
+				$deprecation = [ $replacement, $version, $message ];
+			}
+		};
+
+		add_filter( 'wc_stripe_force_save_source', $filter, 10, 2 );
+		add_filter( 'pre_http_request', $api_filter, 10, 3 );
+		add_action( 'deprecated_hook_run', $capture_deprecation, 10, 4 );
+		$this->setExpectedDeprecated( 'wc_stripe_force_save_source' );
+
+		try {
+			$source = $this->gateway->prepare_source( 0, true, 'cus_context_test' );
+		} finally {
+			remove_filter( 'wc_stripe_force_save_source', $filter, 10 );
+			remove_filter( 'pre_http_request', $api_filter, 10 );
+			remove_action( 'deprecated_hook_run', $capture_deprecation, 10 );
+			$_POST = $original_post;
+		}
+
+		$this->assertSame( [ '', '9.6.0', 'This filter has no direct replacement in legacy payment flows.' ], $deprecation );
+		$this->assertInstanceOf( WC_Stripe_Customer::class, $customer );
+		$this->assertSame( 'cus_context_test', $customer->get_id() );
+		$this->assertSame( 'pm_context_test', $source->source );
+	}
+
+	/**
+	 * Legacy intent callbacks retain their source ID and control future-use setup.
+	 *
+	 * @since x.x.x
+	 *
+	 * @dataProvider provide_deprecated_force_save_values
+	 * @param bool $force_save Whether the callback forces saving.
+	 */
+	public function test_generate_create_intent_request_preserves_deprecated_filter( bool $force_save ): void {
+		$original_post = $_POST;
+		$_POST         = [];
+		$gateway       = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->onlyMethods( [ 'generate_payment_request' ] )
+			->getMock();
+		$gateway->method( 'generate_payment_request' )->willReturn(
+			[
+				'description' => 'Legacy payment request',
+				'metadata'    => [],
+				'capture'     => 'true',
+			]
+		);
+
+		$source = (object) [
+			'customer' => 'cus_context_test',
+			'source'   => 'pm_context_test',
+		];
+		$filter = function ( $default, $source_id ) use ( $force_save ) {
+			$this->assertFalse( $default );
+			$this->assertSame( 'pm_context_test', $source_id );
+			return $force_save;
+		};
+
+		$deprecation         = [];
+		$capture_deprecation = function ( $hook, $replacement, $version, $message ) use ( &$deprecation ) {
+			if ( 'wc_stripe_force_save_source' === $hook ) {
+				$deprecation = [ $replacement, $version, $message ];
+			}
+		};
+
+		add_filter( 'wc_stripe_force_save_source', $filter, 10, 2 );
+		add_action( 'deprecated_hook_run', $capture_deprecation, 10, 4 );
+		$this->setExpectedDeprecated( 'wc_stripe_force_save_source' );
+
+		try {
+			$request = $gateway->generate_create_intent_request( WC_Helper_Order::create_order(), $source );
+		} finally {
+			remove_filter( 'wc_stripe_force_save_source', $filter, 10 );
+			remove_action( 'deprecated_hook_run', $capture_deprecation, 10 );
+			$_POST = $original_post;
+		}
+
+		$this->assertSame( [ '', '9.6.0', 'This filter has no direct replacement in legacy payment flows.' ], $deprecation );
+		$this->assertIsArray( $request['metadata'] ?? null );
+		if ( $force_save ) {
+			$this->assertArrayHasKey( 'setup_future_usage', $request );
+			$this->assertSame( 'off_session', $request['setup_future_usage'] );
+			$this->assertArrayHasKey( 'save_payment_method', $request['metadata'] );
+			$this->assertSame( 'true', $request['metadata']['save_payment_method'] );
+		} else {
+			$this->assertArrayNotHasKey( 'setup_future_usage', $request );
+			$this->assertArrayNotHasKey( 'save_payment_method', $request['metadata'] );
+		}
+	}
+
+	public function provide_deprecated_force_save_values(): array {
+		return [
+			'force saving'    => [ true ],
+			'do not force it' => [ false ],
+		];
+	}
+
+	/**
 	 * Helper function to update test order meta data
 	 */
 	private function updateOrderMeta( $order, $key, $value ) {
@@ -1854,6 +1972,147 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * @since x.x.x
+	 * @dataProvider provide_invalid_authorization_responses
+	 * @param array|null $response Stripe response that cannot authorize an order.
+	 */
+	public function test_process_response_rejects_invalid_authorizations( ?array $response ): void {
+		$order    = WC_Helper_Order::create_order( 0 );
+		$response = null === $response ? null : (object) $response;
+
+		try {
+			$this->gateway->process_response( $response, $order );
+			$this->fail( 'Expected an invalid authorization to be rejected.' );
+		} catch ( WC_Stripe_Exception $exception ) {
+			$this->assertSame( 'invalid_charge_response', $exception->getMessage() );
+			$this->assertSame( 'Payment processing failed. Please retry.', $exception->getLocalizedMessage() );
+		}
+
+		$this->assertSame( 'pending', $order->get_status() );
+		$this->assertSame( '', $order->get_transaction_id() );
+		$this->assertNull( $order->get_date_paid() );
+		$this->assertSame( '', $order->get_meta( '_stripe_charge_captured' ) );
+		$this->assertFalse( $order->get_data_store()->get_stock_reduced( $order->get_id() ) );
+		$this->assertFalse( get_option( 'wc_stripe_transaction_lock_' . ( $response->id ?? '' ) ) );
+		$notes = wc_get_order_notes( [ 'order_id' => $order->get_id() ] );
+		$this->assertSame( $response->outcome->seller_message ?? 'Payment processing failed. Please retry.', $notes[0]->content );
+	}
+
+	/**
+	 * @since x.x.x
+	 */
+	public function test_authorized_charge_can_be_captured_by_staff_status_change(): void {
+		$order = WC_Helper_Order::create_order( 0 );
+		$order->set_payment_method( 'stripe' );
+		$order->update_meta_data( '_stripe_intent_id', 'pi_authorized' );
+		$order->save();
+		$charge           = $this->build_succeeded_charge( 'ch_authorized' );
+		$charge->captured = false;
+		$this->gateway->process_response( $charge, $order );
+		$this->assertSame( 'on-hold', $order->get_status() );
+		$this->assertSame( 'no', $order->get_meta( '_stripe_charge_captured' ) );
+		$this->assertNull( $order->get_date_paid() );
+
+		$capture_requests = 0;
+		$api_response     = function ( $preempt, $args, $url ) use ( $charge, &$capture_requests ) {
+			if ( false === strpos( $url, 'payment_intents/pi_authorized' ) ) {
+				return $preempt;
+			}
+			$is_capture = false !== strpos( $url, '/capture' );
+			if ( $is_capture ) {
+				++$capture_requests;
+				$this->assertSame( 'POST', $args['method'] );
+			}
+			$response_charge           = clone $charge;
+			$response_charge->captured = $is_capture;
+			return [
+				'response' => [ 'code' => 200 ],
+				'headers'  => [],
+				'body'     => wp_json_encode(
+					[
+						'id'      => 'pi_authorized',
+						'status'  => $is_capture ? 'succeeded' : 'requires_capture',
+						'charges' => [ 'data' => [ $response_charge ] ],
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $api_response, 10, 3 );
+		try {
+			$order->update_status( 'processing' );
+		} finally {
+			remove_filter( 'pre_http_request', $api_response, 10 );
+		}
+
+		$order = wc_get_order( $order->get_id() );
+		$this->assertSame( 1, $capture_requests );
+		$this->assertSame( 'processing', $order->get_status() );
+		$this->assertSame( 'yes', $order->get_meta( '_stripe_charge_captured' ) );
+		$this->assertSame( $charge->id, $order->get_transaction_id() );
+		$this->assertNotNull( $order->get_date_paid() );
+	}
+
+	public function provide_invalid_authorization_responses(): array {
+		return [
+			'no charge'                 => [ null ],
+			'awaiting authentication'   => [
+				[
+					'id'            => 'pi_action',
+					'status'        => 'requires_action',
+					'client_secret' => 'pi_action_secret_test',
+				],
+			],
+			'processing intent'         => [
+				[
+					'id'     => 'pi_processing',
+					'status' => 'processing',
+				],
+			],
+			'succeeded intent'          => [
+				[
+					'id'     => 'pi_succeeded',
+					'status' => 'succeeded',
+				],
+			],
+			'failed uncaptured charge'  => [
+				[
+					'id'       => 'ch_failed',
+					'captured' => false,
+					'status'   => 'failed',
+					'outcome'  => (object) [ 'seller_message' => 'The bank declined the payment.' ],
+				],
+			],
+			'pending uncaptured charge' => [
+				[
+					'id'       => 'ch_pending',
+					'captured' => false,
+					'status'   => 'pending',
+				],
+			],
+			'missing charge status'     => [
+				[
+					'id'       => 'ch_missing',
+					'captured' => false,
+				],
+			],
+			'unknown charge status'     => [
+				[
+					'id'       => 'ch_unknown',
+					'captured' => false,
+					'status'   => 'unknown',
+				],
+			],
+			'null captured flag'        => [
+				[
+					'id'       => 'ch_null',
+					'captured' => null,
+					'status'   => 'succeeded',
+				],
+			],
+		];
+	}
+
+	/**
 	 * Builds the minimal succeeded charge `process_response()` needs, keeping the fee lookup and token
 	 * update branches out of the path.
 	 *
@@ -1865,6 +2124,94 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			'id'       => $charge_id,
 			'captured' => true,
 			'status'   => 'succeeded',
+		];
+	}
+
+	/**
+	 * A succeeded charge can have its funds reversed without changing its status.
+	 *
+	 * @since x.x.x
+	 * @dataProvider provide_reversed_charges
+	 * @param array $charge_properties Refund or dispute state returned by Stripe.
+	 */
+	public function test_process_response_rejects_reversed_charges( array $charge_properties ): void {
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_manage_stock( true );
+		$product->set_stock_quantity( 10 );
+		$product->save();
+		$order  = WC_Helper_Order::create_order( 1, $product );
+		$charge = (object) array_merge(
+			(array) $this->build_succeeded_charge( 'ch_reversed' ),
+			[
+				'object'          => 'charge',
+				'paid'            => true,
+				'amount'          => 5000,
+				'refunded'        => false,
+				'amount_refunded' => 0,
+				'disputed'        => false,
+			],
+			$charge_properties
+		);
+
+		$payment_complete = new MockAction();
+		$process_charge   = new MockAction();
+		$process_response = new MockAction();
+		add_action( 'woocommerce_payment_complete', [ $payment_complete, 'action' ] );
+		add_action( 'wc_gateway_stripe_process_payment_charge', [ $process_charge, 'action' ] );
+		add_action( 'wc_gateway_stripe_process_response', [ $process_response, 'action' ] );
+
+		$exception = null;
+		try {
+			$this->gateway->process_response( $charge, $order );
+		} catch ( WC_Stripe_Exception $e ) {
+			$exception = $e;
+		} finally {
+			remove_action( 'woocommerce_payment_complete', [ $payment_complete, 'action' ] );
+			remove_action( 'wc_gateway_stripe_process_payment_charge', [ $process_charge, 'action' ] );
+			remove_action( 'wc_gateway_stripe_process_response', [ $process_response, 'action' ] );
+		}
+
+		$this->assertInstanceOf( WC_Stripe_Exception::class, $exception );
+		$order = wc_get_order( $order->get_id() );
+		$this->assertSame( 'pending', $order->get_status() );
+		$this->assertNull( $order->get_date_paid() );
+		$this->assertEmpty( $order->get_transaction_id() );
+		$this->assertEmpty( $order->get_meta( '_stripe_charge_captured', true ) );
+		$this->assertEmpty( wc_get_order_notes( [ 'order_id' => $order->get_id() ] ) );
+		$this->assertSame( 10, wc_get_product( $product->get_id() )->get_stock_quantity() );
+		$this->assertSame( 0, $payment_complete->get_call_count() );
+		$this->assertSame( 0, $process_charge->get_call_count() );
+		$this->assertSame( 0, $process_response->get_call_count() );
+	}
+
+	/**
+	 * Provider for `test_process_response_rejects_reversed_charges`.
+	 *
+	 * @since x.x.x
+	 * @return array
+	 */
+	public function provide_reversed_charges(): array {
+		return [
+			'fully refunded'                    => [
+				[
+					'refunded'        => true,
+					'amount_refunded' => 5000,
+				],
+			],
+			'refund flag without amount'        => [ [ 'refunded' => true ] ],
+			'disputed'                          => [ [ 'disputed' => true ] ],
+			'refunded and disputed'             => [
+				[
+					'refunded' => true,
+					'disputed' => true,
+				],
+			],
+			'released uncaptured authorization' => [
+				[
+					'captured' => false,
+					'refunded' => true,
+				],
+			],
 		];
 	}
 

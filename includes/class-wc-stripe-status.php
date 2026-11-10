@@ -161,7 +161,7 @@ class WC_Stripe_Status {
 						$express_checkout_enabled_locations = array_values(
 							array_unique(
 								array_merge(
-									$express_checkout_helper->get_button_locations( 'payment_request' ),
+									$express_checkout_helper->get_button_locations( 'apple_pay_google_pay' ),
 									$express_checkout_helper->get_button_locations( 'link' ),
 									$express_checkout_helper->get_button_locations( 'amazon_pay' )
 								)

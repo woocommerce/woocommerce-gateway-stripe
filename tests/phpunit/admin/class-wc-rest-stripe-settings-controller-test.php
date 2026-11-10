@@ -8,6 +8,8 @@ use Automattic\WooCommerce\Blocks\Package;
  * WC_REST_Stripe_Settings_Controller_Test unit tests.
  */
 class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
+	use WC_Stripe_Tracks_Capture_Trait;
+
 	/**
 	 * Tested REST route.
 	 */
@@ -914,6 +916,63 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	/**
+	 * Turning Optimized Checkout or Adaptive Pricing on or off records the matching Tracks event,
+	 * and saving the same value again records nothing.
+	 *
+	 * @dataProvider provide_oc_ap_toggle_tracks_events
+	 *
+	 * @param string      $rest_key       REST API key.
+	 * @param string      $option_name    Gateway option name.
+	 * @param string      $initial_value  Option value before the request.
+	 * @param bool        $new_value      Value sent in the request.
+	 * @param string|null $expected_event Prefixed Tracks event name, or null when no event is expected.
+	 */
+	public function test_oc_ap_toggle_records_tracks_event( string $rest_key, string $option_name, string $initial_value, bool $new_value, ?string $expected_event ): void {
+		$this->get_gateway()->update_option( $option_name, $initial_value );
+
+		$this->start_capturing_tracks_events();
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( $rest_key, $new_value );
+		$response = rest_do_request( $request );
+		$this->stop_capturing_tracks_events();
+
+		$this->assertSame( 200, $response->get_status() );
+
+		$all_toggle_events = [];
+		foreach ( [ 'wcstripe_oc_enabled', 'wcstripe_oc_disabled', 'wcstripe_ap_enabled', 'wcstripe_ap_disabled' ] as $event_name ) {
+			$events = $this->get_captured_tracks_event_properties( 'wcadmin_' . $event_name );
+			if ( ! empty( $events ) ) {
+				$all_toggle_events[ 'wcadmin_' . $event_name ] = $events;
+			}
+		}
+
+		if ( null === $expected_event ) {
+			$this->assertSame( [], $all_toggle_events );
+			return;
+		}
+
+		$this->assertSame( [ $expected_event ], array_keys( $all_toggle_events ) );
+		$this->assertCount( 1, $all_toggle_events[ $expected_event ] );
+		$this->assertSame( 'settings_rest_api', $all_toggle_events[ $expected_event ][0]['source'] );
+	}
+
+	/**
+	 * Data provider for `test_oc_ap_toggle_records_tracks_event`.
+	 *
+	 * @return array
+	 */
+	public function provide_oc_ap_toggle_tracks_events(): array {
+		return [
+			'OC turned on'  => [ 'is_oc_enabled', 'optimized_checkout_element', 'no', true, 'wcadmin_wcstripe_oc_enabled' ],
+			'OC turned off' => [ 'is_oc_enabled', 'optimized_checkout_element', 'yes', false, 'wcadmin_wcstripe_oc_disabled' ],
+			'OC unchanged'  => [ 'is_oc_enabled', 'optimized_checkout_element', 'yes', true, null ],
+			'AP turned on'  => [ 'is_ap_enabled', 'adaptive_pricing', 'no', true, 'wcadmin_wcstripe_ap_enabled' ],
+			'AP turned off' => [ 'is_ap_enabled', 'adaptive_pricing', 'yes', false, 'wcadmin_wcstripe_ap_disabled' ],
+			'AP unchanged'  => [ 'is_ap_enabled', 'adaptive_pricing', 'no', false, null ],
+		];
+	}
+
+	/**
 	 * Data provider for `test_boolean_fields`.
 	 *
 	 * @return array
@@ -942,55 +1001,154 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	/**
+	 * The deprecated per-method size params still update the (now shared) size, whichever
+	 * method's param is sent.
+	 *
+	 * @dataProvider provide_legacy_button_size_params
+	 *
+	 * @param string $legacy_param The deprecated per-method size param name.
+	 * @return void
+	 */
+	public function test_legacy_button_size_params_update_shared_size( string $legacy_param ) {
+		// Start from a known size so the assertions prove a real change, not a pre-set value.
+		$this->get_gateway()->update_option( 'express_checkout_button_size', 'small' );
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_upe_enabled', true );
+		$request->set_param( $legacy_param, 'large' );
+
+		$response = rest_do_request( $request );
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertSame( 'large', $this->get_gateway()->get_option( 'express_checkout_button_size' ) );
+		// The per-method options stay in step so a rollback shows the same size.
+		$this->assertSame( 'large', $this->get_gateway()->get_option( 'link_button_size' ) );
+		$this->assertSame( 'large', $this->get_gateway()->get_option( 'amazon_pay_button_size' ) );
+
+		// GET keeps exposing the deprecated fields, aliased to the shared size.
+		$data = $this->rest_get_settings()->get_data();
+		$this->assertSame( 'large', $data['link_button_size'] );
+		$this->assertSame( 'large', $data['amazon_pay_button_size'] );
+	}
+
+	/**
+	 * Data provider for test_legacy_button_size_params_update_shared_size.
+	 *
+	 * @return array
+	 */
+	public function provide_legacy_button_size_params(): array {
+		return [
+			'link'       => [ 'link_button_size' ],
+			'amazon_pay' => [ 'amazon_pay_button_size' ],
+		];
+	}
+
+	/**
+	 * When both the shared and a deprecated size param are present, the shared one wins.
+	 *
+	 * @return void
+	 */
+	public function test_shared_button_size_param_wins_over_legacy_alias() {
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_upe_enabled', true );
+		$request->set_param( 'express_checkout_button_size', 'small' );
+		$request->set_param( 'amazon_pay_button_size', 'large' );
+		$request->set_param( 'link_button_size', 'large' );
+
+		$response = rest_do_request( $request );
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertSame( 'small', $this->get_gateway()->get_option( 'express_checkout_button_size' ) );
+		$this->assertSame( 'small', $this->get_gateway()->get_option( 'amazon_pay_button_size' ) );
+		$this->assertSame( 'small', $this->get_gateway()->get_option( 'link_button_size' ) );
+	}
+
+	/**
+	 * Each method's locations are stored in its own option, so a rollback to a version
+	 * that reads those options directly keeps the merchant's choices, and GET returns
+	 * the same flat lists.
+	 *
+	 * @return void
+	 */
+	public function test_express_checkout_button_locations_are_stored_per_method() {
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_upe_enabled', true );
+		$request->set_param( 'express_checkout_button_locations', [ 'product', 'cart' ] );
+		$request->set_param( 'link_button_locations', [ 'product', 'checkout' ] );
+		$request->set_param( 'amazon_pay_button_locations', [ 'product' ] );
+
+		$response = rest_do_request( $request );
+		$this->assertEquals( 200, $response->get_status() );
+
+		$gateway = $this->get_gateway();
+		$this->assertSame( [ 'product', 'cart' ], $gateway->get_option( 'express_checkout_button_locations' ) );
+		$this->assertSame( [ 'product', 'checkout' ], $gateway->get_option( 'link_button_locations' ) );
+		$this->assertSame( [ 'product' ], $gateway->get_option( 'amazon_pay_button_locations' ) );
+
+		$data = $this->rest_get_settings()->get_data();
+		$this->assertSame( [ 'product', 'cart' ], $data['express_checkout_button_locations'] );
+		$this->assertSame( [ 'product', 'checkout' ], $data['link_button_locations'] );
+		$this->assertSame( [ 'product' ], $data['amazon_pay_button_locations'] );
+	}
+
+	/**
+	 * Saving one method's locations leaves the other methods' options alone, and an
+	 * emptied list disables that method without touching the others.
+	 *
+	 * @return void
+	 */
+	public function test_express_checkout_button_locations_partial_update_keeps_other_methods() {
+		$settings                          = WC_Stripe_Helper::get_stripe_settings();
+		$settings['link_button_locations'] = [ 'checkout' ];
+		unset( $settings['amazon_pay_button_locations'] );
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		// The gateway caches settings on load; reload so the removed key is really absent.
+		$gateway = $this->get_gateway();
+		$gateway->init_settings();
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_upe_enabled', true );
+		$request->set_param( 'express_checkout_button_locations', [] );
+
+		$response = rest_do_request( $request );
+		$this->assertEquals( 200, $response->get_status() );
+
+		$this->assertSame( [ 'checkout' ], $gateway->get_option( 'link_button_locations' ) );
+
+		$data = $this->rest_get_settings()->get_data();
+		$this->assertSame( [], $data['express_checkout_button_locations'] );
+		$this->assertSame( [ 'checkout' ], $data['link_button_locations'] );
+		// Amazon Pay was never saved, so it keeps the default placement.
+		$this->assertSame( [ 'product', 'cart' ], $data['amazon_pay_button_locations'] );
+	}
+
+	/**
 	 * Data provider for `test_enum_fields`.
 	 *
 	 * @return array
 	 */
 	public function enum_field_provider() {
 		return [
-			'express_checkout_button_theme'     => [
+			'express_checkout_button_theme' => [
 				'express_checkout_button_theme',
 				'express_checkout_button_theme',
 				'dark',
 				'light',
 				'foo',
 			],
-			'express_checkout_button_size'      => [
+			'express_checkout_button_size'  => [
 				'express_checkout_button_size',
 				'express_checkout_button_size',
 				'default',
 				'large',
 				'foo',
 			],
-			'express_checkout_button_type'      => [
+			'express_checkout_button_type'  => [
 				'express_checkout_button_type',
 				'express_checkout_button_type',
 				'buy',
 				'book',
 				'foo',
 			],
-			'express_checkout_button_locations' => [
-				'express_checkout_button_locations',
-				'express_checkout_button_locations',
-				[ 'cart' ],
-				[ 'cart', 'checkout', 'product' ],
-				[ 'foo' ],
-			],
-			'link_button_size'                  => [
-				'link_button_size',
-				'link_button_size',
-				'default',
-				'large',
-				'foo',
-			],
-			'link_button_locations'             => [
-				'link_button_locations',
-				'link_button_locations',
-				[ 'cart' ],
-				[ 'cart', 'checkout', 'product' ],
-				[ 'foo' ],
-			],
-			'optimized_checkout_layout'         => [
+			'optimized_checkout_layout'     => [
 				'oc_layout',
 				'optimized_checkout_layout',
 				'accordion',

@@ -267,11 +267,11 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			}
 
 			if ( ! isset( $result->publishableKey, $result->secretKey ) ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-				return new WP_Error( 'Invalid credentials received from WooCommerce Connect server' );
+				return new WP_Error( 'invalid_credentials', 'Invalid credentials received from WooCommerce Connect server' );
 			}
 
 			if ( 'app' === $type && ! isset( $result->refreshToken ) ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-				return new WP_Error( 'Invalid credentials received from WooCommerce Connect server' );
+				return new WP_Error( 'invalid_credentials', 'Invalid credentials received from WooCommerce Connect server' );
 			}
 
 			$publishable_key                            = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
@@ -303,9 +303,15 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// Before saving the new keys, decommission any webhook configured on the
 			// previously connected account.
 			$previous_webhook_data = $options[ $prefix . 'webhook_data' ] ?? '';
-			if ( WC_Stripe::get_instance()->account->maybe_decommission_webhook( $previous_webhook_data, $secret_key ) ) {
+			if ( is_array( $previous_webhook_data ) && empty( $previous_webhook_data['secret'] ) ) {
+				$previous_webhook_data['secret'] = $current_options[ $prefix . 'secret_key' ] ?? '';
+			}
+			$account = WC_Stripe::get_instance()->account;
+			if ( $account->maybe_decommission_webhook( $previous_webhook_data, $secret_key ) ) {
 				$options[ $prefix . 'webhook_data' ]   = [];
 				$options[ $prefix . 'webhook_secret' ] = '';
+			} elseif ( $account->should_decommission_webhook( $previous_webhook_data, $secret_key ) ) {
+				$options[ $prefix . 'webhook_data' ] = $previous_webhook_data;
 			}
 
 			WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
@@ -363,6 +369,14 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				// Automatically configure webhooks for the account now that we have the keys.
 				WC_Stripe::get_instance()->account->configure_webhooks( $is_test ? 'test' : 'live' );
 			} catch ( Exception $e ) {
+				WC_Stripe_Logger::error(
+					'OAuth: Failed to configure webhooks after saving keys',
+					[
+						'exception_message' => $e->getMessage(),
+						'mode'              => $is_test ? 'test' : 'live',
+						'connection_type'   => $type,
+					]
+				);
 				return new WP_Error( 'wc_stripe_webhook_error', $e->getMessage() );
 			} finally {
 				// Ensure we reset the key before we do anything else.
@@ -373,13 +387,15 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// configured above. AP requires a working webhook endpoint, so this decision must run after
 			// configure_webhooks()
 			if ( 'connect' === $type && $should_default_optimized_checkout_on ) {
-				if ( WC_Stripe_Helper::is_adaptive_pricing_available_for_account() ) {
+				$ap_unavailable_reason = WC_Stripe_Helper::get_adaptive_pricing_account_unavailable_reason();
+				if ( null === $ap_unavailable_reason ) {
 					$settings                     = WC_Stripe_Helper::get_stripe_settings();
 					$settings['adaptive_pricing'] = 'yes';
 					WC_Stripe_Helper::update_main_stripe_settings( $settings );
 				} else {
 					WC_Stripe_Logger::info( 'OAuth: Not defaulting Adaptive Pricing on; it is not available for the connected account.' );
 				}
+				WC_Stripe_Helper::record_adaptive_pricing_default_tracks_event( 'connect', $ap_unavailable_reason );
 			}
 
 			return $result;
@@ -402,7 +418,8 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return;
 			}
 
-			$settings = WC_Stripe_Helper::get_stripe_settings();
+			$settings        = WC_Stripe_Helper::get_stripe_settings();
+			$previous_secret = $settings['test_secret_key'] ?? '';
 
 			$settings['test_publishable_key'] = $test_publishable_key;
 			$settings['test_secret_key']      = $test_secret_key;
@@ -410,9 +427,15 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			// Decommission any webhook configured on the previously connected test account.
 			$previous_webhook_data = $settings['test_webhook_data'] ?? '';
-			if ( WC_Stripe::get_instance()->account->maybe_decommission_webhook( $previous_webhook_data, $test_secret_key ) ) {
+			if ( is_array( $previous_webhook_data ) && empty( $previous_webhook_data['secret'] ) ) {
+				$previous_webhook_data['secret'] = $previous_secret;
+			}
+			$account = WC_Stripe::get_instance()->account;
+			if ( $account->maybe_decommission_webhook( $previous_webhook_data, $test_secret_key ) ) {
 				$settings['test_webhook_data']   = [];
 				$settings['test_webhook_secret'] = '';
+			} elseif ( $account->should_decommission_webhook( $previous_webhook_data, $test_secret_key ) ) {
+				$settings['test_webhook_data'] = $previous_webhook_data;
 			}
 
 			WC_Stripe_Helper::update_main_stripe_settings( $settings );
@@ -694,10 +717,15 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				'secretKey',
 				'testSecretKey',
 				'refreshToken',
+				'refresh_token',
+				'test_refresh_token',
+				'secret',
+				'client_secret',
 				'secret_key',
 				'test_secret_key',
 				'webhook_secret',
 				'test_webhook_secret',
+				'signing_secret',
 			];
 
 			if ( is_object( $data ) ) {
