@@ -167,6 +167,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 11.3.0 - xxxx-xx-xx =
 * Update - Improve express checkout wallet startup, availability checks, reuse, and recovery
+* Fix - Stop classic checkout with Adaptive Pricing from showing "We couldn't update your order total" when the shopper changes shipping or address details while an earlier update is still finishing
 
 = 11.2.0 - xxxx-xx-xx =
 * Fix - Refund or void a Stripe payment that succeeds for an order that was already cancelled, instead of leaving the shopper charged
