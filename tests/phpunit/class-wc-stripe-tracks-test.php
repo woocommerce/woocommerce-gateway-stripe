@@ -97,7 +97,7 @@ class WC_Stripe_Tracks_Test extends WP_UnitTestCase {
 				'yes',
 				[],
 				[
-					'is_test_mode'   => true,
+					'is_test_mode'   => 1,
 					'stripe_version' => WC_STRIPE_VERSION,
 				],
 			],
@@ -105,7 +105,7 @@ class WC_Stripe_Tracks_Test extends WP_UnitTestCase {
 				'no',
 				[],
 				[
-					'is_test_mode'   => false,
+					'is_test_mode'   => 0,
 					'stripe_version' => WC_STRIPE_VERSION,
 				],
 			],
@@ -116,7 +116,7 @@ class WC_Stripe_Tracks_Test extends WP_UnitTestCase {
 					'enabled'    => false,
 				],
 				[
-					'is_test_mode'   => true,
+					'is_test_mode'   => 1,
 					'stripe_version' => WC_STRIPE_VERSION,
 					'account_id'     => 'acct_123',
 					'enabled'        => false,
