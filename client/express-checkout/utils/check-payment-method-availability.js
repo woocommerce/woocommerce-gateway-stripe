@@ -149,7 +149,31 @@ export const checkPaymentMethodIsAvailable = async (
 	if ( ! cart?.cartTotals?.currency_code ) {
 		return Promise.resolve( false );
 	}
+	if (
+		! getPaymentMethodsToProbe( paymentMethod ).includes( paymentMethod )
+	) {
+		return false;
+	}
 
+	return checkAvailabilityWithTotals(
+		paymentMethod,
+		api,
+		Number(
+			transformPriceWithMinorUnits(
+				cart.cartTotals.total_price,
+				cart.cartTotals.currency_minor_unit
+			)
+		),
+		cart.cartTotals.currency_code
+	);
+};
+
+const checkAvailabilityWithTotals = async (
+	paymentMethod,
+	api,
+	amount,
+	currency
+) => {
 	const methods = getPaymentMethodsToProbe( paymentMethod );
 	if ( ! methods.includes( paymentMethod ) ) {
 		return Promise.resolve( false );
@@ -163,13 +187,8 @@ export const checkPaymentMethodIsAvailable = async (
 		...( isManualPaymentMethodCreation( paymentMethod, hasFreeTrial ) && {
 			paymentMethodCreation: 'manual',
 		} ),
-		amount: Number(
-			transformPriceWithMinorUnits(
-				cart.cartTotals.total_price,
-				cart.cartTotals.currency_minor_unit
-			)
-		),
-		currency: cart.cartTotals.currency_code.toLowerCase(),
+		amount,
+		currency: currency.toLowerCase(),
 		// Let Stripe discover card wallets without explicitly requiring Link.
 		...( isAmazonPay && {
 			paymentMethodTypes:
@@ -232,4 +251,58 @@ export const checkPaymentMethodIsAvailable = async (
 	return probes
 		.get( key )
 		.then( ( available ) => Boolean( available?.[ paymentMethod ] ) );
+};
+
+/**
+ * Start card-wallet discovery while Blocks prepares the live cart. The server
+ * amount is already in Stripe minor units; live checks still apply their guards
+ * and use a different cache entry if currency, mode or enabled wallets change.
+ *
+ * @param {Object} api The WCStripeAPI instance used by the registered wallets.
+ * @return {Promise<boolean>|undefined} The first enabled wallet's optional availability result.
+ */
+export const preloadPaymentMethodAvailability = ( api ) => {
+	let config;
+	try {
+		config = getBlocksConfiguration();
+	} catch {
+		return;
+	}
+
+	if (
+		config?.isAdmin ||
+		! config?.shouldShowExpressCheckoutButton ||
+		typeof document === 'undefined' ||
+		! document.body ||
+		typeof config.currency !== 'string' ||
+		! /^[a-z]{3}$/i.test( config.currency ) ||
+		! [ 'number', 'string' ].includes( typeof config.cartTotal ) ||
+		config.cartTotal === ''
+	) {
+		return;
+	}
+
+	const amount = Number( config.cartTotal );
+	if (
+		! Number.isSafeInteger( amount ) ||
+		amount < 0 ||
+		( amount === 0 && ! getExpressCheckoutData( 'has_free_trial' ) )
+	) {
+		return;
+	}
+
+	// Amazon Pay depends on the live amount and must keep its separate probe.
+	const [ method ] = getPaymentMethodsToProbe(
+		EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY
+	);
+	if ( ! method ) {
+		return;
+	}
+
+	return checkAvailabilityWithTotals(
+		method,
+		api,
+		amount,
+		config.currency
+	).catch( () => false );
 };
