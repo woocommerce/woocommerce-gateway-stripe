@@ -1,9 +1,11 @@
 *** Changelog ***
 
 xxxx-xx-xx - version 11.3.0
+* Update - Start wallet availability checks earlier on Cart and Checkout blocks
 * Update - Improve express checkout wallet startup, availability checks, reuse, and recovery
 * Fix - Avoid expensive variation lookup in express checkout setup on product pages
 * Dev - Add WC_Stripe_Tracks class to support more consistent events
+* Dev - Load React's JSX runtime from WordPress core instead of bundling it, and declare "Tested up to" only in readme.txt
 * Fix - Prevent a second charge when a shopper pays again through Adaptive Pricing for an order an earlier payment attempt already paid
 
 2026-11-10 - version 11.2.0
