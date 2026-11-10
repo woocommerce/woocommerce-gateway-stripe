@@ -75,7 +75,7 @@ final class WC_Stripe_Tracks {
 	 */
 	public static function get_default_event_properties(): array {
 		return [
-			'is_test_mode'   => WC_Stripe_Mode::is_test(),
+			'is_test_mode'   => WC_Stripe_Mode::is_test() ? 1 : 0,
 			'stripe_version' => WC_STRIPE_VERSION,
 		];
 	}
