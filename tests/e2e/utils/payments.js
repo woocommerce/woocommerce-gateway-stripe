@@ -96,16 +96,16 @@ export async function emptyCart( page ) {
  *
  * @param {Page} page Playwright page fixture.
  * @param {any} lineItems A 2D array of line items where each line item is an array
- * that contains the product title as the first element, and the quantity as the second.
+ * that contains the product slug as the first element, and the quantity as the second.
  * For example, if you want to add the products x2 "Hoodie" and x3 "Belt" then you can set this `lineItems` parameter like this:
  *
- * `[ [ "Hoodie", 2 ], [ "Belt", 3 ] ]`.
+ * `[ [ "hoodie", 2 ], [ "belt", 3 ] ]`.
  *
- * Default value is 1 piece of `config.get( 'products.simple.name' )`.
+ * Default value is 1 piece of `config.get( 'products.simple.slug' )`.
  */
 export async function setupCart(
 	page,
-	lineItems = [ [ config.get( 'products.simple.name' ), 1 ] ]
+	lineItems = [ [ config.get( 'products.simple.slug' ), 1 ] ]
 ) {
 	// The shop page's product grid and the header cart counter look different
 	// under classic and block themes, so fill the cart through the Store API.
@@ -113,24 +113,23 @@ export async function setupCart(
 	const cart = await page.request.get( '/wp-json/wc/store/v1/cart' );
 	const nonce = cart.headers().nonce;
 
-	for ( const [ productTitle, quantity ] of lineItems ) {
+	for ( const [ productSlug, quantity ] of lineItems ) {
+		// Slugs are stable across sites, while sample-product IDs depend on
+		// import order, and the slug filter is exact.
 		const response = await page.request.get(
-			`/wp-json/wc/store/v1/products?search=${ encodeURIComponent(
-				productTitle
-			) }&per_page=20`
+			`/wp-json/wc/store/v1/products?slug=${ encodeURIComponent(
+				productSlug
+			) }`
 		);
 		if ( ! response.ok() ) {
 			throw new Error(
-				`Failed to search products: ${ response.status() } ${ response.statusText() }`
+				`Failed to look up products: ${ response.status() } ${ response.statusText() }`
 			);
 		}
-		// The search matches substrings, so pick the exact title.
-		const product = ( await response.json() ).find(
-			( { name } ) => name === productTitle
-		);
+		const [ product ] = await response.json();
 		if ( ! product ) {
 			throw new Error(
-				`Could not find product "${ productTitle }" via the Store API.`
+				`Could not find product "${ productSlug }" via the Store API.`
 			);
 		}
 
@@ -140,7 +139,7 @@ export async function setupCart(
 		);
 		if ( ! added.ok() ) {
 			throw new Error(
-				`Failed to add "${ productTitle }" to the cart: ${ added.status() } ${ await added.text() }`
+				`Failed to add "${ productSlug }" to the cart: ${ added.status() } ${ await added.text() }`
 			);
 		}
 	}
@@ -1384,7 +1383,7 @@ export const fillBECSDetails = async ( page, checkoutType = 'blocks' ) => {
  */
 export const setupAffirmCheckout = async ( page, checkoutType = 'blocks' ) => {
 	// Affirm is only available when the price is above $50.
-	const lineItems = [ [ config.get( 'products.simple.name' ), 5 ] ];
+	const lineItems = [ [ config.get( 'products.simple.slug' ), 5 ] ];
 
 	await emptyCart( page );
 	await setupCart( page, lineItems );
