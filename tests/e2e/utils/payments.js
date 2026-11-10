@@ -1036,13 +1036,29 @@ export async function handleCheckout3DSChallenge( page, action = 'authorize' ) {
  * @param {Page} page Playwright page fixture.
  */
 export async function tickSavePaymentMethodBlocks( page ) {
-	const checkbox = page.getByLabel( 'Save payment information' );
+	const checkbox = page.locator(
+		'.wc-block-components-payment-methods__save-card-info input[type="checkbox"]'
+	);
 	// A dispatched click also lands on a hidden element, and the plugin hides
 	// this checkbox when Link handles saving, so check a shopper could use it.
 	await expect( checkbox ).toBeVisible();
 	await expect( checkbox ).toBeEnabled();
 	await checkbox.dispatchEvent( 'click' );
 	await expect( checkbox ).toBeChecked();
+
+	// Ticking triggers an elements.update() with setup_future_usage and the
+	// payment element reloads; submitting while it reloads sends no payment
+	// details. Wait for the selected method's own element, not Stripe's
+	// earlier-loading helper iframes.
+	const selectedMethodId = await page
+		.locator(
+			'input[name="radio-control-wc-payment-method-options"]:checked'
+		)
+		.getAttribute( 'id' );
+	await waitForStripeReady(
+		page,
+		`#${ selectedMethodId }__content iframe[src*="elements-inner-payment"]`
+	);
 }
 
 /**
