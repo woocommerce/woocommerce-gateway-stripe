@@ -644,7 +644,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Refunds and disputes can invalidate a charge while its payment status remains succeeded.
 	 *
-	 * @since x.x.x
+	 * @since 11.2.0
 	 * @param mixed $charge The charge, or an absent or unexpanded charge reference.
 	 * @return bool
 	 */
@@ -2412,7 +2412,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Whether WooCommerce is still asking the visitor to verify the order's billing email
 	 * before showing the pay-for-order form.
 	 *
-	 * @since x.x.x
+	 * @since 11.2.0
 	 *
 	 * @param WC_Order $order The order being paid.
 	 * @return bool True when verification is still pending, or cannot be determined for a guest.
@@ -2441,7 +2441,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * The helper lives in WooCommerce's internal namespace, which carries no stability
 	 * guarantee, so its presence is checked rather than assumed.
 	 *
-	 * @since x.x.x
+	 * @since 11.2.0
 	 *
 	 * @return bool
 	 */

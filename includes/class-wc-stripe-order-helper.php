@@ -1014,7 +1014,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * A false refund marker must not block legitimate checkout callbacks.
 	 *
-	 * @since x.x.x
+	 * @since 11.2.0
 	 * @param WC_Order $order The order to check.
 	 * @return bool
 	 */
@@ -1379,7 +1379,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Holds an order for reconciliation when Stripe has taken a payment that no longer matches it.
 	 *
-	 * @since x.x.x
+	 * @since 11.2.0
 	 *
 	 * @param WC_Order $order  The order being settled.
 	 * @param object   $intent The successful PaymentIntent from Stripe.
@@ -1419,7 +1419,7 @@ class WC_Stripe_Order_Helper {
 	 * filter supplying the order id, or the order currency changing after the intent was created) and
 	 * returns false so the caller holds the order rather than settling it unchecked.
 	 *
-	 * @since x.x.x
+	 * @since 11.2.0
 	 *
 	 * @param WC_Order $order  The order being settled.
 	 * @param object   $intent The succeeded PaymentIntent.
@@ -1444,7 +1444,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Whether the intent is an Adaptive Pricing checkout, settled in the buyer's presentment currency.
 	 *
-	 * @since x.x.x
+	 * @since 11.2.0
 	 *
 	 * @param object $intent The PaymentIntent.
 	 * @return bool
@@ -1457,7 +1457,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Logs, notes, and holds an order whose PaymentIntent settled for a different amount than its total.
 	 *
-	 * @since x.x.x
+	 * @since 11.2.0
 	 *
 	 * @param WC_Order $order  The order to hold.
 	 * @param object   $intent The succeeded PaymentIntent whose amount did not match.

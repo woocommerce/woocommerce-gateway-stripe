@@ -62,7 +62,7 @@ class WC_Stripe_Helper {
 	/**
 	 * Returns the Stripe.js version this plugin ships, for example 'dahlia'.
 	 *
-	 * @since x.x.x
+	 * @since 11.2.0
 	 *
 	 * @return string
 	 */
@@ -181,7 +181,7 @@ class WC_Stripe_Helper {
 	 * Masks an API key or webhook secret so that it can be sent to the client.
 	 * Only the first ten and the last two characters stay visible.
 	 *
-	 * @since x.x.x
+	 * @since 11.2.0
 	 *
 	 * @param string $value The key or secret.
 	 * @return string
@@ -230,7 +230,7 @@ class WC_Stripe_Helper {
 	/**
 	 * Reject unsupported amounts before integer conversion can wrap to a smaller payment.
 	 *
-	 * @since x.x.x
+	 * @since 11.2.0
 	 * @param float|int|string $amount Amount in the currency's smallest unit.
 	 * @return int
 	 * @throws WC_Stripe_Exception If the amount exceeds Stripe's maximum or PHP's integer limit.
@@ -1405,7 +1405,7 @@ class WC_Stripe_Helper {
 	 * without a merchant action. Merchant changes in the settings are tracked separately.
 	 *
 	 * @internal
-	 * @since x.x.x
+	 * @since 11.2.0
 	 *
 	 * @param string      $source         The flow that made the decision, e.g. 'connect' or 'ocs_ap_default_on'.
 	 * @param string|null $skipped_reason Why Adaptive Pricing was left off, or null when it was turned on.

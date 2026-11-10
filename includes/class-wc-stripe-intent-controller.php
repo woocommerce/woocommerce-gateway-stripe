@@ -1130,7 +1130,7 @@ class WC_Stripe_Intent_Controller {
 	/**
 	 * A completed automatic refund must not be undone by a delayed browser callback.
 	 *
-	 * @since x.x.x
+	 * @since 11.2.0
 	 * @param WC_Order $order The order being confirmed.
 	 * @throws WC_Stripe_Exception When payment processing has been closed.
 	 */

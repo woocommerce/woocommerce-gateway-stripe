@@ -314,7 +314,7 @@ class WC_Stripe_Express_Checkout_Element {
 	/**
 	 * Builds the Express Checkout parameters for the Pay for Order page.
 	 *
-	 * @since x.x.x
+	 * @since 11.2.0
 	 * @param WC_Order $order The order being paid.
 	 * @return array
 	 * @throws WC_Stripe_Exception If an order amount exceeds the supported range.
