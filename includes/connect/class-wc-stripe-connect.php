@@ -573,8 +573,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 					continue;
 				}
 
-				$platform = 'test' === $mode ? 'sandbox' : 'live';
-				$response = $this->api->deauthorize_account( $account_id, $secret_key, $platform );
+				$response = $this->api->deauthorize_account( $account_id, $secret_key );
 
 				$results[ $mode ] = ! is_wp_error( $response );
 

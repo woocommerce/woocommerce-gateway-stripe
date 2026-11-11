@@ -510,8 +510,11 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$mock                              = function ( $preempt, $args, $url ) use ( &$counts, $failures, $settings ) {
 			$this->assertStringEndsWith( '/stripe/account/deauthorize-by-key', $url );
 			$body   = json_decode( $args['body'], true );
-			$mode   = 'sandbox' === $body['platform'] ? 'test' : 'live';
+			$mode   = 0 === strpos( $body['secretKey'], 'sk_test_' ) ? 'test' : 'live';
 			$prefix = 'test' === $mode ? 'test_' : '';
+			$this->assertSame( 'acct_123', $body['accountId'] );
+			$this->assertSame( $settings[ $prefix . 'secret_key' ], $body['secretKey'] );
+			$this->assertArrayNotHasKey( 'platform', $body );
 			$this->assertSame( $settings[ $prefix . 'secret_key' ], WC_Stripe_Helper::get_stripe_settings()[ $prefix . 'secret_key' ] );
 			++$counts[ $mode ];
 			$failed = in_array( $mode, $failures, true );

@@ -15,7 +15,7 @@ class WC_Stripe_Connect_API_Test extends WP_UnitTestCase {
 			$body = json_decode( $args['body'], true );
 			$this->assertSame( 'acct_123', $body['accountId'] );
 			$this->assertSame( 'sk_live_example', $body['secretKey'] );
-			$this->assertSame( 'live', $body['platform'] );
+			$this->assertArrayNotHasKey( 'platform', $body );
 			$this->assertGreaterThan( 0, $args['timeout'] );
 			$this->assertLessThanOrEqual( 5, $args['timeout'] );
 			$requests[] = $args;
@@ -24,7 +24,7 @@ class WC_Stripe_Connect_API_Test extends WP_UnitTestCase {
 		add_filter( 'pre_http_request', $mock, 10, 3 );
 
 		try {
-			$response = ( new WC_Stripe_Connect_API() )->deauthorize_account( 'acct_123', 'sk_live_example', 'live' );
+			$response = ( new WC_Stripe_Connect_API() )->deauthorize_account( 'acct_123', 'sk_live_example' );
 			$this->assertCount( $request_count, $requests );
 			$this->assertSame( ! $confirmed, is_wp_error( $response ) );
 			if ( $confirmed ) {

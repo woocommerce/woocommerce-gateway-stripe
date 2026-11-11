@@ -732,7 +732,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 *
 	 * @param array $settings       Stripe settings to store before the call.
 	 * @param array $account_data   Cached account data returned for both modes.
-	 * @param array $expected_calls Expected [ account_id, secret_key, platform ] tuples, in order.
+	 * @param array $expected_calls Expected [ account_id, secret_key ] tuples, in order.
 	 *
 	 * @dataProvider provide_deauthorize_oauth_connections
 	 */
@@ -747,8 +747,8 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$api_mock->expects( $this->exactly( count( $expected_calls ) ) )
 			->method( 'deauthorize_account' )
 			->willReturnCallback(
-				function ( $account_id, $secret_key, $platform ) use ( &$calls ) {
-					$calls[] = [ $account_id, $secret_key, $platform ];
+				function ( $account_id, $secret_key ) use ( &$calls ) {
+					$calls[] = [ $account_id, $secret_key ];
 					return [ 'accountId' => $account_id ];
 				}
 			);
@@ -780,8 +780,8 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'account_data'   => [ 'id' => 'acct_123' ],
 				'expected_calls' => [
-					[ 'acct_123', 'sk_live_abc', 'live' ],
-					[ 'acct_123', 'sk_test_abc', 'sandbox' ],
+					[ 'acct_123', 'sk_live_abc' ],
+					[ 'acct_123', 'sk_test_abc' ],
 				],
 			],
 			'live connect only'                 => [
@@ -791,7 +791,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 				'account_data'   => [ 'id' => 'acct_123' ],
 				'expected_calls' => [
-					[ 'acct_123', 'sk_live_abc', 'live' ],
+					[ 'acct_123', 'sk_live_abc' ],
 				],
 			],
 			'app connections are not revocable' => [

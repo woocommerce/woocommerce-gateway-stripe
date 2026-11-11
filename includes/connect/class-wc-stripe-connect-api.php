@@ -119,15 +119,13 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 		 *
 		 * @param string $account_id The connected Stripe account ID (acct_...).
 		 * @param string $secret_key Secret key for that account.
-		 * @param string $platform   Which platform credentials the server should deauthorize with: 'live' or 'sandbox'.
 		 *
 		 * @return stdClass|WP_Error
 		 */
-		public function deauthorize_account( $account_id, $secret_key, $platform ) {
+		public function deauthorize_account( $account_id, $secret_key ) {
 			$request = [
 				'accountId' => $account_id,
 				'secretKey' => $secret_key,
-				'platform'  => $platform,
 			];
 
 			$response = $this->request( 'POST', '/stripe/account/deauthorize-by-key', $request );
