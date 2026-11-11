@@ -166,38 +166,12 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 11.3.0 - xxxx-xx-xx =
+* Update - Start wallet availability checks earlier on Cart and Checkout blocks
 * Update - Improve express checkout wallet startup, availability checks, reuse, and recovery
 * Fix - Avoid expensive variation lookup in express checkout setup on product pages
+* Dev - Add WC_Stripe_Tracks class to support more consistent events
+* Dev - Load React's JSX runtime from WordPress core instead of bundling it, and declare "Tested up to" only in readme.txt
+* Fix - Stop rewriting a saved payment method's name, email, and phone in Stripe when it is used at checkout; only the billing address is refreshed
 * Dev - Run every E2E test project under both a classic theme (Storefront) and a block theme (Twenty Twenty-Five) in CI, and make the shared E2E helpers theme-agnostic
-
-= 11.2.0 - xxxx-xx-xx =
-* Fix - Refund or void a Stripe payment that succeeds for an order that was already cancelled, instead of leaving the shopper charged
-* Fix - Skip Inbox Note initialization during admin-ajax requests to avoid unnecessary database queries
-* Fix - Rebuild a mode's webhook on update when an earlier "Reconfigure webhooks" click registered it in the wrong mode, which had left webhooks failing in both live and test
-* Fix - Complete deprecation of wc_stripe_force_save_source
-* Fix - Use the account API key for webhook status, cleanup, and manual setup
-* Dev - Remove expired lock rows from the options table once a day
-* Tweak - Minor improvement to error logging when saving new keys
-* Fix - Keep pending ACH orders open while Stripe is still waiting for bank verification
-* Fix - Complete express checkout payments on the Pay for Order page when the checkout phone field is required, and preserve the order's saved billing phone
-* Dev - Fix the Format Release Notes workflow running out of turns before it could open its pull request
-* Add - Remote configuration system for managing feature availability during incidents
-* Update - Retry failed remote-config syncs with backoff and log a warning when the cached configuration goes stale
-* Dev - Make the express checkout password cleanup next-batch delay test stable on slow CI runners
-* Dev - Let hook @since docblocks use the x.x.x version placeholder in phpcs
-* Fix - Send shoppers to the order confirmation page instead of showing an error when processing fails after a 3D Secure payment has already succeeded
-* Dev - Add E2E coverage for paying with a non-Stripe gateway on the Pay for Order, add payment method, and change payment method pages
-* Fix - Record the payment for a released charge-upon-release pre-order paid from the pay page with 3D Secure, instead of leaving the order unpaid after the card was charged
-* Fix - Replace an expired Adaptive Pricing Checkout Session with a new one instead of retrying it, so returning shoppers are no longer blocked at checkout
-* Update - Unify express checkout button sizes across Apple Pay / Google Pay, Link, and Amazon Pay
-* Fix - Allow retrying a failed BLIK or Pre-Authorized Debit (ACSS) payment on the same order instead of failing every retry
-* Fix - Prevent a second charge when an interrupted checkout is resubmitted or two tabs submit the same cart at once
-* Fix - On classic checkout, show a notice naming each empty required field instead of a single generic "Please fill in all required fields" notice
-* Fix - Restore missing left borders on notices in the Stripe settings
-* Fix - Render the Additional content field in the Stripe refund failed emails (customer and merchant)
-* Add - Record Tracks events for Adaptive Pricing setting changes, automatic enabling, and notice dismissals, and fix the event recorded when Optimized Checkout is turned off
-* Fix - Disable Adaptive Pricing instead of breaking checkout when another plugin loads a different version of Stripe.js
-* Dev - Fix ACH E2E tests for Stripe's updated test-mode bank account flow
-* Fix - Stop a staging or cloned site from deleting the production site's Stripe webhooks when connecting or disconnecting Stripe
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

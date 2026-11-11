@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 /**
  * Tests for the Pre-Orders charge-upon-release retry behavior.
  *
@@ -76,6 +79,67 @@ class WC_Stripe_Pre_Orders_Release_Payment_Test extends WP_UnitTestCase {
 			$context['order']->has_status( 'failed' ),
 			'A declined release charge should fail the order rather than retry against the customer default.'
 		);
+	}
+
+	/**
+	 * A processing release payment without a charge leaves the order for the webhook.
+	 *
+	 * @dataProvider provide_processing_release_responses
+	 * @param bool $has_charge Whether Stripe has created a pending charge.
+	 * @return void
+	 */
+	public function test_processing_release_payment_requires_a_charge_to_put_order_on_hold( bool $has_charge ): void {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'prepare_order_source', 'create_and_confirm_intent_for_off_session', 'is_authentication_required_for_payment' ] )
+			->getMock();
+		$gateway->method( 'prepare_order_source' )->willReturn(
+			(object) [
+				'customer'      => 'cus_test',
+				'source'        => 'pm_test',
+				'source_object' => (object) [ 'type' => WC_Stripe_Payment_Methods::SEPA_DEBIT ],
+			]
+		);
+		$charge = (object) [
+			'id'       => 'ch_release_pending',
+			'object'   => 'charge',
+			'captured' => true,
+			'status'   => 'pending',
+		];
+		$gateway->method( 'create_and_confirm_intent_for_off_session' )->willReturn(
+			(object) [
+				'id'      => 'pi_release_pending',
+				'object'  => 'payment_intent',
+				'status'  => WC_Stripe_Intent_Status::PROCESSING,
+				'charges' => (object) [ 'data' => $has_charge ? [ $charge ] : [] ],
+			]
+		);
+		$gateway->method( 'is_authentication_required_for_payment' )->willReturn( false );
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		$initial_notes = wp_list_pluck( wc_get_order_notes( [ 'order_id' => $order->get_id() ] ), 'content' );
+
+		$gateway->process_pre_order_release_payment( $order );
+
+		$order = wc_get_order( $order->get_id() );
+		$notes = wp_list_pluck( wc_get_order_notes( [ 'order_id' => $order->get_id() ] ), 'content' );
+		$this->assertSame( $has_charge ? OrderStatus::ON_HOLD : OrderStatus::PENDING, $order->get_status() );
+		$this->assertSame( $has_charge ? $charge->id : '', $order->get_transaction_id() );
+		$this->assertNull( $order->get_date_paid() );
+		if ( $has_charge ) {
+			$this->assertStringContainsString( 'Stripe charge awaiting payment', implode( '\n', $notes ) );
+		} else {
+			$this->assertSame( $initial_notes, $notes );
+		}
+	}
+
+	public function provide_processing_release_responses(): array {
+		return [
+			'payment intent with charge'     => [ true ],
+			'payment intent awaiting charge' => [ false ],
+		];
 	}
 
 	/**
