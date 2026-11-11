@@ -437,54 +437,6 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		);
 	} );
 
-	it( 'blocks the click and refreshes when the form changed without a preview refresh', async () => {
-		global.wc_stripe_express_checkout_params = productParams();
-
-		mockGetSelectedProductData.mockResolvedValue( {
-			total: { amount: 3000 },
-			currency: 'usd',
-			requestShipping: false,
-			displayItems: [ { label: 'Red variation', amount: 3000 } ],
-		} );
-		mockAddToCart.mockResolvedValue( { items_count: 1 } );
-		mockEmptyCartLegacy.mockResolvedValue( {} );
-		const alertSpy = jest
-			.spyOn( window, 'alert' )
-			.mockImplementation( () => {} );
-
-		const { handlers } = stubStripeButton();
-		loadEntrypoint();
-
-		try {
-			// A quantity change no listener caught: the preview still prices qty 1.
-			document.querySelector( '.qty' ).value = '3';
-
-			const event = {
-				resolve: jest.fn(),
-				expressPaymentType: 'googlePay',
-			};
-			await handlers.click( event );
-			expect( event.resolve ).not.toHaveBeenCalled();
-			expect( mockAddToCart ).not.toHaveBeenCalled();
-			expect( alertSpy ).toHaveBeenCalledWith(
-				expect.stringContaining( 'price is being updated' )
-			);
-			expect( mockGetSelectedProductData ).toHaveBeenCalledWith(
-				expect.objectContaining( { qty: '3' } )
-			);
-
-			// Once the refresh caught up, the next tap goes through at the new amount.
-			await flushPromises();
-			await handlers.click( event );
-			expect( event.resolve ).toHaveBeenCalledTimes( 1 );
-			expect( event.resolve.mock.calls[ 0 ][ 0 ].lineItems ).toEqual( [
-				{ name: 'Red variation', amount: 3000 },
-			] );
-		} finally {
-			alertSpy.mockRestore();
-		}
-	} );
-
 	it.each( [
 		[ 'null', null ],
 		[ 'a primitive', 'oops' ],
@@ -589,35 +541,6 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		}
 	);
 
-	it( 'restores the buttons on deselection after an errored refresh hid them', async () => {
-		global.wc_stripe_express_checkout_params = productParams();
-
-		mockGetSelectedProductData.mockRejectedValue( {
-			responseJSON: { error: 'nope' },
-		} );
-		mockEmptyCartLegacy.mockResolvedValue( {} );
-
-		stubStripeButton();
-		loadEntrypoint();
-
-		// eslint-disable-next-line global-require
-		const jq = require( 'jquery' );
-		const wrapper = document.getElementById(
-			'wc-stripe-express-checkout-element'
-		);
-
-		// Errored refresh hides the buttons.
-		jq( document.body ).trigger( 'woocommerce_variation_has_changed' );
-		await flushPromises();
-		expect( wrapper.style.display ).toBe( 'none' );
-
-		// Deselecting must restore them: the click guard is what prompts.
-		document.querySelector( 'input[name="variation_id"]' ).value = '';
-		jq( document.body ).trigger( 'woocommerce_variation_has_changed' );
-		await flushPromises();
-		expect( wrapper.style.display ).not.toBe( 'none' );
-	} );
-
 	it( 'clears a stale quantity-refresh error on a later successful variation change', async () => {
 		jest.useFakeTimers();
 		global.wc_stripe_express_checkout_params = productParams();
@@ -667,37 +590,44 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		}
 	} );
 
-	it( 'explains a stock or quantity block instead of asking for options when the selection is complete', async () => {
+	it( 'hides the buttons when a blockified deselection leaves a stale variation id', async () => {
+		jest.useFakeTimers();
 		global.wc_stripe_express_checkout_params = productParams();
 
-		// Variation resolved (fixture variation_id=123) but the button is
-		// disabled - e.g. an out-of-stock variation.
-		document
-			.querySelector( '.single_add_to_cart_button' )
-			.classList.add( 'disabled' );
-		const alertSpy = jest
-			.spyOn( window, 'alert' )
-			.mockImplementation( () => {} );
+		// The block only rewrites the compat `variation_id` input when a new
+		// selection resolves, so after a deselection it still holds the old id.
+		document.body.innerHTML = `
+			<div id="wc-stripe-express-checkout-element"></div>
+			<form class="wp-block-add-to-cart-with-options wc-block-add-to-cart-with-options">
+				<div class="wp-block-woocommerce-add-to-cart-with-options-variation-selector">
+					<button type="button">Red</button>
+					<input type="hidden" name="attribute_color" value="red" />
+				</div>
+				<div class="quantity"><input type="number" class="qty" name="quantity" value="1" /></div>
+				<button type="submit" class="single_add_to_cart_button" value="1048">Add</button>
+				<div class="single_variation_wrap">
+					<input type="hidden" name="product_id" value="1048" />
+					<input type="hidden" name="variation_id" value="123" />
+				</div>
+			</form>`;
 
-		const { handlers } = stubStripeButton();
+		stubStripeButton();
 		loadEntrypoint();
+		const wrapper = document.getElementById(
+			'wc-stripe-express-checkout-element'
+		);
 
 		try {
-			const event = {
-				resolve: jest.fn(),
-				expressPaymentType: 'googlePay',
-			};
-			await handlers.click( event );
-			expect( alertSpy ).toHaveBeenCalledWith(
-				expect.stringContaining(
-					'cannot be purchased with the selected options or quantity'
-				)
-			);
-			expect( event.resolve ).not.toHaveBeenCalled();
-			expect( mockAddToCart ).not.toHaveBeenCalled();
+			document.querySelector( 'input[name="attribute_color"]' ).value =
+				'';
+			document.querySelector( 'button[type="button"]' ).click();
+			await jest.advanceTimersByTimeAsync( 300 );
 		} finally {
-			alertSpy.mockRestore();
+			jest.useRealTimers();
 		}
+
+		expect( mockGetSelectedProductData ).not.toHaveBeenCalled();
+		expect( wrapper.style.display ).toBe( 'none' );
 	} );
 
 	it( 'pushes the new amount to every mounted express button, not just the last one', async () => {

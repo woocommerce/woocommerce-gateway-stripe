@@ -168,7 +168,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 = 11.3.0 - xxxx-xx-xx =
 * Update - Improve express checkout wallet startup, availability checks, reuse, and recovery
 * Fix - Avoid expensive variation lookup in express checkout setup on product pages
-* Fix - Show express checkout buttons on variable product pages before a variation is selected, including on the Add to Cart + Options block where they never appeared
+* Fix - Show express checkout buttons for variable products on the Add to Cart + Options block, where they never appeared
 
 = 11.2.0 - xxxx-xx-xx =
 * Fix - Refund or void a Stripe payment that succeeds for an order that was already cancelled, instead of leaving the shopper charged

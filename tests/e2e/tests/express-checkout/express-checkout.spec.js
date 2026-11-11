@@ -280,29 +280,19 @@ test.describe( 'customer can use Link express checkout', () => {
 } );
 
 test.describe( 'express checkout and variable products', () => {
-	test( 'is visible before a variation is selected and prompts for options on click', async ( {
+	test( 'is hidden when no product variation is selected', async ( {
 		page,
 	} ) => {
 		await page.goto( '/product/hoodie' );
 
-		const linkButton = await getLinkButton( page );
-		await expect( linkButton ).toBeVisible( { timeout: 60 * 1000 } );
-
-		// An early click must prompt, not open the wallet. Dismiss dialogs
-		// immediately (an unhandled alert stalls the click action) and retry
-		// the click: Stripe's iframe can swallow the first one after scroll
-		// (see assertLinkModalLoads).
-		let alertMessage = '';
-		page.on( 'dialog', async ( dialog ) => {
-			alertMessage = dialog.message();
-			await dialog.dismiss();
-		} );
-		await expect( async () => {
-			await linkButton.click();
-			expect( alertMessage ).toContain(
-				'select your product options before proceeding'
-			);
-		} ).toPass( { timeout: 45 * 1000 } );
+		// We want to wait for the express checkout element to be loaded,
+		// before asserting that it is hidden. Immedidately asserting that it is hidden
+		// might cause the test to pass only because the element is not yet loaded.
+		const linkContainer = page.locator(
+			'#wc-stripe-express-checkout-element-link iframe[name^="__privateStripeFrame"]'
+		);
+		await expect( linkContainer ).toHaveCount( 1 );
+		await expect( linkContainer ).toBeHidden();
 	} );
 
 	test( 'is visible when a product variation is selected', async ( {
