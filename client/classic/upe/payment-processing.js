@@ -30,6 +30,7 @@ import {
 } from '../../stripe-utils/upe-appearance';
 import { getFontRulesFromPage, sampleFontFamily } from '../../styles/upe';
 import { getPaymentMethodRadioStyles } from '../../styles/upe/utils';
+import { createBackoffRetry } from 'wcstripe/utils/backoff-retry';
 import { __, sprintf } from '@wordpress/i18n';
 import {
 	OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
@@ -117,6 +118,21 @@ let adaptivePricingSyncFailed = false;
 let adaptivePricingSyncGeneration = 0;
 
 /**
+ * Asks WooCommerce for another checkout refresh while the server reports the session busy.
+ */
+const busySessionRetry = createBackoffRetry( () =>
+	jQuery( document.body ).trigger( 'update_checkout' )
+);
+
+/**
+ * Drop a pending busy-session refresh. Called whenever a checkout refresh starts: one the shopper
+ * triggered makes ours redundant, and firing ours anyway would make WooCommerce abort theirs.
+ */
+export function cancelBusySessionRetry() {
+	busySessionRetry.cancel();
+}
+
+/**
  * Registers a (re)mount promise to wait on. Composes with any existing one so
  * overlapping `updated_checkout` cycles all settle before submission proceeds.
  *
@@ -158,6 +174,7 @@ export function initializeUPEComponents() {
 	mountInProgress = null;
 	// A fresh session is created on the next mount, so any prior stale-session block no longer applies.
 	adaptivePricingSyncFailed = false;
+	busySessionRetry.reset();
 }
 
 /**
@@ -179,6 +196,7 @@ export async function maybeUpdateAdaptivePricingCheckoutSession() {
 	// Only an element that actually holds a session can go stale. A store that fell back to
 	// standard elements has nothing to resync, so it must not be warned about a stale total.
 	let resyncFailed = false;
+	let sessionBusy = false;
 
 	const seen = new Set();
 	for ( const paymentMethodType of Object.keys( gatewayUPEComponents ) ) {
@@ -188,6 +206,15 @@ export async function maybeUpdateAdaptivePricingCheckoutSession() {
 			continue;
 		}
 		seen.add( sessionId );
+
+		// Busy means an earlier refresh was still pushing its cart to Stripe, so this one couldn't.
+		if (
+			nativeSession?.status === 'busy' &&
+			nativeSession?.session_id === sessionId
+		) {
+			sessionBusy = true;
+			continue;
+		}
 
 		// The mounted element cannot update the checkout session ID once it has been set.
 		// So we show an error when we failed to get a session OR we got a new session.
@@ -252,10 +279,26 @@ export async function maybeUpdateAdaptivePricingCheckoutSession() {
 		return;
 	}
 
+	// A request can hold the session lock for at most its TTL before a refresh may reclaim it, so keep
+	// refreshing for that long.
+	if (
+		sessionBusy &&
+		! resyncFailed &&
+		busySessionRetry.schedule( Number( nativeSession.lock_ttl ) * 1000 )
+	) {
+		// Hold the payment area, and with it Place order, until a later refresh resyncs.
+		adaptivePricingSyncFailed = true;
+		blockUI( jQuery( 'form.checkout #payment' ) );
+		return;
+	}
+	busySessionRetry.reset();
+
 	// Clear any overlay a superseded resync left up; as the current generation
 	// with none newer in flight, this can't lift a block still in use.
 	unblockUI( jQuery( 'form.checkout #payment' ) );
 
+	// Still busy once the lock's TTL has passed means something else is wrong.
+	resyncFailed = resyncFailed || sessionBusy;
 	adaptivePricingSyncFailed = resyncFailed;
 
 	if ( resyncFailed ) {

@@ -856,6 +856,103 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A classic refresh that needs to push while another request holds the session lock (WooCommerce
+	 * aborts the earlier refresh in the browser, but the server keeps running it) must report the
+	 * session busy so the client refreshes again, rather than store a failure. A refresh whose cart
+	 * already matches the stored total has nothing to push and never touches the lock.
+	 *
+	 * @dataProvider provide_classic_refreshes_during_another_push
+	 *
+	 * @param bool   $cart_changed    Whether the cart changed since the session was last pushed.
+	 * @param string $expected_status Status the fragment must report.
+	 */
+	public function test_classic_fragment_reports_busy_only_when_a_push_is_blocked( bool $cart_changed, string $expected_status ): void {
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 25 ] );
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$session_id     = 'cs_test_busy_session';
+		$requested_urls = [];
+		$restore        = $this->enable_adaptive_pricing();
+
+		$mock_request = static function ( $return_value, $parsed_args, $url ) use ( $session_id, &$requested_urls ) {
+			if ( ! str_starts_with( $url, 'https://api.stripe.com/v1/checkout/sessions' ) ) {
+				return $return_value;
+			}
+
+			$requested_urls[] = $parsed_args['method'] . ' ' . $url;
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					(object) [
+						'id'            => $session_id,
+						'client_secret' => 'cs_test_busy_secret',
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+
+		$lock_name       = 'wc_stripe_checkout_session_lock_' . md5( $session_id );
+		$lock_owner      = null;
+		$original_logger = WC_Stripe_Logger::$logger;
+
+		try {
+			$lifecycle = new WC_Stripe_Checkout_Session_Lifecycle();
+			$lifecycle->add_classic_fragment( [] );
+
+			if ( $cart_changed ) {
+				WC()->cart->add_to_cart( $product->get_id(), 1 );
+				WC()->cart->calculate_totals();
+			}
+
+			// Another request is mid-push.
+			$lock_owner = WC_Stripe_Option_Lock::acquire( $lock_name, 70 );
+			$this->assertNotNull( $lock_owner );
+
+			$mock_logger = $this->createMock( WC_Logger::class );
+			$mock_logger->expects( $this->never() )->method( 'error' );
+			WC_Stripe_Logger::$logger = $mock_logger;
+
+			$fragments = $lifecycle->add_classic_fragment( [] );
+		} finally {
+			WC_Stripe_Logger::$logger = $original_logger;
+			if ( null !== $lock_owner ) {
+				WC_Stripe_Option_Lock::release( $lock_name, $lock_owner );
+			}
+			remove_filter( 'pre_http_request', $mock_request, 10 );
+			WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
+			$restore();
+		}
+
+		$data = json_decode( $this->get_fragment_session_data( $fragments['#wc-stripe-checkout-session-data'] ), true );
+		$this->assertSame( $expected_status, $data['status'] );
+		$this->assertSame( '', $data['message'] );
+		$this->assertSame( $session_id, $data['session_id'] );
+		if ( 'busy' === $expected_status ) {
+			// Bounds how long the client keeps refreshing.
+			$this->assertSame( 70, $data['lock_ttl'] );
+		} else {
+			$this->assertArrayNotHasKey( 'lock_ttl', $data );
+		}
+
+		// Nothing pushed or recorded for the busy attempt; the session stays usable.
+		$this->assertSame( [ 'POST https://api.stripe.com/v1/checkout/sessions' ], $requested_urls );
+		$this->assertSame( 'success', WC()->session->get( 'wc_stripe_checkout_session' )['status'] );
+	}
+
+	/**
+	 * @return array<string, array{bool, string}>
+	 */
+	public function provide_classic_refreshes_during_another_push(): array {
+		return [
+			'cart changed, so this refresh needs to push' => [ true, 'busy' ],
+			'cart unchanged, so nothing to push'          => [ false, 'success' ],
+		];
+	}
+
+	/**
 	 * Lifecycle hooks expose a stable classic fragment and Store API contract.
 	 */
 	public function test_lifecycle_registers_native_checkout_contracts(): void {

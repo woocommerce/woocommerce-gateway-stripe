@@ -108,7 +108,8 @@ class WC_Stripe_Checkout_Session_Lifecycle {
 		}
 
 		try {
-			$data = $this->manager->synchronize();
+			// The classic client refreshes again on a busy status; the Store API path has no such client.
+			$data = $this->manager->synchronize_or_report_busy();
 		} catch ( Throwable $e ) {
 			WC_Stripe_Logger::error( 'Native classic checkout session synchronization failed.', [ 'error_message' => $e->getMessage() ] );
 

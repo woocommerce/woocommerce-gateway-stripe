@@ -30,6 +30,13 @@ class WC_Stripe_Checkout_Session_Manager {
 	private static $instance;
 
 	/**
+	 * Whether the current synchronize() call reports a held lock as busy rather than failing.
+	 *
+	 * @var bool
+	 */
+	private $report_busy_when_locked = false;
+
+	/**
 	 * Return the shared manager instance.
 	 *
 	 * @return self
@@ -216,6 +223,27 @@ class WC_Stripe_Checkout_Session_Manager {
 	}
 
 	/**
+	 * Synchronize, but report the session as busy instead of failing when the update it needs cannot
+	 * run because another request holds the session lock.
+	 *
+	 * Only for clients that know to refresh again on that status. Kept apart from synchronize() so
+	 * that method's signature, which subclasses may override, stays as it is.
+	 *
+	 * @since x.x.x
+	 *
+	 * @return array Public session data.
+	 * @throws Exception When synchronization fails.
+	 */
+	public function synchronize_or_report_busy(): array {
+		$this->report_busy_when_locked = true;
+		try {
+			return $this->synchronize();
+		} finally {
+			$this->report_busy_when_locked = false;
+		}
+	}
+
+	/**
 	 * Create or update the session only when the native WooCommerce cart has changed.
 	 *
 	 * @return array Public session data.
@@ -275,7 +303,37 @@ class WC_Stripe_Checkout_Session_Manager {
 			return $this->get_public_data( $record );
 		}
 
+		// WooCommerce aborts an earlier checkout refresh in the browser but the server keeps running
+		// it, so this update can arrive while that one still holds the lock to push its own cart. That
+		// is not a failure and nothing is recorded; the client refreshes again once the lock is free.
+		if ( $this->report_busy_when_locked && $this->is_locked( (string) $record['session_id'] ) ) {
+			return array_merge(
+				$this->get_public_data( $record ),
+				[
+					'status'   => 'busy',
+					'message'  => '',
+					'lock_ttl' => WC_Stripe_Checkout_Session_Context::get_mutation_lock_ttl(),
+				]
+			);
+		}
+
 		return $this->update_session( (string) $record['session_id'] );
+	}
+
+	/**
+	 * Whether another request currently holds the session's mutation lock.
+	 *
+	 * @param string $session_id Stripe Checkout Session ID.
+	 * @return bool
+	 */
+	private function is_locked( string $session_id ): bool {
+		try {
+			WC_Stripe_Checkout_Session_Context::with_mutation_lock( $session_id, static function (): void {} );
+		} catch ( Exception $e ) {
+			return true;
+		}
+
+		return false;
 	}
 
 	/**

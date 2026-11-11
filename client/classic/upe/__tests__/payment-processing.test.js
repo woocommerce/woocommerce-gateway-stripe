@@ -114,6 +114,19 @@ jest.mock( 'jquery', () => {
 	return jq;
 } );
 
+// The busy-session retry is created when the module loads; capture its controls.
+jest.mock( 'wcstripe/utils/backoff-retry', () => {
+	const controls = {
+		schedule: jest.fn( () => true ),
+		cancel: jest.fn(),
+		reset: jest.fn(),
+	};
+	return { createBackoffRetry: jest.fn( () => controls ), controls };
+} );
+const busySessionRetry = jest.requireMock(
+	'wcstripe/utils/backoff-retry'
+).controls;
+
 global.jQuery = Object.assign(
 	jest.fn( () => ( { trigger: mockJQueryTrigger } ) ),
 	{
@@ -1643,6 +1656,78 @@ describe( 'payment-processing', () => {
 				);
 
 				window.location = originalLocation;
+			} );
+		} );
+
+		describe( 'busy checkout session', () => {
+			const STALE_TOTAL_MESSAGE =
+				"We couldn't update your order total. Please refresh the page and try again.";
+			const PAYMENT_SELECTOR = 'form.checkout #payment';
+
+			let checkoutElements;
+
+			beforeEach( async () => {
+				checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				checkoutElements.loadActions.mockResolvedValueOnce( {
+					type: 'success',
+				} );
+				const dom = document.createElement( 'div' );
+				dom.dataset.paymentMethodType = 'card';
+				await paymentProcessing.mountStripePaymentElement( api, dom );
+				checkoutElements.loadActions.mockResolvedValue( {
+					type: 'success',
+					actions: checkoutElements.checkoutActions,
+				} );
+				stripeUtils.showErrorCheckout.mockClear();
+				busySessionRetry.schedule.mockClear();
+				busySessionRetry.reset.mockClear();
+				setNativeCheckoutSessionData( {
+					status: 'busy',
+					lock_ttl: 70,
+				} );
+			} );
+
+			it( 'holds the payment area and schedules another refresh instead of showing a notice', async () => {
+				const blocksBefore =
+					global.__wcStripeBlockCounts?.[ PAYMENT_SELECTOR ] ?? 0;
+
+				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession();
+
+				expect( busySessionRetry.schedule ).toHaveBeenCalledWith(
+					70000
+				);
+				expect( stripeUtils.showErrorCheckout ).not.toHaveBeenCalled();
+				expect(
+					checkoutElements.checkoutActions.runServerUpdate
+				).not.toHaveBeenCalled();
+				expect(
+					global.__wcStripeBlockCounts?.[ PAYMENT_SELECTOR ] ?? 0
+				).toBe( blocksBefore + 1 );
+			} );
+
+			it( 'shows the stale-total notice once no more retries are allowed', async () => {
+				busySessionRetry.schedule.mockReturnValueOnce( false );
+
+				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession();
+
+				expect( stripeUtils.showErrorCheckout ).toHaveBeenCalledWith(
+					STALE_TOTAL_MESSAGE
+				);
+				expect( busySessionRetry.reset ).toHaveBeenCalled();
+			} );
+
+			it( 'resyncs and resets the retries once a refresh succeeds', async () => {
+				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession();
+				setNativeCheckoutSessionData( { revision: 'rev_2' } );
+
+				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession();
+
+				expect(
+					checkoutElements.checkoutActions.runServerUpdate
+				).toHaveBeenCalledTimes( 1 );
+				expect( busySessionRetry.reset ).toHaveBeenCalled();
+				expect( stripeUtils.showErrorCheckout ).not.toHaveBeenCalled();
 			} );
 		} );
 	} );

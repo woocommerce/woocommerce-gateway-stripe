@@ -13,6 +13,7 @@ import {
 } from '../../stripe-utils';
 import './style.scss';
 import {
+	cancelBusySessionRetry,
 	confirmVoucherPayment,
 	confirmWalletPayment,
 	createAndConfirmSetupIntent,
@@ -103,6 +104,8 @@ jQuery( function ( $ ) {
 		trackMountInProgress( updateChain );
 		void updateChain;
 	} );
+
+	$( document.body ).on( 'update_checkout', cancelBusySessionRetry );
 
 	// Builds the notice WooCommerce shows for a missing field: "<Field> is a required field."
 	// The label text is read from the DOM and HTML-escaped before it goes into the notice markup.

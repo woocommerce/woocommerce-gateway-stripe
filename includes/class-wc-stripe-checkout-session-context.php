@@ -205,6 +205,17 @@ class WC_Stripe_Checkout_Session_Context {
 	}
 
 	/**
+	 * How long a request can hold the mutation lock before another request may reclaim it, in seconds.
+	 *
+	 * @since x.x.x
+	 *
+	 * @return int
+	 */
+	public static function get_mutation_lock_ttl(): int {
+		return self::MUTATION_LOCK_TTL;
+	}
+
+	/**
 	 * Run a callback while holding a Checkout Session mutation lock.
 	 *
 	 * @param string   $session_id Stripe Checkout Session ID.
