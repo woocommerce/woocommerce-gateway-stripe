@@ -44,7 +44,7 @@ test.describe( 'BLIK payment tests @blocks @blik', () => {
 			page,
 			config.get( 'addresses.customer_poland.billing' )
 		);
-		await selectBlocksPaymentMethod( page, 'stripe_blik' );
+		await selectBlocksPaymentMethod( page, 'stripe_blik', 'BLIK' );
 		await fillBLIKDetails( page );
 		await clickPlaceOrder( page );
 		await waitForOrderReceivedPage( page );

@@ -20,7 +20,7 @@ test.describe( 'BLIK payment tests @shortcode @blik', () => {
 			page,
 			config.get( 'addresses.customer_poland.billing' )
 		);
-		await selectShortcodePaymentMethod( page, 'stripe_blik' );
+		await selectShortcodePaymentMethod( page, 'stripe_blik', 'BLIK' );
 		await fillBLIKDetails( page );
 		await clickPlaceOrder( page );
 		await waitForOrderReceivedPage( page );

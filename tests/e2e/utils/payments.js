@@ -667,8 +667,9 @@ export async function setupBlocksCheckout(
  *
  * @param {Page}   page      Playwright page fixture.
  * @param {string} gatewayId The gateway ID, e.g. `stripe_us_bank_account`.
+ * @param {string} [title]   The title the option must show, e.g. `ACH Direct Debit`.
  */
-export const selectBlocksPaymentMethod = async ( page, gatewayId ) => {
+export const selectBlocksPaymentMethod = async ( page, gatewayId, title ) => {
 	const radio = page.locator(
 		`#radio-control-wc-payment-method-options-${ gatewayId }`
 	);
@@ -676,6 +677,9 @@ export const selectBlocksPaymentMethod = async ( page, gatewayId ) => {
 		`label[for='radio-control-wc-payment-method-options-${ gatewayId }']`
 	);
 	await label.waitFor( { state: 'visible' } );
+	if ( title ) {
+		await expect( label ).toContainText( title );
+	}
 	await retryWithBackoff( async () => {
 		if ( ! ( await radio.isChecked() ) ) {
 			// Bounded so a blocked click fails into the next retry.
@@ -696,12 +700,20 @@ export const selectBlocksPaymentMethod = async ( page, gatewayId ) => {
  *
  * @param {Page}   page      Playwright page fixture.
  * @param {string} gatewayId The gateway ID, e.g. `stripe_us_bank_account`.
+ * @param {string} [title]   The title the option must show, e.g. `ACH Direct Debit`.
  */
-export const selectShortcodePaymentMethod = async ( page, gatewayId ) => {
+export const selectShortcodePaymentMethod = async (
+	page,
+	gatewayId,
+	title
+) => {
 	const radio = page.locator( `#payment_method_${ gatewayId }` );
 	const label = page.locator( `label[for='payment_method_${ gatewayId }']` );
 	const overlay = page.locator( '.blockUI.blockOverlay' ).first();
 	await label.waitFor( { state: 'visible' } );
+	if ( title ) {
+		await expect( label ).toContainText( title );
+	}
 	await retryWithBackoff( async () => {
 		if ( ! ( await radio.isChecked() ) ) {
 			// Bounded so a blocked click fails into the next retry.
@@ -710,7 +722,7 @@ export const selectShortcodePaymentMethod = async ( page, gatewayId ) => {
 		await overlay
 			.waitFor( { state: 'visible', timeout: 5000 } )
 			.catch( () => {} );
-		await overlay.waitFor( { state: 'hidden', timeout: 30000 } );
+		await overlay.waitFor( { state: 'hidden' } );
 		await expect( radio ).toBeChecked();
 		await expect(
 			page.locator( `.payment_box.payment_method_${ gatewayId }` )
@@ -741,7 +753,11 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 			config.get( 'addresses.customer.billing' )
 		);
 
-		await selectBlocksPaymentMethod( page, 'stripe_us_bank_account' );
+		await selectBlocksPaymentMethod(
+			page,
+			'stripe_us_bank_account',
+			'ACH Direct Debit'
+		);
 	} else {
 		paymentMethodContentSelector =
 			'.wc_payment_method.payment_method_stripe_us_bank_account';
@@ -752,7 +768,11 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 			config.get( 'addresses.customer.billing' )
 		);
 
-		await selectShortcodePaymentMethod( page, 'stripe_us_bank_account' );
+		await selectShortcodePaymentMethod(
+			page,
+			'stripe_us_bank_account',
+			'ACH Direct Debit'
+		);
 	}
 
 	await expect( page.locator( paymentMethodContentSelector ) ).toBeVisible();
@@ -883,14 +903,22 @@ export const setupACSSCheckout = async ( page, checkoutType = 'blocks' ) => {
 			config.get( 'addresses.customer_canada.billing' )
 		);
 
-		await selectBlocksPaymentMethod( page, 'stripe_acss_debit' );
+		await selectBlocksPaymentMethod(
+			page,
+			'stripe_acss_debit',
+			'Pre-Authorized Debit'
+		);
 	} else {
 		await setupShortcodeCheckout(
 			page,
 			config.get( 'addresses.customer_canada.billing' )
 		);
 
-		await selectShortcodePaymentMethod( page, 'stripe_acss_debit' );
+		await selectShortcodePaymentMethod(
+			page,
+			'stripe_acss_debit',
+			'Pre-Authorized Debit'
+		);
 
 		// The element mounts into the swapped-in fragment only after a fresh
 		// intent is created; submitting before that fails Stripe's validation
@@ -1432,7 +1460,7 @@ export const setupAffirmCheckout = async ( page, checkoutType = 'blocks' ) => {
 
 	// Wait for the payment method selector to be available
 	if ( isBlocks ) {
-		await selectBlocksPaymentMethod( page, 'stripe_affirm' );
+		await selectBlocksPaymentMethod( page, 'stripe_affirm', 'Affirm' );
 		await expect(
 			page
 				.frameLocator(
@@ -1441,7 +1469,7 @@ export const setupAffirmCheckout = async ( page, checkoutType = 'blocks' ) => {
 				.getByTestId( 'next-action-text' )
 		).toBeAttached();
 	} else {
-		await selectShortcodePaymentMethod( page, 'stripe_affirm' );
+		await selectShortcodePaymentMethod( page, 'stripe_affirm', 'Affirm' );
 		await expect(
 			page
 				.frameLocator(
@@ -1474,7 +1502,7 @@ export const setupKlarnaCheckout = async ( page, checkoutType = 'blocks' ) => {
 
 	// Wait for the payment method selector to be available
 	if ( isBlocks ) {
-		await selectBlocksPaymentMethod( page, 'stripe_klarna' );
+		await selectBlocksPaymentMethod( page, 'stripe_klarna', 'Klarna' );
 		await expect(
 			page
 				.frameLocator(
@@ -1483,7 +1511,7 @@ export const setupKlarnaCheckout = async ( page, checkoutType = 'blocks' ) => {
 				.getByTestId( 'next-action-text' )
 		).toBeVisible();
 	} else {
-		await selectShortcodePaymentMethod( page, 'stripe_klarna' );
+		await selectShortcodePaymentMethod( page, 'stripe_klarna', 'Klarna' );
 		await expect(
 			page
 				.frameLocator(
