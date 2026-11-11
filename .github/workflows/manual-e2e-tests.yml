@@ -29,13 +29,13 @@ on:
           - '8.4'
           - '8.5'
       theme:
-        description: Theme to install and activate for the run. storefront is a classic theme, twentytwentyfive is a block theme.
+        description: Theme to install and activate for the run. storefront is a classic theme, purple is a block theme.
         type: choice
         default: 'storefront'
         required: true
         options:
           - 'storefront'
-          - 'twentytwentyfive'
+          - 'purple'
 
 jobs:
   test:
