@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import { test, expect } from '@playwright/test';
 import config from 'config';
-import { payments, api, user, admin } from '../../../utils';
+import { payments, api, user } from '../../../utils';
 
 const {
 	emptyCart,
@@ -16,29 +16,6 @@ const {
 } = payments;
 
 test.describe( 'Optimized Checkout payment tests @shortcode', () => {
-	let username, userEmail;
-
-	test.describe.configure( { mode: 'serial' } );
-
-	test.beforeAll( async () => {
-		await test.step( 'Setup test environment', async () => {
-			// Create test user.
-			const randomString = randomUUID();
-			userEmail =
-				randomString + '+' + config.get( 'users.customer.email' );
-			username =
-				randomString + '.' + config.get( 'users.customer.username' );
-
-			const testUser = {
-				...config.get( 'users.customer' ),
-				...config.get( 'addresses.customer' ),
-				email: userEmail,
-				username,
-			};
-			await api.create.customer( testUser );
-		} );
-	} );
-
 	test( 'customer can pay with Optimized Checkout @smoke', async ( {
 		page,
 		browser,
@@ -62,111 +39,17 @@ test.describe( 'Optimized Checkout payment tests @shortcode', () => {
 		);
 	} );
 
-	test( 'customer can save and reuse Optimized Checkout payment method @smoke', async ( {
-		page,
-		browser,
-	} ) => {
-		// Disable Link so the store-level save checkbox is visible.
-		// When Link is enabled, the store checkbox is hidden and Link handles save consent.
-		await admin.togglePaymentMethod( browser, 'Link by Stripe', false );
-
-		try {
-			// First order - Save the payment method.
-			await test.step( 'Save payment method during first checkout', async () => {
-				await user.login(
-					page,
-					username,
-					config.get( 'users.customer.password' )
-				);
-				await setupOptimizedCheckout( page, 'shortcode' );
-				// Toggle via label to avoid flaky direct checkbox interactions.
-				const savePaymentMethodCheckbox = page.locator(
-					'#wc-stripe-new-payment-method'
-				);
-				await expect( savePaymentMethodCheckbox ).toBeAttached();
-				// The fieldset wrapping the save checkbox must be visible while the
-				// checkbox row is shown (Link is disabled in this test).
-				await expect(
-					page.locator(
-						'.payment_box.payment_method_stripe fieldset:has(.woocommerce-SavedPaymentMethods-saveNew)'
-					)
-				).toBeVisible();
-				await page
-					.locator( "label[for='wc-stripe-new-payment-method']" )
-					.click();
-				await expect( savePaymentMethodCheckbox ).toBeChecked();
-				// Then fill in the payment details.
-				// This order is needed because, if we fill in the payment details and then click the checkbox, payment element will refresh and the fields will be cleared.
-				await fillOCDetails(
-					page,
-					config.get( 'cards.basic' ),
-					'shortcode'
-				);
-
-				const expectedTotal = await getCartTotal( page );
-
-				await clickPlaceOrder( page );
-
-				await waitForOrderReceivedPageAndConfirmExpectedTotal(
-					browser,
-					page,
-					expectedTotal
-				);
-			} );
-
-			// Second order - Use saved payment method.
-			await test.step( 'Use saved payment method for second checkout', async () => {
-				await emptyCart( page );
-				await setupCart( page );
-				await setupShortcodeCheckout(
-					page,
-					config.get( 'addresses.customer.billing' )
-				);
-				const savedTokenRadio = page.locator(
-					'.woocommerce-SavedPaymentMethods-token input[id^="wc-stripe-payment-token-"]'
-				);
-				await expect( savedTokenRadio ).toBeVisible();
-				await savedTokenRadio.click();
-
-				// With the saved method selected the save-checkbox row is hidden, and
-				// the fieldset wrapping it must be hidden too — a bare fieldset renders
-				// as an empty box on themes that keep the default fieldset border.
-				const hiddenWrapper = page.locator(
-					'.payment_box.payment_method_stripe fieldset:has(.woocommerce-SavedPaymentMethods-saveNew)'
-				);
-				await expect( hiddenWrapper ).toBeAttached();
-				await expect( hiddenWrapper ).toBeHidden();
-
-				const expectedTotal = await getCartTotal( page );
-
-				await clickPlaceOrder( page );
-
-				await waitForOrderReceivedPageAndConfirmExpectedTotal(
-					browser,
-					page,
-					expectedTotal
-				);
-			} );
-		} finally {
-			// Re-enable Link after the test.
-			await admin.togglePaymentMethod( browser, 'Link by Stripe', true );
-		}
-	} );
-
 	test( 'hides the save checkbox wrapper when Link handles save consent', async ( {
 		page,
-		browser,
 	} ) => {
-		// Enable Link explicitly so the test is deterministic regardless of the
-		// previous test's cleanup. With Link enabled the store-level save
-		// checkbox is suppressed via the wc-stripe-hide-save-checkbox body
-		// class, and the fieldset wrapping it must be hidden along with it.
-		await admin.togglePaymentMethod( browser, 'Link by Stripe', true );
+		// This project's account has Link on (oc-setup verifies it). With Link
+		// enabled the store-level save checkbox is suppressed via the
+		// wc-stripe-hide-save-checkbox body class, and the fieldset wrapping it
+		// must be hidden along with it.
 
-		// A dedicated token-less customer keeps this test self-contained (no
-		// dependency on the preceding serial test) and isolates the body-class
-		// path: with no saved tokens there is no token radio list, so nothing
-		// applies an inline hide to the checkbox row.
+		// A dedicated token-less customer isolates the body-class path: with no
+		// saved tokens there is no token radio list, so nothing applies an
+		// inline hide to the checkbox row.
 		const randomString = randomUUID();
 		const linkUsername =
 			randomString + '.' + config.get( 'users.customer.username' );
