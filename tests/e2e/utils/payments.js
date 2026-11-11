@@ -92,6 +92,104 @@ export async function emptyCart( page ) {
 }
 
 /**
+ * Look a product up by slug through the Store API.
+ *
+ * Slugs are stable across sites, while sample-product IDs depend on import
+ * order, and the slug filter is exact.
+ *
+ * @param {Page}   page Playwright page fixture.
+ * @param {string} slug The product slug.
+ * @returns {Promise<number>} The product ID.
+ */
+export async function getProductIdBySlug( page, slug ) {
+	const response = await page.request.get(
+		`/wp-json/wc/store/v1/products?slug=${ encodeURIComponent( slug ) }`
+	);
+	if ( ! response.ok() ) {
+		throw new Error(
+			`Failed to look up products: ${ response.status() } ${ response.statusText() }`
+		);
+	}
+	const [ product ] = await response.json();
+	if ( ! product ) {
+		throw new Error(
+			`Could not find product "${ slug }" via the Store API.`
+		);
+	}
+	return product.id;
+}
+
+/**
+ * Add a product to the cart from its product page and confirm it landed.
+ *
+ * The classic add-to-cart form reloads the page with a notice, while the
+ * blockified Add to Cart with Options form adds in place and shows none, so
+ * the Store API cart is the one signal both forms share.
+ *
+ * @param {Page}   page      Playwright page fixture.
+ * @param {number} productId The product ID.
+ * @param {string} label     The add-to-cart button label.
+ */
+export async function addProductToCartFromProductPageById(
+	page,
+	productId,
+	label = 'Add to cart'
+) {
+	await page.goto( `/?p=${ productId }` );
+	await clickAddToCartButton( page, label );
+	await expect
+		.poll( async () => {
+			const cart = await page.request.get( '/wp-json/wc/store/v1/cart' );
+			return ( await cart.json() ).items.map( ( item ) => item.id );
+		} )
+		.toContain( productId );
+}
+
+/**
+ * Add a product to the cart from its product page, looked up by slug.
+ *
+ * @param {Page}   page  Playwright page fixture.
+ * @param {string} slug  The product slug.
+ * @param {string} label The add-to-cart button label.
+ */
+export async function addProductToCartFromProductPageBySlug(
+	page,
+	slug,
+	label = 'Add to cart'
+) {
+	await addProductToCartFromProductPageById(
+		page,
+		await getProductIdBySlug( page, slug ),
+		label
+	);
+}
+
+/**
+ * Pick a variation attribute value on a variable product page.
+ *
+ * Classic themes render a labelled <select> per attribute, while the
+ * blockified Add to Cart with Options form renders a radiogroup of pills.
+ *
+ * @param {Page}   page      Playwright page fixture.
+ * @param {string} attribute The attribute label, e.g. `color`.
+ * @param {string} value     The option label, e.g. `Blue`.
+ */
+export async function selectProductVariation( page, attribute, value ) {
+	const select = page.getByRole( 'combobox', {
+		name: attribute,
+		exact: true,
+	} );
+	if ( await select.count() ) {
+		await select.selectOption( value );
+		return;
+	}
+	await page
+		.getByRole( 'radiogroup', { name: attribute, exact: true } )
+		.getByRole( 'radio', { name: value, exact: true } )
+		.click();
+}
+
+/**
  * Set up cart with `lineItems` products.
  *
  * @param {Page} page Playwright page fixture.
@@ -114,28 +212,10 @@ export async function setupCart(
 	const nonce = cart.headers().nonce;
 
 	for ( const [ productSlug, quantity ] of lineItems ) {
-		// Slugs are stable across sites, while sample-product IDs depend on
-		// import order, and the slug filter is exact.
-		const response = await page.request.get(
-			`/wp-json/wc/store/v1/products?slug=${ encodeURIComponent(
-				productSlug
-			) }`
-		);
-		if ( ! response.ok() ) {
-			throw new Error(
-				`Failed to look up products: ${ response.status() } ${ response.statusText() }`
-			);
-		}
-		const [ product ] = await response.json();
-		if ( ! product ) {
-			throw new Error(
-				`Could not find product "${ productSlug }" via the Store API.`
-			);
-		}
-
+		const id = await getProductIdBySlug( page, productSlug );
 		const added = await page.request.post(
 			'/wp-json/wc/store/v1/cart/add-item',
-			{ headers: { Nonce: nonce }, data: { id: product.id, quantity } }
+			{ headers: { Nonce: nonce }, data: { id, quantity } }
 		);
 		if ( ! added.ok() ) {
 			throw new Error(
