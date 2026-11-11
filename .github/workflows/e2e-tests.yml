@@ -31,8 +31,8 @@ jobs:
       fail-fast: false
       max-parallel: 10
       matrix:
-        # Run every project under a classic theme (storefront) and a block theme (purple).
-        theme: ['storefront', 'purple']
+        # Run every project under a classic theme (storefront) and a block theme (twentytwentyfive).
+        theme: ['storefront', 'twentytwentyfive']
         project: ['default', 'express-checkout-link', 'isk', 'acss', 'optimized-checkout', 'adaptive-pricing', 'blik', 'becs']
 
     name: E2E - ${{ matrix.project }} (${{ matrix.theme }}) WP=latest, WC=latest, PHP=7.4
