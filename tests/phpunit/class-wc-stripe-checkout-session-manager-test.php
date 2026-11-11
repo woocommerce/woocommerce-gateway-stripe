@@ -856,16 +856,17 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A classic refresh that arrives while another request holds the session lock (WooCommerce aborts the
-	 * earlier refresh in the browser, but the server keeps running it) must report the session busy
-	 * so the client refreshes again, rather than store a failure. That holds whether this refresh
-	 * needed to push its own cart or only had to confirm the context, which lags Stripe mid-push.
+	 * A classic refresh that needs to push while another request holds the session lock (WooCommerce
+	 * aborts the earlier refresh in the browser, but the server keeps running it) must report the
+	 * session busy so the client refreshes again, rather than store a failure. A refresh whose cart
+	 * already matches the stored total has nothing to push and never touches the lock.
 	 *
 	 * @dataProvider provide_classic_refreshes_during_another_push
 	 *
-	 * @param bool $cart_changed Whether the cart changed since the session was last pushed.
+	 * @param bool   $cart_changed    Whether the cart changed since the session was last pushed.
+	 * @param string $expected_status Status the fragment must report.
 	 */
-	public function test_classic_fragment_reports_busy_while_another_request_holds_the_lock( bool $cart_changed ): void {
+	public function test_classic_fragment_reports_busy_only_when_a_push_is_blocked( bool $cart_changed, string $expected_status ): void {
 		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 25 ] );
 		WC()->cart->add_to_cart( $product->get_id(), 1 );
 		WC()->cart->calculate_totals();
@@ -926,11 +927,15 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 		}
 
 		$data = json_decode( $this->get_fragment_session_data( $fragments['#wc-stripe-checkout-session-data'] ), true );
-		$this->assertSame( 'busy', $data['status'] );
+		$this->assertSame( $expected_status, $data['status'] );
 		$this->assertSame( '', $data['message'] );
 		$this->assertSame( $session_id, $data['session_id'] );
-		// Bounds how long the client keeps refreshing.
-		$this->assertSame( 70, $data['lock_ttl'] );
+		if ( 'busy' === $expected_status ) {
+			// Bounds how long the client keeps refreshing.
+			$this->assertSame( 70, $data['lock_ttl'] );
+		} else {
+			$this->assertArrayNotHasKey( 'lock_ttl', $data );
+		}
 
 		// Nothing pushed or recorded for the busy attempt; the session stays usable.
 		$this->assertSame( [ 'POST https://api.stripe.com/v1/checkout/sessions' ], $requested_urls );
@@ -938,12 +943,12 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * @return array<string, array{bool}>
+	 * @return array<string, array{bool, string}>
 	 */
 	public function provide_classic_refreshes_during_another_push(): array {
 		return [
-			'cart changed, so this refresh needs to push'   => [ true ],
-			'cart unchanged, but the context lags the push' => [ false ],
+			'cart changed, so this refresh needs to push' => [ true, 'busy' ],
+			'cart unchanged, so nothing to push'          => [ false, 'success' ],
 		];
 	}
 

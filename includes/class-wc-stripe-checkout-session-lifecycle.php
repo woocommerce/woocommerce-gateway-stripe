@@ -107,31 +107,9 @@ class WC_Stripe_Checkout_Session_Lifecycle {
 			return $fragments;
 		}
 
-		// WooCommerce aborts an earlier refresh in the browser but the server keeps running it, so this
-		// refresh can arrive while that one is still pushing its cart to Stripe. Until it finishes, the
-		// stored context lags Stripe and this refresh can't push its own cart. That is not a failure, so
-		// nothing is recorded; the client refreshes again, for at most as long as the lock can be held.
-		$current = $this->manager->get_current_data();
-		if ( '' !== $current['session_id'] ) {
-			try {
-				WC_Stripe_Checkout_Session_Context::with_mutation_lock( $current['session_id'], static function (): void {} );
-			} catch ( Exception $e ) {
-				$fragments[ self::CLASSIC_FRAGMENT_SELECTOR ] = $this->get_classic_fragment_html(
-					array_merge(
-						$current,
-						[
-							'status'   => 'busy',
-							'message'  => '',
-							'lock_ttl' => WC_Stripe_Checkout_Session_Context::get_mutation_lock_ttl(),
-						]
-					)
-				);
-				return $fragments;
-			}
-		}
-
 		try {
-			$data = $this->manager->synchronize();
+			// The classic client refreshes again on a busy status; the Store API path has no such client.
+			$data = $this->manager->synchronize_or_report_busy();
 		} catch ( Throwable $e ) {
 			WC_Stripe_Logger::error( 'Native classic checkout session synchronization failed.', [ 'error_message' => $e->getMessage() ] );
 
