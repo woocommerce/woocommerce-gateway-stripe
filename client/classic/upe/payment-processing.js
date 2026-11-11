@@ -736,7 +736,7 @@ function createStripePaymentMethod(
 				},
 			},
 		};
-	} else {
+	} else if ( ! getStripeServerData()?.isChangingPayment ) {
 		// On the deferred-payment flows the form is not a checkout form, so billing
 		// fields are not present in the DOM. Forward the order/customer billing
 		// data from the server.

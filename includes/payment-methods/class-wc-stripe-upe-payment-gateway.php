@@ -728,6 +728,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		if ( is_wc_endpoint_url( 'add-payment-method' ) || $is_pay_for_order || $is_change_payment_method ) {
 			$customer     = WC()->customer instanceof WC_Customer ? WC()->customer : null;
 			$billing_data = $this->get_deferred_flow_billing_data( $is_pay_for_order, $pay_for_order_order, $customer );
+			if ( $is_change_payment_method && function_exists( 'wcs_get_subscription' ) ) {
+				$subscription = wcs_get_subscription( absint( $_GET['change_payment_method'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+				if ( $subscription instanceof WC_Order && get_current_user_id() > 0 && $subscription->get_customer_id() === get_current_user_id() ) {
+					$billing_data = $this->build_billing_data_from_source( $subscription );
+				}
+			}
 			if ( null !== $billing_data ) {
 				$stripe_params['customerBillingData'] = $billing_data;
 			}

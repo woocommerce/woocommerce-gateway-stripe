@@ -513,6 +513,34 @@ describe( 'payment-processing', () => {
 				);
 			} );
 
+			it( 'does not overwrite subscription payment-method edits with stored billing defaults', async () => {
+				stripeUtils.getStripeServerData.mockReturnValue( {
+					...BASE_SERVER_DATA,
+					isAdaptivePricingEnabled: false,
+					isChangingPayment: true,
+				} );
+				stripeUtils.getBillingDetailsForDeferredFlow.mockReturnValue( {
+					email: 'old@example.com',
+				} );
+				const api = createMockApi( createMockElements() );
+				api._stripe.elements.mockReturnValue( api._standardElements );
+				const dom = document.createElement( 'div' );
+				dom.dataset.paymentMethodType = 'card';
+				await paymentProcessing.mountStripePaymentElement( api, dom );
+				paymentProcessing.processPayment(
+					api,
+					createMockForm( { name: 'order_review' } ),
+					'card'
+				);
+				await flushPromises();
+				expect( api._stripe.createPaymentMethod ).toHaveBeenCalledWith(
+					{
+						elements: api._standardElements,
+						params: {},
+					}
+				);
+			} );
+
 			it( 'on a deferred flow with no usable billing data, omits billing_details', async () => {
 				stripeUtils.getBillingDetailsForDeferredFlow.mockReturnValue(
 					null

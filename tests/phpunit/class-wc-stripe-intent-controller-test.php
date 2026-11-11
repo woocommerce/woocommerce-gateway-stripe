@@ -2293,12 +2293,34 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		Ajax_Test_Helper::remove_hooks();
 	}
 
-	public function test_confirm_change_payment_succeeds_when_token_relink_finds_no_match() {
+	/** @dataProvider subscription_billing_confirmation_provider */
+	public function test_confirm_change_payment_succeeds_when_token_relink_finds_no_match( string $billing_intent, string $status, string $payment_method, bool $updated ) {
 		Ajax_Test_Helper::init_hooks();
 
 		$owner        = $this->factory->user->create( [ 'role' => 'customer' ] );
 		$subscription = $this->create_mock_subscription( $owner );
 		wp_set_current_user( $owner );
+		$subscription->set_billing_city( 'Original city' );
+		$subscription->update_meta_data( '_wc_stripe_billing_update_intent', $billing_intent );
+		$subscription->save();
+		$http = static function ( $response, $args, $url ) use ( $status, $payment_method ) {
+			if ( false !== strpos( $url, '/setup_intents/seti_mock_123?' ) ) {
+				return [
+					'response' => [ 'code' => 200 ],
+					'body'     => wp_json_encode(
+						[
+							'status'         => $status,
+							'payment_method' => (object) [
+								'id'              => $payment_method,
+								'billing_details' => (object) [ 'address' => (object) [ 'city' => 'Updated city' ] ],
+							],
+						]
+					),
+				];
+			}
+			return $response;
+		};
+		add_filter( 'pre_http_request', $http, 10, 3 );
 
 		// A confirmed token whose Stripe id is deliberately NOT among the user's
 		// saved tokens, so replace_subscription_payment_token() finds no match.
@@ -2336,9 +2358,24 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		$response = json_decode( $output, true );
 
 		$this->assertTrue( $response['success'], 'A display-only token-relink miss must not fail an authenticated change.' );
+		$this->assertSame( $updated ? 'Updated city' : 'Original city', $subscription->get_billing_city() );
+		if ( $updated ) {
+			$this->assertSame( '', $subscription->get_meta( '_wc_stripe_billing_update_intent' ) );
+		}
 
+		remove_filter( 'pre_http_request', $http );
 		WC_Subscriptions::set_wcs_get_subscription( null );
 		Ajax_Test_Helper::remove_hooks();
+	}
+
+	public function subscription_billing_confirmation_provider(): array {
+		return [
+			'no billing edit'   => [ '', 'succeeded', 'pm_unsaved', false ],
+			'confirmed edit'    => [ 'seti_mock_123', 'succeeded', 'pm_unsaved', true ],
+			'different attempt' => [ 'seti_other', 'succeeded', 'pm_unsaved', false ],
+			'not confirmed'     => [ 'seti_mock_123', 'requires_action', 'pm_unsaved', false ],
+			'different method'  => [ 'seti_mock_123', 'succeeded', 'pm_other', false ],
+		];
 	}
 
 	/**

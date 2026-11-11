@@ -13,6 +13,100 @@
  * WC_Stripe_Subscription_Initial_Test
  */
 class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
+	public function test_subscription_billing_sync_preserves_uncollected_fields_and_other_addresses(): void {
+		$subscription = new WC_Subscription( WC_Helper_Order::create_order()->get_id() );
+		$subscription->set_billing_first_name( 'Mary Jane' );
+		$subscription->set_billing_last_name( 'van Example' );
+		$subscription->set_billing_address_2( 'Suite 5' );
+		$subscription->save();
+		$original     = $subscription->get_address( 'billing' );
+		$shipping     = $subscription->get_address( 'shipping' );
+		$customer     = new WC_Customer( $subscription->get_customer_id() );
+		$account_city = $customer->get_billing_city();
+		$gateway      = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )->disableOriginalConstructor()->onlyMethods( [] )->getMock();
+		$gateway->update_subscription_billing_details(
+			$subscription,
+			(object) [
+				'billing_details' => (object) [
+					'name'    => 'Mary Jane van Example',
+					'email'   => 'updated@example.com',
+					'phone'   => null,
+					'address' => (object) [
+						'city'    => 'Updated city',
+						'line2'   => '',
+						'country' => null,
+					],
+				],
+			]
+		);
+		$this->assertSame(
+			array_merge(
+				$original,
+				[
+					'city'  => 'Updated city',
+					'email' => 'updated@example.com',
+				]
+			),
+			$subscription->get_address( 'billing' )
+		);
+		$this->assertSame( $shipping, $subscription->get_address( 'shipping' ) );
+		$this->assertSame( $account_city, ( new WC_Customer( $subscription->get_customer_id() ) )->get_billing_city() );
+	}
+
+	/** @dataProvider subscription_billing_submission_provider */
+	public function test_subscription_billing_sync_requires_successful_new_inline_method( bool $saved, bool $express, string $status, bool $updated ): void {
+		$subscription = new WC_Subscription( WC_Helper_Order::create_order()->get_id() );
+		$subscription->set_billing_first_name( 'Original' );
+		$subscription->save();
+		WC_Subscriptions::set_wcs_get_subscription(
+			static function () use ( $subscription ) {
+				return $subscription;
+			}
+		);
+		wp_set_current_user( $subscription->get_customer_id() );
+		$_POST                    = $express ? [ 'express_checkout_type' => 'apple_pay' ] : [];
+		$gateway                  = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )->disableOriginalConstructor()->onlyMethods( [ 'prepare_payment_information_from_request', 'validate_selected_payment_method_type', 'stripe_request', 'maybe_disallow_prepaid_card', 'process_setup_intent_for_order', 'get_return_url', 'get_upe_gateway_id_for_order' ] )->getMock();
+		$gateway->id              = 'stripe';
+		$gateway->payment_methods = [];
+		$gateway->method( 'prepare_payment_information_from_request' )->willReturn(
+			[
+				'payment_method'                => 'pm_test',
+				'selected_payment_type'         => 'card',
+				'save_payment_method_to_store'  => false,
+				'is_using_saved_payment_method' => $saved,
+				'customer'                      => 'cus_test',
+				'token'                         => false,
+			]
+		);
+		$gateway->method( 'stripe_request' )->willReturn( (object) [ 'billing_details' => (object) [ 'name' => 'Updated Subscriber' ] ] );
+		$gateway->method( 'process_setup_intent_for_order' )->willReturn(
+			(object) [
+				'id'     => 'seti_test',
+				'status' => $status,
+			]
+		);
+		$gateway->method( 'get_return_url' )->willReturn( 'https://example.org/subscription' );
+		$gateway->method( 'get_upe_gateway_id_for_order' )->willReturn( 'stripe' );
+		try {
+			$result = $gateway->process_change_subscription_payment_with_deferred_intent( $subscription->get_id() );
+			$this->assertSame( 'success', $result['result'] );
+			$this->assertSame( $updated ? 'Updated' : 'Original', $subscription->get_billing_first_name() );
+		} finally {
+			WC_Subscriptions::set_wcs_get_subscription( null );
+			$_POST = [];
+			wp_set_current_user( 0 );
+		}
+	}
+
+	public function subscription_billing_submission_provider(): array {
+		return [
+			'new method'       => [ false, false, 'succeeded', true ],
+			'saved method'     => [ true, false, 'succeeded', false ],
+			'express checkout' => [ false, true, 'succeeded', false ],
+			'not confirmed'    => [ false, false, 'processing', false ],
+		];
+	}
+
 	/**
 	 * Tests whether the initial payment succeeds and includes the `setup_future_usage` parameter.
 	 *

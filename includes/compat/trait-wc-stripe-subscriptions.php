@@ -348,6 +348,8 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			// Create a setup intent, or update an existing one associated with the order.
 			$payment_intent = $this->process_setup_intent_for_order( $subscription, $payment_information );
+			$update_billing = ! $is_express_checkout_submission && empty( $payment_information['is_using_saved_payment_method'] );
+			$subscription->delete_meta_data( '_wc_stripe_billing_update_intent' );
 
 			// Handle saving the payment method in the store.
 			$saved_payment_method_to_store = $payment_information['save_payment_method_to_store'] && $upe_payment_method && $upe_payment_method->get_id() === $upe_payment_method->get_retrievable_type();
@@ -366,6 +368,10 @@ trait WC_Stripe_Subscriptions_Trait {
 			if ( in_array( $payment_intent->status, WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION_OR_ACTION_STATUSES, true ) ) {
 				// save_intent_to_order() skips subscriptions, but the redirect check needs this ID.
 				WC_Stripe_Order_Helper::get_instance()->update_stripe_setup_intent_id( $subscription, $payment_intent->id );
+				if ( $update_billing ) {
+					// Saved methods and wallets do not expose editable billing fields.
+					$subscription->update_meta_data( '_wc_stripe_billing_update_intent', $payment_intent->id );
+				}
 
 				// Because we're filtering woocommerce_subscriptions_update_payment_via_pay_shortcode, we need to manually set this delayed update all flag here.
 				if ( isset( $_POST['update_all_subscriptions_payment_method'] ) && wc_clean( wp_unslash( $_POST['update_all_subscriptions_payment_method'] ) ) ) {
@@ -394,6 +400,9 @@ trait WC_Stripe_Subscriptions_Trait {
 				// Attach the new payment method ID and the customer ID to the subscription on success.
 				$this->set_payment_method_id_for_subscription( $subscription, $payment_method_id );
 				$this->set_customer_id_for_subscription( $subscription, $payment_information['customer'] );
+				if ( $update_billing && WC_Stripe_Intent_Status::SUCCEEDED === $payment_intent->status ) {
+					$this->update_subscription_billing_details( $subscription, $payment_method );
+				}
 
 				// If we saved a new token, link the saved token to the subscription for display purposes.
 				// Intentionally ignore any failures, as the display update doesn't affect renewals.
@@ -432,6 +441,56 @@ trait WC_Stripe_Subscriptions_Trait {
 				'result'   => 'failure',
 				'redirect' => '',
 			];
+		}
+	}
+
+	/**
+	 * Preserve fields Stripe did not collect instead of erasing the invoice address.
+	 *
+	 * @since x.x.x
+	 * @param WC_Order $subscription Subscription whose payment method was changed.
+	 * @param object   $payment_method Confirmed Stripe PaymentMethod.
+	 */
+	public function update_subscription_billing_details( WC_Order $subscription, object $payment_method ): void {
+		$details = $payment_method->billing_details ?? null;
+		if ( ! is_object( $details ) ) {
+			return;
+		}
+		$original = $subscription->get_address( 'billing' );
+		$billing  = $original;
+		foreach ( [
+			'line1'       => 'address_1',
+			'line2'       => 'address_2',
+			'city'        => 'city',
+			'state'       => 'state',
+			'postal_code' => 'postcode',
+			'country'     => 'country',
+		] as $stripe_field => $wc_field ) {
+			$value = $details->address->$stripe_field ?? null;
+			if ( is_string( $value ) && '' !== trim( $value ) ) {
+				$billing[ $wc_field ] = sanitize_text_field( $value );
+			}
+		}
+		foreach ( [ 'email', 'phone' ] as $field ) {
+			if ( is_string( $details->$field ?? null ) && '' !== trim( $details->$field ) ) {
+				$billing[ $field ] = sanitize_text_field( $details->$field );
+			}
+		}
+		$name = is_string( $details->name ?? null ) ? sanitize_text_field( $details->name ) : '';
+		// Keep compound first/last names intact when Stripe returns the same full name.
+		if ( '' !== $name && trim( $original['first_name'] . ' ' . $original['last_name'] ) !== $name ) {
+			[ $billing['first_name'], $billing['last_name'] ] = array_pad( explode( ' ', $name, 2 ), 2, '' );
+		}
+		if ( $billing === $original ) {
+			return;
+		}
+		try {
+			$subscription->set_address( $billing, 'billing' );
+			$subscription->save();
+		} catch ( Exception $e ) {
+			$subscription->set_address( $original, 'billing' );
+			WC_Stripe_Logger::error( 'Could not update billing details for subscription: ' . $subscription->get_id() );
+			wc_add_notice( __( 'Your payment method was updated, but the subscription billing details could not be saved.', 'woocommerce-gateway-stripe' ), 'notice' );
 		}
 	}
 

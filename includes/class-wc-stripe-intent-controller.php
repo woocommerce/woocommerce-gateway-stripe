@@ -1901,6 +1901,14 @@ class WC_Stripe_Intent_Controller {
 			$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
 			$gateway->set_customer_id_for_subscription( $subscription, $customer->get_id() );
 			$gateway->set_payment_method_id_for_subscription( $subscription, $token->get_token() );
+			if ( $setup_intent_id === $subscription->get_meta( '_wc_stripe_billing_update_intent' ) ) {
+				$intent = WC_Stripe_API::retrieve( 'setup_intents/' . $setup_intent_id . '?expand[]=payment_method' );
+				if ( WC_Stripe_Intent_Status::SUCCEEDED === ( $intent->status ?? null ) && $token->get_token() === ( $intent->payment_method->id ?? null ) ) {
+					$subscription->delete_meta_data( '_wc_stripe_billing_update_intent' );
+					$subscription->save_meta_data();
+					$gateway->update_subscription_billing_details( $subscription, $intent->payment_method );
+				}
+			}
 
 			// Update the saved token details to capture the current details for display purposes.
 			// Errors are intentionally ignored as the changes are cosmetic and don't impact renewals.
