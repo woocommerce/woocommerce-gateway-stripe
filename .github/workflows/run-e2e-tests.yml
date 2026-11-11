@@ -49,6 +49,7 @@ jobs:
       - name: Prepare test environment
         env:
           GITHUB_TOKEN: ${{ secrets.E2E_GH_TOKEN }}
+          E2E_PROJECT: ${{ matrix.project }}
           WP_VERSION: ${{ inputs.wp-version }}
           WC_VERSION: ${{ inputs.wc-version }}
           WP_THEME: ${{ inputs.theme }}

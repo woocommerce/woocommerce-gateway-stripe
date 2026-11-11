@@ -95,6 +95,7 @@ jobs:
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.E2E_GH_TOKEN }}
+          E2E_PROJECT: ${{ matrix.project }}
           STRIPE_PUB_KEY: ${{ matrix.project == 'optimized-checkout-link-off' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_LINK_OFF || matrix.project == 'blik' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_AU || secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
           STRIPE_SECRET_KEY: ${{ matrix.project == 'optimized-checkout-link-off' && secrets.E2E_STRIPE_SECRET_KEY_LINK_OFF || matrix.project == 'blik' && secrets.E2E_STRIPE_SECRET_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_SECRET_KEY_AU || secrets.E2E_STRIPE_SECRET_KEY }}
           WP_THEME: ${{ matrix.theme }}
