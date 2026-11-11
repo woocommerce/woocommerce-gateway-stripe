@@ -558,6 +558,12 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$results  = [];
 
 			foreach ( [ 'live', 'test' ] as $mode ) {
+				// Test keys can share the live authorization, so a second revocation
+				// could report a failure after the live connection has already been revoked.
+				if ( 'test' === $mode && ! empty( $settings['secret_key'] ) ) {
+					continue;
+				}
+
 				if ( 'connect' !== $this->get_connection_type( $mode ) ) {
 					continue;
 				}

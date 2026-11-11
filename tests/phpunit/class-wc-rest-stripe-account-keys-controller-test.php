@@ -393,7 +393,6 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 					$calls[] = 'deauthorize';
 					return [
 						'live' => true,
-						'test' => true,
 					];
 				}
 			);
@@ -478,11 +477,13 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 
 	/**
 	 * @dataProvider provide_disconnect_revocation_results
-	 * @param array $failures       Modes whose revocation fails.
-	 * @param array $previous_modes Outstanding warnings from earlier disconnects.
-	 * @param array $expected_modes Modes retained in the warning.
+	 * @param array $settings_overrides Changes to a store with both live and test keys.
+	 * @param array $failures           Modes whose revocation fails.
+	 * @param array $previous_modes     Outstanding warnings from earlier disconnects.
+	 * @param array $expected_modes     Modes retained in the warning.
+	 * @param array $expected_counts    Expected requests per mode, including retries.
 	 */
-	public function test_disconnect_retries_and_persists_unconfirmed_modes( $failures, $previous_modes, $expected_modes ) {
+	public function test_disconnect_retries_and_persists_unconfirmed_modes( $settings_overrides, $failures, $previous_modes, $expected_modes, $expected_counts ) {
 		$settings = [
 			'enabled'              => 'yes',
 			'connection_type'      => 'connect',
@@ -492,6 +493,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 			'test_publishable_key' => 'pk_test_example',
 			'test_secret_key'      => 'sk_test_example',
 		];
+		$settings = array_merge( $settings, $settings_overrides );
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 		$this->set_stripe_account_data(
 			[
@@ -544,7 +546,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 				$prefix = 'test' === $mode ? 'test_' : '';
 				$this->assertSame( '', $saved_settings[ $prefix . 'secret_key' ] );
 				$this->assertSame( '', $saved_settings[ $prefix . 'connection_type' ] );
-				$this->assertSame( in_array( $mode, $failures, true ) ? 3 : 1, $counts[ $mode ] );
+				$this->assertSame( $expected_counts[ $mode ], $counts[ $mode ] );
 			}
 		} finally {
 			remove_filter( 'pre_http_request', $mock );
@@ -553,13 +555,110 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 	}
 
 	public function provide_disconnect_revocation_results() {
+		$test_only = [
+			'connection_type' => '',
+			'publishable_key' => '',
+			'secret_key'      => '',
+			'testmode'        => 'yes',
+		];
+		$live_only = [
+			'test_connection_type' => '',
+			'test_publishable_key' => '',
+			'test_secret_key'      => '',
+			'testmode'             => 'no',
+		];
+
 		return [
-			'both revoked'                 => [ [], [], [] ],
-			'live unconfirmed'             => [ [ 'live' ], [], [ 'live' ] ],
-			'test unconfirmed'             => [ [ 'test' ], [], [ 'test' ] ],
-			'both unconfirmed'             => [ [ 'live', 'test' ], [], [ 'live', 'test' ] ],
-			'earlier warning is preserved' => [ [ 'test' ], [ 'live' ], [ 'live', 'test' ] ],
-			'new success retains warning'  => [ [], [ 'live' ], [ 'live' ] ],
+			'both keys in live mode'       => [
+				[ 'testmode' => 'no' ],
+				[],
+				[],
+				[],
+				[
+					'live' => 1,
+					'test' => 0,
+				],
+			],
+			'both keys in test mode'       => [
+				[ 'testmode' => 'yes' ],
+				[],
+				[],
+				[],
+				[
+					'live' => 1,
+					'test' => 0,
+				],
+			],
+			'test keys only'               => [
+				$test_only,
+				[],
+				[],
+				[],
+				[
+					'live' => 0,
+					'test' => 1,
+				],
+			],
+			'live keys only'               => [
+				$live_only,
+				[],
+				[],
+				[],
+				[
+					'live' => 1,
+					'test' => 0,
+				],
+			],
+			'live failure in live mode'    => [
+				[ 'testmode' => 'no' ],
+				[ 'live' ],
+				[],
+				[ 'live' ],
+				[
+					'live' => 3,
+					'test' => 0,
+				],
+			],
+			'live failure in test mode'    => [
+				[ 'testmode' => 'yes' ],
+				[ 'live' ],
+				[],
+				[ 'live' ],
+				[
+					'live' => 3,
+					'test' => 0,
+				],
+			],
+			'test-only failure'            => [
+				$test_only,
+				[ 'test' ],
+				[],
+				[ 'test' ],
+				[
+					'live' => 0,
+					'test' => 3,
+				],
+			],
+			'earlier warning is preserved' => [
+				$test_only,
+				[ 'test' ],
+				[ 'live' ],
+				[ 'live', 'test' ],
+				[
+					'live' => 0,
+					'test' => 3,
+				],
+			],
+			'new success retains warning'  => [
+				[ 'testmode' => 'no' ],
+				[],
+				[ 'live' ],
+				[ 'live' ],
+				[
+					'live' => 1,
+					'test' => 0,
+				],
+			],
 		];
 	}
 

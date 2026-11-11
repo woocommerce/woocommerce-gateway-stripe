@@ -730,13 +730,14 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * Asserts that deauthorize_oauth_connections() revokes only the Connect
 	 * connection.
 	 *
-	 * @param array $settings       Stripe settings to store before the call.
-	 * @param array $account_data   Cached account data returned for both modes.
-	 * @param array $expected_calls Expected [ account_id, secret_key ] tuples, in order.
+	 * @param array $settings         Stripe settings to store before the call.
+	 * @param array $account_data     Cached account data returned for both modes.
+	 * @param array $expected_calls   Expected [ account_id, secret_key ] tuples, in order.
+	 * @param array $expected_results Revocation results by mode.
 	 *
 	 * @dataProvider provide_deauthorize_oauth_connections
 	 */
-	public function test_deauthorize_oauth_connections( $settings, $account_data, $expected_calls ) {
+	public function test_deauthorize_oauth_connections( $settings, $account_data, $expected_calls, $expected_results ) {
 		$this->set_stripe_account_data( $account_data );
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
@@ -756,84 +757,90 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$results = $connect->deauthorize_oauth_connections();
 
 		$this->assertSame( $expected_calls, $calls );
-		foreach ( [ 'live', 'test' ] as $mode ) {
-			$prefix = 'test' === $mode ? 'test_' : '';
-			if ( 'connect' !== ( $settings[ $prefix . 'connection_type' ] ?? '' ) ) {
-				$this->assertArrayNotHasKey( $mode, $results );
-				continue;
-			}
-			$this->assertSame( ! empty( $settings[ $prefix . 'secret_key' ] ) && ! empty( $account_data['id'] ), $results[ $mode ] );
-		}
+		$this->assertSame( $expected_results, $results );
 	}
 
 	/**
 	 * Provider for test_deauthorize_oauth_connections.
 	 */
 	public function provide_deauthorize_oauth_connections() {
+		$both_modes = [
+			'connection_type'      => 'connect',
+			'secret_key'           => 'sk_live_abc',
+			'test_connection_type' => 'connect',
+			'test_secret_key'      => 'sk_test_abc',
+		];
+
 		return [
-			'live and test connect connections' => [
-				'settings'       => [
-					'connection_type'      => 'connect',
-					'secret_key'           => 'sk_live_abc',
-					'test_connection_type' => 'connect',
-					'test_secret_key'      => 'sk_test_abc',
-				],
-				'account_data'   => [ 'id' => 'acct_123' ],
-				'expected_calls' => [
-					[ 'acct_123', 'sk_live_abc' ],
-					[ 'acct_123', 'sk_test_abc' ],
-				],
+			'both keys in live mode revoke only live'            => [
+				array_merge( $both_modes, [ 'testmode' => 'no' ] ),
+				[ 'id' => 'acct_123' ],
+				[ [ 'acct_123', 'sk_live_abc' ] ],
+				[ 'live' => true ],
 			],
-			'live connect only'                 => [
-				'settings'       => [
+			'both keys in test mode revoke only live'            => [
+				array_merge( $both_modes, [ 'testmode' => 'yes' ] ),
+				[ 'id' => 'acct_123' ],
+				[ [ 'acct_123', 'sk_live_abc' ] ],
+				[ 'live' => true ],
+			],
+			'live keys only in live mode'                        => [
+				[
 					'connection_type' => 'connect',
 					'secret_key'      => 'sk_live_abc',
+					'testmode'        => 'no',
 				],
-				'account_data'   => [ 'id' => 'acct_123' ],
-				'expected_calls' => [
-					[ 'acct_123', 'sk_live_abc' ],
-				],
+				[ 'id' => 'acct_123' ],
+				[ [ 'acct_123', 'sk_live_abc' ] ],
+				[ 'live' => true ],
 			],
-			'app connections are not revocable' => [
-				'settings'       => [
-					'connection_type'      => 'app',
-					'secret_key'           => 'sk_live_abc',
-					'test_connection_type' => 'app',
+			'test keys only in test mode'                        => [
+				[
+					'test_connection_type' => 'connect',
 					'test_secret_key'      => 'sk_test_abc',
+					'testmode'             => 'yes',
 				],
-				'account_data'   => [ 'id' => 'acct_123' ],
-				'expected_calls' => [],
+				[ 'id' => 'acct_123' ],
+				[ [ 'acct_123', 'sk_test_abc' ] ],
+				[ 'test' => true ],
 			],
-			'manual keys have no connection'    => [
-				'settings'       => [
+			'app connections are not revocable'                  => [
+				array_merge(
+					$both_modes,
+					[
+						'connection_type'      => 'app',
+						'test_connection_type' => 'app',
+					]
+				),
+				[ 'id' => 'acct_123' ],
+				[],
+				[],
+			],
+			'manual keys have no connection'                     => [
+				[
 					'secret_key'      => 'sk_live_abc',
 					'test_secret_key' => 'sk_test_abc',
 				],
-				'account_data'   => [ 'id' => 'acct_123' ],
-				'expected_calls' => [],
+				[ 'id' => 'acct_123' ],
+				[],
+				[],
 			],
-			'missing secret key is skipped'     => [
-				'settings'       => [
-					'connection_type' => 'connect',
-				],
-				'account_data'   => [ 'id' => 'acct_123' ],
-				'expected_calls' => [],
+			'missing secret key is skipped'                      => [
+				[ 'connection_type' => 'connect' ],
+				[ 'id' => 'acct_123' ],
+				[],
+				[ 'live' => false ],
 			],
-			'missing account id is skipped'     => [
-				'settings'       => [
-					'connection_type' => 'connect',
-					'secret_key'      => 'sk_live_abc',
-				],
-				'account_data'   => [],
-				'expected_calls' => [],
+			'missing live account id does not fall back to test' => [
+				$both_modes,
+				[],
+				[],
+				[ 'live' => false ],
 			],
 		];
 	}
 
-	/**
-	 * A failed mode must stay unconfirmed even when another mode succeeds.
-	 */
-	public function test_deauthorize_oauth_connections_returns_partial_failure() {
+	public function test_deauthorize_oauth_connections_does_not_fall_back_to_test_after_live_failure() {
 		$this->set_stripe_account_data( [ 'id' => 'acct_123' ] );
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[
@@ -845,21 +852,13 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		);
 
 		$api_mock = $this->getMockBuilder( WC_Stripe_Connect_API::class )->disableOriginalConstructor()->getMock();
-		$api_mock->expects( $this->exactly( 2 ) )
+		$api_mock->expects( $this->once() )
 			->method( 'deauthorize_account' )
-			->willReturnOnConsecutiveCalls(
-				(object) [ 'accountId' => 'acct_123' ],
-				new WP_Error( 'wcc_server_error', 'Failed to deauthorize account.' )
-			);
+			->with( 'acct_123', 'sk_live_abc' )
+			->willReturn( new WP_Error( 'wcc_server_error', 'Failed to deauthorize account.' ) );
 
 		$connect = new WC_Stripe_Connect( $api_mock );
-		$this->assertSame(
-			[
-				'live' => true,
-				'test' => false,
-			],
-			$connect->deauthorize_oauth_connections()
-		);
+		$this->assertSame( [ 'live' => false ], $connect->deauthorize_oauth_connections() );
 	}
 
 	/**

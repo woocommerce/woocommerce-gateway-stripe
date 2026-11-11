@@ -138,7 +138,7 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 		}
 
 		/**
-		 * The disconnect screen waits for both modes, so retries need a bounded budget
+		 * The disconnect screen waits for revocation, so retries need a bounded budget
 		 * instead of repeating the normal 60-second OAuth timeout.
 		 *
 		 * @since x.x.x
