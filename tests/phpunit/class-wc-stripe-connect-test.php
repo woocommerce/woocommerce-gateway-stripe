@@ -77,10 +77,14 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @param string $account_country  Country of the connected Stripe account.
 	 * @param string $expected_oc      Expected value of optimized_checkout_element after save.
 	 * @param string $expected_ap      Expected value of adaptive_pricing after save.
+	 * @param string|null $expected_event   Prefixed AP default Tracks event name, or null when none is expected.
+	 * @param string|null $expected_reason  Expected `reason` property of the event, or null when none is expected.
 	 *
 	 * @dataProvider provide_save_stripe_keys_defaults_ocs_for_new_installs
 	 */
-	public function test_save_stripe_keys_defaults_ocs_and_adaptive_pricing_for_new_installs( bool $marker_set, string $type, string $account_country, string $expected_oc, string $expected_ap ): void {
+	public function test_save_stripe_keys_defaults_ocs_and_adaptive_pricing_for_new_installs( bool $marker_set, string $type, string $account_country, string $expected_oc, string $expected_ap, ?string $expected_event, ?string $expected_reason ): void {
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+
 		if ( $marker_set ) {
 			update_option( 'wc_stripe_optimized_checkout_default_on', 'yes' );
 		} else {
@@ -105,9 +109,25 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$method = new ReflectionMethod( WC_Stripe_Connect::class, 'save_stripe_keys' );
 		$method->setAccessible( true );
+		$this->start_capturing_tracks_events();
 		$method->invoke( $this->connect, $result, $type, 'test' );
+		$this->stop_capturing_tracks_events();
 
 		$settings = WC_Stripe_Helper::get_stripe_settings();
+
+		$ap_default_events = array_merge(
+			$this->get_captured_tracks_event_properties( 'wcadmin_wcstripe_ap_default_enabled' ),
+			$this->get_captured_tracks_event_properties( 'wcadmin_wcstripe_ap_default_skipped' )
+		);
+		if ( null === $expected_event ) {
+			$this->assertSame( [], $ap_default_events );
+		} else {
+			$events = $this->get_captured_tracks_event_properties( $expected_event );
+			$this->assertCount( 1, $ap_default_events );
+			$this->assertCount( 1, $events );
+			$this->assertSame( 'connect', $events[0]['source'] );
+			$this->assertSame( $expected_reason, $events[0]['reason'] ?? null );
+		}
 
 		$this->assertSame( $expected_oc, $settings['optimized_checkout_element'] ?? '' );
 		$this->assertSame( $expected_ap, $settings['adaptive_pricing'] ?? '' );
@@ -127,6 +147,8 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'account_country' => 'US',
 				'expected_oc'     => 'yes',
 				'expected_ap'     => 'yes',
+				'expected_event'  => 'wcadmin_wcstripe_ap_default_enabled',
+				'expected_reason' => null,
 			],
 			'marker set + connect type + India account defaults OCS only'      => [
 				'marker_set'      => true,
@@ -134,6 +156,8 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'account_country' => 'IN',
 				'expected_oc'     => 'yes',
 				'expected_ap'     => '',
+				'expected_event'  => 'wcadmin_wcstripe_ap_default_skipped',
+				'expected_reason' => 'account-country',
 			],
 			'marker set + app type leaves both unset'                          => [
 				'marker_set'      => true,
@@ -141,6 +165,8 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'account_country' => 'US',
 				'expected_oc'     => '',
 				'expected_ap'     => '',
+				'expected_event'  => null,
+				'expected_reason' => null,
 			],
 			'no marker + connect type leaves both unset'                       => [
 				'marker_set'      => false,
@@ -148,6 +174,8 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'account_country' => 'US',
 				'expected_oc'     => '',
 				'expected_ap'     => '',
+				'expected_event'  => null,
+				'expected_reason' => null,
 			],
 		];
 	}
@@ -414,23 +442,29 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * A failed cleanup retains the old key for retry, but verbose OAuth logs must mask it.
+	 * A failed cleanup retains credentials for retry, but verbose OAuth logs must mask them.
 	 *
 	 * @dataProvider provide_webhook_log_modes
 	 */
 	public function test_failed_webhook_cleanup_redacts_retained_key_in_verbose_log( $mode ) {
-		$prefix  = 'test' === $mode ? 'test_' : '';
-		$old_key = 'sk_' . $mode . '_old_account';
-		$new_key = 'sk_' . $mode . '_new_account';
+		$prefix         = 'test' === $mode ? 'test_' : '';
+		$old_key        = 'sk_' . $mode . '_old_account';
+		$new_key        = 'sk_' . $mode . '_new_account';
+		$signing_secret = 'whsec_retained_webhook_signing_secret';
+		$other_prefix   = 'test' === $mode ? '' : 'test_';
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[
-				'testmode'               => 'test' === $mode ? 'yes' : 'no',
-				$prefix . 'secret_key'   => $old_key,
-				$prefix . 'webhook_data' => [
-					'id'     => 'we_old',
-					'secret' => '',
+				'testmode'                     => 'test' === $mode ? 'yes' : 'no',
+				$prefix . 'secret_key'         => $old_key,
+				$prefix . 'webhook_data'       => [
+					'id'             => 'we_old',
+					'secret'         => '',
+					'signing_secret' => $signing_secret,
 				],
-				'pmc_enabled'            => 'yes',
+				$other_prefix . 'webhook_data' => [ 'signing_secret' => 'whsec_other_mode_signing_secret' ],
+				'refresh_token'                => 'rt_live_example_refresh_token',
+				'test_refresh_token'           => 'rt_test_example_refresh_token',
+				'pmc_enabled'                  => 'yes',
 			]
 		);
 
@@ -438,8 +472,9 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$account->expects( $this->once() )->method( 'maybe_decommission_webhook' )
 			->with(
 				[
-					'id'     => 'we_old',
-					'secret' => $old_key,
+					'id'             => 'we_old',
+					'secret'         => $old_key,
+					'signing_secret' => $signing_secret,
 				],
 				$new_key
 			)
@@ -472,6 +507,13 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertCount( 1, $logged_options );
 		$this->assertSame( WC_Stripe_Connect::redact_string( $old_key ), $logged_options[0][ $prefix . 'webhook_data' ]['secret'] );
 		$this->assertStringNotContainsString( $old_key, wp_json_encode( $logged_options[0] ) );
+		$this->assertSame( $signing_secret, $settings[ $prefix . 'webhook_data' ]['signing_secret'] );
+		$this->assertSame( WC_Stripe_Connect::redact_string( $signing_secret ), $logged_options[0][ $prefix . 'webhook_data' ]['signing_secret'] );
+		$this->assertSame( WC_Stripe_Connect::redact_string( 'whsec_other_mode_signing_secret' ), $logged_options[0][ $other_prefix . 'webhook_data' ]['signing_secret'] );
+		foreach ( [ 'refresh_token', 'test_refresh_token' ] as $key ) {
+			$this->assertSame( WC_Stripe_Connect::redact_string( $settings[ $key ] ), $logged_options[0][ $key ] );
+			$this->assertStringNotContainsString( $settings[ $key ], wp_json_encode( $logged_options[0] ) );
+		}
 	}
 
 	public function provide_webhook_log_modes() {

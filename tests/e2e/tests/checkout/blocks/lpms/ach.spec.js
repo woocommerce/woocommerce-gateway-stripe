@@ -4,11 +4,13 @@ import config from 'config';
 import { admin, payments, api, user } from '../../../../utils';
 
 const {
+	clickPlaceOrder,
 	emptyCart,
 	setupCart,
 	setupBlocksCheckout,
 	fillACHBankDetails,
 	setupACHCheckout,
+	tickSavePaymentMethodBlocks,
 	waitForOrderReceivedPage,
 } = payments;
 
@@ -49,7 +51,7 @@ test.describe( 'ACH payment tests @blocks', () => {
 		await setupACHCheckout( page, 'blocks' );
 		await fillACHBankDetails( page );
 
-		await page.locator( 'text=Place order' ).click();
+		await clickPlaceOrder( page );
 		await waitForOrderReceivedPage( page );
 	} );
 
@@ -65,13 +67,9 @@ test.describe( 'ACH payment tests @blocks', () => {
 			);
 			await setupACHCheckout( page, 'blocks' );
 			await fillACHBankDetails( page );
-			await page
-				.locator(
-					'.wc-block-components-payment-methods__save-card-info'
-				)
-				.click();
+			await tickSavePaymentMethodBlocks( page );
 
-			await page.locator( 'text=Place order' ).click();
+			await clickPlaceOrder( page );
 			await waitForOrderReceivedPage( page );
 		} );
 
@@ -88,7 +86,7 @@ test.describe( 'ACH payment tests @blocks', () => {
 				.filter( { hasText: 'Checking account ending in' } )
 				.click();
 
-			await page.locator( 'text=Place order' ).click();
+			await clickPlaceOrder( page );
 			await waitForOrderReceivedPage( page );
 		} );
 	} );

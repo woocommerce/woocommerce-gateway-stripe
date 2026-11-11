@@ -387,13 +387,15 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// configured above. AP requires a working webhook endpoint, so this decision must run after
 			// configure_webhooks()
 			if ( 'connect' === $type && $should_default_optimized_checkout_on ) {
-				if ( WC_Stripe_Helper::is_adaptive_pricing_available_for_account() ) {
+				$ap_unavailable_reason = WC_Stripe_Helper::get_adaptive_pricing_account_unavailable_reason();
+				if ( null === $ap_unavailable_reason ) {
 					$settings                     = WC_Stripe_Helper::get_stripe_settings();
 					$settings['adaptive_pricing'] = 'yes';
 					WC_Stripe_Helper::update_main_stripe_settings( $settings );
 				} else {
 					WC_Stripe_Logger::info( 'OAuth: Not defaulting Adaptive Pricing on; it is not available for the connected account.' );
 				}
+				WC_Stripe_Helper::record_adaptive_pricing_default_tracks_event( 'connect', $ap_unavailable_reason );
 			}
 
 			return $result;
@@ -546,18 +548,14 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * @param string          $mode            The connection mode. Either 'live' or 'test'.
 		 */
 		private function record_account_connect_tracks_event( $error_code, string $connection_type, string $mode ): void {
-			if ( ! class_exists( 'WC_Tracks' ) || ! method_exists( 'WC_Tracks', 'record_event' ) ) { // @phpstan-ignore function.alreadyNarrowedType (Defensive check to make sure the function is available in WooCommerce.)
-				return;
-			}
-
-			if ( ! class_exists( 'WC_Site_Tracking' ) || ! method_exists( WC_Site_Tracking::class, 'is_tracking_enabled' ) || ! WC_Site_Tracking::is_tracking_enabled() ) { // @phpstan-ignore function.alreadyNarrowedType (Defensive check to make sure the function is available in WooCommerce.)
+			if ( ! WC_Stripe_Tracks::is_tracking_enabled() ) {
 				return;
 			}
 
 			$event_props = [
-				'is_test_mode'    => 'live' !== $mode,
 				'connection_type' => $connection_type,
-				'stripe_version'  => WC_STRIPE_VERSION,
+				// Intentionally override `is_test_mode` based on $mode rather than on the current site mode.
+				'is_test_mode'    => 'live' !== $mode,
 			];
 
 			// Include the account ID if we have it, as some errors occur after the keys have been saved.
@@ -570,11 +568,13 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				$event_props['error_code'] = $error_code;
 			}
 
+			$event_props = WC_Stripe_Tracks::add_default_event_properties( $event_props );
+
 			$event_name = null === $error_code ? 'wcstripe_stripe_connected' : 'wcstripe_stripe_connect_error';
 
 			// We're recording this directly instead of queueing it because
 			// a queue wouldn't be processed due to the redirect that comes after.
-			WC_Tracks::record_event( $event_name, $event_props );
+			WC_Stripe_Tracks::record_direct_event( $event_name, $event_props );
 		}
 
 		/**
@@ -715,11 +715,15 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				'secretKey',
 				'testSecretKey',
 				'refreshToken',
+				'refresh_token',
+				'test_refresh_token',
 				'secret',
+				'client_secret',
 				'secret_key',
 				'test_secret_key',
 				'webhook_secret',
 				'test_webhook_secret',
+				'signing_secret',
 			];
 
 			if ( is_object( $data ) ) {

@@ -35,6 +35,8 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 
 The following items note specific versions that include important changes, features, or deprecations.
 
+* 11.2.0
+   - Express checkout buttons now use the same size across payment methods and locations
 * 11.1.0
    - Sofort is no longer offered at checkout, since Stripe discontinued it on March 31, 2025; existing Sofort orders can still be refunded and Sofort-initiated subscriptions keep renewing
 * 11.0.0
@@ -163,19 +165,14 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 11.2.0 - xxxx-xx-xx =
+= 11.3.0 - xxxx-xx-xx =
 * Update - Remove duplicate account API keys from webhook settings
-* Dev - Support webhook settings without duplicate account API keys ahead of their removal
-* Fix - Use the account API key for webhook status, cleanup, and manual setup
-* Dev - Remove expired lock rows from the options table once a day
-* Tweak - Minor improvement to error logging when saving new keys
-* Fix - Keep pending ACH orders open while Stripe is still waiting for bank verification
-* Fix - Complete express checkout payments on the Pay for Order page when the checkout phone field is required, and preserve the order's saved billing phone
-* Dev - Fix the Format Release Notes workflow running out of turns before it could open its pull request
-* Add - Remote configuration system for managing feature availability during incidents
-* Update - Retry failed remote-config syncs with backoff and log a warning when the cached configuration goes stale
-* Dev - Make the express checkout password cleanup next-batch delay test stable on slow CI runners
-* Dev - Let hook @since docblocks use the x.x.x version placeholder in phpcs
-* Fix - Send shoppers to the order confirmation page instead of showing an error when processing fails after a 3D Secure payment has already succeeded
+* Update - Start wallet availability checks earlier on Cart and Checkout blocks
+* Update - Improve express checkout wallet startup, availability checks, reuse, and recovery
+* Fix - Avoid expensive variation lookup in express checkout setup on product pages
+* Dev - Add WC_Stripe_Tracks class to support more consistent events
+* Dev - Load React's JSX runtime from WordPress core instead of bundling it, and declare "Tested up to" only in readme.txt
+* Fix - Stop rewriting a saved payment method's name, email, and phone in Stripe when it is used at checkout; only the billing address is refreshed
+* Dev - Run every E2E test project under both a classic theme (Storefront) and a block theme (Twenty Twenty-Five) in CI, and make the shared E2E helpers theme-agnostic
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
