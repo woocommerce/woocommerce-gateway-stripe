@@ -236,6 +236,7 @@ describe( 'Express checkout normalization', () => {
 		};
 
 		beforeEach( () => {
+			window.wp = { ...window.wp, data: { select } };
 			expectedNormalizedData.payment_data[ 1 ].value = paymentMethodId;
 			expectedNormalizedData.payment_data[ 2 ].value = '';
 

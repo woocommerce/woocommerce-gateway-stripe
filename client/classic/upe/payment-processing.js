@@ -22,6 +22,7 @@ import {
 	normalizeReturnUrl,
 	getStaleCheckoutTotalMessage,
 	clearStaleCheckoutTotalNotice,
+	stripeJsSupportsCheckoutSessions,
 } from '../../stripe-utils';
 import {
 	initializeUPEAppearance,
@@ -507,7 +508,10 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	if (
 		stripeServerData?.isAdaptivePricingEnabled &&
 		supportsDeferredIntent &&
-		typeof stripe?.initCheckoutElementsSdk === 'function'
+		stripeJsSupportsCheckoutSessions(
+			stripe,
+			stripeServerData?.stripeJsVersion
+		)
 	) {
 		// The session this call binds the component to, so a replacement that arrives while
 		// Stripe initializes can be detected afterwards.

@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test';
 import { randomUUID } from 'crypto';
+import { test, expect } from '@playwright/test';
 import config from 'config';
 import { payments, api, user, admin } from '../../../utils';
 
@@ -8,6 +8,7 @@ const {
 	setupCart,
 	setupOptimizedCheckout,
 	fillOCDetails,
+	tickSavePaymentMethodBlocks,
 	clickPlaceOrder,
 	getCartTotal,
 	waitForOrderReceivedPageAndConfirmExpectedTotal,
@@ -18,7 +19,7 @@ test.describe( 'Optimized Checkout payment tests @blocks', () => {
 
 	test.describe.configure( { mode: 'serial' } );
 
-	test.beforeAll( async ( { browser } ) => {
+	test.beforeAll( async () => {
 		await test.step( 'Setup test environment', async () => {
 			// Create test user.
 			const randomString = randomUUID();
@@ -41,7 +42,12 @@ test.describe( 'Optimized Checkout payment tests @blocks', () => {
 		page,
 		browser,
 	} ) => {
-		await setupOptimizedCheckout( page, 'blocks' );
+		await setupOptimizedCheckout( page, 'blocks', {
+			billingDetails: {
+				...config.get( 'addresses.customer.billing' ),
+				email: `stripe-e2e-${ randomUUID() }@example.com`,
+			},
+		} );
 		await fillOCDetails( page, config.get( 'cards.basic' ) );
 
 		const expectedTotal = await getCartTotal( page );
@@ -72,7 +78,7 @@ test.describe( 'Optimized Checkout payment tests @blocks', () => {
 					config.get( 'users.customer.password' )
 				);
 				await setupOptimizedCheckout( page, 'blocks' );
-				await page.getByLabel( 'Save payment information' ).click();
+				await tickSavePaymentMethodBlocks( page );
 				await fillOCDetails( page, config.get( 'cards.basic' ) );
 
 				const expectedTotal = await getCartTotal( page );
@@ -88,7 +94,7 @@ test.describe( 'Optimized Checkout payment tests @blocks', () => {
 
 			await test.step( 'Save a second payment method and make it the default', async () => {
 				await setupOptimizedCheckout( page, 'blocks' );
-				await page.getByLabel( 'Save payment information' ).click();
+				await tickSavePaymentMethodBlocks( page );
 				await fillOCDetails( page, config.get( 'cards.basic2' ) );
 
 				const expectedTotal = await getCartTotal( page );

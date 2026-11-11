@@ -8,6 +8,7 @@ const {
 	setupShortcodeCheckout,
 	fillCreditCardDetailsShortcode,
 	waitForStripeReady,
+	waitForOrderReceivedPage,
 } = payments;
 
 const UPE_IFRAME_SELECTOR =
@@ -78,8 +79,5 @@ test( 'keeps the shopper on the form when a third-party required field is empty'
 		.getByRole( 'button', { name: 'Place order' } )
 		.dispatchEvent( 'click' );
 
-	await page.waitForURL( /order-received/, { timeout: 30000 } );
-	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-		'Order received'
-	);
+	await waitForOrderReceivedPage( page );
 } );

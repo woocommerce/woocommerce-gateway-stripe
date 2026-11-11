@@ -1,14 +1,16 @@
-import { test, expect } from '@playwright/test';
 import { randomUUID } from 'crypto';
+import { test, expect } from '@playwright/test';
 import config from 'config';
 import { payments, api, user, admin } from '../../../utils';
 
 const {
+	clickPlaceOrder,
 	emptyCart,
 	setupCart,
 	setupBlocksCheckout,
 	fillCreditCardDetails,
 	getCartTotal,
+	tickSavePaymentMethodBlocks,
 	waitForOrderReceivedPageAndConfirmExpectedTotal,
 } = payments;
 
@@ -20,23 +22,31 @@ test.beforeAll( async () => {
 	userEmail = randomString + '+' + config.get( 'users.customer.email' );
 	username = randomString + '.' + config.get( 'users.customer.username' );
 
-	const user = {
+	const customerData = {
 		...config.get( 'users.customer' ),
 		...config.get( 'addresses.customer' ),
 		email: userEmail,
 		username,
 	};
 
-	await api.create.customer( user );
+	await api.create.customer( customerData );
 } );
 
 test( 'customer can checkout with a saved card @smoke @blocks', async ( {
 	page,
 	browser,
+	baseURL,
 } ) => {
-	// Disable Link so the store-level save checkbox is visible.
-	// When Link is enabled, the store checkbox is hidden and Link handles save consent.
-	await admin.togglePaymentMethod( browser, 'Link by Stripe', false );
+	const useLocalFixture = process.env.DOCKER === 'true';
+	if ( useLocalFixture ) {
+		await page
+			.context()
+			.addCookies( [
+				{ name: 'wc_stripe_e2e_card_only', value: '1', url: baseURL },
+			] );
+	} else {
+		await admin.togglePaymentMethod( browser, 'Link by Stripe', false );
+	}
 
 	try {
 		await test.step( 'customer login', async () => {
@@ -53,16 +63,11 @@ test( 'customer can checkout with a saved card @smoke @blocks', async ( {
 			await setupBlocksCheckout( page );
 			await fillCreditCardDetails( page, config.get( 'cards.basic' ) );
 
-			// check box to save payment method.
-			await page
-				.locator(
-					'.wc-block-components-payment-methods__save-card-info'
-				)
-				.click();
+			await tickSavePaymentMethodBlocks( page );
 
 			const expectedTotal = await getCartTotal( page );
 
-			await page.locator( 'text=Place order' ).click();
+			await clickPlaceOrder( page );
 
 			await waitForOrderReceivedPageAndConfirmExpectedTotal(
 				browser,
@@ -76,15 +81,11 @@ test( 'customer can checkout with a saved card @smoke @blocks', async ( {
 			await setupCart( page );
 			await setupBlocksCheckout( page );
 			await fillCreditCardDetails( page, config.get( 'cards.basic2' ) );
-			await page
-				.locator(
-					'.wc-block-components-payment-methods__save-card-info'
-				)
-				.click();
+			await tickSavePaymentMethodBlocks( page );
 
 			const expectedTotal = await getCartTotal( page );
 
-			await page.locator( 'text=Place order' ).click();
+			await clickPlaceOrder( page );
 
 			await waitForOrderReceivedPageAndConfirmExpectedTotal(
 				browser,
@@ -121,7 +122,7 @@ test( 'customer can checkout with a saved card @smoke @blocks', async ( {
 
 			const expectedTotal = await getCartTotal( page );
 
-			await page.locator( 'text=Place order' ).click();
+			await clickPlaceOrder( page );
 
 			await waitForOrderReceivedPageAndConfirmExpectedTotal(
 				browser,
@@ -130,7 +131,8 @@ test( 'customer can checkout with a saved card @smoke @blocks', async ( {
 			);
 		} );
 	} finally {
-		// Re-enable Link after the test.
-		await admin.togglePaymentMethod( browser, 'Link by Stripe', true );
+		if ( ! useLocalFixture ) {
+			await admin.togglePaymentMethod( browser, 'Link by Stripe', true );
+		}
 	}
 } );

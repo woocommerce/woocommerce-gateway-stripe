@@ -37,6 +37,9 @@ fi
 TEST_ENV="$TEST_ENV DOCKER=true E2E_ROOT=${E2E_ROOT} BASE_URL='http://localhost:8088'"
 TEST_ENV="$TEST_ENV ADMIN_USER='admin' ADMIN_PASSWORD='admin'"
 
+# A reused local Docker store must not keep another project's availability stub.
+cli sh -c "rm -f /var/www/html/wp-content/mu-plugins/wc-stripe-e2e-webhooks.php"
+
 # Cookie-gated checkout-fields mu-plugin, used by adaptive-pricing and
 # express-checkout specs. Installed for every project: it is inert unless a
 # spec opts in with its cookies.
@@ -46,16 +49,18 @@ cli sh -c "mkdir -p /var/www/html/wp-content/mu-plugins && cp /var/www/html/wp-c
 # change-payment-method specs; inert unless a spec opts in with its cookie.
 cli sh -c "cp /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/env/mu-plugins/wc-stripe-e2e-mock-gateway.php /var/www/html/wp-content/mu-plugins/"
 
-# The docker site can't receive real webhooks (no tunnel), so seed what the
-# Adaptive Pricing availability checks read: webhook data, the cached status
-# transient is_webhook_enabled() trusts without calling Stripe, and PMC.
+# Saved-card consent tests opt in per browser instead of toggling Link on
+# the Stripe account shared by parallel tests and CI jobs.
+cli sh -c "cp /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/env/mu-plugins/wc-stripe-e2e-card-only.php /var/www/html/wp-content/mu-plugins/"
+
+# The CLI listener forwards events without a registered localhost endpoint.
+# Adaptive Pricing tests declare endpoint availability in a Docker-only fixture.
 if [[ "adaptive-pricing" == "$project" ]]; then
 	echo "Seeding Adaptive Pricing prerequisites"
 	cli wp option patch insert woocommerce_stripe_settings pmc_enabled 'yes'
 	cli wp option patch insert woocommerce_stripe_settings test_webhook_data --format=json '{"id":"we_e2e_placeholder","secret":"whsec_e2e_placeholder"}'
-	# Mark test webhooks as enabled to allow Adaptive Pricing to be enabled.
-	# Note that we use wp shell so we run after plugins are loaded.
-	cli wp shell <<< "WC_Stripe_Database_Cache::set_with_mode( 'webhook_status', 'enabled', 7200, 'test' ); exit";
+	cli sh -c "cp /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/env/mu-plugins/wc-stripe-e2e-webhooks.php /var/www/html/wp-content/mu-plugins/"
+	trap 'cli sh -c "rm -f /var/www/html/wp-content/mu-plugins/wc-stripe-e2e-webhooks.php"' EXIT
 	# Cookie-gated mu-plugin that simulates the shopper's country for
 	# conversion tests (Stripe's "+location_XX" customer_email test hook).
 	cli sh -c "mkdir -p /var/www/html/wp-content/mu-plugins && cp /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/env/mu-plugins/wc-stripe-e2e-location-simulation.php /var/www/html/wp-content/mu-plugins/"
