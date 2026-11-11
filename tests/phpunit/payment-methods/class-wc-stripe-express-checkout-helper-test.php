@@ -2696,6 +2696,30 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A cart total Stripe cannot charge must not fatal the cart/checkout page render; the
+	 * client falls back to the Store API cart and checkout rejects the order on submit.
+	 *
+	 * @return void
+	 */
+	public function test_get_cart_render_data_returns_null_for_oversized_total(): void {
+		add_filter( 'woocommerce_is_cart', '__return_true' );
+		WC()->cart->empty_cart();
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_regular_price( '100000000000000000' );
+		$product->set_price( '100000000000000000' );
+		$product->save();
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		try {
+			$this->assertNull( ( new WC_Stripe_Express_Checkout_Helper() )->get_cart_render_data() );
+		} finally {
+			remove_filter( 'woocommerce_is_cart', '__return_true' );
+			WC()->cart->empty_cart();
+		}
+	}
+
+	/**
 	 * Test that ECE on a variable product page is hidden only when no available variation is in stock,
 	 * for both the `WC_Product_Variation[]` and the legacy array shapes of `get_available_variations()`.
 	 *
@@ -2830,6 +2854,48 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		return [
 			'all variations out of stock' => [ 0, false ],
 			'one variation in stock'      => [ 1, true ],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_product_prices_for_product_data
+	 *
+	 * @param string   $price           Product price.
+	 * @param int|null $expected_amount Converted total, or null when no product data must be returned.
+	 */
+	public function test_get_product_data_for_price( string $price, ?int $expected_amount ): void {
+		update_option( 'woocommerce_calc_taxes', 'no' );
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_regular_price( $price );
+		$product->set_price( $price );
+		$product->save();
+
+		$mock_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$helper       = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $mock_gateway ] )
+			->onlyMethods( [ 'is_product', 'get_product' ] )
+			->getMock();
+		$helper->method( 'is_product' )->willReturn( true );
+		$helper->method( 'get_product' )->willReturn( $product );
+
+		$data = $helper->get_product_data();
+
+		if ( null === $expected_amount ) {
+			$this->assertFalse( $data );
+			return;
+		}
+
+		$this->assertSame( $expected_amount, $data['total']['amount'] );
+		$this->assertSame( $expected_amount, $data['displayItems'][0]['amount'] );
+	}
+
+	public function provide_product_prices_for_product_data(): array {
+		return [
+			'normal price'       => [ '10.23', 1023 ],
+			'above Stripe limit' => [ '10000000000.00', null ],
+			'integer wraparound' => [ '184467440737095520.00', null ],
 		];
 	}
 }

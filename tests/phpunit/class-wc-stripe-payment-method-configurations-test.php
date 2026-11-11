@@ -4,6 +4,7 @@
  * Class WC_Stripe_Payment_Method_Configurations tests.
  */
 class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
+	use WC_Stripe_Tracks_Capture_Trait;
 
 	private const MOCK_CHILD_LIVE_PMC = [
 		'id'       => 'pmc_id_live_child',
@@ -1356,5 +1357,56 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
 
 		$this->assertEquals( 'yes', $updated_settings['pmc_enabled'] );
+	}
+
+	/**
+	 * @dataProvider provide_record_payment_method_settings_event_scenarios
+	 *
+	 * @param string $testmode             Value of the `testmode` setting.
+	 * @param int    $expected_is_test_mode Expected `is_test_mode` event property.
+	 */
+	public function test_record_payment_method_settings_event_records_properties( string $testmode, int $expected_is_test_mode ): void {
+		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+		WC_Stripe_Helper::update_main_stripe_settings( array_merge( $initial_settings, [ 'testmode' => $testmode ] ) );
+
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+		$this->start_capturing_tracks_events();
+
+		try {
+			WC_Stripe_Payment_Method_Configurations::record_payment_method_settings_event(
+				[ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::KLARNA ],
+				[ WC_Stripe_Payment_Methods::SEPA_DEBIT ]
+			);
+		} finally {
+			$this->stop_capturing_tracks_events();
+			WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+		}
+
+		$expected_events = [
+			'wcadmin_wcstripe_payment_method_settings_enabled'  => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::KLARNA ],
+			'wcadmin_wcstripe_payment_method_settings_disabled' => [ WC_Stripe_Payment_Methods::SEPA_DEBIT ],
+		];
+
+		foreach ( $expected_events as $event_name => $expected_payment_methods ) {
+			$events = $this->get_captured_tracks_event_properties( $event_name );
+
+			$this->assertSame( $expected_payment_methods, array_column( $events, 'payment_method' ), $event_name );
+			foreach ( $events as $event ) {
+				$this->assertSame( $expected_is_test_mode, $event['is_test_mode'], $event_name );
+				$this->assertSame( WC_STRIPE_VERSION, $event['stripe_version'], $event_name );
+			}
+		}
+	}
+
+	/**
+	 * Data provider for {@see test_record_payment_method_settings_event_records_properties()}.
+	 *
+	 * @return array
+	 */
+	public function provide_record_payment_method_settings_event_scenarios(): array {
+		return [
+			'test mode' => [ 'yes', 1 ],
+			'live mode' => [ 'no', 0 ],
+		];
 	}
 }
