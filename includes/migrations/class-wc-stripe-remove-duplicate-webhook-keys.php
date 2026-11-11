@@ -2,9 +2,22 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Keeps legacy webhook credentials when they may be needed to delete an old endpoint.
+ *
+ * @since x.x.x
+ * @version x.x.x
+ */
 class WC_Stripe_Remove_Duplicate_Webhook_Keys {
 	private const MIGRATION_OPTION = 'wc_stripe_removed_duplicate_webhook_keys';
 
+	/**
+	 * Runs once so a rollback cannot cause a later upgrade to remove restored legacy credentials.
+	 *
+	 * @since x.x.x
+	 * @version x.x.x
+	 * @return void
+	 */
 	public function maybe_migrate(): void {
 		if ( get_option( self::MIGRATION_OPTION ) ) {
 			return;
