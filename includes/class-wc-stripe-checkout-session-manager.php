@@ -265,7 +265,10 @@ class WC_Stripe_Checkout_Session_Manager {
 			if ( $current_exclusions !== $stored_exclusions ) {
 				WC_Stripe_Logger::info( 'Recreating the Checkout Session after the excluded payment method types changed.', [ 'checkout_session_id' => (string) $record['session_id'] ] );
 
-				return $this->create_session();
+				$replacement = $this->create_session();
+				$this->retire_superseded_session( (string) $record['session_id'] );
+
+				return $replacement;
 			}
 		}
 
@@ -344,6 +347,35 @@ class WC_Stripe_Checkout_Session_Manager {
 
 		// https://docs.stripe.com/api/checkout/sessions/object#checkout_session_object-status
 		return in_array( $session->status, [ 'expired', 'complete' ], true );
+	}
+
+	/**
+	 * Stop a replaced session from being linked to an order.
+	 *
+	 * The replaced session stays open on Stripe with the same amount, so a checkout page still
+	 * holding it (e.g. a second tab) could pay through it while the replacement is paid as well,
+	 * charging the cart twice. Order linking requires the local context, so removing it rejects
+	 * that submission before the client confirms anything. A session already linked to an order
+	 * is left alone: its payment may be in progress and the webhooks still need its context.
+	 *
+	 * @param string $session_id Stripe Checkout Session ID that was replaced.
+	 * @return void
+	 */
+	private function retire_superseded_session( string $session_id ): void {
+		try {
+			WC_Stripe_Checkout_Session_Context::with_mutation_lock(
+				$session_id,
+				static function () use ( $session_id ): void {
+					$context = WC_Stripe_Checkout_Session_Context::get_context( $session_id );
+					if ( empty( $context['order_id'] ) ) {
+						WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
+					}
+				}
+			);
+		} catch ( Exception $e ) {
+			// The lock is held by a request that is linking or updating the session; leave it to that request.
+			WC_Stripe_Logger::info( 'Could not retire the replaced Checkout Session.', [ 'checkout_session_id' => $session_id ] );
+		}
 	}
 
 	/**

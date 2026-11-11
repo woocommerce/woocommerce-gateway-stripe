@@ -808,7 +808,8 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 	 * Stripe only accepts excluded_payment_method_types at creation, and the list follows the
 	 * billing country, so a changed list must recreate the session for a method hidden for the
 	 * earlier country (e.g. iDEAL) to surface. An equal list in another order, or a record stored
-	 * before the list was tracked, must keep reusing the session.
+	 * before the list was tracked, must keep reusing the session. The replaced session must stop
+	 * being linkable to an order, or a page still holding it could pay the cart a second time.
 	 *
 	 * @dataProvider provide_synchronize_exclusions_data
 	 *
@@ -886,6 +887,10 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 			$before     = $manager->synchronize();
 			$exclusions = $later_exclusions;
 			$after      = $manager->synchronize();
+
+			$creates_after_change     = count( $captured_creates );
+			$repeated                 = $manager->synchronize();
+			$first_session_is_retired = null === WC_Stripe_Checkout_Session_Context::get_context( (string) $before['session_id'] );
 		} finally {
 			remove_filter( 'wc_stripe_request_body', $capture_body, 10 );
 			remove_filter( 'pre_http_request', $mock_request, 10 );
@@ -895,7 +900,10 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 			}
 		}
 
-		$this->assertCount( $expected_create_count, $captured_creates );
+		$this->assertSame( $expected_create_count, $creates_after_change );
+		$this->assertCount( $expected_create_count, $captured_creates, 'An unchanged list must keep reusing the session it was last synchronized to.' );
+		$this->assertSame( $after, $repeated );
+		$this->assertSame( 2 === $expected_create_count, $first_session_is_retired );
 		if ( 2 === $expected_create_count ) {
 			$this->assertSame( $later_exclusions, $captured_creates[1]['excluded_payment_method_types'] );
 			$this->assertSame( 'cs_test_exclusions_2', $after['session_id'] );
