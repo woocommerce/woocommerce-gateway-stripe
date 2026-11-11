@@ -1007,4 +1007,47 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 			],
 		];
 	}
+
+
+	/**
+	 * The deprecated cart details endpoint is still reachable by third-party scripts, so a
+	 * cart total Stripe cannot charge must answer with an error instead of a fatal.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_ajax_get_cart_details_rejects_oversized_total() {
+		$this->setExpectedDeprecated( 'WC_Stripe_Express_Checkout_Ajax_Handler::ajax_get_cart_details' );
+		Ajax_Test_Helper::init_hooks();
+		$ajax_handler = new WC_Stripe_Express_Checkout_Ajax_Handler( new WC_Stripe_Express_Checkout_Helper() );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_regular_price( '184467440737095520.00' );
+		$product->set_price( '184467440737095520.00' );
+		$product->save();
+
+		try {
+			$security_nonce       = wp_create_nonce( 'wc-stripe-get-cart-details' );
+			$_REQUEST['security'] = $security_nonce;
+			$_POST['security']    = $security_nonce;
+
+			WC()->session->init();
+			WC()->cart->empty_cart();
+			WC()->cart->add_to_cart( $product->get_id() );
+
+			ob_start();
+			$ajax_handler->ajax_get_cart_details();
+			$output = ob_get_clean();
+
+			$response = json_decode( $output, true );
+		} finally {
+			WC()->cart->empty_cart();
+			Ajax_Test_Helper::remove_hooks();
+			unset( $_POST['security'], $_REQUEST['security'] );
+		}
+
+		$this->assertIsArray( $response );
+		$this->assertFalse( $response['success'] );
+		$this->assertSame( 'The amount is too large to process with this payment method.', $response['data']['message'] );
+	}
 }

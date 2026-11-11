@@ -8,6 +8,7 @@ const {
 	setupShortcodeCheckout,
 	fillCreditCardDetailsShortcode,
 	waitForStripeReady,
+	waitForOrderReceivedPage,
 } = payments;
 
 const UPE_IFRAME_SELECTOR =
@@ -60,8 +61,5 @@ test( 'shows a per-field notice and blocks submission when a core required field
 		.getByRole( 'button', { name: 'Place order' } )
 		.dispatchEvent( 'click' );
 
-	await page.waitForURL( /order-received/, { timeout: 30000 } );
-	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-		'Order received'
-	);
+	await waitForOrderReceivedPage( page );
 } );

@@ -36,8 +36,11 @@ const config = {
 	workers: CI ? 5 : undefined,
 
 	// Reporter to use. See https://playwright.dev/docs/test-reporters
+	// list prints each test as it finishes, so a job killed by timeout-minutes
+	// still shows how far it got; github adds the inline annotations in CI.
 	reporter: [
-		[ CI ? 'github' : 'list' ],
+		[ 'list' ],
+		...( CI ? [ [ 'github' ] ] : [] ),
 		[
 			'html',
 			{

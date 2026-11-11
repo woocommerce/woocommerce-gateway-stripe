@@ -46,3 +46,5 @@ jobs:
         with:
           build-dir: './plugin-check-build/woocommerce-gateway-stripe'
           slug: 'woocommerce-gateway-stripe'
+          # Preview versions can lead the release published on WordPress.org; tagged builds must still match.
+          ignore-codes: ${{ github.ref_type == 'branch' && 'stable_tag_mismatch' || '' }}

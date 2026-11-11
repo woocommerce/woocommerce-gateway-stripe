@@ -178,9 +178,12 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			],
 		];
 
-		$data['order_data'] += $this->express_checkout_helper->build_display_items();
-
-		wp_send_json( $data );
+		try {
+			$data['order_data'] += $this->express_checkout_helper->build_display_items();
+			wp_send_json( $data );
+		} catch ( WC_Stripe_Exception $e ) {
+			wp_send_json_error( [ 'message' => $e->getLocalizedMessage() ] );
+		}
 	}
 
 
@@ -400,11 +403,13 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		$product_view_options      = filter_input_array( INPUT_POST, [ 'is_product_page' => FILTER_SANITIZE_SPECIAL_CHARS ] );
 		$should_show_itemized_view = ! isset( $product_view_options['is_product_page'] ) ? true : filter_var( $product_view_options['is_product_page'], FILTER_VALIDATE_BOOLEAN );
 
-		$data           = [];
-		$data          += $this->express_checkout_helper->build_display_items( $should_show_itemized_view );
-		$data['result'] = 'success';
-
-		wp_send_json( $data );
+		try {
+			$data           = $this->express_checkout_helper->build_display_items( $should_show_itemized_view );
+			$data['result'] = 'success';
+			wp_send_json( $data );
+		} catch ( WC_Stripe_Exception $e ) {
+			wp_send_json_error( [ 'message' => $e->getLocalizedMessage() ] );
+		}
 	}
 
 	/**
