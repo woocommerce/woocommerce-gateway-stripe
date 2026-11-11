@@ -10,6 +10,7 @@ const {
 	setupBlocksCheckout,
 	setupACSSCheckout,
 	fillACSSDetails,
+	tickSavePaymentMethodBlocks,
 	waitForOrderReceivedPage,
 } = payments;
 
@@ -64,7 +65,7 @@ test.describe( 'ACSS payment tests @blocks @acss', () => {
 				config.get( 'users.customer.password' )
 			);
 			await setupACSSCheckout( page, 'blocks' );
-			await page.getByLabel( 'Save payment information' ).click();
+			await tickSavePaymentMethodBlocks( page );
 			await clickPlaceOrder( page );
 			await fillACSSDetails( page );
 			await waitForOrderReceivedPage( page );

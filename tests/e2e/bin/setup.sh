@@ -20,6 +20,9 @@ DEBUG=false
 ADMIN_USER=admin
 ADMIN_PASSWORD=admin
 
+# WordPress.org slug of the theme to install and activate.
+WP_THEME=${WP_THEME:-storefront}
+
 DEPS_DIR="$E2E_ROOT/deps"
 
 cd "$CWD"
@@ -205,8 +208,8 @@ redirect_output cli wp option set woocommerce_product_type "both"
 redirect_output cli wp option set woocommerce_allow_tracking "no"
 redirect_output cli wp option set woocommerce_coming_soon "no"
 
-echo " - Installing Storefront theme"
-redirect_output cli wp theme install storefront --activate
+echo " - Installing $WP_THEME theme"
+redirect_output cli wp theme install "$WP_THEME" --activate
 
 redirect_output cli wp --user=${ADMIN_USER} wc tool run install_pages
 
@@ -218,10 +221,10 @@ redirect_output cli wp option update --format=json woocommerce_flat_rate_1_setti
 
 echo " - Creating Cart and Checkout shortcode pages"
 if ! cli wp post list --post_type=page --field=post_name | grep -q 'cart-shortcode'; then
-	redirect_output cli wp post create --post_type=page --post_title='Cart Shortcode' --post_name='cart-shortcode' --post_status=publish --page_template='template-fullwidth.php' --post_content='<!-- wp:shortcode -->[woocommerce_cart]<!-- /wp:shortcode -->'
+	redirect_output cli wp post create --post_type=page --post_title='Cart Shortcode' --post_name='cart-shortcode' --post_status=publish --post_content='<!-- wp:shortcode -->[woocommerce_cart]<!-- /wp:shortcode -->'
 fi
 if ! cli wp post list --post_type=page --field=post_name | grep -q 'checkout-shortcode'; then
-	redirect_output cli wp post create --post_type=page --post_title='Checkout Shortcode' --post_name='checkout-shortcode' --post_status=publish --page_template='template-fullwidth.php' --post_content='<!-- wp:shortcode -->[woocommerce_checkout]<!-- /wp:shortcode -->'
+	redirect_output cli wp post create --post_type=page --post_title='Checkout Shortcode' --post_name='checkout-shortcode' --post_status=publish --post_content='<!-- wp:shortcode -->[woocommerce_checkout]<!-- /wp:shortcode -->'
 fi
 
 echo " - Importing sample products"
