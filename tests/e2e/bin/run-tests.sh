@@ -66,4 +66,13 @@ if [[ "adaptive-pricing" == "$project" ]]; then
 	cli sh -c "mkdir -p /var/www/html/wp-content/mu-plugins && cp /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/env/mu-plugins/wc-stripe-e2e-location-simulation.php /var/www/html/wp-content/mu-plugins/"
 fi
 
+# The Link-off project runs against a second Stripe account. CI prepares the
+# site with that account's keys; a local Docker run switches to them here and
+# switches back afterwards.
+if [[ "optimized-checkout-link-off" == "$project" && -n "$STRIPE_PUB_KEY_LINK_OFF" ]]; then
+	echo "Switching to the Link-off Stripe account"
+	WP_PATH="${WP_PATH:-/var/www/html}" STRIPE_PUB_KEY="$STRIPE_PUB_KEY_LINK_OFF" STRIPE_SECRET_KEY="$STRIPE_SECRET_KEY_LINK_OFF" ./tests/e2e/bin/set-keys.sh
+	trap 'WP_PATH="${WP_PATH:-/var/www/html}" STRIPE_PUB_KEY="$STRIPE_PUB_KEY" STRIPE_SECRET_KEY="$STRIPE_SECRET_KEY" ./tests/e2e/bin/set-keys.sh' EXIT
+fi
+
 cross-env $TEST_ENV playwright test --config=tests/e2e/config/playwright.config.js $TEST_ARGS ${project:+--project=$project}
