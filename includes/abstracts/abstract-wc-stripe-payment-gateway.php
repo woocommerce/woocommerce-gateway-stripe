@@ -644,7 +644,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Refunds and disputes can invalidate a charge while its payment status remains succeeded.
 	 *
-	 * @since x.x.x
+	 * @since 11.1.2
 	 * @param mixed $charge The charge, or an absent or unexpanded charge reference.
 	 * @return bool
 	 */

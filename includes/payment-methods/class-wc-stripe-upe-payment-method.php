@@ -997,7 +997,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * checkout buttons use on that page; the session cart is irrelevant to either. Both
 	 * carry the order key as the `key` query parameter, which must match the order.
 	 *
-	 * @since x.x.x
+	 * @since 11.1.2
 	 * @return WC_Order|null
 	 */
 	private function get_order_being_paid(): ?WC_Order {
@@ -1029,7 +1029,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	/**
 	 * Determines whether the current cart or order total converts to an amount Stripe can charge.
 	 *
-	 * @since x.x.x
+	 * @since 11.1.2
 	 * @param string $current_store_currency The store's currency.
 	 * @return bool
 	 */

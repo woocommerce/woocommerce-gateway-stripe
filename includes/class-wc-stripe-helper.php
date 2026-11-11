@@ -161,7 +161,7 @@ class WC_Stripe_Helper {
 	 * Masks an API key or webhook secret so that it can be sent to the client.
 	 * Only the first ten and the last two characters stay visible.
 	 *
-	 * @since x.x.x
+	 * @since 11.1.2
 	 *
 	 * @param string $value The key or secret.
 	 * @return string
@@ -210,7 +210,7 @@ class WC_Stripe_Helper {
 	/**
 	 * Reject unsupported amounts before integer conversion can wrap to a smaller payment.
 	 *
-	 * @since x.x.x
+	 * @since 11.1.2
 	 * @param float|int|string $amount Amount in the currency's smallest unit.
 	 * @return int
 	 * @throws WC_Stripe_Exception If the amount exceeds Stripe's maximum or PHP's integer limit.

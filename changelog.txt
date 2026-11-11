@@ -1,6 +1,6 @@
 *** Changelog ***
 
-xxxx-xx-xx - version 11.1.2
+2026-11-11 - version 11.1.2
 * Fix - Strengthen order matching when processing payment notifications
 * Fix - Prevent the same payment intent from being linked to more than one order at checkout
 * Fix - Reject checkout totals too large to convert to a Stripe amount

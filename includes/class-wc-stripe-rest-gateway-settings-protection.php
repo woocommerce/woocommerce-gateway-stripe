@@ -6,7 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Prevent Stripe gateway credentials from unintended access.
  *
- * @since x.x.x
+ * @since 11.1.2
  */
 class WC_Stripe_REST_Gateway_Settings_Protection {
 
@@ -175,7 +175,7 @@ class WC_Stripe_REST_Gateway_Settings_Protection {
 		 * @param array                     $form_field The field definition from get_form_fields() (`type`, `title`, ...), the same on read and write. It never contains the stored value.
 		 * @param WC_Stripe_Payment_Gateway $gateway    The gateway.
 		 *
-		 * @since x.x.x
+		 * @since 11.1.2
 		 */
 		return (bool) apply_filters( 'wc_stripe_rest_withhold_secret_setting', $is_secret, $id, $form_field, $gateway );
 	}
