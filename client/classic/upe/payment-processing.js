@@ -293,7 +293,10 @@ function discardCheckoutSessionElement( component ) {
 		component.upeElement?.destroy?.();
 	} catch ( error ) {
 		// eslint-disable-next-line no-console
-		console.error( error );
+		console.error(
+			'Failed to destroy the payment element of a replaced Checkout Session.',
+			error
+		);
 	}
 
 	// Supersede any in-flight mount so it can't mount the discarded element.
@@ -574,7 +577,10 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 					boundSessionId
 			) {
 				// eslint-disable-next-line no-console
-				console.error( error );
+				console.error(
+					'Failed to initialize the payment element for a Checkout Session that has since been replaced.',
+					error
+				);
 				return null;
 			}
 			gatewayUPEComponents[ paymentMethodType ].checkoutSessionId = null;
