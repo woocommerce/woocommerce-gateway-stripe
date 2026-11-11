@@ -27,12 +27,6 @@ jobs:
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    # The Optimized Checkout specs turn Link off and on for the whole Stripe test
-    # account, so its two theme jobs take turns; every other job gets its own group.
-    # Dropped once the project runs on its own account.
-    concurrency:
-      group: e2e-${{ github.run_id }}-${{ matrix.project == 'optimized-checkout' && matrix.project || format('{0}-{1}', matrix.project, matrix.theme) }}
-      cancel-in-progress: false
     strategy:
       fail-fast: false
       max-parallel: 16
