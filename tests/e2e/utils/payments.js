@@ -479,13 +479,18 @@ export async function fillCreditCardDetailsShortcodeLegacy( page, card ) {
  * @param {Object|null} billingDetails The billing details in the format provided on the test-data.
  * @returns {Object|null} The billing details to enter.
  */
-const withUniqueEmail = ( billingDetails ) =>
-	billingDetails?.email === config.get( 'addresses.customer.billing.email' )
-		? {
-				...billingDetails,
-				email: `stripe-e2e-${ randomUUID() }@example.com`,
-		  }
-		: billingDetails;
+const withUniqueEmail = ( billingDetails ) => {
+	if (
+		billingDetails?.email !==
+		config.get( 'addresses.customer.billing.email' )
+	) {
+		return billingDetails;
+	}
+	return {
+		...billingDetails,
+		email: `stripe-e2e-${ randomUUID() }@example.com`,
+	};
+};
 
 /**
  * Go to the shortcode checkout page, enter the billing information, and select the payment gateway.
