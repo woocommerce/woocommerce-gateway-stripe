@@ -57,6 +57,7 @@ import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handl
  * @property {Object|null}          mountTarget             The DOM node the in-flight mount targets, used to dedupe concurrent mounts of the same element.
  * @property {number}               mountToken              Monotonic id of the latest mount; an older mount whose token no longer matches skips its side-effects.
  * @property {boolean}              listenersAttached       Whether the one-time element listeners (loaderror/change) have been wired, so remounts don't stack duplicates on the cached element.
+ * @property {Function|null}        detachPageListeners     Removes the listeners the element's handlers added to nodes outside the Payment Element, which outlive the element itself.
  */
 
 /**
@@ -151,6 +152,7 @@ export function initializeUPEComponents() {
 			mountTarget: null,
 			mountToken: 0,
 			listenersAttached: false,
+			detachPageListeners: null,
 		};
 	}
 	// Reset so processPayment runs fully when called again (e.g. after re-init or in tests).
@@ -298,6 +300,11 @@ function discardCheckoutSessionElement( component ) {
 			error
 		);
 	}
+
+	// destroy() only removes what lives inside the element; the create-account checkbox
+	// survives checkout refreshes, so its listener would otherwise pile up per replacement.
+	component.detachPageListeners?.();
+	component.detachPageListeners = null;
 
 	// Supersede any in-flight mount so it can't mount the discarded element.
 	component.mountToken += 1;
@@ -972,6 +979,14 @@ async function mountStripePaymentElementImpl( api, domElement ) {
 						selectedPaymentType,
 						paymentMethodsConfig
 					);
+				};
+				component.detachPageListeners = () => {
+					document
+						.getElementById( 'createaccount' )
+						?.removeEventListener(
+							'change',
+							updateCheckboxListener
+						);
 				};
 				upeElement.on( 'change', ( { value } ) => {
 					selectedPaymentType = value.type;

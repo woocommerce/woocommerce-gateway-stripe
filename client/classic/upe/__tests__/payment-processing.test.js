@@ -75,6 +75,9 @@ jest.mock(
 // Retrieve the stable mock functions created inside the jest.mock factory
 // (jest.mock is hoisted above const declarations, so they cannot be referenced
 // inside the factory directly without hitting the TDZ).
+const { handleDisplayOfSavingCheckbox } = jest.requireMock(
+	'wcstripe/optimized-checkout/handle-display-of-saving-checkbox'
+);
 const mockJQueryAjax = jest.requireMock( 'jquery' ).ajax;
 const mockJQueryTrigger = jest.fn();
 
@@ -1489,6 +1492,52 @@ describe( 'payment-processing', () => {
 				for ( const { value } of checkoutElements.createPaymentElement
 					.mock.results ) {
 					expect( value.destroy ).toHaveBeenCalled();
+				}
+			} );
+
+			it( 'stops the replaced element from reacting to the create-account checkbox', async () => {
+				stripeUtils.getStripeServerData.mockReturnValue( {
+					...BASE_SERVER_DATA,
+					isAdaptivePricingEnabled: true,
+					shouldShowOptimizedCheckout: true,
+				} );
+				const createAccountCheckbox = document.createElement( 'input' );
+				createAccountCheckbox.type = 'checkbox';
+				createAccountCheckbox.id = 'createaccount';
+				document.body.appendChild( createAccountCheckbox );
+
+				try {
+					const checkoutElements = createMockElements();
+					const api = createMockApi( checkoutElements );
+					const selectMethod = ( elementIndex, type ) => {
+						const { value: element } =
+							checkoutElements.createPaymentElement.mock.results[
+								elementIndex
+							];
+						const [ , onChange ] = element.on.mock.calls.find(
+							( [ eventName ] ) => eventName === 'change'
+						);
+						onChange( { value: { type } } );
+					};
+
+					await mountElement( api, checkoutElements );
+					selectMethod( 0, 'card' );
+					await replaceSession();
+					await mountElement( api, checkoutElements );
+					selectMethod( 1, 'ideal' );
+					handleDisplayOfSavingCheckbox.mockClear();
+
+					createAccountCheckbox.dispatchEvent(
+						new Event( 'change' )
+					);
+
+					expect(
+						handleDisplayOfSavingCheckbox.mock.calls.map(
+							( [ type ] ) => type
+						)
+					).toEqual( [ 'ideal' ] );
+				} finally {
+					createAccountCheckbox.remove();
 				}
 			} );
 
