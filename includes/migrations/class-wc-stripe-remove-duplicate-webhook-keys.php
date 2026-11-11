@@ -40,6 +40,11 @@ class WC_Stripe_Remove_Duplicate_Webhook_Keys {
 		}
 
 		if ( $removed_keys ) {
+			// A concurrent key change may have replaced the webhook after these settings were read.
+			if ( WC_Stripe::get_instance()->get_settings() !== $settings ) {
+				return;
+			}
+
 			WC_Stripe::get_instance()->update_settings( $updated );
 			$stored = WC_Stripe::get_instance()->get_settings();
 			foreach ( $removed_keys as $key ) {

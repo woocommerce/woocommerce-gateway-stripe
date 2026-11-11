@@ -64,6 +64,51 @@ class WC_Stripe_Remove_Duplicate_Webhook_Keys_Test extends WP_UnitTestCase {
 		( new WC_Stripe_Remove_Duplicate_Webhook_Keys() )->maybe_migrate();
 		$this->assertSame( $data, get_option( 'woocommerce_stripe_settings' )['webhook_data'] );
 	}
+
+	/**
+	 * A key save between the migration's reads must not be replaced with stale settings.
+	 */
+	public function test_skips_write_when_settings_change_during_migration() {
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'secret_key'   => 'sk_old',
+				'webhook_data' => [
+					'id'     => 'we_old',
+					'secret' => 'sk_old',
+				],
+			]
+		);
+		$new_settings = [
+			'secret_key'   => 'sk_new',
+			'webhook_data' => [
+				'id'     => 'we_new',
+				'secret' => 'sk_new',
+			],
+		];
+		$reads        = 0;
+		$filter       = null;
+		$filter       = function ( $pre_option ) use ( &$reads, &$filter, $new_settings ) {
+			++$reads;
+			if ( 2 === $reads ) {
+				remove_filter( 'pre_option_woocommerce_stripe_settings', $filter );
+				update_option( 'woocommerce_stripe_settings', $new_settings );
+				return $new_settings;
+			}
+			return $pre_option;
+		};
+		add_filter( 'pre_option_woocommerce_stripe_settings', $filter );
+		try {
+			( new WC_Stripe_Remove_Duplicate_Webhook_Keys() )->maybe_migrate();
+		} finally {
+			remove_filter( 'pre_option_woocommerce_stripe_settings', $filter );
+		}
+
+		$stored = get_option( 'woocommerce_stripe_settings' );
+		$this->assertSame( $new_settings['secret_key'], $stored['secret_key'] );
+		$this->assertSame( $new_settings['webhook_data'], $stored['webhook_data'] );
+		$this->assertFalse( get_option( 'wc_stripe_removed_duplicate_webhook_keys' ) );
+	}
+
 	/**
 	 * A failed settings write must leave the migration eligible for another attempt.
 	 *
