@@ -1337,6 +1337,7 @@ describe( 'payment-processing', () => {
 				const dom = document.createElement( 'div' );
 				dom.dataset.paymentMethodType = type;
 				await paymentProcessing.mountStripePaymentElement( api, dom );
+				return dom;
 			};
 
 			const REPLACEMENT_SECRET = 'cs_test_replacement_secret';
@@ -1447,8 +1448,17 @@ describe( 'payment-processing', () => {
 				expect( stripeUtils.showErrorCheckout ).not.toHaveBeenCalled();
 				expect( replacedElement.destroy ).toHaveBeenCalled();
 				// The updated_checkout handler mounts next and must build the element from the replacement.
-				await mountElement( api, checkoutElements );
+				const replacementNode = await mountElement(
+					api,
+					checkoutElements
+				);
 				expectLastInitWithReplacement( api );
+				const [ , { value: replacementElement } ] =
+					checkoutElements.createPaymentElement.mock.results;
+				expect( replacementElement ).not.toBe( replacedElement );
+				expect( replacementElement.mount ).toHaveBeenCalledWith(
+					replacementNode
+				);
 			} );
 
 			it( 'drops an element still being created when its session is replaced', async () => {
