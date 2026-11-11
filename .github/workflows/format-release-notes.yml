@@ -25,7 +25,7 @@ jobs:
           ref: ${{ inputs.branch }}
 
       - name: Format release notes with Claude
-        uses: anthropics/claude-code-action@db77d4d3c98f3f6380e7cd45ffba2342a3dbde3c # v1.0.254
+        uses: anthropics/claude-code-action@4845bacbb38b3c4b15d948f035349786f678e068 # v1.0.267
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           # Without a token the action exchanges an OIDC token for its app token, and that exchange

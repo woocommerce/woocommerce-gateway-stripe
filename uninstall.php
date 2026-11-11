@@ -2,7 +2,7 @@
 /**
  * WooCommerce Stripe Gateway Uninstall
  *
- * @version  x.x.x
+ * @version  11.2.0
  */
 
 // Exit if accessed directly.

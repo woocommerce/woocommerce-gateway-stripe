@@ -173,6 +173,25 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 		$this->assertSame( [], $this->invoke_get_gateway_javascript_params() );
 	}
 
+	public function test_get_gateway_javascript_params_preserves_empty_gateway_configuration(): void {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'javascript_params' ] )
+			->getMock();
+		$gateway->expects( $this->once() )->method( 'javascript_params' )->willReturn( [] );
+		$this->set_main_stripe_gateway( $gateway );
+		$available_gateways = static function () use ( $gateway ) {
+			return [ 'stripe' => $gateway ];
+		};
+		add_filter( 'woocommerce_available_payment_gateways', $available_gateways, 100 );
+
+		try {
+			$this->assertSame( [], $this->invoke_get_gateway_javascript_params() );
+		} finally {
+			remove_filter( 'woocommerce_available_payment_gateways', $available_gateways, 100 );
+		}
+	}
+
 	/**
 	 * WooCommerce resolves payment method script dependencies on every request, so enqueuing the
 	 * stylesheet from the script registration callback loaded it store-wide. It must only register.

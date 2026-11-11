@@ -953,7 +953,11 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 
 		$this->assertSame( [ $expected_event ], array_keys( $all_toggle_events ) );
 		$this->assertCount( 1, $all_toggle_events[ $expected_event ] );
-		$this->assertSame( 'settings_rest_api', $all_toggle_events[ $expected_event ][0]['source'] );
+
+		$logged_event = reset( $all_toggle_events[ $expected_event ] );
+		$this->assertSame( 'settings_rest_api', $logged_event['source'] );
+		$this->assertSame( WC_STRIPE_VERSION, $logged_event['stripe_version'] );
+		$this->assertSame( 1, $logged_event['is_test_mode'] );
 	}
 
 	/**

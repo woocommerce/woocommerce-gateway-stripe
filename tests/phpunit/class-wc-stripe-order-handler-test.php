@@ -471,9 +471,12 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 			'status'   => 'succeeded',
 		];
 		$intent = (object) [
-			'id'     => 'pi_mock',
-			'object' => 'payment_intent',
-			'status' => $intent_status,
+			'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ),
+			'currency'             => strtolower( $order->get_currency() ),
+			'payment_method_types' => [ 'us_bank_account' ],
+			'id'                   => 'pi_mock',
+			'object'               => 'payment_intent',
+			'status'               => $intent_status,
 		];
 
 		$order_handler = $this->createPartialMock(

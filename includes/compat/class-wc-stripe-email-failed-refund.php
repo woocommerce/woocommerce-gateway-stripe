@@ -51,7 +51,7 @@ abstract class WC_Stripe_Email_Failed_Refund extends WC_Email_Failed_Order {
 	 * WC_Email_Failed_Order's default, which is written for merchants about failed
 	 * payments and would be shown to customers in a refund-failed email.
 	 *
-	 * @since x.x.x
+	 * @since 11.2.0
 	 *
 	 * @return string
 	 */

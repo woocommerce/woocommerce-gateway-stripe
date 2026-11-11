@@ -1,5 +1,8 @@
 import { createRoot } from 'react-dom/client';
-import { checkPaymentMethodIsAvailable } from 'wcstripe/express-checkout/utils/check-payment-method-availability';
+import {
+	checkPaymentMethodIsAvailable,
+	preloadPaymentMethodAvailability,
+} from 'wcstripe/express-checkout/utils/check-payment-method-availability';
 
 jest.mock( 'react-dom/client', () => ( {
 	createRoot: jest.fn(),
@@ -249,6 +252,20 @@ describe( 'checkPaymentMethodIsAvailable', () => {
 		);
 		ready( { [ enabledMethod ]: true } );
 		expect( await result ).toBe( true );
+	} );
+
+	it( 'does not inspect unhydrated amounts for a disabled wallet', async () => {
+		global.wcSettings.stripe_data.isGooglePayEnabled = false;
+		const cart = hydratedCart();
+		Object.defineProperty( cart.cartTotals, 'total_price', {
+			get: () => {
+				throw new Error( 'Cart amount is not ready' );
+			},
+		} );
+		await expect(
+			checkPaymentMethodIsAvailable( 'googlePay', api, cart )
+		).resolves.toBe( false );
+		expect( createRoot ).not.toHaveBeenCalled();
 	} );
 
 	it.each( [ false, true ] )(
@@ -600,5 +617,159 @@ describe( 'checkPaymentMethodIsAvailable', () => {
 		expect( createRoot ).toHaveBeenCalledTimes( 2 );
 		await new Promise( ( resolve ) => setTimeout( resolve ) );
 		expect( unmount ).toHaveBeenCalledTimes( 2 );
+	} );
+
+	describe( 'server cart preloading', () => {
+		beforeEach( () => {
+			Object.assign( global.wcSettings.stripe_data, {
+				currency: 'USD',
+				cartTotal: 1000,
+				shouldShowExpressCheckoutButton: true,
+				isAdmin: false,
+			} );
+		} );
+
+		afterEach( () => {
+			for ( let call = 0; call < render.mock.calls.length; call++ ) {
+				ready( {}, call );
+			}
+		} );
+
+		it( 'starts one shared probe before hydration without bypassing live cart guards', async () => {
+			const preloaded = preloadPaymentMethodAvailability( api );
+			const duplicate = preloadPaymentMethodAvailability( api );
+			expect( createRoot ).toHaveBeenCalledTimes( 1 );
+			expect( getRenderedElements().props.options ).toEqual( {
+				mode: 'payment',
+				paymentMethodCreation: 'manual',
+				currency: 'usd',
+				amount: 1000,
+			} );
+			expect(
+				await checkPaymentMethodIsAvailable( 'googlePay', api, {} )
+			).toBe( false );
+			const hydrated = checkWallets();
+			ready( { applePay: false, googlePay: true, link: true } );
+			expect( await preloaded ).toBe( false );
+			expect( await duplicate ).toBe( false );
+			expect( await Promise.all( hydrated ) ).toEqual( [
+				false,
+				true,
+				true,
+			] );
+			expect( createRoot ).toHaveBeenCalledTimes( 1 );
+		} );
+
+		it( 'uses the server minor-unit amount without a second conversion', async () => {
+			Object.assign( global.wcSettings.stripe_data, {
+				currency: 'JPY',
+				cartTotal: '10',
+			} );
+			global.wc_stripe_express_checkout_params.checkout = {
+				currency_decimals: 0,
+			};
+			const preloaded = preloadPaymentMethodAvailability( api );
+			expect( getRenderedElements().props.options.amount ).toBe( 10 );
+			const hydrated = checkPaymentMethodIsAvailable(
+				'applePay',
+				api,
+				hydratedCart( { currency_code: 'JPY' } )
+			);
+			ready( { applePay: true } );
+			expect( await preloaded ).toBe( true );
+			expect( await hydrated ).toBe( true );
+			expect( createRoot ).toHaveBeenCalledTimes( 1 );
+		} );
+
+		it.each( [
+			{ currency: undefined },
+			{ currency: 'US' },
+			{ cartTotal: undefined },
+			{ cartTotal: null },
+			{ cartTotal: '' },
+			{ cartTotal: false },
+			{ cartTotal: [] },
+			{ cartTotal: 'invalid' },
+			{ cartTotal: -1 },
+			{ cartTotal: 1.5 },
+			{ cartTotal: Infinity },
+			{ cartTotal: 0 },
+			{ isAdmin: true },
+			{ shouldShowExpressCheckoutButton: false },
+		] )( 'skips unsafe or unsupported server context %p', ( context ) => {
+			Object.assign( global.wcSettings.stripe_data, context );
+			expect( preloadPaymentMethodAvailability( api ) ).toBeUndefined();
+			expect( createRoot ).not.toHaveBeenCalled();
+		} );
+
+		it( 'does not preload amount-sensitive Amazon Pay', () => {
+			Object.assign( global.wcSettings.stripe_data, {
+				isApplePayEnabled: false,
+				isGooglePayEnabled: false,
+				isLinkEnabled: false,
+				isAmazonPayEnabled: true,
+			} );
+			expect( preloadPaymentMethodAvailability( api ) ).toBeUndefined();
+			expect( createRoot ).not.toHaveBeenCalled();
+		} );
+
+		it( 'waits when Blocks settings have not loaded', () => {
+			global.wcSettings.stripe_data = null;
+			expect( preloadPaymentMethodAvailability( api ) ).toBeUndefined();
+			expect( createRoot ).not.toHaveBeenCalled();
+		} );
+
+		it( 'keeps a zero-total free trial in subscription mode', async () => {
+			global.wcSettings.stripe_data.cartTotal = 0;
+			global.wc_stripe_express_checkout_params.has_free_trial = true;
+			const preloaded = preloadPaymentMethodAvailability( api );
+			expect( getRenderedElements().props.options ).toMatchObject( {
+				amount: 0,
+				mode: 'subscription',
+			} );
+			ready( { applePay: true } );
+			expect( await preloaded ).toBe( true );
+		} );
+
+		it( 'rechecks when the live cart changes currency', async () => {
+			const preloaded = preloadPaymentMethodAvailability( api );
+			const hydrated = checkPaymentMethodIsAvailable(
+				'applePay',
+				api,
+				hydratedCart( { currency_code: 'EUR' } )
+			);
+			expect( createRoot ).toHaveBeenCalledTimes( 2 );
+			ready( { applePay: true } );
+			ready( { applePay: false }, 1 );
+			expect( await preloaded ).toBe( true );
+			expect( await hydrated ).toBe( false );
+		} );
+
+		it( 'allows normal discovery after preloading fails', async () => {
+			const preloaded = preloadPaymentMethodAvailability( api );
+			getRenderedExpressCheckoutElement().props.onLoadError();
+			expect( await preloaded ).toBe( false );
+			const hydrated = checkPaymentMethodIsAvailable(
+				'googlePay',
+				api,
+				hydratedCart()
+			);
+			expect( createRoot ).toHaveBeenCalledTimes( 2 );
+			ready( { googlePay: true }, 1 );
+			expect( await hydrated ).toBe( true );
+		} );
+
+		it( 'waits if the document body is not ready', () => {
+			const body = document.body;
+			body.remove();
+			try {
+				expect(
+					preloadPaymentMethodAvailability( api )
+				).toBeUndefined();
+				expect( createRoot ).not.toHaveBeenCalled();
+			} finally {
+				document.documentElement.appendChild( body );
+			}
+		} );
 	} );
 } );

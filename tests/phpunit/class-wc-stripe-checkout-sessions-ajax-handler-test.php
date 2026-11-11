@@ -5,6 +5,22 @@
  */
 class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 	/**
+	 * Enables the settings Checkout Sessions require (PMC, Optimized Checkout, automatic capture) so
+	 * these tests exercise the handler. The refusal tests turn one of them off.
+	 *
+	 * @return void
+	 */
+	public function set_up(): void {
+		parent::set_up();
+
+		$settings                               = WC_Stripe_Helper::get_stripe_settings();
+		$settings['pmc_enabled']                = 'yes';
+		$settings['optimized_checkout_element'] = 'yes';
+		$settings['capture']                    = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+	}
+
+	/**
 	 * Test that hooks are initialized correctly.
 	 */
 	public function test_init_hooks(): void {
@@ -100,7 +116,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 				return [
 					'response' => 200,
 					'headers'  => [ 'Content-Type' => 'application/json' ],
-					'body'     => json_encode( (object) [ 'id' => 'cus_123' ] ),
+					'body'     => wp_json_encode( (object) [ 'id' => 'cus_123' ] ),
 				];
 			}
 
@@ -108,7 +124,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 				return [
 					'response' => 200,
 					'headers'  => [ 'Content-Type' => 'application/json' ],
-					'body'     => json_encode( $checkout_session_response ),
+					'body'     => wp_json_encode( $checkout_session_response ),
 				];
 			}
 
@@ -1034,5 +1050,77 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler_Test extends WP_UnitTestCase {
 				],
 			],
 		];
+	}
+
+	/**
+	 * create_checkout_session refuses when any of PMC, Optimized Checkout or automatic capture is off,
+	 * so a session is never created on a store where it would bypass manual capture.
+	 *
+	 * @param string $setting The required setting to disable.
+	 * @param string $value   Its disabling value.
+	 *
+	 * @dataProvider provide_unavailable_settings
+	 * @return void
+	 */
+	public function test_create_checkout_session_refused_when_unavailable( string $setting, string $value ): void {
+		$this->assert_endpoint_refused_when_unavailable( 'create_checkout_session', 'wc_stripe_create_checkout_session_nonce', $setting, $value );
+	}
+
+	/**
+	 * update_checkout_session is gated the same way.
+	 *
+	 * @param string $setting The required setting to disable.
+	 * @param string $value   Its disabling value.
+	 *
+	 * @dataProvider provide_unavailable_settings
+	 * @return void
+	 */
+	public function test_update_checkout_session_refused_when_unavailable( string $setting, string $value ): void {
+		$this->assert_endpoint_refused_when_unavailable( 'update_checkout_session', 'wc_stripe_update_checkout_session_nonce', $setting, $value );
+	}
+
+	/**
+	 * Each required setting, with the value that makes Checkout Sessions unavailable.
+	 *
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public function provide_unavailable_settings(): array {
+		return [
+			'PMC disabled'                => [ 'pmc_enabled', 'no' ],
+			'Optimized Checkout disabled' => [ 'optimized_checkout_element', 'no' ],
+			'manual capture'              => [ 'capture', 'no' ],
+		];
+	}
+
+	/**
+	 * Runs an endpoint with one required setting disabled and asserts it refuses with the unavailable message.
+	 *
+	 * @param string $method       The handler method to call.
+	 * @param string $nonce_action The nonce action for the request.
+	 * @param string $setting      The setting to disable.
+	 * @param string $value        Its disabling value.
+	 * @return void
+	 */
+	private function assert_endpoint_refused_when_unavailable( string $method, string $nonce_action, string $setting, string $value ): void {
+		Ajax_Test_Helper::init_hooks();
+
+		$settings             = WC_Stripe_Helper::get_stripe_settings();
+		$settings[ $setting ] = $value;
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$_REQUEST['_ajax_nonce'] = wp_create_nonce( $nonce_action );
+
+		try {
+			ob_start();
+			( new WC_Stripe_Checkout_Sessions_Ajax_Handler() )->$method();
+			$output = ob_get_clean();
+		} finally {
+			unset( $_REQUEST['_ajax_nonce'] );
+			Ajax_Test_Helper::remove_hooks();
+		}
+
+		$response = json_decode( $output );
+		$this->assertFalse( $response->success, 'The endpoint should refuse when Checkout Sessions are unavailable.' );
+		$this->assertSame( WC_Stripe_Checkout_Session_Context::get_unavailable_message(), $response->data->message );
 	}
 }

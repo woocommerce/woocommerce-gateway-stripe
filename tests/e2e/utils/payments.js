@@ -700,45 +700,72 @@ export const fillACHBankDetails = async ( page ) => {
 		.frameLocator( 'iframe[name^="__privateStripeFrame"]' )
 		.first();
 
-	// On the Link sign-in screen, `agree-button` starts a sign-up that needs a phone.
-	let button = frame.getByTestId( 'agree-button' );
-	await expect( button ).toBeVisible();
-	const guestButton = frame.getByTestId(
-		'pre-auth-networking-and-consent-guest'
-	);
-	if ( await guestButton.isVisible() ) {
-		button = guestButton;
-	}
-	await button.click();
+	// Stripe can leave the previous panel visible with disabled controls.
+	const enabledButtons = frame.getByRole( 'button', { disabled: false } );
+	const consentButton = frame
+		.getByTestId( 'agree-button' )
+		.and( enabledButtons )
+		.filter( { visible: true } )
+		.first();
+	const guestButton = frame
+		.getByTestId( 'pre-auth-networking-and-consent-guest' )
+		.or( frame.getByTestId( 'link-not-now-button' ) )
+		.and( enabledButtons )
+		.filter( { visible: true } )
+		.first();
+	const continueButton = frame
+		.getByTestId( 'continue-button' )
+		.and( enabledButtons )
+		.filter( { visible: true } )
+		.first();
 
 	// Use an anchored prefix to exclude disputed accounts in both test-bank layouts.
 	const successAccount = frame
 		.getByRole( 'radio', { name: /^Success ••••/ } )
 		.or( frame.getByRole( 'button', { name: 'Success ••••' } ) );
 
-	// Link registration button may or may not appear.
-	await Promise.race( [
-		frame
-			.getByTestId( 'link-not-now-button' )
-			.waitFor( { state: 'visible' } )
-			.then( async () => {
-				await frame.getByTestId( 'link-not-now-button' ).click();
-			} ),
-		successAccount.waitFor( { state: 'visible' } ),
-		frame
-			.getByTestId( 'continue-button' )
-			.waitFor( { state: 'visible' } )
-			.then( async () => {
-				await frame.getByTestId( 'continue-button' ).click();
-			} ),
-	] );
+	// Guest sign-in can precede bank consent. Handle one screen at a time so
+	// an earlier waiter cannot click a control on a later screen.
+	let previousControlId;
+	for ( let step = 0; step < 4; step++ ) {
+		await expect(
+			successAccount
+				.or( guestButton )
+				.or( consentButton )
+				.or( continueButton )
+				.filter( { visible: true } )
+				.first()
+		).toBeVisible();
+		if ( await successAccount.isVisible() ) {
+			break;
+		}
+		let action = continueButton;
+		if ( await guestButton.isVisible() ) {
+			action = guestButton;
+		} else if ( await consentButton.isVisible() ) {
+			action = consentButton;
+		}
+		// Bind this wait to the chosen control, not the next guest-action variant.
+		const controlId = await action.getAttribute( 'data-testid' );
+		expect( controlId, 'ACH consent flow did not advance' ).not.toBe(
+			previousControlId
+		);
+		previousControlId = controlId;
+		const clickedControl = frame
+			.getByTestId( controlId )
+			.and( enabledButtons )
+			.filter( { visible: true } )
+			.first();
+		await clickedControl.click();
+		await expect( clickedControl ).toHaveCount( 0 );
+	}
 
 	// Select the success account; its radio may already be selected.
 	await expect( successAccount ).toBeVisible();
 	await successAccount.click();
 
 	// Click Connect account button
-	button = frame
+	let button = frame
 		.getByTestId( 'select-button' )
 		.or( frame.getByRole( 'button', { name: 'Connect account' } ) );
 	await expect( button ).toBeVisible();

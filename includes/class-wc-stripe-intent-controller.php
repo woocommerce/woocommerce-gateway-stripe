@@ -554,11 +554,67 @@ class WC_Stripe_Intent_Controller {
 			];
 		}
 
+		// A crafted id could retarget the Stripe API GETs below, so validate it before it enters the path.
+		if ( '' !== $intent_id && ! WC_Stripe_Helper::is_valid_stripe_id( $intent_id, [ 'pi', 'seti' ] ) ) {
+			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+
+		// The request-supplied intent could already belong to another order (BLIK/ACSS reuse it).
+		// Lock the ownership check and the write so a concurrent request cannot double-link it.
+		$is_lockable_intent = is_string( $intent_id ) && ( 0 === strpos( $intent_id, 'pi_' ) || 0 === strpos( $intent_id, 'seti_' ) );
+		$lock_name          = $is_lockable_intent ? 'wc_stripe_intent_lock_' . $intent_id : '';
+		$lock_owner         = $is_lockable_intent ? WC_Stripe_Option_Lock::acquire( $lock_name, 5 * MINUTE_IN_SECONDS ) : null;
+
+		if ( $is_lockable_intent && null === $lock_owner ) {
+			WC_Stripe_Logger::error(
+				'Intent is being processed by another request.',
+				[
+					'intent_id' => $intent_id,
+					'order_id'  => $order_id,
+				]
+			);
+			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+
+		try {
+			if ( $is_lockable_intent && $this->is_intent_linked_to_another_order( $intent_id, $order ) ) {
+				WC_Stripe_Logger::error(
+					'Intent is already linked to another order.',
+					[
+						'intent_id' => $intent_id,
+						'order_id'  => $order_id,
+					]
+				);
+				throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			}
+
+			return $this->update_locked_intent( $intent_id, $order, (bool) $save_payment_method, (string) $selected_upe_payment_type );
+		} finally {
+			if ( null !== $lock_owner ) {
+				WC_Stripe_Option_Lock::release( $lock_name, $lock_owner );
+			}
+		}
+	}
+
+	/**
+	 * Updates the Stripe intent and binds it to the order, under the per-intent lock update_intent() holds.
+	 *
+	 * @param string   $intent_id                 The intent id to update.
+	 * @param WC_Order $order                     The order to bind it to.
+	 * @param boolean  $save_payment_method       True if saving the payment method.
+	 * @param string   $selected_upe_payment_type The selected UPE payment type, or empty string.
+	 *
+	 * @throws Exception If the update intent call returns with an error.
+	 * @return array
+	 */
+	private function update_locked_intent( string $intent_id, WC_Order $order, bool $save_payment_method, string $selected_upe_payment_type ) {
+		$order_id = $order->get_id();
+
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
-		$selected_payment_type = '' !== $selected_upe_payment_type && is_string( $selected_upe_payment_type ) ? $selected_upe_payment_type : null;
+		$selected_payment_type = '' !== $selected_upe_payment_type ? $selected_upe_payment_type : null;
 		$intent                = $intent_id;
-		if ( is_string( $intent_id ) && '' !== $intent_id ) {
+		if ( '' !== $intent_id ) {
 			$intent = $this->retrieve_intent( $intent_id ) ?? $intent_id;
 			if ( is_object( $intent ) && empty( $intent->error ) ) {
 				$this->maybe_release_stale_order_intent( $order, $intent, $selected_payment_type );
@@ -678,6 +734,31 @@ class WC_Stripe_Intent_Controller {
 		return [
 			'success' => true,
 		];
+	}
+
+	/**
+	 * Whether the intent id is already stored on a different order (as a payment or setup intent).
+	 *
+	 * @param string   $intent_id The intent id from the request.
+	 * @param WC_Order $order     The order being updated, excluded from the match.
+	 * @return bool
+	 */
+	private function is_intent_linked_to_another_order( string $intent_id, WC_Order $order ): bool {
+		$order_id = $order->get_id();
+
+		$linked = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
+		if ( $linked instanceof WC_Order && $linked->get_id() !== $order_id ) {
+			return true;
+		}
+
+		if ( 0 === strpos( $intent_id, 'seti_' ) ) {
+			$linked = WC_Stripe_Helper::get_order_by_setup_intent_id( $intent_id );
+			if ( $linked instanceof WC_Order && $linked->get_id() !== $order_id ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -929,6 +1010,7 @@ class WC_Stripe_Intent_Controller {
 			if ( empty( $intent_id_received ) || $intent_id_received !== $intent_id ) {
 				throw new WC_Stripe_Exception( 'invalid_intent_id', __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
+			$this->validate_order_not_refunded_after_cancellation( $order );
 			$save_payment_method = isset( $_POST['payment_method_id'] ) && ! empty( wc_clean( wp_unslash( $_POST['payment_method_id'] ) ) );
 
 			$gateway = $this->get_upe_gateway();
@@ -952,6 +1034,7 @@ class WC_Stripe_Intent_Controller {
 					$order = $this->get_fresh_order( $order );
 
 					try {
+						$this->validate_order_not_refunded_after_cancellation( $order );
 						if ( $order_helper->is_order_payment_settled( $order ) ) {
 							WC_Stripe_Logger::info( "Skipping update_order_status_ajax for order $order_id; order was settled by a concurrent request." );
 						} else {
@@ -1045,6 +1128,19 @@ class WC_Stripe_Intent_Controller {
 	}
 
 	/**
+	 * A completed automatic refund must not be undone by a delayed browser callback.
+	 *
+	 * @since 11.2.0
+	 * @param WC_Order $order The order being confirmed.
+	 * @throws WC_Stripe_Exception When payment processing has been closed.
+	 */
+	private function validate_order_not_refunded_after_cancellation( WC_Order $order ): void {
+		if ( WC_Stripe_Order_Helper::get_instance()->is_refunded_after_cancellation( $order ) ) {
+			throw new WC_Stripe_Exception( 'Order payment is no longer available for confirmation.', __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+	}
+
+	/**
 	 * Reloads an order from storage, bypassing the copy this request already holds, so a
 	 * change a concurrent request made is visible (wc_get_order() would return the cached copy).
 	 *
@@ -1121,7 +1217,12 @@ class WC_Stripe_Intent_Controller {
 				wp_send_json_error( __( 'Unable to verify your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			if ( ! empty( $order_id ) && ! empty( $intent_id ) && is_object( $order ) ) {
+			// An error callback from an old checkout cannot change a hold or a terminal payment decision.
+			if ( ! $order instanceof WC_Order || ! $order->has_status( [ OrderStatus::PENDING, OrderStatus::FAILED ] ) || WC_Stripe_Order_Helper::get_instance()->is_refunded_after_cancellation( $order ) || WC_Stripe_Order_Helper::get_instance()->is_stripe_status_final( $order ) ) {
+				wp_send_json_error( __( 'Unable to verify your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) );
+			}
+
+			if ( ! empty( $order_id ) && ! empty( $intent_id ) ) {
 				$payment_needed = 0 < $order->get_total();
 				if ( $payment_needed ) {
 					$intent = WC_Stripe_API::retrieve( "payment_intents/$intent_id" );
@@ -1133,6 +1234,17 @@ class WC_Stripe_Intent_Controller {
 				if ( ! empty( $error ) ) {
 					WC_Stripe_Logger::error( 'Error when processing payment: ' . $error->message );
 					throw new WC_Stripe_Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
+				}
+
+				if ( $payment_needed ) {
+					try {
+						WC_Stripe_Order_Helper::get_instance()->validate_intent_for_order( $order, $intent, '' );
+					} catch ( Exception $e ) {
+						throw new WC_Stripe_Exception(
+							'The payment intent does not match the order.',
+							__( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+						);
+					}
 				}
 
 				// Use the last charge within the intent to proceed.
@@ -1499,6 +1611,10 @@ class WC_Stripe_Intent_Controller {
 		$is_using_confirmation_token = ! empty( $payment_information['confirmation_token'] );
 		if ( $is_using_confirmation_token ) {
 			$request['confirmation_token'] = $payment_information['confirmation_token'];
+			// The token can charge a different type than the one selected in the checkout request.
+			if ( 'manual' === ( $payment_information['capture_method'] ?? null ) ) {
+				$request['capture_method'] = 'manual';
+			}
 		} else {
 			$request['payment_method'] = $payment_information['payment_method'];
 			$request['capture_method'] = $payment_information['capture_method'];
@@ -1770,7 +1886,7 @@ class WC_Stripe_Intent_Controller {
 			}
 
 			$gateway = $this->get_upe_gateway();
-			$token   = $gateway->create_token_from_setup_intent( $setup_intent_id, $subscription->get_user() );
+			$token   = $gateway->create_token_from_setup_intent( $setup_intent_id, $subscription->get_user(), $subscription );
 
 			if ( ! $token ) {
 				throw new WC_Stripe_Exception( 'token_creation_failed', __( "We can't process your payment method change at this time. Please try again later.", 'woocommerce-gateway-stripe' ) );

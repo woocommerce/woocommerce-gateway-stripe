@@ -37,6 +37,11 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				throw new Exception( __( "We're not able to process this request. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
 			}
 
+			// Without this, a session created on a manual-capture store would capture the charge at once.
+			if ( ! WC_Stripe_Helper::is_checkout_sessions_available() ) {
+				throw new Exception( WC_Stripe_Checkout_Session_Context::get_unavailable_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			}
+
 			if ( ! WC()->cart || WC()->cart->is_empty() ) {
 				throw new Exception( __( 'Your cart is currently empty.', 'woocommerce-gateway-stripe' ) );
 			}
@@ -123,6 +128,10 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 			$is_nonce_valid = check_ajax_referer( 'wc_stripe_update_checkout_session_nonce', 'security', false );
 			if ( ! $is_nonce_valid ) {
 				throw new Exception( __( "We're not able to process this request. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
+			}
+
+			if ( ! WC_Stripe_Helper::is_checkout_sessions_available() ) {
+				throw new Exception( WC_Stripe_Checkout_Session_Context::get_unavailable_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			}
 
 			$session_id = isset( $_POST['checkout_session_id'] )
