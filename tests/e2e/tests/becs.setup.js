@@ -3,11 +3,6 @@ import { admin } from '../utils';
 import { execSync } from 'child_process';
 
 setup( 'Configure store for BECS tests', async ( { browser } ) => {
-	const adminContext = await browser.newContext( {
-		storageState: process.env.ADMINSTATE,
-	} );
-	const page = await adminContext.newPage();
-
 	// In QIT, keys are switched via WP-CLI in the run phase before Playwright starts.
 	if ( ! process.env.QIT_SITE_URL && ! process.env.CI ) {
 		execSync(
@@ -16,20 +11,11 @@ setup( 'Configure store for BECS tests', async ( { browser } ) => {
 		);
 	}
 
-	// Refresh account data in Stripe settings.
-	await page.goto(
-		'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings'
-	);
-	await page.getByLabel( 'Edit details or disconnect' ).click();
-	await page
-		.getByRole( 'menuitem', { name: 'Refresh account details' } )
-		.click();
+	await admin.refreshAccountDetails( browser );
 
 	// Change store currency to AUD.
 	await admin.updateStoreCurrency( browser, 'AUD' );
 
 	// Enable BECS in the admin.
 	await admin.togglePaymentMethod( browser, 'BECS Direct Debit', true );
-
-	await adminContext.close();
 } );

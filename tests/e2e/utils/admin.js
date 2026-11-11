@@ -31,6 +31,63 @@ export const getAdminPage = async ( browser ) => {
 };
 
 /**
+ * Re-fetch the connected account's details in the Stripe settings.
+ *
+ * Needed after the site's keys are switched to another account, since the
+ * plugin caches account data.
+ *
+ * @param {Browser} browser Playwright browser fixture.
+ */
+export const refreshAccountDetails = async ( browser ) => {
+	const { context, page } = await getAdminPage( browser );
+
+	try {
+		await page.goto(
+			'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings'
+		);
+		await page.getByLabel( 'Edit details or disconnect' ).click();
+		await page
+			.getByRole( 'menuitem', { name: 'Refresh account details' } )
+			.click();
+	} finally {
+		await context.close();
+	}
+};
+
+/**
+ * Assert a payment method's enabled state in the Stripe settings.
+ *
+ * Projects that depend on the account's Link state check it in setup, so a
+ * misconfigured account fails there with a clear message instead of in every
+ * spec.
+ *
+ * @param {Browser} browser    Playwright browser fixture.
+ * @param {string}  methodName The payment method name as shown in admin.
+ * @param {boolean} enabled    The state the method must be in.
+ */
+export const expectPaymentMethodEnabled = async (
+	browser,
+	methodName,
+	enabled
+) => {
+	const { context, page } = await getAdminPage( browser );
+
+	try {
+		await page.goto(
+			'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=methods'
+		);
+		await expect(
+			page.getByRole( 'checkbox', { name: methodName } ),
+			`${ methodName } must be ${
+				enabled ? 'enabled' : 'disabled'
+			} on this Stripe account`
+		).toBeChecked( { checked: enabled } );
+	} finally {
+		await context.close();
+	}
+};
+
+/**
  * Enable or disable a payment method in Stripe settings.
  * @param {Browser} browser Playwright browser fixture.
  * @param {string} methodName The payment method name as shown in admin.
