@@ -99,13 +99,10 @@ class WC_Stripe_REST_OC_Setting_Toggle_Controller extends WC_Stripe_REST_Base_Co
 
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
-		if ( $is_oc_enabled !== $current_value ) {
+		if ( $is_oc_enabled !== $current_value && function_exists( 'wc_admin_record_tracks_event' ) ) {
 			wc_admin_record_tracks_event(
-				$is_oc_enabled ? 'wcstripe_oc_enabled' : 'wcstripe_oc_disabled',
-				[
-					'test_mode' => WC_Stripe_Mode::is_test() ? 1 : 0,
-					'source'    => 'oc_setting_toggle_rest_api',
-				]
+				'yes' === $value ? 'wcstripe_oc_enabled' : 'wcstripe_oc_disabled',
+				WC_Stripe_Tracks::add_default_event_properties( [ 'source' => 'oc_setting_toggle_rest_api' ] )
 			);
 		}
 

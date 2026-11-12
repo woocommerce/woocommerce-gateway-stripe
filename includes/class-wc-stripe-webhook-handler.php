@@ -1385,6 +1385,22 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return false;
 		}
 
+		// Defer before the status guard and inline wallet branch so the job can refund or void it.
+		if (
+			$order->has_status( OrderStatus::CANCELLED )
+			&& in_array( $notification->type, [ 'payment_intent.succeeded', 'payment_intent.amount_capturable_updated' ], true )
+		) {
+			$this->resolved_order = $order;
+			$this->defer_webhook_processing(
+				$notification,
+				[
+					'order_id'  => $order->get_id(),
+					'intent_id' => $intent->id,
+				]
+			);
+			return true;
+		}
+
 		if ( ! $order->has_status(
 			/** This filter is documented in includes/class-wc-stripe-webhook-handler.php. */
 			apply_filters(
@@ -1426,6 +1442,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			// Asynchronous payment methods such as bank debits will only provide a charge ID at `payment_intent.processing`, once the required actions are taken by the customer.
 			// We need to update the order transaction ID, so that the `payment_intent.succeeded` webhook is able to process the order.
 			case 'payment_intent.processing':
+				if ( ! $order_helper->validate_successful_intent_or_hold_order( $order, $intent ) ) {
+					break;
+				}
+
 				$charge = $this->get_latest_charge_from_intent( $intent );
 				if ( $charge ) {
 					$order->set_transaction_id( $charge->id );
@@ -1470,28 +1490,44 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 				// Process the webhook now if it's for a voucher, wallet, or BLIK payment, or if filtered to process immediately and order is not awaiting action.
 				if ( $is_voucher_payment || $is_wallet_payment || $is_blik_payment || ( ! $process_webhook_async && ! $is_awaiting_action ) ) {
+					if ( ! $order_helper->validate_successful_intent_or_hold_order( $order, $intent ) ) {
+						break;
+					}
+
 					$charge = $this->get_latest_charge_from_intent( $intent );
+
+					// Confirm the intent settled for the order's amount before recording payment.
+					// Checked ahead of the pre-order branch so a charged-upfront pre-order whose
+					// total drifted above the charge is held, not marked paid. The check holds the
+					// order on a mismatch.
+					if ( $this->maybe_hold_order_for_amount_mismatch( $order, $intent ) ) {
+						$this->run_webhook_received_action( (string) $notification->type, $notification );
+						break;
+					}
 
 					if ( $this->maybe_mark_order_as_pre_ordered( $order, $charge ) ) {
 						$this->run_webhook_received_action( (string) $notification->type, $notification );
 						break;
 					}
 
-					/**
-					 * Fires after a webhook charge is processed.
-					 * Deprecated in favor of wc_gateway_stripe_process_payment_charge.
-					 *
-					 * @deprecated 9.7.0
-					 * @param object   $charge The charge object.
-					 * @param WC_Order $order  The order object.
-					*/
-					do_action_deprecated(
-						'wc_gateway_stripe_process_payment',
-						[ $charge, $order ],
-						'9.7.0',
-						'wc_gateway_stripe_process_payment_charge',
-						'The wc_gateway_stripe_process_payment action is deprecated. Use wc_gateway_stripe_process_payment_charge instead.'
-					);
+					// Legacy callbacks run before process_response() can reject reversed charges.
+					if ( ! $this->is_charge_refunded_or_disputed( $charge ) ) {
+						/**
+						 * Fires after a webhook charge is processed.
+						 * Deprecated in favor of wc_gateway_stripe_process_payment_charge.
+						 *
+						 * @deprecated 9.7.0
+						 * @param object   $charge The charge object.
+						 * @param WC_Order $order  The order object.
+						 */
+						do_action_deprecated(
+							'wc_gateway_stripe_process_payment',
+							[ $charge, $order ],
+							'9.7.0',
+							'wc_gateway_stripe_process_payment_charge',
+							'The wc_gateway_stripe_process_payment action is deprecated. Use wc_gateway_stripe_process_payment_charge instead.'
+						);
+					}
 
 					$charge->is_webhook_response = true;
 					$this->process_response( $charge, $order );
@@ -1963,6 +1999,24 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Holds the order and returns true when the succeeded intent settled for a different amount.
+	 *
+	 * @param WC_Order $order  The order being settled.
+	 * @param object   $intent The succeeded PaymentIntent.
+	 * @return bool True when the order was held for an amount mismatch; false when settlement may proceed.
+	 */
+	private function maybe_hold_order_for_amount_mismatch( $order, $intent ): bool {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		if ( $order_helper->intent_amount_matches_order( $order, $intent ) ) {
+			return false;
+		}
+
+		$order_helper->hold_order_for_amount_mismatch( $order, $intent );
+		return true;
+	}
+
+	/**
 	 * Handles a deferred payment_intent.succeeded event.
 	 *
 	 * @param WC_Order $order     The order object.
@@ -1976,6 +2030,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		if ( ! WC_Stripe_Order_Helper::get_instance()->validate_successful_intent_or_hold_order( $order, $intent ) ) {
+			return;
+		}
+
 		$charge = $this->get_latest_charge_from_intent( $intent );
 
 		if ( ! $charge ) {
@@ -1985,18 +2043,28 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		WC_Stripe_Logger::info( "Processing Stripe PaymentIntent {$intent_id} for order {$order->get_id()} via deferred webhook." );
 
+		// Confirm the intent settled for the order's amount before recording payment. Checked
+		// ahead of the pre-order branch so a charged-upfront pre-order whose total drifted above
+		// the charge is held, not marked paid. The check holds the order on a mismatch.
+		if ( $this->maybe_hold_order_for_amount_mismatch( $order, $intent ) ) {
+			return;
+		}
+
 		if ( $this->maybe_mark_order_as_pre_ordered( $order, $charge ) ) {
 			return;
 		}
 
-		/** This action is documented in includes/class-wc-stripe-webhook-handler.php. */
-		do_action_deprecated(
-			'wc_gateway_stripe_process_payment',
-			[ $charge, $order ],
-			'9.7.0',
-			'wc_gateway_stripe_process_payment_charge',
-			'The wc_gateway_stripe_process_payment action is deprecated. Use wc_gateway_stripe_process_payment_charge instead.'
-		);
+		// Legacy callbacks run before process_response() can reject reversed charges.
+		if ( ! $this->is_charge_refunded_or_disputed( $charge ) ) {
+			/** This action is documented in includes/class-wc-stripe-webhook-handler.php. */
+			do_action_deprecated(
+				'wc_gateway_stripe_process_payment',
+				[ $charge, $order ],
+				'9.7.0',
+				'wc_gateway_stripe_process_payment_charge',
+				'The wc_gateway_stripe_process_payment action is deprecated. Use wc_gateway_stripe_process_payment_charge instead.'
+			);
+		}
 
 		$charge->is_webhook_response = true;
 		$this->process_response( $charge, $order );
@@ -2015,6 +2083,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	protected function maybe_mark_order_as_pre_ordered( $order, $charge = null ): bool {
 		if ( ! $this->is_unreleased_charged_upfront_pre_order( $order ) ) {
+			return false;
+		}
+
+		// Let normal charge validation reject the payment before the pre-order lifecycle starts.
+		if ( $this->is_charge_refunded_or_disputed( $charge ) ) {
 			return false;
 		}
 
@@ -2084,8 +2157,16 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$intent = $this->get_intent_from_order( $order );
 
+		// Can't reverse without the order's own matching intent, so note it (with the id) for manual review.
 		if ( ! $intent || $intent->id !== $intent_id ) {
-			WC_Stripe_Logger::debug( "Skipped refunding cancelled order {$order->get_id()} for Stripe PaymentIntent {$intent_id} - intent ID stored on the order doesn't match." );
+			$order->add_order_note(
+				sprintf(
+					/* translators: %s: Stripe PaymentIntent ID. */
+					__( 'Stripe PaymentIntent %s was paid or authorized after this order was cancelled, but it could not be refunded or voided automatically because it does not match the order\'s stored payment. Please refund or void it from the Stripe dashboard.', 'woocommerce-gateway-stripe' ),
+					esc_html( $intent_id )
+				)
+			);
+			WC_Stripe_Logger::warning( "Cancelled order {$order->get_id()} received a payment for {$intent_id} with no matching stored intent; left a manual-refund note." );
 			return;
 		}
 
@@ -3108,7 +3189,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 					/**
 					 * If the order has no intent ID stored, we may have failed to store it during the initial payment request.
-					 * Confirm that the signature matches the order, otherwise fall back to finding the order via the intent ID.
+					 * Confirm that the signature matches the order before trying the other order bindings below.
 					 */
 					if ( empty( $intent_id ) && $this->get_order_signature( $order ) === $signature ) {
 						return $order;
@@ -3120,7 +3201,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			if ( isset( $intent->metadata->order_id ) ) {
 				$order = wc_get_order( absint( $intent->metadata->order_id ) );
 
-				if ( $order instanceof WC_Order ) {
+				if ( $order instanceof WC_Order && $this->is_intent_for_order( $intent, $intent->metadata, $order ) ) {
 					return $order;
 				}
 				return false;
@@ -3134,7 +3215,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			if ( $order_id ) {
 				$order = wc_get_order( $order_id );
 
-				if ( $order instanceof WC_Order ) {
+				if ( $order instanceof WC_Order && $this->is_intent_for_order( $intent, $charge->metadata, $order ) ) {
 					return $order;
 				}
 			}
@@ -3143,6 +3224,52 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		// Fall back to finding the order via the intent ID.
 		return WC_Stripe_Helper::get_order_by_intent_id( $intent->id );
+	}
+
+	private function is_intent_for_order( object $intent, object $metadata, WC_Order $order ): bool {
+		$intent_id = WC_Stripe_Order_Helper::get_instance()->get_intent_id_from_order( $order );
+
+		if ( ! empty( $intent_id ) ) {
+			$matches = ( $intent->id ?? null ) === $intent_id;
+
+			if ( ! $matches ) {
+				WC_Stripe_Logger::warning(
+					'Webhook intent does not match the stored intent for the candidate order.',
+					[
+						'candidate_order_id' => $order->get_id(),
+						'webhook_intent_id'  => $intent->id ?? null,
+						'stored_intent_id'   => $intent_id,
+					]
+				);
+			}
+
+			return $matches;
+		}
+
+		if ( isset( $metadata->order_key ) ) {
+			return is_string( $metadata->order_key ) && '' !== $metadata->order_key && $order->key_is_valid( $metadata->order_key );
+		}
+
+		// Some Terminal clients omit the order key before the intent is saved locally.
+		// Only allow that legacy binding for card-present intents and this site's full URL,
+		// including its path: stores in a subdirectory network can share the same host.
+		// Mobile clients may use the home URL when WordPress lives in a separate directory.
+		$payment_method_types = $intent->payment_method_types ?? [];
+		$site_url             = $metadata->site_url ?? '';
+		if ( isset( $metadata->signature )
+			|| ! is_array( $payment_method_types )
+			|| empty( $payment_method_types )
+			|| array_diff( $payment_method_types, [ WC_Stripe_Payment_Methods::CARD_PRESENT ] )
+			|| ! is_string( $site_url )
+			|| '' === $site_url ) {
+			return false;
+		}
+
+		return in_array(
+			untrailingslashit( $site_url ),
+			[ untrailingslashit( get_site_url() ), untrailingslashit( home_url() ) ],
+			true
+		);
 	}
 
 	/**

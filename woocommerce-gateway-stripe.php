@@ -5,10 +5,9 @@
  * Description: Accept debit and credit card payments in 135+ currencies, as well as Apple Pay, Google Pay, Klarna, Affirm, P24, ACH, and more.
  * Author: Stripe
  * Author URI: https://stripe.com/
- * Version: 11.1.1
+ * Version: 11.2.0
  * Requires Plugins: woocommerce
  * Requires at least: 6.9
- * Tested up to: 7.1
  * WC requires at least: 11.0
  * WC tested up to: 11.2
  * License: GPLv3
@@ -24,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '11.1.1' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '11.2.0' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '7.4' );
 define( 'WC_STRIPE_MIN_WC_VER', '11.0' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '11.1' );

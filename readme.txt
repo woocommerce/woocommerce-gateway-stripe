@@ -4,7 +4,7 @@ Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 11.1.1
+Stable tag: 11.2.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -166,27 +166,16 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 11.2.0 - xxxx-xx-xx =
-* Fix - Rebuild a mode's webhook on update when an earlier "Reconfigure webhooks" click registered it in the wrong mode, which had left webhooks failing in both live and test
-* Fix - Complete deprecation of wc_stripe_force_save_source
-* Fix - Use the account API key for webhook status, cleanup, and manual setup
-* Dev - Remove expired lock rows from the options table once a day
-* Tweak - Minor improvement to error logging when saving new keys
-* Fix - Keep pending ACH orders open while Stripe is still waiting for bank verification
-* Fix - Complete express checkout payments on the Pay for Order page when the checkout phone field is required, and preserve the order's saved billing phone
-* Dev - Fix the Format Release Notes workflow running out of turns before it could open its pull request
+= 11.3.0 - xxxx-xx-xx =
+* Update - Start wallet availability checks earlier on Cart and Checkout blocks
+* Update - Improve express checkout wallet startup, availability checks, reuse, and recovery
+* Fix - Avoid expensive variation lookup in express checkout setup on product pages
+* Dev - Add WC_Stripe_Tracks class to support more consistent events
+* Dev - Load React's JSX runtime from WordPress core instead of bundling it, and declare "Tested up to" only in readme.txt
+* Fix - Stop rewriting a saved payment method's name, email, and phone in Stripe when it is used at checkout; only the billing address is refreshed
+* Dev - Run every E2E test project under both a classic theme (Storefront) and a block theme (Twenty Twenty-Five) in CI, and make the shared E2E helpers theme-agnostic
+* Fix - Keep a subscription's Stripe customer when its card is changed with 3D Secure, so renewals don't fail
+* Dev - Upgrade Playwright to stay compatible with GitHub CI environment
 * Add - Recover pending Stripe orders automatically and add manual payment status checks
-* Add - Remote configuration system for managing feature availability during incidents
-* Update - Retry failed remote-config syncs with backoff and log a warning when the cached configuration goes stale
-* Dev - Make the express checkout password cleanup next-batch delay test stable on slow CI runners
-* Dev - Let hook @since docblocks use the x.x.x version placeholder in phpcs
-* Fix - Send shoppers to the order confirmation page instead of showing an error when processing fails after a 3D Secure payment has already succeeded
-* Dev - Add E2E coverage for paying with a non-Stripe gateway on the Pay for Order, add payment method, and change payment method pages
-* Fix - Record the payment for a released charge-upon-release pre-order paid from the pay page with 3D Secure, instead of leaving the order unpaid after the card was charged
-* Fix - Replace an expired Adaptive Pricing Checkout Session with a new one instead of retrying it, so returning shoppers are no longer blocked at checkout
-* Update - Unify express checkout button sizes across Apple Pay / Google Pay, Link, and Amazon Pay
-* Fix - Allow retrying a failed BLIK or Pre-Authorized Debit (ACSS) payment on the same order instead of failing every retry
-* Fix - Prevent a second charge when an interrupted checkout is resubmitted or two tabs submit the same cart at once
-* Fix - On classic checkout, show a notice naming each empty required field instead of a single generic "Please fill in all required fields" notice
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
