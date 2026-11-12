@@ -10,6 +10,7 @@ xxxx-xx-xx - version 11.3.0
 * Dev - Run every E2E test project under both a classic theme (Storefront) and a block theme (Twenty Twenty-Five) in CI, and make the shared E2E helpers theme-agnostic
 * Fix - Keep a subscription's Stripe customer when its card is changed with 3D Secure, so renewals don't fail
 * Dev - Upgrade Playwright to stay compatible with GitHub CI environment
+* Dev - Offer Jetpack Beta, Jurassic Ninja and WordPress Playground as three ways to test a build in the pull request comment
 
 2026-11-10 - version 11.2.0
 * Fix - Refund or void a Stripe payment that succeeds for an order that was already cancelled, instead of leaving the shopper charged
