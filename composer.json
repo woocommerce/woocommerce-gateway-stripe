@@ -109,8 +109,8 @@
         "changes-dir": "changelog",
         "types": {
           "add": "Add",
-          "fix": "Fix",
           "update": "Update",
+          "fix": "Fix",
           "remove": "Remove",
           "tweak": "Tweak",
           "dev": "Dev"
