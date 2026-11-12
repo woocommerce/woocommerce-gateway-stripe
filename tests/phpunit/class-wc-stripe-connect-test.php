@@ -453,23 +453,29 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * A failed cleanup retains the old key for retry, but verbose OAuth logs must mask it.
+	 * A failed cleanup retains credentials for retry, but verbose OAuth logs must mask them.
 	 *
 	 * @dataProvider provide_webhook_log_modes
 	 */
 	public function test_failed_webhook_cleanup_redacts_retained_key_in_verbose_log( $mode ) {
-		$prefix  = 'test' === $mode ? 'test_' : '';
-		$old_key = 'sk_' . $mode . '_old_account';
-		$new_key = 'sk_' . $mode . '_new_account';
+		$prefix         = 'test' === $mode ? 'test_' : '';
+		$old_key        = 'sk_' . $mode . '_old_account';
+		$new_key        = 'sk_' . $mode . '_new_account';
+		$signing_secret = 'whsec_retained_webhook_signing_secret';
+		$other_prefix   = 'test' === $mode ? '' : 'test_';
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[
-				'testmode'               => 'test' === $mode ? 'yes' : 'no',
-				$prefix . 'secret_key'   => $old_key,
-				$prefix . 'webhook_data' => [
-					'id'     => 'we_old',
-					'secret' => '',
+				'testmode'                     => 'test' === $mode ? 'yes' : 'no',
+				$prefix . 'secret_key'         => $old_key,
+				$prefix . 'webhook_data'       => [
+					'id'             => 'we_old',
+					'secret'         => '',
+					'signing_secret' => $signing_secret,
 				],
-				'pmc_enabled'            => 'yes',
+				$other_prefix . 'webhook_data' => [ 'signing_secret' => 'whsec_other_mode_signing_secret' ],
+				'refresh_token'                => 'rt_live_example_refresh_token',
+				'test_refresh_token'           => 'rt_test_example_refresh_token',
+				'pmc_enabled'                  => 'yes',
 			]
 		);
 
@@ -477,8 +483,9 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$account->expects( $this->once() )->method( 'maybe_decommission_webhook' )
 			->with(
 				[
-					'id'     => 'we_old',
-					'secret' => $old_key,
+					'id'             => 'we_old',
+					'secret'         => $old_key,
+					'signing_secret' => $signing_secret,
 				],
 				$new_key
 			)
@@ -511,6 +518,13 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertCount( 1, $logged_options );
 		$this->assertSame( WC_Stripe_Connect::redact_string( $old_key ), $logged_options[0][ $prefix . 'webhook_data' ]['secret'] );
 		$this->assertStringNotContainsString( $old_key, wp_json_encode( $logged_options[0] ) );
+		$this->assertSame( $signing_secret, $settings[ $prefix . 'webhook_data' ]['signing_secret'] );
+		$this->assertSame( WC_Stripe_Connect::redact_string( $signing_secret ), $logged_options[0][ $prefix . 'webhook_data' ]['signing_secret'] );
+		$this->assertSame( WC_Stripe_Connect::redact_string( 'whsec_other_mode_signing_secret' ), $logged_options[0][ $other_prefix . 'webhook_data' ]['signing_secret'] );
+		foreach ( [ 'refresh_token', 'test_refresh_token' ] as $key ) {
+			$this->assertSame( WC_Stripe_Connect::redact_string( $settings[ $key ] ), $logged_options[0][ $key ] );
+			$this->assertStringNotContainsString( $settings[ $key ], wp_json_encode( $logged_options[0] ) );
+		}
 	}
 
 	public function provide_webhook_log_modes() {

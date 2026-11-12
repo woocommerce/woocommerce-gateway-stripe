@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
  * stores that saved the settings would send failed order text (written for merchants, about
  * failed payments) in a refund failed email, including to customers.
  *
- * @since x.x.x
+ * @since 11.2.0
  */
 class WC_Stripe_Failed_Refund_Email_Additional_Content_Update {
 
