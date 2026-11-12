@@ -60,6 +60,14 @@ class WC_Stripe_Feature_Flags {
 	public const ORDER_RECONCILIATION_FEATURE_FLAG_NAME = '_wcstripe_feature_order_reconciliation';
 
 	/**
+	 * Feature flag for tracking Stripe events and processing the ones Stripe failed to deliver.
+	 *
+	 * @var string
+	 * @since x.x.x
+	 */
+	public const EVENT_RECONCILIATION_FEATURE_FLAG_NAME = '_wcstripe_feature_event_reconciliation';
+
+	/**
 	 * Map of feature flag option names => their default "yes"/"no" value.
 	 * This single source of truth makes it easier to maintain our dev tools.
 	 *
@@ -73,6 +81,7 @@ class WC_Stripe_Feature_Flags {
 		self::EXPAND_OPTIMIZED_CHECKOUT_IN_LEGACY_CHECKOUT_FEATURE_FLAG_NAME => 'no',
 		self::ABILITIES_FEATURE_FLAG_NAME                                    => 'no',
 		self::ORDER_RECONCILIATION_FEATURE_FLAG_NAME                         => 'yes', // On by default on purpose, see the constant.
+		self::EVENT_RECONCILIATION_FEATURE_FLAG_NAME                         => 'no',
 	];
 
 	/**
@@ -293,5 +302,16 @@ class WC_Stripe_Feature_Flags {
 	 */
 	public static function is_order_reconciliation_enabled(): bool {
 		return 'yes' === self::get_option_with_default( self::ORDER_RECONCILIATION_FEATURE_FLAG_NAME );
+	}
+
+	/**
+	 * Whether Stripe events are tracked, and the ones Stripe failed to deliver are processed.
+	 *
+	 * @since x.x.x
+	 *
+	 * @return bool True if enabled, false otherwise.
+	 */
+	public static function is_event_reconciliation_enabled(): bool {
+		return 'yes' === self::get_option_with_default( self::EVENT_RECONCILIATION_FEATURE_FLAG_NAME );
 	}
 }
