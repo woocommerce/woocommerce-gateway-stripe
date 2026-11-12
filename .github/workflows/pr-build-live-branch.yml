@@ -218,9 +218,9 @@ jobs:
 
           **If you are a logged-in Automattic staff member:**
 
-          :rocket: [Launch a Jurassic Ninja site with this branch and sample products](https://jurassic.ninja/create/?jetpack-beta&shortlived&nojetpack&woocommerce&woocommerce-import-sample-data&woocommerce-gateway-stripe-dev-tools&branches.woocommerce-gateway-stripe=${PR_HEAD_REF}) :rocket:
+          :warning: Log in at [jurassic.ninja](https://jurassic.ninja/) first. Without a login, the link below takes you to the Jurassic Ninja homepage and no site is created.
 
-          :information_source: The link only launches a site while you are logged in to jurassic.ninja. If it opens the Jurassic Ninja homepage instead, log in there and open the link again, or use the manual flow below.
+          :rocket: [Launch a Jurassic Ninja site with this branch and sample products](https://jurassic.ninja/create/?jetpack-beta&shortlived&nojetpack&woocommerce&woocommerce-import-sample-data&woocommerce-gateway-stripe-dev-tools&branches.woocommerce-gateway-stripe=${PR_HEAD_REF}) :rocket:
 
           **Otherwise, use the following manual flow:**
 
