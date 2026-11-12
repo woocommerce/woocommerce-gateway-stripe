@@ -10,6 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Events API, recorded as pending, and processed through Action Scheduler, one action per event.
  * Only the event ID is stored, so each pending event is fetched again before it is processed.
  *
+ * @since x.x.x
  * @internal Subject to change without notice between releases.
  */
 class WC_Stripe_Event_Reconciler {

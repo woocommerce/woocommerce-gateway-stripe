@@ -155,6 +155,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * Constructor.
 	 *
 	 * @since 4.0.0
+	 * @since x.x.x Added the $event_reconciler parameter.
 	 * @version 5.0.0
 	 *
 	 * @param WC_Stripe_Event_Reconciler|null $event_reconciler Event reconciler. Defaults to a new instance.

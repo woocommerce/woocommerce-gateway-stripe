@@ -9,6 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Holds only what the plugin tracks about an event, never the event payload: payloads carry
  * customer data, and the full event can be retrieved from Stripe by ID when it is needed.
  *
+ * @since x.x.x
  * @internal Subject to change without notice between releases.
  */
 final class WC_Stripe_Event_Record {

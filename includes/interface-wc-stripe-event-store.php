@@ -8,6 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Implementations only persist state; deciding what to process and when belongs to the callers.
  *
+ * @since x.x.x
  * @internal Subject to change without notice between releases.
  */
 interface WC_Stripe_Event_Store_Interface {

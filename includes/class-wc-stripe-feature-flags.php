@@ -52,6 +52,7 @@ class WC_Stripe_Feature_Flags {
 	 * Feature flag for tracking Stripe events and processing the ones Stripe failed to deliver.
 	 *
 	 * @var string
+	 * @since x.x.x
 	 */
 	public const EVENT_RECONCILIATION_FEATURE_FLAG_NAME = '_wcstripe_feature_event_reconciliation';
 
@@ -281,6 +282,8 @@ class WC_Stripe_Feature_Flags {
 
 	/**
 	 * Whether Stripe events are tracked, and the ones Stripe failed to deliver are processed.
+	 *
+	 * @since x.x.x
 	 *
 	 * @return bool True if enabled, false otherwise.
 	 */
