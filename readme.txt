@@ -173,6 +173,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Load React's JSX runtime from WordPress core instead of bundling it, and declare "Tested up to" only in readme.txt
 * Fix - Stop rewriting a saved payment method's name, email, and phone in Stripe when it is used at checkout; only the billing address is refreshed
 * Dev - Run every E2E test project under both a classic theme (Storefront) and a block theme (Twenty Twenty-Five) in CI, and make the shared E2E helpers theme-agnostic
+* Fix - Show country-restricted payment methods such as iDEAL on Adaptive Pricing checkout once the shopper enters a billing country they are available in
+
 * Fix - Keep a subscription's Stripe customer when its card is changed with 3D Secure, so renewals don't fail
 * Dev - Upgrade Playwright to stay compatible with GitHub CI environment
 
