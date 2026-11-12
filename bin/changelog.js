@@ -1,4 +1,16 @@
-const fs = require( 'fs' ).promises;
+#!/usr/bin/env node
+/**
+ * Adds a changelog entry file under changelog/ using the Jetpack Changelogger.
+ *
+ * Usage:
+ *   npm run changelog                                      Interactive prompts.
+ *   npm run changelog -- --type=fix --entry="Message"      Non-interactive.
+ *
+ * Entries carry no version: they are compiled into changelog.txt and readme.txt
+ * on the release branch by `npm run changelog:build-file`.
+ */
+const fs = require( 'fs' );
+const path = require( 'path' );
 const { execFile, spawn } = require( 'child_process' );
 const { promisify } = require( 'util' );
 const readline = require( 'readline' );
@@ -18,55 +30,82 @@ const CHANGE_TYPES = {
 const CLAUDE_SUGGEST = '__claude_suggest__';
 const BASE_BRANCH = 'develop';
 
-async function findUpcomingVersionSection( content ) {
-	const lines = content.split( '\n' );
-	// Match both formats:
-	// - changelog.txt: xxxx-xx-xx - version X.Y.Z
-	// - readme.txt:    = X.Y.Z - xxxx-xx-xx =
-	const upcomingVersionPattern =
-		/(?:xxxx-xx-xx\s*-\s*version\s+\d+\.\d+\.\d+|=\s*\d+\.\d+\.\d+\s*-\s*xxxx-xx-xx\s*=)/;
+const REPO_ROOT = path.resolve( __dirname, '..' );
+const CHANGES_DIR = path.join( REPO_ROOT, 'changelog' );
+const CHANGELOGGER = path.join( REPO_ROOT, 'vendor', 'bin', 'changelogger' );
 
-	for ( let i = 0; i < lines.length; i++ ) {
-		if ( upcomingVersionPattern.test( lines[ i ] ) ) {
-			// Find the next version section or end of file.
-			// Match both formats:
-			// - changelog.txt: YYYY-MM-DD - version X.Y.Z
-			// - readme.txt:    = X.Y.Z - YYYY-MM-DD =
-			const nextVersionPattern =
-				/^(?:=\s*\d+\.\d+|\d{4}-\d{2}-\d{2}\s*-\s*version\s+\d+\.\d+)/;
-			for ( let j = i + 1; j < lines.length; j++ ) {
-				if ( nextVersionPattern.test( lines[ j ] ) ) {
-					return { startLine: i, endLine: j - 1 };
-				}
-			}
-			return { startLine: i, endLine: lines.length - 1 };
-		}
+const listEntryFiles = () =>
+	fs
+		.readdirSync( CHANGES_DIR )
+		.filter( ( name ) => ! name.startsWith( '.' ) );
+
+/**
+ * @param {string} type    One of the CHANGE_TYPES keys.
+ * @param {string} message Entry text.
+ * @return {Promise<string[]>} Repository-relative paths of the entry files created.
+ */
+async function addEntryFile( type, message ) {
+	if ( ! fs.existsSync( CHANGELOGGER ) ) {
+		throw new Error(
+			'vendor/bin/changelogger not found. Run `composer install` first.'
+		);
 	}
-	throw new Error( 'Could not find upcoming version section (xxxx-xx-xx)' );
+
+	const before = new Set( listEntryFiles() );
+	await execFileP(
+		CHANGELOGGER,
+		[
+			'add',
+			'--no-interaction',
+			// The default filename comes from the branch name, so a second entry on the same branch needs a suffix.
+			'--filename-auto-suffix',
+			// The entry file format requires a significance, but it is unused here: the release version
+			// is passed explicitly when the changelog is compiled rather than derived from the entries.
+			'--significance=patch',
+			`--type=${ type.toLowerCase() }`,
+			`--entry=${ message }`,
+		],
+		{ cwd: REPO_ROOT }
+	);
+	return listEntryFiles()
+		.filter( ( name ) => ! before.has( name ) )
+		.map( ( name ) => path.join( 'changelog', name ) );
 }
 
-async function insertChangelogEntry( filePath, entry ) {
-	try {
-		const content = await fs.readFile( filePath, 'utf8' );
-		const lines = content.split( '\n' );
-		const { startLine, endLine } =
-			await findUpcomingVersionSection( content );
-
-		// Find the last entry in the current version section
-		let insertPosition = startLine + 1;
-		for ( let i = startLine + 1; i <= endLine; i++ ) {
-			if ( lines[ i ].trim().startsWith( '*' ) ) {
-				insertPosition = i + 1;
-			}
+/**
+ * @param {string[]} argv Command-line arguments.
+ * @return {{type?: string, entry?: string}} Values of --type and --entry, when given.
+ */
+function parseArgs( argv ) {
+	const args = {};
+	for ( const arg of argv ) {
+		const match = arg.match( /^--(type|entry)=([\s\S]*)$/ );
+		if ( ! match ) {
+			throw new Error(
+				`Unknown argument: ${ arg }. Usage: npm run changelog -- --type=<type> --entry="<message>"`
+			);
 		}
-
-		// Insert the new entry after the last existing entry
-		lines.splice( insertPosition, 0, entry );
-
-		await fs.writeFile( filePath, lines.join( '\n' ) );
-	} catch ( error ) {
-		throw new Error( `Failed to update ${ filePath }: ${ error.message }` );
+		args[ match[ 1 ] ] = match[ 2 ];
 	}
+	return args;
+}
+
+/**
+ * @param {string} type Type as typed by the user, in any case.
+ * @return {string} The matching CHANGE_TYPES key.
+ */
+function normalizeType( type ) {
+	const match = Object.keys( CHANGE_TYPES ).find(
+		( known ) => known.toLowerCase() === String( type ).toLowerCase()
+	);
+	if ( ! match ) {
+		throw new Error(
+			`Invalid type "${ type }". Expected one of: ${ Object.keys(
+				CHANGE_TYPES
+			).join( ', ' ) }`
+		);
+	}
+	return match;
 }
 
 async function getBranchContext() {
@@ -188,112 +227,97 @@ ${ diffstat || '(no diff)' }
 }
 
 /* eslint-disable no-console */
-async function main() {
-	try {
-		const manualTypeChoices = Object.entries( CHANGE_TYPES ).map(
-			( [ type, description ] ) => ( {
-				name: `${ type } - ${ description }`,
-				value: type,
-			} )
-		);
 
-		const typeChoices = [
-			...manualTypeChoices,
-			{ name: '✨ Let Claude suggest an entry', value: CLAUDE_SUGGEST },
-		];
+async function promptForEntry() {
+	const manualTypeChoices = Object.entries( CHANGE_TYPES ).map(
+		( [ type, description ] ) => ( {
+			name: `${ type } - ${ description }`,
+			value: type,
+		} )
+	);
 
-		const first = await inquirer.prompt( [
-			{
-				type: 'list',
-				name: 'changeType',
-				message: 'Select the type of change:',
-				choices: typeChoices,
-			},
-		] );
+	const typeChoices = [
+		...manualTypeChoices,
+		{ name: '✨ Let Claude suggest an entry', value: CLAUDE_SUGGEST },
+	];
 
-		let changeType;
-		let message;
+	const first = await inquirer.prompt( [
+		{
+			type: 'list',
+			name: 'changeType',
+			message: 'Select the type of change:',
+			choices: typeChoices,
+		},
+	] );
 
-		if ( first.changeType === CLAUDE_SUGGEST ) {
-			let suggestion = null;
-			try {
-				console.log( 'Asking Claude...' );
-				suggestion = await suggestWithClaude();
-				console.log(
-					`Suggested: * ${ suggestion.type } - ${ suggestion.message }`
+	let changeType;
+	let message;
+
+	if ( first.changeType === CLAUDE_SUGGEST ) {
+		let suggestion = null;
+		try {
+			console.log( 'Asking Claude...' );
+			suggestion = await suggestWithClaude();
+			console.log(
+				`Suggested: * ${ suggestion.type } - ${ suggestion.message }`
+			);
+		} catch ( err ) {
+			console.warn(
+				`Claude suggestion unavailable (${ err.message }). Falling back to manual entry.`
+			);
+		}
+
+		let action = 'edit';
+		if ( suggestion ) {
+			const { next } = await inquirer.prompt( [
+				{
+					type: 'list',
+					name: 'next',
+					message: 'What would you like to do?',
+					choices: [
+						{ name: 'Use suggestion as-is', value: 'accept' },
+						{ name: 'Edit before saving', value: 'edit' },
+					],
+					default: 'accept',
+				},
+			] );
+			action = next;
+		}
+
+		if ( action === 'accept' ) {
+			changeType = suggestion.type;
+			message = suggestion.message;
+		} else if ( suggestion ) {
+			const typePattern = new RegExp(
+				`^\\s*(${ Object.keys( CHANGE_TYPES ).join(
+					'|'
+				) })\\s*-\\s*(.+?)\\s*$`
+			);
+			while ( true ) {
+				const line = await promptWithPrefill(
+					'? Edit entry: ',
+					`${ suggestion.type } - ${ suggestion.message }`
 				);
-			} catch ( err ) {
-				console.warn(
-					`Claude suggestion unavailable (${ err.message }). Falling back to manual entry.`
-				);
-			}
-
-			let action = 'edit';
-			if ( suggestion ) {
-				const { next } = await inquirer.prompt( [
-					{
-						type: 'list',
-						name: 'next',
-						message: 'What would you like to do?',
-						choices: [
-							{ name: 'Use suggestion as-is', value: 'accept' },
-							{ name: 'Edit before saving', value: 'edit' },
-						],
-						default: 'accept',
-					},
-				] );
-				action = next;
-			}
-
-			if ( action === 'accept' ) {
-				changeType = suggestion.type;
-				message = suggestion.message;
-			} else if ( suggestion ) {
-				const typePattern = new RegExp(
-					`^\\s*(${ Object.keys( CHANGE_TYPES ).join(
-						'|'
-					) })\\s*-\\s*(.+?)\\s*$`
-				);
-				while ( true ) {
-					const line = await promptWithPrefill(
-						'? Edit entry: ',
-						`${ suggestion.type } - ${ suggestion.message }`
-					);
-					const match = line.match( typePattern );
-					if ( match ) {
-						changeType = match[ 1 ];
-						message = match[ 2 ];
-						break;
-					}
-					console.warn(
-						`Invalid format. Expected "Type - message" where Type is one of: ${ Object.keys(
-							CHANGE_TYPES
-						).join( ', ' ) }`
-					);
+				const match = line.match( typePattern );
+				if ( match ) {
+					changeType = match[ 1 ];
+					message = match[ 2 ];
+					break;
 				}
-			} else {
-				const answers = await inquirer.prompt( [
-					{
-						type: 'list',
-						name: 'changeType',
-						message: 'Select the type of change:',
-						choices: manualTypeChoices,
-					},
-					{
-						type: 'input',
-						name: 'message',
-						message: 'Enter the changelog message:',
-						validate: ( input ) =>
-							input.trim().length > 0 ||
-							'Message cannot be empty',
-					},
-				] );
-				changeType = answers.changeType;
-				message = answers.message;
+				console.warn(
+					`Invalid format. Expected "Type - message" where Type is one of: ${ Object.keys(
+						CHANGE_TYPES
+					).join( ', ' ) }`
+				);
 			}
 		} else {
-			changeType = first.changeType;
 			const answers = await inquirer.prompt( [
+				{
+					type: 'list',
+					name: 'changeType',
+					message: 'Select the type of change:',
+					choices: manualTypeChoices,
+				},
 				{
 					type: 'input',
 					name: 'message',
@@ -302,27 +326,62 @@ async function main() {
 						input.trim().length > 0 || 'Message cannot be empty',
 				},
 			] );
+			changeType = answers.changeType;
 			message = answers.message;
+		}
+	} else {
+		changeType = first.changeType;
+		const answers = await inquirer.prompt( [
+			{
+				type: 'input',
+				name: 'message',
+				message: 'Enter the changelog message:',
+				validate: ( input ) =>
+					input.trim().length > 0 || 'Message cannot be empty',
+			},
+		] );
+		message = answers.message;
+	}
+
+	return { changeType, message };
+}
+
+async function main() {
+	try {
+		const args = parseArgs( process.argv.slice( 2 ) );
+		let changeType;
+		let message;
+
+		if ( args.type !== undefined || args.entry !== undefined ) {
+			if ( ! args.type || ! args.entry || ! args.entry.trim() ) {
+				throw new Error(
+					'Both --type and --entry are required for non-interactive use'
+				);
+			}
+			changeType = normalizeType( args.type );
+			message = args.entry;
+		} else {
+			( { changeType, message } = await promptForEntry() );
 		}
 
 		// Remove trailing . from changelog message. See https://wp.me/pc4etw-1FS.
 		message = message.trim().replace( /\.$/, '' );
-		const entry = `* ${ changeType } - ${ message }`;
 
-		// Update both files
-		const files = [ 'changelog.txt', 'readme.txt' ];
-		for ( const file of files ) {
-			await insertChangelogEntry( file, entry );
-		}
-
+		const created = await addEntryFile( changeType, message );
 		console.log(
-			'✅ Changelog entries added successfully to changelog.txt and readme.txt'
+			`✅ Added changelog entry "* ${ changeType } - ${ message }" in ${ created.join(
+				', '
+			) }`
+		);
+		console.log(
+			'Commit this file with your change. Do not edit changelog.txt or readme.txt directly.'
 		);
 	} catch ( error ) {
 		console.error( '❌ Error:', error.message );
 		process.exit( 1 );
 	}
 }
+
 /* eslint-enable no-console */
 
 main();
