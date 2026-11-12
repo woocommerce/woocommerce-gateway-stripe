@@ -1012,16 +1012,44 @@ class WC_Stripe_Admin_Notices {
 					}
 					break;
 				case 'ocs_ap_banner':
+					// The dismiss parameters stay in the URL, so a page refresh runs this again.
+					$was_shown = 'yes' === get_option( self::SHOW_OCS_AP_BANNER_OPTION, 'no' );
 					update_option( self::SHOW_OCS_AP_BANNER_OPTION, 'no' );
+					if ( $was_shown ) {
+						$this->record_ap_banner_dismissed_tracks_event( 'ocs_ap' );
+					}
 					break;
 				case 'ap_only_banner':
+					$was_shown = 'yes' === get_option( self::SHOW_AP_ONLY_BANNER_OPTION, 'no' );
 					update_option( self::SHOW_AP_ONLY_BANNER_OPTION, 'no' );
+					if ( $was_shown ) {
+						$this->record_ap_banner_dismissed_tracks_event( 'ap_only' );
+					}
 					break;
 				case 'ocs_only_banner':
 					update_option( self::SHOW_OCS_ONLY_BANNER_OPTION, 'no' );
 					break;
 			}
 		}
+	}
+
+	/**
+	 * Records a Tracks event when the merchant dismisses an Adaptive Pricing "now active" notice.
+	 *
+	 * @since 11.2.0
+	 *
+	 * @param string $banner Which notice was dismissed: 'ocs_ap' or 'ap_only'.
+	 * @return void
+	 */
+	private function record_ap_banner_dismissed_tracks_event( string $banner ): void {
+		if ( ! function_exists( 'wc_admin_record_tracks_event' ) ) {
+			return;
+		}
+
+		wc_admin_record_tracks_event(
+			'wcstripe_ap_banner_dismissed',
+			WC_Stripe_Tracks::add_default_event_properties( [ 'banner' => $banner ] )
+		);
 	}
 
 	/**

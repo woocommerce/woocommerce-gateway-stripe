@@ -4,6 +4,7 @@ import { payments } from '../../../utils';
 
 const {
 	emptyCart,
+	getErrorNotices,
 	setupCart,
 	setupShortcodeCheckout,
 	fillCreditCardDetailsShortcode,
@@ -58,7 +59,7 @@ test( 'customer can retry payment, with a different card @smoke', async ( {
 	await clickPlaceOrder( page );
 
 	// Expect the order to fail
-	await expect( page.locator( '.woocommerce-error' ) ).toBeVisible();
+	await expect( getErrorNotices( page ).first() ).toBeVisible();
 
 	// Change to a working card, and retry the payment.
 	await fillCreditCardDetailsShortcode( page, config.get( 'cards.basic' ) );
@@ -120,7 +121,7 @@ test( 'customer can retry payment, using a different payment method @smoke', asy
 	await clickPlaceOrder( page );
 
 	// Expect the order to fail
-	await expect( page.locator( '.woocommerce-error' ) ).toBeVisible();
+	await expect( getErrorNotices( page ).first() ).toBeVisible();
 
 	// Change to Cash App Pay
 	await handleCheckoutCashAppPay( page );
@@ -146,13 +147,13 @@ test( 'No duplicate payment method elements are created when retrying payments',
 	await clickPlaceOrder( page );
 
 	// Expect the order to fail
-	await expect( page.locator( '.woocommerce-error' ) ).toBeVisible();
+	await expect( getErrorNotices( page ).first() ).toBeVisible();
 
 	// Fail again
 	await clickPlaceOrder( page );
 
 	// Expect the order to fail
-	await expect( page.locator( '.woocommerce-error' ) ).toBeVisible();
+	await expect( getErrorNotices( page ).first() ).toBeVisible();
 
 	// Expect only one element with the id wc-stripe-payment-method
 	const paymentMethodInputs = await page.$$( '#wc-stripe-payment-method' );
