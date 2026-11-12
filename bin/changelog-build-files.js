@@ -9,7 +9,7 @@
  * appends them to that section.
  *
  * Usage:
- *   npm run changelog:build-file -- --version=X.Y.Z [--dry-run]
+ *   npm run changelog:build-files -- --version=X.Y.Z [--dry-run]
  */
 const { execFileSync } = require( 'child_process' );
 const fs = require( 'fs' );
@@ -203,7 +203,7 @@ function parseArgs( argv ) {
 	}
 	if ( ! /^\d+\.\d+\.\d+$/.test( options.version ) ) {
 		throw new Error(
-			'Usage: npm run changelog:build-file -- --version=X.Y.Z [--dry-run]'
+			'Usage: npm run changelog:build-files -- --version=X.Y.Z [--dry-run]'
 		);
 	}
 	return options;

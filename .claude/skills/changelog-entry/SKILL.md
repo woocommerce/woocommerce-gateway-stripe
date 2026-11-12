@@ -24,14 +24,14 @@ Describe the change
 
 Commit that file with the change. Run `npm run changelog` with no arguments for interactive prompts. Requires `composer install`.
 
-- **Do not edit `changelog.txt` or the `== Changelog ==` section of `readme.txt`.** The `Validate Changelog` check rejects those edits; both are written by `npm run changelog:build-file` at release time.
+- **Do not edit `changelog.txt` or the `== Changelog ==` section of `readme.txt`.** The `Validate Changelog` check rejects those edits; both are written by `npm run changelog:build-files` at release time.
 - A PR that needs more than one entry runs the command once per entry.
 - To reword an entry, edit the text in its file. `Significance` is always `patch`; it is required by the file format but unused, because the release version is set when the changelog is compiled.
 - `changelog/.gitkeep` keeps the directory in git once a release has compiled the entries. Never delete it.
 
 ## Compiling for a release
 
-Release owners run the **Release Changelog** workflow (or `npm run changelog:build-file -- --version=X.Y.Z` locally) on the release branch. It writes the entries to both files, with the header format each one needs, and deletes the entry files:
+Release owners run the **Release Changelog** workflow (or `npm run changelog:build-files -- --version=X.Y.Z` locally) on the release branch. It writes the entries to both files, with the header format each one needs, and deletes the entry files:
 
 - `changelog.txt` (WooCommerce.com parser): `xxxx-xx-xx - version X.Y.Z`
 - `readme.txt` (WordPress.org parser): `= X.Y.Z - xxxx-xx-xx =`
@@ -89,4 +89,4 @@ If the change is also linked from the PR description, sync the wording so releas
 - Editing `changelog.txt` or the `readme.txt` changelog section directly instead of adding an entry file.
 - Forgetting to commit the new file under `changelog/`.
 - Classifying public-surface removals as `Dev` instead of `Update`.
-- Adding an `xxxx-xx-xx` version block by hand; `npm run changelog:build-file` creates it.
+- Adding an `xxxx-xx-xx` version block by hand; `npm run changelog:build-files` creates it.

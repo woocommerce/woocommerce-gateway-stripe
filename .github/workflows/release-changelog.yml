@@ -79,7 +79,7 @@ jobs:
         run: |
           composer install --no-progress
           # The script only uses Node built-ins, so node_modules is not needed.
-          npm run changelog:build-file -- --version="$VERSION"
+          npm run changelog:build-files -- --version="$VERSION"
 
       - name: Check that the changelog changed
         run: |

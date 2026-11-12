@@ -7,7 +7,7 @@
  *   npm run changelog -- --type=fix --entry="Message"      Non-interactive.
  *
  * Entries carry no version: they are compiled into changelog.txt and readme.txt
- * on the release branch by `npm run changelog:build-file`.
+ * on the release branch by `npm run changelog:build-files`.
  */
 const fs = require( 'fs' );
 const path = require( 'path' );

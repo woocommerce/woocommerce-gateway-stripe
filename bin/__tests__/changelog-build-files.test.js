@@ -12,7 +12,7 @@ const {
 	shouldAmend,
 	ensureKeepFile,
 	parseArgs,
-} = require( '../changelog-build-file' );
+} = require( '../changelog-build-files' );
 
 const TYPE_LABELS = { add: 'Add', fix: 'Fix', dev: 'Dev' };
 
@@ -51,7 +51,7 @@ const README = [
 	'',
 ].join( '\n' );
 
-describe( 'changelog-build-file', () => {
+describe( 'changelog-build-files', () => {
 	describe( 'entry files', () => {
 		let changesDir;
 
