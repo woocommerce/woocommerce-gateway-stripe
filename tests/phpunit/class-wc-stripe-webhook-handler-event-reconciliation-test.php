@@ -44,6 +44,7 @@ class WC_Stripe_Webhook_Handler_Event_Reconciliation_Test extends WP_UnitTestCas
 
 	public function tear_down() {
 		remove_filter( 'pre_http_request', [ $this, 'block_http' ] );
+		remove_filter( 'pre_http_request', [ $this, 'rate_limit_http' ] );
 		parent::tear_down();
 	}
 
@@ -122,15 +123,22 @@ class WC_Stripe_Webhook_Handler_Event_Reconciliation_Test extends WP_UnitTestCas
 
 	/**
 	 * A deferred job that cannot succeed abandons its event, so the stuck-event sweep does not process it again.
-	 * One that fails for a reason that may pass leaves it processing, so the sweep retries it.
+	 * One that fails for a reason that may pass leaves it processing, so the sweep retries it, without acting on the
+	 * order in the meantime.
 	 *
-	 * @param bool   $order_exists       Whether the order still exists.
-	 * @param string $expected_exception Class of the exception the job rethrows.
-	 * @param string $expected_status    Status of the event after the job.
-	 * @param bool   $expect_retry       Whether the sweep schedules another attempt.
+	 * @param string|null $order_status       Status of the order, or null when it was deleted.
+	 * @param string      $stripe_response    How Stripe answers the intent lookup: 'unreachable' or 'rate_limited'.
+	 * @param string      $expected_exception Class of the exception the job rethrows.
+	 * @param string      $expected_status    Status of the event after the job.
+	 * @param bool        $expect_retry       Whether the sweep schedules another attempt.
 	 * @dataProvider provide_failed_deferred_jobs
 	 */
-	public function test_failed_deferred_job( bool $order_exists, string $expected_exception, string $expected_status, bool $expect_retry ): void {
+	public function test_failed_deferred_job( ?string $order_status, string $stripe_response, string $expected_exception, string $expected_status, bool $expect_retry ): void {
+		if ( 'rate_limited' === $stripe_response ) {
+			remove_filter( 'pre_http_request', [ $this, 'block_http' ] );
+			add_filter( 'pre_http_request', [ $this, 'rate_limit_http' ] );
+		}
+
 		$this->store->seed(
 			new WC_Stripe_Event_Record( self::EVENT_ID, WC_Stripe_Event_Store_Interface::STATUS_PROCESSING, 'payment_intent.succeeded', time(), false ),
 			time() - 2 * HOUR_IN_SECONDS
@@ -145,17 +153,18 @@ class WC_Stripe_Webhook_Handler_Event_Reconciliation_Test extends WP_UnitTestCas
 		];
 
 		$order_id = 0;
-		if ( $order_exists ) {
+		if ( null !== $order_status ) {
 			$order = WC_Helper_Order::create_order();
-			$order->set_status( OrderStatus::PENDING );
+			$order->set_status( $order_status );
 			WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, 'pi_1Unreachable' );
 			$order->save();
 			$order_id = $order->get_id();
 		}
+		$notes_before = $order_id ? count( wc_get_order_notes( [ 'order_id' => $order_id ] ) ) : 0;
 
 		$thrown = null;
 		try {
-			// Without the order, the job cannot succeed. With it, fetching the intent fails, since HTTP is blocked.
+			// Without the order, the job cannot succeed. With it, fetching the intent fails.
 			$handler->process_deferred_webhook(
 				'payment_intent.succeeded',
 				[
@@ -173,6 +182,12 @@ class WC_Stripe_Webhook_Handler_Event_Reconciliation_Test extends WP_UnitTestCas
 
 		$this->assertSame( $expected_status, $this->store->get( self::EVENT_ID )->status );
 
+		if ( $order_id ) {
+			// For example, no note asking the merchant to refund a cancelled order by hand.
+			$this->assertCount( $notes_before, wc_get_order_notes( [ 'order_id' => $order_id ] ) );
+			$this->assertSame( $order_status, wc_get_order( $order_id )->get_status() );
+		}
+
 		$reconciler->requeue_stuck_events();
 
 		$this->assertSame( $expect_retry, as_has_scheduled_action( WC_Stripe_Event_Reconciler::PROCESS_ACTION, [ self::EVENT_ID ] ) );
@@ -182,9 +197,15 @@ class WC_Stripe_Webhook_Handler_Event_Reconciliation_Test extends WP_UnitTestCas
 	 * @return array
 	 */
 	public function provide_failed_deferred_jobs(): array {
+		$abandoned  = WC_Stripe_Event_Store_Interface::STATUS_ABANDONED;
+		$processing = WC_Stripe_Event_Store_Interface::STATUS_PROCESSING;
+
 		return [
-			'order deleted'      => [ false, Exception::class, WC_Stripe_Event_Store_Interface::STATUS_ABANDONED, false ],
-			'Stripe unreachable' => [ true, WC_Stripe_Exception::class, WC_Stripe_Event_Store_Interface::STATUS_PROCESSING, true ],
+			'order deleted'                        => [ null, 'unreachable', Exception::class, $abandoned, false ],
+			'Stripe unreachable'                   => [ OrderStatus::PENDING, 'unreachable', WC_Stripe_Exception::class, $processing, true ],
+			'Stripe rate limited'                  => [ OrderStatus::PENDING, 'rate_limited', WC_Stripe_Exception::class, $processing, true ],
+			'cancelled order, Stripe unreachable'  => [ OrderStatus::CANCELLED, 'unreachable', WC_Stripe_Exception::class, $processing, true ],
+			'cancelled order, Stripe rate limited' => [ OrderStatus::CANCELLED, 'rate_limited', WC_Stripe_Exception::class, $processing, true ],
 		];
 	}
 
@@ -256,6 +277,32 @@ class WC_Stripe_Webhook_Handler_Event_Reconciliation_Test extends WP_UnitTestCas
 	 */
 	public function block_http() {
 		return new WP_Error( 'no_http_in_tests', 'Outbound HTTP is blocked in this test.' );
+	}
+
+	/**
+	 * Answers every request the way Stripe answers a rate-limited one: an error body, which is not treated as an outage.
+	 *
+	 * @return array
+	 */
+	public function rate_limit_http() {
+		return [
+			'headers'  => [],
+			'body'     => wp_json_encode(
+				[
+					'error' => [
+						'type'    => 'invalid_request_error',
+						'code'    => 'rate_limit',
+						'message' => 'Too many requests hit the API too quickly.',
+					],
+				]
+			),
+			'response' => [
+				'code'    => 429,
+				'message' => 'Too Many Requests',
+			],
+			'cookies'  => [],
+			'filename' => null,
+		];
 	}
 
 	private function sign( string $body ): array {

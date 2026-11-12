@@ -2096,6 +2096,30 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Throws when the order stores an intent that Stripe did not return.
+	 *
+	 * The lookup returns false both when the order has no intent and when Stripe answers with an error,
+	 * such as a rate limit. Treating the error as "no intent" would end the deferred job normally, recording the event
+	 * as processed, so it would never be retried. Throwing leaves the event to the reconciler's retries instead.
+	 *
+	 * @param WC_Order     $order  The order.
+	 * @param object|false $intent What get_intent_from_order() returned for the order.
+	 * @throws WC_Stripe_Exception When the stored intent could not be retrieved.
+	 */
+	private function throw_if_stored_intent_unavailable( WC_Order $order, $intent ): void {
+		if ( $intent ) {
+			return;
+		}
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		if ( ! $order_helper->get_stripe_intent_id( $order ) && ! $order_helper->get_stripe_setup_intent_id( $order ) ) {
+			return;
+		}
+
+		throw new WC_Stripe_Exception( "Could not retrieve the intent stored on order {$order->get_id()} from Stripe." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+	}
+
+	/**
 	 * Handles a deferred payment_intent.succeeded event.
 	 *
 	 * @param WC_Order $order     The order object.
@@ -2103,6 +2127,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	protected function handle_deferred_payment_intent_succeeded( $order, $intent_id ) {
 		$intent = $this->get_intent_from_order( $order );
+		$this->throw_if_stored_intent_unavailable( $order, $intent );
 
 		if ( ! $intent || $intent->id !== $intent_id ) {
 			WC_Stripe_Logger::debug( "Skipped processing deferred webhook for Stripe PaymentIntent {$intent_id} for order {$order->get_id()} - intent ID stored on order ({$intent->id}) doesn't match." );
@@ -2235,6 +2260,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		$intent = $this->get_intent_from_order( $order );
+		$this->throw_if_stored_intent_unavailable( $order, $intent );
 
 		// Can't reverse without the order's own matching intent, so note it (with the id) for manual review.
 		if ( ! $intent || $intent->id !== $intent_id ) {
