@@ -165,12 +165,5 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 11.3.0 - xxxx-xx-xx =
-* Update - Start wallet availability checks earlier on Cart and Checkout blocks
-* Update - Improve express checkout wallet startup, availability checks, reuse, and recovery
-* Fix - Avoid expensive variation lookup in express checkout setup on product pages
-* Dev - Add WC_Stripe_Tracks class to support more consistent events
-* Dev - Load React's JSX runtime from WordPress core instead of bundling it, and declare "Tested up to" only in readme.txt
-* Fix - Stop rewriting a saved payment method's name, email, and phone in Stripe when it is used at checkout; only the billing address is refreshed
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

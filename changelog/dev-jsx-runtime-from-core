@@ -1,0 +1,4 @@
+Significance: patch
+Type: dev
+
+Load React's JSX runtime from WordPress core instead of bundling it, and declare "Tested up to" only in readme.txt

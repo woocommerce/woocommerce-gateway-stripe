@@ -1,0 +1,4 @@
+Significance: patch
+Type: update
+
+Start wallet availability checks earlier on Cart and Checkout blocks
