@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { randomUUID } from 'crypto';
 import config from 'config';
-import { api, user } from '../../../utils';
+import { api, payments, user } from '../../../utils';
 
 let username;
 
@@ -35,7 +35,7 @@ test( 'customer can add a payment method with a non-Stripe gateway @shortcode', 
 	await page.locator( '#place_order' ).click();
 
 	await page.waitForURL( '**/my-account/payment-methods/**' );
-	await expect( page.locator( '.woocommerce-message' ) ).toContainText(
+	await expect( payments.getSuccessNotices( page ) ).toContainText(
 		'Payment method successfully added.'
 	);
 } );

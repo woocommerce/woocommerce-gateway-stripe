@@ -8,6 +8,7 @@ const {
 	setupCart,
 	setupShortcodeCheckout,
 	setupOptimizedCheckout,
+	selectOCCardMethod,
 	fillOCDetails,
 	clickPlaceOrder,
 	getCartTotal,
@@ -187,6 +188,10 @@ test.describe( 'Optimized Checkout payment tests @shortcode', () => {
 			page,
 			config.get( 'addresses.customer.billing' )
 		);
+
+		// The save checkbox rule is card/link-only and the element's default
+		// selection follows Stripe's ranking, so pick Card explicitly.
+		await selectOCCardMethod( page, 'shortcode' );
 
 		const saveCheckboxWrapper = page.locator(
 			'.payment_box.payment_method_stripe fieldset:has(.woocommerce-SavedPaymentMethods-saveNew)'
