@@ -524,6 +524,36 @@ class WC_Stripe_Webhook_Settings_Test extends WP_UnitTestCase {
 		$this->webhook_settings->maybe_autoconfigure_webhooks( 'test', true );
 	}
 
+	public function test_configuration_redacts_signing_secret_in_api_logs() {
+		$settings            = WC_Stripe_Helper::get_stripe_settings();
+		$settings['logging'] = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$logged_responses = [];
+		$logger           = $this->createMock( WC_Logger::class );
+		$logger->method( 'debug' )->willReturnCallback(
+			function ( $message, $context ) use ( &$logged_responses ) {
+				if ( 'Stripe API response: POST webhook_endpoints' === $message ) {
+					$logged_responses[] = $context['response'];
+				}
+			}
+		);
+		$previous_logger          = WC_Stripe_Logger::$logger;
+		WC_Stripe_Logger::$logger = $logger;
+		try {
+			$response = $this->webhook_settings->maybe_autoconfigure_webhooks( 'test', true );
+		} finally {
+			WC_Stripe_Logger::$logger = $previous_logger;
+		}
+
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame( 'whsec_new', $response->secret );
+		$this->assertSame( 'whsec_new', $settings['test_webhook_secret'] );
+		$this->assertSame( 'whsec_new', $settings['test_webhook_data']['signing_secret'] );
+		$this->assertCount( 1, $logged_responses );
+		$this->assertSame( '[REDACTED]', $logged_responses[0]['secret'] );
+	}
+
 	public function test_agentic_api_version() {
 		add_filter( 'wc_stripe_is_agentic_commerce_enabled', '__return_true' );
 		$result = $this->webhook_settings->maybe_autoconfigure_webhooks( 'test' );

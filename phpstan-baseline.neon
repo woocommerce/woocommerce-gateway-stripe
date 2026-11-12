@@ -415,54 +415,6 @@ parameters:
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
 
 		-
-			message: '#^Cannot call method get_billing_address_1\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method get_billing_address_2\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method get_billing_city\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method get_billing_country\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method get_billing_email\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method get_billing_phone\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method get_billing_postcode\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method get_billing_state\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
 			message: '#^Cannot call method get_checkout_payment_url\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
@@ -476,12 +428,6 @@ parameters:
 
 		-
 			message: '#^Cannot call method get_customer_id\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method get_formatted_billing_full_name\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: includes/abstracts/abstract-wc-stripe-payment-gateway.php
@@ -1127,12 +1073,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: includes/admin/class-wc-rest-stripe-orders-controller.php
-
-		-
-			message: '#^Method WC_REST_Stripe_Settings_Controller\:\:record_payment_method_settings_event\(\) is unused\.$#'
-			identifier: method.unused
-			count: 1
-			path: includes/admin/class-wc-rest-stripe-settings-controller.php
 
 		-
 			message: '#^Constant WC_Stripe_Admin_Notices\:\:STRIPE_CUSTOMER_PAGE_BASE_URL is unused\.$#'
@@ -2029,18 +1969,6 @@ parameters:
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
-			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_intent_to_order\(\) expects WC_Order, WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Parameter \#1 \$order_id of method WC_Stripe_Payment_Gateway\:\:has_subscription\(\) expects int, int\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
 			message: '#^Parameter \#1 \$payment_method_id of static method WC_Stripe_API\:\:get_payment_method\(\) expects string, array\|string given\.$#'
 			identifier: argument.type
 			count: 1
@@ -2062,12 +1990,6 @@ parameters:
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, float\|string given\.$#'
 			identifier: argument.type
 			count: 1
-			path: includes/class-wc-stripe-intent-controller.php
-
-		-
-			message: '#^Parameter \#2 \$order of method WC_Stripe_Payment_Gateway\:\:process_response\(\) expects WC_Order, WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 2
 			path: includes/class-wc-stripe-intent-controller.php
 
 		-
@@ -3325,12 +3247,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 
 		-
-			message: '#^Call to an undefined method WC_Product\:\:get_available_variations\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-helper.php
-
-		-
 			message: '#^Call to an undefined method WC_Product\:\:get_variation_attributes\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -3616,12 +3532,6 @@ parameters:
 			message: '#^Cannot call method get_billing_country\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
-			message: '#^Cannot call method get_billing_email\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
-			identifier: method.nonObject
-			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
@@ -3937,12 +3847,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Parameter \#1 \$object_or_string of function is_a expects object, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
-
-		-
 			message: '#^Parameter \#1 \$object_or_string of function is_a expects object, bool\|WC_Order\|WC_Order_Refund\|null given\.$#'
 			identifier: argument.type
 			count: 1
@@ -4255,7 +4159,7 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
 
 		-
-			message: '#^Parameter \#2 \$order of method WC_Stripe_Payment_Gateway\:\:update_saved_payment_method\(\) expects int\|WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			message: '#^Parameter \#2 \$order of method WC_Stripe_Payment_Gateway\:\:update_saved_payment_method_address\(\) expects int\|WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-gateway.php
@@ -8468,12 +8372,6 @@ parameters:
 
 		-
 			message: '#^Cannot call method get_currency\(\) on WC_Order\|WC_Order_Refund\|true\.$#'
-			identifier: method.nonObject
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
-
-		-
-			message: '#^Cannot call method get_total\(\) on bool\|WC_Order\|WC_Order_Refund\.$#'
 			identifier: method.nonObject
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
