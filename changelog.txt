@@ -9,7 +9,7 @@ xxxx-xx-xx - version 11.3.0
 * Fix - Stop rewriting a saved payment method's name, email, and phone in Stripe when it is used at checkout; only the billing address is refreshed
 * Dev - Run every E2E test project under both a classic theme (Storefront) and a block theme (Twenty Twenty-Five) in CI, and make the shared E2E helpers theme-agnostic
 * Fix - Keep a subscription's Stripe customer when its card is changed with 3D Secure, so renewals don't fail
-* Dev - Upgrade Playwright to 1.65 so CI jobs no longer fail to install Chromium on Ubuntu 26.04 runners
+* Dev - Upgrade Playwright to stay compatible with GitHub CI environment
 
 2026-11-10 - version 11.2.0
 * Fix - Refund or void a Stripe payment that succeeds for an order that was already cancelled, instead of leaving the shopper charged
