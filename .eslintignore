@@ -2,7 +2,6 @@
 build
 assets
 docker
-bin
 docs
 includes
 languages
