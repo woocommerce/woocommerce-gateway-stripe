@@ -412,6 +412,101 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		$this->assertSame( [], $this->scheduled_checks( $order->get_id() ) );
 	}
 
+	/** @dataProvider provide_allowed_status_filters */
+	public function test_respects_the_allowed_payment_processing_statuses_filter( string $filter, bool $has_session, ?string $expected_log ): void {
+		$expect_settled = null === $expected_log;
+		$order          = $this->create_pending_stripe_order( $has_session );
+		$this->use_real_settlement();
+		$objects = $this->successful_stripe_objects( $order );
+		if ( ! $has_session ) {
+			unset( $objects['/checkout/sessions/cs_recovery'] );
+		}
+		$endpoints = [];
+		$this->mock_stripe_objects( $objects, $endpoints );
+		add_filter(
+			'wc_stripe_allowed_payment_processing_statuses',
+			static function ( $statuses ) use ( $filter, &$endpoints ) {
+				switch ( $filter ) {
+					case 'removes pending':
+						return array_diff( $statuses, [ 'pending' ] );
+					case 'removes pending during the check':
+						return [] === $endpoints ? $statuses : array_diff( $statuses, [ 'pending' ] );
+					case 'adds on-hold':
+						return array_merge( $statuses, [ 'on-hold' ] );
+				}
+				return $statuses;
+			}
+		);
+
+		$messages = $this->capture_logs(
+			function () use ( $order ) {
+				$this->reconciliation->reconcile_order_payment( $order->get_id() );
+			}
+		);
+
+		$reloaded = wc_get_order( $order->get_id() );
+		$this->assertSame( $expect_settled, $reloaded->is_paid() );
+		if ( 'removes pending' === $filter ) {
+			$this->assertSame( [], $endpoints );
+		}
+		$filter_logs = array_values(
+			array_filter(
+				$messages,
+				static function ( $message ) {
+					return false !== strpos( $message, 'wc_stripe_allowed_payment_processing_statuses' );
+				}
+			)
+		);
+		if ( $expect_settled ) {
+			$this->assertSame( [], $filter_logs );
+			return;
+		}
+		$this->assertSame( 'pending', $reloaded->get_status() );
+		$this->assertSame( '', $reloaded->get_transaction_id() );
+		$this->assertCount( 1, $filter_logs );
+		$this->assertStringStartsWith( 'debug: ' . $expected_log, $filter_logs[0] );
+		$this->assertStringNotContainsString( 'the order changed while Stripe was being queried', implode( "\n", $messages ) );
+	}
+
+	public static function provide_allowed_status_filters(): array {
+		$cases = [];
+		foreach ( self::provide_settlement_paths() as $path => [ $has_session ] ) {
+			$cases[ "$path, filter removes pending" ]                  = [ 'removes pending', $has_session, 'The payment status check ended without asking Stripe.' ];
+			$cases[ "$path, filter removes pending during the check" ] = [ 'removes pending during the check', $has_session, 'Reconciliation found a verified Stripe payment but left the order pending.' ];
+			$cases[ "$path, filter adds on-hold" ]                     = [ 'adds on-hold', $has_session, null ];
+		}
+		return $cases;
+	}
+
+	/**
+	 * Run the callback with every log level captured.
+	 *
+	 * @param callable $callback Code that logs.
+	 * @return string[] Messages prefixed with their level, for example "debug: …".
+	 */
+	private function capture_logs( callable $callback ): array {
+		$messages = [];
+		$logger   = $this->getMockBuilder( WC_Logger::class )->getMock();
+		foreach ( [ 'debug', 'info', 'warning', 'error' ] as $level ) {
+			$logger->method( $level )->willReturnCallback(
+				static function ( $message ) use ( &$messages, $level ) {
+					$messages[] = $level . ': ' . $message;
+				}
+			);
+		}
+		WC_Stripe_Logger::$logger = $logger;
+		add_filter( 'wc_stripe_logger_can_log', '__return_true' );
+
+		try {
+			$callback();
+		} finally {
+			remove_filter( 'wc_stripe_logger_can_log', '__return_true' );
+			WC_Stripe_Logger::$logger = null;
+		}
+
+		return $messages;
+	}
+
 	public function test_recovers_session_payment_through_the_real_settlement_flow_only_once(): void {
 		$order = $this->create_pending_stripe_order( true );
 		$this->use_real_settlement();

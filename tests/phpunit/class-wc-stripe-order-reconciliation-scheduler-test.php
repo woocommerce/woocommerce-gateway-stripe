@@ -287,6 +287,51 @@ class WC_Stripe_Order_Reconciliation_Scheduler_Test extends WP_UnitTestCase {
 		$this->assertSame( [], $this->queued_order_ids() );
 	}
 
+	/** @dataProvider provide_allowed_status_filters */
+	public function test_schedules_a_check_only_when_the_filter_allows_settling_pending_orders( callable $filter, bool $expect_check ) {
+		$order    = $this->create_order( 'stripe', 'pi_filtered', 0 );
+		$messages = [];
+		$logger   = $this->getMockBuilder( WC_Logger::class )->getMock();
+		$logger->method( 'debug' )->willReturnCallback(
+			static function ( $message ) use ( &$messages ) {
+				$messages[] = $message;
+			}
+		);
+		WC_Stripe_Logger::$logger = $logger;
+		add_filter( 'wc_stripe_logger_can_log', '__return_true' );
+		add_filter( 'wc_stripe_allowed_payment_processing_statuses', $filter );
+
+		try {
+			// The order screens ask this on every render, so it must not log.
+			$is_eligible = $this->reconciliation->is_eligible_order( $order );
+			$this->assertSame( [], $messages );
+
+			$this->reconciliation->schedule_order_check( $order );
+		} finally {
+			remove_filter( 'wc_stripe_logger_can_log', '__return_true' );
+			WC_Stripe_Logger::$logger = null;
+		}
+
+		$this->assertSame( $expect_check, $is_eligible );
+		$this->assertSame( $expect_check ? [ $order->get_id() ] : [], $this->queued_order_ids() );
+		$this->assertSame( $expect_check, $this->reconciliation->enqueue_order( $order ) );
+		if ( $expect_check ) {
+			$this->assertSame( [], $messages );
+		} else {
+			$this->assertCount( 1, $messages );
+			$this->assertStringStartsWith( 'No payment status check was scheduled for the order.', $messages[0] );
+		}
+	}
+
+	public static function provide_allowed_status_filters(): array {
+		return [
+			'pending removed'    => [ static fn( $statuses ) => array_diff( $statuses, [ 'pending' ] ), false ],
+			'not an array'       => [ '__return_null', false ],
+			'on-hold added'      => [ static fn( $statuses ) => array_merge( $statuses, [ 'on-hold' ] ), true ],
+			'unchanged defaults' => [ static fn( $statuses ) => $statuses, true ],
+		];
+	}
+
 	public function test_subscriptions_are_not_checked() {
 		$subscription = new class() extends WC_Order {
 			public function get_type() {

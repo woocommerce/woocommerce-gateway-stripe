@@ -212,7 +212,11 @@ class WC_Stripe_Order_Reconciliation {
 		}
 
 		$order = $this->resolve_order( $order );
-		if ( ! $order || ! $this->is_eligible_order( $order ) ) {
+		if ( ! $order || ! $this->is_waiting_for_stripe( $order ) ) {
+			return;
+		}
+		if ( ! $this->allows_settlement_while_pending( $order ) ) {
+			$this->log_settlement_not_allowed( 'No payment status check was scheduled for the order.', [ 'order_id' => $order->get_id() ] );
 			return;
 		}
 
@@ -312,7 +316,11 @@ class WC_Stripe_Order_Reconciliation {
 		}
 
 		$order = $this->resolve_order( $order_id );
-		if ( ! $order || ! $this->is_eligible_order( $order ) ) {
+		if ( ! $order || ! $this->is_waiting_for_stripe( $order ) ) {
+			return;
+		}
+		if ( ! $this->allows_settlement_while_pending( $order ) ) {
+			$this->log_settlement_not_allowed( 'The payment status check ended without asking Stripe.', [ 'order_id' => $order->get_id() ] );
 			return;
 		}
 		$order_id = $order->get_id();
@@ -335,7 +343,7 @@ class WC_Stripe_Order_Reconciliation {
 		if ( null === $next_check ) {
 			WC_Stripe_Logger::warning(
 				$stripe_reported_status
-					? 'Gave up on reconciling a pending Stripe order: its payment method can no longer complete.'
+					? 'Gave up on reconciling a pending Stripe order: Stripe did not confirm the payment within its payment method\'s confirmation window.'
 					: 'Gave up on reconciling a pending Stripe order: Stripe could not be reached for the longest payment window.',
 				[
 					'order_id'      => $order_id,
@@ -495,12 +503,22 @@ class WC_Stripe_Order_Reconciliation {
 			}
 
 			$fresh_order = $this->resolve_order( $order_id );
-			if ( ! $fresh_order || ! $this->is_eligible_order( $fresh_order ) ) {
+			if ( ! $fresh_order || ! $this->is_waiting_for_stripe( $fresh_order ) ) {
 				WC_Stripe_Logger::debug(
 					'Reconciliation stopped: the order changed while Stripe was being queried and no longer needs a check.',
 					[
 						'order_id' => $order_id,
 						'status'   => $fresh_order ? $fresh_order->get_status() : 'not found',
+					]
+				);
+				return $this->outcome( self::RESULT_DONE );
+			}
+			if ( ! $this->allows_settlement_while_pending( $fresh_order ) ) {
+				$this->log_settlement_not_allowed(
+					'Reconciliation found a verified Stripe payment but left the order pending.',
+					[
+						'order_id'  => $order_id,
+						'intent_id' => $intent_id,
 					]
 				);
 				return $this->outcome( self::RESULT_DONE );
@@ -579,9 +597,10 @@ class WC_Stripe_Order_Reconciliation {
 	}
 
 	/**
-	 * Log why the order is checked again later.
+	 * Log why the order wasn't settled yet.
 	 *
-	 * Debug level: most of these are expected while a payment is still in progress.
+	 * Debug level: most of these are expected while a payment is still in progress. The message
+	 * doesn't promise another check: manual checks never reschedule, and a scheduled one may be the last.
 	 *
 	 * @param string $reason        Why the order wasn't settled now.
 	 * @param int    $order_id      Order being checked.
@@ -591,7 +610,7 @@ class WC_Stripe_Order_Reconciliation {
 	 */
 	private function retry( string $reason, int $order_id, string $stripe_id, string $stripe_status = '' ): array {
 		WC_Stripe_Logger::debug(
-			'Reconciliation will check the order again: ' . $reason,
+			'Reconciliation left the order pending for now: ' . $reason,
 			[
 				'order_id'  => $order_id,
 				'stripe_id' => $stripe_id,
@@ -910,11 +929,57 @@ class WC_Stripe_Order_Reconciliation {
 	 * @return bool
 	 */
 	public function is_eligible_order( WC_Order $order ): bool {
+		return $this->is_waiting_for_stripe( $order ) && $this->allows_settlement_while_pending( $order );
+	}
+
+	/**
+	 * Whether the order is a pending, unpaid Stripe order with a session or intent to look up.
+	 *
+	 * @param WC_Order $order Order to check.
+	 * @return bool
+	 */
+	private function is_waiting_for_stripe( WC_Order $order ): bool {
 		return 'shop_order' === $order->get_type()
 			&& $order->has_status( OrderStatus::PENDING )
 			&& ! $order->get_date_paid()
 			&& WC_Stripe_Order_Helper::get_instance()->is_stripe_gateway_order( $order )
 			&& ( $this->get_checkout_session_id( $order ) || $this->get_intent_id( $order ) );
+	}
+
+	/**
+	 * Whether the store lets a payment settle this order while it's pending.
+	 *
+	 * Webhooks skip orders whose status the filter leaves out, so a check that settled them anyway
+	 * would override that choice. Only `pending` is looked for: callbacks also add statuses such as
+	 * `on-hold` for vouchers, and those orders still aren't checked.
+	 *
+	 * Doesn't log, because the order screens call it on every render; see log_settlement_not_allowed().
+	 *
+	 * @param WC_Order $order A pending Stripe order.
+	 * @return bool
+	 */
+	private function allows_settlement_while_pending( WC_Order $order ): bool {
+		/** This filter is documented in includes/class-wc-stripe-webhook-handler.php. */
+		$allowed_statuses = apply_filters(
+			'wc_stripe_allowed_payment_processing_statuses',
+			[ OrderStatus::PENDING, OrderStatus::FAILED ],
+			$order
+		);
+
+		return is_array( $allowed_statuses ) && in_array( OrderStatus::PENDING, $allowed_statuses, true );
+	}
+
+	/**
+	 * Log that the status filter kept a check from running or settling, which would otherwise leave no trace.
+	 *
+	 * @param string $message What the filter prevented.
+	 * @param array  $context Log context, with at least the order ID.
+	 */
+	private function log_settlement_not_allowed( string $message, array $context ): void {
+		WC_Stripe_Logger::debug(
+			$message . ' The wc_stripe_allowed_payment_processing_statuses filter does not allow settling this order while it is pending.',
+			$context
+		);
 	}
 
 	/**
