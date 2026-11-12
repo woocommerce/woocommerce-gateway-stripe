@@ -177,5 +177,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 * Fix - Keep a subscription's Stripe customer when its card is changed with 3D Secure, so renewals don't fail
 * Dev - Upgrade Playwright to stay compatible with GitHub CI environment
+* Dev - Behind a feature flag, find Stripe events whose webhook delivery failed and process them in the background
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
