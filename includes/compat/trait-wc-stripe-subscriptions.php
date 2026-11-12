@@ -364,6 +364,9 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			// If the payment intent requires confirmation or action, redirect the customer to confirm the intent.
 			if ( in_array( $payment_intent->status, WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION_OR_ACTION_STATUSES, true ) ) {
+				// save_intent_to_order() skips subscriptions, but the redirect check needs this ID.
+				WC_Stripe_Order_Helper::get_instance()->update_stripe_setup_intent_id( $subscription, $payment_intent->id );
+
 				// Because we're filtering woocommerce_subscriptions_update_payment_via_pay_shortcode, we need to manually set this delayed update all flag here.
 				if ( isset( $_POST['update_all_subscriptions_payment_method'] ) && wc_clean( wp_unslash( $_POST['update_all_subscriptions_payment_method'] ) ) ) {
 					$subscription->update_meta_data( '_delayed_update_payment_method_all', $new_payment_method );
@@ -1024,8 +1027,9 @@ trait WC_Stripe_Subscriptions_Trait {
 		$order_helper->delete_stripe_customer_id( $resubscribe_order );
 		// For BW compat will remove in future.
 		$order_helper->delete_stripe_card_id( $resubscribe_order );
-		// Delete payment intent ID.
+		// Delete payment and setup intent IDs.
 		$order_helper->delete_stripe_intent_id( $resubscribe_order );
+		$order_helper->delete_stripe_setup_intent_id( $resubscribe_order );
 		$this->delete_renewal_meta( $resubscribe_order );
 		$resubscribe_order->save();
 	}
@@ -1045,10 +1049,34 @@ trait WC_Stripe_Subscriptions_Trait {
 		$order_helper->delete_stripe_fee( $renewal_order );
 		$order_helper->delete_stripe_net( $renewal_order );
 
-		// Delete payment intent ID.
+		// Drop IDs copied from the subscription, so a webhook cannot match this renewal.
 		$order_helper->delete_stripe_intent_id( $renewal_order );
+		$order_helper->delete_stripe_setup_intent_id( $renewal_order );
+
+		// WooCommerce Subscriptions does not save the renewal after this filter.
+		$renewal_order->save();
 
 		return $renewal_order;
+	}
+
+	/**
+	 * Keeps the Stripe setup intent ID out of data WooCommerce Subscriptions copies between a
+	 * subscription and its orders.
+	 *
+	 * The ID belongs to the object it was saved on. Early renewals from checkout and the admin
+	 * "Create pending parent order" action copy subscription data without firing
+	 * wcs_renewal_order_created, so a copy there would let a setup intent webhook match, and
+	 * complete, the new order.
+	 *
+	 * @param array|mixed $data The data to copy, keyed by meta key.
+	 * @return array|mixed The data without the setup intent ID.
+	 */
+	public function exclude_setup_intent_from_copied_data( $data ) {
+		if ( is_array( $data ) ) {
+			unset( $data['_stripe_setup_intent'] );
+		}
+
+		return $data;
 	}
 
 	/**
