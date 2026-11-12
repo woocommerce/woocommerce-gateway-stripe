@@ -723,6 +723,12 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			'checkout_session_id' => $session_id,
 		];
 
+		// A run can reach many session orders, and each lookup during an outage waits for its own timeout.
+		if ( WC_Stripe_API_Outage_Status::is_in_outage() ) {
+			WC_Stripe_Logger::info( "Order {$order->get_id()} was not cancelled as unpaid: Stripe is in a recorded outage, so Checkout Session {$session_id} was not checked.", $log_context );
+			return false;
+		}
+
 		try {
 			// Bypass the session cache: a status that is up to an hour old can't tell a paid session from an open one.
 			$session = WC_Stripe_API::request( [], 'checkout/sessions/' . $session_id . '?expand[]=payment_intent', 'GET' );
@@ -735,10 +741,12 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		if ( is_object( $session ) && ! empty( $session->error ) ) {
+			// An error without a type or code isn't a rejection Stripe documents, so it can't prove the session is gone.
 			$error_type   = is_string( $session->error->type ?? null ) ? $session->error->type : '';
 			$error_code   = is_string( $session->error->code ?? null ) ? $session->error->code : '';
 			$is_temporary = in_array( $error_type, self::TEMPORARY_STRIPE_ERROR_TYPES, true )
-				|| in_array( $error_code, self::TEMPORARY_STRIPE_ERROR_CODES, true );
+				|| in_array( $error_code, self::TEMPORARY_STRIPE_ERROR_CODES, true )
+				|| ( '' === $error_type && '' === $error_code );
 
 			WC_Stripe_Logger::error(
 				$is_temporary

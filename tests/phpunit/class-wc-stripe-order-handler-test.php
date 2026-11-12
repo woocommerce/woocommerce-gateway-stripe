@@ -677,6 +677,7 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 			'lock timeout'                           => [ $error( 429, 'invalid_request_error', 'lock_timeout' ), null, false ],
 			'Stripe API error'                       => [ $error( 400, 'api_error' ), null, false ],
 			'Stripe server error'                    => [ $error( 500, 'api_error' ), null, false ],
+			'malformed error'                        => [ $this->make_stripe_response( 400, [ 'error' => 'temporarily unavailable' ] ), null, false ],
 		];
 	}
 
