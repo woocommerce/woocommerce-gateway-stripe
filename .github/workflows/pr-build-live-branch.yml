@@ -214,6 +214,8 @@ jobs:
           - Install and activate [Jetpack Beta](https://jetpack.com/beta/#download-and-install) on your own test site.
           - Use this build by searching for PR number \`${PR_NUMBER}\` or branch name \`${PR_HEAD_REF}\` in your-test.site/wp-admin/admin.php?page=jetpack-beta&plugin=woocommerce-gateway-stripe
 
+          :information_source: Limits: you need a WordPress site of your own with WooCommerce on it. Payments need a Stripe test account connected on that site, and webhooks only arrive if Stripe can reach it, so a local site needs a tunnel or the Stripe CLI.
+
           #### Option 2. Jurassic Ninja
 
           **If you are a logged-in Automattic staff member:**
@@ -233,11 +235,13 @@ jobs:
           * Enter your email address
           * Click on \"Launch single site\"
 
+          :information_source: Limits: the launch link needs a jurassic.ninja login; without one, use the manual flow. The site is temporary, so keep nothing on it. Payments need a Stripe test account connected on the site.
+
           #### Option 3. WordPress Playground - runs in your browser
 
           :electric_plug: [Open a store with this build](${PLAYGROUND_URL}): WordPress, WooCommerce with a sample product, and this PR's build. It opens on the Stripe settings screen, logged in as an administrator, with nothing to set up and no Stripe account connected.
 
-          :information_source: The preview cannot connect to a Stripe account, so it cannot show payment methods at checkout, take a payment or receive webhooks. Use it to check that the build installs and activates, and to see what a store shows before it is connected. Never put Stripe API keys into a preview: it runs this PR's code, and requests to Stripe do not work from a browser Playground anyway. The link stops working 14 days after the last build.
+          :information_source: Limits: the preview cannot connect to a Stripe account, so it cannot show payment methods at checkout, take a payment or receive webhooks. Use it to check that the build installs and activates, and to see what a store shows before it is connected. Never put Stripe API keys into a preview: it runs this PR's code, and requests to Stripe do not work from a browser Playground anyway. The link stops working 14 days after the last build.
 
           ---
 
