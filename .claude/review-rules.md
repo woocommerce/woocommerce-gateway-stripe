@@ -142,8 +142,8 @@ The checkout flow (classic, Blocks, OCS, ECE) is the critical path. Code added t
 
 ## Release Hygiene
 
-- [ ] Version-impacting changes update `changelog.txt`, the `readme.txt` changelog section, and the plugin file header *together* (the `readme.txt` stable tag is bumped by woorelease at release time, not in feature PRs)
-- [ ] `changelog.txt` uses `YYYY-MM-DD - version X.Y.Z`; `readme.txt` uses `= X.Y.Z - YYYY-MM-DD =` — different formats, do not convert
+- [ ] Changelog entries are added as files under `changelog/` (`npm run changelog`); feature PRs do not edit `changelog.txt` or the `readme.txt` changelog section, which are compiled at release time by `npm run changelog:build-file` (the `readme.txt` stable tag is bumped by woorelease at release time, not in feature PRs)
+- [ ] `changelog.txt` uses `YYYY-MM-DD - version X.Y.Z`; `readme.txt` uses `= X.Y.Z - YYYY-MM-DD =` — different formats, do not convert; compiled sections keep the `xxxx-xx-xx` date placeholder until woorelease dates them
 - [ ] Public-surface removals classified as `Update`, not `Dev`
 - [ ] Major behavior changes (default flips, removed classes, version bumps) appear under `== Compatibility Notes ==` in `readme.txt`
 - [ ] New PHP `@since`/`@version` tags use the `x.x.x` placeholder, which woorelease replaces at release; do not ask for a concrete version. Flag a concrete unreleased version there, and flag `x.x.x` in `@deprecated` tags or deprecation function arguments (woorelease does not replace those). Existing symbols keep their original `@since`.

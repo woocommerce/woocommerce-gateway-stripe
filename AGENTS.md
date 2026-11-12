@@ -57,6 +57,8 @@ Use the smallest command set needed for the task:
 | PHP static analysis | `npm run phpstan` | Level 8 static analysis for PHP files. |
 | Refresh PHP static analysis baseline | `npm run phpstan:baseline` | Only after triaging `npm run phpstan` results. |
 | Stripe webhook listener | `npm run listen` | For local webhook forwarding. |
+| Add a changelog entry | `npm run changelog -- --type=<type> --entry="..."` | Creates an entry file under `changelog/`; omit the arguments for prompts. Requires `composer install`. |
+| Compile the changelog for a release | `npm run changelog:build-file -- --version=X.Y.Z` | Release branches only. Writes the entries to `changelog.txt` and `readme.txt` and deletes the entry files. Usually run through the Release Changelog workflow. |
 
 ## Common Pitfalls
 
@@ -70,6 +72,8 @@ Use the smallest command set needed for the task:
 - Updating only backend or frontend for UPE changes: most payment method work spans PHP (`includes/payment-methods/`) and Blocks/UI (`client/blocks/upe/`, icons).
 - Treating PHPStan baseline as a blanket suppressor: fix real type/nullability issues first.
 - Skipping `@dataProvider` for multi-scenario PHPUnit tests: this repository standardizes on data providers for parameterized inputs.
+- **MUST:** Add changelog entries as files under `changelog/` with `npm run changelog`. Do not edit `changelog.txt` or the `== Changelog ==` section of `readme.txt` in feature PRs; they are compiled from those files at release time and the `Validate Changelog` check rejects direct edits.
+- Deleting `changelog/.gitkeep`: it keeps the directory in git after a release compiles the entries.
 - Release metadata drift: version-related changes often require coordinated edits to `changelog.txt`, `readme.txt`, and release references.
 - Using the wrong version header format: `changelog.txt` uses `YYYY-MM-DD - version X.Y.Z`, `readme.txt` uses `= X.Y.Z - YYYY-MM-DD =`. Mixing them breaks their respective parsers (WooCommerce.com and WordPress.org).
 
@@ -156,7 +160,9 @@ Good comments explain intent; they do not restate the code. The CRITICAL rule ab
 
 - For public release changes, update `changelog.txt`, `readme.txt` stable tag, and related version references together.
 - **MUST:** During pre-release, keep the `readme.txt` Stable tag on the public release until the release owner advances it. Do not bump it to satisfy preview CI.
-- `changelog.txt` and `readme.txt` use **different version header formats**: `changelog.txt` uses `YYYY-MM-DD - version X.Y.Z` (WooCommerce.com parser format); `readme.txt` uses `= X.Y.Z - YYYY-MM-DD =` (WordPress.org format). Do not convert one to the other. `bin/changelog.js` handles both formats.
+- `changelog.txt` and `readme.txt` use **different version header formats**: `changelog.txt` uses `YYYY-MM-DD - version X.Y.Z` (WooCommerce.com parser format); `readme.txt` uses `= X.Y.Z - YYYY-MM-DD =` (WordPress.org format). Do not convert one to the other. `bin/changelog-build-file.js` writes both formats.
+- Changelog entries live in `changelog/` as one file per change and carry no version. `npm run changelog:build-file -- --version=X.Y.Z` (the Release Changelog workflow) compiles them on the release branch into a section dated `xxxx-xx-xx`, which woorelease replaces with the release date and fails without. Re-running it for the same version appends new entries to that section.
+- **MUST:** Keep `changelog/` out of the plugin zip. `tasks/release.js` copies an explicit file list that excludes it, `.gitattributes` marks it `export-ignore`, and the build workflow fails if the zip contains it.
 - For WooCommerce version resolution logic, include explicit cases for stable, RC, and beta semantics.
 - **MUST:** New PHP docblocks must use `@since x.x.x` (a space, not a tab), never a specific version. The correct version will be inserted at release for files under `config.version_replace_paths` in `package.json`. Note than only `@since` and `@version` are currently supported, so `@deprecated` tags and deprecation function arguments (`_deprecated_function()`, `apply_filters_deprecated()`, ...) still need a concrete version. The `Version placeholders` lint job flags both mistakes.
 
