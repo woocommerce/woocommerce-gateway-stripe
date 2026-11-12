@@ -29,7 +29,7 @@ jobs:
     timeout-minutes: 20
     strategy:
       fail-fast: false
-      max-parallel: 16
+      max-parallel: 18
       matrix:
         # Run every project under a classic theme (storefront) and a block theme (twentytwentyfive).
         theme: ['storefront', 'twentytwentyfive']
