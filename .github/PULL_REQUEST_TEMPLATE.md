@@ -47,7 +47,8 @@ Please follow the following guidelines when writing testing instructions:
 
 ### Changelog entry
 
-<!-- If no changelog entry is required for this PR, you can specify that below and provide a comment explaining why. This cannot be used if you selected the option to automatically create a changelog entry above. -->
+<!-- Run `npm run changelog` and commit the file it creates under `changelog/`. Do not edit `changelog.txt` or `readme.txt` directly; they are compiled from those files at release time.
+If no changelog entry is required for this PR, you can specify that below and provide a comment explaining why. -->
 
 -   [ ] This Pull Request does not require a changelog entry. (Comment required below)
 

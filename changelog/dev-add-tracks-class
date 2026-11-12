@@ -1,0 +1,4 @@
+Significance: patch
+Type: dev
+
+Add WC_Stripe_Tracks class to support more consistent events

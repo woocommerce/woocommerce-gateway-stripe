@@ -24,7 +24,8 @@
         "yoast/phpunit-polyfills": "^2.0",
         "brianium/paratest": "^6.0",
         "nikic/php-parser": "^5.7",
-        "woocommerce/qit-cli": "^1.1"
+        "woocommerce/qit-cli": "^1.1",
+        "automattic/jetpack-changelogger": "^7.0"
     },
     "autoload": {
       "classmap": [
@@ -103,6 +104,21 @@
     },
     "extra": {
       "installer-disable": true,
+      "changelogger": {
+        "changelog": "changelog.txt",
+        "changes-dir": "changelog",
+        "types": {
+          "add": "Add",
+          "fix": "Fix",
+          "update": "Update",
+          "remove": "Remove",
+          "tweak": "Tweak",
+          "dev": "Dev"
+        },
+        "formatter": {
+          "filename": "bin/class-wc-stripe-changelog-formatter.php"
+        }
+      },
       "scripts-description": {
         "phpstan": "Run PHPStan static analysis on the Stripe extension",
         "phpstan:baseline": "Generate a PHPStan baseline file to ignore existing errors"

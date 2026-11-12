@@ -1,0 +1,122 @@
+name: Release Changelog
+
+# Compiles the entry files in changelog/ into changelog.txt and readme.txt for a release, and
+# opens a pull request with the result.
+# Can be run multiple times for the same version; each run appends entries.
+# Note that each run rewrites the readme.txt section as a flat
+# list, so any earlier regrouping of the release notes will be overwritten.
+# To format the release notes, set the "format-release-notes" flag or run the Format Release Notes workflow.
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to compile the changelog on (e.g., release/11.3.0)'
+        type: string
+        required: true
+      version:
+        description: 'Release version (e.g., 11.3.0). Defaults to the version in a release/X.Y.Z branch name.'
+        type: string
+        required: false
+      format-release-notes:
+        description: 'Also reformat the readme.txt release notes using Claude'
+        type: boolean
+        default: false
+
+run-name: Compile changelog for ${{ inputs.branch }}
+
+jobs:
+  release-changelog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Determine release version
+        id: version
+        env:
+          BRANCH: ${{ inputs.branch }}
+          VERSION_INPUT: ${{ inputs.version }}
+        run: |
+          version="$VERSION_INPUT"
+          if [ -z "$version" ]; then
+            version="${BRANCH#release/}"
+          fi
+          if ! printf '%s' "$version" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Could not determine the release version from branch \"$BRANCH\". Pass it in the \"version\" input."
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Add composer to cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/composer/
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2.40.0
+        with:
+          php-version: '7.4'
+          tools: composer
+          coverage: none
+
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Compile changelog entries
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          composer install --no-progress
+          # The script only uses Node built-ins, so node_modules is not needed.
+          npm run changelog:build-file -- --version="$VERSION"
+
+      - name: Check that the changelog changed
+        run: |
+          if [ -z "$(git status --porcelain -- changelog.txt readme.txt changelog)" ]; then
+            echo "::error::There were no changelog entries to compile, so there is nothing to open a pull request for."
+            exit 1
+          fi
+
+      - name: Format release notes with Claude
+        if: inputs.format-release-notes
+        uses: ./.github/actions/format-release-notes
+        with:
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 #v8.1.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          add-paths: |
+            changelog.txt
+            readme.txt
+            changelog
+          commit-message: Compile changelog entries for ${{ steps.version.outputs.version }}
+          # Validate Changelog recognizes this branch prefix and the label as a pull request
+          # that is allowed to write changelog.txt and readme.txt.
+          branch: release-changelog/${{ inputs.branch }}
+          base: ${{ inputs.branch }}
+          title: "Compile changelog for ${{ steps.version.outputs.version }}"
+          body: |
+            This PR compiles the changelog entry files in `changelog/` into the ${{ steps.version.outputs.version }} section of `changelog.txt` and `readme.txt`, and removes the compiled entry files.
+
+            The section is dated `xxxx-xx-xx`; the release tooling fills in the release date.
+
+            Generated automatically by the Release Changelog workflow.
+
+            ## Testing instructions
+            - Check that every entry expected in ${{ steps.version.outputs.version }} is listed, and that no earlier section of `changelog.txt` changed.
+            - Check that `changelog/` still contains `.gitkeep`.
+          labels: changelog

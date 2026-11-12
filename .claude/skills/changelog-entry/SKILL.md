@@ -1,31 +1,42 @@
 ---
 name: changelog-entry
-description: Use when adding or editing changelog entries for this plugin. Triggers include "add changelog", "changelog entry", "release notes", "update changelog.txt", "update readme.txt", or any PR that introduces user-visible behavior changes. Critical: changelog.txt and readme.txt use different version-header formats and must both be updated.
+description: Use when adding or editing changelog entries for this plugin. Triggers include "add changelog", "changelog entry", "release notes", "update changelog.txt", "update readme.txt", or any PR that introduces user-visible behavior changes. Critical: entries are added as files under changelog/ with `npm run changelog`; changelog.txt and readme.txt are compiled at release time and must not be edited in feature PRs.
 ---
 
 # Changelog Entry — WC Stripe Gateway
 
-Adds entries to `changelog.txt` and `readme.txt` simultaneously, with the right entry type and the right version-header format for each file.
+Adds a changelog entry as its own file under `changelog/`, with the right entry type. The entry carries no version: it is compiled into `changelog.txt` and `readme.txt` during the release process.
 
-## Critical: two files, two formats
+## Critical: add an entry file, do not edit the compiled files
 
-The repo intentionally uses different version headers in each file because the upstream parsers are different:
-
-**`changelog.txt`** (WooCommerce.com parser):
-
-```
-xxxx-xx-xx - version 10.7.0
-* Type - Description
+```bash
+npm run changelog -- --type=fix --entry="Describe the change"
 ```
 
-**`readme.txt`** (WordPress.org parser):
+This runs the Jetpack Changelogger and creates a file named after the current branch in `changelog/`:
 
 ```
-= 10.7.0 - xxxx-xx-xx =
-* Type - Description
+Significance: patch
+Type: fix
+
+Describe the change
 ```
 
-The `* Type - Description` body is identical, but the version *header* is reversed and uses different delimiters. `bin/changelog.js` is aware of both — converting one to the other breaks release tooling.
+Commit that file with the change. Run `npm run changelog` with no arguments for interactive prompts. Requires `composer install`.
+
+- **Do not edit `changelog.txt` or the `== Changelog ==` section of `readme.txt`.** The `Validate Changelog` check rejects those edits; both are written by `npm run changelog:build-file` at release time.
+- A PR that needs more than one entry runs the command once per entry.
+- To reword an entry, edit the text in its file. `Significance` is always `patch`; it is required by the file format but unused, because the release version is set when the changelog is compiled.
+- `changelog/.gitkeep` keeps the directory in git once a release has compiled the entries. Never delete it.
+
+## Compiling for a release
+
+Release owners run the **Release Changelog** workflow (or `npm run changelog:build-file -- --version=X.Y.Z` locally) on the release branch. It writes the entries to both files, with the header format each one needs, and deletes the entry files:
+
+- `changelog.txt` (WooCommerce.com parser): `xxxx-xx-xx - version X.Y.Z`
+- `readme.txt` (WordPress.org parser): `= X.Y.Z - xxxx-xx-xx =`
+
+The `xxxx-xx-xx` date is deliberate: woorelease replaces it at release and fails without it. Running the command again for the same version appends newly landed entries to that section. `readme.txt` only carries the current release; `changelog.txt` holds the full history.
 
 ## Entry types
 
@@ -34,14 +45,15 @@ The `* Type - Description` body is identical, but the version *header* is revers
 | **Add** | New feature or capability merchants can use |
 | **Update** | Behavior change visible to merchants — including removing public-surface methods that extension authors may have relied on |
 | **Fix** | Bug fix |
+| **Remove** | Removal of merchant-facing functionality |
 | **Tweak** | Minor visual/copy change that doesn't fit Add/Update/Fix |
 | **Dev** | Internal-only change with no merchant or extension-author impact (CI, test refactors, dev dependencies) |
 
 **The Add/Update vs Dev judgment:** if the change can break someone else's site or workflow when they update, it's `Update`, not `Dev`. Removing a deprecated method is `Update` (precedent: #5066 → #5392). Renaming an internal helper that nobody outside the plugin imports is `Dev`. When in doubt, prefer `Update`.
 
-## readme.txt has a third location
+## readme.txt Compatibility Notes
 
-Major or breaking changes also need a bullet under `== Compatibility Notes ==` in `readme.txt`. Required when:
+Major or breaking changes also need a bullet under `== Compatibility Notes ==` in `readme.txt`, edited by hand in the same PR (this section is not compiled). Required when:
 
 - A method or class is removed
 - A default behavior is flipped (e.g., a feature becomes enabled-by-default)
@@ -49,11 +61,10 @@ Major or breaking changes also need a bullet under `== Compatibility Notes ==` i
 
 ## Procedure
 
-1. Locate the `xxxx-xx-xx - version X.Y.Z` block at the top of `changelog.txt`.
-2. Append `* Type - Description` to the bottom of that version's block.
-3. Locate the matching `= X.Y.Z - xxxx-xx-xx =` block in `readme.txt` under `== Changelog ==`.
-4. Append the *exact same* `* Type - Description` line.
-5. If the change is merchant-impacting, also add a bullet under `== Compatibility Notes ==` for that version in `readme.txt`.
+1. Pick the entry type from the table above.
+2. Run `npm run changelog -- --type=<type> --entry="<description>"`.
+3. Commit the new file under `changelog/`.
+4. If the change is merchant-impacting, also add a bullet under `== Compatibility Notes ==` in `readme.txt`.
 
 ## Wording conventions
 
@@ -66,17 +77,16 @@ Major or breaking changes also need a bullet under `== Compatibility Notes ==` i
 
 ## Verifying
 
-After editing, search both files:
-
 ```bash
-grep -n "your-text" changelog.txt readme.txt
+vendor/bin/changelogger validate
+git status --short changelog/
 ```
 
 If the change is also linked from the PR description, sync the wording so release notes and PR threads agree.
 
 ## Common mistakes
 
-- Updating only one of the two files (the most common slip — both parsers expect to find the entry).
-- Mixing the two version-header formats (silently breaks parsers).
+- Editing `changelog.txt` or the `readme.txt` changelog section directly instead of adding an entry file.
+- Forgetting to commit the new file under `changelog/`.
 - Classifying public-surface removals as `Dev` instead of `Update`.
-- Adding a new version block when an `xxxx-xx-xx - version X.Y.Z` placeholder already exists at the top of `changelog.txt`.
+- Adding an `xxxx-xx-xx` version block by hand; `npm run changelog:build-file` creates it.

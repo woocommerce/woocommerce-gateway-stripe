@@ -188,6 +188,7 @@
     "test:e2e-adaptive-pricing-debug": "npm run test:e2e-adaptive-pricing -- --debug",
     "test:e2e:qit": "qit run:e2e --config=qit.json --profile=main --test-package=./tests/e2e --env_file=./tests/e2e/qit/qit.env",
     "changelog": "node bin/changelog.js",
+    "changelog:build-file": "node bin/changelog-build-file.js",
     "doc:hooks": "cd tasks/hooks && composer install --quiet && composer run-script generate"
   },
   "engines": {
