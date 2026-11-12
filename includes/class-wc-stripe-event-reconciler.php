@@ -259,7 +259,9 @@ class WC_Stripe_Event_Reconciler {
 		// Retrieve the event records that are already registered to avoid duplicates.
 		$registered_events = $this->store->get_many( wp_list_pluck( $events, 'id' ) );
 
-		foreach ( $events as $event ) {
+		// Stripe lists the newest events first. Queued oldest first, they mostly run in the order they happened, since
+		// Action Scheduler claims actions in creation order, so for example a review is opened before it is closed.
+		foreach ( array_reverse( $events ) as $event ) {
 			$record        = $registered_events[ $event->id ] ?? null;
 			$status_before = $record ? $record->status : null;
 

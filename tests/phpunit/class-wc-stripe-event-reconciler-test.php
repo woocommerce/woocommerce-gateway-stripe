@@ -272,9 +272,9 @@ class WC_Stripe_Event_Reconciler_Test extends WP_UnitTestCase {
 
 		$this->assertSame(
 			[
-				'evt_1New'     => 'queued',
-				'evt_1Known'   => 'skipped',
 				'evt_1Foreign' => 'ignored',
+				'evt_1Known'   => 'skipped',
+				'evt_1New'     => 'queued',
 			],
 			array_column( $summary['events'], 'result', 'id' )
 		);
@@ -290,6 +290,45 @@ class WC_Stripe_Event_Reconciler_Test extends WP_UnitTestCase {
 		$this->assertSame( 'evt_1Cursor', $query['ending_before'] );
 		$this->assertEqualsWithDelta( time() - HOUR_IN_SECONDS, (int) $query['created']['lte'], 5 );
 		$this->assertFalse( as_has_scheduled_action( WC_Stripe_Event_Reconciler::RECONCILE_ACTION, [], self::GROUP ) );
+	}
+
+	/**
+	 * Events are queued oldest first, while the cursor still moves to the newest one.
+	 */
+	public function test_queue_undelivered_events_queues_oldest_first(): void {
+		update_option( self::CURSOR_OPTION, 'evt_1Cursor' );
+		// Stripe lists the newest events first.
+		$this->queue_response(
+			'events',
+			$this->make_list(
+				[
+					$this->make_event( 'evt_3Newest' ),
+					$this->make_event( 'evt_2Middle' ),
+					$this->make_event( 'evt_1Oldest' ),
+				]
+			)
+		);
+
+		$this->reconciler->queue_undelivered_events();
+
+		$action_ids = as_get_scheduled_actions(
+			[
+				'hook'     => WC_Stripe_Event_Reconciler::PROCESS_ACTION,
+				'group'    => self::GROUP,
+				'per_page' => -1,
+			],
+			'ids'
+		);
+		sort( $action_ids );
+		$queued = array_map(
+			function ( $action_id ) {
+				return ActionScheduler::store()->fetch_action( $action_id )->get_args()[0];
+			},
+			$action_ids
+		);
+
+		$this->assertSame( [ 'evt_1Oldest', 'evt_2Middle', 'evt_3Newest' ], $queued );
+		$this->assertSame( 'evt_3Newest', get_option( self::CURSOR_OPTION ) );
 	}
 
 	/**
