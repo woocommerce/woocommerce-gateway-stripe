@@ -189,6 +189,54 @@ class WC_Stripe_Webhook_Handler_Event_Reconciliation_Test extends WP_UnitTestCas
 	}
 
 	/**
+	 * A deferred job without an order does not record the order of an earlier job run by the same handler,
+	 * as when Action Scheduler runs several jobs in one request.
+	 */
+	public function test_deferred_job_does_not_record_the_order_of_an_earlier_job(): void {
+		$handler = new WC_Stripe_Webhook_Handler( new WC_Stripe_Event_Reconciler( $this->store ) );
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, 'pi_1First' );
+		$order->save();
+
+		$jobs = [
+			// Resolves the order, then fails to fetch the intent, since HTTP is blocked.
+			'evt_1First'  => [
+				'order_id'  => $order->get_id(),
+				'intent_id' => 'pi_1First',
+			],
+			// The order is gone, so the event is abandoned.
+			'evt_1Second' => [
+				'order_id'  => 0,
+				'intent_id' => 'pi_1Second',
+			],
+		];
+
+		foreach ( $jobs as $event_id => $additional_data ) {
+			try {
+				$handler->process_deferred_webhook(
+					'payment_intent.succeeded',
+					$additional_data,
+					(object) [
+						'id'       => $event_id,
+						'type'     => 'payment_intent.succeeded',
+						'created'  => time(),
+						'livemode' => false,
+					]
+				);
+			} catch ( Exception $e ) {
+				// Both jobs rethrow, so Action Scheduler marks them failed.
+				continue;
+			}
+		}
+
+		$record = $this->store->get( 'evt_1Second' );
+		$this->assertSame( WC_Stripe_Event_Store_Interface::STATUS_ABANDONED, $record->status );
+		$this->assertNull( $record->order_id );
+	}
+
+	/**
 	 * A subclass that overrides the constructor without calling it still gets a reconciler.
 	 */
 	public function test_subclass_without_parent_constructor_gets_a_reconciler(): void {
