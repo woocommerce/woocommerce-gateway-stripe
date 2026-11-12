@@ -4,7 +4,7 @@ Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 11.1.1
+Stable tag: 11.2.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -173,6 +173,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Load React's JSX runtime from WordPress core instead of bundling it, and declare "Tested up to" only in readme.txt
 * Fix - Stop rewriting a saved payment method's name, email, and phone in Stripe when it is used at checkout; only the billing address is refreshed
 * Dev - Run every E2E test project under both a classic theme (Storefront) and a block theme (Twenty Twenty-Five) in CI, and make the shared E2E helpers theme-agnostic
+* Fix - Show country-restricted payment methods such as iDEAL on Adaptive Pricing checkout once the shopper enters a billing country they are available in
+
 * Fix - Keep a subscription's Stripe customer when its card is changed with 3D Secure, so renewals don't fail
 * Dev - Upgrade Playwright to stay compatible with GitHub CI environment
 * Dev - Behind a feature flag, find Stripe events whose webhook delivery failed and process them in the background
