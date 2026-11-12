@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Keep a subscription's Stripe customer when its card is changed with 3D Secure, so renewals don't fail
