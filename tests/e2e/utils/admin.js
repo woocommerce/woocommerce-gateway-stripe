@@ -46,9 +46,20 @@ export const refreshAccountDetails = async ( browser ) => {
 			'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings'
 		);
 		await page.getByLabel( 'Edit details or disconnect' ).click();
+		// The menu item fires the refresh request in the background; closing the
+		// context before it lands would abort it and leave stale account data.
+		const refreshed = page.waitForResponse( ( response ) =>
+			response.url().includes( '/wc_stripe/account/refresh' )
+		);
 		await page
 			.getByRole( 'menuitem', { name: 'Refresh account details' } )
 			.click();
+		const response = await refreshed;
+		if ( ! response.ok() ) {
+			throw new Error(
+				`Refreshing the Stripe account details failed with HTTP ${ response.status() }.`
+			);
+		}
 	} finally {
 		await context.close();
 	}
