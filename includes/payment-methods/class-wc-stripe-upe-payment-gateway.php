@@ -1994,11 +1994,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				try {
 					$this->verify_intent_after_checkout( $order );
 				} catch ( WC_Stripe_Exception $e ) {
+					// The raw message can be a dump of the whole charge, billing details included,
+					// so only the shopper-facing message is logged.
 					WC_Stripe_Logger::error(
 						'The order was paid by an earlier PaymentIntent but could not be settled.',
 						[
 							'order_id'      => $order->get_id(),
-							'error_message' => $e->getMessage(),
+							'error_message' => $e->getLocalizedMessage(),
 						]
 					);
 					return $this->get_checkout_failure_response( $e->getLocalizedMessage() );
