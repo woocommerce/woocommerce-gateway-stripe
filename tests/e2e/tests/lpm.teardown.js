@@ -1,8 +1,12 @@
 import { test as teardown } from '@playwright/test';
 import { execSync } from 'child_process';
-import { admin } from '../utils';
 
 teardown( 'Restore original Stripe keys', async ( { browser } ) => {
+	const adminContext = await browser.newContext( {
+		storageState: process.env.ADMINSTATE,
+	} );
+	const page = await adminContext.newPage();
+
 	// In QIT, keys are restored via WP-CLI in the run phase after Playwright finishes.
 	// This teardown still runs as belt-and-suspenders.
 	if ( ! process.env.QIT_SITE_URL ) {
@@ -12,5 +16,12 @@ teardown( 'Restore original Stripe keys', async ( { browser } ) => {
 		);
 	}
 
-	await admin.refreshAccountDetails( browser );
+	// Refresh account data in Stripe settings.
+	await page.goto(
+		'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings'
+	);
+	await page.getByLabel( 'Edit details or disconnect' ).click();
+	await page
+		.getByRole( 'menuitem', { name: 'Refresh account details' } )
+		.click();
 } );
