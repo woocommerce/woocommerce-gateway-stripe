@@ -1,0 +1,78 @@
+name: Format release notes
+description: Regroups the unreleased changelog section of readme.txt under the release note headings, using Claude. Edits the working tree only.
+
+inputs:
+  anthropic-api-key:
+    description: Anthropic API key.
+    required: true
+  github-token:
+    description: GitHub token for the Claude action.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # Compared by content rather than against git, because a caller may already have
+    # uncommitted readme.txt changes (the compiled changelog) before this action runs.
+    - name: Record readme.txt before formatting
+      id: before
+      shell: bash
+      run: echo "hash=$(git hash-object readme.txt)" >> "$GITHUB_OUTPUT"
+
+    - name: Format release notes with Claude
+      uses: anthropics/claude-code-action@4845bacbb38b3c4b15d948f035349786f678e068 # v1.0.267
+      with:
+        anthropic_api_key: ${{ inputs.anthropic-api-key }}
+        # Without a token the action exchanges an OIDC token for its app token, and that exchange
+        # skips the run when this file differs from the default branch, so the workflow can't run from a branch.
+        github_token: ${{ inputs.github-token }}
+        prompt: |
+          Please reorganize the changelog entries in readme.txt for the upcoming release.
+
+          The changelog entries should be rearranged under these four headings (in this order):
+
+          **New Features**
+
+          - New functionality and capabilities
+          - New payment methods or integrations
+
+          **Important Fixes and Updates**
+
+          - Major bug fixes that prevent errors or crashes
+          - User-facing feature updates and changes
+          - Deprecation notices and breaking changes
+
+          **Other Fixes and Updates**
+
+          - Minor fixes and tweaks
+          - Small improvements that don't fit in the important category
+
+          **Internal Changes and Upcoming Features**
+
+          - All "Dev -" prefixed entries
+          - Internal tooling, testing, and CI changes
+          - Code refactoring that doesn't affect users
+
+          Rules:
+          1. Only modify the first changelog section (the one with "xxxx-xx-xx" date placeholder)
+          2. Keep the original entry text exactly as-is, just reorganize them
+          3. Add a blank line after the version header before the first section heading
+          4. Each section heading should be on its own line followed by a blank line and then entries below that
+          5. If a section would be empty, omit that section entirely
+
+          Only use the Read and Edit tools on readme.txt. Do not run other commands and do not commit;
+          the next workflow step commits the change and opens the pull request.
+
+        # --tools limits the available built-in tools, so Claude cannot attempt (and burn a turn being
+        # denied on) anything beyond Read and Edit; --allowedTools lets those two run without a prompt
+        # in this non-interactive run. The turn limit still leaves room for the edits on a long changelog.
+        claude_args: "--tools 'Read,Edit' --allowedTools 'Read,Edit' --max-turns 25"
+
+    # The Claude step can end successfully without editing anything (for example when it is skipped).
+    - name: Check that readme.txt changed
+      shell: bash
+      run: |
+        if [ "$(git hash-object readme.txt)" = "${{ steps.before.outputs.hash }}" ]; then
+          echo "::error::Claude did not regroup the release notes in readme.txt."
+          exit 1
+        fi
