@@ -3256,6 +3256,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertSame( $expect_already_paid ? 'yes' : null, $result['wc_stripe_checkout_session_already_paid'] ?? null );
 		$this->assertSame( $expect_already_paid, $cart_is_empty );
 		if ( $expect_already_paid ) {
+			// No Session was used, so the shopper must not be sent through the Session return handler.
+			$this->assertSame( self::MOCK_RETURN_URL, $result['redirect'] );
+		}
+		if ( $expect_already_paid ) {
 			$this->assertTrue( $expire_requested );
 		}
 		$this->assertSame(

@@ -2007,10 +2007,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				}
 			}
 
-			// If the order is already completed, redirect user to the order received page.
+			// If the order is already completed, redirect user to the order received page. An order
+			// paid by an earlier intent skips the Checkout Session return handler: no Session was used,
+			// and the handler would read a stale Session still stored on a pending order as a
+			// cancelled payment.
 			return [
 				'result'                                  => 'success',
-				'redirect'                                => $this->get_return_url_for_checkout_session( $order ),
+				'redirect'                                => null !== $paid_intent ? $this->get_return_url( $order ) : $this->get_return_url_for_checkout_session( $order ),
 				// Both checkouts confirm the Session in the browser once this request succeeds; the
 				// flag tells them to go straight to the redirect instead. A string survives the
 				// Store API's payment details serialization, which a boolean does not.
