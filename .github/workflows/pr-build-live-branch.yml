@@ -207,6 +207,8 @@ jobs:
 
           :rocket: [Launch a Jurassic Ninja site with this branch and sample products](https://jurassic.ninja/create/?jetpack-beta&shortlived&nojetpack&woocommerce&woocommerce-import-sample-data&woocommerce-gateway-stripe-dev-tools&branches.woocommerce-gateway-stripe=${PR_HEAD_REF}) :rocket:
 
+          :information_source: The link only launches a site while you are logged in to jurassic.ninja. If it opens the Jurassic Ninja homepage instead, log in there and open the link again, or use the manual flow below.
+
           **Otherwise, use the following manual flow:**
 
           :turtle: Navigate to [jurassic.ninja](https://jurassic.ninja/) :turtle:
