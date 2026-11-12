@@ -169,8 +169,21 @@ jobs:
             --arg artifact "plugins-$GITHUB_RUN_ID" \
             '"https://playground.wordpress.net/plugin-proxy.php?org=\($org|@uri)&repo=\($repo|@uri)&workflow=\($workflow|@uri)&pr=\($pr|@uri)&artifact=\($artifact|@uri)"' )
 
+          # The preview is for people without a development environment, so it must need no setup by hand:
+          # WooCommerce would otherwise redirect a new store to its setup wizard, and a store without a
+          # product has no shop, cart or checkout to look at.
           BLUEPRINT=$( jq -cn --arg artifact_url "$ARTIFACT_URL" '
-            {
+            ( [
+                "<?php require \"/wordpress/wp-load.php\";",
+                "delete_transient( \"_wc_activation_redirect\" );",
+                "update_option( \"woocommerce_onboarding_profile\", array( \"skipped\" => true ) );",
+                "$product = new WC_Product_Simple();",
+                "$product->set_name( \"Sample product\" );",
+                "$product->set_regular_price( \"10\" );",
+                "$product->set_status( \"publish\" );",
+                "$product->save();"
+              ] | join( " " ) ) as $store_setup
+            | {
               "$schema": "https://playground.wordpress.net/blueprint-schema.json",
               landingPage: "/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe",
               preferredVersions: { php: "8.3", wp: "latest" },
@@ -178,7 +191,7 @@ jobs:
               steps: [
                 { step: "login", username: "admin" },
                 { step: "installPlugin", pluginData: { resource: "wordpress.org/plugins", slug: "woocommerce" }, options: { activate: true } },
-                { step: "runPHP", code: "<?php require \"/wordpress/wp-load.php\"; delete_transient( \"_wc_activation_redirect\" ); update_option( \"woocommerce_onboarding_profile\", array( \"skipped\" => true ) );" },
+                { step: "runPHP", code: $store_setup },
                 { step: "unzip", zipFile: { resource: "url", url: $artifact_url, caption: "Downloading the Stripe gateway build for this PR" }, extractToPath: "/tmp/pr" },
                 { step: "installPlugin", pluginData: { resource: "vfs", path: "/tmp/pr/woocommerce-gateway-stripe-dev.zip" }, options: { activate: true } }
               ]
@@ -222,7 +235,7 @@ jobs:
 
           #### Option 3. WordPress Playground - runs in your browser
 
-          :electric_plug: [Open a store with this build](${PLAYGROUND_URL}): WordPress, WooCommerce and this PR's build, opened on the Stripe settings screen with no Stripe account connected.
+          :electric_plug: [Open a store with this build](${PLAYGROUND_URL}): WordPress, WooCommerce with a sample product, and this PR's build. It opens on the Stripe settings screen, logged in as an administrator, with nothing to set up and no Stripe account connected.
 
           :information_source: The preview cannot connect to a Stripe account, so it cannot show payment methods at checkout, take a payment or receive webhooks. Use it to check that the build installs and activates, and to see what a store shows before it is connected. Never put Stripe API keys into a preview: it runs this PR's code, and requests to Stripe do not work from a browser Playground anyway. The link stops working 14 days after the last build.
 
