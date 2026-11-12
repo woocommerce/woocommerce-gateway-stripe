@@ -884,9 +884,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		);
 
 		// Country restrictions deliberately hide methods rather than offer them and fail at
-		// confirmation. On the Adaptive Pricing (checkout session) flow the filter is fixed at
-		// session creation, so a possibly-eligible method can stay hidden until a reload —
-		// accepted as the safer failure mode. Other OCS flows recompute it on country change.
+		// confirmation. Stripe fixes this list when an Adaptive Pricing Checkout Session is
+		// created, so a country change that alters it recreates the session; other OCS flows
+		// recompute it on the client.
 		$excluded_methods = array_merge( $excluded_methods, $this->get_country_excluded_payment_method_types() );
 
 		// Non-deferred-intent methods (e.g. BLIK, ACSS) can't render inside the Payment Element,
