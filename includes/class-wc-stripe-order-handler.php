@@ -39,6 +39,15 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	private const TEMPORARY_STRIPE_ERROR_CODES = [ 'rate_limit', 'lock_timeout' ];
 
 	/**
+	 * Open Checkout Sessions of orders the hold-stock cron is about to cancel, keyed by order ID.
+	 *
+	 * @since x.x.x
+	 *
+	 * @var array<int, string>
+	 */
+	private $open_checkout_sessions_to_expire = [];
+
+	/**
 	 * Constructor.
 	 *
 	 * @since 4.0.0
@@ -65,6 +74,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		add_filter( 'woocommerce_tracks_event_properties', [ $this, 'woocommerce_tracks_event_properties' ], 10, 2 );
 
 		add_action( 'woocommerce_cancel_unpaid_order', [ $this, 'prevent_cancelling_orders_awaiting_action' ], 10, 2 );
+		add_filter( 'woocommerce_cancel_unpaid_order', [ $this, 'expire_open_checkout_session_before_cancelling' ], PHP_INT_MAX, 2 );
 
 		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'show_warning_for_uncaptured_orders' ] );
 	}
@@ -688,7 +698,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * A Checkout Session order only gets its intent when checkout.session.completed is processed, so a
 	 * late or failed webhook would otherwise let the hold-stock cron cancel an order Stripe has already
 	 * charged. Only a session that can no longer be paid is safe to cancel against: an open one is expired
-	 * first, so the customer cannot pay once the order is gone.
+	 * right before the order is cancelled, so the customer cannot pay once the order is gone.
 	 *
 	 * The decision rests on Stripe's state, never on the order's age: a completed session's payment can
 	 * take weeks to settle (bank debits, unpaid vouchers). A temporary Stripe failure keeps the order for
@@ -758,7 +768,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		if ( 'open' === $session_status ) {
-			return $this->expire_checkout_session_before_cancelling( $order, $session_id, $log_context );
+			// Expiring can't be undone, so it waits until every other callback has had its say on the cancellation.
+			$this->open_checkout_sessions_to_expire[ $order->get_id() ] = $session_id;
+			return true;
 		}
 
 		$intent_status = is_object( $session->payment_intent ?? null ) && is_string( $session->payment_intent->status ?? null )
@@ -788,6 +800,40 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Expires the open Checkout Session of an order the hold-stock cron is about to cancel as unpaid.
+	 *
+	 * Runs last on woocommerce_cancel_unpaid_order because a filter's verdict is only final once every
+	 * callback has run: expiring earlier would leave a dead session on an order another callback kept,
+	 * and expiring after the cancellation would let the customer pay a cancelled order in between.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param bool     $cancel_order Whether to cancel the order.
+	 * @param WC_Order $order        The order object.
+	 * @return bool
+	 */
+	public function expire_open_checkout_session_before_cancelling( $cancel_order, $order ) {
+		if ( ! $order instanceof WC_Order || ! isset( $this->open_checkout_sessions_to_expire[ $order->get_id() ] ) ) {
+			return $cancel_order;
+		}
+
+		$session_id = $this->open_checkout_sessions_to_expire[ $order->get_id() ];
+		unset( $this->open_checkout_sessions_to_expire[ $order->get_id() ] );
+
+		$log_context = [
+			'order_id'            => $order->get_id(),
+			'checkout_session_id' => $session_id,
+		];
+
+		if ( ! $cancel_order ) {
+			WC_Stripe_Logger::info( "Order {$order->get_id()} was kept by another callback; its Checkout Session {$session_id} stays open.", $log_context );
+			return $cancel_order;
+		}
+
+		return $this->expire_checkout_session( $order, $session_id, $log_context ) ? $cancel_order : false;
+	}
+
+	/**
 	 * Expires an open Checkout Session so the customer can't pay once its order is cancelled.
 	 *
 	 * Stripe refuses to expire a session the customer completed in the meantime, so only a confirmed
@@ -800,7 +846,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param array    $log_context Context for log entries.
 	 * @return bool Whether the session is now expired.
 	 */
-	private function expire_checkout_session_before_cancelling( WC_Order $order, string $session_id, array $log_context ): bool {
+	private function expire_checkout_session( WC_Order $order, string $session_id, array $log_context ): bool {
 		WC_Stripe_Logger::info( "Expiring open Checkout Session {$session_id} before order {$order->get_id()} is cancelled as unpaid.", $log_context );
 
 		try {

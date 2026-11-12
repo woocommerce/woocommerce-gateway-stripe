@@ -616,7 +616,9 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 		);
 
 		try {
-			$this->assertSame( $expected, $this->order_handler->prevent_cancelling_orders_awaiting_action( true, $order ) );
+			$cancel_order = $this->order_handler->prevent_cancelling_orders_awaiting_action( true, $order );
+			$cancel_order = $this->order_handler->expire_open_checkout_session_before_cancelling( $cancel_order, $order );
+			$this->assertSame( $expected, $cancel_order );
 		} finally {
 			$this->restore_stripe_requests();
 		}
