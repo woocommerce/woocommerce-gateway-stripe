@@ -147,10 +147,17 @@ jobs:
         run: |
           BODY="### Test the build
 
+          #### Option 1. Jetpack Beta
+
+          - Install and activate [Jetpack Beta](https://jetpack.com/beta/#download-and-install) on your own test site.
+          - Use this build by searching for PR number \`${PR_NUMBER}\` or branch name \`${PR_HEAD_REF}\` in your-test.site/wp-admin/admin.php?page=jetpack-beta&plugin=woocommerce-gateway-stripe
+
+          #### Option 2. Jurassic Ninja
+
           **If you are a logged-in Automattic staff member:**
 
           :rocket: [Launch a Jurassic Ninja site with this branch and sample products](https://jurassic.ninja/create/?jetpack-beta&shortlived&nojetpack&woocommerce&woocommerce-import-sample-data&woocommerce-gateway-stripe-dev-tools&branches.woocommerce-gateway-stripe=${PR_HEAD_REF}) :rocket:
-          
+
           **Otherwise, use the following manual flow:**
 
           :turtle: Navigate to [jurassic.ninja](https://jurassic.ninja/) :turtle:
