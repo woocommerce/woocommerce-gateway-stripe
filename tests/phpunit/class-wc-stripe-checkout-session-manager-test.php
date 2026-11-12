@@ -805,6 +805,125 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Stripe only accepts excluded_payment_method_types at creation, and the list follows the
+	 * billing country, so a changed list must recreate the session for a method hidden for the
+	 * earlier country (e.g. iDEAL) to surface. An equal list in another order, or a record stored
+	 * before the list was tracked, must keep reusing the session. The replaced session must stop
+	 * being linkable to an order, or a page still holding it could pay the cart a second time.
+	 *
+	 * @dataProvider provide_synchronize_exclusions_data
+	 *
+	 * @param string[] $later_exclusions      Exclusions the gateway reports on the second synchronization.
+	 * @param bool     $legacy_record         Whether a record without stored exclusions exists beforehand.
+	 * @param int      $expected_create_count Number of sessions created across both synchronizations.
+	 */
+	public function test_synchronize_recreates_session_only_when_exclusions_change( array $later_exclusions, bool $legacy_record, int $expected_create_count ): void {
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 42 ] );
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		if ( $legacy_record ) {
+			WC()->session->set(
+				'wc_stripe_checkout_session',
+				[
+					'session_id'    => 'cs_test_exclusions_legacy',
+					'client_secret' => 'cs_test_exclusions_legacy_secret',
+					'revision'      => 'legacy-revision',
+					'status'        => 'success',
+				]
+			);
+			WC_Stripe_Checkout_Session_Context::store_for_cart(
+				'cs_test_exclusions_legacy',
+				[
+					'amount'   => WC_Stripe_Helper::get_stripe_amount( (float) WC()->cart->get_total( 'edit' ), get_woocommerce_currency() ),
+					'currency' => strtolower( get_woocommerce_currency() ),
+				]
+			);
+		}
+
+		$exclusions = [ 'ideal', 'amazon_pay' ];
+		$gateway    = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_excluded_payment_method_types' ] )
+			->getMock();
+		$gateway->method( 'get_excluded_payment_method_types' )->willReturnCallback(
+			static function () use ( &$exclusions ): array {
+				return $exclusions;
+			}
+		);
+		$gateway_property = new ReflectionProperty( WC_Stripe::class, 'stripe_gateway' );
+		$gateway_property->setAccessible( true );
+		$original_gateway = $gateway_property->getValue( WC_Stripe::get_instance() );
+		$gateway_property->setValue( WC_Stripe::get_instance(), $gateway );
+
+		$captured_creates = [];
+		$capture_body     = static function ( $request, $api ) use ( &$captured_creates ) {
+			if ( 'checkout/sessions' === $api ) {
+				$captured_creates[] = $request;
+			}
+			return $request;
+		};
+		$mock_request     = static function ( $return_value, $parsed_args, $url ) use ( &$captured_creates ) {
+			if ( 'https://api.stripe.com/v1/checkout/sessions' !== $url ) {
+				return $return_value;
+			}
+			$count = count( $captured_creates );
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					(object) [
+						'id'            => "cs_test_exclusions_{$count}",
+						'client_secret' => "cs_test_exclusions_secret_{$count}",
+					]
+				),
+			];
+		};
+		add_filter( 'wc_stripe_request_body', $capture_body, 10, 2 );
+		add_filter( 'pre_http_request', $mock_request, 10, 3 );
+
+		try {
+			$manager    = new WC_Stripe_Checkout_Session_Manager();
+			$before     = $manager->synchronize();
+			$exclusions = $later_exclusions;
+			$after      = $manager->synchronize();
+
+			$creates_after_change     = count( $captured_creates );
+			$repeated                 = $manager->synchronize();
+			$first_session_is_retired = null === WC_Stripe_Checkout_Session_Context::get_context( (string) $before['session_id'] );
+		} finally {
+			remove_filter( 'wc_stripe_request_body', $capture_body, 10 );
+			remove_filter( 'pre_http_request', $mock_request, 10 );
+			$gateway_property->setValue( WC_Stripe::get_instance(), $original_gateway );
+			foreach ( [ 'cs_test_exclusions_legacy', 'cs_test_exclusions_1', 'cs_test_exclusions_2' ] as $session_id ) {
+				WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
+			}
+		}
+
+		$this->assertSame( $expected_create_count, $creates_after_change );
+		$this->assertCount( $expected_create_count, $captured_creates, 'An unchanged list must keep reusing the session it was last synchronized to.' );
+		$this->assertSame( $after, $repeated );
+		$this->assertSame( 2 === $expected_create_count, $first_session_is_retired );
+		if ( 2 === $expected_create_count ) {
+			$this->assertSame( $later_exclusions, $captured_creates[1]['excluded_payment_method_types'] );
+			$this->assertSame( 'cs_test_exclusions_2', $after['session_id'] );
+		} else {
+			$this->assertSame( $before, $after );
+		}
+	}
+
+	/**
+	 * @return array
+	 */
+	public function provide_synchronize_exclusions_data(): array {
+		return [
+			'country-restricted method becomes available' => [ [ 'amazon_pay' ], false, 2 ],
+			'same exclusions in a different order'        => [ [ 'amazon_pay', 'ideal' ], false, 1 ],
+			'legacy record without stored exclusions'     => [ [ 'amazon_pay' ], true, 0 ],
+		];
+	}
+
+	/**
 	 * Classic checkout refreshes arrive as wc-ajax requests against the home URL, so is_checkout()
 	 * is false. Eligibility must still resolve or the fragment never carries a usable session.
 	 */
