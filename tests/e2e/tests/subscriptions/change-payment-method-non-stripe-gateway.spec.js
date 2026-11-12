@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { randomUUID } from 'crypto';
 import config from 'config';
-import { api, products, user } from '../../utils';
+import { api, payments, products, user } from '../../utils';
 
 let username, customerId, productId, subscriptionId;
 
@@ -63,7 +63,7 @@ test( 'customer can change a subscription payment method to a non-Stripe gateway
 	await page.waitForURL(
 		`**/my-account/view-subscription/${ subscriptionId }/**`
 	);
-	await expect( page.locator( '.woocommerce-message' ) ).toContainText(
+	await expect( payments.getSuccessNotices( page ) ).toContainText(
 		'Payment method added.'
 	);
 } );

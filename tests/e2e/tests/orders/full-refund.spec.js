@@ -4,6 +4,7 @@ import config from 'config';
 import { api, payments } from '../../utils';
 
 const {
+	clickPlaceOrder,
 	emptyCart,
 	setupCart,
 	setupShortcodeCheckout,
@@ -39,7 +40,7 @@ test( 'merchant can issue a full refund @smoke', async ( { browser } ) => {
 
 		const expectedTotal = await getCartTotal( userPage );
 
-		await userPage.locator( 'text=Place order' ).dispatchEvent( 'click' );
+		await clickPlaceOrder( userPage );
 
 		// Confirm the order was charged the expected amount before refunding.
 		await waitForOrderReceivedPageAndConfirmExpectedTotal(
