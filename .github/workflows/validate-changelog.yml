@@ -2,10 +2,13 @@ name: 'Validate Changelog'
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, edited]
+    # `edited` re-runs the check when the exemption checkbox in the description is ticked, and
+    # `labeled`/`unlabeled` when the `changelog` label is added or removed.
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
     branches:
       - trunk
       - develop
+      - 'release/**'
 
 jobs:
   check_changelog:
@@ -18,190 +21,100 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Check PR description for changelog exemption
-        id: check_exemption
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         with:
-          script: |
-            const prBody = context.payload.pull_request.body || '';
-            
-            const exemptionPattern = /- *\[x\] *This Pull Request does not require a changelog entry/i;
-            const isExempt = exemptionPattern.test(prBody);
-            
-            core.setOutput('is_exempt', isExempt.toString());
+          # The pull request is checked out as its merge commit. Its first parent is the current tip
+          # of the target branch, which is what the steps below compare against; the base SHA in the
+          # event payload can be older than that and would report the target branch's own changes.
+          fetch-depth: 2
 
-      - name: Check for changelog updates
-        id: has_changelog_entries
-        if: steps.check_exemption.outputs.is_exempt != 'true'
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
-        with:
-          script: |
-            // Paginate: a PR can change more files than a single listFiles page
-            // (default 30) returns, so without this changelog.txt/readme.txt can
-            // be missed on large PRs and the check fails despite valid entries.
-            const files = await github.paginate(github.rest.pulls.listFiles, {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.issue.number,
-              per_page: 100
-            });
-
-            const UPDATE_STATUSES = [ 'changed', 'modified' ];
-            const changelogUpdated = files.some(file => file.filename === 'changelog.txt' && UPDATE_STATUSES.includes( file.status ));
-            const readmeUpdated = files.some(file => file.filename === 'readme.txt' && UPDATE_STATUSES.includes( file.status ));
-
-            // Check for PRs that only update readme.txt and/or changelog.txt.
-            const releaseMetadataOnly = ( files.length === 1 && ( changelogUpdated || readmeUpdated ) ) || ( files.length ===  2 && changelogUpdated && readmeUpdated );
-
-            if (!releaseMetadataOnly && (!changelogUpdated || !readmeUpdated)) {
-              core.setFailed(
-                'This PR requires changelog entries. Please run `npm run changelog` to add entries to both changelog.txt and readme.txt, ' +
-                'or check "This Pull Request does not require a changelog entry" in the PR description if no changelog is needed.'
-              );
-            } else {
-              console.log('Changelog entries found in both files ✅');
-
-              const prDetails = await github.rest.pulls.get({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: context.issue.number
-              });
-
-              const prSha = prDetails?.data?.head?.sha ?? '';
-              const prBranch = prDetails?.data?.head?.ref ?? '';
-              const targetSha = prDetails?.data?.base?.sha ?? '';
-              const targetBranch = prDetails?.data?.base?.ref ?? '';
-
-              if ( prSha !== '' && prBranch !== '' && targetSha !== '' && targetBranch !== '' ) {
-                core.setOutput( 'pr_sha', prSha );
-                core.setOutput( 'pr_branch', prBranch );
-                core.setOutput( 'target_sha', targetSha );
-                core.setOutput( 'target_branch', targetBranch );
-              }
-            }
-
-      - name: Get changelog diff
-        id: get_changelog_diff
-        if: steps.has_changelog_entries.outputs.target_branch != ''
-        shell: bash
+      - name: Classify pull request
+        id: classify
         env:
-          TARGET_BRANCH: ${{ steps.has_changelog_entries.outputs.target_branch }}
-          TARGET_SHA: ${{ steps.has_changelog_entries.outputs.target_sha }}
-          PR_SHA: ${{ steps.has_changelog_entries.outputs.pr_sha }}
-          PR_BRANCH: ${{ steps.has_changelog_entries.outputs.pr_branch }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          HEAD_REF: ${{ github.head_ref }}
+          HAS_CHANGELOG_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'changelog') }}
         run: |
-          # Ensure we have the exact commits available for diffs
-          echo "Fetching target commit: ${TARGET_SHA}"
-          git fetch --no-tags --prune --depth=1 origin ${TARGET_SHA}
-          echo "Fetching PR commit: ${PR_SHA}"
-          git fetch --no-tags --prune --depth=1 origin ${PR_SHA}
-          # Get minimal diff to changelog.txt
-          echo "Getting minimal diff for changelog.txt; SHAs are ${TARGET_SHA} and ${PR_SHA}"
-          echo 'changelog-diff<<EOF' >> $GITHUB_OUTPUT
-          git diff --patch --unified=1 ${TARGET_SHA} ${PR_SHA} -- changelog.txt >> $GITHUB_OUTPUT
-          echo 'EOF' >> $GITHUB_OUTPUT
+          # Pull requests that are expected to write changelog.txt and readme.txt themselves: the
+          # compiled changelog and release notes (labelled `changelog` by the workflows that open
+          # them), and the merges that carry a release back to trunk and develop.
+          compiles_changelog=false
+          if [ "$HAS_CHANGELOG_LABEL" = "true" ]; then
+            compiles_changelog=true
+          fi
+          case "$HEAD_REF" in
+            release/*|trunk|release-changelog/*|format-release-notes/*) compiles_changelog=true ;;
+          esac
 
-      - name: Check for changelog entries with trailing periods
-        if: steps.get_changelog_diff.outputs.changelog-diff != ''
-        shell: bash
-        env:
-          CHANGELOG_DIFF: ${{ steps.get_changelog_diff.outputs.changelog-diff }}
+          is_exempt=false
+          if printf '%s' "$PR_BODY" | grep -qiE -- '- *\[x\] *This Pull Request does not require a changelog entry'; then
+            is_exempt=true
+          fi
+
+          touches_entries=false
+          if ! git diff --quiet HEAD^1 HEAD -- changelog/; then
+            touches_entries=true
+          fi
+
+          {
+            echo "compiles_changelog=$compiles_changelog"
+            echo "is_exempt=$is_exempt"
+            echo "touches_entries=$touches_entries"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Require a changelog entry file
+        if: steps.classify.outputs.compiles_changelog != 'true' && steps.classify.outputs.is_exempt != 'true'
         run: |
-          # Use per-line grep checks with newlines around the entry.
-          TRAILING_PERIOD_REGEX='^\+\*.*\.[[:blank:]]*$'
-          # Use a here-string rather than a pipe into grep: with pipefail, grep -q can
-          # exit before the writer finishes and turn the whole pipeline non-zero,
-          # which would read as "no match" on a large diff.
-
-          if grep -qE "$TRAILING_PERIOD_REGEX" <<< "$CHANGELOG_DIFF"; then
-            echo "Changelog entries with trailing periods found:"
-            grep -E "$TRAILING_PERIOD_REGEX" <<< "$CHANGELOG_DIFF"
+          # Dotfiles are not entries: changelog/.gitkeep only keeps the directory in git.
+          added=$(git diff --name-only --diff-filter=A HEAD^1 HEAD -- changelog/ | grep -v '^changelog/\.' || true)
+          if [ -z "$added" ]; then
+            echo "::error::This PR requires a changelog entry. Run \`npm run changelog\` and commit the file it creates under changelog/, or check \"This Pull Request does not require a changelog entry\" in the PR description if no changelog is needed."
             exit 1
           fi
-          echo "No changelog entries with trailing periods found ✅"
-          exit 0
+          echo "Changelog entry file(s) found ✅"
+          echo "$added"
 
-      - name: Check entries sit under the milestone's version
-        # Skipped when the PR has no milestone: without it there is nothing to
-        # check the placement against.
-        if: steps.has_changelog_entries.outputs.target_branch != '' && github.event.pull_request.milestone.title != ''
-        shell: bash
-        env:
-          MILESTONE: ${{ github.event.pull_request.milestone.title }}
-          TARGET_SHA: ${{ steps.has_changelog_entries.outputs.target_sha }}
-          PR_SHA: ${{ steps.has_changelog_entries.outputs.pr_sha }}
+      - name: Reject direct edits to the compiled changelog
+        if: steps.classify.outputs.compiles_changelog != 'true'
         run: |
-          # The milestone value is interpolated into the regexes below, so only
-          # run for a plain X.Y.Z version. A free-form milestone title (e.g.
-          # "Future") could otherwise inject regex metacharacters; treat anything
-          # that is not a version as not applicable and skip.
-          if [[ ! "$MILESTONE" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Milestone \"${MILESTONE}\" is not an X.Y.Z version; skipping the placement check."
-            exit 0
+          failed=false
+
+          if ! git diff --quiet HEAD^1 HEAD -- changelog.txt; then
+            echo "::error file=changelog.txt::changelog.txt is compiled from the files in changelog/ at release time. Remove this edit and run \`npm run changelog\` instead."
+            failed=true
           fi
 
-          status=0
-          # Dots are regex wildcards, and a version is mostly dots.
-          MILESTONE_RE="${MILESTONE//./\\.}"
-
-          check_file() {
-            local file="$1" header_re="$2" section_re="${3:-}"
-            local added content block section entry
-
-            added="$(git diff "${TARGET_SHA}" "${PR_SHA}" -- "$file" | grep '^+\*' | sed 's/^+//' || true)"
-            if [ -z "$added" ]; then
-              return 0
-            fi
-
-            # Use a here-string rather than piping git show into awk, as in the
-            # trailing-period step: awk exits at the next header, and with pipefail
-            # git show then fails with SIGPIPE (exit 141) whenever the file is larger
-            # than the pipe buffer and the milestone block sits near the top.
-            content="$(git show "${PR_SHA}:${file}")"
-
-            # readme.txt has other "* " lists above its changelog, such as the
-            # "* X.Y.Z" items in Compatibility Notes. Only lines in the changelog
-            # section are changelog entries.
-            if [ -n "$section_re" ]; then
-              section="$(awk -v re="$section_re" '$0 ~ re { inside = 1; next } inside { print }' <<< "$content")"
-              added="$(while IFS= read -r entry; do
-                if [ -n "$entry" ] && grep -qxF "$entry" <<< "$section"; then
-                  echo "$entry"
-                fi
-              done <<< "$added")"
-              if [ -z "$added" ]; then
-                return 0
-              fi
-            fi
-
-            # The milestone's block: everything between its header and the next one.
-            block="$(awk -v re="$header_re" '
-              $0 ~ re { inside = 1; next }
-              inside && /^([0-9x]+-[0-9x]+-[0-9x]+ - version |= [0-9])/ { exit }
-              inside { print }
-            ' <<< "$content")"
-
-            if [ -z "$block" ]; then
-              echo "::error file=${file}::No version ${MILESTONE} section found in ${file}."
-              status=1
-              return 0
-            fi
-
-            while IFS= read -r entry; do
-              if [ -n "$entry" ] && ! grep -qxF "$entry" <<< "$block"; then
-                echo "::error file=${file}::Entry is not under version ${MILESTONE} in ${file}: ${entry}"
-                status=1
-              fi
-            done <<< "$added"
+          # The rest of readme.txt (description, Compatibility Notes, Stable tag) is still edited by hand.
+          readme_changelog() {
+            git show "$1:readme.txt" | sed -n '/^== Changelog ==$/,$p'
           }
+          if [ "$(readme_changelog HEAD^1)" != "$(readme_changelog HEAD)" ]; then
+            echo "::error file=readme.txt::The Changelog section of readme.txt is compiled from the files in changelog/ at release time. Remove this edit and run \`npm run changelog\` instead."
+            failed=true
+          fi
 
-          check_file changelog.txt "^[0-9x]+-[0-9x]+-[0-9x]+ - version ${MILESTONE_RE}$"
-          check_file readme.txt "^= ${MILESTONE_RE} - [0-9x]+-[0-9x]+-[0-9x]+ =$" "^== Changelog ==$"
-
-          if [ "$status" -ne 0 ]; then
-            echo "Move the entries into the ${MILESTONE} section of both files."
-            echo "\`npm run changelog\` adds them to the first xxxx-xx-xx block, which may not be the ${MILESTONE} section when this branch is behind the current release."
+          if [ "$failed" = "true" ]; then
+            echo "If this PR is meant to edit the compiled changelog (for example to correct a released entry), add the \`changelog\` label."
             exit 1
           fi
-          echo "Changelog entries are under version ${MILESTONE} ✅"
+          echo "No direct edits to the compiled changelog ✅"
+
+      - name: Add composer to cache
+        if: steps.classify.outputs.touches_entries == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/composer/
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+
+      - name: Set up PHP
+        if: steps.classify.outputs.touches_entries == 'true'
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2.40.0
+        with:
+          php-version: '7.4'
+          tools: composer
+          coverage: none
+
+      - name: Validate changelog entry files
+        if: steps.classify.outputs.touches_entries == 'true'
+        run: |
+          composer install --no-progress
+          ./vendor/bin/changelogger validate --gh-action
