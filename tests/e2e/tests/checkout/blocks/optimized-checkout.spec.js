@@ -8,6 +8,7 @@ const {
 	setupCart,
 	setupOptimizedCheckout,
 	fillOCDetails,
+	tickSavePaymentMethodBlocks,
 	clickPlaceOrder,
 	getCartTotal,
 	waitForOrderReceivedPageAndConfirmExpectedTotal,
@@ -77,7 +78,7 @@ test.describe( 'Optimized Checkout payment tests @blocks', () => {
 					config.get( 'users.customer.password' )
 				);
 				await setupOptimizedCheckout( page, 'blocks' );
-				await page.getByLabel( 'Save payment information' ).click();
+				await tickSavePaymentMethodBlocks( page );
 				await fillOCDetails( page, config.get( 'cards.basic' ) );
 
 				const expectedTotal = await getCartTotal( page );
@@ -93,7 +94,7 @@ test.describe( 'Optimized Checkout payment tests @blocks', () => {
 
 			await test.step( 'Save a second payment method and make it the default', async () => {
 				await setupOptimizedCheckout( page, 'blocks' );
-				await page.getByLabel( 'Save payment information' ).click();
+				await tickSavePaymentMethodBlocks( page );
 				await fillOCDetails( page, config.get( 'cards.basic2' ) );
 
 				const expectedTotal = await getCartTotal( page );
