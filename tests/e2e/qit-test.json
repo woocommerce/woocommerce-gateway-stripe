@@ -88,6 +88,16 @@
 					]
 				}
 			}
+		},
+		"woocommerce-gateway-stripe/e2e-optimized-checkout-link-off": {
+			"description": "Optimized Checkout save-and-reuse tests - MUST provide keys for a Stripe account with Link turned off in STRIPE_PUB_KEY/STRIPE_SECRET_KEY",
+			"test": {
+				"phases": {
+					"run": [
+						"npx playwright test --config=./qit/playwright.config.js --project=oc-link-off-setup --project=optimized-checkout-link-off"
+					]
+				}
+			}
 		}
 	}
 }
