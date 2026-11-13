@@ -960,7 +960,8 @@ class WC_Stripe {
 	/**
 	 * Enable or disable UPE.
 	 *
-	 * When enabling UPE: For each currently enabled Stripe LPM, the corresponding UPE method is enabled.
+	 * When enabling UPE: the saved payment method selection is kept, including an empty list.
+	 * Card and Link are used only when the setting key is absent.
 	 *
 	 * When disabling UPE: For each currently enabled UPE method, the corresponding LPM is enabled.
 	 *

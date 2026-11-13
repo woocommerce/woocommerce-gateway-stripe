@@ -253,9 +253,10 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @param array  $preferences   Existing saved preferences.
 	 * @param string $previous_mode Mode with previously configured credentials.
 	 * @param array  $account_data  Account data, empty when credentials have expired.
+	 * @param string $type          Connection type ('connect' or 'app').
 	 * @since x.x.x
 	 */
-	public function test_reconnect_preserves_existing_preferences( array $preferences, string $previous_mode = 'test', array $account_data = [ 'country' => 'US' ] ): void {
+	public function test_reconnect_preserves_existing_preferences( array $preferences, string $previous_mode = 'test', array $account_data = [ 'country' => 'US' ], string $type = 'connect' ): void {
 		if ( ! empty( $account_data ) ) {
 			$account_data['capabilities'] = [ 'card_payments' => 'active' ];
 		}
@@ -266,7 +267,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			[
 				$prefix . 'publishable_key' => 'pk_' . $previous_mode . '_previous',
 				$prefix . 'secret_key'      => 'sk_' . $previous_mode . '_previous',
-				'pmc_enabled'               => 'yes',
+				'pmc_enabled'               => 'connect' === $type ? 'yes' : 'no',
 			],
 			$preferences
 		);
@@ -276,12 +277,13 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		try {
 			for ( $attempt = 0; $attempt < 2; $attempt++ ) {
-				$this->invoke_save_stripe_keys( 'pk_test_previous', 'sk_test_previous' );
+				$this->invoke_save_stripe_keys( 'pk_test_previous', 'sk_test_previous', 'test', $type );
 				$snapshots = [ 'OAuth' => WC_Stripe_Helper::get_stripe_settings() ];
 				// A settings-page reload constructs the gateway from persisted options.
 				$controller = new WC_REST_Stripe_Settings_Controller( new WC_Stripe_UPE_Payment_Gateway() );
 				$response   = $controller->get_settings();
 				$this->assertSame( 200, $response->get_status() );
+				$this->assertSame( 'connect' === $type, $response->get_data()['is_pmc_enabled'] );
 				$snapshots['GET'] = WC_Stripe_Helper::get_stripe_settings();
 				foreach ( $snapshots as $stage => $saved ) {
 					foreach ( [ 'upe_checkout_experience_accepted_payments', 'express_checkout_button_locations', 'express_checkout_button_type', 'express_checkout_button_theme', 'express_checkout_button_size', 'optimized_checkout_element', 'adaptive_pricing' ] as $key ) {
@@ -313,7 +315,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	public function provide_reconnect_preferences(): array {
-		return [
+		$cases = [
 			'missing settings stay missing'            => [ [ 'upe_checkout_experience_enabled' => 'yes' ] ],
 			'previous live connection'                 => [ [ 'upe_checkout_experience_enabled' => 'yes' ], 'live' ],
 			'expired credentials without account data' => [
@@ -346,6 +348,10 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 			],
 		];
+		foreach ( [ 'missing settings stay missing', 'custom selections' ] as $name ) {
+			$cases[ 'app: ' . $name ] = [ $cases[ $name ][0], 'test', [ 'country' => 'US' ], 'app' ];
+		}
+		return $cases;
 	}
 
 	/**
@@ -1141,14 +1147,18 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @param string $publishable_key The publishable key to save.
 	 * @param string $secret_key      The secret key to save.
 	 * @param string $mode            The mode to connect to.
+	 * @param string $type            Connection type ('connect' or 'app').
 	 */
-	private function invoke_save_stripe_keys( $publishable_key, $secret_key, $mode = 'test' ) {
+	private function invoke_save_stripe_keys( $publishable_key, $secret_key, $mode = 'test', $type = 'connect' ) {
 		$result                 = new stdClass();
 		$result->publishableKey = $publishable_key; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 		$result->secretKey      = $secret_key; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		if ( 'app' === $type ) {
+			$result->refreshToken = 'rt_test_refreshed'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		}
 
 		$method = new ReflectionMethod( WC_Stripe_Connect::class, 'save_stripe_keys' );
 		$method->setAccessible( true );
-		$method->invoke( $this->connect, $result, 'connect', $mode );
+		$method->invoke( $this->connect, $result, $type, $mode );
 	}
 }
