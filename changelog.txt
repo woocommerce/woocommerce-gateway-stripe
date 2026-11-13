@@ -12,6 +12,7 @@ xxxx-xx-xx - version 11.3.0
 * Fix - Keep a subscription's Stripe customer when its card is changed with 3D Secure, so renewals don't fail
 * Dev - Upgrade Playwright to stay compatible with GitHub CI environment
 * Dev - Behind a feature flag, find Stripe events whose webhook delivery failed and process them in the background
+* Update - Allow payment intent meta to be customised via the wc_stripe_checkout_session_payment_intent_data filter
 
 2026-11-10 - version 11.2.0
 * Fix - Refund or void a Stripe payment that succeeds for an order that was already cancelled, instead of leaving the shopper charged
