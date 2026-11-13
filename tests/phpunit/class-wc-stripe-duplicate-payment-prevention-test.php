@@ -383,6 +383,59 @@ class WC_Stripe_Duplicate_Payment_Prevention_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Through the order-received hook, only the recorded order's own received page clears the
+	 * record. Another order that shares the cart key (a second order with the same cart and email,
+	 * whether from a guest or the same logged-in customer) or a wrong order key leaves it in place.
+	 *
+	 * @param string $viewed      Which order the received page shows: 'recorded' or 'other'.
+	 * @param bool   $valid_key   Whether the request carries the viewed order's key.
+	 * @param int    $customer_id The customer ID on every order (0 for guests).
+	 * @param bool   $still_found Whether a resubmit still finds the recorded order afterwards.
+	 * @dataProvider provide_order_received_visits
+	 */
+	public function test_maybe_clear_duplicate_payment_record( string $viewed, bool $valid_key, int $customer_id, bool $still_found ): void {
+		$paid = $this->make_paid_order( self::CART_HASH, self::EMAIL, $customer_id );
+		WC_Stripe_Duplicate_Payment_Prevention::record_paid_order( $paid );
+
+		$shown = 'recorded' === $viewed ? $paid : $this->make_order( self::CART_HASH, self::EMAIL, $customer_id );
+
+		global $wp;
+		add_filter( 'woocommerce_is_order_received_page', '__return_true' );
+		$wp->query_vars['order-received'] = $shown->get_id();
+		$_GET['key']                      = $valid_key ? $shown->get_order_key() : 'wc_order_wrong';
+		try {
+			WC_Stripe_Duplicate_Payment_Prevention::maybe_clear_duplicate_payment_record();
+		} finally {
+			remove_filter( 'woocommerce_is_order_received_page', '__return_true' );
+			unset( $wp->query_vars['order-received'], $_GET['key'] );
+		}
+
+		$resend = $this->make_order( self::CART_HASH, self::EMAIL, $customer_id );
+		$found  = WC_Stripe_Duplicate_Payment_Prevention::get_recent_paid_order( $resend );
+
+		if ( $still_found ) {
+			$this->assertInstanceOf( WC_Order::class, $found );
+			$this->assertSame( $paid->get_id(), $found->get_id() );
+		} else {
+			$this->assertNull( $found );
+		}
+	}
+
+	/**
+	 * Data provider for test_maybe_clear_duplicate_payment_record.
+	 *
+	 * @return array
+	 */
+	public function provide_order_received_visits(): array {
+		return [
+			'other guest order, same cart and email' => [ 'other', true, 0, true ],
+			'recorded order clears it'               => [ 'recorded', true, 0, false ],
+			'wrong key does not clear'               => [ 'recorded', false, 0, true ],
+			'same customer, own other order'         => [ 'other', true, 7, true ],
+		];
+	}
+
+	/**
 	 * The per-cart lock is exclusive: a second acquire fails until the first is released.
 	 */
 	public function test_lock_is_exclusive_until_released(): void {
@@ -435,16 +488,18 @@ class WC_Stripe_Duplicate_Payment_Prevention_Test extends WP_UnitTestCase {
 	/**
 	 * Builds an order carrying a given cart hash and billing email.
 	 *
-	 * @param string $cart_hash The cart hash to store on the order.
-	 * @param string $email     The billing email to store on the order.
+	 * @param string $cart_hash   The cart hash to store on the order.
+	 * @param string $email       The billing email to store on the order.
+	 * @param int    $customer_id The customer ID to store on the order, 0 for a guest.
 	 * @return WC_Order
 	 */
-	private function make_order( string $cart_hash, string $email ): WC_Order {
+	private function make_order( string $cart_hash, string $email, int $customer_id = 0 ): WC_Order {
 		$order = new WC_Order();
 		// WC 10.8+ blocks payment_complete() without checkout evidence.
 		$order->set_created_via( 'checkout' );
 		$order->set_cart_hash( $cart_hash );
 		$order->set_billing_email( $email );
+		$order->set_customer_id( $customer_id );
 		$order->save();
 
 		return $order;
@@ -496,12 +551,13 @@ class WC_Stripe_Duplicate_Payment_Prevention_Test extends WP_UnitTestCase {
 	/**
 	 * Builds a paid order carrying a given cart hash and billing email.
 	 *
-	 * @param string $cart_hash The cart hash to store on the order.
-	 * @param string $email     The billing email to store on the order.
+	 * @param string $cart_hash   The cart hash to store on the order.
+	 * @param string $email       The billing email to store on the order.
+	 * @param int    $customer_id The customer ID to store on the order, 0 for a guest.
 	 * @return WC_Order
 	 */
-	private function make_paid_order( string $cart_hash, string $email ): WC_Order {
-		$order = $this->make_order( $cart_hash, $email );
+	private function make_paid_order( string $cart_hash, string $email, int $customer_id = 0 ): WC_Order {
+		$order = $this->make_order( $cart_hash, $email, $customer_id );
 		$order->payment_complete();
 
 		return wc_get_order( $order->get_id() );
