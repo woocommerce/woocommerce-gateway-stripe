@@ -398,7 +398,7 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper implements ProductMapperInterfac
 	 * @return string|null Product MPN or null.
 	 */
 	protected function get_mpn( \WC_Product $product ): ?string {
-		$mpn = $product->get_meta( '_mpn' );
+		$mpn = method_exists( $product, 'get_mpn' ) ? $product->get_mpn() : $product->get_meta( '_mpn' );
 		if ( $mpn ) {
 			return $mpn;
 		}

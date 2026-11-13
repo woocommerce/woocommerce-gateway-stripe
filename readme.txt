@@ -171,6 +171,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Avoid expensive variation lookup in express checkout setup on product pages
 * Dev - Add WC_Stripe_Tracks class to support more consistent events
 * Dev - Load React's JSX runtime from WordPress core instead of bundling it, and declare "Tested up to" only in readme.txt
+* Fix - Avoid internal metadata warnings when generating Agentic Commerce product feeds with WooCommerce 11.4 or newer
 * Fix - Stop rewriting a saved payment method's name, email, and phone in Stripe when it is used at checkout; only the billing address is refreshed
 * Dev - Run every E2E test project under both a classic theme (Storefront) and a block theme (Twenty Twenty-Five) in CI, and make the shared E2E helpers theme-agnostic
 * Fix - Show country-restricted payment methods such as iDEAL on Adaptive Pricing checkout once the shopper enters a billing country they are available in
