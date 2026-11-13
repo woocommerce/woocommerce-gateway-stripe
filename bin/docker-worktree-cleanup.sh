@@ -23,6 +23,12 @@ if [[ -n "$GIT_DIR" && "$GIT_DIR" == "$GIT_COMMON_DIR" ]]; then
     exit 1
 fi
 
+# This script destroys resources, so it must act only on the worktree's
+# persisted state: values exported in the invoking shell (for example an
+# E2E_PROJECT override pointing at another worktree's stack) survive
+# `source .env` when the file lacks the key, and would redirect the teardown.
+unset WORKTREE_ID WORDPRESS_PORT E2E_PROJECT E2E_WP_PORT E2E_DB_PORT
+
 WORKTREE_ID="default"
 if [[ -f ".env" ]]; then
     source .env
@@ -50,6 +56,50 @@ if docker ps --format '{{.Names}}' | grep -q "wcstripe_db"; then
     fi
 else
     echo "Database container not running, skipping test database cleanup."
+fi
+
+# Tear down this worktree's e2e Docker stack (wordpress + mysql + stripe-listener
+# and its named volume). `docker compose -p <project> down` locates containers by
+# their project label, so no compose file is needed here. A worktree .env that
+# still holds the main-checkout default project means it was copied from the main
+# checkout — tearing that project down would kill the main checkout's stack, so
+# skip it (worktree:setup warns about such .env files).
+. "$(dirname "${BASH_SOURCE[0]}")/../tests/e2e/bin/e2e-stack-defaults.sh"
+if [[ -z "$E2E_PROJECT" ]]; then
+    # Same sanitization worktree:setup applies when deriving the project name.
+    E2E_PROJECT="$E2E_DEFAULT_PROJECT-$(echo "$WORKTREE_ID" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/_/g')"
+fi
+if [[ "$E2E_PROJECT" == "$E2E_DEFAULT_PROJECT" ]]; then
+    echo "Skipping e2e stack teardown: E2E_PROJECT is the main-checkout default ($E2E_DEFAULT_PROJECT)."
+else
+    if [[ -n "$(docker compose -p "$E2E_PROJECT" ps -a -q 2>/dev/null)" ]]; then
+        echo "Tearing down e2e Docker stack: ${E2E_PROJECT}"
+        docker compose -p "$E2E_PROJECT" down --volumes --remove-orphans
+    else
+        echo "No e2e containers found for this worktree."
+    fi
+
+    # `test:e2e-down` removes the containers without --volumes, so the named
+    # volume can outlive them and would dangle after the worktree is removed.
+    leftover_volumes=$(docker volume ls -q --filter "label=com.docker.compose.project=$E2E_PROJECT" 2>/dev/null || true)
+    if [[ -n "$leftover_volumes" ]]; then
+        echo "Removing leftover e2e volumes: $leftover_volumes"
+        # shellcheck disable=SC2086 # volume ids are newline-separated words
+        docker volume rm $leftover_volumes > /dev/null
+    fi
+
+    # The WP install, mariadb datadir, and logs are bind mounts under
+    # tests/e2e/env/docker, which `down --volumes` never touches. On Linux the
+    # DB files are owned by the container's uid, which makes the host-side
+    # `git worktree remove` fail; delete via a container when rm cannot.
+    E2E_DATA_DIR="tests/e2e/env/docker"
+    if [[ -d "$E2E_DATA_DIR" ]]; then
+        echo "Removing e2e bind-mount data: $E2E_DATA_DIR"
+        if ! rm -rf "$E2E_DATA_DIR" 2>/dev/null; then
+            docker run --rm -v "$(pwd)/$E2E_DATA_DIR":/data alpine sh -c 'find /data -mindepth 1 -delete'
+            rmdir "$E2E_DATA_DIR"
+        fi
+    fi
 fi
 
 if [[ -f ".env" ]]; then

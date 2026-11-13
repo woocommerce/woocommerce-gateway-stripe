@@ -29,12 +29,15 @@ for arg in "$@"; do
 	fi
 done
 
-if [[ "wordpress" != "$(docker compose -p wcstripe-e2e ps --services --filter "status=running" | grep wordpress)" ]]; then
+# Without -f, compose would read whatever compose file sits in the cwd (the
+# dev-site one at the repo root) and only match "wordpress" by coincidence of
+# both files naming the service that.
+if [[ "wordpress" != "$(CWD="$CWD" docker compose -p "$E2E_PROJECT" -f "$E2E_ROOT/env/docker-compose.yml" ps --services --filter "status=running" 2>/dev/null | grep wordpress)" ]]; then
 	error "Docker E2E containers are not running, please start them with 'npm run test:e2e-up' or 'npm run test:e2e-setup' and try again."
 	exit 1
 fi
 
-TEST_ENV="$TEST_ENV DOCKER=true E2E_ROOT=${E2E_ROOT} BASE_URL='http://localhost:8088'"
+TEST_ENV="$TEST_ENV DOCKER=true E2E_ROOT=${E2E_ROOT} BASE_URL='http://localhost:${E2E_WP_PORT}'"
 TEST_ENV="$TEST_ENV ADMIN_USER='admin' ADMIN_PASSWORD='admin'"
 
 # A reused local Docker store must not keep another project's availability stub.

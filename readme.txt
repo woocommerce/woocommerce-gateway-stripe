@@ -178,5 +178,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Keep a subscription's Stripe customer when its card is changed with 3D Secure, so renewals don't fail
 * Dev - Upgrade Playwright to stay compatible with GitHub CI environment
 * Dev - Behind a feature flag, find Stripe events whose webhook delivery failed and process them in the background
+* Dev - Give each git worktree its own isolated local E2E Docker stack, derived by `worktree:setup` and covered by `worktree:status` and `worktree:cleanup`
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

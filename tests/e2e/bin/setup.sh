@@ -115,9 +115,9 @@ fetch_plugin_zip "woocommerce/woocommerce-pre-orders" "woocommerce-pre-orders.zi
 
 step "Starting E2E docker containers"
 if [ "$CI" = "true" ]; then
-    CWD="$CWD" E2E_ROOT="$E2E_ROOT" redirect_output docker compose -p wcstripe-e2e -f "$E2E_ROOT"/env/docker-compose.yml up --build --force-recreate -d
+    CWD="$CWD" E2E_ROOT="$E2E_ROOT" redirect_output docker compose -p "$E2E_PROJECT" -f "$E2E_ROOT"/env/docker-compose.yml up --build --force-recreate -d
 else
-    CWD="$CWD" E2E_ROOT="$E2E_ROOT" redirect_output docker compose -p wcstripe-e2e --env-file "$E2E_ROOT"/config/local.env -f "$E2E_ROOT"/env/docker-compose.yml up --build --force-recreate -d
+    CWD="$CWD" E2E_ROOT="$E2E_ROOT" redirect_output docker compose -p "$E2E_PROJECT" --env-file "$E2E_ROOT"/config/local.env -f "$E2E_ROOT"/env/docker-compose.yml up --build --force-recreate -d
 fi
 
 step "Configuring WordPress"
@@ -134,12 +134,19 @@ set -e
 
 redirect_output cli wp core install \
 	--path=/var/www/html \
-	--url="http://localhost:8088" \
+	--url="http://localhost:${E2E_WP_PORT}" \
 	--title="WCStripe E2E test store" \
 	--admin_name="${ADMIN_USER}" \
 	--admin_password="${ADMIN_PASSWORD}" \
 	--admin_email="${ADMIN_EMAIL}" \
 	--skip-email
+
+# `wp core install` is a no-op when the DB (a bind mount that outlives
+# `down --volumes`) already holds an install, so a stack re-created on a
+# different host port would keep 301-redirecting to the old one. Pin the
+# URLs to this run's port explicitly.
+redirect_output cli wp option update home "http://localhost:${E2E_WP_PORT}"
+redirect_output cli wp option update siteurl "http://localhost:${E2E_WP_PORT}"
 
 if [[ -n "$WP_VERSION" && "$WP_VERSION" != "latest" ]]; then
 	echo " - Installing WordPress ${WP_VERSION}..."
@@ -277,4 +284,4 @@ echo "Subscriptions => $(cli wp plugin get woocommerce-subscriptions --field=ver
 echo "Pre-Orders    => $(cli wp plugin get woocommerce-pre-orders --field=version)"
 echo "============================================================"
 echo
-step "E2E environment up and running at http://localhost:8088/wp-admin/"
+step "E2E environment up and running at http://localhost:${E2E_WP_PORT}/wp-admin/"
