@@ -340,6 +340,356 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 	}
 
 	/**
+	 * Webhook cleanup and the disconnect event need valid keys, so both must finish
+	 * before a requested OAuth revocation.
+	 */
+	public function test_disconnect_decommissions_webhook_before_deauthorizing_connection() {
+		$settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$settings['publishable_key']      = 'pk_live_old';
+		$settings['secret_key']           = 'sk_live_old';
+		$settings['connection_type']      = 'connect';
+		$settings['testmode']             = 'no';
+		$settings['webhook_data']         = [
+			'id'     => 'wh_old',
+			'secret' => 'sk_live_old',
+		];
+		$settings['webhook_secret']       = 'whsec_old';
+		$settings['test_publishable_key'] = 'pk_test_old';
+		$settings['test_secret_key']      = 'sk_test_old';
+		$settings['test_connection_type'] = 'connect';
+		$settings['test_webhook_data']    = [
+			'id'     => 'wh_test_old',
+			'secret' => 'sk_test_old',
+		];
+		$settings['test_webhook_secret']  = 'whsec_test_old';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$calls        = [];
+		$mock_account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$mock_account->method( 'get_cached_account_data' )->willReturn( [ 'id' => 'acct_live_old' ] );
+		$mock_account->expects( $this->exactly( 2 ) )
+			->method( 'maybe_decommission_webhook' )
+			->willReturnCallback(
+				function ( $webhook_data, $new_secret_key ) use ( &$calls ) {
+					$this->assertSame( '', $new_secret_key );
+					$calls[] = $webhook_data['id'];
+					return true;
+				}
+			);
+
+		$connect_mock = $this->getMockBuilder( WC_Stripe_Connect::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'deauthorize_oauth_connections', 'clear_caches_after_key_update' ] )
+			->getMock();
+		$connect_mock->expects( $this->once() )
+			->method( 'deauthorize_oauth_connections' )
+			->willReturnCallback(
+				function () use ( &$calls ) {
+					$events = $this->get_captured_tracks_event_properties( 'wcadmin_wcstripe_stripe_disconnected' );
+					$this->assertCount( 1, $events );
+					$this->assertSame( 'acct_live_old', $events[0]['account_id'] );
+					$calls[] = 'deauthorize';
+					return [
+						'live' => true,
+					];
+				}
+			);
+
+		$original_connect                  = WC_Stripe::get_instance()->connect;
+		WC_Stripe::get_instance()->connect = $connect_mock;
+		$this->start_capturing_tracks_events();
+
+		try {
+			$request = new WP_REST_Request( 'POST', self::ROUTE );
+			$request->set_param( 'publishable_key', '' );
+			$request->set_param( 'secret_key', '' );
+			$request->set_param( 'test_publishable_key', '' );
+			$request->set_param( 'test_secret_key', '' );
+			$request->set_param( 'deauthorize_connection', true );
+
+			$response = ( new WC_REST_Stripe_Account_Keys_Controller( $mock_account ) )->set_account_keys( $request );
+			$this->assertSame( 200, $response->get_status() );
+			$this->assertSame( [ 'wh_old', 'wh_test_old', 'deauthorize' ], $calls );
+
+			$saved_settings = WC_Stripe_Helper::get_stripe_settings();
+			$this->assertSame( [], $saved_settings['webhook_data'] );
+			$this->assertSame( '', $saved_settings['webhook_secret'] );
+			$this->assertSame( [], $saved_settings['test_webhook_data'] );
+			$this->assertSame( '', $saved_settings['test_webhook_secret'] );
+		} finally {
+			$this->stop_capturing_tracks_events();
+			WC_Stripe::get_instance()->connect = $original_connect;
+		}
+	}
+
+	/**
+	 * Asserts that disconnecting (emptying all keys) triggers OAuth deauthorization only
+	 * when the request opts in via the deauthorize_connection param.
+	 *
+	 * @param bool|null $deauthorize_param Param value, or null to omit it from the request.
+	 * @param int       $expected_calls    Expected deauthorize_oauth_connections() invocations.
+	 *
+	 * @dataProvider provide_disconnect_deauthorization
+	 */
+	public function test_disconnect_deauthorizes_connections_only_when_requested( $deauthorize_param, $expected_calls ) {
+		$connect_mock = $this->getMockBuilder( WC_Stripe_Connect::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'deauthorize_oauth_connections', 'clear_caches_after_key_update' ] )
+			->getMock();
+		$connect_mock->expects( $this->exactly( $expected_calls ) )
+			->method( 'deauthorize_oauth_connections' )
+			->willReturn( [] );
+
+		$original_connect                  = WC_Stripe::get_instance()->connect;
+		WC_Stripe::get_instance()->connect = $connect_mock;
+
+		try {
+			$request = new WP_REST_Request( 'POST', self::ROUTE );
+			$request->set_param( 'publishable_key', '' );
+			$request->set_param( 'secret_key', '' );
+			$request->set_param( 'webhook_secret', '' );
+			$request->set_param( 'test_publishable_key', '' );
+			$request->set_param( 'test_secret_key', '' );
+			$request->set_param( 'test_webhook_secret', '' );
+			if ( null !== $deauthorize_param ) {
+				$request->set_param( 'deauthorize_connection', $deauthorize_param );
+			}
+
+			$response = $this->controller->set_account_keys( $request );
+			$this->assertEquals( 200, $response->get_status() );
+		} finally {
+			WC_Stripe::get_instance()->connect = $original_connect;
+		}
+	}
+
+	/**
+	 * Provider for test_disconnect_deauthorizes_connections_only_when_requested.
+	 */
+	public function provide_disconnect_deauthorization() {
+		return [
+			'flag set'    => [ true, 1 ],
+			'flag false'  => [ false, 0 ],
+			'flag absent' => [ null, 0 ],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_disconnect_revocation_results
+	 * @param array $settings_overrides Changes to a store with both live and test keys.
+	 * @param array $failures           Modes whose revocation fails.
+	 * @param array $previous_modes     Outstanding warnings from earlier disconnects.
+	 * @param array $expected_modes     Modes retained in the warning.
+	 * @param array $expected_counts    Expected requests per mode, including retries.
+	 */
+	public function test_disconnect_retries_and_persists_unconfirmed_modes( $settings_overrides, $failures, $previous_modes, $expected_modes, $expected_counts ) {
+		$settings = [
+			'enabled'              => 'yes',
+			'connection_type'      => 'connect',
+			'publishable_key'      => 'pk_live_example',
+			'secret_key'           => 'sk_live_example',
+			'test_connection_type' => 'connect',
+			'test_publishable_key' => 'pk_test_example',
+			'test_secret_key'      => 'sk_test_example',
+		];
+		$settings = array_merge( $settings, $settings_overrides );
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		$this->set_stripe_account_data(
+			[
+				'id'      => 'acct_123',
+				'country' => 'US',
+			]
+		);
+		if ( $previous_modes ) {
+			update_option( 'wc_stripe_oauth_deauthorization_failed_modes', $previous_modes );
+		}
+
+		$counts                            = [
+			'live' => 0,
+			'test' => 0,
+		];
+		$mock                              = function ( $preempt, $args, $url ) use ( &$counts, $failures, $settings ) {
+			$this->assertStringEndsWith( '/stripe/account/deauthorize-by-key', $url );
+			$body   = json_decode( $args['body'], true );
+			$mode   = 0 === strpos( $body['secretKey'], 'sk_test_' ) ? 'test' : 'live';
+			$prefix = 'test' === $mode ? 'test_' : '';
+			$this->assertSame( 'acct_123', $body['accountId'] );
+			$this->assertSame( $settings[ $prefix . 'secret_key' ], $body['secretKey'] );
+			$this->assertArrayNotHasKey( 'platform', $body );
+			$this->assertSame( $settings[ $prefix . 'secret_key' ], WC_Stripe_Helper::get_stripe_settings()[ $prefix . 'secret_key' ] );
+			++$counts[ $mode ];
+			$failed = in_array( $mode, $failures, true );
+			return [
+				'headers'  => [ 'content-type' => 'application/json' ],
+				'response' => [ 'code' => $failed ? 503 : 200 ],
+				'body'     => wp_json_encode( $failed ? [ 'message' => 'Unavailable' ] : [ 'accountId' => 'acct_123' ] ),
+			];
+		};
+		$original_connect                  = WC_Stripe::get_instance()->connect;
+		WC_Stripe::get_instance()->connect = new WC_Stripe_Connect( new WC_Stripe_Connect_API() );
+		add_filter( 'pre_http_request', $mock, 10, 3 );
+
+		try {
+			$request = new WP_REST_Request( 'POST', self::ROUTE );
+			foreach ( [ 'publishable_key', 'secret_key', 'test_publishable_key', 'test_secret_key', 'webhook_secret', 'test_webhook_secret' ] as $key ) {
+				$request->set_param( $key, '' );
+			}
+			$request->set_param( 'deauthorize_connection', true );
+			$response = $this->controller->set_account_keys( $request );
+
+			$this->assertSame( 200, $response->get_status() );
+			$this->assertSame( $expected_modes, get_option( 'wc_stripe_oauth_deauthorization_failed_modes', [] ) );
+			$saved_settings = WC_Stripe_Helper::get_stripe_settings();
+			$this->assertSame( 'no', $saved_settings['enabled'] );
+			foreach ( [ 'live', 'test' ] as $mode ) {
+				$prefix = 'test' === $mode ? 'test_' : '';
+				$this->assertSame( '', $saved_settings[ $prefix . 'secret_key' ] );
+				$this->assertSame( '', $saved_settings[ $prefix . 'connection_type' ] );
+				$this->assertSame( $expected_counts[ $mode ], $counts[ $mode ] );
+			}
+		} finally {
+			remove_filter( 'pre_http_request', $mock );
+			WC_Stripe::get_instance()->connect = $original_connect;
+		}
+	}
+
+	public function provide_disconnect_revocation_results() {
+		$test_only = [
+			'connection_type' => '',
+			'publishable_key' => '',
+			'secret_key'      => '',
+			'testmode'        => 'yes',
+		];
+		$live_only = [
+			'test_connection_type' => '',
+			'test_publishable_key' => '',
+			'test_secret_key'      => '',
+			'testmode'             => 'no',
+		];
+
+		return [
+			'both keys in live mode'       => [
+				[ 'testmode' => 'no' ],
+				[],
+				[],
+				[],
+				[
+					'live' => 1,
+					'test' => 0,
+				],
+			],
+			'both keys in test mode'       => [
+				[ 'testmode' => 'yes' ],
+				[],
+				[],
+				[],
+				[
+					'live' => 1,
+					'test' => 0,
+				],
+			],
+			'test keys only'               => [
+				$test_only,
+				[],
+				[],
+				[],
+				[
+					'live' => 0,
+					'test' => 1,
+				],
+			],
+			'live keys only'               => [
+				$live_only,
+				[],
+				[],
+				[],
+				[
+					'live' => 1,
+					'test' => 0,
+				],
+			],
+			'live failure in live mode'    => [
+				[ 'testmode' => 'no' ],
+				[ 'live' ],
+				[],
+				[ 'live' ],
+				[
+					'live' => 3,
+					'test' => 0,
+				],
+			],
+			'live failure in test mode'    => [
+				[ 'testmode' => 'yes' ],
+				[ 'live' ],
+				[],
+				[ 'live' ],
+				[
+					'live' => 3,
+					'test' => 0,
+				],
+			],
+			'test-only failure'            => [
+				$test_only,
+				[ 'test' ],
+				[],
+				[ 'test' ],
+				[
+					'live' => 0,
+					'test' => 3,
+				],
+			],
+			'earlier warning is preserved' => [
+				$test_only,
+				[ 'test' ],
+				[ 'live' ],
+				[ 'live', 'test' ],
+				[
+					'live' => 0,
+					'test' => 3,
+				],
+			],
+			'new success retains warning'  => [
+				[ 'testmode' => 'no' ],
+				[],
+				[ 'live' ],
+				[ 'live' ],
+				[
+					'live' => 1,
+					'test' => 0,
+				],
+			],
+		];
+	}
+
+	/**
+	 * A key update that is not a disconnect must never trigger deauthorization, even when
+	 * the flag is (incorrectly) sent.
+	 */
+	public function test_key_update_with_deauthorize_flag_does_not_deauthorize() {
+		$connect_mock = $this->getMockBuilder( WC_Stripe_Connect::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'deauthorize_oauth_connections', 'clear_caches_after_key_update' ] )
+			->getMock();
+		$connect_mock->expects( $this->never() )
+			->method( 'deauthorize_oauth_connections' );
+
+		$original_connect                  = WC_Stripe::get_instance()->connect;
+		WC_Stripe::get_instance()->connect = $connect_mock;
+
+		try {
+			$request = new WP_REST_Request( 'POST', self::ROUTE );
+			$request->set_param( 'publishable_key', 'pk_live-key-12345' );
+			$request->set_param( 'secret_key', 'sk_live_secret-key-12345' );
+			$request->set_param( 'deauthorize_connection', true );
+
+			$response = $this->controller->set_account_keys( $request );
+			$this->assertEquals( 200, $response->get_status() );
+		} finally {
+			WC_Stripe::get_instance()->connect = $original_connect;
+		}
+	}
+	/**
 	 * Disconnecting must report the account that was connected. The ID has to be read before the
 	 * emptied keys are saved, because afterwards the store no longer resolves to any account.
 	 */

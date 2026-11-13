@@ -59,34 +59,39 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 				'callback'            => [ $this, 'set_account_keys' ],
 				'permission_callback' => [ $this, 'check_permission' ],
 				'args'                => [
-					'publishable_key'      => [
+					'publishable_key'        => [
 						'description'       => __( 'Your Stripe API Publishable key, obtained from your Stripe dashboard.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
 						'validate_callback' => [ $this, 'validate_publishable_key' ],
 					],
-					'secret_key'           => [
+					'secret_key'             => [
 						'description'       => __( 'Your Stripe API Secret, obtained from your Stripe dashboard.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
 						'validate_callback' => [ $this, 'validate_secret_key' ],
 					],
-					'webhook_secret'       => [
+					'webhook_secret'         => [
 						'description'       => __( 'Your Stripe webhook endpoint URL, obtained from your Stripe dashboard.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'test_publishable_key' => [
+					'test_publishable_key'   => [
 						'description'       => __( 'Your Stripe testing API Publishable key, obtained from your Stripe dashboard.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
 						'validate_callback' => [ $this, 'validate_test_publishable_key' ],
 					],
-					'test_secret_key'      => [
+					'test_secret_key'        => [
 						'description'       => __( 'Your Stripe testing API Secret, obtained from your Stripe dashboard.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
 						'validate_callback' => [ $this, 'validate_test_secret_key' ],
 					],
-					'test_webhook_secret'  => [
+					'test_webhook_secret'    => [
 						'description'       => __( 'Your Stripe testing webhook endpoint URL, obtained from your Stripe dashboard.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'deauthorize_connection' => [
+						'description'       => __( 'Whether to also revoke the Connect API keys issued for the account when disconnecting.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
 				],
@@ -297,9 +302,24 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 							&& ! $settings['test_publishable_key']
 							&& ! $settings['test_secret_key'];
 
+		// Stripe needs the existing key to delete webhooks before optional revocation invalidates it.
+		$settings = $this->decommission_configured_webhook_after_key_update( $settings, $current_account_keys );
+
 		if ( $is_deleting_account ) {
-			// Ensure we record the disconnect before we overwrite any settings.
+			// Resolving the account for Tracks still requires valid keys before revocation.
 			$this->record_manual_account_keys_tracks_event( 'wcstripe_stripe_disconnected', WC_Stripe_Mode::is_test() ? 'test' : 'live', $settings );
+
+			// Revocation must run before the stored credentials are cleared
+			if ( $request->get_param( 'deauthorize_connection' ) ) {
+				$results      = WC_Stripe::get_instance()->connect->deauthorize_oauth_connections();
+				$failed_modes = array_keys( $results, false, true );
+				if ( $failed_modes ) {
+					// The settings screen reloads after disconnecting, so an in-memory
+					// notice would disappear along with the credentials needed to retry.
+					$previous_modes = (array) get_option( 'wc_stripe_oauth_deauthorization_failed_modes', [] );
+					update_option( 'wc_stripe_oauth_deauthorization_failed_modes', array_values( array_unique( array_merge( $previous_modes, $failed_modes ) ) ), false );
+				}
+			}
 
 			$settings['enabled']              = 'no';
 			$settings['connection_type']      = '';
@@ -308,9 +328,6 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 			$settings['refresh_token']        = '';
 			$settings['test_refresh_token']   = '';
 		}
-
-		// Before saving the settings, decommission any previously automatically configured webhook endpoint.
-		$settings = $this->decommission_configured_webhook_after_key_update( $settings, $current_account_keys );
 
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
