@@ -24,7 +24,7 @@
         }
     ],
     "require-dev": {
-        "wp-hooks/generator": "dev-add/line-numbers-to-hook-entries#7b81b62ebf94b4367e67e575f1caea24e7361a84"
+        "wp-hooks/generator": "1.1.0-beta"
     },
     "extra": {
         "wp-hooks": {

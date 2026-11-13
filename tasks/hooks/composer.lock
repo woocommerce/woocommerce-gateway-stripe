@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3e53d4710ef19a4cb94a665b1a941e98",
+    "content-hash": "e408ac8a3ca932df7b416de00642eb59",
     "packages": [],
     "packages-dev": [
         {
@@ -445,7 +445,7 @@
         },
         {
             "name": "wp-hooks/generator",
-            "version": "dev-add/line-numbers-to-hook-entries",
+            "version": "1.1.0-beta",
             "source": {
                 "type": "git",
                 "url": "https://github.com/daledupreez/wp-hooks-generator.git",
@@ -486,7 +486,7 @@
             ],
             "description": "Generates a JSON representation of the WordPress actions and filters in your code",
             "support": {
-                "source": "https://github.com/daledupreez/wp-hooks-generator/tree/add/line-numbers-to-hook-entries"
+                "source": "https://github.com/daledupreez/wp-hooks-generator/tree/1.1.0-beta"
             },
             "funding": [
                 {
@@ -500,7 +500,7 @@
     "aliases": [],
     "minimum-stability": "beta",
     "stability-flags": {
-        "wp-hooks/generator": 20
+        "wp-hooks/generator": 10
     },
     "prefer-stable": false,
     "prefer-lowest": false,
