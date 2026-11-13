@@ -4577,7 +4577,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 
 			// The intent ID comes from the browser, so it can name an intent that was never confirmed.
-			// Without a payment method ID the request below would hit the list endpoint instead.
 			$payment_method_id = $setup_intent->payment_method ?? null;
 			if ( empty( $payment_method_id ) || ! is_string( $payment_method_id ) ) {
 				throw new WC_Stripe_Exception( 'The setup intent has no payment method.' );
