@@ -426,19 +426,51 @@ class WC_Stripe_Checkout_Session_Manager {
 	}
 
 	/**
-	 * Build PaymentIntent metadata for a Checkout Session.
+	 * Build payment_intent_data for a new Checkout Session.
 	 *
 	 * @return array
 	 */
-	private function build_payment_intent_data(): array {
-		$metadata = [
+	public function build_payment_intent_data(): array {
+		$required_metadata = [
 			'site_url'      => esc_url_raw( get_site_url() ),
-			'payment_type'  => 'single',
 			'checkout_type' => self::ADAPTIVE_PRICING_CHECKOUT_TYPE,
 		];
+		$metadata          = array_merge( $required_metadata, [ 'payment_type' => 'single' ] );
 
 		/** Documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php */
-		return [ 'metadata' => apply_filters( 'wc_stripe_payment_metadata', $metadata, null, null ) ];
+		$filtered_metadata = apply_filters( 'wc_stripe_payment_metadata', $metadata, null, null );
+		if ( ! is_array( $filtered_metadata ) ) {
+			$filtered_metadata = $metadata;
+		}
+
+		/**
+		 * Filter the payment_intent_data when creating a new Checkout Session.
+		 *
+		 * Note that this runs after the wc_stripe_payment_metadata filter, so the metadata is already filtered.
+		 * The WooCommerce Cart should also be fully-created by the time this code runs, though the total may
+		 * change later based on taxes, discounts, or shopper modifications to the cart.
+		 *
+		 * @see https://docs.stripe.com/api/checkout/sessions/create#create_checkout_session-payment_intent_data
+		 * @since x.x.x
+		 *
+		 * @param array $payment_intent_data The payment_intent_data to be used when creating the Checkout Session.
+		 */
+		$payment_intent_data = apply_filters( 'wc_stripe_checkout_session_payment_intent_data', [ 'metadata' => $filtered_metadata ] );
+
+		$final_intent_data = [ 'metadata' => $filtered_metadata ];
+
+		// Ensure we return a valid array when the filtered value is not an array.
+		if ( is_array( $payment_intent_data ) ) {
+			$final_intent_data = $payment_intent_data;
+			if ( ! is_array( $final_intent_data['metadata'] ?? null ) ) {
+				$final_intent_data['metadata'] = $filtered_metadata;
+			}
+		}
+
+		// Ensure required metadata fields are included.
+		$final_intent_data['metadata'] = array_merge( $final_intent_data['metadata'], $required_metadata );
+
+		return $final_intent_data;
 	}
 
 	/**
