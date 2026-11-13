@@ -98,6 +98,27 @@ class WC_Stripe_Payment_Methods {
 	];
 
 	/**
+	 * Payment methods that Stripe confirms days after checkout ("delayed notification"): bank debits,
+	 * and vouchers the customer pays later. Their PaymentIntents stay `processing` or `requires_action`
+	 * until Stripe knows the outcome.
+	 *
+	 * Not to be confused with DELAYED_CONFIRMATION_PAYMENT_METHODS, which is about when the front-end
+	 * confirms the intent.
+	 *
+	 * @var array
+	 */
+	public const DELAYED_NOTIFICATION_PAYMENT_METHODS = [
+		self::ACH,
+		self::ACSS_DEBIT,
+		self::BACS_DEBIT,
+		self::BECS_DEBIT,
+		self::SEPA_DEBIT,
+		self::BOLETO,
+		self::MULTIBANCO,
+		self::OXXO,
+	];
+
+	/**
 	 * Payment methods that are considered as BNPL (Buy Now, Pay Later) payment methods.
 	 *
 	 * @var array
