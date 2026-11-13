@@ -676,6 +676,21 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		 * This action is documented in includes/class-wc-stripe-webhook-handler.php.
 		 */
 		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification, null );
+
+		$order_id = $order->get_id();
+
+		/**
+		 * Decide whether to send a failed order email when a dispute is received.
+		 *
+		 * @since x.x.x
+		 *
+		 * @param bool $should_send_email Whether we should send the failed order email. Default is false.
+		 * @param int  $order_id          The order ID.
+		 */
+		$should_send_failed_order_email = apply_filters( 'wc_stripe_send_failed_order_email_for_dispute', false, $order_id );
+		if ( $should_send_failed_order_email ) {
+			$this->send_failed_order_email( $order_id );
+		}
 	}
 
 	/**

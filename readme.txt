@@ -35,6 +35,8 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 
 The following items note specific versions that include important changes, features, or deprecations.
 
+* 11.3.0
+   - Orders placed on hold due to a Stripe dispute no longer trigger a failed order email by default (opt in via the wc_stripe_send_failed_order_email_for_dispute filter)
 * 11.2.0
    - Express checkout buttons now use the same size across payment methods and locations
 * 11.1.0
@@ -166,6 +168,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 11.3.0 - xxxx-xx-xx =
+* Fix - Do not send failed order email when dispute puts order on hold by default, and provide the wc_stripe_send_failed_order_email_for_dispute filter to opt in
 * Update - Start wallet availability checks earlier on Cart and Checkout blocks
 * Update - Improve express checkout wallet startup, availability checks, reuse, and recovery
 * Fix - Avoid expensive variation lookup in express checkout setup on product pages
@@ -174,7 +177,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Stop rewriting a saved payment method's name, email, and phone in Stripe when it is used at checkout; only the billing address is refreshed
 * Dev - Run every E2E test project under both a classic theme (Storefront) and a block theme (Twenty Twenty-Five) in CI, and make the shared E2E helpers theme-agnostic
 * Fix - Show country-restricted payment methods such as iDEAL on Adaptive Pricing checkout once the shopper enters a billing country they are available in
-
 * Fix - Keep a subscription's Stripe customer when its card is changed with 3D Secure, so renewals don't fail
 * Dev - Upgrade Playwright to stay compatible with GitHub CI environment
 * Dev - Behind a feature flag, find Stripe events whose webhook delivery failed and process them in the background
