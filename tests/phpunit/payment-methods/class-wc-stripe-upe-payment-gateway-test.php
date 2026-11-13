@@ -2427,6 +2427,64 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * The setup intent ID is posted by the browser, so it can name an intent that was never
+	 * confirmed, and the payment method lookup can fail. Neither may reach the token creation.
+	 *
+	 * @dataProvider provide_unusable_setup_intent_payment_methods
+	 * @param string|null $intent_payment_method   Payment method ID on the setup intent.
+	 * @param mixed       $payment_method_response Response to the payment method lookup.
+	 * @param int         $expected_requests       Number of Stripe requests expected.
+	 */
+	public function test_add_payment_method_fails_without_a_supported_payment_method( $intent_payment_method, $payment_method_response, $expected_requests ) {
+		$user_id = self::factory()->user->create();
+		update_user_option( $user_id, '_stripe_customer_id', 'cus_mock' );
+		wp_set_current_user( $user_id );
+
+		$setup_intent_mock                   = self::MOCK_CARD_SETUP_INTENT_TEMPLATE;
+		$setup_intent_mock['id']             = 'seti_mock';
+		$setup_intent_mock['customer']       = 'cus_mock';
+		$setup_intent_mock['payment_method'] = $intent_payment_method;
+
+		$this->mock_gateway->expects( $this->exactly( $expected_requests ) )
+			->method( 'stripe_request' )
+			->willReturnOnConsecutiveCalls(
+				$this->array_to_object( $setup_intent_mock ),
+				$payment_method_response
+			);
+
+		$_POST['wc-stripe-setup-intent'] = 'seti_mock';
+		try {
+			$result = $this->mock_gateway->add_payment_method();
+		} finally {
+			$_POST = [];
+		}
+
+		$this->assertSame( [ 'result' => 'failure' ], $result );
+		$this->assertCount( 0, WC_Payment_Tokens::get_customer_tokens( $user_id ) );
+	}
+
+	/**
+	 * Provides setup intents whose payment method cannot be saved.
+	 *
+	 * @return array<string, array{string|null, mixed, int}>
+	 */
+	public function provide_unusable_setup_intent_payment_methods(): array {
+		$stripe_error       = (object) [ 'error' => (object) [ 'message' => 'No such payment_method' ] ];
+		$unsupported_method = (object) [
+			'id'   => 'pm_mock',
+			'type' => 'not_a_method',
+		];
+
+		return [
+			'intent without a payment method' => [ null, null, 1 ],
+			'lookup returns a Stripe error'   => [ 'pm_mock', $stripe_error, 2 ],
+			'lookup returns a WP_Error'       => [ 'pm_mock', new WP_Error( 'stripe_api_outage', 'Unavailable' ), 2 ],
+			'lookup returns nothing'          => [ 'pm_mock', null, 2 ],
+			'type the gateway does not offer' => [ 'pm_mock', $unsupported_method, 2 ],
+		];
+	}
+
+	/**
 	 * A callback that throws after a 3DS or redirect charge must not stop the paid cart from
 	 * being recorded, or the shopper's resubmit would charge the card again.
 	 *
