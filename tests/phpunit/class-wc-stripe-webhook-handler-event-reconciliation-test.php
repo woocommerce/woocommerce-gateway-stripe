@@ -1,0 +1,324 @@
+<?php
+/**
+ * Tests for how WC_Stripe_Webhook_Handler uses the event reconciler.
+ *
+ * @package WooCommerce_Stripe/Tests
+ */
+
+require_once __DIR__ . '/helpers/class-wc-stripe-webhook-request-simulator.php';
+require_once __DIR__ . '/helpers/class-wc-stripe-in-memory-event-store.php';
+
+use Automattic\WooCommerce\Enums\OrderStatus;
+
+/**
+ * WC_Stripe_Webhook_Handler_Event_Reconciliation_Test class.
+ */
+class WC_Stripe_Webhook_Handler_Event_Reconciliation_Test extends WP_UnitTestCase {
+
+	private const WEBHOOK_SECRET = 'whsec_reconciliation';
+	private const EVENT_ID       = 'evt_1Webhook';
+	private const LOCK_NAME      = 'wc_stripe_event_lock_' . self::EVENT_ID;
+
+	/**
+	 * @var WC_Stripe_In_Memory_Event_Store
+	 */
+	private $store;
+
+	public function set_up() {
+		parent::set_up();
+
+		if ( ! WC_Stripe_Webhook_Request_Simulator::can_simulate_headers() ) {
+			$this->markTestSkipped( 'This SAPI defines getallheaders(), so request headers cannot be simulated via $_SERVER.' );
+		}
+
+		$settings                        = WC_Stripe_Helper::get_stripe_settings();
+		$settings['testmode']            = 'yes';
+		$settings['webhook_secret']      = self::WEBHOOK_SECRET;
+		$settings['test_webhook_secret'] = self::WEBHOOK_SECRET;
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		update_option( WC_Stripe_Feature_Flags::EVENT_RECONCILIATION_FEATURE_FLAG_NAME, 'yes' );
+
+		$this->store = new WC_Stripe_In_Memory_Event_Store();
+		add_filter( 'pre_http_request', [ $this, 'block_http' ] );
+	}
+
+	public function tear_down() {
+		remove_filter( 'pre_http_request', [ $this, 'block_http' ] );
+		remove_filter( 'pre_http_request', [ $this, 'rate_limit_http' ] );
+		parent::tear_down();
+	}
+
+	/**
+	 * A delivery answers 409 while another request holds the event, skips an event already processed,
+	 * and processes it otherwise, always releasing its lock.
+	 *
+	 * @param string|null $stored_status    Status of the stored record, or null for none.
+	 * @param bool        $locked           Whether another request holds the event lock.
+	 * @param int         $expected_status  Expected HTTP status.
+	 * @param int         $expected_process Expected number of process_webhook() calls.
+	 * @dataProvider provide_delivery_cases
+	 */
+	public function test_delivery_respects_the_claim( ?string $stored_status, bool $locked, int $expected_status, int $expected_process ): void {
+		if ( null !== $stored_status ) {
+			$this->store->seed( new WC_Stripe_Event_Record( self::EVENT_ID, $stored_status, 'invoice.paid', time(), false ) );
+		}
+		$other_owner = $locked ? WC_Stripe_Option_Lock::acquire( self::LOCK_NAME, 600 ) : null;
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setConstructorArgs( [ new WC_Stripe_Event_Reconciler( $this->store ) ] )
+			->setMethods( [ 'process_webhook' ] )
+			->getMock();
+		$handler->expects( $this->exactly( $expected_process ) )->method( 'process_webhook' );
+
+		$body   = wp_json_encode(
+			[
+				'id'       => self::EVENT_ID,
+				'type'     => 'invoice.paid',
+				'created'  => time(),
+				'livemode' => false,
+			]
+		);
+		$status = WC_Stripe_Webhook_Request_Simulator::dispatch( $handler, $body, $this->sign( $body ) );
+
+		$this->assertSame( $expected_status, $status );
+		$this->assertSame( $other_owner, $this->read_lock(), 'Only the lock of another request may remain.' );
+	}
+
+	/**
+	 * @return array
+	 */
+	public function provide_delivery_cases(): array {
+		return [
+			'new event is processed'        => [ null, false, 200, 1 ],
+			'pending event is processed'    => [ WC_Stripe_Event_Store_Interface::STATUS_PENDING, false, 200, 1 ],
+			'processed event is skipped'    => [ WC_Stripe_Event_Store_Interface::STATUS_PROCESSED, false, 200, 0 ],
+			'event locked elsewhere is 409' => [ null, true, 409, 0 ],
+		];
+	}
+
+	/**
+	 * With the feature disabled, a held lock does not stop processing.
+	 */
+	public function test_delivery_ignores_the_lock_while_disabled(): void {
+		update_option( WC_Stripe_Feature_Flags::EVENT_RECONCILIATION_FEATURE_FLAG_NAME, 'no' );
+		WC_Stripe_Option_Lock::acquire( self::LOCK_NAME, 600 );
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setConstructorArgs( [ new WC_Stripe_Event_Reconciler( $this->store ) ] )
+			->setMethods( [ 'process_webhook' ] )
+			->getMock();
+		$handler->expects( $this->once() )->method( 'process_webhook' );
+
+		$body = wp_json_encode(
+			[
+				'id'      => self::EVENT_ID,
+				'type'    => 'invoice.paid',
+				'created' => time(),
+			]
+		);
+
+		$this->assertSame( 200, WC_Stripe_Webhook_Request_Simulator::dispatch( $handler, $body, $this->sign( $body ) ) );
+		$this->assertSame( [], $this->store->records );
+	}
+
+	/**
+	 * A deferred job that cannot succeed abandons its event, so the stuck-event sweep does not process it again.
+	 * One that fails for a reason that may pass leaves it processing, so the sweep retries it, without acting on the
+	 * order in the meantime.
+	 *
+	 * @param string|null $order_status       Status of the order, or null when it was deleted.
+	 * @param string      $stripe_response    How Stripe answers the intent lookup: 'unreachable' or 'rate_limited'.
+	 * @param string      $expected_exception Class of the exception the job rethrows.
+	 * @param string      $expected_status    Status of the event after the job.
+	 * @param bool        $expect_retry       Whether the sweep schedules another attempt.
+	 * @dataProvider provide_failed_deferred_jobs
+	 */
+	public function test_failed_deferred_job( ?string $order_status, string $stripe_response, string $expected_exception, string $expected_status, bool $expect_retry ): void {
+		if ( 'rate_limited' === $stripe_response ) {
+			remove_filter( 'pre_http_request', [ $this, 'block_http' ] );
+			add_filter( 'pre_http_request', [ $this, 'rate_limit_http' ] );
+		}
+
+		$this->store->seed(
+			new WC_Stripe_Event_Record( self::EVENT_ID, WC_Stripe_Event_Store_Interface::STATUS_PROCESSING, 'payment_intent.succeeded', time(), false ),
+			time() - 2 * HOUR_IN_SECONDS
+		);
+		$reconciler   = new WC_Stripe_Event_Reconciler( $this->store );
+		$handler      = new WC_Stripe_Webhook_Handler( $reconciler );
+		$notification = (object) [
+			'id'       => self::EVENT_ID,
+			'type'     => 'payment_intent.succeeded',
+			'created'  => time(),
+			'livemode' => false,
+		];
+
+		$order_id = 0;
+		if ( null !== $order_status ) {
+			$order = WC_Helper_Order::create_order();
+			$order->set_status( $order_status );
+			WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, 'pi_1Unreachable' );
+			$order->save();
+			$order_id = $order->get_id();
+		}
+		$notes_before = $order_id ? count( wc_get_order_notes( [ 'order_id' => $order_id ] ) ) : 0;
+
+		$thrown = null;
+		try {
+			// Without the order, the job cannot succeed. With it, fetching the intent fails.
+			$handler->process_deferred_webhook(
+				'payment_intent.succeeded',
+				[
+					'order_id'  => $order_id,
+					'intent_id' => 'pi_1Unreachable',
+				],
+				$notification
+			);
+		} catch ( Exception $e ) {
+			$thrown = $e;
+		}
+
+		// The job rethrows, so Action Scheduler marks it failed.
+		$this->assertSame( $expected_exception, $thrown ? get_class( $thrown ) : null );
+
+		$this->assertSame( $expected_status, $this->store->get( self::EVENT_ID )->status );
+
+		if ( $order_id ) {
+			// For example, no note asking the merchant to refund a cancelled order by hand.
+			$this->assertCount( $notes_before, wc_get_order_notes( [ 'order_id' => $order_id ] ) );
+			$this->assertSame( $order_status, wc_get_order( $order_id )->get_status() );
+		}
+
+		$reconciler->requeue_stuck_events();
+
+		$this->assertSame( $expect_retry, as_has_scheduled_action( WC_Stripe_Event_Reconciler::PROCESS_ACTION, [ self::EVENT_ID ] ) );
+	}
+
+	/**
+	 * @return array
+	 */
+	public function provide_failed_deferred_jobs(): array {
+		$abandoned  = WC_Stripe_Event_Store_Interface::STATUS_ABANDONED;
+		$processing = WC_Stripe_Event_Store_Interface::STATUS_PROCESSING;
+
+		return [
+			'order deleted'                        => [ null, 'unreachable', Exception::class, $abandoned, false ],
+			'Stripe unreachable'                   => [ OrderStatus::PENDING, 'unreachable', WC_Stripe_Exception::class, $processing, true ],
+			'Stripe rate limited'                  => [ OrderStatus::PENDING, 'rate_limited', WC_Stripe_Exception::class, $processing, true ],
+			'cancelled order, Stripe unreachable'  => [ OrderStatus::CANCELLED, 'unreachable', WC_Stripe_Exception::class, $processing, true ],
+			'cancelled order, Stripe rate limited' => [ OrderStatus::CANCELLED, 'rate_limited', WC_Stripe_Exception::class, $processing, true ],
+		];
+	}
+
+	/**
+	 * A deferred job without an order does not record the order of an earlier job run by the same handler,
+	 * as when Action Scheduler runs several jobs in one request.
+	 */
+	public function test_deferred_job_does_not_record_the_order_of_an_earlier_job(): void {
+		$handler = new WC_Stripe_Webhook_Handler( new WC_Stripe_Event_Reconciler( $this->store ) );
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $order, 'pi_1First' );
+		$order->save();
+
+		$jobs = [
+			// Resolves the order, then fails to fetch the intent, since HTTP is blocked.
+			'evt_1First'  => [
+				'order_id'  => $order->get_id(),
+				'intent_id' => 'pi_1First',
+			],
+			// The order is gone, so the event is abandoned.
+			'evt_1Second' => [
+				'order_id'  => 0,
+				'intent_id' => 'pi_1Second',
+			],
+		];
+
+		foreach ( $jobs as $event_id => $additional_data ) {
+			try {
+				$handler->process_deferred_webhook(
+					'payment_intent.succeeded',
+					$additional_data,
+					(object) [
+						'id'       => $event_id,
+						'type'     => 'payment_intent.succeeded',
+						'created'  => time(),
+						'livemode' => false,
+					]
+				);
+			} catch ( Exception $e ) {
+				// Both jobs rethrow, so Action Scheduler marks them failed.
+				continue;
+			}
+		}
+
+		$record = $this->store->get( 'evt_1Second' );
+		$this->assertSame( WC_Stripe_Event_Store_Interface::STATUS_ABANDONED, $record->status );
+		$this->assertNull( $record->order_id );
+	}
+
+	/**
+	 * A subclass that overrides the constructor without calling it still gets a reconciler.
+	 */
+	public function test_subclass_without_parent_constructor_gets_a_reconciler(): void {
+		$handler = new class() extends WC_Stripe_Webhook_Handler {
+			public function __construct() {}
+		};
+
+		// Without a reconciler, reporting the failure would fatal instead of rethrowing the exception.
+		$this->expectException( Exception::class );
+		$this->expectExceptionMessage( 'Missing deferred webhook notification.' );
+
+		$handler->process_deferred_webhook( 'payment_intent.succeeded', [] );
+	}
+
+	/**
+	 * @return WP_Error
+	 */
+	public function block_http() {
+		return new WP_Error( 'no_http_in_tests', 'Outbound HTTP is blocked in this test.' );
+	}
+
+	/**
+	 * Answers every request the way Stripe answers a rate-limited one: an error body, which is not treated as an outage.
+	 *
+	 * @return array
+	 */
+	public function rate_limit_http() {
+		return [
+			'headers'  => [],
+			'body'     => wp_json_encode(
+				[
+					'error' => [
+						'type'    => 'invalid_request_error',
+						'code'    => 'rate_limit',
+						'message' => 'Too many requests hit the API too quickly.',
+					],
+				]
+			),
+			'response' => [
+				'code'    => 429,
+				'message' => 'Too Many Requests',
+			],
+			'cookies'  => [],
+			'filename' => null,
+		];
+	}
+
+	private function sign( string $body ): array {
+		$timestamp = time();
+		return [
+			'USER-AGENT'       => 'Stripe/1.0 (+https://docs.stripe.com/webhooks)',
+			'CONTENT-TYPE'     => 'application/json; charset=utf-8',
+			'STRIPE-SIGNATURE' => 't=' . $timestamp . ',v1=' . hash_hmac( 'sha256', $timestamp . '.' . $body, self::WEBHOOK_SECRET ),
+		];
+	}
+
+	/**
+	 * @return string|null
+	 */
+	private function read_lock() {
+		global $wpdb;
+		return $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", self::LOCK_NAME ) );
+	}
+}
