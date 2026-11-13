@@ -4,9 +4,11 @@ import config from 'config';
 import { payments, api } from '../../../../utils';
 
 const {
+	clickPlaceOrder,
 	emptyCart,
 	setupCart,
 	setupBlocksCheckout,
+	selectBlocksPaymentMethod,
 	fillBLIKDetails,
 	waitForOrderReceivedPage,
 } = payments;
@@ -42,9 +44,9 @@ test.describe( 'BLIK payment tests @blocks @blik', () => {
 			page,
 			config.get( 'addresses.customer_poland.billing' )
 		);
-		await page.getByLabel( /blik/i ).check();
+		await selectBlocksPaymentMethod( page, 'stripe_blik', 'BLIK' );
 		await fillBLIKDetails( page );
-		await page.locator( 'text=Place order' ).click();
+		await clickPlaceOrder( page );
 		await waitForOrderReceivedPage( page );
 	} );
 } );

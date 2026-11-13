@@ -1210,6 +1210,8 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$hooks = [
 			[ 'woocommerce_payment_gateways', 'add_gateways', 10 ],
 			[ 'pre_update_option_woocommerce_stripe_settings', 'gateway_settings_update', 10 ],
+			[ 'woocommerce_rest_prepare_payment_gateway', 'mask_secrets_in_payment_gateway_response', 10 ],
+			[ 'rest_request_before_callbacks', 'restrict_settings_option_rest_access', 10 ],
 			[ 'plugin_action_links_' . plugin_basename( WC_STRIPE_MAIN_FILE ), 'plugin_action_links', 10 ],
 			[ 'plugin_row_meta', 'plugin_row_meta', 10 ],
 			[ 'update_option_woocommerce_gateway_order', 'set_stripe_gateways_in_list', 10 ],
@@ -1385,6 +1387,217 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertFalse(
 			has_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ WC_Stripe_Option_Lock::class, 'maybe_schedule_daily_cleanup' ] )
 		);
+	}
+
+	/**
+	 * WooCommerce's payment gateway routes must not return the secret keys and webhook secrets as stored.
+	 *
+	 * @dataProvider provide_payment_gateways_rest_routes
+	 *
+	 * @param string $route The REST route to request.
+	 * @return void
+	 */
+	public function test_payment_gateways_rest_routes_mask_secrets( string $route ): void {
+		$secrets = $this->save_secret_settings();
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'shop_manager' ] ) );
+
+		// A logged-in browser session (cookie and REST nonce). API-key requests get a placeholder
+		// from WC_Stripe_REST_Gateway_Settings_Protection instead, which runs after the mask.
+		$GLOBALS['wp_rest_auth_cookie'] = true;
+		$_SERVER['HTTP_X_WP_NONCE']     = wp_create_nonce( 'wp_rest' );
+		try {
+			$response = rest_do_request( new WP_REST_Request( 'GET', $route ) );
+		} finally {
+			unset( $GLOBALS['wp_rest_auth_cookie'], $_SERVER['HTTP_X_WP_NONCE'] );
+		}
+		$this->assertSame( 200, $response->get_status() );
+
+		$data     = $response->get_data();
+		$gateways = isset( $data['id'] ) ? [ $data ] : $data;
+		$gateway  = current( wp_list_filter( $gateways, [ 'id' => WC_Stripe_UPE_Payment_Gateway::ID ] ) );
+
+		foreach ( $secrets as $key => $secret ) {
+			$this->assertSame( WC_Stripe_Helper::mask_key_value( $secret ), $gateway['settings'][ $key ]['value'] );
+			$this->assertStringNotContainsString( $secret, wp_json_encode( $data ) );
+		}
+		$this->assertSame( 'pk_live_publishable', $gateway['settings']['publishable_key']['value'] );
+	}
+
+	/**
+	 * Data provider for test_payment_gateways_rest_routes_mask_secrets.
+	 *
+	 * @return array
+	 */
+	public function provide_payment_gateways_rest_routes(): array {
+		return [
+			'v3 item'       => [ '/wc/v3/payment_gateways/stripe' ],
+			'v3 collection' => [ '/wc/v3/payment_gateways' ],
+			'v2 item'       => [ '/wc/v2/payment_gateways/stripe' ],
+			'v2 collection' => [ '/wc/v2/payment_gateways' ],
+		];
+	}
+
+	/**
+	 * A secret field holding a value that is not a string must be blanked, not returned as stored.
+	 *
+	 * @return void
+	 */
+	public function test_payment_gateway_response_blanks_non_string_secrets(): void {
+		$response = new WP_REST_Response(
+			[
+				'settings' => [
+					'secret_key'      => [ 'value' => [ 'sk_live_' . str_repeat( 'a', 40 ) ] ],
+					'test_secret_key' => [ 'value' => 12345678901234 ],
+				],
+			]
+		);
+
+		$data = WC_Stripe::get_instance()
+			->mask_secrets_in_payment_gateway_response( $response, WC_Stripe::get_instance()->get_main_stripe_gateway() )
+			->get_data();
+
+		$this->assertSame( '', $data['settings']['secret_key']['value'] );
+		$this->assertSame( '', $data['settings']['test_secret_key']['value'] );
+	}
+
+	/**
+	 * A client that sends the masked secrets back must not overwrite the stored ones, and can still replace them.
+	 *
+	 * @return void
+	 */
+	public function test_payment_gateways_rest_update_keeps_secrets_sent_back_masked(): void {
+		$secrets = $this->save_secret_settings();
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'shop_manager' ] ) );
+
+		$request = new WP_REST_Request( 'PUT', '/wc/v3/payment_gateways/stripe' );
+		$request->set_param(
+			'settings',
+			array_merge(
+				array_map( [ WC_Stripe_Helper::class, 'mask_key_value' ], $secrets ),
+				[ 'test_webhook_secret' => 'whsec_replacement' ]
+			)
+		);
+		$response = rest_do_request( $request );
+		$this->assertSame( 200, $response->get_status() );
+
+		$secrets['test_webhook_secret'] = 'whsec_replacement';
+		$this->assertEquals( $secrets, array_intersect_key( WC_Stripe::get_instance()->get_settings(), $secrets ) );
+		foreach ( $secrets as $secret ) {
+			$this->assertStringNotContainsString( $secret, wp_json_encode( $response->get_data() ) );
+		}
+	}
+
+	/**
+	 * The option that holds the secrets must not be readable through the `wc-admin/options` route, by any user.
+	 *
+	 * @dataProvider provide_settings_option_rest_reads
+	 *
+	 * @param string $role            The role of the user making the request.
+	 * @param string $route           The REST route to request.
+	 * @param string $options         The requested options.
+	 * @param int    $expected_status The expected response status.
+	 * @return void
+	 */
+	public function test_settings_option_rest_read_is_blocked( string $role, string $route, string $options, int $expected_status ): void {
+		$secrets = $this->save_secret_settings();
+		wp_set_current_user( self::factory()->user->create( [ 'role' => $role ] ) );
+
+		$request = new WP_REST_Request( 'GET', $route );
+		$request->set_query_params( [ 'options' => $options ] );
+		$response = rest_do_request( $request );
+
+		$this->assertSame( $expected_status, $response->get_status() );
+		$this->assertStringNotContainsString( $secrets['secret_key'], wp_json_encode( $response->get_data() ) );
+	}
+
+	/**
+	 * Data provider for test_settings_option_rest_read_is_blocked.
+	 *
+	 * @return array
+	 */
+	public function provide_settings_option_rest_reads(): array {
+		return [
+			'shop manager'                        => [ 'shop_manager', '/wc-admin/options', 'woocommerce_stripe_settings', 403 ],
+			'shop manager, route in another case' => [ 'shop_manager', '/WC-Admin/Options', 'woocommerce_stripe_settings', 403 ],
+			'shop manager, several options'       => [ 'shop_manager', '/wc-admin/options', 'woocommerce_demo_store,woocommerce_stripe_settings', 403 ],
+			'shop manager, another option'        => [ 'shop_manager', '/wc-admin/options', 'woocommerce_demo_store', 200 ],
+			'administrator'                       => [ 'administrator', '/wc-admin/options', 'woocommerce_stripe_settings', 403 ],
+			'administrator, name in another case' => [ 'administrator', '/wc-admin/options', 'WooCommerce_Stripe_Settings', 403 ],
+			'administrator, name with spaces'     => [ 'administrator', '/wc-admin/options', 'woocommerce_demo_store, woocommerce_stripe_settings', 403 ],
+			'administrator, another option'       => [ 'administrator', '/wc-admin/options', 'woocommerce_demo_store', 200 ],
+		];
+	}
+
+	/**
+	 * The option that holds the secrets must not be writable through the `wc-admin/options` route, by any user.
+	 *
+	 * @dataProvider provide_settings_option_rest_writes
+	 *
+	 * @param string $role            The role of the user making the request.
+	 * @param string $option          The option name sent in the body.
+	 * @return void
+	 */
+	public function test_settings_option_rest_write_is_blocked( string $role, string $option ): void {
+		$secrets = $this->save_secret_settings();
+		wp_set_current_user( self::factory()->user->create( [ 'role' => $role ] ) );
+
+		$request = new WP_REST_Request( 'POST', '/wc-admin/options' );
+		$request->set_header( 'Content-Type', 'application/json' );
+		$request->set_body( wp_json_encode( [ $option => [ 'secret_key' => 'sk_live_attacker' ] ] ) );
+		$response = rest_do_request( $request );
+
+		$this->assertSame( 403, $response->get_status() );
+		$this->assertSame( $secrets['secret_key'], WC_Stripe::get_instance()->get_settings()['secret_key'] );
+	}
+
+	/**
+	 * Data provider for test_settings_option_rest_write_is_blocked.
+	 *
+	 * @return array
+	 */
+	public function provide_settings_option_rest_writes(): array {
+		return [
+			'shop manager'                        => [ 'shop_manager', 'woocommerce_stripe_settings' ],
+			'administrator'                       => [ 'administrator', 'woocommerce_stripe_settings' ],
+			'administrator, name in another case' => [ 'administrator', 'WooCommerce_Stripe_Settings' ],
+			'administrator, name with spaces'     => [ 'administrator', ' woocommerce_stripe_settings ' ],
+		];
+	}
+
+	/**
+	 * Other options on the `wc-admin/options` route must still be writable.
+	 *
+	 * @return void
+	 */
+	public function test_other_option_rest_write_is_allowed(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'shop_manager' ] ) );
+
+		$request = new WP_REST_Request( 'POST', '/wc-admin/options' );
+		$request->set_header( 'Content-Type', 'application/json' );
+		$request->set_body( wp_json_encode( [ 'woocommerce_demo_store' => 'yes' ] ) );
+		$response = rest_do_request( $request );
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( 'yes', get_option( 'woocommerce_demo_store' ) );
+	}
+
+	/**
+	 * Helper: saves Stripe settings with all the secrets set, and reloads them in the registered gateway.
+	 *
+	 * @return array The saved secrets, keyed by setting name.
+	 */
+	private function save_secret_settings(): array {
+		$secrets = [
+			'secret_key'          => 'sk_live_' . str_repeat( 'a', 40 ),
+			'test_secret_key'     => 'sk_test_' . str_repeat( 'b', 40 ),
+			'webhook_secret'      => 'whsec_' . str_repeat( 'c', 40 ),
+			'test_webhook_secret' => 'whsec_' . str_repeat( 'd', 40 ),
+		];
+
+		WC_Stripe::get_instance()->update_settings( array_merge( WC_Stripe::get_instance()->get_settings(), $secrets, [ 'publishable_key' => 'pk_live_publishable' ] ) );
+		WC()->payment_gateways()->payment_gateways()[ WC_Stripe_UPE_Payment_Gateway::ID ]->init_settings();
+
+		return $secrets;
 	}
 
 	/**
