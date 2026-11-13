@@ -333,12 +333,16 @@ final class WC_Stripe_Duplicate_Payment_Prevention {
 	/**
 	 * Clears the paid-cart record for this order's cart.
 	 *
+	 * Two guests with the same email and cart share a cart key, so only the order the record
+	 * points to may clear it; another guest's order-received page must not.
+	 *
 	 * @param WC_Order $order The order whose cart record should be cleared.
 	 * @return void
 	 */
 	private static function clear_paid_record( WC_Order $order ): void {
 		$cart_key = self::get_cart_key( $order );
-		if ( '' === $cart_key ) {
+		$record   = self::get_record( $cart_key );
+		if ( null === $record || (int) $record['order_id'] !== $order->get_id() ) {
 			return;
 		}
 
