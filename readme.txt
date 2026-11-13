@@ -179,5 +179,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Upgrade Playwright to stay compatible with GitHub CI environment
 * Dev - Behind a feature flag, find Stripe events whose webhook delivery failed and process them in the background
 * Dev - Update the homepage URL in composer.json
+* Fix - Preserve saved payment method and checkout preferences when reconnecting a Stripe account
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
