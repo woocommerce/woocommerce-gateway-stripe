@@ -2678,21 +2678,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			if ( $presentment_details && isset( $presentment_details->presentment_currency, $presentment_details->presentment_amount ) ) {
 				$order_helper->update_stripe_presentment_currency( $order, $presentment_details->presentment_currency );
 				$order_helper->update_stripe_presentment_amount( $order, $presentment_details->presentment_amount );
-
-				$amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
-					$presentment_details->presentment_amount,
-					$presentment_details->presentment_currency
-				);
-
-				$order->add_order_note(
-					sprintf(
-						/* translators: 1) presentment currency 2) presentment amount */
-						__( 'Local currency purchase via Adaptive Pricing. Amount paid was: %1$s %2$s', 'woocommerce-gateway-stripe' ),
-						strtoupper( $presentment_details->presentment_currency ),
-						$amount
-					)
-				);
 			}
+
+			$this->maybe_add_order_note_for_adaptive_pricing( $order, $presentment_details );
 
 			$intent = $this->get_intent_from_order( $order );
 
@@ -2712,6 +2700,49 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			// Fetch the charge once; reused below.
 			$charge = $this->get_latest_charge_from_intent( $intent );
+
+			// Make sure we have a charge. If not, log a note and queue up a deferred retry.
+			// We will only retry up to $this->adaptive_pricing_order_lookup_max_retries times.
+			// This must run before saving the payment method: Bancontact and iDEAL/Wero need the
+			// charge to save the SEPA mandate, and that step clears the save flag either way.
+			// Stripe API responses are decoded to stdClass, which is also the only object type that
+			// accepts the dynamic `is_webhook_response` property set below without a deprecation.
+			if ( ! $charge instanceof stdClass ) {
+				$order->save();
+
+				WC_Stripe_Logger::info(
+					'Checkout session settlement deferred: no charge on PaymentIntent yet.',
+					[
+						'session_id'  => $session_id,
+						'order_id'    => $order->get_id(),
+						'intent_id'   => $intent_id,
+						'retry_count' => $retry_count,
+					]
+				);
+
+				if ( $retry_count < $this->adaptive_pricing_order_lookup_max_retries ) {
+					$this->defer_webhook_processing(
+						$notification,
+						[
+							'session_id'  => $session_id,
+							'retry_count' => $retry_count + 1,
+						],
+						$this->locked_order_retry_delay
+					);
+					return true;
+				}
+
+				WC_Stripe_Logger::error(
+					'Checkout session settlement skipped: PaymentIntent still has no charge after retries.',
+					[
+						'session_id'  => $session_id,
+						'order_id'    => $order->get_id(),
+						'intent_id'   => $intent_id,
+						'retry_count' => $retry_count,
+					]
+				);
+				return false;
+			}
 
 			// Save payment method to store if the customer requested it during checkout.
 			if ( $order_helper->get_should_save_stripe_payment_method( $order ) && ! empty( $payment_method_id ) ) {
@@ -2828,6 +2859,44 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		if ( $user_id > 0 ) {
 			$this->attach_customer_to_user( $user_id, $customer_id );
 		}
+	}
+
+	/**
+	 * Adds the Adaptive Pricing local-currency order note, once per order.
+	 *
+	 * Checkout Session settlement can run more than once for the same order (for example while
+	 * waiting for the PaymentIntent charge), so a meta flag keeps the note from repeating. The
+	 * flag is saved immediately so it stays in step with the note on every early return.
+	 *
+	 * @param WC_Order $order               The order the session settled.
+	 * @param mixed    $presentment_details The Checkout Session's presentment_details, if any.
+	 */
+	private function maybe_add_order_note_for_adaptive_pricing( WC_Order $order, $presentment_details ): void {
+		if ( ! is_object( $presentment_details ) || ! isset( $presentment_details->presentment_currency, $presentment_details->presentment_amount ) ) {
+			return;
+		}
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		if ( $order_helper->get_stripe_adaptive_pricing_note_added( $order ) ) {
+			return;
+		}
+
+		$amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
+			$presentment_details->presentment_amount,
+			$presentment_details->presentment_currency
+		);
+
+		$order->add_order_note(
+			sprintf(
+				/* translators: 1) presentment currency 2) presentment amount */
+				__( 'Local currency purchase via Adaptive Pricing. Amount paid was: %1$s %2$s', 'woocommerce-gateway-stripe' ),
+				strtoupper( $presentment_details->presentment_currency ),
+				$amount
+			)
+		);
+
+		$order_helper->update_stripe_adaptive_pricing_note_added( $order, true );
+		$order->save_meta_data();
 	}
 
 	/**

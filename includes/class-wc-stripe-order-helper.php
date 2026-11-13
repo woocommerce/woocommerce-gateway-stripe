@@ -102,6 +102,13 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_PRESENTMENT_AMOUNT = '_stripe_presentment_amount';
 
 	/**
+	 * Meta key flagging that the Adaptive Pricing order note was added.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_ADAPTIVE_PRICING_NOTE_ADDED = '_stripe_adaptive_pricing_note_added';
+
+	/**
 	 * Meta key for Stripe customer ID.
 	 *
 	 * @var string
@@ -734,6 +741,33 @@ class WC_Stripe_Order_Helper {
 	 */
 	public function update_stripe_presentment_amount( ?WC_Order $order = null, int $presentment_amount = 0 ) {
 		return $this->update_order_meta( $order, self::META_STRIPE_PRESENTMENT_AMOUNT, $presentment_amount );
+	}
+
+	/**
+	 * Gets whether the Adaptive Pricing order note was already added to the order.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Order|null $order
+	 * @return bool
+	 */
+	public function get_stripe_adaptive_pricing_note_added( ?WC_Order $order = null ): bool {
+		$note_added = $this->get_order_meta( $order, self::META_STRIPE_ADAPTIVE_PRICING_NOTE_ADDED );
+
+		return is_string( $note_added ) && wc_string_to_bool( $note_added );
+	}
+
+	/**
+	 * Updates whether the Adaptive Pricing order note was added to the order.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Order|null $order
+	 * @param bool          $value
+	 * @return void
+	 */
+	public function update_stripe_adaptive_pricing_note_added( ?WC_Order $order = null, bool $value = false ): void {
+		$this->update_order_meta( $order, self::META_STRIPE_ADAPTIVE_PRICING_NOTE_ADDED, wc_bool_to_string( $value ) );
 	}
 
 	/**

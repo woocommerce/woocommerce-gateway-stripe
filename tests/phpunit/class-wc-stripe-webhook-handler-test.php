@@ -1796,6 +1796,311 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * When a completed Checkout Session's PaymentIntent has no charge yet, settlement must defer
+	 * instead of fataling on `$charge->is_webhook_response = true`, and must leave the
+	 * save-payment-method flag in place so the retry can save the SEPA mandate from the charge.
+	 *
+	 * @dataProvider provide_missing_charge_values
+	 *
+	 * @param mixed $missing_charge What get_latest_charge_from_intent() returns when there is no charge.
+	 * @return void
+	 */
+	public function test_handle_checkout_session_success_defers_when_charge_missing( $missing_charge ): void {
+		$checkout_session_id = 'cs_test_missing_charge_' . gettype( $missing_charge );
+		$intent_id           = 'pi_test_missing_charge';
+		$order_helper        = WC_Stripe_Order_Helper::get_instance();
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		$order_helper->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order_helper->update_should_save_stripe_payment_method( $order, true );
+		$order->save_meta_data();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => $intent_id,
+					'amount_total'   => WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $order->get_currency() ),
+					'currency'       => strtolower( $order->get_currency() ),
+				],
+			],
+		];
+
+		$start          = time();
+		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+		$mock_scheduler->expects( $this->once() )
+			->method( 'schedule_job' )
+			->with(
+				$this->callback(
+					function ( $timestamp ) use ( $start ) {
+						$this->assertIsInt( $timestamp );
+						$this->assertGreaterThanOrEqual( $start + 10, $timestamp );
+						$this->assertLessThan( $start + MINUTE_IN_SECONDS, $timestamp );
+
+						return true;
+					}
+				),
+				'wc_stripe_deferred_webhook',
+				$this->callback(
+					function ( $args ) use ( $checkout_session_id ) {
+						return 'checkout.session.completed' === ( $args['type'] ?? '' )
+							&& ( $args['data']['session_id'] ?? '' ) === $checkout_session_id
+							&& 1 === (int) ( $args['data']['retry_count'] ?? 0 );
+					}
+				)
+			);
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->onlyMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->getMock();
+
+		$handler->method( 'get_intent_from_order' )
+			->willReturn(
+				(object) array_merge(
+					self::MOCK_PAYMENT_INTENT,
+					[
+						'id'             => $intent_id,
+						'payment_method' => (object) [
+							'id'   => 'pm_test_ideal',
+							'type' => WC_Stripe_Payment_Methods::IDEAL,
+						],
+					]
+				)
+			);
+		$handler->method( 'get_latest_charge_from_intent' )->willReturn( $missing_charge );
+		$handler->expects( $this->never() )->method( 'process_response' );
+
+		$prop = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $handler, $mock_scheduler );
+
+		$handler->process_checkout_session_success( $notification );
+
+		$updated_order = wc_get_order( $order->get_id() );
+		$this->assertTrue( $updated_order->has_status( OrderStatus::PENDING ) );
+		$this->assertTrue( $order_helper->get_should_save_stripe_payment_method( $updated_order ) );
+	}
+
+	/**
+	 * Data provider for test_handle_checkout_session_success_defers_when_charge_missing.
+	 *
+	 * `get_latest_charge_from_intent()` returns null when the intent has no charge, and an empty
+	 * string when `get_charge_object()` is given an empty charge ID.
+	 *
+	 * @return array<string, array{0: mixed}>
+	 */
+	public function provide_missing_charge_values(): array {
+		return [
+			'null charge'         => [ null ],
+			'empty string charge' => [ '' ],
+		];
+	}
+
+	/**
+	 * The Adaptive Pricing order note is recorded on the first pass, even when settlement defers
+	 * for a missing charge, and is not repeated when the retry settles the order.
+	 *
+	 * @return void
+	 */
+	public function test_adaptive_pricing_note_added_once_across_missing_charge_retry(): void {
+		$checkout_session_id = 'cs_test_ap_note_once';
+		$order_helper        = WC_Stripe_Order_Helper::get_instance();
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		$order_helper->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'                  => $checkout_session_id,
+					'payment_intent'      => 'pi_test_ap_note_once',
+					'amount_total'        => WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $order->get_currency() ),
+					'currency'            => strtolower( $order->get_currency() ),
+					'presentment_details' => (object) [
+						'presentment_amount'   => 7800,
+						'presentment_currency' => 'eur',
+					],
+				],
+			],
+		];
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->onlyMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->getMock();
+
+		$handler->method( 'get_intent_from_order' )
+			->willReturn(
+				(object) array_merge(
+					self::MOCK_PAYMENT_INTENT,
+					[
+						'payment_method' => null,
+					]
+				)
+			);
+		$handler->method( 'get_latest_charge_from_intent' )
+			->willReturnOnConsecutiveCalls( null, (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+		$handler->expects( $this->once() )->method( 'process_response' );
+
+		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+		$prop           = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $handler, $mock_scheduler );
+
+		$count_adaptive_pricing_notes = function () use ( $order ): int {
+			$notes = wc_get_order_notes( [ 'order_id' => $order->get_id() ] );
+			return count(
+				array_filter(
+					$notes,
+					static function ( $note ) {
+						return false !== strpos( $note->content, 'Local currency purchase via Adaptive Pricing' );
+					}
+				)
+			);
+		};
+
+		$handler->process_checkout_session_success( $notification );
+		$this->assertSame( 1, $count_adaptive_pricing_notes() );
+		$this->assertTrue( $order_helper->get_stripe_adaptive_pricing_note_added( wc_get_order( $order->get_id() ) ) );
+
+		$handler->process_checkout_session_success( $notification );
+		$this->assertSame( 1, $count_adaptive_pricing_notes() );
+	}
+
+	/**
+	 * A deferred missing-charge retry must bump the stored count, and stop once the limit is reached.
+	 *
+	 * @dataProvider provide_missing_charge_deferred_retry_counts
+	 *
+	 * @param int  $retry_count    Retry count carried by the deferred job.
+	 * @param bool $expect_requeue Whether another job should be scheduled.
+	 */
+	public function test_missing_charge_deferred_retry_bumps_count_until_limit( int $retry_count, bool $expect_requeue ): void {
+		$checkout_session_id = 'cs_test_missing_charge_retry_' . $retry_count;
+		$intent_id           = 'pi_test_missing_charge_retry_' . $retry_count;
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => $intent_id,
+					'amount_total'   => WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $order->get_currency() ),
+					'currency'       => strtolower( $order->get_currency() ),
+				],
+			],
+		];
+
+		$start          = time();
+		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+		if ( $expect_requeue ) {
+			$mock_scheduler->expects( $this->once() )
+				->method( 'schedule_job' )
+				->with(
+					$this->callback(
+						function ( $timestamp ) use ( $start ) {
+							$this->assertIsInt( $timestamp );
+							$this->assertGreaterThanOrEqual( $start + 10, $timestamp );
+							$this->assertLessThan( $start + MINUTE_IN_SECONDS, $timestamp );
+
+							return true;
+						}
+					),
+					'wc_stripe_deferred_webhook',
+					$this->callback(
+						function ( $args ) use ( $checkout_session_id, $retry_count ) {
+							return 'checkout.session.completed' === ( $args['type'] ?? '' )
+								&& ( $args['data']['session_id'] ?? '' ) === $checkout_session_id
+								&& ( $retry_count + 1 ) === (int) ( $args['data']['retry_count'] ?? 0 );
+						}
+					)
+				);
+		} else {
+			$mock_scheduler->expects( $this->never() )->method( 'schedule_job' );
+		}
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->onlyMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->getMock();
+
+		$handler->method( 'get_intent_from_order' )
+			->willReturn(
+				(object) array_merge(
+					self::MOCK_PAYMENT_INTENT,
+					[
+						'id'             => $intent_id,
+						'payment_method' => null,
+					]
+				)
+			);
+		$handler->method( 'get_latest_charge_from_intent' )->willReturn( null );
+		$handler->expects( $this->never() )->method( 'process_response' );
+
+		$prop = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $handler, $mock_scheduler );
+
+		$received = 0;
+		$listener = static function () use ( &$received ) {
+			++$received;
+		};
+		add_action( 'wc_stripe_webhook_received', $listener );
+
+		try {
+			$handler->process_deferred_webhook(
+				'checkout.session.completed',
+				[
+					'session_id'  => $checkout_session_id,
+					'retry_count' => $retry_count,
+				],
+				$notification
+			);
+		} finally {
+			remove_action( 'wc_stripe_webhook_received', $listener );
+		}
+
+		if ( $expect_requeue ) {
+			$this->assertSame( 0, $received );
+		}
+
+		$this->assertTrue( wc_get_order( $order->get_id() )->has_status( OrderStatus::PENDING ) );
+	}
+
+	/**
+	 * Data provider for test_missing_charge_deferred_retry_bumps_count_until_limit.
+	 *
+	 * @return array<string, array{0: int, 1: bool}>
+	 */
+	public function provide_missing_charge_deferred_retry_counts(): array {
+		return [
+			'retry below the limit increments the count' => [ 1, true ],
+			'last permitted retry increments the count'  => [ 2, true ],
+			'retry limit schedules no further job'       => [ 3, false ],
+		];
+	}
+
+	/**
 	 * Regression: when the order is locked and settlement is re-queued, process_webhook must NOT fire
 	 * wc_stripe_webhook_received on this live pass. Settlement hasn't happened yet; the action fires
 	 * once from the retry. Firing here would double-dispatch and run before the payment settles.
