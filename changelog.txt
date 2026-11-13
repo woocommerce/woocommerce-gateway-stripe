@@ -11,6 +11,7 @@ xxxx-xx-xx - version 11.3.0
 * Fix - Show country-restricted payment methods such as iDEAL on Adaptive Pricing checkout once the shopper enters a billing country they are available in
 * Fix - Keep a subscription's Stripe customer when its card is changed with 3D Secure, so renewals don't fail
 * Dev - Upgrade Playwright to stay compatible with GitHub CI environment
+* Fix - Keep Adaptive Pricing orders from being auto-cancelled as unpaid while Stripe can still confirm their payment
 * Dev - Behind a feature flag, find Stripe events whose webhook delivery failed and process them in the background
 
 2026-11-10 - version 11.2.0
