@@ -3,6 +3,7 @@ import config from 'config';
 import { payments } from '../../../utils';
 
 const {
+	clickPlaceOrder,
 	emptyCart,
 	setupCart,
 	setupShortcodeCheckout,
@@ -25,7 +26,7 @@ test( 'customer can checkout with a normal credit card @smoke', async ( {
 
 	const expectedTotal = await getCartTotal( page );
 
-	await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
+	await clickPlaceOrder( page );
 
 	await waitForOrderReceivedPageAndConfirmExpectedTotal(
 		browser,

@@ -1,9 +1,12 @@
+import { randomUUID } from 'crypto';
 import { test, expect } from '@playwright/test';
 import config from 'config';
 import { payments } from '../../../utils';
 
 const {
+	clickPlaceOrder,
 	emptyCart,
+	getErrorNotices,
 	setupCart,
 	setupShortcodeCheckout,
 	fillCreditCardDetailsShortcode,
@@ -12,20 +15,34 @@ const {
 test.beforeEach( async ( { page } ) => {
 	await emptyCart( page );
 	await setupCart( page );
-	await setupShortcodeCheckout(
-		page,
-		config.get( 'addresses.customer.billing' )
-	);
+	await setupShortcodeCheckout( page, {
+		...config.get( 'addresses.customer.billing' ),
+		email: `stripe-e2e-${ randomUUID() }@example.com`,
+	} );
 } );
 
 const testCard = async ( page, cardKey ) => {
 	const card = config.get( cardKey );
 
 	await fillCreditCardDetailsShortcode( page, card );
-	await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
+	// Stripe puts several iframes in this container; the card form is the one
+	// whose src contains "elements-inner-payment".
+	const linkSignup = page
+		.frameLocator(
+			'.payment_method_stripe #wc-stripe-upe-form .wc-stripe-upe-element iframe[src*="elements-inner-payment"]'
+		)
+		.getByRole( 'checkbox', {
+			name: 'Save my information for faster checkout',
+		} );
+	// Use the card payment path for card-specific error assertions.
+	if ( await linkSignup.isVisible() ) {
+		await linkSignup.uncheck();
+	}
+	await clickPlaceOrder( page );
 
+	const errorNotice = getErrorNotices( page ).first();
 	expect
-		.soft( await page.innerText( '.woocommerce-error' ) )
+		.soft( await errorNotice.innerText() )
 		.toMatch( new RegExp( `(?:${ card.error.join( '|' ) })`, 'i' ) );
 };
 
