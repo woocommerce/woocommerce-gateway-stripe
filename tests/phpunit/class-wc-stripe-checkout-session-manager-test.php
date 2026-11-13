@@ -501,6 +501,149 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that build_payment_intent_data() handles bad outputs from the filters that it supports.
+	 *
+	 * @dataProvider provide_build_payment_intent_data
+	 *
+	 * @param callable|null $metadata_filter    Callback for wc_stripe_payment_metadata, or null to leave it unfiltered.
+	 * @param callable|null $intent_data_filter Callback for wc_stripe_checkout_session_payment_intent_data, or null to leave it unfiltered.
+	 * @param array         $expected           Expected payment_intent_data, without the required metadata keys, which are always added.
+	 */
+	public function test_build_payment_intent_data( ?callable $metadata_filter, ?callable $intent_data_filter, array $expected ): void {
+		if ( null !== $metadata_filter ) {
+			add_filter( 'wc_stripe_payment_metadata', $metadata_filter );
+		}
+		if ( null !== $intent_data_filter ) {
+			add_filter( 'wc_stripe_checkout_session_payment_intent_data', $intent_data_filter );
+		}
+
+		try {
+			$payment_intent_data = ( new WC_Stripe_Checkout_Session_Manager() )->build_payment_intent_data();
+		} finally {
+			if ( null !== $metadata_filter ) {
+				remove_filter( 'wc_stripe_payment_metadata', $metadata_filter );
+			}
+			if ( null !== $intent_data_filter ) {
+				remove_filter( 'wc_stripe_checkout_session_payment_intent_data', $intent_data_filter );
+			}
+		}
+
+		$expected['metadata'] = array_merge(
+			$expected['metadata'],
+			[
+				'site_url'      => esc_url_raw( get_site_url() ),
+				'checkout_type' => WC_Stripe_Checkout_Session_Manager::ADAPTIVE_PRICING_CHECKOUT_TYPE,
+			]
+		);
+
+		$this->assertEquals( $expected, $payment_intent_data );
+	}
+
+	/**
+	 * Data provider for {@see test_build_payment_intent_data()}.
+	 *
+	 * @return array
+	 */
+	public function provide_build_payment_intent_data(): array {
+		$default = [ 'metadata' => [ 'payment_type' => 'single' ] ];
+
+		return [
+			'no filters'                                        => [ null, null, $default ],
+			'metadata filter adds a field'                      => [
+				static function ( $metadata ) {
+					return array_merge( $metadata, [ 'source' => 'test' ] );
+				},
+				null,
+				[
+					'metadata' => [
+						'payment_type' => 'single',
+						'source'       => 'test',
+					],
+				],
+			],
+			'metadata filter returns a non-array'               => [
+				static function () {
+					return 'invalid';
+				},
+				null,
+				$default,
+			],
+			'metadata filter drops required fields'             => [
+				static function () {
+					return [ 'source' => 'test' ];
+				},
+				null,
+				[ 'metadata' => [ 'source' => 'test' ] ],
+			],
+			'intent data filter adds a field'                   => [
+				null,
+				static function ( $payment_intent_data ) {
+					$payment_intent_data['statement_descriptor_suffix'] = 'TEST';
+					return $payment_intent_data;
+				},
+				[
+					'metadata'                    => [ 'payment_type' => 'single' ],
+					'statement_descriptor_suffix' => 'TEST',
+				],
+			],
+			'intent data filter returns a non-array'            => [
+				null,
+				static function () {
+					return null;
+				},
+				$default,
+			],
+			'intent data filter drops metadata'                 => [
+				null,
+				static function () {
+					return [ 'description' => 'Test order' ];
+				},
+				[
+					'description' => 'Test order',
+					'metadata'    => [ 'payment_type' => 'single' ],
+				],
+			],
+			'intent data filter returns non-array metadata'     => [
+				null,
+				static function ( $payment_intent_data ) {
+					$payment_intent_data['metadata'] = 'invalid';
+					return $payment_intent_data;
+				},
+				$default,
+			],
+			'intent data filter overwrites required metadata'   => [
+				null,
+				static function () {
+					return [
+						'metadata' => [
+							'site_url'      => 'https://example.org',
+							'checkout_type' => 'other',
+							'source'        => 'test',
+						],
+					];
+				},
+				[ 'metadata' => [ 'source' => 'test' ] ],
+			],
+			'intent data filter sees already-filtered metadata' => [
+				static function ( $metadata ) {
+					return array_merge( $metadata, [ 'source' => 'metadata_filter' ] );
+				},
+				static function ( $payment_intent_data ) {
+					$payment_intent_data['metadata']['seen_source'] = $payment_intent_data['metadata']['source'] ?? '';
+					return $payment_intent_data;
+				},
+				[
+					'metadata' => [
+						'payment_type' => 'single',
+						'source'       => 'metadata_filter',
+						'seen_source'  => 'metadata_filter',
+					],
+				],
+			],
+		];
+	}
+
+	/**
 	 * A later native cart total updates the server-owned session and increments its embedded revision.
 	 */
 	public function test_synchronize_updates_existing_session_after_cart_total_changes(): void {
