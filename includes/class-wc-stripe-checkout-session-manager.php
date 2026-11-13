@@ -430,7 +430,7 @@ class WC_Stripe_Checkout_Session_Manager {
 	 *
 	 * @return array
 	 */
-	private function build_payment_intent_data(): array {
+	public function build_payment_intent_data(): array {
 		$required_metadata = [
 			'site_url'      => esc_url_raw( get_site_url() ),
 			'checkout_type' => self::ADAPTIVE_PRICING_CHECKOUT_TYPE,

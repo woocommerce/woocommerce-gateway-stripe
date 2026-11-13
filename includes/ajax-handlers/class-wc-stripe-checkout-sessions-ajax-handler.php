@@ -52,7 +52,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				'ui_mode'                       => 'elements',
 				'line_items'                    => $this->build_line_items( $cart_context ),
 				'excluded_payment_method_types' => WC_Stripe::get_instance()->get_main_stripe_gateway()->get_excluded_payment_method_types(),
-				'payment_intent_data'           => $this->build_payment_intent_data(),
+				'payment_intent_data'           => WC_Stripe_Checkout_Session_Manager::get_instance()->build_payment_intent_data(),
 				'mode'                          => 'payment',
 				'adaptive_pricing'              => [
 					'enabled' => 'true',
@@ -233,24 +233,5 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 		];
 
 		return $line_items;
-	}
-
-	/**
-	 * Build the payment intent data array, including metadata information.
-	 *
-	 * @return array
-	 */
-	private function build_payment_intent_data(): array {
-		$data     = [];
-		$metadata = [
-			'site_url'      => esc_url_raw( get_site_url() ),
-			'payment_type'  => 'single',
-			'checkout_type' => self::ADAPTIVE_PRICING_CHECKOUT_TYPE,
-		];
-
-		/** Documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php */
-		$data['metadata'] = apply_filters( 'wc_stripe_payment_metadata', $metadata, null, null );
-
-		return $data;
 	}
 }
