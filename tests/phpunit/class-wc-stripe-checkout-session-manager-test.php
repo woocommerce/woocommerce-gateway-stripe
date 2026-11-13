@@ -95,7 +95,7 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 		$reflection->setAccessible( true );
 		$reflection->setValue( WC_Stripe::get_instance(), null );
 
-		$webhook_status_cache_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_STATUS_CACHE_KEY', 'string' );
+		$webhook_status_cache_key = WC_Stripe_Webhook_Settings::WEBHOOK_STATUS_CACHE_KEY;
 		// is_webhook_enabled() short-circuits on a cached status, so we don't hit the Stripe API here.
 		WC_Stripe_Database_Cache::set_with_mode( $webhook_status_cache_key, 'enabled', HOUR_IN_SECONDS, 'live' );
 		WC_Stripe_Database_Cache::set_with_mode( $webhook_status_cache_key, 'enabled', HOUR_IN_SECONDS, 'test' );
