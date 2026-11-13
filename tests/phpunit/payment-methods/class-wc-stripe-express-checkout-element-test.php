@@ -1231,6 +1231,66 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The pay-for-order payload must carry the order's saved billing phone so the
+	 * client can preserve it when the wallet sheet didn't collect one — the Store
+	 * API order-pay route otherwise overwrites it with an empty value.
+	 *
+	 * @return void
+	 */
+	public function test_localize_pay_for_order_includes_saved_billing_phone() {
+		// Start from a clean script registration so we read only this call's localized data.
+		wp_deregister_script( 'wc_stripe_express_checkout' );
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_billing_phone( '+14155550123' );
+		$order->save();
+
+		$this->element->localize_pay_for_order_page_scripts( $order );
+
+		$params = $this->get_localized_pay_for_order_params();
+
+		$this->assertSame( '+14155550123', $params['orderDetails']['billingPhone'] );
+	}
+
+	/**
+	 * The Store API order-pay route validates the shipping address only when the
+	 * order needs shipping, so the payload must tell the client which case it is —
+	 * otherwise the client can't know whether to backfill the shipping phone.
+	 *
+	 * @dataProvider provide_localize_pay_for_order_needs_shipping
+	 * @param bool $virtual  Whether the ordered product is virtual.
+	 * @param bool $expected Expected needsShipping value.
+	 * @return void
+	 */
+	public function test_localize_pay_for_order_includes_needs_shipping( $virtual, $expected ) {
+		// Start from a clean script registration so we read only this call's localized data.
+		wp_deregister_script( 'wc_stripe_express_checkout' );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_virtual( $virtual );
+		$product->save();
+		$order = WC_Helper_Order::create_order( 1, $product );
+
+		$this->element->localize_pay_for_order_page_scripts( $order );
+
+		$params = $this->get_localized_pay_for_order_params();
+
+		$this->assertSame( $expected, $params['orderDetails']['needsShipping'] );
+	}
+
+	/**
+	 * Provider for test_localize_pay_for_order_includes_needs_shipping.
+	 *
+	 * @return array
+	 */
+	public function provide_localize_pay_for_order_needs_shipping() {
+		return [
+			'physical product order needs shipping' => [ false, true ],
+			'virtual product order does not'        => [ true, false ],
+		];
+	}
+
+	/**
 	 * Decode the localized `wcStripeExpressCheckoutPayForOrderParams` payload back into an array.
 	 *
 	 * `wp_localize_script` stores it as `var wcStripeExpressCheckoutPayForOrderParams = {json};`.
@@ -1244,5 +1304,101 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 		$json  = substr( $data, $start, $end - $start + 1 );
 
 		return json_decode( $json, true );
+	}
+
+
+	/**
+	 * The cart snapshot is built while the checkout page renders, so a total Stripe cannot
+	 * charge must drop the snapshot instead of failing the whole page.
+	 *
+	 * @dataProvider provide_cart_prices_for_javascript_params
+	 *
+	 * @param string $price           Product price.
+	 * @param bool   $expect_snapshot Whether the cart snapshot must be present.
+	 */
+	public function test_javascript_params_cart_snapshot_for_total( string $price, bool $expect_snapshot ): void {
+		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['enabled']              = 'yes';
+		$stripe_settings['testmode']             = 'yes';
+		$stripe_settings['test_publishable_key'] = 'pk_test_key';
+		$stripe_settings['test_secret_key']      = 'sk_test_key';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$ajax_handler = $this->getMockBuilder( WC_Stripe_Express_Checkout_Ajax_Handler::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$element      = new WC_Stripe_Express_Checkout_Element( $ajax_handler, new WC_Stripe_Express_Checkout_Helper() );
+
+		add_filter( 'woocommerce_is_checkout', '__return_true' );
+		WC()->cart->empty_cart();
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_regular_price( $price );
+		$product->set_price( $price );
+		$product->save();
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		try {
+			$params = $element->javascript_params();
+		} finally {
+			remove_filter( 'woocommerce_is_checkout', '__return_true' );
+			WC()->cart->empty_cart();
+		}
+
+		if ( $expect_snapshot ) {
+			$this->assertIsArray( $params['cart'] );
+			$this->assertGreaterThan( 0, $params['cart']['total'] );
+		} else {
+			$this->assertNull( $params['cart'] );
+		}
+		$this->assertTrue( $params['is_checkout_page'] );
+	}
+
+	public function provide_cart_prices_for_javascript_params(): array {
+		return [
+			'normal total'       => [ '10.23', true ],
+			'above Stripe limit' => [ '10000000000.00', false ],
+			'integer wraparound' => [ '184467440737095520.00', false ],
+		];
+	}
+
+	/**
+	 * The Pay for Order localizer runs straight from a template hook, so an order total
+	 * Stripe cannot charge must skip the express checkout params instead of failing the page.
+	 *
+	 * @dataProvider provide_order_totals_for_pay_for_order_params
+	 *
+	 * @param string $total            Order total.
+	 * @param bool   $expect_localized Whether the params must be localized.
+	 */
+	public function test_localize_pay_for_order_page_scripts_for_total( string $total, bool $expect_localized ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		$order->set_total( $total );
+		$order->save();
+
+		wp_deregister_script( 'wc_stripe_express_checkout' );
+		try {
+			$this->element->localize_pay_for_order_page_scripts( $order );
+			$data = (string) wp_scripts()->get_data( 'wc_stripe_express_checkout', 'data' );
+		} finally {
+			wp_deregister_script( 'wc_stripe_express_checkout' );
+		}
+
+		if ( $expect_localized ) {
+			$this->assertStringContainsString( 'wcStripeExpressCheckoutPayForOrderParams', $data );
+			// wp_localize_script() stringifies scalar values.
+			$this->assertStringContainsString( '"order":"' . $order->get_id() . '"', $data );
+		} else {
+			$this->assertStringNotContainsString( 'wcStripeExpressCheckoutPayForOrderParams', $data );
+		}
+	}
+
+	public function provide_order_totals_for_pay_for_order_params(): array {
+		return [
+			'normal total'       => [ '10.23', true ],
+			'above Stripe limit' => [ '10000000000.00', false ],
+			'integer wraparound' => [ '184467440737095520.00', false ],
+		];
 	}
 }

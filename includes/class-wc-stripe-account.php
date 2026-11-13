@@ -491,30 +491,89 @@ class WC_Stripe_Account {
 	}
 
 	/**
+	 * Checks whether a webhook should be decommissioned.
+	 *
+	 * Webhooks should be decommissioned upon account disconnect (no new secret key)
+	 * or whenever accounts/API keys change, and the webhook belongs to a previous
+	 * account or API key.
+	 *
+	 * @internal
+	 * @param mixed  $webhook_data Stored endpoint data.
+	 * @param string $new_secret_key Account API key being saved, or empty when disconnecting.
+	 * @return bool Whether the stored webhook should be decommissioned.
+	 */
+	public function should_decommission_webhook( $webhook_data, $new_secret_key ): bool {
+		if ( ! is_array( $webhook_data ) || empty( $webhook_data['id'] ) || empty( $webhook_data['secret'] ) ) {
+			return false;
+		}
+
+		return empty( $new_secret_key ) || $new_secret_key !== $webhook_data['secret'];
+	}
+
+	/**
 	 * Decommissions a previously configured webhook endpoint when the secret key that
 	 * created it is being removed or replaced.
 	 *
 	 * @param mixed  $webhook_data   The previously stored webhook data. Expected to contain 'id' and 'secret'.
 	 * @param string $new_secret_key The secret key that is about to be saved. Empty when disconnecting.
 	 *
-	 * @return bool True if a webhook was decommissioned, false otherwise.
+	 * @return bool True when there is nothing of ours left to keep (the endpoint was deleted, is
+	 *              already gone, or belongs to another site), so the caller should clear the stored
+	 *              data. False when the cleanup could not be completed and the data must be kept.
 	 */
 	public function maybe_decommission_webhook( $webhook_data, $new_secret_key ): bool {
-		// Nothing to delete unless we have a stored webhook ID and the secret key that created it.
-		if ( ! is_array( $webhook_data ) || empty( $webhook_data['id'] ) || empty( $webhook_data['secret'] ) ) {
-			return false;
-		}
-
-		// Only decommission when the secret key is being removed or has changed.
-		if ( ! empty( $new_secret_key ) && $new_secret_key === $webhook_data['secret'] ) {
+		if ( ! $this->should_decommission_webhook( $webhook_data, $new_secret_key ) ) {
 			return false;
 		}
 
 		try {
-			// Authenticate with the secret key that created the webhook so the deletion
-			// hits the originally connected account.
+			// Authenticate with the key that created the webhook so the lookup and deletion hit
+			// the originally connected account.
 			WC_Stripe_API::set_secret_key( $webhook_data['secret'] );
-			$this->stripe_api::request( [], 'webhook_endpoints/' . $webhook_data['id'], 'DELETE' );
+
+			// A staging clone inherits production's stored id and secret, so deleting by id alone
+			// would remove production's endpoint. Look the endpoint up first and only delete one
+			// that still points at this site. The outcomes are kept apart so a real lookup failure
+			// is not mistaken for a deliberate skip.
+			$endpoint = $this->stripe_api::retrieve( 'webhook_endpoints/' . $webhook_data['id'] );
+
+			// Confirmed gone: nothing of ours to delete, so report success and let the caller clear
+			// the stale data (including the old account's secret) instead of keeping it.
+			if ( is_object( $endpoint ) && 'resource_missing' === ( $endpoint->error->code ?? '' ) ) {
+				WC_Stripe_Logger::info( "Skipped decommissioning webhook {$webhook_data['id']}: the endpoint no longer exists." );
+				return true;
+			}
+
+			// Any other lookup failure (expired or invalid key, network error, throttled retrieve):
+			// we cannot confirm the endpoint, so keep the data and let a later change retry.
+			if ( ! is_object( $endpoint ) || isset( $endpoint->error ) || ! isset( $endpoint->url ) ) {
+				WC_Stripe_Logger::error(
+					"Failed to look up webhook {$webhook_data['id']} before decommissioning it.",
+					[ 'error_code' => is_string( $endpoint->error->code ?? null ) ? $endpoint->error->code : 'unknown' ]
+				);
+				return false;
+			}
+
+			// Registered for another site (a staging clone with production's settings): do not delete
+			// the other site's endpoint, but clear our stale copy so we stop retrying.
+			if ( ! WC_Stripe_Helper::is_webhook_url( $endpoint->url ) ) {
+				WC_Stripe_Logger::info(
+					"Skipped decommissioning webhook {$webhook_data['id']}: its endpoint is registered for another site.",
+					[ 'url' => $endpoint->url ]
+				);
+				return true;
+			}
+
+			$response = $this->stripe_api::request( [], 'webhook_endpoints/' . $webhook_data['id'], 'DELETE' );
+
+			if ( isset( $response->error ) && 'resource_missing' !== ( $response->error->code ?? '' ) ) {
+				// Stripe returns failed DELETE requests as objects; only an already missing endpoint needs no retry.
+				WC_Stripe_Logger::error(
+					"Failed to decommission previously configured webhook {$webhook_data['id']}.",
+					[ 'error_code' => is_string( $response->error->code ?? null ) ? $response->error->code : 'unknown' ]
+				);
+				return false;
+			}
 
 			WC_Stripe_Logger::info( "Decommissioned previously configured webhook {$webhook_data['id']} before saving new keys." );
 		} catch ( Exception $e ) {
@@ -538,11 +597,16 @@ class WC_Stripe_Account {
 	 * @return bool
 	 */
 	public function is_webhook_enabled() {
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$is_testmode     = ( ! empty( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'] ) ? true : false;
-		$key             = $is_testmode ? 'test_webhook_data' : 'webhook_data';
+		$stripe_settings  = WC_Stripe_Helper::get_stripe_settings();
+		$is_testmode      = ( ! empty( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'] ) ? true : false;
+		$webhook_data_key = $is_testmode ? 'test_webhook_data' : 'webhook_data';
+		$webhook_data     = $stripe_settings[ $webhook_data_key ] ?? [];
+		$secret_key       = $stripe_settings[ $is_testmode ? 'test_secret_key' : 'secret_key' ] ?? '';
+		if ( ! empty( $webhook_data['secret'] ) ) {
+			$secret_key = $webhook_data['secret'];
+		}
 
-		if ( empty( $stripe_settings[ $key ]['id'] ) || empty( $stripe_settings[ $key ]['secret'] ) ) {
+		if ( empty( $webhook_data['id'] ) || empty( $secret_key ) ) {
 			return false;
 		}
 
@@ -553,9 +617,8 @@ class WC_Stripe_Account {
 		}
 
 		try {
-			$webhook_id     = $stripe_settings[ $key ]['id'];
-			$webhook_secret = $stripe_settings[ $key ]['secret'];
-			WC_Stripe_API::set_secret_key( $webhook_secret );
+			$webhook_id = $webhook_data['id'];
+			WC_Stripe_API::set_secret_key( $secret_key );
 			$webhook = $this->stripe_api::request( [], 'webhook_endpoints/' . $webhook_id, 'GET' );
 
 			// Cache the status for 2 hours.
@@ -725,11 +788,11 @@ class WC_Stripe_Account {
 
 				// The stored endpoint can vanish (deleted in the Dashboard, or created under a
 				// previously connected account); notice instead of displaying the ghost ID forever.
-				if (
-					'' !== $stored_webhook_id
+				$stored_webhook_is_missing = '' !== $stored_webhook_id
 					&& ( ! $existing_webhook || ( $existing_webhook->id ?? '' ) !== $stored_webhook_id )
-					&& ! $this->webhook_endpoint_exists( $stored_webhook_id )
-				) {
+					&& ! $this->webhook_endpoint_exists( $stored_webhook_id );
+
+				if ( $stored_webhook_is_missing ) {
 					update_option( self::get_webhook_missing_notice_option( $mode ), 'yes' );
 					WC_Stripe_Logger::info( "Stored webhook {$stored_webhook_id} for {$mode} mode no longer exists in the Stripe account." );
 				}
@@ -762,6 +825,14 @@ class WC_Stripe_Account {
 					'' === $stored_webhook_id
 					|| ( isset( $webhook_data['signing_secret'] ) && $webhook_data['signing_secret'] !== $stored_secret )
 				);
+
+				// Stored id missing from this mode's account but another endpoint serves the site
+				// URL: the saved secret is stale (a reconfigure ran under the other mode's key), so rebuild.
+				if ( $stored_webhook_is_missing && $existing_webhook && ! $secret_is_manual && ! $stored_endpoint_is_foreign ) {
+					$this->configure_webhooks( $mode );
+					WC_Stripe_Logger::info( "Rebuilt the {$mode}-mode webhook after {$update_type} update: the stored endpoint was not found in this mode's account." );
+					continue;
+				}
 
 				if ( ! $existing_webhook ) {
 					// If the secret was manually edited, we don't want to overwrite the changes.
