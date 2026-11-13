@@ -1,13 +1,14 @@
 /**
  * The classic checkout handler's RETURN VALUE is the contract with WooCommerce core:
  * core submits the form unless a `checkout_place_order_*` handler returns exactly false.
- * Returning early without false lets the form POST with no payment method, which creates
- * an order and then fails it. These tests pin the return value, not just the side effects.
+ * When required fields are empty the handler returns false to block the submission (so core
+ * does not post an order with no payment method) and shows one notice per empty field. These
+ * tests pin the return value, not just the side effects.
  */
 const mockProcessPayment = jest.fn();
 const mockResetCheckoutCompletionState = jest.fn();
 const mockShowErrorCheckout = jest.fn();
-let mockIsEmpty = false;
+let mockEmptyWrappers = [];
 let mockUsingSavedMethod = false;
 let mockSelectedMethod = 'card';
 let mockStripeServerData = {};
@@ -32,8 +33,8 @@ jest.mock( '../payment-processing', () => ( {
 	confirmVoucherPayment: () => {},
 	confirmWalletPayment: () => {},
 	createAndConfirmSetupIntent: () => {},
+	getEmptyRequiredFields: () => mockEmptyWrappers,
 	getMountedUPEComponent: () => null,
-	hasEmptyRequiredFields: () => mockIsEmpty,
 	initializeUPEComponents: () => {},
 	maybeUpdateAdaptivePricingCheckoutSession: () => Promise.resolve(),
 	maybeUpdateOptimizedCheckoutExclusions: () => {},
@@ -59,9 +60,19 @@ let $;
 const placeOrder = () =>
 	$( 'form.checkout' ).triggerHandler( 'checkout_place_order_stripe' );
 
+// A `.validate-required` wrapper the handler reads to build its per-field notice.
+const buildRequiredWrapper = ( labelText ) => {
+	const wrapper = document.createElement( 'p' );
+	wrapper.className = 'form-row validate-required';
+	wrapper.innerHTML =
+		`<label>${ labelText } <abbr class="required" title="required">*</abbr></label>` +
+		'<input type="text" class="input-text" value="" />';
+	return wrapper;
+};
+
 describe( 'classic checkout place-order handler', () => {
 	beforeEach( async () => {
-		mockIsEmpty = false;
+		mockEmptyWrappers = [];
 		mockUsingSavedMethod = false;
 		mockSelectedMethod = 'card';
 		mockStripeServerData = {};
@@ -84,13 +95,74 @@ describe( 'classic checkout place-order handler', () => {
 		jest.resetModules();
 	} );
 
-	it( 'returns false so core does not submit when a required field is empty', () => {
-		mockIsEmpty = true;
+	it( 'blocks the submission and shows a per-field notice when a required field is empty', () => {
+		mockEmptyWrappers = [ buildRequiredWrapper( 'First name' ) ];
 
 		expect( placeOrder() ).toBe( false );
 		expect( mockProcessPayment ).not.toHaveBeenCalled();
 		expect( mockResetCheckoutCompletionState ).toHaveBeenCalledTimes( 1 );
-		expect( mockShowErrorCheckout ).toHaveBeenCalledWith(
+		expect( mockShowErrorCheckout ).toHaveBeenCalledTimes( 1 );
+		expect( mockShowErrorCheckout.mock.calls[ 0 ][ 0 ] ).toContain(
+			'First name is a required field.'
+		);
+	} );
+
+	it( 'strips a required marker rendered as plain "*" text from the field name', () => {
+		const wrapper = document.createElement( 'p' );
+		wrapper.className = 'form-row validate-required';
+		// Some themes render the required marker as plain text rather than an <abbr>.
+		wrapper.innerHTML =
+			'<label>First name *</label>' +
+			'<input type="text" class="input-text" value="" />';
+		mockEmptyWrappers = [ wrapper ];
+
+		expect( placeOrder() ).toBe( false );
+		expect( mockShowErrorCheckout.mock.calls[ 0 ][ 0 ] ).toContain(
+			'First name is a required field.'
+		);
+		expect( mockShowErrorCheckout.mock.calls[ 0 ][ 0 ] ).not.toContain(
+			'First name *'
+		);
+	} );
+
+	it( 'shows a notice for each empty required field', () => {
+		mockEmptyWrappers = [
+			buildRequiredWrapper( 'First name' ),
+			buildRequiredWrapper( 'Last name' ),
+		];
+
+		expect( placeOrder() ).toBe( false );
+		expect( mockShowErrorCheckout ).toHaveBeenCalledTimes( 1 );
+		const html = mockShowErrorCheckout.mock.calls[ 0 ][ 0 ];
+		expect( html ).toContain( 'First name is a required field.' );
+		expect( html ).toContain( 'Last name is a required field.' );
+		expect( ( html.match( /<li>/g ) || [] ).length ).toBe( 2 );
+	} );
+
+	it( 'links the field name in the notice to the field when it has an id', () => {
+		const wrapper = document.createElement( 'p' );
+		wrapper.className = 'form-row validate-required';
+		wrapper.innerHTML =
+			'<label for="billing_first_name">First name <abbr class="required" title="required">*</abbr></label>' +
+			'<input id="billing_first_name" type="text" class="input-text" value="" />';
+		mockEmptyWrappers = [ wrapper ];
+
+		expect( placeOrder() ).toBe( false );
+		expect( mockShowErrorCheckout.mock.calls[ 0 ][ 0 ] ).toContain(
+			'<a href="#billing_first_name">First name</a> is a required field.'
+		);
+	} );
+
+	it( 'falls back to the generic notice when a required wrapper has no label', () => {
+		const wrapper = document.createElement( 'p' );
+		wrapper.className = 'form-row validate-required';
+		// No <label>, so no field name can be read for a per-field message.
+		wrapper.innerHTML = '<input type="text" class="input-text" value="" />';
+		mockEmptyWrappers = [ wrapper ];
+
+		expect( placeOrder() ).toBe( false );
+		expect( mockShowErrorCheckout ).toHaveBeenCalledTimes( 1 );
+		expect( mockShowErrorCheckout.mock.calls[ 0 ][ 0 ] ).toContain(
 			'Please fill in all required fields.'
 		);
 	} );
@@ -103,16 +175,14 @@ describe( 'classic checkout place-order handler', () => {
 		expect( mockShowErrorCheckout ).not.toHaveBeenCalled();
 	} );
 
-	it( 'blocks a saved-token checkout when a required field is empty', () => {
-		mockIsEmpty = true;
+	it( 'blocks a saved-token checkout and shows a per-field notice when a required field is empty', () => {
+		mockEmptyWrappers = [ buildRequiredWrapper( 'First name' ) ];
 		mockUsingSavedMethod = true;
 
 		expect( placeOrder() ).toBe( false );
 		expect( mockProcessPayment ).not.toHaveBeenCalled();
 		expect( mockResetCheckoutCompletionState ).toHaveBeenCalledTimes( 1 );
-		expect( mockShowErrorCheckout ).toHaveBeenCalledWith(
-			'Please fill in all required fields.'
-		);
+		expect( mockShowErrorCheckout ).toHaveBeenCalledTimes( 1 );
 	} );
 
 	it( 'lets core submit a saved token when required fields are filled', () => {

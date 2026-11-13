@@ -12,6 +12,8 @@ Generally, only the latest version of the extension has continued support.  In s
 
 **For responsible disclosure of security issues and to be eligible for our bug bounty program, please submit your report via the [HackerOne](https://hackerone.com/automattic) portal.**
 
+The security contact for this project is security@automattic.com.
+
 _Please note that the **WordPress software is a separate entity** from Automattic. Please report vulnerabilities for WordPress through [the WordPress Foundation's HackerOne page](https://hackerone.com/wordpress)._
 
 ## Guidelines

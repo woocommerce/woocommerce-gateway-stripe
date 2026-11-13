@@ -1,7 +1,7 @@
 {
   "name": "woocommerce-gateway-stripe",
   "title": "WooCommerce Gateway Stripe",
-  "version": "11.1.0",
+  "version": "11.2.0",
   "license": "GPL-3.0",
   "homepage": "http://wordpress.org/plugins/woocommerce-gateway-stripe/",
   "repository": {
@@ -19,7 +19,7 @@
     "@emotion/react": "11.4.1",
     "@emotion/styled": "11.3.0",
     "@kooneko/livereload-webpack-plugin": "^1.2.1",
-    "@playwright/test": "^1.57.0",
+    "@playwright/test": "^1.65.0",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^14.3.1",
     "@testing-library/user-event": "^13.2.1",
@@ -27,7 +27,7 @@
     "@types/react-dom": "^18.3.7",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
-    "@woocommerce/dependency-extraction-webpack-plugin": "^3.1.0",
+    "@woocommerce/dependency-extraction-webpack-plugin": "4.0.0",
     "@woocommerce/eslint-plugin": "^2.2.0",
     "@woocommerce/navigation": "^8.2.0",
     "@woocommerce/woocommerce-rest-api": "^1.0.2",
@@ -80,7 +80,7 @@
     "nock": "^13.5.6",
     "node-ssh": "^13.0.0",
     "node-wp-i18n": "~1.2.1",
-    "playwright": "^1.57.0",
+    "playwright": "^1.65.0",
     "postcss": "8.5.23",
     "postcss-loader": "4.3.0",
     "prettier": "npm:wp-prettier@^3.0.3",
@@ -144,7 +144,7 @@
     "down": "docker compose down",
     "xdebug:start": "docker compose exec wordpress sh -c 'sed -i \"/xdebug.mode=off/c\\xdebug.mode=debug\" /usr/local/etc/php/php.ini && /etc/init.d/apache2 reload'",
     "xdebug:stop": "docker compose exec wordpress sh -c 'sed -i \"/xdebug.mode=debug/c\\xdebug.mode=off\" /usr/local/etc/php/php.ini && /etc/init.d/apache2 reload'",
-    "wp": "bash -c 'source .env 2>/dev/null; CONTAINER=wcstripe_wp_${WORKTREE_ID:-default}; docker run -it --env-file default.env --rm --volumes-from $CONTAINER --network container:$CONTAINER wordpress:cli'",
+    "wp": "./bin/run-wp-cli.sh",
     "listen": "./bin/stripe-listen.sh",
     "presass": "rm -f $npm_package_config_assets_styles_css",
     "sass": "node_modules/.bin/sass $npm_package_config_assets_styles_cssfolder:$npm_package_config_assets_styles_cssfolder --style compressed",
@@ -199,7 +199,8 @@
     "version_replace_paths": [
       "includes",
       "templates",
-      "woocommerce-gateway-stripe.php"
+      "woocommerce-gateway-stripe.php",
+      "uninstall.php"
     ],
     "assets": {
       "js": {
@@ -214,6 +215,9 @@
     }
   },
   "overrides": {
+    "@woocommerce/dependency-extraction-webpack-plugin": {
+      "@wordpress/dependency-extraction-webpack-plugin": "6.31.0"
+    },
     "@wordpress/eslint-plugin": {
       "eslint-plugin-jsdoc": "^46.0.0"
     },
