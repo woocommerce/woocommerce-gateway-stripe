@@ -1,5 +1,7 @@
 <?php
 
+use Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils;
+
 /**
  * These tests make assertions against class WC_Stripe_Express_Checkout_Element.
  *
@@ -269,6 +271,10 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 		$element->scripts();
 		$actual = wp_script_is( 'wc_stripe_express_checkout', 'enqueued' );
 		$this->assertSame( $expected, $actual );
+		if ( $expected ) {
+			$this->assertContains( 'wc-stripe-checkout-settings', wp_scripts()->registered['wc_stripe_express_checkout']->deps );
+			$this->assertStringContainsString( 'var wc_stripe_express_checkout_params = ', wp_scripts()->get_data( 'wc-stripe-checkout-settings', 'data' ) );
+		}
 	}
 
 	/**
@@ -294,6 +300,158 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 				'expected'       => true,
 			],
 		];
+	}
+
+	/**
+	 * Blocks need the filtered express settings, but must not download the classic bundle via a preload.
+	 *
+	 * @since x.x.x
+	 * @dataProvider provide_express_script_layouts
+	 * @param string $content Page content.
+	 * @param string $endpoint Special endpoint, if any.
+	 * @param bool   $expected_classic Whether classic express checkout is needed.
+	 * @param bool   $is_cart Whether this is the configured cart page.
+	 * @return void
+	 */
+	public function test_express_scripts_and_preload_follow_layout( $content, $endpoint, $expected_classic, $is_cart = false ): void {
+		$original_cart_page = get_option( 'woocommerce_cart_page_id' );
+		$page               = self::factory()->post->create(
+			[
+				'post_type'    => 'page',
+				'post_content' => $content,
+			]
+		);
+		if ( $is_cart ) {
+			update_option( 'woocommerce_cart_page_id', $page );
+		}
+		$this->go_to( get_permalink( $page ) );
+		if ( $endpoint ) {
+			$GLOBALS['wp']->query_vars[ $endpoint ] = 123;
+		}
+		$filter = static function ( $params ) {
+			$params['button']['theme'] = 'white';
+			return $params;
+		};
+		add_filter( 'wc_stripe_express_checkout_params', $filter );
+		$cart_page_cache = null;
+		if ( $is_cart && property_exists( CartCheckoutUtils::class, 'is_cart_page' ) ) {
+			// WooCommerce's request cache survives navigation between fixtures in the same PHP process.
+			$cart_page_cache = new ReflectionProperty( CartCheckoutUtils::class, 'is_cart_page' );
+			$cart_page_cache->setAccessible( true );
+			$original_cart_page_cache = $cart_page_cache->getValue();
+			$cart_page_cache->setValue( null, null );
+		}
+		foreach ( [ 'wc_stripe_express_checkout', 'wc-stripe-checkout-settings' ] as $handle ) {
+			wp_dequeue_script( $handle );
+			wp_deregister_script( $handle );
+		}
+
+		try {
+			if ( $is_cart ) {
+				$this->assertTrue( is_cart() );
+			}
+			$element = $this->build_element_with_guards( true, true );
+			$element->scripts();
+			$this->assertSame( $expected_classic, wp_script_is( 'wc_stripe_express_checkout', 'enqueued' ) );
+			$this->assertTrue( wp_script_is( 'wc-stripe-checkout-settings', 'enqueued' ) );
+			$this->assertStringContainsString( '"theme":"white"', wp_scripts()->get_data( 'wc-stripe-checkout-settings', 'data' ) );
+			$this->assertStringEndsWith( '/build/express-checkout.js', wp_scripts()->registered['wc_stripe_express_checkout']->src );
+
+			$bundle     = $expected_classic ? 'express-checkout' : 'upe-blocks';
+			$asset_path = WC_STRIPE_PLUGIN_PATH . '/build/' . $bundle . '.asset.php';
+			$asset      = file_exists( $asset_path ) ? require $asset_path : [ 'version' => WC_STRIPE_VERSION ];
+			$hints      = $element->add_preload_resources( [] );
+			$this->assertCount( 1, $hints );
+			$this->assertSame( WC_STRIPE_PLUGIN_URL . '/build/' . $bundle . '.js?ver=' . $asset['version'], $hints[0]['href'] );
+		} finally {
+			if ( $is_cart ) {
+				update_option( 'woocommerce_cart_page_id', $original_cart_page );
+			}
+			if ( $cart_page_cache ) {
+				$cart_page_cache->setValue( null, $original_cart_page_cache );
+			}
+			remove_filter( 'wc_stripe_express_checkout_params', $filter );
+			if ( $endpoint ) {
+				unset( $GLOBALS['wp']->query_vars[ $endpoint ] );
+			}
+			foreach ( [ 'wc_stripe_express_checkout', 'wc-stripe-checkout-settings' ] as $handle ) {
+				wp_dequeue_script( $handle );
+				wp_deregister_script( $handle );
+			}
+		}
+	}
+
+	/**
+	 * @since x.x.x
+	 * @return array
+	 */
+	public function provide_express_script_layouts(): array {
+		return [
+			'Blocks cart'              => [ '<!-- wp:woocommerce/cart /-->', '', false ],
+			'Blocks checkout'          => [ '<!-- wp:woocommerce/checkout /-->', '', false ],
+			'classic cart'             => [ '[woocommerce_cart]', '', true, true ],
+			'classic cart block'       => [ '<!-- wp:woocommerce/classic-shortcode {"shortcode":"cart"} /-->', '', true, true ],
+			'nested classic cart'      => [ '<!-- wp:group --><!-- wp:woocommerce/classic-shortcode {"shortcode":"cart"} /--><!-- /wp:group -->', '', true, true ],
+			'classic checkout'         => [ '[woocommerce_checkout]', '', true ],
+			'pay for order'            => [ '<!-- wp:woocommerce/checkout /-->', 'order-pay', true ],
+			'mixed classic and Blocks' => [ '<!-- wp:woocommerce/cart /-->[woocommerce_checkout]', '', true ],
+		];
+	}
+
+	/**
+	 * One Page Checkout can become active after preload hints have already been generated.
+	 *
+	 * @since x.x.x
+	 * @return void
+	 */
+	public function test_layout_checks_reuse_helper_without_caching_checkout_context(): void {
+		$page = self::factory()->post->create(
+			[
+				'post_type'    => 'page',
+				'post_content' => '<!-- wp:woocommerce/checkout /-->',
+			]
+		);
+		$this->go_to( get_permalink( $page ) );
+
+		$is_one_page_checkout = false;
+		$helper               = $this->createMock( WC_Stripe_Express_Checkout_Helper::class );
+		$helper->method( 'is_page_supported' )->willReturn( true );
+		$helper->method( 'should_show_express_checkout_button' )->willReturn( true );
+		$helper->method( 'is_one_page_checkout' )->willReturnCallback(
+			static function () use ( &$is_one_page_checkout ) {
+				return $is_one_page_checkout;
+			}
+		);
+		$element                          = $this->getMockBuilder( WC_Stripe_Express_Checkout_Element::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'javascript_params' ] )
+			->getMock();
+		$element->express_checkout_helper = $helper;
+		$element->method( 'javascript_params' )->willReturn( [] );
+
+		foreach ( [ 'wc_stripe_express_checkout', 'wc-stripe-checkout-settings' ] as $handle ) {
+			wp_dequeue_script( $handle );
+			wp_deregister_script( $handle );
+		}
+
+		try {
+			$hints = $element->add_preload_resources( [] );
+			$this->assertCount( 1, $hints );
+			$this->assertStringContainsString( '/build/upe-blocks.js', $hints[0]['href'] );
+
+			$is_one_page_checkout = true;
+			$element->scripts();
+			$this->assertTrue( wp_script_is( 'wc_stripe_express_checkout', 'enqueued' ) );
+			$hints = $element->add_preload_resources( [] );
+			$this->assertStringContainsString( '/build/express-checkout.js', $hints[0]['href'] );
+		} finally {
+			foreach ( [ 'wc_stripe_express_checkout', 'wc-stripe-checkout-settings' ] as $handle ) {
+				wp_dequeue_script( $handle );
+				wp_deregister_script( $handle );
+			}
+			wp_dequeue_style( 'wc_stripe_express_checkout_style' );
+			wp_deregister_style( 'wc_stripe_express_checkout_style' );
+		}
 	}
 
 	/**

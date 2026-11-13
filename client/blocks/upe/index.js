@@ -2,6 +2,8 @@ import {
 	registerPaymentMethod,
 	registerExpressPaymentMethod,
 } from '@woocommerce/blocks-registry';
+import jQuery from 'jquery';
+import { initializeVoucherAndWalletConfirmation } from '../../stripe-utils/voucher-wallet-confirmation';
 import {
 	PAYMENT_METHOD_AFFIRM,
 	PAYMENT_METHOD_AMAZON_PAY,
@@ -34,6 +36,10 @@ const api = new WCStripeAPI(
 		} );
 	}
 );
+
+jQuery( () => {
+	initializeVoucherAndWalletConfirmation( api );
+} );
 
 const paymentMethodsConfig =
 	getBlocksConfiguration()?.paymentMethodsConfig ?? {};

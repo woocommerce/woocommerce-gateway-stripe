@@ -505,10 +505,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				: $dependencies;
 		}
 
+		WC_Stripe_Helper::register_checkout_settings_script();
 		wp_register_script(
 			'wc-stripe-upe-classic',
 			WC_STRIPE_PLUGIN_URL . '/build/upe-classic.js',
-			array_merge( [ 'stripe', 'wc-checkout' ], $dependencies ),
+			array_merge( [ 'stripe', 'wc-checkout', 'wc-stripe-checkout-settings' ], $dependencies ),
 			$version,
 			true
 		);
@@ -538,13 +539,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// async init chunk; sourcing the list from the build keeps it in sync.
 		$upe_params['scriptDependencies'] = $dependencies;
 
-		// The wallet script can run before the checkout script, so it needs the same settings.
-		if ( wp_script_is( 'wc_stripe_express_checkout', 'enqueued' ) ) {
-			wp_localize_script( 'wc_stripe_express_checkout', 'wc_stripe_upe_params', $upe_params );
-		}
-
 		wp_localize_script(
-			'wc-stripe-upe-classic',
+			'wc-stripe-checkout-settings',
 			'wc_stripe_upe_params',
 			$upe_params
 		);
@@ -556,7 +552,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$version
 		);
 
-		wp_enqueue_script( 'wc-stripe-upe-classic' );
+		wp_enqueue_script( 'wc-stripe-checkout-settings' );
+		if ( WC_Stripe_Helper::should_load_classic_checkout_scripts() ) {
+			wp_enqueue_script( 'wc-stripe-upe-classic' );
+		}
 		wp_enqueue_style( 'wc-stripe-upe-classic' );
 
 		wp_register_style( 'stripelink_styles', plugins_url( 'assets/css/stripe-link.css', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION );

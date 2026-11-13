@@ -1,5 +1,6 @@
 <?php
 
+use Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils;
 use Automattic\WooCommerce\Enums\OrderStatus;
 
 /**
@@ -571,7 +572,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		// Determine the expected version without modifying any files: if the compiled asset file
 		// is present (i.e. a build has been run), mirror the same logic used in payment_scripts().
 		$expected_version      = WC_STRIPE_VERSION;
-		$expected_dependencies = [ 'stripe', 'wc-checkout' ];
+		$expected_dependencies = [ 'stripe', 'wc-checkout', 'wc-stripe-checkout-settings' ];
 		if ( file_exists( $asset_path ) ) {
 			$asset = require $asset_path;
 			if ( is_array( $asset ) ) {
@@ -600,7 +601,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		add_filter( 'woocommerce_is_checkout', '__return_true' );
 
 		$this->clean_up_scripts(
-			[ 'stripe', 'wc-stripe-upe-classic' ],
+			[ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ],
 			[ 'stripelink_styles', 'wc-stripe-upe-classic' ]
 		);
 
@@ -614,7 +615,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		remove_filter( 'woocommerce_is_checkout', '__return_true' );
 
 		$this->clean_up_scripts(
-			[ 'stripe', 'wc-stripe-upe-classic' ],
+			[ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ],
 			[ 'stripelink_styles', 'wc-stripe-upe-classic' ]
 		);
 
@@ -626,7 +627,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 	/**
 	 * The bootstrap derives its readiness gate from `scriptDependencies`, so the
-	 * localized list must match the script's registered build dependencies.
+	 * localized list must match the build dependencies and precede early wallets.
 	 */
 	public function test_payment_scripts_localizes_script_dependencies(): void {
 		$asset_path            = WC_STRIPE_PLUGIN_PATH . '/build/upe-classic.asset.php';
@@ -651,35 +652,72 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$gateway->method( 'get_return_url' )->willReturn( self::MOCK_RETURN_URL );
 		$gateway->enabled = 'yes';
 
+		$express_helper = $this->createMock( WC_Stripe_Express_Checkout_Helper::class );
+		$express_helper->method( 'is_page_supported' )->willReturn( true );
+		$express_helper->method( 'should_show_express_checkout_button' )->willReturn( true );
+		$express                          = $this->getMockBuilder( WC_Stripe_Express_Checkout_Element::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'javascript_params' ] )
+			->getMock();
+		$express->express_checkout_helper = $express_helper;
+		$express->method( 'javascript_params' )->willReturn( [ 'button' => [ 'theme' => 'white' ] ] );
+
+		$original_scripts = wp_scripts();
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Isolate script registration and printing state from other tests.
+		$GLOBALS['wp_scripts'] = clone $original_scripts;
+		// Registered dependencies are objects, so cloning only the registry would share their mutable state.
+		foreach ( wp_scripts()->registered as $handle => $dependency ) {
+			wp_scripts()->registered[ $handle ] = clone $dependency;
+		}
+		wp_scripts()->done = [];
 		add_filter( 'woocommerce_is_checkout', '__return_true' );
-		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
-		wp_register_script( 'wc_stripe_express_checkout', 'https://example.test/express.js', [], null, true );
-		wp_enqueue_script( 'wc_stripe_express_checkout' );
+		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
+		$this->clean_up_scripts( [ 'wc_stripe_express_checkout' ] );
 
 		$add_marker = static function ( $params ) {
 			$params['extensionMarker'] = 'extension-value';
 			return $params;
 		};
 		add_filter( 'wc_stripe_upe_params', $add_marker );
-		$gateway->payment_scripts();
-		$localized         = wp_scripts()->get_data( 'wc-stripe-upe-classic', 'data' );
-		$express_localized = wp_scripts()->get_data( 'wc_stripe_express_checkout', 'data' );
 
-		remove_filter( 'wc_stripe_upe_params', $add_marker );
-		remove_filter( 'woocommerce_is_checkout', '__return_true' );
-		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
-		$this->clean_up_scripts( [ 'wc_stripe_express_checkout' ] );
+		try {
+			WC_Frontend_Scripts::load_scripts();
+			$express->scripts();
+			$gateway->payment_scripts();
+			$localized = wp_scripts()->get_data( 'wc-stripe-checkout-settings', 'data' );
+			$this->assertContains( 'wc-stripe-checkout-settings', wp_scripts()->registered['wc_stripe_express_checkout']->deps );
+			$this->assertIsString( $localized, 'wc_stripe_upe_params was not localized' );
+			$this->assertStringContainsString( 'extension-value', $localized );
+			$this->assertMatchesRegularExpression( '/var wc_stripe_upe_params = (\{.*\});/s', $localized );
+			preg_match( '/var wc_stripe_upe_params = (\{.*\});/s', $localized, $matches );
+			$params = json_decode( $matches[1], true );
 
-		$this->assertSame( $localized, $express_localized, 'Early wallets must receive the same filtered gateway configuration before initialization.' );
-		$this->assertStringContainsString( 'extension-value', $localized );
-		$this->assertStringContainsString( 'extension-value', $express_localized );
-		$this->assertIsString( $localized, 'wc_stripe_upe_params was not localized' );
-		$this->assertMatchesRegularExpression( '/var wc_stripe_upe_params = (\{.*\});/s', $localized );
-		preg_match( '/var wc_stripe_upe_params = (\{.*\});/s', $localized, $matches );
-		$params = json_decode( $matches[1], true );
+			$this->assertArrayHasKey( 'scriptDependencies', $params );
+			$this->assertSame( $expected_dependencies, $params['scriptDependencies'] );
 
-		$this->assertArrayHasKey( 'scriptDependencies', $params );
-		$this->assertSame( $expected_dependencies, $params['scriptDependencies'] );
+			ob_start();
+			wp_scripts()->do_items( [ 'wc_stripe_express_checkout', 'wc-stripe-upe-classic' ], 1 );
+			$output = ob_get_clean();
+
+			$this->assertSame( 1, substr_count( $output, 'var wc_stripe_upe_params = ' ) );
+			$this->assertSame( 1, substr_count( $output, 'var wc_stripe_express_checkout_params = ' ) );
+			$this->assertStringContainsString( 'extension-value', $output );
+			$this->assertStringContainsString( 'var wc_stripe_express_checkout_params = {"button":{"theme":"white"}};', $output );
+			$settings_position         = strpos( $output, 'var wc_stripe_upe_params = ' );
+			$express_settings_position = strpos( $output, 'var wc_stripe_express_checkout_params = ' );
+			$express_position          = strpos( $output, 'id="wc_stripe_express_checkout-js"' );
+			$this->assertIsInt( $settings_position );
+			$this->assertIsInt( $express_settings_position );
+			$this->assertIsInt( $express_position );
+			$this->assertLessThan( $express_position, $settings_position, 'Early wallets must receive filtered settings before initialization.' );
+			$this->assertLessThan( $express_position, $express_settings_position, 'Express settings must be available before initialization.' );
+		} finally {
+			remove_filter( 'wc_stripe_upe_params', $add_marker );
+			remove_filter( 'woocommerce_is_checkout', '__return_true' );
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restore the script registry after printing the checkout bundles.
+			$GLOBALS['wp_scripts'] = $original_scripts;
+			$this->clean_up_scripts( [], [ 'stripelink_styles', 'wc-stripe-upe-classic', 'wc_stripe_express_checkout_style' ] );
+		}
 	}
 
 	/**
@@ -698,14 +736,14 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		add_filter( 'woocommerce_is_checkout', '__return_true' );
 		add_filter( 'wc_stripe_upe_params', '__return_null' );
-		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
+		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
 
 		$gateway->payment_scripts();
-		$localized = wp_scripts()->get_data( 'wc-stripe-upe-classic', 'data' );
+		$localized = wp_scripts()->get_data( 'wc-stripe-checkout-settings', 'data' );
 
 		remove_filter( 'wc_stripe_upe_params', '__return_null' );
 		remove_filter( 'woocommerce_is_checkout', '__return_true' );
-		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
+		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
 
 		$this->assertIsString( $localized, 'wc_stripe_upe_params was not localized' );
 		preg_match( '/var wc_stripe_upe_params = (\{.*\});/s', $localized, $matches );
@@ -714,6 +752,44 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		// wp_localize_script() casts scalar values to strings.
 		$this->assertSame( '1', $params['isCheckout'] );
 		$this->assertArrayHasKey( 'scriptDependencies', $params );
+	}
+
+	/**
+	 * Express and Blocks checkout must receive filtered settings without printing the classic runtime.
+	 *
+	 * @since x.x.x
+	 * @return void
+	 */
+	public function test_shared_settings_can_print_without_classic_checkout(): void {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->onlyMethods( [ 'javascript_params' ] )
+			->getMock();
+		$gateway->method( 'javascript_params' )->willReturn( [ 'key' => 'pk_test_example' ] );
+		$gateway->enabled = 'yes';
+		$filter           = static function ( $params ) {
+			$params['locale'] = 'fr';
+			return $params;
+		};
+
+		add_filter( 'woocommerce_is_checkout', '__return_true' );
+		add_filter( 'wc_stripe_upe_params', $filter );
+		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ] );
+
+		try {
+			$gateway->payment_scripts();
+			ob_start();
+			wp_scripts()->do_items( [ 'wc-stripe-checkout-settings' ] );
+			$output = ob_get_clean();
+
+			$this->assertStringContainsString( 'var wc_stripe_upe_params = ', $output );
+			$this->assertStringContainsString( '"locale":"fr"', $output );
+			$this->assertStringNotContainsString( 'src=', $output );
+			$this->assertFalse( wp_script_is( 'wc-stripe-upe-classic', 'done' ) );
+		} finally {
+			remove_filter( 'woocommerce_is_checkout', '__return_true' );
+			remove_filter( 'wc_stripe_upe_params', $filter );
+			$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
+		}
 	}
 
 	/**
@@ -7864,7 +7940,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
 				'amazon_pay_button_locations'               => [],
 				'expected_stripe'                           => true,
-				'expected_upe_classic'                      => true,
+				'expected_upe_classic'                      => false,
 			],
 			'Cart page with ECE off, Amazon Pay on at cart'       => [
 				'page_type'                                 => 'cart',
@@ -7873,7 +7949,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::AMAZON_PAY ],
 				'amazon_pay_button_locations'               => [ 'cart' ],
 				'expected_stripe'                           => true,
-				'expected_upe_classic'                      => true,
+				'expected_upe_classic'                      => false,
 			],
 			'Product page with ECE on at product'                 => [
 				'page_type'                                 => 'product',
@@ -7882,7 +7958,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
 				'amazon_pay_button_locations'               => [],
 				'expected_stripe'                           => true,
-				'expected_upe_classic'                      => true,
+				'expected_upe_classic'                      => false,
 			],
 			'Product page with ECE off, Amazon Pay on at product' => [
 				'page_type'                                 => 'product',
@@ -7891,7 +7967,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::AMAZON_PAY ],
 				'amazon_pay_button_locations'               => [ 'product' ],
 				'expected_stripe'                           => true,
-				'expected_upe_classic'                      => true,
+				'expected_upe_classic'                      => false,
 			],
 			'Checkout page with ECE off and Amazon Pay off'       => [
 				'page_type'                                 => 'checkout',
@@ -7953,7 +8029,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$gateway->enabled = 'yes';
 
 			$this->clean_up_scripts(
-				[ 'stripe', 'wc-stripe-upe-classic' ],
+				[ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ],
 				[ 'stripelink_styles', 'wc-stripe-upe-classic' ]
 			);
 
@@ -7965,7 +8041,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
 
 			$this->clean_up_scripts(
-				[ 'stripe', 'wc-stripe-upe-classic' ],
+				[ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ],
 				[ 'stripelink_styles', 'wc-stripe-upe-classic' ]
 			);
 
@@ -7981,6 +8057,123 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				remove_filter( 'woocommerce_is_cart', $is_cart_filter );
 			}
 		}
+	}
+
+	/**
+	 * Settings must survive layout gating, including filters used by extensions on Blocks pages.
+	 *
+	 * @since x.x.x
+	 * @dataProvider provide_checkout_script_layouts
+	 * @param string $content Page content.
+	 * @param bool   $is_checkout Whether WooCommerce identifies the page as checkout.
+	 * @param string $endpoint Special checkout endpoint, if any.
+	 * @param bool   $expected_classic Whether the classic runtime is required.
+	 * @param bool   $is_cart Whether this is the configured cart page.
+	 * @return void
+	 */
+	public function test_payment_scripts_for_checkout_layouts( $content, $is_checkout, $endpoint, $expected_classic, $is_cart = false ): void {
+		$original_account_page = get_option( 'woocommerce_myaccount_page_id' );
+		$original_cart_page    = get_option( 'woocommerce_cart_page_id' );
+		$page                  = self::factory()->post->create(
+			[
+				'post_type'    => 'page',
+				'post_content' => $content,
+			]
+		);
+		if ( 'add-payment-method' === $endpoint ) {
+			update_option( 'woocommerce_myaccount_page_id', $page );
+		}
+		if ( $is_cart ) {
+			update_option( 'woocommerce_cart_page_id', $page );
+		}
+		$this->go_to( get_permalink( $page ) );
+		$checkout_filter = static function () use ( $is_checkout ) {
+			return $is_checkout;
+		};
+		$params_filter   = static function ( $params ) {
+			$params['locale'] = 'fr';
+			return $params;
+		};
+		add_filter( 'woocommerce_is_checkout', $checkout_filter );
+		add_filter( 'wc_stripe_upe_params', $params_filter );
+		if ( 'change_payment_method' === $endpoint ) {
+			$_GET[ $endpoint ] = 123;
+		} elseif ( $endpoint ) {
+			$GLOBALS['wp']->query_vars[ $endpoint ] = 123;
+		}
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->onlyMethods( [ 'javascript_params', 'should_skip_full_payment_scripts' ] )
+			->getMock();
+		$gateway->expects( $this->once() )->method( 'javascript_params' )->willReturn( [ 'key' => 'pk_test_example' ] );
+		$gateway->expects( $this->once() )->method( 'should_skip_full_payment_scripts' )->willReturn( false );
+		$gateway->enabled = 'yes';
+		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ] );
+
+		$cart_page_cache = null;
+		if ( $is_cart && property_exists( CartCheckoutUtils::class, 'is_cart_page' ) ) {
+			// WooCommerce's request cache survives navigation between fixtures in the same PHP process.
+			$cart_page_cache = new ReflectionProperty( CartCheckoutUtils::class, 'is_cart_page' );
+			$cart_page_cache->setAccessible( true );
+			$original_cart_page_cache = $cart_page_cache->getValue();
+			$cart_page_cache->setValue( null, null );
+		}
+
+		try {
+			if ( $is_cart ) {
+				$this->assertTrue( is_cart() );
+			}
+			$gateway->payment_scripts();
+			$this->assertSame( $expected_classic, wp_script_is( 'wc-stripe-upe-classic', 'enqueued' ) );
+			$this->assertTrue( wp_script_is( 'wc-stripe-checkout-settings', 'enqueued' ) );
+			$this->assertStringContainsString( '"locale":"fr"', wp_scripts()->get_data( 'wc-stripe-checkout-settings', 'data' ) );
+
+			// Extensions can still explicitly request the real classic runtime on a custom page.
+			wp_enqueue_script( 'wc-stripe-upe-classic' );
+			$this->assertStringEndsWith( '/build/upe-classic.js', wp_scripts()->registered['wc-stripe-upe-classic']->src );
+			$this->assertContains( 'wc-stripe-checkout-settings', wp_scripts()->registered['wc-stripe-upe-classic']->deps );
+		} finally {
+			update_option( 'woocommerce_myaccount_page_id', $original_account_page );
+			if ( $is_cart ) {
+				update_option( 'woocommerce_cart_page_id', $original_cart_page );
+			}
+			if ( $cart_page_cache ) {
+				$cart_page_cache->setValue( null, $original_cart_page_cache );
+			}
+			remove_filter( 'woocommerce_is_checkout', $checkout_filter );
+			remove_filter( 'wc_stripe_upe_params', $params_filter );
+			if ( 'change_payment_method' === $endpoint ) {
+				unset( $_GET[ $endpoint ] );
+			} elseif ( $endpoint ) {
+				unset( $GLOBALS['wp']->query_vars[ $endpoint ] );
+			}
+			$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
+		}
+	}
+
+	/**
+	 * @since x.x.x
+	 * @return array
+	 */
+	public function provide_checkout_script_layouts(): array {
+		return [
+			'Blocks cart on a custom page'   => [ '<!-- wp:woocommerce/cart /-->', false, '', false ],
+			'Blocks checkout'                => [ '<!-- wp:woocommerce/checkout /-->', true, '', false ],
+			'Blocks checkout on custom page' => [ '<!-- wp:woocommerce/checkout /-->', false, '', false ],
+			'classic checkout'               => [ '[woocommerce_checkout]', true, '', true ],
+			'classic shortcode block'        => [ '<!-- wp:woocommerce/classic-shortcode {"shortcode":"checkout"} /-->', true, '', true ],
+			'classic cart'                   => [ '[woocommerce_cart]', false, '', false, true ],
+			'classic cart block'             => [ '<!-- wp:woocommerce/classic-shortcode {"shortcode":"cart"} /-->', false, '', false, true ],
+			'default classic cart block'     => [ '<!-- wp:woocommerce/classic-shortcode /-->', false, '', false, true ],
+			'nested classic cart block'      => [ '<!-- wp:group --><!-- wp:woocommerce/classic-shortcode {"shortcode":"cart"} /--><!-- /wp:group -->', false, '', false, true ],
+			'checkout block on cart page'    => [ '<!-- wp:woocommerce/classic-shortcode {"shortcode":"cart"} /--><!-- wp:woocommerce/classic-shortcode {"shortcode":"checkout"} /-->', false, '', true, true ],
+			'nested checkout with Blocks'    => [ '<!-- wp:woocommerce/cart /--><!-- wp:group --><!-- wp:woocommerce/classic-shortcode {"shortcode":"checkout"} /--><!-- /wp:group -->', false, '', true ],
+			'Blocks with classic cart block' => [ '<!-- wp:woocommerce/checkout /--><!-- wp:woocommerce/classic-shortcode {"shortcode":"cart"} /-->', true, '', false ],
+			'mixed classic and Blocks'       => [ '<!-- wp:woocommerce/cart /-->[woocommerce_checkout]', true, '', true ],
+			'pay for order on Blocks page'   => [ '<!-- wp:woocommerce/checkout /-->', true, 'order-pay', true ],
+			'add payment method'             => [ '[woocommerce_my_account]', false, 'add-payment-method', true ],
+			'subscription payment change'    => [ '<!-- wp:woocommerce/checkout /-->', true, 'change_payment_method', true ],
+		];
 	}
 
 	/**

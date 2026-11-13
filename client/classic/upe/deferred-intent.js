@@ -1,4 +1,5 @@
 import jQuery from 'jquery';
+import { initializeVoucherAndWalletConfirmation } from '../../stripe-utils/voucher-wallet-confirmation';
 import WCStripeAPI from '../../api';
 import {
 	generateCheckoutEventNames,
@@ -13,8 +14,6 @@ import {
 } from '../../stripe-utils';
 import './style.scss';
 import {
-	confirmVoucherPayment,
-	confirmWalletPayment,
 	createAndConfirmSetupIntent,
 	getEmptyRequiredFields,
 	getMountedUPEComponent,
@@ -267,43 +266,7 @@ jQuery( function ( $ ) {
 		}
 	} );
 
-	/**
-	 * Checks if the URL hash starts with #wc-stripe-voucher- or #wc-stripe-wallet- and whether we
-	 * should display the relevant confirmation modal.
-	 */
-	function maybeConfirmVoucherOrWalletPayment() {
-		if (
-			stripeServerData?.isOrderPay ||
-			stripeServerData?.isCheckout ||
-			stripeServerData?.isChangingPayment
-		) {
-			if ( window.location.hash.startsWith( '#wc-stripe-voucher-' ) ) {
-				confirmVoucherPayment(
-					api,
-					stripeServerData?.isOrderPay
-						? $( '#order_review' )
-						: $( 'form.checkout' )
-				);
-			} else if (
-				window.location.hash.startsWith( '#wc-stripe-wallet-' )
-			) {
-				confirmWalletPayment(
-					api,
-					stripeServerData?.isOrderPay ||
-						stripeServerData?.isChangingPayment
-						? $( '#order_review' )
-						: $( 'form.checkout' )
-				);
-			}
-		}
-	}
-
-	// On every page load and on hash change, check to see whether we should display the Voucher (Boleto/Oxxo/Multibanco) or Wallet (CashApp/WeChat Pay) modal.
-	// Every page load is needed for the Pay for Order page which doesn't trigger the hash change.
-	maybeConfirmVoucherOrWalletPayment();
-	$( window ).on( 'hashchange', () => {
-		maybeConfirmVoucherOrWalletPayment();
-	} );
+	initializeVoucherAndWalletConfirmation( api );
 
 	// Bind the handling of the setup future usage option to the saving checkbox when OC is enabled.
 	if ( stripeServerData?.shouldShowOptimizedCheckout ) {

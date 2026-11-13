@@ -22,6 +22,49 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Direct callers need the custom-page fallback even when gateway enqueue guards would skip the page.
+	 *
+	 * @since x.x.x
+	 * @dataProvider provide_classic_checkout_script_contexts
+	 * @param string $content Page content.
+	 * @param bool   $is_product Whether the helper identifies a product page.
+	 * @param bool   $is_cart Whether the helper identifies a cart page.
+	 * @param bool   $expected Whether classic checkout scripts are required.
+	 * @return void
+	 */
+	public function test_should_load_classic_checkout_scripts( string $content, bool $is_product, bool $is_cart, bool $expected ): void {
+		$page = self::factory()->post->create(
+			[
+				'post_type'    => 'page',
+				'post_content' => $content,
+			]
+		);
+		$this->go_to( get_permalink( $page ) );
+
+		$helper = $this->createMock( WC_Stripe_Express_Checkout_Helper::class );
+		$helper->method( 'is_one_page_checkout' )->willReturn( false );
+		$helper->method( 'is_checkout' )->willReturn( false );
+		$helper->method( 'is_product' )->willReturn( $is_product );
+		$helper->method( 'is_cart' )->willReturn( $is_cart );
+
+		$this->assertSame( $expected, WC_Stripe_Helper::should_load_classic_checkout_scripts( $helper ) );
+	}
+
+	/**
+	 * @since x.x.x
+	 * @return array
+	 */
+	public function provide_classic_checkout_script_contexts(): array {
+		return [
+			'product page'                       => [ '', true, false, false ],
+			'classic cart'                       => [ '[woocommerce_cart]', false, true, false ],
+			'plain custom page'                  => [ '', false, false, true ],
+			'Blocks checkout'                    => [ '<!-- wp:woocommerce/checkout /-->', false, false, false ],
+			'checkout shortcode on product page' => [ '[woocommerce_checkout]', true, false, true ],
+		];
+	}
+
+	/**
 	 * The available store currencies always contain the normalized base currency
 	 * and only valid strings added through the public filter.
 	 *
