@@ -2371,7 +2371,9 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that dispute creation never sends the failed order email.
+	 * Test that dispute creation does not send the failed order email by default.
+	 *
+	 * @since x.x.x
 	 *
 	 * @return void
 	 */
@@ -2404,9 +2406,60 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that dispute creation sends the failed order email when opted in via the filter.
+	 *
+	 * @since x.x.x
+	 *
+	 * @return void
+	 */
+	public function test_dispute_creation_sends_failed_order_email_when_opted_in_via_filter(): void {
+		$charge_id = 'ch_test_dispute_opt_in_email';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PROCESSING );
+		$order->set_transaction_id( $charge_id );
+		$order->save();
+
+		$notification = (object) [
+			'type' => 'charge.dispute.created',
+			'data' => (object) [
+				'object' => (object) [
+					'charge' => $charge_id,
+					'status' => 'needs_response',
+				],
+			],
+		];
+
+		$passed_order_id = null;
+		$filter_callback = function ( $should_send, $order_id ) use ( &$passed_order_id ) {
+			$passed_order_id = $order_id;
+			return true;
+		};
+		add_filter( 'wc_stripe_send_failed_order_email_for_dispute', $filter_callback, 10, 2 );
+
+		try {
+			$webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+				->setMethods( [ 'send_failed_order_email' ] )
+				->getMock();
+			$webhook_handler->expects( $this->once() )
+				->method( 'send_failed_order_email' )
+				->with( $order->get_id() );
+
+			$webhook_handler->process_webhook_dispute( $notification );
+			$this->assertSame( $order->get_id(), $passed_order_id );
+		} finally {
+			remove_filter( 'wc_stripe_send_failed_order_email_for_dispute', $filter_callback, 10 );
+		}
+
+		$this->assertSame( OrderStatus::ON_HOLD, wc_get_order( $order->get_id() )->get_status() );
+	}
+
+	/**
 	 * Test for `process_webhook_dispute_closed`.
 	 *
 	 * @dataProvider provide_test_process_webhook_dispute_closed
+	 *
+	 * @since x.x.x
 	 *
 	 * @param string $initial_status  The order status before dispute.
 	 * @param string $dispute_status  The dispute closed status ('lost', 'won', 'warning_closed').
@@ -2454,6 +2507,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 	/**
 	 * Provider for `test_process_webhook_dispute_closed`.
+	 *
+	 * @since x.x.x
 	 *
 	 * @return array
 	 */
