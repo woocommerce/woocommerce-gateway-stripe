@@ -3,6 +3,7 @@ import config from 'config';
 import { payments } from '../../../utils';
 
 const {
+	clickPlaceOrder,
 	emptyCart,
 	setupCart,
 	setupShortcodeCheckout,
@@ -26,7 +27,7 @@ test( 'customer can checkout with a SCA card @smoke', async ( {
 
 	const expectedTotal = await getCartTotal( page );
 
-	await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
+	await clickPlaceOrder( page );
 
 	// Complete the 3DS challenge
 	await handleCheckout3DSChallenge( page );
