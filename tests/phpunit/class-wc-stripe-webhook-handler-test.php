@@ -2373,8 +2373,6 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	/**
 	 * Test that dispute creation does not send the failed order email by default.
 	 *
-	 * @since x.x.x
-	 *
 	 * @return void
 	 */
 	public function test_dispute_creation_does_not_send_failed_order_email(): void {
