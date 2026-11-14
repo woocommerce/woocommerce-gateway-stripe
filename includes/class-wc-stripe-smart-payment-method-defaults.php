@@ -117,8 +117,7 @@ class WC_Stripe_Smart_Payment_Method_Defaults {
 	 * @return void
 	 */
 	public function maybe_apply_subscriptions_activation_backfill( $plugin ): void {
-		$is_subscriptions_plugin = is_string( $plugin ) && false !== strpos( $plugin, 'woocommerce-subscriptions' );
-		if ( ! $is_subscriptions_plugin ) {
+		if ( ! is_string( $plugin ) || 'woocommerce-subscriptions.php' !== basename( $plugin ) ) {
 			return;
 		}
 
@@ -158,7 +157,7 @@ class WC_Stripe_Smart_Payment_Method_Defaults {
 		$disabled_payment_method_ids = self::get_explicitly_disabled_payment_method_ids();
 		$disabled_payment_method_ids = array_values( array_unique( array_merge( $disabled_payment_method_ids, $payment_method_ids ) ) );
 
-		update_option( self::EXPLICITLY_DISABLED_OPTION, $disabled_payment_method_ids );
+		update_option( self::EXPLICITLY_DISABLED_OPTION, $disabled_payment_method_ids, false );
 	}
 
 	/**
@@ -180,7 +179,7 @@ class WC_Stripe_Smart_Payment_Method_Defaults {
 			)
 		);
 
-		update_option( self::EXPLICITLY_DISABLED_OPTION, $disabled_payment_method_ids );
+		update_option( self::EXPLICITLY_DISABLED_OPTION, $disabled_payment_method_ids, false );
 	}
 
 	/**
@@ -262,9 +261,10 @@ class WC_Stripe_Smart_Payment_Method_Defaults {
 			];
 		}
 
+		// Subscriptions classes may not be loaded yet while the plugin is being activated, so the trigger itself counts as active.
 		$default_payment_method_ids = $this->get_default_payment_method_ids(
 			$country_code,
-			$this->is_subscriptions_enabled(),
+			self::TRIGGER_SUBSCRIPTIONS_ACTIVATED === $trigger || $this->is_subscriptions_enabled(),
 			$trigger
 		);
 
@@ -581,19 +581,22 @@ class WC_Stripe_Smart_Payment_Method_Defaults {
 	 * @return void
 	 */
 	private function record_smart_defaults_applied_event( string $country_code, array $enabled_payment_methods, array $skipped_payment_methods, string $trigger, bool $is_test_mode ): void {
-		if ( ! function_exists( 'wc_admin_record_tracks_event' ) ) {
+		if ( ! WC_Stripe_Tracks::is_tracking_enabled() ) {
 			return;
 		}
 
 		wc_admin_record_tracks_event(
 			'wcstripe_smart_defaults_applied',
-			[
-				'country'         => $country_code,
-				'methods_enabled' => array_values( $enabled_payment_methods ),
-				'methods_skipped' => array_values( $skipped_payment_methods ),
-				'trigger'         => $trigger,
-				'is_test_mode'    => $is_test_mode,
-			]
+			WC_Stripe_Tracks::add_default_event_properties(
+				[
+					'country'         => $country_code,
+					'methods_enabled' => array_values( $enabled_payment_methods ),
+					'methods_skipped' => array_values( $skipped_payment_methods ),
+					'trigger'         => $trigger,
+					// The mode defaults are applied for, which can differ from the current mode.
+					'is_test_mode'    => $is_test_mode ? 1 : 0,
+				]
+			)
 		);
 	}
 

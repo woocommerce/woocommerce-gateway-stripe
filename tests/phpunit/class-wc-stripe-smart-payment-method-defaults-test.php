@@ -191,6 +191,28 @@ class WC_Stripe_Smart_Payment_Method_Defaults_Test extends WC_Mock_Stripe_API_Un
 	}
 
 	/**
+	 * Verifies that the Subscriptions backfill runs even before Subscriptions classes are loaded, as during plugin activation.
+	 */
+	public function test_subscriptions_activation_backfill_does_not_require_subscriptions_classes_to_be_loaded(): void {
+		add_filter( 'wc_stripe_smart_defaults_is_subscriptions_active', '__return_false' );
+		$this->set_connected_test_settings( [ 'pmc_enabled' => 'yes' ] );
+		$this->set_stripe_account_data( [ 'country' => WC_Stripe_Country_Code::UNITED_STATES ] );
+		$this->mock_payment_method_configurations(
+			[ WC_Stripe_Payment_Methods::CARD ],
+			[ WC_Stripe_Payment_Methods::ACH ]
+		);
+		$this->expect_payment_method_configurations_update(
+			[ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::ACH ],
+			[]
+		);
+
+		$result = $this->smart_defaults->apply_subscriptions_activation_backfill();
+
+		$this->assertTrue( $result['applied'], wp_json_encode( $result ) );
+		$this->assertSame( [ WC_Stripe_Payment_Methods::ACH ], $result['methods_enabled'] );
+	}
+
+	/**
 	 * Verifies that the Subscriptions backfill skips methods the merchant explicitly disabled.
 	 */
 	public function test_subscriptions_activation_backfill_respects_explicitly_disabled_methods(): void {
@@ -213,12 +235,28 @@ class WC_Stripe_Smart_Payment_Method_Defaults_Test extends WC_Mock_Stripe_API_Un
 
 	/**
 	 * Verifies that activating an unrelated plugin does not trigger the Subscriptions backfill.
+	 *
+	 * @param string $plugin Activated plugin path.
+	 * @dataProvider provide_unrelated_plugins
 	 */
-	public function test_subscriptions_activation_backfill_ignores_unrelated_plugin_activation(): void {
+	public function test_subscriptions_activation_backfill_ignores_unrelated_plugin_activation( string $plugin ): void {
 		add_filter( 'wc_stripe_smart_defaults_is_subscriptions_active', '__return_true' );
+		$this->set_connected_test_settings( [ 'pmc_enabled' => 'yes' ] );
 		$this->stripe_api->expects( $this->never() )->method( 'get_payment_method_configurations' );
 
-		$this->smart_defaults->maybe_apply_subscriptions_activation_backfill( 'woocommerce/woocommerce.php' );
+		$this->smart_defaults->maybe_apply_subscriptions_activation_backfill( $plugin );
+	}
+
+	/**
+	 * Provides plugins whose activation must not trigger the Subscriptions backfill.
+	 *
+	 * @return array
+	 */
+	public function provide_unrelated_plugins(): array {
+		return [
+			'WooCommerce'                         => [ 'woocommerce/woocommerce.php' ],
+			'similarly named Subscriptions addon' => [ 'woocommerce-subscriptions-gifting/woocommerce-subscriptions-gifting.php' ],
+		];
 	}
 
 	/**
