@@ -128,9 +128,51 @@ class WC_Stripe_Smart_Payment_Method_Defaults_Test extends WC_Mock_Stripe_API_Un
 	}
 
 	/**
+	 * Verifies that defaults fall back to the gateway settings when the PMC is enabled but has no available payment methods.
+	 */
+	public function test_applies_defaults_to_settings_when_pmc_has_no_available_payment_methods(): void {
+		$this->set_connected_live_settings( [ 'pmc_enabled' => 'yes' ] );
+		$this->set_stripe_account_data(
+			[
+				'country'      => WC_Stripe_Country_Code::NETHERLANDS,
+				'capabilities' => [
+					'card_payments'  => 'active',
+					'ideal_payments' => 'active',
+					'link_payments'  => 'inactive',
+				],
+			]
+		);
+		$this->mock_payment_method_configurations( [], [] );
+		$this->stripe_api->expects( $this->never() )->method( 'update_payment_method_configurations' );
+
+		$result   = $this->smart_defaults->apply_for_account_connection( 'live', [] );
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+
+		$this->assertTrue( $result['applied'], wp_json_encode( $result ) );
+		$this->assertContains( WC_Stripe_Payment_Methods::IDEAL, $settings['upe_checkout_experience_accepted_payments'] );
+		$this->assertNotContains( WC_Stripe_Payment_Methods::LINK, $settings['upe_checkout_experience_accepted_payments'] );
+		$this->assertContains( WC_Stripe_Payment_Methods::LINK, $result['methods_skipped'] );
+	}
+
+	/**
+	 * Verifies that a malformed account country is treated as missing.
+	 */
+	public function test_malformed_account_country_is_treated_as_missing(): void {
+		$this->set_connected_test_settings( [ 'pmc_enabled' => 'yes' ] );
+		$this->set_stripe_account_data( [ 'country' => [ WC_Stripe_Country_Code::NETHERLANDS ] ] );
+		$this->stripe_api->expects( $this->never() )->method( 'update_payment_method_configurations' );
+
+		$result = $this->smart_defaults->apply_for_account_connection( 'test', [] );
+
+		$this->assertFalse( $result['applied'] );
+		$this->assertSame( 'missing_country', $result['reason'] );
+	}
+
+	/**
 	 * Verifies that activating Subscriptions backfills the account country direct debit method.
 	 */
 	public function test_subscriptions_activation_backfill_enables_country_direct_debit(): void {
+		add_filter( 'wc_stripe_smart_defaults_is_subscriptions_active', '__return_true' );
 		$this->set_connected_test_settings( [ 'pmc_enabled' => 'yes' ] );
 		$this->set_stripe_account_data( [ 'country' => WC_Stripe_Country_Code::UNITED_STATES ] );
 		$this->mock_payment_method_configurations(
@@ -152,6 +194,7 @@ class WC_Stripe_Smart_Payment_Method_Defaults_Test extends WC_Mock_Stripe_API_Un
 	 * Verifies that the Subscriptions backfill skips methods the merchant explicitly disabled.
 	 */
 	public function test_subscriptions_activation_backfill_respects_explicitly_disabled_methods(): void {
+		add_filter( 'wc_stripe_smart_defaults_is_subscriptions_active', '__return_true' );
 		$this->set_connected_test_settings( [ 'pmc_enabled' => 'yes' ] );
 		$this->set_stripe_account_data( [ 'country' => WC_Stripe_Country_Code::UNITED_STATES ] );
 		$this->mock_payment_method_configurations(

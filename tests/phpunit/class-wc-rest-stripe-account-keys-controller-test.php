@@ -53,6 +53,15 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$this->controller = new WC_REST_Stripe_Account_Keys_Controller( $this->account );
 	}
 
+	/**
+	 * Post-test teardown.
+	 */
+	public function tear_down() {
+		remove_all_filters( 'wc_stripe_smart_defaults_is_subscriptions_active' );
+
+		parent::tear_down();
+	}
+
 	public function test_get_account_keys_returns_status_code_200() {
 		$request = new WP_REST_Request( 'GET', self::ROUTE );
 
@@ -164,6 +173,9 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 	 * @dataProvider provide_changing_keys_payment_method_updates
 	 */
 	public function test_changing_keys_updates_payment_methods_for_active_mode( array $settings, array $request_params, array $current_enabled_methods, array $available_disabled_methods, ?array $expected_update ): void {
+		// The expected defaults include ACH, which is only defaulted on when Subscriptions is active.
+		add_filter( 'wc_stripe_smart_defaults_is_subscriptions_active', '__return_true' );
+
 		WC_Stripe_Helper::delete_main_stripe_settings();
 		add_option(
 			WC_Stripe_Helper::SETTINGS_OPTION,

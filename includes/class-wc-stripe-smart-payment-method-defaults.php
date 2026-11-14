@@ -250,7 +250,9 @@ class WC_Stripe_Smart_Payment_Method_Defaults {
 		}
 
 		$account_data = $account_data ?? $this->get_account_data( $mode, $force_account_data );
-		$country_code = strtoupper( (string) ( $account_data['country'] ?? '' ) );
+		$country_code = isset( $account_data['country'] ) && is_string( $account_data['country'] )
+			? strtoupper( trim( $account_data['country'] ) )
+			: '';
 		if ( '' === $country_code ) {
 			return [
 				'applied'         => false,
@@ -281,7 +283,8 @@ class WC_Stripe_Smart_Payment_Method_Defaults {
 
 		if ( WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
 			$result = $this->apply_to_payment_method_configuration( $default_payment_method_ids, $trigger, $replace_existing_methods );
-			if ( 'pmc_disabled' === ( $result['reason'] ?? '' ) ) {
+			// Fall back to local settings when the PMC can't be used yet. Saved settings are migrated to the PMC once it is available.
+			if ( in_array( $result['reason'] ?? '', [ 'pmc_disabled', 'no_available_payment_methods' ], true ) ) {
 				$result = $this->apply_to_settings( $default_payment_method_ids, $account_data, $mode, $trigger, $replace_existing_methods );
 			}
 		} else {
