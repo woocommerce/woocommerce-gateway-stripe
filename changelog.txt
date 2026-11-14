@@ -13,6 +13,7 @@ xxxx-xx-xx - version 11.3.0
 * Dev - Upgrade Playwright to stay compatible with GitHub CI environment
 * Dev - Behind a feature flag, find Stripe events whose webhook delivery failed and process them in the background
 * Dev - Update the homepage URL in composer.json
+* Add - Enable smart payment method defaults for newly connected Stripe accounts, based on the account's country and capabilities
 
 2026-11-10 - version 11.2.0
 * Fix - Refund or void a Stripe payment that succeeds for an order that was already cancelled, instead of leaving the shopper charged
