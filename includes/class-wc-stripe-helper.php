@@ -848,10 +848,68 @@ class WC_Stripe_Helper {
 	 * @return bool
 	 */
 	public static function should_show_stripe_first_method_notice(): bool {
+		return '' !== self::get_stripe_first_method_notice_type();
+	}
+
+	/**
+	 * Determines which ordering notice to show.
+	 *
+	 * @since x.x.x
+	 * @return string Empty when hidden, or the notice type.
+	 */
+	public static function get_stripe_first_method_notice_type(): string {
 		if ( get_option( 'wc_stripe_show_stripe_first_method_notice', 'yes' ) === 'no' ) {
-			return false;
+			return '';
 		}
-		return ! WC_Stripe_Helper::is_stripe_in_position_one_in_woocommerce_gateway_order();
+
+		$gateways                   = WC()->payment_gateways->payment_gateways ?? [];
+		$offline_group_after_stripe = false;
+		if ( class_exists( '\\Automattic\\WooCommerce\\Internal\\Admin\\Settings\\PaymentsProviders' ) ) {
+			$order = get_option( 'woocommerce_gateway_order', [] );
+			if ( isset( $order['_wc_offline_payment_methods_group'], $order['stripe'] ) ) {
+				$offline_group_after_stripe = $order['_wc_offline_payment_methods_group'] > $order['stripe'];
+			} else {
+				// WooCommerce places the group before the last registered offline method when it is absent from the order map.
+				$ids             = array_map(
+					static function ( $gateway ) {
+						return $gateway->id;
+					},
+					array_values( $gateways )
+				);
+				$stripe_position = array_search( 'stripe', $ids, true );
+				foreach ( [ 'bacs', 'cheque', 'cod' ] as $offline_id ) {
+					$position = array_search( $offline_id, $ids, true );
+					if ( false !== $stripe_position && false !== $position && $position > $stripe_position ) {
+						$offline_group_after_stripe = true;
+					}
+				}
+			}
+		}
+
+		$woopayments_before_stripe     = false;
+		$other_gateway_before_stripe   = false;
+		$offline_gateway_before_stripe = false;
+		foreach ( $gateways as $gateway ) {
+			if ( WC_Stripe_UPE_Payment_Gateway::ID === $gateway->id || 0 === strpos( $gateway->id, 'stripe_' ) ) {
+				if ( $woopayments_before_stripe ) {
+					return '';
+				}
+				if ( $other_gateway_before_stripe ) {
+					return 'default';
+				}
+				return $offline_gateway_before_stripe ? 'offline' : '';
+			}
+			if ( 'woocommerce_payments' === $gateway->id && 'yes' === $gateway->enabled ) {
+				$woopayments_before_stripe = true;
+			} elseif ( 'yes' === $gateway->enabled ) {
+				if ( $offline_group_after_stripe && in_array( $gateway->id, [ 'bacs', 'cheque', 'cod' ], true ) ) {
+					$offline_gateway_before_stripe = true;
+				} else {
+					$other_gateway_before_stripe = true;
+				}
+			}
+		}
+		return self::is_stripe_in_position_one_in_woocommerce_gateway_order() ? '' : 'default';
 	}
 
 	/**

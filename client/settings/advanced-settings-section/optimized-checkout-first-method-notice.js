@@ -46,6 +46,10 @@ const OptimizedCheckoutFirstMethodNotice = ( {
 	if ( ! showNotice || ! isOCEnabled ) {
 		return null;
 	}
+	const isOfflineNotice =
+		// eslint-disable-next-line camelcase
+		wc_stripe_settings_params?.stripe_first_method_notice_type ===
+		'offline';
 
 	const showSuccessNotice = () => {
 		const paymentMethodsUrl = getAdminLink(
@@ -112,7 +116,12 @@ const OptimizedCheckoutFirstMethodNotice = ( {
 
 	const actions = [
 		{
-			label: __( 'Move to top', 'woocommerce-gateway-stripe' ),
+			label: isOfflineNotice
+				? __(
+						'Move Stripe first at checkout',
+						'woocommerce-gateway-stripe'
+				  )
+				: __( 'Move to top', 'woocommerce-gateway-stripe' ),
 			onClick: handleAction,
 			className: 'notice-action',
 		},
@@ -129,10 +138,15 @@ const OptimizedCheckoutFirstMethodNotice = ( {
 			<div className="notice-content">
 				<WarningIcon />
 				<div>
-					{ __(
-						'Optimized Checkout works best when Stripe is your first payment method. Move it to the top to start optimizing for conversions.',
-						'woocommerce-gateway-stripe'
-					) }
+					{ isOfflineNotice
+						? __(
+								'An offline payment method is ordered before Stripe at checkout. Optimized Checkout works best when Stripe is the first payment method.',
+								'woocommerce-gateway-stripe'
+						  )
+						: __(
+								'Optimized Checkout works best when Stripe is your first payment method. Move it to the top to start optimizing for conversions.',
+								'woocommerce-gateway-stripe'
+						  ) }
 				</div>
 			</div>
 		</Notice>

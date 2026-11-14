@@ -1518,6 +1518,59 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_should_show_stripe_first_method_notice(): array {
 		return [
+			'enabled WooPayments above Stripe'                     => [
+				'notice_option'    => 'yes',
+				'payment_gateways' => [
+					'woocommerce_payments' => true,
+					'stripe'               => true,
+				],
+				'expected'         => false,
+			],
+			'WooPayments between another gateway and Stripe'       => [
+				'notice_option'    => 'yes',
+				'payment_gateways' => [
+					'cod'                  => true,
+					'woocommerce_payments' => true,
+					'stripe'               => true,
+				],
+				'expected'         => false,
+			],
+			'disabled WooPayments above Stripe'                    => [
+				'notice_option'    => 'yes',
+				'payment_gateways' => [
+					'cod'                  => true,
+					'woocommerce_payments' => false,
+					'stripe'               => true,
+				],
+				'expected'         => true,
+			],
+			'WooPayments below Stripe'                             => [
+				'notice_option'    => 'yes',
+				'payment_gateways' => [
+					'cod'                  => true,
+					'stripe'               => true,
+					'woocommerce_payments' => true,
+				],
+				'expected'         => true,
+			],
+			'WooPayments below a Stripe method'                    => [
+				'notice_option'    => 'yes',
+				'payment_gateways' => [
+					'cod'                  => true,
+					'stripe_klarna'        => true,
+					'woocommerce_payments' => true,
+					'stripe'               => true,
+				],
+				'expected'         => true,
+			],
+			'WooPayments without a loaded Stripe gateway'          => [
+				'notice_option'    => 'yes',
+				'payment_gateways' => [
+					'woocommerce_payments' => true,
+					'cod'                  => true,
+				],
+				'expected'         => true,
+			],
 			'notice dismissed'                                     => [
 				'notice_option'    => 'no',
 				'payment_gateways' => [
@@ -1571,6 +1624,101 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					'stripe' => true,
 				],
 				'expected'         => false,
+			],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_offline_group_notice_cases
+	 * @param array $order Gateway and offline group positions.
+	 * @param array $gateways Loaded gateways in checkout order.
+	 * @param string $expected Expected notice type.
+	 */
+	public function test_notice_respects_offline_group_position( array $order, array $gateways, string $expected ): void {
+		if ( ! class_exists( '\\Automattic\\WooCommerce\\Internal\\Admin\\Settings\\PaymentsProviders' ) ) {
+			$this->markTestSkipped( 'This WooCommerce version does not group offline payment methods.' );
+		}
+		$original_gateways = WC()->payment_gateways->payment_gateways;
+		$original_order    = get_option( 'woocommerce_gateway_order', [] );
+		update_option( 'woocommerce_gateway_order', $order );
+		update_option( 'wc_stripe_show_stripe_first_method_notice', 'yes' );
+		WC()->payment_gateways->payment_gateways = $this->build_gateway_stubs( $gateways );
+
+		try {
+			$this->assertSame( $expected, WC_Stripe_Helper::get_stripe_first_method_notice_type() );
+			$this->assertSame( '' !== $expected, WC_Stripe_Helper::should_show_stripe_first_method_notice() );
+		} finally {
+			WC()->payment_gateways->payment_gateways = $original_gateways;
+			update_option( 'woocommerce_gateway_order', $original_order );
+		}
+	}
+
+	public function provide_offline_group_notice_cases(): array {
+		return [
+			'offline group below Stripe'                       => [
+				[
+					'cod'                               => 0,
+					'stripe'                            => 1,
+					'_wc_offline_payment_methods_group' => 2,
+				],
+				[
+					'cod'    => true,
+					'stripe' => true,
+				],
+				'offline',
+			],
+			'offline group above Stripe'                       => [
+				[
+					'_wc_offline_payment_methods_group' => 0,
+					'cod'                               => 1,
+					'stripe'                            => 2,
+				],
+				[
+					'cod'    => true,
+					'stripe' => true,
+				],
+				'default',
+			],
+			'another provider remains above Stripe'            => [
+				[
+					'cod'                               => 0,
+					'paypal'                            => 1,
+					'stripe'                            => 2,
+					'_wc_offline_payment_methods_group' => 3,
+				],
+				[
+					'cod'    => true,
+					'paypal' => true,
+					'stripe' => true,
+				],
+				'default',
+			],
+			'WooPayments above Stripe still suppresses'        => [
+				[
+					'cod'                               => 0,
+					'woocommerce_payments'              => 1,
+					'stripe'                            => 2,
+					'_wc_offline_payment_methods_group' => 3,
+				],
+				[
+					'cod'                  => true,
+					'woocommerce_payments' => true,
+					'stripe'               => true,
+				],
+				'',
+			],
+			'group missing and a later offline gateway exists' => [
+				[
+					'cod'    => 0,
+					'stripe' => 1,
+					'bacs'   => 2,
+				],
+				[
+					'cod'    => true,
+					'stripe' => true,
+					'bacs'   => false,
+				],
+				'offline',
 			],
 		];
 	}

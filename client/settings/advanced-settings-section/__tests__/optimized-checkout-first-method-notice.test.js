@@ -96,6 +96,29 @@ describe( 'OptimizedCheckoutFirstMethodNotice', () => {
 		expect( screen.getByText( noticeCopy ) ).toBeInTheDocument();
 	} );
 
+	it( 'explains an offline ordering mismatch and moves Stripe first at checkout', async () => {
+		global.wc_stripe_settings_params.stripe_first_method_notice_type =
+			'offline';
+		moveStripeToTop.mockResolvedValueOnce();
+		render( <OptimizedCheckoutFirstMethodNotice isOCEnabled={ true } /> );
+		expect(
+			screen.getByText(
+				'An offline payment method is ordered before Stripe at checkout. Optimized Checkout works best when Stripe is the first payment method.'
+			)
+		).toBeInTheDocument();
+		await act( async () => {
+			await userEvent.click(
+				screen.getByRole( 'button', {
+					name: 'Move Stripe first at checkout',
+				} )
+			);
+		} );
+		expect( moveStripeToTop ).toHaveBeenCalledTimes( 1 );
+		await waitFor( () =>
+			expect( mockCreateSuccessNotice ).toHaveBeenCalledTimes( 1 )
+		);
+	} );
+
 	it( 'calls moveStripeToTop and hides the notice when "Move to top" is clicked', async () => {
 		let resolveMove;
 		moveStripeToTop.mockImplementation(
