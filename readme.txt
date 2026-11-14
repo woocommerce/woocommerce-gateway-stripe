@@ -168,7 +168,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 11.3.0 - xxxx-xx-xx =
-* Fix - Do not send failed order email when dispute puts order on hold by default, and provide the wc_stripe_send_failed_order_email_for_dispute filter to opt in
+* Fix - Don't send failed order emails for new disputes, can be enabled via wc_stripe_send_failed_order_email_for_dispute filter
 * Update - Start wallet availability checks earlier on Cart and Checkout blocks
 * Update - Improve express checkout wallet startup, availability checks, reuse, and recovery
 * Fix - Avoid expensive variation lookup in express checkout setup on product pages
