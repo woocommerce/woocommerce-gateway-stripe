@@ -2506,8 +2506,6 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	/**
 	 * Provider for `test_process_webhook_dispute_closed`.
 	 *
-	 * @since x.x.x
-	 *
 	 * @return array
 	 */
 	public function provide_test_process_webhook_dispute_closed() {
