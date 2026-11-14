@@ -36,7 +36,7 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 The following items note specific versions that include important changes, features, or deprecations.
 
 * 11.3.0
-   - Orders placed on hold due to a Stripe dispute no longer trigger a failed order email by default (opt in via the wc_stripe_send_failed_order_email_for_dispute filter)
+   - Orders placed on hold due to a dispute no longer send a failed order email - can be re-enabled via the wc_stripe_send_failed_order_email_for_dispute filter
 * 11.2.0
    - Express checkout buttons now use the same size across payment methods and locations
 * 11.1.0
