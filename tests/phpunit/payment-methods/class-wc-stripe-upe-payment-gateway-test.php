@@ -3094,18 +3094,234 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order->set_status( OrderStatus::PROCESSING );
 		$order->save();
 
+		// The order's own Session, already completed by the payment that settled it.
+		$this->store_checkout_session_context_for_order( 'cs_test_already_paid', $order, [ 'order_id' => $order->get_id() ] );
+		$this->mock_checkout_session_retrieval( 'cs_test_already_paid', 'complete' );
+
 		try {
 			$result = $this->mock_gateway->process_payment( $order->get_id() );
 		} finally {
+			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_already_paid' );
 			unset( $_POST['wc_stripe_checkout_session_id'], $_POST['payment_method'], $_POST['wc-stripe-payment-method'] );
 		}
 
 		$this->assertSame( 'success', $result['result'] );
+		$this->assertSame( 'yes', $result['wc_stripe_checkout_session_already_paid'] ?? null );
 		$query        = [];
 		$query_string = wp_parse_url( $result['redirect'], PHP_URL_QUERY );
 		parse_str( is_string( $query_string ) ? $query_string : '', $query );
 		$this->assertSame( '1', $query['wc_stripe_cs'] ?? null );
 		$this->assertSame( 1, wp_verify_nonce( $query['_wpnonce'] ?? '', 'wc_stripe_process_checkout_session_redirect_nonce' ) );
+	}
+
+	/**
+	 * Helper: answer the Checkout Session retrieval with the given status.
+	 *
+	 * @param string $session_id     The Checkout Session id.
+	 * @param string $session_status The status Stripe reports for it.
+	 * @return void
+	 */
+	private function mock_checkout_session_retrieval( string $session_id, string $session_status ): void {
+		$this->mock_gateway->method( 'stripe_request' )->willReturnCallback(
+			function ( $path ) use ( $session_id, $session_status ) {
+				if ( 'checkout/sessions/' . $session_id !== $path ) {
+					return null;
+				}
+
+				return (object) [
+					'id'     => $session_id,
+					'status' => $session_status,
+				];
+			}
+		);
+	}
+
+	/**
+	 * A pending order that an earlier attempt already paid must not be paid again through the
+	 * page's Checkout Session. The browser confirms the Session after a success response unless
+	 * told not to, and a page on stale scripts ignores that flag, so the Session is expired too.
+	 * The order is settled only after that: when the Session cannot be expired the request fails
+	 * with the order still pending and the cart intact, so the retry resumes the same order.
+	 *
+	 * @dataProvider provide_checkout_session_retries_for_order_with_earlier_intent
+	 *
+	 * @param string|null $intent_status       Status of the earlier PaymentIntent, or null when it cannot be retrieved.
+	 * @param bool        $owns_session        Whether the current shopper owns a stored context for the Session.
+	 * @param bool        $expire_succeeds     Whether Stripe confirms the Session as expired.
+	 * @param string      $expected_result     Expected `result` of the checkout response.
+	 * @param bool        $expect_already_paid Whether the response tells the browser not to confirm the Session.
+	 * @param bool        $expect_linked       Whether the Session ends up linked to the order.
+	 * @param string      $expected_status     Order status afterwards.
+	 * @param array       $charge_flags        Extra fields on the earlier intent's charge, e.g. `refunded`.
+	 */
+	public function test_process_payment_with_checkout_session_for_order_with_earlier_intent( ?string $intent_status, bool $owns_session, bool $expire_succeeds, string $expected_result, bool $expect_already_paid, bool $expect_linked, string $expected_status, array $charge_flags = [] ) {
+		$this->enable_checkout_sessions();
+		wc_clear_notices();
+
+		$session_id = 'cs_test_earlier_intent';
+
+		$_POST['wc_stripe_checkout_session_id'] = $session_id;
+		$_POST['payment_method']                = WC_Stripe_UPE_Payment_Gateway::ID;
+		$_POST['wc-stripe-payment-method']      = WC_Stripe_UPE_Payment_Gateway::ID;
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+
+		WC_Stripe_Order_Helper::get_instance()->add_payment_intent_to_order( 'pi_earlier_attempt', $order );
+
+		if ( $owns_session ) {
+			$this->store_checkout_session_context_for_order( $session_id, $order );
+		}
+
+		list( $amount, , , $currency ) = $this->get_order_details( $order );
+
+		$this->mock_gateway
+			->method( 'get_intent_from_order' )
+			->willReturn(
+				null === $intent_status
+					? false
+					: $this->array_to_object(
+						array_merge(
+							self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE,
+							[
+								'id'       => 'pi_earlier_attempt',
+								'status'   => $intent_status,
+								'amount'   => $amount,
+								'currency' => $currency,
+							]
+						)
+					)
+			);
+
+		$this->mock_gateway
+			->method( 'get_latest_charge_from_intent' )
+			->willReturn(
+				$this->array_to_object(
+					array_merge(
+						[
+							'id'                     => 'ch_earlier_attempt',
+							'captured'               => true,
+							'status'                 => 'succeeded',
+							'payment_method_details' => [],
+						],
+						$charge_flags
+					)
+				)
+			);
+
+		$this->mock_checkout_session_retrieval( $session_id, 'open' );
+		WC()->cart->add_to_cart( WC_Helper_Product::create_simple_product()->get_id() );
+
+		$expire_requested = false;
+		$pre_http_filter  = function ( $return_value, $parsed_args, $url ) use ( $session_id, $expire_succeeds, &$expire_requested ) {
+			if ( WC_Stripe_API::ENDPOINT . 'checkout/sessions/' . $session_id . '/expire' !== $url ) {
+				return $return_value;
+			}
+
+			$expire_requested = true;
+
+			return [
+				'response' => [
+					'code'    => $expire_succeeds ? 200 : 400,
+					'message' => $expire_succeeds ? 'OK' : 'Bad Request',
+				],
+				'body'     => wp_json_encode(
+					$expire_succeeds
+						? [
+							'id'     => $session_id,
+							'status' => 'expired',
+						]
+						: [ 'error' => [ 'message' => 'expire failed' ] ]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
+
+		try {
+			$result        = $this->mock_gateway->process_payment( $order->get_id() );
+			$cart_is_empty = WC()->cart->is_empty();
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_filter );
+			WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
+			WC()->cart->empty_cart();
+			$_POST = [];
+			wc_clear_notices();
+		}
+
+		$processed_order = wc_get_order( $order->get_id() );
+
+		$this->assertSame( $expected_result, $result['result'] );
+		$this->assertSame( $expect_already_paid ? 'yes' : null, $result['wc_stripe_checkout_session_already_paid'] ?? null );
+		$this->assertSame( $expect_already_paid, $cart_is_empty );
+		if ( $expect_already_paid ) {
+			// No Session was used, so the shopper must not be sent through the Session return handler.
+			$this->assertSame( self::MOCK_RETURN_URL, $result['redirect'] );
+		}
+		if ( $expect_already_paid ) {
+			$this->assertTrue( $expire_requested );
+		}
+		$this->assertSame(
+			$expect_linked ? $session_id : '',
+			(string) WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( $processed_order )
+		);
+		$this->assertSame( $expected_status, $processed_order->get_status() );
+	}
+
+	/**
+	 * @return array<string,array{0:string|null,1:bool,2:bool,3:string,4:bool,5:bool,6:string,7?:array}>
+	 */
+	public function provide_checkout_session_retries_for_order_with_earlier_intent(): array {
+		return [
+			'succeeded intent settles the order'       => [ WC_Stripe_Intent_Status::SUCCEEDED, true, true, 'success', true, false, OrderStatus::PROCESSING ],
+			'processing intent is left to its webhook' => [ WC_Stripe_Intent_Status::PROCESSING, true, true, 'success', true, false, OrderStatus::PENDING ],
+			'declined intent does not block the retry' => [ WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD, true, true, 'success', false, true, OrderStatus::PENDING ],
+			'intent cannot be retrieved'               => [ null, true, true, 'failure', false, false, OrderStatus::PENDING ],
+			'paid, but Session is not the shopper\'s'  => [ WC_Stripe_Intent_Status::SUCCEEDED, false, true, 'failure', false, false, OrderStatus::PENDING ],
+			'paid, but Session cannot be expired'      => [ WC_Stripe_Intent_Status::SUCCEEDED, true, false, 'failure', false, false, OrderStatus::PENDING ],
+			'refunded charge does not block the retry' => [ WC_Stripe_Intent_Status::SUCCEEDED, true, true, 'success', false, true, OrderStatus::PENDING, [ 'refunded' => true ] ],
+			'disputed charge does not block the retry' => [ WC_Stripe_Intent_Status::SUCCEEDED, true, true, 'success', false, true, OrderStatus::PENDING, [ 'disputed' => true ] ],
+		];
+	}
+
+	/**
+	 * An order that is already settled is not resumed by the next submission, so when its submitted
+	 * Checkout Session cannot be expired the cart must go: left in place, it would create a new
+	 * order and pay through the Session that is still open.
+	 */
+	public function test_process_payment_with_checkout_session_empties_cart_when_settled_order_session_stays_open() {
+		$this->enable_checkout_sessions();
+		wc_clear_notices();
+
+		$session_id = 'cs_test_settled_order_open_session';
+
+		$_POST['wc_stripe_checkout_session_id'] = $session_id;
+		$_POST['payment_method']                = WC_Stripe_UPE_Payment_Gateway::ID;
+		$_POST['wc-stripe-payment-method']      = WC_Stripe_UPE_Payment_Gateway::ID;
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_status( OrderStatus::PROCESSING );
+		$order->save();
+
+		$this->store_checkout_session_context_for_order( $session_id, $order );
+		// An open Session with no expire response mocked: the expire request fails.
+		$this->mock_checkout_session_retrieval( $session_id, 'open' );
+		WC()->cart->add_to_cart( WC_Helper_Product::create_simple_product()->get_id() );
+
+		try {
+			$result        = $this->mock_gateway->process_payment( $order->get_id() );
+			$cart_is_empty = WC()->cart->is_empty();
+		} finally {
+			WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
+			WC()->cart->empty_cart();
+			$_POST = [];
+			wc_clear_notices();
+		}
+
+		$this->assertSame( 'failure', $result['result'] );
+		$this->assertTrue( $cart_is_empty );
 	}
 
 	/**

@@ -1400,6 +1400,16 @@ export const processPayment = (
 					return;
 				}
 
+				// An earlier attempt already paid for this order, so confirming the
+				// session would charge the shopper a second time.
+				if (
+					checkoutResponse.wc_stripe_checkout_session_already_paid ===
+					'yes'
+				) {
+					window.location.href = checkoutResponse.redirect;
+					return;
+				}
+
 				// Confirm payment with the order-received page as return URL
 				// so redirect-based methods (iDEAL, Bancontact, etc.) return
 				// the customer to the thank-you page instead of checkout.

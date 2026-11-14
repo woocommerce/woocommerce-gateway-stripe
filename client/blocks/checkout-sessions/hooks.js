@@ -173,6 +173,18 @@ export const useCheckoutSuccessHandler = (
 						};
 					}
 
+					// An earlier attempt already paid for this order, so confirming the
+					// session would charge the shopper a second time. Blocks follows the
+					// redirect from the checkout response.
+					if (
+						paymentDetails?.wc_stripe_checkout_session_already_paid ===
+						'yes'
+					) {
+						return {
+							type: 'success',
+						};
+					}
+
 					const billingAddress = billing?.billingAddress;
 					const shippingAddress = shippingData?.shippingAddress;
 

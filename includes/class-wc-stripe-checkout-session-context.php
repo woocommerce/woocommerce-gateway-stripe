@@ -259,17 +259,7 @@ class WC_Stripe_Checkout_Session_Context {
 	 * @throws Exception When the Checkout Session context is missing or does not match the order.
 	 */
 	public static function validate_for_order( string $session_id, WC_Order $order ): array {
-		$context = self::get_context( $session_id );
-		if ( empty( $context ) ) {
-			throw new Exception( self::get_unavailable_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-		}
-
-		self::validate_owner( $context );
-
-		$context_order_id = isset( $context['order_id'] ) ? (int) $context['order_id'] : 0;
-		if ( $context_order_id > 0 && $context_order_id !== $order->get_id() ) {
-			throw new Exception( self::get_unavailable_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-		}
+		$context = self::get_owned_context_for_order( $session_id, $order );
 
 		$order_currency = strtolower( $order->get_currency() );
 		$order_amount   = WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $order_currency );
@@ -281,6 +271,53 @@ class WC_Stripe_Checkout_Session_Context {
 			self::invalidate_session_after_amount_mismatch( $session_id, $order, $context, $order_amount, $order_currency );
 
 			throw new Exception( __( 'The payment amount no longer matches the order total. Please refresh the page and try again.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+
+		return $context;
+	}
+
+	/**
+	 * Whether the current browser session created the Checkout Session and it is free to be used
+	 * for the given order, i.e. it is not already linked to a different one.
+	 *
+	 * Unlike validate_for_order() this does not compare amounts, so it has no side effects and is
+	 * safe to call when the Session is about to be expired rather than paid.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param string   $session_id Stripe Checkout Session ID.
+	 * @param WC_Order $order WooCommerce order.
+	 * @return bool
+	 */
+	public static function is_usable_by_current_shopper_for_order( string $session_id, WC_Order $order ): bool {
+		try {
+			self::get_owned_context_for_order( $session_id, $order );
+			return true;
+		} catch ( Exception $e ) {
+			return false;
+		}
+	}
+
+	/**
+	 * Get the stored context of a Checkout Session the current browser session created and that is
+	 * not linked to a different order.
+	 *
+	 * @param string   $session_id Stripe Checkout Session ID.
+	 * @param WC_Order $order WooCommerce order.
+	 * @return array Stored Checkout Session context.
+	 * @throws Exception When the context is missing, owned by another browser session, or linked to another order.
+	 */
+	private static function get_owned_context_for_order( string $session_id, WC_Order $order ): array {
+		$context = self::get_context( $session_id );
+		if ( empty( $context ) ) {
+			throw new Exception( self::get_unavailable_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+
+		self::validate_owner( $context );
+
+		$context_order_id = isset( $context['order_id'] ) ? (int) $context['order_id'] : 0;
+		if ( $context_order_id > 0 && $context_order_id !== $order->get_id() ) {
+			throw new Exception( self::get_unavailable_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		return $context;
