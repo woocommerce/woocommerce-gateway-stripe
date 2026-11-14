@@ -9,7 +9,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Class WC_Stripe_UPE_Payment_Method_OC
  *
- * This class represents the Stripe UPE payment method for the Optimized Checkout (OC) flow.
+ * Internal pseudo–payment method that backs the Optimized Checkout (OC) flow. It is not a real
+ * Stripe payment method: it wraps all enabled methods behind a single Payment Element entry and
+ * exists so the UPE framework — which keys titles, testing instructions and token retrieval off
+ * {@see WC_Stripe_UPE_Payment_Method} instances — has a method object to delegate to.
+ *
+ * It is kept alongside {@see WC_Stripe_OCS_Payment_Gateway} on purpose, with a deliberate split of
+ * responsibilities: the gateway owns request/render/strategy behavior, while this class supplies the
+ * method-level pieces the gateway composes (the OC title, the aggregated per-method testing
+ * instructions, the retrievable card type). It is owned and instantiated by the OCS gateway and must
+ * not be registered as a standalone selectable method or used outside that gateway.
  */
 class WC_Stripe_UPE_Payment_Method_OC extends WC_Stripe_UPE_Payment_Method {
 	use WC_Stripe_Subscriptions_Trait;

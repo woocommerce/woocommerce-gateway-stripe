@@ -1139,24 +1139,150 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Without a type, the Apple Pay / Google Pay locations are returned,
+	 * preserving the pre-unification no-argument behavior.
+	 *
+	 * @return void
+	 */
+	public function test_get_button_locations_defaults_to_apple_pay_google_pay(): void {
+		$helper                  = new WC_Stripe_Express_Checkout_Helper();
+		$helper->stripe_settings = [
+			'express_checkout_button_locations' => [ 'product' ],
+			'link_button_locations'             => [ 'checkout' ],
+		];
+
+		$this->assertSame( [ 'product' ], $helper->get_button_locations() );
+	}
+
+	/**
+	 * Non-string entries are skipped and repeated locations deduplicated, so stored
+	 * values with junk in them cannot fatal.
+	 *
+	 * @return void
+	 */
+	public function test_get_button_locations_skips_malformed_entries(): void {
+		$helper                  = new WC_Stripe_Express_Checkout_Helper();
+		$helper->stripe_settings = [
+			'express_checkout_button_locations' => [ 'product', 'product', '', 5, [ 'cart' ] ],
+		];
+
+		$this->assertSame( [ 'product' ], $helper->get_button_locations( 'apple_pay_google_pay' ) );
+	}
+
+	/**
+	 * A method whose option was never saved keeps the default placement, while one
+	 * whose option is present but empty stays disabled everywhere, without affecting
+	 * the other methods.
+	 *
+	 * @param array $settings Per-method location options.
+	 * @param array $expected Expected locations per method.
+	 * @return void
+	 *
+	 * @dataProvider provide_get_button_locations_partial_settings
+	 */
+	public function test_get_button_locations_with_partial_settings( array $settings, array $expected ): void {
+		$helper                  = new WC_Stripe_Express_Checkout_Helper();
+		$helper->stripe_settings = $settings;
+
+		foreach ( $expected as $method => $locations ) {
+			$this->assertSame( $locations, $helper->get_button_locations( $method ), $method );
+		}
+	}
+
+	/**
+	 * Provider for `test_get_button_locations_with_partial_settings`.
+	 *
+	 * @return array
+	 */
+	public function provide_get_button_locations_partial_settings(): array {
+		return [
+			'nothing saved: every method on the default locations'                     => [
+				'settings' => [],
+				'expected' => [
+					'apple_pay_google_pay' => [ 'product', 'cart' ],
+					'link'                 => [ 'product', 'cart' ],
+					'amazon_pay'           => [ 'product', 'cart' ],
+				],
+			],
+			'only Link saved: the other methods keep their defaults'                   => [
+				'settings' => [ 'link_button_locations' => [ 'checkout' ] ],
+				'expected' => [
+					'apple_pay_google_pay' => [ 'product', 'cart' ],
+					'link'                 => [ 'checkout' ],
+					'amazon_pay'           => [ 'product', 'cart' ],
+				],
+			],
+			'empty array disables only that method'                                    => [
+				'settings' => [
+					'express_checkout_button_locations' => [],
+					'link_button_locations'             => [ 'cart' ],
+				],
+				'expected' => [
+					'apple_pay_google_pay' => [],
+					'link'                 => [ 'cart' ],
+					'amazon_pay'           => [ 'product', 'cart' ],
+				],
+			],
+			'empty string (WooCommerce emptied multiselect) disables only that method' => [
+				'settings' => [
+					'express_checkout_button_locations' => '',
+					'amazon_pay_button_locations'       => '',
+				],
+				'expected' => [
+					'apple_pay_google_pay' => [],
+					'link'                 => [ 'product', 'cart' ],
+					'amazon_pay'           => [],
+				],
+			],
+		];
+	}
+
+	/**
 	 * Provider for `test_get_button_locations`.
 	 *
 	 * @return array
 	 */
 	public function provide_test_get_button_locations(): array {
+		$per_method = [
+			'express_checkout_button_locations' => [ 'product', 'cart' ],
+			'link_button_locations'             => [ 'product', 'cart', 'checkout' ],
+			'amazon_pay_button_locations'       => [ 'product' ],
+		];
+
 		return [
-			'payment request, settings exists'                        => [
-				'express checkout type' => 'payment_request',
+			'all methods saved: apple_pay_google_pay locations'       => [
+				'express checkout type' => 'apple_pay_google_pay',
+				'settings'              => $per_method,
+				'expected'              => [ 'product', 'cart' ],
+			],
+			'all methods saved: link locations'                       => [
+				'express checkout type' => 'link',
+				'settings'              => $per_method,
+				'expected'              => [ 'product', 'cart', 'checkout' ],
+			],
+			'all methods saved: amazon_pay locations'                 => [
+				'express checkout type' => 'amazon_pay',
+				'settings'              => $per_method,
+				'expected'              => [ 'product' ],
+			],
+			'express_checkout alias resolves to apple_pay_google_pay' => [
+				'express checkout type' => 'express_checkout',
+				'settings'              => $per_method,
+				'expected'              => [ 'product', 'cart' ],
+			],
+			// Each method falls back to the default placement until its own option is saved.
+			'apple pay / google pay, settings exists'                 => [
+				'express checkout type' => 'apple_pay_google_pay',
 				'settings'              => [ 'express_checkout_button_locations' => [ 'checkout', 'cart' ] ],
 				'expected'              => [ 'checkout', 'cart' ],
 			],
-			'payment request, settings exists, but not a valid array' => [
-				'express checkout type' => 'payment_request',
+			'apple pay / google pay, settings exists, invalid array'  => [
+				'express checkout type' => 'apple_pay_google_pay',
 				'settings'              => [ 'express_checkout_button_locations' => 'invalid_value' ],
 				'expected'              => [],
 			],
-			'payment request, settings do not exist'                  => [
-				'express checkout type' => 'payment_request',
+			'apple pay / google pay, settings do not exist'           => [
+				'express checkout type' => 'apple_pay_google_pay',
 				'settings'              => [],
 				'expected'              => [ 'product', 'cart' ],
 			],
@@ -1165,43 +1291,13 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'settings'              => [ 'link_button_locations' => [ 'cart' ] ],
 				'expected'              => [ 'cart' ],
 			],
-			'link, settings exists, but not a valid array'            => [
-				'express checkout type' => 'link',
-				'settings'              => [ 'link_button_locations' => 'invalid_value' ],
-				'expected'              => [],
-			],
-			'link, settings do not exist'                             => [
-				'express checkout type' => 'link',
-				'settings'              => [],
-				'expected'              => [ 'product', 'cart' ],
-			],
 			'amazon pay, settings exists'                             => [
 				'express checkout type' => 'amazon_pay',
 				'settings'              => [ 'amazon_pay_button_locations' => [ 'checkout' ] ],
 				'expected'              => [ 'checkout' ],
 			],
-			'amazon pay, settings exists, but not a valid array'      => [
-				'express checkout type' => 'amazon_pay',
-				'settings'              => [ 'amazon_pay_button_locations' => 'invalid_value' ],
-				'expected'              => [],
-			],
-			'amazon pay, settings do not exist'                       => [
-				'express checkout type' => 'amazon_pay',
-				'settings'              => [],
-				'expected'              => [ 'product', 'cart' ],
-			],
-			'default, settings exists'                                => [
-				'express checkout type' => 'default',
-				'settings'              => [ 'express_checkout_button_locations' => [ 'checkout', 'cart' ] ],
-				'expected'              => [ 'checkout', 'cart' ],
-			],
-			'default, settings exists, but not a valid array'         => [
-				'express checkout type' => 'default',
-				'settings'              => [ 'express_checkout_button_locations' => 'invalid_value' ],
-				'expected'              => [],
-			],
-			'default, settings do not exist'                          => [
-				'express checkout type' => 'default',
+			'link, settings do not exist'                             => [
+				'express checkout type' => 'link',
 				'settings'              => [],
 				'expected'              => [ 'product', 'cart' ],
 			],
@@ -1223,6 +1319,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$stripe_settings                                      = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['express_checkout_button_locations'] = $button_locations;
 		$stripe_settings['amazon_pay_button_locations']       = $button_locations;
+		$stripe_settings['link_button_locations']             = $button_locations;
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
@@ -1948,26 +2045,34 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * @return array
 	 */
 	public function provide_test_get_link_button_height(): array {
+		// Link shares the single express checkout button size.
 		return [
-			'small'         => [
-				'settings' => [ 'link_button_size' => 'small' ],
+			'small'                          => [
+				'settings' => [ 'express_checkout_button_size' => 'small' ],
 				'expected' => '40',
 			],
-			'default'       => [
-				'settings' => [ 'link_button_size' => 'default' ],
+			'default'                        => [
+				'settings' => [ 'express_checkout_button_size' => 'default' ],
 				'expected' => '48',
 			],
-			'large'         => [
-				'settings' => [ 'link_button_size' => 'large' ],
+			'large'                          => [
+				'settings' => [ 'express_checkout_button_size' => 'large' ],
 				'expected' => '56',
 			],
-			'not set'       => [
+			'not set'                        => [
 				'settings' => [],
 				'expected' => '48',
 			],
-			'unknown value' => [
-				'settings' => [ 'link_button_size' => 'unknown' ],
+			'unknown value'                  => [
+				'settings' => [ 'express_checkout_button_size' => 'unknown' ],
 				'expected' => '48',
+			],
+			'ignores legacy per-method size' => [
+				'settings' => [
+					'express_checkout_button_size' => 'large',
+					'link_button_size'             => 'small',
+				],
+				'expected' => '56',
 			],
 		];
 	}
@@ -1996,26 +2101,34 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * @return array
 	 */
 	public function provide_test_get_amazon_pay_button_height(): array {
+		// Amazon Pay shares the single express checkout button size.
 		return [
-			'small'         => [
-				'settings' => [ 'amazon_pay_button_size' => 'small' ],
+			'small'                          => [
+				'settings' => [ 'express_checkout_button_size' => 'small' ],
 				'expected' => '40',
 			],
-			'default'       => [
-				'settings' => [ 'amazon_pay_button_size' => 'default' ],
+			'default'                        => [
+				'settings' => [ 'express_checkout_button_size' => 'default' ],
 				'expected' => '48',
 			],
-			'large'         => [
-				'settings' => [ 'amazon_pay_button_size' => 'large' ],
+			'large'                          => [
+				'settings' => [ 'express_checkout_button_size' => 'large' ],
 				'expected' => '56',
 			],
-			'not set'       => [
+			'not set'                        => [
 				'settings' => [],
 				'expected' => '48',
 			],
-			'unknown value' => [
-				'settings' => [ 'amazon_pay_button_size' => 'unknown' ],
+			'unknown value'                  => [
+				'settings' => [ 'express_checkout_button_size' => 'unknown' ],
 				'expected' => '48',
+			],
+			'ignores legacy per-method size' => [
+				'settings' => [
+					'express_checkout_button_size' => 'small',
+					'amazon_pay_button_size'       => 'large',
+				],
+				'expected' => '40',
 			],
 		];
 	}
@@ -2490,5 +2603,299 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		WC()->cart->empty_cart();
 
 		$this->assertNull( $data );
+	}
+
+	/**
+	 * Building the render-time cart snapshot must not define WOOCOMMERCE_CART: the
+	 * snapshot is built during full checkout page renders, and the constant makes
+	 * core's is_cart() return true for the rest of the request, breaking every
+	 * is_cart() consumer on the checkout page.
+	 *
+	 * @return void
+	 */
+	public function test_get_cart_render_data_does_not_define_woocommerce_cart(): void {
+		if ( defined( 'WOOCOMMERCE_CART' ) ) {
+			$this->markTestSkipped( 'WOOCOMMERCE_CART already defined by an earlier test in this process; cannot assert.' );
+		}
+
+		add_filter( 'woocommerce_is_checkout', '__return_true' );
+
+		WC()->cart->empty_cart();
+		WC()->cart->add_to_cart( WC_Helper_Product::create_simple_product()->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$helper = new WC_Stripe_Express_Checkout_Helper();
+		$data   = $helper->get_cart_render_data();
+
+		remove_filter( 'woocommerce_is_checkout', '__return_true' );
+		WC()->cart->empty_cart();
+
+		$this->assertIsArray( $data );
+		$this->assertFalse( defined( 'WOOCOMMERCE_CART' ) );
+	}
+
+	/**
+	 * Build a helper mock for a product page request whose only remaining guard of interest in
+	 * `should_show_express_checkout_button()` is the variation stock check.
+	 *
+	 * @param WC_Product $product The product returned for the current product page.
+	 * @return \PHPUnit\Framework\MockObject\MockObject&WC_Stripe_Express_Checkout_Helper
+	 */
+	private function create_product_page_ece_helper( WC_Product $product ) {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$methods_to_mock = [
+			'is_product'                       => true,
+			'is_one_page_checkout'             => false,
+			'is_checkout'                      => false,
+			'is_cart'                          => false,
+			'allowed_items_in_cart'            => true,
+			'get_product'                      => $product,
+			'is_product_supported'             => true,
+			'should_show_ece_on_product_pages' => true,
+			'is_express_checkout_enabled'      => true,
+		];
+
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $gateway ] )
+			->onlyMethods( array_keys( $methods_to_mock ) )
+			->getMock();
+
+		$helper->testmode = true;
+
+		foreach ( $methods_to_mock as $method => $return_value ) {
+			$helper->method( $method )
+				->willReturn( $return_value );
+		}
+
+		return $helper;
+	}
+
+	/**
+	 * Run `should_show_express_checkout_button()` with the Stripe gateway available and taxes
+	 * disabled, to ensure we are testing the stock check only.
+	 *
+	 * @param WC_Stripe_Express_Checkout_Helper $helper The helper under test.
+	 * @return bool
+	 */
+	private function should_show_ece_with_stripe_gateway( $helper ): bool {
+		update_option( 'woocommerce_calc_taxes', 'no' );
+
+		$original_gateways                         = WC()->payment_gateways()->payment_gateways;
+		WC()->payment_gateways()->payment_gateways = [
+			'stripe' => new WC_Stripe_UPE_Payment_Gateway(),
+		];
+
+		try {
+			return $helper->should_show_express_checkout_button();
+		} finally {
+			WC()->payment_gateways()->payment_gateways = $original_gateways;
+		}
+	}
+
+	/**
+	 * A cart total Stripe cannot charge must not fatal the cart/checkout page render; the
+	 * client falls back to the Store API cart and checkout rejects the order on submit.
+	 *
+	 * @return void
+	 */
+	public function test_get_cart_render_data_returns_null_for_oversized_total(): void {
+		add_filter( 'woocommerce_is_cart', '__return_true' );
+		WC()->cart->empty_cart();
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_regular_price( '100000000000000000' );
+		$product->set_price( '100000000000000000' );
+		$product->save();
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		try {
+			$this->assertNull( ( new WC_Stripe_Express_Checkout_Helper() )->get_cart_render_data() );
+		} finally {
+			remove_filter( 'woocommerce_is_cart', '__return_true' );
+			WC()->cart->empty_cart();
+		}
+	}
+
+	/**
+	 * Test that ECE on a variable product page is hidden only when no available variation is in stock,
+	 * for both the `WC_Product_Variation[]` and the legacy array shapes of `get_available_variations()`.
+	 *
+	 * @dataProvider provide_test_should_show_express_checkout_button_variation_stock
+	 *
+	 * @param string  $product_type    The product type reported by the product.
+	 * @param mixed[] $variation_stock Stock state per variation; `null` means the array shape has no `is_in_stock` key.
+	 * @param string  $variations_type Whether variations are returned as 'objects' or legacy 'arrays'.
+	 * @param bool    $expected        Expected result.
+	 * @return void
+	 */
+	public function test_should_show_express_checkout_button_variation_stock(
+		string $product_type,
+		array $variation_stock,
+		string $variations_type,
+		bool $expected
+	): void {
+		$variations = array_map(
+			function ( $is_in_stock ) use ( $variations_type ) {
+				if ( 'arrays' === $variations_type ) {
+					return null === $is_in_stock ? [ 'variation_id' => 1 ] : [ 'is_in_stock' => $is_in_stock ];
+				}
+
+				$variation = $this->getMockBuilder( WC_Product_Variation::class )
+					->onlyMethods( [ 'is_in_stock' ] )
+					->getMock();
+				$variation->method( 'is_in_stock' )
+					->willReturn( $is_in_stock );
+				return $variation;
+			},
+			$variation_stock
+		);
+
+		$product = $this->getMockBuilder( WC_Product_Variable::class )
+			->onlyMethods( [ 'get_type', 'get_available_variations' ] )
+			->getMock();
+		$product->method( 'get_type' )
+			->willReturn( $product_type );
+		$product->expects( $this->once() )
+			->method( 'get_available_variations' )
+			->with( 'objects' )
+			->willReturn( $variations );
+
+		$helper = $this->create_product_page_ece_helper( $product );
+
+		$this->assertSame( $expected, $this->should_show_ece_with_stripe_gateway( $helper ) );
+	}
+
+	/**
+	 * Data provider for {@see test_should_show_express_checkout_button_variation_stock()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_should_show_express_checkout_button_variation_stock(): array {
+		return [
+			'variable, objects, all out of stock'          => [ 'variable', [ false, false ], 'objects', false ],
+			'variable, objects, last in stock'             => [ 'variable', [ false, true ], 'objects', true ],
+			'variable, objects, all in stock'              => [ 'variable', [ true, true ], 'objects', true ],
+			'variable, no available variations'            => [ 'variable', [], 'objects', false ],
+			'variable, arrays, all out of stock'           => [ 'variable', [ false, false ], 'arrays', false ],
+			'variable, arrays, last in stock'              => [ 'variable', [ false, true ], 'arrays', true ],
+			'variable, arrays, missing is_in_stock key'    => [ 'variable', [ null ], 'arrays', false ],
+			'variable subscription, objects, out of stock' => [ 'variable-subscription', [ false ], 'objects', false ],
+			'variable subscription, objects, in stock'     => [ 'variable-subscription', [ false, true ], 'objects', true ],
+			'variable subscription, arrays, in stock'      => [ 'variable-subscription', [ true ], 'arrays', true ],
+		];
+	}
+
+	/**
+	 * Test that the variation stock check stops at the first in-stock variation.
+	 *
+	 * @return void
+	 */
+	public function test_should_show_express_checkout_button_stops_at_first_in_stock_variation(): void {
+		$in_stock = $this->getMockBuilder( WC_Product_Variation::class )
+			->onlyMethods( [ 'is_in_stock' ] )
+			->getMock();
+		$in_stock->expects( $this->once() )
+			->method( 'is_in_stock' )
+			->willReturn( true );
+
+		$never_checked = $this->getMockBuilder( WC_Product_Variation::class )
+			->onlyMethods( [ 'is_in_stock' ] )
+			->getMock();
+		$never_checked->expects( $this->never() )
+			->method( 'is_in_stock' );
+
+		$product = $this->getMockBuilder( WC_Product_Variable::class )
+			->onlyMethods( [ 'get_type', 'get_available_variations' ] )
+			->getMock();
+		$product->method( 'get_type' )
+			->willReturn( 'variable' );
+		$product->method( 'get_available_variations' )
+			->willReturn( [ $in_stock, $never_checked ] );
+
+		$helper = $this->create_product_page_ece_helper( $product );
+
+		$this->assertTrue( $this->should_show_ece_with_stripe_gateway( $helper ) );
+	}
+
+	/**
+	 * Test the variation stock check against a real variable product, so it stays correct against
+	 * what WooCommerce's `get_available_variations( 'objects' )` actually returns.
+	 *
+	 * @dataProvider provide_test_should_show_express_checkout_button_real_variable_product
+	 *
+	 * @param int  $in_stock_count Number of variations to leave in stock.
+	 * @param bool $expected       Expected result.
+	 * @return void
+	 */
+	public function test_should_show_express_checkout_button_real_variable_product( int $in_stock_count, bool $expected ): void {
+		$product = WC_Helper_Product::create_variation_product();
+
+		foreach ( $product->get_children() as $index => $variation_id ) {
+			$variation = wc_get_product( $variation_id );
+			$variation->set_stock_status( $index < $in_stock_count ? 'instock' : 'outofstock' );
+			$variation->save();
+		}
+
+		$product = wc_get_product( $product->get_id() );
+		$helper  = $this->create_product_page_ece_helper( $product );
+
+		$this->assertSame( $expected, $this->should_show_ece_with_stripe_gateway( $helper ) );
+	}
+
+	/**
+	 * Data provider for {@see test_should_show_express_checkout_button_real_variable_product()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_should_show_express_checkout_button_real_variable_product(): array {
+		return [
+			'all variations out of stock' => [ 0, false ],
+			'one variation in stock'      => [ 1, true ],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_product_prices_for_product_data
+	 *
+	 * @param string   $price           Product price.
+	 * @param int|null $expected_amount Converted total, or null when no product data must be returned.
+	 */
+	public function test_get_product_data_for_price( string $price, ?int $expected_amount ): void {
+		update_option( 'woocommerce_calc_taxes', 'no' );
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_regular_price( $price );
+		$product->set_price( $price );
+		$product->save();
+
+		$mock_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$helper       = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $mock_gateway ] )
+			->onlyMethods( [ 'is_product', 'get_product' ] )
+			->getMock();
+		$helper->method( 'is_product' )->willReturn( true );
+		$helper->method( 'get_product' )->willReturn( $product );
+
+		$data = $helper->get_product_data();
+
+		if ( null === $expected_amount ) {
+			$this->assertFalse( $data );
+			return;
+		}
+
+		$this->assertSame( $expected_amount, $data['total']['amount'] );
+		$this->assertSame( $expected_amount, $data['displayItems'][0]['amount'] );
+	}
+
+	public function provide_product_prices_for_product_data(): array {
+		return [
+			'normal price'       => [ '10.23', 1023 ],
+			'above Stripe limit' => [ '10000000000.00', null ],
+			'integer wraparound' => [ '184467440737095520.00', null ],
+		];
 	}
 }

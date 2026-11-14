@@ -4,6 +4,8 @@
  * Tests for the admin notices class.
  */
 class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
+	use WC_Stripe_Tracks_Capture_Trait;
+
 	/**
 	 * The original value of the HPOS option.
 	 *
@@ -117,6 +119,33 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Test that notice rendering preserves external link attributes.
+	 *
+	 * @return void
+	 */
+	public function test_admin_notices_preserves_external_link_rel_attributes() {
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+
+		$notices = new WC_Stripe_Admin_Notices();
+		$notices->add_admin_notice(
+			'external_link_notice',
+			'notice notice-info',
+			WC_Stripe_Helper::get_external_link( 'https://dashboard.stripe.com/customers/cus_123', 'Stripe customer page' ),
+			false,
+			[
+				WC_Stripe_Helper::get_external_link( 'https://dashboard.stripe.com/logs/req_123', 'Stripe request log', 'button' ),
+			]
+		);
+
+		ob_start();
+		$notices->admin_notices();
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( '<a href="https://dashboard.stripe.com/customers/cus_123" target="_blank" rel="noopener noreferrer">Stripe customer page</a>', $output );
+		$this->assertStringContainsString( '<a href="https://dashboard.stripe.com/logs/req_123" class="button" target="_blank" rel="noopener noreferrer">Stripe request log</a>', $output );
+	}
+
+	/**
 	 * Test that the correct notices are shown in all scenarios.
 	 *
 	 * @param array $options_to_set         Options to set before running the test.
@@ -191,7 +220,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function options_to_notices_map(): array {
 		return [
-			[
+			'style notice is shown when the Stripe gateway is enabled'              => [
 				[
 					'woocommerce_stripe_settings' => [ 'enabled' => 'yes' ],
 				],
@@ -502,7 +531,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					'changed_keys',
 				],
 			],
-			[
+			'changed key notice is shown when option is set and OAuth is connected' => [
 				[
 					'woocommerce_stripe_settings'        => [
 						'enabled'         => 'yes',
@@ -533,25 +562,8 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					'wc_stripe_show_sca_notice'   => 'no',
 				],
 			],
-			[
-				[
-					'woocommerce_stripe_settings' => [
-						'enabled'                                   => 'yes',
-						'testmode'                                  => 'no',
-						'publishable_key'                           => 'pk_live_valid_test_key',
-						'secret_key'                                => 'sk_live_valid_test_key',
-						'upe_checkout_experience_accepted_payments' => [ 'card', 'eps' ],
-					],
-					'wc_stripe_show_style_notice' => 'no',
-					'home'                        => 'https://...',
-					'wc_stripe_show_sca_notice'   => 'no',
-				],
-				'is oauth connected' => true,
-				[
-					'upe_payment_methods',
-				],
-			],
-			'OAuth required notice' => [
+			/* Note that currency notices are handled via test_currency_notices(). */
+			'OAuth required notice'                                                 => [
 				[
 					'woocommerce_stripe_settings' => [
 						'enabled'         => 'yes',
@@ -571,48 +583,433 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Test that the currency notice is shown when UPE methods are enabled.
+	 * The currency notice lists every enabled UPE payment method whose supported
+	 * currencies don't include the store currency, and is suppressed on the Stripe
+	 * settings page, once dismissed, or when Adaptive Pricing is active.
+	 *
+	 * @param bool        $is_stripe_settings_page                Whether the request is for the Stripe settings page.
+	 * @param bool        $is_gateway_enabled                     Whether the Stripe gateway is enabled.
+	 * @param string|null $dismiss_option                         Value for `wc_stripe_show_upe_payment_methods_notice`; null deletes the option.
+	 * @param bool        $checkout_sessions_available            Whether the Stripe Checkout Sessions feature is available.
+	 * @param string      $adaptive_pricing                       Value for the `adaptive_pricing` setting.
+	 * @param string      $account_country                        The country of the connected account.
+	 * @param string      $store_currency                         The store currency.
+	 * @param string[]    $enabled_payment_method_ids             The IDs of the enabled payment methods.
+	 * @param string[]    $expected_payment_method_ids_in_notice  The IDs of the payment methods that are expected in the notice.
+	 * @param string[]    $additional_store_currencies             Additional currencies supplied by a multi-currency plugin.
+	 *
+	 * @dataProvider provide_test_currency_notices_scenarios
 	 *
 	 * @return void
 	 */
-	public function test_currency_notice_is_shown_for_upe_methods(): void {
-		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
-
-		$this->mock_payment_method_configurations(
-			[
-				WC_Stripe_Payment_Methods::CARD,
-				WC_Stripe_Payment_Methods::GIROPAY,
-				WC_Stripe_Payment_Methods::BANCONTACT,
-				WC_Stripe_Payment_Methods::EPS,
-			]
-		);
+	public function test_currency_notices(
+		bool $is_stripe_settings_page,
+		bool $is_gateway_enabled,
+		?string $dismiss_option,
+		bool $checkout_sessions_available,
+		string $adaptive_pricing,
+		string $account_country,
+		string $store_currency,
+		array $enabled_payment_method_ids,
+		array $expected_payment_method_ids_in_notice,
+		array $additional_store_currencies = []
+	): void {
+		$this->mock_payment_method_configurations( $enabled_payment_method_ids );
 
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[
-				'enabled'                         => 'yes',
+				'enabled'                         => $is_gateway_enabled ? 'yes' : 'no',
 				'testmode'                        => 'yes',
 				'test_publishable_key'            => 'pk_test_valid_test_key',
 				'test_secret_key'                 => 'sk_test_valid_test_key',
 				'upe_checkout_experience_enabled' => 'yes',
 				'connection_type'                 => 'connect',
+				'pmc_enabled'                     => 'yes',
+				'optimized_checkout_element'      => $checkout_sessions_available ? 'yes' : 'no',
+				'capture'                         => 'yes',
+				'adaptive_pricing'                => $adaptive_pricing,
 			]
 		);
 
-		update_option( 'wc_stripe_show_style_notice', 'no' );
-		update_option( 'home', 'https://...' );
-		update_option( 'wc_stripe_show_sca_notice', 'no' );
+		// Clear the cache while we are still in test mode to ensure the right values are cleared.
+		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
 
-		$notices = new WC_Stripe_Admin_Notices();
-		ob_start();
-		$notices->admin_notices();
-		ob_end_clean();
-		if ( WC_Stripe_Helper::is_wc_lt( WC_STRIPE_FUTURE_MIN_WC_VER ) ) {
-			$this->assertCount( 2, $notices->notices );
-			$this->assertArrayHasKey( 'wcver', $notices->notices );
+		if ( null === $dismiss_option ) {
+			delete_option( 'wc_stripe_show_upe_payment_methods_notice' );
 		} else {
-			$this->assertCount( 1, $notices->notices );
+			update_option( 'wc_stripe_show_upe_payment_methods_notice', $dismiss_option );
 		}
-		$this->assertArrayHasKey( 'upe_payment_methods', $notices->notices );
+
+		$original_get = $_GET;
+		if ( $is_stripe_settings_page ) {
+			$_GET['page']    = 'wc-settings';
+			$_GET['section'] = 'stripe';
+		}
+
+		$account_backup = WC_Stripe::get_instance()->account;
+		$account        = $this->getMockBuilder( WC_Stripe_Account::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_account_country', 'is_webhook_enabled', 'get_cached_account_data' ] )
+			->getMock();
+		$account->method( 'get_account_country' )->willReturn( $account_country );
+		$account->method( 'is_webhook_enabled' )->willReturn( true );
+		$account->method( 'get_cached_account_data' )->willReturn( [ 'country' => $account_country ] );
+		WC_Stripe::get_instance()->account = $account;
+
+		$currency_filter             = static function () use ( $store_currency ) {
+			return $store_currency;
+		};
+		$available_currencies_filter = static function ( $currencies ) use ( $additional_store_currencies ) {
+			return array_merge( $currencies, $additional_store_currencies );
+		};
+		add_filter( 'woocommerce_currency', $currency_filter );
+		add_filter( 'wc_stripe_available_store_currencies', $available_currencies_filter );
+
+		// Force a fresh gateway so it picks up the mocked payment method configuration.
+		$this->set_main_stripe_gateway( null );
+
+		try {
+			$notices = new WC_Stripe_Admin_Notices();
+			$notices->payment_methods_check_environment();
+
+			$expected_message = $this->build_expected_currency_notice_message( $expected_payment_method_ids_in_notice );
+
+			if ( '' === $expected_message ) {
+				$this->assertArrayNotHasKey( 'upe_payment_methods', $notices->notices );
+			} else {
+				$this->assertArrayHasKey( 'upe_payment_methods', $notices->notices );
+				$this->assertSame( $expected_message, $notices->notices['upe_payment_methods']['message'] );
+				$this->assertSame( 'notice notice-error', $notices->notices['upe_payment_methods']['class'] );
+				$this->assertTrue( $notices->notices['upe_payment_methods']['dismissible'] );
+
+				$this->assertNotEmpty( $notices->notices['upe_payment_methods']['actions'] );
+				$this->assertCount( 1, $notices->notices['upe_payment_methods']['actions'] );
+				$action                      = reset( $notices->notices['upe_payment_methods']['actions'] );
+				$payment_method_settings_url = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=methods' );
+				$this->assertStringContainsString( '<a href="' . esc_url( $payment_method_settings_url ) . '" class="button button-secondary" style="margin:1em 2em 0.5em 0;">Review Stripe payment method settings</a>', $action );
+			}
+		} finally {
+			$this->set_main_stripe_gateway( null );
+			remove_filter( 'woocommerce_currency', $currency_filter );
+			remove_filter( 'wc_stripe_available_store_currencies', $available_currencies_filter );
+			WC_Stripe::get_instance()->account = $account_backup;
+			$_GET                              = $original_get;
+			delete_option( 'wc_stripe_show_upe_payment_methods_notice' );
+			WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+			WC_Stripe_Helper::delete_main_stripe_settings();
+		}
+	}
+
+	/**
+	 * Builds the currency notice message expected for a set of payment method IDs.
+	 *
+	 * @param string[] $expected_payment_method_ids_in_notice The IDs of the payment methods that are expected in the notice.
+	 *
+	 * @return string The expected message, or an empty string when no notice is expected.
+	 */
+	private function build_expected_currency_notice_message( array $expected_payment_method_ids_in_notice ): string {
+		if ( [] === $expected_payment_method_ids_in_notice ) {
+			return '';
+		}
+
+		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$message = '';
+
+		foreach ( $expected_payment_method_ids_in_notice as $payment_method_id ) {
+			$payment_method = $gateway->payment_methods[ $payment_method_id ];
+			$message       .= sprintf(
+				'%1$s is enabled - it requires store currency to be %2$s<br>',
+				$payment_method->get_label(),
+				implode( ', ', $payment_method->get_supported_currencies() )
+			);
+		}
+
+		return $message;
+	}
+
+	/**
+	 * Data provider for {@see test_currency_notices()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_currency_notices_scenarios(): array {
+		return [
+			'no notice when the Stripe gateway is disabled'                                => [
+				'is stripe settings page'               => false,
+				'is gateway enabled'                    => false,
+				'dismiss option'                        => null,
+				'checkout sessions available'           => true,
+				'adaptive pricing'                      => 'no',
+				'account country'                       => 'US',
+				'store currency'                        => 'USD',
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::CARD,
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+				'expected payment method IDs in notice' => [],
+			],
+			'methods that do not support the store currency are listed'                    => [
+				'is stripe settings page'               => false,
+				'is gateway enabled'                    => true,
+				'dismiss option'                        => null,
+				'checkout sessions available'           => true,
+				'adaptive pricing'                      => 'no',
+				'account country'                       => 'US',
+				'store currency'                        => 'USD',
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::CARD,
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::ALIPAY,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+				'expected payment method IDs in notice' => [
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+			],
+			'additional store currencies prevent false notices'                            => [
+				'is stripe settings page'               => false,
+				'is gateway enabled'                    => true,
+				'dismiss option'                        => null,
+				'checkout sessions available'           => true,
+				'adaptive pricing'                      => 'no',
+				'account country'                       => 'US',
+				'store currency'                        => 'USD',
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+				],
+				'expected payment method IDs in notice' => [],
+				'additional store currencies'           => [ 'EUR' ],
+			],
+			'no notice when the store currency is empty'                                   => [
+				'is stripe settings page'               => false,
+				'is gateway enabled'                    => true,
+				'dismiss option'                        => null,
+				'checkout sessions available'           => true,
+				'adaptive pricing'                      => 'no',
+				'account country'                       => 'FR',
+				'store currency'                        => '',
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::CARD,
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+				'expected payment method IDs in notice' => [],
+			],
+			'no notice when every method supports the store currency'                      => [
+				'is stripe settings page'               => false,
+				'is gateway enabled'                    => true,
+				'dismiss option'                        => null,
+				'checkout sessions available'           => true,
+				'adaptive pricing'                      => 'no',
+				'account country'                       => 'FR',
+				'store currency'                        => 'EUR',
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::CARD,
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+				'expected payment method IDs in notice' => [],
+			],
+			'notice when a the store currency is not supported for the account country'    => [
+				'is stripe settings page'               => false,
+				'is gateway enabled'                    => true,
+				'dismiss option'                        => null,
+				'checkout sessions available'           => true,
+				'adaptive pricing'                      => 'no',
+				'account country'                       => 'US',
+				'store currency'                        => 'EUR',
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::CARD,
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+				'expected payment method IDs in notice' => [
+					WC_Stripe_Payment_Methods::KLARNA, // US merchants can only offer Klarna for USD purchases.
+				],
+			],
+			'card and Link are never flagged'                                              => [
+				'is stripe settings page'               => false,
+				'is gateway enabled'                    => true,
+				'dismiss option'                        => null,
+				'checkout sessions available'           => true,
+				'adaptive pricing'                      => 'no',
+				'account country'                       => 'US',
+				'store currency'                        => 'AAA', // Invalid currency.
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::CARD,
+					WC_Stripe_Payment_Methods::LINK,
+					WC_Stripe_Payment_Methods::BOLETO,
+					WC_Stripe_Payment_Methods::OXXO,
+				],
+				'expected payment method IDs in notice' => [
+					WC_Stripe_Payment_Methods::BOLETO,
+					WC_Stripe_Payment_Methods::OXXO,
+				],
+			],
+			'methods the gateway does not expose are skipped'                              => [
+				// Giropay is only instantiated on order details/refund requests, so it is
+				// enabled in the configuration but absent from the gateway's methods.
+				'is stripe settings page'               => false,
+				'is gateway enabled'                    => true,
+				'dismiss option'                        => null,
+				'checkout sessions available'           => true,
+				'adaptive pricing'                      => 'no',
+				'account country'                       => 'US',
+				'store currency'                        => 'USD',
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::GIROPAY,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+				'expected payment method IDs in notice' => [
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+			],
+			'no notice when no restricted method is enabled'                               => [
+				'is stripe settings page'               => false,
+				'is gateway enabled'                    => true,
+				'dismiss option'                        => null,
+				'checkout sessions available'           => true,
+				'adaptive pricing'                      => 'no',
+				'account country'                       => 'US',
+				'store currency'                        => 'USD',
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::CARD,
+					WC_Stripe_Payment_Methods::LINK,
+				],
+				'expected payment method IDs in notice' => [],
+			],
+			'suppressed on the Stripe settings page'                                       => [
+				'is stripe settings page'               => true,
+				'is gateway enabled'                    => true,
+				'dismiss option'                        => null,
+				'checkout sessions available'           => true,
+				'adaptive pricing'                      => 'no',
+				'account country'                       => 'US',
+				'store currency'                        => 'USD',
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+				'expected payment method IDs in notice' => [],
+			],
+			'suppressed once dismissed'                                                    => [
+				'is stripe settings page'               => false,
+				'is gateway enabled'                    => true,
+				'dismiss option'                        => 'no',
+				'checkout sessions available'           => true,
+				'adaptive pricing'                      => 'no',
+				'account country'                       => 'US',
+				'store currency'                        => 'USD',
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+				'expected payment method IDs in notice' => [],
+			],
+			'shown while the dismiss option is yes'                                        => [
+				'is stripe settings page'               => false,
+				'is gateway enabled'                    => true,
+				'dismiss option'                        => 'yes',
+				'checkout sessions available'           => true,
+				'adaptive pricing'                      => 'no',
+				'account country'                       => 'US',
+				'store currency'                        => 'USD',
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+				'expected payment method IDs in notice' => [
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+			],
+			'suppressed when Adaptive Pricing is enabled'                                  => [
+				'is stripe settings page'               => false,
+				'is gateway enabled'                    => true,
+				'dismiss option'                        => '',
+				'checkout sessions available'           => true,
+				'adaptive pricing'                      => 'yes',
+				'account country'                       => 'US',
+				'store currency'                        => 'USD',
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+				'expected payment method IDs in notice' => [],
+			],
+			'shown when Adaptive Pricing is enabled but Checkout Sessions are unavailable' => [
+				'is stripe settings page'               => false,
+				'is gateway enabled'                    => true,
+				'dismiss option'                        => '',
+				'checkout sessions available'           => false,
+				'adaptive pricing'                      => 'yes',
+				'account country'                       => 'US',
+				'store currency'                        => 'USD',
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+				'expected payment method IDs in notice' => [
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+			],
+			'shown when Adaptive Pricing is enabled but unavailable for the account'       => [
+				'is stripe settings page'               => false,
+				'is gateway enabled'                    => true,
+				'dismiss option'                        => '',
+				'checkout sessions available'           => true,
+				'adaptive pricing'                      => 'yes',
+				'account country'                       => 'IN',
+				'store currency'                        => 'USD',
+				'enabled payment method IDs'            => [
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+				'expected payment method IDs in notice' => [
+					WC_Stripe_Payment_Methods::EPS,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::KLARNA,
+				],
+			],
+		];
 	}
 
 	/**
@@ -1042,6 +1439,9 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		if ( $expected_content ) {
 			$this->assertArrayHasKey( 'subscription_detached_bulk_action', $actual );
 			$this->assertStringContainsString( $expected_content, $actual['subscription_detached_bulk_action']['message'] );
+			if ( count( $subscriptions ) > 0 ) {
+				$this->assertStringContainsString( 'rel="noopener noreferrer"', $actual['subscription_detached_bulk_action']['message'] );
+			}
 		} else {
 			$this->assertArrayNotHasKey( 'subscription_detached_bulk_action', $actual );
 		}
@@ -1198,6 +1598,22 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				array_merge( $base_settings, [ 'express_checkout_button_locations' => [ 'cart' ] ] ),
 				false,
 			],
+			'not shown when checkout enabled for the method'          => [
+				'yes',
+				array_merge( $base_settings, [ 'express_checkout_button_locations' => [ 'product', 'cart', 'checkout' ] ] ),
+				false,
+			],
+			'shown when only another method has checkout'             => [
+				'yes',
+				array_merge(
+					$base_settings,
+					[
+						'express_checkout_button_locations' => [ 'product', 'cart' ],
+						'link_button_locations'             => [ 'checkout' ],
+					]
+				),
+				true,
+			],
 			'not shown when notice dismissed'                         => [
 				'no',
 				array_merge( $base_settings, [ 'express_checkout_button_locations' => [ 'product', 'cart' ] ] ),
@@ -1229,6 +1645,174 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertEquals( 'no', get_option( 'wc_stripe_show_ece_location_notice' ) );
 
 		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'] );
+	}
+
+	/**
+	 * Dismissing an Adaptive Pricing "now active" notice records a Tracks event for that notice.
+	 *
+	 * @dataProvider provide_ap_notices_to_dismiss
+	 *
+	 * @param string $notice_key Notice key in the dismiss link.
+	 * @param string $option     Option that controls the notice.
+	 * @param string $banner     Expected `banner` property of the event.
+	 */
+	public function test_hide_notices_records_tracks_event_for_ap_notices( string $notice_key, string $option, string $banner ): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+		update_option( $option, 'yes' );
+
+		$_GET['wc-stripe-hide-notice']   = $notice_key;
+		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
+
+		$this->start_capturing_tracks_events();
+		$this->create_admin_notices_instance()->hide_notices();
+		$this->stop_capturing_tracks_events();
+
+		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'] );
+
+		$this->assertSame( 'no', get_option( $option ) );
+		$events = $this->get_captured_tracks_event_properties( 'wcadmin_wcstripe_ap_banner_dismissed' );
+		$this->assertCount( 1, $events );
+		$this->assertSame( $banner, $events[0]['banner'] );
+	}
+
+	/**
+	 * Running the dismiss again (a refresh keeps the dismiss parameters in the URL) or dismissing a notice that
+	 * is not shown records no event, so the event counts real dismissals only.
+	 *
+	 * @dataProvider provide_ap_notices_to_dismiss
+	 *
+	 * @param string $notice_key Notice key in the dismiss link.
+	 * @param string $option     Option that controls the notice.
+	 * @param string $banner     Expected `banner` property of the event.
+	 */
+	public function test_hide_notices_records_ap_tracks_event_only_when_notice_was_shown( string $notice_key, string $option, string $banner ): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+		delete_option( $option );
+
+		$_GET['wc-stripe-hide-notice']   = $notice_key;
+		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
+
+		$this->start_capturing_tracks_events();
+		$notices = $this->create_admin_notices_instance();
+		// Option missing: the notice was never shown.
+		$notices->hide_notices();
+		// Shown, dismissed, then the page is refreshed.
+		update_option( $option, 'yes' );
+		$notices->hide_notices();
+		$notices->hide_notices();
+		$this->stop_capturing_tracks_events();
+
+		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'] );
+
+		$this->assertSame( 'no', get_option( $option ) );
+		$events = $this->get_captured_tracks_event_properties( 'wcadmin_wcstripe_ap_banner_dismissed' );
+		$this->assertCount( 1, $events );
+		$this->assertSame( $banner, $events[0]['banner'] );
+	}
+
+	/**
+	 * Data provider for the Adaptive Pricing notice dismissal tests.
+	 *
+	 * @return array
+	 */
+	public function provide_ap_notices_to_dismiss(): array {
+		return [
+			'OCS and AP notice' => [ 'ocs_ap_banner', 'wc_stripe_show_ocs_ap_banner', 'ocs_ap' ],
+			'AP only notice'    => [ 'ap_only_banner', 'wc_stripe_show_ap_only_banner', 'ap_only' ],
+		];
+	}
+
+	/**
+	 * The password cleanup notice is visible only to administrators and contains aggregate data.
+	 *
+	 * @dataProvider password_cleanup_count_provider
+	 */
+	public function test_express_checkout_password_cleanup_notice_visibility( int $user_count ): void {
+		$complete_option = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Express_Checkout_Password_Cleanup::class, 'COMPLETE_OPTION', 'string' );
+		$result_option   = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Express_Checkout_Password_Cleanup::class, 'RESULT_OPTION', 'string' );
+
+		update_option( $complete_option, 'yes', false );
+		update_option(
+			$result_option,
+			[
+				'affected'   => true,
+				'user_count' => $user_count,
+			],
+			false
+		);
+
+		try {
+			wp_set_current_user( $this->factory->user->create( [ 'role' => 'shop_manager' ] ) );
+			$notices = $this->create_admin_notices_instance();
+			$notices->check_express_checkout_password_cleanup();
+			$this->assertArrayNotHasKey( 'express_checkout_password_cleanup', $notices->notices );
+
+			wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+			$notices = $this->create_admin_notices_instance();
+			$notices->check_express_checkout_password_cleanup();
+			$this->assertArrayHasKey( 'express_checkout_password_cleanup', $notices->notices );
+			$message = $notices->notices['express_checkout_password_cleanup']['message'];
+			$this->assertStringContainsString( 'removed account password data', $message );
+			if ( $user_count > 0 ) {
+				$this->assertStringContainsString( $user_count . ' customer account', $message );
+			} else {
+				$this->assertStringNotContainsString( 'customer accounts were identified', $message );
+			}
+		} finally {
+			delete_option( $complete_option );
+			delete_option( $result_option );
+		}
+	}
+
+	public function password_cleanup_count_provider(): array {
+		return [
+			'no matching accounts' => [ 0 ],
+			'one account'          => [ 1 ],
+			'multiple accounts'    => [ 2 ],
+		];
+	}
+
+	/**
+	 * Dismissing the notice does not remove the retained cleanup state.
+	 */
+	public function test_hide_notices_dismisses_express_checkout_password_cleanup_notice(): void {
+		$result_option    = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Express_Checkout_Password_Cleanup::class, 'RESULT_OPTION', 'string' );
+		$dismissed_option = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Express_Checkout_Password_Cleanup::class, 'NOTICE_DISMISSED_OPTION', 'string' );
+
+		update_option(
+			$result_option,
+			[
+				'affected'   => true,
+				'user_count' => 1,
+			],
+			false
+		);
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'shop_manager' ] ) );
+		$_GET['wc-stripe-hide-notice']   = 'express_checkout_password_cleanup';
+		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
+
+		try {
+			$notices = $this->create_admin_notices_instance();
+			$notices->hide_notices();
+			$this->assertFalse( get_option( $dismissed_option ) );
+
+			wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+			$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
+			$notices->hide_notices();
+
+			$this->assertSame( 'yes', get_option( $dismissed_option ) );
+			$this->assertSame(
+				[
+					'affected'   => true,
+					'user_count' => 1,
+				],
+				get_option( $result_option )
+			);
+		} finally {
+			delete_option( $result_option );
+			delete_option( $dismissed_option );
+			unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'] );
+		}
 	}
 
 	/**
@@ -1578,6 +2162,102 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			'OCS+AP'   => [ 'ocs_ap_banner', 'wc_stripe_show_ocs_ap_banner' ],
 			'AP-only'  => [ 'ap_only_banner', 'wc_stripe_show_ap_only_banner' ],
 			'OCS-only' => [ 'ocs_only_banner', 'wc_stripe_show_ocs_only_banner' ],
+		];
+	}
+
+	/**
+	 * Dismissing a webhook notice clears only the dismissed mode's option and
+	 * leaves the other mode's outstanding notice in place, so a live-mode
+	 * warning is never cleared by dismissing a test-mode one.
+	 *
+	 * @param string $option_getter The WC_Stripe_Account static method that returns the per-mode option name.
+	 * @param string $slug        The per-mode dismissal slug (e.g. webhook_missing_live).
+	 * @param string $dismissed   The mode being dismissed.
+	 * @param string $retained    The mode whose notice must remain.
+	 *
+	 * @dataProvider provide_webhook_notice_dismissals
+	 *
+	 * @return void
+	 */
+	public function test_hide_notices_dismisses_webhook_notice_per_mode( string $option_getter, string $slug, string $dismissed, string $retained ): void {
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+
+		$dismissed_option = call_user_func( [ WC_Stripe_Account::class, $option_getter ], $dismissed );
+		$retained_option  = call_user_func( [ WC_Stripe_Account::class, $option_getter ], $retained );
+		update_option( $dismissed_option, 'yes' );
+		update_option( $retained_option, 'yes' );
+
+		$_GET['wc-stripe-hide-notice']   = $slug;
+		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
+
+		try {
+			$notices = new WC_Stripe_Admin_Notices();
+			$notices->hide_notices();
+
+			$this->assertFalse( get_option( $dismissed_option ) );
+			$this->assertSame( 'yes', get_option( $retained_option ) );
+		} finally {
+			unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'] );
+			delete_option( $dismissed_option );
+			delete_option( $retained_option );
+		}
+	}
+
+	/**
+	 * Data provider for `test_hide_notices_dismisses_webhook_notice_per_mode`.
+	 *
+	 * @return array<string, array{0: string, 1: string, 2: string, 3: string}>
+	 */
+	public function provide_webhook_notice_dismissals(): array {
+		return [
+			'missing live'       => [ 'get_webhook_missing_notice_option', 'webhook_missing_live', 'live', 'test' ],
+			'missing test'       => [ 'get_webhook_missing_notice_option', 'webhook_missing_test', 'test', 'live' ],
+			'manual secret live' => [ 'get_webhook_manual_secret_notice_option', 'webhook_manual_secret_live', 'live', 'test' ],
+			'manual secret test' => [ 'get_webhook_manual_secret_notice_option', 'webhook_manual_secret_test', 'test', 'live' ],
+		];
+	}
+
+	/**
+	 * A flagged webhook notice shows only for its own mode, and its message names
+	 * that mode, since each mode has its own translatable string.
+	 *
+	 * @param string $option_getter The WC_Stripe_Account static method that returns the per-mode option name.
+	 * @param string $slug_prefix   The notice slug without the mode suffix.
+	 * @param string $mode          The flagged mode.
+	 * @param string $other_mode    The mode that is not flagged.
+	 *
+	 * @dataProvider provide_webhook_notice_modes
+	 *
+	 * @return void
+	 */
+	public function test_webhook_notice_message_names_its_mode( string $option_getter, string $slug_prefix, string $mode, string $other_mode ): void {
+		WC_Stripe_Helper::update_main_stripe_settings( [ 'enabled' => 'yes' ] );
+		$option = call_user_func( [ WC_Stripe_Account::class, $option_getter ], $mode );
+		update_option( $option, 'yes' );
+
+		try {
+			$notices = new WC_Stripe_Admin_Notices();
+			$notices->stripe_check_environment();
+
+			$this->assertArrayHasKey( $slug_prefix . $mode, $notices->notices );
+			$this->assertArrayNotHasKey( $slug_prefix . $other_mode, $notices->notices );
+			$this->assertStringContainsString( "{$mode}-mode webhook", $notices->notices[ $slug_prefix . $mode ]['message'] );
+		} finally {
+			delete_option( $option );
+		}
+	}
+
+	/**
+	 * Data provider for `test_webhook_notice_message_names_its_mode`.
+	 *
+	 * @return array<string, array{0: string, 1: string, 2: string, 3: string}>
+	 */
+	public function provide_webhook_notice_modes(): array {
+		return [
+			'missing live'       => [ 'get_webhook_missing_notice_option', 'webhook_missing_', 'live', 'test' ],
+			'missing test'       => [ 'get_webhook_missing_notice_option', 'webhook_missing_', 'test', 'live' ],
+			'manual secret live' => [ 'get_webhook_manual_secret_notice_option', 'webhook_manual_secret_', 'live', 'test' ],
+			'manual secret test' => [ 'get_webhook_manual_secret_notice_option', 'webhook_manual_secret_', 'test', 'live' ],
 		];
 	}
 }

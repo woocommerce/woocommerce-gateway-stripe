@@ -49,6 +49,14 @@ class WC_Stripe_Feature_Flags {
 	public const ABILITIES_FEATURE_FLAG_NAME = '_wcstripe_feature_abilities';
 
 	/**
+	 * Feature flag for tracking Stripe events and processing the ones Stripe failed to deliver.
+	 *
+	 * @var string
+	 * @since x.x.x
+	 */
+	public const EVENT_RECONCILIATION_FEATURE_FLAG_NAME = '_wcstripe_feature_event_reconciliation';
+
+	/**
 	 * Map of feature flag option names => their default "yes"/"no" value.
 	 * This single source of truth makes it easier to maintain our dev tools.
 	 *
@@ -61,6 +69,7 @@ class WC_Stripe_Feature_Flags {
 		self::AGENTIC_COMMERCE_FEATURE_FLAG_NAME                             => 'no',
 		self::EXPAND_OPTIMIZED_CHECKOUT_IN_LEGACY_CHECKOUT_FEATURE_FLAG_NAME => 'no',
 		self::ABILITIES_FEATURE_FLAG_NAME                                    => 'no',
+		self::EVENT_RECONCILIATION_FEATURE_FLAG_NAME                         => 'no',
 	];
 
 	/**
@@ -149,7 +158,7 @@ class WC_Stripe_Feature_Flags {
 	 * @since 10.6.0
 	 */
 	public static function should_expand_ocs_in_legacy_checkout(): bool {
-		if ( ! self::is_oc_available() ) {
+		if ( ! self::is_oc_offered() ) {
 			return false;
 		}
 
@@ -171,13 +180,18 @@ class WC_Stripe_Feature_Flags {
 	}
 
 	/**
-	 * Whether the Optimized Checkout (OC) feature flag is enabled.
+	 * Whether the Optimized Checkout (OC) feature is available for this merchant.
+	 *
+	 * Reflects the local feature-flag/checks only. Deliberately does
+	 * NOT consult remote-config. Returning false here means the feature is hidden
+	 * entirely.
 	 *
 	 * @return bool
 	 */
 	public static function is_oc_available() {
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$pmc_enabled     = $stripe_settings['pmc_enabled'] ?? 'no';
+
 		if ( 'yes' !== $pmc_enabled ) {
 			return false;
 		}
@@ -197,6 +211,26 @@ class WC_Stripe_Feature_Flags {
 			'yes',
 			$pmc_enabled
 		);
+	}
+
+	/**
+	 * Whether the OC feature is currently offered to shoppers / operational at runtime.
+	 *
+	 * False when {@see self::is_oc_available()} is false, OR when a high-severity
+	 * issue warrants disabling Optimized Checkout remotely. When this returns false
+	 * but `is_oc_available()` returns true, the feature has been remotely disabled.
+	 *
+	 * Use for: customer-facing checkout rendering, payment-method registration,
+	 * runtime path gating. Do NOT use for admin settings UI rendering - use
+	 * `is_oc_available()` so remotely-disabled features still show their settings
+	 * section in a disabled state.
+	 */
+	public static function is_oc_offered(): bool {
+		if ( ! self::is_oc_available() ) {
+			return false;
+		}
+
+		return (bool) WC_Stripe_Remote_Config::get_instance()->resolve( 'optimized_checkout', true );
 	}
 
 	/**
@@ -244,5 +278,16 @@ class WC_Stripe_Feature_Flags {
 			'wc_stripe_is_agentic_commerce_enabled',
 			$is_agentic_commerce_enabled
 		);
+	}
+
+	/**
+	 * Whether Stripe events are tracked, and the ones Stripe failed to deliver are processed.
+	 *
+	 * @since x.x.x
+	 *
+	 * @return bool True if enabled, false otherwise.
+	 */
+	public static function is_event_reconciliation_enabled(): bool {
+		return 'yes' === self::get_option_with_default( self::EVENT_RECONCILIATION_FEATURE_FLAG_NAME );
 	}
 }

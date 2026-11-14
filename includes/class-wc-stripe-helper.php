@@ -22,6 +22,14 @@ class WC_Stripe_Helper {
 	public const PAYMENT_AWAITING_ACTION_META = '_stripe_payment_awaiting_action';
 
 	/**
+	 * Display item key treated as a negative amount by the express checkout client;
+	 * must match the literal in client/express-checkout/utils/normalize.js.
+	 *
+	 * @var string
+	 */
+	public const EXPRESS_CHECKOUT_DISCOUNT_ITEM_KEY = 'total_discount';
+
+	/**
 	 * The identifier for the official Affirm gateway plugin.
 	 *
 	 * @var string
@@ -36,6 +44,33 @@ class WC_Stripe_Helper {
 	public const OFFICIAL_PLUGIN_ID_KLARNA = 'klarna_payments';
 
 	/**
+	 * The Stripe.js version this plugin ships and is tested against. The checkout
+	 * client only runs Checkout Sessions on this exact build, so bump it together
+	 * with the `@stripe/stripe-js` release train in package.json.
+	 *
+	 * @var string
+	 */
+	private const STRIPE_JS_VERSION = 'dahlia';
+
+	/**
+	 * The Stripe.js SDK URL, pinned to a named major release.
+	 *
+	 * @var string
+	 */
+	protected const STRIPE_JS_URL = 'https://js.stripe.com/' . self::STRIPE_JS_VERSION . '/stripe.js';
+
+	/**
+	 * Returns the Stripe.js version this plugin ships, for example 'dahlia'.
+	 *
+	 * @since 11.2.0
+	 *
+	 * @return string
+	 */
+	public static function get_stripe_js_version(): string {
+		return self::STRIPE_JS_VERSION;
+	}
+
+	/**
 	 * List of legacy Stripe gateways.
 	 *
 	 * @var array
@@ -43,27 +78,116 @@ class WC_Stripe_Helper {
 	public static $stripe_legacy_gateways = [];
 
 	/**
+	 * Register the shared Stripe.js SDK script under the 'stripe' handle.
+	 *
+	 * Single registration point so the handle, URL, and loading flags can't
+	 * drift between the surfaces that need the SDK.
+	 *
+	 * @return void
+	 */
+	public static function register_stripe_js() {
+		wp_register_script( 'stripe', self::STRIPE_JS_URL, [], null, true );
+	}
+
+	/**
+	 * Validates a value against the expected Stripe object ID shape: `{prefix}_{token}`,
+	 * word characters only, at most 255 characters (Stripe's documented ceiling).
+	 *
+	 * @see https://docs.stripe.com/upgrades#what-changes-does-stripe-consider-to-be-backwards-compatible
+	 *
+	 * @param mixed             $id       The value to validate.
+	 * @param string|array|null $prefixes Allowed prefix or prefixes (e.g. 'cus' or [ 'pm', 'src', 'card' ]).
+	 *                                    When null, any lowercase-letter prefix is accepted.
+	 * @return bool True when the value is a syntactically valid Stripe identifier.
+	 */
+	public static function is_valid_stripe_id( $id, $prefixes = null ): bool {
+		// The whole identifier (prefix included) is bounded to Stripe's documented 255-character maximum.
+		if ( ! is_string( $id ) || '' === $id || strlen( $id ) > 255 ) {
+			return false;
+		}
+
+		if ( null === $prefixes ) {
+			$prefix_pattern = '[a-z]+';
+		} else {
+			// Drop empty prefixes: an empty allow-list (or an empty prefix string) must validate
+			// nothing, not match a bare "_token".
+			$prefixes = array_filter(
+				is_array( $prefixes ) ? $prefixes : [ $prefixes ],
+				static function ( $prefix ) {
+					return is_string( $prefix ) && '' !== $prefix;
+				}
+			);
+			if ( empty( $prefixes ) ) {
+				return false;
+			}
+			$prefix_pattern = '(' . implode(
+				'|',
+				array_map(
+					static function ( $prefix ) {
+						// Pass the '/' delimiter so a prefix containing it can't break out of the pattern.
+						return preg_quote( $prefix, '/' );
+					},
+					$prefixes
+				)
+			) . ')';
+		}
+
+		// Anchor with \A ... \z rather than ^ ... $: a bare $ also matches before a trailing newline,
+		// which would let a control character slip through. The length ceiling is enforced above.
+		return 1 === preg_match( "/\A{$prefix_pattern}_\w+\z/", $id );
+	}
+
+	/**
 	 * Get the main Stripe settings option.
+	 *
+	 * Delegates to the canonical accessor on WC_Stripe so there is a single
+	 * settings code path.
+	 *
+	 * @deprecated 10.9.0 Use WC_Stripe::get_instance()->get_settings() instead. The per-method
+	 *                    form has no replacement — those options were only used by the
+	 *                    pre-UPE legacy gateways.
 	 *
 	 * @param string $method (Optional) The payment method to get the settings from.
 	 * @return array $settings The Stripe settings.
 	 */
 	public static function get_stripe_settings( $method = null ) {
-		$settings = null === $method ? get_option( self::SETTINGS_OPTION, [] ) : get_option( 'woocommerce_stripe_' . $method . '_settings', [] );
-		if ( ! is_array( $settings ) ) {
-			$settings = [];
+		if ( null === $method ) {
+			return WC_Stripe::get_instance()->get_settings();
 		}
-		return $settings;
+
+		$settings = get_option( 'woocommerce_stripe_' . $method . '_settings', [] );
+
+		return is_array( $settings ) ? $settings : [];
 	}
 
 	/**
 	 * Update the main Stripe settings option.
 	 *
+	 * Delegates to the canonical accessor on WC_Stripe so there is a single
+	 * settings code path.
+	 *
+	 * @deprecated 10.9.0 Use WC_Stripe::get_instance()->update_settings() instead.
+	 *
 	 * @param $options array The Stripe settings.
 	 * @return void
 	 */
 	public static function update_main_stripe_settings( $options ) {
-		update_option( self::SETTINGS_OPTION, $options );
+		if ( is_array( $options ) ) {
+			WC_Stripe::get_instance()->update_settings( $options );
+		}
+	}
+
+	/**
+	 * Masks an API key or webhook secret so that it can be sent to the client.
+	 * Only the first ten and the last two characters stay visible.
+	 *
+	 * @since 11.2.0
+	 *
+	 * @param string $value The key or secret.
+	 * @return string
+	 */
+	public static function mask_key_value( $value ): string {
+		return substr( $value, 0, 10 ) . str_repeat( '*', 50 ) . substr( $value, -2 );
 	}
 
 	/**
@@ -81,7 +205,8 @@ class WC_Stripe_Helper {
 	 * @param float  $total Amount due.
 	 * @param string $currency Accepted currency.
 	 *
-	 * @return float|int
+	 * @return int
+	 * @throws WC_Stripe_Exception If the amount exceeds Stripe's maximum or PHP's integer limit.
 	 */
 	public static function get_stripe_amount( $total, $currency = '' ) {
 		if ( ! $currency ) {
@@ -91,15 +216,38 @@ class WC_Stripe_Helper {
 		$currency = strtoupper( $currency );
 
 		if ( in_array( $currency, WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES, true ) ) {
-			return absint( $total );
+			return self::to_stripe_integer( $total );
 		} elseif ( in_array( $currency, WC_Stripe_Currency_Code::THREE_DECIMAL_CURRENCY_CODES, true ) ) {
 			$price_decimals = wc_get_price_decimals();
-			$amount         = absint( wc_format_decimal( ( (float) $total * 1000 ), $price_decimals ) ); // For tree decimal currencies.
+			$amount         = self::to_stripe_integer( wc_format_decimal( ( (float) $total * 1000 ), $price_decimals ) );
 			return $amount - ( $amount % 10 ); // Round the last digit down. See https://docs.stripe.com/currencies?presentment-currency=AE#three-decimal
 		} else {
 			// Round to nearest cent to handle values with 3+ decimal precision (e.g., shipping rates from carriers like UPS).
-			return absint( round( wc_format_decimal( ( (float) $total * 100 ), wc_get_price_decimals() ) ) );
+			return self::to_stripe_integer( round( wc_format_decimal( ( (float) $total * 100 ), wc_get_price_decimals() ) ) );
 		}
+	}
+
+	/**
+	 * Reject unsupported amounts before integer conversion can wrap to a smaller payment.
+	 *
+	 * @since 11.2.0
+	 * @param float|int|string $amount Amount in the currency's smallest unit.
+	 * @return int
+	 * @throws WC_Stripe_Exception If the amount exceeds Stripe's maximum or PHP's integer limit.
+	 */
+	private static function to_stripe_integer( $amount ): int {
+		$amount = abs( (float) $amount );
+
+		// Stripe supports at most 12 digits in minor units; 32-bit PHP has a smaller limit.
+		// https://docs.stripe.com/currencies#maximum-charge-amounts
+		if ( $amount > min( 999999999999, PHP_INT_MAX ) ) {
+			throw new WC_Stripe_Exception(
+				'Amount exceeds the supported payment range.',
+				__( 'The amount is too large to process with this payment method.', 'woocommerce-gateway-stripe' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			);
+		}
+
+		return (int) $amount;
 	}
 
 	/**
@@ -298,6 +446,50 @@ class WC_Stripe_Helper {
 			'omr', // Omani Rial
 			'tnd', // Tunisian Dinar
 		];
+	}
+
+	/**
+	 * Returns the currencies that may be used as the store currency at checkout.
+	 *
+	 * Admin availability checks need the complete list because a multi-currency store
+	 * can offer checkout currencies other than its WooCommerce base currency.
+	 *
+	 * @since 11.1.0
+	 *
+	 * @return string[] Uppercase currency codes.
+	 */
+	public static function get_available_store_currencies(): array {
+		$store_currency             = strtoupper( (string) get_woocommerce_currency() );
+		$available_store_currencies = $store_currency ? [ $store_currency ] : [];
+
+		/**
+		 * Filters the currencies that may be used as the store currency at checkout.
+		 *
+		 * Multi-currency plugins should append their configured currencies to the
+		 * supplied WooCommerce base currency.
+		 *
+		 * @since 11.1.0
+		 *
+		 * @param string[] $available_store_currencies Available currency codes.
+		 */
+		$filtered_currencies = apply_filters( 'wc_stripe_available_store_currencies', $available_store_currencies );
+
+		if ( ! is_array( $filtered_currencies ) ) {
+			return $available_store_currencies;
+		}
+
+		foreach ( $filtered_currencies as $currency ) {
+			if ( ! is_string( $currency ) ) {
+				continue;
+			}
+
+			$currency = strtoupper( trim( $currency ) );
+			if ( '' !== $currency ) {
+				$available_store_currencies[] = $currency;
+			}
+		}
+
+		return array_values( array_unique( $available_store_currencies ) );
 	}
 
 	/**
@@ -1048,8 +1240,8 @@ class WC_Stripe_Helper {
 	public static function clean_statement_descriptor( $statement_descriptor = '' ) {
 		$disallowed_characters = [ '<', '>', '\\', '*', '"', "'", '/', '(', ')', '{', '}' ];
 
-		// Strip any tags.
-		$statement_descriptor = strip_tags( $statement_descriptor );
+		// Strip all tags.
+		$statement_descriptor = wp_strip_all_tags( $statement_descriptor );
 
 		// Strip any HTML entities.
 		// Props https://stackoverflow.com/questions/657643/how-to-remove-html-special-chars .
@@ -1209,6 +1401,39 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Records a Tracks event when the plugin decides by itself whether to turn Adaptive Pricing on,
+	 * without a merchant action. Merchant changes in the settings are tracked separately.
+	 *
+	 * @internal
+	 * @since 11.2.0
+	 *
+	 * @param string      $source         The flow that made the decision, e.g. 'connect' or 'ocs_ap_default_on'.
+	 * @param string|null $skipped_reason Why Adaptive Pricing was left off, or null when it was turned on.
+	 * @return void
+	 */
+	public static function record_adaptive_pricing_default_tracks_event( string $source, ?string $skipped_reason = null ): void {
+		if ( ! function_exists( 'wc_admin_record_tracks_event' ) ) {
+			return;
+		}
+
+		$properties = [
+			// Note that the default event property is `is_test_mode`, but `test_mode` is
+			// needed for backwards compatibility.
+			'test_mode' => WC_Stripe_Mode::is_test() ? 1 : 0,
+			'source'    => $source,
+		];
+
+		if ( null !== $skipped_reason ) {
+			$properties['reason'] = $skipped_reason;
+		}
+
+		wc_admin_record_tracks_event(
+			null === $skipped_reason ? 'wcstripe_ap_default_enabled' : 'wcstripe_ap_default_skipped',
+			WC_Stripe_Tracks::add_default_event_properties( $properties )
+		);
+	}
+
+	/**
 	 * Returns the reason why adaptive pricing is not available for the current Stripe account.
 	 * Adaptive Pricing is not supported for accounts based in India, as well as for other situations.
 	 *
@@ -1226,11 +1451,6 @@ class WC_Stripe_Helper {
 
 		if ( ! $stripe_account->is_webhook_enabled() ) {
 			return 'webhooks-disabled';
-		}
-
-		// If Adaptive Pricing was disabled due to an amount mismatch, keep Adaptive Pricing disabled.
-		if ( WC_Stripe_Checkout_Session_Context::was_amount_mismatch_detected() ) {
-			return 'amount-mismatch-detected';
 		}
 
 		// Adaptive Pricing requires automatic capture.
@@ -1282,6 +1502,12 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
+		// If Optimized Checkout is not available to shoppers, we should ensure that
+		// Adaptive Pricing is also disabled.
+		if ( ! WC_Stripe_Feature_Flags::is_oc_offered() ) {
+			return false;
+		}
+
 		// False if Adaptive Pricing is not available for the current Stripe account in the plugin.
 		if ( ! self::is_adaptive_pricing_available_for_account() ) {
 			return false;
@@ -1289,6 +1515,12 @@ class WC_Stripe_Helper {
 
 		// False if adaptive pricing option is disabled.
 		if ( 'yes' !== self::get_settings( null, 'adaptive_pricing' ) ) {
+			return false;
+		}
+
+		// If this customer previously hit a Checkout Session amount mismatch,
+		// disable Adaptive Pricing for the session.
+		if ( WC_Stripe_Checkout_Session_Context::was_amount_mismatch_detected() ) {
 			return false;
 		}
 
@@ -1424,13 +1656,11 @@ class WC_Stripe_Helper {
 		// Make sure location parameter is sanitized.
 		$location         = in_array( $location, [ 'product', 'cart' ], true ) ? $location : '';
 		$are_prbs_enabled = self::get_settings( null, 'express_checkout' ) ?? 'yes';
-		$prb_locations    = self::get_settings( null, 'express_checkout_button_locations' ) ?? [ 'product', 'cart' ];
 
-		// The scripts should be loaded when all of the following are true:
-		//   1. The PRBs are enabled; and
-		//   2. The PRB location settings have an array value (saving an empty option in the GUI results in non-array value); and
-		//   3. The PRBs are enabled at $location.
-		return 'yes' === $are_prbs_enabled && is_array( $prb_locations ) && in_array( $location, $prb_locations, true );
+		// Read through the helper so an unset option keeps the default placement and
+		// a non-array value (every location unchecked) counts as disabled.
+		return 'yes' === $are_prbs_enabled
+			&& ( new WC_Stripe_Express_Checkout_Helper() )->is_enabled_for_location( 'apple_pay_google_pay', $location );
 	}
 
 	/**
@@ -1743,6 +1973,43 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Returns the opening tag of a link that opens in a new tab.
+	 *
+	 * Prefer `get_external_link()`. This exists for the strings whose link text sits inside
+	 * the translatable sentence (`%1$sStripe Dashboard%2$s`), where the anchor has to be
+	 * supplied to `sprintf()` in two pieces and no wrapper can reach the text between them.
+	 * Callers are responsible for the matching `</a>`.
+	 *
+	 * @param string $url       URL to link to.
+	 * @param string $css_class Optional CSS class for the anchor.
+	 * @return string
+	 */
+	public static function get_external_link_open_tag( string $url, string $css_class = '', string $title = '' ): string {
+		return sprintf(
+			'<a href="%1$s"%2$s%3$s target="_blank" rel="noopener noreferrer">',
+			esc_url( $url ),
+			'' === $css_class ? '' : ' class="' . esc_attr( $css_class ) . '"',
+			'' === $title ? '' : ' title="' . esc_attr( $title ) . '"'
+		);
+	}
+
+	/**
+	 * Returns a complete link that opens in a new tab.
+	 *
+	 * Mirrors the `ExternalLink` component the React settings screens use, so a Stripe
+	 * Dashboard link behaves the same whether PHP or React rendered it. `noopener noreferrer`
+	 * keeps the opened page from reaching back through `window.opener`.
+	 *
+	 * @param string $url       URL to link to.
+	 * @param string $text      Optional link text. Defaults to the URL itself.
+	 * @param string $css_class Optional CSS class for the anchor.
+	 * @return string
+	 */
+	public static function get_external_link( string $url, string $text = '', string $css_class = '', string $title = '' ): string {
+		return self::get_external_link_open_tag( $url, $css_class, $title ) . esc_html( '' === $text ? $url : $text ) . '</a>';
+	}
+
+	/**
 	 * Returns a supported locale for setting Klarna's "preferred_locale".
 	 * While Stripe allows for localization of Klarna's payments page, it still
 	 * limits the locale to the billing country's set of supported locales. For example,
@@ -2039,7 +2306,7 @@ class WC_Stripe_Helper {
 		}
 
 		if ( ! is_object( $intent ) ) {
-			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		if ( null === $intent_id ) {
@@ -2055,7 +2322,7 @@ class WC_Stripe_Helper {
 					'error'     => $intent->error,
 				]
 			);
-			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		if ( null === $selected_payment_type ) {
@@ -2101,7 +2368,7 @@ class WC_Stripe_Helper {
 			]
 		);
 
-		throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+		throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 	}
 
 	/**
@@ -2122,6 +2389,23 @@ class WC_Stripe_Helper {
 		} else {
 			return isset( $options['publishable_key'], $options['secret_key'] ) && trim( $options['publishable_key'] ) && trim( $options['secret_key'] );
 		}
+	}
+
+	/**
+	 * Returns the account-level gate values the Customize express checkouts settings pages localize
+	 * for their placement simulator. These gates apply to every express method (Apple Pay/Google Pay,
+	 * Amazon Pay, Link), so they live here rather than being duplicated across the three controllers.
+	 *
+	 * @return array{is_account_connected: bool, is_https: bool, is_test_mode: bool}
+	 */
+	public static function get_express_checkout_simulator_gate_params(): array {
+		return [
+			'is_account_connected' => self::is_connected(),
+			// is_ssl() would report the admin request's scheme, not the storefront's; the configured
+			// site URLs are what the storefront gate will effectively see.
+			'is_https'             => wp_is_using_https(),
+			'is_test_mode'         => WC_Stripe_Mode::is_test(),
+		];
 	}
 
 	/**
@@ -2224,7 +2508,7 @@ class WC_Stripe_Helper {
 
 		if ( WC()->cart->has_discount() ) {
 			$items[] = [
-				'key'    => 'total_discount',
+				'key'    => self::EXPRESS_CHECKOUT_DISCOUNT_ITEM_KEY,
 				'label'  => esc_html( __( 'Discount', 'woocommerce-gateway-stripe' ) ),
 				'amount' => WC_Stripe_Helper::get_stripe_amount( $discounts ),
 			];
@@ -2234,10 +2518,25 @@ class WC_Stripe_Helper {
 
 		// Include fees and taxes as display items.
 		foreach ( $cart_fees as $fee ) {
-			$items[] = [
-				'label'  => $fee->name,
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $fee->amount ),
-			];
+			// ->amount is safe here (cart fees are freshly calculated); order paths must read get_total() instead.
+			$fee_amount = (float) $fee->amount;
+			$item       = [];
+
+			// A negative fee (e.g. a discount extension applying its discount as a cart fee
+			// instead of a coupon) must stay negative once it reaches Stripe, but
+			// get_stripe_amount() always returns a non-negative minor-unit value. Tag it the
+			// same way the coupon discount item above is tagged so the express checkout
+			// client (`normalizeLineItems()`) re-applies the sign; otherwise the summed
+			// display items exceed the cart total and Stripe rejects the payment sheet with
+			// "the amount is less than the total amount of the line items provided."
+			if ( $fee_amount < 0 ) {
+				$item['key'] = self::EXPRESS_CHECKOUT_DISCOUNT_ITEM_KEY;
+			}
+
+			$item['label']  = $fee->name;
+			$item['amount'] = WC_Stripe_Helper::get_stripe_amount( abs( $fee_amount ) );
+
+			$items[] = $item;
 		}
 
 		return $items;

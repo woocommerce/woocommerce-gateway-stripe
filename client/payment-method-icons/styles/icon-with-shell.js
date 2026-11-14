@@ -1,28 +1,19 @@
 import React from 'react';
-import styled from '@emotion/styled';
-import { css } from '@emotion/react';
+import clsx from 'clsx';
 import BaseIcon from './base-icon';
 
-const IconSpacingMap = {
-	small: css`
-		padding: 4px;
-	`,
-	medium: css`
-		padding: 7px;
-	`,
-};
-
-const Wrapper = styled( BaseIcon )`
-	background: white;
-	border-color: #ddd;
-	border-radius: 5px;
-	overflow: hidden;
-
-	${ ( { size } ) => IconSpacingMap[ size ] || '' }
-`;
-
-const IconWithShell = ( { size = 'small', ...restProps } ) => (
-	<Wrapper { ...restProps } size={ size } />
+/**
+ * A payment method icon inside a bordered, padded white "shell".
+ *
+ * @param {Object} props           Passed through to BaseIcon.
+ * @param {string} props.className Extra class names for the wrapper.
+ * @return {JSX.Element} The rendered icon.
+ */
+const IconWithShell = ( { className, ...restProps } ) => (
+	<BaseIcon
+		className={ clsx( 'wc-stripe-payment-method-icon--shell', className ) }
+		{ ...restProps }
+	/>
 );
 
 export default IconWithShell;

@@ -73,6 +73,8 @@ describe( 'PromotionalBanner', () => {
 		const dismissButton = screen.getByTestId( 'dismiss' );
 
 		await userEvent.click( dismissButton );
+		// Flush the dismissNotice promise chain (.then → .catch → .finally).
+		await new Promise( process.nextTick );
 
 		expect( setShowPromotionalBanner ).toHaveBeenCalledWith( false );
 	} );

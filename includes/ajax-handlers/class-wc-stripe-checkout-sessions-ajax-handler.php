@@ -37,6 +37,11 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				throw new Exception( __( "We're not able to process this request. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
 			}
 
+			// Without this, a session created on a manual-capture store would capture the charge at once.
+			if ( ! WC_Stripe_Helper::is_checkout_sessions_available() ) {
+				throw new Exception( WC_Stripe_Checkout_Session_Context::get_unavailable_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			}
+
 			if ( ! WC()->cart || WC()->cart->is_empty() ) {
 				throw new Exception( __( 'Your cart is currently empty.', 'woocommerce-gateway-stripe' ) );
 			}
@@ -125,6 +130,10 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				throw new Exception( __( "We're not able to process this request. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
 			}
 
+			if ( ! WC_Stripe_Helper::is_checkout_sessions_available() ) {
+				throw new Exception( WC_Stripe_Checkout_Session_Context::get_unavailable_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			}
+
 			$session_id = isset( $_POST['checkout_session_id'] )
 				? wc_clean( wp_unslash( $_POST['checkout_session_id'] ) )
 				: '';
@@ -150,7 +159,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 
 					if ( ! empty( $checkout_session->error ) ) {
 						$message = empty( $checkout_session->error->message ) ? __( 'Checkout Sessions update API returned an error', 'woocommerce-gateway-stripe' ) : $checkout_session->error->message;
-						throw new Exception( $message );
+						throw new Exception( $message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 					}
 
 					WC_Stripe_Checkout_Session_Context::store_for_cart( $session_id, $cart_context );

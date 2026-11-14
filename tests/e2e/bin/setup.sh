@@ -2,10 +2,9 @@
 
 set -e
 . ./tests/e2e/bin/common.sh
+. ./bin/wc-version.sh
 
-if [[ -f "$E2E_ROOT/config/local.env" ]]; then
-	. "$E2E_ROOT/config/local.env"
-fi
+load_e2e_local_env
 
 # If --base_url argument is present use the remote server setup.
 if [[ "$*" == *"--base_url"* ]]; then
@@ -21,6 +20,11 @@ DEBUG=false
 ADMIN_USER=admin
 ADMIN_PASSWORD=admin
 
+# WordPress.org slug of the theme to install and activate.
+WP_THEME=${WP_THEME:-storefront}
+
+DEPS_DIR="$E2E_ROOT/deps"
+
 cd "$CWD"
 
 check_dep 'docker'
@@ -28,11 +32,86 @@ check_dep 'curl'
 check_dep 'jq'
 check_dep 'php'
 
+missing_plugin_zip_error() {
+	error "Cannot obtain $1."
+	echo "  Set GITHUB_TOKEN in tests/e2e/config/local.env, run 'gh auth login',"
+	echo "  or place the zip at tests/e2e/deps/$1"
+}
+
+# Downloads <repo>'s latest release asset to tests/e2e/deps/<zip-name>.
+#
+# Sources are tried in order: GITHUB_TOKEN, the gh CLI, then an existing zip in
+# tests/e2e/deps. A source that cannot deliver the zip says so and falls through
+# to the next one, so a token inherited from the shell or a gh login without
+# access to the private repos does not block a source that works.
+fetch_plugin_zip() {
+	local repo=$1
+	local zip=$2
+	local dest="$DEPS_DIR/$zip"
+	# Downloads land on a temp path so a failed fetch cannot truncate the cached
+	# zip we may still need to fall back to.
+	local tmp="$dest.part"
+
+	mkdir -p "$DEPS_DIR"
+
+	if [[ -n "$GITHUB_TOKEN" ]]; then
+		echo " - Fetching $repo latest version with GITHUB_TOKEN"
+
+		local asset_id
+		asset_id=$(curl -sfH "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$repo/releases/latest" | jq -r '.assets[0].id // empty')
+
+		if [[ -n "$asset_id" ]] && redirect_output curl -sfL \
+			-H "Authorization: token $GITHUB_TOKEN" \
+			-H "Accept: application/octet-stream" \
+			--output "$tmp" \
+			"https://api.github.com/repos/$repo/releases/assets/$asset_id"; then
+			mv "$tmp" "$dest"
+			return
+		fi
+
+		rm -f "$tmp"
+		echo " - GITHUB_TOKEN cannot download $zip from $repo, trying the next source"
+	fi
+
+	if command -v gh > /dev/null 2>&1; then
+		echo " - Fetching $repo latest version with the GitHub CLI"
+
+		if redirect_output gh release download --repo "$repo" --pattern '*.zip' --output "$tmp" --clobber; then
+			mv "$tmp" "$dest"
+			return
+		fi
+
+		rm -f "$tmp"
+		echo " - gh cannot download $zip, trying the next source (see tests/e2e/e2e-setup.log)"
+	fi
+
+	if [[ -s "$dest" ]]; then
+		echo " - Using tests/e2e/deps/$zip"
+		return
+	fi
+
+	missing_plugin_zip_error "$zip"
+	exit 1
+}
+
 if ! docker info > /dev/null 2>&1; then
 	echo
 	error "Docker is not running, please start it and try again."
 	exit 1
 fi
+
+if [[ -z "$STRIPE_PUB_KEY" || -z "$STRIPE_SECRET_KEY" ]]; then
+	echo
+	error "STRIPE_PUB_KEY and STRIPE_SECRET_KEY must be set in tests/e2e/config/local.env."
+	exit 1
+fi
+
+validate_stripe_listener_credentials
+
+# Resolve both plugins before building the environment.
+step "Fetching plugin dependencies"
+fetch_plugin_zip "woocommerce/woocommerce-subscriptions" "woocommerce-subscriptions.zip"
+fetch_plugin_zip "woocommerce/woocommerce-pre-orders" "woocommerce-pre-orders.zip"
 
 step "Starting E2E docker containers"
 if [ "$CI" = "true" ]; then
@@ -103,7 +182,16 @@ if [[ -n "$WC_VERSION" && $WC_VERSION != 'latest' ]]; then
 	fi
 
 	step "Installing WooCommerce ${WC_VERSION}"
-	redirect_output cli wp plugin install woocommerce --version="$WC_VERSION" --activate
+
+	WC_DOWNLOAD_URL=$(resolve_wc_download_url "$WC_VERSION")
+	if [[ -n $WC_DOWNLOAD_URL ]]; then
+		# Only this branch needs --force: the tags it serves are rebuilt in place, so an
+		# environment reused across runs can already hold an older build of the same
+		# version string and wp-cli would otherwise keep it.
+		redirect_output cli wp plugin install "$WC_DOWNLOAD_URL" --activate --force
+	else
+		redirect_output cli wp plugin install woocommerce --version="$WC_VERSION" --activate
+	fi
 else
 	step "Installing WooCommerce"
 	redirect_output cli wp plugin install woocommerce --activate
@@ -120,8 +208,8 @@ redirect_output cli wp option set woocommerce_product_type "both"
 redirect_output cli wp option set woocommerce_allow_tracking "no"
 redirect_output cli wp option set woocommerce_coming_soon "no"
 
-echo " - Installing Storefront theme"
-redirect_output cli wp theme install storefront --activate
+echo " - Installing $WP_THEME theme"
+redirect_output cli wp theme install "$WP_THEME" --activate
 
 redirect_output cli wp --user=${ADMIN_USER} wc tool run install_pages
 
@@ -133,10 +221,10 @@ redirect_output cli wp option update --format=json woocommerce_flat_rate_1_setti
 
 echo " - Creating Cart and Checkout shortcode pages"
 if ! cli wp post list --post_type=page --field=post_name | grep -q 'cart-shortcode'; then
-	redirect_output cli wp post create --post_type=page --post_title='Cart Shortcode' --post_name='cart-shortcode' --post_status=publish --page_template='template-fullwidth.php' --post_content='<!-- wp:shortcode -->[woocommerce_cart]<!-- /wp:shortcode -->'
+	redirect_output cli wp post create --post_type=page --post_title='Cart Shortcode' --post_name='cart-shortcode' --post_status=publish --post_content='<!-- wp:shortcode -->[woocommerce_cart]<!-- /wp:shortcode -->'
 fi
 if ! cli wp post list --post_type=page --field=post_name | grep -q 'checkout-shortcode'; then
-	redirect_output cli wp post create --post_type=page --post_title='Checkout Shortcode' --post_name='checkout-shortcode' --post_status=publish --page_template='template-fullwidth.php' --post_content='<!-- wp:shortcode -->[woocommerce_checkout]<!-- /wp:shortcode -->'
+	redirect_output cli wp post create --post_type=page --post_title='Checkout Shortcode' --post_name='checkout-shortcode' --post_status=publish --post_content='<!-- wp:shortcode -->[woocommerce_checkout]<!-- /wp:shortcode -->'
 fi
 
 echo " - Importing sample products"
@@ -147,7 +235,15 @@ echo " - Activating plugin"
 redirect_output cli wp plugin activate woocommerce-gateway-stripe
 
 echo " - Updating WooCommerce Gateway Stripe settings"
-redirect_output cli wp option update woocommerce_stripe_settings --format=json "{\"enabled\":\"yes\",\"title\":\"Credit Card (Stripe)\",\"description\":\"Pay with your credit card via Stripe.\",\"api_credentials\":\"\",\"testmode\":\"yes\",\"test_publishable_key\":\"${STRIPE_PUB_KEY}\",\"test_secret_key\":\"${STRIPE_SECRET_KEY}\",\"publishable_key\":\"\",\"secret_key\":\"\",\"webhook\":\"\",\"test_webhook_secret\":\"\",\"webhook_secret\":\"\",\"inline_cc_form\":\"no\",\"statement_descriptor\":\"\",\"short_statement_descriptor\":\"\",\"capture\":\"yes\",\"payment_request\":\"yes\",\"payment_request_button_type\":\"buy\",\"payment_request_button_theme\":\"dark\",\"payment_request_button_locations\":[\"product\",\"cart\",\"checkout\"],\"payment_request_button_size\":\"default\",\"saved_cards\":\"yes\",\"logging\":\"no\",\"upe_checkout_experience_enabled\":\"yes\",\"test_connection_type\":\"connect\"}"
+# Writing these settings on a fresh site defaults the enabled methods to card
+# and Link, and the first plugin load then migrates that list into the Stripe
+# account's payment method configuration. The Link-off project needs its
+# account left as configured, so it marks the migration done up front.
+PMC_SETTINGS=""
+if [[ "$E2E_PROJECT" == "optimized-checkout-link-off" ]]; then
+	PMC_SETTINGS='"pmc_enabled":"yes",'
+fi
+redirect_output cli wp option update woocommerce_stripe_settings --format=json "{${PMC_SETTINGS}\"enabled\":\"yes\",\"title\":\"Credit Card (Stripe)\",\"description\":\"Pay with your credit card via Stripe.\",\"api_credentials\":\"\",\"testmode\":\"yes\",\"test_publishable_key\":\"${STRIPE_PUB_KEY}\",\"test_secret_key\":\"${STRIPE_SECRET_KEY}\",\"publishable_key\":\"\",\"secret_key\":\"\",\"webhook\":\"\",\"test_webhook_secret\":\"\",\"webhook_secret\":\"\",\"inline_cc_form\":\"no\",\"statement_descriptor\":\"\",\"short_statement_descriptor\":\"\",\"capture\":\"yes\",\"payment_request\":\"yes\",\"payment_request_button_type\":\"buy\",\"payment_request_button_theme\":\"dark\",\"payment_request_button_locations\":[\"product\",\"cart\",\"checkout\"],\"payment_request_button_size\":\"default\",\"saved_cards\":\"yes\",\"logging\":\"no\",\"upe_checkout_experience_enabled\":\"yes\",\"test_connection_type\":\"connect\"}"
 
 echo " - Enabling the ACH feature flag"
 redirect_output cli wp option update _wcstripe_feature_lpm_ach 'yes'
@@ -159,35 +255,15 @@ echo " - Enabling the Optimized Checkout feature flag"
 redirect_output cli wp option update _wcstripe_feature_oc 'yes'
 
 step "Installing Woo Subscriptions"
-echo " - Fetching latest version"
-LATEST_RELEASE_ASSET_ID=$(curl -sH "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/woocommerce/woocommerce-subscriptions/releases/latest | jq -r '.assets[0].id')
+echo " - Installing"
+redirect_output cli wp plugin install /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/deps/woocommerce-subscriptions.zip --force
 
-redirect_output curl -sLJ \
-	-H "Authorization: token $GITHUB_TOKEN" \
-	-H "Accept: application/octet-stream" \
-	--output $E2E_ROOT/woocommerce-subscriptions.zip \
-	https://api.github.com/repos/woocommerce/woocommerce-subscriptions/releases/assets/"$LATEST_RELEASE_ASSET_ID"
-
-redirect_output cli wp plugin install /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/woocommerce-subscriptions.zip --force
-rm -rf $E2E_ROOT/woocommerce-subscriptions.zip
-
+echo " - Activating"
 redirect_output cli wp plugin activate woocommerce-subscriptions
 
 step "Installing Woo Pre-Orders"
-echo " - Fetching latest version"
-LATEST_RELEASE_ASSET_ID=$(curl -sH "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/woocommerce/woocommerce-pre-orders/releases/latest | jq -r '.assets[0].id')
-
-redirect_output curl -sLJ \
-	-H "Authorization: token $GITHUB_TOKEN" \
-	-H "Accept: application/octet-stream" \
-	--output $E2E_ROOT/woocommerce-pre-orders.zip \
-	https://api.github.com/repos/woocommerce/woocommerce-pre-orders/releases/assets/"$LATEST_RELEASE_ASSET_ID"
-
 echo " - Installing"
-redirect_output cli wp plugin install /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/woocommerce-pre-orders.zip --force
-
-echo " - Removing lingering zip"
-rm -rf $E2E_ROOT/woocommerce-pre-orders.zip
+redirect_output cli wp plugin install /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/deps/woocommerce-pre-orders.zip --force
 
 echo " - Activating"
 redirect_output cli wp plugin activate woocommerce-pre-orders

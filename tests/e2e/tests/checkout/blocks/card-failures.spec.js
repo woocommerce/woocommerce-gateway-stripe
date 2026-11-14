@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { test, expect } from '@playwright/test';
 import config from 'config';
 import { payments } from '../../../utils';
@@ -7,22 +8,31 @@ const {
 	setupCart,
 	setupBlocksCheckout,
 	fillCreditCardDetails,
+	getPaymentElementFrame,
 	clickPlaceOrder,
 } = payments;
 
 test.beforeEach( async ( { page } ) => {
 	await emptyCart( page );
 	await setupCart( page );
-	await setupBlocksCheckout(
-		page,
-		config.get( 'addresses.customer.billing' )
-	);
+	await setupBlocksCheckout( page, {
+		...config.get( 'addresses.customer.billing' ),
+		email: `stripe-e2e-${ randomUUID() }@example.com`,
+	} );
 } );
 
 const testCard = async ( page, cardKey ) => {
 	const card = config.get( cardKey );
 
 	await fillCreditCardDetails( page, card );
+	const form = await getPaymentElementFrame( page );
+	const linkSignup = form.getByRole( 'checkbox', {
+		name: 'Save my information for faster checkout',
+	} );
+	// Use the card payment path for card-specific error assertions.
+	if ( await linkSignup.isVisible() ) {
+		await linkSignup.uncheck();
+	}
 	await clickPlaceOrder( page );
 
 	/**
@@ -31,12 +41,7 @@ const testCard = async ( page, cardKey ) => {
 	 */
 	let expected;
 	if ( cardKey === 'cards.declined-incorrect' ) {
-		expected = await page
-			.frameLocator(
-				'.wcstripe-payment-element iframe[name^="__privateStripeFrame"]'
-			)
-			.locator( '#Field-numberError' )
-			.innerText();
+		expected = await form.locator( '#Field-numberError' ).innerText();
 	} else {
 		expected = await page.innerText(
 			'.wc-block-store-notice.is-error .wc-block-components-notice-banner__content'

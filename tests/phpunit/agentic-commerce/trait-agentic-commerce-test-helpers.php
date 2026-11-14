@@ -130,11 +130,11 @@ trait Trait_Agentic_Commerce_Test_Helpers {
 	/**
 	 * Creates a shipping zone for a country with a flat rate method.
 	 *
-	 * @param string $country Country code.
-	 * @param float  $cost    Flat rate cost.
+	 * @param string       $country Country code.
+	 * @param float|string $cost    Flat rate cost, or a cost expression (e.g. '2 * [qty]').
 	 * @return WC_Shipping_Zone The created zone (caller is responsible for cleanup).
 	 */
-	protected function create_shipping_zone_with_flat_rate( string $country, float $cost ): WC_Shipping_Zone {
+	protected function create_shipping_zone_with_flat_rate( string $country, $cost ): WC_Shipping_Zone {
 		$zone = new WC_Shipping_Zone();
 		$zone->set_zone_name( $country . ' Shipping' );
 		$zone->set_zone_order( 1 );
@@ -164,6 +164,20 @@ trait Trait_Agentic_Commerce_Test_Helpers {
 	 */
 	protected function reset_shipping_cache(): void {
 		WC_Cache_Helper::get_transient_version( 'shipping', true );
+
+		// WC_Shipping caches per-package rates in the session under
+		// shipping_for_package_{n}. The in-memory session data survives
+		// across tests while its backing store rolls back, and the rate-cache
+		// hash's 'shipping' transient version only has one-second resolution,
+		// so a previous same-second test's rates (quoting a since-deleted
+		// zone) can be served. The in-memory data is not enumerable from
+		// here, so clear a generous index range.
+		if ( WC()->session ) {
+			for ( $i = 0; $i < 10; $i++ ) {
+				WC()->session->set( 'shipping_for_package_' . $i, null );
+			}
+		}
+
 		$shipping = WC()->shipping();
 		if ( $shipping ) {
 			$shipping->reset_shipping();

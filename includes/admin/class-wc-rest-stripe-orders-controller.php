@@ -93,11 +93,22 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 				'permission_callback' => [ $this, 'check_permission' ],
 				'args'                => [
 					'payment_intent_id' => [
-						'required' => true,
+						'required'          => true,
+						'validate_callback' => [ $this, 'validate_payment_intent_id' ],
 					],
 				],
 			]
 		);
+	}
+
+	/**
+	 * Rejects a payment intent ID that is not a well-formed `pi_` id, before it enters the Stripe API path.
+	 *
+	 * @param mixed $param The parameter value to validate.
+	 * @return bool
+	 */
+	public function validate_payment_intent_id( $param ) {
+		return WC_Stripe_Helper::is_valid_stripe_id( $param, 'pi' );
 	}
 
 	/**

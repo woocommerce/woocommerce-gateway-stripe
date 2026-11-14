@@ -51,7 +51,17 @@ class WC_Stripe_Payment_Tokens {
 	 */
 	public function __construct() {
 		self::$_this = $this;
+	}
 
+	/**
+	 * Registers the token hooks. Kept out of the constructor so instantiating
+	 * the class never stacks duplicate callbacks; the bootstrap calls this
+	 * exactly once.
+	 *
+	 * @since 11.0.0
+	 * @return void
+	 */
+	public function register_hooks(): void {
 		add_filter( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
 		add_filter( 'woocommerce_payment_methods_list_item', [ $this, 'get_account_saved_payment_methods_list_item' ], 10, 2 );
 		add_filter( 'woocommerce_get_credit_card_type_label', [ $this, 'normalize_payment_method_label' ] );
@@ -207,11 +217,9 @@ class WC_Stripe_Payment_Tokens {
 			return $tokens;
 		}
 
-		if ( count( $tokens ) >= get_option( 'posts_per_page' ) ) {
-			// The tokens data store is not paginated and only the first "post_per_page" (defaults to 10) tokens are retrieved.
-			// Having 10 saved credit cards is considered an unsupported edge case, new ones that have been stored in Stripe won't be added.
-			return $tokens;
-		}
+		// The unpaginated tokens data store only returns the first "posts_per_page" (default 10) tokens, so at
+		// that cap new tokens are not added; verification and cleanup below still run on the retrieved ones.
+		$can_add_new_tokens = count( $tokens ) < (int) get_option( 'posts_per_page' );
 
 		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
 
@@ -224,8 +232,9 @@ class WC_Stripe_Payment_Tokens {
 			// Prevent unnecessary recursion, WC_Payment_Token::save() ends up calling 'woocommerce_get_customer_payment_tokens' in some cases.
 			remove_filter( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10 );
 
-			$payment_methods    = $customer->get_all_payment_methods( $active_reusable_types );
-			$payment_method_ids = array_map( fn ( $payment_method ) => $payment_method->id, $payment_methods );
+			// Throw on generic API errors so a transient failure bails out and keeps the local tokens;
+			// only a missing customer returns the empty list that authorizes cleanup below.
+			$payment_methods = $customer->get_all_payment_methods( $active_reusable_types, -1, true );
 
 			foreach ( $payment_methods as $payment_method ) {
 				if ( ! isset( $payment_method->type ) ) {
@@ -266,13 +275,15 @@ class WC_Stripe_Payment_Tokens {
 				}
 
 				// Create a new token when:
+				// - The token count is below the retrieval cap.
 				// - The payment method is a valid PaymentMethodID (i.e. only support IDs starting with "src_" when using the card payment method type).
 				// - The payment method belongs to the gateway ID being retrieved or the gateway ID is empty (meaning we're looking for all payment methods).
 				if (
+					$can_add_new_tokens &&
 					$this->is_valid_payment_method_id( $payment_method->id, $payment_method_type ) &&
 					( empty( $gateway_id ) || $this->is_valid_payment_method_type_for_gateway( $payment_method_type, $gateway_id ) )
 				) {
-					$token                      = $this->add_token_to_user( $payment_method, $customer, $payment_method_ids );
+					$token                      = $this->add_token_to_user( $payment_method, $customer, $payment_methods );
 					$tokens[ $token->get_id() ] = $token;
 				}
 			}
@@ -304,7 +315,10 @@ class WC_Stripe_Payment_Tokens {
 				}
 			}
 		} catch ( WC_Stripe_Exception $e ) {
-			wc_add_notice( $e->getLocalizedMessage(), 'error' );
+			// No shopper sees notices in sessionless contexts (admin, REST, CLI), so only queue one when a session exists.
+			if ( WC()->session ) {
+				wc_add_notice( $e->getLocalizedMessage(), 'error' );
+			}
 			WC_Stripe_Logger::error( 'Error getting customer payment tokens (upe) for customer: ' . $customer_id, [ 'error_message' => $e->getMessage() ] );
 
 			return $tokens;
@@ -530,14 +544,9 @@ class WC_Stripe_Payment_Tokens {
 					$active_reusable_payment_method_types[] = WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
 				}
 			}
-			$payment_methods = $customer->get_all_payment_methods( $active_reusable_payment_method_types );
-
-			$payment_method_ids = array_map(
-				function ( $payment_method ) {
-					return $payment_method->id;
-				},
-				$payment_methods
-			);
+			// Throw on generic API errors (caught below) so a transient failure keeps the
+			// local tokens instead of deleting them against an empty list.
+			$payment_methods = $customer->get_all_payment_methods( $active_reusable_payment_method_types, -1, true );
 
 			// Prevent unnecessary recursion, WC_Payment_Token::save() ends up calling 'woocommerce_get_customer_payment_tokens' in some cases.
 			remove_action( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
@@ -564,7 +573,7 @@ class WC_Stripe_Payment_Tokens {
 					$this->is_valid_payment_method_id( $payment_method->id, $payment_method_type ) &&
 					( empty( $gateway_id ) || $this->is_valid_payment_method_type_for_gateway( $payment_method_type, $gateway_id ) )
 				) {
-					$token                      = $this->add_token_to_user( $payment_method, $customer, $payment_method_ids );
+					$token                      = $this->add_token_to_user( $payment_method, $customer, $payment_methods );
 					$tokens[ $token->get_id() ] = $token;
 				} else {
 					unset( $stored_tokens[ $payment_method->id ] );
@@ -683,6 +692,14 @@ class WC_Stripe_Payment_Tokens {
 				break;
 		}
 
+		// Only card tokens have a real expiry date. WooCommerce defaults every token's
+		// "Expires" value with "N/A", but only overwrites it for cards, so all other payment
+		// methods have "N/A". We override the value to '' for all non-card tokens for consistency.
+		// Note that Apple Pay and Google Pay are stored as card tokens, so they show an expiry date.
+		if ( ! $payment_token instanceof WC_Payment_Token_CC ) {
+			$item['expires'] = '';
+		}
+
 		// Wrap Apple Pay / Google Pay branding around the card brand. Link wallet_type
 		// is persisted but not surfaced here (see #5437).
 		if ( $payment_token instanceof WC_Stripe_Payment_Token_CC ) {
@@ -774,17 +791,18 @@ class WC_Stripe_Payment_Tokens {
 	/**
 	 * Creates and add a token to an user, based on the PaymentMethod object.
 	 *
-	 * @param   object             $payment_method      Payment method to be added.
-	 * @param   WC_Stripe_Customer $customer            WC_Stripe_Customer we're processing the tokens for.
-	 * @param   array              $payment_method_ids  List of payment methods retrieved from Stripe.
+	 * @param   object             $payment_method   Payment method to be added.
+	 * @param   WC_Stripe_Customer $customer         WC_Stripe_Customer we're processing the tokens for.
+	 * @param   object[]           $payment_methods  Payment method objects retrieved from Stripe.
 	 * @return  WC_Payment_Token   The WC object for the payment token.
 	 */
-	private function add_token_to_user( $payment_method, WC_Stripe_Customer $customer, $payment_method_ids = [] ) {
+	private function add_token_to_user( $payment_method, WC_Stripe_Customer $customer, $payment_methods = [] ) {
 		$payment_method_type = $this->get_original_payment_method_type( $payment_method );
 		$gateway_id          = self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ $payment_method_type ];
 
 		$found_token = $this->get_duplicate_token( $payment_method, $customer->get_user_id(), $gateway_id );
 		if ( $found_token ) {
+			$payment_method_ids = array_map( fn( $pm ) => $pm->id, $payment_methods );
 			// Update the token with the new payment method ID if the current payment method ID is not in the list of payment method IDs retrieved from Stripe.
 			if ( ! in_array( $found_token->get_token(), $payment_method_ids, true ) ) {
 				// Clear cached payment methods.
@@ -802,6 +820,17 @@ class WC_Stripe_Payment_Tokens {
 					$found_token->set_last4( $payment_method->card->last4 );
 				}
 
+				$found_token->save();
+			} elseif ( $found_token instanceof WC_Payment_Token_Link && $this->is_newer_link_payment_method( $payment_method, $found_token, $payment_methods ) ) {
+				// Link tokens dedupe by account email, and re-enrolling through
+				// Link attaches a new PM while the old one stays in Stripe's
+				// list — so the detached-only refresh above never fires and
+				// renewals keep charging the card behind the old PM. Repoint to
+				// the newer PM; requiring "newer" (not just "different") keeps
+				// the sync loop stable while both PMs remain attached,
+				// regardless of iteration order.
+				$customer->clear_cache();
+				$found_token->set_token( $payment_method->id );
 				$found_token->save();
 			}
 			return $found_token;
@@ -904,6 +933,46 @@ class WC_Stripe_Payment_Tokens {
 		$token->save();
 
 		return $token;
+	}
+
+	/**
+	 * Whether the incoming Link payment method is a newer enrollment than the
+	 * one the matched token currently references.
+	 *
+	 * @param object           $payment_method  Incoming Link payment method.
+	 * @param WC_Payment_Token $token           The email-matched Link token.
+	 * @param object[]         $payment_methods Payment method objects retrieved from Stripe.
+	 * @return bool
+	 */
+	private function is_newer_link_payment_method( $payment_method, $token, $payment_methods ): bool {
+		$incoming_index = null;
+		$attached       = null;
+		$attached_index = null;
+
+		foreach ( array_values( $payment_methods ) as $index => $candidate ) {
+			$candidate_id = $candidate->id ?? null;
+			if ( ( $payment_method->id ?? null ) === $candidate_id ) {
+				$incoming_index = $index;
+			}
+			if ( $candidate_id === $token->get_token() ) {
+				$attached       = $candidate;
+				$attached_index = $index;
+			}
+		}
+
+		if ( null === $attached || ! isset( $payment_method->created, $attached->created ) ) {
+			return false;
+		}
+
+		if ( $attached->created !== $payment_method->created ) {
+			return $payment_method->created > $attached->created;
+		}
+
+		// `created` has one-second resolution, so a re-enrollment can produce
+		// two PMs with equal timestamps. Break the tie with Stripe's list
+		// order (most recently created first); position is fixed per snapshot,
+		// so the comparison stays stable and cannot flap across syncs.
+		return null !== $incoming_index && $incoming_index < $attached_index;
 	}
 
 	/**

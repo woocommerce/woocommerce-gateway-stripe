@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { expect } from '@playwright/test';
 import config from 'config';
 import { verifyOrderChargedAmount } from './admin';
@@ -9,8 +10,12 @@ import { verifyOrderChargedAmount } from './admin';
  * @param {string} label The expected text for the "Add to cart" button.
  */
 export async function clickAddToCartButton( page, label = 'Add to cart' ) {
-	const addToCartButton = await page
-		.getByRole( 'button', { name: label, exact: true } )
+	// Accessible name OR text: block themes append the product name, and a
+	// selected WCS plan relabels the text "Sign up" while the stale
+	// aria-label keeps "Add to cart".
+	const addToCartButton = page
+		.getByRole( 'button', { name: label } )
+		.or( page.locator( 'button', { hasText: label } ) )
 		.first();
 	await expect( addToCartButton ).toBeEnabled();
 	await addToCartButton.click();
@@ -30,6 +35,31 @@ export async function selectSubscriptionOption( page ) {
 	await expect( subscriptionOption ).toBeVisible();
 	await subscriptionOption.click();
 	await expect( subscriptionOptionInput ).toBeChecked();
+}
+
+/**
+ * Add an APFS subscription product to the cart from its product page.
+ *
+ * APFS products offer a one-time vs subscription choice, so pick the
+ * subscription option before adding to the cart.
+ *
+ * @param {Page}   page      Playwright page fixture.
+ * @param {number} productId The product ID.
+ */
+export async function addSubscriptionToCart( page, productId ) {
+	await page.goto( `?p=${ productId }` );
+	await selectSubscriptionOption( page );
+	// Click the cart form's submit rather than matching the button copy: the
+	// label varies with the WC/WCS combination ("Sign up" on WC <= 11.0,
+	// "Add to cart" on 11.1) and with the store locale.
+	const addToCartButton = page
+		.locator( 'form.cart button[type="submit"]' )
+		.first();
+	await expect( addToCartButton ).toBeEnabled();
+	await addToCartButton.click();
+	await expect(
+		page.getByText( 'has been added to your cart' )
+	).toBeVisible();
 }
 
 /**
@@ -55,9 +85,10 @@ export async function emptyCart( page ) {
 		await page.click( '.woocommerce-remove-coupon' );
 	}
 
+	// Match the text; classic and block themes wrap the notice differently.
 	await expect(
-		page.locator( '.wc-empty-cart-message .cart-empty' )
-	).toHaveText( 'Your cart is currently empty.' );
+		page.getByText( 'Your cart is currently empty.' ).first()
+	).toBeVisible();
 }
 
 /**
@@ -65,43 +96,50 @@ export async function emptyCart( page ) {
  *
  * @param {Page} page Playwright page fixture.
  * @param {any} lineItems A 2D array of line items where each line item is an array
- * that contains the product title as the first element, and the quantity as the second.
+ * that contains the product slug as the first element, and the quantity as the second.
  * For example, if you want to add the products x2 "Hoodie" and x3 "Belt" then you can set this `lineItems` parameter like this:
  *
- * `[ [ "Hoodie", 2 ], [ "Belt", 3 ] ]`.
+ * `[ [ "hoodie", 2 ], [ "belt", 3 ] ]`.
  *
- * Default value is 1 piece of `config.get( 'products.simple.name' )`.
+ * Default value is 1 piece of `config.get( 'products.simple.slug' )`.
  */
 export async function setupCart(
 	page,
-	lineItems = [ [ config.get( 'products.simple.name' ), 1 ] ]
+	lineItems = [ [ config.get( 'products.simple.slug' ), 1 ] ]
 ) {
-	const cartItemsCounter = '.cart-contents .count';
+	// The shop page's product grid and the header cart counter look different
+	// under classic and block themes, so fill the cart through the Store API.
+	// Cart writes need the nonce that any cart read returns.
+	const cart = await page.request.get( '/wp-json/wc/store/v1/cart' );
+	const nonce = cart.headers().nonce;
 
-	await page.goto( '/shop/' );
-
-	// Get the current number of items in the cart
-	let cartSize = await page.$eval( cartItemsCounter, ( e ) =>
-		Number( e.innerText.replace( /\D/g, '' ) )
-	);
-
-	// Add items to the cart
-	for ( const line of lineItems ) {
-		let [ productTitle, qty ] = line;
-
-		while ( qty-- ) {
-			const addToCartXPath =
-				`//li[contains(@class, "type-product") and a/h2[contains(text(), "${ productTitle }")]]` +
-				'//a[contains(@class, "add_to_cart_button") and contains(@class, "ajax_add_to_cart")';
-			await page.waitForSelector( `xpath=${ addToCartXPath }]` );
-			await page.click( `xpath=${ addToCartXPath }]` );
-			await page.waitForSelector(
-				`xpath=${ addToCartXPath } and contains(@class, "added")]`
+	for ( const [ productSlug, quantity ] of lineItems ) {
+		// Slugs are stable across sites, while sample-product IDs depend on
+		// import order, and the slug filter is exact.
+		const response = await page.request.get(
+			`/wp-json/wc/store/v1/products?slug=${ encodeURIComponent(
+				productSlug
+			) }`
+		);
+		if ( ! response.ok() ) {
+			throw new Error(
+				`Failed to look up products: ${ response.status() } ${ response.statusText() }`
 			);
+		}
+		const [ product ] = await response.json();
+		if ( ! product ) {
+			throw new Error(
+				`Could not find product "${ productSlug }" via the Store API.`
+			);
+		}
 
-			// Make sure that the number of items in the cart is incremented first before adding another item.
-			await expect( page.locator( cartItemsCounter ) ).toHaveText(
-				new RegExp( `${ ++cartSize } items?` )
+		const added = await page.request.post(
+			'/wp-json/wc/store/v1/cart/add-item',
+			{ headers: { Nonce: nonce }, data: { id: product.id, quantity } }
+		);
+		if ( ! added.ok() ) {
+			throw new Error(
+				`Failed to add "${ productSlug }" to the cart: ${ added.status() } ${ await added.text() }`
 			);
 		}
 	}
@@ -232,13 +270,16 @@ export async function retryWithBackoff( fn, options = {} ) {
 }
 
 /**
- * Fills in the credit card details on the default (blocks) checkout page.
+ * Resolves the Stripe payment element frame on the default (blocks) checkout page.
+ *
+ * Stripe injects extra iframes alongside the payment element (bank details, the
+ * ACH bank search results), so we require a visible frame to avoid picking the
+ * wrong one.
+ *
  * @param {Page} page Playwright page fixture.
- * @param {Object} card The CC info in the format provided on the test-data.
+ * @return {FrameLocator} The payment element frame.
  */
-export async function fillCreditCardDetails( page, card ) {
-	// Stripe may inject a second iframe for bank details, so
-	// we require a visible frame to avoid picking the wrong one.
+export async function getPaymentElementFrame( page ) {
 	const paymentIframe = page
 		.locator(
 			'.wcstripe-payment-element iframe[name^="__privateStripeFrame"]'
@@ -247,7 +288,16 @@ export async function fillCreditCardDetails( page, card ) {
 		.first();
 	await paymentIframe.waitFor( { state: 'visible', timeout: 10000 } );
 
-	const form = paymentIframe.contentFrame();
+	return paymentIframe.contentFrame();
+}
+
+/**
+ * Fills in the credit card details on the default (blocks) checkout page.
+ * @param {Page} page Playwright page fixture.
+ * @param {Object} card The CC info in the format provided on the test-data.
+ */
+export async function fillCreditCardDetails( page, card ) {
+	const form = await getPaymentElementFrame( page );
 
 	await form.locator( '[name="number"]' ).fill( card.number );
 
@@ -264,24 +314,23 @@ export async function fillCreditCardDetails( page, card ) {
  * @param {Object} card The CC info in the format provided on the test-data.
  */
 export async function fillCreditCardDetailsShortcode( page, card ) {
-	const frameHandle = await page.waitForSelector(
-		'.payment_method_stripe #wc-stripe-upe-form .wc-stripe-upe-element iframe'
-	);
-
-	await page
+	// Stripe mounts helper iframes next to the card element, so a bare
+	// `iframe` intermittently matched more than one; scope by src.
+	const paymentIframe = page
 		.locator(
-			'.payment_method_stripe #wc-stripe-upe-form .wc-stripe-upe-element iframe'
+			'.payment_method_stripe #wc-stripe-upe-form .wc-stripe-upe-element iframe[src*="elements-inner-payment"]'
 		)
-		.scrollIntoViewIfNeeded();
+		.first();
+	await paymentIframe.waitFor( { state: 'visible' } );
+	await paymentIframe.scrollIntoViewIfNeeded();
 
-	const stripeFrame = await frameHandle.contentFrame();
+	const stripeFrame = paymentIframe.contentFrame();
 
-	await stripeFrame.fill( '[name="number"]', card.number );
-	await stripeFrame.fill(
-		'[name="expiry"]',
-		card.expires.month + card.expires.year
-	);
-	await stripeFrame.fill( '[name="cvc"]', card.cvc );
+	await stripeFrame.locator( '[name="number"]' ).fill( card.number );
+	await stripeFrame
+		.locator( '[name="expiry"]' )
+		.fill( card.expires.month + card.expires.year );
+	await stripeFrame.locator( '[name="cvc"]' ).fill( card.cvc );
 }
 
 /**
@@ -422,19 +471,50 @@ export async function fillCreditCardDetailsShortcodeLegacy( page, card ) {
 }
 
 /**
+ * Every fixture address shares one billing email, and the plugin's duplicate-payment
+ * guard refuses a checkout whose cart and email match another one in flight. Tests
+ * running in parallel buy the same product, so each checkout gets its own email
+ * unless the caller chose one.
+ *
+ * @param {Object|null} billingDetails The billing details in the format provided on the test-data.
+ * @returns {Object|null} The billing details to enter.
+ */
+const withUniqueEmail = ( billingDetails ) => {
+	if (
+		billingDetails?.email !==
+		config.get( 'addresses.customer.billing.email' )
+	) {
+		return billingDetails;
+	}
+	return {
+		...billingDetails,
+		email: `stripe-e2e-${ randomUUID() }@example.com`,
+	};
+};
+
+/**
  * Go to the shortcode checkout page, enter the billing information, and select the payment gateway.
  * If billingDetails are empty, they're skipped.
  * @param {Page} page Playwright page fixture.
  * @param {Object} billingDetails The billing details in the format provided on the test-data.
+ * @param {Object} options Optional checkout configuration.
+ * @param {boolean} options.skipBillingCountry Skip the WooCommerce billing country field.
  */
-export async function setupShortcodeCheckout( page, billingDetails = null ) {
+export async function setupShortcodeCheckout(
+	page,
+	billingDetails = null,
+	options = {}
+) {
+	billingDetails = withUniqueEmail( billingDetails );
 	await page.goto( '/checkout-shortcode/' );
 
 	if ( billingDetails ) {
-		await page.selectOption(
-			'#billing_country',
-			billingDetails[ 'country_iso' ]
-		);
+		if ( ! options.skipBillingCountry ) {
+			await page.selectOption(
+				'#billing_country',
+				billingDetails[ 'country_iso' ]
+			);
+		}
 
 		if ( billingDetails[ 'state_iso' ] ) {
 			await page.selectOption(
@@ -462,6 +542,12 @@ export async function setupShortcodeCheckout( page, billingDetails = null ) {
 		}
 	}
 
+	// Each billing-field change queues an update_checkout refresh that
+	// overlays the order review; let any in-flight ones clear before clicking.
+	await expect( page.locator( '.blockUI.blockOverlay' ) ).toHaveCount( 0, {
+		timeout: 30000,
+	} );
+
 	await page.click( '.wc_payment_method.payment_method_stripe' );
 }
 
@@ -470,9 +556,30 @@ export async function setupShortcodeCheckout( page, billingDetails = null ) {
  * If billingDetails are empty, they're skipped.
  * @param {Page} page Playwright page fixture.
  * @param {Object} billingDetails The billing details in the format provided on the test-data.
+ * @param {Object} options Optional checkout readiness configuration.
+ * @param {string} options.paymentFrameSelector Wait for this optimized payment frame before entering customer data.
+ * @param {number} options.timeout Payment frame readiness timeout.
  */
-export async function setupBlocksCheckout( page, billingDetails = null ) {
+export async function setupBlocksCheckout(
+	page,
+	billingDetails = null,
+	options = {}
+) {
+	billingDetails = withUniqueEmail( billingDetails );
 	await page.goto( '/checkout/' );
+	const stripeMethod = page.locator(
+		"label[for='radio-control-wc-payment-method-options-stripe']"
+	);
+	// Wait for initial cart synchronization so checkout updates cannot reset customer input.
+	if ( options.paymentFrameSelector ) {
+		// A saved token can be selected initially, leaving the new-card frame hidden.
+		await stripeMethod.click();
+		await getOCPaymentFrame(
+			page,
+			options.paymentFrameSelector,
+			options.timeout
+		);
+	}
 
 	const fieldNameLabelMap = {
 		first_name: 'First name',
@@ -549,12 +656,79 @@ export async function setupBlocksCheckout( page, billingDetails = null ) {
 		}
 	}
 
-	await page
-		.locator(
-			"label[for='radio-control-wc-payment-method-options-stripe']"
-		)
-		.click();
+	await stripeMethod.click();
 }
+
+/**
+ * Select a payment method on the Blocks checkout and confirm it took.
+ *
+ * The payment options re-render while express checkout and totals settle, and
+ * a click landing mid re-render is lost, so re-click until the radio is checked.
+ *
+ * @param {Page}   page      Playwright page fixture.
+ * @param {string} gatewayId The gateway ID, e.g. `stripe_us_bank_account`.
+ * @param {string} [title]   The title the option must show, e.g. `ACH Direct Debit`.
+ */
+export const selectBlocksPaymentMethod = async ( page, gatewayId, title ) => {
+	const radio = page.locator(
+		`#radio-control-wc-payment-method-options-${ gatewayId }`
+	);
+	const label = page.locator(
+		`label[for='radio-control-wc-payment-method-options-${ gatewayId }']`
+	);
+	await label.waitFor( { state: 'visible' } );
+	if ( title ) {
+		await expect( label ).toContainText( title );
+	}
+	await retryWithBackoff( async () => {
+		if ( ! ( await radio.isChecked() ) ) {
+			// Bounded so a blocked click fails into the next retry.
+			await label.click( { timeout: 5000 } );
+		}
+		await expect( radio ).toBeChecked( { timeout: 5000 } );
+	} );
+};
+
+/**
+ * Select a payment method on the shortcode checkout and confirm it took.
+ *
+ * Selecting a gateway triggers an update_checkout refresh that swaps the
+ * payment fragment and re-checks the method selected when the request was
+ * sent, reverting a click that races it. The refresh starts a beat after the
+ * click, so wait for the overlay to appear (tolerating a missed fast cycle)
+ * and clear, then verify the radio.
+ *
+ * @param {Page}   page      Playwright page fixture.
+ * @param {string} gatewayId The gateway ID, e.g. `stripe_us_bank_account`.
+ * @param {string} [title]   The title the option must show, e.g. `ACH Direct Debit`.
+ */
+export const selectShortcodePaymentMethod = async (
+	page,
+	gatewayId,
+	title
+) => {
+	const radio = page.locator( `#payment_method_${ gatewayId }` );
+	const label = page.locator( `label[for='payment_method_${ gatewayId }']` );
+	const overlay = page.locator( '.blockUI.blockOverlay' ).first();
+	await label.waitFor( { state: 'visible' } );
+	if ( title ) {
+		await expect( label ).toContainText( title );
+	}
+	await retryWithBackoff( async () => {
+		if ( ! ( await radio.isChecked() ) ) {
+			// Bounded so a blocked click fails into the next retry.
+			await label.click( { timeout: 5000 } );
+		}
+		await overlay
+			.waitFor( { state: 'visible', timeout: 5000 } )
+			.catch( () => {} );
+		await overlay.waitFor( { state: 'hidden' } );
+		await expect( radio ).toBeChecked();
+		await expect(
+			page.locator( `.payment_box.payment_method_${ gatewayId }` )
+		).toBeVisible();
+	} );
+};
 
 /**
  * Set up the checkout page for ACH payment.
@@ -579,18 +753,11 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 			config.get( 'addresses.customer.billing' )
 		);
 
-		// Select ACH in blocks checkout via the associated label, since the
-		// underlying input can be covered by parent elements during animation.
-		const achOption = page.locator(
-			'#radio-control-wc-payment-method-options-stripe_us_bank_account'
+		await selectBlocksPaymentMethod(
+			page,
+			'stripe_us_bank_account',
+			'ACH Direct Debit'
 		);
-		const achOptionLabel = page.locator(
-			"label[for='radio-control-wc-payment-method-options-stripe_us_bank_account']"
-		);
-		await achOption.waitFor( { state: 'attached' } );
-		await expect( achOptionLabel ).toContainText( 'ACH Direct Debit' );
-		await achOptionLabel.click();
-		await expect( achOption ).toBeChecked();
 	} else {
 		paymentMethodContentSelector =
 			'.wc_payment_method.payment_method_stripe_us_bank_account';
@@ -601,18 +768,11 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 			config.get( 'addresses.customer.billing' )
 		);
 
-		// Select ACH in shortcode checkout via the associated label, since direct
-		// clicks on the hidden radio input can be intercepted.
-		const achOption = page.locator(
-			'#payment_method_stripe_us_bank_account'
+		await selectShortcodePaymentMethod(
+			page,
+			'stripe_us_bank_account',
+			'ACH Direct Debit'
 		);
-		const achOptionLabel = page.locator(
-			"label[for='payment_method_stripe_us_bank_account']"
-		);
-		await achOption.waitFor( { state: 'attached' } );
-		await expect( achOptionLabel ).toContainText( 'ACH Direct Debit' );
-		await achOptionLabel.click();
-		await expect( achOption ).toBeChecked();
 	}
 
 	await expect( page.locator( paymentMethodContentSelector ) ).toBeVisible();
@@ -639,37 +799,74 @@ export const fillACHBankDetails = async ( page ) => {
 		.frameLocator( 'iframe[name^="__privateStripeFrame"]' )
 		.first();
 
-	// Click Agree and Continue button
-	let button = frame.getByTestId( 'agree-button' );
-	await expect( button ).toBeVisible();
-	await button.click();
+	// Stripe can leave the previous panel visible with disabled controls.
+	const enabledButtons = frame.getByRole( 'button', { disabled: false } );
+	const consentButton = frame
+		.getByTestId( 'agree-button' )
+		.and( enabledButtons )
+		.filter( { visible: true } )
+		.first();
+	const guestButton = frame
+		.getByTestId( 'pre-auth-networking-and-consent-guest' )
+		.or( frame.getByTestId( 'link-not-now-button' ) )
+		.and( enabledButtons )
+		.filter( { visible: true } )
+		.first();
+	const continueButton = frame
+		.getByTestId( 'continue-button' )
+		.and( enabledButtons )
+		.filter( { visible: true } )
+		.first();
 
-	// Link registration button may or may not appear.
-	await Promise.race( [
-		frame
-			.getByTestId( 'link-not-now-button' )
-			.waitFor( { state: 'visible' } )
-			.then( async () => {
-				await frame.getByTestId( 'link-not-now-button' ).click();
-			} ),
-		frame
-			.getByRole( 'button', { name: 'Success ••••' } )
-			.waitFor( { state: 'visible' } ),
-		frame
-			.getByTestId( 'continue-button' )
-			.waitFor( { state: 'visible' } )
-			.then( async () => {
-				await frame.getByTestId( 'continue-button' ).click();
-			} ),
-	] );
+	// Use an anchored prefix to exclude disputed accounts in both test-bank layouts.
+	const successAccount = frame
+		.getByRole( 'radio', { name: /^Success ••••/ } )
+		.or( frame.getByRole( 'button', { name: 'Success ••••' } ) );
 
-	// Click "Success ••••" account
-	button = frame.getByRole( 'button', { name: 'Success ••••' } );
-	await expect( button ).toBeVisible();
-	await button.click();
+	// Guest sign-in can precede bank consent. Handle one screen at a time so
+	// an earlier waiter cannot click a control on a later screen.
+	let previousControlId;
+	for ( let step = 0; step < 4; step++ ) {
+		await expect(
+			successAccount
+				.or( guestButton )
+				.or( consentButton )
+				.or( continueButton )
+				.filter( { visible: true } )
+				.first()
+		).toBeVisible();
+		if ( await successAccount.isVisible() ) {
+			break;
+		}
+		let action = continueButton;
+		if ( await guestButton.isVisible() ) {
+			action = guestButton;
+		} else if ( await consentButton.isVisible() ) {
+			action = consentButton;
+		}
+		// Bind this wait to the chosen control, not the next guest-action variant.
+		const controlId = await action.getAttribute( 'data-testid' );
+		expect( controlId, 'ACH consent flow did not advance' ).not.toBe(
+			previousControlId
+		);
+		previousControlId = controlId;
+		const clickedControl = frame
+			.getByTestId( controlId )
+			.and( enabledButtons )
+			.filter( { visible: true } )
+			.first();
+		await clickedControl.click();
+		await expect( clickedControl ).toHaveCount( 0 );
+	}
+
+	// Select the success account; its radio may already be selected.
+	await expect( successAccount ).toBeVisible();
+	await successAccount.click();
 
 	// Click Connect account button
-	button = frame.getByTestId( 'select-button' );
+	let button = frame
+		.getByTestId( 'select-button' )
+		.or( frame.getByRole( 'button', { name: 'Connect account' } ) );
 	await expect( button ).toBeVisible();
 	await button.click();
 
@@ -706,25 +903,33 @@ export const setupACSSCheckout = async ( page, checkoutType = 'blocks' ) => {
 			config.get( 'addresses.customer_canada.billing' )
 		);
 
-		// Select ACSS in blocks checkout.
-		const acssLabel = page
-			.locator( 'label' )
-			.filter( { hasText: 'Pre-Authorized Debit' } );
-		await acssLabel.waitFor( { state: 'visible' } );
-		await acssLabel.click();
+		await selectBlocksPaymentMethod(
+			page,
+			'stripe_acss_debit',
+			'Pre-Authorized Debit'
+		);
 	} else {
 		await setupShortcodeCheckout(
 			page,
 			config.get( 'addresses.customer_canada.billing' )
 		);
 
-		// Select ACSS in shortcode checkout.
-		const acssLabel = page.getByText( 'Pre-Authorized Debit' );
-		await acssLabel.waitFor( { state: 'visible' } );
-		await acssLabel.click();
-	}
+		await selectShortcodePaymentMethod(
+			page,
+			'stripe_acss_debit',
+			'Pre-Authorized Debit'
+		);
 
-	await page.waitForTimeout( 1000 );
+		// The element mounts into the swapped-in fragment only after a fresh
+		// intent is created; submitting before that fails Stripe's validation
+		// ("Please provide your full name."). Match the payment iframe, not
+		// Stripe's earlier-loading helper iframes.
+		await waitForStripeReady(
+			page,
+			'.payment_box.payment_method_stripe_acss_debit iframe[src*="elements-inner-payment"]',
+			30000
+		);
+	}
 };
 
 /**
@@ -735,6 +940,8 @@ export const setupACSSCheckout = async ( page, checkoutType = 'blocks' ) => {
  * @param {Object} options Optional configuration parameters.
  * @param {number} options.timeout Timeout in milliseconds for waiting operations (default: 10000).
  * @param {boolean} options.skipCartSetup Skip cart setup if it's already configured (default: false).
+ * @param {Object} options.billingDetails Billing data in the test-data format.
+ * @param {boolean} options.skipBillingCountry Skip the WooCommerce billing country field.
  * @returns {Promise<void>} Resolves when setup is complete.
  * @throws {Error} If iframe cannot be found or initialization fails.
  */
@@ -759,19 +966,18 @@ export const setupOptimizedCheckout = async (
 			container: '#wc-stripe-upe-form',
 		},
 	};
+	const billingDetails =
+		options.billingDetails ?? config.get( 'addresses.customer.billing' );
 
 	try {
 		// Set up appropriate checkout type
 		if ( checkoutType === 'blocks' ) {
-			await setupBlocksCheckout(
-				page,
-				config.get( 'addresses.customer.billing' )
-			);
+			await setupBlocksCheckout( page, billingDetails, {
+				paymentFrameSelector: selectors.blocks.iframe,
+				timeout: options.timeout,
+			} );
 		} else {
-			await setupShortcodeCheckout(
-				page,
-				config.get( 'addresses.customer.billing' )
-			);
+			await setupShortcodeCheckout( page, billingDetails, options );
 		}
 
 		// Get the correct selectors for this checkout type
@@ -782,21 +988,25 @@ export const setupOptimizedCheckout = async (
 			);
 		}
 
-		// Stripe may inject a secondary hidden iframe that matches the selector.
-		// Ensure we're looking for the visible frame.
-		const paymentIframe = page
-			.locator( currentSelectors.iframe )
-			.filter( { visible: true } )
-			.first();
-		await paymentIframe.waitFor( {
-			state: 'visible',
-			timeout: options.timeout,
-		} );
+		const paymentFrame = await getOCPaymentFrame(
+			page,
+			currentSelectors.iframe,
+			options.timeout
+		);
 
-		const paymentFrame = paymentIframe.contentFrame();
-
-		// Select the card payment method
-		await paymentFrame.getByRole( 'button', { name: 'Card' } ).click();
+		// Optional for Adaptive Pricing, whose element renders differently
+		// across flows; fillOCDetails() expands the Card row when needed.
+		if ( options.cardSelectionOptional ) {
+			await paymentFrame
+				.locator(
+					'[role="button"]:has-text("Card"), button:has-text("Card")'
+				)
+				.first()
+				.click( { timeout: 5000 } )
+				.catch( () => {} );
+		} else {
+			await paymentFrame.getByRole( 'button', { name: 'Card' } ).click();
+		}
 	} catch ( error ) {
 		throw new Error(
 			`Failed to set up Optimized Checkout: ${ error.message }`
@@ -814,8 +1024,9 @@ export const fillACSSDetails = async ( page ) => {
 		.locator( 'iframe[name^="__privateStripeFrame"]' )
 		.first();
 
-	// Wait for the outer iframe to be present.
-	await expect( outerFrameElement ).toBeVisible( { timeout: 5000 } );
+	// Stripe's bank account dialog opens only after the checkout request
+	// round-trips and Stripe confirms the intent, which can take well over 5s.
+	await expect( outerFrameElement ).toBeVisible( { timeout: 20000 } );
 
 	const outerFrame = await outerFrameElement.contentFrame();
 	const innerFrameElement = await outerFrame
@@ -823,7 +1034,7 @@ export const fillACSSDetails = async ( page ) => {
 		.first();
 
 	// Wait for the inner iframe to be present.
-	await expect( innerFrameElement ).toBeVisible( { timeout: 5000 } );
+	await expect( innerFrameElement ).toBeVisible( { timeout: 20000 } );
 
 	const innerFrame = await innerFrameElement.contentFrame();
 
@@ -875,22 +1086,53 @@ export async function handleCheckout3DSChallenge( page, action = 'authorize' ) {
 }
 
 /**
+ * Ticks the "Save payment information" checkbox on the Blocks checkout.
+ *
+ * Under block themes the checkbox sits below the fold and the page is still
+ * scrolling when Playwright aims a physical click, so the click lands beside
+ * the checkbox and is lost without an error. A dispatched click cannot miss.
+ *
+ * @param {Page} page Playwright page fixture.
+ */
+export async function tickSavePaymentMethodBlocks( page ) {
+	const checkbox = page.locator(
+		'.wc-block-components-payment-methods__save-card-info input[type="checkbox"]'
+	);
+	// A dispatched click also lands on a hidden element, and the plugin hides
+	// this checkbox when Link handles saving, so check a shopper could use it.
+	await expect( checkbox ).toBeVisible();
+	await expect( checkbox ).toBeEnabled();
+	await checkbox.dispatchEvent( 'click' );
+	await expect( checkbox ).toBeChecked();
+
+	// Ticking triggers an elements.update() with setup_future_usage and the
+	// payment element reloads; submitting while it reloads sends no payment
+	// details. Wait for the selected method's own element, not Stripe's
+	// earlier-loading helper iframes.
+	const selectedMethodId = await page
+		.locator(
+			'input[name="radio-control-wc-payment-method-options"]:checked'
+		)
+		.getAttribute( 'id' );
+	await waitForStripeReady(
+		page,
+		`#${ selectedMethodId }__content iframe[src*="elements-inner-payment"]`
+	);
+}
+
+/**
  * This roundabout way of clicking the Place Order button is an
  * attempt to reduce the flakiness.
  * @param {Page} page Playwright page fixture.
  */
-export async function clickPlaceOrder( page ) {
-	// Wait for the button to be enabled (i.e. clickable), to wait
-	// for any logic we are potentially depending on.
-	await expect(
-		page.getByRole( 'button', { name: 'Place order' } )
-	).toBeEnabled();
+export async function clickPlaceOrder( page, label = 'Place order' ) {
+	const placeOrderButton = page.getByRole( 'button', { name: label } );
+
+	await expect( placeOrderButton ).toBeEnabled();
 
 	// Dispatch a click event, instead of clicking the button directly,
 	// to reduce "missed" clicks.
-	await page
-		.getByRole( 'button', { name: 'Place order' } )
-		.dispatchEvent( 'click' );
+	await placeOrderButton.dispatchEvent( 'click' );
 
 	// If we click the Place button too fast, we might sometimes get an error.
 	// One way to handle this is to always wait a few seconds before clicking Place order.
@@ -900,10 +1142,44 @@ export async function clickPlaceOrder( page ) {
 		.getByLabel( 'Checkout' )
 		.getByText( 'Your payment information is' );
 	if ( await errorElement.isVisible() ) {
-		await page
-			.getByRole( 'button', { name: 'Place order' } )
-			.dispatchEvent( 'click' );
+		await placeOrderButton.dispatchEvent( 'click' );
 	}
+}
+
+/**
+ * Error notices under both classic and block-theme markup.
+ *
+ * @param {Page} page Playwright page fixture.
+ * @returns {import('@playwright/test').Locator} Locator matching all error notices.
+ */
+export function getErrorNotices( page ) {
+	return page.locator(
+		'.woocommerce-error, .wc-block-components-notice-banner.is-error'
+	);
+}
+
+/**
+ * Success notices under both classic and block-theme markup.
+ *
+ * @param {Page} page Playwright page fixture.
+ * @returns {import('@playwright/test').Locator} Locator matching all success notices.
+ */
+export function getSuccessNotices( page ) {
+	return page.locator(
+		'.woocommerce-message, .wc-block-components-notice-banner.is-success'
+	);
+}
+
+/**
+ * Info notices under both classic and block-theme markup.
+ *
+ * @param {Page} page Playwright page fixture.
+ * @returns {import('@playwright/test').Locator} Locator matching all info notices.
+ */
+export function getInfoNotices( page ) {
+	return page.locator(
+		'.woocommerce-info, .wc-block-components-notice-banner.is-info'
+	);
 }
 
 /**
@@ -952,29 +1228,91 @@ export async function handleCheckoutCashAppPay(
 }
 
 /**
- * Fill in the payment details for Optimized Checkout (OC).
+ * Resolves the visible Stripe iframe that renders the payment UI.
+ *
+ * Multiple visible frames can match the selector (e.g. Adaptive Pricing adds
+ * a test-mode banner frame first), so pick by content, not position.
+ *
+ * @param {Page}   page           Playwright page fixture.
+ * @param {string} iframeSelector Selector matching the container's Stripe iframes.
+ * @param {number} timeout        How long to wait for the payment frame, in ms.
+ * @return {FrameLocator} The payment frame.
+ */
+const getOCPaymentFrame = async ( page, iframeSelector, timeout = 10000 ) => {
+	const candidates = page
+		.locator( iframeSelector )
+		.filter( { visible: true } );
+	await candidates.first().waitFor( { state: 'visible', timeout } );
+
+	const deadline = Date.now() + timeout;
+	do {
+		const count = await candidates.count();
+		for ( let i = 0; i < count; i++ ) {
+			const frame = candidates.nth( i ).contentFrame();
+			const isPaymentUI = await frame
+				.locator(
+					'[name="number"], [role="button"]:has-text("Card"), button:has-text("Card")'
+				)
+				.first()
+				.isVisible()
+				.catch( () => false );
+			if ( isPaymentUI ) {
+				return frame;
+			}
+		}
+		await page.waitForTimeout( 250 );
+	} while ( Date.now() < deadline );
+
+	// Fall back so the caller's own failure message names the missing field.
+	return candidates.first().contentFrame();
+};
+
+/**
+ * Ensure the Card method is the one selected in the Optimized Checkout (OC)
+ * payment element, and return the element's iframe.
  *
  * @param {Page} page Playwright page fixture.
- * @param {Object} card The CC info in the format provided on the test-data.
  * @param {string} checkoutType The type of checkout ('blocks' or 'shortcode').
+ * @returns {Promise<FrameLocator>} The OC payment element frame.
  */
-export const fillOCDetails = async ( page, card, checkoutType = 'blocks' ) => {
-	// Determine the appropriate iframe selector based on checkout type
+export const selectOCCardMethod = async ( page, checkoutType = 'blocks' ) => {
 	const iframeSelector =
 		checkoutType === 'blocks'
 			? '#radio-control-wc-payment-method-options-stripe__content iframe[name^="__privateStripeFrame"]'
 			: '#wc-stripe-upe-form .StripeElement iframe[name^="__privateStripeFrame"]';
 
-	// Stripe injects a hidden "accessory-target" iframe alongside the real
-	// payment input frame; both match the selector. Target the visible one to
-	// avoid latching onto the hidden frame.
-	const paymentIframe = page
-		.locator( iframeSelector )
-		.filter( { visible: true } )
-		.first();
-	await paymentIframe.waitFor( { state: 'visible', timeout: 10000 } );
+	const paymentFrame = await getOCPaymentFrame( page, iframeSelector );
 
-	const paymentFrame = paymentIframe.contentFrame();
+	// Expand the Card row if needed: the initial selection follows Stripe's
+	// ranking and is not guaranteed to be Card.
+	if ( ! ( await paymentFrame.locator( '[name="number"]' ).isVisible() ) ) {
+		await paymentFrame
+			.locator(
+				'[role="button"]:has-text("Card"), button:has-text("Card")'
+			)
+			.first()
+			.click();
+	}
+
+	return paymentFrame;
+};
+
+/**
+ * Fill in the payment details for Optimized Checkout (OC).
+ *
+ * @param {Page} page Playwright page fixture.
+ * @param {Object} card The CC info in the format provided on the test-data.
+ * @param {string} checkoutType The type of checkout ('blocks' or 'shortcode').
+ * @param {Object} options Optional payment details.
+ * @param {string} options.billingCountry Country collected by Stripe.
+ */
+export const fillOCDetails = async (
+	page,
+	card,
+	checkoutType = 'blocks',
+	options = {}
+) => {
+	const paymentFrame = await selectOCCardMethod( page, checkoutType );
 
 	// Fill in test card details
 	await paymentFrame.locator( '[name="number"]' ).fill( card.number );
@@ -982,6 +1320,27 @@ export const fillOCDetails = async ( page, card, checkoutType = 'blocks' ) => {
 		.locator( '[name="expiry"]' )
 		.fill( card.expires.month + card.expires.year );
 	await paymentFrame.locator( '[name="cvc"]' ).fill( card.cvc );
+
+	if ( options.billingCountry ) {
+		await paymentFrame
+			.locator( '[name="country"]' )
+			.selectOption( options.billingCountry );
+	}
+
+	// For emails Link doesn't recognize, it offers signup with "Save my
+	// information" pre-checked, which requires a mobile number the tests
+	// don't fill and blocks the payment; opt out instead. Best-effort:
+	// mandatory-save flows (e.g. subscriptions) render the checkbox only
+	// transiently before re-rendering without it, so it can disappear
+	// between the check and the uncheck.
+	const linkSaveInfo = paymentFrame.getByRole( 'checkbox', {
+		name: 'Save my information for faster checkout',
+	} );
+	if (
+		await linkSaveInfo.isChecked( { timeout: 5000 } ).catch( () => false )
+	) {
+		await linkSaveInfo.uncheck( { timeout: 5000 } ).catch( () => {} );
+	}
 };
 
 /**
@@ -1084,7 +1443,7 @@ export const fillBECSDetails = async ( page, checkoutType = 'blocks' ) => {
  */
 export const setupAffirmCheckout = async ( page, checkoutType = 'blocks' ) => {
 	// Affirm is only available when the price is above $50.
-	const lineItems = [ [ config.get( 'products.simple.name' ), 5 ] ];
+	const lineItems = [ [ config.get( 'products.simple.slug' ), 5 ] ];
 
 	await emptyCart( page );
 	await setupCart( page, lineItems );
@@ -1101,9 +1460,7 @@ export const setupAffirmCheckout = async ( page, checkoutType = 'blocks' ) => {
 
 	// Wait for the payment method selector to be available
 	if ( isBlocks ) {
-		const affirmLabel = page.locator( 'label', { hasText: 'Affirm' } );
-		await affirmLabel.waitFor( { state: 'visible' } );
-		await affirmLabel.click();
+		await selectBlocksPaymentMethod( page, 'stripe_affirm', 'Affirm' );
 		await expect(
 			page
 				.frameLocator(
@@ -1112,9 +1469,7 @@ export const setupAffirmCheckout = async ( page, checkoutType = 'blocks' ) => {
 				.getByTestId( 'next-action-text' )
 		).toBeAttached();
 	} else {
-		const affirmLabel = page.getByText( 'Affirm' );
-		await affirmLabel.waitFor( { state: 'visible' } );
-		await affirmLabel.click();
+		await selectShortcodePaymentMethod( page, 'stripe_affirm', 'Affirm' );
 		await expect(
 			page
 				.frameLocator(
@@ -1147,9 +1502,7 @@ export const setupKlarnaCheckout = async ( page, checkoutType = 'blocks' ) => {
 
 	// Wait for the payment method selector to be available
 	if ( isBlocks ) {
-		const klarnaLabel = page.locator( 'label', { hasText: 'Klarna' } );
-		await klarnaLabel.waitFor( { state: 'visible' } );
-		await klarnaLabel.click();
+		await selectBlocksPaymentMethod( page, 'stripe_klarna', 'Klarna' );
 		await expect(
 			page
 				.frameLocator(
@@ -1158,9 +1511,7 @@ export const setupKlarnaCheckout = async ( page, checkoutType = 'blocks' ) => {
 				.getByTestId( 'next-action-text' )
 		).toBeVisible();
 	} else {
-		const klarnaLabel = page.getByText( 'Klarna' );
-		await klarnaLabel.waitFor( { state: 'visible' } );
-		await klarnaLabel.click();
+		await selectShortcodePaymentMethod( page, 'stripe_klarna', 'Klarna' );
 		await expect(
 			page
 				.frameLocator(
@@ -1184,10 +1535,22 @@ export const getOrderIdFromOrderReceivedUrl = ( url ) =>
 export const waitForOrderReceivedPage = async ( page ) => {
 	await page.waitForURL( '**/checkout/order-received/**' );
 
-	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-		'Order received'
-	);
+	// By role: only classic themes add `.entry-title` to the heading.
+	await expect(
+		page.getByRole( 'heading', { level: 1, name: 'Order received' } )
+	).toBeVisible();
 };
+
+/**
+ * Order total on the order received page, under both classic and block-theme markup.
+ *
+ * @param {Page} page Playwright page fixture.
+ * @returns {import('@playwright/test').Locator} Locator matching the order total.
+ */
+export const getOrderReceivedTotal = ( page ) =>
+	page.locator(
+		'.woocommerce-order-overview__total, .wc-block-order-confirmation-summary-list-item:has-text("Total:")'
+	);
 
 /**
  * Wait for the order received page to load and optionally confirm the expected total amount was charged.

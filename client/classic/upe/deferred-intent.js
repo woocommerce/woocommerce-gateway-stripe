@@ -7,6 +7,8 @@ import {
 	isPaymentMethodRestrictedToLocation,
 	isUsingSavedPaymentMethod,
 	paymentMethodSupportsDeferredIntent,
+	removeCheckoutSessionIdFromForm,
+	showErrorCheckout,
 	togglePaymentMethodForCountry,
 } from '../../stripe-utils';
 import './style.scss';
@@ -14,14 +16,17 @@ import {
 	confirmVoucherPayment,
 	confirmWalletPayment,
 	createAndConfirmSetupIntent,
+	getEmptyRequiredFields,
 	getMountedUPEComponent,
-	hasEmptyRequiredFields,
 	initializeUPEComponents,
 	maybeUpdateAdaptivePricingCheckoutSession,
+	maybeUpdateOptimizedCheckoutExclusions,
 	mountStripePaymentElement,
 	processPayment,
+	resetCheckoutCompletionState,
 	trackMountInProgress,
 } from './payment-processing';
+import { __, sprintf } from '@wordpress/i18n';
 
 jQuery( function ( $ ) {
 	const stripeServerData = getStripeServerData();
@@ -90,14 +95,98 @@ jQuery( function ( $ ) {
 	$( document.body ).on( 'updated_checkout', () => {
 		// Track the re-render → re-mount chain so a mid-update submission waits.
 		const updateChain = ( async () => {
-			await maybeUpdateAdaptivePricingCheckoutSession( api );
+			await maybeUpdateAdaptivePricingCheckoutSession();
 			await maybeMountStripePaymentElement();
+			// Remounting skips an already-mounted OC element; refresh its exclusions.
+			maybeUpdateOptimizedCheckoutExclusions();
 		} )();
 		trackMountInProgress( updateChain );
 		void updateChain;
 	} );
 
+	// Builds the notice WooCommerce shows for a missing field: "<Field> is a required field."
+	// The label text is read from the DOM and HTML-escaped before it goes into the notice markup.
+	function getRequiredFieldMessage( wrapper ) {
+		const label = wrapper.querySelector( 'label' );
+		if ( ! label ) {
+			return '';
+		}
+
+		// Drop the required marker. WooCommerce renders it as <abbr class="required"> in some
+		// themes and as plain "*" text in others, so remove the marked-up node and then strip any
+		// trailing asterisk left as text.
+		const labelClone = label.cloneNode( true );
+		labelClone
+			.querySelectorAll( 'abbr, .required' )
+			.forEach( ( node ) => node.remove() );
+
+		const name = labelClone.textContent.replace( /\s*\*+\s*$/, '' ).trim();
+		if ( ! name ) {
+			return '';
+		}
+
+		// Link the field name to its control, like WooCommerce's own notices, so the shopper can
+		// jump to the field. Fall back to plain text when no control id is available. Build the
+		// markup through the DOM so both the id (href) and the name are safely escaped.
+		const control = wrapper.querySelector( 'input, select, textarea' );
+		const fieldId =
+			label.getAttribute( 'for' ) || ( control && control.id ) || '';
+		let fieldMarkup;
+		if ( fieldId ) {
+			const link = document.createElement( 'a' );
+			link.setAttribute( 'href', `#${ fieldId }` );
+			link.textContent = name;
+			fieldMarkup = link.outerHTML;
+		} else {
+			fieldMarkup = jQuery( '<div>' ).text( name ).html();
+		}
+
+		return sprintf(
+			// translators: %s is the name of a required checkout field.
+			__( '%s is a required field.', 'woocommerce-gateway-stripe' ),
+			fieldMarkup
+		);
+	}
+
+	// Shows one notice per empty required field, falling back to a single generic notice when no
+	// field label can be read.
+	function showEmptyRequiredFieldsError( wrappers ) {
+		const messages = wrappers
+			.map( getRequiredFieldMessage )
+			.filter( Boolean );
+		if ( ! messages.length ) {
+			messages.push(
+				__(
+					'Please fill in all required fields.',
+					'woocommerce-gateway-stripe'
+				)
+			);
+		}
+
+		const items = messages.map( ( message ) => `<li>${ message }</li>` );
+		showErrorCheckout(
+			`<ul class="woocommerce-error" role="alert">${ items.join(
+				''
+			) }</ul>`
+		);
+	}
+
 	function processPaymentIfNotUsingSavedMethod( $form ) {
+		// When a required field is empty, block the submission, as #5222 does: letting WooCommerce
+		// submit without a Stripe payment method creates an order that then fails (the STRIPE-1402
+		// shape), and a field WooCommerce does not validate server-side would not be caught at all.
+		// Instead of #5222's single generic notice, show one notice per empty field so the shopper
+		// sees which to fill. jQuery :visible drops fields hidden by conditional checkout logic
+		// (e.g. shipping fields when "Ship to different address" is unchecked).
+		const emptyRequiredFields = getEmptyRequiredFields(
+			$form.find( '.validate-required:visible' ).toArray()
+		);
+		if ( emptyRequiredFields.length ) {
+			resetCheckoutCompletionState();
+			showEmptyRequiredFieldsError( emptyRequiredFields );
+			return false;
+		}
+
 		const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
 		if ( ! isUsingSavedPaymentMethod( paymentMethodType ) ) {
 			return processPayment( api, $form, paymentMethodType );
@@ -107,16 +196,12 @@ jQuery( function ( $ ) {
 	$( 'form.checkout' ).on( generateCheckoutEventNames(), function () {
 		const $form = $( this );
 
-		// Don't create a Stripe payment method if required checkout fields are empty.
-		// This prevents unnecessary Stripe API calls before WC's server-side validation.
-		// jQuery :visible filters out fields hidden by conditional checkout logic
-		// (e.g. shipping fields when "Ship to different address" is unchecked).
+		// A saved token bypasses Checkout Session confirmation, so discard a stale Session id left by
+		// an earlier attempt. New payment methods need the field so the Session flow can replace it.
 		if (
-			hasEmptyRequiredFields(
-				$form.find( '.validate-required:visible' ).toArray()
-			)
+			isUsingSavedPaymentMethod( getSelectedUPEGatewayPaymentMethod() )
 		) {
-			return;
+			removeCheckoutSessionIdFromForm( $form );
 		}
 
 		return processPaymentIfNotUsingSavedMethod( $form );
@@ -142,10 +227,16 @@ jQuery( function ( $ ) {
 
 	// My Account > Payment Methods page submit.
 	$( 'form#add_payment_method' ).on( 'submit', function () {
+		const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
+		// If another payment gateway was selected, no further action required.
+		if ( ! paymentMethodType ) {
+			return;
+		}
+
 		return processPayment(
 			api,
 			$( 'form#add_payment_method' ),
-			getSelectedUPEGatewayPaymentMethod(),
+			paymentMethodType,
 			createAndConfirmSetupIntent
 		);
 	} );
@@ -162,6 +253,11 @@ jQuery( function ( $ ) {
 		}
 
 		const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
+		// If another payment gateway was selected, no further action required.
+		if ( ! paymentMethodType ) {
+			return;
+		}
+
 		if ( ! isUsingSavedPaymentMethod( paymentMethodType ) ) {
 			return processPayment(
 				api,
@@ -227,7 +323,14 @@ jQuery( function ( $ ) {
 				// not a client-side Elements update.
 				// We check for the existence of the `update` function here instead of the 'isAdaptivePricingEnabled' flag
 				// because we might be using the payment element as a fallback though the flag is set to true.
-				if ( typeof component.elements.update === 'function' ) {
+				// Non-deferred methods save through the server instead.
+				const supportsDeferredIntent =
+					stripeServerData?.paymentMethodsConfig?.[ selectedMethod ]
+						?.supportsDeferredIntent;
+				if (
+					typeof component.elements.update === 'function' &&
+					supportsDeferredIntent
+				) {
 					component.elements.update( {
 						setupFutureUsage:
 							cartContainsSubscription || isChecked

@@ -1,4 +1,5 @@
 import { renderHook, waitFor } from '@testing-library/react';
+import jQuery from 'jquery';
 import {
 	usePaymentSetupHandler,
 	useCheckoutSuccessHandler,
@@ -6,7 +7,7 @@ import {
 	useCheckoutSessionTotalsSync,
 } from 'wcstripe/blocks/checkout-sessions/hooks';
 import { useEffect } from '@wordpress/element';
-import { dispatch, select, useSelect } from '@wordpress/data';
+import { dispatch, select } from '@wordpress/data';
 import { waitForPaymentElementCompletion } from 'wcstripe/blocks/wait-for-payment-element-completion';
 
 jest.mock( '@wordpress/element', () => ( {
@@ -19,7 +20,6 @@ jest.mock( '@wordpress/data', () => {
 	const removeNotice = jest.fn();
 	return {
 		select: jest.fn(),
-		useSelect: jest.fn( () => '' ),
 		dispatch: jest.fn( () => ( { createErrorNotice, removeNotice } ) ),
 	};
 } );
@@ -624,6 +624,34 @@ describe( 'CheckoutSessions hook tests', () => {
 				} )
 			);
 		} );
+
+		it( 'omits savePaymentMethod when the session does not support saving, even with the checkbox checked', async () => {
+			document.body.innerHTML = `
+				<div class="wc-block-components-payment-methods__save-card-info">
+					<input type="checkbox" checked />
+				</div>
+			`;
+			const confirm = jest.fn().mockResolvedValue( {
+				type: 'success',
+			} );
+			const checkoutState = {
+				type: 'success',
+				checkout: { email: '', confirm },
+			};
+			useCheckoutSuccessHandler(
+				checkoutState,
+				onCheckoutSuccess,
+				billing,
+				false,
+				false,
+				shippingData
+			);
+			await onCheckoutSuccessResultPromise;
+			expect( confirm ).toHaveBeenCalledTimes( 1 );
+			expect( confirm.mock.calls[ 0 ][ 0 ] ).not.toHaveProperty(
+				'savePaymentMethod'
+			);
+		} );
 	} );
 
 	describe( 'usePaymentFailHandler hook', () => {
@@ -661,36 +689,11 @@ describe( 'CheckoutSessions hook tests', () => {
 	} );
 
 	describe( 'useCheckoutSessionTotalsSync hook', () => {
-		let cartPrice;
-
-		beforeEach( () => {
-			cartPrice = '1000';
-			window.wc = {
-				wcBlocksData: { cartStore: 'wc/store/cart' },
-			};
-			useSelect.mockImplementation( ( mapSelect ) => {
-				const mockSelect = ( storeKey ) =>
-					storeKey === window.wc.wcBlocksData.cartStore
-						? {
-								getCartTotals: () => ( {
-									total_price: cartPrice,
-								} ),
-						  }
-						: {};
-				return mapSelect( mockSelect );
-			} );
-		} );
-
 		afterEach( () => {
 			useEffect.mockImplementation( ( fn ) => fn() );
 		} );
 
-		it( 'does not call update on the first totals snapshot', () => {
-			const api = {
-				checkoutSessionsUpdateSession: jest.fn( () =>
-					Promise.resolve( {} )
-				),
-			};
+		it( 'does not notify Stripe.js for the first embedded revision', () => {
 			const checkoutState = {
 				type: 'success',
 				checkout: {
@@ -703,18 +706,19 @@ describe( 'CheckoutSessions hook tests', () => {
 			};
 
 			renderHook( () =>
-				useCheckoutSessionTotalsSync( api, 'cs_test', checkoutState )
+				useCheckoutSessionTotalsSync( 'cs_test', checkoutState, null, {
+					revision: 'rev_1',
+					status: 'success',
+				} )
 			);
 
-			expect( api.checkoutSessionsUpdateSession ).not.toHaveBeenCalled();
+			expect(
+				checkoutState.checkout.runServerUpdate
+			).not.toHaveBeenCalled();
 		} );
 
-		it( 'calls checkoutSessionsUpdateSession when cart totals change', async () => {
-			const api = {
-				checkoutSessionsUpdateSession: jest.fn( () =>
-					Promise.resolve( {} )
-				),
-			};
+		it( 'notifies Stripe.js when the Store API embeds a newer revision', async () => {
+			let sessionData = { revision: 'rev_1', status: 'success' };
 			const checkoutState = {
 				type: 'success',
 				checkout: {
@@ -727,51 +731,113 @@ describe( 'CheckoutSessions hook tests', () => {
 			};
 
 			const { rerender } = renderHook( () =>
-				useCheckoutSessionTotalsSync( api, 'cs_test', checkoutState )
+				useCheckoutSessionTotalsSync(
+					'cs_test',
+					checkoutState,
+					null,
+					sessionData
+				)
 			);
 
-			cartPrice = '2000';
+			sessionData = { revision: 'rev_2', status: 'success' };
 			rerender();
 
 			await waitFor( () => {
 				expect(
-					api.checkoutSessionsUpdateSession
-				).toHaveBeenCalledWith( 'cs_test' );
+					checkoutState.checkout.runServerUpdate
+				).toHaveBeenCalled();
 			} );
-			expect( checkoutState.checkout.runServerUpdate ).toHaveBeenCalled();
 		} );
 
-		it( 'flags the ref and shows a notice when the resync fails', async () => {
+		it( 'flags the ref when the embedded Store API sync failed', async () => {
 			const createErrorNotice = dispatch().createErrorNotice;
 			createErrorNotice.mockClear();
 			const syncFailedRef = { current: false };
-			const api = {
-				checkoutSessionsUpdateSession: jest.fn( () =>
-					Promise.resolve( {} )
-				),
-			};
+			let sessionData = { revision: 'rev_1', status: 'success' };
 			const checkoutState = {
 				type: 'success',
 				checkout: {
 					id: 'cs_test',
-					runServerUpdate: jest.fn( async ( fn ) => {
-						await fn();
-						return { type: 'error', error: { message: 'boom' } };
-					} ),
+					runServerUpdate: jest.fn(),
 				},
 			};
 
 			const { rerender } = renderHook( () =>
 				useCheckoutSessionTotalsSync(
-					api,
 					'cs_test',
 					checkoutState,
-					syncFailedRef
+					syncFailedRef,
+					sessionData
 				)
 			);
 
-			cartPrice = '2000';
+			sessionData = { revision: 'rev_1', status: 'error' };
 			rerender();
+
+			await waitFor( () => {
+				expect( syncFailedRef.current ).toBe( true );
+			} );
+			expect( createErrorNotice ).toHaveBeenCalledWith(
+				STALE_TOTAL_MESSAGE,
+				{
+					id: 'wc-stripe-stale-checkout-total',
+					context: 'wc/checkout/payments',
+				}
+			);
+			expect(
+				checkoutState.checkout.runServerUpdate
+			).not.toHaveBeenCalled();
+		} );
+
+		it( 'reports a sync failure when the first embedded session state has an error', async () => {
+			const createErrorNotice = dispatch().createErrorNotice;
+			createErrorNotice.mockClear();
+			const syncFailedRef = { current: false };
+			const checkoutState = {
+				type: 'success',
+				checkout: {
+					id: 'cs_test',
+					runServerUpdate: jest.fn(),
+				},
+			};
+
+			renderHook( () =>
+				useCheckoutSessionTotalsSync(
+					'cs_test',
+					checkoutState,
+					syncFailedRef,
+					{ revision: 'rev_1', status: 'error' }
+				)
+			);
+
+			await waitFor( () => {
+				expect( syncFailedRef.current ).toBe( true );
+			} );
+			expect( createErrorNotice ).toHaveBeenCalledWith(
+				STALE_TOTAL_MESSAGE,
+				{
+					id: 'wc-stripe-stale-checkout-total',
+					context: 'wc/checkout/payments',
+				}
+			);
+			expect(
+				checkoutState.checkout.runServerUpdate
+			).not.toHaveBeenCalled();
+		} );
+
+		it( 'reports a sync failure for a failed initial state when Checkout is not ready yet', async () => {
+			const createErrorNotice = dispatch().createErrorNotice;
+			createErrorNotice.mockClear();
+			const syncFailedRef = { current: false };
+
+			renderHook( () =>
+				useCheckoutSessionTotalsSync(
+					'cs_test',
+					{ type: 'loading' },
+					syncFailedRef,
+					{ revision: 'rev_1', status: 'error' }
+				)
+			);
 
 			await waitFor( () => {
 				expect( syncFailedRef.current ).toBe( true );
@@ -785,13 +851,44 @@ describe( 'CheckoutSessions hook tests', () => {
 			);
 		} );
 
-		it( 'clears the stale flag after a successful resync', async () => {
-			const syncFailedRef = { current: true };
-			const api = {
-				checkoutSessionsUpdateSession: jest.fn( () =>
-					Promise.resolve( {} )
-				),
+		it( 'runs the server update for a revision that landed before Checkout was ready', async () => {
+			const runServerUpdate = jest.fn( async ( fn ) => {
+				await fn();
+				return { type: 'success' };
+			} );
+			let sessionData = { revision: 'rev_1', status: 'success' };
+			let checkoutState = { type: 'loading' };
+
+			const { rerender } = renderHook( () =>
+				useCheckoutSessionTotalsSync(
+					'cs_test',
+					checkoutState,
+					null,
+					sessionData
+				)
+			);
+
+			// A newer revision lands while the Checkout instance is still initializing.
+			sessionData = { revision: 'rev_2', status: 'success' };
+			rerender();
+
+			expect( runServerUpdate ).not.toHaveBeenCalled();
+
+			// Once Checkout is ready the revision must still be treated as pending.
+			checkoutState = {
+				type: 'success',
+				checkout: { id: 'cs_test', runServerUpdate },
 			};
+			rerender();
+
+			await waitFor( () => {
+				expect( runServerUpdate ).toHaveBeenCalled();
+			} );
+		} );
+
+		it( 'clears the sync failure flag after a newer revision is received', async () => {
+			const syncFailedRef = { current: true };
+			let sessionData = { revision: 'rev_1', status: 'error' };
 			const checkoutState = {
 				type: 'success',
 				checkout: {
@@ -805,14 +902,14 @@ describe( 'CheckoutSessions hook tests', () => {
 
 			const { rerender } = renderHook( () =>
 				useCheckoutSessionTotalsSync(
-					api,
 					'cs_test',
 					checkoutState,
-					syncFailedRef
+					syncFailedRef,
+					sessionData
 				)
 			);
 
-			cartPrice = '2000';
+			sessionData = { revision: 'rev_2', status: 'success' };
 			rerender();
 
 			await waitFor( () => {
@@ -824,6 +921,125 @@ describe( 'CheckoutSessions hook tests', () => {
 				'wc-stripe-stale-checkout-total',
 				'wc/checkout/payments'
 			);
+		} );
+
+		// The jQuery mock returns a fresh chain per call, so block/unblock
+		// invocations are summed across every chain it handed out.
+		const countJQueryCalls = ( method ) =>
+			jQuery.mock.results.reduce(
+				( count, result ) =>
+					count +
+					( result.value?.[ method ]?.mock?.calls?.length ?? 0 ),
+				0
+			);
+
+		// Allow the cancellation tests that need real effects to get that behaviour.
+		const useRealEffects = () => {
+			const { useEffect: actualUseEffect } =
+				jest.requireActual( '@wordpress/element' );
+			useEffect.mockImplementation( actualUseEffect );
+		};
+
+		it( 'retries a resync cancelled by a checkout state change and lifts the UI block', async () => {
+			useRealEffects();
+			jQuery.mockClear();
+			const createErrorNotice = dispatch().createErrorNotice;
+			createErrorNotice.mockClear();
+
+			const resolvers = [];
+			const runServerUpdate = jest.fn(
+				() => new Promise( ( resolve ) => resolvers.push( resolve ) )
+			);
+			const syncFailedRef = { current: false };
+			let sessionData = { revision: 'rev_1', status: 'success' };
+			let checkoutState = {
+				type: 'success',
+				checkout: { id: 'cs_test', runServerUpdate },
+			};
+
+			const { rerender } = renderHook( () =>
+				useCheckoutSessionTotalsSync(
+					'cs_test',
+					checkoutState,
+					syncFailedRef,
+					sessionData
+				)
+			);
+
+			expect( countJQueryCalls( 'block' ) ).toBe( 0 );
+			expect( countJQueryCalls( 'unblock' ) ).toBe( 0 );
+
+			// A newer revision starts a resync that blocks the payment UI.
+			sessionData = { revision: 'rev_2', status: 'success' };
+			rerender();
+			await waitFor( () => {
+				expect( runServerUpdate ).toHaveBeenCalledTimes( 1 );
+			} );
+			expect( countJQueryCalls( 'block' ) ).toBe( 1 );
+			expect( countJQueryCalls( 'unblock' ) ).toBe( 0 );
+
+			// Checkout state changes while the resync is in flight.
+			checkoutState = { type: 'loading' };
+			rerender();
+
+			// The cancelled run must unblock the UI immediately and must not
+			// show a failure notice to the shopper.
+			expect( countJQueryCalls( 'block' ) ).toBe( 1 );
+			expect( countJQueryCalls( 'unblock' ) ).toBe( 1 );
+			expect( createErrorNotice ).not.toHaveBeenCalled();
+
+			// Once checkout recovers, the pending revision must be retried.
+			checkoutState = {
+				type: 'success',
+				checkout: { id: 'cs_test', runServerUpdate },
+			};
+			rerender();
+			await waitFor( () => {
+				expect( runServerUpdate ).toHaveBeenCalledTimes( 2 );
+			} );
+
+			resolvers[ 1 ]( { type: 'success' } );
+			await waitFor( () => {
+				expect( countJQueryCalls( 'block' ) ).toBe( 2 );
+			} );
+			expect( countJQueryCalls( 'unblock' ) ).toBe( 2 );
+			expect( syncFailedRef.current ).toBe( false );
+		} );
+
+		it( 'lifts the UI block when unmounted during an in-flight resync', async () => {
+			useRealEffects();
+			jQuery.mockClear();
+
+			const runServerUpdate = jest.fn( () => new Promise( () => {} ) );
+			let sessionData = { revision: 'rev_1', status: 'success' };
+			const checkoutState = {
+				type: 'success',
+				checkout: { id: 'cs_test', runServerUpdate },
+			};
+
+			const { rerender, unmount } = renderHook( () =>
+				useCheckoutSessionTotalsSync(
+					'cs_test',
+					checkoutState,
+					null,
+					sessionData
+				)
+			);
+
+			expect( countJQueryCalls( 'block' ) ).toBe( 0 );
+			expect( countJQueryCalls( 'unblock' ) ).toBe( 0 );
+
+			sessionData = { revision: 'rev_2', status: 'success' };
+			rerender();
+			await waitFor( () => {
+				expect( runServerUpdate ).toHaveBeenCalledTimes( 1 );
+			} );
+			expect( countJQueryCalls( 'block' ) ).toBe( 1 );
+			expect( countJQueryCalls( 'unblock' ) ).toBe( 0 );
+
+			unmount();
+			expect( countJQueryCalls( 'unblock' ) ).toBe( 1 );
+			expect( countJQueryCalls( 'block' ) ).toBe( 1 );
 		} );
 	} );
 } );

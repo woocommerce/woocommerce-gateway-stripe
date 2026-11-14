@@ -12,8 +12,8 @@ dotenv.config( {
 const { BASE_URL, CI, DOCKER, E2E_MAX_FAILURES, TIMEOUT } = process.env;
 
 const config = {
-	globalSetup: DOCKER ? './global-setup-docker' : './global-setup',
-	globalTeardown: './global-teardown',
+	globalSetup: DOCKER ? './global-setup-docker.js' : './global-setup.js',
+	globalTeardown: './global-teardown.js',
 
 	testDir: '../tests',
 
@@ -31,14 +31,16 @@ const config = {
 	// Folder for test artifacts such as screenshots, videos, traces, etc
 	outputDir: '../test-results/output',
 
-	/* Retry on CI only */
-	retries: CI ? 3 : 0,
+	retries: 3,
 
-	workers: 5,
+	workers: CI ? 5 : undefined,
 
 	// Reporter to use. See https://playwright.dev/docs/test-reporters
+	// list prints each test as it finishes, so a job killed by timeout-minutes
+	// still shows how far it got; github adds the inline annotations in CI.
 	reporter: [
-		[ CI ? 'github' : 'list' ],
+		[ 'list' ],
+		...( CI ? [ [ 'github' ] ] : [] ),
 		[
 			'html',
 			{
@@ -88,9 +90,13 @@ const config = {
 			testIgnore: [
 				'**/acss.spec.js',
 				'**/*optimized-checkout.spec.js',
+				'**/*optimized-checkout-link-off.spec.js',
+				'**/adaptive-pricing.spec.js',
 				'**/blik.spec.js',
 				'**/becs.spec.js',
 				'**/isk.spec.js',
+				'**/free-trial-link.spec.js',
+				'**/custom-fields-link.spec.js',
 			],
 			dependencies: [ 'default-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
@@ -98,6 +104,18 @@ const config = {
 		{
 			name: 'isk',
 			testMatch: '**/isk.spec.js',
+			dependencies: [ 'default-setup' ],
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			// Runs the slow Link enrollment/purchase flows in their own job so a
+			// slow Link popup can't push the shared `default` job over its
+			// timeout and cancel the other specs.
+			name: 'express-checkout-link',
+			testMatch: [
+				'**/free-trial-link.spec.js',
+				'**/custom-fields-link.spec.js',
+			],
 			dependencies: [ 'default-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
@@ -133,6 +151,37 @@ const config = {
 			name: 'optimized-checkout',
 			testMatch: '**/*optimized-checkout.spec.js',
 			dependencies: [ 'oc-setup' ],
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			// The save-and-reuse specs need the store-level save checkbox, which
+			// Link hides, so they run against an account with Link off instead of
+			// toggling Link on the account every other job shares.
+			name: 'oc-link-off-setup',
+			testMatch: '/optimized-checkout-link-off.setup.js',
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'optimized-checkout-link-off',
+			testMatch: '**/*optimized-checkout-link-off.spec.js',
+			dependencies: [ 'oc-link-off-setup' ],
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'adaptive-pricing-setup',
+			testMatch: '/adaptive-pricing.setup.js',
+			teardown: 'adaptive-pricing-teardown',
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'adaptive-pricing',
+			testMatch: '**/adaptive-pricing.spec.js',
+			dependencies: [ 'adaptive-pricing-setup' ],
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'adaptive-pricing-teardown',
+			testMatch: '/adaptive-pricing.teardown.js',
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
 		{

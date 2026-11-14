@@ -95,6 +95,8 @@ class WC_Stripe_Admin_Notices {
 			return;
 		}
 
+		$this->check_express_checkout_password_cleanup();
+
 		// Stripe API outage detection. Runs first so other environment checks
 		// can suppress notices that would be misleading during an outage.
 		$this->check_api_outage();
@@ -148,6 +150,7 @@ class WC_Stripe_Admin_Notices {
 				[
 					'a'      => [
 						'href'   => [],
+						'rel'    => [],
 						'target' => [],
 					],
 					'strong' => [],
@@ -169,6 +172,7 @@ class WC_Stripe_Admin_Notices {
 							'a' => [
 								'class'  => [],
 								'href'   => [],
+								'rel'    => [],
 								'style'  => [],
 								'target' => [],
 							],
@@ -179,6 +183,30 @@ class WC_Stripe_Admin_Notices {
 
 			echo '</div>';
 		}
+	}
+
+	/**
+	 * Displays the completed express checkout password cleanup notice to administrators.
+	 *
+	 * @return void
+	 */
+	public function check_express_checkout_password_cleanup(): void {
+		if ( ! current_user_can( 'manage_options' ) || ! WC_Stripe_Express_Checkout_Password_Cleanup::should_show_notice() ) {
+			return;
+		}
+
+		$result  = WC_Stripe_Express_Checkout_Password_Cleanup::get_cleanup_result();
+		$message = __( 'WooCommerce Stripe removed account password data from order records.', 'woocommerce-gateway-stripe' );
+		if ( $result['user_count'] > 0 ) {
+			$message .= ' ' . sprintf(
+				/* translators: %d: affected customer account count */
+				_n( '%d customer account was identified as still using a password that appeared in the removed data.', '%d customer accounts were identified as still using a password that appeared in the removed data.', $result['user_count'], 'woocommerce-gateway-stripe' ),
+				$result['user_count']
+			);
+		}
+		$message .= ' ' . __( 'No customer passwords were reset.', 'woocommerce-gateway-stripe' );
+
+		$this->add_admin_notice( 'express_checkout_password_cleanup', 'notice notice-warning', $message, true );
 	}
 
 	/**
@@ -262,6 +290,23 @@ class WC_Stripe_Admin_Notices {
 				);
 
 				$this->add_admin_notice( '3ds', 'notice notice-warning', $message, true );
+			}
+
+			// Show separate per-mode notices so merchants can take the appropriate action.
+			foreach ( [ 'live', 'test' ] as $mode ) {
+				if ( 'yes' !== get_option( WC_Stripe_Account::get_webhook_missing_notice_option( $mode ) ) ) {
+					continue;
+				}
+
+				$this->add_admin_notice( 'webhook_missing_' . $mode, 'notice notice-error', $this->get_webhook_missing_notice_message( $mode ), true );
+			}
+
+			foreach ( [ 'live', 'test' ] as $mode ) {
+				if ( 'yes' !== get_option( WC_Stripe_Account::get_webhook_manual_secret_notice_option( $mode ) ) ) {
+					continue;
+				}
+
+				$this->add_admin_notice( 'webhook_manual_secret_' . $mode, 'notice notice-warning', $this->get_webhook_manual_secret_notice_message( $mode ), true );
 			}
 
 			if ( empty( $show_style_notice ) ) {
@@ -411,6 +456,60 @@ class WC_Stripe_Admin_Notices {
 	}
 
 	/**
+	 * Builds the "webhook endpoint no longer exists" notice for a given mode.
+	 *
+	 * @param string $mode The Stripe mode, 'live' or 'test'.
+	 * @return string The notice message, with the settings link filled in.
+	 */
+	private function get_webhook_missing_notice_message( string $mode ): string {
+		$link_open  = '<a href="' . $this->get_setting_link() . '">';
+		$link_close = '</a>';
+
+		if ( 'live' === $mode ) {
+			return sprintf(
+				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
+				__( 'WooCommerce Stripe - Your live-mode webhook endpoint saved in your settings no longer exists in your Stripe account, so live order updates from Stripe are not being received. Please %1$sre-configure your webhooks%2$s.', 'woocommerce-gateway-stripe' ),
+				$link_open,
+				$link_close
+			);
+		}
+
+		return sprintf(
+			/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
+			__( 'WooCommerce Stripe - Your test-mode webhook endpoint saved in your settings no longer exists in your Stripe account, so test order updates from Stripe are not being received. Please %1$sre-configure your webhooks%2$s.', 'woocommerce-gateway-stripe' ),
+			$link_open,
+			$link_close
+		);
+	}
+
+	/**
+	 * Builds the "automatic webhook reconfiguration skipped" notice for a given mode.
+	 *
+	 * @param string $mode The Stripe mode, 'live' or 'test'.
+	 * @return string The notice message, with the settings link filled in.
+	 */
+	private function get_webhook_manual_secret_notice_message( string $mode ): string {
+		$link_open  = '<a href="' . $this->get_setting_link() . '">';
+		$link_close = '</a>';
+
+		if ( 'live' === $mode ) {
+			return sprintf(
+				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
+				__( 'WooCommerce Stripe - Automatic reconfiguration of your live-mode webhook was skipped because its signing secret in your settings was set manually. Please verify your live webhook configuration in the Stripe Dashboard, or %1$sre-configure your webhooks%2$s to let the plugin manage them.', 'woocommerce-gateway-stripe' ),
+				$link_open,
+				$link_close
+			);
+		}
+
+		return sprintf(
+			/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
+			__( 'WooCommerce Stripe - Automatic reconfiguration of your test-mode webhook was skipped because its signing secret in your settings was set manually. Please verify your test webhook configuration in the Stripe Dashboard, or %1$sre-configure your webhooks%2$s to let the plugin manage them.', 'woocommerce-gateway-stripe' ),
+			$link_open,
+			$link_close
+		);
+	}
+
+	/**
 	 * Surfaces a notice when the Stripe API appears to be experiencing an outage.
 	 *
 	 * The outage flag is set by WC_Stripe_API when requests fail with network
@@ -461,29 +560,73 @@ class WC_Stripe_Admin_Notices {
 	 * @return void
 	 */
 	public function payment_methods_check_environment() {
-		// phpcs:ignore
-		$is_stripe_settings_page = isset( $_GET['page'], $_GET['section'] ) && 'wc-settings' === $_GET['page'] && 0 === strpos( $_GET['section'], 'stripe' );
-		$currency_messages       = '';
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$is_stripe_settings_page = isset( $_GET['page'], $_GET['section'] ) && 'wc-settings' === $_GET['page'] && 'stripe' === $_GET['section'];
 
-		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $method_class ) {
-			if ( WC_Stripe_UPE_Payment_Method_CC::class === $method_class || WC_Stripe_UPE_Payment_Method_Link::class === $method_class ) {
-				continue;
-			}
-			$method     = $method_class::STRIPE_ID;
-			$upe_method = new $method_class();
-			if ( ! $upe_method->is_enabled() ) {
-				continue;
-			}
-
-			if ( ! $is_stripe_settings_page && ! in_array( get_woocommerce_currency(), $upe_method->get_supported_currencies(), true ) ) {
-				/* translators: %1$s Payment method, %2$s List of supported currencies */
-				$currency_messages .= sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s<br>', 'woocommerce-gateway-stripe' ), $upe_method->get_label(), implode( ', ', $upe_method->get_supported_currencies() ) );
-			}
+		if ( $is_stripe_settings_page ) {
+			return;
 		}
 
 		$show_notice = get_option( 'wc_stripe_show_upe_payment_methods_notice' );
-		if ( ! empty( $currency_messages ) && 'no' !== $show_notice ) {
-			$this->add_admin_notice( 'upe_payment_methods', 'notice notice-error', $currency_messages, true );
+		if ( 'no' === $show_notice ) {
+			return;
+		}
+
+		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		if ( ! $gateway instanceof WC_Stripe_UPE_Payment_Gateway || ! $gateway->is_enabled() ) {
+			return;
+		}
+
+		$available_store_currencies = WC_Stripe_Helper::get_available_store_currencies();
+		if ( empty( $available_store_currencies ) ) {
+			return;
+		}
+
+		$currency_messages = '';
+
+		foreach ( $gateway->get_upe_enabled_payment_method_ids() as $payment_method_id ) {
+			if ( ! isset( $gateway->payment_methods[ $payment_method_id ] ) ) {
+				continue;
+			}
+
+			$upe_method = $gateway->payment_methods[ $payment_method_id ];
+			if ( ! $upe_method instanceof WC_Stripe_UPE_Payment_Method ) {
+				continue;
+			}
+
+			$supported_currencies = $upe_method->get_supported_currencies();
+			if ( null === $supported_currencies ) {
+				continue;
+			}
+
+			if ( empty( array_intersect( $available_store_currencies, $supported_currencies ) ) ) {
+				/* translators: %1$s Payment method, %2$s List of supported currencies */
+				$currency_messages .= sprintf( __( '%1$s is enabled - it requires store currency to be %2$s<br>', 'woocommerce-gateway-stripe' ), $upe_method->get_label(), implode( ', ', $supported_currencies ) );
+			}
+		}
+
+		if ( ! empty( $currency_messages ) ) {
+			// If Adaptive Pricing is enabled, we should not show currency compatibility notices.
+			// Note that we run these checks here because is_adaptive_pricing_available_for_account() can trigger API calls
+			// when checking on webhook status.
+			$settings = WC_Stripe_Helper::get_stripe_settings();
+			if (
+				WC_Stripe_Helper::is_checkout_sessions_available() &&
+				'yes' === ( $settings['adaptive_pricing'] ?? 'no' ) &&
+				WC_Stripe_Helper::is_adaptive_pricing_available_for_account()
+			) {
+				return;
+			}
+
+			$settings_url = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=methods' );
+
+			$review_action = sprintf(
+				'<a href="%s" class="button button-secondary" style="margin:1em 2em 0.5em 0;">%s</a>',
+				esc_url( $settings_url ),
+				__( 'Review Stripe payment method settings', 'woocommerce-gateway-stripe' )
+			);
+
+			$this->add_admin_notice( 'upe_payment_methods', 'notice notice-error', $currency_messages, true, [ $review_action ] );
 		}
 	}
 
@@ -502,13 +645,22 @@ class WC_Stripe_Admin_Notices {
 			return;
 		}
 
-		$options   = WC_Stripe_Helper::get_stripe_settings();
-		$enabled   = isset( $options['express_checkout'] ) && 'yes' === $options['express_checkout'];
-		$locations = isset( $options['express_checkout_button_locations'] ) ? $options['express_checkout_button_locations'] : [];
+		$options = WC_Stripe_Helper::get_stripe_settings();
+		$enabled = isset( $options['express_checkout'] ) && 'yes' === $options['express_checkout'];
 
 		if ( ! $enabled ) {
 			return;
 		}
+
+		// Absent locations mean the default placement; the notice only targets
+		// stores that explicitly configured their locations.
+		if ( ! isset( $options['express_checkout_button_locations'] ) ) {
+			return;
+		}
+
+		// Read through the helper so a non-array value (every location unchecked) is
+		// treated as disabled instead of a misconfiguration.
+		$locations = ( new WC_Stripe_Express_Checkout_Helper() )->get_button_locations( 'apple_pay_google_pay' );
 
 		$has_product  = in_array( 'product', $locations, true );
 		$has_cart     = in_array( 'cart', $locations, true );
@@ -680,13 +832,10 @@ class WC_Stripe_Admin_Notices {
 				__( 'Payment method page &rarr;', 'woocommerce-gateway-stripe' )
 			)
 		);
-		$customer_stripe_page = sprintf(
-			'<a href="%s">%s</a>',
-			esc_url( WC_Stripe_Subscriptions_Helper::STRIPE_CUSTOMER_PAGE_BASE_URL . WC_Stripe_Order_Helper::get_instance()->get_stripe_customer_id( $subscription ) ),
-			esc_html(
-				/* translators: this is a text for a link pointing to the customer's page on Stripe */
-				__( 'Stripe customer page &rarr;', 'woocommerce-gateway-stripe' )
-			)
+		$customer_stripe_page = WC_Stripe_Helper::get_external_link(
+			WC_Stripe_Subscriptions_Helper::STRIPE_CUSTOMER_PAGE_BASE_URL . WC_Stripe_Order_Helper::get_instance()->get_stripe_customer_id( $subscription ),
+			/* translators: this is a text for a link pointing to the customer's page on Stripe */
+			__( 'Stripe customer page &rarr;', 'woocommerce-gateway-stripe' )
 		);
 
 		$detached_message  = __( 'The payment method for this subscription has been detached, <strong>preventing renewals</strong>. ', 'woocommerce-gateway-stripe' );
@@ -733,6 +882,7 @@ class WC_Stripe_Admin_Notices {
 						[
 							'a'      => [
 								'href'   => [],
+								'rel'    => [],
 								'target' => [],
 							],
 							'strong' => [],
@@ -799,6 +949,18 @@ class WC_Stripe_Admin_Notices {
 				case 'changed_keys':
 					update_option( 'wc_stripe_show_changed_keys_notice', 'no' );
 					break;
+				case 'webhook_missing_live':
+					delete_option( WC_Stripe_Account::get_webhook_missing_notice_option( 'live' ) );
+					break;
+				case 'webhook_missing_test':
+					delete_option( WC_Stripe_Account::get_webhook_missing_notice_option( 'test' ) );
+					break;
+				case 'webhook_manual_secret_live':
+					delete_option( WC_Stripe_Account::get_webhook_manual_secret_notice_option( 'live' ) );
+					break;
+				case 'webhook_manual_secret_test':
+					delete_option( WC_Stripe_Account::get_webhook_manual_secret_notice_option( 'test' ) );
+					break;
 				case 'legacy_deprecation':
 					update_option( 'wc_stripe_show_legacy_deprecation_notice', 'no' );
 					break;
@@ -844,17 +1006,50 @@ class WC_Stripe_Admin_Notices {
 				case 'ece_location':
 					update_option( 'wc_stripe_show_ece_location_notice', 'no' );
 					break;
+				case 'express_checkout_password_cleanup':
+					if ( current_user_can( 'manage_options' ) ) {
+						WC_Stripe_Express_Checkout_Password_Cleanup::dismiss_notice();
+					}
+					break;
 				case 'ocs_ap_banner':
+					// The dismiss parameters stay in the URL, so a page refresh runs this again.
+					$was_shown = 'yes' === get_option( self::SHOW_OCS_AP_BANNER_OPTION, 'no' );
 					update_option( self::SHOW_OCS_AP_BANNER_OPTION, 'no' );
+					if ( $was_shown ) {
+						$this->record_ap_banner_dismissed_tracks_event( 'ocs_ap' );
+					}
 					break;
 				case 'ap_only_banner':
+					$was_shown = 'yes' === get_option( self::SHOW_AP_ONLY_BANNER_OPTION, 'no' );
 					update_option( self::SHOW_AP_ONLY_BANNER_OPTION, 'no' );
+					if ( $was_shown ) {
+						$this->record_ap_banner_dismissed_tracks_event( 'ap_only' );
+					}
 					break;
 				case 'ocs_only_banner':
 					update_option( self::SHOW_OCS_ONLY_BANNER_OPTION, 'no' );
 					break;
 			}
 		}
+	}
+
+	/**
+	 * Records a Tracks event when the merchant dismisses an Adaptive Pricing "now active" notice.
+	 *
+	 * @since 11.2.0
+	 *
+	 * @param string $banner Which notice was dismissed: 'ocs_ap' or 'ap_only'.
+	 * @return void
+	 */
+	private function record_ap_banner_dismissed_tracks_event( string $banner ): void {
+		if ( ! function_exists( 'wc_admin_record_tracks_event' ) ) {
+			return;
+		}
+
+		wc_admin_record_tracks_event(
+			'wcstripe_ap_banner_dismissed',
+			WC_Stripe_Tracks::add_default_event_properties( [ 'banner' => $banner ] )
+		);
 	}
 
 	/**

@@ -79,6 +79,161 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The per-wallet Apple Pay and Google Pay flags must come from the method-specific check,
+	 * not the any-method aggregate: when only another wallet's locations cover the page, the
+	 * aggregate is true but Apple/Google Pay must still be reported as disabled.
+	 *
+	 * @param bool $apple_google_enabled What the helper reports for Apple/Google Pay in this context.
+	 * @dataProvider provide_apple_google_pay_enabled
+	 */
+	public function test_javascript_params_exposes_method_specific_apple_google_pay_flags( $apple_google_enabled ) {
+		$ajax_handler = $this->getMockBuilder( WC_Stripe_Express_Checkout_Ajax_Handler::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $gateway ] )
+			->setMethods( [ 'is_apple_google_pay_enabled', 'is_amazon_pay_enabled', 'is_link_enabled', 'is_express_checkout_enabled' ] )
+			->getMock();
+		$helper->method( 'is_apple_google_pay_enabled' )->willReturn( $apple_google_enabled );
+		// Amazon Pay alone keeps the aggregate true regardless of Apple/Google Pay.
+		$helper->method( 'is_amazon_pay_enabled' )->willReturn( true );
+		$helper->method( 'is_link_enabled' )->willReturn( false );
+		$helper->method( 'is_express_checkout_enabled' )->willReturn( true );
+
+		$element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
+
+		$actual = $element->javascript_params();
+
+		// Both wallets are backed by the shared setting today, so the flags move together.
+		$this->assertSame( $apple_google_enabled, $actual['stripe']['is_apple_pay_enabled'] );
+		$this->assertSame( $apple_google_enabled, $actual['stripe']['is_google_pay_enabled'] );
+		$this->assertTrue( $actual['stripe']['is_express_checkout_enabled'] );
+	}
+
+	/**
+	 * Data provider for {@see test_javascript_params_exposes_method_specific_apple_google_pay_flags()}.
+	 *
+	 * @return array<string, array{0: bool}>
+	 */
+	public function provide_apple_google_pay_enabled() {
+		return [
+			'disabled for this location' => [ false ],
+			'enabled for this location'  => [ true ],
+		];
+	}
+
+	/**
+	 * Only the Store API nonces may be minted at render time; the wc-ajax
+	 * nonces are served on demand so cached pages can't embed expired copies.
+	 *
+	 * @return void
+	 */
+	public function test_javascript_params_only_mints_store_api_nonces() {
+		$stripe_settings['testmode']             = 'yes';
+		$stripe_settings['test_publishable_key'] = 'pk_test_123';
+
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$ajax_handler = $this->getMockBuilder( WC_Stripe_Express_Checkout_Ajax_Handler::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $gateway ] )
+			->getMock();
+
+		$element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
+
+		$nonces = $element->javascript_params()['nonce'];
+
+		$this->assertSame( [ 'wc_store_api', 'wc_store_api_express_checkout' ], array_keys( $nonces ) );
+		$this->assertNotFalse( wp_verify_nonce( $nonces['wc_store_api'], 'wc_store_api' ) );
+		$this->assertNotFalse( wp_verify_nonce( $nonces['wc_store_api_express_checkout'], 'wc_store_api_express_checkout' ) );
+	}
+
+	/**
+	 * The notice is injected without a sanitizer, so a translation must not be able to
+	 * introduce anything but the checkout link, and a store with no resolvable checkout
+	 * URL must not get a self-linking empty anchor.
+	 *
+	 * @dataProvider provide_go_to_checkout_hardening
+	 * @param string $checkout_url What the checkout URL filter returns.
+	 * @param string $translation  What the translation filter returns for the sentence.
+	 * @param string $expected     The expected notice.
+	 * @return void
+	 */
+	public function test_javascript_params_hardens_the_go_to_checkout_notice( $checkout_url, $translation, $expected ) {
+		$ajax_handler = $this->getMockBuilder( WC_Stripe_Express_Checkout_Ajax_Handler::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $gateway ] )
+			->getMock();
+
+		$checkout_url_filter = static function () use ( $checkout_url ) {
+			return $checkout_url;
+		};
+		$translation_filter  = static function ( $translated, $text, $domain ) use ( $translation ) {
+			if ( 'woocommerce-gateway-stripe' === $domain && 0 === strpos( $text, 'Please go to the %1$s' ) ) {
+				return $translation;
+			}
+			return $translated;
+		};
+		add_filter( 'woocommerce_get_checkout_url', $checkout_url_filter );
+		add_filter( 'gettext', $translation_filter, 10, 3 );
+
+		try {
+			$element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
+			$this->assertSame( $expected, $element->javascript_params()['i18n']['go_to_checkout'] );
+		} finally {
+			remove_filter( 'gettext', $translation_filter, 10 );
+			remove_filter( 'woocommerce_get_checkout_url', $checkout_url_filter );
+		}
+	}
+
+	/**
+	 * Data provider for {@see test_javascript_params_hardens_the_go_to_checkout_notice()}.
+	 *
+	 * @return array[]
+	 */
+	public function provide_go_to_checkout_hardening() {
+		$sentence = 'Please go to the %1$scheckout page%2$s, fill in the required fields, and complete your order from there.';
+
+		return [
+			// kses re-encodes esc_url's &#038; as &amp;; both decode to a literal &.
+			'links to the filtered checkout URL' => [
+				'https://example.com/store/custom-checkout/?one=1&two=2',
+				$sentence,
+				'Please go to the <a href="https://example.com/store/custom-checkout/?one=1&amp;two=2">checkout page</a>, fill in the required fields, and complete your order from there.',
+			],
+			'no anchor without a checkout URL'   => [
+				'',
+				$sentence,
+				'Please go to the checkout page, fill in the required fields, and complete your order from there.',
+			],
+			'hostile translation is stripped'    => [
+				'https://example.com/checkout/',
+				'Go %1$shere%2$s <img src=x onerror="alert(1)"><script>alert(1)</script>',
+				'Go <a href="https://example.com/checkout/">here</a> alert(1)',
+			],
+		];
+	}
+
+	/**
 	 * Test for `scripts`.
 	 *
 	 * @return void
@@ -991,6 +1146,151 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Negative order fees must carry the `total_discount` key so the client re-applies the
+	 * sign; otherwise the display items sum to more than the total and Stripe rejects the sheet.
+	 *
+	 * @param float $fee_amount    Fee total (and amount, when $set_amount) to add to the order.
+	 * @param array $expected_item Expected display item for the fee.
+	 * @param bool  $set_amount    Whether to also set the fee's amount prop.
+	 *
+	 * @return void
+	 * @dataProvider provide_test_localize_pay_for_order_fee_display_items
+	 */
+	public function test_localize_pay_for_order_fee_display_items( $fee_amount, $expected_item, $set_amount = true ) {
+		// Start from a clean script registration so we read only this call's localized data.
+		wp_deregister_script( 'wc_stripe_express_checkout' );
+
+		$order = WC_Helper_Order::create_order();
+
+		$fee = new WC_Order_Item_Fee();
+		$fee->set_name( 'Test fee' );
+		if ( $set_amount ) {
+			$fee->set_amount( $fee_amount );
+		}
+		$fee->set_total( $fee_amount );
+		$order->add_item( $fee );
+		$order->calculate_totals();
+		$order->save();
+
+		$this->element->localize_pay_for_order_page_scripts( $order );
+
+		$params = $this->get_localized_pay_for_order_params();
+
+		$fee_items = array_values(
+			array_filter(
+				$params['displayItems'],
+				function ( $item ) {
+					return 'Test fee' === $item['label'];
+				}
+			)
+		);
+		$this->assertCount( 1, $fee_items );
+		$this->assertSame( $expected_item, $fee_items[0] );
+
+		// With the client-side negation applied, the items must sum to the validated total.
+		$signed_sum = 0;
+		foreach ( $params['displayItems'] as $item ) {
+			$signed_sum += 'total_discount' === ( $item['key'] ?? '' ) ? -$item['amount'] : $item['amount'];
+		}
+		$this->assertSame( $params['total']['amount'], $signed_sum );
+	}
+
+	/**
+	 * Data provider for `test_localize_pay_for_order_fee_display_items`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_localize_pay_for_order_fee_display_items() {
+		return [
+			'negative fee is tagged as a discount' => [
+				'fee_amount'    => -5.00,
+				'expected_item' => [
+					'key'    => 'total_discount',
+					'label'  => 'Test fee',
+					'amount' => 500,
+				],
+			],
+			'positive fee is emitted as-is'        => [
+				'fee_amount'    => 5.00,
+				'expected_item' => [
+					'label'  => 'Test fee',
+					'amount' => 500,
+				],
+			],
+			// Amount never set (REST/admin-edit flows): the builder must key off the total.
+			'negative fee with only total set'     => [
+				'fee_amount'    => -5.00,
+				'expected_item' => [
+					'key'    => 'total_discount',
+					'label'  => 'Test fee',
+					'amount' => 500,
+				],
+				'set_amount'    => false,
+			],
+		];
+	}
+
+	/**
+	 * The pay-for-order payload must carry the order's saved billing phone so the
+	 * client can preserve it when the wallet sheet didn't collect one — the Store
+	 * API order-pay route otherwise overwrites it with an empty value.
+	 *
+	 * @return void
+	 */
+	public function test_localize_pay_for_order_includes_saved_billing_phone() {
+		// Start from a clean script registration so we read only this call's localized data.
+		wp_deregister_script( 'wc_stripe_express_checkout' );
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_billing_phone( '+14155550123' );
+		$order->save();
+
+		$this->element->localize_pay_for_order_page_scripts( $order );
+
+		$params = $this->get_localized_pay_for_order_params();
+
+		$this->assertSame( '+14155550123', $params['orderDetails']['billingPhone'] );
+	}
+
+	/**
+	 * The Store API order-pay route validates the shipping address only when the
+	 * order needs shipping, so the payload must tell the client which case it is —
+	 * otherwise the client can't know whether to backfill the shipping phone.
+	 *
+	 * @dataProvider provide_localize_pay_for_order_needs_shipping
+	 * @param bool $virtual  Whether the ordered product is virtual.
+	 * @param bool $expected Expected needsShipping value.
+	 * @return void
+	 */
+	public function test_localize_pay_for_order_includes_needs_shipping( $virtual, $expected ) {
+		// Start from a clean script registration so we read only this call's localized data.
+		wp_deregister_script( 'wc_stripe_express_checkout' );
+
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_virtual( $virtual );
+		$product->save();
+		$order = WC_Helper_Order::create_order( 1, $product );
+
+		$this->element->localize_pay_for_order_page_scripts( $order );
+
+		$params = $this->get_localized_pay_for_order_params();
+
+		$this->assertSame( $expected, $params['orderDetails']['needsShipping'] );
+	}
+
+	/**
+	 * Provider for test_localize_pay_for_order_includes_needs_shipping.
+	 *
+	 * @return array
+	 */
+	public function provide_localize_pay_for_order_needs_shipping() {
+		return [
+			'physical product order needs shipping' => [ false, true ],
+			'virtual product order does not'        => [ true, false ],
+		];
+	}
+
+	/**
 	 * Decode the localized `wcStripeExpressCheckoutPayForOrderParams` payload back into an array.
 	 *
 	 * `wp_localize_script` stores it as `var wcStripeExpressCheckoutPayForOrderParams = {json};`.
@@ -1004,5 +1304,101 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 		$json  = substr( $data, $start, $end - $start + 1 );
 
 		return json_decode( $json, true );
+	}
+
+
+	/**
+	 * The cart snapshot is built while the checkout page renders, so a total Stripe cannot
+	 * charge must drop the snapshot instead of failing the whole page.
+	 *
+	 * @dataProvider provide_cart_prices_for_javascript_params
+	 *
+	 * @param string $price           Product price.
+	 * @param bool   $expect_snapshot Whether the cart snapshot must be present.
+	 */
+	public function test_javascript_params_cart_snapshot_for_total( string $price, bool $expect_snapshot ): void {
+		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['enabled']              = 'yes';
+		$stripe_settings['testmode']             = 'yes';
+		$stripe_settings['test_publishable_key'] = 'pk_test_key';
+		$stripe_settings['test_secret_key']      = 'sk_test_key';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$ajax_handler = $this->getMockBuilder( WC_Stripe_Express_Checkout_Ajax_Handler::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$element      = new WC_Stripe_Express_Checkout_Element( $ajax_handler, new WC_Stripe_Express_Checkout_Helper() );
+
+		add_filter( 'woocommerce_is_checkout', '__return_true' );
+		WC()->cart->empty_cart();
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_regular_price( $price );
+		$product->set_price( $price );
+		$product->save();
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		try {
+			$params = $element->javascript_params();
+		} finally {
+			remove_filter( 'woocommerce_is_checkout', '__return_true' );
+			WC()->cart->empty_cart();
+		}
+
+		if ( $expect_snapshot ) {
+			$this->assertIsArray( $params['cart'] );
+			$this->assertGreaterThan( 0, $params['cart']['total'] );
+		} else {
+			$this->assertNull( $params['cart'] );
+		}
+		$this->assertTrue( $params['is_checkout_page'] );
+	}
+
+	public function provide_cart_prices_for_javascript_params(): array {
+		return [
+			'normal total'       => [ '10.23', true ],
+			'above Stripe limit' => [ '10000000000.00', false ],
+			'integer wraparound' => [ '184467440737095520.00', false ],
+		];
+	}
+
+	/**
+	 * The Pay for Order localizer runs straight from a template hook, so an order total
+	 * Stripe cannot charge must skip the express checkout params instead of failing the page.
+	 *
+	 * @dataProvider provide_order_totals_for_pay_for_order_params
+	 *
+	 * @param string $total            Order total.
+	 * @param bool   $expect_localized Whether the params must be localized.
+	 */
+	public function test_localize_pay_for_order_page_scripts_for_total( string $total, bool $expect_localized ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		$order->set_total( $total );
+		$order->save();
+
+		wp_deregister_script( 'wc_stripe_express_checkout' );
+		try {
+			$this->element->localize_pay_for_order_page_scripts( $order );
+			$data = (string) wp_scripts()->get_data( 'wc_stripe_express_checkout', 'data' );
+		} finally {
+			wp_deregister_script( 'wc_stripe_express_checkout' );
+		}
+
+		if ( $expect_localized ) {
+			$this->assertStringContainsString( 'wcStripeExpressCheckoutPayForOrderParams', $data );
+			// wp_localize_script() stringifies scalar values.
+			$this->assertStringContainsString( '"order":"' . $order->get_id() . '"', $data );
+		} else {
+			$this->assertStringNotContainsString( 'wcStripeExpressCheckoutPayForOrderParams', $data );
+		}
+	}
+
+	public function provide_order_totals_for_pay_for_order_params(): array {
+		return [
+			'normal total'       => [ '10.23', true ],
+			'above Stripe limit' => [ '10000000000.00', false ],
+			'integer wraparound' => [ '184467440737095520.00', false ],
+		];
 	}
 }

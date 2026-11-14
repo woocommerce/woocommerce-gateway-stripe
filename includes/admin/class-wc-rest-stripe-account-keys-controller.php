@@ -169,7 +169,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	}
 
 	private function mask_key_value( $value ): string {
-		return substr( $value, 0, 10 ) . str_repeat( '*', 50 ) . substr( $value, -2 );
+		return WC_Stripe_Helper::mask_key_value( $value );
 	}
 
 	/**
@@ -299,15 +299,15 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 							&& ! $settings['test_secret_key'];
 
 		if ( $is_deleting_account ) {
+			// Ensure we record the disconnect before we overwrite any settings.
+			$this->record_manual_account_keys_tracks_event( 'wcstripe_stripe_disconnected', WC_Stripe_Mode::is_test() ? 'test' : 'live', $settings );
+
 			$settings['enabled']              = 'no';
 			$settings['connection_type']      = '';
 			$settings['pmc_enabled']          = '';
 			$settings['test_connection_type'] = '';
 			$settings['refresh_token']        = '';
 			$settings['test_refresh_token']   = '';
-			$this->record_manual_account_disconnect_track_event( WC_Stripe_Mode::is_test() );
-		} else {
-			$this->record_manual_account_key_update_track_event( WC_Stripe_Mode::is_test() );
 		}
 
 		// Before saving the settings, decommission any previously automatically configured webhook endpoint.
@@ -331,6 +331,13 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 
 		// Gives an instant reply if the connection was successful or not + rebuild the cache for the next request
 		$account = $this->account->get_cached_account_data();
+
+		// Record separate events for updated live and test keys after we have the keys in the database.
+		if ( ! $is_deleting_account ) {
+			foreach ( $this->get_modes_with_changed_keys( $current_account_keys, $settings ) as $mode ) {
+				$this->record_manual_account_keys_tracks_event( 'wcstripe_stripe_keys_updated', $mode, $settings );
+			}
+		}
 
 		if ( $active_keys_changed && ! $is_deleting_account && ! empty( $account ) ) {
 			( new WC_Stripe_Smart_Payment_Method_Defaults() )->apply_for_account_connection(
@@ -418,6 +425,13 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		$live_mode      = wc_clean( wp_unslash( $request->get_param( 'live_mode' ) ) );
 		$environment    = $live_mode ? 'live' : 'test';
 		$rate_limit_key = "wc-stripe-configure-{$environment}-webhooks-" . get_current_user_id();
+		$settings       = WC_Stripe_Helper::get_stripe_settings();
+		$secret_key     = $settings[ 'live' === $environment ? 'secret_key' : 'test_secret_key' ] ?? '';
+
+		// Without a key for this mode, get_secret_key() would use the active mode's key and target the wrong account.
+		if ( ! is_string( $secret_key ) || empty( $secret_key ) ) {
+			return new WP_REST_Response( [ 'message' => __( 'Cannot configure webhooks: no Stripe API secret key is saved for the requested mode.', 'woocommerce-gateway-stripe' ) ], 400 );
+		}
 
 		// Prevent users from setting up webhooks too frequently.
 		if ( WC_Rate_Limiter::retried_too_soon( $rate_limit_key ) ) {
@@ -427,6 +441,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		WC_Rate_Limiter::set_rate_limit( $rate_limit_key, 60 );
 
 		try {
+			WC_Stripe_API::set_secret_key( $secret_key );
 			$response = $this->account->configure_webhooks( $environment );
 		} catch ( Exception $e ) {
 			return new WP_REST_Response( [ 'message' => $e->getMessage() ], 400 );
@@ -468,9 +483,12 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		];
 
 		foreach ( $key_data as $mode => $keys ) {
-			// If there's no webhook ID or secret key, we can skip.
-			if ( empty( $keys['webhook_data'] ) || empty( $keys['current_secret'] ) ) {
+			if ( empty( $keys['webhook_data'] ) ) {
 				continue;
+			}
+
+			if ( is_array( $keys['webhook_data'] ) && empty( $keys['webhook_data']['secret'] ) ) {
+				$keys['webhook_data']['secret'] = $keys['current_secret'];
 			}
 
 			// If the user is removing or changing their secret key, decommission the
@@ -479,6 +497,9 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 				// Update the webhook settings now that the webhook has been decommissioned.
 				$settings[ 'live' === $mode ? 'webhook_data' : 'test_webhook_data' ]     = [];
 				$settings[ 'live' === $mode ? 'webhook_secret' : 'test_webhook_secret' ] = '';
+			} elseif ( $this->account->should_decommission_webhook( $keys['webhook_data'], $keys['secret_key'] ) ) {
+				// Keep access to the old endpoint if cleanup failed while replacing its account key.
+				$settings[ 'live' === $mode ? 'webhook_data' : 'test_webhook_data' ] = $keys['webhook_data'];
 			}
 		}
 
@@ -486,30 +507,67 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	}
 
 	/**
-	 * Records a track event when the keys of an account are manually removed (account disconnected).
+	 * Returns the modes whose publishable or secret key differs between two key sets.
 	 *
-	 * @param bool $is_test_mode Whether the keys are test ones.
-	 * @return void
+	 * Falls back to the active mode when neither mode's keys changed, e.g. when only a webhook
+	 * secret was submitted, so the keys-updated event still describes the account in use.
+	 *
+	 * @param array $keys_before Key settings before the update.
+	 * @param array $keys_after  Key settings after the update.
+	 * @return string[] Any of 'live' and 'test'.
 	 */
-	private function record_manual_account_disconnect_track_event( bool $is_test_mode ) {
-		if ( ! function_exists( 'wc_admin_record_tracks_event' ) ) {
-			return;
+	private function get_modes_with_changed_keys( array $keys_before, array $keys_after ): array {
+		$modes = [];
+
+		foreach ( [
+			'live' => '',
+			'test' => 'test_',
+		] as $mode => $prefix ) {
+			foreach ( [ 'publishable_key', 'secret_key' ] as $key ) {
+				if ( ( $keys_before[ $prefix . $key ] ?? '' ) !== ( $keys_after[ $prefix . $key ] ?? '' ) ) {
+					$modes[] = $mode;
+					break;
+				}
+			}
 		}
 
-		wc_admin_record_tracks_event( 'wcstripe_stripe_disconnected', [ 'is_test_mode' => $is_test_mode ] );
+		if ( [] !== $modes ) {
+			return $modes;
+		}
+
+		return [ WC_Stripe_Mode::is_test() ? 'test' : 'live' ];
 	}
 
 	/**
-	 * Records a track event when the keys of an account are manually updated.
+	 * Records a Tracks event for a manual account keys change, describing the given mode: whether
+	 * it is test mode, its connection type as stored in $settings, and the account its keys
+	 * currently resolve to.
 	 *
-	 * @param bool $is_test_mode Whether the keys are test ones.
+	 * @param string $event_name 'wcstripe_stripe_disconnected' when the keys were removed, 'wcstripe_stripe_keys_updated' otherwise.
+	 * @param string $mode       The mode the event is about, 'live' or 'test'.
+	 * @param array  $settings   The Stripe settings holding the connection type for the mode.
 	 * @return void
 	 */
-	private function record_manual_account_key_update_track_event( bool $is_test_mode ) {
-		if ( ! function_exists( 'wc_admin_record_tracks_event' ) ) {
+	private function record_manual_account_keys_tracks_event( string $event_name, string $mode, array $settings ) {
+		if ( ! WC_Stripe_Tracks::is_tracking_enabled() ) {
 			return;
 		}
 
-		wc_admin_record_tracks_event( 'wcstripe_stripe_keys_updated', [ 'is_test_mode' => $is_test_mode ] );
+		$connection_type = $settings[ 'test' === $mode ? 'test_connection_type' : 'connection_type' ] ?? '';
+
+		$event_props = [
+			'connection_type' => is_string( $connection_type ) ? $connection_type : '',
+			// Intentionally override `is_test_mode` based on $mode rather than on the current site mode.
+			'is_test_mode'    => 'test' === $mode,
+		];
+
+		$account_data = $this->account->get_cached_account_data( $mode );
+		if ( is_string( $account_data['id'] ?? null ) ) {
+			$event_props['account_id'] = $account_data['id'];
+		}
+
+		$event_props = WC_Stripe_Tracks::add_default_event_properties( $event_props );
+
+		wc_admin_record_tracks_event( $event_name, $event_props );
 	}
 }

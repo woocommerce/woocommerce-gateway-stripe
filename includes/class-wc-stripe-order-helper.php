@@ -1,5 +1,7 @@
 <?php
 
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -154,6 +156,13 @@ class WC_Stripe_Order_Helper {
 	 * @var string
 	 */
 	private const META_STRIPE_STATUS_FINAL = '_stripe_status_final';
+
+	/**
+	 * Meta key for a cancelled order's returned payment.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_REFUNDED_AFTER_CANCELLATION = '_stripe_refunded_after_cancellation';
 
 	/**
 	 * Meta key for Stripe refund failure reason.
@@ -601,6 +610,18 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Deletes the Stripe setup intent for order.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|void
+	 */
+	public function delete_stripe_setup_intent_id( ?WC_Order $order = null ) {
+		return $this->delete_order_meta( $order, self::META_STRIPE_SETUP_INTENT );
+	}
+
+	/**
 	 * Gets the Stripe checkout session ID for order.
 	 *
 	 * @since 10.5.0
@@ -623,6 +644,18 @@ class WC_Stripe_Order_Helper {
 	 */
 	public function update_stripe_checkout_session_id( ?WC_Order $order = null, string $checkout_session_id = '' ) {
 		return $this->update_order_meta( $order, self::META_STRIPE_CHECKOUT_SESSION_ID, $checkout_session_id );
+	}
+
+	/**
+	 * Deletes the Stripe checkout session ID for an order.
+	 *
+	 * @since 11.1.0
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|void
+	 */
+	public function delete_stripe_checkout_session_id( ?WC_Order $order = null ) {
+		return $this->delete_order_meta( $order, self::META_STRIPE_CHECKOUT_SESSION_ID );
 	}
 
 	/**
@@ -902,6 +935,23 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Checks whether the order's charge was explicitly recorded as authorize-only ('no').
+	 *
+	 * Deliberately false when the flag was never recorded (''): capture and void flows act on
+	 * this state by moving or releasing money, so an unknown state must not qualify — only a
+	 * charge Stripe was seen to leave uncaptured. Contrast is_stripe_charge_captured(), which
+	 * folds missing into false.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param WC_Order|null $order The order to check.
+	 * @return bool
+	 */
+	public function is_stripe_charge_authorized_only( ?WC_Order $order = null ): bool {
+		return 'no' === $this->get_stripe_charge_captured( $order );
+	}
+
+	/**
 	 * Sets whether charge was captured for order.
 	 *
 	 * @since 10.1.0
@@ -913,6 +963,38 @@ class WC_Stripe_Order_Helper {
 	 */
 	public function set_stripe_charge_captured( WC_Order $order, bool $captured = true ): void {
 		$this->update_order_meta( $order, self::META_STRIPE_CHARGE_CAPTURED, wc_bool_to_string( $captured ) );
+	}
+
+	/**
+	 * Records the captured state carried by a Stripe charge on the order.
+	 *
+	 * This is the single writer of the captured flag for every code path that receives a
+	 * charge object — a checkout response (process_response()), a webhook payload
+	 * (payment_intent.processing, charge.succeeded, charge.captured, charge.refunded), or
+	 * an on-demand API fetch (refund-time resolution, charge ID recovery). Refund and
+	 * capture flows read the flag to tell a refundable charge from a voidable
+	 * pre-authorization.
+	 *
+	 * Some payment methods create their charge only after checkout, so a webhook payload or
+	 * an API fetch may be the first — and only — chance to record the flag.
+	 *
+	 * Does not persist the order; callers decide when to save.
+	 *
+	 * @since 10.9.0
+	 *
+	 * @param WC_Order $order The order to record the captured state on.
+	 * @param object|string|null $charge The received Stripe charge (or charge-shaped webhook payload).
+	 * @return bool|null The recorded captured state, or null when the charge carries none.
+	 */
+	public function sync_stripe_charge_captured( WC_Order $order, $charge ): ?bool {
+		if ( ! is_object( $charge ) || ! isset( $charge->captured ) ) {
+			return null;
+		}
+
+		$captured = (bool) $charge->captured;
+		$this->set_stripe_charge_captured( $order, $captured );
+
+		return $captured;
 	}
 
 	/**
@@ -939,6 +1021,19 @@ class WC_Stripe_Order_Helper {
 	 */
 	public function set_stripe_status_final( WC_Order $order, bool $is_final = true ): void {
 		$this->update_order_meta( $order, self::META_STRIPE_STATUS_FINAL, wc_bool_to_string( $is_final ) );
+	}
+
+	/**
+	 * A false refund marker must not block legitimate checkout callbacks.
+	 *
+	 * @since 11.2.0
+	 * @param WC_Order $order The order to check.
+	 * @return bool
+	 */
+	public function is_refunded_after_cancellation( WC_Order $order ): bool {
+		return wc_string_to_bool(
+			$this->get_order_meta( $order, self::META_STRIPE_REFUNDED_AFTER_CANCELLATION ) ?? ''
+		);
 	}
 
 	/**
@@ -1013,6 +1108,20 @@ class WC_Stripe_Order_Helper {
 	 */
 	public function get_stripe_upe_redirect_processed( ?WC_Order $order = null ) {
 		return $this->get_order_meta( $order, self::META_STRIPE_UPE_REDIRECT_PROCESSED );
+	}
+
+	/**
+	 * Whether a settlement path has already finished with this order.
+	 *
+	 * A paid status covers the webhook and redirect paths; the redirect-processed flag
+	 * covers a confirmed intent whose status transition is still pending.
+	 *
+	 * @param WC_Order $order The order.
+	 * @return bool
+	 */
+	public function is_order_payment_settled( WC_Order $order ): bool {
+		return $order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED, OrderStatus::ON_HOLD ] )
+			|| (bool) $this->get_stripe_upe_redirect_processed( $order );
 	}
 
 	/**
@@ -1186,9 +1295,7 @@ class WC_Stripe_Order_Helper {
 		$details['address']['postal_code'] = $order->get_billing_postcode();
 		$details['address']['country']     = $order->get_billing_country();
 
-		/**
-		 * This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php.
-		 */
+		/** This filter is documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php. */
 		return (object) apply_filters( 'wc_stripe_owner_details', $details, $order );
 	}
 
@@ -1218,7 +1325,7 @@ class WC_Stripe_Order_Helper {
 		}
 
 		if ( ! is_object( $intent ) ) {
-			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		if ( null === $intent_id ) {
@@ -1234,7 +1341,7 @@ class WC_Stripe_Order_Helper {
 					'error'     => $intent->error,
 				]
 			);
-			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		if ( null === $selected_payment_type ) {
@@ -1278,7 +1385,136 @@ class WC_Stripe_Order_Helper {
 			]
 		);
 
-		throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+		throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+	}
+
+	/**
+	 * Holds an order for reconciliation when Stripe has taken a payment that no longer matches it.
+	 *
+	 * @since 11.2.0
+	 *
+	 * @param WC_Order $order  The order being settled.
+	 * @param object   $intent The successful PaymentIntent from Stripe.
+	 * @return bool Whether settlement may proceed.
+	 */
+	public function validate_successful_intent_or_hold_order( WC_Order $order, object $intent ): bool {
+		try {
+			$this->validate_intent_for_order( $order, $intent, '' );
+			return true;
+		} catch ( Exception $e ) {
+			$intent_amount = isset( $intent->amount, $intent->currency )
+				? strtoupper( $intent->currency ) . ' ' . WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( $intent->amount, $intent->currency )
+				: __( 'unknown amount', 'woocommerce-gateway-stripe' );
+			$order->add_order_note(
+				sprintf(
+					/* translators: 1) PaymentIntent ID 2) payment amount and currency 3) order total and currency. */
+					__( 'Stripe PaymentIntent %1$s (%2$s) does not match this order (%3$s). The order is on hold for manual review.', 'woocommerce-gateway-stripe' ),
+					$intent->id ?? '',
+					$intent_amount,
+					$order->get_currency() . ' ' . $order->get_total()
+				)
+			);
+			// The payment needs manual reconciliation before the order can be fulfilled.
+			$order->update_status( OrderStatus::ON_HOLD );
+			return false;
+		}
+	}
+
+
+	/**
+	 * Whether the succeeded PaymentIntent settled for the order's amount.
+	 *
+	 * Returns true when there is no comparable amount to check: setup intents and intents that omit
+	 * the amount. A currency difference is only expected for an Adaptive Pricing checkout paid in a
+	 * presentment currency, which handle_checkout_session_success() validates against the order
+	 * instead; that case returns true, but any other currency mismatch is anomalous (a third-party
+	 * filter supplying the order id, or the order currency changing after the intent was created) and
+	 * returns false so the caller holds the order rather than settling it unchecked.
+	 *
+	 * @since 11.2.0
+	 *
+	 * @param WC_Order $order  The order being settled.
+	 * @param object   $intent The succeeded PaymentIntent.
+	 * @return bool
+	 */
+	public function intent_amount_matches_order( WC_Order $order, $intent ): bool {
+		// Only a PaymentIntent carries an amount to compare; other objects (setup intents) have none.
+		if ( 'payment_intent' !== ( $intent->object ?? '' ) || ! isset( $intent->amount ) ) {
+			return true;
+		}
+
+		$order_currency  = strtolower( $order->get_currency() );
+		$intent_currency = strtolower( (string) ( $intent->currency ?? '' ) );
+
+		if ( '' !== $intent_currency && $order_currency !== $intent_currency ) {
+			return $this->is_adaptive_pricing_intent( $intent );
+		}
+
+		return WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ) === (int) $intent->amount;
+	}
+
+	/**
+	 * Whether the intent is an Adaptive Pricing checkout, settled in the buyer's presentment currency.
+	 *
+	 * @since 11.2.0
+	 *
+	 * @param object $intent The PaymentIntent.
+	 * @return bool
+	 */
+	private function is_adaptive_pricing_intent( $intent ): bool {
+		$checkout_type = $intent->metadata->checkout_type ?? '';
+		return WC_Stripe_Checkout_Sessions_Ajax_Handler::ADAPTIVE_PRICING_CHECKOUT_TYPE === $checkout_type;
+	}
+
+	/**
+	 * Logs, notes, and holds an order whose PaymentIntent settled for a different amount than its total.
+	 *
+	 * @since 11.2.0
+	 *
+	 * @param WC_Order $order  The order to hold.
+	 * @param object   $intent The succeeded PaymentIntent whose amount did not match.
+	 * @return void
+	 */
+	public function hold_order_for_amount_mismatch( WC_Order $order, $intent ): void {
+		$settled_amount   = isset( $intent->amount ) ? (int) $intent->amount : null;
+		$settled_currency = isset( $intent->currency ) ? strtolower( (string) $intent->currency ) : '';
+		$intent_id        = isset( $intent->id ) ? (string) $intent->id : '';
+		$order_display    = strtoupper( $order->get_currency() ) . ' ' . $order->get_total();
+
+		if ( null === $settled_amount ) {
+			$settled_display = __( 'unknown', 'woocommerce-gateway-stripe' );
+		} elseif ( '' === $settled_currency ) {
+			/* translators: 1) Stripe numeric amount, e.g. '1500'. */
+			$settled_display = sprintf( __( 'unknown currency; Stripe amount: %1$d', 'woocommerce-gateway-stripe' ), $settled_amount );
+		} else {
+			$settled_display = strtoupper( $settled_currency ) . ' ' . WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( $settled_amount, $settled_currency );
+		}
+
+		WC_Stripe_Logger::error( sprintf( 'Order %1$d held for review: Stripe settled %2$s but the order total is %3$s. PaymentIntent: %4$s.', $order->get_id(), $settled_display, $order_display, $intent_id ) );
+
+		$reference = '';
+		if ( '' !== $intent_id ) {
+			$reference = ' ' . sprintf(
+				/* translators: 1) opening anchor tag linking to the Stripe dashboard, 2) Stripe PaymentIntent ID, 3) closing anchor tag */
+				__( 'PaymentIntent: %1$s%2$s%3$s.', 'woocommerce-gateway-stripe' ),
+				'<a href="' . esc_url( WC_Stripe_Helper::get_transaction_url_for_id( $intent_id, empty( $intent->livemode ) ) ) . '" target="_blank" rel="noopener noreferrer">',
+				esc_html( $intent_id ),
+				'</a>'
+			);
+		}
+
+		$order->add_order_note(
+			sprintf(
+				/* translators: 1) settled amount and currency 2) expected order total and currency */
+				__( 'Stripe payment was not marked complete: the settled amount (%1$s) does not match the order total (%2$s). The order was placed on hold for manual review.', 'woocommerce-gateway-stripe' ),
+				$settled_display,
+				$order_display
+			) . $reference
+		);
+
+		if ( ! $order->has_status( OrderStatus::ON_HOLD ) ) {
+			$order->update_status( OrderStatus::ON_HOLD );
+		}
 	}
 
 	/**
@@ -1303,7 +1539,7 @@ class WC_Stripe_Order_Helper {
 	public function validate_minimum_order_amount( WC_Order $order ): void {
 		if ( $order->get_total() * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
 			/* translators: 1) amount (including currency symbol) */
-			throw new WC_Stripe_Exception( 'Did not meet minimum amount', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
+			throw new WC_Stripe_Exception( 'Did not meet minimum amount', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 	}
 

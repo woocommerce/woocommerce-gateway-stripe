@@ -269,7 +269,16 @@ trait WC_Stripe_Pre_Orders_Trait {
 			$is_authentication_required = $this->is_authentication_required_for_payment( $response ); // @phpstan-ignore-line (is_authentication_required_for_payment is defined in the classes that use this trait)
 
 			if ( ! empty( $response->error ) && ! $is_authentication_required ) {
-				if ( ! $retry ) {
+				// Fall back to the customer's default source only when the order's own
+				// source no longer exists in Stripe; any other error (e.g. a decline)
+				// fails the order. WC_Stripe_Subscriptions_Trait applies the same gate
+				// to renewal retries.
+				$gateway        = WC_Stripe::get_instance()->get_main_stripe_gateway();
+				$source_is_gone = $gateway->is_no_such_source_error( $response->error )
+					|| $gateway->is_no_linked_source_error( $response->error );
+
+				/** This filter is documented in includes/compat/trait-wc-stripe-subscriptions.php. */
+				if ( ! $retry || ! $source_is_gone || ! apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
 					throw new Exception( $response->error->message );
 				}
 				$this->remove_order_source_before_retry( $order );
@@ -294,8 +303,20 @@ trait WC_Stripe_Pre_Orders_Trait {
 
 				throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
 			} else {
+				$latest_charge = $this->get_latest_charge_from_intent( $response ); // @phpstan-ignore-line (get_latest_charge_from_intent is defined in the classes that use this trait)
+
+				if (
+					'payment_intent' === ( $response->object ?? '' )
+					&& WC_Stripe_Intent_Status::PROCESSING === ( $response->status ?? '' )
+					&& null === $latest_charge
+				) {
+					// The saved intent lets a later webhook complete the release payment.
+					// Failing the order now could prompt a retry while payment is still processing.
+					return;
+				}
+
 				// Successful
-				$this->process_response( $this->get_latest_charge_from_intent( $response ), $order ); // @phpstan-ignore-line (process_response is defined in the classes that use this trait)
+				$this->process_response( $latest_charge, $order ); // @phpstan-ignore-line (process_response is defined in the classes that use this trait)
 			}
 		} catch ( Exception $e ) {
 			$error_message = is_callable( [ $e, 'getLocalizedMessage' ] ) ? $e->getLocalizedMessage() : $e->getMessage();

@@ -13,6 +13,7 @@ jest.mock( 'wcstripe/data', () => ( {
 	useExpressCheckoutButtonType: jest.fn().mockReturnValue( [ 'buy' ] ),
 	useExpressCheckoutButtonSize: jest.fn().mockReturnValue( [ 'default' ] ),
 	useExpressCheckoutButtonTheme: jest.fn().mockReturnValue( [ 'dark' ] ),
+	useEnabledPaymentMethodIds: jest.fn().mockReturnValue( [ [] ] ),
 } ) );
 
 jest.mock( 'wcstripe/data/account/hooks', () => ( {
@@ -111,19 +112,25 @@ describe( 'ExpressCheckoutSettingsSection', () => {
 		render( <ExpressCheckoutSettingsSection /> );
 
 		// Uncheck each checkbox, and verify them what kind of action should have been called
-		await userEvent.click( screen.getByText( 'Product page' ) );
+		await userEvent.click(
+			screen.getByRole( 'checkbox', { name: 'Product page' } )
+		);
 
 		expect(
 			updateExpressCheckoutLocationsHandler
 		).toHaveBeenLastCalledWith( [ 'checkout', 'cart' ] );
 
-		await userEvent.click( screen.getByText( 'Checkout' ) );
+		await userEvent.click(
+			screen.getByRole( 'checkbox', { name: 'Checkout' } )
+		);
 
 		expect(
 			updateExpressCheckoutLocationsHandler
 		).toHaveBeenLastCalledWith( [ 'product', 'cart' ] );
 
-		await userEvent.click( screen.getByText( 'Cart' ) );
+		await userEvent.click(
+			screen.getByRole( 'checkbox', { name: 'Cart' } )
+		);
 
 		expect(
 			updateExpressCheckoutLocationsHandler
@@ -147,19 +154,25 @@ describe( 'ExpressCheckoutSettingsSection', () => {
 
 		render( <ExpressCheckoutSettingsSection /> );
 
-		await userEvent.click( screen.getByText( 'Cart' ) );
+		await userEvent.click(
+			screen.getByRole( 'checkbox', { name: 'Cart' } )
+		);
 
 		expect(
 			updateExpressCheckoutLocationsHandler
 		).toHaveBeenLastCalledWith( [ 'cart' ] );
 
-		await userEvent.click( screen.getByText( 'Product page' ) );
+		await userEvent.click(
+			screen.getByRole( 'checkbox', { name: 'Product page' } )
+		);
 
 		expect(
 			updateExpressCheckoutLocationsHandler
 		).toHaveBeenLastCalledWith( [ 'product' ] );
 
-		await userEvent.click( screen.getByText( 'Checkout' ) );
+		await userEvent.click(
+			screen.getByRole( 'checkbox', { name: 'Checkout' } )
+		);
 
 		expect(
 			updateExpressCheckoutLocationsHandler

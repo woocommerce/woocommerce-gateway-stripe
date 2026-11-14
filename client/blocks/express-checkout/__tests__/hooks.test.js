@@ -1,5 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { useExpressCheckout } from '../hooks';
+import { onConfirmHandler } from 'wcstripe/express-checkout/event-handler';
 import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
 
 // Stable singletons, matching how react-stripe-js returns the same instances.
@@ -19,6 +20,7 @@ jest.mock( 'wcstripe/express-checkout/event-handler', () => ( {
 } ) );
 
 jest.mock( 'wcstripe/express-checkout/utils', () => ( {
+	appendCheckoutLink: jest.fn( ( notice ) => `${ notice }<br>LINK` ),
 	displayExpressCheckoutNotice: jest.fn(),
 	getExpressCheckoutButtonStyleSettings: jest.fn( () => ( {
 		paymentMethods: {},
@@ -224,6 +226,61 @@ describe( 'useExpressCheckout', () => {
 			} )
 		);
 	} );
+
+	// An order-side failure still has to give the wallet sheet a terminal result,
+	// otherwise it stays open and the shopper is left with nothing. The third
+	// argument is the removed `isOrderError` opt-out: passing it must change nothing.
+	it.each( [
+		[ 'plain message', 'Order creation error', true ],
+		[
+			'checkout link',
+			'Required field.\nAnother required field.',
+			{ linkToCheckout: true },
+		],
+	] )(
+		'fails the payment and shows the %s when the order errors',
+		async ( _name, message, options ) => {
+			onConfirmHandler.mockClear();
+			const setExpressPaymentError = jest.fn();
+
+			const { result } = renderHook( () =>
+				useExpressCheckout( {
+					api: {},
+					billing: {
+						currency: { minorUnit: 2 },
+						cartTotal: { value: 7500 },
+						cartTotalItems: [],
+					},
+					shippingData: { needsShipping: false, shippingRates: [] },
+					onClick: jest.fn(),
+					onClose: jest.fn(),
+					setExpressPaymentError,
+				} )
+			);
+
+			const event = { paymentFailed: jest.fn() };
+			await act( async () => {
+				await result.current.onConfirm( event );
+			} );
+
+			const { abortPayment } = onConfirmHandler.mock.calls[ 0 ][ 0 ];
+			abortPayment( event, message, options );
+
+			expect( event.paymentFailed ).toHaveBeenCalledWith( {
+				reason: 'fail',
+			} );
+			expect( setExpressPaymentError ).toHaveBeenCalledWith(
+				options.linkToCheckout
+					? 'Required field.<br>Another required field.<br>LINK'
+					: message
+			);
+
+			// The message has to be in front of the shopper before the sheet closes.
+			expect(
+				setExpressPaymentError.mock.invocationCallOrder[ 0 ]
+			).toBeLessThan( event.paymentFailed.mock.invocationCallOrder[ 0 ] );
+		}
+	);
 
 	// Blocks passes fresh billing/shippingData refs each cart tick; memoised
 	// outputs must stay stable so the Stripe element doesn't churn.

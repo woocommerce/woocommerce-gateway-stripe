@@ -1,0 +1,514 @@
+<?php
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Creates and synchronizes the Stripe Checkout Session owned by a WooCommerce session.
+ */
+class WC_Stripe_Checkout_Session_Manager {
+	/**
+	 * Checkout session metadata value identifying an Adaptive Pricing checkout.
+	 *
+	 * @var string
+	 */
+	public const ADAPTIVE_PRICING_CHECKOUT_TYPE = 'adaptive_pricing_checkout';
+
+	/**
+	 * WooCommerce session key containing the active Stripe Checkout Session.
+	 *
+	 * @var string
+	 */
+	private const WC_SESSION_KEY = 'wc_stripe_checkout_session';
+
+	/**
+	 * Singleton instance.
+	 *
+	 * @var self|null
+	 */
+	private static $instance;
+
+	/**
+	 * Return the shared manager instance.
+	 *
+	 * @return self
+	 */
+	public static function get_instance(): self {
+		if ( null === self::$instance ) {
+			self::$instance = new self();
+		}
+
+		return self::$instance;
+	}
+
+	/**
+	 * Return a runtime error message when we cannot create, initialize, or update a Stripe Checkout Session.
+	 *
+	 * @return string
+	 */
+	public static function get_runtime_error_message(): string {
+		return __( 'Unable to enable Adaptive Pricing.', 'woocommerce-gateway-stripe' );
+	}
+
+	/**
+	 * Create a new Stripe Checkout Session for the current WooCommerce cart.
+	 *
+	 * @return array Public session data.
+	 * @throws Exception When the cart or Stripe response is invalid.
+	 */
+	public function create_session(): array {
+		$this->validate_cart();
+
+		$cart_context = $this->build_cart_context();
+		$request      = [
+			'ui_mode'                       => 'elements',
+			'line_items'                    => $this->build_line_items( $cart_context ),
+			'excluded_payment_method_types' => WC_Stripe::get_instance()->get_main_stripe_gateway()->get_excluded_payment_method_types(),
+			'payment_intent_data'           => $this->build_payment_intent_data(),
+			'mode'                          => 'payment',
+			'adaptive_pricing'              => [
+				'enabled' => 'true',
+			],
+			'metadata'                      => [
+				'checkout_type' => self::ADAPTIVE_PRICING_CHECKOUT_TYPE,
+			],
+		];
+
+		// We should have a valid configuration ID, but we make sure we don't create an invalid request.
+		$payment_method_configuration_id = WC_Stripe_Payment_Method_Configurations::get_configuration_id();
+		if ( null !== $payment_method_configuration_id ) {
+			$request['payment_method_configuration'] = $payment_method_configuration_id;
+		}
+
+		if ( 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ) ) {
+			$request['phone_number_collection'] = [ 'enabled' => 'true' ];
+		}
+
+		$save_payment_method_enabled = $this->can_enable_save_payment_method();
+		if ( $save_payment_method_enabled ) {
+			try {
+				// Creation happens before checkout fields are complete, so only the saved account identity can be used here.
+				$stripe_customer = new WC_Stripe_Customer( WC()->customer->get_id() );
+				$stripe_customer->maybe_create_customer( WC_Stripe_Customer::CUSTOMER_CONTEXT_CHECKOUT_SESSION );
+			} catch ( Exception $e ) {
+				throw new WC_Stripe_Exception( $e->getMessage(), __( 'Unable to create or retrieve Stripe customer.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			}
+
+			$request['customer']                     = $stripe_customer->get_id();
+			$request['saved_payment_method_options'] = [
+				'payment_method_save' => 'enabled',
+			];
+
+			// Stripe must collect and backfill an address when the saved customer was created without one.
+			$has_billing_address = '' !== trim( (string) get_user_meta( WC()->customer->get_id(), 'billing_address_1', true ) );
+			if ( ! $has_billing_address ) {
+				$request['customer_update'] = [
+					'address' => 'auto',
+					'name'    => 'auto',
+				];
+			}
+		}
+
+		// Billing details don't exist yet at page load, so let Stripe create the Customer at
+		// confirmation; the checkout.session.completed handler links it to the order/user.
+		if ( ! isset( $request['customer'] ) ) {
+			$request['customer_creation'] = 'always';
+		}
+
+		$checkout_session = WC_Stripe_API::request( $request, 'checkout/sessions' );
+		if ( ! empty( $checkout_session->error ) ) {
+			$message = empty( $checkout_session->error->message ) ? '(No error message returned from Stripe)' : $checkout_session->error->message;
+			throw new WC_Stripe_Exception( $message, self::get_runtime_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+
+		if ( empty( $checkout_session->client_secret ) || empty( $checkout_session->id ) ) {
+			throw new WC_Stripe_Exception( 'Failed to create Stripe Checkout Session.', self::get_runtime_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+
+		WC_Stripe_Checkout_Session_Context::store_for_cart( $checkout_session->id, $cart_context );
+
+		// Note: we don't store the amount or currency here, as the Checkout Session context is
+		// the source of truth for the amount and currency. That code controls the data sent
+		// to Stripe and is used to validate amounts later.
+		$record = [
+			'session_id'                  => (string) $checkout_session->id,
+			'client_secret'               => (string) $checkout_session->client_secret,
+			'revision'                    => $this->generate_revision_token(),
+			'status'                      => 'success',
+			'message'                     => '',
+			'save_payment_method_enabled' => $save_payment_method_enabled,
+			'expires_at'                  => (int) ( $checkout_session->expires_at ?? 0 ),
+			'exclusions'                  => $request['excluded_payment_method_types'],
+		];
+		$this->set_record( $record );
+
+		return $this->get_public_data( $record );
+	}
+
+	/**
+	 * Update an existing Stripe Checkout Session from the current cart.
+	 *
+	 * @param string $session_id Stripe Checkout Session ID.
+	 * @return array Public session data.
+	 * @throws Exception When the session cannot be updated.
+	 */
+	public function update_session( string $session_id ): array {
+		$this->validate_cart();
+
+		if ( '' === $session_id ) {
+			throw new WC_Stripe_Exception( 'Checkout session ID is required.', self::get_runtime_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+
+		// Handle errors outside of the locked context, as the lock TTL is not long enough to cover multiple Stripe API requests.
+		$stripe_error = WC_Stripe_Checkout_Session_Context::with_mutation_lock(
+			$session_id,
+			function () use ( $session_id ): ?object {
+				WC_Stripe_Checkout_Session_Context::validate_update_request( $session_id );
+
+				// Read the cart only once the lock is held and the session is known not to be
+				// linked to an order, so a concurrent request cannot push a snapshot taken
+				// against cart state that validation has already moved past.
+				$cart_context = $this->build_cart_context();
+
+				$checkout_session = WC_Stripe_API::request(
+					[ 'line_items' => $this->build_line_items( $cart_context ) ],
+					"checkout/sessions/$session_id"
+				);
+
+				if ( ! empty( $checkout_session->error ) ) {
+					return is_object( $checkout_session->error ) ? $checkout_session->error : (object) [ 'message' => (string) $checkout_session->error ];
+				}
+
+				WC_Stripe_Checkout_Session_Context::store_for_cart( $session_id, $cart_context );
+
+				$record = $this->get_record();
+
+				if ( is_array( $record ) && (string) ( $record['session_id'] ?? '' ) === $session_id ) {
+					// Generate a new revision token.
+					$record['revision'] = $this->generate_revision_token();
+					$record['status']   = 'success';
+					$record['message']  = '';
+					$this->set_record( $record );
+				}
+
+				return null;
+			}
+		);
+
+		if ( null !== $stripe_error ) {
+			// Stripe returns the same invalid_request_error type, with no code, for both bad parameters
+			// and an expired session. Fetch the session to get its current state.
+			if ( 'invalid_request_error' === (string) ( $stripe_error->type ?? '' ) && $this->is_session_finished_on_stripe( $session_id ) ) {
+				WC_Stripe_Logger::info(
+					'Creating a new Checkout Session because Stripe reports the existing session as inactive.',
+					[ 'checkout_session_id' => $session_id ]
+				);
+
+				return $this->create_session();
+			}
+
+			$message = empty( $stripe_error->message ) ? '(No error message returned from Stripe)' : (string) $stripe_error->message;
+			throw new WC_Stripe_Exception( $message, self::get_runtime_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+
+		// Ensure we (re)fetch the current data.
+		return $this->get_current_data();
+	}
+
+	/**
+	 * Create or update the session only when the native WooCommerce cart has changed.
+	 *
+	 * @return array Public session data.
+	 * @throws Exception When synchronization fails.
+	 */
+	public function synchronize(): array {
+		$this->validate_cart();
+
+		$record       = $this->get_record();
+		$cart_context = $this->build_cart_context();
+
+		if ( ! is_array( $record ) || empty( $record['session_id'] ) || empty( $record['client_secret'] ) ) {
+			return $this->create_session();
+		}
+
+		$context = WC_Stripe_Checkout_Session_Context::get_context( (string) $record['session_id'] );
+		if ( empty( $context ) || ! empty( $context['order_id'] ) ) {
+			return $this->create_session();
+		}
+
+		// Stripe cannot add or remove saved_payment_method_options after creation, so a
+		// login-state change (e.g. a migrated guest session) requires a new session.
+		$can_save_payment_method = $this->can_enable_save_payment_method();
+		if ( ! empty( $record['save_payment_method_enabled'] ) !== $can_save_payment_method ) {
+			WC_Stripe_Logger::info(
+				'Recreating the Checkout Session after a login-state change.',
+				[
+					'checkout_session_id'         => (string) $record['session_id'],
+					'save_payment_method_enabled' => $can_save_payment_method,
+				]
+			);
+
+			return $this->create_session();
+		}
+
+		// Stripe only accepts excluded_payment_method_types at creation, and the list follows the
+		// billing country, which is often unknown when the session is first created, so a change
+		// needs a new session for a method hidden for the earlier country (e.g. iDEAL) to surface.
+		// Records stored before the list was tracked have nothing to compare against and are kept.
+		if ( isset( $record['exclusions'] ) && is_array( $record['exclusions'] ) ) {
+			$current_exclusions = WC_Stripe::get_instance()->get_main_stripe_gateway()->get_excluded_payment_method_types();
+			$stored_exclusions  = $record['exclusions'];
+			sort( $current_exclusions );
+			sort( $stored_exclusions );
+
+			if ( $current_exclusions !== $stored_exclusions ) {
+				WC_Stripe_Logger::info( 'Recreating the Checkout Session after the excluded payment method types changed.', [ 'checkout_session_id' => (string) $record['session_id'] ] );
+
+				$replacement = $this->create_session();
+				$this->retire_superseded_session( (string) $record['session_id'] );
+
+				return $replacement;
+			}
+		}
+
+		// Stripe expires a session at expires_at, but every cart update extends the context past
+		// that, so an unchanged cart would otherwise keep handing the client a session Stripe refuses.
+		// Records stored before expires_at was tracked are replaced on their next cart change instead,
+		// through the rejected update.
+		$expires_at = (int) ( $record['expires_at'] ?? 0 );
+		if ( $expires_at > 0 && time() >= $expires_at ) {
+			WC_Stripe_Logger::info(
+				'Creating a new Checkout Session as the current session has expired.',
+				[ 'checkout_session_id' => (string) $record['session_id'] ]
+			);
+
+			return $this->create_session();
+		}
+
+		// The context is the source of truth for amount and currency, so we need to compare
+		// against the data that was pushed to Stripe.
+		if (
+			(int) ( $context['amount'] ?? 0 ) === $cart_context['amount']
+			&& (string) ( $context['currency'] ?? '' ) === $cart_context['currency']
+			&& 'success' === ( $record['status'] ?? '' )
+		) {
+			return $this->get_public_data( $record );
+		}
+
+		return $this->update_session( (string) $record['session_id'] );
+	}
+
+	/**
+	 * Return the current session data without causing a Stripe API request.
+	 *
+	 * @return array
+	 */
+	public function get_current_data(): array {
+		return $this->get_public_data( $this->get_record() );
+	}
+
+	/**
+	 * Record a synchronization failure while retaining the last usable session identifiers.
+	 *
+	 * @param string $message Failure message.
+	 * @return array
+	 */
+	public function mark_failed( string $message ): array {
+		$record            = $this->get_record() ?? [];
+		$record['status']  = 'error';
+		$record['message'] = $message;
+		$this->set_record( $record );
+
+		return $this->get_public_data( $record );
+	}
+
+	/**
+	 * Ask Stripe whether a session is expired, completed, or gone.
+	 *
+	 * @param string $session_id Stripe Checkout Session ID.
+	 * @return bool True only on an explicit Stripe answer; an inconclusive lookup keeps the session.
+	 */
+	private function is_session_finished_on_stripe( string $session_id ): bool {
+		// retrieve() answers null during the invalid-key cooldown and a WP_Error during an outage;
+		// neither says anything about the session.
+		$session = WC_Stripe_API::retrieve( "checkout/sessions/$session_id" );
+		if ( ! is_object( $session ) || is_wp_error( $session ) ) {
+			return false;
+		}
+
+		if ( ! empty( $session->error ) ) {
+			return 'resource_missing' === ( $session->error->code ?? '' );
+		}
+
+		if ( ! is_string( $session->status ?? null ) ) {
+			return false;
+		}
+
+		// https://docs.stripe.com/api/checkout/sessions/object#checkout_session_object-status
+		return in_array( $session->status, [ 'expired', 'complete' ], true );
+	}
+
+	/**
+	 * Stop a replaced session from being linked to an order.
+	 *
+	 * The replaced session stays open on Stripe with the same amount, so a checkout page still
+	 * holding it (e.g. a second tab) could pay through it while the replacement is paid as well,
+	 * charging the cart twice. Order linking requires the local context, so removing it rejects
+	 * that submission before the client confirms anything. A session already linked to an order
+	 * is left alone: its payment may be in progress and the webhooks still need its context.
+	 *
+	 * @param string $session_id Stripe Checkout Session ID that was replaced.
+	 * @return void
+	 */
+	private function retire_superseded_session( string $session_id ): void {
+		try {
+			WC_Stripe_Checkout_Session_Context::with_mutation_lock(
+				$session_id,
+				static function () use ( $session_id ): void {
+					$context = WC_Stripe_Checkout_Session_Context::get_context( $session_id );
+					if ( empty( $context['order_id'] ) ) {
+						WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
+					}
+				}
+			);
+		} catch ( Exception $e ) {
+			// The lock is held by a request that is linking or updating the session; leave it to that request.
+			WC_Stripe_Logger::info( 'Could not retire the replaced Checkout Session.', [ 'checkout_session_id' => $session_id ] );
+		}
+	}
+
+	/**
+	 * Will a newly created session allow a saved payment method to be created.
+	 * This is only available for a logged-in user with an existing WC_Customer definition
+	 * at the start of a session.
+	 *
+	 * @return bool
+	 */
+	private function can_enable_save_payment_method(): bool {
+		return is_user_logged_in() && WC()->customer instanceof WC_Customer;
+	}
+
+	/**
+	 * Build the current cart amount and currency after WooCommerce has applied checkout integrations.
+	 *
+	 * @return array
+	 */
+	private function build_cart_context(): array {
+		$currency = get_woocommerce_currency();
+
+		return [
+			'amount'   => WC_Stripe_Helper::get_stripe_amount( (float) WC()->cart->get_total( 'edit' ), $currency ),
+			'currency' => strtolower( $currency ),
+		];
+	}
+
+	/**
+	 * Build the aggregate line item expected by Stripe Custom Checkout.
+	 *
+	 * @param array $cart_context Current cart context.
+	 * @return array
+	 */
+	private function build_line_items( array $cart_context ): array {
+		return [
+			[
+				'price_data' => [
+					'currency'     => $cart_context['currency'],
+					'product_data' => [
+						'name' => __( 'Cart total', 'woocommerce-gateway-stripe' ),
+					],
+					'unit_amount'  => $cart_context['amount'],
+				],
+				// The payable total is already aggregated into unit_amount, so quantity must remain one.
+				'quantity'   => 1,
+			],
+		];
+	}
+
+	/**
+	 * Build PaymentIntent metadata for a Checkout Session.
+	 *
+	 * @return array
+	 */
+	private function build_payment_intent_data(): array {
+		$metadata = [
+			'site_url'      => esc_url_raw( get_site_url() ),
+			'payment_type'  => 'single',
+			'checkout_type' => self::ADAPTIVE_PRICING_CHECKOUT_TYPE,
+		];
+
+		/** Documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php */
+		return [ 'metadata' => apply_filters( 'wc_stripe_payment_metadata', $metadata, null, null ) ];
+	}
+
+	/**
+	 * Generate an opaque revision token for the session record.
+	 * The token is a unique string to ensure that concurrent writes
+	 * always result in a new revision value, and clients will need to
+	 * update in response, regardless of which write is persisted.
+	 *
+	 * @return string
+	 */
+	private function generate_revision_token(): string {
+		return wp_generate_uuid4();
+	}
+
+	/**
+	 * Ensure checkout services needed by the manager exist in this request context.
+	 *
+	 * @return void
+	 * @throws WC_Stripe_Exception When the cart or WooCommerce session is unavailable.
+	 */
+	private function validate_cart(): void {
+		if ( ! WC()->session ) {
+			throw new WC_Stripe_Exception( 'No WooCommerce session found.', self::get_runtime_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+
+		if ( ! WC()->cart || WC()->cart->is_empty() ) {
+			throw new WC_Stripe_Exception( 'Cart is empty.', __( 'Your cart is currently empty.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+	}
+
+	/**
+	 * Get the active record from the WooCommerce session.
+	 *
+	 * @return array|null
+	 */
+	private function get_record(): ?array {
+		if ( ! WC()->session || ! is_callable( [ WC()->session, 'get' ] ) ) {
+			return null;
+		}
+
+		$record = WC()->session->get( self::WC_SESSION_KEY );
+		return is_array( $record ) ? $record : null;
+	}
+
+	/**
+	 * Store the active record in the WooCommerce session.
+	 *
+	 * @param array $record Session record.
+	 * @return void
+	 */
+	private function set_record( array $record ): void {
+		if ( WC()->session && is_callable( [ WC()->session, 'set' ] ) ) {
+			WC()->session->set( self::WC_SESSION_KEY, $record );
+		}
+	}
+
+	/**
+	 * Limit session data exposed to checkout clients.
+	 *
+	 * @param array|null $record Stored session record.
+	 * @return array
+	 */
+	private function get_public_data( ?array $record ): array {
+		return [
+			'session_id'                  => (string) ( $record['session_id'] ?? '' ),
+			'client_secret'               => (string) ( $record['client_secret'] ?? '' ),
+			'revision'                    => (string) ( $record['revision'] ?? '' ),
+			'status'                      => (string) ( $record['status'] ?? 'uninitialized' ),
+			'message'                     => (string) ( $record['message'] ?? '' ),
+			'save_payment_method_enabled' => ! empty( $record['save_payment_method_enabled'] ),
+		];
+	}
+}

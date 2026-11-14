@@ -573,6 +573,19 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	}
 
 	/**
+	 * Sofort is discontinued: disabled even with an active capability and supported currency.
+	 */
+	public function test_sofort_is_never_enabled_at_checkout() {
+		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE, true );
+		$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', WC_Stripe_Currency_Code::EURO );
+		$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', false );
+
+		$sofort_method = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::SOFORT ];
+
+		$this->assertFalse( $sofort_method->is_enabled_at_checkout( null, WC_Stripe_Currency_Code::EURO ) );
+	}
+
+	/**
 	 * Payment method is only enabled when capability response contains active for payment method.
 	 */
 	public function test_payment_methods_are_only_enabled_when_capability_is_active() {
@@ -583,9 +596,16 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 		WC_Stripe::get_instance()->get_main_stripe_gateway()->init_settings();
 
-		$payment_method_ids = array_map( [ $this, 'get_id' ], $this->mock_payment_methods );
+		$payment_method_ids      = array_map( [ $this, 'get_id' ], $this->mock_payment_methods );
+		$payment_methods_to_skip = [
+			WC_Stripe_Payment_Methods::CARD,
+			WC_Stripe_Payment_Methods::BOLETO,
+			WC_Stripe_Payment_Methods::OXXO,
+			WC_Stripe_Payment_Methods::GIROPAY,
+			WC_Stripe_Payment_Methods::SOFORT,
+		];
 		foreach ( $payment_method_ids as $id ) {
-			if ( WC_Stripe_Payment_Methods::CARD === $id || WC_Stripe_Payment_Methods::BOLETO === $id || WC_Stripe_Payment_Methods::OXXO === $id || WC_Stripe_Payment_Methods::GIROPAY === $id ) {
+			if ( in_array( $id, $payment_methods_to_skip, true ) ) {
 				continue;
 			}
 
@@ -630,7 +650,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 
 		$payment_method_ids = array_map( [ $this, 'get_id' ], $this->mock_payment_methods );
 		foreach ( $payment_method_ids as $id ) {
-			if ( WC_Stripe_Payment_Methods::GIROPAY === $id ) {
+			if ( WC_Stripe_Payment_Methods::GIROPAY === $id || WC_Stripe_Payment_Methods::SOFORT === $id ) {
 				continue;
 			}
 
@@ -760,6 +780,11 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
 
 		foreach ( $this->mock_payment_methods as $payment_method_id => $payment_method ) {
+			// Sofort is reusable but discontinued, so it's never enabled at checkout.
+			if ( WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID === $payment_method_id ) {
+				continue;
+			}
+
 			$store_currency = 'EUR';
 			if ( in_array(
 				$payment_method_id,
@@ -1202,18 +1227,20 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	}
 
 	/**
-	 * Returns an anonymous subclass with $supported_billing_countries set to the given list.
+	 * Returns an anonymous subclass with the supplied configuration.
 	 *
-	 * @param string[] $billing_countries Billing-country list to seed.
+	 * @param string[] $billing_countries            Billing-country list to seed.
+	 * @param bool     $accept_only_domestic_payment Whether to only accept domestic payments.
 	 *
 	 * @return WC_Stripe_UPE_Payment_Method
 	 */
-	private function make_method_with_billing_countries( array $billing_countries ): WC_Stripe_UPE_Payment_Method {
-		return new class( $billing_countries ) extends WC_Stripe_UPE_Payment_Method {
+	private function make_method_with_billing_countries( array $billing_countries, bool $accept_only_domestic_payment = false ): WC_Stripe_UPE_Payment_Method {
+		return new class( $billing_countries, $accept_only_domestic_payment ) extends WC_Stripe_UPE_Payment_Method {
 			const STRIPE_ID = 'test_billing_country_method';
-			public function __construct( array $billing_countries ) {
+			public function __construct( array $billing_countries, bool $accept_only_domestic_payment = false ) {
 				parent::__construct();
-				$this->supported_billing_countries = $billing_countries;
+				$this->supported_billing_countries  = $billing_countries;
+				$this->accept_only_domestic_payment = $accept_only_domestic_payment;
 			}
 		};
 	}
@@ -1282,6 +1309,208 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	}
 
 	/**
+	 * Tests for get_available_billing_countries().
+	 *
+	 * @dataProvider provide_test_get_available_billing_countries
+	 *
+	 * @param string[]    $supported_billing_countries  Supported billing countries to set on the payment method.
+	 * @param bool        $accept_only_domestic_payment Whether to only accept domestic payments.
+	 * @param string      $account_country              The account country.
+	 * @param string[]    $expected                     Expected available billing countries.
+	 */
+	public function test_get_available_billing_countries( array $supported_billing_countries, bool $accept_only_domestic_payment, string $account_country, array $expected ): void {
+		$mock_account = $this->createMock( WC_Stripe_Account::class );
+		$mock_account->method( 'get_cached_account_data' )
+			->willReturn( [ 'country' => $account_country ] );
+
+		$wc_stripe = WC_Stripe::get_instance();
+
+		$initial_account = $wc_stripe->account;
+		try {
+			$wc_stripe->account = $mock_account;
+
+			$payment_method = $this->make_method_with_billing_countries( $supported_billing_countries, $accept_only_domestic_payment );
+
+			$this->assertSame( $expected, $payment_method->get_available_billing_countries() );
+		} finally {
+			$wc_stripe->account = $initial_account;
+		}
+	}
+
+	/**
+	 * Data provider for {@see test_get_available_billing_countries()}.
+	 */
+	public function provide_test_get_available_billing_countries(): array {
+		return [
+			'empty country list allows all countries'                                   => [
+				'supported_billing_countries'  => [],
+				'accept_only_domestic_payment' => false,
+				'account_country'              => 'US',
+				'expected'                     => [],
+			],
+			'empty country list with only domestic payment allows account country'      => [
+				'supported_billing_countries'  => [],
+				'accept_only_domestic_payment' => true,
+				'account_country'              => 'GB',
+				'expected'                     => [ 'GB' ],
+			],
+			'country list with only domestic payment returns account country'           => [
+				'supported_billing_countries'  => [ 'CA', 'GB', 'US' ],
+				'accept_only_domestic_payment' => true,
+				'account_country'              => 'US',
+				'expected'                     => [ 'US' ],
+			],
+			'country list with only domestic payment skips unsupported account country' => [
+				'supported_billing_countries'  => [ 'CA', 'US' ],
+				'accept_only_domestic_payment' => true,
+				'account_country'              => 'GB',
+				'expected'                     => [ '' ],
+			],
+			'country list with only domestic payment skips missing account country'     => [
+				'supported_billing_countries'  => [ 'CA', 'GB', 'US' ],
+				'accept_only_domestic_payment' => true,
+				'account_country'              => '',
+				'expected'                     => [ '' ],
+			],
+		];
+	}
+
+	/**
+	 * With Optimized Checkout active, the main `stripe` entry already lists every reusable
+	 * method's saved tokens, so a method's own entry must not list them again: a saved ACSS
+	 * account showed up twice in classic checkout.
+	 *
+	 * @dataProvider provide_saved_methods_display_by_optimized_checkout
+	 *
+	 * @param string $payment_method_class      A reusable method class; ACSS overrides payment_fields(), SEPA uses the base one.
+	 * @param string $optimized_checkout        Value of the `optimized_checkout_element` setting.
+	 * @param int    $expected_saved_list_calls How many times the saved methods list renders.
+	 *
+	 * @return void
+	 */
+	public function test_payment_fields_lists_saved_methods_only_outside_optimized_checkout( string $payment_method_class, string $optimized_checkout, int $expected_saved_list_calls ): void {
+		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['pmc_enabled']                = 'yes';
+		$stripe_settings['optimized_checkout_element'] = $optimized_checkout;
+		$stripe_settings['enabled']                    = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		// Rebuild the main gateway so it resolves to the variant for this setting.
+		$reset_stripe_gateway = Closure::bind(
+			function () {
+				$this->stripe_gateway = null;
+			},
+			WC_Stripe::get_instance(),
+			WC_Stripe::class
+		);
+		$reset_stripe_gateway();
+
+		$payment_method = $this->getMockBuilder( $payment_method_class )
+			->onlyMethods( [ 'saved_payment_methods', 'tokenization_script' ] )
+			->getMock();
+		$payment_method->expects( $this->exactly( $expected_saved_list_calls ) )->method( 'saved_payment_methods' );
+
+		add_filter( 'woocommerce_is_checkout', '__return_true' );
+		ob_start();
+		try {
+			$payment_method->payment_fields();
+		} finally {
+			ob_end_clean();
+			remove_filter( 'woocommerce_is_checkout', '__return_true' );
+			// Don't leak the Optimized Checkout gateway into later tests.
+			$reset_stripe_gateway();
+		}
+	}
+
+	/**
+	 * Data provider for `test_payment_fields_lists_saved_methods_only_outside_optimized_checkout`.
+	 *
+	 * @return array<string, array{0: string, 1: string, 2: int}>
+	 */
+	public function provide_saved_methods_display_by_optimized_checkout(): array {
+		return [
+			'ACSS, Optimized Checkout on'  => [ WC_Stripe_UPE_Payment_Method_ACSS::class, 'yes', 0 ],
+			'ACSS, Optimized Checkout off' => [ WC_Stripe_UPE_Payment_Method_ACSS::class, 'no', 1 ],
+			'SEPA, Optimized Checkout on'  => [ WC_Stripe_UPE_Payment_Method_Sepa::class, 'yes', 0 ],
+			'SEPA, Optimized Checkout off' => [ WC_Stripe_UPE_Payment_Method_Sepa::class, 'no', 1 ],
+		];
+	}
+
+	/**
+	 * Non-deferred-intent methods (e.g. BLIK, ACSS) can't render inside the OC
+	 * Payment Element, so in OC mode they must stay available via their own
+	 * entry instead of being folded into the OC-container availability check.
+	 *
+	 * @dataProvider provide_non_deferred_intent_methods_available_in_oc_mode
+	 *
+	 * @param string $payment_method_class The non-deferred payment method class.
+	 * @param string $currency             A currency the method supports.
+	 */
+	public function test_non_deferred_intent_methods_are_available_in_oc_mode( $payment_method_class, $currency ) {
+		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['pmc_enabled']                = 'yes';
+		$stripe_settings['optimized_checkout_element'] = 'yes';
+		$stripe_settings['enabled']                    = 'yes';
+		$stripe_settings['upe_checkout_experience_accepted_payments'] = [
+			WC_Stripe_Payment_Methods::CARD,
+			WC_Stripe_Payment_Methods::BLIK,
+			WC_Stripe_Payment_Methods::ACSS_DEBIT,
+		];
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		// Rebuild the main gateway so it resolves to the Optimized Checkout variant.
+		$reset_stripe_gateway = Closure::bind(
+			function () {
+				$this->stripe_gateway = null;
+			},
+			WC_Stripe::get_instance(),
+			WC_Stripe::class
+		);
+		$reset_stripe_gateway();
+
+		$mocked_payment_method = $this->getMockBuilder( $payment_method_class )
+			->onlyMethods(
+				[
+					'get_capabilities_response',
+					'get_woocommerce_currency',
+					'is_subscription_item_in_cart',
+					'get_current_order_amount',
+					'is_inside_currency_limits',
+				]
+			)
+			->getMock();
+
+		$mocked_payment_method->method( 'get_capabilities_response' )->willReturn( self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
+		$mocked_payment_method->method( 'get_woocommerce_currency' )->willReturn( $currency );
+		$mocked_payment_method->method( 'is_subscription_item_in_cart' )->willReturn( false );
+		$mocked_payment_method->method( 'get_current_order_amount' )->willReturn( 150 );
+		$mocked_payment_method->method( 'is_inside_currency_limits' )->willReturn( true );
+
+		$this->assertFalse( $mocked_payment_method->supports_deferred_intent() );
+		$this->assertTrue( $mocked_payment_method->is_available() );
+
+		$reset_stripe_gateway();
+	}
+
+	/**
+	 * Data provider for test_non_deferred_intent_methods_are_available_in_oc_mode.
+	 *
+	 * @return array
+	 */
+	public function provide_non_deferred_intent_methods_available_in_oc_mode() {
+		return [
+			'BLIK with PLN currency' => [
+				'payment_method_class' => WC_Stripe_UPE_Payment_Method_BLIK::class,
+				'currency'             => WC_Stripe_Currency_Code::POLISH_ZLOTY,
+			],
+			'ACSS with CAD currency' => [
+				'payment_method_class' => WC_Stripe_UPE_Payment_Method_ACSS::class,
+				'currency'             => WC_Stripe_Currency_Code::CANADIAN_DOLLAR,
+			],
+		];
+	}
+
+	/**
 	 * Asserts that the deprecated wrapper raises a deprecation notice and delegates to the new helper.
 	 */
 	public function test_is_allowed_on_country_is_deprecated_and_delegates(): void {
@@ -1291,5 +1520,228 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 
 		$this->assertTrue( $method->is_allowed_on_country( 'US' ) );
 		$this->assertFalse( $method->is_allowed_on_country( 'GB' ) );
+	}
+
+	/**
+	 * Locks the fieldset > p.woocommerce-SavedPaymentMethods-saveNew structure the
+	 * empty-box hide rule in client/classic/upe/style.scss depends on.
+	 *
+	 * @param bool $force_checked Whether saving is mandatory (e.g. subscription in cart):
+	 *                            the checkbox renders pre-checked and its wrapper hidden
+	 *                            so the shopper cannot opt out.
+	 * @dataProvider provide_test_save_payment_method_checkbox
+	 */
+	public function test_save_payment_method_checkbox_renders_hideable_fieldset_wrapper( bool $force_checked ): void {
+		$method = new WC_Stripe_UPE_Payment_Method_CC();
+
+		// The guest-row assertion below depends on being logged out.
+		wp_set_current_user( 0 );
+
+		ob_start();
+		$method->save_payment_method_checkbox( $force_checked );
+		$output = ob_get_clean();
+
+		$this->assertMatchesRegularExpression( '/^\s*<fieldset[^>]*>\s*<p class="form-row woocommerce-SavedPaymentMethods-saveNew/', $output );
+
+		// Tests run logged out: the guest render must hide the row with the exact
+		// spaced serialization the stylesheet hide rule matches.
+		$this->assertStringContainsString( '<p class="form-row woocommerce-SavedPaymentMethods-saveNew" style="display: none;">', $output );
+
+		if ( $force_checked ) {
+			$this->assertStringContainsString( '<fieldset style="display: none;">', $output );
+			$this->assertStringContainsString( 'checked', $output );
+		} else {
+			$this->assertStringNotContainsString( '<fieldset style="display: none;">', $output );
+			$this->assertStringNotContainsString( 'checked', $output );
+		}
+	}
+
+	/**
+	 * Data provider for test_save_payment_method_checkbox_renders_hideable_fieldset_wrapper.
+	 *
+	 * @return array
+	 */
+	public function provide_test_save_payment_method_checkbox(): array {
+		return [
+			'default'      => [ false ],
+			'force saving' => [ true ],
+		];
+	}
+
+
+	/**
+	 * A total Stripe cannot charge must hide every payment method, including card, so the
+	 * checkout does not render a Payment Element that can only fail on submit.
+	 *
+	 * @dataProvider provide_order_amounts_for_availability
+	 *
+	 * @param mixed $order_amount       Cart or order total.
+	 * @param bool  $expected_available Whether the card method must be available.
+	 */
+	public function test_card_availability_for_order_amount( $order_amount, bool $expected_available ) {
+		WC_Stripe_Helper::update_main_stripe_settings( [ 'testmode' => 'yes' ] );
+		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'get_cached_account_data' ] )
+			->getMock();
+		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn(
+			[
+				'country'          => 'US',
+				'default_currency' => WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
+			]
+		);
+
+		$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR, true );
+		$this->set_mock_payment_method_return_value( 'get_current_order_amount', $order_amount );
+		$this->set_mock_payment_method_return_value( 'is_inside_currency_limits', true );
+
+		foreach ( $this->mock_payment_methods as $payment_method ) {
+			$payment_method->enabled = 'yes';
+		}
+		$card_method = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::CARD ];
+
+		$this->assertSame( $expected_available, $card_method->is_available() );
+
+		if ( ! $expected_available ) {
+			foreach ( $this->mock_payment_methods as $payment_method_id => $payment_method ) {
+				$this->assertFalse( $payment_method->is_available(), "Payment method {$payment_method_id} is available" );
+			}
+		}
+	}
+
+	public function provide_order_amounts_for_availability(): array {
+		return [
+			'normal total'       => [ 150, true ],
+			'zero total'         => [ 0, true ],
+			'above Stripe limit' => [ '10000000000.00', false ],
+			'integer wraparound' => [ '184467440737095520.00', false ],
+		];
+	}
+
+
+	/**
+	 * Express checkout pays an order through the Store API checkout-order route, a REST request
+	 * with no order-pay endpoint, so the amount must come from the routed order, not the cart.
+	 *
+	 * @dataProvider provide_store_api_checkout_order_routes
+	 *
+	 * @param string      $rest_route    REST route being served, with %d replaced by the order ID.
+	 * @param string|null $key           Order key to send: 'valid', 'wrong', or null to omit it.
+	 * @param bool        $expects_order Whether the order total must be used instead of the cart total.
+	 */
+	public function test_get_current_order_amount_for_store_api_route( string $rest_route, ?string $key, bool $expects_order ) {
+		global $wp;
+
+		$this->reset_payment_method_mocks( [ 'get_current_order_amount' ] );
+		$card_method = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::CARD ];
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_total( '10.23' );
+		$order->save();
+
+		$original_get        = $_GET;
+		$original_query_vars = $wp->query_vars;
+		$original_cart_total = WC()->cart->get_total( '' );
+		$wp->query_vars      = [ 'rest_route' => sprintf( $rest_route, $order->get_id() ) ];
+		unset( $_GET['key'] );
+		if ( 'valid' === $key ) {
+			$_GET['key'] = $order->get_order_key();
+		} elseif ( 'wrong' === $key ) {
+			$_GET['key'] = 'wc_order_wrong';
+		}
+		WC()->cart->set_total( '184467440737095520.00' );
+
+		try {
+			$amount = $card_method->get_current_order_amount();
+		} finally {
+			$_GET           = $original_get;
+			$wp->query_vars = $original_query_vars;
+			WC()->cart->set_total( $original_cart_total );
+		}
+
+		$this->assertSame( $expects_order ? '10.23' : '184467440737095520.00', $amount );
+	}
+
+	public function provide_store_api_checkout_order_routes(): array {
+		return [
+			'checkout-order route'              => [ '/wc/store/v1/checkout/%d', 'valid', true ],
+			'unversioned checkout-order'        => [ '/wc/store/checkout/%d', 'valid', true ],
+			'checkout-order route, wrong key'   => [ '/wc/store/v1/checkout/%d', 'wrong', false ],
+			'checkout-order route, missing key' => [ '/wc/store/v1/checkout/%d', null, false ],
+			'cart route'                        => [ '/wc/store/v1/cart', 'valid', false ],
+			'checkout route without id'         => [ '/wc/store/v1/checkout', 'valid', false ],
+		];
+	}
+
+	/**
+	 * An oversized session cart must not make Stripe unavailable for a payable order on the
+	 * Store API checkout-order route, and an oversized order must still be rejected there.
+	 *
+	 * @dataProvider provide_store_api_order_totals_for_availability
+	 */
+	public function test_card_availability_for_store_api_order_total( string $order_total, bool $expected_available ) {
+		global $wp;
+
+		$this->reset_payment_method_mocks( [ 'get_current_order_amount' ] );
+		$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR );
+		$this->set_mock_payment_method_return_value( 'is_inside_currency_limits', true );
+		$card_method          = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::CARD ];
+		$card_method->enabled = 'yes';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		$order->set_total( $order_total );
+		$order->save();
+
+		$original_get        = $_GET;
+		$original_query_vars = $wp->query_vars;
+		$original_cart_total = WC()->cart->get_total( '' );
+		$wp->query_vars      = [ 'rest_route' => '/wc/store/v1/checkout/' . $order->get_id() ];
+		$_GET['key']         = $order->get_order_key();
+		WC()->cart->set_total( '184467440737095520.00' );
+
+		try {
+			$available = $card_method->is_available();
+		} finally {
+			$_GET           = $original_get;
+			$wp->query_vars = $original_query_vars;
+			WC()->cart->set_total( $original_cart_total );
+		}
+
+		$this->assertSame( $expected_available, $available );
+	}
+
+	public function provide_store_api_order_totals_for_availability(): array {
+		return [
+			'payable order with oversized cart' => [ '10.23', true ],
+			'oversized order'                   => [ '184467440737095520.00', false ],
+		];
+	}
+
+
+	/**
+	 * Under optimized checkout the card method's availability comes from the OC container branch,
+	 * which bypasses is_enabled_at_checkout(), so is_available() itself must reject an oversized total.
+	 *
+	 * @dataProvider provide_order_amounts_for_is_available
+	 */
+	public function test_is_available_for_order_amount( $order_amount, bool $expected ) {
+		$mocked_payment_method = $this->getMockBuilder( WC_Stripe_UPE_Payment_Method_CC::class )
+			->onlyMethods( [ 'get_capabilities_response', 'get_woocommerce_currency', 'get_current_order_amount', 'is_enabled_at_checkout' ] )
+			->getMock();
+		$mocked_payment_method->method( 'is_enabled_at_checkout' )->willReturn( true );
+		$mocked_payment_method->method( 'get_woocommerce_currency' )->willReturn( WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR );
+		$mocked_payment_method->method( 'get_current_order_amount' )->willReturn( $order_amount );
+		$mocked_payment_method->enabled = 'yes';
+
+		$this->assertSame( $expected, $mocked_payment_method->is_available() );
+	}
+
+	public function provide_order_amounts_for_is_available(): array {
+		return [
+			'normal total'       => [ 150, true ],
+			'above Stripe limit' => [ '10000000000.00', false ],
+			'integer wraparound' => [ '184467440737095520.00', false ],
+		];
 	}
 }

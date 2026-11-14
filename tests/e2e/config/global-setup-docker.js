@@ -5,7 +5,7 @@ import fs from 'fs';
 import {
 	loginAdminAndSaveState,
 	createApiTokens,
-} from '../utils/playwright-setup';
+} from '../utils/playwright-setup.js';
 
 dotenv.config( {
 	path: `${ process.env.E2E_ROOT }/config/local.env`,

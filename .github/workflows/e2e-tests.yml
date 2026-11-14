@@ -11,13 +11,14 @@ jobs:
   changes:
     name: Check for code changes
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: read
       pull-requests: read
     outputs:
       code: ${{ steps.detect.outputs.code }}
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - id: detect
         uses: ./.github/actions/detect-code-changes
 
@@ -25,21 +26,24 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       fail-fast: false
-      max-parallel: 10
+      max-parallel: 18
       matrix:
-        project: ['default', 'isk', 'acss', 'optimized-checkout', 'blik', 'becs']
+        # Run every project under a classic theme (storefront) and a block theme (twentytwentyfive).
+        theme: ['storefront', 'twentytwentyfive']
+        project: ['default', 'express-checkout-link', 'isk', 'acss', 'optimized-checkout', 'optimized-checkout-link-off', 'adaptive-pricing', 'blik', 'becs']
 
-    name: E2E - ${{ matrix.project }} WP=latest, WC=latest, PHP=7.4
+    name: E2E - ${{ matrix.project }} (${{ matrix.theme }}) WP=latest, WC=latest, PHP=7.4
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # PHP
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2.40.0
         with:
           php-version: 7.4
           tools: composer
@@ -47,7 +51,7 @@ jobs:
 
       - name: Cache Composer deps
         id: composer-cache
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ./vendor
           key: ${{ runner.os }}-vendor-${{ hashFiles('composer.lock') }}
@@ -60,13 +64,13 @@ jobs:
       # Node
 
       - name: Setup Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: '.nvmrc'
 
       - name: Cache Node deps
         id: node-cache
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: |
             ./node_modules
@@ -91,30 +95,34 @@ jobs:
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.E2E_GH_TOKEN }}
-          STRIPE_PUB_KEY: ${{ matrix.project == 'blik' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_AU || secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
-          STRIPE_SECRET_KEY: ${{ matrix.project == 'blik' && secrets.E2E_STRIPE_SECRET_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_SECRET_KEY_AU || secrets.E2E_STRIPE_SECRET_KEY }}
+          E2E_PROJECT: ${{ matrix.project }}
+          STRIPE_PUB_KEY: ${{ matrix.project == 'optimized-checkout-link-off' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_LINK_OFF || matrix.project == 'blik' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_AU || secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
+          STRIPE_SECRET_KEY: ${{ matrix.project == 'optimized-checkout-link-off' && secrets.E2E_STRIPE_SECRET_KEY_LINK_OFF || matrix.project == 'blik' && secrets.E2E_STRIPE_SECRET_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_SECRET_KEY_AU || secrets.E2E_STRIPE_SECRET_KEY }}
+          WP_THEME: ${{ matrix.theme }}
         run: npm run test:e2e-setup
 
       - name: Upload e2e setup logs
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: E2E-${{ matrix.project }}-WP_latest-WC_latest-setup-logs
+          name: E2E-${{ matrix.project }}-${{ matrix.theme }}-WP_latest-WC_latest-setup-logs
           path: tests/e2e/e2e-setup.log
           if-no-files-found: ignore
           retention-days: 7
 
       - name: Run E2E tests
         env:
-          STRIPE_PUB_KEY: ${{ matrix.project == 'blik' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_AU || secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
-          STRIPE_SECRET_KEY: ${{ matrix.project == 'blik' && secrets.E2E_STRIPE_SECRET_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_SECRET_KEY_AU || secrets.E2E_STRIPE_SECRET_KEY }}
+          STRIPE_PUB_KEY: ${{ matrix.project == 'optimized-checkout-link-off' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_LINK_OFF || matrix.project == 'blik' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_AU || secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
+          STRIPE_SECRET_KEY: ${{ matrix.project == 'optimized-checkout-link-off' && secrets.E2E_STRIPE_SECRET_KEY_LINK_OFF || matrix.project == 'blik' && secrets.E2E_STRIPE_SECRET_KEY_PL || matrix.project == 'becs' && secrets.E2E_STRIPE_SECRET_KEY_AU || secrets.E2E_STRIPE_SECRET_KEY }}
         run: npm run test:e2e-run -- --project=${{ matrix.project }}
 
-      - name: Upload E2E-${{ matrix.project }}-WP_latest-WC_latest-results
-        if: ${{ failure() }}
-        uses: actions/upload-artifact@v7
+      - name: Upload E2E-${{ matrix.project }}-${{ matrix.theme }}-WP_latest-WC_latest-results
+        # cancelled() keeps results from jobs killed by timeout-minutes while the E2E
+        # suite is flaky; drop it once the tests pass reliably.
+        if: ${{ failure() || cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: E2E-${{ matrix.project }}-WP_latest-WC_latest-results
+          name: E2E-${{ matrix.project }}-${{ matrix.theme }}-WP_latest-WC_latest-results
           path: tests/e2e/test-results
           if-no-files-found: ignore
           retention-days: 14

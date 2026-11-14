@@ -1,12 +1,16 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { getQuery } from '@woocommerce/navigation';
 import SettingsManager from '..';
+import SaveSettingsSection from '../../save-settings-section';
+import AgenticCommerceSection from '../../agentic-commerce';
 
 jest.mock( '../../payment-settings' );
 
 jest.mock( '../../payment-methods' );
 
-jest.mock( '../../save-settings-section' );
+jest.mock( '../../agentic-commerce', () => jest.fn() );
+
+jest.mock( '../../save-settings-section', () => jest.fn() );
 
 jest.mock( 'wcstripe/data', () => ( {
 	useEnabledPaymentMethodIds: jest.fn().mockReturnValue( [ [], jest.fn() ] ),
@@ -67,7 +71,7 @@ describe( 'SettingsManager', () => {
 		} );
 	} );
 
-	it( 'should not render a third tab when agentic commerce is enabled', async () => {
+	it( 'should render an Agentic Commerce tab when the feature is enabled', async () => {
 		global.wc_stripe_settings_params = {
 			...BASE_PARAMS,
 			is_agentic_commerce_enabled: true,
@@ -77,29 +81,48 @@ describe( 'SettingsManager', () => {
 
 		await waitFor( () => {
 			expect(
-				screen.getByRole( 'tab', { name: /Payment Methods/i } )
+				screen.getByRole( 'tab', { name: /Agentic Commerce/i } )
 			).toBeInTheDocument();
 		} );
-
-		await waitFor( () => {
-			expect(
-				screen.getByRole( 'tab', { name: /Settings/i } )
-			).toBeInTheDocument();
-		} );
-
-		expect(
-			screen.queryByRole( 'tab', { name: /Agentic/i } )
-		).not.toBeInTheDocument();
 	} );
 
-	it( 'should render the Stripe payment method tab content by default', async () => {
+	it( 'should not render an Agentic Commerce tab when the feature is disabled', async () => {
 		render( <SettingsManager /> );
 
 		await waitFor( () => {
 			expect(
-				screen.queryByTestId( 'settings-tab' )
+				screen.queryByRole( 'tab', { name: /Agentic Commerce/i } )
 			).not.toBeInTheDocument();
 		} );
+	} );
+
+	it( 'should open the Agentic Commerce tab when the URL panel matches', async () => {
+		global.wc_stripe_settings_params = {
+			...BASE_PARAMS,
+			is_agentic_commerce_enabled: true,
+		};
+		getQuery.mockReturnValue( { panel: 'agentic-commerce' } );
+
+		render( <SettingsManager /> );
+
+		await waitFor( () => {
+			expect(
+				screen.getByRole( 'tab', {
+					name: /Agentic Commerce/i,
+					selected: true,
+				} )
+			).toBeInTheDocument();
+		} );
+
+		await waitFor( () => {
+			expect(
+				screen.queryByTestId( 'methods-tab' )
+			).not.toBeInTheDocument();
+		} );
+	} );
+
+	it( 'should render the Stripe payment method tab content by default', async () => {
+		render( <SettingsManager /> );
 
 		await waitFor( () => {
 			expect( screen.queryByTestId( 'methods-tab' ) ).toBeInTheDocument();
@@ -108,6 +131,7 @@ describe( 'SettingsManager', () => {
 
 	it( 'should render the general settings tab content when the URL matches', async () => {
 		getQuery.mockReturnValue( { panel: 'settings' } );
+
 		render( <SettingsManager /> );
 
 		await waitFor( () => {
@@ -131,5 +155,40 @@ describe( 'SettingsManager', () => {
 		await waitFor( () => {
 			expect( screen.queryByTestId( 'methods-tab' ) ).toBeInTheDocument();
 		} );
+	} );
+
+	it( 'does not render the shared SaveSettingsSection on the agentic tab', async () => {
+		global.wc_stripe_settings_params = {
+			...BASE_PARAMS,
+			is_agentic_commerce_enabled: true,
+		};
+		getQuery.mockReturnValue( { panel: 'agentic-commerce' } );
+
+		SaveSettingsSection.mockImplementation( () => (
+			<button>Shared Save</button>
+		) );
+
+		AgenticCommerceSection.mockImplementation( () => (
+			<div>Agentic Commerce Content</div>
+		) );
+
+		render( <SettingsManager /> );
+
+		expect(
+			screen.getByText( 'Agentic Commerce Content' )
+		).toBeInTheDocument();
+		expect( screen.queryByText( 'Shared Save' ) ).not.toBeInTheDocument();
+	} );
+
+	it( 'renders the shared SaveSettingsSection on non-agentic tabs', async () => {
+		getQuery.mockReturnValue( { panel: 'methods' } );
+
+		SaveSettingsSection.mockImplementation( () => (
+			<button>Shared Save</button>
+		) );
+
+		render( <SettingsManager /> );
+
+		expect( screen.getByText( 'Shared Save' ) ).toBeInTheDocument();
 	} );
 } );

@@ -9,6 +9,68 @@
  */
 class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
+	 * get_settings() returns the stored option as an array.
+	 *
+	 * @return void
+	 */
+	public function test_get_settings_returns_stored_option(): void {
+		update_option( WC_Stripe::SETTINGS_OPTION_NAME, [ 'enabled' => 'yes' ] );
+
+		// Compare against the stored option rather than the literal written
+		// above: the pre_update_option filter merges defaults into the write.
+		$updated_settings = WC_Stripe::get_instance()->get_settings();
+		$this->assertSame(
+			get_option( WC_Stripe::SETTINGS_OPTION_NAME ),
+			$updated_settings
+		);
+		$this->assertSame( 'yes', $updated_settings['enabled'] );
+	}
+
+	/**
+	 * get_settings() always returns an array, even when the option holds a non-array value.
+	 *
+	 * @return void
+	 */
+	public function test_get_settings_normalizes_non_array_option(): void {
+		$force_scalar = static function () {
+			return 'not-an-array';
+		};
+		add_filter( 'option_' . WC_Stripe::SETTINGS_OPTION_NAME, $force_scalar );
+
+		try {
+			$this->assertSame( [], WC_Stripe::get_instance()->get_settings() );
+		} finally {
+			remove_filter( 'option_' . WC_Stripe::SETTINGS_OPTION_NAME, $force_scalar );
+		}
+	}
+
+	/**
+	 * update_settings() writes through to the underlying option, asserted via
+	 * get_option() so the test holds even if get_settings() grows a cache.
+	 *
+	 * @return void
+	 */
+	public function test_update_settings_persists_option(): void {
+		WC_Stripe::get_instance()->update_settings( [ 'enabled' => 'yes' ] );
+		$this->assertSame( 'yes', get_option( WC_Stripe::SETTINGS_OPTION_NAME )['enabled'] );
+
+		WC_Stripe::get_instance()->update_settings( [ 'enabled' => 'no' ] );
+		$this->assertSame( 'no', get_option( WC_Stripe::SETTINGS_OPTION_NAME )['enabled'] );
+	}
+
+	/**
+	 * get_settings() reflects a raw update_option() write that bypasses
+	 * update_settings() — the accessor introduces no divergent state.
+	 *
+	 * @return void
+	 */
+	public function test_get_settings_reflects_raw_option_write(): void {
+		update_option( WC_Stripe::SETTINGS_OPTION_NAME, [ 'enabled' => 'no' ] );
+
+		$this->assertSame( 'no', WC_Stripe::get_instance()->get_settings()['enabled'] );
+	}
+
+	/**
 	 * Tests that the plugin constants are defined.
 	 *
 	 * @return void
@@ -210,7 +272,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		update_option( 'active_plugins', [ plugin_basename( WC_STRIPE_MAIN_FILE ) ] );
 
 		// Set initial settings.
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe::get_instance()->update_settings( $stripe_settings );
 
 		$wc_stripe = $this->getMockBuilder( WC_Stripe::class )
 			->disableOriginalConstructor()
@@ -225,7 +287,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$wc_stripe->install();
 
-		$actual_settings = WC_Stripe_Helper::get_stripe_settings();
+		$actual_settings = WC_Stripe::get_instance()->get_settings();
 		foreach ( $expected_settings as $key => $value ) {
 			if ( null == $value ) {
 				$this->assertArrayNotHasKey( $key, $actual_settings );
@@ -410,14 +472,14 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			->onlyMethods( [ 'get_main_stripe_gateway' ] )
 			->getMock();
 
-		$mock_main_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+		// add_gateways() keys OCS filtering off the instantiated gateway class, mirroring the
+		// selection done in get_main_stripe_gateway(): the OCS gateway when OC is enabled.
+		$main_gateway_class = $oc_enabled ? WC_Stripe_OCS_Payment_Gateway::class : WC_Stripe_UPE_Payment_Gateway::class;
+		$mock_main_gateway  = $this->getMockBuilder( $main_gateway_class )
 			->disableOriginalConstructor()
 			->getMock();
 
 		$mock_main_gateway->payment_methods = $payment_methods;
-		$mock_main_gateway->method( 'get_option' )
-			->with( 'optimized_checkout_element', 'no' )
-			->willReturn( $oc_enabled ? 'yes' : 'no' );
 
 		$wc_stripe->method( 'get_main_stripe_gateway' )
 			->willReturn( $mock_main_gateway );
@@ -682,6 +744,67 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Tests that get_main_stripe_gateway() returns the OCS gateway when OCS is enabled
+	 * and the base UPE gateway otherwise.
+	 *
+	 * @dataProvider provide_test_get_main_stripe_gateway
+	 */
+	public function test_get_main_stripe_gateway_returns_expected_class( array $settings, string $expected_class ): void {
+		$original_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe            = WC_Stripe::get_instance();
+
+		$reflection = new ReflectionClass( WC_Stripe::class );
+		$property   = $reflection->getProperty( 'stripe_gateway' );
+		$property->setAccessible( true );
+		$previous_gateway = $property->getValue( $stripe );
+
+		try {
+			WC_Stripe_Helper::update_main_stripe_settings( $settings );
+			$property->setValue( $stripe, null );
+
+			$gateway = $stripe->get_main_stripe_gateway();
+
+			$this->assertInstanceOf( $expected_class, $gateway );
+		} finally {
+			$property->setValue( $stripe, $previous_gateway );
+			WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
+		}
+	}
+
+	/**
+	 * Data provider for {@see self::test_get_main_stripe_gateway_returns_expected_class()}.
+	 */
+	public function provide_test_get_main_stripe_gateway(): array {
+		return [
+			'OCS disabled by setting' => [
+				'settings'       => [
+					'pmc_enabled'                => 'yes',
+					'optimized_checkout_element' => 'no',
+				],
+				'expected_class' => WC_Stripe_UPE_Payment_Gateway::class,
+			],
+			'OCS setting missing'     => [
+				'settings'       => [ 'pmc_enabled' => 'yes' ],
+				'expected_class' => WC_Stripe_UPE_Payment_Gateway::class,
+			],
+			'OCS gated by pmc flag'   => [
+				'settings'       => [
+					'pmc_enabled'                => 'no',
+					'optimized_checkout_element' => 'yes',
+				],
+				'expected_class' => WC_Stripe_UPE_Payment_Gateway::class,
+			],
+			'OCS enabled'             => [
+				'settings'       => [
+					'pmc_enabled'                => 'yes',
+					'optimized_checkout_element' => 'yes',
+				],
+				'expected_class' => WC_Stripe_OCS_Payment_Gateway::class,
+			],
+		];
+	}
+
+	/**
 	 * Data provider for maybe_reconfigure_webhooks_after_adaptive_pricing_enabled tests.
 	 * Covers the update_option_woocommerce_stripe_settings hook behavior: reconfigure only when
 	 * both AP and OC are enabled in the new value and at least one of them changed from the old value.
@@ -806,6 +929,165 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		];
 	}
 
+	/**
+	 * Toggling the Adaptive Pricing setting marks the amount mismatch migration as
+	 * complete, so a later plugin update cannot override the merchant's explicit choice.
+	 *
+	 * @param array|false $old_value              Previous option value passed by the hook.
+	 * @param array|false $new_value              New option value passed by the hook.
+	 * @param string|null $flag_before            Migration flag stored before the update; null when absent.
+	 * @param string|null $amount_mismatch_before Amount mismatch option stored before the update; null when absent.
+	 * @param bool        $expect_marked Whether the migration should be marked complete.
+	 *
+	 * @dataProvider provide_test_maybe_mark_adaptive_pricing_migration_complete
+	 */
+	public function test_maybe_mark_adaptive_pricing_migration_complete( $old_value, $new_value, ?string $flag_before, ?string $amount_mismatch_before, bool $expect_marked ): void {
+		$flag_option = $this->get_adaptive_pricing_migration_flag_option_name();
+
+		if ( null === $flag_before ) {
+			delete_option( $flag_option );
+		} else {
+			update_option( $flag_option, $flag_before );
+		}
+
+		$amount_mismatch_option = WC_Stripe_Test_Helper::get_class_const_value(
+			WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update::class,
+			'AMOUNT_MISMATCH_OPTION',
+			'string'
+		);
+		if ( null === $amount_mismatch_before ) {
+			delete_option( $amount_mismatch_option );
+		} else {
+			update_option( $amount_mismatch_option, $amount_mismatch_before );
+		}
+
+		// mark_migration_complete() is a static call, so observe it through the
+		// pre_update_option filter its update_option() always applies — the stored
+		// value alone cannot distinguish "left at yes" from "redundantly re-written".
+		$mark_migration_complete_calls = 0;
+		$mark_migration_complete_spy   = function ( $value ) use ( &$mark_migration_complete_calls ) {
+			++$mark_migration_complete_calls;
+			return $value;
+		};
+		add_filter( 'pre_update_option_' . $flag_option, $mark_migration_complete_spy );
+
+		try {
+			do_action( 'update_option_' . WC_Stripe::SETTINGS_OPTION_NAME, $old_value, $new_value, WC_Stripe::SETTINGS_OPTION_NAME );
+		} finally {
+			remove_filter( 'pre_update_option_' . $flag_option, $mark_migration_complete_spy );
+		}
+
+		$this->assertSame( $expect_marked ? 1 : 0, $mark_migration_complete_calls );
+		$this->assertSame(
+			$expect_marked ? 'yes' : ( $flag_before ?? false ),
+			get_option( $flag_option )
+		);
+		$this->assertSame(
+			$expect_marked ? false : ( $amount_mismatch_before ?? false ),
+			get_option( $amount_mismatch_option, false )
+		);
+	}
+
+	/**
+	 * Data provider for {@see test_maybe_mark_adaptive_pricing_migration_complete()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_maybe_mark_adaptive_pricing_migration_complete(): array {
+		return [
+			'AP enabled, migration incomplete'       => [
+				'old_value'              => [ 'adaptive_pricing' => 'no' ],
+				'new_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'flag_before'            => null,
+				'amount_mismatch_before' => 'yes',
+				'expect_marked'          => true,
+			],
+			'AP disabled, migration incomplete'      => [
+				'old_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'new_value'              => [ 'adaptive_pricing' => 'no' ],
+				'flag_before'            => null,
+				'amount_mismatch_before' => 'yes',
+				'expect_marked'          => true,
+			],
+			'AP set for the first time'              => [
+				'old_value'              => [ 'enabled' => 'yes' ],
+				'new_value'              => [ 'adaptive_pricing' => 'no' ],
+				'flag_before'            => null,
+				'amount_mismatch_before' => 'yes',
+				'expect_marked'          => true,
+			],
+			'AP unchanged'                           => [
+				'old_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'new_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'flag_before'            => null,
+				'amount_mismatch_before' => 'yes',
+				'expect_marked'          => false,
+			],
+			'new value missing the AP key'           => [
+				'old_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'new_value'              => [ 'enabled' => 'yes' ],
+				'flag_before'            => null,
+				'amount_mismatch_before' => 'yes',
+				'expect_marked'          => false,
+			],
+			'old value not an array'                 => [
+				'old_value'              => false,
+				'new_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'flag_before'            => null,
+				'amount_mismatch_before' => 'yes',
+				'expect_marked'          => false,
+			],
+			'new value not an array'                 => [
+				'old_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'new_value'              => false,
+				'flag_before'            => null,
+				'amount_mismatch_before' => 'yes',
+				'expect_marked'          => false,
+			],
+			'migration already complete, AP toggled' => [
+				'old_value'              => [ 'adaptive_pricing' => 'no' ],
+				'new_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'flag_before'            => 'yes',
+				'amount_mismatch_before' => 'yes',
+				'expect_marked'          => false,
+			],
+			'non-yes flag is treated as incomplete'  => [
+				'old_value'              => [ 'adaptive_pricing' => 'no' ],
+				'new_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'flag_before'            => 'no',
+				'amount_mismatch_before' => 'yes',
+				'expect_marked'          => true,
+			],
+			'AP enabled, migration not needed'       => [
+				'old_value'              => [ 'adaptive_pricing' => 'no' ],
+				'new_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'flag_before'            => null,
+				'amount_mismatch_before' => null,
+				'expect_marked'          => false,
+			],
+			'AP disabled, migration not needed'      => [
+				'old_value'              => [ 'adaptive_pricing' => 'yes' ],
+				'new_value'              => [ 'adaptive_pricing' => 'no' ],
+				'flag_before'            => null,
+				'amount_mismatch_before' => 'no',
+				'expect_marked'          => false,
+			],
+		];
+	}
+
+	/**
+	 * Helper: resolve the migration flag option name from the migration class's private const.
+	 *
+	 * @return string
+	 */
+	private function get_adaptive_pricing_migration_flag_option_name(): string {
+		return WC_Stripe_Test_Helper::get_class_const_value(
+			WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update::class,
+			'MIGRATION_FLAG_OPTION',
+			'string'
+		);
+	}
+
 	/* -----------------------------------------------------------------
 	 * Plugin initialization guards
 	 *
@@ -878,6 +1160,8 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$hooks = [
 			[ 'woocommerce_payment_gateways', 'add_gateways', 10 ],
 			[ 'pre_update_option_woocommerce_stripe_settings', 'gateway_settings_update', 10 ],
+			[ 'woocommerce_rest_prepare_payment_gateway', 'mask_secrets_in_payment_gateway_response', 10 ],
+			[ 'rest_request_before_callbacks', 'restrict_settings_option_rest_access', 10 ],
 			[ 'plugin_action_links_' . plugin_basename( WC_STRIPE_MAIN_FILE ), 'plugin_action_links', 10 ],
 			[ 'plugin_row_meta', 'plugin_row_meta', 10 ],
 			[ 'update_option_woocommerce_gateway_order', 'set_stripe_gateways_in_list', 10 ],
@@ -890,6 +1174,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			[ 'woocommerce_init', 'initialize_agentic_commerce', 10 ],
 			[ 'wc_payment_gateways_initialized', 'maybe_toggle_payment_methods', 10 ],
 			[ 'update_option_woocommerce_stripe_settings', 'maybe_reconfigure_webhooks_after_adaptive_pricing_enabled', 10 ],
+			[ 'update_option_woocommerce_stripe_settings', 'maybe_mark_adaptive_pricing_migration_complete', 10 ],
 		];
 
 		$first = WC_Stripe::get_instance();
@@ -998,6 +1283,271 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				"{$class} appears to have been re-instantiated: callback count on {$hook} (priority {$priority}) changed from {$before[ $class ]} to {$after}"
 			);
 		}
+	}
+
+	/**
+	 * Core collaborator constructors must not register hooks — only their
+	 * register_hooks() method may, and the bootstrap calls it exactly once.
+	 * A hook-registering constructor turns every stray instantiation into
+	 * duplicated callbacks.
+	 *
+	 * @return void
+	 */
+	public function test_core_collaborator_constructors_do_not_register_hooks(): void {
+		$cases = [
+			'webhook handler'        => [ new WC_Stripe_Webhook_Handler(), 'woocommerce_api_wc_stripe', 'check_for_webhook' ],
+			'order handler'          => [ new WC_Stripe_Order_Handler(), 'wp', 'maybe_process_redirect_order' ],
+			'payment tokens'         => [ new WC_Stripe_Payment_Tokens(), 'woocommerce_payment_methods_list_item', 'get_account_saved_payment_methods_list_item' ],
+			'apple pay registration' => [ new WC_Stripe_Apple_Pay_Registration(), 'admin_init', 'register_domain_on_domain_name_change' ],
+			'connect'                => [ new WC_Stripe_Connect( new WC_Stripe_Connect_API() ), 'wc_stripe_refresh_connection', 'refresh_connection' ],
+		];
+
+		foreach ( $cases as $label => [ $instance, $hook, $callback ] ) {
+			$this->assertFalse(
+				has_action( $hook, [ $instance, $callback ] ),
+				"{$label}: constructor must not register {$hook}"
+			);
+
+			$instance->register_hooks();
+
+			$this->assertNotFalse(
+				has_action( $hook, [ $instance, $callback ] ),
+				"{$label}: register_hooks() must register {$hook}"
+			);
+		}
+	}
+
+	/**
+	 * Daily cleanup routines must be scheduled via the public Action Scheduler contract hook.
+	 *
+	 * @return void
+	 */
+	public function test_daily_cleanups_registered_to_public_action_scheduler_hook(): void {
+		$this->assertSame(
+			10,
+			has_action( 'action_scheduler_ensure_recurring_actions', [ WC_Stripe_Database_Cache::class, 'maybe_schedule_daily_async_cleanup' ] )
+		);
+		$this->assertSame(
+			10,
+			has_action( 'action_scheduler_ensure_recurring_actions', [ WC_Stripe_Option_Lock::class, 'maybe_schedule_daily_cleanup' ] )
+		);
+		$this->assertFalse(
+			has_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ WC_Stripe_Database_Cache::class, 'maybe_schedule_daily_async_cleanup' ] )
+		);
+		$this->assertFalse(
+			has_action( 'action_scheduler_run_recurring_actions_schedule_hook', [ WC_Stripe_Option_Lock::class, 'maybe_schedule_daily_cleanup' ] )
+		);
+	}
+
+	/**
+	 * WooCommerce's payment gateway routes must not return the secret keys and webhook secrets as stored.
+	 *
+	 * @dataProvider provide_payment_gateways_rest_routes
+	 *
+	 * @param string $route The REST route to request.
+	 * @return void
+	 */
+	public function test_payment_gateways_rest_routes_mask_secrets( string $route ): void {
+		$secrets = $this->save_secret_settings();
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'shop_manager' ] ) );
+
+		// A logged-in browser session (cookie and REST nonce). API-key requests get a placeholder
+		// from WC_Stripe_REST_Gateway_Settings_Protection instead, which runs after the mask.
+		$GLOBALS['wp_rest_auth_cookie'] = true;
+		$_SERVER['HTTP_X_WP_NONCE']     = wp_create_nonce( 'wp_rest' );
+		try {
+			$response = rest_do_request( new WP_REST_Request( 'GET', $route ) );
+		} finally {
+			unset( $GLOBALS['wp_rest_auth_cookie'], $_SERVER['HTTP_X_WP_NONCE'] );
+		}
+		$this->assertSame( 200, $response->get_status() );
+
+		$data     = $response->get_data();
+		$gateways = isset( $data['id'] ) ? [ $data ] : $data;
+		$gateway  = current( wp_list_filter( $gateways, [ 'id' => WC_Stripe_UPE_Payment_Gateway::ID ] ) );
+
+		foreach ( $secrets as $key => $secret ) {
+			$this->assertSame( WC_Stripe_Helper::mask_key_value( $secret ), $gateway['settings'][ $key ]['value'] );
+			$this->assertStringNotContainsString( $secret, wp_json_encode( $data ) );
+		}
+		$this->assertSame( 'pk_live_publishable', $gateway['settings']['publishable_key']['value'] );
+	}
+
+	/**
+	 * Data provider for test_payment_gateways_rest_routes_mask_secrets.
+	 *
+	 * @return array
+	 */
+	public function provide_payment_gateways_rest_routes(): array {
+		return [
+			'v3 item'       => [ '/wc/v3/payment_gateways/stripe' ],
+			'v3 collection' => [ '/wc/v3/payment_gateways' ],
+			'v2 item'       => [ '/wc/v2/payment_gateways/stripe' ],
+			'v2 collection' => [ '/wc/v2/payment_gateways' ],
+		];
+	}
+
+	/**
+	 * A secret field holding a value that is not a string must be blanked, not returned as stored.
+	 *
+	 * @return void
+	 */
+	public function test_payment_gateway_response_blanks_non_string_secrets(): void {
+		$response = new WP_REST_Response(
+			[
+				'settings' => [
+					'secret_key'      => [ 'value' => [ 'sk_live_' . str_repeat( 'a', 40 ) ] ],
+					'test_secret_key' => [ 'value' => 12345678901234 ],
+				],
+			]
+		);
+
+		$data = WC_Stripe::get_instance()
+			->mask_secrets_in_payment_gateway_response( $response, WC_Stripe::get_instance()->get_main_stripe_gateway() )
+			->get_data();
+
+		$this->assertSame( '', $data['settings']['secret_key']['value'] );
+		$this->assertSame( '', $data['settings']['test_secret_key']['value'] );
+	}
+
+	/**
+	 * A client that sends the masked secrets back must not overwrite the stored ones, and can still replace them.
+	 *
+	 * @return void
+	 */
+	public function test_payment_gateways_rest_update_keeps_secrets_sent_back_masked(): void {
+		$secrets = $this->save_secret_settings();
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'shop_manager' ] ) );
+
+		$request = new WP_REST_Request( 'PUT', '/wc/v3/payment_gateways/stripe' );
+		$request->set_param(
+			'settings',
+			array_merge(
+				array_map( [ WC_Stripe_Helper::class, 'mask_key_value' ], $secrets ),
+				[ 'test_webhook_secret' => 'whsec_replacement' ]
+			)
+		);
+		$response = rest_do_request( $request );
+		$this->assertSame( 200, $response->get_status() );
+
+		$secrets['test_webhook_secret'] = 'whsec_replacement';
+		$this->assertEquals( $secrets, array_intersect_key( WC_Stripe::get_instance()->get_settings(), $secrets ) );
+		foreach ( $secrets as $secret ) {
+			$this->assertStringNotContainsString( $secret, wp_json_encode( $response->get_data() ) );
+		}
+	}
+
+	/**
+	 * The option that holds the secrets must not be readable through the `wc-admin/options` route, by any user.
+	 *
+	 * @dataProvider provide_settings_option_rest_reads
+	 *
+	 * @param string $role            The role of the user making the request.
+	 * @param string $route           The REST route to request.
+	 * @param string $options         The requested options.
+	 * @param int    $expected_status The expected response status.
+	 * @return void
+	 */
+	public function test_settings_option_rest_read_is_blocked( string $role, string $route, string $options, int $expected_status ): void {
+		$secrets = $this->save_secret_settings();
+		wp_set_current_user( self::factory()->user->create( [ 'role' => $role ] ) );
+
+		$request = new WP_REST_Request( 'GET', $route );
+		$request->set_query_params( [ 'options' => $options ] );
+		$response = rest_do_request( $request );
+
+		$this->assertSame( $expected_status, $response->get_status() );
+		$this->assertStringNotContainsString( $secrets['secret_key'], wp_json_encode( $response->get_data() ) );
+	}
+
+	/**
+	 * Data provider for test_settings_option_rest_read_is_blocked.
+	 *
+	 * @return array
+	 */
+	public function provide_settings_option_rest_reads(): array {
+		return [
+			'shop manager'                        => [ 'shop_manager', '/wc-admin/options', 'woocommerce_stripe_settings', 403 ],
+			'shop manager, route in another case' => [ 'shop_manager', '/WC-Admin/Options', 'woocommerce_stripe_settings', 403 ],
+			'shop manager, several options'       => [ 'shop_manager', '/wc-admin/options', 'woocommerce_demo_store,woocommerce_stripe_settings', 403 ],
+			'shop manager, another option'        => [ 'shop_manager', '/wc-admin/options', 'woocommerce_demo_store', 200 ],
+			'administrator'                       => [ 'administrator', '/wc-admin/options', 'woocommerce_stripe_settings', 403 ],
+			'administrator, name in another case' => [ 'administrator', '/wc-admin/options', 'WooCommerce_Stripe_Settings', 403 ],
+			'administrator, name with spaces'     => [ 'administrator', '/wc-admin/options', 'woocommerce_demo_store, woocommerce_stripe_settings', 403 ],
+			'administrator, another option'       => [ 'administrator', '/wc-admin/options', 'woocommerce_demo_store', 200 ],
+		];
+	}
+
+	/**
+	 * The option that holds the secrets must not be writable through the `wc-admin/options` route, by any user.
+	 *
+	 * @dataProvider provide_settings_option_rest_writes
+	 *
+	 * @param string $role            The role of the user making the request.
+	 * @param string $option          The option name sent in the body.
+	 * @return void
+	 */
+	public function test_settings_option_rest_write_is_blocked( string $role, string $option ): void {
+		$secrets = $this->save_secret_settings();
+		wp_set_current_user( self::factory()->user->create( [ 'role' => $role ] ) );
+
+		$request = new WP_REST_Request( 'POST', '/wc-admin/options' );
+		$request->set_header( 'Content-Type', 'application/json' );
+		$request->set_body( wp_json_encode( [ $option => [ 'secret_key' => 'sk_live_attacker' ] ] ) );
+		$response = rest_do_request( $request );
+
+		$this->assertSame( 403, $response->get_status() );
+		$this->assertSame( $secrets['secret_key'], WC_Stripe::get_instance()->get_settings()['secret_key'] );
+	}
+
+	/**
+	 * Data provider for test_settings_option_rest_write_is_blocked.
+	 *
+	 * @return array
+	 */
+	public function provide_settings_option_rest_writes(): array {
+		return [
+			'shop manager'                        => [ 'shop_manager', 'woocommerce_stripe_settings' ],
+			'administrator'                       => [ 'administrator', 'woocommerce_stripe_settings' ],
+			'administrator, name in another case' => [ 'administrator', 'WooCommerce_Stripe_Settings' ],
+			'administrator, name with spaces'     => [ 'administrator', ' woocommerce_stripe_settings ' ],
+		];
+	}
+
+	/**
+	 * Other options on the `wc-admin/options` route must still be writable.
+	 *
+	 * @return void
+	 */
+	public function test_other_option_rest_write_is_allowed(): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'shop_manager' ] ) );
+
+		$request = new WP_REST_Request( 'POST', '/wc-admin/options' );
+		$request->set_header( 'Content-Type', 'application/json' );
+		$request->set_body( wp_json_encode( [ 'woocommerce_demo_store' => 'yes' ] ) );
+		$response = rest_do_request( $request );
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( 'yes', get_option( 'woocommerce_demo_store' ) );
+	}
+
+	/**
+	 * Helper: saves Stripe settings with all the secrets set, and reloads them in the registered gateway.
+	 *
+	 * @return array The saved secrets, keyed by setting name.
+	 */
+	private function save_secret_settings(): array {
+		$secrets = [
+			'secret_key'          => 'sk_live_' . str_repeat( 'a', 40 ),
+			'test_secret_key'     => 'sk_test_' . str_repeat( 'b', 40 ),
+			'webhook_secret'      => 'whsec_' . str_repeat( 'c', 40 ),
+			'test_webhook_secret' => 'whsec_' . str_repeat( 'd', 40 ),
+		];
+
+		WC_Stripe::get_instance()->update_settings( array_merge( WC_Stripe::get_instance()->get_settings(), $secrets, [ 'publishable_key' => 'pk_live_publishable' ] ) );
+		WC()->payment_gateways()->payment_gateways()[ WC_Stripe_UPE_Payment_Gateway::ID ]->init_settings();
+
+		return $secrets;
 	}
 
 	/**

@@ -12,11 +12,18 @@ jest.mock( 'wcstripe/stripe-utils', () => ( {
 	getBillingDetailsForDeferredFlow: jest.fn().mockReturnValue( null ),
 	getDefaultValues: jest.fn().mockReturnValue( {} ),
 	getExcludedPaymentMethodTypes: jest.fn().mockReturnValue( [] ),
+	getExcludedPaymentMethodTypesForBillingCountry: jest
+		.fn()
+		.mockReturnValue( [] ),
+	getCurrentBillingCountry: jest.fn().mockReturnValue( '' ),
 	getPaymentMethodTypes: jest.fn().mockReturnValue( [ 'card' ] ),
 	getUserDataForCheckoutSession: jest.fn().mockReturnValue( {} ),
 	normalizeReturnUrl: jest.requireActual(
 		'wcstripe/stripe-utils/normalize-return-url'
 	).normalizeReturnUrl,
+	stripeJsSupportsCheckoutSessions: jest.requireActual(
+		'wcstripe/stripe-utils/utils'
+	).stripeJsSupportsCheckoutSessions,
 	getStripeServerData: jest.fn().mockReturnValue( {
 		paymentMethodsConfig: {
 			card: { supportsDeferredIntent: true },
@@ -68,6 +75,9 @@ jest.mock(
 // Retrieve the stable mock functions created inside the jest.mock factory
 // (jest.mock is hoisted above const declarations, so they cannot be referenced
 // inside the factory directly without hitting the TDZ).
+const { handleDisplayOfSavingCheckbox } = jest.requireMock(
+	'wcstripe/optimized-checkout/handle-display-of-saving-checkbox'
+);
 const mockJQueryAjax = jest.requireMock( 'jquery' ).ajax;
 const mockJQueryTrigger = jest.fn();
 
@@ -142,16 +152,48 @@ const BASE_SERVER_DATA = {
 	shouldShowOptimizedCheckout: false,
 	isPaymentNeeded: true,
 	isChangingPayment: false,
+	stripeJsVersion: 'dahlia',
 };
+
+// The Checkout Sessions guard compares the loaded Stripe.js build with the
+// version the server pins; default to a matching build.
+beforeEach( () => {
+	window.Stripe = { version: BASE_SERVER_DATA.stripeJsVersion };
+} );
+
+afterEach( () => {
+	delete window.Stripe;
+} );
 
 const createMockPaymentElement = () => ( {
 	mount: jest.fn(),
 	on: jest.fn(),
 	update: jest.fn(),
+	destroy: jest.fn(),
 } );
 
 const MOCK_AP_CHECKOUT_CLIENT_SECRET = 'cs_test_ap_client_secret';
 const MOCK_AP_CHECKOUT_SESSION_ID = 'cs_test_abc';
+
+const setNativeCheckoutSessionData = ( overrides = {} ) => {
+	let dataElement = document.getElementById(
+		'wc-stripe-checkout-session-data'
+	);
+	if ( ! dataElement ) {
+		dataElement = document.createElement( 'div' );
+		dataElement.id = 'wc-stripe-checkout-session-data';
+		document.body.appendChild( dataElement );
+	}
+
+	dataElement.dataset.checkoutSession = JSON.stringify( {
+		session_id: MOCK_AP_CHECKOUT_SESSION_ID,
+		client_secret: MOCK_AP_CHECKOUT_CLIENT_SECRET,
+		revision: 'rev_1',
+		status: 'success',
+		message: '',
+		...overrides,
+	} );
+};
 
 const createMockElements = () => {
 	const checkoutActions = {
@@ -167,6 +209,7 @@ const createMockElements = () => {
 	};
 	return {
 		create: jest.fn( () => createMockPaymentElement() ),
+		update: jest.fn(),
 		submit: jest.fn( () => Promise.resolve( {} ) ),
 		loadActions: jest.fn( () =>
 			Promise.resolve( { type: 'success', actions: checkoutActions } )
@@ -285,6 +328,23 @@ describe( 'payment-processing', () => {
 		} );
 
 		describe( 'processPayment', () => {
+			it( 'blocks submission when the selected payment component is unavailable', () => {
+				const api = createMockApi( createMockElements() );
+				const form = createMockForm();
+
+				const result = paymentProcessing.processPayment(
+					api,
+					form,
+					'unknown'
+				);
+
+				expect( result ).toBe( false );
+				expect( stripeUtils.showErrorCheckout ).toHaveBeenCalledWith(
+					'Payment failed. Please try again.'
+				);
+				expect( form.trigger ).not.toHaveBeenCalled();
+			} );
+
 			it( 'validates elements, creates a payment method, and submits form', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
@@ -306,6 +366,32 @@ describe( 'payment-processing', () => {
 					stripeUtils.appendPaymentMethodIdToForm
 				).toHaveBeenCalledWith( form, 'pm_test_123' );
 				expect( form.trigger ).toHaveBeenCalledWith( 'submit' );
+			} );
+
+			it( 'can reset completed state when the programmatic submit is blocked', async () => {
+				const api = createMockApi( createMockElements() );
+				api._stripe.elements.mockReturnValue( api._standardElements );
+
+				const dom = document.createElement( 'div' );
+				dom.dataset.paymentMethodType = 'card';
+				await paymentProcessing.mountStripePaymentElement( api, dom );
+
+				const form = createMockForm();
+				paymentProcessing.processPayment( api, form, 'card' );
+				await flushPromises();
+
+				paymentProcessing.resetCheckoutCompletionState();
+				const retryResult = paymentProcessing.processPayment(
+					api,
+					form,
+					'card'
+				);
+				await flushPromises();
+
+				expect( retryResult ).toBe( false );
+				expect( api._standardElements.submit ).toHaveBeenCalledTimes(
+					2
+				);
 			} );
 
 			it( 'waits for an in-flight re-mount before validating and submitting', async () => {
@@ -513,6 +599,7 @@ describe( 'payment-processing', () => {
 
 	describe( 'adaptive pricing enabled (isAdaptivePricingEnabled = true)', () => {
 		beforeEach( () => {
+			setNativeCheckoutSessionData();
 			stripeUtils.getStripeServerData.mockReturnValue( {
 				...BASE_SERVER_DATA,
 				isAdaptivePricingEnabled: true,
@@ -521,6 +608,9 @@ describe( 'payment-processing', () => {
 		} );
 
 		afterEach( () => {
+			document
+				.getElementById( 'wc-stripe-checkout-session-data' )
+				?.remove();
 			jest.clearAllMocks();
 		} );
 
@@ -539,7 +629,9 @@ describe( 'payment-processing', () => {
 
 				await paymentProcessing.mountStripePaymentElement( api, dom );
 
-				expect( api.checkoutSessionsCreateSession ).toHaveBeenCalled();
+				expect(
+					api.checkoutSessionsCreateSession
+				).not.toHaveBeenCalled();
 				expect(
 					api._stripe.initCheckoutElementsSdk
 				).toHaveBeenCalledWith(
@@ -628,12 +720,35 @@ describe( 'payment-processing', () => {
 				expect( api._stripe.elements ).toHaveBeenCalled();
 			} );
 
+			it( 'skips the checkout session and uses standard elements when the legacy v3 Stripe.js defines initCheckoutElementsSdk as a throwing stub', async () => {
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				// Current v3 builds (e.g. the one WooPayments registers under the shared
+				// `stripe` handle) keep the method, but it throws an IntegrationError.
+				api._stripe.initCheckoutElementsSdk.mockImplementation( () => {
+					throw new Error(
+						'You must upgrade to the Basil release or higher to use initCheckout.'
+					);
+				} );
+				window.Stripe = { version: 3 };
+				const dom = document.createElement( 'div' );
+				dom.dataset.paymentMethodType = 'card';
+
+				await paymentProcessing.mountStripePaymentElement( api, dom );
+
+				expect(
+					api._stripe.initCheckoutElementsSdk
+				).not.toHaveBeenCalled();
+				expect( api._stripe.elements ).toHaveBeenCalled();
+			} );
+
 			it( 'falls back to standard elements when session creation fails', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
-				api.checkoutSessionsCreateSession.mockRejectedValue(
-					new Error( 'Network error' )
-				);
+				setNativeCheckoutSessionData( {
+					client_secret: '',
+					status: 'error',
+				} );
 				const dom = document.createElement( 'div' );
 				dom.dataset.paymentMethodType = 'card';
 
@@ -648,8 +763,9 @@ describe( 'payment-processing', () => {
 			it( 'falls back to standard elements when client_secret or session_id is absent', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
-				api.checkoutSessionsCreateSession.mockResolvedValue( {
-					data: {},
+				setNativeCheckoutSessionData( {
+					client_secret: '',
+					session_id: '',
 				} );
 				const dom = document.createElement( 'div' );
 				dom.dataset.paymentMethodType = 'card';
@@ -665,8 +781,8 @@ describe( 'payment-processing', () => {
 			it( 'falls back to standard elements when session_id is absent', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
-				api.checkoutSessionsCreateSession.mockResolvedValue( {
-					data: { client_secret: MOCK_AP_CHECKOUT_CLIENT_SECRET },
+				setNativeCheckoutSessionData( {
+					session_id: '',
 				} );
 				const dom = document.createElement( 'div' );
 				dom.dataset.paymentMethodType = 'card';
@@ -679,7 +795,7 @@ describe( 'payment-processing', () => {
 				).not.toHaveBeenCalled();
 			} );
 
-			it( 'uses runServerUpdate to call checkoutSessionsUpdateSession after maybeUpdateAdaptivePricingCheckoutSession', async () => {
+			it( 'uses runServerUpdate without calling the custom update endpoint', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
 				const dom = document.createElement( 'div' );
@@ -695,7 +811,7 @@ describe( 'payment-processing', () => {
 				).toHaveBeenCalled();
 				expect(
 					api.checkoutSessionsUpdateSession
-				).toHaveBeenCalledWith( MOCK_AP_CHECKOUT_SESSION_ID );
+				).not.toHaveBeenCalled();
 			} );
 
 			it( 'does not call checkoutSessionsUpdateSession when adaptive pricing is disabled', async () => {
@@ -909,7 +1025,7 @@ describe( 'payment-processing', () => {
 				} );
 			} );
 
-			it( 'passes savePaymentMethod true when logged in and the save card checkbox is checked', async () => {
+			it( 'passes savePaymentMethod true when the session supports saving and the save card checkbox is checked', async () => {
 				const orderReceivedUrl =
 					'https://shop.com/checkout/order-received/123/';
 				const mockActions = {
@@ -931,10 +1047,8 @@ describe( 'payment-processing', () => {
 					actions: mockActions,
 				} );
 
-				stripeUtils.getStripeServerData.mockReturnValue( {
-					...BASE_SERVER_DATA,
-					isAdaptivePricingEnabled: true,
-					isLoggedIn: true,
+				setNativeCheckoutSessionData( {
+					save_payment_method_enabled: true,
 				} );
 
 				const form = createMockForm( {
@@ -950,7 +1064,7 @@ describe( 'payment-processing', () => {
 				} );
 			} );
 
-			it( 'does not pass savePaymentMethod for guests even when the save card checkbox is checked', async () => {
+			it( 'does not pass savePaymentMethod when the session does not support saving, even when logged in with the save card checkbox checked', async () => {
 				const orderReceivedUrl =
 					'https://shop.com/checkout/order-received/123/';
 				const mockActions = {
@@ -972,10 +1086,14 @@ describe( 'payment-processing', () => {
 					actions: mockActions,
 				} );
 
+				// A guest-created session reused after login.
 				stripeUtils.getStripeServerData.mockReturnValue( {
 					...BASE_SERVER_DATA,
 					isAdaptivePricingEnabled: true,
-					isLoggedIn: false,
+					isLoggedIn: true,
+				} );
+				setNativeCheckoutSessionData( {
+					save_payment_method_enabled: false,
 				} );
 
 				const form = createMockForm( {
@@ -1069,10 +1187,7 @@ describe( 'payment-processing', () => {
 			it( 'falls back to standard payment flow when session ID is missing from mount', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
-				// Override to not return a session_id — triggers fallback to stripe.elements().
-				api.checkoutSessionsCreateSession.mockResolvedValue( {
-					data: { client_secret: 'cs_test_abc' },
-				} );
+				setNativeCheckoutSessionData( { session_id: '' } );
 				// Fallback elements should NOT have loadActions (like real stripe.elements()).
 				const bareElements = createMockElements();
 				delete bareElements.loadActions;
@@ -1100,10 +1215,7 @@ describe( 'payment-processing', () => {
 			it( 'shows error if checkoutSessionId is null but loadActions exists (defensive)', async () => {
 				const checkoutElements = createMockElements();
 				const api = createMockApi( checkoutElements );
-				// Override to not return a session_id.
-				api.checkoutSessionsCreateSession.mockResolvedValue( {
-					data: { client_secret: 'cs_test_abc' },
-				} );
+				setNativeCheckoutSessionData( { session_id: '' } );
 
 				await mountAndConfigureForProcess( api, checkoutElements, {
 					type: 'success',
@@ -1214,14 +1326,37 @@ describe( 'payment-processing', () => {
 			const STALE_TOTAL_MESSAGE =
 				"We couldn't update your order total. Please refresh the page and try again.";
 
-			const mountElement = async ( api, checkoutElements ) => {
+			const mountElement = async (
+				api,
+				checkoutElements,
+				type = 'card'
+			) => {
 				checkoutElements.loadActions.mockResolvedValueOnce( {
 					type: 'success',
 				} );
 				const dom = document.createElement( 'div' );
-				dom.dataset.paymentMethodType = 'card';
+				dom.dataset.paymentMethodType = type;
 				await paymentProcessing.mountStripePaymentElement( api, dom );
+				return dom;
 			};
+
+			const REPLACEMENT_SECRET = 'cs_test_replacement_secret';
+			const replaceSession = async ( overrides = {} ) => {
+				setNativeCheckoutSessionData( {
+					session_id: 'cs_test_replacement',
+					client_secret: REPLACEMENT_SECRET,
+					...overrides,
+				} );
+				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession();
+			};
+			const expectLastInitWithReplacement = ( api ) =>
+				expect(
+					api._stripe.initCheckoutElementsSdk
+				).toHaveBeenLastCalledWith(
+					expect.objectContaining( {
+						clientSecret: REPLACEMENT_SECRET,
+					} )
+				);
 
 			it.each( [
 				[
@@ -1241,12 +1376,9 @@ describe( 'payment-processing', () => {
 					},
 				],
 				[
-					'the direct session update rejects',
-					( checkoutElements, api ) => {
+					'the element cannot expose runServerUpdate',
+					( checkoutElements ) => {
 						delete checkoutElements.loadActions;
-						api.checkoutSessionsUpdateSession.mockRejectedValueOnce(
-							new Error( 'boom' )
-						);
 					},
 				],
 			] )(
@@ -1268,6 +1400,176 @@ describe( 'payment-processing', () => {
 					).toHaveBeenCalledWith( STALE_TOTAL_MESSAGE );
 				}
 			);
+
+			it( 'stays silent when no element holds a checkout session', async () => {
+				// Nothing mounted through initCheckoutElementsSdk, so the store is on standard
+				// elements and has no session that could go stale.
+				setNativeCheckoutSessionData( {
+					session_id: '',
+					client_secret: '',
+					revision: '',
+					status: 'uninitialized',
+				} );
+				stripeUtils.showErrorCheckout.mockClear();
+
+				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession();
+
+				expect( stripeUtils.showErrorCheckout ).not.toHaveBeenCalled();
+			} );
+
+			it( 'shows a notice when the server reports a failed synchronization', async () => {
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				await mountElement( api, checkoutElements );
+
+				setNativeCheckoutSessionData( { status: 'error' } );
+				stripeUtils.showErrorCheckout.mockClear();
+
+				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession();
+
+				expect( stripeUtils.showErrorCheckout ).toHaveBeenCalledWith(
+					STALE_TOTAL_MESSAGE
+				);
+				expect(
+					checkoutElements.checkoutActions.runServerUpdate
+				).not.toHaveBeenCalled();
+			} );
+
+			it( 'remounts against the session the server replaced the bound one with', async () => {
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				await mountElement( api, checkoutElements );
+				const [ { value: replacedElement } ] =
+					checkoutElements.createPaymentElement.mock.results;
+				stripeUtils.showErrorCheckout.mockClear();
+
+				await replaceSession();
+
+				expect( stripeUtils.showErrorCheckout ).not.toHaveBeenCalled();
+				expect( replacedElement.destroy ).toHaveBeenCalled();
+				// The updated_checkout handler mounts next and must build the element from the replacement.
+				const replacementNode = await mountElement(
+					api,
+					checkoutElements
+				);
+				expectLastInitWithReplacement( api );
+				const [ , { value: replacementElement } ] =
+					checkoutElements.createPaymentElement.mock.results;
+				expect( replacementElement ).not.toBe( replacedElement );
+				expect( replacementElement.mount ).toHaveBeenCalledWith(
+					replacementNode
+				);
+			} );
+
+			it( 'drops an element still being created when its session is replaced', async () => {
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				const staleElements = createMockElements();
+				let resolveStaleInit;
+				api._stripe.initCheckoutElementsSdk.mockReturnValueOnce(
+					new Promise( ( resolve ) => ( resolveStaleInit = resolve ) )
+				);
+				const staleMount = mountElement( api, checkoutElements );
+
+				await replaceSession();
+				resolveStaleInit( staleElements );
+				await staleMount;
+				await mountElement( api, checkoutElements );
+
+				expect(
+					staleElements.createPaymentElement
+				).not.toHaveBeenCalled();
+				expectLastInitWithReplacement( api );
+			} );
+
+			it( 'discards every element bound to the replaced session', async () => {
+				stripeUtils.getStripeServerData.mockReturnValue( {
+					...BASE_SERVER_DATA,
+					isAdaptivePricingEnabled: true,
+					paymentMethodsConfig: {
+						card: { supportsDeferredIntent: true },
+						ideal: { supportsDeferredIntent: true },
+					},
+				} );
+				paymentProcessing.initializeUPEComponents();
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				await mountElement( api, checkoutElements, 'card' );
+				await mountElement( api, checkoutElements, 'ideal' );
+
+				await replaceSession();
+
+				for ( const { value } of checkoutElements.createPaymentElement
+					.mock.results ) {
+					expect( value.destroy ).toHaveBeenCalled();
+				}
+			} );
+
+			it( 'stops the replaced element from reacting to the create-account checkbox', async () => {
+				stripeUtils.getStripeServerData.mockReturnValue( {
+					...BASE_SERVER_DATA,
+					isAdaptivePricingEnabled: true,
+					shouldShowOptimizedCheckout: true,
+				} );
+				const createAccountCheckbox = document.createElement( 'input' );
+				createAccountCheckbox.type = 'checkbox';
+				createAccountCheckbox.id = 'createaccount';
+				document.body.appendChild( createAccountCheckbox );
+
+				try {
+					const checkoutElements = createMockElements();
+					const api = createMockApi( checkoutElements );
+					const selectMethod = ( elementIndex, type ) => {
+						const { value: element } =
+							checkoutElements.createPaymentElement.mock.results[
+								elementIndex
+							];
+						const [ , onChange ] = element.on.mock.calls.find(
+							( [ eventName ] ) => eventName === 'change'
+						);
+						onChange( { value: { type } } );
+					};
+
+					await mountElement( api, checkoutElements );
+					selectMethod( 0, 'card' );
+					await replaceSession();
+					await mountElement( api, checkoutElements );
+					selectMethod( 1, 'ideal' );
+					handleDisplayOfSavingCheckbox.mockClear();
+
+					createAccountCheckbox.dispatchEvent(
+						new Event( 'change' )
+					);
+
+					expect(
+						handleDisplayOfSavingCheckbox.mock.calls.map(
+							( [ type ] ) => type
+						)
+					).toEqual( [ 'ideal' ] );
+				} finally {
+					createAccountCheckbox.remove();
+				}
+			} );
+
+			it( 'blocks submission when the server replaced the session but reports a failure', async () => {
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+				await mountElement( api, checkoutElements );
+
+				stripeUtils.showErrorCheckout.mockClear();
+
+				await replaceSession( { status: 'error' } );
+
+				expect( stripeUtils.showErrorCheckout ).toHaveBeenCalledWith(
+					STALE_TOTAL_MESSAGE
+				);
+
+				// Without a usable replacement the existing element must be kept.
+				await mountElement( api, checkoutElements );
+				expect(
+					api._stripe.initCheckoutElementsSdk
+				).toHaveBeenCalledTimes( 1 );
+			} );
 
 			it( 'ignores a stale failing resync that settles after a newer successful one', async () => {
 				const checkoutElements = createMockElements();
@@ -1462,6 +1764,10 @@ describe( 'payment-processing', () => {
 				expect( mockJQueryAjax ).not.toHaveBeenCalled();
 
 				// A clean resync lifts the block and the order is created.
+				checkoutElements.loadActions.mockResolvedValue( {
+					type: 'success',
+					actions: checkoutElements.checkoutActions,
+				} );
 				await paymentProcessing.maybeUpdateAdaptivePricingCheckoutSession(
 					api
 				);
@@ -1623,10 +1929,13 @@ describe( 'payment-processing', () => {
 			document.body.appendChild( form );
 		} );
 
-		const getWrappers = () => form.querySelectorAll( '.validate-required' );
+		const getRequiredFieldWrappers = () =>
+			form.querySelectorAll( '.validate-required' );
 
 		it( 'returns false when there are no required fields', () => {
-			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				false
+			);
 		} );
 
 		it( 'returns true when a required text input is empty', () => {
@@ -1634,7 +1943,9 @@ describe( 'payment-processing', () => {
 				'<p class="validate-required">' +
 				'<input type="text" class="input-text" value="" />' +
 				'</p>';
-			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( true );
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				true
+			);
 		} );
 
 		it( 'returns true when a required text input has only whitespace', () => {
@@ -1642,7 +1953,29 @@ describe( 'payment-processing', () => {
 				'<p class="validate-required">' +
 				'<input type="text" class="input-text" value="   " />' +
 				'</p>';
-			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( true );
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				true
+			);
+		} );
+
+		it( 'returns true when a required textarea is empty', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<textarea class="input-text"></textarea>' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				true
+			);
+		} );
+
+		it( 'returns false when a required textarea has a value', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<textarea class="input-text">Details</textarea>' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				false
+			);
 		} );
 
 		it( 'returns false when all required text inputs have values', () => {
@@ -1653,7 +1986,9 @@ describe( 'payment-processing', () => {
 				'<p class="validate-required">' +
 				'<input type="text" class="input-text" value="john@example.com" />' +
 				'</p>';
-			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				false
+			);
 		} );
 
 		it( 'returns true when a required select has no value', () => {
@@ -1661,7 +1996,9 @@ describe( 'payment-processing', () => {
 				'<p class="validate-required">' +
 				'<select><option value="">Select...</option><option value="US">US</option></select>' +
 				'</p>';
-			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( true );
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				true
+			);
 		} );
 
 		it( 'returns false when a required select has a value', () => {
@@ -1669,7 +2006,52 @@ describe( 'payment-processing', () => {
 				'<p class="validate-required">' +
 				'<select><option value="">Select...</option><option value="US" selected>US</option></select>' +
 				'</p>';
-			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				false
+			);
+		} );
+
+		// WooCommerce posts a multiselect as implode( ', ', $value ), so both of the
+		// cases below still arrive as '' and are rejected server-side. Blocking them
+		// costs nothing; the third case posts ', US' and is accepted, so blocking it
+		// would fail the checkout outright.
+		it( 'returns true when a required multiple select has nothing selected', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<select multiple>' +
+				'<option value="">Select...</option>' +
+				'<option value="US">US</option>' +
+				'</select>' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				true
+			);
+		} );
+
+		it( 'returns true when a required multiple select has only an empty option selected', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<select multiple>' +
+				'<option value="" selected>Select...</option>' +
+				'<option value="US">US</option>' +
+				'</select>' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				true
+			);
+		} );
+
+		it( 'returns false when a required multiple select has a value selected after an empty option', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<select multiple>' +
+				'<option value="" selected>Select...</option>' +
+				'<option value="US" selected>US</option>' +
+				'</select>' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				false
+			);
 		} );
 
 		it( 'returns true when a required checkbox is unchecked', () => {
@@ -1677,7 +2059,9 @@ describe( 'payment-processing', () => {
 				'<p class="validate-required">' +
 				'<input type="checkbox" />' +
 				'</p>';
-			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( true );
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				true
+			);
 		} );
 
 		it( 'returns false when a required checkbox is checked', () => {
@@ -1685,7 +2069,90 @@ describe( 'payment-processing', () => {
 				'<p class="validate-required">' +
 				'<input type="checkbox" checked />' +
 				'</p>';
-			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				false
+			);
+		} );
+
+		it( 'returns false when one checkbox in a required group is checked', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<input type="checkbox" />' +
+				'<input type="checkbox" checked />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				false
+			);
+		} );
+
+		it( 'returns true when no checkbox in a required group is checked', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<input type="checkbox" />' +
+				'<input type="checkbox" />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				true
+			);
+		} );
+
+		// Radios stay outside the selector: blocking on an unselected group would stop
+		// checkout on stores whose radio fields have no server-side validation.
+		it( 'returns false for a required wrapper holding only unselected radios', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<input type="radio" name="option" />' +
+				'<input type="radio" name="option" />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				false
+			);
+		} );
+
+		it( 'returns false when a required radio group has a selection', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<input type="radio" name="option" />' +
+				'<input type="radio" name="option" checked />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				false
+			);
+		} );
+
+		it( 'returns false when a checked radio accompanies an empty placeholder select', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<select><option value="" selected>Select...</option></select>' +
+				'<input type="radio" name="option" value="yes" checked />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				false
+			);
+		} );
+
+		it( 'returns true when unchecked radios accompany an empty placeholder select', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<select><option value="" selected>Select...</option></select>' +
+				'<input type="radio" name="option" value="yes" />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				true
+			);
+		} );
+
+		// The checkbox group check only applies when the group leads the wrapper, so a
+		// filled text field ahead of an unchecked checkbox still passes, as before.
+		it( 'returns false when a filled text input precedes an unchecked checkbox', () => {
+			form.innerHTML =
+				'<p class="validate-required">' +
+				'<input type="text" class="input-text" value="John" />' +
+				'<input type="checkbox" />' +
+				'</p>';
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				false
+			);
 		} );
 
 		it( 'returns true if any one of multiple fields is empty', () => {
@@ -1696,7 +2163,9 @@ describe( 'payment-processing', () => {
 				'<p class="validate-required">' +
 				'<input type="text" class="input-text" value="" />' +
 				'</p>';
-			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( true );
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				true
+			);
 		} );
 
 		it( 'skips validate-required wrappers with no matching input', () => {
@@ -1704,7 +2173,9 @@ describe( 'payment-processing', () => {
 				'<p class="validate-required">' +
 				'<span>No input here</span>' +
 				'</p>';
-			expect( hasEmptyRequiredFields( getWrappers() ) ).toBe( false );
+			expect( hasEmptyRequiredFields( getRequiredFieldWrappers() ) ).toBe(
+				false
+			);
 		} );
 	} );
 } );
@@ -2032,9 +2503,9 @@ describe( 'ensureUPEElementMounted', () => {
 
 		// Hash format written by process_payment_with_deferred_intent():
 		// #wc-stripe-voucher-<order_id>:<type>:<client_secret>:<encoded_redirect_url>
-		const setVoucherHash = ( encodedRedirectUrl ) => {
+		const setVoucherHash = ( encodedRedirectUrl, orderId = '123' ) => {
 			window.location.href =
-				'https://shop.com/checkout#wc-stripe-voucher-123:boleto:cs_secret:' +
+				`https://shop.com/checkout#wc-stripe-voucher-${ orderId }:boleto:cs_secret:` +
 				encodedRedirectUrl;
 		};
 
@@ -2044,23 +2515,62 @@ describe( 'ensureUPEElementMounted', () => {
 			} ) ),
 		} );
 
-		it( 'navigates to a same-origin post-payment URL after confirming the voucher', async () => {
-			setVoucherHash(
-				encodeURIComponent( 'https://shop.com/order-received/123/' )
-			);
-			stripeUtils.getStripeServerData.mockReturnValue( {
-				orderReceivedURL: 'https://shop.com/checkout/order-received',
-			} );
+		it.each( [
+			'https://shop.com/order-received/123/?key=wc_order_abc&custom=value',
+			'https://shop.com/?page_id=10&order-received=123&key=wc_order_abc',
+		] )(
+			'preserves the complete voucher return URL: %s',
+			async ( returnUrl ) => {
+				setVoucherHash( encodeURIComponent( returnUrl ) );
+				stripeUtils.getStripeServerData.mockReturnValue( {
+					orderReceivedURL:
+						'https://shop.com/checkout/order-received',
+				} );
 
-			await paymentProcessing.confirmVoucherPayment(
-				buildVoucherApi(),
-				createMockForm()
-			);
+				await paymentProcessing.confirmVoucherPayment(
+					buildVoucherApi(),
+					createMockForm()
+				);
 
-			expect( window.location.href ).toBe(
-				'https://shop.com/order-received/123/'
-			);
-		} );
+				expect( window.location.href ).toBe( returnUrl );
+			}
+		);
+
+		it.each( [
+			[
+				'NaN',
+				'https://shop.com/checkout/order-received',
+				'https://shop.com/checkout/order-received',
+			],
+			[
+				'123abc',
+				'https://shop.com/checkout/order-received',
+				'https://shop.com/checkout/order-received',
+			],
+			[
+				'123',
+				'https://returns.example/thank-you',
+				'https://returns.example/thank-you/123/',
+			],
+		] )(
+			'preserves the configured voucher fallback for order %s: %s',
+			async ( orderId, orderReceivedURL, expectedUrl ) => {
+				setVoucherHash(
+					encodeURIComponent( 'https://evil.example/steal' ),
+					orderId
+				);
+				stripeUtils.getStripeServerData.mockReturnValue( {
+					orderReceivedURL,
+				} );
+
+				await paymentProcessing.confirmVoucherPayment(
+					buildVoucherApi(),
+					createMockForm()
+				);
+
+				expect( window.location.href ).toBe( expectedUrl );
+			}
+		);
 
 		it( 'falls back to the order-received page when the post-payment URL is cross-origin', async () => {
 			setVoucherHash(
@@ -2079,5 +2589,339 @@ describe( 'ensureUPEElementMounted', () => {
 				'https://shop.com/checkout/order-received/123/'
 			);
 		} );
+	} );
+
+	describe( 'confirmWalletPayment', () => {
+		let originalLocation;
+
+		const ORDER_RECEIVED_URL = 'https://shop.com/checkout/order-received';
+		const FALLBACK_URL = 'https://shop.com/checkout/order-received/123/';
+
+		beforeEach( () => {
+			originalLocation = window.location;
+			delete window.location;
+			window.location = {
+				href: '',
+				origin: 'https://shop.com',
+				pathname: '/checkout',
+				search: '',
+				assign: jest.fn(),
+			};
+			jest.spyOn( window.history, 'replaceState' ).mockImplementation(
+				() => {}
+			);
+			stripeUtils.getStripeServerData.mockReturnValue( {
+				orderReceivedURL: ORDER_RECEIVED_URL,
+			} );
+		} );
+
+		afterEach( () => {
+			window.location = originalLocation;
+			jest.clearAllMocks();
+		} );
+
+		// Hash format written by process_payment_with_deferred_intent():
+		// #wc-stripe-wallet-<order_id>:<type>:<intent_type>:<client_secret>:<encoded_return_url>:<nonce>
+		const setWalletHash = ( paymentMethodType, encodedReturnUrl ) => {
+			window.location.href =
+				`https://shop.com/checkout#wc-stripe-wallet-123:${ paymentMethodType }:payment_intent:cs_secret:` +
+				`${ encodedReturnUrl }:nonce_value`;
+		};
+
+		// The trailing confirm_change_payment request is rejected here (its nonce comes from the
+		// same fragment), so it cannot mask the navigation performed before it.
+		const buildWalletApi = ( confirmFns ) => ( {
+			getStripe: jest.fn( () => confirmFns ),
+			getAjaxUrl: jest.fn( () => 'https://shop.com/ajax' ),
+			request: jest.fn().mockResolvedValue( {
+				success: false,
+				data: { error: { message: 'Invalid nonce.' } },
+			} ),
+		} );
+
+		const succeededIntent = {
+			paymentIntent: { id: 'pi_1', status: 'succeeded' },
+		};
+
+		it.each( [
+			[
+				'resolves a relative return URL against the store origin',
+				encodeURIComponent( '/order-received/123/?key=wc_order_abc' ),
+				'https://shop.com/order-received/123/?key=wc_order_abc',
+			],
+			[
+				'keeps an absolute same-origin return URL',
+				encodeURIComponent(
+					'https://shop.com/order-received/123/?key=wc_order_abc&custom=value'
+				),
+				'https://shop.com/order-received/123/?key=wc_order_abc&custom=value',
+			],
+			[
+				'preserves a query-style order URL',
+				encodeURIComponent(
+					'https://shop.com/?page_id=10&order-received=123&key=wc_order_abc'
+				),
+				'https://shop.com/?page_id=10&order-received=123&key=wc_order_abc',
+			],
+			[
+				'falls back when the return URL is cross-origin',
+				encodeURIComponent( 'https://evil.example/steal' ),
+				FALLBACK_URL,
+			],
+			[
+				'falls back when the return URL is scheme-relative',
+				encodeURIComponent( '//evil.example/steal' ),
+				FALLBACK_URL,
+			],
+			[
+				'falls back when the return URL uses the javascript: scheme',
+				encodeURIComponent( 'javascript:alert(document.domain)' ), // eslint-disable-line no-script-url
+				FALLBACK_URL,
+			],
+			[
+				'falls back when the return URL uses the data: scheme',
+				encodeURIComponent(
+					'data:text/html,<script>alert(1)</script>'
+				),
+				FALLBACK_URL,
+			],
+			[
+				'falls back when the return URL is malformed percent-encoding',
+				'%E0%A4%A',
+				FALLBACK_URL,
+			],
+		] )(
+			'cashapp: %s, for both Stripe and the navigation',
+			async ( _label, encodedReturnUrl, expectedUrl ) => {
+				const confirmCashappPayment = jest
+					.fn()
+					.mockResolvedValue( succeededIntent );
+				setWalletHash( 'cashapp', encodedReturnUrl );
+
+				await paymentProcessing.confirmWalletPayment(
+					buildWalletApi( { confirmCashappPayment } ),
+					createMockForm()
+				);
+
+				expect( confirmCashappPayment ).toHaveBeenCalledWith(
+					'cs_secret',
+					{ return_url: expectedUrl }
+				);
+				expect( window.location.href ).toBe( expectedUrl );
+			}
+		);
+
+		it.each( [
+			[
+				'keeps an absolute same-origin return URL',
+				encodeURIComponent( 'https://shop.com/order-received/123/' ),
+				'https://shop.com/order-received/123/',
+			],
+			[
+				'falls back when the return URL is cross-origin',
+				encodeURIComponent( 'https://evil.example/steal' ),
+				FALLBACK_URL,
+			],
+			[
+				'falls back when the return URL uses the javascript: scheme',
+				encodeURIComponent( 'javascript:alert(document.domain)' ), // eslint-disable-line no-script-url
+				FALLBACK_URL,
+			],
+		] )(
+			// WeChat Pay never forwards the return URL to Stripe, so this flow gets no URL
+			// validation from the provider and depends entirely on the check above.
+			'wechat_pay: %s',
+			async ( _label, encodedReturnUrl, expectedUrl ) => {
+				const confirmWechatPayPayment = jest
+					.fn()
+					.mockResolvedValue( succeededIntent );
+				setWalletHash( 'wechat_pay', encodedReturnUrl );
+
+				await paymentProcessing.confirmWalletPayment(
+					buildWalletApi( { confirmWechatPayPayment } ),
+					createMockForm()
+				);
+
+				expect( window.location.href ).toBe( expectedUrl );
+			}
+		);
+
+		it( 'confirms the setup intent for cashapp with the validated return URL', async () => {
+			const confirmCashappSetup = jest
+				.fn()
+				.mockResolvedValue( { setupIntent: { status: 'succeeded' } } );
+			window.location.href =
+				'https://shop.com/checkout#wc-stripe-wallet-123:cashapp:setup_intent:cs_secret:' +
+				encodeURIComponent( 'https://evil.example/steal' ) +
+				':nonce_value';
+
+			await paymentProcessing.confirmWalletPayment(
+				buildWalletApi( { confirmCashappSetup } ),
+				createMockForm()
+			);
+
+			expect( confirmCashappSetup ).toHaveBeenCalledWith( 'cs_secret', {
+				return_url: FALLBACK_URL,
+			} );
+			expect( window.location.href ).toBe( FALLBACK_URL );
+		} );
+
+		it( 'does not contact Stripe or navigate when no destination can be resolved', async () => {
+			const form = createMockForm();
+			stripeUtils.getStripeServerData.mockReturnValue( {
+				orderReceivedURL: '',
+			} );
+			const confirmCashappPayment = jest
+				.fn()
+				.mockResolvedValue( succeededIntent );
+			setWalletHash(
+				'cashapp',
+				encodeURIComponent( 'https://evil.example/steal' )
+			);
+
+			await paymentProcessing.confirmWalletPayment(
+				buildWalletApi( { confirmCashappPayment } ),
+				form
+			);
+
+			expect( confirmCashappPayment ).not.toHaveBeenCalled();
+			expect( window.location.href ).toBe(
+				'https://shop.com/checkout#wc-stripe-wallet-123:cashapp:payment_intent:cs_secret:https%3A%2F%2Fevil.example%2Fsteal:nonce_value'
+			);
+			expect( stripeUtils.showErrorCheckout ).toHaveBeenCalled();
+			expect( form.removeClass ).toHaveBeenCalledWith( 'processing' );
+			expect( form.unblock ).toHaveBeenCalledTimes( 1 );
+			expect( stripeUtils.unblockBlockCheckout ).toHaveBeenCalledTimes(
+				1
+			);
+			expect(
+				stripeUtils.resetBlockCheckoutPaymentState
+			).toHaveBeenCalledTimes( 1 );
+		} );
+
+		it( 'does not navigate while the intent still requires action', async () => {
+			const confirmCashappPayment = jest.fn().mockResolvedValue( {
+				paymentIntent: { id: 'pi_1', status: 'requires_action' },
+			} );
+			setWalletHash(
+				'cashapp',
+				encodeURIComponent( 'https://shop.com/order-received/123/' )
+			);
+
+			await paymentProcessing.confirmWalletPayment(
+				buildWalletApi( { confirmCashappPayment } ),
+				createMockForm()
+			);
+
+			expect( window.location.href ).toContain( '#wc-stripe-wallet-123' );
+		} );
+	} );
+} );
+
+describe( 'maybeUpdateOptimizedCheckoutExclusions', () => {
+	beforeEach( () => {
+		jest.clearAllMocks();
+		stripeUtils.getStripeServerData.mockReturnValue( {
+			...BASE_SERVER_DATA,
+			shouldShowOptimizedCheckout: true,
+		} );
+		stripeUtils.getCurrentBillingCountry.mockReturnValue( 'US' );
+		stripeUtils.getExcludedPaymentMethodTypesForBillingCountry.mockReturnValue(
+			[]
+		);
+		paymentProcessing.initializeUPEComponents();
+	} );
+
+	const mountOCElement = async () => {
+		const api = createMockApi( createMockElements() );
+		const dom = document.createElement( 'div' );
+		dom.dataset.paymentMethodType = 'card';
+		await paymentProcessing.mountStripePaymentElement( api, dom );
+		return api._standardElements;
+	};
+
+	it( 'updates the element with the exclusions recomputed for the current country', async () => {
+		const elements = await mountOCElement();
+		stripeUtils.getCurrentBillingCountry.mockReturnValue( 'NL' );
+		stripeUtils.getExcludedPaymentMethodTypesForBillingCountry.mockReturnValue(
+			[ 'affirm' ]
+		);
+
+		paymentProcessing.maybeUpdateOptimizedCheckoutExclusions();
+
+		expect(
+			stripeUtils.getExcludedPaymentMethodTypesForBillingCountry
+		).toHaveBeenCalledWith( 'NL' );
+		expect( elements.update ).toHaveBeenCalledWith( {
+			excludedPaymentMethodTypes: [ 'affirm' ],
+		} );
+	} );
+
+	it( 'skips the Stripe update when the exclusions are unchanged', async () => {
+		const elements = await mountOCElement();
+		stripeUtils.getExcludedPaymentMethodTypesForBillingCountry.mockReturnValue(
+			[ 'affirm' ]
+		);
+
+		paymentProcessing.maybeUpdateOptimizedCheckoutExclusions();
+		paymentProcessing.maybeUpdateOptimizedCheckoutExclusions();
+
+		expect( elements.update ).toHaveBeenCalledTimes( 1 );
+	} );
+
+	it( 'does not re-send the exclusions already applied at element creation', async () => {
+		stripeUtils.getExcludedPaymentMethodTypesForBillingCountry.mockReturnValue(
+			[ 'affirm' ]
+		);
+		const elements = await mountOCElement();
+
+		paymentProcessing.maybeUpdateOptimizedCheckoutExclusions();
+
+		expect( elements.update ).not.toHaveBeenCalled();
+	} );
+
+	it( 'pushes new exclusions when the billing country changes', async () => {
+		const elements = await mountOCElement();
+		stripeUtils.getExcludedPaymentMethodTypesForBillingCountry.mockReturnValue(
+			[ 'ideal' ]
+		);
+		paymentProcessing.maybeUpdateOptimizedCheckoutExclusions();
+
+		// A hidden method must re-surface when the new country allows it.
+		stripeUtils.getExcludedPaymentMethodTypesForBillingCountry.mockReturnValue(
+			[]
+		);
+		paymentProcessing.maybeUpdateOptimizedCheckoutExclusions();
+
+		expect( elements.update ).toHaveBeenCalledTimes( 2 );
+		expect( elements.update ).toHaveBeenLastCalledWith( {
+			excludedPaymentMethodTypes: [],
+		} );
+	} );
+
+	it( 'is a no-op when Optimized Checkout is disabled', () => {
+		stripeUtils.getStripeServerData.mockReturnValue( {
+			...BASE_SERVER_DATA,
+			shouldShowOptimizedCheckout: false,
+		} );
+
+		paymentProcessing.maybeUpdateOptimizedCheckoutExclusions();
+
+		expect(
+			stripeUtils.getExcludedPaymentMethodTypesForBillingCountry
+		).not.toHaveBeenCalled();
+	} );
+
+	it( 'is a no-op when the elements instance has no update()', async () => {
+		const elements = await mountOCElement();
+		delete elements.update;
+		stripeUtils.getExcludedPaymentMethodTypesForBillingCountry.mockClear();
+
+		expect( () =>
+			paymentProcessing.maybeUpdateOptimizedCheckoutExclusions()
+		).not.toThrow();
+		expect(
+			stripeUtils.getExcludedPaymentMethodTypesForBillingCountry
+		).not.toHaveBeenCalled();
 	} );
 } );

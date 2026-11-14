@@ -53,5 +53,27 @@ describe( 'Account actions tests', () => {
 				} )
 			);
 		} );
+
+		it( 'refetches the settings and writes them to the store', () => {
+			const generator = refreshAccount();
+			const yielded = [];
+
+			// Feed the settings payload back in so the SET_SETTINGS action carries it.
+			let next = generator.next();
+			while ( ! next.done ) {
+				yielded.push( next.value );
+				next = generator.next( { is_pmc_enabled: true } );
+			}
+
+			expect( apiFetch ).toHaveBeenCalledWith( {
+				path: '/wc/v3/wc_stripe/settings',
+			} );
+			expect( yielded ).toContainEqual(
+				expect.objectContaining( {
+					type: 'SET_SETTINGS',
+					data: { is_pmc_enabled: true },
+				} )
+			);
+		} );
 	} );
 } );

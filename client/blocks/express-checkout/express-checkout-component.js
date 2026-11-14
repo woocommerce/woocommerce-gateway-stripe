@@ -40,20 +40,12 @@ const getPaymentMethodsOverride = ( enabledPaymentMethod ) => {
 const adjustButtonHeights = ( buttonOptions, expressPaymentMethod ) => {
 	let buttonHeight = buttonOptions.buttonHeight;
 
-	// Apple Pay has a nearly imperceptible height difference. We increase it by 1px here.
+	// Apple Pay has a nearly imperceptible height difference. We increase it by 0.4px here.
 	if (
 		buttonOptions.buttonTheme.applePay === 'black' &&
 		expressPaymentMethod === EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY
 	) {
 		buttonHeight = buttonHeight + 0.4;
-	}
-
-	// GooglePay with the white theme has a 2px height difference due to its border.
-	if (
-		expressPaymentMethod === EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY &&
-		buttonOptions.buttonTheme.googlePay === 'white'
-	) {
-		buttonHeight = buttonHeight - 2;
 	}
 
 	return {

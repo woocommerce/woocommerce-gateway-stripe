@@ -4,10 +4,10 @@ import config from 'config';
 import { admin, api, payments, products, user } from '../../utils';
 
 const {
+	clickPlaceOrder,
 	setupShortcodeCheckout,
 	fillCreditCardDetailsShortcode,
-	clickAddToCartButton,
-	selectSubscriptionOption,
+	addSubscriptionToCart,
 	getCartTotal,
 	waitForOrderReceivedPage,
 	getOrderIdFromOrderReceivedUrl,
@@ -53,9 +53,7 @@ test( 'customer can renew a subscription @smoke @subscriptions', async ( {
 	} );
 
 	await test.step( 'customer purchase a subscription product', async () => {
-		await page.goto( `?p=${ productId }` );
-		await selectSubscriptionOption( page );
-		await clickAddToCartButton( page, 'Sign up' );
+		await addSubscriptionToCart( page, productId );
 
 		await setupShortcodeCheckout( page );
 		await fillCreditCardDetailsShortcode(
@@ -65,7 +63,7 @@ test( 'customer can renew a subscription @smoke @subscriptions', async ( {
 
 		purchaseTotal = await getCartTotal( page );
 
-		await page.locator( 'text=Place order' ).click();
+		await clickPlaceOrder( page );
 		await waitForOrderReceivedPage( page );
 
 		purchaseOrderId = getOrderIdFromOrderReceivedUrl( page.url() );

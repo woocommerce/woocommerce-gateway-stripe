@@ -6,7 +6,9 @@ import { useEnabledPaymentMethodIds, useLinkLocations } from 'wcstripe/data';
 jest.mock( 'wcstripe/data', () => ( {
 	useEnabledPaymentMethodIds: jest.fn(),
 	useLinkLocations: jest.fn(),
-	useLinkButtonSize: jest.fn().mockReturnValue( [ 'default', jest.fn() ] ),
+	useExpressCheckoutButtonSize: jest
+		.fn()
+		.mockReturnValue( [ 'default', jest.fn() ] ),
 } ) );
 jest.mock( '@woocommerce/blocks-checkout', () => {}, { virtual: true } );
 
@@ -71,21 +73,27 @@ describe( 'LinkSettingsSection locations', () => {
 		render( <LinkSettingsSection /> );
 
 		// Uncheck each checkbox, and verify what kind of action should have been called
-		await userEvent.click( screen.getByText( 'Product page' ) );
+		await userEvent.click(
+			screen.getByRole( 'checkbox', { name: 'Product page' } )
+		);
 
 		expect( updateLinkLocationsHandler ).toHaveBeenLastCalledWith( [
 			'checkout',
 			'cart',
 		] );
 
-		await userEvent.click( screen.getByText( 'Checkout' ) );
+		await userEvent.click(
+			screen.getByRole( 'checkbox', { name: 'Checkout' } )
+		);
 
 		expect( updateLinkLocationsHandler ).toHaveBeenLastCalledWith( [
 			'product',
 			'cart',
 		] );
 
-		await userEvent.click( screen.getByText( 'Cart' ) );
+		await userEvent.click(
+			screen.getByRole( 'checkbox', { name: 'Cart' } )
+		);
 		expect( updateLinkLocationsHandler ).toHaveBeenLastCalledWith( [
 			'checkout',
 			'product',
@@ -102,19 +110,25 @@ describe( 'LinkSettingsSection locations', () => {
 
 		render( <LinkSettingsSection /> );
 
-		await userEvent.click( screen.getByText( 'Cart' ) );
+		await userEvent.click(
+			screen.getByRole( 'checkbox', { name: 'Cart' } )
+		);
 
 		expect( updateLinkLocationsHandler ).toHaveBeenLastCalledWith( [
 			'cart',
 		] );
 
-		await userEvent.click( screen.getByText( 'Product page' ) );
+		await userEvent.click(
+			screen.getByRole( 'checkbox', { name: 'Product page' } )
+		);
 
 		expect( updateLinkLocationsHandler ).toHaveBeenLastCalledWith( [
 			'product',
 		] );
 
-		await userEvent.click( screen.getByText( 'Checkout' ) );
+		await userEvent.click(
+			screen.getByRole( 'checkbox', { name: 'Checkout' } )
+		);
 
 		expect( updateLinkLocationsHandler ).toHaveBeenLastCalledWith( [
 			'checkout',
