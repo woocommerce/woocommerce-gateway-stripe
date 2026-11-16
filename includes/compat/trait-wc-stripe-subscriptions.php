@@ -470,22 +470,11 @@ trait WC_Stripe_Subscriptions_Trait {
 			$charge_id = $response->error->payment_intent->latest_charge;
 		}
 
-		// An expanded latest_charge needs no request. The confirm request moves it beside the charge ID.
-		$payment_intent = $response->error->payment_intent ?? null;
-		$charge         = $payment_intent->latest_charge ?? null;
-		if ( ! $this->is_stripe_charge_object( $charge ) ) {
-			$charge = $payment_intent->{WC_Stripe_Payment_Gateway::EXPANDED_LATEST_CHARGE_PROPERTY} ?? null;
+		if ( empty( $charge_id ) ) {
+			return false;
 		}
-		if ( $this->is_stripe_charge_object( $charge ) && ! empty( $charge_id ) && $charge->id !== $charge_id ) {
-			$charge = null;
-		}
-		if ( ! $this->is_stripe_charge_object( $charge ) ) {
-			if ( empty( $charge_id ) ) {
-				return false;
-			}
 
-			$charge = WC_Stripe_API::retrieve( "charges/{$charge_id}" );
-		}
+		$charge = WC_Stripe_API::retrieve( "charges/{$charge_id}" );
 
 		if ( is_wp_error( $charge ) || empty( $charge ) || ! empty( $charge->error ) ) {
 			return false;
@@ -862,7 +851,7 @@ trait WC_Stripe_Subscriptions_Trait {
 					'The wc_gateway_stripe_process_payment action is deprecated. Use wc_gateway_stripe_process_payment_charge instead.'
 				);
 
-				// The intent carries the expanded charge; for SEPA the response body is the charge.
+				// Use the last charge within the intent, or the full response body in case of SEPA.
 				try {
 					$latest_charge = $this->resolve_stripe_charge_object( $this->get_latest_charge_for_subscription_renewal( $response ) );
 				} catch ( WC_Stripe_Exception $charge_exception ) {

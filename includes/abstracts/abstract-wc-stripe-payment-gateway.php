@@ -36,15 +36,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	protected $retry_interval = 1;
 
 	/**
-	 * Property that carries an expanded latest charge on a PaymentIntent whose latest_charge is the ID.
-	 *
-	 * @internal Read it through get_latest_charge_from_intent(); the property may change.
-	 * @since x.x.x
-	 * @var string
-	 */
-	public const EXPANDED_LATEST_CHARGE_PROPERTY = '_wc_stripe_expanded_latest_charge';
-
-	/**
 	 * Fallback method to be inherited by all payment methods. Stripe UPE will override it.
 	 *
 	 * @return string[]
@@ -964,33 +955,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
-	 * Puts the charge ID back on an intent whose latest_charge Stripe expanded, keeping the charge beside it.
-	 *
-	 * The intent is returned to callers and passed to public hooks, where latest_charge has always
-	 * been a charge ID string. Third-party code may rely on that, so the expanded charge moves to a
-	 * separate property that only get_latest_charge_from_intent() reads.
-	 *
-	 * @since x.x.x
-	 *
-	 * @param mixed $intent A PaymentIntent from a Stripe response.
-	 * @return void
-	 */
-	private function collapse_expanded_latest_charge( $intent ): void {
-		// Stripe responses decode to stdClass, which is the only shape that can take the extra property.
-		if ( ! $intent instanceof stdClass || ! isset( $intent->latest_charge ) || ! is_object( $intent->latest_charge ) ) {
-			return;
-		}
-
-		$charge_id = $intent->latest_charge->id ?? null;
-		if ( ! is_string( $charge_id ) || '' === $charge_id ) {
-			return;
-		}
-
-		$intent->{self::EXPANDED_LATEST_CHARGE_PROPERTY} = $intent->latest_charge;
-		$intent->latest_charge                           = $charge_id;
-	}
-
-	/**
 	 * Get latest charge object from payment intent.
 	 *
 	 * Since API version 2022-11-15, the `charges` property was replaced with `latest_charge`.
@@ -1007,16 +971,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( ! empty( $intent->charges->data ) ) {
 			$latest_charge = end( $intent->charges->data );
 		} elseif ( ! empty( $intent->latest_charge ) ) {
-			$expanded_charge = $intent->{self::EXPANDED_LATEST_CHARGE_PROPERTY} ?? null;
-
-			// Requests that expand latest_charge already carry the charge object.
-			if ( is_object( $intent->latest_charge ) ) {
-				$latest_charge = $intent->latest_charge;
-			} elseif ( is_object( $expanded_charge ) && ( $expanded_charge->id ?? null ) === $intent->latest_charge ) {
-				$latest_charge = $expanded_charge;
-			} else {
-				$latest_charge = $this->get_charge_object( $intent->latest_charge );
-			}
+			$latest_charge = $this->get_charge_object( $intent->latest_charge );
 		}
 
 		return $latest_charge;
@@ -2358,9 +2313,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'confirm'              => 'true',
 			'confirmation_method'  => 'automatic',
 			'capture_method'       => 'automatic',
-			// The charge is read twice after confirmation; expanding it saves both requests.
-			// collapse_expanded_latest_charge() keeps the usual charge ID in latest_charge for callers.
-			'expand'               => [ 'latest_charge' ],
 		];
 
 		if ( isset( $full_request['statement_descriptor_suffix'] ) ) {
@@ -2395,18 +2347,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$request['shipping'] = $full_request['shipping'];
 		}
 
-		$level3_data = $this->get_level3_data_from_order( $order );
-		$intent      = WC_Stripe_API::request_with_level3_data(
+		$level3_data                = $this->get_level3_data_from_order( $order );
+		$intent                     = WC_Stripe_API::request_with_level3_data(
 			$request,
 			'payment_intents',
 			$level3_data,
 			$order
 		);
-		$this->collapse_expanded_latest_charge( $intent );
-		if ( isset( $intent->error->payment_intent ) ) {
-			$this->collapse_expanded_latest_charge( $intent->error->payment_intent );
-		}
-
 		$is_authentication_required = $this->is_authentication_required_for_payment( $intent );
 
 		if ( ! empty( $intent->error ) && ! $is_authentication_required ) {

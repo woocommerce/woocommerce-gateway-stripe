@@ -176,19 +176,6 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Tests that an expanded latest_charge object is returned as-is, without a charge request.
-	 */
-	public function test_get_latest_charge_from_intent_accepts_expanded_charge() {
-		$charge = (object) [
-			'id'     => 'ch_123abc',
-			'object' => 'charge',
-		];
-		$intent = (object) [ 'latest_charge' => $charge ];
-
-		$this->assertSame( $charge, $this->gateway->get_latest_charge_from_intent( $intent ) );
-	}
-
-	/**
 	 * Tests that the intent ID is still saved to the order when the mandate charge lookup fails.
 	 */
 	public function test_save_intent_to_order_keeps_the_intent_when_the_mandate_lookup_fails() {
