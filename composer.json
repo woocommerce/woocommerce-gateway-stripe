@@ -52,6 +52,7 @@
         "includes/class-wc-stripe-option-lock.php",
         "includes/interface-wc-stripe-event-store.php",
         "includes/class-wc-stripe-payment-cancelled-exception.php",
+        "includes/class-wc-stripe-smart-payment-method-defaults.php",
         "includes/class-wc-stripe-tracks.php",
         "includes/class-wc-stripe-rest-gateway-settings-protection.php",
         "includes/class-wc-stripe-upe-compatibility.php",
