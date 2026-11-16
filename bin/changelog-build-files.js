@@ -57,32 +57,6 @@ function renderLine( label, entry ) {
 }
 
 /**
- * Finds entry files whose line is already in the changelog.
- *
- * A fix cherry-picked onto a release branch is compiled and its entry file deleted there, but
- * the original entry file on the development branch survives the merge back, because both
- * branches added it independently. Without this it would be listed again in the next version.
- *
- * @param {{name: string, type: string, entry: string}[]} entries       Parsed entry files.
- * @param {Object<string, string>}                        typeLabels    Type key to label.
- * @param {string}                                        changelogText Contents of changelog.txt.
- * @return {string[]} Names of the entry files already present in the changelog.
- */
-function findDuplicateEntries( entries, typeLabels, changelogText ) {
-	const existing = new Set(
-		changelogText.split( '\n' ).map( ( line ) => line.trim() )
-	);
-	return entries
-		.filter(
-			( { type, entry } ) =>
-				entry &&
-				typeLabels[ type ] &&
-				existing.has( renderLine( typeLabels[ type ], entry ) )
-		)
-		.map( ( { name } ) => name );
-}
-
-/**
  * @param {string} changelogText Contents of changelog.txt.
  * @return {{date: string, version: string, lines: string[]}|null} The newest version section.
  */
@@ -236,25 +210,6 @@ function run( root, argv ) {
 			fs.readFileSync( path.join( changesDir, name ), 'utf8' )
 		),
 	} ) );
-	const duplicates = new Set(
-		findDuplicateEntries( entries, typeLabels, changelogText )
-	);
-	for ( const name of duplicates ) {
-		// eslint-disable-next-line no-console
-		console.warn(
-			`Skipping changelog/${ name }: its entry is already in changelog.txt. Removing the file.`
-		);
-		if ( ! dryRun ) {
-			fs.unlinkSync( path.join( changesDir, name ) );
-		}
-	}
-
-	const pending = entries.filter( ( { name } ) => ! duplicates.has( name ) );
-	if ( ! pending.length ) {
-		// eslint-disable-next-line no-console
-		console.log( 'No changelog entries to compile.' );
-		return;
-	}
 
 	const amend = shouldAmend( getTopSection( changelogText ), version );
 	if ( dryRun ) {
@@ -264,7 +219,7 @@ function run( root, argv ) {
 				amend ? 'append to' : 'add'
 			} the ${ version } section with:`
 		);
-		pending.forEach( ( { type, entry } ) =>
+		entries.forEach( ( { type, entry } ) =>
 			// eslint-disable-next-line no-console
 			console.log( renderLine( typeLabels[ type ] || type, entry ) )
 		);
@@ -303,8 +258,8 @@ function run( root, argv ) {
 
 	// eslint-disable-next-line no-console
 	console.log(
-		`Compiled ${ pending.length } ${
-			pending.length === 1 ? 'entry' : 'entries'
+		`Compiled ${ entries.length } ${
+			entries.length === 1 ? 'entry' : 'entries'
 		} into the ${ version } section of changelog.txt and readme.txt.`
 	);
 	// eslint-disable-next-line no-console
@@ -327,7 +282,6 @@ module.exports = {
 	listEntryFiles,
 	parseEntryFile,
 	renderLine,
-	findDuplicateEntries,
 	getTopSection,
 	getHistory,
 	syncReadme,

@@ -5,7 +5,6 @@ const {
 	listEntryFiles,
 	parseEntryFile,
 	renderLine,
-	findDuplicateEntries,
 	getTopSection,
 	getHistory,
 	syncReadme,
@@ -13,8 +12,6 @@ const {
 	ensureKeepFile,
 	parseArgs,
 } = require( '../changelog-build-files' );
-
-const TYPE_LABELS = { add: 'Add', fix: 'Fix', dev: 'Dev' };
 
 const CHANGELOG = [
 	'*** Changelog ***',
@@ -127,41 +124,6 @@ describe( 'changelog-build-files', () => {
 			[ '  Fix a bug  ', '* Fix - Fix a bug' ],
 		] )( 'renders %j', ( entry, expected ) => {
 			expect( renderLine( 'Fix', entry ) ).toBe( expected );
-		} );
-	} );
-
-	describe( 'findDuplicateEntries', () => {
-		it.each( [
-			[
-				'an entry already released',
-				{ type: 'fix', entry: 'Released fix' },
-				true,
-			],
-			[
-				'an entry that differs only by a trailing period',
-				{ type: 'fix', entry: 'Released fix.' },
-				true,
-			],
-			[
-				'an entry already in the unreleased section',
-				{ type: 'add', entry: 'Unreleased feature' },
-				true,
-			],
-			[
-				'the same text under another type',
-				{ type: 'dev', entry: 'Released fix' },
-				false,
-			],
-			[ 'a new entry', { type: 'fix', entry: 'Brand new fix' }, false ],
-			[ 'an entry with no text', { type: 'fix', entry: '' }, false ],
-		] )( 'for %s', ( description, entry, isDuplicate ) => {
-			const duplicates = findDuplicateEntries(
-				[ { name: 'entry-file', ...entry } ],
-				TYPE_LABELS,
-				CHANGELOG
-			);
-
-			expect( duplicates ).toEqual( isDuplicate ? [ 'entry-file' ] : [] );
 		} );
 	} );
 
