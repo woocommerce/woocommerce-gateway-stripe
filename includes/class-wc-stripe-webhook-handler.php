@@ -1160,32 +1160,32 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			$amount = wc_price( $raw_amount, [ 'currency' => $currency ] );
 
-			// If the refund IDs do not match stop.
-			if ( $refund_object->id !== $refund_id ) {
-				return;
-			}
-
 			if ( $charge ) {
-				$refunds = wc_get_orders(
-					[
-						'limit'  => 1,
-						'parent' => $order_id,
-					]
-				);
-
-				if ( empty( $refunds ) ) {
-					// No existing refunds nothing to update.
-					return;
-				}
-
-				$refund = $refunds[0];
-
 				if ( in_array( $refund_object->status, [ 'failed', 'canceled' ], true ) ) {
+					$stripe_refund_id = $refund_object->id;
+					$refund           = $order_helper->get_refund_by_stripe_refund_id( $order, $stripe_refund_id );
+
+					if ( ! $refund ) {
+						// Refund records created before 10.9.0 carry no Stripe refund ID, so the order-level
+						// meta is the only way left to recognize the refund and a repeat of this event. The
+						// failure is still reported then, but no record is removed on a guess.
+						$is_latest_refund = $stripe_refund_id === $refund_id;
+						$is_handled       = $order_helper->get_stripe_refund_status( $order ) === $refund_object->status;
+
+						if ( ! $is_latest_refund || $is_handled ) {
+							WC_Stripe_Logger::debug( "No refund record to update for failed refund {$stripe_refund_id} on order {$order_id}" );
+							return;
+						}
+					}
+
 					if ( isset( $refund_object->failure_balance_transaction ) ) {
 						$this->update_fees( $order, $refund_object->failure_balance_transaction );
 					}
-					$refund->delete( true );
-					do_action( 'woocommerce_refund_deleted', $refund_id, $order_id );
+
+					if ( $refund ) {
+						$refund->delete( true );
+						do_action( 'woocommerce_refund_deleted', $stripe_refund_id, $order_id );
+					}
 
 					$order_helper->update_stripe_refund_status( $order, $refund_object->status );
 
@@ -1204,6 +1204,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					} else {
 						$order_helper->delete_stripe_refund_failure_reason( $order );
 					}
+
+					// A note alone does not save the order, and a redelivery must find this status stored.
+					$order->save_meta_data();
 
 					// Revert to previous status
 					$status_before_refund            = $this->get_stripe_order_status_before_refund( $order );
