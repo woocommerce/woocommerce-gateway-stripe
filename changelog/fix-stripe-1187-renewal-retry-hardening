@@ -1,4 +1,4 @@
 Significance: patch
 Type: fix
 
-Resend a subscription renewal payment request that timed out once, with the same idempotency key, so a charge Stripe may already have made is not repeated
+Resend a timed-out subscription renewal payment once, with the same idempotency key, so Stripe returns a charge it already made instead of charging the customer again
