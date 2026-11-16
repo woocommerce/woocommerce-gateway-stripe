@@ -74,7 +74,18 @@ fi
 
 # Stripe base settings (webhook secret is set later by the Playwright global-setup.js on the host)
 echo " - Configuring Stripe plugin settings"
-wp option update woocommerce_stripe_settings --format=json '{"enabled":"yes","title":"Credit Card (Stripe)","description":"Pay with your credit card via Stripe.","api_credentials":"","testmode":"yes","publishable_key":"","secret_key":"","webhook":"","test_webhook_secret":"","webhook_secret":"","inline_cc_form":"no","statement_descriptor":"","short_statement_descriptor":"","capture":"yes","payment_request":"yes","payment_request_button_type":"buy","payment_request_button_theme":"dark","payment_request_button_locations":["product","cart","checkout"],"payment_request_button_size":"default","saved_cards":"yes","logging":"no","upe_checkout_experience_enabled":"yes","test_connection_type":"connect"}'
+# Writing these settings on a fresh site defaults the enabled methods to card
+# and Link, and the first plugin load then migrates that list into the Stripe
+# account's payment method configuration. The Link-off package needs its
+# account left as configured, so its env file asks to mark the migration done
+# up front. This script runs once for the whole package and cannot see which
+# project will run, hence the flag instead of a project check.
+PMC_SETTINGS=''
+if [[ "$E2E_STRIPE_LINK_OFF_ACCOUNT" == "yes" ]]; then
+	echo " - Link-off account: leaving its payment method configuration as configured"
+	PMC_SETTINGS='"pmc_enabled":"yes",'
+fi
+wp option update woocommerce_stripe_settings --format=json '{'"$PMC_SETTINGS"'"enabled":"yes","title":"Credit Card (Stripe)","description":"Pay with your credit card via Stripe.","api_credentials":"","testmode":"yes","publishable_key":"","secret_key":"","webhook":"","test_webhook_secret":"","webhook_secret":"","inline_cc_form":"no","statement_descriptor":"","short_statement_descriptor":"","capture":"yes","payment_request":"yes","payment_request_button_type":"buy","payment_request_button_theme":"dark","payment_request_button_locations":["product","cart","checkout"],"payment_request_button_size":"default","saved_cards":"yes","logging":"no","upe_checkout_experience_enabled":"yes","test_connection_type":"connect"}'
 echo "$STRIPE_PUB_KEY" | wp option patch insert woocommerce_stripe_settings test_publishable_key
 echo "$STRIPE_SECRET_KEY" | wp option patch insert woocommerce_stripe_settings test_secret_key
 

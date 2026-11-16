@@ -20,7 +20,7 @@ For repository-wide rules, always read the root `AGENTS.md` first.
 | --- | --- | --- |
 | Full setup | `npm run test:e2e-setup -- --base_url=<url>` | Remote setup path. Can install/configure WooCommerce and Stripe settings. |
 | Run default project | `npm run test:e2e -- --base_url=<url>` | Uses `default` Playwright project. |
-| Run specific project | `npm run test:e2e-run -- --project=<name> --base_url=<url>` | Project names include `default`, `acss`, `becs`, `blik`, `optimized-checkout`. |
+| Run specific project | `npm run test:e2e-run -- --project=<name> --base_url=<url>` | Project names include `default`, `acss`, `becs`, `blik`, `optimized-checkout`, `optimized-checkout-link-off`. |
 | Debug run | `npm run test:e2e-debug -- --base_url=<url>` | Playwright debug mode. |
 | Docker setup/run | `npm run test:e2e-setup` then `npm run test:e2e` | Local Docker path (`http://localhost:8088`). |
 | Setup under a specific theme | `WP_THEME=<slug> npm run test:e2e-setup` | Defaults to `storefront`. Takes a WordPress.org theme slug. CI runs every project under Storefront and Twenty Twenty-Five (`.github/workflows/e2e-tests.yml`). |
