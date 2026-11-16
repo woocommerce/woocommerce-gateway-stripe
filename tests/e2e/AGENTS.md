@@ -20,9 +20,10 @@ For repository-wide rules, always read the root `AGENTS.md` first.
 | --- | --- | --- |
 | Full setup | `npm run test:e2e-setup -- --base_url=<url>` | Remote setup path. Can install/configure WooCommerce and Stripe settings. |
 | Run default project | `npm run test:e2e -- --base_url=<url>` | Uses `default` Playwright project. |
-| Run specific project | `npm run test:e2e-run -- --project=<name> --base_url=<url>` | Project names include `default`, `acss`, `becs`, `blik`, `optimized-checkout`. |
+| Run specific project | `npm run test:e2e-run -- --project=<name> --base_url=<url>` | Project names include `default`, `acss`, `becs`, `blik`, `optimized-checkout`, `optimized-checkout-link-off`. |
 | Debug run | `npm run test:e2e-debug -- --base_url=<url>` | Playwright debug mode. |
 | Docker setup/run | `npm run test:e2e-setup` then `npm run test:e2e` | Local Docker path (`http://localhost:8088`). |
+| Setup under a specific theme | `WP_THEME=<slug> npm run test:e2e-setup` | Defaults to `storefront`. Takes a WordPress.org theme slug. CI runs every project under Storefront and Twenty Twenty-Five (`.github/workflows/e2e-tests.yml`). |
 | Tear down Docker | `npm run test:e2e-down` | Stops E2E containers. |
 
 ## File Layout
@@ -47,3 +48,12 @@ For repository-wide rules, always read the root `AGENTS.md` first.
 - For new payment-method coverage, mirror existing per-method setup/spec organization.
 - If a test is flaky, fix root cause before adding retries or sleeps.
 - When fixing flow-specific flakiness, verify the equivalent flow (classic vs blocks/OC/ECE) unless explicitly out of scope.
+
+## Theme-Agnostic Helpers (MUST)
+
+The shared helpers in `tests/e2e/utils/` must not assume the active theme. The default Docker setup installs Storefront (classic markup), but the suite is expected to run under block themes too (for example Twenty Twenty-Five), where WooCommerce renders different markup for the same content.
+
+- **MUST** drive cart state through the Store API (`/wp-json/wc/store/v1/cart`, `.../products`), not shop-loop XPath or the header cart counter (`.cart-contents .count`) — those are classic-theme-only. `setupCart` adds every line item through the API.
+- **MUST** match user-facing text or roles, not classic wrapper classes, for notices and headings: order-received is a plain `h1` under block themes (not `h1.entry-title`); cart-empty and checkout errors render inside `wc-block-components-notice-banner` (not `.wc-empty-cart-message`/`.woocommerce-error`). Use `getByRole`/`getByText`, or a comma-selector covering both markups.
+- **MUST** go through `clickPlaceOrder`, `tickSavePaymentMethodBlocks` and `selectBlocksPaymentMethod`/`selectShortcodePaymentMethod` in specs. Under block themes a physical click can land on nothing or get undone by a re-render, with no error. These helpers dispatch the click and verify the result, and are the only place that belongs. Exception: a spec that asserts on the first submission attempt (`required-field-validation.spec.js`) dispatches one click itself, because `clickPlaceOrder` may re-dispatch.
+- When adding a helper, verify it under both a classic theme (Storefront) and a block theme before landing.

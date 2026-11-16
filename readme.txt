@@ -4,7 +4,7 @@ Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 11.1.1
+Stable tag: 11.2.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -165,13 +165,5 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 11.3.0 - xxxx-xx-xx =
-* Update - Start wallet availability checks earlier on Cart and Checkout blocks
-* Update - Improve express checkout wallet startup, availability checks, reuse, and recovery
-* Fix - Avoid expensive variation lookup in express checkout setup on product pages
-* Dev - Add WC_Stripe_Tracks class to support more consistent events
-* Dev - Load React's JSX runtime from WordPress core instead of bundling it, and declare "Tested up to" only in readme.txt
-* Fix - Avoid internal metadata warnings when generating Agentic Commerce product feeds with WooCommerce 11.4 or newer
-* Fix - Stop rewriting a saved payment method's name, email, and phone in Stripe when it is used at checkout; only the billing address is refreshed
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

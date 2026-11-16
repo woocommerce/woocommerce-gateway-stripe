@@ -57,6 +57,7 @@ import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handl
  * @property {Object|null}          mountTarget             The DOM node the in-flight mount targets, used to dedupe concurrent mounts of the same element.
  * @property {number}               mountToken              Monotonic id of the latest mount; an older mount whose token no longer matches skips its side-effects.
  * @property {boolean}              listenersAttached       Whether the one-time element listeners (loaderror/change) have been wired, so remounts don't stack duplicates on the cached element.
+ * @property {Function|null}        detachPageListeners     Removes the listeners the element's handlers added to nodes outside the Payment Element, which outlive the element itself.
  */
 
 /**
@@ -151,6 +152,7 @@ export function initializeUPEComponents() {
 			mountTarget: null,
 			mountToken: 0,
 			listenersAttached: false,
+			detachPageListeners: null,
 		};
 	}
 	// Reset so processPayment runs fully when called again (e.g. after re-init or in tests).
@@ -184,16 +186,32 @@ export async function maybeUpdateAdaptivePricingCheckoutSession() {
 	for ( const paymentMethodType of Object.keys( gatewayUPEComponents ) ) {
 		const component = gatewayUPEComponents[ paymentMethodType ];
 		const sessionId = component?.checkoutSessionId;
-		if ( ! sessionId || seen.has( sessionId ) ) {
+		if ( ! sessionId ) {
+			continue;
+		}
+
+		// A mounted element stays bound to the session it was created with, so a session the
+		// server replaced (e.g. after a billing country change altered the excluded payment
+		// methods, which Stripe only accepts at creation) needs a new element. Discarding the
+		// old one lets the mount that follows every updated_checkout build it. This runs for
+		// every component, as several can share the replaced session.
+		if (
+			nativeSession?.status === 'success' &&
+			nativeSession?.session_id &&
+			nativeSession.session_id !== sessionId
+		) {
+			discardCheckoutSessionElement( component );
+			continue;
+		}
+
+		if ( seen.has( sessionId ) ) {
 			continue;
 		}
 		seen.add( sessionId );
 
-		// The mounted element cannot update the checkout session ID once it has been set.
-		// So we show an error when we failed to get a session OR we got a new session.
 		if (
 			nativeSession?.status !== 'success' ||
-			nativeSession?.session_id !== sessionId
+			! nativeSession?.session_id
 		) {
 			resyncFailed = true;
 			continue;
@@ -264,6 +282,41 @@ export async function maybeUpdateAdaptivePricingCheckoutSession() {
 		// Retract the notice a prior failed resync left behind now that totals sync.
 		clearStaleCheckoutTotalNotice();
 	}
+}
+
+/**
+ * Tears down the element bound to a replaced Checkout Session and clears the cached
+ * one, so the next mount builds it from the session in the latest fragment.
+ *
+ * @param {UPEComponent} component The component holding the replaced session.
+ */
+function discardCheckoutSessionElement( component ) {
+	try {
+		component.upeElement?.destroy?.();
+	} catch ( error ) {
+		// eslint-disable-next-line no-console
+		console.error(
+			'Failed to destroy the payment element of a replaced Checkout Session.',
+			error
+		);
+	}
+
+	// destroy() only removes what lives inside the element; the create-account checkbox
+	// survives checkout refreshes, so its listener would otherwise pile up per replacement.
+	component.detachPageListeners?.();
+	component.detachPageListeners = null;
+
+	// Supersede any in-flight mount so it can't mount the discarded element.
+	component.mountToken += 1;
+	component.mountPromise = null;
+	component.checkoutSessionId = null;
+	component.checkoutSessionRevision = '';
+	component.elements = null;
+	component.upeElement = null;
+	component.upeElementPromise = null;
+	component.hasLoadError = false;
+	// Listeners belong to the discarded element and must be wired again on the new one.
+	component.listenersAttached = false;
 }
 
 /**
@@ -470,6 +523,9 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			stripeServerData?.stripeJsVersion
 		)
 	) {
+		// The session this call binds the component to, so a replacement that arrives while
+		// Stripe initializes can be detected afterwards.
+		let boundSessionId = null;
 		try {
 			const nativeSession = getNativeCheckoutSessionData();
 			const clientSecret = nativeSession?.client_secret;
@@ -488,6 +544,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				);
 			}
 
+			boundSessionId = sessionId;
 			gatewayUPEComponents[ paymentMethodType ].checkoutSessionId =
 				sessionId;
 			gatewayUPEComponents[ paymentMethodType ].checkoutSessionRevision =
@@ -510,8 +567,29 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				},
 			} );
 
+			// The session was replaced while Stripe initialized; drop this element so it can't
+			// overwrite the component a newer mount builds from the replacement.
+			if (
+				gatewayUPEComponents[ paymentMethodType ].checkoutSessionId !==
+				boundSessionId
+			) {
+				return null;
+			}
+
 			shouldLoadStripeElements = false;
 		} catch ( error ) {
+			if (
+				boundSessionId &&
+				gatewayUPEComponents[ paymentMethodType ].checkoutSessionId !==
+					boundSessionId
+			) {
+				// eslint-disable-next-line no-console
+				console.error(
+					'Failed to initialize the payment element for a Checkout Session that has since been replaced.',
+					error
+				);
+				return null;
+			}
 			gatewayUPEComponents[ paymentMethodType ].checkoutSessionId = null;
 			gatewayUPEComponents[ paymentMethodType ].checkoutSessionRevision =
 				'';
@@ -901,6 +979,14 @@ async function mountStripePaymentElementImpl( api, domElement ) {
 						selectedPaymentType,
 						paymentMethodsConfig
 					);
+				};
+				component.detachPageListeners = () => {
+					document
+						.getElementById( 'createaccount' )
+						?.removeEventListener(
+							'change',
+							updateCheckboxListener
+						);
 				};
 				upeElement.on( 'change', ( { value } ) => {
 					selectedPaymentType = value.type;
