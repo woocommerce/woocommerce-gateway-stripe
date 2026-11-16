@@ -1820,14 +1820,27 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
 		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
 
+		$order_currency = $order->get_currency();
+		if ( 'USD' === $order_currency ) {
+			$presentment_currency = 'eur';
+			$presentment_amount   = WC_Stripe_Helper::get_stripe_amount( round( 1.1 * (float) $order->get_total(), 2 ), $presentment_currency );
+		} else {
+			$presentment_currency = 'usd';
+			$presentment_amount   = WC_Stripe_Helper::get_stripe_amount( round( 0.9 * (float) $order->get_total(), 2 ), $presentment_currency );
+		}
+
 		$notification = (object) [
 			'type' => 'checkout.session.completed',
 			'data' => (object) [
 				'object' => (object) [
-					'id'             => $checkout_session_id,
-					'payment_intent' => $intent_id,
-					'amount_total'   => WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $order->get_currency() ),
-					'currency'       => strtolower( $order->get_currency() ),
+					'id'                  => $checkout_session_id,
+					'payment_intent'      => $intent_id,
+					'amount_total'        => WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $order_currency ),
+					'currency'            => strtolower( $order_currency ),
+					'presentment_details' => (object) [
+						'presentment_amount'   => $presentment_amount,
+						'presentment_currency' => $presentment_currency,
+					],
 				],
 			],
 		];
@@ -1885,6 +1898,12 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$updated_order = wc_get_order( $order->get_id() );
 		$this->assertTrue( $updated_order->has_status( OrderStatus::PENDING ) );
 		$this->assertTrue( $order_helper->get_should_save_stripe_payment_method( $updated_order ) );
+		$this->assertOrderHasNoteContaining(
+			$updated_order,
+			'Local currency purchase via Adaptive Pricing. Amount paid was: '
+				. strtoupper( $presentment_currency ) . ' '
+				. WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( $presentment_amount, $presentment_currency )
+		);
 	}
 
 	/**
