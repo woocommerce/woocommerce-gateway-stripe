@@ -1163,7 +1163,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	public function provide_inconclusive_renewal_lock_budgets(): array {
 		return [
 			'lock covers the resend'   => [ 5 * MINUTE_IN_SECONDS, 2, OrderStatus::PROCESSING ],
-			'lock too short to resend' => [ 100, 1, OrderStatus::FAILED ],
+			'lock too short to resend' => [ WC_Stripe_API::REQUEST_TIMEOUT + 20, 1, OrderStatus::FAILED ],
 		];
 	}
 
