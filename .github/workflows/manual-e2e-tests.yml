@@ -29,13 +29,14 @@ on:
           - '8.4'
           - '8.5'
       theme:
-        description: Theme to install and activate for the run. storefront is a classic theme, purple is a block theme.
+        description: Theme to install and activate for the run. storefront is a classic theme, purple is a block theme (WordPress 7.1+), twentytwentyfive is a block theme for older WordPress versions.
         type: choice
         default: 'storefront'
         required: true
         options:
           - 'storefront'
           - 'purple'
+          - 'twentytwentyfive'
 
 jobs:
   test:
