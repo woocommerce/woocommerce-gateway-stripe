@@ -155,16 +155,17 @@ class WC_Stripe_Option_Lock_Test extends WP_UnitTestCase {
 	 * Refreshing an owned lock gives it a new owner value with the current time, and the old value stops working.
 	 */
 	public function test_refresh_gives_an_owned_lock_a_new_owner(): void {
-		$this->seed_lock( ( time() - 30 ) . ':first-owner' );
+		$first_owner = ( time() - 30 ) . ':first-owner';
+		$this->seed_lock( $first_owner );
 
-		$new_owner = WC_Stripe_Option_Lock::refresh( self::LOCK_NAME, ( time() - 30 ) . ':first-owner' );
+		$new_owner = WC_Stripe_Option_Lock::refresh( self::LOCK_NAME, $first_owner );
 
 		$this->assertIsString( $new_owner );
 		$this->assertMatchesRegularExpression( '/^[0-9]+:[0-9a-f-]{36}$/', $new_owner );
 		$this->assertGreaterThanOrEqual( time() - 1, (int) strtok( $new_owner, ':' ) );
 		$this->assertSame( $new_owner, $this->read_lock() );
 		$this->assertTrue( WC_Stripe_Option_Lock::is_held_by( self::LOCK_NAME, $new_owner ) );
-		$this->assertFalse( WC_Stripe_Option_Lock::is_held_by( self::LOCK_NAME, ( time() - 30 ) . ':first-owner' ) );
+		$this->assertFalse( WC_Stripe_Option_Lock::is_held_by( self::LOCK_NAME, $first_owner ) );
 	}
 
 	/**
@@ -175,13 +176,14 @@ class WC_Stripe_Option_Lock_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_locks_not_owned_by_the_caller
 	 */
 	public function test_refresh_ignores_a_lock_the_caller_does_not_own( ?string $seeded_value ): void {
+		$stale_owner = ( time() - 10 ) . ':stale-owner';
 		if ( null !== $seeded_value ) {
 			$this->seed_lock( $seeded_value );
 		}
 
-		$this->assertNull( WC_Stripe_Option_Lock::refresh( self::LOCK_NAME, ( time() - 10 ) . ':stale-owner' ) );
+		$this->assertNull( WC_Stripe_Option_Lock::refresh( self::LOCK_NAME, $stale_owner ) );
 		$this->assertSame( $seeded_value, $this->read_lock() );
-		$this->assertFalse( WC_Stripe_Option_Lock::is_held_by( self::LOCK_NAME, ( time() - 10 ) . ':stale-owner' ) );
+		$this->assertFalse( WC_Stripe_Option_Lock::is_held_by( self::LOCK_NAME, $stale_owner ) );
 	}
 
 	/**
