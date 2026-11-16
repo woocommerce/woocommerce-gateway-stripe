@@ -1267,11 +1267,15 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests that an active lock written in the legacy bare-timestamp format still blocks a renewal.
+	 * Tests that an active lock written without an owner row, by older code or another plugin, still blocks a renewal.
+	 *
+	 * @dataProvider provide_active_legacy_payment_lock_suffixes
+	 *
+	 * @param string $suffix Text after the expiry timestamp in the lock value.
 	 */
-	public function test_renewal_honors_active_legacy_payment_lock() {
+	public function test_renewal_honors_active_legacy_payment_lock( $suffix ) {
 		$renewal_order = WC_Helper_Order::create_order();
-		$legacy_lock   = ( time() + 5 * MINUTE_IN_SECONDS ) . '|pi_existing';
+		$legacy_lock   = ( time() + 5 * MINUTE_IN_SECONDS ) . $suffix;
 
 		$renewal_order->set_payment_method( 'stripe' );
 		$renewal_order->update_meta_data( '_stripe_lock_payment', $legacy_lock );
@@ -1285,6 +1289,18 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		$this->assertSame( $legacy_lock, WC_Stripe_Order_Helper::get_instance()->get_order_existing_payment_lock( $renewal_order ) );
 		$this->assertSame( OrderStatus::PENDING, $renewal_order->get_status() );
+	}
+
+	/**
+	 * Provides the text after the expiry in lock values that have no owner row.
+	 *
+	 * @return array<string, array{string}>
+	 */
+	public function provide_active_legacy_payment_lock_suffixes(): array {
+		return [
+			'bare timestamp'        => [ '' ],
+			'timestamp with suffix' => [ '|pi_existing' ],
+		];
 	}
 
 	/**
