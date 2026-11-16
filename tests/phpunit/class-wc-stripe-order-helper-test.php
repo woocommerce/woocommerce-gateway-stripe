@@ -533,43 +533,97 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests that a renewal whose meta write does not stick still releases the lock, including the
-	 * previous value left in the meta, so the order is not blocked until that value expires.
+	 * Tests that the owner row alone decides ownership: a meta copy that another write changed does
+	 * not stop the owner from renewing or releasing, and does not let anyone else in.
+	 *
+	 * @dataProvider provide_stale_payment_lock_copies
+	 *
+	 * @param string $copy_kind Which value the meta copy holds when the owner renews.
 	 */
-	public function test_failed_renewal_write_does_not_leave_the_previous_lock_behind(): void {
-		$order  = WC_Helper_Order::create_order();
-		$helper = new class() extends WC_Stripe_Order_Helper {
-			/** @var string|null Value to put back when the renewal's write is verified, simulating a lost write. */
-			public $restore_on_verify = null;
-
-			/** @var int */
-			private $reads = 0;
-
-			/**
-			 * Puts the previous value back right before the renewal verifies its write.
-			 *
-			 * @param WC_Order $order The order.
-			 * @return mixed
-			 */
-			public function get_order_existing_payment_lock( WC_Order $order ) {
-				if ( null !== $this->restore_on_verify && 3 === ++$this->reads ) {
-					$writer = wc_get_order( $order->get_id() );
-					$writer->update_meta_data( '_stripe_lock_payment', $this->restore_on_verify );
-					$writer->save_meta_data();
-				}
-
-				return parent::get_order_existing_payment_lock( $order );
-			}
-		};
-
-		$owned_lock = $helper->acquire_order_payment_lock( $order );
+	public function test_owner_row_alone_decides_payment_lock_ownership( string $copy_kind ): void {
+		$order      = WC_Helper_Order::create_order();
+		$owned_lock = $this->helper->acquire_order_payment_lock( $order );
 		$this->assertIsString( $owned_lock );
 
-		$helper->restore_on_verify = $owned_lock;
-		$this->assertFalse( $helper->renew_order_payment_lock_if_owned( wc_get_order( $order->get_id() ), $owned_lock ) );
+		$writer = wc_get_order( $order->get_id() );
+		if ( 'missing' === $copy_kind ) {
+			$writer->delete_meta_data( '_stripe_lock_payment' );
+		} else {
+			$writer->update_meta_data( '_stripe_lock_payment', ( time() + 5 * MINUTE_IN_SECONDS ) . '|' . wp_generate_uuid4() );
+		}
+		$writer->save_meta_data();
+
+		try {
+			$this->assertTrue( $this->helper->is_order_payment_lock_owned( wc_get_order( $order->get_id() ), $owned_lock ) );
+			// The row still blocks everyone else.
+			$this->assertFalse( $this->helper->acquire_order_payment_lock( wc_get_order( $order->get_id() ) ) );
+
+			$renewed_lock = $this->helper->renew_order_payment_lock_if_owned( wc_get_order( $order->get_id() ), $owned_lock );
+			$this->assertIsString( $renewed_lock );
+			// The meta follows the row again.
+			$this->assertSame( $renewed_lock, $this->helper->get_order_existing_payment_lock( wc_get_order( $order->get_id() ) ) );
+			$this->assertSame( $renewed_lock, $this->get_payment_lock_owner_row( $order ) );
+
+			$this->helper->unlock_order_payment_if_owned( wc_get_order( $order->get_id() ), $renewed_lock );
+		} finally {
+			$this->set_payment_lock_owner_row( $order, null );
+		}
 
 		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( wc_get_order( $order->get_id() ) ) );
 		$this->assertNull( $this->get_payment_lock_owner_row( $order ) );
+	}
+
+	/**
+	 * Tests that a meta copy left behind without its owner row does not block the next payment,
+	 * while a legacy lock without a row still does.
+	 *
+	 * @dataProvider provide_payment_lock_meta_without_a_row
+	 *
+	 * @param string $kind          Which value the meta holds.
+	 * @param bool   $expect_locked Whether the order should count as locked.
+	 */
+	public function test_payment_lock_meta_without_a_row( string $kind, bool $expect_locked ): void {
+		$order  = WC_Helper_Order::create_order();
+		$expiry = time() + 5 * MINUTE_IN_SECONDS;
+		$values = [
+			'copy'          => $expiry . '|' . wp_generate_uuid4(),
+			'legacy'        => (string) $expiry,
+			'legacy_intent' => $expiry . '|pi_existing',
+		];
+		$order->update_meta_data( '_stripe_lock_payment', $values[ $kind ] );
+		$order->save_meta_data();
+
+		try {
+			$this->assertSame( $expect_locked, $this->helper->lock_order_payment( $order ) );
+		} finally {
+			$this->helper->unlock_order_payment( $order );
+			$this->set_payment_lock_owner_row( $order, null );
+		}
+	}
+
+	/**
+	 * Provides active meta values with no owner row.
+	 *
+	 * @return array<string, array{string, bool}>
+	 */
+	public function provide_payment_lock_meta_without_a_row(): array {
+		return [
+			'copy of a released row'        => [ 'copy', false ],
+			'legacy lock'                   => [ 'legacy', true ],
+			'legacy lock with an intent ID' => [ 'legacy_intent', true ],
+		];
+	}
+
+	/**
+	 * Provides meta copies that no longer match the owner row.
+	 *
+	 * @return array<string, array{string}>
+	 */
+	public function provide_stale_payment_lock_copies(): array {
+		return [
+			'copy removed'             => [ 'missing' ],
+			'copy overwritten by peer' => [ 'other' ],
+		];
 	}
 
 	/**
@@ -611,7 +665,7 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 
 	/**
 	 * Tests that an unreadable owner row is taken over, as WC_Stripe_Option_Lock does for every lock,
-	 * while an active lock in the order meta still blocks the payment.
+	 * while an active legacy lock in the order meta still blocks the payment.
 	 */
 	public function test_lock_order_payment_takes_over_a_malformed_owner_row_but_honors_the_meta(): void {
 		$order = WC_Helper_Order::create_order();
@@ -625,8 +679,9 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		}
 
 		// Reload: the unlock above deleted the meta row this object still holds.
+		// Older code writes a bare expiry timestamp and no row.
 		$order       = wc_get_order( $order->get_id() );
-		$active_lock = ( time() + 5 * MINUTE_IN_SECONDS ) . '|' . wp_generate_uuid4();
+		$active_lock = (string) ( time() + 5 * MINUTE_IN_SECONDS );
 		$this->set_payment_lock_owner_row( $order, 'corrupt-owner-value' );
 		$order->update_meta_data( '_stripe_lock_payment', $active_lock );
 		$order->save_meta_data();
