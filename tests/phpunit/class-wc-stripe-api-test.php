@@ -955,7 +955,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	 * Tests that an opted-in POST whose outcome is unknown is sent once more with the identical body and
 	 * idempotency key, and that its second answer is returned.
 	 *
-	 * @dataProvider provide_inconclusive_responses
+	 * @dataProvider provide_resendable_responses
 	 *
 	 * @param array|\WP_Error $response The first HTTP response.
 	 */
@@ -1103,6 +1103,62 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 				],
 			],
 		];
+	}
+
+	/**
+	 * Provides inconclusive responses that Stripe did not store under the idempotency key, so a resend can learn the outcome.
+	 *
+	 * @return array<string, array{array|\WP_Error}>
+	 */
+	public function provide_resendable_responses(): array {
+		$responses = $this->provide_inconclusive_responses();
+		unset( $responses['5xx response'] );
+
+		$responses['5xx from a gateway'] = [
+			[
+				'response' => [
+					'code'    => 502,
+					'message' => 'Bad Gateway',
+				],
+				'headers'  => [],
+				'body'     => '<html><body>502 Bad Gateway</body></html>',
+			],
+		];
+
+		return $responses;
+	}
+
+	/**
+	 * Tests that a 5xx carrying a Stripe error body is not resent: Stripe stores that answer under the
+	 * idempotency key and would return it again. It is still reported as inconclusive.
+	 */
+	public function test_request_does_not_resend_a_5xx_that_stripe_stored() {
+		$sends    = 0;
+		$callback = function () use ( &$sends ) {
+			++$sends;
+
+			return [
+				'response' => [
+					'code'    => 500,
+					'message' => 'Internal Server Error',
+				],
+				'headers'  => [],
+				'body'     => '{"error":{"type":"api_error","message":"An unknown error occurred"}}',
+			];
+		};
+		add_filter( 'pre_http_request', $callback );
+
+		try {
+			$this->expectException( WC_Stripe_Inconclusive_Request_Exception::class );
+			WC_Stripe_API::with_inconclusive_request_resend(
+				function () {
+					return WC_Stripe_API::request( [ 'amount' => 100 ], 'payment_intents' );
+				}
+			);
+		} finally {
+			remove_filter( 'pre_http_request', $callback );
+			$this->assertSame( 1, $sends );
+		}
 	}
 
 	/**

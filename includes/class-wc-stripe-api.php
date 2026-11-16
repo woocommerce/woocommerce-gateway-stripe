@@ -42,10 +42,12 @@ class WC_Stripe_API {
 	/**
 	 * Runs the callback with inconclusive POST requests sent once more, with the same idempotency key.
 	 *
-	 * A request that times out, gets a 5xx or gets an empty body may still have been carried out by
-	 * Stripe. Sending the identical request with the same idempotency key makes Stripe return the
-	 * stored outcome, or run it for the first time, so it is never carried out twice. The resend can
-	 * take up to another REQUEST_TIMEOUT, so callers opt in only when they can wait that long.
+	 * A request that times out, gets an empty body, or gets a 5xx that Stripe's API did not write may
+	 * still have been carried out by Stripe. Sending the identical request with the same idempotency
+	 * key makes Stripe return the stored outcome, or run it for the first time, so it is never carried
+	 * out twice. A 5xx carrying a Stripe error body is not resent: Stripe stores that answer under the
+	 * key and would only return it again. The resend can take up to another REQUEST_TIMEOUT, so
+	 * callers opt in only when they can wait that long.
 	 *
 	 * @since x.x.x
 	 *
@@ -244,14 +246,32 @@ class WC_Stripe_API {
 	}
 
 	/**
-	 * Whether a wp_remote_* response leaves the outcome of a Stripe request unknown.
+	 * Whether resending an inconclusive response with the same idempotency key can learn its outcome.
+	 *
+	 * Stripe stores the answer to a keyed request, 5xx included, and replays it for the same key.
+	 * A 5xx with a Stripe error body is such a stored answer, so only a transport failure, an empty
+	 * body or a 5xx from in front of the API (with no Stripe error body) is worth resending.
 	 *
 	 * @param array|WP_Error $response The raw response.
 	 * @return bool
 	 */
-	private static function is_inconclusive_response( $response ): bool {
-		// Matches the empty-body check request() throws on.
-		return WC_Stripe_API_Outage_Status::is_outage_response( $response ) || empty( wp_remote_retrieve_body( $response ) );
+	private static function is_resendable_response( $response ): bool {
+		if ( is_wp_error( $response ) ) {
+			return true;
+		}
+
+		$body = wp_remote_retrieve_body( $response );
+		if ( empty( $body ) ) {
+			return true;
+		}
+
+		if ( ! WC_Stripe_API_Outage_Status::is_outage_response( $response ) ) {
+			return false;
+		}
+
+		$decoded = json_decode( $body );
+
+		return ! ( is_object( $decoded ) && isset( $decoded->error ) );
 	}
 
 	/**
@@ -355,7 +375,7 @@ class WC_Stripe_API {
 		$response     = wp_remote_post( self::ENDPOINT . $api, $request_args );
 
 		// The identical body and idempotency key make Stripe return the first request's outcome if it ran.
-		if ( self::$resend_inconclusive_requests && 'POST' === $method && $idempotency_key && self::is_inconclusive_response( $response ) ) {
+		if ( self::$resend_inconclusive_requests && 'POST' === $method && $idempotency_key && self::is_resendable_response( $response ) ) {
 			WC_Stripe_Logger::info( "Stripe API request {$method} {$api} ended without a known outcome; sending it once more with the same idempotency key." );
 			$response = wp_remote_post( self::ENDPOINT . $api, $request_args );
 
