@@ -1037,16 +1037,15 @@ trait WC_Stripe_Subscriptions_Trait {
 	}
 
 	/**
-	 * Returns a charge object, fetching it when only the ID is known.
+	 * Returns the value when it is a Stripe Charge object, or null.
 	 *
-	 * @param mixed $charge Charge object, charge ID, or an empty value.
+	 * get_latest_charge_from_intent() already fetches a charge known only by ID, so this only
+	 * filters out PaymentIntents, error objects, and empty values.
+	 *
+	 * @param mixed $charge Value returned by get_latest_charge_from_intent().
 	 * @return stdClass|null
 	 */
 	private function resolve_stripe_charge_object( $charge ) {
-		if ( is_string( $charge ) && '' !== $charge ) {
-			$charge = WC_Stripe::get_instance()->get_main_stripe_gateway()->get_charge_object( $charge );
-		}
-
 		return $this->is_stripe_charge_object( $charge ) ? $charge : null;
 	}
 

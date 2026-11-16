@@ -1865,6 +1865,70 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that an authentication-required renewal reads an expanded latest_charge without a /charges request.
+	 */
+	public function test_renewal_authorization_required_reads_the_expanded_charge_without_a_request() {
+		$renewal_order         = WC_Helper_Order::create_order();
+		$charge_request_count  = 0;
+
+		$this->wc_gateway_stripe
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => 'cus_123abc',
+					'source'         => 'src_123abc',
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		$body = json_decode( file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_authentication_required.json' ), true );
+		unset( $body['error']['charge'], $body['error']['payment_intent']['charges'] );
+		$body['error']['payment_intent']['latest_charge'] = [
+			'id'     => 'ch_expanded',
+			'object' => 'charge',
+		];
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $body, &$charge_request_count ) {
+			if ( 'https://api.stripe.com/v1/payment_intents' === $url ) {
+				return [
+					'headers'  => [],
+					'body'     => wp_json_encode( $body ),
+					'response' => [
+						'code'    => 402,
+						'message' => 'Payment Required',
+					],
+					'cookies'  => [],
+					'filename' => null,
+				];
+			}
+
+			if ( 0 === strpos( $url, 'https://api.stripe.com/v1/charges/' ) ) {
+				++$charge_request_count;
+			}
+
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+		}
+
+		$order = wc_get_order( $renewal_order->get_id() );
+
+		$this->assertSame( 0, $charge_request_count );
+		$this->assertSame( OrderStatus::FAILED, $order->get_status() );
+		$this->assertSame( 'ch_expanded', $order->get_transaction_id() );
+	}
+
+	/**
 	 * Provides authentication-required responses whose charge cannot be read.
 	 *
 	 * @return array<string, array{mixed, array}>
