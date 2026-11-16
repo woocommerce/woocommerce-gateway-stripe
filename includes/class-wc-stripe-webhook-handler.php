@@ -1058,9 +1058,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$order->save();
 			}
 
-			$refund_id  = $order_helper->get_stripe_refund_id( $order );
-			$currency   = $order->get_currency();
-			$raw_amount = $refund_object->amount;
+			$refund_id        = $order_helper->get_stripe_refund_id( $order );
+			$stripe_refund_id = $refund_object->id;
+			$currency         = $order->get_currency();
+			$raw_amount       = $refund_object->amount;
 
 			if ( ! in_array( strtoupper( $currency ), WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES, true ) ) {
 				$raw_amount /= 100;
@@ -1081,16 +1082,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
-			if ( $order_helper->lock_order_refund( $order ) ) {
-				return;
-			}
-
-			// If the refund ID matches, don't continue to prevent double refunding.
-			if ( $refund_object->id === $refund_id ) {
+			// Stripe delivers events at least once, and the parent meta only tracks the latest refund.
+			// Checked before locking so a skipped duplicate never blocks the next refund event.
+			if ( $stripe_refund_id === $refund_id || $order_helper->get_refund_by_stripe_refund_id( $order, $stripe_refund_id ) ) {
 				return;
 			}
 
 			if ( $charge ) {
+				if ( $order_helper->lock_order_refund( $order ) ) {
+					return;
+				}
+
 				$reason = __( 'Refunded via Stripe Dashboard', 'woocommerce-gateway-stripe' );
 
 				$this->set_stripe_order_status_before_refund( $order, $order->get_status() );
@@ -1103,8 +1105,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 						'reason'   => $reason,
 					]
 				);
-
-				$stripe_refund_id = $refund_object->id;
 
 				if ( is_wp_error( $refund ) ) {
 					WC_Stripe_Logger::error( 'Error creating refund for order: ' . $order_id, [ 'error_message' => $refund->get_error_message() ] );

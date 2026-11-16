@@ -1452,6 +1452,121 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Creates a captured Stripe order the refund webhook handlers can act on.
+	 *
+	 * @param string $charge_id Stripe charge ID stored as the transaction ID.
+	 * @return WC_Order
+	 */
+	private function create_captured_stripe_order( string $charge_id ): WC_Order {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( 'stripe' );
+		$order->set_transaction_id( $charge_id );
+		WC_Stripe_Order_Helper::get_instance()->set_stripe_charge_captured( $order, true );
+		$order->save();
+
+		return $order;
+	}
+
+	/**
+	 * Creates a WC refund record, optionally tagged with its Stripe refund ID the way
+	 * `process_refund()` and `process_webhook_refund()` tag the records they create.
+	 *
+	 * @param int         $order_id         Parent order ID.
+	 * @param float       $amount           Refund amount.
+	 * @param string|null $stripe_refund_id Stripe refund ID, or null for an untagged (manual or pre-10.9.0) record.
+	 * @return WC_Order_Refund
+	 */
+	private function create_refund_record( int $order_id, float $amount, ?string $stripe_refund_id = null ): WC_Order_Refund {
+		$refund = wc_create_refund(
+			[
+				'order_id' => $order_id,
+				'amount'   => $amount,
+			]
+		);
+		$this->assertNotWPError( $refund );
+
+		if ( null !== $stripe_refund_id ) {
+			WC_Stripe_Order_Helper::get_instance()->update_stripe_refund_id_for_refund( $refund, $stripe_refund_id );
+			$refund->save_meta_data();
+		}
+
+		return $refund;
+	}
+
+	/**
+	 * Builds a `charge.refund.updated` notification.
+	 *
+	 * @param string $refund_id Stripe refund ID.
+	 * @param string $charge_id Stripe charge ID.
+	 * @param int    $amount    Refund amount in cents.
+	 * @param string $status    Refund status.
+	 * @return object
+	 */
+	private function get_refund_updated_notification( string $refund_id, string $charge_id, int $amount, string $status = 'failed' ): object {
+		return (object) [
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $refund_id,
+					'object'         => 'refund',
+					'charge'         => $charge_id,
+					'amount'         => $amount,
+					'currency'       => 'usd',
+					'failure_reason' => 'bank_account_rejected',
+					'status'         => $status,
+				],
+			],
+		];
+	}
+
+	/**
+	 * Builds a `charge.refunded` notification whose charge payload embeds the given refund.
+	 *
+	 * @param string $charge_id Stripe charge ID.
+	 * @param string $refund_id Stripe refund ID.
+	 * @param int    $amount    Refund amount in cents.
+	 * @return object
+	 */
+	private function get_charge_refunded_notification( string $charge_id, string $refund_id, int $amount ): object {
+		return (object) [
+			'data' => (object) [
+				'object' => (object) [
+					'id'              => $charge_id,
+					'object'          => 'charge',
+					'captured'        => true,
+					'amount'          => 5000,
+					'amount_refunded' => 1200,
+					'currency'        => 'usd',
+					'refunds'         => (object) [
+						'data' => [
+							(object) [
+								'id'                  => $refund_id,
+								'amount'              => $amount,
+								'balance_transaction' => 'txn_' . $refund_id,
+							],
+						],
+					],
+				],
+			],
+		];
+	}
+
+	/**
+	 * Returns the order's remaining refund records as `[ stripe refund ID or '' => amount ]`, sorted by amount.
+	 *
+	 * @param int $order_id Order ID.
+	 * @return array<int, array{0: string, 1: float}>
+	 */
+	private function get_refund_records_summary( int $order_id ): array {
+		$summary = [];
+		foreach ( wc_get_order( $order_id )->get_refunds() as $refund ) {
+			$summary[] = [ (string) WC_Stripe_Order_Helper::get_instance()->get_stripe_refund_id_for_refund( $refund ), (float) $refund->get_amount() ];
+		}
+		sort( $summary );
+
+		return $summary;
+	}
+
+	/**
 	 * When charge.succeeded fires for a charge whose ID isn't stored on any order (because the shopper
 	 * settled the order via a different gateway), the handler must fall back to looking up the order
 	 * by the parent PaymentIntent and flag the unexpected charge instead of silently dropping the event.
@@ -3390,6 +3505,88 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		}
 		sort( $replayed_ids );
 		$this->assertSame( [ 're_1', 're_2' ], $replayed_ids );
+	}
+
+	/**
+	 * Stripe delivers `charge.refunded` at least once, so an event for a refund the order already
+	 * accounts for must not create another WC refund, whichever way the refund is recognized.
+	 *
+	 * @param array  $records          Fixture refund records as `[ amount, stripe refund ID or null ]`.
+	 * @param string $latest_refund_id Stripe refund ID stored on the parent order.
+	 * @param string $event_refund_id  Stripe refund ID the redelivered event carries.
+	 *
+	 * @dataProvider provide_test_process_webhook_refund_ignores_redelivery
+	 */
+	public function test_process_webhook_refund_ignores_redelivery( array $records, string $latest_refund_id, string $event_refund_id ) {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order        = $this->create_captured_stripe_order( 'ch_123' );
+		$order_id     = $order->get_id();
+
+		foreach ( $records as [ $amount, $stripe_refund_id ] ) {
+			$this->create_refund_record( $order_id, $amount, $stripe_refund_id );
+		}
+		$order_helper->update_stripe_refund_id( $order, $latest_refund_id );
+		$order->save_meta_data();
+
+		$records_before = $this->get_refund_records_summary( $order_id );
+
+		$this->mock_webhook_handler->process_webhook_refund( $this->get_charge_refunded_notification( 'ch_123', $event_refund_id, 500 ) );
+
+		$this->assertSame( $records_before, $this->get_refund_records_summary( $order_id ) );
+		$this->assertSame( $latest_refund_id, $order_helper->get_stripe_refund_id( wc_get_order( $order_id ) ) );
+	}
+
+	/**
+	 * Data provider for `test_process_webhook_refund_ignores_redelivery`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_process_webhook_refund_ignores_redelivery(): array {
+		return [
+			// A later refund has overwritten the parent meta, so only the record identifies it.
+			'earlier refund with its own record'    => [
+				'records'          => [ [ 5.00, 're_1' ], [ 7.00, 're_2' ] ],
+				'latest refund id' => 're_2',
+				'event refund id'  => 're_1',
+			],
+			// Records created before 10.9.0 carry no ID, so only the parent meta identifies it.
+			'latest refund with an untagged record' => [
+				'records'          => [ [ 5.00, null ] ],
+				'latest refund id' => 're_1',
+				'event refund id'  => 're_1',
+			],
+		];
+	}
+
+	/**
+	 * A skipped duplicate must not lock the order: a lock left behind made the next legitimate refund
+	 * event inside the lock window return early with a 200, so Stripe never retried it and the WC
+	 * refund was never created.
+	 */
+	public function test_process_webhook_refund_does_not_lock_the_order_when_skipping_a_duplicate() {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order        = $this->create_captured_stripe_order( 'ch_123' );
+		$order_id     = $order->get_id();
+
+		$this->create_refund_record( $order_id, 5.00, 're_1' );
+		$order_helper->update_stripe_refund_id( $order, 're_1' );
+		$order->save_meta_data();
+
+		$this->mock_webhook_handler->process_webhook_refund( $this->get_charge_refunded_notification( 'ch_123', 're_1', 500 ) );
+
+		$this->assertCount( 1, wc_get_order( $order_id )->get_refunds() );
+		$this->assertEmpty( $order_helper->get_order_existing_refund_lock( wc_get_order( $order_id ) ) );
+
+		$this->mock_webhook_handler->process_webhook_refund( $this->get_charge_refunded_notification( 'ch_123', 're_2', 700 ) );
+
+		$this->assertSame(
+			[
+				[ 're_1', 5.00 ],
+				[ 're_2', 7.00 ],
+			],
+			$this->get_refund_records_summary( $order_id )
+		);
+		$this->assertEmpty( $order_helper->get_order_existing_refund_lock( wc_get_order( $order_id ) ) );
 	}
 
 	/**
