@@ -2660,7 +2660,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		// the caller skips firing `wc_stripe_webhook_received` now: settlement hasn't happened yet, and
 		// the retry fires the action itself once it does.
 		if ( $order_helper->lock_order_payment( $order ) ) {
-			$this->defer_webhook_processing( $notification, [ 'session_id' => $session_id ], $this->locked_order_retry_delay );
+			$this->defer_webhook_processing(
+				$notification,
+				[
+					'session_id'  => $session_id,
+					'retry_count' => $retry_count,
+				],
+				$this->locked_order_retry_delay
+			);
 			return true;
 		}
 
