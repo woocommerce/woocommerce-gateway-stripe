@@ -595,7 +595,16 @@ trait WC_Stripe_Subscriptions_Trait {
 				$prepared_source->source = '';
 			}
 
-			$payment_attempt            = $this->attempt_subscription_renewal_payment( $amount, $renewal_order, $prepared_source );
+			$attempt_payment = function () use ( $amount, $renewal_order, $prepared_source ) {
+				return $this->attempt_subscription_renewal_payment( $amount, $renewal_order, $prepared_source );
+			};
+
+			// A timeout may hide a charge Stripe already made. Resending the identical request with the same
+			// idempotency key returns that outcome instead of charging again. Each resend, including one for
+			// the Level 3 fallback request, must finish while the lock still leaves 30 seconds to record the response.
+			$payment_attempt            = 0 < $lock_expiry
+				? WC_Stripe_API::with_inconclusive_request_resend( $attempt_payment, $lock_expiry - 30 )
+				: $attempt_payment();
 			$response                   = $payment_attempt['response'];
 			$is_authentication_required = $payment_attempt['is_authentication_required'];
 
