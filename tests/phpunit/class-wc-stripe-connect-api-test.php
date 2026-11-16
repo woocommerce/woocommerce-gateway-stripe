@@ -60,6 +60,86 @@ class WC_Stripe_Connect_API_Test extends WP_UnitTestCase {
 		];
 	}
 
+	/**
+	 * Malformed error bodies must not abort disconnection or change valid error data.
+	 *
+	 * @dataProvider provide_error_response_bodies
+	 * @param mixed  $body             Decoded response body.
+	 * @param string $expected_message Expected formatted error message.
+	 * @param mixed  $expected_data    Data exposed to the error hook.
+	 */
+	public function test_error_response_fields( $body, $expected_message, $expected_data ) {
+		$mock          = function () use ( $body ) {
+			return $this->http_response( 400, $body );
+		};
+		$captured_data = 'not captured';
+		$capture_data  = function ( $code, $message, $data ) use ( &$captured_data ) {
+			if ( 'wcc_server_error_response' === $code ) {
+				$captured_data = $data;
+			}
+		};
+		add_filter( 'pre_http_request', $mock, 10, 3 );
+		add_action( 'wp_error_added', $capture_data, 10, 3 );
+
+		try {
+			$response = ( new WC_Stripe_Connect_API() )->deauthorize_account( 'acct_123', 'sk_live_example' );
+			$this->assertWPError( $response );
+			$this->assertSame( 'wcc_server_error_response', $response->get_error_code() );
+			$this->assertSame( $expected_message, $response->get_error_message() );
+			$this->assertSame( $expected_data, $captured_data );
+			$this->assertSame( empty( $expected_data ) ? null : $expected_data, $response->get_error_data() );
+		} finally {
+			remove_filter( 'pre_http_request', $mock );
+			remove_action( 'wp_error_added', $capture_data );
+		}
+	}
+
+	public function provide_error_response_bodies() {
+		$generic_message = 'Error: The WooCommerce Connect server returned:   ( 400 )';
+		$valid_message   = 'Error: The WooCommerce Connect server returned: Bad Request Unavailable ( 400 )';
+
+		return [
+			'nonempty array'        => [ [ 'Unavailable' ], $generic_message, '' ],
+			'integer'               => [ 123, $generic_message, '' ],
+			'boolean'               => [ true, $generic_message, '' ],
+			'string'                => [ 'Unavailable', $generic_message, '' ],
+			'nested error fields'   => [
+				[
+					'error'   => (object) [ 'code' => 'invalid' ],
+					'message' => [ 'Unavailable' ],
+				],
+				$generic_message,
+				'',
+			],
+			'valid error with data' => [
+				[
+					'error'   => 'Bad Request',
+					'message' => 'Unavailable',
+					'data'    => [ 'invalid_key' ],
+				],
+				$valid_message,
+				[ 'invalid_key' ],
+			],
+			'explicit null data'    => [
+				[
+					'error'   => 'Bad Request',
+					'message' => 'Unavailable',
+					'data'    => null,
+				],
+				$valid_message,
+				null,
+			],
+			'numeric error code'    => [
+				[
+					'error'   => 123,
+					'message' => 'Unavailable',
+				],
+				'Error: The WooCommerce Connect server returned: 123 Unavailable ( 400 )',
+				'',
+			],
+		];
+	}
+
 	public function test_other_oauth_requests_keep_their_timeout_and_are_not_retried() {
 		$count = 0;
 		$mock  = function ( $preempt, $args, $url ) use ( &$count ) {

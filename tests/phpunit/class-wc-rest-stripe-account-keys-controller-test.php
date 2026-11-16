@@ -482,8 +482,9 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 	 * @param array $previous_modes     Outstanding warnings from earlier disconnects.
 	 * @param array $expected_modes     Modes retained in the warning.
 	 * @param array $expected_counts    Expected requests per mode, including retries.
+	 * @param array $failure_body       JSON body returned for failed revocations.
 	 */
-	public function test_disconnect_retries_and_persists_unconfirmed_modes( $settings_overrides, $failures, $previous_modes, $expected_modes, $expected_counts ) {
+	public function test_disconnect_retries_and_persists_unconfirmed_modes( $settings_overrides, $failures, $previous_modes, $expected_modes, $expected_counts, $failure_body = [ 'message' => 'Unavailable' ] ) {
 		$settings = [
 			'enabled'              => 'yes',
 			'connection_type'      => 'connect',
@@ -509,7 +510,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 			'live' => 0,
 			'test' => 0,
 		];
-		$mock                              = function ( $preempt, $args, $url ) use ( &$counts, $failures, $settings ) {
+		$mock                              = function ( $preempt, $args, $url ) use ( &$counts, $failures, $settings, $failure_body ) {
 			$this->assertStringEndsWith( '/stripe/account/deauthorize-by-key', $url );
 			$body   = json_decode( $args['body'], true );
 			$mode   = 0 === strpos( $body['secretKey'], 'sk_test_' ) ? 'test' : 'live';
@@ -523,7 +524,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 			return [
 				'headers'  => [ 'content-type' => 'application/json' ],
 				'response' => [ 'code' => $failed ? 503 : 200 ],
-				'body'     => wp_json_encode( $failed ? [ 'message' => 'Unavailable' ] : [ 'accountId' => 'acct_123' ] ),
+				'body'     => wp_json_encode( $failed ? $failure_body : [ 'accountId' => 'acct_123' ] ),
 			];
 		};
 		$original_connect                  = WC_Stripe::get_instance()->connect;
@@ -648,6 +649,17 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 					'live' => 0,
 					'test' => 3,
 				],
+			],
+			'malformed error body'         => [
+				$live_only,
+				[ 'live' ],
+				[],
+				[ 'live' ],
+				[
+					'live' => 3,
+					'test' => 0,
+				],
+				[ 'Unavailable' ],
 			],
 			'new success retains warning'  => [
 				[ 'testmode' => 'no' ],

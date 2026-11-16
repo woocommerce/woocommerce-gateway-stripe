@@ -372,9 +372,9 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 					);
 				}
 
-				$error   = property_exists( $response_body, 'error' ) ? $response_body->error : '';
-				$message = property_exists( $response_body, 'message' ) ? $response_body->message : '';
-				$data    = property_exists( $response_body, 'data' ) ? $response_body->data : '';
+				$error   = is_scalar( $response_body->error ?? null ) ? $response_body->error : '';
+				$message = is_scalar( $response_body->message ?? null ) ? $response_body->message : '';
+				$data    = is_object( $response_body ) && property_exists( $response_body, 'data' ) ? $response_body->data : '';
 
 				return new WP_Error(
 					'wcc_server_error_response',
