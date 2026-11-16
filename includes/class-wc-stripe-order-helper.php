@@ -1594,7 +1594,9 @@ class WC_Stripe_Order_Helper {
 	 * @return string|false The owned lock value, or false when the lock could not be acquired.
 	 */
 	public function acquire_order_payment_lock( WC_Order $order ) {
-		// A clone keeps the caller's unsaved changes intact.
+		// A clone keeps the caller's unsaved changes intact. It is safe to save only because
+		// get_order_existing_payment_lock() reloads the meta first: cloning drops the meta IDs, and
+		// saving before that reload would insert every meta row of the order again.
 		$payment_lock_order = clone $order;
 		if ( $this->lock_order_payment( $payment_lock_order ) ) {
 			return false;
@@ -1733,6 +1735,15 @@ class WC_Stripe_Order_Helper {
 			return false;
 		}
 
+		$payment_lock_order = clone $order;
+
+		// Check the meta before moving the row. Once the row moves, a failure can only delete it,
+		// which leaves the caller's token unable to release the meta until the lock expires.
+		$current_lock = $this->get_order_existing_payment_lock( $payment_lock_order );
+		if ( ! is_scalar( $current_lock ) || (string) $current_lock !== $expected_lock ) {
+			return false;
+		}
+
 		// The owner row moves first; the meta follows.
 		$renewed_lock = $this->refresh_order_payment_lock_owner( $order, $expected_lock );
 		if ( null === $renewed_lock ) {
@@ -1740,9 +1751,7 @@ class WC_Stripe_Order_Helper {
 		}
 
 		$renewed_lock_expiry = (int) explode( '|', $renewed_lock, 2 )[0];
-
-		$payment_lock_order = clone $order;
-		$renewed            = false;
+		$renewed             = false;
 
 		try {
 			$current_lock = $this->get_order_existing_payment_lock( $payment_lock_order );

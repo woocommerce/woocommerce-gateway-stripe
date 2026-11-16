@@ -266,6 +266,9 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		}
 	}
 
+	/**
+	 * Tests that the acquired lock value is the one stored in both the order meta and the owner row.
+	 */
 	public function test_acquire_order_payment_lock_returns_the_persisted_owner(): void {
 		$order      = WC_Helper_Order::create_order();
 		$owned_lock = $this->helper->acquire_order_payment_lock( $order );
@@ -282,6 +285,9 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		$this->assertNull( $this->get_payment_lock_owner_row( $order ) );
 	}
 
+	/**
+	 * Tests that renewing an owned lock moves both the owner row and the order meta to the new value.
+	 */
 	public function test_renew_order_payment_lock_if_owned_replaces_both_stores(): void {
 		$order      = WC_Helper_Order::create_order();
 		$owned_lock = $this->helper->acquire_order_payment_lock( $order );
@@ -308,6 +314,9 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( $order ) );
 	}
 
+	/**
+	 * Tests that a request whose lock was taken over cannot renew it and leaves the new owner in place.
+	 */
 	public function test_renew_order_payment_lock_if_owned_preserves_a_replacement_owner(): void {
 		$order            = WC_Helper_Order::create_order();
 		$owned_lock       = $this->helper->acquire_order_payment_lock( $order );
@@ -329,6 +338,9 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		$this->set_payment_lock_owner_row( $order, null );
 	}
 
+	/**
+	 * Tests that a subclass reporting a lock it did not record is treated as not acquired.
+	 */
 	public function test_acquire_order_payment_lock_fails_closed_when_an_override_records_no_owner(): void {
 		$order  = WC_Helper_Order::create_order();
 		$helper = new class() extends WC_Stripe_Order_Helper {
@@ -352,6 +364,9 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		}
 	}
 
+	/**
+	 * Tests that an unlock from a request that does not own the lock leaves an active lock alone.
+	 */
 	public function test_unlock_order_payment_without_a_token_preserves_an_active_owner(): void {
 		$order        = WC_Helper_Order::create_order();
 		$owner_helper = new WC_Stripe_Order_Helper();
@@ -387,7 +402,12 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that a token-less unlock clears a legacy bare-timestamp lock only once it has expired.
+	 *
 	 * @dataProvider provide_legacy_payment_locks
+	 *
+	 * @param int  $expiry_offset  Seconds from now at which the legacy lock expires.
+	 * @param bool $expect_cleared Whether the unlock should clear it.
 	 */
 	public function test_unlock_order_payment_without_a_token_only_clears_expired_legacy_metadata( int $expiry_offset, bool $expect_cleared ): void {
 		// Providers run at discovery, so the timestamp is built here.
@@ -406,6 +426,11 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		$this->assertNull( $this->get_payment_lock_owner_row( $order ) );
 	}
 
+	/**
+	 * Provides legacy bare-timestamp lock offsets and whether a token-less unlock should clear them.
+	 *
+	 * @return array<string, array{int, bool}>
+	 */
 	public function provide_legacy_payment_locks(): array {
 		return [
 			'active legacy lock'  => [ 5 * MINUTE_IN_SECONDS, false ],
@@ -441,6 +466,9 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		$this->set_payment_lock_owner_row( $order, null );
 	}
 
+	/**
+	 * Tests that an owner row left behind by an expired lock is taken over.
+	 */
 	public function test_lock_order_payment_reclaims_a_stale_owner_row(): void {
 		$order = WC_Helper_Order::create_order();
 
@@ -458,6 +486,9 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		$this->assertNull( $this->get_payment_lock_owner_row( $order ) );
 	}
 
+	/**
+	 * Tests that only one of two requests that interleave between the lock check and the write gets the lock.
+	 */
 	public function test_lock_order_payment_rejects_an_interleaved_acquisition(): void {
 		$order        = WC_Helper_Order::create_order();
 		$first_order  = wc_get_order( $order->get_id() );
@@ -506,6 +537,9 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( $order ) );
 	}
 
+	/**
+	 * Tests that releasing a lock that was taken over leaves the new owner's lock in place.
+	 */
 	public function test_unlock_order_payment_if_owned_preserves_a_replacement_lock(): void {
 		$order = WC_Helper_Order::create_order();
 
@@ -528,6 +562,9 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		$this->set_payment_lock_owner_row( $order, null );
 	}
 
+	/**
+	 * Tests that releasing the lock does not save or discard the caller's unsaved order changes.
+	 */
 	public function test_unlock_order_payment_if_owned_preserves_unsaved_caller_metadata(): void {
 		$order = WC_Helper_Order::create_order();
 
