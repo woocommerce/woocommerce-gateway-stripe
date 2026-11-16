@@ -4383,7 +4383,13 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:get_intent_from_order\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:get_latest_charge_from_intent\(\)\.$#'
+			identifier: method.notFound
+			count: 4
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
@@ -4461,7 +4467,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:process_response\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
@@ -4689,7 +4695,13 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:get_intent_from_order\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:get_latest_charge_from_intent\(\)\.$#'
+			identifier: method.notFound
+			count: 4
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
@@ -4767,7 +4779,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:process_response\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
@@ -4995,7 +5007,13 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:get_intent_from_order\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:get_latest_charge_from_intent\(\)\.$#'
+			identifier: method.notFound
+			count: 4
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
@@ -5073,7 +5091,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:process_response\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
@@ -5301,7 +5319,13 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:get_intent_from_order\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:get_latest_charge_from_intent\(\)\.$#'
+			identifier: method.notFound
+			count: 4
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
@@ -5379,7 +5403,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:process_response\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
@@ -5601,7 +5625,13 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:get_intent_from_order\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:get_latest_charge_from_intent\(\)\.$#'
+			identifier: method.notFound
+			count: 4
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
@@ -5679,7 +5709,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:process_response\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
@@ -5895,7 +5925,13 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:get_intent_from_order\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:get_latest_charge_from_intent\(\)\.$#'
+			identifier: method.notFound
+			count: 4
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
@@ -5973,7 +6009,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:process_response\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
@@ -6219,7 +6255,13 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:get_intent_from_order\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:get_latest_charge_from_intent\(\)\.$#'
+			identifier: method.notFound
+			count: 4
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
@@ -6297,7 +6339,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:process_response\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
@@ -6519,7 +6561,13 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:get_intent_from_order\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:get_latest_charge_from_intent\(\)\.$#'
+			identifier: method.notFound
+			count: 4
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
@@ -6597,7 +6645,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:process_response\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
@@ -6831,7 +6879,13 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:get_intent_from_order\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:get_latest_charge_from_intent\(\)\.$#'
+			identifier: method.notFound
+			count: 4
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
@@ -6909,7 +6963,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:process_response\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
@@ -7125,7 +7179,13 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:get_intent_from_order\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:get_latest_charge_from_intent\(\)\.$#'
+			identifier: method.notFound
+			count: 4
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
@@ -7203,7 +7263,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:process_response\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
@@ -7473,7 +7533,13 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:get_intent_from_order\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:get_latest_charge_from_intent\(\)\.$#'
+			identifier: method.notFound
+			count: 4
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
@@ -7551,7 +7617,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:process_response\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
@@ -7791,7 +7857,13 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:get_intent_from_order\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:get_latest_charge_from_intent\(\)\.$#'
+			identifier: method.notFound
+			count: 4
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
@@ -7869,7 +7941,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:process_response\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
@@ -8091,7 +8163,13 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:get_intent_from_order\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
+
+		-
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:get_latest_charge_from_intent\(\)\.$#'
+			identifier: method.notFound
+			count: 4
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
@@ -8169,7 +8247,7 @@ parameters:
 		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:process_response\(\)\.$#'
 			identifier: method.notFound
-			count: 1
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
