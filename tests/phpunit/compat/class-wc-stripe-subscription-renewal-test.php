@@ -1401,7 +1401,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 	/**
 	 * Tests that a succeeded intent whose charge is missing or cannot be read stops the renewal, leaves a
-	 * note linking the payment, and does not log the intent itself.
+	 * note linking the payment, does not report a failed payment, and does not log the intent itself.
 	 *
 	 * @dataProvider provide_succeeded_intents_without_a_readable_charge
 	 *
@@ -1511,7 +1511,8 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		// A PaymentIntent must not be recorded as a charge; the merchant gets a note instead.
 		$this->assertSame( 0, $processed_charge_count );
-		$this->assertSame( 1, $error_hook_count );
+		// Stripe reported success, so listeners must not be told the payment failed.
+		$this->assertSame( 0, $error_hook_count );
 		$this->assertSame( '', $renewal_order->get_transaction_id() );
 		$this->assertSame( OrderStatus::PENDING, $renewal_order->get_status() );
 		$this->assertStringContainsString( 'its charge could not be read', implode( "\n", $note_contents ) );
@@ -1772,7 +1773,8 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests that an authentication-required renewal still fails the order and asks for authentication when its charge cannot be read.
+	 * Tests that an authentication-required renewal still fails the order and asks for authentication when its charge cannot
+	 * be read, without clearing a transaction id the order already has.
 	 *
 	 * @dataProvider provide_authentication_required_responses_without_a_readable_charge
 	 *
@@ -1780,9 +1782,11 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	 * @param array $charge_lookup_responses Responses returned, in order, for charge lookups.
 	 */
 	public function test_renewal_authorization_required_without_a_readable_charge( $latest_charge, $charge_lookup_responses ) {
-		$renewal_order                 = WC_Helper_Order::create_order();
 		$payments_intents_api_endpoint = 'https://api.stripe.com/v1/payment_intents';
 		$charges_api_base              = 'https://api.stripe.com/v1/charges/';
+		$renewal_order                 = WC_Helper_Order::create_order();
+		$renewal_order->set_transaction_id( 'ch_previous' );
+		$renewal_order->save();
 
 		$this->wc_gateway_stripe
 			->method( 'prepare_order_source' )
@@ -1839,7 +1843,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		$this->assertSame( 1, $mock_action_process_payment->get_call_count() );
 		$this->assertSame( OrderStatus::FAILED, $order->get_status() );
-		$this->assertSame( '', $order->get_transaction_id() );
+		$this->assertSame( 'ch_previous', $order->get_transaction_id() );
 		$this->assertStringContainsString( 'Stripe payment awaiting authentication by user.', implode( "\n", $note_contents ) );
 	}
 

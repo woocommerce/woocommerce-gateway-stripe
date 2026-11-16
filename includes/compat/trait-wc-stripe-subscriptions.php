@@ -794,7 +794,9 @@ trait WC_Stripe_Subscriptions_Trait {
 				$error_message = __( 'This transaction requires authentication.', 'woocommerce-gateway-stripe' );
 				$renewal_order->add_order_note( $error_message );
 
-				$renewal_order->set_transaction_id( $id );
+				if ( '' !== $id ) {
+					$renewal_order->set_transaction_id( $id );
+				}
 				$renewal_order->update_status(
 					OrderStatus::FAILED,
 					'' === $id
@@ -875,13 +877,15 @@ trait WC_Stripe_Subscriptions_Trait {
 
 				// process_response() would reject a PaymentIntent anyway, with an error that does
 				// not say what happened. Stop here and leave the merchant a note they can act on.
+				// Stripe reported success, so this is not a failed payment: the error hook is not fired,
+				// and the saved intent lets a later webhook record the payment.
 				if ( ! $this->is_stripe_charge_object( $charge_response ) ) {
 					$renewal_order->add_order_note( $this->get_renewal_without_charge_note( $response ) );
 					// Identify the response without logging it: an intent carries its client secret and billing details.
-					throw new WC_Stripe_Exception(
-						sprintf( 'The Stripe renewal response %s for order %d did not contain a readable charge.', $this->describe_stripe_response_for_log( $response ), $order_id ), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-						__( 'The Stripe renewal response did not contain a charge.', 'woocommerce-gateway-stripe' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+					WC_Stripe_Logger::error(
+						sprintf( 'Stripe: the renewal response %s for order %d did not contain a readable charge.', $this->describe_stripe_response_for_log( $response ), $order_id )
 					);
+					return;
 				}
 
 				$this->process_response( $charge_response, $renewal_order );
