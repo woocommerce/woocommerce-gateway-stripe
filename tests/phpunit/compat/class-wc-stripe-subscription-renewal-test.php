@@ -1474,9 +1474,14 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests that a succeeded intent without a charge stops the renewal and leaves a note linking the payment.
+	 * Tests that a succeeded intent whose charge is missing or cannot be read stops the renewal, leaves a
+	 * note linking the payment, and does not log the intent itself.
+	 *
+	 * @dataProvider provide_succeeded_intents_without_a_readable_charge
+	 *
+	 * @param string|null $latest_charge The intent's latest_charge, or null for none.
 	 */
-	public function test_renewal_stops_when_succeeded_intent_has_no_charge() {
+	public function test_renewal_stops_when_succeeded_intent_has_no_charge( $latest_charge ) {
 		$renewal_order          = WC_Helper_Order::create_order();
 		$processed_charge_count = 0;
 		$error_hook_count       = 0;
@@ -1498,12 +1503,34 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 				]
 			);
 
-		// A succeeded intent with no charge at all.
 		$intent_response                    = json_decode( file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_success.json' ), true );
 		$intent_response['charges']['data'] = [];
 		unset( $intent_response['latest_charge'] );
+		if ( null !== $latest_charge ) {
+			$intent_response['latest_charge'] = $latest_charge;
+		}
 
 		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $intent_response ) {
+			if ( 0 === strpos( $url, 'https://api.stripe.com/v1/charges/' ) ) {
+				return [
+					'headers'  => [],
+					'body'     => wp_json_encode(
+						[
+							'error' => [
+								'type'    => 'invalid_request_error',
+								'message' => 'No such charge.',
+							],
+						]
+					),
+					'response' => [
+						'code'    => 404,
+						'message' => 'Not Found',
+					],
+					'cookies'  => [],
+					'filename' => null,
+				];
+			}
+
 			if ( 'https://api.stripe.com/v1/payment_intents' !== $url ) {
 				return $preempt;
 			}
@@ -1526,6 +1553,16 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			++$error_hook_count;
 		};
 
+		$previous_logger = WC_Stripe_Logger::$logger;
+		$logged_errors   = [];
+		$logger          = $this->getMockBuilder( WC_Logger::class )->disableOriginalConstructor()->getMock();
+		$logger->method( 'error' )->willReturnCallback(
+			function ( $message ) use ( &$logged_errors ) {
+				$logged_errors[] = (string) $message;
+			}
+		);
+		WC_Stripe_Logger::$logger = $logger;
+
 		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
 		add_action( 'wc_gateway_stripe_process_payment_charge', $capture_processed_charge );
 		add_action( 'wc_gateway_stripe_process_payment_error', $error_hook );
@@ -1536,7 +1573,11 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
 			remove_action( 'wc_gateway_stripe_process_payment_charge', $capture_processed_charge );
 			remove_action( 'wc_gateway_stripe_process_payment_error', $error_hook );
+			WC_Stripe_Logger::$logger = $previous_logger;
 		}
+
+		// The intent carries its client secret, so it must not reach the log.
+		$this->assertStringNotContainsString( 'pi_123abc_secret_123abc', implode( "\n", $logged_errors ) );
 
 		$renewal_order = wc_get_order( $renewal_order->get_id() );
 
@@ -1547,9 +1588,21 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertSame( 1, $error_hook_count );
 		$this->assertSame( '', $renewal_order->get_transaction_id() );
 		$this->assertSame( OrderStatus::PENDING, $renewal_order->get_status() );
-		$this->assertStringContainsString( 'without a charge', implode( "\n", $note_contents ) );
+		$this->assertStringContainsString( 'its charge could not be read', implode( "\n", $note_contents ) );
 		// The note links the intent so the merchant can find the payment.
 		$this->assertStringContainsString( 'https://dashboard.stripe.com/test/payments/pi_123abc', implode( "\n", $note_contents ) );
+	}
+
+	/**
+	 * Provides succeeded intents whose charge is missing or cannot be read.
+	 *
+	 * @return array<string, array{string|null}>
+	 */
+	public function provide_succeeded_intents_without_a_readable_charge(): array {
+		return [
+			'no charge at all'        => [ null ],
+			'charge cannot be looked up' => [ 'ch_missing' ],
+		];
 	}
 
 	/**

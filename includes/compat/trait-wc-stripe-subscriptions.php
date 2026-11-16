@@ -863,7 +863,14 @@ trait WC_Stripe_Subscriptions_Trait {
 				);
 
 				// The intent carries the expanded charge; for SEPA the response body is the charge.
-				$latest_charge = $this->resolve_stripe_charge_object( $this->get_latest_charge_for_subscription_renewal( $response ) );
+				try {
+					$latest_charge = $this->resolve_stripe_charge_object( $this->get_latest_charge_for_subscription_renewal( $response ) );
+				} catch ( WC_Stripe_Exception $charge_exception ) {
+					// The payment may well have gone through. Treat it as unreadable so the merchant gets
+					// the note below, rather than only a log line.
+					WC_Stripe_Logger::error( "Stripe: the charge lookup for subscription renewal order {$order_id} failed: " . $charge_exception->getMessage() );
+					$latest_charge = null;
+				}
 
 				if (
 					'payment_intent' === ( $response->object ?? '' )
@@ -881,9 +888,10 @@ trait WC_Stripe_Subscriptions_Trait {
 				// not say what happened. Stop here and leave the merchant a note they can act on.
 				if ( ! $this->is_stripe_charge_object( $charge_response ) ) {
 					$renewal_order->add_order_note( $this->get_renewal_without_charge_note( $response ) );
+					// Identify the response without logging it: an intent carries its client secret and billing details.
 					throw new WC_Stripe_Exception(
-						print_r( $charge_response, true ), // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
-						__( 'The Stripe renewal response did not contain a charge.', 'woocommerce-gateway-stripe' )
+						sprintf( 'The Stripe renewal response %s for order %d did not contain a readable charge.', $this->describe_stripe_response_for_log( $response ), $order_id ), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+						__( 'The Stripe renewal response did not contain a charge.', 'woocommerce-gateway-stripe' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 					);
 				}
 
@@ -976,9 +984,10 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			// process_response() expects a charge; a JSON list decodes to an array.
 			if ( ! is_object( $response ) || ( empty( $response->error ) && ! $this->is_stripe_charge_object( $response ) ) ) {
+				// Identify the response without logging it: it can carry customer and billing details.
 				throw new WC_Stripe_Exception(
-					print_r( $response, true ),
-					__( 'The Stripe renewal response did not contain a charge.', 'woocommerce-gateway-stripe' )
+					sprintf( 'The Stripe SEPA renewal response %s for order %d was not a charge.', $this->describe_stripe_response_for_log( $response ), $renewal_order->get_id() ), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+					__( 'The Stripe renewal response did not contain a charge.', 'woocommerce-gateway-stripe' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				);
 			}
 
@@ -1009,6 +1018,8 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * gateway's lookup through __call() forwarding, so name that gateway here instead of
 	 * relying on the forwarding.
 	 *
+	 * @since x.x.x
+	 *
 	 * @param object $intent The PaymentIntent, or the Charge for SEPA renewals.
 	 * @return string|object|null
 	 */
@@ -1021,7 +1032,32 @@ trait WC_Stripe_Subscriptions_Trait {
 	}
 
 	/**
-	 * Builds the order note left when Stripe reports a successful renewal without a charge.
+	 * Identifies a Stripe response for a log line without including its contents.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param mixed $response The Stripe response.
+	 * @return string
+	 */
+	private function describe_stripe_response_for_log( $response ): string {
+		if ( ! is_object( $response ) ) {
+			return '(' . gettype( $response ) . ')';
+		}
+
+		$fields = [];
+		foreach ( [ 'object', 'id', 'status' ] as $field ) {
+			if ( isset( $response->$field ) && is_scalar( $response->$field ) ) {
+				$fields[] = $field . '=' . $response->$field;
+			}
+		}
+
+		return '(' . implode( ', ', $fields ) . ')';
+	}
+
+	/**
+	 * Builds the order note left when Stripe reports a successful renewal whose charge cannot be read.
+	 *
+	 * @since x.x.x
 	 *
 	 * @param mixed $response The Stripe renewal response.
 	 * @return string
@@ -1030,7 +1066,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		$intent_id = is_object( $response ) && isset( $response->id ) && is_string( $response->id ) ? $response->id : '';
 
 		if ( '' === $intent_id ) {
-			return __( 'Stripe reported a successful renewal payment without a charge. Check the payment in the Stripe dashboard.', 'woocommerce-gateway-stripe' );
+			return __( 'Stripe reported a successful renewal payment, but its charge could not be read, so the payment was not recorded on the order. Check the payment in the Stripe dashboard.', 'woocommerce-gateway-stripe' );
 		}
 
 		$dashboard_link = WC_Stripe_Helper::get_external_link(
@@ -1040,7 +1076,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		return sprintf(
 			/* translators: %s is a link to the payment in the Stripe dashboard. */
-			__( 'Stripe reported a successful renewal payment without a charge. Check payment %s in the Stripe dashboard.', 'woocommerce-gateway-stripe' ),
+			__( 'Stripe reported a successful renewal payment, but its charge could not be read, so the payment was not recorded on the order. Check payment %s in the Stripe dashboard.', 'woocommerce-gateway-stripe' ),
 			$dashboard_link
 		);
 	}
@@ -1051,6 +1087,8 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * get_latest_charge_from_intent() already fetches a charge known only by ID, so this only
 	 * filters out PaymentIntents, error objects, and empty values.
 	 *
+	 * @since x.x.x
+	 *
 	 * @param mixed $charge Value returned by get_latest_charge_from_intent().
 	 * @return stdClass|null
 	 */
@@ -1060,6 +1098,8 @@ trait WC_Stripe_Subscriptions_Trait {
 
 	/**
 	 * Checks whether a value is a Stripe Charge object.
+	 *
+	 * @since x.x.x
 	 *
 	 * @param mixed $charge Value resolved from a Stripe response.
 	 * @return bool
@@ -1761,6 +1801,8 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * Returns the charge id of an intent that requires authentication, or an empty string.
 	 *
 	 * The customer must still be asked to authenticate when the charge cannot be read.
+	 *
+	 * @since x.x.x
 	 *
 	 * @param object $intent   The intent that requires authentication.
 	 * @param int    $order_id The renewal order id.

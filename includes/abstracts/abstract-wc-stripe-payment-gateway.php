@@ -970,6 +970,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * been a charge ID string. Third-party code may rely on that, so the expanded charge moves to a
 	 * separate property that only get_latest_charge_from_intent() reads.
 	 *
+	 * @since x.x.x
+	 *
 	 * @param mixed $intent A PaymentIntent from a Stripe response.
 	 * @return void
 	 */
