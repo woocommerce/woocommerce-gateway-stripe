@@ -1836,6 +1836,9 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			$this->assertSame( 1, $error_hook_count );
 			$this->assertSame( OrderStatus::PENDING, $renewal_order->get_status() );
 			$this->assertSame( '', $renewal_order->get_transaction_id() );
+			// The payment Stripe accepted is still visible to the merchant.
+			$note_contents = wp_list_pluck( wc_get_order_notes( [ 'order_id' => $renewal_order->get_id() ] ), 'content' );
+			$this->assertStringContainsString( 'https://dashboard.stripe.com/test/payments/pi_123abc', implode( "\n", $note_contents ) );
 			$this->assertIsString( $owned_lock );
 			$this->assertTrue( $real_order_helper->is_order_payment_lock_owned( $renewal_order, $owned_lock ) );
 		} finally {

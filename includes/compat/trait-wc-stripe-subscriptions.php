@@ -526,6 +526,26 @@ trait WC_Stripe_Subscriptions_Trait {
 	}
 
 	/**
+	 * Builds the order note left when Stripe accepted a renewal payment this request could not record.
+	 *
+	 * @param mixed $response The Stripe renewal response.
+	 * @return string
+	 */
+	private function get_renewal_payment_not_recorded_note( $response ): string {
+		$payment_id = is_object( $response ) && isset( $response->id ) && is_string( $response->id ) ? $response->id : '';
+
+		if ( '' === $payment_id ) {
+			return __( 'Stripe accepted this renewal payment, but this attempt had lost its payment lock, so the payment was not recorded on the order. Check the Stripe dashboard before retrying the renewal.', 'woocommerce-gateway-stripe' );
+		}
+
+		return sprintf(
+			/* translators: %s is a link to the payment in the Stripe dashboard. */
+			__( 'Stripe accepted renewal payment %s, but this attempt had lost its payment lock, so the payment was not recorded on the order. Check it in the Stripe dashboard before retrying the renewal.', 'woocommerce-gateway-stripe' ),
+			WC_Stripe_Helper::get_external_link( WC_Stripe_Helper::get_transaction_url_for_id( $payment_id, empty( $response->livemode ) ), $payment_id )
+		);
+	}
+
+	/**
 	 * Returns the expiry of a payment lock value, or 0 when it cannot be parsed.
 	 *
 	 * @param string $lock Payment lock value: a bare timestamp or "{expiry}|{owner_token}".
@@ -807,6 +827,12 @@ trait WC_Stripe_Subscriptions_Trait {
 			// Response handling runs third-party hooks and can be slow, so renew the lock first.
 			$renewed_lock = $order_helper->renew_order_payment_lock_if_owned( $renewal_order, $acquired_lock );
 			if ( false === $renewed_lock ) {
+				// Stripe has already taken this payment, but without the lock this request must not
+				// update the order. Leave the merchant a link so the payment is not lost from view.
+				if ( ! $is_authentication_required ) {
+					$renewal_order->add_order_note( $this->get_renewal_payment_not_recorded_note( $response ) );
+				}
+
 				throw new WC_Stripe_Exception(
 					"Stripe: subscription renewal order {$order_id} response was not processed because its payment lock could not be renewed.", // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 					__( 'The Stripe renewal response could not be processed because its payment lock could not be renewed.', 'woocommerce-gateway-stripe' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
