@@ -12,6 +12,7 @@ xxxx-xx-xx - version 11.3.0
 * Fix - Keep a subscription's Stripe customer when its card is changed with 3D Secure, so renewals don't fail
 * Dev - Upgrade Playwright to stay compatible with GitHub CI environment
 * Dev - Behind a feature flag, find Stripe events whose webhook delivery failed and process them in the background
+* Dev - Update the homepage URL in composer.json
 * Fix - Keep the duplicate-charge guard protecting a guest when another guest order with the same cart and email reaches its order-received page
 
 2026-11-10 - version 11.2.0
