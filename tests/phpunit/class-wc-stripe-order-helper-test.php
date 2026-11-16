@@ -211,22 +211,45 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( $order ) );
 	}
 
+	/**
+	 * Reads the order's owner row, translated to the "{expiry}|{token}" lock value it stands for.
+	 *
+	 * @param WC_Order $order The order.
+	 * @return string|null The lock value, the raw row when it cannot be translated, or null when there is no row.
+	 */
 	private function get_payment_lock_owner_row( WC_Order $order ) {
 		global $wpdb;
 
-		return $wpdb->get_var(
+		$row = $wpdb->get_var(
 			$wpdb->prepare(
 				'SELECT option_value FROM %i WHERE option_name = %s',
 				$wpdb->options,
 				'wc_stripe_payment_lock_owner_' . $order->get_id()
 			)
 		);
+
+		if ( is_string( $row ) && preg_match( '/^([0-9]+):(.+)$/', $row, $matches ) ) {
+			return ( (int) $matches[1] + 5 * MINUTE_IN_SECONDS ) . '|' . $matches[2];
+		}
+
+		return $row;
 	}
 
+	/**
+	 * Writes the order's owner row for a "{expiry}|{token}" lock value, or a raw value when it is not one.
+	 *
+	 * @param WC_Order    $order The order.
+	 * @param string|null $value Lock value to store, or null to delete the row.
+	 */
 	private function set_payment_lock_owner_row( WC_Order $order, ?string $value ): void {
 		global $wpdb;
 
 		$option_name = 'wc_stripe_payment_lock_owner_' . $order->get_id();
+
+		// WC_Stripe_Option_Lock stores when the lock was taken, not when it expires.
+		if ( null !== $value && preg_match( '/^([0-9]+)\|(.+)$/', $value, $matches ) ) {
+			$value = ( (int) $matches[1] - 5 * MINUTE_IN_SECONDS ) . ':' . $matches[2];
+		}
 
 		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE option_name = %s', $wpdb->options, $option_name ) );
 
@@ -390,14 +413,30 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		];
 	}
 
-	public function test_lock_order_payment_preserves_a_malformed_owner_row(): void {
+	/**
+	 * Tests that an unreadable owner row is taken over, as WC_Stripe_Option_Lock does for every lock,
+	 * while an active lock in the order meta still blocks the payment.
+	 */
+	public function test_lock_order_payment_takes_over_a_malformed_owner_row_but_honors_the_meta(): void {
 		$order = WC_Helper_Order::create_order();
 
 		$this->set_payment_lock_owner_row( $order, 'corrupt-owner-value' );
 
+		try {
+			$this->assertFalse( $this->helper->lock_order_payment( $order ) );
+		} finally {
+			$this->helper->unlock_order_payment( $order );
+		}
+
+		// Reload: the unlock above deleted the meta row this object still holds.
+		$order       = wc_get_order( $order->get_id() );
+		$active_lock = ( time() + 5 * MINUTE_IN_SECONDS ) . '|' . wp_generate_uuid4();
+		$this->set_payment_lock_owner_row( $order, 'corrupt-owner-value' );
+		$order->update_meta_data( '_stripe_lock_payment', $active_lock );
+		$order->save_meta_data();
+
 		$this->assertTrue( $this->helper->lock_order_payment( $order ) );
-		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( $order ) );
-		$this->assertSame( 'corrupt-owner-value', $this->get_payment_lock_owner_row( $order ) );
+		$this->assertSame( $active_lock, $this->helper->get_order_existing_payment_lock( $order ) );
 
 		$this->set_payment_lock_owner_row( $order, null );
 	}
