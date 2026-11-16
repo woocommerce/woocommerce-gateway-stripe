@@ -1658,7 +1658,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		// No status change means no retry, so the order says why the renewal stopped.
 		$note_contents = wp_list_pluck( wc_get_order_notes( [ 'order_id' => $renewal_order->get_id() ] ), 'content' );
-		$this->assertStringContainsString( 'had lost its payment lock', implode( "\n", $note_contents ) );
+		$this->assertStringContainsString( 'another process took over the payment', implode( "\n", $note_contents ) );
 	}
 
 	/**

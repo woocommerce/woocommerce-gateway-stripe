@@ -535,12 +535,12 @@ trait WC_Stripe_Subscriptions_Trait {
 		$payment_id = is_object( $response ) && isset( $response->id ) && is_string( $response->id ) ? $response->id : '';
 
 		if ( '' === $payment_id ) {
-			return __( 'Stripe responded to this renewal payment, but this attempt had lost its payment lock, so the result was not recorded on the order. Check the Stripe dashboard before retrying the renewal.', 'woocommerce-gateway-stripe' );
+			return __( 'Stripe responded to this renewal payment, but the result was not saved to this order because another process took over the payment while it was running. The order is updated when Stripe confirms the payment; you can also check it in the Stripe dashboard.', 'woocommerce-gateway-stripe' );
 		}
 
 		return sprintf(
 			/* translators: %s is a link to the payment in the Stripe dashboard. */
-			__( 'Stripe responded to renewal payment %s, but this attempt had lost its payment lock, so the result was not recorded on the order. Check it in the Stripe dashboard before retrying the renewal.', 'woocommerce-gateway-stripe' ),
+			__( 'Stripe responded to renewal payment %s, but the result was not saved to this order because another process took over the payment while it was running. The order is updated when Stripe confirms the payment; you can also check it in the Stripe dashboard.', 'woocommerce-gateway-stripe' ),
 			WC_Stripe_Helper::get_external_link( WC_Stripe_Helper::get_transaction_url_for_id( $payment_id, empty( $response->livemode ) ), $payment_id )
 		);
 	}
@@ -634,7 +634,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			if ( false === $renewed_lock ) {
 				// Another worker may own the lock now, so leave the order for it rather than marking it failed.
 				WC_Stripe_Logger::error( "Stripe: not continuing a subscription renewal attempt for order {$order_id} because its payment lock is no longer owned." );
-				$renewal_order->add_order_note( __( 'Stripe: this renewal payment was not attempted because its payment lock was no longer valid before the charge began.', 'woocommerce-gateway-stripe' ) );
+				$renewal_order->add_order_note( __( 'Stripe: this renewal payment was not attempted because another process took over the payment before the charge began.', 'woocommerce-gateway-stripe' ) );
 				return;
 			}
 
@@ -746,7 +746,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				$renewal_order->add_order_note(
 					sprintf(
 						/* translators: %s is the reason the renewal payment failed. */
-						__( 'Stripe: this renewal payment failed (%s), but the failure was not recorded because this attempt had lost its payment lock. Check the order before retrying the renewal.', 'woocommerce-gateway-stripe' ),
+						__( 'Stripe: this renewal payment failed (%s), but the failure was not saved to this order because another process took over the payment while it was running. Check the order before retrying the renewal.', 'woocommerce-gateway-stripe' ),
 						$e->getLocalizedMessage()
 					)
 				);
