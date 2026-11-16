@@ -1062,6 +1062,49 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that a resend is sent only when it can finish by the caller's deadline.
+	 *
+	 * @dataProvider provide_resend_deadlines
+	 *
+	 * @param int $seconds_left   Seconds from now until the deadline.
+	 * @param int $expected_sends How many times the request should be sent.
+	 */
+	public function test_request_resends_only_before_the_deadline( $seconds_left, $expected_sends ) {
+		$sends    = 0;
+		$callback = function () use ( &$sends ) {
+			++$sends;
+
+			return new \WP_Error( 'http_request_failed', 'cURL error 28: Operation timed out' );
+		};
+		add_filter( 'pre_http_request', $callback );
+
+		try {
+			$this->expectException( WC_Stripe_Inconclusive_Request_Exception::class );
+			WC_Stripe_API::with_inconclusive_request_resend(
+				function () {
+					return WC_Stripe_API::request( [ 'amount' => 100 ], 'payment_intents' );
+				},
+				time() + $seconds_left
+			);
+		} finally {
+			remove_filter( 'pre_http_request', $callback );
+			$this->assertSame( $expected_sends, $sends );
+		}
+	}
+
+	/**
+	 * Provides deadlines with and without room for a resend.
+	 *
+	 * @return array<string, array{int, int}>
+	 */
+	public function provide_resend_deadlines(): array {
+		return [
+			'room for a resend'    => [ WC_Stripe_API::REQUEST_TIMEOUT + 60, 2 ],
+			'no room for a resend' => [ WC_Stripe_API::REQUEST_TIMEOUT - 10, 1 ],
+		];
+	}
+
+	/**
 	 * Provides the cases where a request is sent once, or at most twice.
 	 *
 	 * @return array<string, array{bool, string, int}>

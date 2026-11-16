@@ -40,29 +40,50 @@ class WC_Stripe_API {
 	private static $resend_inconclusive_requests = false;
 
 	/**
+	 * Unix timestamp a resend must be able to finish by, set by with_inconclusive_request_resend(). 0 means no limit.
+	 *
+	 * @var int
+	 */
+	private static $resend_deadline = 0;
+
+	/**
 	 * Runs the callback with inconclusive POST requests sent once more, with the same idempotency key.
 	 *
 	 * A request that times out, gets an empty body, or gets a 5xx that Stripe's API did not write may
 	 * still have been carried out by Stripe. Sending the identical request with the same idempotency
 	 * key makes Stripe return the stored outcome, or run it for the first time, so it is never carried
 	 * out twice. A 5xx carrying a Stripe error body is not resent: Stripe stores that answer under the
-	 * key and would only return it again. The resend can take up to another REQUEST_TIMEOUT, so
-	 * callers opt in only when they can wait that long.
+	 * key and would only return it again. A resend can take up to another REQUEST_TIMEOUT, so with a
+	 * deadline it is sent only when it can finish by then; otherwise the request stays inconclusive.
 	 *
 	 * @since x.x.x
 	 *
 	 * @param callable $callback Code whose Stripe requests may be resent.
+	 * @param int      $deadline Unix timestamp every resend must be able to finish by. 0 means no limit.
 	 * @return mixed The callback's return value.
 	 */
-	public static function with_inconclusive_request_resend( callable $callback ) {
-		$previous                           = self::$resend_inconclusive_requests;
+	public static function with_inconclusive_request_resend( callable $callback, int $deadline = 0 ) {
+		$previous_resend                    = self::$resend_inconclusive_requests;
+		$previous_deadline                  = self::$resend_deadline;
 		self::$resend_inconclusive_requests = true;
+		self::$resend_deadline              = $deadline;
 
 		try {
 			return $callback();
 		} finally {
-			self::$resend_inconclusive_requests = $previous;
+			self::$resend_inconclusive_requests = $previous_resend;
+			self::$resend_deadline              = $previous_deadline;
 		}
+	}
+
+	/**
+	 * Whether a resend started now could finish by the deadline set by with_inconclusive_request_resend().
+	 *
+	 * @return bool
+	 * @phpstan-impure Checks the current time.
+	 */
+	private static function has_time_for_resend(): bool {
+		return 0 === self::$resend_deadline || time() + self::REQUEST_TIMEOUT <= self::$resend_deadline;
 	}
 
 	/**
@@ -375,7 +396,7 @@ class WC_Stripe_API {
 		$response     = wp_remote_post( self::ENDPOINT . $api, $request_args );
 
 		// The identical body and idempotency key make Stripe return the first request's outcome if it ran.
-		if ( self::$resend_inconclusive_requests && 'POST' === $method && $idempotency_key && self::is_resendable_response( $response ) ) {
+		if ( self::$resend_inconclusive_requests && 'POST' === $method && $idempotency_key && self::is_resendable_response( $response ) && self::has_time_for_resend() ) {
 			WC_Stripe_Logger::info( "Stripe API request {$method} {$api} ended without a known outcome; sending it once more with the same idempotency key." );
 			$response = wp_remote_post( self::ENDPOINT . $api, $request_args );
 
