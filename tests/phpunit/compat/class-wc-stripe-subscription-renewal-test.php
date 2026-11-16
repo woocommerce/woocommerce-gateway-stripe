@@ -1600,6 +1600,9 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertSame( OrderStatus::FAILED, $renewal_order->get_status() );
 		$this->assertSame( '', $renewal_order->get_transaction_id() );
 		$this->assertEmpty( WC_Stripe_Order_Helper::get_instance()->get_order_existing_payment_lock( $renewal_order ) );
+		// The merchant sees why the renewal failed.
+		$note_contents = wp_list_pluck( wc_get_order_notes( [ 'order_id' => $renewal_order->get_id() ] ), 'content' );
+		$this->assertStringContainsString( 'Stripe did not return a charge', implode( "\n", $note_contents ) );
 	}
 
 	private function set_gateway_retry_interval( $retry_interval ) {
