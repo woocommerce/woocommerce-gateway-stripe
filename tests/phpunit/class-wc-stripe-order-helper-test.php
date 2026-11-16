@@ -456,6 +456,83 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that the cleanup after a failed acquisition never deletes a lock another request took over.
+	 *
+	 * The acquisition fails its verification. Another request then takes the lock over as soon as the
+	 * protocol lets it, that is whenever the owner row still holds the failing request's value rather
+	 * than a release guard. Whatever happens, the order must not end up with neither lock.
+	 */
+	public function test_failed_acquisition_cleanup_keeps_a_lock_taken_over_meanwhile(): void {
+		$order      = WC_Helper_Order::create_order();
+		$rival_lock = ( time() + 5 * MINUTE_IN_SECONDS ) . '|' . wp_generate_uuid4();
+		$took_over  = false;
+		$take_over  = function ( $current_lock ) use ( $order, $rival_lock, &$took_over ) {
+			// A real request can only take over while the row holds the same, unguarded value.
+			if ( $took_over || ! is_string( $current_lock ) || $current_lock !== $this->get_payment_lock_owner_row( $order ) ) {
+				return;
+			}
+
+			$took_over = true;
+			$this->set_payment_lock_owner_row( $order, $rival_lock );
+			$rival_order = wc_get_order( $order->get_id() );
+			$rival_order->update_meta_data( '_stripe_lock_payment', $rival_lock );
+			$rival_order->save_meta_data();
+		};
+		$helper     = new class( $take_over ) extends WC_Stripe_Order_Helper {
+			/** @var callable */
+			private $take_over;
+
+			/** @var int */
+			private $reads = 0;
+
+			/**
+			 * Builds the helper.
+			 *
+			 * @param callable $take_over Simulates another request taking the lock over.
+			 */
+			public function __construct( callable $take_over ) {
+				$this->take_over = $take_over;
+			}
+
+			/**
+			 * Fails the verification read, then lets another request take over right after each later read.
+			 *
+			 * @param WC_Order $order The order.
+			 * @return mixed
+			 */
+			public function get_order_existing_payment_lock( WC_Order $order ) {
+				$lock = parent::get_order_existing_payment_lock( $order );
+				++$this->reads;
+
+				if ( 2 === $this->reads ) {
+					return 'replaced-by-another-request';
+				}
+
+				if ( 2 < $this->reads ) {
+					( $this->take_over )( $lock );
+				}
+
+				return $lock;
+			}
+		};
+
+		try {
+			$this->assertFalse( $helper->acquire_order_payment_lock( $order ) );
+
+			$final_lock = $this->helper->get_order_existing_payment_lock( wc_get_order( $order->get_id() ) );
+			if ( $took_over ) {
+				$this->assertSame( $rival_lock, $final_lock );
+				$this->assertSame( $rival_lock, $this->get_payment_lock_owner_row( $order ) );
+			} else {
+				$this->assertEmpty( $final_lock );
+				$this->assertNull( $this->get_payment_lock_owner_row( $order ) );
+			}
+		} finally {
+			$this->set_payment_lock_owner_row( $order, null );
+		}
+	}
+
+	/**
 	 * Tests that a token-less unlock clears a legacy bare-timestamp lock only once it has expired.
 	 *
 	 * @dataProvider provide_legacy_payment_locks

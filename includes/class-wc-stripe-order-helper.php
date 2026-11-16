@@ -1778,8 +1778,8 @@ class WC_Stripe_Order_Helper {
 			return $renewed_lock;
 		} finally {
 			if ( ! $renewed ) {
-				$this->delete_payment_lock_meta_if_unchanged( $payment_lock_order, $renewed_lock );
-				$this->release_order_payment_lock_owner( $payment_lock_order, $renewed_lock );
+				// Removes the meta written above only while the row is still ours, then frees the row.
+				$this->unlock_order_payment_if_owned( $payment_lock_order, $renewed_lock );
 			}
 		}
 	}
@@ -1818,8 +1818,8 @@ class WC_Stripe_Order_Helper {
 			return $new_lock;
 		} finally {
 			if ( ! $acquired ) {
-				$this->delete_payment_lock_meta_if_unchanged( $order, $new_lock );
-				$this->release_order_payment_lock_owner( $order, $new_lock );
+				// Removes the meta written above only while the row is still ours, then frees the row.
+				$this->unlock_order_payment_if_owned( $order, $new_lock );
 			}
 		}
 	}
@@ -1852,26 +1852,6 @@ class WC_Stripe_Order_Helper {
 		$lock_parts   = is_scalar( $current_lock ) ? explode( '|', (string) $current_lock, 2 ) : [];
 
 		return isset( $lock_parts[0] ) && ctype_digit( $lock_parts[0] ) && 0 < (int) $lock_parts[0] && time() > (int) $lock_parts[0];
-	}
-
-	/**
-	 * Deletes the payment lock meta while it still holds the value this request wrote.
-	 *
-	 * Runs when an acquisition or renewal fails after writing the meta, before the owner row is
-	 * released, so the order is not left locked by a value no request can release.
-	 *
-	 * @param WC_Order $order The order the lock was written to.
-	 * @param string   $lock  The value this request wrote.
-	 * @return void
-	 */
-	private function delete_payment_lock_meta_if_unchanged( WC_Order $order, string $lock ): void {
-		$current_lock = $this->get_order_existing_payment_lock( $order );
-		if ( ! is_scalar( $current_lock ) || (string) $current_lock !== $lock ) {
-			return;
-		}
-
-		$order->delete_meta_data( self::META_STRIPE_LOCK_PAYMENT );
-		$order->save_meta_data();
 	}
 
 	/**
