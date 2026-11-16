@@ -1084,8 +1084,8 @@ trait WC_Stripe_Subscriptions_Trait {
 	/**
 	 * Returns the value when it is a Stripe Charge object, or null.
 	 *
-	 * get_latest_charge_from_intent() already fetches a charge known only by ID, so this only
-	 * filters out PaymentIntents, error objects, and empty values.
+	 * The lookup in get_latest_charge_from_intent() already fetches a charge known only by ID, so
+	 * this only filters out PaymentIntents, error objects, and empty values.
 	 *
 	 * @since x.x.x
 	 *

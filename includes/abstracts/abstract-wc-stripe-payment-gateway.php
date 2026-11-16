@@ -2395,8 +2395,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$request['shipping'] = $full_request['shipping'];
 		}
 
-		$level3_data                = $this->get_level3_data_from_order( $order );
-		$intent                     = WC_Stripe_API::request_with_level3_data(
+		$level3_data = $this->get_level3_data_from_order( $order );
+		$intent      = WC_Stripe_API::request_with_level3_data(
 			$request,
 			'payment_intents',
 			$level3_data,

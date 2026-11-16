@@ -1600,7 +1600,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	 */
 	public function provide_succeeded_intents_without_a_readable_charge(): array {
 		return [
-			'no charge at all'        => [ null ],
+			'no charge at all'           => [ null ],
 			'charge cannot be looked up' => [ 'ch_missing' ],
 		];
 	}
@@ -1921,8 +1921,8 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	 * Tests that an authentication-required renewal reads an expanded latest_charge without a /charges request.
 	 */
 	public function test_renewal_authorization_required_reads_the_expanded_charge_without_a_request() {
-		$renewal_order         = WC_Helper_Order::create_order();
-		$charge_request_count  = 0;
+		$renewal_order        = WC_Helper_Order::create_order();
+		$charge_request_count = 0;
 
 		$this->wc_gateway_stripe
 			->method( 'prepare_order_source' )
