@@ -950,7 +950,9 @@ class WC_Stripe_Admin_Notices {
 					delete_option( 'wc_stripe_oauth_deauthorization_failed_modes' );
 					// Leaving the dismissal in the URL would hide a new failure on the next reload.
 					if ( isset( $_SERVER['REQUEST_URI'] ) ) {
-						wp_safe_redirect( remove_query_arg( [ 'wc-stripe-hide-notice', '_wc_stripe_notice_nonce' ], esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) ) );
+						if ( wp_safe_redirect( remove_query_arg( [ 'wc-stripe-hide-notice', '_wc_stripe_notice_nonce' ], esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) ) ) ) {
+							exit;
+						}
 					}
 					break;
 				case 'style':

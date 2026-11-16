@@ -356,6 +356,10 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 
 		// Record separate events for updated live and test keys after we have the keys in the database.
 		if ( ! $is_deleting_account ) {
+			if ( ! empty( $account['id'] ) ) {
+				delete_option( 'wc_stripe_oauth_deauthorization_failed_modes' );
+			}
+
 			foreach ( $this->get_modes_with_changed_keys( $current_account_keys, $settings ) as $mode ) {
 				$this->record_manual_account_keys_tracks_event( 'wcstripe_stripe_keys_updated', $mode, $settings );
 			}

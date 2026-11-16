@@ -116,6 +116,54 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 	}
 
 	/**
+	 * A successful HTTP response alone does not mean the manual keys connected an account.
+	 *
+	 * @param string      $mode           Saved checkout mode.
+	 * @param array       $account_data   Account lookup result after saving keys.
+	 * @param bool        $disconnect     Whether the request removes all keys.
+	 * @param array|false $expected_modes Outstanding warning, or false when dismissed.
+	 * @dataProvider provide_manual_reconnection_revocation_warnings
+	 */
+	public function test_manual_reconnection_clears_revocation_warning_only_on_success( $mode, $account_data, $disconnect, $expected_modes ) {
+		$settings             = WC_Stripe_Helper::get_stripe_settings();
+		$settings['testmode'] = 'test' === $mode ? 'yes' : 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		$account = $this->getMockBuilder( WC_Stripe_Account::class )->disableOriginalConstructor()->getMock();
+		$account->method( 'get_cached_account_data' )->willReturn( $account_data );
+		$controller = new WC_REST_Stripe_Account_Keys_Controller( $account );
+		$request    = new WP_REST_Request( 'POST', self::ROUTE );
+		foreach ( [ 'publishable_key', 'secret_key', 'test_publishable_key', 'test_secret_key' ] as $key ) {
+			$request->set_param( $key, '' );
+		}
+		if ( ! $disconnect ) {
+			$prefix = 'test' === $mode ? 'test_' : '';
+			$request->set_param( $prefix . 'publishable_key', 'pk_' . $mode . '_reconnected' );
+			$request->set_param( $prefix . 'secret_key', 'sk_' . $mode . '_reconnected' );
+		}
+
+		update_option( 'wc_stripe_oauth_deauthorization_failed_modes', [ 'live', 'test' ] );
+		try {
+			$response = $controller->set_account_keys( $request );
+
+			$this->assertSame( 200, $response->get_status() );
+			$this->assertSame( $account_data, $response->get_data() );
+			$this->assertSame( $expected_modes, get_option( 'wc_stripe_oauth_deauthorization_failed_modes' ) );
+		} finally {
+			delete_option( 'wc_stripe_oauth_deauthorization_failed_modes' );
+		}
+	}
+
+	public function provide_manual_reconnection_revocation_warnings() {
+		return [
+			'live connection succeeds'   => [ 'live', [ 'id' => 'acct_reconnected' ], false, false ],
+			'test connection succeeds'   => [ 'test', [ 'id' => 'acct_reconnected' ], false, false ],
+			'live connection fails'      => [ 'live', [], false, [ 'live', 'test' ] ],
+			'test connection fails'      => [ 'test', [], false, [ 'live', 'test' ] ],
+			'disconnect retains warning' => [ 'live', [ 'id' => 'acct_previous' ], true, [ 'live', 'test' ] ],
+		];
+	}
+
+	/**
 	 * Test updating only 1 property
 	 */
 	public function test_update_live_key_returns_status_code_200() {

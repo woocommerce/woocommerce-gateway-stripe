@@ -915,6 +915,91 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * A failed reconnect must not dismiss an earlier revocation warning, even when keys were saved.
+	 *
+	 * @param string $type    OAuth connection type.
+	 * @param string $mode    Connection mode.
+	 * @param string $outcome Key exchange or setup outcome.
+	 * @dataProvider provide_reconnection_revocation_warning_outcomes
+	 */
+	public function test_reconnection_clears_revocation_warning_only_on_success( $type, $mode, $outcome ) {
+		$account = $this->mock_stripe_account();
+		if ( 'webhook_error' === $outcome ) {
+			$account->method( 'configure_webhooks' )->willThrowException( new Exception( 'Webhook setup failed' ) );
+		}
+
+		$keys = [
+			'publishableKey' => 'pk_' . $mode . '_reconnected',
+			'secretKey'      => 'sk_' . $mode . '_reconnected',
+			'refreshToken'   => 'rt_' . $mode . '_reconnected',
+		];
+		if ( 'invalid_credentials' === $outcome ) {
+			unset( $keys['secretKey'] );
+		}
+		$exchange_result = 'exchange_error' === $outcome ? new WP_Error( 'oauth_failed', 'Exchange failed' ) : (object) $keys;
+		$api_mock        = $this->getMockBuilder( WC_Stripe_Connect_API::class )->disableOriginalConstructor()->getMock();
+		$api_mock->expects( $this->once() )->method( 'get_stripe_oauth_keys' )->with( 'code_123', $type, $mode )->willReturn( $exchange_result );
+		$connect = new WC_Stripe_Connect( $api_mock );
+
+		WC_Stripe_Database_Cache::set_with_mode( 'oauth_connect_state', 'state_123', HOUR_IN_SECONDS, $mode );
+		update_option( 'wc_stripe_oauth_deauthorization_failed_modes', [ 'live', 'test' ] );
+		try {
+			$result = $connect->connect_oauth( 'state_123', 'code_123', $type, $mode );
+
+			$this->assertSame( 'success' !== $outcome, is_wp_error( $result ) );
+			$this->assertSame( 'success' === $outcome ? false : [ 'live', 'test' ], get_option( 'wc_stripe_oauth_deauthorization_failed_modes' ) );
+		} finally {
+			delete_option( 'wc_stripe_oauth_deauthorization_failed_modes' );
+		}
+	}
+
+	public function provide_reconnection_revocation_warning_outcomes() {
+		return [
+			'live Connect success'  => [ 'connect', 'live', 'success' ],
+			'test Connect success'  => [ 'connect', 'test', 'success' ],
+			'live App success'      => [ 'app', 'live', 'success' ],
+			'test App success'      => [ 'app', 'test', 'success' ],
+			'exchange failure'      => [ 'connect', 'test', 'exchange_error' ],
+			'invalid credentials'   => [ 'connect', 'test', 'invalid_credentials' ],
+			'webhook setup failure' => [ 'app', 'test', 'webhook_error' ],
+		];
+	}
+
+	/**
+	 * Automatic token refresh must not act as the merchant dismissing a revocation warning.
+	 */
+	public function test_automatic_refresh_preserves_revocation_warning() {
+		$this->mock_stripe_account();
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'testmode'             => 'yes',
+				'test_publishable_key' => 'pk_test_previous',
+				'test_secret_key'      => 'sk_test_previous',
+				'test_connection_type' => 'app',
+				'test_refresh_token'   => 'rt_test_previous',
+			]
+		);
+		$api_mock = $this->getMockBuilder( WC_Stripe_Connect_API::class )->disableOriginalConstructor()->getMock();
+		$api_mock->expects( $this->once() )->method( 'refresh_stripe_app_oauth_keys' )->with( 'rt_test_previous', 'test' )->willReturn(
+			(object) [
+				'publishableKey' => 'pk_test_refreshed',
+				'secretKey'      => 'sk_test_refreshed',
+				'refreshToken'   => 'rt_test_refreshed',
+			]
+		);
+		$connect = new WC_Stripe_Connect( $api_mock );
+		update_option( 'wc_stripe_oauth_deauthorization_failed_modes', [ 'live', 'test' ] );
+		try {
+			$connect->refresh_connection();
+
+			$this->assertSame( 'sk_test_refreshed', WC_Stripe_Helper::get_stripe_settings()['test_secret_key'] );
+			$this->assertSame( [ 'live', 'test' ], get_option( 'wc_stripe_oauth_deauthorization_failed_modes' ) );
+		} finally {
+			delete_option( 'wc_stripe_oauth_deauthorization_failed_modes' );
+		}
+	}
+
+	/**
 	 * Asserts that deauthorize_oauth_connections() revokes only the Connect
 	 * connection.
 	 *

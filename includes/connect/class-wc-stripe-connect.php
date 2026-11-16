@@ -138,7 +138,13 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return $response;
 			}
 
-			return $this->save_stripe_keys( $response, $type, $mode );
+			$response = $this->save_stripe_keys( $response, $type, $mode );
+			// Token refresh also saves keys, so only an explicit reconnection dismisses this warning.
+			if ( ! is_wp_error( $response ) ) {
+				delete_option( 'wc_stripe_oauth_deauthorization_failed_modes' );
+			}
+
+			return $response;
 		}
 
 		/**
