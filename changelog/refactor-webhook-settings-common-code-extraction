@@ -1,0 +1,4 @@
+Significance: patch
+Type: update
+
+Extract webhook settings from WC_Stripe_Account and unify automatic webhook configuration
