@@ -1332,6 +1332,9 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertEmpty( $order_helper->get_order_existing_payment_lock( $renewal_order ) );
 	}
 
+	/**
+	 * Tests that a SEPA renewal whose response decodes to a list is rejected instead of being recorded as a charge.
+	 */
 	public function test_renewal_rejects_list_shaped_sepa_response() {
 		$renewal_order          = WC_Helper_Order::create_order();
 		$processed_charge_count = 0;
@@ -1396,6 +1399,9 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertEmpty( WC_Stripe_Order_Helper::get_instance()->get_order_existing_payment_lock( $renewal_order ) );
 	}
 
+	/**
+	 * Tests that a renewal reads the expanded latest_charge from the confirm response without a separate /charges request.
+	 */
 	public function test_renewal_uses_the_expanded_charge_without_a_second_request() {
 		$renewal_order       = WC_Helper_Order::create_order();
 		$charge_get_requests = 0;
@@ -1467,6 +1473,9 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertSame( 'ch_123abc', $renewal_order->get_transaction_id() );
 	}
 
+	/**
+	 * Tests that a succeeded intent without a charge stops the renewal and leaves a note linking the payment.
+	 */
 	public function test_renewal_stops_when_succeeded_intent_has_no_charge() {
 		$renewal_order          = WC_Helper_Order::create_order();
 		$processed_charge_count = 0;
@@ -1539,8 +1548,13 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertSame( '', $renewal_order->get_transaction_id() );
 		$this->assertSame( OrderStatus::PENDING, $renewal_order->get_status() );
 		$this->assertStringContainsString( 'without a charge', implode( "\n", $note_contents ) );
+		// The note links the intent so the merchant can find the payment.
+		$this->assertStringContainsString( 'https://dashboard.stripe.com/test/payments/pi_123abc', implode( "\n", $note_contents ) );
 	}
 
+	/**
+	 * Tests that a response object that is not a Stripe Charge is never passed to process_response().
+	 */
 	public function test_renewal_rejects_non_charge_object_response() {
 		$renewal_order          = WC_Helper_Order::create_order();
 		$processed_charge_count = 0;
@@ -1779,7 +1793,12 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that an authentication-required renewal still fails the order and asks for authentication when its charge cannot be read.
+	 *
 	 * @dataProvider provide_authentication_required_responses_without_a_readable_charge
+	 *
+	 * @param mixed $latest_charge           The intent's latest_charge value.
+	 * @param array $charge_lookup_responses Responses returned, in order, for charge lookups.
 	 */
 	public function test_renewal_authorization_required_without_a_readable_charge( $latest_charge, $charge_lookup_responses ) {
 		$renewal_order                 = WC_Helper_Order::create_order();
@@ -1845,6 +1864,11 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Stripe payment awaiting authentication by user.', implode( "\n", $note_contents ) );
 	}
 
+	/**
+	 * Provides authentication-required responses whose charge cannot be read.
+	 *
+	 * @return array<string, array{mixed, array}>
+	 */
 	public function provide_authentication_required_responses_without_a_readable_charge(): array {
 		$charge_response = [
 			'headers'  => [],
@@ -1887,6 +1911,9 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		];
 	}
 
+	/**
+	 * Tests that a repeated attempt after an authentication-required renewal with no readable charge still fails the order with a charge-less note.
+	 */
 	public function test_renewal_repeated_attempt_after_authentication_required_without_charge() {
 		$renewal_order    = WC_Helper_Order::create_order();
 		$intent_url       = 'https://api.stripe.com/v1/payment_intents/pi_123abc';
@@ -1944,6 +1971,9 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Stripe payment awaiting authentication by user.', implode( "\n", $note_contents ) );
 	}
 
+	/**
+	 * Tests that Radar blocking is detected from an expanded latest_charge without a /charges request.
+	 */
 	public function test_renewal_radar_blocked_reads_the_expanded_charge_without_a_request() {
 		$renewal_order                 = WC_Helper_Order::create_order();
 		$payments_intents_api_endpoint = 'https://api.stripe.com/v1/payment_intents';
