@@ -1778,9 +1778,45 @@ class WC_Stripe_Order_Helper {
 			return $renewed_lock;
 		} finally {
 			if ( ! $renewed ) {
-				// Removes the meta written above only while the row is still ours, then frees the row.
-				$this->unlock_order_payment_if_owned( $payment_lock_order, $renewed_lock );
+				$this->release_after_failed_renewal( $payment_lock_order, $expected_lock, $renewed_lock );
 			}
+		}
+	}
+
+	/**
+	 * Releases a lock whose renewal moved the owner row but could not confirm the meta.
+	 *
+	 * The meta write may or may not have landed, so the meta can hold either the previous or the
+	 * renewed value; both belong to this request. Any other value belongs to another request and stays.
+	 *
+	 * @param WC_Order $order         The order whose lock is being released.
+	 * @param string   $previous_lock The lock value before the renewal.
+	 * @param string   $renewed_lock  The value the owner row moved to.
+	 * @return void
+	 */
+	private function release_after_failed_renewal( WC_Order $order, string $previous_lock, string $renewed_lock ): void {
+		$owner_key = $this->get_order_payment_lock_owner_key( $order );
+		if ( in_array( $this->owned_payment_locks[ $owner_key ] ?? null, [ $previous_lock, $renewed_lock ], true ) ) {
+			unset( $this->owned_payment_locks[ $owner_key ] );
+		}
+
+		// A release guard blocks other workers until the meta is deleted.
+		$release_guard = $this->refresh_order_payment_lock_owner( $order, $renewed_lock );
+		if ( null === $release_guard ) {
+			return;
+		}
+
+		$payment_lock_order = $this->get_order_copy_for_payment_lock( $order );
+
+		try {
+			$current_lock = $this->get_order_existing_payment_lock( $payment_lock_order );
+
+			if ( is_scalar( $current_lock ) && in_array( (string) $current_lock, [ $previous_lock, $renewed_lock ], true ) ) {
+				$payment_lock_order->delete_meta_data( self::META_STRIPE_LOCK_PAYMENT );
+				$payment_lock_order->save_meta_data();
+			}
+		} finally {
+			$this->release_order_payment_lock_owner( $payment_lock_order, $release_guard );
 		}
 	}
 

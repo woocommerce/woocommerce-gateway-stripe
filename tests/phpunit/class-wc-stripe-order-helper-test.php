@@ -533,6 +533,46 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that a renewal whose meta write does not stick still releases the lock, including the
+	 * previous value left in the meta, so the order is not blocked until that value expires.
+	 */
+	public function test_failed_renewal_write_does_not_leave_the_previous_lock_behind(): void {
+		$order  = WC_Helper_Order::create_order();
+		$helper = new class() extends WC_Stripe_Order_Helper {
+			/** @var string|null Value to put back when the renewal's write is verified, simulating a lost write. */
+			public $restore_on_verify = null;
+
+			/** @var int */
+			private $reads = 0;
+
+			/**
+			 * Puts the previous value back right before the renewal verifies its write.
+			 *
+			 * @param WC_Order $order The order.
+			 * @return mixed
+			 */
+			public function get_order_existing_payment_lock( WC_Order $order ) {
+				if ( null !== $this->restore_on_verify && 3 === ++$this->reads ) {
+					$writer = wc_get_order( $order->get_id() );
+					$writer->update_meta_data( '_stripe_lock_payment', $this->restore_on_verify );
+					$writer->save_meta_data();
+				}
+
+				return parent::get_order_existing_payment_lock( $order );
+			}
+		};
+
+		$owned_lock = $helper->acquire_order_payment_lock( $order );
+		$this->assertIsString( $owned_lock );
+
+		$helper->restore_on_verify = $owned_lock;
+		$this->assertFalse( $helper->renew_order_payment_lock_if_owned( wc_get_order( $order->get_id() ), $owned_lock ) );
+
+		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( wc_get_order( $order->get_id() ) ) );
+		$this->assertNull( $this->get_payment_lock_owner_row( $order ) );
+	}
+
+	/**
 	 * Tests that a token-less unlock clears a legacy bare-timestamp lock only once it has expired.
 	 *
 	 * @dataProvider provide_legacy_payment_locks
