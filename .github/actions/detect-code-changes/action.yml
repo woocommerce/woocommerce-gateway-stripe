@@ -33,7 +33,7 @@ runs:
         while IFS= read -r f; do
           [ -z "$f" ] && continue
           case "$f" in
-            *.md|docs/*|.github/ISSUE_TEMPLATE/*|LICENSE.txt|changelog.txt|readme.txt) ;;
+            *.md|docs/*|.github/ISSUE_TEMPLATE/*|LICENSE.txt|changelog.txt|readme.txt|changelog/*) ;;
             *) CODE=true; break ;;
           esac
         done <<< "$FILES"

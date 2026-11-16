@@ -1,0 +1,4 @@
+Significance: patch
+Type: update
+
+Allow payment intent data to be customized via the wc_stripe_checkout_session_payment_intent_data filter
