@@ -1649,8 +1649,8 @@ class WC_Stripe_Order_Helper {
 		}
 
 		$current_lock = $this->get_order_existing_payment_lock( $payment_lock_order );
-		$lock_parts         = is_scalar( $current_lock ) ? explode( '|', (string) $current_lock, 2 ) : [];
-		$lock_expiry        = isset( $lock_parts[0] ) && ctype_digit( $lock_parts[0] ) ? (int) $lock_parts[0] : 0;
+		$lock_parts   = is_scalar( $current_lock ) ? explode( '|', (string) $current_lock, 2 ) : [];
+		$lock_expiry  = isset( $lock_parts[0] ) && ctype_digit( $lock_parts[0] ) ? (int) $lock_parts[0] : 0;
 
 		if ( null !== $current_lock && ( ! is_scalar( $current_lock ) || 0 === $lock_expiry || time() <= $lock_expiry ) ) {
 			$this->release_order_payment_lock_owner( $payment_lock_order, $unlock_guard );
