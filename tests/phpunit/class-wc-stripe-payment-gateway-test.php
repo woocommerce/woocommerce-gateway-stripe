@@ -1531,10 +1531,12 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		array $payment_method,
 		bool $expected
 	): void {
+		// Set the source after the first save. Set before it, the value was replaced by a stale
+		// source from an earlier test whenever this subscription got a reused ID.
 		$subscription = new \WC_Subscription();
+		$subscription->save();
 		$subscription->update_meta_data( '_stripe_source_id', $payment_method['id'] ?? '' );
 		$subscription->save_meta_data();
-		$subscription->save();
 
 		if ( $has_parent_order ) {
 			$order = WC_Helper_Order::create_order();
