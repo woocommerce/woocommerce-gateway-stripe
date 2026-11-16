@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Expand the charge when confirming a subscription renewal intent so the renewal does not request it again, and only treat Charge objects as charges when recording renewal results
