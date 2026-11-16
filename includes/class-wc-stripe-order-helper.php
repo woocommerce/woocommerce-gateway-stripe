@@ -744,14 +744,14 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
-	 * Gets whether the Adaptive Pricing order note was already added to the order.
+	 * Indicates whether the Adaptive Pricing order note was already added to the order.
 	 *
 	 * @since x.x.x
 	 *
 	 * @param WC_Order|null $order
 	 * @return bool
 	 */
-	public function get_stripe_adaptive_pricing_note_added( ?WC_Order $order = null ): bool {
+	public function was_stripe_adaptive_pricing_note_added( ?WC_Order $order = null ): bool {
 		$note_added = $this->get_order_meta( $order, self::META_STRIPE_ADAPTIVE_PRICING_NOTE_ADDED );
 
 		return is_string( $note_added ) && wc_string_to_bool( $note_added );
