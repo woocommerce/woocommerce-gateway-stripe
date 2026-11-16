@@ -1,0 +1,4 @@
+Significance: patch
+Type: dev
+
+Report a Stripe request whose outcome is unknown (a timeout, a 5xx or an empty response) with WC_Stripe_Inconclusive_Request_Exception, and let callers opt in to sending such a POST once more with the same idempotency key

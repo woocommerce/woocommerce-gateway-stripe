@@ -932,6 +932,180 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that request() reports a response whose outcome is unknown with the inconclusive exception,
+	 * so callers can retry with the same idempotency key.
+	 *
+	 * @dataProvider provide_inconclusive_responses
+	 *
+	 * @param array|\WP_Error $response The mocked HTTP response.
+	 */
+	public function test_request_throws_inconclusive_exception_when_the_outcome_is_unknown( $response ) {
+		$filter = $this->return_response( $response );
+		add_filter( 'pre_http_request', $filter );
+
+		try {
+			$this->expectException( WC_Stripe_Inconclusive_Request_Exception::class );
+			WC_Stripe_API::request( [ 'amount' => 100 ], 'payment_intents' );
+		} finally {
+			remove_filter( 'pre_http_request', $filter );
+		}
+	}
+
+	/**
+	 * Tests that an opted-in POST whose outcome is unknown is sent once more with the identical body and
+	 * idempotency key, and that its second answer is returned.
+	 *
+	 * @dataProvider provide_inconclusive_responses
+	 *
+	 * @param array|\WP_Error $response The first HTTP response.
+	 */
+	public function test_request_resends_an_inconclusive_post_once_with_the_same_key( $response ) {
+		$sent     = [];
+		$callback = function ( $preempt, $args ) use ( &$sent, $response ) {
+			$sent[] = $args;
+
+			return 1 === count( $sent ) ? $response : [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'headers'  => [],
+				'body'     => '{"id":"pi_123","object":"payment_intent"}',
+			];
+		};
+		add_filter( 'pre_http_request', $callback, 10, 2 );
+
+		try {
+			$result = WC_Stripe_API::with_inconclusive_request_resend(
+				function () {
+					return WC_Stripe_API::request( [ 'amount' => 100 ], 'payment_intents' );
+				}
+			);
+		} finally {
+			remove_filter( 'pre_http_request', $callback, 10 );
+		}
+
+		$this->assertSame( 'pi_123', $result->id );
+		$this->assertCount( 2, $sent );
+		$this->assertNotEmpty( $sent[0]['headers']['Idempotency-Key'] );
+		$this->assertSame( $sent[0]['headers']['Idempotency-Key'], $sent[1]['headers']['Idempotency-Key'] );
+		$this->assertSame( $sent[0]['body'], $sent[1]['body'] );
+	}
+
+	/**
+	 * Tests that a resend answered with idempotency_key_in_use is reported as inconclusive, so the
+	 * caller cannot retry it with a new key while Stripe is still working on the first request.
+	 */
+	public function test_request_reports_a_resend_that_is_still_in_progress_as_inconclusive() {
+		$sends    = 0;
+		$callback = function () use ( &$sends ) {
+			++$sends;
+
+			if ( 1 === $sends ) {
+				return new \WP_Error( 'http_request_failed', 'cURL error 28: Operation timed out' );
+			}
+
+			return [
+				'response' => [
+					'code'    => 409,
+					'message' => 'Conflict',
+				],
+				'headers'  => [],
+				'body'     => '{"error":{"type":"idempotency_error","code":"idempotency_key_in_use","message":"There is currently another in-progress request using this Stripe-Idempotency-Key."}}',
+			];
+		};
+		add_filter( 'pre_http_request', $callback );
+
+		try {
+			$this->expectException( WC_Stripe_Inconclusive_Request_Exception::class );
+			WC_Stripe_API::with_inconclusive_request_resend(
+				function () {
+					return WC_Stripe_API::request( [ 'amount' => 100 ], 'payment_intents' );
+				}
+			);
+		} finally {
+			remove_filter( 'pre_http_request', $callback );
+			$this->assertSame( 2, $sends );
+		}
+	}
+
+	/**
+	 * Tests that an inconclusive request is not resent without the opt-in, that a GET is never resent,
+	 * and that a second inconclusive answer still throws.
+	 *
+	 * @dataProvider provide_resend_limits
+	 *
+	 * @param bool   $opt_in         Whether the request runs inside with_inconclusive_request_resend().
+	 * @param string $method         The HTTP method.
+	 * @param int    $expected_sends How many times the request should be sent.
+	 */
+	public function test_request_resend_limits( $opt_in, $method, $expected_sends ) {
+		$sends    = 0;
+		$callback = function () use ( &$sends ) {
+			++$sends;
+
+			return new \WP_Error( 'http_request_failed', 'cURL error 28: Operation timed out' );
+		};
+		add_filter( 'pre_http_request', $callback );
+
+		$request = function () use ( $method ) {
+			return WC_Stripe_API::request( [ 'amount' => 100 ], 'payment_intents', $method );
+		};
+
+		try {
+			$this->expectException( WC_Stripe_Inconclusive_Request_Exception::class );
+			$opt_in ? WC_Stripe_API::with_inconclusive_request_resend( $request ) : $request();
+		} finally {
+			remove_filter( 'pre_http_request', $callback );
+			$this->assertSame( $expected_sends, $sends );
+		}
+	}
+
+	/**
+	 * Provides the cases where a request is sent once, or at most twice.
+	 *
+	 * @return array<string, array{bool, string, int}>
+	 */
+	public function provide_resend_limits(): array {
+		return [
+			'not opted in'                 => [ false, 'POST', 1 ],
+			'GET is not resent'            => [ true, 'GET', 1 ],
+			'second timeout is not resent' => [ true, 'POST', 2 ],
+		];
+	}
+
+	/**
+	 * Provides HTTP responses that leave the outcome of a Stripe request unknown.
+	 *
+	 * @return array<string, array{array|\WP_Error}>
+	 */
+	public function provide_inconclusive_responses(): array {
+		return [
+			'network failure' => [ new \WP_Error( 'http_request_failed', 'cURL error 28: Operation timed out' ) ],
+			'5xx response'    => [
+				[
+					'response' => [
+						'code'    => 500,
+						'message' => 'Internal Server Error',
+					],
+					'headers'  => [],
+					'body'     => '{"error":{"type":"api_error"}}',
+				],
+			],
+			'empty body'      => [
+				[
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+					'headers'  => [],
+					'body'     => '',
+				],
+			],
+		];
+	}
+
+	/**
 	 * A network failure (WP_Error from wp_remote_*) records an outage.
 	 */
 	public function test_retrieve_records_outage_on_network_error() {
