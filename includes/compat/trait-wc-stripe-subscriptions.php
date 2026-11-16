@@ -581,6 +581,12 @@ trait WC_Stripe_Subscriptions_Trait {
 				return;
 			}
 
+			// An earlier attempt may have charged this order without recording it, for example after
+			// losing its lock. Charging again would take the payment twice.
+			if ( $this->has_renewal_already_been_charged( $renewal_order ) ) {
+				return;
+			}
+
 			$this->log_and_throw_if_lock_expired( $lock_expiry, $renewal_order );
 
 			// Get source from order
@@ -1883,6 +1889,72 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		return (string) $charge->id;
+	}
+
+	/**
+	 * Checks whether the PaymentIntent saved on the renewal order already took, or is taking, the payment.
+	 *
+	 * A succeeded intent is recorded on the order instead of charging again. An intent that is still
+	 * processing or awaiting capture leaves a note and is left for the webhook to record.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Order $renewal_order The renewal order.
+	 * @return bool True when the renewal must not be charged again.
+	 */
+	private function has_renewal_already_been_charged( WC_Order $renewal_order ): bool {
+		if ( '' === (string) WC_Stripe_Order_Helper::get_instance()->get_stripe_intent_id( $renewal_order ) ) {
+			return false;
+		}
+
+		$existing_intent = $this->get_intent_from_order( $renewal_order );
+		if ( ! is_object( $existing_intent ) || 'payment_intent' !== ( $existing_intent->object ?? '' ) ) {
+			return false;
+		}
+
+		$intent_id      = (string) ( $existing_intent->id ?? '' );
+		$dashboard_link = WC_Stripe_Helper::get_external_link(
+			WC_Stripe_Helper::get_transaction_url_for_id( $intent_id, empty( $existing_intent->livemode ) ),
+			$intent_id
+		);
+
+		if ( in_array( $existing_intent->status ?? '', [ WC_Stripe_Intent_Status::PROCESSING, WC_Stripe_Intent_Status::REQUIRES_CAPTURE ], true ) ) {
+			$renewal_order->add_order_note(
+				sprintf(
+					/* translators: %s is a link to the payment in the Stripe dashboard. */
+					__( 'Stripe: did not charge this renewal again because payment %s is still in progress in Stripe. The order will be updated when it completes.', 'woocommerce-gateway-stripe' ),
+					$dashboard_link
+				)
+			);
+			return true;
+		}
+
+		if ( WC_Stripe_Intent_Status::SUCCEEDED !== ( $existing_intent->status ?? '' ) ) {
+			return false;
+		}
+
+		$charge = $this->get_latest_charge_from_intent( $existing_intent );
+		if ( ! is_object( $charge ) || 'charge' !== ( $charge->object ?? '' ) ) {
+			$renewal_order->add_order_note(
+				sprintf(
+					/* translators: %s is a link to the payment in the Stripe dashboard. */
+					__( 'Stripe: did not charge this renewal again because payment %s already succeeded, but its details could not be read to record it. Check it in the Stripe dashboard.', 'woocommerce-gateway-stripe' ),
+					$dashboard_link
+				)
+			);
+			return true;
+		}
+
+		$renewal_order->add_order_note(
+			sprintf(
+				/* translators: %s is a link to the payment in the Stripe dashboard. */
+				__( 'Stripe: payment %s for this renewal had already succeeded, so it was recorded instead of charging the customer again.', 'woocommerce-gateway-stripe' ),
+				$dashboard_link
+			)
+		);
+		$this->process_response( $charge, $renewal_order );
+
+		return true;
 	}
 
 	/**

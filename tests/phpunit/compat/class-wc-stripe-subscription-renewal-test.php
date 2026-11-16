@@ -1859,6 +1859,81 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that a renewal whose saved PaymentIntent already took the payment is not charged again:
+	 * a succeeded intent is recorded on the order, one still in progress is left for the webhook,
+	 * and one that failed lets the renewal charge.
+	 *
+	 * @dataProvider provide_saved_renewal_intents
+	 *
+	 * @param string $intent_status        Status of the PaymentIntent saved on the order.
+	 * @param int    $expected_charges     Expected number of new PaymentIntent requests.
+	 * @param string $expected_status      Expected renewal order status.
+	 * @param string $expected_transaction Expected transaction id.
+	 * @param string $expected_note        Text expected in an order note, or empty for none.
+	 */
+	public function test_renewal_is_not_charged_again_when_its_saved_intent_took_the_payment( $intent_status, $expected_charges, $expected_status, $expected_transaction, $expected_note ) {
+		$renewal_order = WC_Helper_Order::create_order();
+		$renewal_order->set_payment_method( 'stripe' );
+		$renewal_order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_intent_id( $renewal_order, 'pi_123abc' );
+		$renewal_order->save();
+
+		$this->mock_prepared_card_source();
+
+		$saved_intent           = json_decode( file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_success.json' ), true );
+		$saved_intent['status'] = $intent_status;
+		$new_charges            = 0;
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $saved_intent, &$new_charges ) {
+			if ( 0 === strpos( $url, 'https://api.stripe.com/v1/payment_intents/pi_123abc' ) ) {
+				return $this->build_mock_response( wp_json_encode( $saved_intent ) );
+			}
+
+			if ( 'https://api.stripe.com/v1/payment_intents' !== $url ) {
+				return $preempt;
+			}
+
+			++$new_charges;
+			return $this->build_mock_response( file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_success.json' ) );
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+		// Keep the Level 3 fallback out of the request count.
+		set_transient( 'wc_stripe_level3_not_allowed', true, MINUTE_IN_SECONDS );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			delete_transient( 'wc_stripe_level3_not_allowed' );
+		}
+
+		$renewal_order = wc_get_order( $renewal_order->get_id() );
+		$note_contents = implode( "\n", wp_list_pluck( wc_get_order_notes( [ 'order_id' => $renewal_order->get_id() ] ), 'content' ) );
+
+		$this->assertSame( $expected_charges, $new_charges );
+		$this->assertSame( $expected_status, $renewal_order->get_status() );
+		$this->assertSame( $expected_transaction, $renewal_order->get_transaction_id() );
+		if ( '' !== $expected_note ) {
+			$this->assertStringContainsString( $expected_note, $note_contents );
+			$this->assertStringContainsString( 'https://dashboard.stripe.com/test/payments/pi_123abc', $note_contents );
+		}
+	}
+
+	/**
+	 * Provides saved PaymentIntent statuses and how the renewal should treat them.
+	 *
+	 * @return array<string, array{string, int, string, string, string}>
+	 */
+	public function provide_saved_renewal_intents(): array {
+		return [
+			'succeeded is recorded'        => [ WC_Stripe_Intent_Status::SUCCEEDED, 0, OrderStatus::PROCESSING, 'ch_123abc', 'recorded instead of charging the customer again' ],
+			'processing is left to Stripe' => [ WC_Stripe_Intent_Status::PROCESSING, 0, OrderStatus::PENDING, '', 'is still in progress in Stripe' ],
+			'failed intent is charged'     => [ WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD, 1, OrderStatus::PROCESSING, 'ch_123abc', '' ],
+		];
+	}
+
+	/**
 	 * Tests that the renewed lock, not the original one, is released when response handling throws.
 	 */
 	public function test_renewal_releases_renewed_lock_when_response_processing_throws() {
