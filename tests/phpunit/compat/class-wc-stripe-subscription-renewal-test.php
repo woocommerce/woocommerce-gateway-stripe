@@ -1913,13 +1913,22 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			return $preempt;
 		};
 
+		// Hooks keep receiving the charge ID in latest_charge, as before the charge was expanded.
+		$hooked_latest_charge = null;
+		$capture_hook         = function ( $order, $response ) use ( &$hooked_latest_charge ) {
+			$hooked_latest_charge = $response->error->payment_intent->latest_charge ?? null;
+		};
+		add_action( 'wc_gateway_stripe_process_payment_authentication_required', $capture_hook, 10, 2 );
 		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
 
 		try {
 			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
 		} finally {
 			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			remove_action( 'wc_gateway_stripe_process_payment_authentication_required', $capture_hook, 10 );
 		}
+
+		$this->assertSame( 'ch_expanded', $hooked_latest_charge );
 
 		$order = wc_get_order( $renewal_order->get_id() );
 

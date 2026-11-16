@@ -470,8 +470,15 @@ trait WC_Stripe_Subscriptions_Trait {
 			$charge_id = $response->error->payment_intent->latest_charge;
 		}
 
-		// An expanded latest_charge needs no request.
-		$charge = $response->error->payment_intent->latest_charge ?? null;
+		// An expanded latest_charge needs no request. The confirm request moves it beside the charge ID.
+		$payment_intent = $response->error->payment_intent ?? null;
+		$charge         = $payment_intent->latest_charge ?? null;
+		if ( ! $this->is_stripe_charge_object( $charge ) ) {
+			$charge = $payment_intent->{WC_Stripe_Payment_Gateway::EXPANDED_LATEST_CHARGE_PROPERTY} ?? null;
+		}
+		if ( $this->is_stripe_charge_object( $charge ) && ! empty( $charge_id ) && $charge->id !== $charge_id ) {
+			$charge = null;
+		}
 		if ( ! $this->is_stripe_charge_object( $charge ) ) {
 			if ( empty( $charge_id ) ) {
 				return false;
@@ -870,8 +877,8 @@ trait WC_Stripe_Subscriptions_Trait {
 
 				$charge_response = $latest_charge ?? $response;
 
-				// process_response() would read a PaymentIntent as an uncaptured charge and put
-				// the order on hold. Stop instead and leave the merchant a note they can act on.
+				// process_response() would reject a PaymentIntent anyway, with an error that does
+				// not say what happened. Stop here and leave the merchant a note they can act on.
 				if ( ! $this->is_stripe_charge_object( $charge_response ) ) {
 					$renewal_order->add_order_note( $this->get_renewal_without_charge_note( $response ) );
 					throw new WC_Stripe_Exception(
