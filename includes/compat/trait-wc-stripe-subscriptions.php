@@ -977,6 +977,8 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			// process_response() expects a charge; a JSON list decodes to an array.
 			if ( ! is_object( $response ) || ( empty( $response->error ) && ! $this->is_stripe_charge_object( $response ) ) ) {
+				// The failure handler only changes the status, so say why the renewal failed.
+				$renewal_order->add_order_note( __( 'Stripe: the renewal payment failed because Stripe did not return a charge. Check the customer\'s payments in the Stripe dashboard before retrying.', 'woocommerce-gateway-stripe' ) );
 				// Identify the response without logging it: it can carry customer and billing details.
 				throw new WC_Stripe_Exception(
 					sprintf( 'The Stripe SEPA renewal response %s for order %d was not a charge.', $this->describe_stripe_response_for_log( $response ), $renewal_order->get_id() ), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
