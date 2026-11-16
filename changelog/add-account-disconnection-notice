@@ -1,0 +1,4 @@
+Significance: patch
+Type: add
+
+Allow revoking Connect API keys when disconnecting Stripe account

@@ -28,6 +28,14 @@ jobs:
       - name: Build
         run: npm run build
 
+      # changelog/ holds unreleased changelog entry files. These must not be included in the build.
+      - name: Check the package excludes changelog entry files
+        run: |
+          if unzip -Z1 woocommerce-gateway-stripe.zip | grep -E '^woocommerce-gateway-stripe/changelog/'; then
+            echo "::error::The plugin zip contains the changelog/ directory. Remove it from the files copied in tasks/release.js."
+            exit 1
+          fi
+
       - name: Upload package
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
