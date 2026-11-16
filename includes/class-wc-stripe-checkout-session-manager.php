@@ -428,6 +428,8 @@ class WC_Stripe_Checkout_Session_Manager {
 	/**
 	 * Build payment_intent_data for a new Checkout Session.
 	 *
+	 * @since x.x.x
+	 *
 	 * @return array
 	 */
 	public function build_payment_intent_data(): array {
