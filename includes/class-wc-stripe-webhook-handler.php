@@ -2875,6 +2875,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * waiting for the PaymentIntent charge), so a meta flag keeps the note from repeating. The
 	 * flag is saved immediately so it stays in step with the note on every early return.
 	 *
+	 * @since x.x.x
+	 *
 	 * @param WC_Order $order               The order the session settled.
 	 * @param mixed    $presentment_details The Checkout Session's presentment_details, if any.
 	 */
