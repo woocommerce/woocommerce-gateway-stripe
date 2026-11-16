@@ -966,11 +966,11 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				[ [ 'acct_123', 'sk_live_abc' ] ],
 				[ 'live' => true ],
 			],
-			'both keys in test mode revoke only live'            => [
+			'both keys in test mode revoke only test'            => [
 				array_merge( $both_modes, [ 'testmode' => 'yes' ] ),
 				[ 'id' => 'acct_123' ],
-				[ [ 'acct_123', 'sk_live_abc' ] ],
-				[ 'live' => true ],
+				[ [ 'acct_123', 'sk_test_abc' ] ],
+				[ 'test' => true ],
 			],
 			'live keys only in live mode'                        => [
 				[
@@ -1013,11 +1013,29 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				[],
 				[],
 			],
-			'missing secret key is skipped'                      => [
-				[ 'connection_type' => 'connect' ],
+			'missing live key does not fall back to test'        => [
+				array_merge(
+					$both_modes,
+					[
+						'secret_key' => '',
+						'testmode'   => 'no',
+					]
+				),
 				[ 'id' => 'acct_123' ],
 				[],
 				[ 'live' => false ],
+			],
+			'missing test key does not fall back to live'        => [
+				array_merge(
+					$both_modes,
+					[
+						'test_secret_key' => '',
+						'testmode'        => 'yes',
+					]
+				),
+				[ 'id' => 'acct_123' ],
+				[],
+				[ 'test' => false ],
 			],
 			'missing live account id does not fall back to test' => [
 				$both_modes,

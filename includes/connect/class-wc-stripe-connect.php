@@ -543,7 +543,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		}
 
 		/**
-		 * Deauthorizes the site's Connect OAuth connections via the WooCommerce
+		 * Deauthorizes the current mode's Connect OAuth connection via the WooCommerce
 		 * Connect Server, revoking the platform-issued API keys on Stripe's side.
 		 *
 		 * Only 'connect' type connections are revocable.
@@ -553,46 +553,34 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 *
 		 * @since x.x.x
 		 *
-		 * @return array<string, bool> Whether revocation was confirmed for each Connect mode.
+		 * @return array<string, bool> Whether revocation was confirmed for the current Connect mode.
 		 */
 		public function deauthorize_oauth_connections() {
-			$settings = WC_Stripe_Helper::get_stripe_settings();
-			$results  = [];
-
-			foreach ( [ 'live', 'test' ] as $mode ) {
-				// Test keys can share the live authorization, so a second revocation
-				// could report a failure after the live connection has already been revoked.
-				if ( 'test' === $mode && ! empty( $settings['secret_key'] ) ) {
-					continue;
-				}
-
-				if ( 'connect' !== $this->get_connection_type( $mode ) ) {
-					continue;
-				}
-
-				$prefix     = 'test' === $mode ? 'test_' : '';
-				$secret_key = $settings[ $prefix . 'secret_key' ] ?? '';
-				$account    = WC_Stripe::get_instance()->account->get_cached_account_data( $mode );
-				$account_id = $account['id'] ?? '';
-
-				if ( ! $secret_key || ! $account_id ) {
-					$results[ $mode ] = false;
-					WC_Stripe_Logger::error( "OAuth: Unable to deauthorize the {$mode} connection; the " . ( $secret_key ? 'account ID' : 'secret key' ) . ' is unavailable.' );
-					continue;
-				}
-
-				$response = $this->api->deauthorize_account( $account_id, $secret_key );
-
-				$results[ $mode ] = ! is_wp_error( $response );
-
-				if ( is_wp_error( $response ) ) {
-					WC_Stripe_Logger::error( "OAuth: Failed to deauthorize the {$mode} connection for {$account_id}: " . $response->get_error_message() );
-				} else {
-					WC_Stripe_Logger::info( "OAuth: Deauthorized the {$mode} connection for {$account_id}." );
-				}
+			$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
+			if ( 'connect' !== $this->get_connection_type( $mode ) ) {
+				return [];
 			}
 
-			return $results;
+			$settings   = WC_Stripe_Helper::get_stripe_settings();
+			$prefix     = 'test' === $mode ? 'test_' : '';
+			$secret_key = $settings[ $prefix . 'secret_key' ] ?? '';
+			$account    = WC_Stripe::get_instance()->account->get_cached_account_data( $mode );
+			$account_id = $account['id'] ?? '';
+
+			if ( ! $secret_key || ! $account_id ) {
+				WC_Stripe_Logger::error( "OAuth: Unable to deauthorize the {$mode} connection; the " . ( $secret_key ? 'account ID' : 'secret key' ) . ' is unavailable.' );
+				return [ $mode => false ];
+			}
+
+			$response = $this->api->deauthorize_account( $account_id, $secret_key );
+
+			if ( is_wp_error( $response ) ) {
+				WC_Stripe_Logger::error( "OAuth: Failed to deauthorize the {$mode} connection for {$account_id}: " . $response->get_error_message() );
+			} else {
+				WC_Stripe_Logger::info( "OAuth: Deauthorized the {$mode} connection for {$account_id}." );
+			}
+
+			return [ $mode => ! is_wp_error( $response ) ];
 		}
 
 		/**

@@ -16,10 +16,10 @@ const DisconnectStripeConfirmationModal = ( {
 	const [ status, setStatus ] = useState( false );
 	const [ shouldDeauthorize, setShouldDeauthorize ] = useState( false );
 
-	// Only classic Connect OAuth connections can be revoked
+	// Revocation uses the saved checkout mode, even if settings have unsaved changes.
+	const mode = data?.testmode ? 'test' : 'live';
 	const canDeauthorize =
-		data?.oauth_connections?.live?.type === 'connect' ||
-		data?.oauth_connections?.test?.type === 'connect';
+		data?.oauth_connections?.[ mode ]?.type === 'connect';
 
 	const handleDisconnect = async () => {
 		setStatus( 'pending' );

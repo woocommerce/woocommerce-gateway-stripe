@@ -545,6 +545,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 			$this->assertSame( 'no', $saved_settings['enabled'] );
 			foreach ( [ 'live', 'test' ] as $mode ) {
 				$prefix = 'test' === $mode ? 'test_' : '';
+				$this->assertSame( '', $saved_settings[ $prefix . 'publishable_key' ] );
 				$this->assertSame( '', $saved_settings[ $prefix . 'secret_key' ] );
 				$this->assertSame( '', $saved_settings[ $prefix . 'connection_type' ] );
 				$this->assertSame( $expected_counts[ $mode ], $counts[ $mode ] );
@@ -586,8 +587,8 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 				[],
 				[],
 				[
-					'live' => 1,
-					'test' => 0,
+					'live' => 0,
+					'test' => 1,
 				],
 			],
 			'test keys only'               => [
@@ -620,14 +621,92 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 					'test' => 0,
 				],
 			],
-			'live failure in test mode'    => [
+			'test failure in test mode'    => [
 				[ 'testmode' => 'yes' ],
-				[ 'live' ],
+				[ 'test' ],
 				[],
-				[ 'live' ],
+				[ 'test' ],
 				[
-					'live' => 3,
+					'live' => 0,
+					'test' => 3,
+				],
+			],
+			'manual live mode'             => [
+				[
+					'testmode'        => 'no',
+					'connection_type' => '',
+				],
+				[],
+				[],
+				[],
+				[
+					'live' => 0,
 					'test' => 0,
+				],
+			],
+			'app live mode'                => [
+				[
+					'testmode'        => 'no',
+					'connection_type' => 'app',
+				],
+				[],
+				[],
+				[],
+				[
+					'live' => 0,
+					'test' => 0,
+				],
+			],
+			'manual test mode'             => [
+				[
+					'testmode'             => 'yes',
+					'test_connection_type' => '',
+				],
+				[],
+				[],
+				[],
+				[
+					'live' => 0,
+					'test' => 0,
+				],
+			],
+			'app test mode'                => [
+				[
+					'testmode'             => 'yes',
+					'test_connection_type' => 'app',
+				],
+				[],
+				[],
+				[],
+				[
+					'live' => 0,
+					'test' => 0,
+				],
+			],
+			'test with manual live keys'   => [
+				[
+					'testmode'        => 'yes',
+					'connection_type' => '',
+				],
+				[],
+				[],
+				[],
+				[
+					'live' => 0,
+					'test' => 1,
+				],
+			],
+			'test with app live keys'      => [
+				[
+					'testmode'        => 'yes',
+					'connection_type' => 'app',
+				],
+				[],
+				[],
+				[],
+				[
+					'live' => 0,
+					'test' => 1,
 				],
 			],
 			'test-only failure'            => [
