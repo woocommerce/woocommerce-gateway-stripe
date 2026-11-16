@@ -2678,6 +2678,56 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * Tests that a customer-cancelled redirect clears the waiting-for-redirect and awaiting-action
+	 * flags in the database, so the abandoned order is not kept pending.
+	 */
+	public function test_process_upe_redirect_payment_cancellation_persists_cleared_redirect_flags() {
+		$payment_intent_id = 'pi_mock';
+		$order             = WC_Helper_Order::create_order();
+		$order_id          = $order->get_id();
+		$order_helper      = WC_Stripe_Order_Helper::get_instance();
+
+		$order_helper->update_stripe_upe_waiting_for_redirect( $order, true );
+		$order_helper->set_payment_awaiting_action( $order, false );
+		$order->save();
+
+		list( $amount ) = $this->get_order_details( $order );
+
+		$payment_intent_mock                       = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$payment_intent_mock['id']                 = $payment_intent_id;
+		$payment_intent_mock['amount']             = $amount;
+		$payment_intent_mock['status']             = WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD;
+		$payment_intent_mock['last_payment_error'] = [
+			'code'    => 'payment_method_customer_decline',
+			'message' => 'Customer cancelled checkout on Klarna',
+		];
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'stripe_request' )
+			->willReturn( $this->array_to_object( $payment_intent_mock ) );
+
+		add_filter(
+			'wp_redirect',
+			function () {
+				throw new \RuntimeException( 'redirect_intercepted' );
+			}
+		);
+
+		try {
+			$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, false );
+			$this->fail( 'Expected redirect to be triggered' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirect_intercepted', $e->getMessage() );
+		} finally {
+			remove_all_filters( 'wp_redirect' );
+		}
+
+		$final_order = wc_get_order( $order_id );
+		$this->assertEmpty( $order_helper->get_stripe_upe_waiting_for_redirect( $final_order ) );
+		$this->assertFalse( $order_helper->is_payment_awaiting_action( $final_order ) );
+	}
+
+	/**
 	 * Helper: build an order linked to a Checkout Session and return the order plus the
 	 * `checkout/sessions/{id}?expand[]=payment_intent` Stripe URL we expect the handler
 	 * to fetch.
