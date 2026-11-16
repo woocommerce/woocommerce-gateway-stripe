@@ -81,6 +81,7 @@ const config = {
 			testIgnore: [
 				'**/acss.spec.js',
 				'**/optimized-checkout.spec.js',
+				'**/optimized-checkout-link-off.spec.js',
 				'**/blik.spec.js',
 				'**/becs.spec.js',
 				'**/isk.spec.js',
@@ -126,6 +127,17 @@ const config = {
 			name: 'optimized-checkout',
 			testMatch: '**/optimized-checkout.spec.js',
 			dependencies: [ 'oc-setup' ],
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'oc-link-off-setup',
+			testMatch: '/optimized-checkout-link-off.setup.js',
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'optimized-checkout-link-off',
+			testMatch: '**/optimized-checkout-link-off.spec.js',
+			dependencies: [ 'oc-link-off-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
 		{

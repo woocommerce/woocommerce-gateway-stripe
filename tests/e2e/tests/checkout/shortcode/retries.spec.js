@@ -88,6 +88,11 @@ test( 'customer can retry payment, with changed billing details @smoke', async (
 	// Fail the 3DS challenge
 	await handleCheckout3DSChallenge( page, 'fail' );
 
+	// The challenge closes before the plugin has marked the order as failed and
+	// unblocked the form; WooCommerce drops a submit sent while the form is
+	// still processing. The error notice renders only after the unblock.
+	await expect( getErrorNotices( page ).first() ).toBeVisible();
+
 	// Change billing details
 	await page.fill( '#billing_postcode', '12345' );
 
