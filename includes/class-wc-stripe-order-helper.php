@@ -1581,7 +1581,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Acquires the payment lock and returns the value written.
 	 *
-	 * @since 11.0.0
+	 * @since x.x.x
 	 *
 	 * @param WC_Order $order The order that is being paid.
 	 * @return string|false The owned lock value, or false when the lock could not be acquired.
@@ -1655,7 +1655,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Unlocks an order only while the lock still holds the caller's value.
 	 *
-	 * @since 11.0.0
+	 * @since x.x.x
 	 *
 	 * @param WC_Order $order         The order that is being unlocked.
 	 * @param string   $expected_lock Exact lock value returned by acquire_order_payment_lock().
@@ -1693,7 +1693,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Checks whether the owner row and the order meta both hold the caller's lock value.
 	 *
-	 * @since 11.0.0
+	 * @since x.x.x
 	 *
 	 * @param WC_Order $order         The order whose payment lock is being checked.
 	 * @param string   $expected_lock Exact lock value returned by acquire_order_payment_lock().
@@ -1715,7 +1715,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Extends the caller's payment lock by 5 minutes with no unlocked gap.
 	 *
-	 * @since 11.0.0
+	 * @since x.x.x
 	 *
 	 * @param WC_Order $order         The order whose payment lock is being renewed.
 	 * @param string   $expected_lock Exact lock value currently owned by the caller.
