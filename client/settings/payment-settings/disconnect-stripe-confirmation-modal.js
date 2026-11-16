@@ -94,7 +94,7 @@ const DisconnectStripeConfirmationModal = ( {
 					) }
 				</p>
 				{ canDeauthorize && (
-					<div className="wcstripe-deauthorize-checkbox">
+					<div className="wc-stripe-deauthorize-checkbox">
 						<CheckboxControl
 							checked={ shouldDeauthorize }
 							disabled={ status === 'pending' }
