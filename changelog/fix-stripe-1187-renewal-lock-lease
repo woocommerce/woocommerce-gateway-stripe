@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Renew the subscription renewal payment lock before the charge and before the response is recorded, and only record a failed attempt while the lock is still owned
