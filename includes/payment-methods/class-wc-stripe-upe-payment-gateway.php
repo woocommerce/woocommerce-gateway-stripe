@@ -4576,10 +4576,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				throw new WC_Stripe_Exception( 'The setup intent does not belong to the Stripe customer of the user.' );
 			}
 
-			$payment_method_id     = $setup_intent->payment_method;
+			// The intent ID comes from the browser, so it can name an intent that was never confirmed.
+			$payment_method_id = $setup_intent->payment_method ?? null;
+			if ( empty( $payment_method_id ) || ! is_string( $payment_method_id ) ) {
+				throw new WC_Stripe_Exception( 'The setup intent has no payment method.' );
+			}
+
 			$payment_method_object = $this->stripe_request( 'payment_methods/' . $payment_method_id );
 
-			$payment_method = $this->payment_methods[ $payment_method_object->type ];
+			// A failed lookup returns null, a WP_Error or a Stripe error object, none of which carry a type.
+			$payment_method_type = is_object( $payment_method_object ) && isset( $payment_method_object->type ) && is_string( $payment_method_object->type ) ? $payment_method_object->type : null;
+			$payment_method      = null === $payment_method_type ? null : ( $this->payment_methods[ $payment_method_type ] ?? null );
+			if ( ! $payment_method ) {
+				throw new WC_Stripe_Exception( 'The payment method of the setup intent could not be retrieved or is not supported.' );
+			}
 
 			$customer = new WC_Stripe_Customer( $user->ID );
 			$customer->clear_cache();
