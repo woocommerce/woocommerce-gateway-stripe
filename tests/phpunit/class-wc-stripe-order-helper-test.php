@@ -402,6 +402,60 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that an unlock from a request that never took the lock leaves the owner row alone, so a
+	 * concurrent request is not told the order is locked.
+	 */
+	public function test_unlock_order_payment_without_a_lock_does_not_claim_the_owner_row(): void {
+		global $wpdb;
+
+		$order       = WC_Helper_Order::create_order();
+		$row_queries = [];
+		$capture     = function ( $query ) use ( &$row_queries, $order ) {
+			if ( false !== strpos( $query, 'wc_stripe_payment_lock_owner_' . $order->get_id() ) ) {
+				$row_queries[] = $query;
+			}
+			return $query;
+		};
+		add_filter( 'query', $capture );
+
+		try {
+			( new WC_Stripe_Order_Helper() )->unlock_order_payment( wc_get_order( $order->get_id() ) );
+		} finally {
+			remove_filter( 'query', $capture );
+		}
+
+		$this->assertSame( [], $row_queries );
+	}
+
+	/**
+	 * Tests that an acquisition that fails after writing the meta removes that meta, so no
+	 * unreleasable lock is left on the order.
+	 */
+	public function test_failed_acquisition_removes_the_meta_it_wrote(): void {
+		$order  = WC_Helper_Order::create_order();
+		$helper = new class() extends WC_Stripe_Order_Helper {
+			/** @var int */
+			private $reads = 0;
+
+			/**
+			 * Reports a different value on the read that verifies the write, so the acquisition fails.
+			 *
+			 * @param WC_Order $order The order.
+			 * @return mixed
+			 */
+			public function get_order_existing_payment_lock( WC_Order $order ) {
+				$lock = parent::get_order_existing_payment_lock( $order );
+
+				return 2 === ++$this->reads ? 'replaced-by-another-request' : $lock;
+			}
+		};
+
+		$this->assertFalse( $helper->acquire_order_payment_lock( $order ) );
+		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( wc_get_order( $order->get_id() ) ) );
+		$this->assertNull( $this->get_payment_lock_owner_row( $order ) );
+	}
+
+	/**
 	 * Tests that a token-less unlock clears a legacy bare-timestamp lock only once it has expired.
 	 *
 	 * @dataProvider provide_legacy_payment_locks

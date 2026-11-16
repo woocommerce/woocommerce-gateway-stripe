@@ -1594,10 +1594,7 @@ class WC_Stripe_Order_Helper {
 	 * @return string|false The owned lock value, or false when the lock could not be acquired.
 	 */
 	public function acquire_order_payment_lock( WC_Order $order ) {
-		// A clone keeps the caller's unsaved changes intact. It is safe to save only because
-		// get_order_existing_payment_lock() reloads the meta first: cloning drops the meta IDs, and
-		// saving before that reload would insert every meta row of the order again.
-		$payment_lock_order = clone $order;
+		$payment_lock_order = $this->get_order_copy_for_payment_lock( $order );
 		if ( $this->lock_order_payment( $payment_lock_order ) ) {
 			return false;
 		}
@@ -1637,14 +1634,21 @@ class WC_Stripe_Order_Helper {
 			return;
 		}
 
-		// Without a token, only an expired lock may be cleared. Claim the row first.
+		// Without a token, only an expired lock may be cleared. Check before claiming the row: most
+		// calls here come from requests that never took the lock, and claiming the row would make a
+		// concurrent request see the order as locked.
+		$payment_lock_order = $this->get_order_copy_for_payment_lock( $order );
+		if ( ! $this->has_expired_payment_lock( $payment_lock_order ) ) {
+			return;
+		}
+
+		// Claim the row, then check again: another request may have taken the lock meanwhile.
 		$unlock_guard = $this->claim_order_payment_lock_owner( $order );
 		if ( null === $unlock_guard ) {
 			return;
 		}
 
-		$payment_lock_order = clone $order;
-		$current_lock       = $this->get_order_existing_payment_lock( $payment_lock_order );
+		$current_lock = $this->get_order_existing_payment_lock( $payment_lock_order );
 		$lock_parts         = is_scalar( $current_lock ) ? explode( '|', (string) $current_lock, 2 ) : [];
 		$lock_expiry        = isset( $lock_parts[0] ) && ctype_digit( $lock_parts[0] ) ? (int) $lock_parts[0] : 0;
 
@@ -1685,7 +1689,7 @@ class WC_Stripe_Order_Helper {
 			return;
 		}
 
-		$payment_lock_order = clone $order;
+		$payment_lock_order = $this->get_order_copy_for_payment_lock( $order );
 
 		try {
 			$current_lock = $this->get_order_existing_payment_lock( $payment_lock_order );
@@ -1713,7 +1717,7 @@ class WC_Stripe_Order_Helper {
 			return false;
 		}
 
-		$current_lock = $this->get_order_existing_payment_lock( clone $order );
+		$current_lock = $this->get_order_existing_payment_lock( $this->get_order_copy_for_payment_lock( $order ) );
 
 		// Re-check the row after the meta read.
 		return is_scalar( $current_lock )
@@ -1735,7 +1739,7 @@ class WC_Stripe_Order_Helper {
 			return false;
 		}
 
-		$payment_lock_order = clone $order;
+		$payment_lock_order = $this->get_order_copy_for_payment_lock( $order );
 
 		// Check the meta before moving the row. Once the row moves, a failure can only delete it,
 		// which leaves the caller's token unable to release the meta until the lock expires.
@@ -1774,6 +1778,7 @@ class WC_Stripe_Order_Helper {
 			return $renewed_lock;
 		} finally {
 			if ( ! $renewed ) {
+				$this->delete_payment_lock_meta_if_unchanged( $payment_lock_order, $renewed_lock );
 				$this->release_order_payment_lock_owner( $payment_lock_order, $renewed_lock );
 			}
 		}
@@ -1813,9 +1818,60 @@ class WC_Stripe_Order_Helper {
 			return $new_lock;
 		} finally {
 			if ( ! $acquired ) {
+				$this->delete_payment_lock_meta_if_unchanged( $order, $new_lock );
 				$this->release_order_payment_lock_owner( $order, $new_lock );
 			}
 		}
+	}
+
+	/**
+	 * Returns a copy of the order to write the payment lock through.
+	 *
+	 * Writing through a copy keeps the caller's unsaved changes out of the lock writes. Cloning
+	 * drops the meta IDs, so the copy reloads its meta at once: saving it without that reload would
+	 * insert every meta row of the order again.
+	 *
+	 * @param WC_Order $order The order being locked or unlocked.
+	 * @return WC_Order
+	 */
+	private function get_order_copy_for_payment_lock( WC_Order $order ): WC_Order {
+		$payment_lock_order = clone $order;
+		$payment_lock_order->read_meta_data( true );
+
+		return $payment_lock_order;
+	}
+
+	/**
+	 * Checks whether the order meta holds a readable payment lock that has expired.
+	 *
+	 * @param WC_Order $order The order to check.
+	 * @return bool
+	 */
+	private function has_expired_payment_lock( WC_Order $order ): bool {
+		$current_lock = $this->get_order_existing_payment_lock( $order );
+		$lock_parts   = is_scalar( $current_lock ) ? explode( '|', (string) $current_lock, 2 ) : [];
+
+		return isset( $lock_parts[0] ) && ctype_digit( $lock_parts[0] ) && 0 < (int) $lock_parts[0] && time() > (int) $lock_parts[0];
+	}
+
+	/**
+	 * Deletes the payment lock meta while it still holds the value this request wrote.
+	 *
+	 * Runs when an acquisition or renewal fails after writing the meta, before the owner row is
+	 * released, so the order is not left locked by a value no request can release.
+	 *
+	 * @param WC_Order $order The order the lock was written to.
+	 * @param string   $lock  The value this request wrote.
+	 * @return void
+	 */
+	private function delete_payment_lock_meta_if_unchanged( WC_Order $order, string $lock ): void {
+		$current_lock = $this->get_order_existing_payment_lock( $order );
+		if ( ! is_scalar( $current_lock ) || (string) $current_lock !== $lock ) {
+			return;
+		}
+
+		$order->delete_meta_data( self::META_STRIPE_LOCK_PAYMENT );
+		$order->save_meta_data();
 	}
 
 	/**
@@ -2012,6 +2068,7 @@ class WC_Stripe_Order_Helper {
 
 		// An unparseable lock cannot be proven expired.
 		if ( null !== $existing_lock && ! is_scalar( $existing_lock ) ) {
+			$this->log_unreadable_payment_lock( $order, $existing_lock );
 			return true;
 		}
 
@@ -2020,6 +2077,7 @@ class WC_Stripe_Order_Helper {
 
 			// A lock whose expiry cannot be read cannot be proven expired.
 			if ( ! ctype_digit( $parts[0] ) ) {
+				$this->log_unreadable_payment_lock( $order, $existing_lock );
 				return true;
 			}
 
@@ -2032,6 +2090,26 @@ class WC_Stripe_Order_Helper {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Logs a payment lock value that cannot be read.
+	 *
+	 * Such a value keeps the order locked until someone removes the `_stripe_lock_payment` meta, so
+	 * the merchant needs to be able to find it.
+	 *
+	 * @param WC_Order $order         The locked order.
+	 * @param mixed    $existing_lock The unreadable lock value.
+	 * @return void
+	 */
+	private function log_unreadable_payment_lock( WC_Order $order, $existing_lock ): void {
+		WC_Stripe_Logger::error(
+			'Stripe: the payment lock on this order cannot be read, so payments for it stay blocked until the _stripe_lock_payment meta is removed.',
+			[
+				'order_id'     => $order->get_id(),
+				'payment_lock' => $existing_lock,
+			]
+		);
 	}
 
 	/**
