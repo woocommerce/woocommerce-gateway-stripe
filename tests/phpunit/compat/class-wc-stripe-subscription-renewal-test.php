@@ -2036,6 +2036,48 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that the renewal charge lookup runs a class's own get_latest_charge_from_intent(), and
+	 * otherwise uses the main gateway's.
+	 */
+	public function test_renewal_charge_lookup_keeps_a_class_override() {
+		$intent = (object) [
+			'object'        => 'payment_intent',
+			'latest_charge' => (object) [
+				'id'     => 'ch_from_intent',
+				'object' => 'charge',
+			],
+		];
+
+		$with_override    = new class() {
+			use WC_Stripe_Subscriptions_Trait;
+
+			/**
+			 * Returns a fixed charge so the test can tell which lookup ran.
+			 *
+			 * @param object $intent The intent.
+			 * @return object
+			 */
+			public function get_latest_charge_from_intent( $intent ) {
+				return (object) [
+					'id'     => 'ch_from_override',
+					'object' => 'charge',
+				];
+			}
+		};
+		$without_override = new class() {
+			use WC_Stripe_Subscriptions_Trait;
+		};
+
+		$lookup = new ReflectionMethod( $with_override, 'get_latest_charge_for_subscription_renewal' );
+		$lookup->setAccessible( true );
+		$this->assertSame( 'ch_from_override', $lookup->invoke( $with_override, $intent )->id );
+
+		$lookup = new ReflectionMethod( $without_override, 'get_latest_charge_for_subscription_renewal' );
+		$lookup->setAccessible( true );
+		$this->assertSame( 'ch_from_intent', $lookup->invoke( $without_override, $intent )->id );
+	}
+
+	/**
 	 * Tests that Radar blocking is detected from an expanded latest_charge without a /charges request.
 	 */
 	public function test_renewal_radar_blocked_reads_the_expanded_charge_without_a_request() {

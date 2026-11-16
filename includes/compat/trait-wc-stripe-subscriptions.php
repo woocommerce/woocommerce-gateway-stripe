@@ -856,7 +856,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				);
 
 				// The intent carries the expanded charge; for SEPA the response body is the charge.
-				$latest_charge = $this->resolve_stripe_charge_object( $this->get_subscription_renewal_charge_gateway()->get_latest_charge_from_intent( $response ) );
+				$latest_charge = $this->resolve_stripe_charge_object( $this->get_latest_charge_for_subscription_renewal( $response ) );
 
 				if (
 					'payment_intent' === ( $response->object ?? '' )
@@ -995,20 +995,22 @@ trait WC_Stripe_Subscriptions_Trait {
 	}
 
 	/**
-	 * Returns the gateway that reads charges for a renewal.
+	 * Returns the latest charge of a renewal intent.
 	 *
-	 * Gateway classes define the charge helpers themselves. UPE payment method classes only
-	 * reach them through __call() forwarding to the main gateway, so name that gateway here
-	 * instead of relying on the forwarding.
+	 * Gateway classes, and payment method subclasses that define their own lookup, keep using
+	 * it, so an override still runs. Other UPE payment method classes only reach the main
+	 * gateway's lookup through __call() forwarding, so name that gateway here instead of
+	 * relying on the forwarding.
 	 *
-	 * @return WC_Stripe_Payment_Gateway
+	 * @param object $intent The PaymentIntent, or the Charge for SEPA renewals.
+	 * @return string|object|null
 	 */
-	private function get_subscription_renewal_charge_gateway(): WC_Stripe_Payment_Gateway {
-		if ( $this instanceof WC_Stripe_Payment_Gateway ) {
-			return $this;
+	private function get_latest_charge_for_subscription_renewal( $intent ) {
+		if ( method_exists( $this, 'get_latest_charge_from_intent' ) ) {
+			return $this->get_latest_charge_from_intent( $intent );
 		}
 
-		return WC_Stripe::get_instance()->get_main_stripe_gateway();
+		return WC_Stripe::get_instance()->get_main_stripe_gateway()->get_latest_charge_from_intent( $intent );
 	}
 
 	/**
@@ -1760,7 +1762,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	private function get_subscription_renewal_authentication_charge_id( $intent, $order_id ): string {
 		$charge = null;
 		try {
-			$charge = $this->resolve_stripe_charge_object( $this->get_subscription_renewal_charge_gateway()->get_latest_charge_from_intent( $intent ) );
+			$charge = $this->resolve_stripe_charge_object( $this->get_latest_charge_for_subscription_renewal( $intent ) );
 		} catch ( WC_Stripe_Exception $charge_exception ) {
 			WC_Stripe_Logger::error( "Stripe: the charge lookup for the authentication-required renewal of order {$order_id} failed: " . $charge_exception->getMessage() );
 		}
