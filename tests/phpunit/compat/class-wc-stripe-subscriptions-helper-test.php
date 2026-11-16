@@ -349,4 +349,27 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 
 		$this->assertSame( $expected, $actual );
 	}
+
+	/**
+	 * Tests that a renewal's mandate start date is kept per order until it is cleared.
+	 */
+	public function test_renewal_mandate_start_date_is_kept_per_order_until_cleared(): void {
+		$this->assertNull( WC_Stripe_Subscriptions_Helper::get_renewal_mandate_start_date( 123 ) );
+
+		WC_Stripe_Subscriptions_Helper::set_renewal_mandate_start_date( 123, 1700000000 );
+		WC_Stripe_Subscriptions_Helper::set_renewal_mandate_start_date( 456, 1800000000 );
+
+		try {
+			$this->assertSame( 1700000000, WC_Stripe_Subscriptions_Helper::get_renewal_mandate_start_date( 123 ) );
+			$this->assertSame( 1800000000, WC_Stripe_Subscriptions_Helper::get_renewal_mandate_start_date( 456 ) );
+
+			WC_Stripe_Subscriptions_Helper::clear_renewal_mandate_start_date( 123 );
+
+			$this->assertNull( WC_Stripe_Subscriptions_Helper::get_renewal_mandate_start_date( 123 ) );
+			$this->assertSame( 1800000000, WC_Stripe_Subscriptions_Helper::get_renewal_mandate_start_date( 456 ) );
+		} finally {
+			WC_Stripe_Subscriptions_Helper::clear_renewal_mandate_start_date( 123 );
+			WC_Stripe_Subscriptions_Helper::clear_renewal_mandate_start_date( 456 );
+		}
+	}
 }

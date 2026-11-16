@@ -523,9 +523,14 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		$lock_expiry = (int) $our_lock;
 
+		// A retry should send the same request as the first attempt, so the mandate start date must not move.
+		WC_Stripe_Subscriptions_Helper::set_renewal_mandate_start_date( $order_id, time() );
+
 		try {
 			$this->process_subscription_payment_attempt( $amount, $renewal_order, $retry, $previous_error, $lock_expiry );
 		} finally {
+			WC_Stripe_Subscriptions_Helper::clear_renewal_mandate_start_date( $order_id );
+
 			if ( (string) $order_helper->get_order_existing_payment_lock( $renewal_order ) === $our_lock ) {
 				$order_helper->unlock_order_payment( $renewal_order );
 			}
@@ -1380,7 +1385,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		$mandate_options['amount']          = $sub_amount;
 		$mandate_options['reference']       = $order->get_id();
-		$mandate_options['start_date']      = time();
+		$mandate_options['start_date']      = WC_Stripe_Subscriptions_Helper::get_renewal_mandate_start_date( $order->get_id() ) ?? time();
 		$mandate_options['supported_types'] = [ 'india' ];
 
 		return $mandate_options;

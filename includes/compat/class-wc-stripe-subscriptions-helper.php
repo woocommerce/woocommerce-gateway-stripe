@@ -36,6 +36,61 @@ class WC_Stripe_Subscriptions_Helper {
 	private const MAX_EXECUTION_TIME_FALLBACK = 30;
 
 	/**
+	 * Mandate start dates for renewals in progress, keyed by renewal order ID.
+	 *
+	 * The renewal runs on whichever gateway or payment method instance handles the subscription,
+	 * but the mandate options are added by a request filter on the main gateway. Each class that
+	 * uses a trait gets its own copy of the trait's static properties, so the value lives here,
+	 * in one place both can reach.
+	 *
+	 * @var array<int, int>
+	 */
+	private static array $renewal_mandate_start_dates = [];
+
+	/**
+	 * Records the mandate start date that every attempt of a renewal sends.
+	 *
+	 * Retries can reuse their idempotency key only when they send the same request, so the
+	 * start date must not move between attempts.
+	 *
+	 * @internal
+	 * @since x.x.x
+	 *
+	 * @param int $order_id   Renewal order ID.
+	 * @param int $start_date Unix timestamp to send as the mandate start date.
+	 * @return void
+	 */
+	public static function set_renewal_mandate_start_date( int $order_id, int $start_date ): void {
+		self::$renewal_mandate_start_dates[ $order_id ] = $start_date;
+	}
+
+	/**
+	 * Returns the mandate start date recorded for a renewal in progress.
+	 *
+	 * @internal
+	 * @since x.x.x
+	 *
+	 * @param int $order_id Renewal order ID.
+	 * @return int|null The start date, or null when no renewal of this order is in progress.
+	 */
+	public static function get_renewal_mandate_start_date( int $order_id ): ?int {
+		return self::$renewal_mandate_start_dates[ $order_id ] ?? null;
+	}
+
+	/**
+	 * Forgets the mandate start date once a renewal ends.
+	 *
+	 * @internal
+	 * @since x.x.x
+	 *
+	 * @param int $order_id Renewal order ID.
+	 * @return void
+	 */
+	public static function clear_renewal_mandate_start_date( int $order_id ): void {
+		unset( self::$renewal_mandate_start_dates[ $order_id ] );
+	}
+
+	/**
 	 * Checks if subscriptions are enabled on the site.
 	 *
 	 * @return bool Whether subscriptions is enabled or not.

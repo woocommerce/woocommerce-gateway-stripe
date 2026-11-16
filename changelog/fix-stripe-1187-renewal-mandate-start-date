@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Send the same mandate start date on every attempt of a subscription renewal, so a retry sends the same request as the first attempt
