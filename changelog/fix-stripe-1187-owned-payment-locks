@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Claim an atomic owner row before writing an order payment lock, and only release locks this request acquired
