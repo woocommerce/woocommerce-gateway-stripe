@@ -2180,7 +2180,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		if ( $existing_lock ) {
-			$parts      = explode( '|', (string) $existing_lock ); // Format is: "{expiry_timestamp}" or "{expiry_timestamp}|{owner_token}".
+			$parts = explode( '|', (string) $existing_lock ); // Format is: "{expiry_timestamp}" or "{expiry_timestamp}|{owner_token}".
+
+			// A lock whose expiry cannot be read cannot be proven expired.
+			if ( ! ctype_digit( $parts[0] ) ) {
+				return true;
+			}
+
 			$expiration = (int) $parts[0];
 
 			// If the lock is still active, return true.

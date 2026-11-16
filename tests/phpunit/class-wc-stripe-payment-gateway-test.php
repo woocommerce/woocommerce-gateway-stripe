@@ -175,6 +175,10 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertFalse( $intent );
 	}
 
+	/**
+	 * Tests that a lock written by the deprecated gateway method still blocks the helper lock,
+	 * and that the deprecated unlock clears it.
+	 */
 	public function test_deprecated_payment_lock_still_blocks_the_helper_lock() {
 		$order        = WC_Helper_Order::create_order();
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
@@ -197,7 +201,11 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Tests that the deprecated lock reader treats lock metadata it cannot parse as locked.
+	 *
 	 * @dataProvider provide_malformed_payment_lock_metadata
+	 *
+	 * @param mixed $lock_metadata Malformed payment lock metadata.
 	 */
 	public function test_deprecated_payment_lock_reader_treats_malformed_metadata_as_locked( $lock_metadata ) {
 		$order = WC_Helper_Order::create_order();
@@ -212,11 +220,18 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertTrue( $method->invoke( $this->gateway, $order ) );
 	}
 
+	/**
+	 * Provides lock metadata the deprecated lock reader cannot parse.
+	 *
+	 * @return array<string, array{mixed}>
+	 */
 	public function provide_malformed_payment_lock_metadata() {
 		return [
 			'empty array'     => [ [] ],
 			'non-empty array' => [ [ 'malformed' ] ],
 			'object'          => [ new stdClass() ],
+			'non-numeric'     => [ 'corrupt' ],
+			'numeric prefix'  => [ '123abc' ],
 		];
 	}
 

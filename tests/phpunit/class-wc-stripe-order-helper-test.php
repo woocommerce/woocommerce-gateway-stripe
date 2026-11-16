@@ -346,6 +346,24 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A worker that crashes leaves an expired "{expiry}|{token}" value in both the
+	 * owner row and the order meta. A later token-less unlock must clear both.
+	 */
+	public function test_unlock_order_payment_without_a_token_clears_an_expired_owned_lock(): void {
+		$order        = WC_Helper_Order::create_order();
+		$expired_lock = ( time() - 1 ) . '|' . wp_generate_uuid4();
+
+		$this->set_payment_lock_owner_row( $order, $expired_lock );
+		$order->update_meta_data( '_stripe_lock_payment', $expired_lock );
+		$order->save_meta_data();
+
+		( new WC_Stripe_Order_Helper() )->unlock_order_payment( wc_get_order( $order->get_id() ) );
+
+		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( wc_get_order( $order->get_id() ) ) );
+		$this->assertNull( $this->get_payment_lock_owner_row( $order ) );
+	}
+
+	/**
 	 * @dataProvider provide_legacy_payment_locks
 	 */
 	public function test_unlock_order_payment_without_a_token_only_clears_expired_legacy_metadata( int $expiry_offset, bool $expect_cleared ): void {
@@ -504,6 +522,9 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 			'empty array'     => [ [] ],
 			'non-empty array' => [ [ time() + 5 * MINUTE_IN_SECONDS ] ],
 			'object'          => [ (object) [ 'expires_at' => time() + 5 * MINUTE_IN_SECONDS ] ],
+			'non-numeric'     => [ 'corrupt' ],
+			'numeric prefix'  => [ '123abc' ],
+			'negative expiry' => [ '-1|' . wp_generate_uuid4() ],
 		];
 	}
 
