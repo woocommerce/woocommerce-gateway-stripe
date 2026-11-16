@@ -15,6 +15,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Extendable abstract class for payment methods.
+ *
+ * @mixin WC_Stripe_UPE_Payment_Gateway
  */
 abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 
