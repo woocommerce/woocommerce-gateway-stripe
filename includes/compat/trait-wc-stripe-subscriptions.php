@@ -595,7 +595,16 @@ trait WC_Stripe_Subscriptions_Trait {
 				$prepared_source->source = '';
 			}
 
-			$payment_attempt            = $this->attempt_subscription_renewal_payment( $amount, $renewal_order, $prepared_source );
+			$attempt_payment = function () use ( $amount, $renewal_order, $prepared_source ) {
+				return $this->attempt_subscription_renewal_payment( $amount, $renewal_order, $prepared_source );
+			};
+
+			// A timeout or a 5xx may hide a charge Stripe already made. Resending the identical request with
+			// the same idempotency key returns that outcome instead of charging again. The resend can take
+			// another full request, so it only runs while the lock covers both and recording the response.
+			$payment_attempt            = $this->has_time_for_inconclusive_resend( $lock_expiry )
+				? WC_Stripe_API::with_inconclusive_request_resend( $attempt_payment )
+				: $attempt_payment();
 			$response                   = $payment_attempt['response'];
 			$is_authentication_required = $payment_attempt['is_authentication_required'];
 
@@ -869,6 +878,19 @@ trait WC_Stripe_Subscriptions_Trait {
 			 */
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
 		}
+	}
+
+	/**
+	 * Whether the payment lock leaves time for a payment request, a resend of it, and recording the response.
+	 *
+	 * A request still running when the lock lapses could race a new renewal that sends a fresh key.
+	 *
+	 * @param int $lock_expiry Unix timestamp at which the caller's payment lock expires. 0 when unknown.
+	 * @return bool
+	 * @phpstan-impure Code checks the current time.
+	 */
+	private function has_time_for_inconclusive_resend( int $lock_expiry ): bool {
+		return 0 < $lock_expiry && $lock_expiry - time() > 2 * WC_Stripe_API::REQUEST_TIMEOUT + 30;
 	}
 
 	/**

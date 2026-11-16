@@ -1070,6 +1070,104 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that a renewal payment request that times out is sent once more with the same idempotency
+	 * key while the payment lock can cover it, and not at all when it cannot.
+	 *
+	 * @dataProvider provide_inconclusive_renewal_lock_budgets
+	 *
+	 * @param int    $lock_seconds      Seconds left on the payment lock.
+	 * @param int    $expected_requests Expected number of PaymentIntent requests.
+	 * @param string $expected_status   Expected renewal order status.
+	 */
+	public function test_renewal_resends_a_timed_out_payment_request_with_the_same_key( $lock_seconds, $expected_requests, $expected_status ) {
+		$renewal_order    = WC_Helper_Order::create_order();
+		$idempotency_keys = [];
+
+		$renewal_order->set_payment_method( 'stripe' );
+		$renewal_order->save();
+
+		$this->set_gateway_retry_interval( 0 );
+
+		$this->wc_gateway_stripe
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => 'cus_123abc',
+					'source'         => 'src_123abc',
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::CARD,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		$order_helper_mock = $this->getMockBuilder( WC_Stripe_Order_Helper::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'lock_order_payment', 'unlock_order_payment', 'get_order_existing_payment_lock' ] )
+			->getMock();
+		$order_helper_mock->method( 'lock_order_payment' )->willReturn( false );
+		$order_helper_mock->method( 'get_order_existing_payment_lock' )->willReturn( (string) ( time() + $lock_seconds ) );
+
+		$instance_property = new ReflectionProperty( WC_Stripe_Order_Helper::class, 'instance' );
+		$instance_property->setAccessible( true );
+		$original_instance = $instance_property->getValue();
+		$instance_property->setValue( null, $order_helper_mock );
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( &$idempotency_keys ) {
+			if ( 'https://api.stripe.com/v1/payment_intents' !== $url ) {
+				return $preempt;
+			}
+
+			$idempotency_keys[] = $request_args['headers']['Idempotency-Key'] ?? null;
+
+			if ( 1 === count( $idempotency_keys ) ) {
+				return new WP_Error( 'http_request_failed', 'cURL error 28: Operation timed out' );
+			}
+
+			return [
+				'headers'  => [],
+				'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_success.json' ),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+		// Keep the Level 3 fallback out of the request count.
+		set_transient( 'wc_stripe_level3_not_allowed', true, MINUTE_IN_SECONDS );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, true, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			delete_transient( 'wc_stripe_level3_not_allowed' );
+			$instance_property->setValue( null, $original_instance );
+			WC_Stripe_API_Outage_Status::record_success();
+		}
+
+		$this->assertCount( $expected_requests, $idempotency_keys );
+		$this->assertCount( 1, array_unique( $idempotency_keys ) );
+		$this->assertSame( $expected_status, wc_get_order( $renewal_order->get_id() )->get_status() );
+	}
+
+	/**
+	 * Provides payment lock budgets with and without room for a resend.
+	 *
+	 * @return array<string, array{int, int, string}>
+	 */
+	public function provide_inconclusive_renewal_lock_budgets(): array {
+		return [
+			'lock covers the resend'   => [ 5 * MINUTE_IN_SECONDS, 2, OrderStatus::PROCESSING ],
+			'lock too short to resend' => [ 100, 1, OrderStatus::FAILED ],
+		];
+	}
+
+	/**
 	 * Data provider for {@see test_is_order_payment_lock_expired()}.
 	 */
 	public function provide_is_order_payment_lock_expired_scenarios(): array {
