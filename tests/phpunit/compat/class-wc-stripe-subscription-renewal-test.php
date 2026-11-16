@@ -1586,7 +1586,8 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->clear_payment_lock( $renewal_order );
 
 		$this->assertSame( 1, $request_count );
-		$this->assertSame( 1, $error_hook_count );
+		// Stripe may have taken the payment, so the payment error hook must not fire.
+		$this->assertSame( 0, $error_hook_count );
 		$this->assertSame( 0, $success_hook_count );
 		$this->assertSame( OrderStatus::PENDING, $renewal_order->get_status() );
 		$this->assertSame( '', $renewal_order->get_transaction_id() );
@@ -1654,6 +1655,10 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertSame( 1, $error_hook_count );
 		$this->assertSame( OrderStatus::PENDING, $renewal_order->get_status() );
 		$this->assertSame( $replacement_lock, $current_lock );
+
+		// No status change means no retry, so the order says why the renewal stopped.
+		$note_contents = wp_list_pluck( wc_get_order_notes( [ 'order_id' => $renewal_order->get_id() ] ), 'content' );
+		$this->assertStringContainsString( 'had lost its payment lock', implode( "\n", $note_contents ) );
 	}
 
 	/**
@@ -1833,7 +1838,8 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
 
 			$renewal_order = wc_get_order( $renewal_order->get_id() );
-			$this->assertSame( 1, $error_hook_count );
+			// Stripe may have taken the payment, so the payment error hook must not fire.
+			$this->assertSame( 0, $error_hook_count );
 			$this->assertSame( OrderStatus::PENDING, $renewal_order->get_status() );
 			$this->assertSame( '', $renewal_order->get_transaction_id() );
 			// The payment Stripe accepted is still visible to the merchant.

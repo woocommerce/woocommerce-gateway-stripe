@@ -526,7 +526,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	}
 
 	/**
-	 * Builds the order note left when Stripe accepted a renewal payment this request could not record.
+	 * Builds the order note left when this request could not record Stripe's answer to a renewal payment.
 	 *
 	 * @param mixed $response The Stripe renewal response.
 	 * @return string
@@ -535,12 +535,12 @@ trait WC_Stripe_Subscriptions_Trait {
 		$payment_id = is_object( $response ) && isset( $response->id ) && is_string( $response->id ) ? $response->id : '';
 
 		if ( '' === $payment_id ) {
-			return __( 'Stripe accepted this renewal payment, but this attempt had lost its payment lock, so the payment was not recorded on the order. Check the Stripe dashboard before retrying the renewal.', 'woocommerce-gateway-stripe' );
+			return __( 'Stripe responded to this renewal payment, but this attempt had lost its payment lock, so the result was not recorded on the order. Check the Stripe dashboard before retrying the renewal.', 'woocommerce-gateway-stripe' );
 		}
 
 		return sprintf(
 			/* translators: %s is a link to the payment in the Stripe dashboard. */
-			__( 'Stripe accepted renewal payment %s, but this attempt had lost its payment lock, so the payment was not recorded on the order. Check it in the Stripe dashboard before retrying the renewal.', 'woocommerce-gateway-stripe' ),
+			__( 'Stripe responded to renewal payment %s, but this attempt had lost its payment lock, so the result was not recorded on the order. Check it in the Stripe dashboard before retrying the renewal.', 'woocommerce-gateway-stripe' ),
 			WC_Stripe_Helper::get_external_link( WC_Stripe_Helper::get_transaction_url_for_id( $payment_id, empty( $response->livemode ) ), $payment_id )
 		);
 	}
@@ -735,6 +735,15 @@ trait WC_Stripe_Subscriptions_Trait {
 			// The hook above always fires, but the order and Radar updates below are only safe while the lock is ours.
 			if ( ! $order_helper->is_order_payment_lock_owned( $renewal_order, $acquired_lock ) ) {
 				WC_Stripe_Logger::error( "Stripe: not recording a failed renewal attempt for order {$renewal_order->get_id()} because its payment lock is no longer owned." );
+				// Without a status change WooCommerce Subscriptions schedules no retry, so the merchant
+				// needs to see why the renewal stopped.
+				$renewal_order->add_order_note(
+					sprintf(
+						/* translators: %s is the reason the renewal payment failed. */
+						__( 'Stripe: this renewal payment failed (%s), but the failure was not recorded because this attempt had lost its payment lock. Check the order before retrying the renewal.', 'woocommerce-gateway-stripe' ),
+						$e->getLocalizedMessage()
+					)
+				);
 				return;
 			}
 
@@ -827,16 +836,11 @@ trait WC_Stripe_Subscriptions_Trait {
 			// Response handling runs third-party hooks and can be slow, so renew the lock first.
 			$renewed_lock = $order_helper->renew_order_payment_lock_if_owned( $renewal_order, $acquired_lock );
 			if ( false === $renewed_lock ) {
-				// Stripe has already taken this payment, but without the lock this request must not
-				// update the order. Leave the merchant a link so the payment is not lost from view.
-				if ( ! $is_authentication_required ) {
-					$renewal_order->add_order_note( $this->get_renewal_payment_not_recorded_note( $response ) );
-				}
-
-				throw new WC_Stripe_Exception(
-					"Stripe: subscription renewal order {$order_id} response was not processed because its payment lock could not be renewed.", // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-					__( 'The Stripe renewal response could not be processed because its payment lock could not be renewed.', 'woocommerce-gateway-stripe' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-				);
+				// Without the lock this request must not update the order. It must not fire the payment
+				// error hook either: Stripe may well have taken the payment. Leave the merchant a link.
+				WC_Stripe_Logger::error( "Stripe: subscription renewal order {$order_id} response was not processed because its payment lock could not be renewed." );
+				$renewal_order->add_order_note( $this->get_renewal_payment_not_recorded_note( $is_authentication_required ? ( $response->error->payment_intent ?? null ) : $response ) );
+				return;
 			}
 
 			$acquired_lock = $renewed_lock;
