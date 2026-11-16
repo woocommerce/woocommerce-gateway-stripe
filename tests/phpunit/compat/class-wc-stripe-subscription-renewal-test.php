@@ -1229,22 +1229,21 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	/**
 	 * Simulates another worker taking over the order's payment lock.
 	 *
-	 * @param WC_Order $renewal_order     The renewal order.
-	 * @param string   $replacement_lock  Lock value the other worker writes.
-	 * @param bool     $replace_owner_row Whether the other worker also takes the owner row.
+	 * The owner row decides who holds the lock, so a takeover moves the row; the meta copy follows.
+	 *
+	 * @param WC_Order $renewal_order    The renewal order.
+	 * @param string   $replacement_lock Lock value the other worker writes.
 	 */
-	private function replace_payment_lock( WC_Order $renewal_order, string $replacement_lock, bool $replace_owner_row ): void {
-		if ( $replace_owner_row ) {
-			global $wpdb;
-			$wpdb->query(
-				$wpdb->prepare(
-					'UPDATE %i SET option_value = %s WHERE option_name = %s',
-					$wpdb->options,
-					$replacement_lock,
-					'wc_stripe_payment_lock_owner_' . $renewal_order->get_id()
-				)
-			);
-		}
+	private function replace_payment_lock( WC_Order $renewal_order, string $replacement_lock ): void {
+		global $wpdb;
+		$wpdb->query(
+			$wpdb->prepare(
+				'UPDATE %i SET option_value = %s WHERE option_name = %s',
+				$wpdb->options,
+				$replacement_lock,
+				'wc_stripe_payment_lock_owner_' . $renewal_order->get_id()
+			)
+		);
 
 		// Write as another worker would.
 		$replacement_writer = wc_get_order( $renewal_order->get_id() );
@@ -1505,7 +1504,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->mock_prepared_card_source();
 
 		$use_default_source_filter = function ( $use_default_source ) use ( $renewal_order, $replacement_lock ) {
-			$this->replace_payment_lock( $renewal_order, $replacement_lock, false );
+			$this->replace_payment_lock( $renewal_order, $replacement_lock );
 
 			return $use_default_source;
 		};
@@ -1558,7 +1557,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			}
 
 			++$request_count;
-			$this->replace_payment_lock( $renewal_order, $replacement_lock, true );
+			$this->replace_payment_lock( $renewal_order, $replacement_lock );
 
 			return $this->build_mock_response( file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_success.json' ) );
 		};
@@ -1616,7 +1615,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 			++$request_count;
 			if ( $replace_during_request ) {
-				$this->replace_payment_lock( $renewal_order, $replacement_lock, false );
+				$this->replace_payment_lock( $renewal_order, $replacement_lock );
 			}
 
 			return $this->build_mock_response(
@@ -1633,7 +1632,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$error_hook                         = function () use ( &$error_hook_count, $replace_during_request, $renewal_order, $replacement_lock ) {
 			++$error_hook_count;
 			if ( ! $replace_during_request ) {
-				$this->replace_payment_lock( $renewal_order, $replacement_lock, false );
+				$this->replace_payment_lock( $renewal_order, $replacement_lock );
 			}
 		};
 
@@ -1739,7 +1738,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 			if ( str_starts_with( $url, 'https://api.stripe.com/v1/charges/' ) ) {
 				++$request_count;
-				$this->replace_payment_lock( $renewal_order, $replacement_lock, false );
+				$this->replace_payment_lock( $renewal_order, $replacement_lock );
 
 				return $this->build_mock_response( file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_charge_radar_blocked.json' ) );
 			}
