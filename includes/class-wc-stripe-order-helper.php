@@ -874,18 +874,6 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
-	 * Gets the Stripe refund status for an order.
-	 *
-	 * @since x.x.x
-	 *
-	 * @param WC_Order|null $order
-	 * @return false|string|null
-	 */
-	public function get_stripe_refund_status( ?WC_Order $order = null ) {
-		return $this->get_order_meta( $order, self::META_STRIPE_REFUND_STATUS );
-	}
-
-	/**
 	 * Updates the Stripe refund status for an order.
 	 *
 	 * @since 10.1.0
