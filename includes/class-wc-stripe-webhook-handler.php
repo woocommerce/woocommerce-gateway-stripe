@@ -1058,7 +1058,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$order->save();
 			}
 
-			$refund_id        = $order_helper->get_stripe_refund_id( $order );
+			$latest_refund_id = $order_helper->get_stripe_refund_id( $order );
 			$stripe_refund_id = $refund_object->id;
 			$currency         = $order->get_currency();
 			$raw_amount       = $refund_object->amount;
@@ -1084,7 +1084,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			// Stripe delivers events at least once, and the parent meta only tracks the latest refund.
 			// Checked before locking so a skipped duplicate never blocks the next refund event.
-			if ( $stripe_refund_id === $refund_id || $order_helper->get_refund_by_stripe_refund_id( $order, $stripe_refund_id ) ) {
+			if ( $stripe_refund_id === $latest_refund_id || $order_helper->get_refund_by_stripe_refund_id( $order, $stripe_refund_id ) ) {
 				return;
 			}
 
