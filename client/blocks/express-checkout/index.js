@@ -10,7 +10,10 @@ import {
 } from './express-button-previews';
 import { loadStripe } from 'wcstripe/blocks/load-stripe';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
-import { checkPaymentMethodIsAvailable } from 'wcstripe/express-checkout/utils/check-payment-method-availability';
+import {
+	checkPaymentMethodIsAvailable,
+	preloadPaymentMethodAvailability,
+} from 'wcstripe/express-checkout/utils/check-payment-method-availability';
 import {
 	EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
 	EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
@@ -83,6 +86,11 @@ const expressCheckoutElement = ( expressPaymentMethod, api ) => {
 		/>
 	);
 	const edit = getEditorElement( expressPaymentMethod );
+	// Eligibility can run before Blocks has hydrated the cart, using server totals.
+	// eslint-disable-next-line camelcase
+	if ( typeof wc_stripe_express_checkout_params !== 'undefined' ) {
+		preloadPaymentMethodAvailability( api );
+	}
 	const canMakePayment = ( { cart } ) => {
 		// eslint-disable-next-line camelcase
 		if ( typeof wc_stripe_express_checkout_params === 'undefined' ) {

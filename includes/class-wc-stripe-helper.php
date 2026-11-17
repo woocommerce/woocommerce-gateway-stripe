@@ -62,7 +62,7 @@ class WC_Stripe_Helper {
 	/**
 	 * Returns the Stripe.js version this plugin ships, for example 'dahlia'.
 	 *
-	 * @since x.x.x
+	 * @since 11.2.0
 	 *
 	 * @return string
 	 */
@@ -178,6 +178,19 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Masks an API key or webhook secret so that it can be sent to the client.
+	 * Only the first ten and the last two characters stay visible.
+	 *
+	 * @since 11.2.0
+	 *
+	 * @param string $value The key or secret.
+	 * @return string
+	 */
+	public static function mask_key_value( $value ): string {
+		return substr( $value, 0, 10 ) . str_repeat( '*', 50 ) . substr( $value, -2 );
+	}
+
+	/**
 	 * Delete the main Stripe settings option.
 	 *
 	 * @return void
@@ -192,7 +205,8 @@ class WC_Stripe_Helper {
 	 * @param float  $total Amount due.
 	 * @param string $currency Accepted currency.
 	 *
-	 * @return float|int
+	 * @return int
+	 * @throws WC_Stripe_Exception If the amount exceeds Stripe's maximum or PHP's integer limit.
 	 */
 	public static function get_stripe_amount( $total, $currency = '' ) {
 		if ( ! $currency ) {
@@ -202,15 +216,38 @@ class WC_Stripe_Helper {
 		$currency = strtoupper( $currency );
 
 		if ( in_array( $currency, WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES, true ) ) {
-			return absint( $total );
+			return self::to_stripe_integer( $total );
 		} elseif ( in_array( $currency, WC_Stripe_Currency_Code::THREE_DECIMAL_CURRENCY_CODES, true ) ) {
 			$price_decimals = wc_get_price_decimals();
-			$amount         = absint( wc_format_decimal( ( (float) $total * 1000 ), $price_decimals ) ); // For tree decimal currencies.
+			$amount         = self::to_stripe_integer( wc_format_decimal( ( (float) $total * 1000 ), $price_decimals ) );
 			return $amount - ( $amount % 10 ); // Round the last digit down. See https://docs.stripe.com/currencies?presentment-currency=AE#three-decimal
 		} else {
 			// Round to nearest cent to handle values with 3+ decimal precision (e.g., shipping rates from carriers like UPS).
-			return absint( round( wc_format_decimal( ( (float) $total * 100 ), wc_get_price_decimals() ) ) );
+			return self::to_stripe_integer( round( wc_format_decimal( ( (float) $total * 100 ), wc_get_price_decimals() ) ) );
 		}
+	}
+
+	/**
+	 * Reject unsupported amounts before integer conversion can wrap to a smaller payment.
+	 *
+	 * @since 11.2.0
+	 * @param float|int|string $amount Amount in the currency's smallest unit.
+	 * @return int
+	 * @throws WC_Stripe_Exception If the amount exceeds Stripe's maximum or PHP's integer limit.
+	 */
+	private static function to_stripe_integer( $amount ): int {
+		$amount = abs( (float) $amount );
+
+		// Stripe supports at most 12 digits in minor units; 32-bit PHP has a smaller limit.
+		// https://docs.stripe.com/currencies#maximum-charge-amounts
+		if ( $amount > min( 999999999999, PHP_INT_MAX ) ) {
+			throw new WC_Stripe_Exception(
+				'Amount exceeds the supported payment range.',
+				__( 'The amount is too large to process with this payment method.', 'woocommerce-gateway-stripe' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			);
+		}
+
+		return (int) $amount;
 	}
 
 	/**
@@ -1368,7 +1405,7 @@ class WC_Stripe_Helper {
 	 * without a merchant action. Merchant changes in the settings are tracked separately.
 	 *
 	 * @internal
-	 * @since x.x.x
+	 * @since 11.2.0
 	 *
 	 * @param string      $source         The flow that made the decision, e.g. 'connect' or 'ocs_ap_default_on'.
 	 * @param string|null $skipped_reason Why Adaptive Pricing was left off, or null when it was turned on.
@@ -1380,6 +1417,8 @@ class WC_Stripe_Helper {
 		}
 
 		$properties = [
+			// Note that the default event property is `is_test_mode`, but `test_mode` is
+			// needed for backwards compatibility.
 			'test_mode' => WC_Stripe_Mode::is_test() ? 1 : 0,
 			'source'    => $source,
 		];
@@ -1390,7 +1429,7 @@ class WC_Stripe_Helper {
 
 		wc_admin_record_tracks_event(
 			null === $skipped_reason ? 'wcstripe_ap_default_enabled' : 'wcstripe_ap_default_skipped',
-			$properties
+			WC_Stripe_Tracks::add_default_event_properties( $properties )
 		);
 	}
 

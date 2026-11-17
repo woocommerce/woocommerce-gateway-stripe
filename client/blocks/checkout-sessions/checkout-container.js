@@ -16,8 +16,17 @@ const stripePromise = loadStripe();
  * @return {JSX.Element} The Checkout Sessions Container component.
  */
 export const CheckoutContainer = ( props ) => {
-	const { setPaymentProcessorLoadErrorMessage, setShouldLoadStripeElements } =
-		props;
+	const {
+		cartData,
+		setPaymentProcessorLoadErrorMessage,
+		setShouldLoadStripeElements,
+	} = props;
+
+	// The session the provider is currently bound to; null until the initial sync settles.
+	// Held in state so the replacement check re-runs once it settles, in case a newer
+	// session reached the cart while the initial sync was still in flight.
+	const [ mountedSessionId, setMountedSessionId ] = useState( null );
+	const [ replacementSession, setReplacementSession ] = useState( null );
 
 	// Create a promise wrapper for the client secret during render,
 	// but use an effect to ensure that we correctly make API calls
@@ -35,6 +44,7 @@ export const CheckoutContainer = ( props ) => {
 
 		const synchronize = async () => {
 			let clientSecret = null;
+			let sessionId = null;
 			let error = null;
 
 			try {
@@ -48,6 +58,9 @@ export const CheckoutContainer = ( props ) => {
 					sessionData?.status === 'success'
 						? sessionData?.client_secret
 						: null;
+				sessionId = clientSecret
+					? sessionData?.session_id ?? null
+					: null;
 			} catch ( e ) {
 				error = e;
 			}
@@ -67,6 +80,7 @@ export const CheckoutContainer = ( props ) => {
 				);
 			}
 			checkoutSessionDeferred.resolve( clientSecret );
+			setMountedSessionId( sessionId );
 		};
 
 		synchronize();
@@ -76,13 +90,46 @@ export const CheckoutContainer = ( props ) => {
 		};
 	}, [ checkoutSessionDeferred, setShouldLoadStripeElements ] );
 
+	const embeddedSession =
+		cartData?.extensions?.[ 'wc-stripe/checkout-session' ];
+	const embeddedSessionId =
+		embeddedSession?.status === 'success'
+			? embeddedSession?.session_id
+			: null;
+	const embeddedClientSecret =
+		embeddedSession?.status === 'success'
+			? embeddedSession?.client_secret
+			: null;
+
+	// The server replaces the session when it can't be updated in place (e.g. a billing
+	// country change altered the excluded payment methods, which Stripe only accepts at
+	// creation). The provider can't switch client secrets, so it is remounted on the new one.
+	useEffect( () => {
+		if (
+			! mountedSessionId ||
+			! embeddedSessionId ||
+			! embeddedClientSecret ||
+			embeddedSessionId === mountedSessionId
+		) {
+			return;
+		}
+
+		setMountedSessionId( embeddedSessionId );
+		setReplacementSession( {
+			id: embeddedSessionId,
+			clientSecret: embeddedClientSecret,
+		} );
+	}, [ mountedSessionId, embeddedSessionId, embeddedClientSecret ] );
+
 	// Render an editor-safe appearance in the block editor preview, where the
 	// checkout DOM does not reflect the live storefront. See STRIPE-1061.
 	const isEditor = getBlocksConfiguration()?.isAdmin ?? false;
 
 	const providerOptions = useMemo(
 		() => ( {
-			clientSecret: checkoutSessionDeferred.promise,
+			clientSecret:
+				replacementSession?.clientSecret ??
+				checkoutSessionDeferred.promise,
 			adaptivePricing: { allowed: true },
 			elementsOptions: {
 				appearance: initializeUPEAppearance( 'true', false, isEditor ),
@@ -95,11 +142,12 @@ export const CheckoutContainer = ( props ) => {
 				},
 			},
 		} ),
-		[ checkoutSessionDeferred, isEditor ]
+		[ checkoutSessionDeferred, isEditor, replacementSession ]
 	);
 
 	return (
 		<CheckoutElementsProvider
+			key={ replacementSession?.id ?? 'initial' }
 			stripe={ stripePromise }
 			options={ providerOptions }
 		>

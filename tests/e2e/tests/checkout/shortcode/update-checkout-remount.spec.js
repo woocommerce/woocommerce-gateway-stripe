@@ -8,6 +8,7 @@ const {
 	setupShortcodeCheckout,
 	fillCreditCardDetailsShortcode,
 	waitForStripeReady,
+	waitForOrderReceivedPage,
 } = payments;
 
 const UPE_IFRAME_SELECTOR =
@@ -51,8 +52,5 @@ test( 'completes a classic checkout order submitted during a checkout re-render'
 		window.jQuery( document.body ).trigger( 'update_checkout' );
 	} );
 
-	await page.waitForURL( /order-received/, { timeout: 30000 } );
-	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-		'Order received'
-	);
+	await waitForOrderReceivedPage( page );
 } );

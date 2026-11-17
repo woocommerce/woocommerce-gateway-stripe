@@ -138,12 +138,32 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	protected $resolved_order = null;
 
 	/**
+	 * Tracks events, so the same event is not processed twice.
+	 *
+	 * @var WC_Stripe_Event_Reconciler|null
+	 */
+	private $event_reconciler;
+
+	/**
+	 * How processing of the current event ended, one of the WC_Stripe_Event_Reconciler::OUTCOME_* constants.
+	 *
+	 * @var string
+	 */
+	private $event_outcome = WC_Stripe_Event_Reconciler::OUTCOME_COMPLETED;
+
+	/**
 	 * Constructor.
 	 *
 	 * @since 4.0.0
+	 * @since x.x.x Added the $event_reconciler parameter.
 	 * @version 5.0.0
+	 *
+	 * @param WC_Stripe_Event_Reconciler|null $event_reconciler Event reconciler. Defaults to a new instance.
+	 *                                                         Internal, subject to change without notice between releases.
 	 */
-	public function __construct() {
+	public function __construct( ?WC_Stripe_Event_Reconciler $event_reconciler = null ) {
+		$this->event_reconciler = $event_reconciler;
+
 		$this->retry_interval = 2;
 		$stripe_settings      = WC_Stripe_Helper::get_stripe_settings();
 		$this->testmode       = WC_Stripe_Mode::is_test();
@@ -263,7 +283,27 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		WC_Stripe_Webhook_State::set_pending_webhooks_count( $event->pending_webhooks ?? 0 );
 
 		WC_Stripe_Logger::debug( 'Webhook received (' . $event_type . ')', [ 'event' => $event ] );
-		$this->process_webhook( $request_body );
+
+		$claim = $this->get_event_reconciler()->claim( $event );
+
+		if ( WC_Stripe_Event_Reconciler::CLAIM_LOCKED === $claim ) {
+			WC_Stripe_Logger::debug( 'Webhook postponed: the event is already being processed (' . $event_type . ')', [ 'event_id' => $event->id ?? null ] );
+
+			// A non-2xx status makes Stripe deliver the event again later, when it is either processed or free to retry.
+			status_header( 409 );
+			exit;
+		}
+
+		try {
+			if ( WC_Stripe_Event_Reconciler::CLAIM_ACQUIRED === $claim ) {
+				$this->process_webhook( $request_body );
+			} else {
+				WC_Stripe_Logger::debug( 'Webhook skipped: the event was already processed (' . $event_type . ')', [ 'event_id' => $event->id ?? null ] );
+			}
+		} finally {
+			$this->get_event_reconciler()->release( $event );
+		}
+
 		WC_Stripe_Webhook_State::set_last_webhook_success_at( $event->created );
 		status_header( 200 );
 		exit;
@@ -1442,6 +1482,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			// Asynchronous payment methods such as bank debits will only provide a charge ID at `payment_intent.processing`, once the required actions are taken by the customer.
 			// We need to update the order transaction ID, so that the `payment_intent.succeeded` webhook is able to process the order.
 			case 'payment_intent.processing':
+				if ( ! $order_helper->validate_successful_intent_or_hold_order( $order, $intent ) ) {
+					break;
+				}
+
 				$charge = $this->get_latest_charge_from_intent( $intent );
 				if ( $charge ) {
 					$order->set_transaction_id( $charge->id );
@@ -1486,28 +1530,44 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 				// Process the webhook now if it's for a voucher, wallet, or BLIK payment, or if filtered to process immediately and order is not awaiting action.
 				if ( $is_voucher_payment || $is_wallet_payment || $is_blik_payment || ( ! $process_webhook_async && ! $is_awaiting_action ) ) {
+					if ( ! $order_helper->validate_successful_intent_or_hold_order( $order, $intent ) ) {
+						break;
+					}
+
 					$charge = $this->get_latest_charge_from_intent( $intent );
+
+					// Confirm the intent settled for the order's amount before recording payment.
+					// Checked ahead of the pre-order branch so a charged-upfront pre-order whose
+					// total drifted above the charge is held, not marked paid. The check holds the
+					// order on a mismatch.
+					if ( $this->maybe_hold_order_for_amount_mismatch( $order, $intent ) ) {
+						$this->run_webhook_received_action( (string) $notification->type, $notification );
+						break;
+					}
 
 					if ( $this->maybe_mark_order_as_pre_ordered( $order, $charge ) ) {
 						$this->run_webhook_received_action( (string) $notification->type, $notification );
 						break;
 					}
 
-					/**
-					 * Fires after a webhook charge is processed.
-					 * Deprecated in favor of wc_gateway_stripe_process_payment_charge.
-					 *
-					 * @deprecated 9.7.0
-					 * @param object   $charge The charge object.
-					 * @param WC_Order $order  The order object.
-					*/
-					do_action_deprecated(
-						'wc_gateway_stripe_process_payment',
-						[ $charge, $order ],
-						'9.7.0',
-						'wc_gateway_stripe_process_payment_charge',
-						'The wc_gateway_stripe_process_payment action is deprecated. Use wc_gateway_stripe_process_payment_charge instead.'
-					);
+					// Legacy callbacks run before process_response() can reject reversed charges.
+					if ( ! $this->is_charge_refunded_or_disputed( $charge ) ) {
+						/**
+						 * Fires after a webhook charge is processed.
+						 * Deprecated in favor of wc_gateway_stripe_process_payment_charge.
+						 *
+						 * @deprecated 9.7.0
+						 * @param object   $charge The charge object.
+						 * @param WC_Order $order  The order object.
+						 */
+						do_action_deprecated(
+							'wc_gateway_stripe_process_payment',
+							[ $charge, $order ],
+							'9.7.0',
+							'wc_gateway_stripe_process_payment_charge',
+							'The wc_gateway_stripe_process_payment action is deprecated. Use wc_gateway_stripe_process_payment_charge instead.'
+						);
+					}
 
 					$charge->is_webhook_response = true;
 					$this->process_response( $charge, $order );
@@ -1695,6 +1755,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param int|null $delay                Seconds to wait before retrying. Defaults to $deferred_webhook_delay.
 	 */
 	protected function defer_webhook_processing( $webhook_notification, $additional_data, $delay = null ) {
+		$this->event_outcome = WC_Stripe_Event_Reconciler::OUTCOME_DEFERRED;
+
 		$delay = null === $delay ? $this->deferred_webhook_delay : $delay;
 		$this->action_scheduler_service->schedule_job(
 			time() + $delay,
@@ -1705,6 +1767,32 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				'notification' => $webhook_notification,
 			]
 		);
+	}
+
+	/**
+	 * Returns the event reconciler, creating it when the constructor did not.
+	 *
+	 * Subclasses that override the constructor without calling it would otherwise fatal on every webhook.
+	 *
+	 * @return WC_Stripe_Event_Reconciler
+	 */
+	private function get_event_reconciler(): WC_Stripe_Event_Reconciler {
+		if ( null === $this->event_reconciler ) {
+			$this->event_reconciler = new WC_Stripe_Event_Reconciler();
+		}
+
+		return $this->event_reconciler;
+	}
+
+	/**
+	 * How processing of the current event ended so far.
+	 *
+	 * Static analysis would otherwise treat the property as unchanged after the reset, since only methods called in between set it.
+	 *
+	 * @return string One of the WC_Stripe_Event_Reconciler::OUTCOME_* constants.
+	 */
+	private function get_event_outcome(): string {
+		return $this->event_outcome;
 	}
 
 	/**
@@ -1749,6 +1837,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param array|object|null $notification  The webhook notification payload (arrays after AS deserialization).
 	 */
 	public function process_deferred_webhook( $webhook_type, $additional_data, $notification = null ) {
+		$this->resolved_order = null;
+		$this->event_outcome  = WC_Stripe_Event_Reconciler::OUTCOME_COMPLETED;
+
 		try {
 			if ( null === $notification ) {
 				throw new Exception( 'Missing deferred webhook notification.' );
@@ -1763,6 +1854,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					$intent_id = $additional_data['intent_id'] ?? '';
 
 					if ( ! $order instanceof \WC_Order ) {
+						// Retrying cannot bring back a deleted order.
+						$this->event_outcome = WC_Stripe_Event_Reconciler::OUTCOME_FAILED;
 						throw new Exception( "Missing required data. 'order_id' is invalid or not found for the deferred '{$webhook_type}' event." );
 					}
 
@@ -1770,6 +1863,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					$this->resolved_order = $order;
 
 					if ( empty( $intent_id ) ) {
+						$this->event_outcome = WC_Stripe_Event_Reconciler::OUTCOME_FAILED;
 						throw new Exception( "Missing required data. 'intent_id' is missing for the deferred '{$webhook_type}' event." );
 					}
 
@@ -1781,6 +1875,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					/** This filter is documented in includes/class-wc-stripe-webhook-handler.php. */
 					if ( ! $order_cancelled && ! $order->has_status( apply_filters( 'wc_stripe_allowed_payment_processing_statuses', [ OrderStatus::PENDING, OrderStatus::FAILED ], $order ) ) ) {
 						WC_Stripe_Logger::debug( "Skipped processing deferred webhook for Stripe PaymentIntent {$intent_id} for order {$order->get_id()} - payment already complete." );
+						// Returns before the event is marked at the end.
+						$this->get_event_reconciler()->record_outcome( WC_Stripe_Event_Reconciler::OUTCOME_COMPLETED, $notification, $order );
 						return;
 					}
 
@@ -1838,12 +1934,18 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					}
 					break;
 				default:
+					$this->event_outcome = WC_Stripe_Event_Reconciler::OUTCOME_FAILED;
 					throw new Exception( "Unsupported webhook type: {$webhook_type}" );
 					break;
 			}
 
+			$this->get_event_reconciler()->record_outcome( $this->get_event_outcome(), $notification, $this->resolved_order );
 			$this->run_webhook_received_action( (string) $webhook_type, $notification );
 		} catch ( Exception $e ) {
+			// Other failures, such as a Stripe outage, may pass. The event stays processing, so the stuck-event sweep retries it.
+			if ( WC_Stripe_Event_Reconciler::OUTCOME_FAILED === $this->get_event_outcome() ) {
+				$this->get_event_reconciler()->record_outcome( WC_Stripe_Event_Reconciler::OUTCOME_FAILED, $notification, $this->resolved_order );
+			}
 			WC_Stripe_Logger::error(
 				'Error processing deferred webhook.',
 				[
@@ -1977,6 +2079,48 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Holds the order and returns true when the succeeded intent settled for a different amount.
+	 *
+	 * @param WC_Order $order  The order being settled.
+	 * @param object   $intent The succeeded PaymentIntent.
+	 * @return bool True when the order was held for an amount mismatch; false when settlement may proceed.
+	 */
+	private function maybe_hold_order_for_amount_mismatch( $order, $intent ): bool {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		if ( $order_helper->intent_amount_matches_order( $order, $intent ) ) {
+			return false;
+		}
+
+		$order_helper->hold_order_for_amount_mismatch( $order, $intent );
+		return true;
+	}
+
+	/**
+	 * Throws when the order stores an intent that Stripe did not return.
+	 *
+	 * The lookup returns false both when the order has no intent and when Stripe answers with an error,
+	 * such as a rate limit. Treating the error as "no intent" would end the deferred job normally, recording the event
+	 * as processed, so it would never be retried. Throwing leaves the event to the reconciler's retries instead.
+	 *
+	 * @param WC_Order     $order  The order.
+	 * @param object|false $intent What get_intent_from_order() returned for the order.
+	 * @throws WC_Stripe_Exception When the stored intent could not be retrieved.
+	 */
+	private function throw_if_stored_intent_unavailable( WC_Order $order, $intent ): void {
+		if ( $intent ) {
+			return;
+		}
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		if ( ! $order_helper->get_stripe_intent_id( $order ) && ! $order_helper->get_stripe_setup_intent_id( $order ) ) {
+			return;
+		}
+
+		throw new WC_Stripe_Exception( "Could not retrieve the intent stored on order {$order->get_id()} from Stripe." ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+	}
+
+	/**
 	 * Handles a deferred payment_intent.succeeded event.
 	 *
 	 * @param WC_Order $order     The order object.
@@ -1984,9 +2128,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	protected function handle_deferred_payment_intent_succeeded( $order, $intent_id ) {
 		$intent = $this->get_intent_from_order( $order );
+		$this->throw_if_stored_intent_unavailable( $order, $intent );
 
 		if ( ! $intent || $intent->id !== $intent_id ) {
 			WC_Stripe_Logger::debug( "Skipped processing deferred webhook for Stripe PaymentIntent {$intent_id} for order {$order->get_id()} - intent ID stored on order ({$intent->id}) doesn't match." );
+			return;
+		}
+
+		if ( ! WC_Stripe_Order_Helper::get_instance()->validate_successful_intent_or_hold_order( $order, $intent ) ) {
 			return;
 		}
 
@@ -1999,18 +2148,28 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		WC_Stripe_Logger::info( "Processing Stripe PaymentIntent {$intent_id} for order {$order->get_id()} via deferred webhook." );
 
+		// Confirm the intent settled for the order's amount before recording payment. Checked
+		// ahead of the pre-order branch so a charged-upfront pre-order whose total drifted above
+		// the charge is held, not marked paid. The check holds the order on a mismatch.
+		if ( $this->maybe_hold_order_for_amount_mismatch( $order, $intent ) ) {
+			return;
+		}
+
 		if ( $this->maybe_mark_order_as_pre_ordered( $order, $charge ) ) {
 			return;
 		}
 
-		/** This action is documented in includes/class-wc-stripe-webhook-handler.php. */
-		do_action_deprecated(
-			'wc_gateway_stripe_process_payment',
-			[ $charge, $order ],
-			'9.7.0',
-			'wc_gateway_stripe_process_payment_charge',
-			'The wc_gateway_stripe_process_payment action is deprecated. Use wc_gateway_stripe_process_payment_charge instead.'
-		);
+		// Legacy callbacks run before process_response() can reject reversed charges.
+		if ( ! $this->is_charge_refunded_or_disputed( $charge ) ) {
+			/** This action is documented in includes/class-wc-stripe-webhook-handler.php. */
+			do_action_deprecated(
+				'wc_gateway_stripe_process_payment',
+				[ $charge, $order ],
+				'9.7.0',
+				'wc_gateway_stripe_process_payment_charge',
+				'The wc_gateway_stripe_process_payment action is deprecated. Use wc_gateway_stripe_process_payment_charge instead.'
+			);
+		}
 
 		$charge->is_webhook_response = true;
 		$this->process_response( $charge, $order );
@@ -2029,6 +2188,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	protected function maybe_mark_order_as_pre_ordered( $order, $charge = null ): bool {
 		if ( ! $this->is_unreleased_charged_upfront_pre_order( $order ) ) {
+			return false;
+		}
+
+		// Let normal charge validation reject the payment before the pre-order lifecycle starts.
+		if ( $this->is_charge_refunded_or_disputed( $charge ) ) {
 			return false;
 		}
 
@@ -2097,6 +2261,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		$intent = $this->get_intent_from_order( $order );
+		$this->throw_if_stored_intent_unavailable( $order, $intent );
 
 		// Can't reverse without the order's own matching intent, so note it (with the id) for manual review.
 		if ( ! $intent || $intent->id !== $intent_id ) {
@@ -2890,6 +3055,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$notification = json_decode( $request_body );
 
 		$this->resolved_order = null;
+		$this->event_outcome  = WC_Stripe_Event_Reconciler::OUTCOME_COMPLETED;
 
 		switch ( $notification->type ) {
 			case 'account.updated':
@@ -2970,6 +3136,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			'payment_intent.succeeded',
 			'payment_intent.amount_capturable_updated',
 		];
+
+		// Not tied to the action below, which is skipped for some events that are not deferred, and which other callbacks can interrupt.
+		$this->get_event_reconciler()->record_outcome( $this->get_event_outcome(), $notification, $this->resolved_order );
+
 		if ( ( $checkout_session_deferred ?? false ) || ( $payment_intent_deferred ?? false ) || in_array( $notification->type, $always_deferred_types, true ) ) {
 			return;
 		}
@@ -3035,7 +3205,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 					/**
 					 * If the order has no intent ID stored, we may have failed to store it during the initial payment request.
-					 * Confirm that the signature matches the order, otherwise fall back to finding the order via the intent ID.
+					 * Confirm that the signature matches the order before trying the other order bindings below.
 					 */
 					if ( empty( $intent_id ) && $this->get_order_signature( $order ) === $signature ) {
 						return $order;
@@ -3047,7 +3217,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			if ( isset( $intent->metadata->order_id ) ) {
 				$order = wc_get_order( absint( $intent->metadata->order_id ) );
 
-				if ( $order instanceof WC_Order ) {
+				if ( $order instanceof WC_Order && $this->is_intent_for_order( $intent, $intent->metadata, $order ) ) {
 					return $order;
 				}
 				return false;
@@ -3061,7 +3231,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			if ( $order_id ) {
 				$order = wc_get_order( $order_id );
 
-				if ( $order instanceof WC_Order ) {
+				if ( $order instanceof WC_Order && $this->is_intent_for_order( $intent, $charge->metadata, $order ) ) {
 					return $order;
 				}
 			}
@@ -3070,6 +3240,52 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		// Fall back to finding the order via the intent ID.
 		return WC_Stripe_Helper::get_order_by_intent_id( $intent->id );
+	}
+
+	private function is_intent_for_order( object $intent, object $metadata, WC_Order $order ): bool {
+		$intent_id = WC_Stripe_Order_Helper::get_instance()->get_intent_id_from_order( $order );
+
+		if ( ! empty( $intent_id ) ) {
+			$matches = ( $intent->id ?? null ) === $intent_id;
+
+			if ( ! $matches ) {
+				WC_Stripe_Logger::warning(
+					'Webhook intent does not match the stored intent for the candidate order.',
+					[
+						'candidate_order_id' => $order->get_id(),
+						'webhook_intent_id'  => $intent->id ?? null,
+						'stored_intent_id'   => $intent_id,
+					]
+				);
+			}
+
+			return $matches;
+		}
+
+		if ( isset( $metadata->order_key ) ) {
+			return is_string( $metadata->order_key ) && '' !== $metadata->order_key && $order->key_is_valid( $metadata->order_key );
+		}
+
+		// Some Terminal clients omit the order key before the intent is saved locally.
+		// Only allow that legacy binding for card-present intents and this site's full URL,
+		// including its path: stores in a subdirectory network can share the same host.
+		// Mobile clients may use the home URL when WordPress lives in a separate directory.
+		$payment_method_types = $intent->payment_method_types ?? [];
+		$site_url             = $metadata->site_url ?? '';
+		if ( isset( $metadata->signature )
+			|| ! is_array( $payment_method_types )
+			|| empty( $payment_method_types )
+			|| array_diff( $payment_method_types, [ WC_Stripe_Payment_Methods::CARD_PRESENT ] )
+			|| ! is_string( $site_url )
+			|| '' === $site_url ) {
+			return false;
+		}
+
+		return in_array(
+			untrailingslashit( $site_url ),
+			[ untrailingslashit( get_site_url() ), untrailingslashit( home_url() ) ],
+			true
+		);
 	}
 
 	/**

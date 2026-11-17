@@ -74,7 +74,7 @@ final class WC_Stripe_Duplicate_Payment_Prevention {
 		/**
 		 * Filters how long a paid cart is protected against a duplicate charge.
 		 *
-		 * @since x.x.x
+		 * @since 11.2.0
 		 *
 		 * @param int $window Seconds. Return 0 to disable duplicate-charge prevention.
 		 */

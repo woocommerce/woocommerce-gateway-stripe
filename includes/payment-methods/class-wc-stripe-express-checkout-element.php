@@ -299,6 +299,27 @@ class WC_Stripe_Express_Checkout_Element {
 		if ( ! wp_script_is( 'wc_stripe_express_checkout', 'registered' ) ) {
 			$this->register_express_checkout_script();
 		}
+
+		try {
+			$data = $this->get_pay_for_order_params( $order );
+		} catch ( WC_Stripe_Exception $e ) {
+			// An order total Stripe cannot charge must not take the Pay for Order page down;
+			// the regular payment form still loads and rejects the payment on submit.
+			return;
+		}
+
+		wp_localize_script( 'wc_stripe_express_checkout', 'wcStripeExpressCheckoutPayForOrderParams', $data );
+	}
+
+	/**
+	 * Builds the Express Checkout parameters for the Pay for Order page.
+	 *
+	 * @since 11.2.0
+	 * @param WC_Order $order The order being paid.
+	 * @return array
+	 * @throws WC_Stripe_Exception If an order amount exceeds the supported range.
+	 */
+	private function get_pay_for_order_params( $order ) {
 		$currency = $order->get_currency();
 		$data     = [];
 		$items    = [];
@@ -404,7 +425,7 @@ class WC_Stripe_Express_Checkout_Element {
 			'pending' => true,
 		];
 
-		wp_localize_script( 'wc_stripe_express_checkout', 'wcStripeExpressCheckoutPayForOrderParams', $data );
+		return $data;
 	}
 
 	/**

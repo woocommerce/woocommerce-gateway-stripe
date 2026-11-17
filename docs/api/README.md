@@ -234,6 +234,9 @@ GET /wp-json/wc/v2/payment_gateways
 
 Using the latter will saves you from multiple HTTP requests. See [list all payment gateways](https://woocommerce.github.io/woocommerce-rest-api-docs/?shell#list-all-payment-gateways).
 
+The values of `secret_key`, `test_secret_key`, `webhook_secret` and `test_webhook_secret` are masked in the response:
+only the first ten and the last two characters are returned.
+
 ## Update Stripe Payment Gateway
 
 ### Capability required
@@ -439,3 +442,5 @@ curl -u consumer_key:consumer_secret -X PUT \
 If you need to update WooCommerce Stripe setting fields, you need to wrap it in `settings`
 property as shown in example request above. Fields for `title`, `description`,
 `enabled`, and `order` must be set in the top level object of JSON request body.
+
+A secret key or webhook secret that is sent back masked, as returned by the API, is left unchanged.

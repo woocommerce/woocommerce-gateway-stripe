@@ -233,7 +233,7 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 									'balance_transaction' => [
 										'id' => 'txn_12345',
 									],
-									'status'              => 'failed',
+									'status'              => false !== strpos( $url, '/capture' ) ? 'failed' : 'succeeded',
 								],
 							],
 						],
@@ -371,6 +371,38 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 		$error_data = json_decode( $response->get_data()['message'], true );
 		$this->assertEquals( 50, $error_data['minimum_amount'] );
 		$this->assertEquals( 'USD', $error_data['minimum_amount_currency'] );
+
+		remove_filter( 'pre_http_request', $test_request, 10, 3 );
+	}
+
+	/**
+	 * A malformed payment_intent_id is refused at argument validation (400), with no Stripe request.
+	 *
+	 * @return void
+	 */
+	public function test_capture_payment_rejects_malformed_payment_intent_id() {
+		wp_set_current_user( 1 );
+		$order = WC_Helper_Order::create_order();
+
+		$request_count = 0;
+		$test_request  = function () use ( &$request_count ) {
+			++$request_count;
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => '{}',
+			];
+		};
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$endpoint = self::ORDERS_REST_BASE . '/' . strval( $order->get_id() ) . '/capture_terminal_payment';
+		$request  = new WP_REST_Request( 'POST', $endpoint );
+		$request->set_param( 'payment_intent_id', '../coupons/STAFF-90-OFF#' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 400, $response->get_status() );
+		$this->assertEquals( 'rest_invalid_param', $response->get_data()['code'] );
+		$this->assertSame( 0, $request_count );
 
 		remove_filter( 'pre_http_request', $test_request, 10, 3 );
 	}

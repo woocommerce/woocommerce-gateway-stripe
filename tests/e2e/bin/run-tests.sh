@@ -66,4 +66,21 @@ if [[ "adaptive-pricing" == "$project" ]]; then
 	cli sh -c "mkdir -p /var/www/html/wp-content/mu-plugins && cp /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/env/mu-plugins/wc-stripe-e2e-location-simulation.php /var/www/html/wp-content/mu-plugins/"
 fi
 
+# The Link-off project runs against a second Stripe account. CI prepares the
+# site with that account's keys; a local Docker run switches to them here and
+# switches back afterwards.
+if [[ "optimized-checkout-link-off" == "$project" && -n "$STRIPE_PUB_KEY_LINK_OFF" ]]; then
+	restore_default_account() {
+		WP_PATH="${WP_PATH:-/var/www/html}" STRIPE_PUB_KEY="$STRIPE_PUB_KEY" STRIPE_SECRET_KEY="$STRIPE_SECRET_KEY" ./tests/e2e/bin/set-keys.sh
+		# The plugin caches account data and the payment method configuration
+		# per site, not per account, so the next run would read the Link-off
+		# account's data for up to 20 minutes.
+		cli wp eval 'WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache(); WC_Stripe::get_instance()->account->clear_cache();'
+	}
+	# Registered before the switch so a half-written key pair is restored too.
+	trap restore_default_account EXIT
+	echo "Switching to the Link-off Stripe account"
+	WP_PATH="${WP_PATH:-/var/www/html}" STRIPE_PUB_KEY="$STRIPE_PUB_KEY_LINK_OFF" STRIPE_SECRET_KEY="$STRIPE_SECRET_KEY_LINK_OFF" ./tests/e2e/bin/set-keys.sh
+fi
+
 cross-env $TEST_ENV playwright test --config=tests/e2e/config/playwright.config.js $TEST_ARGS ${project:+--project=$project}

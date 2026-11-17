@@ -274,13 +274,15 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return new WP_Error( 'invalid_credentials', 'Invalid credentials received from WooCommerce Connect server' );
 			}
 
-			$publishable_key                            = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-			$secret_key                                 = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-			$is_test                                    = 'live' !== $mode;
-			$prefix                                     = $is_test ? 'test_' : '';
-			$default_options                            = $this->get_default_stripe_config();
-			$current_options                            = WC_Stripe_Helper::get_stripe_settings();
-			$options                                    = array_merge( $default_options, is_array( $current_options ) ? $current_options : [] );
+			$publishable_key = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$secret_key      = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$is_test         = 'live' !== $mode;
+			$prefix          = $is_test ? 'test_' : '';
+			$current_options = WC_Stripe_Helper::get_stripe_settings();
+
+			// Installation saves settings before OAuth; stored keys in either mode, even expired ones, identify a reconnect.
+			$is_first_connection                        = ! $this->is_connected( 'live' ) && ! $this->is_connected( 'test' );
+			$options                                    = $is_first_connection ? array_merge( $this->get_default_stripe_config(), $current_options ) : $current_options;
 			$options['enabled']                         = 'yes';
 			$options['testmode']                        = $is_test ? 'yes' : 'no';
 			$options['upe_checkout_experience_enabled'] = $this->get_upe_checkout_experience_enabled();
@@ -288,7 +290,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$options[ $prefix . 'secret_key' ]          = $secret_key;
 			$options[ $prefix . 'connection_type' ]     = $type;
 			$options['pmc_enabled']                     = 'connect' === $type ? 'yes' : 'no'; // When not connected via Connect OAuth, the PMC is disabled.
-			$should_default_optimized_checkout_on       = get_option( 'wc_stripe_optimized_checkout_default_on' );
+			$should_default_optimized_checkout_on       = $is_first_connection && get_option( 'wc_stripe_optimized_checkout_default_on' );
 			// Clean up the option.
 			delete_option( 'wc_stripe_optimized_checkout_default_on' );
 			if ( 'app' === $type ) {
@@ -324,7 +326,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			$this->clear_caches_after_key_update();
 
-			if ( 'connect' === $type && $should_default_optimized_checkout_on ) {
+			if ( 'connect' === $type && $should_default_optimized_checkout_on && ! array_key_exists( 'optimized_checkout_element', $current_options ) ) {
 				$options['optimized_checkout_element'] = 'yes';
 				WC_Stripe_Helper::update_main_stripe_settings( $options );
 			}
@@ -386,7 +388,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// Default Adaptive Pricing on for first-time connections, now that webhooks have been
 			// configured above. AP requires a working webhook endpoint, so this decision must run after
 			// configure_webhooks()
-			if ( 'connect' === $type && $should_default_optimized_checkout_on ) {
+			if ( 'connect' === $type && $should_default_optimized_checkout_on && ! array_key_exists( 'adaptive_pricing', $current_options ) ) {
 				$ap_unavailable_reason = WC_Stripe_Helper::get_adaptive_pricing_account_unavailable_reason();
 				if ( null === $ap_unavailable_reason ) {
 					$settings                     = WC_Stripe_Helper::get_stripe_settings();
@@ -480,8 +482,8 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				}
 			}
 
-			$result['upe_checkout_experience_enabled']             = 'yes';
-			$result['upe_checkout_experience_accepted_payments'][] = WC_Stripe_Payment_Methods::LINK;
+			$result['upe_checkout_experience_enabled']           = 'yes';
+			$result['upe_checkout_experience_accepted_payments'] = [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ];
 
 			return $result;
 		}
@@ -548,18 +550,14 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * @param string          $mode            The connection mode. Either 'live' or 'test'.
 		 */
 		private function record_account_connect_tracks_event( $error_code, string $connection_type, string $mode ): void {
-			if ( ! class_exists( 'WC_Tracks' ) || ! method_exists( 'WC_Tracks', 'record_event' ) ) { // @phpstan-ignore function.alreadyNarrowedType (Defensive check to make sure the function is available in WooCommerce.)
-				return;
-			}
-
-			if ( ! class_exists( 'WC_Site_Tracking' ) || ! method_exists( WC_Site_Tracking::class, 'is_tracking_enabled' ) || ! WC_Site_Tracking::is_tracking_enabled() ) { // @phpstan-ignore function.alreadyNarrowedType (Defensive check to make sure the function is available in WooCommerce.)
+			if ( ! WC_Stripe_Tracks::is_tracking_enabled() ) {
 				return;
 			}
 
 			$event_props = [
-				'is_test_mode'    => 'live' !== $mode,
 				'connection_type' => $connection_type,
-				'stripe_version'  => WC_STRIPE_VERSION,
+				// Intentionally override `is_test_mode` based on $mode rather than on the current site mode.
+				'is_test_mode'    => 'live' !== $mode,
 			];
 
 			// Include the account ID if we have it, as some errors occur after the keys have been saved.
@@ -572,11 +570,13 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				$event_props['error_code'] = $error_code;
 			}
 
+			$event_props = WC_Stripe_Tracks::add_default_event_properties( $event_props );
+
 			$event_name = null === $error_code ? 'wcstripe_stripe_connected' : 'wcstripe_stripe_connect_error';
 
 			// We're recording this directly instead of queueing it because
 			// a queue wouldn't be processed due to the redirect that comes after.
-			WC_Tracks::record_event( $event_name, $event_props );
+			WC_Stripe_Tracks::record_direct_event( $event_name, $event_props );
 		}
 
 		/**
@@ -717,11 +717,15 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				'secretKey',
 				'testSecretKey',
 				'refreshToken',
+				'refresh_token',
+				'test_refresh_token',
 				'secret',
+				'client_secret',
 				'secret_key',
 				'test_secret_key',
 				'webhook_secret',
 				'test_webhook_secret',
+				'signing_secret',
 			];
 
 			if ( is_object( $data ) ) {

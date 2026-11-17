@@ -51,6 +51,9 @@ final class WC_Stripe_Option_Lock {
 		'wc_stripe_checkout_session_lock_',
 		'wc_stripe_user_customer_lock_',
 		'wc_stripe_checkout_charge_lock_',
+		'wc_stripe_event_lock_',
+		'wc_stripe_payment_method_lock_',
+		'wc_stripe_intent_lock_',
 	];
 
 	/**

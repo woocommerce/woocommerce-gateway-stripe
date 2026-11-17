@@ -45,7 +45,7 @@ class WC_Stripe_UPE_Payment_Gateway_GB_Test extends WC_Mock_Stripe_API_Unit_Test
 					'has_pre_order_charged_upon_release',
 					'has_pre_order',
 					'is_subscriptions_enabled',
-					'update_saved_payment_method',
+					'update_saved_payment_method_address',
 				]
 			)
 			->getMock();

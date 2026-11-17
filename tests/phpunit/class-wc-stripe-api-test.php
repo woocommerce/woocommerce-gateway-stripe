@@ -508,6 +508,113 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Logging must not expose credentials or change the response needed by the caller.
+	 *
+	 * @since x.x.x
+	 * @dataProvider provide_response_logging_cases
+	 */
+	public function test_response_logging_redacts_secrets( $api_method, $api, $with_headers, $status, $logging_mode = 'settings' ) {
+		$this->update_stripe_setting( 'logging', 'settings' === $logging_mode ? 'yes' : 'no' );
+		$logging_filter = function ( $can_log, $log_level, $calling_class, $calling_function ) use ( $api_method ) {
+			return 'debug' === $log_level && WC_Stripe_API::class === $calling_class && $api_method === $calling_function;
+		};
+		if ( 'filter' === $logging_mode ) {
+			add_filter( 'wc_stripe_logger_can_log', $logging_filter, 10, 4 );
+		}
+		if ( 'verbose' === $logging_mode ) {
+			add_filter( 'wc_stripe_is_verbose_debug_mode_enabled', '__return_true' );
+		}
+
+		$response_body    = (object) [
+			'id'            => 'resource_123',
+			'secret'        => 'whsec_example_webhook_signing_secret',
+			'client_secret' => 'pi_example_secret_for_confirmation',
+			'error'         => (object) [
+				'code'           => 'card_declined',
+				'type'           => 'card_error',
+				'message'        => 'Your card was declined.',
+				'payment_intent' => (object) [ 'client_secret' => 'pi_nested_secret_for_confirmation' ],
+			],
+			'data'          => [
+				(object) [ 'secret' => 'pst_example_terminal_token' ],
+				(object) [ 'client_secret' => null ],
+				(object) [ 'secret' => '' ],
+			],
+			'address'       => (object) [ 'state' => 'California' ],
+			'livemode'      => false,
+			'amount'        => 1000,
+		];
+		$http_response    = [
+			'headers'  => [ 'request-id' => 'req_example' ],
+			'body'     => wp_json_encode( $response_body ),
+			'response' => [ 'code' => $status ],
+		];
+		$http_filter      = function () use ( $http_response ) {
+			return $http_response;
+		};
+		$logged_responses = [];
+		$logger           = $this->createMock( WC_Logger::class );
+		$logger->method( 'debug' )->willReturnCallback(
+			function ( $message, $context ) use ( &$logged_responses ) {
+				if ( 0 === strpos( $message, 'Stripe API response:' ) ) {
+					$logged_responses[] = $context;
+				}
+			}
+		);
+		WC_Stripe_Logger::$logger = $logger;
+		add_filter( 'pre_http_request', $http_filter );
+		try {
+			$result = 'retrieve' === $api_method
+				? WC_Stripe_API::retrieve( $api )
+				: WC_Stripe_API::request( [], $api, 'POST', $with_headers );
+		} finally {
+			remove_filter( 'pre_http_request', $http_filter );
+			remove_filter( 'wc_stripe_logger_can_log', $logging_filter );
+			if ( 'verbose' === $logging_mode ) {
+				remove_filter( 'wc_stripe_is_verbose_debug_mode_enabled', '__return_true' );
+			}
+			WC_Stripe_Logger::$logger = null;
+		}
+
+		$this->assertEquals( $response_body, $with_headers ? $result['body'] : $result );
+		if ( $with_headers ) {
+			$this->assertSame( $http_response['headers'], $result['headers'] );
+		}
+		if ( 'disabled' === $logging_mode ) {
+			$this->assertCount( 0, $logged_responses );
+			return;
+		}
+		$this->assertCount( 1, $logged_responses );
+		$this->assertSame( 'req_example', $logged_responses[0]['stripe_request_id'] );
+
+		$expected_logged_body                  = json_decode( $http_response['body'], true );
+		$expected_logged_body['secret']        = 'whsec_ex...secret';
+		$expected_logged_body['client_secret'] = 'pi_examp...mation';
+		$expected_logged_body['error']['payment_intent']['client_secret'] = 'pi_neste...mation';
+		$expected_logged_body['data'][0]['secret']                        = 'pst_exam..._token';
+		$expected_logged_body['error']['code']                            = 'car...ned';
+		$expected_logged_body['address']['state']                         = 'Cal...nia';
+		$this->assertSame( $expected_logged_body, $logged_responses[0]['response'] );
+	}
+
+	public function provide_response_logging_cases() {
+		return [
+			'webhook creation'       => [ 'request', 'webhook_endpoints', false, 200 ],
+			'headers requested'      => [ 'request', 'webhook_endpoints', true, 200 ],
+			'terminal token'         => [ 'request', 'terminal/connection_tokens', false, 200 ],
+			'intent retrieval'       => [ 'retrieve', 'payment_intents/pi_example', false, 200 ],
+			'request error object'   => [ 'request', 'payment_intents', false, 402 ],
+			'retrieval error object' => [ 'retrieve', 'payment_intents/pi_example', false, 402 ],
+			'request logging off'    => [ 'request', 'webhook_endpoints', false, 200, 'disabled' ],
+			'retrieval logging off'  => [ 'retrieve', 'payment_intents/pi_example', false, 200, 'disabled' ],
+			'verbose request'        => [ 'request', 'webhook_endpoints', false, 200, 'verbose' ],
+			'verbose retrieval'      => [ 'retrieve', 'payment_intents/pi_example', false, 200, 'verbose' ],
+			'filtered request'       => [ 'request', 'webhook_endpoints', false, 200, 'filter' ],
+			'filtered retrieval'     => [ 'retrieve', 'payment_intents/pi_example', false, 200, 'filter' ],
+		];
+	}
+
+	/**
 	 * Test WC_Stripe_API::log_error_response() as called from WC_Stripe_API::request() and WC_Stripe_API::retrieve().
 	 *
 	 * @param array|WP_Error $response     The mock response.
