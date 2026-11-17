@@ -452,9 +452,6 @@ class WC_Stripe_Checkout_Session_Manager {
 		 * The WooCommerce Cart should also be fully-created by the time this code runs, though the total may
 		 * change later based on taxes, discounts, or shopper modifications to the cart.
 		 *
-		 * Saving a card for off-session use (setup_future_usage) needs the shopper's agreement to
-		 * future charges, which this filter does not collect.
-		 *
 		 * @see https://docs.stripe.com/api/checkout/sessions/create#create_checkout_session-payment_intent_data
 		 * @since x.x.x
 		 *
