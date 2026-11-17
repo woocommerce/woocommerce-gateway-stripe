@@ -205,6 +205,7 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 
 		$this->assertSame( [ $this->get_block_script_handle() ], $handles );
 		$this->assertContains( 'wc-stripe-checkout-settings', wp_scripts()->registered[ $this->get_block_script_handle() ]->deps );
+		$this->assertContains( 'jquery-blockui', wp_scripts()->registered[ $this->get_block_script_handle() ]->deps );
 		$this->assertNotContains( 'wc-stripe-upe-classic', wp_scripts()->registered[ $this->get_block_script_handle() ]->deps );
 		$this->assertTrue( wp_style_is( $this->get_block_style_handle(), 'registered' ) );
 		$this->assertFalse( wp_style_is( $this->get_block_style_handle(), 'enqueued' ) );

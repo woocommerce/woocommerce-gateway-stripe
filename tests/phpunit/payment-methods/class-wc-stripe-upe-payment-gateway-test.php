@@ -572,7 +572,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		// Determine the expected version without modifying any files: if the compiled asset file
 		// is present (i.e. a build has been run), mirror the same logic used in payment_scripts().
 		$expected_version      = WC_STRIPE_VERSION;
-		$expected_dependencies = [ 'stripe', 'wc-checkout', 'wc-stripe-checkout-settings' ];
+		$expected_dependencies = [ 'stripe', 'wc-checkout', 'jquery-blockui', 'wc-stripe-checkout-settings' ];
 		if ( file_exists( $asset_path ) ) {
 			$asset = require $asset_path;
 			if ( is_array( $asset ) ) {

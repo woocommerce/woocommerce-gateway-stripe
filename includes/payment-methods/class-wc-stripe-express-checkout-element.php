@@ -468,7 +468,7 @@ class WC_Stripe_Express_Checkout_Element {
 		wp_register_script(
 			'wc_stripe_express_checkout',
 			WC_STRIPE_PLUGIN_URL . '/build/express-checkout.js',
-			array_merge( [ 'jquery', 'stripe', 'wc-stripe-checkout-settings' ], $asset_data['dependencies'] ),
+			array_merge( [ 'jquery', 'stripe', 'jquery-blockui', 'wc-stripe-checkout-settings' ], $asset_data['dependencies'] ),
 			$asset_data['version'],
 			true
 		);

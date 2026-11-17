@@ -273,6 +273,7 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 		$this->assertSame( $expected, $actual );
 		if ( $expected ) {
 			$this->assertContains( 'wc-stripe-checkout-settings', wp_scripts()->registered['wc_stripe_express_checkout']->deps );
+			$this->assertContains( 'jquery-blockui', wp_scripts()->registered['wc_stripe_express_checkout']->deps );
 			$this->assertStringContainsString( 'var wc_stripe_express_checkout_params = ', wp_scripts()->get_data( 'wc-stripe-checkout-settings', 'data' ) );
 		}
 	}
