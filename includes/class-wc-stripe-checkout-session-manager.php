@@ -459,13 +459,21 @@ class WC_Stripe_Checkout_Session_Manager {
 		 * @since x.x.x
 		 *
 		 * @param array $payment_intent_data The payment_intent_data to be used when creating the Checkout Session.
-		 * @param array $context             Keys: is_save_payment_method_enabled (bool), false for guests.
+		 * @param array $context             {
+		 *     Read-only details about the session being created.
+		 *
+		 *     @type bool $is_shopper_logged_in Whether the session is created for a logged-in shopper. Such a session
+		 *                                      carries the shopper's Stripe customer and saved_payment_method_options;
+		 *                                      a guest's does not. A shopper who registers while checking out is still
+		 *                                      a guest here, yet the Stripe customer, with any card saved on it, is
+		 *                                      then linked to the new account.
+		 * }
 		 */
 		$payment_intent_data = apply_filters(
 			'wc_stripe_checkout_session_payment_intent_data',
 			[ 'metadata' => $filtered_metadata ],
 			// Read here, not passed in, so every caller of this public method reports the same state.
-			[ 'is_save_payment_method_enabled' => $this->can_enable_save_payment_method() ]
+			[ 'is_shopper_logged_in' => $this->can_enable_save_payment_method() ]
 		);
 
 		$final_intent_data = [ 'metadata' => $filtered_metadata ];
