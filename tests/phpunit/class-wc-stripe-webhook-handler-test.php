@@ -3646,7 +3646,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->create_refund_record( $order_id, 1.00 ); // Manual refund: newest record, no Stripe ID.
 		$order_helper->update_stripe_refund_id( $order, 're_failed' );
 		// The failure leaves a processing order's status as it is, so nothing but the handler's own
-		// save can store what the repeat is recognized by.
+		// save can store the failure reason.
 		$order->set_status( OrderStatus::PROCESSING );
 		$order->save();
 
@@ -3672,6 +3672,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			$this->get_refund_records_summary( $order_id )
 		);
 		$this->assertCount( 1, preg_grep( '/Refund failed for .* re_failed/', $this->get_order_note_contents( $order_id ) ) );
+		$this->assertSame( 'bank_account_rejected', $order_helper->get_stripe_refund_failure_reason( wc_get_order( $order_id ) ) );
 	}
 
 	/**
@@ -3709,15 +3710,50 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A refund record without its own Stripe refund ID (created before 10.9.0, or with an amount that
-	 * differed from the Stripe refund) can only be matched through the parent meta, which names the
-	 * order's latest refund. Its failure is reported once, and no record is removed on a guess.
-	 *
-	 * @param array $records Fixture refund records as `[ amount, stripe refund ID or null ]`.
-	 *
-	 * @dataProvider provide_test_process_webhook_refund_updated_for_a_record_without_a_stripe_refund_id
+	 * A repeat of the latest refund's event must stay a no-op after another refund on the order has
+	 * failed with a different status in between: the order keeps one refund status for all its
+	 * refunds, so it cannot tell which refund's failure was handled.
 	 */
-	public function test_process_webhook_refund_updated_for_a_record_without_a_stripe_refund_id( array $records ) {
+	public function test_process_webhook_refund_updated_ignores_a_repeat_after_another_refund_failed() {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order        = $this->create_captured_stripe_order( 'ch_123' );
+		$order_id     = $order->get_id();
+
+		$this->create_refund_record( $order_id, 6.00, 're_earlier' );
+		$this->create_refund_record( $order_id, 3.00, 're_latest' );
+		$order_helper->update_stripe_refund_id( $order, 're_latest' );
+		$order->save_meta_data();
+
+		$this->mock_webhook_handler
+			->expects( $this->exactly( 2 ) )
+			->method( 'send_failed_refund_emails' );
+		$this->mock_webhook_handler
+			->expects( $this->once() )
+			->method( 'update_fees' )
+			->with( $this->anything(), 'txn_latest' );
+
+		$latest_canceled = $this->get_refund_updated_notification( 're_latest', 'ch_123', 300, 'canceled' );
+		$latest_canceled->data->object->failure_balance_transaction = 'txn_latest';
+
+		$this->mock_webhook_handler->process_webhook_refund_updated( $latest_canceled );
+		$this->mock_webhook_handler->process_webhook_refund_updated( $this->get_refund_updated_notification( 're_earlier', 'ch_123', 600 ) );
+		$this->mock_webhook_handler->process_webhook_refund_updated( $latest_canceled );
+
+		$this->assertSame( [], $this->get_refund_records_summary( $order_id ) );
+		$this->assertCount( 1, preg_grep( '/Refund canceled for .* re_latest/', $this->get_order_note_contents( $order_id ) ) );
+	}
+
+	/**
+	 * A failure event is only acted on when a refund record carries its refund ID. Records created
+	 * before 10.9.0 carry none, and picking one by its position among the order's refunds would
+	 * remove a manual or paid out refund whenever the guess is wrong.
+	 *
+	 * @param array  $records         Fixture refund records as `[ amount, stripe refund ID or null ]`.
+	 * @param string $event_refund_id Stripe refund ID the event is for.
+	 *
+	 * @dataProvider provide_test_process_webhook_refund_updated_ignores_a_refund_no_record_carries
+	 */
+	public function test_process_webhook_refund_updated_ignores_a_refund_no_record_carries( array $records, string $event_refund_id ) {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$order        = $this->create_captured_stripe_order( 'ch_123' );
 		$order_id     = $order->get_id();
@@ -3731,55 +3767,44 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$records_before = $this->get_refund_records_summary( $order_id );
 
 		$this->mock_webhook_handler
-			->expects( $this->once() )
+			->expects( $this->never() )
 			->method( 'send_failed_refund_emails' );
+		$this->mock_webhook_handler
+			->expects( $this->never() )
+			->method( 'update_fees' );
 
-		$notification = $this->get_refund_updated_notification( 're_latest', 'ch_123', 400 );
-		$this->mock_webhook_handler->process_webhook_refund_updated( $notification );
+		$notification = $this->get_refund_updated_notification( $event_refund_id, 'ch_123', 400 );
+		$notification->data->object->failure_balance_transaction = 'txn_failure';
 		$this->mock_webhook_handler->process_webhook_refund_updated( $notification );
 
 		$this->assertSame( $records_before, $this->get_refund_records_summary( $order_id ) );
-		$this->assertCount( 1, preg_grep( '/Refund failed for .* re_latest/', $this->get_order_note_contents( $order_id ) ) );
-		$this->assertSame( 'bank_account_rejected', $order_helper->get_stripe_refund_failure_reason( wc_get_order( $order_id ) ) );
+		$this->assertSame( [], preg_grep( '/Refund failed for/', $this->get_order_note_contents( $order_id ) ) );
 	}
 
 	/**
-	 * Data provider for `test_process_webhook_refund_updated_for_a_record_without_a_stripe_refund_id`.
+	 * Data provider for `test_process_webhook_refund_updated_ignores_a_refund_no_record_carries`.
 	 *
 	 * @return array
 	 */
-	public function provide_test_process_webhook_refund_updated_for_a_record_without_a_stripe_refund_id(): array {
+	public function provide_test_process_webhook_refund_updated_ignores_a_refund_no_record_carries(): array {
 		return [
-			'sole refund on the order' => [
-				'records' => [ [ 4.00, null ] ],
+			'latest refund, sole record has no ID'       => [
+				'records'         => [ [ 4.00, null ] ],
+				'event_refund_id' => 're_latest',
 			],
-			'one of several refunds'   => [
-				'records' => [ [ 6.00, 're_paid_out' ], [ 4.00, null ] ],
+			'latest refund, next to a paid out refund'   => [
+				'records'         => [ [ 6.00, 're_paid_out' ], [ 4.00, null ] ],
+				'event_refund_id' => 're_latest',
+			],
+			'latest refund, order has no refund records' => [
+				'records'         => [],
+				'event_refund_id' => 're_latest',
+			],
+			'refund the order does not know'             => [
+				'records'         => [ [ 4.00, null ] ],
+				'event_refund_id' => 're_unknown',
 			],
 		];
-	}
-
-	/**
-	 * A failure event for a refund the order has no trace of (no record carries its ID and it is not
-	 * the order's latest refund) cannot be acted on, and must not touch the order's other refunds.
-	 */
-	public function test_process_webhook_refund_updated_ignores_a_refund_the_order_does_not_know() {
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
-		$order        = $this->create_captured_stripe_order( 'ch_123' );
-		$order_id     = $order->get_id();
-
-		$this->create_refund_record( $order_id, 4.00 );
-		$order_helper->update_stripe_refund_id( $order, 're_latest' );
-		$order->save_meta_data();
-
-		$this->mock_webhook_handler
-			->expects( $this->never() )
-			->method( 'send_failed_refund_emails' );
-
-		$this->mock_webhook_handler->process_webhook_refund_updated( $this->get_refund_updated_notification( 're_unknown', 'ch_123', 400 ) );
-
-		$this->assertSame( [ [ '', 4.00 ] ], $this->get_refund_records_summary( $order_id ) );
-		$this->assertSame( [], preg_grep( '/Refund failed for/', $this->get_order_note_contents( $order_id ) ) );
 	}
 
 	/**
