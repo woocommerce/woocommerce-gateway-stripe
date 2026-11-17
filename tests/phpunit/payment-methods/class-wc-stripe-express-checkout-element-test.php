@@ -279,6 +279,31 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Extensions can register the public ECE handle before Stripe registers its shared settings.
+	 *
+	 * @since x.x.x
+	 */
+	public function test_scripts_localizes_settings_with_preregistered_express_handle(): void {
+		$original_scripts = clone wp_scripts();
+		$custom_src       = 'https://example.com/custom-express-checkout.js';
+
+		try {
+			wp_deregister_script( 'wc-stripe-checkout-settings' );
+			wp_deregister_script( 'wc_stripe_express_checkout' );
+			wp_register_script( 'wc_stripe_express_checkout', $custom_src, [], '1.0', true );
+
+			$this->build_element_with_guards( true, true )->scripts();
+
+			$this->assertSame( $custom_src, wp_scripts()->registered['wc_stripe_express_checkout']->src );
+			$this->assertTrue( wp_script_is( 'wc-stripe-checkout-settings', 'registered' ) );
+			$this->assertTrue( wp_script_is( 'wc-stripe-checkout-settings', 'enqueued' ) );
+			$this->assertStringContainsString( 'var wc_stripe_express_checkout_params = ', wp_scripts()->get_data( 'wc-stripe-checkout-settings', 'data' ) );
+		} finally {
+			$GLOBALS['wp_scripts'] = $original_scripts;
+		}
+	}
+
+	/**
 	 * Provider for `test_scripts`.
 	 *
 	 * @return string[]

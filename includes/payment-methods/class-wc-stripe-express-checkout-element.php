@@ -608,6 +608,7 @@ class WC_Stripe_Express_Checkout_Element {
 			$asset_data['version']
 		);
 
+		WC_Stripe_Helper::register_checkout_settings_script();
 		wp_localize_script(
 			'wc-stripe-checkout-settings',
 			'wc_stripe_express_checkout_params',
