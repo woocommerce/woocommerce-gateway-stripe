@@ -8132,6 +8132,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			}
 			$gateway->payment_scripts();
 			$this->assertSame( $expected_classic, wp_script_is( 'wc-stripe-upe-classic', 'enqueued' ) );
+			foreach ( [ 'wc-stripe-upe-classic', 'stripelink_styles' ] as $handle ) {
+				$this->assertTrue( wp_style_is( $handle, 'registered' ) );
+				$this->assertSame( $expected_classic, wp_style_is( $handle, 'enqueued' ), $handle );
+			}
 			$this->assertTrue( wp_script_is( 'wc-stripe-checkout-settings', 'enqueued' ) );
 			$this->assertStringContainsString( '"locale":"fr"', wp_scripts()->get_data( 'wc-stripe-checkout-settings', 'data' ) );
 

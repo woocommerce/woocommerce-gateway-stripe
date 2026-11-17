@@ -552,14 +552,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$version
 		);
 
+		wp_register_style( 'stripelink_styles', plugins_url( 'assets/css/stripe-link.css', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION );
+
 		wp_enqueue_script( 'wc-stripe-checkout-settings' );
 		if ( WC_Stripe_Helper::should_load_classic_checkout_scripts() ) {
 			wp_enqueue_script( 'wc-stripe-upe-classic' );
+			wp_enqueue_style( 'wc-stripe-upe-classic' );
+			wp_enqueue_style( 'stripelink_styles' );
 		}
-		wp_enqueue_style( 'wc-stripe-upe-classic' );
-
-		wp_register_style( 'stripelink_styles', plugins_url( 'assets/css/stripe-link.css', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION );
-		wp_enqueue_style( 'stripelink_styles' );
 	}
 
 	/**
