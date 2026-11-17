@@ -707,7 +707,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			$settings = WC_Stripe_Helper::get_stripe_settings();
 			$this->assertSame( 'we_new', $settings[ $prefix . 'webhook_data' ]['id'] ?? null );
 			$this->assertSame( 'whsec_new', $settings[ $prefix . 'webhook_secret' ] );
-			$this->assertSame( $new_key, $settings[ $prefix . 'webhook_data' ]['secret'] );
+			$this->assertArrayNotHasKey( 'secret', $settings[ $prefix . 'webhook_data' ] );
 			$this->assertContains( [ 'POST', WC_Stripe_API::ENDPOINT . 'webhook_endpoints', $new_auth ], $requests );
 			if ( $expired_key ) {
 				$this->assertSame( [ 'GET', WC_Stripe_API::ENDPOINT . 'webhook_endpoints/we_old', $old_auth ], $requests[0] );

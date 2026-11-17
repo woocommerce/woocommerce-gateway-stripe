@@ -266,7 +266,6 @@ class WC_Stripe_Webhook_Settings {
 		$settings[ $webhook_data_setting ]   = [
 			'id'             => wc_clean( $response->id ),
 			'url'            => wc_clean( $response->url ),
-			'secret'         => WC_Stripe_API::get_secret_key(),
 			// Lets automatic setup distinguish a plugin-written secret from a manually pasted one.
 			'signing_secret' => wc_clean( $response->secret ),
 		];

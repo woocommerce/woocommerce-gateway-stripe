@@ -160,7 +160,6 @@ class WC_Stripe_Webhook_Settings_Test extends WP_UnitTestCase {
 				[
 					'id'             => 'we_new',
 					'url'            => WC_Stripe_Helper::get_webhook_url(),
-					'secret'         => 'sk_' . $mode . '_current',
 					'signing_secret' => 'whsec_new',
 				],
 				$stored[ $prefix . 'webhook_data' ]
