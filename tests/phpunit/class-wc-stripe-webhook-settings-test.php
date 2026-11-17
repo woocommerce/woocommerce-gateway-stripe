@@ -285,7 +285,7 @@ class WC_Stripe_Webhook_Settings_Test extends WP_UnitTestCase {
 			$this->assertNull( $result );
 			$this->assertSame( $settings, WC_Stripe_Helper::get_stripe_settings() );
 			$this->assertSame( 'unrecorded' === $configuration ? [] : [ 'GET' ], array_column( $this->requests, 'method' ) );
-			$this->assertSame( 'yes', get_option( WC_Stripe_Webhook_Settings::get_webhook_manual_secret_notice_option( $mode ) ) );
+			$this->assertSame( 'unrecorded' === $configuration ? false : 'yes', get_option( WC_Stripe_Webhook_Settings::get_webhook_manual_secret_notice_option( $mode ) ) );
 			$this->assertSame( 'missing' === $configuration ? 'yes' : false, get_option( WC_Stripe_Webhook_Settings::get_webhook_missing_notice_option( $mode ) ) );
 		}
 	}

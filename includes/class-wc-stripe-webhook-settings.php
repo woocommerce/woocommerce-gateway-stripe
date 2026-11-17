@@ -179,7 +179,10 @@ class WC_Stripe_Webhook_Settings {
 					|| ( isset( $webhook_data['signing_secret'] ) && $webhook_data['signing_secret'] !== $stored_secret )
 				);
 				if ( $secret_is_manual ) {
-					update_option( self::get_webhook_manual_secret_notice_option( $mode ), 'yes' );
+					// Unrecorded manual endpoints are not checked, so there is no confirmed mismatch to warn about.
+					if ( ! empty( $webhook_data['id'] ) ) {
+						update_option( self::get_webhook_manual_secret_notice_option( $mode ), 'yes' );
+					}
 					WC_Stripe_Logger::info( "Skipped automatic webhook reconfiguration for {$mode} mode: the stored signing secret was set manually." );
 					return null;
 				}
