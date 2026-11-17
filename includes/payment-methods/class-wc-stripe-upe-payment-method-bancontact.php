@@ -15,6 +15,11 @@ class WC_Stripe_UPE_Payment_Method_Bancontact extends WC_Stripe_UPE_Payment_Meth
 	public const STRIPE_ID = WC_Stripe_Payment_Methods::BANCONTACT;
 
 	/**
+	 * Refund window is 180 days.
+	 */
+	protected const REFUND_WINDOW_DATE_EXPRESSION = '+180 days';
+
+	/**
 	 * Stripe account countries where Bancontact is not supported.
 	 *
 	 * @var string[]
