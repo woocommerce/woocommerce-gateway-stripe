@@ -1869,8 +1869,9 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	 * @param string $expected_status      Expected renewal order status.
 	 * @param string $expected_transaction Expected transaction id.
 	 * @param string $expected_note        Text expected in an order note, or empty for none.
+	 * @param bool   $charge_lookup_fails  Whether Stripe fails to return the intent's charge.
 	 */
-	public function test_renewal_is_not_charged_again_when_its_saved_intent_took_the_payment( $intent_status, $expected_charges, $expected_status, $expected_transaction, $expected_note ) {
+	public function test_renewal_is_not_charged_again_when_its_saved_intent_took_the_payment( $intent_status, $expected_charges, $expected_status, $expected_transaction, $expected_note, $charge_lookup_fails = false ) {
 		$renewal_order = WC_Helper_Order::create_order();
 		$renewal_order->set_payment_method( 'stripe' );
 		$renewal_order->save();
@@ -1882,10 +1883,28 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$saved_intent           = json_decode( file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_success.json' ), true );
 		$saved_intent['status'] = $intent_status;
 		$new_charges            = 0;
+		if ( $charge_lookup_fails ) {
+			// Without embedded charges, the lookup has to fetch the charge from Stripe.
+			unset( $saved_intent['charges'] );
+			$saved_intent['latest_charge'] = 'ch_unreadable';
+		}
 
 		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $saved_intent, &$new_charges ) {
 			if ( 0 === strpos( $url, 'https://api.stripe.com/v1/payment_intents/pi_123abc' ) ) {
 				return $this->build_mock_response( wp_json_encode( $saved_intent ) );
+			}
+
+			if ( 0 === strpos( $url, 'https://api.stripe.com/v1/charges/ch_unreadable' ) ) {
+				return $this->build_mock_response(
+					wp_json_encode(
+						[
+							'error' => [
+								'type'    => 'api_error',
+								'message' => 'Temporary Stripe API error.',
+							],
+						]
+					)
+				);
 			}
 
 			if ( 'https://api.stripe.com/v1/payment_intents' !== $url ) {
@@ -1922,13 +1941,14 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	/**
 	 * Provides saved PaymentIntent statuses and how the renewal should treat them.
 	 *
-	 * @return array<string, array{string, int, string, string, string}>
+	 * @return array<string, array{0: string, 1: int, 2: string, 3: string, 4: string, 5?: bool}>
 	 */
 	public function provide_saved_renewal_intents(): array {
 		return [
-			'succeeded is recorded'        => [ WC_Stripe_Intent_Status::SUCCEEDED, 0, OrderStatus::PROCESSING, 'ch_123abc', 'recorded instead of charging the customer again' ],
-			'processing is left to Stripe' => [ WC_Stripe_Intent_Status::PROCESSING, 0, OrderStatus::PENDING, '', 'is still in progress in Stripe' ],
-			'failed intent is charged'     => [ WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD, 1, OrderStatus::PROCESSING, 'ch_123abc', '' ],
+			'unreadable charge is not charged' => [ WC_Stripe_Intent_Status::SUCCEEDED, 0, OrderStatus::PENDING, '', 'its details could not be read', true ],
+			'succeeded is recorded'            => [ WC_Stripe_Intent_Status::SUCCEEDED, 0, OrderStatus::PROCESSING, 'ch_123abc', 'recorded instead of charging the customer again' ],
+			'processing is left to Stripe'     => [ WC_Stripe_Intent_Status::PROCESSING, 0, OrderStatus::PENDING, '', 'is still in progress in Stripe' ],
+			'failed intent is charged'         => [ WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD, 1, OrderStatus::PROCESSING, 'ch_123abc', '' ],
 		];
 	}
 

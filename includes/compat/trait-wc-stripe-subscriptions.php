@@ -1933,8 +1933,15 @@ trait WC_Stripe_Subscriptions_Trait {
 			return false;
 		}
 
-		$charge = $this->get_latest_charge_from_intent( $existing_intent );
-		if ( ! is_object( $charge ) || 'charge' !== ( $charge->object ?? '' ) ) {
+		try {
+			$charge = $this->resolve_stripe_charge_object( $this->get_latest_charge_for_subscription_renewal( $existing_intent ) );
+		} catch ( WC_Stripe_Exception $charge_exception ) {
+			// The intent already succeeded, so a failed lookup must not lead to a second charge.
+			WC_Stripe_Logger::error( "Stripe: the charge lookup for the saved PaymentIntent {$intent_id} failed: " . $charge_exception->getLocalizedMessage() );
+			$charge = null;
+		}
+
+		if ( null === $charge ) {
 			$renewal_order->add_order_note(
 				sprintf(
 					/* translators: %s is a link to the payment in the Stripe dashboard. */
