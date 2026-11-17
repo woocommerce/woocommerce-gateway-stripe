@@ -324,8 +324,12 @@ final class WC_Stripe_Duplicate_Payment_Prevention {
 		// The order ID in the URL is guessable, so require the order key that the shopper's own
 		// order-received URL always carries; otherwise anyone could clear another shopper's record.
 		$order_key = isset( $_GET['key'] ) ? wc_clean( wp_unslash( $_GET['key'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$order     = wc_get_order( $order_id );
-		if ( $order instanceof WC_Order && is_string( $order_key ) && '' !== $order_key && $order->key_is_valid( $order_key ) ) {
+		if ( ! is_string( $order_key ) || '' === $order_key ) {
+			return;
+		}
+
+		$order = wc_get_order( $order_id );
+		if ( $order instanceof WC_Order && $order->key_is_valid( $order_key ) ) {
 			self::clear_paid_record( $order );
 		}
 	}

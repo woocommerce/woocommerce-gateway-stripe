@@ -387,22 +387,26 @@ class WC_Stripe_Duplicate_Payment_Prevention_Test extends WP_UnitTestCase {
 	 * record. Another order that shares the cart key (a second order with the same cart and email,
 	 * whether from a guest or the same logged-in customer) or a wrong order key leaves it in place.
 	 *
-	 * @param string $viewed      Which order the received page shows: 'recorded' or 'other'.
-	 * @param bool   $valid_key   Whether the request carries the viewed order's key.
-	 * @param int    $customer_id The customer ID on every order (0 for guests).
-	 * @param bool   $still_found Whether a resubmit still finds the recorded order afterwards.
+	 * @param string $viewed_order       Which order the received page shows: 'recorded' or 'other'.
+	 * @param bool   $is_valid_key       Whether the request carries the viewed order's key.
+	 * @param int    $customer_id        The customer ID on every order (0 for guests).
+	 * @param bool   $expect_still_found Whether a resubmit still finds the recorded order afterwards.
 	 * @dataProvider provide_order_received_visits
 	 */
-	public function test_maybe_clear_duplicate_payment_record( string $viewed, bool $valid_key, int $customer_id, bool $still_found ): void {
+	public function test_maybe_clear_duplicate_payment_record( string $viewed_order, bool $is_valid_key, int $customer_id, bool $expect_still_found ): void {
 		$paid = $this->make_paid_order( self::CART_HASH, self::EMAIL, $customer_id );
 		WC_Stripe_Duplicate_Payment_Prevention::record_paid_order( $paid );
 
-		$shown = 'recorded' === $viewed ? $paid : $this->make_order( self::CART_HASH, self::EMAIL, $customer_id );
+		if ( 'recorded' === $viewed_order ) {
+			$shown = $paid;
+		} else {
+			$shown = $this->make_order( self::CART_HASH, self::EMAIL, $customer_id );
+		}
 
 		global $wp;
 		add_filter( 'woocommerce_is_order_received_page', '__return_true' );
 		$wp->query_vars['order-received'] = $shown->get_id();
-		$_GET['key']                      = $valid_key ? $shown->get_order_key() : 'wc_order_wrong';
+		$_GET['key']                      = $is_valid_key ? $shown->get_order_key() : 'wc_order_wrong';
 		try {
 			WC_Stripe_Duplicate_Payment_Prevention::maybe_clear_duplicate_payment_record();
 		} finally {
@@ -413,7 +417,7 @@ class WC_Stripe_Duplicate_Payment_Prevention_Test extends WP_UnitTestCase {
 		$resend = $this->make_order( self::CART_HASH, self::EMAIL, $customer_id );
 		$found  = WC_Stripe_Duplicate_Payment_Prevention::get_recent_paid_order( $resend );
 
-		if ( $still_found ) {
+		if ( $expect_still_found ) {
 			$this->assertInstanceOf( WC_Order::class, $found );
 			$this->assertSame( $paid->get_id(), $found->get_id() );
 		} else {
