@@ -3153,8 +3153,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @param bool        $expect_linked       Whether the Session ends up linked to the order.
 	 * @param string      $expected_status     Order status afterwards.
 	 * @param array       $charge_flags        Extra fields on the earlier intent's charge, e.g. `refunded`.
+	 * @param bool        $charge_lookup_fails_once_settled Whether reading the charge throws once the order is settled.
 	 */
-	public function test_process_payment_with_checkout_session_for_order_with_earlier_intent( ?string $intent_status, bool $owns_session, bool $expire_succeeds, string $expected_result, bool $expect_already_paid, bool $expect_linked, string $expected_status, array $charge_flags = [] ) {
+	public function test_process_payment_with_checkout_session_for_order_with_earlier_intent( ?string $intent_status, bool $owns_session, bool $expire_succeeds, string $expected_result, bool $expect_already_paid, bool $expect_linked, string $expected_status, array $charge_flags = [], bool $charge_lookup_fails_once_settled = false ) {
 		$this->enable_checkout_sessions();
 		wc_clear_notices();
 
@@ -3199,20 +3200,29 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					)
 			);
 
+		$charge = $this->array_to_object(
+			array_merge(
+				[
+					'id'                     => 'ch_earlier_attempt',
+					'captured'               => true,
+					'status'                 => 'succeeded',
+					'payment_method_details' => [ 'type' => WC_Stripe_Payment_Methods::CARD ],
+				],
+				$charge_flags
+			)
+		);
+
 		$this->mock_gateway
 			->method( 'get_latest_charge_from_intent' )
-			->willReturn(
-				$this->array_to_object(
-					array_merge(
-						[
-							'id'                     => 'ch_earlier_attempt',
-							'captured'               => true,
-							'status'                 => 'succeeded',
-							'payment_method_details' => [ 'type' => WC_Stripe_Payment_Methods::CARD ],
-						],
-						$charge_flags
-					)
-				)
+			->willReturnCallback(
+				function () use ( $charge, $order, $charge_lookup_fails_once_settled ) {
+					// The only read after settling is the one that restores the payment method title.
+					if ( $charge_lookup_fails_once_settled && wc_get_order( $order->get_id() )->has_status( OrderStatus::PROCESSING ) ) {
+						throw new WC_Stripe_Exception( 'charge lookup failed', 'Charge lookup failed.' );
+					}
+
+					return $charge;
+				}
 			);
 
 		$this->mock_checkout_session_retrieval( $session_id, 'open' );
@@ -3272,16 +3282,19 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		);
 		$this->assertSame( $expected_status, $processed_order->get_status() );
 		if ( $expect_already_paid ) {
-			// The order must carry the title of the method that paid, as the normal return does.
+			// The order must carry the title of the method that paid, as the normal return does,
+			// unless the title could not be read, which must not fail the paid checkout.
 			$this->assertSame(
-				$this->mock_gateway->payment_methods[ WC_Stripe_Payment_Methods::CARD ]->get_title(),
+				$charge_lookup_fails_once_settled
+					? 'Stripe'
+					: $this->mock_gateway->payment_methods[ WC_Stripe_Payment_Methods::CARD ]->get_title(),
 				$processed_order->get_payment_method_title()
 			);
 		}
 	}
 
 	/**
-	 * @return array<string,array{0:string|null,1:bool,2:bool,3:string,4:bool,5:bool,6:string,7?:array}>
+	 * @return array<string,array{0:string|null,1:bool,2:bool,3:string,4:bool,5:bool,6:string,7?:array,8?:bool}>
 	 */
 	public function provide_checkout_session_retries_for_order_with_earlier_intent(): array {
 		return [
@@ -3293,6 +3306,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			'paid, but Session cannot be expired'      => [ WC_Stripe_Intent_Status::SUCCEEDED, true, false, 'failure', false, false, OrderStatus::PENDING ],
 			'refunded charge does not block the retry' => [ WC_Stripe_Intent_Status::SUCCEEDED, true, true, 'success', false, true, OrderStatus::PENDING, [ 'refunded' => true ] ],
 			'disputed charge does not block the retry' => [ WC_Stripe_Intent_Status::SUCCEEDED, true, true, 'success', false, true, OrderStatus::PENDING, [ 'disputed' => true ] ],
+			'settled, but the title cannot be read'    => [ WC_Stripe_Intent_Status::SUCCEEDED, true, true, 'success', true, false, OrderStatus::PROCESSING, [], true ],
 		];
 	}
 

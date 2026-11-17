@@ -2012,8 +2012,19 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			// the order, so the title is written to a fresh one.
 			$paid_order = null !== $paid_intent ? wc_get_order( $order->get_id() ) : null;
 			if ( $paid_order instanceof WC_Order ) {
-				list( $payment_method_type ) = $this->get_payment_method_data_from_intent( $paid_intent );
-				$this->set_payment_method_title_for_order( $paid_order, (string) $payment_method_type );
+				try {
+					list( $payment_method_type ) = $this->get_payment_method_data_from_intent( $paid_intent );
+					$this->set_payment_method_title_for_order( $paid_order, (string) $payment_method_type );
+				} catch ( Exception $e ) {
+					WC_Stripe_Logger::error(
+						'Could not restore the payment method title on an order paid by an earlier PaymentIntent.',
+						[
+							'order_id'      => $order->get_id(),
+							// A WC_Stripe_Exception's raw message can be a dump of the whole Stripe response.
+							'error_message' => $e instanceof WC_Stripe_Exception ? $e->getLocalizedMessage() : $e->getMessage(),
+						]
+					);
+				}
 			}
 
 			// If the order is already completed, redirect user to the order received page. An order
