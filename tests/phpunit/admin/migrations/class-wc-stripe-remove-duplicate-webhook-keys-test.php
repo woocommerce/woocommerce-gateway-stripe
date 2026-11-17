@@ -29,6 +29,8 @@ class WC_Stripe_Remove_Duplicate_Webhook_Keys_Test extends WP_UnitTestCase {
 			$this->assertSame( 'whsec_signing', $stored[ $prefix . 'webhook_secret' ] );
 		}
 		$this->assertSame( 'yes', get_option( 'wc_stripe_removed_duplicate_webhook_keys' ) );
+		wp_cache_delete( 'alloptions', 'options' );
+		$this->assertArrayNotHasKey( 'wc_stripe_removed_duplicate_webhook_keys', wp_load_alloptions() );
 	}
 
 	public function provide_webhook_credentials() {

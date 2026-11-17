@@ -56,6 +56,6 @@ class WC_Stripe_Remove_Duplicate_Webhook_Keys {
 			}
 		}
 
-		update_option( self::MIGRATION_OPTION, 'yes' );
+		update_option( self::MIGRATION_OPTION, 'yes', false );
 	}
 }
