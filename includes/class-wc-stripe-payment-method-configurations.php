@@ -138,7 +138,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * @param mixed $configuration Payment method configuration returned by Stripe.
 	 */
 	private static function sync_payment_methods_to_settings( $configuration ): void {
-		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings = WC_Stripe::get_instance()->get_settings();
 		if ( 'yes' !== ( $settings['pmc_enabled'] ?? '' ) || ! is_object( $configuration ) || is_wp_error( $configuration )
 			|| ! empty( $configuration->error )
 			|| WC_Stripe_Mode::is_live() !== ( $configuration->livemode ?? null )
@@ -164,7 +164,7 @@ class WC_Stripe_Payment_Method_Configurations {
 
 		$settings['upe_checkout_experience_accepted_payments'] = $enabled_methods;
 		$settings['express_checkout']                          = $express_checkout;
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		WC_Stripe::get_instance()->update_settings( $settings );
 	}
 
 	/**
@@ -852,7 +852,7 @@ class WC_Stripe_Payment_Method_Configurations {
 			);
 		}
 
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings = WC_Stripe::get_instance()->get_settings();
 
 		// If there is no payment method order defined, set it to the default order
 		if ( empty( $stripe_settings['stripe_upe_payment_method_order'] ) ) {
