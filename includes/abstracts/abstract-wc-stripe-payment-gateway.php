@@ -2037,7 +2037,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			try {
 				$charge = $this->get_latest_charge_from_intent( $intent );
 			} catch ( WC_Stripe_Exception $charge_exception ) {
-				WC_Stripe_Logger::error( "Stripe: the mandate charge lookup for order {$order->get_id()} failed: " . $charge_exception->getMessage() );
+				WC_Stripe_Logger::error( "Stripe: the mandate charge lookup for order {$order->get_id()} failed: " . $charge_exception->getLocalizedMessage() );
 				$charge = null;
 			}
 

@@ -859,7 +859,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				} catch ( WC_Stripe_Exception $charge_exception ) {
 					// The payment may well have gone through. Treat it as unreadable so the merchant gets
 					// the note below, rather than only a log line.
-					WC_Stripe_Logger::error( "Stripe: the charge lookup for subscription renewal order {$order_id} failed: " . $charge_exception->getMessage() );
+					WC_Stripe_Logger::error( "Stripe: the charge lookup for subscription renewal order {$order_id} failed: " . $charge_exception->getLocalizedMessage() );
 					$latest_charge = null;
 				}
 
@@ -1808,7 +1808,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		try {
 			$charge = $this->resolve_stripe_charge_object( $this->get_latest_charge_for_subscription_renewal( $intent ) );
 		} catch ( WC_Stripe_Exception $charge_exception ) {
-			WC_Stripe_Logger::error( "Stripe: the charge lookup for the authentication-required renewal of order {$order_id} failed: " . $charge_exception->getMessage() );
+			WC_Stripe_Logger::error( "Stripe: the charge lookup for the authentication-required renewal of order {$order_id} failed: " . $charge_exception->getLocalizedMessage() );
 		}
 
 		if ( null === $charge ) {
