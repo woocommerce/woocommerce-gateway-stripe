@@ -1084,12 +1084,8 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 				]
 			);
 
-		$order_helper_mock = $this->getMockBuilder( WC_Stripe_Order_Helper::class )
-			->disableOriginalConstructor()
-			->onlyMethods( [ 'lock_order_payment', 'unlock_order_payment', 'get_order_existing_payment_lock' ] )
-			->getMock();
-		$order_helper_mock->method( 'lock_order_payment' )->willReturn( false );
-		$order_helper_mock->method( 'get_order_existing_payment_lock' )->willReturn( (string) ( time() + $lock_seconds ) );
+		// The renewal renews its lock before charging; the mock keeps the same expiry so the budget holds.
+		$order_helper_mock = $this->mock_owned_payment_lock_helper( (string) ( time() + $lock_seconds ) );
 
 		$instance_property = new ReflectionProperty( WC_Stripe_Order_Helper::class, 'instance' );
 		$instance_property->setAccessible( true );
