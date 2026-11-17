@@ -816,8 +816,6 @@ class WC_Stripe_Payment_Method_Configurations {
 			}
 		}
 
-		$result = true;
-
 		// Update the PMC if there are locally enabled payment methods
 		if ( ! empty( $enabled_payment_methods ) ) {
 			// Get all available payment method IDs from the configuration.
@@ -846,7 +844,7 @@ class WC_Stripe_Payment_Method_Configurations {
 				]
 			);
 
-			$result = self::update_payment_method_configuration(
+			self::update_payment_method_configuration(
 				$enabled_payment_methods,
 				$available_payment_method_ids
 			);
@@ -862,10 +860,7 @@ class WC_Stripe_Payment_Method_Configurations {
 		// Mark migration as complete in stripe settings
 		$stripe_settings['pmc_enabled'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-		// A rejected update must not replace local selections with the pre-update PMC.
-		if ( ! is_wp_error( $result ) ) {
-			self::sync_payment_methods_to_settings( self::get_payment_method_configuration_from_cache() );
-		}
+		self::sync_payment_methods_to_settings( self::get_payment_method_configuration_from_cache() );
 	}
 
 	/**

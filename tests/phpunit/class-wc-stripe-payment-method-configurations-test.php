@@ -1180,7 +1180,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	}
 
 	/**
-	 * A rejected update must not overwrite local selections with the pre-update PMC.
+	 * Recovery saves the PMC selections used by checkout, including after a rejected update.
 	 *
 	 * @dataProvider recovery_selections_provider
 	 */
@@ -1209,18 +1209,19 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( 'yes', $updated_settings['pmc_enabled'] );
 		$this->assertSame( $expected_methods, $updated_settings['upe_checkout_experience_accepted_payments'] );
-		$this->assertSame( $update_fails ? 'no' : 'yes', $updated_settings['express_checkout'] );
+		$this->assertSame( 'yes', $updated_settings['express_checkout'] );
 		$this->assertSame(
 			$local_methods && ! $update_fails ? [ 'card', 'klarna', 'apple_pay' ] : [ 'klarna', 'apple_pay' ],
 			WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids()
 		);
+		$this->assertSame( $updated_settings, WC_Stripe::get_instance()->get_settings() );
 	}
 
 	public function recovery_selections_provider(): array {
 		return [
 			'updated PMC'      => [ [ 'card' ], [ 'card', 'klarna' ], false ],
 			'no local methods' => [ [], [ 'klarna' ], false ],
-			'rejected update'  => [ [ 'card' ], [ 'card' ], true ],
+			'rejected update'  => [ [ 'card' ], [ 'klarna' ], true ],
 		];
 	}
 
