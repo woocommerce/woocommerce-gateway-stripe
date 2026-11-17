@@ -469,7 +469,8 @@ class WC_Stripe_Checkout_Session_Manager {
 		$payment_intent_data = apply_filters(
 			'wc_stripe_checkout_session_payment_intent_data',
 			[ 'metadata' => $filtered_metadata ],
-			// Read here, not passed in, so every caller of this public method reports the same state.
+			// The check that gives a session the shopper's Stripe customer; it passes only when the
+			// shopper is logged in. Read here, not passed in, so every caller reports the same state.
 			[ 'is_shopper_logged_in' => $this->can_enable_save_payment_method() ]
 		);
 
