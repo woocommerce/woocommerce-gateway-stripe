@@ -1367,54 +1367,17 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Preserve classic forms embedded in other layouts while avoiding their runtime on express-only pages.
+	 * Checkout forms can be rendered by templates independently of the current post's content.
 	 *
 	 * @since x.x.x
-	 * @param WC_Stripe_Express_Checkout_Helper|null $helper Existing helper to avoid repeating gateway and settings initialization.
 	 * @return bool
 	 */
-	public static function should_load_classic_checkout_scripts( ?WC_Stripe_Express_Checkout_Helper $helper = null ): bool {
-		$helper = $helper ?? new WC_Stripe_Express_Checkout_Helper();
-		if (
-			$helper->is_one_page_checkout() ||
-			is_add_payment_method_page() ||
-			is_wc_endpoint_url( 'order-pay' ) ||
-			isset( $_GET['change_payment_method'] ) // phpcs:ignore WordPress.Security.NonceVerification
-		) {
-			return true;
-		}
-
-		global $post;
-		if ( $post instanceof WP_Post ) {
-			if ( has_shortcode( $post->post_content, 'woocommerce_checkout' ) ) {
-				return true;
-			}
-
-			// Classic Cart and Checkout share a block name and can be nested inside layout blocks.
-			if ( has_block( 'woocommerce/classic-shortcode', $post ) ) {
-				$blocks = parse_blocks( $post->post_content );
-				while ( $blocks ) {
-					$block = array_pop( $blocks );
-					if ( 'woocommerce/classic-shortcode' === $block['blockName'] && 'checkout' === ( $block['attrs']['shortcode'] ?? '' ) ) {
-						return true;
-					}
-					foreach ( $block['innerBlocks'] as $inner_block ) {
-						$blocks[] = $inner_block;
-					}
-				}
-			}
-		}
-
-		if ( has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' ) ) {
-			return false;
-		}
-
-		if ( $helper->is_checkout() ) {
-			return true;
-		}
-
-		// Custom pages can embed classic payment forms without a checkout shortcode.
-		return ! $helper->is_product() && ! $helper->is_cart();
+	public static function should_load_classic_checkout_scripts(): bool {
+		return did_action( 'woocommerce_before_checkout_form' ) > 0
+			|| ( function_exists( 'is_wcopc_checkout' ) && is_wcopc_checkout() )
+			|| is_add_payment_method_page()
+			|| is_wc_endpoint_url( 'order-pay' )
+			|| isset( $_GET['change_payment_method'] ); // phpcs:ignore WordPress.Security.NonceVerification
 	}
 
 	/**

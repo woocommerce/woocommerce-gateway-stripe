@@ -8014,6 +8014,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			add_filter( 'woocommerce_is_checkout', $is_checkout_filter );
 		}
 
+		$original_render_count                                     = $GLOBALS['wp_actions']['woocommerce_before_checkout_form'] ?? 0;
+		$GLOBALS['wp_actions']['woocommerce_before_checkout_form'] = (int) ( 'checkout' === $page_type ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Isolate the render signal between page fixtures.
+
 		$original_settings = WC_Stripe_Helper::get_stripe_settings();
 
 		$stripe_settings                                      = $original_settings;
@@ -8038,6 +8041,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$this->assertSame( $expected_stripe, wp_script_is( 'stripe', 'enqueued' ), 'Unexpected enqueue state for stripe JS.' );
 			$this->assertSame( $expected_upe_classic, wp_script_is( 'wc-stripe-upe-classic', 'enqueued' ), 'Unexpected enqueue state for wc-stripe-upe-classic.' );
 		} finally {
+			$GLOBALS['wp_actions']['woocommerce_before_checkout_form'] = $original_render_count; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Isolate the render signal between page fixtures.
 			WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
 
 			$this->clean_up_scripts(
@@ -8069,12 +8073,15 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @param string $endpoint Special checkout endpoint, if any.
 	 * @param bool   $expected_classic Whether the classic runtime is required.
 	 * @param bool   $is_cart Whether this is the configured cart page.
+	 * @param bool   $form_rendered Whether the classic form has been rendered.
 	 * @return void
 	 */
-	public function test_payment_scripts_for_checkout_layouts( $content, $is_checkout, $endpoint, $expected_classic, $is_cart = false ): void {
-		$original_account_page = get_option( 'woocommerce_myaccount_page_id' );
-		$original_cart_page    = get_option( 'woocommerce_cart_page_id' );
-		$page                  = self::factory()->post->create(
+	public function test_payment_scripts_for_checkout_layouts( $content, $is_checkout, $endpoint, $expected_classic, $is_cart = false, $form_rendered = false ): void {
+		$original_render_count                                     = $GLOBALS['wp_actions']['woocommerce_before_checkout_form'] ?? 0;
+		$GLOBALS['wp_actions']['woocommerce_before_checkout_form'] = (int) $form_rendered; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Isolate the render signal between page fixtures.
+		$original_account_page                                     = get_option( 'woocommerce_myaccount_page_id' );
+		$original_cart_page                                        = get_option( 'woocommerce_cart_page_id' );
+		$page = self::factory()->post->create(
 			[
 				'post_type'    => 'page',
 				'post_content' => $content,
@@ -8133,6 +8140,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$this->assertStringEndsWith( '/build/upe-classic.js', wp_scripts()->registered['wc-stripe-upe-classic']->src );
 			$this->assertContains( 'wc-stripe-checkout-settings', wp_scripts()->registered['wc-stripe-upe-classic']->deps );
 		} finally {
+			$GLOBALS['wp_actions']['woocommerce_before_checkout_form'] = $original_render_count; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Isolate the render signal between page fixtures.
 			update_option( 'woocommerce_myaccount_page_id', $original_account_page );
 			if ( $is_cart ) {
 				update_option( 'woocommerce_cart_page_id', $original_cart_page );
@@ -8157,22 +8165,24 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function provide_checkout_script_layouts(): array {
 		return [
-			'Blocks cart on a custom page'   => [ '<!-- wp:woocommerce/cart /-->', false, '', false ],
-			'Blocks checkout'                => [ '<!-- wp:woocommerce/checkout /-->', true, '', false ],
-			'Blocks checkout on custom page' => [ '<!-- wp:woocommerce/checkout /-->', false, '', false ],
-			'classic checkout'               => [ '[woocommerce_checkout]', true, '', true ],
-			'classic shortcode block'        => [ '<!-- wp:woocommerce/classic-shortcode {"shortcode":"checkout"} /-->', true, '', true ],
-			'classic cart'                   => [ '[woocommerce_cart]', false, '', false, true ],
-			'classic cart block'             => [ '<!-- wp:woocommerce/classic-shortcode {"shortcode":"cart"} /-->', false, '', false, true ],
-			'default classic cart block'     => [ '<!-- wp:woocommerce/classic-shortcode /-->', false, '', false, true ],
-			'nested classic cart block'      => [ '<!-- wp:group --><!-- wp:woocommerce/classic-shortcode {"shortcode":"cart"} /--><!-- /wp:group -->', false, '', false, true ],
-			'checkout block on cart page'    => [ '<!-- wp:woocommerce/classic-shortcode {"shortcode":"cart"} /--><!-- wp:woocommerce/classic-shortcode {"shortcode":"checkout"} /-->', false, '', true, true ],
-			'nested checkout with Blocks'    => [ '<!-- wp:woocommerce/cart /--><!-- wp:group --><!-- wp:woocommerce/classic-shortcode {"shortcode":"checkout"} /--><!-- /wp:group -->', false, '', true ],
-			'Blocks with classic cart block' => [ '<!-- wp:woocommerce/checkout /--><!-- wp:woocommerce/classic-shortcode {"shortcode":"cart"} /-->', true, '', false ],
-			'mixed classic and Blocks'       => [ '<!-- wp:woocommerce/cart /-->[woocommerce_checkout]', true, '', true ],
-			'pay for order on Blocks page'   => [ '<!-- wp:woocommerce/checkout /-->', true, 'order-pay', true ],
-			'add payment method'             => [ '[woocommerce_my_account]', false, 'add-payment-method', true ],
-			'subscription payment change'    => [ '<!-- wp:woocommerce/checkout /-->', true, 'change_payment_method', true ],
+			'Blocks cart on a custom page'      => [ '<!-- wp:woocommerce/cart /-->', false, '', false ],
+			'Blocks checkout'                   => [ '<!-- wp:woocommerce/checkout /-->', true, '', false ],
+			'Blocks checkout on custom page'    => [ '<!-- wp:woocommerce/checkout /-->', false, '', false ],
+			'classic checkout'                  => [ '[woocommerce_checkout]', true, '', true, false, true ],
+			'classic shortcode block'           => [ '<!-- wp:woocommerce/classic-shortcode {"shortcode":"checkout"} /-->', true, '', true, false, true ],
+			'classic cart'                      => [ '[woocommerce_cart]', false, '', false, true ],
+			'classic cart block'                => [ '<!-- wp:woocommerce/classic-shortcode {"shortcode":"cart"} /-->', false, '', false, true ],
+			'default classic cart block'        => [ '<!-- wp:woocommerce/classic-shortcode /-->', false, '', false, true ],
+			'nested classic cart block'         => [ '<!-- wp:group --><!-- wp:woocommerce/classic-shortcode {"shortcode":"cart"} /--><!-- /wp:group -->', false, '', false, true ],
+			'checkout block on cart page'       => [ '<!-- wp:woocommerce/classic-shortcode {"shortcode":"cart"} /--><!-- wp:woocommerce/classic-shortcode {"shortcode":"checkout"} /-->', false, '', true, true, true ],
+			'nested checkout with Blocks'       => [ '<!-- wp:woocommerce/cart /--><!-- wp:group --><!-- wp:woocommerce/classic-shortcode {"shortcode":"checkout"} /--><!-- /wp:group -->', false, '', true, false, true ],
+			'Blocks with classic cart block'    => [ '<!-- wp:woocommerce/checkout /--><!-- wp:woocommerce/classic-shortcode {"shortcode":"cart"} /-->', true, '', false ],
+			'mixed classic and Blocks'          => [ '<!-- wp:woocommerce/cart /-->[woocommerce_checkout]', true, '', true, false, true ],
+			'unrendered checkout shortcode'     => [ '[woocommerce_checkout]', true, '', false ],
+			'rendered checkout with stale post' => [ '<!-- wp:woocommerce/checkout /-->', true, '', true, false, true ],
+			'pay for order on Blocks page'      => [ '<!-- wp:woocommerce/checkout /-->', true, 'order-pay', true ],
+			'add payment method'                => [ '[woocommerce_my_account]', false, 'add-payment-method', true ],
+			'subscription payment change'       => [ '<!-- wp:woocommerce/checkout /-->', true, 'change_payment_method', true ],
 		];
 	}
 

@@ -632,7 +632,7 @@ class WC_Stripe_Express_Checkout_Element {
 	 * @return bool
 	 */
 	private function should_load_classic_express_checkout_script(): bool {
-		return WC_Stripe_Helper::should_load_classic_checkout_scripts( $this->express_checkout_helper ) ||
+		return WC_Stripe_Helper::should_load_classic_checkout_scripts() ||
 			( ! has_block( 'woocommerce/cart' ) && ! has_block( 'woocommerce/checkout' ) );
 	}
 
@@ -902,6 +902,8 @@ class WC_Stripe_Express_Checkout_Element {
 		if ( ! $this->express_checkout_helper->should_show_express_checkout_button() ) {
 			return;
 		}
+
+		wp_enqueue_script( 'wc_stripe_express_checkout' );
 
 		?>
 		<div id="wc-stripe-express-checkout-element" style="margin-top: 1em;clear:both;display:none;">
