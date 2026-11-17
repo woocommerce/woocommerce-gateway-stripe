@@ -4369,12 +4369,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
-			message: '#^Access to protected property \$this\(WC_Stripe_UPE_Payment_Method_ACH\)\:\:\$retry_interval\.$#'
-			identifier: property.protected
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
 			message: '#^Call to an undefined method WC_Order\:\:get_billing_interval\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -4393,38 +4387,38 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
-			message: '#^Call to protected method get_redirect_url\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:get_redirect_url\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
-			message: '#^Call to protected method get_upe_gateway_id_for_order\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:get_upe_gateway_id_for_order\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
-			message: '#^Call to protected method prepare_payment_information_from_request\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:prepare_payment_information_from_request\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
-			message: '#^Call to protected method process_setup_intent_for_order\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:process_setup_intent_for_order\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
-			message: '#^Call to protected method stripe_request\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:stripe_request\(\)\.$#'
+			identifier: method.notFound
 			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
-			message: '#^Call to protected method validate_selected_payment_method_type\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:validate_selected_payment_method_type\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
@@ -4496,12 +4490,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Parameter \#1 \$payment_method of method WC_Stripe_UPE_Payment_Gateway\:\:get_upe_gateway_id_for_order\(\) expects WC_Stripe_UPE_Payment_Method, WC_Stripe_UPE_Payment_Method\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
@@ -4627,12 +4615,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
-			message: '#^Access to protected property \$this\(WC_Stripe_UPE_Payment_Method_ACSS\)\:\:\$retry_interval\.$#'
-			identifier: property.protected
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
 			message: '#^Call to an undefined method WC_Order\:\:get_billing_interval\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -4651,38 +4633,38 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
-			message: '#^Call to protected method get_redirect_url\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:get_redirect_url\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
-			message: '#^Call to protected method get_upe_gateway_id_for_order\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:get_upe_gateway_id_for_order\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
-			message: '#^Call to protected method prepare_payment_information_from_request\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:prepare_payment_information_from_request\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
-			message: '#^Call to protected method process_setup_intent_for_order\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:process_setup_intent_for_order\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
-			message: '#^Call to protected method stripe_request\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:stripe_request\(\)\.$#'
+			identifier: method.notFound
 			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
-			message: '#^Call to protected method validate_selected_payment_method_type\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:validate_selected_payment_method_type\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
@@ -4748,12 +4730,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Parameter \#1 \$payment_method of method WC_Stripe_UPE_Payment_Gateway\:\:get_upe_gateway_id_for_order\(\) expects WC_Stripe_UPE_Payment_Method, WC_Stripe_UPE_Payment_Method\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
@@ -4885,12 +4861,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
-			message: '#^Access to protected property \$this\(WC_Stripe_UPE_Payment_Method_Amazon_Pay\)\:\:\$retry_interval\.$#'
-			identifier: property.protected
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
 			message: '#^Call to an undefined method WC_Order\:\:get_billing_interval\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -4909,38 +4879,38 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
-			message: '#^Call to protected method get_redirect_url\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:get_redirect_url\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
-			message: '#^Call to protected method get_upe_gateway_id_for_order\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:get_upe_gateway_id_for_order\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
-			message: '#^Call to protected method prepare_payment_information_from_request\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:prepare_payment_information_from_request\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
-			message: '#^Call to protected method process_setup_intent_for_order\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:process_setup_intent_for_order\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
-			message: '#^Call to protected method stripe_request\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:stripe_request\(\)\.$#'
+			identifier: method.notFound
 			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
-			message: '#^Call to protected method validate_selected_payment_method_type\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:validate_selected_payment_method_type\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
@@ -5006,12 +4976,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Parameter \#1 \$payment_method of method WC_Stripe_UPE_Payment_Gateway\:\:get_upe_gateway_id_for_order\(\) expects WC_Stripe_UPE_Payment_Method, WC_Stripe_UPE_Payment_Method\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
@@ -5143,12 +5107,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
-			message: '#^Access to protected property \$this\(WC_Stripe_UPE_Payment_Method_Bacs_Debit\)\:\:\$retry_interval\.$#'
-			identifier: property.protected
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
 			message: '#^Call to an undefined method WC_Order\:\:get_billing_interval\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -5167,38 +5125,38 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
-			message: '#^Call to protected method get_redirect_url\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:get_redirect_url\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
-			message: '#^Call to protected method get_upe_gateway_id_for_order\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:get_upe_gateway_id_for_order\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
-			message: '#^Call to protected method prepare_payment_information_from_request\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:prepare_payment_information_from_request\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
-			message: '#^Call to protected method process_setup_intent_for_order\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:process_setup_intent_for_order\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
-			message: '#^Call to protected method stripe_request\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:stripe_request\(\)\.$#'
+			identifier: method.notFound
 			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
-			message: '#^Call to protected method validate_selected_payment_method_type\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:validate_selected_payment_method_type\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
@@ -5270,12 +5228,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Parameter \#1 \$payment_method of method WC_Stripe_UPE_Payment_Gateway\:\:get_upe_gateway_id_for_order\(\) expects WC_Stripe_UPE_Payment_Method, WC_Stripe_UPE_Payment_Method\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
@@ -5395,12 +5347,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
-			message: '#^Access to protected property \$this\(WC_Stripe_UPE_Payment_Method_Bancontact\)\:\:\$retry_interval\.$#'
-			identifier: property.protected
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
 			message: '#^Call to an undefined method WC_Order\:\:get_billing_interval\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -5419,38 +5365,38 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
-			message: '#^Call to protected method get_redirect_url\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:get_redirect_url\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
-			message: '#^Call to protected method get_upe_gateway_id_for_order\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:get_upe_gateway_id_for_order\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
-			message: '#^Call to protected method prepare_payment_information_from_request\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:prepare_payment_information_from_request\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
-			message: '#^Call to protected method process_setup_intent_for_order\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:process_setup_intent_for_order\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
-			message: '#^Call to protected method stripe_request\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:stripe_request\(\)\.$#'
+			identifier: method.notFound
 			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
-			message: '#^Call to protected method validate_selected_payment_method_type\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:validate_selected_payment_method_type\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
@@ -5516,12 +5462,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Parameter \#1 \$payment_method of method WC_Stripe_UPE_Payment_Gateway\:\:get_upe_gateway_id_for_order\(\) expects WC_Stripe_UPE_Payment_Method, WC_Stripe_UPE_Payment_Method\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
@@ -5641,12 +5581,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
-			message: '#^Access to protected property \$this\(WC_Stripe_UPE_Payment_Method_Becs_Debit\)\:\:\$retry_interval\.$#'
-			identifier: property.protected
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
 			message: '#^Call to an undefined method WC_Order\:\:get_billing_interval\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -5665,38 +5599,38 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
-			message: '#^Call to protected method get_redirect_url\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:get_redirect_url\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
-			message: '#^Call to protected method get_upe_gateway_id_for_order\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:get_upe_gateway_id_for_order\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
-			message: '#^Call to protected method prepare_payment_information_from_request\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:prepare_payment_information_from_request\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
-			message: '#^Call to protected method process_setup_intent_for_order\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:process_setup_intent_for_order\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
-			message: '#^Call to protected method stripe_request\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:stripe_request\(\)\.$#'
+			identifier: method.notFound
 			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
-			message: '#^Call to protected method validate_selected_payment_method_type\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:validate_selected_payment_method_type\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
@@ -5768,12 +5702,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Parameter \#1 \$payment_method of method WC_Stripe_UPE_Payment_Gateway\:\:get_upe_gateway_id_for_order\(\) expects WC_Stripe_UPE_Payment_Method, WC_Stripe_UPE_Payment_Method\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
@@ -5917,12 +5845,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
-			message: '#^Access to protected property \$this\(WC_Stripe_UPE_Payment_Method_Cash_App_Pay\)\:\:\$retry_interval\.$#'
-			identifier: property.protected
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
 			message: '#^Call to an undefined method WC_Order\:\:get_billing_interval\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -5941,38 +5863,38 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
-			message: '#^Call to protected method get_redirect_url\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:get_redirect_url\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
-			message: '#^Call to protected method get_upe_gateway_id_for_order\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:get_upe_gateway_id_for_order\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
-			message: '#^Call to protected method prepare_payment_information_from_request\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:prepare_payment_information_from_request\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
-			message: '#^Call to protected method process_setup_intent_for_order\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:process_setup_intent_for_order\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
-			message: '#^Call to protected method stripe_request\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:stripe_request\(\)\.$#'
+			identifier: method.notFound
 			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
-			message: '#^Call to protected method validate_selected_payment_method_type\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:validate_selected_payment_method_type\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
@@ -6038,12 +5960,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Parameter \#1 \$payment_method of method WC_Stripe_UPE_Payment_Gateway\:\:get_upe_gateway_id_for_order\(\) expects WC_Stripe_UPE_Payment_Method, WC_Stripe_UPE_Payment_Method\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
@@ -6169,12 +6085,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
-			message: '#^Access to protected property \$this\(WC_Stripe_UPE_Payment_Method_CC\)\:\:\$retry_interval\.$#'
-			identifier: property.protected
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
 			message: '#^Call to an undefined method WC_Order\:\:get_billing_interval\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -6193,38 +6103,38 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
-			message: '#^Call to protected method get_redirect_url\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:get_redirect_url\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
-			message: '#^Call to protected method get_upe_gateway_id_for_order\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:get_upe_gateway_id_for_order\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
-			message: '#^Call to protected method prepare_payment_information_from_request\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:prepare_payment_information_from_request\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
-			message: '#^Call to protected method process_setup_intent_for_order\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:process_setup_intent_for_order\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
-			message: '#^Call to protected method stripe_request\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:stripe_request\(\)\.$#'
+			identifier: method.notFound
 			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
-			message: '#^Call to protected method validate_selected_payment_method_type\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:validate_selected_payment_method_type\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
@@ -6290,12 +6200,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Parameter \#1 \$payment_method of method WC_Stripe_UPE_Payment_Gateway\:\:get_upe_gateway_id_for_order\(\) expects WC_Stripe_UPE_Payment_Method, WC_Stripe_UPE_Payment_Method\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
@@ -6433,12 +6337,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
-			message: '#^Access to protected property \$this\(WC_Stripe_UPE_Payment_Method_Ideal\)\:\:\$retry_interval\.$#'
-			identifier: property.protected
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
 			message: '#^Call to an undefined method WC_Order\:\:get_billing_interval\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -6457,38 +6355,38 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
-			message: '#^Call to protected method get_redirect_url\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:get_redirect_url\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
-			message: '#^Call to protected method get_upe_gateway_id_for_order\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:get_upe_gateway_id_for_order\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
-			message: '#^Call to protected method prepare_payment_information_from_request\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:prepare_payment_information_from_request\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
-			message: '#^Call to protected method process_setup_intent_for_order\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:process_setup_intent_for_order\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
-			message: '#^Call to protected method stripe_request\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:stripe_request\(\)\.$#'
+			identifier: method.notFound
 			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
-			message: '#^Call to protected method validate_selected_payment_method_type\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:validate_selected_payment_method_type\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
@@ -6554,12 +6452,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Parameter \#1 \$payment_method of method WC_Stripe_UPE_Payment_Gateway\:\:get_upe_gateway_id_for_order\(\) expects WC_Stripe_UPE_Payment_Method, WC_Stripe_UPE_Payment_Method\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
@@ -6679,12 +6571,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
-			message: '#^Access to protected property \$this\(WC_Stripe_UPE_Payment_Method_Klarna\)\:\:\$retry_interval\.$#'
-			identifier: property.protected
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
 			message: '#^Call to an undefined method WC_Order\:\:get_billing_interval\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -6703,38 +6589,38 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
-			message: '#^Call to protected method get_redirect_url\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:get_redirect_url\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
-			message: '#^Call to protected method get_upe_gateway_id_for_order\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:get_upe_gateway_id_for_order\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
-			message: '#^Call to protected method prepare_payment_information_from_request\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:prepare_payment_information_from_request\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
-			message: '#^Call to protected method process_setup_intent_for_order\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:process_setup_intent_for_order\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
-			message: '#^Call to protected method stripe_request\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:stripe_request\(\)\.$#'
+			identifier: method.notFound
 			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
-			message: '#^Call to protected method validate_selected_payment_method_type\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:validate_selected_payment_method_type\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
@@ -6800,12 +6686,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Parameter \#1 \$payment_method of method WC_Stripe_UPE_Payment_Gateway\:\:get_upe_gateway_id_for_order\(\) expects WC_Stripe_UPE_Payment_Method, WC_Stripe_UPE_Payment_Method\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
@@ -6973,12 +6853,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
-			message: '#^Access to protected property \$this\(WC_Stripe_UPE_Payment_Method_OC\)\:\:\$retry_interval\.$#'
-			identifier: property.protected
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
 			message: '#^Access to undefined constant WC_Stripe_UPE_Payment_Method\:\:STRIPE_ID\.$#'
 			identifier: classConstant.notFound
 			count: 1
@@ -7003,38 +6877,38 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
-			message: '#^Call to protected method get_redirect_url\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:get_redirect_url\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
-			message: '#^Call to protected method get_upe_gateway_id_for_order\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:get_upe_gateway_id_for_order\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
-			message: '#^Call to protected method prepare_payment_information_from_request\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:prepare_payment_information_from_request\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
-			message: '#^Call to protected method process_setup_intent_for_order\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:process_setup_intent_for_order\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
-			message: '#^Call to protected method stripe_request\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:stripe_request\(\)\.$#'
+			identifier: method.notFound
 			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
-			message: '#^Call to protected method validate_selected_payment_method_type\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:validate_selected_payment_method_type\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
@@ -7112,12 +6986,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Parameter \#1 \$payment_method of method WC_Stripe_UPE_Payment_Gateway\:\:get_upe_gateway_id_for_order\(\) expects WC_Stripe_UPE_Payment_Method, WC_Stripe_UPE_Payment_Method\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
@@ -7249,12 +7117,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
-			message: '#^Access to protected property \$this\(WC_Stripe_UPE_Payment_Method_Sepa\)\:\:\$retry_interval\.$#'
-			identifier: property.protected
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
 			message: '#^Call to an undefined method WC_Order\:\:get_billing_interval\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -7273,38 +7135,38 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
-			message: '#^Call to protected method get_redirect_url\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:get_redirect_url\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
-			message: '#^Call to protected method get_upe_gateway_id_for_order\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:get_upe_gateway_id_for_order\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
-			message: '#^Call to protected method prepare_payment_information_from_request\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:prepare_payment_information_from_request\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
-			message: '#^Call to protected method process_setup_intent_for_order\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:process_setup_intent_for_order\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
-			message: '#^Call to protected method stripe_request\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:stripe_request\(\)\.$#'
+			identifier: method.notFound
 			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
-			message: '#^Call to protected method validate_selected_payment_method_type\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:validate_selected_payment_method_type\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
@@ -7376,12 +7238,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Parameter \#1 \$payment_method of method WC_Stripe_UPE_Payment_Gateway\:\:get_upe_gateway_id_for_order\(\) expects WC_Stripe_UPE_Payment_Method, WC_Stripe_UPE_Payment_Method\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
@@ -7501,12 +7357,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
-			message: '#^Access to protected property \$this\(WC_Stripe_UPE_Payment_Method_Sofort\)\:\:\$retry_interval\.$#'
-			identifier: property.protected
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
 			message: '#^Call to an undefined method WC_Order\:\:get_billing_interval\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -7525,38 +7375,38 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
-			message: '#^Call to protected method get_redirect_url\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:get_redirect_url\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
-			message: '#^Call to protected method get_upe_gateway_id_for_order\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:get_upe_gateway_id_for_order\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
-			message: '#^Call to protected method prepare_payment_information_from_request\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:prepare_payment_information_from_request\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
-			message: '#^Call to protected method process_setup_intent_for_order\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:process_setup_intent_for_order\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
-			message: '#^Call to protected method stripe_request\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:stripe_request\(\)\.$#'
+			identifier: method.notFound
 			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
-			message: '#^Call to protected method validate_selected_payment_method_type\(\) of class WC_Stripe_UPE_Payment_Gateway\.$#'
-			identifier: method.protected
+			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:validate_selected_payment_method_type\(\)\.$#'
+			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
@@ -7622,12 +7472,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Parameter \#1 \$payment_method of method WC_Stripe_UPE_Payment_Gateway\:\:get_upe_gateway_id_for_order\(\) expects WC_Stripe_UPE_Payment_Method, WC_Stripe_UPE_Payment_Method\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
