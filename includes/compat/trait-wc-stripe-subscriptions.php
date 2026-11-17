@@ -521,7 +521,8 @@ trait WC_Stripe_Subscriptions_Trait {
 			return;
 		}
 
-		$lock_expiry = (int) $our_lock;
+		// The lock is a bare timestamp or "{expiry}|{owner_token}".
+		$lock_expiry = (int) explode( '|', $our_lock, 2 )[0];
 
 		try {
 			$this->process_subscription_payment_attempt( $amount, $renewal_order, $retry, $previous_error, $lock_expiry );

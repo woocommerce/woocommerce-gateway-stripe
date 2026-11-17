@@ -2702,6 +2702,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			if ( $order instanceof WC_Order ) {
 				$order_helper->delete_stripe_upe_waiting_for_redirect( $order );
 				$order_helper->remove_payment_awaiting_action( $order, false );
+				// unlock_order_payment() writes through its own copy of the order, so these changes
+				// are only persisted by saving here.
+				$order->save_meta_data();
 			}
 			$order_helper->unlock_order_payment( $order );
 

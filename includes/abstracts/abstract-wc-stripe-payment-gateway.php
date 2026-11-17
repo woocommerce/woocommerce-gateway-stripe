@@ -2175,8 +2175,18 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::is_order_payment_locked()' );
 
 		$existing_lock = $this->get_order_existing_lock( $order );
+		if ( null !== $existing_lock && ! is_scalar( $existing_lock ) ) {
+			return true;
+		}
+
 		if ( $existing_lock ) {
-			$parts      = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}"
+			$parts = explode( '|', (string) $existing_lock ); // Format is: "{expiry_timestamp}" or "{expiry_timestamp}|{owner_token}".
+
+			// A lock whose expiry cannot be read cannot be proven expired.
+			if ( ! ctype_digit( $parts[0] ) ) {
+				return true;
+			}
+
 			$expiration = (int) $parts[0];
 
 			// If the lock is still active, return true.

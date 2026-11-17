@@ -54,6 +54,7 @@ final class WC_Stripe_Option_Lock {
 		'wc_stripe_event_lock_',
 		'wc_stripe_payment_method_lock_',
 		'wc_stripe_intent_lock_',
+		'wc_stripe_payment_lock_owner_',
 	];
 
 	/**
@@ -143,6 +144,61 @@ final class WC_Stripe_Option_Lock {
 			]
 		);
 		self::forget_cached_option( $name );
+	}
+
+	/**
+	 * Gives a held lock a new owner value, but only while the caller still owns it.
+	 *
+	 * The new value carries the current time, so this also restarts the lock's TTL. There is no
+	 * moment between the old and the new value in which another request could take the lock.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param string $name  The lock option name.
+	 * @param string $owner The owner value returned by `acquire()` or an earlier `refresh()`.
+	 * @return string|null The new owner value, or null when the caller no longer owns the lock.
+	 */
+	public static function refresh( string $name, string $owner ): ?string {
+		global $wpdb;
+
+		$new_owner = time() . ':' . wp_generate_uuid4();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$updated = $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND option_value = %s",
+				$new_owner,
+				$name,
+				$owner
+			)
+		);
+
+		if ( 1 !== $updated ) {
+			return null;
+		}
+
+		self::forget_cached_option( $name );
+		return $new_owner;
+	}
+
+	/**
+	 * Checks whether the lock is currently held with the given owner value.
+	 *
+	 * Reads the row directly: the options cache can hold a value another request has since replaced.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param string $name  The lock option name.
+	 * @param string $owner The owner value to compare.
+	 * @return bool
+	 */
+	public static function is_held_by( string $name, string $owner ): bool {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$current = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", $name ) );
+
+		return is_string( $current ) && $current === $owner;
 	}
 
 	/**

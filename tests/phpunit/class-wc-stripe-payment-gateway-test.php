@@ -176,6 +176,66 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Tests that a lock written by the deprecated gateway method still blocks the helper lock,
+	 * and that the deprecated unlock clears it.
+	 */
+	public function test_deprecated_payment_lock_still_blocks_the_helper_lock() {
+		$order        = WC_Helper_Order::create_order();
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		$this->setExpectedDeprecated( 'WC_Stripe_Payment_Gateway::lock_order_payment' );
+		$this->setExpectedDeprecated( 'WC_Stripe_Payment_Gateway::is_order_payment_locked' );
+		$this->setExpectedDeprecated( 'WC_Stripe_Payment_Gateway::get_order_existing_lock' );
+		$this->assertFalse( $this->gateway->lock_order_payment( $order ) );
+
+		// The deprecated method writes a bare timestamp; the helper must still honour it.
+		$this->assertMatchesRegularExpression( '/^[1-9][0-9]*$/', (string) $order_helper->get_order_existing_payment_lock( $order ) );
+		$this->assertTrue( $order_helper->lock_order_payment( wc_get_order( $order->get_id() ) ) );
+
+		$this->setExpectedDeprecated( 'WC_Stripe_Payment_Gateway::unlock_order_payment' );
+		$this->gateway->unlock_order_payment( $order );
+
+		$this->assertEmpty( $order_helper->get_order_existing_payment_lock( $order ) );
+		$this->assertFalse( $order_helper->lock_order_payment( wc_get_order( $order->get_id() ) ) );
+		$order_helper->unlock_order_payment( wc_get_order( $order->get_id() ) );
+	}
+
+	/**
+	 * Tests that the deprecated lock reader treats lock metadata it cannot parse as locked.
+	 *
+	 * @dataProvider provide_malformed_payment_lock_metadata
+	 *
+	 * @param mixed $lock_metadata Malformed payment lock metadata.
+	 */
+	public function test_deprecated_payment_lock_reader_treats_malformed_metadata_as_locked( $lock_metadata ) {
+		$order = WC_Helper_Order::create_order();
+		$order->update_meta_data( '_stripe_lock_payment', $lock_metadata );
+		$order->save_meta_data();
+
+		$method = new ReflectionMethod( WC_Stripe_Payment_Gateway::class, 'is_order_payment_locked' );
+		$method->setAccessible( true );
+
+		$this->setExpectedDeprecated( 'WC_Stripe_Payment_Gateway::is_order_payment_locked' );
+		$this->setExpectedDeprecated( 'WC_Stripe_Payment_Gateway::get_order_existing_lock' );
+		$this->assertTrue( $method->invoke( $this->gateway, $order ) );
+	}
+
+	/**
+	 * Provides lock metadata the deprecated lock reader cannot parse.
+	 *
+	 * @return array<string, array{mixed}>
+	 */
+	public function provide_malformed_payment_lock_metadata() {
+		return [
+			'empty array'     => [ [] ],
+			'non-empty array' => [ [ 'malformed' ] ],
+			'object'          => [ new stdClass() ],
+			'non-numeric'     => [ 'corrupt' ],
+			'numeric prefix'  => [ '123abc' ],
+		];
+	}
+
+	/**
 	 * Tests that the intent ID is still saved to the order when the mandate charge lookup fails.
 	 */
 	public function test_save_intent_to_order_keeps_the_intent_when_the_mandate_lookup_fails() {

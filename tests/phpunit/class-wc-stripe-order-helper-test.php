@@ -206,9 +206,628 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 
 		// payment
 		$this->helper->lock_order_payment( $order );
-		$this->assertTrue( $this->helper->get_order_existing_payment_lock( $order ) > 0 );
+		$this->assertMatchesRegularExpression( '/^[1-9][0-9]*\|[0-9a-f-]{36}$/', (string) $this->helper->get_order_existing_payment_lock( $order ) );
 		$this->helper->unlock_order_payment( $order );
 		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( $order ) );
+	}
+
+	/**
+	 * Reads the order's owner row, translated to the "{expiry}|{token}" lock value it stands for.
+	 *
+	 * @param WC_Order $order The order.
+	 * @return string|null The lock value, the raw row when it cannot be translated, or null when there is no row.
+	 */
+	private function get_payment_lock_owner_row( WC_Order $order ) {
+		global $wpdb;
+
+		$row = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT option_value FROM %i WHERE option_name = %s',
+				$wpdb->options,
+				'wc_stripe_payment_lock_owner_' . $order->get_id()
+			)
+		);
+
+		if ( is_string( $row ) && preg_match( '/^([0-9]+):(.+)$/', $row, $matches ) ) {
+			return ( (int) $matches[1] + 5 * MINUTE_IN_SECONDS ) . '|' . $matches[2];
+		}
+
+		return $row;
+	}
+
+	/**
+	 * Writes the order's owner row for a "{expiry}|{token}" lock value, or a raw value when it is not one.
+	 *
+	 * @param WC_Order    $order The order.
+	 * @param string|null $value Lock value to store, or null to delete the row.
+	 */
+	private function set_payment_lock_owner_row( WC_Order $order, ?string $value ): void {
+		global $wpdb;
+
+		$option_name = 'wc_stripe_payment_lock_owner_' . $order->get_id();
+
+		// WC_Stripe_Option_Lock stores when the lock was taken, not when it expires.
+		if ( null !== $value && preg_match( '/^([0-9]+)\|(.+)$/', $value, $matches ) ) {
+			$value = ( (int) $matches[1] - 5 * MINUTE_IN_SECONDS ) . ':' . $matches[2];
+		}
+
+		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE option_name = %s', $wpdb->options, $option_name ) );
+
+		if ( null !== $value ) {
+			$wpdb->query(
+				$wpdb->prepare(
+					'INSERT INTO %i (option_name, option_value, autoload) VALUES (%s, %s, %s)',
+					$wpdb->options,
+					$option_name,
+					$value,
+					'no'
+				)
+			);
+		}
+	}
+
+	/**
+	 * Tests that the acquired lock value is the one stored in both the order meta and the owner row.
+	 */
+	public function test_acquire_order_payment_lock_returns_the_persisted_owner(): void {
+		$order      = WC_Helper_Order::create_order();
+		$owned_lock = $this->helper->acquire_order_payment_lock( $order );
+
+		$this->assertIsString( $owned_lock );
+		$this->assertMatchesRegularExpression( '/^[1-9][0-9]*\|[0-9a-f-]{36}$/', $owned_lock );
+		$this->assertSame( $owned_lock, $this->helper->get_order_existing_payment_lock( $order ) );
+		$this->assertSame( $owned_lock, $this->get_payment_lock_owner_row( $order ) );
+		$this->assertTrue( $this->helper->is_order_payment_lock_owned( $order, $owned_lock ) );
+
+		$this->helper->unlock_order_payment_if_owned( $order, $owned_lock );
+
+		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( $order ) );
+		$this->assertNull( $this->get_payment_lock_owner_row( $order ) );
+	}
+
+	/**
+	 * Tests that renewing an owned lock moves both the owner row and the order meta to the new value.
+	 */
+	public function test_renew_order_payment_lock_if_owned_replaces_both_stores(): void {
+		$order      = WC_Helper_Order::create_order();
+		$owned_lock = $this->helper->acquire_order_payment_lock( $order );
+
+		$this->assertIsString( $owned_lock );
+
+		$order->update_meta_data( '_unsaved_extension_meta', 'preserved' );
+		$renewed_lock = $this->helper->renew_order_payment_lock_if_owned( $order, $owned_lock );
+
+		$this->assertIsString( $renewed_lock );
+		$this->assertNotSame( $owned_lock, $renewed_lock );
+		$this->assertSame( $renewed_lock, $this->helper->get_order_existing_payment_lock( wc_get_order( $order->get_id() ) ) );
+		$this->assertSame( $renewed_lock, $this->get_payment_lock_owner_row( $order ) );
+		$this->assertFalse( $this->helper->is_order_payment_lock_owned( $order, $owned_lock ) );
+		$this->assertTrue( $this->helper->is_order_payment_lock_owned( $order, $renewed_lock ) );
+		// The caller's unsaved meta is neither lost nor saved.
+		$this->assertSame( 'preserved', $order->get_meta( '_unsaved_extension_meta', true ) );
+		$this->assertEmpty( wc_get_order( $order->get_id() )->get_meta( '_unsaved_extension_meta', true ) );
+
+		$this->helper->unlock_order_payment_if_owned( $order, $owned_lock );
+		$this->assertTrue( $this->helper->is_order_payment_lock_owned( $order, $renewed_lock ) );
+
+		$this->helper->unlock_order_payment_if_owned( $order, $renewed_lock );
+		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( $order ) );
+	}
+
+	/**
+	 * Tests that a request whose lock was taken over cannot renew it and leaves the new owner in place.
+	 */
+	public function test_renew_order_payment_lock_if_owned_preserves_a_replacement_owner(): void {
+		$order            = WC_Helper_Order::create_order();
+		$owned_lock       = $this->helper->acquire_order_payment_lock( $order );
+		$replacement_lock = ( time() + 5 * MINUTE_IN_SECONDS ) . '|' . wp_generate_uuid4();
+
+		$this->assertIsString( $owned_lock );
+
+		$this->set_payment_lock_owner_row( $order, $replacement_lock );
+		$replacement_order = wc_get_order( $order->get_id() );
+		$replacement_order->update_meta_data( '_stripe_lock_payment', $replacement_lock );
+		$replacement_order->save_meta_data();
+
+		$this->assertFalse( $this->helper->renew_order_payment_lock_if_owned( $order, $owned_lock ) );
+		$this->assertSame( $replacement_lock, $this->helper->get_order_existing_payment_lock( $order ) );
+		$this->assertSame( $replacement_lock, $this->get_payment_lock_owner_row( $order ) );
+
+		$replacement_order->delete_meta_data( '_stripe_lock_payment' );
+		$replacement_order->save_meta_data();
+		$this->set_payment_lock_owner_row( $order, null );
+	}
+
+	/**
+	 * Tests that a subclass reporting a lock it did not record is treated as not acquired.
+	 */
+	public function test_acquire_order_payment_lock_fails_closed_when_an_override_records_no_owner(): void {
+		$order  = WC_Helper_Order::create_order();
+		$helper = new class() extends WC_Stripe_Order_Helper {
+			/** @inheritDoc */
+			public function lock_order_payment( WC_Order $order ): bool {
+				return false;
+			}
+		};
+
+		$previous_logger = WC_Stripe_Logger::$logger;
+		$logger          = $this->getMockBuilder( WC_Logger::class )->disableOriginalConstructor()->getMock();
+		$logger->expects( $this->once() )
+			->method( 'error' )
+			->with( $this->stringContains( 'without recording an owner' ), $this->anything() );
+		WC_Stripe_Logger::$logger = $logger;
+
+		try {
+			$this->assertFalse( $helper->acquire_order_payment_lock( $order ) );
+		} finally {
+			WC_Stripe_Logger::$logger = $previous_logger;
+		}
+	}
+
+	/**
+	 * Tests that an unlock from a request that does not own the lock leaves an active lock alone.
+	 */
+	public function test_unlock_order_payment_without_a_token_preserves_an_active_owner(): void {
+		$order        = WC_Helper_Order::create_order();
+		$owner_helper = new WC_Stripe_Order_Helper();
+		$late_helper  = new WC_Stripe_Order_Helper();
+
+		$this->assertFalse( $owner_helper->lock_order_payment( $order ) );
+		$owned_lock = (string) $owner_helper->get_order_existing_payment_lock( $order );
+
+		$late_helper->unlock_order_payment( wc_get_order( $order->get_id() ) );
+
+		$this->assertTrue( $owner_helper->is_order_payment_lock_owned( $order, $owned_lock ) );
+
+		$owner_helper->unlock_order_payment( $order );
+		$this->assertEmpty( $owner_helper->get_order_existing_payment_lock( $order ) );
+	}
+
+	/**
+	 * A worker that crashes leaves an expired "{expiry}|{token}" value in both the
+	 * owner row and the order meta. A later token-less unlock must clear both.
+	 */
+	public function test_unlock_order_payment_without_a_token_clears_an_expired_owned_lock(): void {
+		$order        = WC_Helper_Order::create_order();
+		$expired_lock = ( time() - 1 ) . '|' . wp_generate_uuid4();
+
+		$this->set_payment_lock_owner_row( $order, $expired_lock );
+		$order->update_meta_data( '_stripe_lock_payment', $expired_lock );
+		$order->save_meta_data();
+
+		( new WC_Stripe_Order_Helper() )->unlock_order_payment( wc_get_order( $order->get_id() ) );
+
+		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( wc_get_order( $order->get_id() ) ) );
+		$this->assertNull( $this->get_payment_lock_owner_row( $order ) );
+	}
+
+	/**
+	 * Tests that an unlock from a request that never took the lock leaves the owner row alone, so a
+	 * concurrent request is not told the order is locked.
+	 */
+	public function test_unlock_order_payment_without_a_lock_does_not_claim_the_owner_row(): void {
+		global $wpdb;
+
+		$order       = WC_Helper_Order::create_order();
+		$row_queries = [];
+		$capture     = function ( $query ) use ( &$row_queries, $order ) {
+			if ( false !== strpos( $query, 'wc_stripe_payment_lock_owner_' . $order->get_id() ) ) {
+				$row_queries[] = $query;
+			}
+			return $query;
+		};
+		add_filter( 'query', $capture );
+
+		try {
+			( new WC_Stripe_Order_Helper() )->unlock_order_payment( wc_get_order( $order->get_id() ) );
+		} finally {
+			remove_filter( 'query', $capture );
+		}
+
+		$this->assertSame( [], $row_queries );
+	}
+
+	/**
+	 * Tests that an acquisition that fails after writing the meta removes that meta, so no
+	 * unreleasable lock is left on the order.
+	 */
+	public function test_failed_acquisition_removes_the_meta_it_wrote(): void {
+		$order  = WC_Helper_Order::create_order();
+		$helper = new class() extends WC_Stripe_Order_Helper {
+			/** @var int */
+			private $reads = 0;
+
+			/**
+			 * Reports a different value on the read that verifies the write, so the acquisition fails.
+			 *
+			 * @param WC_Order $order The order.
+			 * @return mixed
+			 */
+			public function get_order_existing_payment_lock( WC_Order $order ) {
+				$lock = parent::get_order_existing_payment_lock( $order );
+
+				return 2 === ++$this->reads ? 'replaced-by-another-request' : $lock;
+			}
+		};
+
+		$this->assertFalse( $helper->acquire_order_payment_lock( $order ) );
+		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( wc_get_order( $order->get_id() ) ) );
+		$this->assertNull( $this->get_payment_lock_owner_row( $order ) );
+	}
+
+	/**
+	 * Tests that the cleanup after a failed acquisition never deletes a lock another request took over.
+	 *
+	 * The acquisition fails its verification. Another request then takes the lock over as soon as the
+	 * protocol lets it, that is whenever the owner row still holds the failing request's value rather
+	 * than a release guard. Whatever happens, the order must not end up with neither lock.
+	 */
+	public function test_failed_acquisition_cleanup_keeps_a_lock_taken_over_meanwhile(): void {
+		$order      = WC_Helper_Order::create_order();
+		$rival_lock = ( time() + 5 * MINUTE_IN_SECONDS ) . '|' . wp_generate_uuid4();
+		$took_over  = false;
+		$take_over  = function ( $current_lock ) use ( $order, $rival_lock, &$took_over ) {
+			// A real request can only take over while the row holds the same, unguarded value.
+			if ( $took_over || ! is_string( $current_lock ) || $current_lock !== $this->get_payment_lock_owner_row( $order ) ) {
+				return;
+			}
+
+			$took_over = true;
+			$this->set_payment_lock_owner_row( $order, $rival_lock );
+			$rival_order = wc_get_order( $order->get_id() );
+			$rival_order->update_meta_data( '_stripe_lock_payment', $rival_lock );
+			$rival_order->save_meta_data();
+		};
+		$helper     = new class( $take_over ) extends WC_Stripe_Order_Helper {
+			/** @var callable */
+			private $take_over;
+
+			/** @var int */
+			private $reads = 0;
+
+			/**
+			 * Builds the helper.
+			 *
+			 * @param callable $take_over Simulates another request taking the lock over.
+			 */
+			public function __construct( callable $take_over ) {
+				$this->take_over = $take_over;
+			}
+
+			/**
+			 * Fails the verification read, then lets another request take over right after each later read.
+			 *
+			 * @param WC_Order $order The order.
+			 * @return mixed
+			 */
+			public function get_order_existing_payment_lock( WC_Order $order ) {
+				$lock = parent::get_order_existing_payment_lock( $order );
+				++$this->reads;
+
+				if ( 2 === $this->reads ) {
+					return 'replaced-by-another-request';
+				}
+
+				if ( 2 < $this->reads ) {
+					( $this->take_over )( $lock );
+				}
+
+				return $lock;
+			}
+		};
+
+		try {
+			$this->assertFalse( $helper->acquire_order_payment_lock( $order ) );
+
+			$final_lock = $this->helper->get_order_existing_payment_lock( wc_get_order( $order->get_id() ) );
+			if ( $took_over ) {
+				$this->assertSame( $rival_lock, $final_lock );
+				$this->assertSame( $rival_lock, $this->get_payment_lock_owner_row( $order ) );
+			} else {
+				$this->assertEmpty( $final_lock );
+				$this->assertNull( $this->get_payment_lock_owner_row( $order ) );
+			}
+		} finally {
+			$this->set_payment_lock_owner_row( $order, null );
+		}
+	}
+
+	/**
+	 * Tests that the owner row alone decides ownership: a meta copy that another write changed does
+	 * not stop the owner from renewing or releasing, and does not let anyone else in.
+	 *
+	 * @dataProvider provide_stale_payment_lock_copies
+	 *
+	 * @param string $copy_kind Which value the meta copy holds when the owner renews.
+	 */
+	public function test_owner_row_alone_decides_payment_lock_ownership( string $copy_kind ): void {
+		$order      = WC_Helper_Order::create_order();
+		$owned_lock = $this->helper->acquire_order_payment_lock( $order );
+		$this->assertIsString( $owned_lock );
+
+		$writer = wc_get_order( $order->get_id() );
+		if ( 'missing' === $copy_kind ) {
+			$writer->delete_meta_data( '_stripe_lock_payment' );
+		} else {
+			$writer->update_meta_data( '_stripe_lock_payment', ( time() + 5 * MINUTE_IN_SECONDS ) . '|' . wp_generate_uuid4() );
+		}
+		$writer->save_meta_data();
+
+		try {
+			$this->assertTrue( $this->helper->is_order_payment_lock_owned( wc_get_order( $order->get_id() ), $owned_lock ) );
+			// The row still blocks everyone else.
+			$this->assertFalse( $this->helper->acquire_order_payment_lock( wc_get_order( $order->get_id() ) ) );
+
+			$renewed_lock = $this->helper->renew_order_payment_lock_if_owned( wc_get_order( $order->get_id() ), $owned_lock );
+			$this->assertIsString( $renewed_lock );
+			// The meta follows the row again.
+			$this->assertSame( $renewed_lock, $this->helper->get_order_existing_payment_lock( wc_get_order( $order->get_id() ) ) );
+			$this->assertSame( $renewed_lock, $this->get_payment_lock_owner_row( $order ) );
+
+			$this->helper->unlock_order_payment_if_owned( wc_get_order( $order->get_id() ), $renewed_lock );
+		} finally {
+			$this->set_payment_lock_owner_row( $order, null );
+		}
+
+		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( wc_get_order( $order->get_id() ) ) );
+		$this->assertNull( $this->get_payment_lock_owner_row( $order ) );
+	}
+
+	/**
+	 * Tests that a meta copy left behind without its owner row does not block the next payment,
+	 * while a legacy lock without a row still does.
+	 *
+	 * @dataProvider provide_payment_lock_meta_without_a_row
+	 *
+	 * @param string $kind          Which value the meta holds.
+	 * @param bool   $expect_locked Whether the order should count as locked.
+	 */
+	public function test_payment_lock_meta_without_a_row( string $kind, bool $expect_locked ): void {
+		$order  = WC_Helper_Order::create_order();
+		$expiry = time() + 5 * MINUTE_IN_SECONDS;
+		$values = [
+			'copy'          => $expiry . '|' . wp_generate_uuid4(),
+			'legacy'        => (string) $expiry,
+			'legacy_intent' => $expiry . '|pi_existing',
+		];
+		$order->update_meta_data( '_stripe_lock_payment', $values[ $kind ] );
+		$order->save_meta_data();
+
+		try {
+			$this->assertSame( $expect_locked, $this->helper->lock_order_payment( $order ) );
+		} finally {
+			$this->helper->unlock_order_payment( $order );
+			$this->set_payment_lock_owner_row( $order, null );
+		}
+	}
+
+	/**
+	 * Provides active meta values with no owner row.
+	 *
+	 * @return array<string, array{string, bool}>
+	 */
+	public function provide_payment_lock_meta_without_a_row(): array {
+		return [
+			'copy of a released row'        => [ 'copy', false ],
+			'legacy lock'                   => [ 'legacy', true ],
+			'legacy lock with an intent ID' => [ 'legacy_intent', true ],
+		];
+	}
+
+	/**
+	 * Provides meta copies that no longer match the owner row.
+	 *
+	 * @return array<string, array{string}>
+	 */
+	public function provide_stale_payment_lock_copies(): array {
+		return [
+			'copy removed'             => [ 'missing' ],
+			'copy overwritten by peer' => [ 'other' ],
+		];
+	}
+
+	/**
+	 * Tests that a token-less unlock clears a legacy bare-timestamp lock only once it has expired.
+	 *
+	 * @dataProvider provide_legacy_payment_locks
+	 *
+	 * @param int  $expiry_offset  Seconds from now at which the legacy lock expires.
+	 * @param bool $expect_cleared Whether the unlock should clear it.
+	 */
+	public function test_unlock_order_payment_without_a_token_only_clears_expired_legacy_metadata( int $expiry_offset, bool $expect_cleared ): void {
+		// Providers run at discovery, so the timestamp is built here.
+		$legacy_lock = time() + $expiry_offset;
+		$order       = WC_Helper_Order::create_order();
+		$order->update_meta_data( '_stripe_lock_payment', $legacy_lock );
+		$order->save_meta_data();
+
+		$this->helper->unlock_order_payment( $order );
+
+		if ( $expect_cleared ) {
+			$this->assertEmpty( $this->helper->get_order_existing_payment_lock( $order ) );
+		} else {
+			$this->assertSame( (string) $legacy_lock, (string) $this->helper->get_order_existing_payment_lock( $order ) );
+		}
+		$this->assertNull( $this->get_payment_lock_owner_row( $order ) );
+	}
+
+	/**
+	 * Provides legacy bare-timestamp lock offsets and whether a token-less unlock should clear them.
+	 *
+	 * @return array<string, array{int, bool}>
+	 */
+	public function provide_legacy_payment_locks(): array {
+		return [
+			'active legacy lock'  => [ 5 * MINUTE_IN_SECONDS, false ],
+			'expired legacy lock' => [ -1, true ],
+		];
+	}
+
+	/**
+	 * Tests that an unreadable owner row is taken over, as WC_Stripe_Option_Lock does for every lock,
+	 * while an active legacy lock in the order meta still blocks the payment.
+	 */
+	public function test_lock_order_payment_takes_over_a_malformed_owner_row_but_honors_the_meta(): void {
+		$order = WC_Helper_Order::create_order();
+
+		$this->set_payment_lock_owner_row( $order, 'corrupt-owner-value' );
+
+		try {
+			$this->assertFalse( $this->helper->lock_order_payment( $order ) );
+		} finally {
+			$this->helper->unlock_order_payment( $order );
+		}
+
+		// Reload: the unlock above deleted the meta row this object still holds.
+		// Older code writes a bare expiry timestamp and no row.
+		$order       = wc_get_order( $order->get_id() );
+		$active_lock = (string) ( time() + 5 * MINUTE_IN_SECONDS );
+		$this->set_payment_lock_owner_row( $order, 'corrupt-owner-value' );
+		$order->update_meta_data( '_stripe_lock_payment', $active_lock );
+		$order->save_meta_data();
+
+		$this->assertTrue( $this->helper->lock_order_payment( $order ) );
+		$this->assertSame( $active_lock, $this->helper->get_order_existing_payment_lock( $order ) );
+
+		$this->set_payment_lock_owner_row( $order, null );
+	}
+
+	/**
+	 * Tests that an owner row left behind by an expired lock is taken over.
+	 */
+	public function test_lock_order_payment_reclaims_a_stale_owner_row(): void {
+		$order = WC_Helper_Order::create_order();
+
+		$this->set_payment_lock_owner_row( $order, ( time() - 1 ) . '|' . wp_generate_uuid4() );
+
+		try {
+			$this->assertFalse( $this->helper->lock_order_payment( $order ) );
+			$acquired_lock = (string) $this->helper->get_order_existing_payment_lock( $order );
+			$this->assertMatchesRegularExpression( '/^[1-9][0-9]*\|[0-9a-f-]{36}$/', $acquired_lock );
+			$this->assertSame( $acquired_lock, $this->get_payment_lock_owner_row( $order ) );
+		} finally {
+			$this->helper->unlock_order_payment( $order );
+		}
+
+		$this->assertNull( $this->get_payment_lock_owner_row( $order ) );
+	}
+
+	/**
+	 * Tests that only one of two requests that interleave between the lock check and the write gets the lock.
+	 */
+	public function test_lock_order_payment_rejects_an_interleaved_acquisition(): void {
+		$order        = WC_Helper_Order::create_order();
+		$first_order  = wc_get_order( $order->get_id() );
+		$second_order = wc_get_order( $order->get_id() );
+
+		$second_result = null;
+		$second_helper = new WC_Stripe_Order_Helper();
+		// A second worker acquires between the first worker's check and write.
+		$first_helper = new class(
+			function () use ( &$second_result, $second_helper, $second_order ) {
+				$second_result = $second_helper->lock_order_payment( $second_order );
+			}
+		) extends WC_Stripe_Order_Helper {
+			/** @var callable|null */
+			private $after_unlocked_check;
+
+			/** @param callable $after_unlocked_check Competing lock callback. */
+			public function __construct( callable $after_unlocked_check ) {
+				$this->after_unlocked_check = $after_unlocked_check;
+			}
+
+			/** @inheritDoc */
+			protected function is_order_payment_locked( WC_Order $order ): bool {
+				$is_locked = parent::is_order_payment_locked( $order );
+
+				if ( ! $is_locked && is_callable( $this->after_unlocked_check ) ) {
+					$callback                   = $this->after_unlocked_check;
+					$this->after_unlocked_check = null;
+					$callback();
+				}
+
+				return $is_locked;
+			}
+		};
+
+		try {
+			$first_result = $first_helper->lock_order_payment( $first_order );
+
+			$this->assertFalse( $first_result );
+			$this->assertTrue( $second_result );
+			$this->assertMatchesRegularExpression( '/^[1-9][0-9]*\|[0-9a-f-]{36}$/', (string) $this->helper->get_order_existing_payment_lock( wc_get_order( $order->get_id() ) ) );
+		} finally {
+			$first_helper->unlock_order_payment( $first_order );
+		}
+
+		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( $order ) );
+	}
+
+	/**
+	 * Tests that releasing a lock that was taken over leaves the new owner's lock in place.
+	 */
+	public function test_unlock_order_payment_if_owned_preserves_a_replacement_lock(): void {
+		$order = WC_Helper_Order::create_order();
+
+		$this->assertFalse( $this->helper->lock_order_payment( $order ) );
+		$owned_lock        = (string) $this->helper->get_order_existing_payment_lock( $order );
+		$replacement_lock  = ( time() + 5 * MINUTE_IN_SECONDS ) . '|' . wp_generate_uuid4();
+		$replacement_order = wc_get_order( $order->get_id() );
+
+		$this->set_payment_lock_owner_row( $order, $replacement_lock );
+		$replacement_order->update_meta_data( '_stripe_lock_payment', $replacement_lock );
+		$replacement_order->save_meta_data();
+
+		$this->helper->unlock_order_payment_if_owned( $order, $owned_lock );
+
+		$this->assertSame( $replacement_lock, $this->helper->get_order_existing_payment_lock( $order ) );
+		$this->assertSame( $replacement_lock, $this->get_payment_lock_owner_row( $order ) );
+
+		$replacement_order->delete_meta_data( '_stripe_lock_payment' );
+		$replacement_order->save_meta_data();
+		$this->set_payment_lock_owner_row( $order, null );
+	}
+
+	/**
+	 * Tests that releasing the lock does not save or discard the caller's unsaved order changes.
+	 */
+	public function test_unlock_order_payment_if_owned_preserves_unsaved_caller_metadata(): void {
+		$order = WC_Helper_Order::create_order();
+
+		$this->assertFalse( $this->helper->lock_order_payment( $order ) );
+		$owned_lock = (string) $this->helper->get_order_existing_payment_lock( $order );
+
+		$order->update_meta_data( '_unsaved_extension_meta', 'preserved' );
+		$this->helper->unlock_order_payment_if_owned( $order, $owned_lock );
+
+		$this->assertSame( 'preserved', $order->get_meta( '_unsaved_extension_meta', true ) );
+		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( wc_get_order( $order->get_id() ) ) );
+		$this->assertEmpty( wc_get_order( $order->get_id() )->get_meta( '_unsaved_extension_meta', true ) );
+	}
+
+	/**
+	 * @dataProvider provide_malformed_payment_locks
+	 * @param mixed $malformed_lock Malformed payment lock metadata.
+	 */
+	public function test_lock_order_payment_treats_malformed_metadata_as_locked( $malformed_lock ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->update_meta_data( '_stripe_lock_payment', $malformed_lock );
+		$order->save_meta_data();
+
+		$this->assertTrue( $this->helper->lock_order_payment( $order ) );
+		$this->assertEquals( $malformed_lock, $this->helper->get_order_existing_payment_lock( $order ) );
+	}
+
+	/** @return array<string, array{mixed}> */
+	public function provide_malformed_payment_locks(): array {
+		return [
+			'empty array'     => [ [] ],
+			'non-empty array' => [ [ time() + 5 * MINUTE_IN_SECONDS ] ],
+			'object'          => [ (object) [ 'expires_at' => time() + 5 * MINUTE_IN_SECONDS ] ],
+			'non-numeric'     => [ 'corrupt' ],
+			'numeric prefix'  => [ '123abc' ],
+			'negative expiry' => [ '-1|' . wp_generate_uuid4() ],
+		];
 	}
 
 	/**
