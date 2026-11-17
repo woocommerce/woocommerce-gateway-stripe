@@ -105,8 +105,8 @@ class WC_Stripe_API {
 		$secret_key      = $options['secret_key'] ?? '';
 		$test_secret_key = $options['test_secret_key'] ?? '';
 
-		if ( ! in_array( $mode, [ 'test', 'live' ], true ) ) {
-			$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
+		if ( ! WC_Stripe_Mode::is_valid_mode( $mode ) ) {
+			$mode = WC_Stripe_Mode::get_current_mode();
 		}
 
 		self::set_secret_key( 'test' === $mode ? $test_secret_key : $secret_key );
@@ -120,7 +120,7 @@ class WC_Stripe_API {
 	private static function get_mode_for_active_secret_key(): ?string {
 		$options      = WC_Stripe_Helper::get_stripe_settings();
 		$secret_key   = self::get_secret_key();
-		$current_mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
+		$current_mode = WC_Stripe_Mode::get_current_mode();
 		$current_key  = 'test' === $current_mode ? ( $options['test_secret_key'] ?? '' ) : ( $options['secret_key'] ?? '' );
 
 		if ( $secret_key === $current_key ) {
