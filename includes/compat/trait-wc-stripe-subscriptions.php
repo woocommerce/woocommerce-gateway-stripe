@@ -506,31 +506,55 @@ trait WC_Stripe_Subscriptions_Trait {
 		$order_id     = $renewal_order->get_id();
 
 		// One lock covers the whole attempt, retries included, so a concurrent renewal cannot charge in between.
-		if ( $order_helper->lock_order_payment( $renewal_order ) ) {
+		$acquired_lock = $order_helper->acquire_order_payment_lock( $renewal_order );
+		if ( false === $acquired_lock ) {
 			// Log an error to ensure we log the error even when debug logging is disabled.
 			WC_Stripe_Logger::error( "Stripe: skipping duplicate renewal attempt for order {$order_id} because the payment lock is already held." );
 			$renewal_order->add_order_note( __( 'Stripe: skipped this renewal payment attempt because another payment attempt for this order was already in progress.', 'woocommerce-gateway-stripe' ) );
 			return;
 		}
 
-		// The 5-minute lock can lapse mid-retry; only release it while it is still ours.
-		$our_lock = (string) $order_helper->get_order_existing_payment_lock( $renewal_order );
-		if ( '' === $our_lock ) {
-			WC_Stripe_Logger::error( "Stripe: skipping renewal attempt for order {$order_id} because we could not confirm the payment lock." );
-			$renewal_order->add_order_note( __( 'Stripe: skipped this renewal payment attempt because we could not confirm the payment lock.', 'woocommerce-gateway-stripe' ) );
-			return;
-		}
-
-		// The lock is a bare timestamp or "{expiry}|{owner_token}".
-		$lock_expiry = (int) explode( '|', $our_lock, 2 )[0];
+		// Trust only the returned value; re-reading the meta could adopt another worker's lock.
+		$lock_expiry = $this->get_subscription_payment_lock_expiry( $acquired_lock );
 
 		try {
-			$this->process_subscription_payment_attempt( $amount, $renewal_order, $retry, $previous_error, $lock_expiry );
+			// The attempt renews the lock and updates $acquired_lock, so the release below targets the current value.
+			$this->process_subscription_payment_attempt( $amount, $renewal_order, $retry, $previous_error, $lock_expiry, $acquired_lock );
 		} finally {
-			if ( (string) $order_helper->get_order_existing_payment_lock( $renewal_order ) === $our_lock ) {
-				$order_helper->unlock_order_payment( $renewal_order );
-			}
+			$order_helper->unlock_order_payment_if_owned( $renewal_order, $acquired_lock );
 		}
+	}
+
+	/**
+	 * Builds the order note left when this request could not record Stripe's answer to a renewal payment.
+	 *
+	 * @param mixed $response The Stripe renewal response.
+	 * @return string
+	 */
+	private function get_renewal_payment_not_recorded_note( $response ): string {
+		$payment_id = is_object( $response ) && isset( $response->id ) && is_string( $response->id ) ? $response->id : '';
+
+		if ( '' === $payment_id ) {
+			return __( 'Stripe responded to this renewal payment, but the result was not saved to this order because another process took over the payment while it was running. The order is updated when Stripe confirms the payment; you can also check it in the Stripe dashboard.', 'woocommerce-gateway-stripe' );
+		}
+
+		return sprintf(
+			/* translators: %s is a link to the payment in the Stripe dashboard. */
+			__( 'Stripe responded to renewal payment %s, but the result was not saved to this order because another process took over the payment while it was running. The order is updated when Stripe confirms the payment; you can also check it in the Stripe dashboard.', 'woocommerce-gateway-stripe' ),
+			WC_Stripe_Helper::get_external_link( WC_Stripe_Helper::get_transaction_url_for_id( $payment_id, empty( $response->livemode ) ), $payment_id )
+		);
+	}
+
+	/**
+	 * Returns the expiry of a payment lock value, or 0 when it cannot be parsed.
+	 *
+	 * @param string $lock Payment lock value: a bare timestamp or "{expiry}|{owner_token}".
+	 * @return int
+	 */
+	private function get_subscription_payment_lock_expiry( string $lock ): int {
+		$expiry = explode( '|', $lock, 2 )[0];
+
+		return ctype_digit( $expiry ) ? (int) $expiry : 0;
 	}
 
 	/**
@@ -541,9 +565,11 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param bool         $retry          Should we retry the process?
 	 * @param object|false $previous_error Previous error object.
 	 * @param int          $lock_expiry    Unix timestamp at which the caller's payment lock expires. 0 when unknown.
+	 * @param string       $acquired_lock  Lock value the caller holds; updated in place when the lock is renewed.
 	 * @return void
 	 */
-	private function process_subscription_payment_attempt( $amount, $renewal_order, $retry = true, $previous_error = false, int $lock_expiry = 0 ) {
+	private function process_subscription_payment_attempt( $amount, $renewal_order, $retry = true, $previous_error = false, int $lock_expiry = 0, string &$acquired_lock = '' ) {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		$radar_reason = false;
 		$response     = null;
 
@@ -552,6 +578,12 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			// Check for an existing intent, which is associated with the order.
 			if ( $this->has_authentication_already_failed( $renewal_order ) ) {
+				return;
+			}
+
+			// An earlier attempt may have charged this order without recording it, for example after
+			// losing its lock. Charging again would take the payment twice.
+			if ( $this->has_renewal_already_been_charged( $renewal_order ) ) {
 				return;
 			}
 
@@ -596,6 +628,19 @@ trait WC_Stripe_Subscriptions_Trait {
 				$prepared_source->source = '';
 			}
 
+			// Preparing the source calls Stripe and the filter above runs third-party code, either of which can use up
+			// most of the lock or replace it; renew it so the charge starts on a full lease we still own.
+			$renewed_lock = $order_helper->renew_order_payment_lock_if_owned( $renewal_order, $acquired_lock );
+			if ( false === $renewed_lock ) {
+				// Another worker may own the lock now, so leave the order for it rather than marking it failed.
+				WC_Stripe_Logger::error( "Stripe: not continuing a subscription renewal attempt for order {$order_id} because its payment lock is no longer owned." );
+				$renewal_order->add_order_note( __( 'Stripe: this renewal payment was not attempted because another process took over the payment before the charge began.', 'woocommerce-gateway-stripe' ) );
+				return;
+			}
+
+			$acquired_lock = $renewed_lock;
+			$lock_expiry   = $this->get_subscription_payment_lock_expiry( $renewed_lock );
+
 			$attempt_payment = function () use ( $amount, $renewal_order, $prepared_source ) {
 				return $this->attempt_subscription_renewal_payment( $amount, $renewal_order, $prepared_source );
 			};
@@ -628,7 +673,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 					if ( $retry && ! $lock_expired ) {
 						if ( 5 <= $this->retry_interval ) { // @phpstan-ignore-line (retry_interval is defined in classes using this class)
-							$this->process_subscription_payment_attempt( $amount, $renewal_order, false, $response->error, $lock_expiry );
+							$this->process_subscription_payment_attempt( $amount, $renewal_order, false, $response->error, $lock_expiry, $acquired_lock );
 							return;
 						}
 
@@ -638,7 +683,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 						$lock_expired = $this->is_order_payment_lock_expired( $lock_expiry );
 						if ( ! $lock_expired ) {
-							$this->process_subscription_payment_attempt( $amount, $renewal_order, true, $response->error, $lock_expiry );
+							$this->process_subscription_payment_attempt( $amount, $renewal_order, true, $response->error, $lock_expiry, $acquired_lock );
 							return;
 						}
 					}
@@ -692,6 +737,21 @@ trait WC_Stripe_Subscriptions_Trait {
 			 * @param WC_Order            $order The order that failed payment processing.
 			 */
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
+
+			// The hook above always fires, but the order and Radar updates below are only safe while the lock is ours.
+			if ( ! $order_helper->is_order_payment_lock_owned( $renewal_order, $acquired_lock ) ) {
+				WC_Stripe_Logger::error( "Stripe: not recording a failed renewal attempt for order {$renewal_order->get_id()} because its payment lock is no longer owned." );
+				// Without a status change WooCommerce Subscriptions schedules no retry, so the merchant
+				// needs to see why the renewal stopped.
+				$renewal_order->add_order_note(
+					sprintf(
+						/* translators: %s is the reason the renewal payment failed. */
+						__( 'Stripe: this renewal payment failed (%s), but the failure was not saved to this order because another process took over the payment while it was running. Check the order before retrying the renewal.', 'woocommerce-gateway-stripe' ),
+						$e->getLocalizedMessage()
+					)
+				);
+				return;
+			}
 
 			$renewal_order->update_status( OrderStatus::FAILED );
 
@@ -779,6 +839,17 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		try {
+			// Response handling runs third-party hooks and can be slow, so renew the lock first.
+			$renewed_lock = $order_helper->renew_order_payment_lock_if_owned( $renewal_order, $acquired_lock );
+			if ( false === $renewed_lock ) {
+				// Without the lock this request must not update the order. It must not fire the payment
+				// error hook either: Stripe may well have taken the payment. Leave the merchant a link.
+				WC_Stripe_Logger::error( "Stripe: subscription renewal order {$order_id} response was not processed because its payment lock could not be renewed." );
+				$renewal_order->add_order_note( $this->get_renewal_payment_not_recorded_note( $is_authentication_required ? ( $response->error->payment_intent ?? null ) : $response ) );
+				return;
+			}
+
+			$acquired_lock = $renewed_lock;
 
 			// Either the charge was successfully captured, or it requires further authentication.
 			if ( $is_authentication_required ) {
@@ -1818,6 +1889,79 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		return (string) $charge->id;
+	}
+
+	/**
+	 * Checks whether the PaymentIntent saved on the renewal order already took, or is taking, the payment.
+	 *
+	 * A succeeded intent is recorded on the order instead of charging again. An intent that is still
+	 * processing or awaiting capture leaves a note and is left for the webhook to record.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Order $renewal_order The renewal order.
+	 * @return bool True when the renewal must not be charged again.
+	 */
+	private function has_renewal_already_been_charged( WC_Order $renewal_order ): bool {
+		if ( '' === (string) WC_Stripe_Order_Helper::get_instance()->get_stripe_intent_id( $renewal_order ) ) {
+			return false;
+		}
+
+		$existing_intent = $this->get_intent_from_order( $renewal_order );
+		if ( ! is_object( $existing_intent ) || 'payment_intent' !== ( $existing_intent->object ?? '' ) ) {
+			return false;
+		}
+
+		$intent_id      = (string) ( $existing_intent->id ?? '' );
+		$dashboard_link = WC_Stripe_Helper::get_external_link(
+			WC_Stripe_Helper::get_transaction_url_for_id( $intent_id, empty( $existing_intent->livemode ) ),
+			$intent_id
+		);
+
+		if ( in_array( $existing_intent->status ?? '', [ WC_Stripe_Intent_Status::PROCESSING, WC_Stripe_Intent_Status::REQUIRES_CAPTURE ], true ) ) {
+			$renewal_order->add_order_note(
+				sprintf(
+					/* translators: %s is a link to the payment in the Stripe dashboard. */
+					__( 'Stripe: did not charge this renewal again because payment %s is still in progress in Stripe. The order will be updated when it completes.', 'woocommerce-gateway-stripe' ),
+					$dashboard_link
+				)
+			);
+			return true;
+		}
+
+		if ( WC_Stripe_Intent_Status::SUCCEEDED !== ( $existing_intent->status ?? '' ) ) {
+			return false;
+		}
+
+		try {
+			$charge = $this->resolve_stripe_charge_object( $this->get_latest_charge_for_subscription_renewal( $existing_intent ) );
+		} catch ( WC_Stripe_Exception $charge_exception ) {
+			// The intent already succeeded, so a failed lookup must not lead to a second charge.
+			WC_Stripe_Logger::error( "Stripe: the charge lookup for the saved PaymentIntent {$intent_id} failed: " . $charge_exception->getLocalizedMessage() );
+			$charge = null;
+		}
+
+		if ( null === $charge ) {
+			$renewal_order->add_order_note(
+				sprintf(
+					/* translators: %s is a link to the payment in the Stripe dashboard. */
+					__( 'Stripe: did not charge this renewal again because payment %s already succeeded, but its details could not be read to record it. Check it in the Stripe dashboard.', 'woocommerce-gateway-stripe' ),
+					$dashboard_link
+				)
+			);
+			return true;
+		}
+
+		$renewal_order->add_order_note(
+			sprintf(
+				/* translators: %s is a link to the payment in the Stripe dashboard. */
+				__( 'Stripe: payment %s for this renewal had already succeeded, so it was recorded instead of charging the customer again.', 'woocommerce-gateway-stripe' ),
+				$dashboard_link
+			)
+		);
+		$this->process_response( $charge, $renewal_order );
+
+		return true;
 	}
 
 	/**
