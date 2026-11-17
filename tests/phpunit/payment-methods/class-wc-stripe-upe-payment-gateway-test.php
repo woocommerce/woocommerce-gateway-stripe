@@ -3171,6 +3171,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		WC_Stripe_Order_Helper::get_instance()->add_payment_intent_to_order( 'pi_earlier_attempt', $order );
 
+		// Core resets the title to the gateway's own each time it resumes a pending order.
+		$order->set_payment_method_title( 'Stripe' );
+		$order->save();
+
 		if ( $owns_session ) {
 			$this->store_checkout_session_context_for_order( $session_id, $order );
 		}
@@ -3204,7 +3208,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 							'id'                     => 'ch_earlier_attempt',
 							'captured'               => true,
 							'status'                 => 'succeeded',
-							'payment_method_details' => [],
+							'payment_method_details' => [ 'type' => WC_Stripe_Payment_Methods::CARD ],
 						],
 						$charge_flags
 					)
@@ -3267,6 +3271,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			(string) WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( $processed_order )
 		);
 		$this->assertSame( $expected_status, $processed_order->get_status() );
+		if ( $expect_already_paid ) {
+			// The order must carry the title of the method that paid, as the normal return does.
+			$this->assertSame(
+				$this->mock_gateway->payment_methods[ WC_Stripe_Payment_Methods::CARD ]->get_title(),
+				$processed_order->get_payment_method_title()
+			);
+		}
 	}
 
 	/**

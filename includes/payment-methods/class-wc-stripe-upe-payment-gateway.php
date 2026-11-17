@@ -2007,6 +2007,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				}
 			}
 
+			// Core reset the payment method title to the gateway's own when it resumed the order for
+			// this submission, and settling does not set it again. Settling works on its own copy of
+			// the order, so the title is written to a fresh one.
+			$paid_order = null !== $paid_intent ? wc_get_order( $order->get_id() ) : null;
+			if ( $paid_order instanceof WC_Order ) {
+				list( $payment_method_type ) = $this->get_payment_method_data_from_intent( $paid_intent );
+				$this->set_payment_method_title_for_order( $paid_order, (string) $payment_method_type );
+			}
+
 			// If the order is already completed, redirect user to the order received page. An order
 			// paid by an earlier intent skips the Checkout Session return handler: no Session was used,
 			// and the handler would read a stale Session still stored on a pending order as a
