@@ -17,6 +17,7 @@
 	"products": {
 		"simple": {
 			"name": "Beanie",
+			"slug": "beanie",
 			"type": "simple"
 		},
 		"subscription": {
