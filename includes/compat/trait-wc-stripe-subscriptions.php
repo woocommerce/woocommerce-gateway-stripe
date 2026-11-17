@@ -506,7 +506,8 @@ trait WC_Stripe_Subscriptions_Trait {
 		$order_id     = $renewal_order->get_id();
 
 		// One lock covers the whole attempt, retries included, so a concurrent renewal cannot charge in between.
-		if ( $order_helper->lock_order_payment( $renewal_order ) ) {
+		$lock_owner = $order_helper->lock_order_payment_atomic( $renewal_order );
+		if ( null === $lock_owner ) {
 			// Log an error to ensure we log the error even when debug logging is disabled.
 			WC_Stripe_Logger::error( "Stripe: skipping duplicate renewal attempt for order {$order_id} because the payment lock is already held." );
 			$renewal_order->add_order_note( __( 'Stripe: skipped this renewal payment attempt because another payment attempt for this order was already in progress.', 'woocommerce-gateway-stripe' ) );
@@ -514,21 +515,17 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		// The 5-minute lock can lapse mid-retry; only release it while it is still ours.
-		$our_lock = (string) $order_helper->get_order_existing_payment_lock( $renewal_order );
-		if ( '' === $our_lock ) {
+		$is_lock_expired = $order_helper->is_order_payment_lock_expired( $lock_owner );
+		if ( null === $is_lock_expired || true === $is_lock_expired ) {
 			WC_Stripe_Logger::error( "Stripe: skipping renewal attempt for order {$order_id} because we could not confirm the payment lock." );
 			$renewal_order->add_order_note( __( 'Stripe: skipped this renewal payment attempt because we could not confirm the payment lock.', 'woocommerce-gateway-stripe' ) );
 			return;
 		}
 
-		$lock_expiry = (int) $our_lock;
-
 		try {
-			$this->process_subscription_payment_attempt( $amount, $renewal_order, $retry, $previous_error, $lock_expiry );
+			$this->process_subscription_payment_attempt( $amount, $renewal_order, $retry, $previous_error, $lock_owner );
 		} finally {
-			if ( (string) $order_helper->get_order_existing_payment_lock( $renewal_order ) === $our_lock ) {
-				$order_helper->unlock_order_payment( $renewal_order );
-			}
+			$order_helper->unlock_order_payment_atomic( $renewal_order, $lock_owner );
 		}
 	}
 
@@ -539,10 +536,10 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param WC_Order     $renewal_order  The renewal order.
 	 * @param bool         $retry          Should we retry the process?
 	 * @param object|false $previous_error Previous error object.
-	 * @param int          $lock_expiry    Unix timestamp at which the caller's payment lock expires. 0 when unknown.
+	 * @param string       $lock_owner     The owner of the payment lock.
 	 * @return void
 	 */
-	private function process_subscription_payment_attempt( $amount, $renewal_order, $retry = true, $previous_error = false, int $lock_expiry = 0 ) {
+	private function process_subscription_payment_attempt( $amount, $renewal_order, $retry = true, $previous_error = false, string $lock_owner ) {
 		$radar_reason = false;
 		$response     = null;
 
@@ -554,7 +551,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				return;
 			}
 
-			$this->log_and_throw_if_lock_expired( $lock_expiry, $renewal_order );
+			$this->log_and_throw_if_lock_expired( $lock_owner, $renewal_order );
 
 			// Get source from order
 			$prepared_source = $this->prepare_order_source( $renewal_order );
@@ -575,7 +572,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				]
 			);
 
-			$this->log_and_throw_if_lock_expired( $lock_expiry, $renewal_order );
+			$this->log_and_throw_if_lock_expired( $lock_owner, $renewal_order );
 
 			/*
 			 * If we're doing a retry and source is chargeable, we need to pass
@@ -613,12 +610,14 @@ trait WC_Stripe_Subscriptions_Trait {
 				// We want to retry — unless Stripe Radar blocked the charge, in which case retrying
 				// would just create another blocked charge and inflate the block rate.
 				if ( $this->is_retryable_error( $response->error ) && false === $radar_reason ) {
-					// Stop retrying once the lock lapses; a concurrent renewal may hold its own lock by then.
-					$lock_expired = $this->is_order_payment_lock_expired( $lock_expiry );
+					$order_helper = WC_Stripe_Order_Helper::get_instance();
 
-					if ( $retry && ! $lock_expired ) {
+					// Stop retrying once the lock lapses; a concurrent renewal may hold its own lock by then.
+					$lock_expired = $order_helper->is_order_payment_lock_expired( $lock_owner );
+
+					if ( $retry && false === $lock_expired ) {
 						if ( 5 <= $this->retry_interval ) { // @phpstan-ignore-line (retry_interval is defined in classes using this class)
-							$this->process_subscription_payment_attempt( $amount, $renewal_order, false, $response->error, $lock_expiry );
+							$this->process_subscription_payment_attempt( $amount, $renewal_order, false, $response->error, $lock_owner );
 							return;
 						}
 
@@ -626,14 +625,14 @@ trait WC_Stripe_Subscriptions_Trait {
 
 						++$this->retry_interval;
 
-						$lock_expired = $this->is_order_payment_lock_expired( $lock_expiry );
-						if ( ! $lock_expired ) {
-							$this->process_subscription_payment_attempt( $amount, $renewal_order, true, $response->error, $lock_expiry );
+						$lock_expired = $order_helper->is_order_payment_lock_expired( $lock_owner );
+						if ( false === $lock_expired ) {
+							$this->process_subscription_payment_attempt( $amount, $renewal_order, true, $response->error, $lock_owner );
 							return;
 						}
 					}
 
-					if ( $lock_expired ) {
+					if ( true === $lock_expired ) {
 						$this->log_renewal_lock_expired( $renewal_order, false );
 					}
 
@@ -874,24 +873,28 @@ trait WC_Stripe_Subscriptions_Trait {
 	/**
 	 * Helper method to check if the payment lock has expired.
 	 *
-	 * @param int $lock_expiry The lock expiry timestamp.
+	 * @param string $lock_expiry The lock expiry timestamp.
 	 * @return bool True if the lock has expired, false otherwise.
 	 * @phpstan-impure Code checks the current time.
 	 */
-	protected function is_order_payment_lock_expired( int $lock_expiry ): bool {
-		return $lock_expiry > 0 && time() > $lock_expiry;
+	protected function is_order_payment_lock_expired( string $lock_expiry ): bool {
+		$order_helper    = WC_Stripe_Order_Helper::get_instance();
+		$mock_lock_owner = $lock_expiry . ':';
+
+		return true === $order_helper->is_order_payment_lock_expired( $mock_lock_owner );
 	}
 
 	/**
 	 * If the payment lock is still valid. Do nothing.
 	 * If the payment lock has expired, log an error entry and throw an exception.
 	 *
-	 * @param int      $lock_expiry   The lock expiry timestamp.
+	 * @param string   $lock_owner    The owner of the payment lock.
 	 * @param WC_Order $renewal_order The renewal order.
 	 * @throws WC_Stripe_Exception If the payment lock has expired.
 	 */
-	private function log_and_throw_if_lock_expired( int $lock_expiry, WC_Order $renewal_order ): void {
-		if ( ! $this->is_order_payment_lock_expired( $lock_expiry ) ) {
+	private function log_and_throw_if_lock_expired( string $lock_owner, WC_Order $renewal_order ): void {
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		if ( true !== $order_helper->is_order_payment_lock_expired( $lock_owner ) ) {
 			return;
 		}
 
