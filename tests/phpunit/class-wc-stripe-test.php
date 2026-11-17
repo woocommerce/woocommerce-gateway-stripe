@@ -261,13 +261,14 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Tests for the 'install' method when it updates the main Stripe settings.
 	 *
-	 * @param array $stripe_settings   The initial Stripe settings.
-	 * @param array $expected_settings The expected Stripe settings after installation.
+	 * @param array $stripe_settings    The initial Stripe settings.
+	 * @param array $expected_settings  The expected Stripe settings after installation.
+	 * @param bool  $live_webhook_fails Whether live-mode webhook configuration throws.
 	 * @return void
 	 *
 	 * @dataProvider provide_test_install_settings
 	 */
-	public function test_install_settings_update( array $stripe_settings = [], array $expected_settings = [] ): void {
+	public function test_install_settings_update( array $stripe_settings = [], array $expected_settings = [], bool $live_webhook_fails = false ): void {
 		// Activate the Stripe plugin.
 		update_option( 'active_plugins', [ plugin_basename( WC_STRIPE_MAIN_FILE ) ] );
 
@@ -287,7 +288,15 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$wc_stripe->webhook_settings = $this->createMock( WC_Stripe_Webhook_Settings::class );
 		$wc_stripe->webhook_settings->expects( $this->exactly( 2 ) )
-			->method( 'maybe_autoconfigure_webhooks' )->withConsecutive( [ 'live' ], [ 'test' ] );
+			->method( 'maybe_autoconfigure_webhooks' )->withConsecutive( [ 'live' ], [ 'test' ] )
+			->willReturnCallback(
+				static function ( $mode ) use ( $live_webhook_fails ) {
+					if ( $live_webhook_fails && 'live' === $mode ) {
+						throw new Exception( 'Live webhook configuration failed.' );
+					}
+					return null;
+				}
+			);
 		$wc_stripe->install();
 
 		$actual_settings = WC_Stripe::get_instance()->get_settings();
@@ -308,6 +317,11 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_install_settings(): array {
 		return [
+			'live webhook failure does not skip test mode'             => [
+				'stripe settings'    => [],
+				'expected settings'  => [],
+				'live webhook fails' => true,
+			],
 			'will not enable OCS by default due to PMC being disabled' => [
 				'stripe settings'   => [
 					'pmc_enabled' => 'no',
