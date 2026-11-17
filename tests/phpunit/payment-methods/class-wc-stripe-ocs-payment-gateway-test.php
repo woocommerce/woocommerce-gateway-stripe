@@ -878,9 +878,11 @@ class WC_Stripe_OCS_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 *
 	 * @dataProvider provide_test_javascript_params_ocs_keys
 	 *
-	 * @param bool $valid_oc_page Whether is_valid_optimized_checkout_page() returns true.
+	 * @param bool     $valid_oc_page   Whether is_valid_optimized_checkout_page() returns true.
+	 * @param string   $total           Cart total.
+	 * @param int|null $expected_amount Converted total, or null when the configuration must be empty.
 	 */
-	public function test_javascript_params_exposes_ocs_keys( bool $valid_oc_page ) {
+	public function test_javascript_params_exposes_ocs_keys( bool $valid_oc_page, string $total, ?int $expected_amount ) {
 		$gateway = $this->getMockBuilder( WC_Stripe_OCS_Payment_Gateway::class )
 			->setConstructorArgs( [] )
 			->onlyMethods(
@@ -906,7 +908,21 @@ class WC_Stripe_OCS_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->set_stripe_account_data( [ 'country' => 'US' ] );
 
-		$params = $gateway->javascript_params();
+		$original_total = WC()->cart->get_total( '' );
+		WC()->cart->set_total( $total );
+		try {
+			$params = $gateway->javascript_params();
+		} finally {
+			WC()->cart->set_total( $original_total );
+		}
+
+		if ( null === $expected_amount ) {
+			$this->assertSame( [], $params );
+			return;
+		}
+
+		$this->assertSame( $expected_amount, $params['cartTotal'] );
+		$this->assertSame( 0 < $expected_amount, $params['isPaymentNeeded'] );
 
 		$this->assertSame( $valid_oc_page, $params['isOCEnabled'] );
 		$this->assertSame( $valid_oc_page, $params['shouldShowOptimizedCheckout'] );
@@ -932,8 +948,12 @@ class WC_Stripe_OCS_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function provide_test_javascript_params_ocs_keys(): array {
 		return [
-			'valid OC page: OCS keys present'      => [ 'valid_oc_page' => true ],
-			'not a valid OC page: OCS keys absent' => [ 'valid_oc_page' => false ],
+			'valid OC page: OCS keys present'      => [ true, '10.23', 1023 ],
+			'not a valid OC page: OCS keys absent' => [ false, '10.23', 1023 ],
+			'valid OC page: zero total'            => [ true, '0', 0 ],
+			'not a valid OC page: zero total'      => [ false, '0', 0 ],
+			'valid OC page: oversized total'       => [ true, '10000000000.00', null ],
+			'not a valid OC page: oversized total' => [ false, '10000000000.00', null ],
 		];
 	}
 }

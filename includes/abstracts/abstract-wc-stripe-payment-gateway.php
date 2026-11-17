@@ -607,6 +607,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			]
 		);
 
+		// A missing or unsuccessful charge cannot authorize an order. Reject it before
+		// recording capture metadata or reserving its transaction ID for processing.
+		if ( ! isset( $response->captured ) || ( ! $response->captured && 'succeeded' !== ( $response->status ?? '' ) ) ) {
+			$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
+			$order->add_order_note( $response->outcome->seller_message ?? $localized_message );
+
+			throw new WC_Stripe_Exception( 'invalid_charge_response', $localized_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+
 		$transaction_id = $response->id;
 		$lock_name      = 'wc_stripe_transaction_lock_' . $transaction_id;
 
@@ -633,6 +642,18 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Refunds and disputes can invalidate a charge while its payment status remains succeeded.
+	 *
+	 * @since 11.2.0
+	 * @param mixed $charge The charge, or an absent or unexpanded charge reference.
+	 * @return bool
+	 */
+	protected function is_charge_refunded_or_disputed( $charge ): bool {
+		// A partial capture can report its released remainder as amount_refunded.
+		return is_object( $charge ) && ( ! empty( $charge->refunded ) || ! empty( $charge->disputed ) );
+	}
+
+	/**
 	 * Stores the charge data on the order while the Stripe transaction lock is held.
 	 *
 	 * @param object $response The Charge response from Stripe.
@@ -646,6 +667,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	private function process_locked_response( $response, $order, $linked_order ) {
 		if ( $linked_order && $linked_order->get_id() !== $order->get_id() ) {
 			WC_Stripe_Logger::error( 'Aborting, transaction already consumed by another order.' );
+			$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
+			throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+
+		// A succeeded charge can remain captured after a refund or dispute, so its status
+		// alone cannot authorize fulfilment or the payment hooks below.
+		if ( $this->is_charge_refunded_or_disputed( $response ) ) {
+			WC_Stripe_Logger::error( 'Aborting, charge has been refunded or disputed.' );
 			$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
 			throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
@@ -1039,7 +1068,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$customer->set_id( $existing_customer_id );
 		}
 
-		$force_save_source = apply_filters( 'wc_stripe_force_save_source', $force_save_source, $customer );
+		$force_save_source = apply_filters_deprecated(
+			'wc_stripe_force_save_source',
+			[ $force_save_source, $customer ],
+			'9.6.0',
+			'',
+			'This filter has no direct replacement in legacy payment flows.'
+		);
 		$source_object     = '';
 		$source_id         = '';
 		$wc_token_id       = false;
@@ -1723,7 +1758,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$request = WC_Stripe_Helper::add_payment_method_to_request_array( $prepared_source->source, $request );
 
-		$force_save_source = apply_filters( 'wc_stripe_force_save_source', false, $prepared_source->source );
+		$force_save_source = apply_filters_deprecated(
+			'wc_stripe_force_save_source',
+			[ false, $prepared_source->source ],
+			'9.6.0',
+			'',
+			'This filter has no direct replacement in legacy payment flows.'
+		);
 
 		if ( $this->save_payment_method_requested() || $this->has_subscription( $order->get_id() ) || $force_save_source ) {
 			$request['setup_future_usage']              = 'off_session';
@@ -2368,6 +2409,47 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Whether WooCommerce is still asking the visitor to verify the order's billing email
+	 * before showing the pay-for-order form.
+	 *
+	 * @since 11.2.0
+	 *
+	 * @param WC_Order $order The order being paid.
+	 * @return bool True when verification is still pending, or cannot be determined for a guest.
+	 */
+	protected function is_pay_for_order_email_verification_pending( WC_Order $order ): bool {
+		if ( ! $this->is_order_email_verification_helper_available() ) {
+			// Fail closed
+			WC_Stripe_Logger::error( 'WooCommerce order email verification helper is unavailable; withholding order data from guest pay-for-order pages.' );
+
+			$customer_id = $order->get_customer_id();
+			return ! ( $customer_id && get_current_user_id() === $customer_id );
+		}
+
+		$supplied_email = null;
+		$nonce          = isset( $_POST['check_submission'] ) ? sanitize_text_field( wp_unslash( $_POST['check_submission'] ) ) : '';
+		if ( '' !== $nonce && wp_verify_nonce( $nonce, 'wc_verify_email' ) && isset( $_POST['email'] ) ) {
+			$supplied_email = sanitize_email( wp_unslash( $_POST['email'] ) );
+		}
+
+		return (bool) \Automattic\WooCommerce\Internal\Utilities\Users::should_user_verify_order_email( $order->get_id(), $supplied_email, 'order-pay' );
+	}
+
+	/**
+	 * Whether WooCommerce's order email verification helper can be called.
+	 *
+	 * The helper lives in WooCommerce's internal namespace, which carries no stability
+	 * guarantee, so its presence is checked rather than assumed.
+	 *
+	 * @since 11.2.0
+	 *
+	 * @return bool
+	 */
+	protected function is_order_email_verification_helper_available(): bool {
+		return is_callable( [ \Automattic\WooCommerce\Internal\Utilities\Users::class, 'should_user_verify_order_email' ] );
+	}
+
+	/**
 	 * Checks if the current page is the order received page and the current user is allowed to manage the order.
 	 *
 	 * @return bool
@@ -2578,11 +2660,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		];
 
 		// If we're on the pay page we need to pass stripe.js the address of the order.
-		if ( $this->is_valid_pay_for_order_endpoint() || $this->is_changing_payment_method_for_subscription() ) {
+		$is_pay_for_order = $this->is_valid_pay_for_order_endpoint();
+		if ( $is_pay_for_order || $this->is_changing_payment_method_for_subscription() ) {
 			$order_id = absint( get_query_var( 'order-pay' ) );
 			$order    = wc_get_order( $order_id );
 
-			if ( is_a( $order, 'WC_Order' ) ) {
+			if ( is_a( $order, 'WC_Order' ) && ( ! $is_pay_for_order || ! $this->is_pay_for_order_email_verification_pending( $order ) ) ) {
 				$stripe_params['billing_first_name'] = $order->get_billing_first_name();
 				$stripe_params['billing_last_name']  = $order->get_billing_last_name();
 				$stripe_params['billing_address_1']  = $order->get_billing_address_1();
@@ -2845,42 +2928,75 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Update the saved payment method information with updated billing values.
 	 *
+	 * @deprecated 11.2.0 Use update_saved_payment_method_address() instead.
+	 *
 	 * @param string       $payment_method_id The payment method to update.
 	 * @param WC_Order|int $order             Order object or id.
 	 */
 	public function update_saved_payment_method( $payment_method_id, $order ) {
+		wc_deprecated_function( __METHOD__, '11.2.0', 'WC_Stripe_Payment_Gateway::update_saved_payment_method_address()' );
+
+		$this->update_saved_payment_method_address( $payment_method_id, $order );
+	}
+
+	/**
+	 * Copies the order's billing address onto a saved payment method in Stripe.
+	 *
+	 * Only the address is written: AVS needs it, and checkout must not change name, email, or phone.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param string       $payment_method_id The payment method to update.
+	 * @param WC_Order|int $order             Order object or id.
+	 * @param object|null  $payment_method    Already-retrieved PaymentMethod, to skip a request.
+	 * @return void
+	 */
+	public function update_saved_payment_method_address( $payment_method_id, $order, $payment_method = null ) {
 		$order = ! is_a( $order, 'WC_Order' ) ? wc_get_order( $order ) : $order;
 
-		if ( ! $order || ! $this->is_type_payment_method( $payment_method_id ) ) {
+		if ( ! $order instanceof WC_Order || ! $this->is_type_payment_method( $payment_method_id ) ) {
 			return;
 		}
 
 		try {
-			// Get the billing details from the order.
-			$billing_details = [
-				'address' => [
-					'city'        => $order->get_billing_city(),
-					'country'     => $order->get_billing_country(),
-					'line1'       => $order->get_billing_address_1(),
-					'line2'       => $order->get_billing_address_2(),
-					'postal_code' => $order->get_billing_postcode(),
-					'state'       => $order->get_billing_state(),
-				],
-				'email'   => $order->get_billing_email(),
-				'name'    => trim( $order->get_formatted_billing_full_name() ),
-				'phone'   => $order->get_billing_phone(),
+			$address = [
+				'city'        => $order->get_billing_city(),
+				'country'     => $order->get_billing_country(),
+				'line1'       => $order->get_billing_address_1(),
+				'line2'       => $order->get_billing_address_2(),
+				'postal_code' => $order->get_billing_postcode(),
+				'state'       => $order->get_billing_state(),
 			];
 
-			$billing_details = array_filter( $billing_details );
-			if ( empty( $billing_details ) ) {
+			if ( empty( array_filter( $address ) ) ) {
 				return;
 			}
 
-			// Update the billing details of the selected payment method in Stripe.
+			if ( ! is_object( $payment_method ) || ( $payment_method->id ?? null ) !== $payment_method_id ) {
+				$payment_method = WC_Stripe_API::get_payment_method( $payment_method_id );
+			}
+			$payment_method_customer = is_object( $payment_method ) && isset( $payment_method->customer ) ? $payment_method->customer : null;
+			$order_customer          = $this->get_stripe_customer_id( $order );
+
+			// Check ownership in Stripe: public callers may skip the saved-token checks.
+			if ( ! is_string( $payment_method_customer ) || ! is_string( $order_customer ) || $payment_method_customer !== $order_customer ) {
+				WC_Stripe_Logger::warning(
+					'Skipped saved payment method address update because the customer for the order does not match the payment method.',
+					[
+						'payment_method_id'       => $payment_method_id,
+						'payment_method_customer' => is_string( $payment_method_customer ) ? $payment_method_customer : null,
+						'order_customer'          => is_string( $order_customer ) ? $order_customer : null,
+					]
+				);
+				return;
+			}
+
 			WC_Stripe_API::update_payment_method(
 				$payment_method_id,
 				[
-					'billing_details' => $billing_details,
+					'billing_details' => [
+						'address' => $address,
+					],
 				]
 			);
 

@@ -17,8 +17,8 @@ import { Card } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import {
 	useLinkLocations,
-	useLinkButtonSize,
 	useEnabledPaymentMethodIds,
+	useExpressCheckoutButtonSize,
 } from 'wcstripe/data';
 import {
 	PAYMENT_METHOD_LINK,
@@ -28,7 +28,8 @@ import CardBody from 'wcstripe/settings/card-body';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
 
 const LinkSettingsSection = () => {
-	const [ size, setSize ] = useLinkButtonSize();
+	// Use the shared express checkout button size hook, which is common across express checkout payment methods.
+	const [ size, setSize ] = useExpressCheckoutButtonSize();
 
 	const [ enabledMethodIds ] = useEnabledPaymentMethodIds();
 	const isLinkEnabled = enabledMethodIds.includes( PAYMENT_METHOD_LINK );

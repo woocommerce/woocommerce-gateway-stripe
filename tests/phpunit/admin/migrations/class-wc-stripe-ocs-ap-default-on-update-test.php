@@ -6,6 +6,7 @@ use PHPUnit\Framework\MockObject\MockObject;
  * Unit tests for WC_Stripe_OCS_AP_Default_On_Update.
  */
 class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
+	use WC_Stripe_Tracks_Capture_Trait;
 
 	private const MIGRATION_FLAG_OPTION       = 'wc_stripe_ocs_ap_default_on_migration_ran';
 	private const SHOW_OCS_AP_BANNER_OPTION   = 'wc_stripe_show_ocs_ap_banner';
@@ -418,6 +419,69 @@ class WC_Stripe_OCS_AP_Default_On_Update_Test extends WP_UnitTestCase {
 			},
 			$scenarios
 		);
+	}
+
+	/**
+	 * The migration records whether it turned Adaptive Pricing on, or why it left it off.
+	 * Stores that already had AP on get no event.
+	 *
+	 * @dataProvider provide_ap_default_tracks_event_scenarios
+	 *
+	 * @param string      $ap_pre                AP setting before the migration.
+	 * @param string|null $ap_unavailable_reason Reason AP is unavailable for the account, or null when available.
+	 * @param int         $account_created       Account creation timestamp.
+	 * @param string      $pmc_enabled           Value of the pmc_enabled setting.
+	 * @param string|null $expected_event        Prefixed Tracks event name, or null when no event is expected.
+	 * @param string|null $expected_reason       Expected `reason` property, or null when none is expected.
+	 */
+	public function test_migration_records_ap_default_tracks_event( string $ap_pre, ?string $ap_unavailable_reason, int $account_created, string $pmc_enabled, ?string $expected_event, ?string $expected_reason ): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+		update_option( self::STRIPE_VERSION_OPTION, '10.7.0' );
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'optimized_checkout_element' => 'yes',
+				'adaptive_pricing'           => $ap_pre,
+				'pmc_enabled'                => $pmc_enabled,
+			]
+		);
+
+		$this->start_capturing_tracks_events();
+		$this->build_migration( $ap_unavailable_reason, $account_created )->maybe_migrate( '10.7.0' );
+		$this->stop_capturing_tracks_events();
+
+		$ap_default_events = array_merge(
+			$this->get_captured_tracks_event_properties( 'wcadmin_wcstripe_ap_default_enabled' ),
+			$this->get_captured_tracks_event_properties( 'wcadmin_wcstripe_ap_default_skipped' )
+		);
+
+		if ( null === $expected_event ) {
+			$this->assertSame( [], $ap_default_events );
+			return;
+		}
+
+		$events = $this->get_captured_tracks_event_properties( $expected_event );
+		$this->assertCount( 1, $ap_default_events );
+		$this->assertCount( 1, $events );
+		$this->assertSame( 'ocs_ap_default_on', $events[0]['source'] );
+		$this->assertSame( $expected_reason, $events[0]['reason'] ?? null );
+	}
+
+	/**
+	 * Data provider for `test_migration_records_ap_default_tracks_event`.
+	 *
+	 * @return array
+	 */
+	public function provide_ap_default_tracks_event_scenarios(): array {
+		$old_ts = 1747008000; // Before the 10.7 release.
+		$new_ts = 1779148800; // After the 10.7 release.
+
+		return [
+			'AP turned on'                      => [ 'no', null, $old_ts, 'yes', 'wcadmin_wcstripe_ap_default_enabled', null ],
+			'AP already on'                     => [ 'yes', null, $old_ts, 'yes', null, null ],
+			'AP unavailable for the account'    => [ 'no', 'account-country', $old_ts, 'yes', 'wcadmin_wcstripe_ap_default_skipped', 'account-country' ],
+			'account not on the platform (PMC)' => [ 'no', null, $old_ts, 'no', 'wcadmin_wcstripe_ap_default_skipped', 'pmc-disabled' ],
+			'merchant turned AP off after 10.7' => [ 'no', null, $new_ts, 'yes', 'wcadmin_wcstripe_ap_default_skipped', 'turned-off-after-default' ],
+		];
 	}
 
 	public function test_migration_preserves_unrelated_settings_keys() {

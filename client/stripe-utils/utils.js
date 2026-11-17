@@ -1183,3 +1183,18 @@ export const getFontSizeBase = ( defaultFontSize ) => {
 
 	return defaultFontSize;
 };
+
+/**
+ * Whether the Stripe.js build on the page supports Checkout Sessions.
+ *
+ * Another plugin can load a different build, and older builds define
+ * `initCheckoutElementsSdk` as a stub that throws, so only the pinned version is trusted.
+ *
+ * @param {Object} stripe  The Stripe instance.
+ * @param {string} version The Stripe.js version the server pins, e.g. 'dahlia'.
+ * @return {boolean} True when `initCheckoutElementsSdk` can be used.
+ */
+export const stripeJsSupportsCheckoutSessions = ( stripe, version ) =>
+	typeof stripe?.initCheckoutElementsSdk === 'function' &&
+	!! version &&
+	window.Stripe?.version === version;

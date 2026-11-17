@@ -812,18 +812,18 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Test for `get_stripe_amount`
 	 *
-	 * @param int    $total    The total amount.
-	 * @param string $currency The currency.
-	 * @param int    $expected The expected amount.
+	 * @param float|int|string $total    The total amount.
+	 * @param string           $currency The currency.
+	 * @param int              $expected The expected amount.
 	 * @dataProvider provide_test_get_stripe_amount
 	 */
-	public function test_get_stripe_amount( int $total, string $currency, int $expected, int $price_decimals_setting = 2 ): void {
+	public function test_get_stripe_amount( $total, string $currency, int $expected, int $price_decimals_setting = 2 ): void {
 		if ( 2 !== $price_decimals_setting ) {
 			update_option( 'woocommerce_price_num_decimals', $price_decimals_setting );
 		}
 
 		$amount = WC_Stripe_Helper::get_stripe_amount( $total, $currency );
-		$this->assertEquals( $expected, $amount );
+		$this->assertSame( $expected, $amount );
 	}
 
 	/**
@@ -832,7 +832,21 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @return array
 	 */
 	public function provide_test_get_stripe_amount(): array {
+		$maximum = min( 999999999999, PHP_INT_MAX );
+
 		return [
+			'zero total'                                              => [ 0, 'USD', 0 ],
+			'fractional cents round up'                               => [ '19.995', 'USD', 2000 ],
+			'fractional cents round down'                             => [ 19.994, 'USD', 1999 ],
+			'binary floating point precision'                         => [ 0.58, 'USD', 58 ],
+			'negative amount'                                         => [ -12.34, 'USD', 1234 ],
+			'zero decimal truncation'                                 => [ '100.99', 'JPY', 100 ],
+			'three decimal truncation'                                => [ '12.345', 'BHD', 12340, 3 ],
+			'three decimal negative amount'                           => [ '-12.345', 'BHD', 12340, 3 ],
+			'largest portable integer amount'                         => [ 2147483646, 'JPY', 2147483646 ],
+			'zero decimal maximum'                                    => [ $maximum, 'JPY', $maximum ],
+			'two decimal maximum'                                     => [ $maximum / 100, 'USD', $maximum ],
+			'three decimal maximum'                                   => [ $maximum / 1000, 'BHD', $maximum - ( $maximum % 10 ) ],
 			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR             => [
 				'total'    => 100,
 				'currency' => WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
@@ -870,6 +884,39 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected' => 100,
 			],
 		];
+	}
+
+	/**
+	 * Amounts above Stripe's or PHP's limit must fail before integer conversion.
+	 *
+	 * @dataProvider provide_oversized_stripe_amounts
+	 */
+	public function test_get_stripe_amount_rejects_oversized_totals( $total, string $currency ): void {
+		$this->expectException( WC_Stripe_Exception::class );
+		$this->expectExceptionMessage( 'Amount exceeds the supported payment range.' );
+		WC_Stripe_Helper::get_stripe_amount( $total, $currency );
+	}
+
+	public function provide_oversized_stripe_amounts(): array {
+		$cases = [];
+		foreach ( [
+			'USD' => 100,
+			'JPY' => 1,
+			'BHD' => 1000,
+		] as $currency => $multiplier ) {
+			foreach ( [
+				'Stripe maximum'   => 1000000000000 / $multiplier,
+				'integer boundary' => ( PHP_INT_MAX + 1.0 ) / $multiplier,
+				'wraps to zero'    => ( 2 ** 64 ) / $multiplier,
+				'wraps to small'   => ( 2 ** 64 + 8192 ) / $multiplier,
+				'negative total'   => -( 2 ** 64 ) / $multiplier,
+			] as $name => $total ) {
+				$cases[ "$currency $name" ] = [ $total, $currency ];
+			}
+			$cases[ "$currency numeric string" ] = [ '18446744073709551616.00', $currency ];
+		}
+
+		return $cases;
 	}
 
 	/**
@@ -2283,6 +2330,65 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * A remote disable of Optimized Checkout must also disable Adaptive Pricing.
+	 *
+	 * @return void
+	 */
+	public function test_is_adaptive_pricing_supported_respects_remote_oc_disable(): void {
+		$original_stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		$new_stripe_settings = array_merge(
+			is_array( $original_stripe_settings ) ? $original_stripe_settings : [],
+			[
+				'testmode'                   => 'no',
+				'adaptive_pricing'           => 'yes',
+				'optimized_checkout_element' => 'yes',
+				'capture'                    => 'yes',
+				'pmc_enabled'                => 'yes',
+				'webhook_data'               => [
+					'id'     => 'we_live',
+					'secret' => 'whsec_live',
+				],
+			]
+		);
+		WC_Stripe_Helper::update_main_stripe_settings( $new_stripe_settings );
+
+		// is_webhook_enabled() short-circuits on a cached status, so we don't hit the Stripe API here.
+		$webhook_status_cache_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_STATUS_CACHE_KEY', 'string' );
+		WC_Stripe_Database_Cache::set_with_mode( $webhook_status_cache_key, 'enabled', HOUR_IN_SECONDS, 'live' );
+
+		add_filter( 'woocommerce_is_checkout', '__return_true' );
+		update_option( '_wcstripe_remote_config_enabled', 'yes' );
+		WC_Stripe_Remote_Config::reset_in_memory_cache();
+		delete_option( '_wcstripe_remote_config_live' );
+
+		WC()->cart->empty_cart();
+		$this->set_stripe_account_data( [ 'country' => 'US' ] );
+
+		try {
+			// Baseline: with no remote flag cached, all local conditions pass.
+			$this->assertTrue( WC_Stripe_Helper::is_adaptive_pricing_supported(), 'AP must be supported before the remote disable' );
+
+			WC_Stripe_Remote_Config::get_instance()->apply(
+				'live',
+				[
+					'flags'        => [ 'optimized_checkout' => false ],
+					'generated_at' => '2026-05-09T12:00:00Z',
+				]
+			);
+
+			$this->assertFalse( WC_Stripe_Helper::is_adaptive_pricing_supported(), 'AP must be disabled by the remote OC disable' );
+		} finally {
+			remove_filter( 'woocommerce_is_checkout', '__return_true' );
+			delete_option( '_wcstripe_remote_config_enabled' );
+			WC_Stripe_Remote_Config::reset_in_memory_cache();
+			delete_option( '_wcstripe_remote_config_live' );
+			WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'live' );
+			WC_Stripe_Helper::update_main_stripe_settings( $original_stripe_settings );
+		}
+	}
+
+	/**
 	 * Data provider for `test_is_adaptive_pricing_supported`.
 	 *
 	 * @return array
@@ -3013,5 +3119,45 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$registered = wp_scripts()->registered['stripe'];
 		$this->assertSame( 'https://js.stripe.com/dahlia/stripe.js', $registered->src );
 		$this->assertSame( 1, wp_scripts()->get_data( 'stripe', 'group' ), 'Stripe.js must load in the footer.' );
+	}
+
+	/**
+	 * The script gate honors the stored locations: an absent option means the default
+	 * placement and a non-array value means every location was unchecked.
+	 *
+	 * @param array|string|null $locations Stored locations value; null omits the key.
+	 * @param bool              $expected  Whether product-page scripts should load.
+	 * @return void
+	 * @dataProvider provide_should_load_scripts_location_shapes
+	 */
+	public function test_should_load_scripts_honors_stored_locations( $locations, bool $expected ) {
+		$settings = [ 'express_checkout' => 'yes' ];
+		if ( null !== $locations ) {
+			$settings['express_checkout_button_locations'] = $locations;
+		}
+		update_option( 'woocommerce_stripe_settings', $settings );
+
+		// The filter default would mask a gate miss; force it off.
+		add_filter( 'wc_stripe_load_scripts_on_product_page_when_prbs_disabled', '__return_false' );
+
+		try {
+			$this->assertSame( $expected, WC_Stripe_Helper::should_load_scripts_on_product_page() );
+		} finally {
+			remove_filter( 'wc_stripe_load_scripts_on_product_page_when_prbs_disabled', '__return_false' );
+		}
+	}
+
+	/**
+	 * Data provider for `test_should_load_scripts_honors_stored_locations`.
+	 *
+	 * @return array
+	 */
+	public function provide_should_load_scripts_location_shapes(): array {
+		return [
+			'list with product'              => [ [ 'product', 'cart' ], true ],
+			'list without product'           => [ [ 'cart' ], false ],
+			'non-array stored value'         => [ 'invalid_value', false ],
+			'absent option uses the default' => [ null, true ],
+		];
 	}
 }

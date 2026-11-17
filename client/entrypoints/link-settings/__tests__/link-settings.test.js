@@ -4,13 +4,13 @@ import LinkSettingsSection from '../link-settings-section';
 import {
 	useEnabledPaymentMethodIds,
 	useLinkLocations,
-	useLinkButtonSize,
+	useExpressCheckoutButtonSize,
 } from 'wcstripe/data';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useEnabledPaymentMethodIds: jest.fn(),
 	useLinkLocations: jest.fn(),
-	useLinkButtonSize: jest.fn().mockReturnValue( [ 'default', jest.fn() ] ),
+	useExpressCheckoutButtonSize: jest.fn(),
 } ) );
 jest.mock( '@woocommerce/blocks-checkout', () => {}, { virtual: true } );
 
@@ -27,6 +27,11 @@ describe( 'LinkSettingsSection', () => {
 			jest.fn(),
 		] );
 
+		useExpressCheckoutButtonSize.mockReturnValue( [
+			'default',
+			jest.fn(),
+		] );
+
 		global.wc_stripe_link_settings_params = {
 			...globalValues,
 			key: 'pk_test_123',
@@ -39,34 +44,39 @@ describe( 'LinkSettingsSection', () => {
 		global.wc_stripe_link_settings_params = globalValues;
 	} );
 
-	it( 'renders settings with defaults', () => {
+	it( 'renders the locations section, the shared size control, and the preview', () => {
 		render( <LinkSettingsSection /> );
 
-		// confirm settings headings.
+		// Location checkboxes render.
 		expect(
-			screen.queryByRole( 'heading', { name: 'Appearance' } )
+			screen.getByRole( 'checkbox', { name: /checkout/i } )
 		).toBeInTheDocument();
+		expect( screen.getByText( 'Preview' ) ).toBeInTheDocument();
 
-		// confirm radio button groups displayed.
-		const [ sizeRadio ] = screen.queryAllByRole( 'radio' );
-		expect( sizeRadio ).toBeInTheDocument();
-
-		// confirm default values.
-		expect( screen.getByLabelText( 'Default (48 px)' ) ).toBeChecked();
+		// The shared button size can be edited from this page too.
+		expect(
+			screen.getByRole( 'heading', { name: 'Appearance' } )
+		).toBeInTheDocument();
+		expect( screen.getByText( /Small/ ) ).toBeInTheDocument();
+		expect(
+			screen.getByText(
+				/This size applies to all express checkout buttons/i
+			)
+		).toBeInTheDocument();
 	} );
 
-	it( 'triggers the hooks when the settings are being interacted with', async () => {
-		const setButtonSizeMock = jest.fn();
-
-		useLinkButtonSize.mockReturnValue( [ 'default', setButtonSizeMock ] );
+	it( 'updates the shared button size when a size is selected', async () => {
+		const setSize = jest.fn();
+		useExpressCheckoutButtonSize.mockReturnValue( [ 'default', setSize ] );
 
 		render( <LinkSettingsSection /> );
 
-		expect( setButtonSizeMock ).not.toHaveBeenCalled();
+		// Not called until the click, so the click is what triggers the update.
+		expect( setSize ).not.toHaveBeenCalled();
 
-		await userEvent.click( screen.getByLabelText( 'Large (56 px)' ) );
+		await userEvent.click( screen.getByLabelText( /Large/ ) );
 
-		expect( setButtonSizeMock ).toHaveBeenCalledWith( 'large' );
+		expect( setSize ).toHaveBeenCalledWith( 'large' );
 	} );
 
 	it( 'hides the appearance override notice by default', () => {

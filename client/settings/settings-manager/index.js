@@ -1,5 +1,5 @@
 /* global wc_stripe_settings_params */
-import React, { useContext, useRef, useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { getQuery, updateQueryString } from '@woocommerce/navigation';
 import styled from '@emotion/styled';
 import { isEmpty } from 'lodash';
@@ -51,8 +51,6 @@ const getTabs = ( isAgenticCommerceEnabled ) => [
 const SettingsManager = () => {
 	const isAgenticCommerceEnabled =
 		wc_stripe_settings_params?.is_agentic_commerce_enabled; // eslint-disable-line camelcase
-
-	const agenticSaveRef = useRef( null );
 
 	const { settings, isLoading } = useSettings();
 	const [ initialSettings, setInitialSettings ] = useState( settings );
@@ -160,16 +158,13 @@ const SettingsManager = () => {
 							/>
 						) }
 						{ tab.name === 'agentic-commerce' && (
-							<AgenticCommerceSection ref={ agenticSaveRef } />
+							<AgenticCommerceSection />
 						) }
-						<SaveSettingsSection
-							onSettingsSave={ onSettingsSave }
-							agenticSaveRef={
-								tab.name === 'agentic-commerce'
-									? agenticSaveRef
-									: undefined
-							}
-						/>
+						{ tab.name !== 'agentic-commerce' && (
+							<SaveSettingsSection
+								onSettingsSave={ onSettingsSave }
+							/>
+						) }
 					</div>
 				) }
 			</StyledTabPanel>

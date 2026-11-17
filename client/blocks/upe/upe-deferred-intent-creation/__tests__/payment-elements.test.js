@@ -35,6 +35,9 @@ jest.mock( 'wcstripe/blocks/utils', () => ( {
 jest.mock( 'wcstripe/stripe-utils', () => ( {
 	getPaymentMethodTypes: jest.fn( () => [] ),
 	getExcludedPaymentMethodTypes: jest.fn( () => [] ),
+	stripeJsSupportsCheckoutSessions: jest.requireActual(
+		'wcstripe/stripe-utils/utils'
+	).stripeJsSupportsCheckoutSessions,
 } ) );
 
 jest.mock( 'wcstripe/stripe-utils/upe-appearance', () => ( {
@@ -73,13 +76,21 @@ const buildApi = ( stripe ) => ( {
 const STRIPE = { elements: jest.fn(), initCheckoutElementsSdk: jest.fn() };
 
 describe( 'PaymentElements adaptive pricing selection', () => {
+	// The Checkout Sessions guard compares the loaded Stripe.js build with the
+	// version the server pins; default to a matching build.
+	beforeEach( () => {
+		window.Stripe = { version: 'dahlia' };
+	} );
+
 	afterEach( () => {
+		delete window.Stripe;
 		jest.clearAllMocks();
 	} );
 
 	it( 'uses the Adaptive Pricing container when Adaptive Pricing is enabled', () => {
 		getBlocksConfiguration.mockReturnValue( {
 			isAdaptivePricingEnabled: true,
+			stripeJsVersion: 'dahlia',
 			paymentMethodsConfig: { card: { isReusable: false } },
 			cartTotal: 1000,
 			currency: 'USD',
@@ -96,6 +107,7 @@ describe( 'PaymentElements adaptive pricing selection', () => {
 	it( 'falls back to the standard elements flow when a legacy Stripe.js lacks initCheckoutElementsSdk', () => {
 		getBlocksConfiguration.mockReturnValue( {
 			isAdaptivePricingEnabled: true,
+			stripeJsVersion: 'dahlia',
 			paymentMethodsConfig: { card: { isReusable: false } },
 			cartTotal: 1000,
 			currency: 'USD',
@@ -106,6 +118,26 @@ describe( 'PaymentElements adaptive pricing selection', () => {
 		// A legacy v3 Stripe.js (loaded by another plugin or a manual snippet)
 		// won window.Stripe; it exposes elements() but not initCheckoutElementsSdk.
 		renderFields( buildApi( { elements: jest.fn() } ) );
+
+		expect( CheckoutContainer ).not.toHaveBeenCalled();
+		expect( PaymentProcessor ).toHaveBeenCalled();
+	} );
+
+	it( 'falls back to the standard elements flow when the legacy v3 Stripe.js defines initCheckoutElementsSdk as a throwing stub', () => {
+		getBlocksConfiguration.mockReturnValue( {
+			isAdaptivePricingEnabled: true,
+			stripeJsVersion: 'dahlia',
+			paymentMethodsConfig: { card: { isReusable: false } },
+			cartTotal: 1000,
+			currency: 'USD',
+			shouldShowOptimizedCheckout: false,
+			isAdmin: false,
+		} );
+
+		// Current v3 builds (e.g. the one WooPayments registers under the shared
+		// `stripe` handle) keep the method, but it throws an IntegrationError.
+		window.Stripe = { version: 3 };
+		renderFields( buildApi( STRIPE ) );
 
 		expect( CheckoutContainer ).not.toHaveBeenCalled();
 		expect( PaymentProcessor ).toHaveBeenCalled();

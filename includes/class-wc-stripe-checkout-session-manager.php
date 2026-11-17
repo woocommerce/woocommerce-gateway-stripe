@@ -60,15 +60,12 @@ class WC_Stripe_Checkout_Session_Manager {
 	public function create_session(): array {
 		$this->validate_cart();
 
-		// Used as filter context in build_payment_intent_data() and by the block below.
-		$save_payment_method_enabled = $this->can_enable_save_payment_method();
-
 		$cart_context = $this->build_cart_context();
 		$request      = [
 			'ui_mode'                       => 'elements',
 			'line_items'                    => $this->build_line_items( $cart_context ),
 			'excluded_payment_method_types' => WC_Stripe::get_instance()->get_main_stripe_gateway()->get_excluded_payment_method_types(),
-			'payment_intent_data'           => $this->build_payment_intent_data( $save_payment_method_enabled ),
+			'payment_intent_data'           => $this->build_payment_intent_data(),
 			'mode'                          => 'payment',
 			'adaptive_pricing'              => [
 				'enabled' => 'true',
@@ -88,6 +85,7 @@ class WC_Stripe_Checkout_Session_Manager {
 			$request['phone_number_collection'] = [ 'enabled' => 'true' ];
 		}
 
+		$save_payment_method_enabled = $this->can_enable_save_payment_method();
 		if ( $save_payment_method_enabled ) {
 			try {
 				// Creation happens before checkout fields are complete, so only the saved account identity can be used here.
@@ -140,6 +138,8 @@ class WC_Stripe_Checkout_Session_Manager {
 			'status'                      => 'success',
 			'message'                     => '',
 			'save_payment_method_enabled' => $save_payment_method_enabled,
+			'expires_at'                  => (int) ( $checkout_session->expires_at ?? 0 ),
+			'exclusions'                  => $request['excluded_payment_method_types'],
 		];
 		$this->set_record( $record );
 
@@ -160,9 +160,10 @@ class WC_Stripe_Checkout_Session_Manager {
 			throw new WC_Stripe_Exception( 'Checkout session ID is required.', self::get_runtime_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
-		WC_Stripe_Checkout_Session_Context::with_mutation_lock(
+		// Handle errors outside of the locked context, as the lock TTL is not long enough to cover multiple Stripe API requests.
+		$stripe_error = WC_Stripe_Checkout_Session_Context::with_mutation_lock(
 			$session_id,
-			function () use ( $session_id ): void {
+			function () use ( $session_id ): ?object {
 				WC_Stripe_Checkout_Session_Context::validate_update_request( $session_id );
 
 				// Read the cart only once the lock is held and the session is known not to be
@@ -176,8 +177,7 @@ class WC_Stripe_Checkout_Session_Manager {
 				);
 
 				if ( ! empty( $checkout_session->error ) ) {
-					$message = empty( $checkout_session->error->message ) ? '(No error message returned from Stripe)' : $checkout_session->error->message;
-					throw new WC_Stripe_Exception( $message, self::get_runtime_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+					return is_object( $checkout_session->error ) ? $checkout_session->error : (object) [ 'message' => (string) $checkout_session->error ];
 				}
 
 				WC_Stripe_Checkout_Session_Context::store_for_cart( $session_id, $cart_context );
@@ -191,8 +191,26 @@ class WC_Stripe_Checkout_Session_Manager {
 					$record['message']  = '';
 					$this->set_record( $record );
 				}
+
+				return null;
 			}
 		);
+
+		if ( null !== $stripe_error ) {
+			// Stripe returns the same invalid_request_error type, with no code, for both bad parameters
+			// and an expired session. Fetch the session to get its current state.
+			if ( 'invalid_request_error' === (string) ( $stripe_error->type ?? '' ) && $this->is_session_finished_on_stripe( $session_id ) ) {
+				WC_Stripe_Logger::info(
+					'Creating a new Checkout Session because Stripe reports the existing session as inactive.',
+					[ 'checkout_session_id' => $session_id ]
+				);
+
+				return $this->create_session();
+			}
+
+			$message = empty( $stripe_error->message ) ? '(No error message returned from Stripe)' : (string) $stripe_error->message;
+			throw new WC_Stripe_Exception( $message, self::get_runtime_error_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
 
 		// Ensure we (re)fetch the current data.
 		return $this->get_current_data();
@@ -234,6 +252,40 @@ class WC_Stripe_Checkout_Session_Manager {
 			return $this->create_session();
 		}
 
+		// Stripe only accepts excluded_payment_method_types at creation, and the list follows the
+		// billing country, which is often unknown when the session is first created, so a change
+		// needs a new session for a method hidden for the earlier country (e.g. iDEAL) to surface.
+		// Records stored before the list was tracked have nothing to compare against and are kept.
+		if ( isset( $record['exclusions'] ) && is_array( $record['exclusions'] ) ) {
+			$current_exclusions = WC_Stripe::get_instance()->get_main_stripe_gateway()->get_excluded_payment_method_types();
+			$stored_exclusions  = $record['exclusions'];
+			sort( $current_exclusions );
+			sort( $stored_exclusions );
+
+			if ( $current_exclusions !== $stored_exclusions ) {
+				WC_Stripe_Logger::info( 'Recreating the Checkout Session after the excluded payment method types changed.', [ 'checkout_session_id' => (string) $record['session_id'] ] );
+
+				$replacement = $this->create_session();
+				$this->retire_superseded_session( (string) $record['session_id'] );
+
+				return $replacement;
+			}
+		}
+
+		// Stripe expires a session at expires_at, but every cart update extends the context past
+		// that, so an unchanged cart would otherwise keep handing the client a session Stripe refuses.
+		// Records stored before expires_at was tracked are replaced on their next cart change instead,
+		// through the rejected update.
+		$expires_at = (int) ( $record['expires_at'] ?? 0 );
+		if ( $expires_at > 0 && time() >= $expires_at ) {
+			WC_Stripe_Logger::info(
+				'Creating a new Checkout Session as the current session has expired.',
+				[ 'checkout_session_id' => (string) $record['session_id'] ]
+			);
+
+			return $this->create_session();
+		}
+
 		// The context is the source of truth for amount and currency, so we need to compare
 		// against the data that was pushed to Stripe.
 		if (
@@ -269,6 +321,61 @@ class WC_Stripe_Checkout_Session_Manager {
 		$this->set_record( $record );
 
 		return $this->get_public_data( $record );
+	}
+
+	/**
+	 * Ask Stripe whether a session is expired, completed, or gone.
+	 *
+	 * @param string $session_id Stripe Checkout Session ID.
+	 * @return bool True only on an explicit Stripe answer; an inconclusive lookup keeps the session.
+	 */
+	private function is_session_finished_on_stripe( string $session_id ): bool {
+		// retrieve() answers null during the invalid-key cooldown and a WP_Error during an outage;
+		// neither says anything about the session.
+		$session = WC_Stripe_API::retrieve( "checkout/sessions/$session_id" );
+		if ( ! is_object( $session ) || is_wp_error( $session ) ) {
+			return false;
+		}
+
+		if ( ! empty( $session->error ) ) {
+			return 'resource_missing' === ( $session->error->code ?? '' );
+		}
+
+		if ( ! is_string( $session->status ?? null ) ) {
+			return false;
+		}
+
+		// https://docs.stripe.com/api/checkout/sessions/object#checkout_session_object-status
+		return in_array( $session->status, [ 'expired', 'complete' ], true );
+	}
+
+	/**
+	 * Stop a replaced session from being linked to an order.
+	 *
+	 * The replaced session stays open on Stripe with the same amount, so a checkout page still
+	 * holding it (e.g. a second tab) could pay through it while the replacement is paid as well,
+	 * charging the cart twice. Order linking requires the local context, so removing it rejects
+	 * that submission before the client confirms anything. A session already linked to an order
+	 * is left alone: its payment may be in progress and the webhooks still need its context.
+	 *
+	 * @param string $session_id Stripe Checkout Session ID that was replaced.
+	 * @return void
+	 */
+	private function retire_superseded_session( string $session_id ): void {
+		try {
+			WC_Stripe_Checkout_Session_Context::with_mutation_lock(
+				$session_id,
+				static function () use ( $session_id ): void {
+					$context = WC_Stripe_Checkout_Session_Context::get_context( $session_id );
+					if ( empty( $context['order_id'] ) ) {
+						WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
+					}
+				}
+			);
+		} catch ( Exception $e ) {
+			// The lock is held by a request that is linking or updating the session; leave it to that request.
+			WC_Stripe_Logger::info( 'Could not retire the replaced Checkout Session.', [ 'checkout_session_id' => $session_id ] );
+		}
 	}
 
 	/**
@@ -321,54 +428,60 @@ class WC_Stripe_Checkout_Session_Manager {
 	/**
 	 * Build payment_intent_data for a new Checkout Session.
 	 *
-	 * @param bool $save_payment_method_enabled Filter context, so a callback can scope its changes
-	 *                                          (for example, to guests only).
+	 * @since x.x.x
+	 *
 	 * @return array
 	 */
-	private function build_payment_intent_data( bool $save_payment_method_enabled ): array {
-		$metadata = [
+	public function build_payment_intent_data(): array {
+		$required_metadata = [
 			'site_url'      => esc_url_raw( get_site_url() ),
-			'payment_type'  => 'single',
 			'checkout_type' => self::ADAPTIVE_PRICING_CHECKOUT_TYPE,
 		];
+		$metadata          = array_merge( $required_metadata, [ 'payment_type' => 'single' ] );
 
 		/** Documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php */
 		$filtered_metadata = apply_filters( 'wc_stripe_payment_metadata', $metadata, null, null );
-
-		// A callback can return any type; the array_merge below needs an array, so keep the
-		// metadata we built when a callback returns a non-array.
-		if ( is_array( $filtered_metadata ) ) {
-			$metadata = $filtered_metadata;
+		if ( ! is_array( $filtered_metadata ) ) {
+			$filtered_metadata = $metadata;
 		}
 
-		$payment_intent_data = [ 'metadata' => $metadata ];
-
 		/**
-		 * Filters the payment_intent_data for a new Checkout Session, for example to set
-		 * setup_future_usage. Saving a card for off-session use needs the shopper's agreement to
+		 * Filter the payment_intent_data when creating a new Checkout Session.
+		 *
+		 * Note that this runs after the wc_stripe_payment_metadata filter, so the metadata is already filtered.
+		 * The WooCommerce Cart should also be fully-created by the time this code runs, though the total may
+		 * change later based on taxes, discounts, or shopper modifications to the cart.
+		 *
+		 * Saving a card for off-session use (setup_future_usage) needs the shopper's agreement to
 		 * future charges, which this filter does not collect.
 		 *
 		 * @see https://docs.stripe.com/api/checkout/sessions/create#create_checkout_session-payment_intent_data
-		 * @since 11.2.0
+		 * @since x.x.x
 		 *
-		 * @param array $payment_intent_data The payment_intent_data for the Checkout Session.
+		 * @param array $payment_intent_data The payment_intent_data to be used when creating the Checkout Session.
 		 * @param array $context             Keys: is_save_payment_method_enabled (bool), false for guests.
 		 */
-		$filtered = apply_filters(
+		$payment_intent_data = apply_filters(
 			'wc_stripe_checkout_session_payment_intent_data',
-			$payment_intent_data,
-			[ 'is_save_payment_method_enabled' => $save_payment_method_enabled ]
+			[ 'metadata' => $filtered_metadata ],
+			// Read here, not passed in, so every caller of this public method reports the same state.
+			[ 'is_save_payment_method_enabled' => $this->can_enable_save_payment_method() ]
 		);
 
-		if ( ! is_array( $filtered ) ) {
-			return $payment_intent_data;
+		$final_intent_data = [ 'metadata' => $filtered_metadata ];
+
+		// Ensure we return a valid array when the filtered value is not an array.
+		if ( is_array( $payment_intent_data ) ) {
+			$final_intent_data = $payment_intent_data;
+			if ( ! is_array( $final_intent_data['metadata'] ?? null ) ) {
+				$final_intent_data['metadata'] = $filtered_metadata;
+			}
 		}
 
-		// Keep our metadata, which has its own wc_stripe_payment_metadata filter, if a callback drops it.
-		$extra_metadata       = ( isset( $filtered['metadata'] ) && is_array( $filtered['metadata'] ) ) ? $filtered['metadata'] : [];
-		$filtered['metadata'] = array_merge( $extra_metadata, $metadata );
+		// Ensure required metadata fields are included.
+		$final_intent_data['metadata'] = array_merge( $final_intent_data['metadata'], $required_metadata );
 
-		return $filtered;
+		return $final_intent_data;
 	}
 
 	/**

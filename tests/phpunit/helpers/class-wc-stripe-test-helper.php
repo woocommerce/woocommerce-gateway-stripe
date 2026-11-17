@@ -35,4 +35,26 @@ class WC_Stripe_Test_Helper {
 
 		throw new Exception( 'Invalid expected type: ' . $expected_type ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 	}
+
+	/**
+	 * Drops WC_Stripe_Database_Cache's in-memory entries whose key contains $key_part.
+	 *
+	 * The per-test database rollback removes the stored rows, but the in-memory copy lives for the
+	 * whole PHP process, so a value written in one test would otherwise still be read in the next.
+	 *
+	 * @param string $key_part Part of the cache key to match, e.g. 'paid_cart_'.
+	 * @return void
+	 */
+	public static function forget_database_cache_entries( string $key_part ): void {
+		$property = new ReflectionProperty( WC_Stripe_Database_Cache::class, 'in_memory_cache' );
+		$property->setAccessible( true );
+
+		$cache = (array) $property->getValue();
+		foreach ( array_keys( $cache ) as $key ) {
+			if ( false !== strpos( (string) $key, $key_part ) ) {
+				unset( $cache[ $key ] );
+			}
+		}
+		$property->setValue( null, $cache );
+	}
 }

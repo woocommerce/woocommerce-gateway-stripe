@@ -47,6 +47,15 @@ do_action( 'woocommerce_email_order_meta', $order, $sent_to_admin, $plain_text, 
 do_action( 'woocommerce_email_customer_details', $order, $sent_to_admin, $plain_text, $email );
 
 /**
+ * Shows the "Additional content" set in the email's settings, like every other WooCommerce email.
+ */
+if ( $additional_content ) {
+	echo $email->email_improvements_enabled ? '<table border="0" cellpadding="0" cellspacing="0" width="100%" role="presentation"><tr><td class="email-additional-content">' : '';
+	echo wp_kses_post( wpautop( wptexturize( $additional_content ) ) );
+	echo $email->email_improvements_enabled ? '</td></tr></table>' : '';
+}
+
+/**
 * Output the email footer.
 */
 do_action( 'woocommerce_email_footer', $email );

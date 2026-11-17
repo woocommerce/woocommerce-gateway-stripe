@@ -88,6 +88,10 @@ class WC_Stripe_Subscriptions_Hook_Registration_Test extends WP_UnitTestCase {
 			'method'   => 'delete_renewal_meta',
 			'priority' => 10,
 		],
+		'wc_subscriptions_object_data'                               => [
+			'method'   => 'exclude_setup_intent_from_copied_data',
+			'priority' => 10,
+		],
 		'wc_stripe_display_save_payment_method_checkbox'             => [
 			'method'   => 'display_save_payment_method_checkbox',
 			'priority' => 10,

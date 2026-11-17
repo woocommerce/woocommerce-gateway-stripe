@@ -13,6 +13,7 @@ import WCStripeAPI from 'wcstripe/api';
 import {
 	getPaymentMethodTypes,
 	getExcludedPaymentMethodTypes,
+	stripeJsSupportsCheckoutSessions,
 } from 'wcstripe/stripe-utils';
 import { initializeUPEAppearance } from 'wcstripe/stripe-utils/upe-appearance';
 import {
@@ -211,11 +212,11 @@ const PaymentElements = ( {
 	...props
 } ) => {
 	const stripeServerData = getBlocksConfiguration();
-	// Adaptive Pricing renders <CheckoutElementsProvider>, which calls initCheckoutElementsSdk() on mount.
-	// Older versions of Stripe.js do not support initCheckoutElementsSdk, so we check for it and
-	// fall back to the standard elements flow before the provider mounts.
-	const stripeSupportsInitCheckout =
-		typeof api.getStripe()?.initCheckoutElementsSdk === 'function';
+	// <CheckoutElementsProvider> doesn't catch initCheckoutElementsSdk() errors, so fall back before it mounts.
+	const stripeSupportsInitCheckout = stripeJsSupportsCheckoutSessions(
+		api.getStripe(),
+		stripeServerData?.stripeJsVersion
+	);
 	// Non-deferred methods (BLIK, ACSS) can't render in the Checkout Session
 	// element, so their own entry keeps the standard flow, as in classic checkout.
 	const isAdaptivePricingSupported =

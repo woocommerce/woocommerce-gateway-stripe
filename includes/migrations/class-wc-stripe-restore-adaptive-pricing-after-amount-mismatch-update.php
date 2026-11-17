@@ -60,6 +60,8 @@ class WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update {
 
 		self::mark_migration_complete();
 
+		WC_Stripe_Helper::record_adaptive_pricing_default_tracks_event( 'amount_mismatch_restore' );
+
 		WC_Stripe_Logger::error(
 			'Adaptive Pricing re-enabled during plugin update after a previous automatic disable caused by a Checkout Session amount mismatch.',
 			[ 'previous_version' => (string) $previous_version ]

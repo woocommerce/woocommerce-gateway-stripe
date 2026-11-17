@@ -57,7 +57,8 @@ class WC_Stripe_Inbox_Notes {
 	 * @return void
 	 */
 	public static function create_upe_notes() {
-		if ( ! self::are_inbox_notes_supported() ) {
+		// The Inbox never renders during AJAX, so wait for a regular admin page load.
+		if ( wp_doing_ajax() || ! self::are_inbox_notes_supported() ) {
 			return;
 		}
 

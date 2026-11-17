@@ -15,6 +15,35 @@ class WC_Stripe_Express_Checkout_Helper {
 	use WC_Stripe_Pre_Orders_Trait;
 
 	/**
+	 * Express checkout methods in canonical display order.
+	 *
+	 * @var string[]
+	 */
+	protected const EXPRESS_CHECKOUT_METHODS = [ 'amazon_pay', 'link', 'apple_pay_google_pay' ];
+
+	/**
+	 * Placement every express checkout method gets until the merchant saves its locations.
+	 *
+	 * @var string[]
+	 */
+	private const DEFAULT_BUTTON_LOCATIONS = [ 'product', 'cart' ];
+
+	/**
+	 * Option key holding each express checkout method's locations.
+	 *
+	 * The settings UI edits the locations as one map, but these per-method options stay
+	 * the persisted form so a rollback to a version that reads them directly keeps the
+	 * merchant's choices. Read externally through get_button_location_option_keys().
+	 *
+	 * @var array<string, string>
+	 */
+	protected const BUTTON_LOCATION_OPTION_KEYS = [
+		'apple_pay_google_pay' => 'express_checkout_button_locations',
+		'link'                 => 'link_button_locations',
+		'amazon_pay'           => 'amazon_pay_button_locations',
+	];
+
+	/**
 	 * Stripe settings.
 	 *
 	 * @var array
@@ -197,37 +226,24 @@ class WC_Stripe_Express_Checkout_Helper {
 	/**
 	 * Gets the Link button height.
 	 *
+	 * All express checkout methods share one button size; kept as a named method
+	 * for the values localized to JS.
+	 *
 	 * @return string
 	 */
 	public function get_link_button_height() {
-		$size = isset( $this->stripe_settings['link_button_size'] ) ? $this->stripe_settings['link_button_size'] : 'default';
-		if ( 'small' === $size ) {
-			return '40';
-		}
-
-		if ( 'large' === $size ) {
-			return '56';
-		}
-
-		return '48';
+		return $this->get_button_height();
 	}
 
 	/**
 	 * Gets the Amazon Pay button height.
 	 *
+	 * Shares the single express checkout button size.
+	 *
 	 * @return string
 	 */
 	public function get_amazon_pay_button_height() {
-		$size = isset( $this->stripe_settings['amazon_pay_button_size'] ) ? $this->stripe_settings['amazon_pay_button_size'] : 'default';
-		if ( 'small' === $size ) {
-			return '40';
-		}
-
-		if ( 'large' === $size ) {
-			return '56';
-		}
-
-		return '48';
+		return $this->get_button_height();
 	}
 
 	/**
@@ -352,16 +368,23 @@ class WC_Stripe_Express_Checkout_Helper {
 		$items     = [];
 		$price     = $this->get_product_price( $product );
 		$currency  = get_woocommerce_currency();
-		$total_tax = 0;
+		$taxes     = $this->get_taxes_like_cart( $product, $price );
+		$total_tax = array_sum( $taxes );
+
+		// The total is the largest amount below, so one check covers every line item. A price
+		// Stripe cannot charge must not take the product page down; the button simply does not render.
+		try {
+			$total_amount = WC_Stripe_Helper::get_stripe_amount( $price + $total_tax, $currency );
+		} catch ( WC_Stripe_Exception $e ) {
+			return false;
+		}
 
 		$items[] = [
 			'label'  => $product->get_name(),
 			'amount' => WC_Stripe_Helper::get_stripe_amount( $price ),
 		];
 
-		foreach ( $this->get_taxes_like_cart( $product, $price ) as $tax ) {
-			$total_tax += $tax;
-
+		foreach ( $taxes as $tax ) {
 			$items[] = [
 				'label'   => __( 'Tax', 'woocommerce-gateway-stripe' ),
 				'amount'  => WC_Stripe_Helper::get_stripe_amount( $tax, $currency ),
@@ -387,7 +410,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			 * @param string $label Total label.
 			 */
 			'label'   => apply_filters( 'wc_stripe_payment_request_total_label', $this->total_label ),
-			'amount'  => WC_Stripe_Helper::get_stripe_amount( $price + $total_tax, $currency ),
+			'amount'  => $total_amount,
 			'pending' => true,
 		];
 
@@ -425,7 +448,13 @@ class WC_Stripe_Express_Checkout_Helper {
 			return null;
 		}
 
-		$display_items = $this->build_display_items();
+		try {
+			$display_items = $this->build_display_items();
+		} catch ( WC_Stripe_Exception $e ) {
+			// Oversized totals must not break the page; the client falls back to the Store API cart.
+			return null;
+		}
+
 		// Round before casting: the total passes through the `wc_stripe_calculated_total`
 		// filter, which can hand back a non-integer minor-unit value. A bare (int) cast
 		// would truncate it and drop a minor unit from the first-paint total.
@@ -634,7 +663,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		$is_invalid = true;
 
 		if ( $product->get_type() === 'variable-subscription' ) {
-			$products = $product->get_available_variations( 'object' );
+			$products = $product->get_available_variations( 'objects' );
 		} else {
 			$products = [ $product ];
 		}
@@ -973,10 +1002,13 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
-		if ( $is_product && $product && in_array( $product->get_type(), [ ProductType::VARIABLE, 'variable-subscription' ], true ) ) {
-			$stock_availability = array_column( $product->get_available_variations(), 'is_in_stock' );
+		// get_available_variations() is defined on WC_Product_Variable and WC_Product_Variable_Subscription, so should be available on both class types.
+		if ( $is_product && $product && in_array( $product->get_type(), [ ProductType::VARIABLE, 'variable-subscription' ], true ) && method_exists( $product, 'get_available_variations' ) ) {
+			// Request the variations as objects to avoid unnecessary render work.
+			$all_variations = $product->get_available_variations( 'objects' );
+
 			// Don't show if all product variations are out-of-stock.
-			if ( ! in_array( true, $stock_availability, true ) ) {
+			if ( ! $this->some_variation_has_stock( $all_variations ) ) {
 				if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
 					WC_Stripe_Logger::debug( 'Stripe Express Checkout is hidden due to product variations being out of stock. Product ID: ' . $product->get_id() );
 				}
@@ -1015,6 +1047,34 @@ class WC_Stripe_Express_Checkout_Helper {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Returns true if one of the variations has stock, false otherwise.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param array $variations The variations to check.
+	 * @return bool True if one of the variations has stock, false otherwise.
+	 */
+	private function some_variation_has_stock( $variations ): bool {
+		if ( ! is_array( $variations ) ) {
+			return false;
+		}
+
+		foreach ( $variations as $variation ) {
+			// We expect get_available_variations() to return WC_Product_Variation objects, but we may
+			// get an array on older WooCommerce versions or from other variation implementations.
+			if ( is_object( $variation ) && method_exists( $variation, 'is_in_stock' ) && $variation->is_in_stock() ) {
+				return true;
+			}
+
+			if ( is_array( $variation ) && array_key_exists( 'is_in_stock', $variation ) && $variation['is_in_stock'] ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -1191,7 +1251,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return boolean True if any express checkout buttons are enabled on the given page, false otherwise.
 	 */
 	private function should_show_ece_on_location( string $location ): bool {
-		return $this->is_enabled_for_location( 'payment_request', $location ) ||
+		return $this->is_enabled_for_location( 'apple_pay_google_pay', $location ) ||
 				$this->is_enabled_for_location( 'amazon_pay', $location ) ||
 				$this->is_enabled_for_location( 'link', $location );
 	}
@@ -1894,38 +1954,67 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	 * Pages where the express checkout buttons should be displayed.
+	 * Reads one method's locations from the settings, in stored order.
+	 *
+	 * A missing option means the method was never configured and keeps the default
+	 * placement. A non-array value means every location was unchecked (WooCommerce
+	 * stores an emptied multiselect as ""), so the method is disabled everywhere.
+	 *
+	 * @param array  $settings The main Stripe settings.
+	 * @param string $method   Canonical express checkout method key.
+	 * @return string[]
+	 */
+	private static function get_method_locations_from_settings( array $settings, string $method ): array {
+		$key = self::BUTTON_LOCATION_OPTION_KEYS[ $method ];
+		if ( ! isset( $settings[ $key ] ) ) {
+			return self::DEFAULT_BUTTON_LOCATIONS;
+		}
+		if ( ! is_array( $settings[ $key ] ) ) {
+			return [];
+		}
+
+		$locations = [];
+		foreach ( $settings[ $key ] as $location ) {
+			// Values come from stored options or REST input: only non-empty string
+			// locations are usable, and repeats must not duplicate a location.
+			if ( is_string( $location ) && '' !== $location && ! in_array( $location, $locations, true ) ) {
+				$locations[] = $location;
+			}
+		}
+
+		return $locations;
+	}
+
+	/**
+	 * Express checkout methods in canonical display order — buttons render in this order.
+	 *
+	 * @return string[]
+	 */
+	public static function get_express_checkout_methods(): array {
+		return self::EXPRESS_CHECKOUT_METHODS;
+	}
+
+	/**
+	 * The per-method location option keys, keyed by express checkout method.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function get_button_location_option_keys(): array {
+		return self::BUTTON_LOCATION_OPTION_KEYS;
+	}
+
+	/**
+	 * Pages where the express checkout buttons should be displayed for a method.
+	 * Without a type, returns the Apple Pay / Google Pay locations — preserving the
+	 * pre-unification no-argument behavior for external callers.
 	 *
 	 * @param string|null $express_checkout_type The type of express checkout.
 	 * @return array
 	 */
 	public function get_button_locations( ?string $express_checkout_type = null ): array {
-		switch ( $express_checkout_type ) {
-			case 'amazon_pay':
-				$key = 'amazon_pay_button_locations';
-				break;
-			case 'link':
-				$key = 'link_button_locations';
-				break;
-			case 'payment_request':
-			default:
-				$key = 'express_checkout_button_locations';
-				break;
-		}
+		$method = self::normalize_express_checkout_method( $express_checkout_type );
 
-		if ( ! isset( $this->stripe_settings[ $key ] ) ) {
-			// If the locations have not been set/modified, return the default setting.
-			return [ 'product', 'cart' ];
-		}
-
-		if ( ! is_array( $this->stripe_settings[ $key ] ) ) {
-			// If all locations are removed through the settings UI the location config will be set to
-			// an empty string "". If that's the case (and if the settings are not an array for any
-			// other reason) we should return an empty array.
-			return [];
-		}
-
-		return $this->stripe_settings[ $key ];
+		return self::get_method_locations_from_settings( $this->stripe_settings, $method );
 	}
 
 	/**
@@ -1936,10 +2025,23 @@ class WC_Stripe_Express_Checkout_Helper {
 	 *
 	 * @return boolean
 	 */
-	public function is_enabled_for_location( string $express_checkout_type = 'payment_request', string $location = '' ): bool {
-		$enabled_locations = $this->get_button_locations( $express_checkout_type );
+	public function is_enabled_for_location( string $express_checkout_type = 'apple_pay_google_pay', string $location = '' ): bool {
+		return in_array( $location, $this->get_button_locations( $express_checkout_type ), true );
+	}
 
-		return in_array( $location, $enabled_locations, true );
+	/**
+	 * Normalizes an express checkout type to its canonical map key; anything that
+	 * is not Link or Amazon Pay maps to `apple_pay_google_pay`.
+	 *
+	 * @param string $express_checkout_type The type of express checkout.
+	 * @return string
+	 */
+	private static function normalize_express_checkout_method( ?string $express_checkout_type ): string {
+		if ( in_array( $express_checkout_type, [ 'link', 'amazon_pay' ], true ) ) {
+			return $express_checkout_type;
+		}
+
+		return 'apple_pay_google_pay';
 	}
 
 	/**

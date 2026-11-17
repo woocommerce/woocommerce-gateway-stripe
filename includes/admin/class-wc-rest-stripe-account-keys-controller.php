@@ -169,7 +169,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	}
 
 	private function mask_key_value( $value ): string {
-		return substr( $value, 0, 10 ) . str_repeat( '*', 50 ) . substr( $value, -2 );
+		return WC_Stripe_Helper::mask_key_value( $value );
 	}
 
 	/**
@@ -421,6 +421,13 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		$live_mode      = wc_clean( wp_unslash( $request->get_param( 'live_mode' ) ) );
 		$environment    = $live_mode ? 'live' : 'test';
 		$rate_limit_key = "wc-stripe-configure-{$environment}-webhooks-" . get_current_user_id();
+		$settings       = WC_Stripe_Helper::get_stripe_settings();
+		$secret_key     = $settings[ 'live' === $environment ? 'secret_key' : 'test_secret_key' ] ?? '';
+
+		// Without a key for this mode, get_secret_key() would use the active mode's key and target the wrong account.
+		if ( ! is_string( $secret_key ) || empty( $secret_key ) ) {
+			return new WP_REST_Response( [ 'message' => __( 'Cannot configure webhooks: no Stripe API secret key is saved for the requested mode.', 'woocommerce-gateway-stripe' ) ], 400 );
+		}
 
 		// Prevent users from setting up webhooks too frequently.
 		if ( WC_Rate_Limiter::retried_too_soon( $rate_limit_key ) ) {
@@ -430,6 +437,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		WC_Rate_Limiter::set_rate_limit( $rate_limit_key, 60 );
 
 		try {
+			WC_Stripe_API::set_secret_key( $secret_key );
 			$response = $this->account->configure_webhooks( $environment );
 		} catch ( Exception $e ) {
 			return new WP_REST_Response( [ 'message' => $e->getMessage() ], 400 );
@@ -471,9 +479,12 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		];
 
 		foreach ( $key_data as $mode => $keys ) {
-			// If there's no webhook ID or secret key, we can skip.
-			if ( empty( $keys['webhook_data'] ) || empty( $keys['current_secret'] ) ) {
+			if ( empty( $keys['webhook_data'] ) ) {
 				continue;
+			}
+
+			if ( is_array( $keys['webhook_data'] ) && empty( $keys['webhook_data']['secret'] ) ) {
+				$keys['webhook_data']['secret'] = $keys['current_secret'];
 			}
 
 			// If the user is removing or changing their secret key, decommission the
@@ -482,26 +493,13 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 				// Update the webhook settings now that the webhook has been decommissioned.
 				$settings[ 'live' === $mode ? 'webhook_data' : 'test_webhook_data' ]     = [];
 				$settings[ 'live' === $mode ? 'webhook_secret' : 'test_webhook_secret' ] = '';
+			} elseif ( $this->account->should_decommission_webhook( $keys['webhook_data'], $keys['secret_key'] ) ) {
+				// Keep access to the old endpoint if cleanup failed while replacing its account key.
+				$settings[ 'live' === $mode ? 'webhook_data' : 'test_webhook_data' ] = $keys['webhook_data'];
 			}
 		}
 
 		return $settings;
-	}
-
-	/**
-	 * Whether a Tracks event recorded now would actually be sent.
-	 *
-	 * Checks whether the WooCommerce wc_admin_record_tracks_event() function is available
-	 * and whether WooCommerce usage tracking is enabled. This allows us to skip lookups and
-	 * other expensive operations when usage tracking is disabled.
-	 *
-	 * @return bool
-	 */
-	private function can_record_tracks_events(): bool {
-		return function_exists( 'wc_admin_record_tracks_event' )
-			&& class_exists( 'WC_Site_Tracking' )
-			&& method_exists( WC_Site_Tracking::class, 'is_tracking_enabled' ) // @phpstan-ignore function.alreadyNarrowedType (Defensive check to make sure the function is available in WooCommerce.)
-			&& WC_Site_Tracking::is_tracking_enabled();
 	}
 
 	/**
@@ -547,22 +545,24 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	 * @return void
 	 */
 	private function record_manual_account_keys_tracks_event( string $event_name, string $mode, array $settings ) {
-		if ( ! $this->can_record_tracks_events() ) {
+		if ( ! WC_Stripe_Tracks::is_tracking_enabled() ) {
 			return;
 		}
 
 		$connection_type = $settings[ 'test' === $mode ? 'test_connection_type' : 'connection_type' ] ?? '';
 
 		$event_props = [
-			'is_test_mode'    => 'test' === $mode,
 			'connection_type' => is_string( $connection_type ) ? $connection_type : '',
-			'stripe_version'  => WC_STRIPE_VERSION,
+			// Intentionally override `is_test_mode` based on $mode rather than on the current site mode.
+			'is_test_mode'    => 'test' === $mode,
 		];
 
 		$account_data = $this->account->get_cached_account_data( $mode );
 		if ( is_string( $account_data['id'] ?? null ) ) {
 			$event_props['account_id'] = $account_data['id'];
 		}
+
+		$event_props = WC_Stripe_Tracks::add_default_event_properties( $event_props );
 
 		wc_admin_record_tracks_event( $event_name, $event_props );
 	}

@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { payments } from '../../utils';
-import { assertLinkModalLoads, getLinkButton } from './utils';
+import { assertLinkModalLoads, getLinkButton, openLinkPopup } from './utils';
 
-const { clickAddToCartButton } = payments;
+const { clickAddToCartButton, getCartTotal } = payments;
 
 const addProductToCart = async ( page, productSlug = 'beanie' ) => {
 	// Add a product to the cart
@@ -35,9 +35,242 @@ test.describe( 'customer can use Link express checkout', () => {
 		await testLink( page, '/checkout-shortcode', false );
 	} );
 
+	test( 'waits for a Classic container added after document readiness', async ( {
+		page,
+	} ) => {
+		await addProductToCart( page );
+		await page.addInitScript( () => {
+			if ( ! location.pathname.includes( '/checkout-shortcode' ) ) {
+				return;
+			}
+			const observer = new MutationObserver( () => {
+				const root = document.getElementById(
+					'wc-stripe-express-checkout-element'
+				);
+				if ( root ) {
+					window.lateCheckoutContainer = root;
+					root.remove();
+					observer.disconnect();
+				}
+			} );
+			observer.observe( document, { childList: true, subtree: true } );
+		} );
+		await page.goto( '/checkout-shortcode' );
+		await page.evaluate(
+			() => new Promise( ( resolve ) => window.jQuery( resolve ) )
+		);
+		await expect(
+			page.locator( '#wc-stripe-express-checkout-element' )
+		).toHaveCount( 0 );
+		await page.evaluate( () =>
+			document
+				.querySelector( 'form.checkout' )
+				.prepend( window.lateCheckoutContainer )
+		);
+		await expect( await getLinkButton( page ) ).toBeVisible();
+	} );
+
+	for ( const atomicMoves of [ true, false ] ) {
+		test( `rebuilds wallet wrappers with ${
+			atomicMoves ? 'preserved' : 'remounted'
+		} SDK frames`, async ( { page } ) => {
+			if ( ! atomicMoves ) {
+				await page.addInitScript( () => {
+					delete Element.prototype.moveBefore;
+				} );
+			}
+			await addProductToCart( page );
+			const initialUpdate = page.waitForResponse(
+				( response ) =>
+					response.url().includes( 'wc-ajax=update_order_review' ) &&
+					response.ok()
+			);
+			await page.goto( '/checkout-shortcode' );
+			await initialUpdate;
+			await expect( await getLinkButton( page ) ).toBeVisible();
+			const slot = await page
+				.locator( '#wc-stripe-express-checkout-element-link' )
+				.elementHandle();
+			const frame = await page
+				.locator( '#wc-stripe-express-checkout-element-link iframe' )
+				.first()
+				.elementHandle();
+			await frame.evaluate( ( element ) => {
+				window.walletFrameReloads = 0;
+				element.addEventListener( 'load', () => {
+					window.walletFrameReloads++;
+				} );
+			} );
+			expect(
+				await page.evaluate( () => typeof Element.prototype.moveBefore )
+			).toBe( atomicMoves ? 'function' : 'undefined' );
+			const response = page.waitForResponse(
+				( r ) =>
+					r.url().includes( 'wc-ajax=update_order_review' ) && r.ok()
+			);
+			await page.locator( '#ship-to-different-address-checkbox' ).check();
+			await response;
+			await expect
+				.poll( () =>
+					slot.evaluate( ( element ) => element.isConnected )
+				)
+				.toBe( false );
+			await expect( await getLinkButton( page ) ).toBeVisible();
+			if ( atomicMoves ) {
+				expect(
+					await frame.evaluate( ( element ) => element.isConnected )
+				).toBe( true );
+				expect(
+					await page.evaluate( () => window.walletFrameReloads )
+				).toBe( 0 );
+			} else {
+				// Stripe can retain the iframe node while reloading its document.
+				await expect
+					.poll(
+						async () =>
+							! ( await frame.evaluate(
+								( element ) => element.isConnected
+							) ) ||
+							( await page.evaluate(
+								() => window.walletFrameReloads > 0
+							) )
+					)
+					.toBe( true );
+			}
+			await assertLinkModalLoads( page, false );
+		} );
+	}
+
+	test( 'discovers Link before the first classic checkout recalculation finishes', async ( {
+		page,
+	} ) => {
+		await addProductToCart( page );
+		let releaseCheckoutUpdate;
+		const checkoutUpdate = new Promise( ( resolve ) => {
+			releaseCheckoutUpdate = resolve;
+		} );
+		// Holding the response makes early discovery independent of server speed.
+		await page.route(
+			'**/*wc-ajax=update_order_review*',
+			async ( route ) => {
+				await checkoutUpdate;
+				await route.continue();
+			}
+		);
+		const updateRequest = page.waitForRequest( ( request ) =>
+			request.url().includes( 'wc-ajax=update_order_review' )
+		);
+		try {
+			await page.goto( '/checkout-shortcode' );
+			await updateRequest;
+			const linkButton = await getLinkButton( page );
+			await expect( linkButton ).toBeVisible();
+		} finally {
+			releaseCheckoutUpdate();
+		}
+	} );
+
+	test( 'recovers express checkout after update_order_review fails', async ( {
+		page,
+	} ) => {
+		await addProductToCart( page );
+		const initialUpdate = page.waitForResponse(
+			( response ) =>
+				response.url().includes( 'wc-ajax=update_order_review' ) &&
+				response.ok()
+		);
+		await page.goto( '/checkout-shortcode' );
+		await initialUpdate;
+		await expect( await getLinkButton( page ) ).toBeVisible();
+		await page.route(
+			'**/*wc-ajax=update_order_review*',
+			( route ) => route.abort( 'failed' ),
+			{ times: 1 }
+		);
+		const failedUpdate = page.waitForEvent( 'requestfailed', {
+			predicate: ( request ) =>
+				request.url().includes( 'wc-ajax=update_order_review' ),
+		} );
+		// Use a recalculation control because address text may not mark totals dirty.
+		const shippingAddress = page.locator(
+			'#ship-to-different-address-checkbox'
+		);
+		await shippingAddress.setChecked(
+			! ( await shippingAddress.isChecked() )
+		);
+		await failedUpdate;
+		const error = page.locator(
+			'#wc-stripe-express-checkout-refresh-error'
+		);
+		await expect( error ).toBeVisible();
+		await expect(
+			page.locator( '#wc-stripe-express-checkout-element' )
+		).toBeHidden();
+		const update = page.waitForResponse(
+			( response ) =>
+				response.url().includes( 'wc-ajax=update_order_review' ) &&
+				response.ok()
+		);
+		await error
+			.getByRole( 'button', { name: 'Retry', exact: true } )
+			.click();
+		await update;
+		await expect( error ).toHaveCount( 0 );
+		await expect( await getLinkButton( page ) ).toBeVisible();
+		await assertLinkModalLoads( page );
+	} );
+
 	test( 'inside the cart page (block)', async ( { page } ) => {
 		await addProductToCart( page );
 		await testLink( page, '/cart', true );
+	} );
+
+	test( 'after quantity changes in the cart page (block)', async ( {
+		page,
+	} ) => {
+		await addProductToCart( page );
+		await page.goto( '/cart' );
+
+		const linkButton = await getLinkButton( page, true );
+		await expect( linkButton ).toBeVisible();
+		await expect( linkButton ).toBeEnabled();
+
+		const initialTotal = await getCartTotal( page );
+		const quantityInput = page.locator(
+			'.wc-block-components-quantity-selector__input'
+		);
+		const displayedTotal = page
+			.locator(
+				'.wc-block-components-totals-footer-item .wc-block-components-totals-item__value'
+			)
+			.last();
+		await expect( quantityInput ).toHaveValue( '1' );
+		await expect( displayedTotal ).toContainText( initialTotal );
+
+		for ( const quantity of [ '2', '1' ] ) {
+			await quantityInput.fill( quantity );
+			await quantityInput.blur();
+			if ( quantity === '2' ) {
+				await expect
+					.poll( () => getCartTotal( page ) )
+					.not.toBe( initialTotal );
+			} else {
+				await expect
+					.poll( () => getCartTotal( page ) )
+					.toBe( initialTotal );
+			}
+			await expect( displayedTotal ).toContainText(
+				await getCartTotal( page )
+			);
+			await expect( quantityInput ).toBeEnabled();
+			await expect( quantityInput ).toHaveValue( quantity );
+			await expect( linkButton ).toBeVisible();
+			await expect( linkButton ).toBeEnabled();
+		}
+
+		// Reloading would reset availability and hide a stale-cache failure.
+		const popup = await openLinkPopup( page, true, { maxRetries: 0 } );
+		await popup.close();
 	} );
 
 	test( 'inside the checkout page (block)', async ( { page } ) => {
