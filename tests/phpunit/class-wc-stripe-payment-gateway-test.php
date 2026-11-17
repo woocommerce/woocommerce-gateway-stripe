@@ -176,6 +176,41 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Tests that the intent ID is still saved to the order when the mandate charge lookup fails.
+	 */
+	public function test_save_intent_to_order_keeps_the_intent_when_the_mandate_lookup_fails() {
+		$order    = WC_Helper_Order::create_order();
+		$intent   = (object) [
+			'id'            => 'pi_123abc',
+			'object'        => 'payment_intent',
+			'latest_charge' => 'ch_123abc',
+		];
+		$callback = function ( $preempt, $request_args, $url ) {
+			if ( 'https://api.stripe.com/v1/charges/ch_123abc' === $url ) {
+				return $this->build_response(
+					[
+						'error' => [
+							'type'    => 'api_error',
+							'message' => 'Temporary Stripe API error.',
+						],
+					]
+				);
+			}
+
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		try {
+			$this->gateway->save_intent_to_order( $order, $intent );
+		} finally {
+			remove_filter( 'pre_http_request', $callback, 10 );
+		}
+
+		$this->assertSame( 'pi_123abc', WC_Stripe_Order_Helper::get_instance()->get_stripe_intent_id( wc_get_order( $order->get_id() ) ) );
+	}
+
+	/**
 	 * Tests if payment intent is fetched from Stripe API.
 	 */
 	public function test_success_get_payment_intent_from_order() {
@@ -1531,10 +1566,12 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		array $payment_method,
 		bool $expected
 	): void {
+		// Set the source after the first save. Set before it, the value was replaced by a stale
+		// source from an earlier test whenever this subscription got a reused ID.
 		$subscription = new \WC_Subscription();
+		$subscription->save();
 		$subscription->update_meta_data( '_stripe_source_id', $payment_method['id'] ?? '' );
 		$subscription->save_meta_data();
-		$subscription->save();
 
 		if ( $has_parent_order ) {
 			$order = WC_Helper_Order::create_order();

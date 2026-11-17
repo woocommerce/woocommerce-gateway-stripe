@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Only treat Charge objects as charges when recording a subscription renewal, and handle renewals whose charge cannot be read without marking a paid renewal failed or losing the intent
