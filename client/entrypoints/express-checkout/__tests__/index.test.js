@@ -630,6 +630,63 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		expect( wrapper.style.display ).toBe( 'none' );
 	} );
 
+	it( 'follows the blockified selector when the page also renders a classic variations form', async () => {
+		jest.useFakeTimers();
+		global.wc_stripe_express_checkout_params = productParams();
+
+		// A second product embedded further down the page (e.g. a Single
+		// Product block in the description) can add a classic form next to
+		// the template's blockified one.
+		document.body.innerHTML = `
+			<div id="wc-stripe-express-checkout-element"></div>
+			<form class="wp-block-add-to-cart-with-options wc-block-add-to-cart-with-options">
+				<div class="wp-block-woocommerce-add-to-cart-with-options-variation-selector">
+					<button type="button">Red</button>
+					<input type="hidden" name="attribute_color" value="red" />
+				</div>
+				<div class="quantity"><input type="number" class="qty" name="quantity" value="1" /></div>
+				<button type="submit" class="single_add_to_cart_button" value="1048">Add</button>
+				<div class="single_variation_wrap">
+					<input type="hidden" name="product_id" value="1048" />
+					<input type="hidden" name="variation_id" value="123" />
+				</div>
+			</form>
+			<form class="variations_form cart">
+				<table class="variations"><tr><td>
+					<select name="attribute_color"><option value="" selected></option><option value="blue">Blue</option></select>
+				</td></tr></table>
+				<div class="single_variation_wrap">
+					<input type="hidden" name="product_id" value="384" />
+					<input type="hidden" name="variation_id" value="0" />
+				</div>
+			</form>`;
+
+		mockGetSelectedProductData.mockResolvedValue( {
+			total: { amount: 2000 },
+			currency: 'usd',
+			requestShipping: false,
+			displayItems: [ { label: 'Red variation', amount: 2000 } ],
+		} );
+
+		stubStripeButton();
+		loadEntrypoint();
+
+		try {
+			document.querySelector( 'button[type="button"]' ).click();
+			await jest.advanceTimersByTimeAsync( 300 );
+		} finally {
+			jest.useRealTimers();
+		}
+
+		expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 1 );
+		expect( mockGetSelectedProductData ).toHaveBeenCalledWith(
+			expect.objectContaining( {
+				product_id: '1048',
+				attributes: { attribute_color: 'red' },
+			} )
+		);
+	} );
+
 	it( 'pushes the new amount to every mounted express button, not just the last one', async () => {
 		global.wc_stripe_express_checkout_params = productParams();
 

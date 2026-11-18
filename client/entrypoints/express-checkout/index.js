@@ -17,6 +17,7 @@ import {
 	getPaymentMethodTypesForExpressMethod,
 	getSelectedVariationAttributes,
 	getSelectedVariationId,
+	hasBlockifiedVariationSelector,
 	hasVariationSelectionUi,
 	isManualPaymentMethodCreation,
 	observeBlockifiedVariationSelection,
@@ -101,8 +102,8 @@ const initializeExpressCheckout = ( $ ) => {
 		! getExpressCheckoutData( 'is_pay_for_order' ) &&
 		! getExpressCheckoutData( 'is_change_payment_method' );
 
-	const hasClassicVariationForm = $( '.variations_form' ).length > 0;
 	const hasVariationUi = hasVariationSelectionUi();
+	const hasBlockifiedVariationForm = hasBlockifiedVariationSelector();
 	const hasBookingForm = $( '.wc-bookings-booking-form' ).length > 0;
 
 	// Variable products (on either template) and booking products keep the
@@ -1427,7 +1428,7 @@ const initializeExpressCheckout = ( $ ) => {
 			// The jQuery event handled above only exists on the classic
 			// template (its script fires it). On the blockified template,
 			// listen for the shopper's gestures on the selector instead.
-			if ( ! hasClassicVariationForm ) {
+			if ( hasBlockifiedVariationForm ) {
 				// `attachProductPageEventListeners` runs again on re-init;
 				// drop the previous listeners so changes aren't handled twice.
 				wcStripeECE.variationSelectionListener?.disconnect();
