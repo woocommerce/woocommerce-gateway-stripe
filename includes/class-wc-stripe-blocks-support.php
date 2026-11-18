@@ -214,10 +214,17 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 
 		$asset = $this->get_upe_blocks_asset();
 
+		$express_checkout_dependencies = [];
+		if ( $this->express_checkout_configuration->express_checkout_helper->should_show_express_checkout_button() ) {
+			$express_checkout_dependencies = [
+				WC_Stripe_Express_Checkout_Element::get_express_checkout_script_handle(),
+			];
+		}
+
 		wp_register_script(
 			self::BLOCKS_SCRIPT_HANDLE,
 			WC_STRIPE_PLUGIN_URL . '/build/upe-blocks.js',
-			array_merge( [ 'stripe' ], $asset['dependencies'] ),
+			array_merge( [ 'stripe' ], $asset['dependencies'], $express_checkout_dependencies ),
 			$asset['version'],
 			true
 		);

@@ -150,6 +150,17 @@ class WC_Stripe_Express_Checkout_Element {
 	}
 
 	/**
+	 * Get the handle for the express checkout script.
+	 *
+	 * @since x.x.x
+	 *
+	 * @return string
+	 */
+	public static function get_express_checkout_script_handle(): string {
+		return self::EXPRESS_CHECKOUT_SCRIPT_HANDLE;
+	}
+
+	/**
 	 * Sets the WC customer session if one is not set.
 	 * This is needed so nonces can be verified by AJAX Request.
 	 * DEPRECATED: We now defer creation of sessions until the user actually interacts with the Express Checkout Element.
