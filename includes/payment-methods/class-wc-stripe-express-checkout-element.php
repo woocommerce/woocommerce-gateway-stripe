@@ -18,6 +18,13 @@ use Automattic\WooCommerce\Blocks\Domain\Services\CheckoutFields;
  */
 class WC_Stripe_Express_Checkout_Element {
 	/**
+	 * The handle for the express checkout script.
+	 *
+	 * @var string
+	 */
+	protected const EXPRESS_CHECKOUT_SCRIPT_HANDLE = 'wc_stripe_express_checkout';
+
+	/**
 	 * Stripe settings.
 	 *
 	 * @var array
@@ -306,7 +313,11 @@ class WC_Stripe_Express_Checkout_Element {
 			return;
 		}
 
-		wp_localize_script( 'wc_stripe_express_checkout', 'wcStripeExpressCheckoutPayForOrderParams', $data );
+		wp_localize_script(
+			self::EXPRESS_CHECKOUT_SCRIPT_HANDLE,
+			'wcStripeExpressCheckoutPayForOrderParams',
+			$data
+		);
 	}
 
 	/**
@@ -460,15 +471,16 @@ class WC_Stripe_Express_Checkout_Element {
 	 * @return void
 	 */
 	public function register_express_checkout_script(): void {
-		if ( wp_script_is( 'wc_stripe_express_checkout', 'registered' ) ) {
+		if ( wp_script_is( self::EXPRESS_CHECKOUT_SCRIPT_HANDLE, 'registered' ) ) {
 			return;
 		}
 
 		$asset_data = $this->get_asset_data();
 
 		WC_Stripe_Helper::register_stripe_js();
+
 		wp_register_script(
-			'wc_stripe_express_checkout',
+			self::EXPRESS_CHECKOUT_SCRIPT_HANDLE,
 			WC_STRIPE_PLUGIN_URL . '/build/express-checkout.js',
 			array_merge( [ 'jquery', 'stripe' ], $asset_data['dependencies'] ),
 			$asset_data['version'],
@@ -608,7 +620,7 @@ class WC_Stripe_Express_Checkout_Element {
 		);
 
 		wp_localize_script(
-			'wc_stripe_express_checkout',
+			self::EXPRESS_CHECKOUT_SCRIPT_HANDLE,
 			'wc_stripe_express_checkout_params',
 			/** This filter is documented in includes/class-wc-stripe-blocks-support.php. */
 			apply_filters(
@@ -617,7 +629,7 @@ class WC_Stripe_Express_Checkout_Element {
 			)
 		);
 
-		wp_enqueue_script( 'wc_stripe_express_checkout' );
+		wp_enqueue_script( self::EXPRESS_CHECKOUT_SCRIPT_HANDLE );
 	}
 
 	/**
