@@ -2,18 +2,14 @@ import { test, expect } from '@playwright/test';
 import { payments } from '../../utils';
 import { assertLinkModalLoads, getLinkButton, openLinkPopup } from './utils';
 
-const { clickAddToCartButton, getCartTotal } = payments;
+const {
+	addProductToCartFromProductPageBySlug,
+	getCartTotal,
+	selectProductVariation,
+} = payments;
 
 const addProductToCart = async ( page, productSlug = 'beanie' ) => {
-	// Add a product to the cart
-	await page.goto( `/product/${ productSlug }` );
-
-	await clickAddToCartButton( page );
-
-	// Wait for the cart update to complete - look for success message or cart count update
-	await expect(
-		page.getByText( 'has been added to your cart' )
-	).toBeVisible();
+	await addProductToCartFromProductPageBySlug( page, productSlug );
 };
 
 const testLink = async ( page, navigateTo, isBlockPage = false ) => {
@@ -299,10 +295,8 @@ test.describe( 'express checkout and variable products', () => {
 		page,
 	} ) => {
 		await page.goto( '/product/hoodie' );
-		await page
-			.getByLabel( 'color', { exact: true } )
-			.selectOption( 'Blue' );
-		await page.getByLabel( 'Logo', { exact: true } ).selectOption( 'Yes' );
+		await selectProductVariation( page, 'color', 'Blue' );
+		await selectProductVariation( page, 'Logo', 'Yes' );
 		const linkButton = await getLinkButton( page );
 		await expect( linkButton ).toBeVisible();
 	} );
