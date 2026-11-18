@@ -53,6 +53,7 @@ class WC_Stripe_Account {
 		'source.canceled',
 		'charge.succeeded',
 		'charge.failed',
+		'charge.expired',
 		'charge.captured',
 		'charge.dispute.created',
 		'charge.dispute.closed',
