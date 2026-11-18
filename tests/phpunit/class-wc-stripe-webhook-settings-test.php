@@ -594,6 +594,11 @@ class WC_Stripe_Webhook_Settings_Test extends WP_UnitTestCase {
 	}
 
 	public function test_cleanup_preserves_new_and_unrelated_endpoints() {
+		// A different live-mode ID makes cleanup rely on the previous test-mode ID.
+		$settings                       = WC_Stripe_Helper::get_stripe_settings();
+		$settings['webhook_data']['id'] = 'we_live';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
 		$url                    = WC_Stripe_Helper::get_webhook_url();
 		$this->listed_endpoints = [
 			[
