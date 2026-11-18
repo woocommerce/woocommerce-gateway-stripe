@@ -13,8 +13,8 @@ import {
 } from './utils';
 
 const {
+	addProductToCartFromProductPageBySlug,
 	addSubscriptionToCart,
-	clickAddToCartButton,
 	emptyCart,
 	waitForOrderReceivedPage,
 } = payments;
@@ -119,11 +119,7 @@ test.describe( 'express checkout free trial purchases with Link', () => {
 			page,
 		} ) => {
 			test.setTimeout( 240 * 1000 );
-			await page.goto( '/product/beanie' );
-			await clickAddToCartButton( page );
-			await expect(
-				page.getByText( 'has been added to your cart' )
-			).toBeVisible();
+			await addProductToCartFromProductPageBySlug( page, 'beanie' );
 			await page.goto( '/checkout' );
 
 			const popup = await openLinkPopup( page, true );
