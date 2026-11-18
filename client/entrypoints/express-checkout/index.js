@@ -1369,11 +1369,13 @@ const initializeExpressCheckout = ( $ ) => {
 
 			$.when( wcStripeECE.getSelectedProductData() )
 				.then( ( response ) => {
-					// A null or primitive response can't be applied: record
-					// the error (surfaced on the next click) and keep the
-					// current preview.
+					// A null or primitive response can't be applied. Unlike a
+					// quantity change, the preview on screen is priced for a
+					// variation the shopper has left, so hide it rather than
+					// keep it, and record the error for the next click.
 					if ( ! response || typeof response !== 'object' ) {
 						wcStripeECEError = defaultErrorMessage;
+						wcStripeECE.hide();
 						return;
 					}
 

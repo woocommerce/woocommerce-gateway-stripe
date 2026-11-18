@@ -677,7 +677,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		[ 'null', null ],
 		[ 'a primitive', 'oops' ],
 	] )(
-		'keeps the buttons and preview when the variation refresh resolves %s',
+		'hides the buttons and records the error when the variation refresh resolves %s',
 		async ( _label, badResponse ) => {
 			global.wc_stripe_express_checkout_params = productParams();
 
@@ -697,7 +697,8 @@ describe( 'Express Checkout product page variation breakdown', () => {
 				);
 				await flushPromises();
 
-				// Invalid response: nothing applied, buttons not hidden.
+				// Invalid response: nothing applied, and the stale preview is
+				// hidden, as on develop.
 				elementsList.forEach( ( elements ) => {
 					expect( elements.update ).not.toHaveBeenCalled();
 				} );
@@ -705,7 +706,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 					document.getElementById(
 						'wc-stripe-express-checkout-element'
 					).style.display
-				).not.toBe( 'none' );
+				).toBe( 'none' );
 
 				// The stored error blocks the next click.
 				const event = {
