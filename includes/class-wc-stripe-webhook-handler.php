@@ -2908,26 +2908,27 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
-		if ( $order_helper->was_stripe_adaptive_pricing_note_added( $order ) ) {
-			return;
-		}
-
-		$amount = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
+		$currency = strtoupper( $presentment_details->presentment_currency );
+		$amount   = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
 			$presentment_details->presentment_amount,
 			$presentment_details->presentment_currency
 		);
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		if ( $order_helper->was_stripe_adaptive_pricing_note_added( $order, $currency, $amount ) ) {
+			return;
+		}
 
 		$order->add_order_note(
 			sprintf(
 				/* translators: 1) presentment currency 2) presentment amount */
 				__( 'Local currency purchase via Adaptive Pricing. Amount paid was: %1$s %2$s', 'woocommerce-gateway-stripe' ),
-				strtoupper( $presentment_details->presentment_currency ),
+				$currency,
 				$amount
 			)
 		);
 
-		$order_helper->update_stripe_adaptive_pricing_note_added( $order, true );
+		$order_helper->add_stripe_adaptive_pricing_note_record( $order, $currency, $amount );
 		$order->save_meta_data();
 	}
 

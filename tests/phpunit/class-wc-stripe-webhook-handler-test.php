@@ -1993,7 +1993,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$handler->process_checkout_session_success( $notification );
 		$this->assertSame( 1, $count_adaptive_pricing_notes() );
-		$this->assertTrue( $order_helper->was_stripe_adaptive_pricing_note_added( wc_get_order( $order->get_id() ) ) );
+		$this->assertTrue( $order_helper->was_stripe_adaptive_pricing_note_added( wc_get_order( $order->get_id() ), 'EUR', '78.00' ) );
 
 		$handler->process_checkout_session_success( $notification );
 		$this->assertSame( 1, $count_adaptive_pricing_notes() );
