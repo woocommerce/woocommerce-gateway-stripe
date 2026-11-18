@@ -296,9 +296,7 @@ class WC_Stripe_Express_Checkout_Element {
 	 */
 	public function localize_pay_for_order_page_scripts( $order ) {
 		// Ensure the script is registered before localizing
-		if ( ! wp_script_is( 'wc_stripe_express_checkout', 'registered' ) ) {
-			$this->register_express_checkout_script();
-		}
+		$this->register_express_checkout_script();
 
 		try {
 			$data = $this->get_pay_for_order_params( $order );
@@ -457,9 +455,15 @@ class WC_Stripe_Express_Checkout_Element {
 	/**
 	 * Register the express checkout script without enqueuing it.
 	 *
+	 * @since x.x.x
+	 *
 	 * @return void
 	 */
-	private function register_express_checkout_script() {
+	public function register_express_checkout_script(): void {
+		if ( wp_script_is( 'wc_stripe_express_checkout', 'registered' ) ) {
+			return;
+		}
+
 		$asset_data = $this->get_asset_data();
 
 		WC_Stripe_Helper::register_stripe_js();
@@ -592,9 +596,7 @@ class WC_Stripe_Express_Checkout_Element {
 		}
 
 		// Register the script if not already registered
-		if ( ! wp_script_is( 'wc_stripe_express_checkout', 'registered' ) ) {
-			$this->register_express_checkout_script();
-		}
+		$this->register_express_checkout_script();
 
 		$asset_data = $this->get_asset_data();
 
