@@ -1,4 +1,4 @@
 Significance: patch
-Type: update
+Type: dev
 
-Extract webhook settings from WC_Stripe_Account and unify automatic webhook configuration
+Extract webhook settings and automatic configuration into a dedicated class, and reconfigure webhooks when the saved signing secret is empty
