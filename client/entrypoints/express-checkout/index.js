@@ -180,6 +180,15 @@ const initializeExpressCheckout = ( $ ) => {
 		return hasVariationUi && ! getSelectedVariationId();
 	};
 
+	// One instance for both quantity listeners, so a typed quantity on the
+	// blockified template (`input`, then the block's `change` on blur) can
+	// collapse into one refresh. Created once because the listeners are
+	// re-bound on every init.
+	const debouncedQuantityRefresh = debounce(
+		() => wcStripeECE.onQuantityChanged(),
+		250
+	);
+
 	const wcStripeECE = {
 		createButton: ( elements, options ) =>
 			elements.create( 'expressCheckout', options ),
@@ -266,6 +275,10 @@ const initializeExpressCheckout = ( $ ) => {
 		// True while the wallet sheet is open; refreshes are deferred meanwhile.
 		paymentInFlight: false,
 		pendingRefresh: false,
+		// Product page only. Replayed as a fresh fetch rather than through
+		// `pendingRefresh`, because init() renders the product page from the
+		// cached product data and would drop the quantity change.
+		pendingQuantityRefresh: false,
 
 		// Reuse must apply visibility, mode and styling changes alongside fresh totals.
 		getStructuralSignature: ( options ) => {
@@ -840,6 +853,7 @@ const initializeExpressCheckout = ( $ ) => {
 					wcStripeECE.pendingRefresh = false;
 					wcStripeECE.init();
 				}
+				wcStripeECE.replayPendingQuantityRefresh();
 			} );
 
 			eceButton.on( 'ready', async ( onReadyParams ) => {
@@ -1329,6 +1343,15 @@ const initializeExpressCheckout = ( $ ) => {
 			} else if ( cartRefreshPending ) {
 				wcStripeECE.init();
 			}
+			wcStripeECE.replayPendingQuantityRefresh();
+		},
+
+		replayPendingQuantityRefresh: () => {
+			if ( ! wcStripeECE.pendingQuantityRefresh ) {
+				return;
+			}
+			wcStripeECE.pendingQuantityRefresh = false;
+			wcStripeECE.onQuantityChanged();
 		},
 
 		// Refresh the express checkout amount/items for the selected variation.
@@ -1443,11 +1466,7 @@ const initializeExpressCheckout = ( $ ) => {
 
 			$( '.quantity' )
 				.off( 'input', '.qty' )
-				.on(
-					'input',
-					'.qty',
-					debounce( wcStripeECE.onQuantityChanged, 250 )
-				);
+				.on( 'input', '.qty', debouncedQuantityRefresh );
 
 			// The blockified steppers fire no input event; the block
 			// dispatches a synthetic `change` on the input for extensions
@@ -1456,23 +1475,34 @@ const initializeExpressCheckout = ( $ ) => {
 			// same block, so this needs no variable-product check.
 			$( '.wc-block-add-to-cart-with-options .quantity' )
 				.off( 'change', '.qty' )
-				.on(
-					'change',
-					'.qty',
-					debounce( wcStripeECE.onQuantityChanged, 250 )
-				);
+				.on( 'change', '.qty', debouncedQuantityRefresh );
 		},
 
 		// Refresh the express checkout amount/items for the current quantity.
 		// Wired to the quantity input's `input` event and, on the blockified
 		// template, its `change` event.
 		onQuantityChanged: () => {
+			// Applying a refresh under an open wallet sheet would update, or
+			// re-create, the element the shopper is paying with.
+			if ( wcStripeECE.paymentInFlight ) {
+				wcStripeECE.pendingQuantityRefresh = true;
+				return;
+			}
+
 			wcStripeECE.blockExpressCheckoutButton();
 			wcStripeECEError = '';
 
 			$.when( wcStripeECE.getSelectedProductData() )
 				.then(
 					( response ) => {
+						// The sheet can open while this request is in flight:
+						// a wallet click blurs the blockified quantity input,
+						// and the block dispatches `change` on every blur.
+						if ( wcStripeECE.paymentInFlight ) {
+							wcStripeECE.pendingQuantityRefresh = true;
+							return;
+						}
+
 						// A null or primitive response can't be applied:
 						// record the error (surfaced on the next click) and
 						// keep the current preview.

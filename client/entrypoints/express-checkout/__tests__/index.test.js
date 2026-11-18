@@ -451,6 +451,13 @@ describe( 'Express Checkout product page variation breakdown', () => {
 			</div>
 		</form>`;
 
+	const productDataResponse = ( amount ) => ( {
+		total: { amount },
+		currency: 'usd',
+		requestShipping: false,
+		displayItems: [ { label: 'Red variation', amount } ],
+	} );
+
 	it.each( [
 		[ 'classic', null, 'blue' ],
 		[ 'blockified', blockifiedProductForm, 'red' ],
@@ -487,6 +494,132 @@ describe( 'Express Checkout product page variation breakdown', () => {
 			expect( event.resolve ).toHaveBeenCalledTimes( 1 );
 		}
 	);
+
+	it( 'sends one refresh when a blockified quantity edit fires input and then change', async () => {
+		jest.useFakeTimers();
+		global.wc_stripe_express_checkout_params = productParams();
+		document.body.innerHTML = blockifiedProductForm;
+		mockGetSelectedProductData.mockResolvedValue(
+			productDataResponse( 2000 )
+		);
+
+		stubStripeButton();
+		loadEntrypoint();
+
+		try {
+			const qtyInput = document.querySelector( '.qty' );
+			qtyInput.value = '2';
+			qtyInput.dispatchEvent( new Event( 'input', { bubbles: true } ) );
+			// The block dispatches `change` when the field loses focus.
+			qtyInput.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+			await jest.advanceTimersByTimeAsync( 300 );
+		} finally {
+			jest.useRealTimers();
+		}
+
+		expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 1 );
+	} );
+
+	it( 'defers a quantity refresh that resolves after the wallet sheet opened, and replays it on cancel', async () => {
+		jest.useFakeTimers();
+		global.wc_stripe_express_checkout_params = productParams();
+		document.body.innerHTML = blockifiedProductForm;
+
+		let resolveInFlightRequest;
+		mockGetSelectedProductData
+			.mockReturnValueOnce(
+				new Promise( ( resolve ) => {
+					resolveInFlightRequest = resolve;
+				} )
+			)
+			.mockResolvedValue( productDataResponse( 2000 ) );
+		mockAddToCart.mockResolvedValue( { items_count: 1 } );
+		mockEmptyCartLegacy.mockResolvedValue( {} );
+
+		const { handlers, elementsList } = stubStripeButton();
+		loadEntrypoint();
+
+		try {
+			const qtyInput = document.querySelector( '.qty' );
+			qtyInput.value = '2';
+			qtyInput.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+			await jest.advanceTimersByTimeAsync( 300 );
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 1 );
+
+			// The sheet opens before the refresh response arrives.
+			const event = {
+				resolve: jest.fn(),
+				expressPaymentType: 'googlePay',
+			};
+			await handlers.click( event );
+			expect( event.resolve ).toHaveBeenCalledTimes( 1 );
+
+			const elementsCount = elementsList.length;
+			resolveInFlightRequest( productDataResponse( 2000 ) );
+			await jest.advanceTimersByTimeAsync( 50 );
+
+			// Nothing is applied to the element the shopper is paying with.
+			elementsList.forEach( ( elements ) => {
+				expect( elements.update ).not.toHaveBeenCalled();
+			} );
+			expect( elementsList ).toHaveLength( elementsCount );
+
+			// Closing the sheet fetches again for the form's current state,
+			// and the response is applied (a cancel re-initializes).
+			handlers.cancel();
+			await jest.advanceTimersByTimeAsync( 50 );
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 2 );
+			expect( elementsList.length ).toBeGreaterThan( elementsCount );
+		} finally {
+			jest.useRealTimers();
+		}
+	} );
+
+	it( 'skips a quantity refresh while the wallet sheet is open, and replays it when the payment fails', async () => {
+		jest.useFakeTimers();
+		global.wc_stripe_express_checkout_params = productParams();
+		document.body.innerHTML = blockifiedProductForm;
+		mockGetSelectedProductData.mockResolvedValue(
+			productDataResponse( 2000 )
+		);
+		mockAddToCart.mockResolvedValue( { items_count: 1 } );
+		mockEmptyCartLegacy.mockResolvedValue( {} );
+
+		const { handlers } = stubStripeButton();
+		loadEntrypoint();
+
+		try {
+			const event = {
+				resolve: jest.fn(),
+				paymentFailed: jest.fn(),
+				expressPaymentType: 'googlePay',
+			};
+			await handlers.click( event );
+
+			// A quantity change while the sheet is open sends no request.
+			const qtyInput = document.querySelector( '.qty' );
+			qtyInput.value = '2';
+			qtyInput.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+			await jest.advanceTimersByTimeAsync( 300 );
+			expect( mockGetSelectedProductData ).not.toHaveBeenCalled();
+
+			await handlers.confirm( event );
+			const {
+				onConfirmHandler,
+				// eslint-disable-next-line global-require
+			} = require( 'wcstripe/express-checkout/event-handler' );
+			const { abortPayment } = onConfirmHandler.mock.calls[ 0 ][ 0 ];
+			abortPayment( event, 'Your card was declined.' );
+			await jest.advanceTimersByTimeAsync( 50 );
+
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 1 );
+			expect( mockGetSelectedProductData ).toHaveBeenCalledWith(
+				expect.objectContaining( { qty: '2' } )
+			);
+		} finally {
+			jest.useRealTimers();
+		}
+	} );
 
 	it.each( [
 		[ 'null', null ],
