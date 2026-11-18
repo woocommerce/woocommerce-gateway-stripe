@@ -1,0 +1,4 @@
+Significance: patch
+Type: dev
+
+Update the homepage URL in composer.json
