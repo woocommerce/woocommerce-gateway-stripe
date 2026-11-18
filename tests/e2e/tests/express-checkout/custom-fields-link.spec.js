@@ -9,7 +9,11 @@ import {
 	signUpForLink,
 } from './utils';
 
-const { clickAddToCartButton, emptyCart, waitForOrderReceivedPage } = payments;
+const {
+	addProductToCartFromProductPageBySlug,
+	emptyCart,
+	waitForOrderReceivedPage,
+} = payments;
 
 // Set by wc-stripe-e2e-checkout-fields.php: requests carrying the cookie get
 // a required classic-API billing field ("E2E custom field").
@@ -32,11 +36,7 @@ test.describe( 'express checkout with a required classic custom checkout field',
 	} );
 
 	const addProductToCart = async ( page ) => {
-		await page.goto( '/product/beanie' );
-		await clickAddToCartButton( page );
-		await expect(
-			page.getByText( 'has been added to your cart' )
-		).toBeVisible();
+		await addProductToCartFromProductPageBySlug( page, 'beanie' );
 	};
 
 	const payWithNewLinkAccount = async ( page, isBlockPage ) => {
