@@ -30,6 +30,21 @@ class WC_Stripe_Feature_Flags_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Dev tools use this registry to offer switches, so it must exclude flags
+	 * whose compatibility methods no longer make their stored option effective.
+	 */
+	public function test_feature_flag_registry_contains_only_active_flags(): void {
+		$this->assertSame(
+			[
+				'_wcstripe_feature_agentic_commerce'           => 'no',
+				'_wcstripe_feature_expand_ocs_legacy_checkout' => 'no',
+				'_wcstripe_feature_abilities'                  => 'no',
+			],
+			WC_Stripe_Feature_Flags::get_all_feature_flags_with_defaults()
+		);
+	}
+
+	/**
 	 * Test for `is_oc_available`.
 	 *
 	 * @param bool $pmc_enabled Whether the Payment Method Configuration API is enabled.
