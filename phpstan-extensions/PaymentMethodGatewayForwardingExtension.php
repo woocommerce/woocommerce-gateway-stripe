@@ -37,7 +37,7 @@ final class PaymentMethodGatewayForwardingExtension implements MethodsClassRefle
 	}
 
 	private function find_gateway_method( ClassReflection $class_reflection, string $method_name ): ?MethodReflection {
-		if ( self::PAYMENT_METHOD_CLASS !== $class_reflection->getName() && ! $class_reflection->isSubclassOf( self::PAYMENT_METHOD_CLASS ) ) {
+		if ( ! $class_reflection->is( self::PAYMENT_METHOD_CLASS ) ) {
 			return null;
 		}
 
