@@ -1,0 +1,4 @@
+Significance: patch
+Type: dev
+
+Run every E2E test project under both a classic theme (Storefront) and a block theme (Twenty Twenty-Five) in CI, and make the shared E2E helpers theme-agnostic

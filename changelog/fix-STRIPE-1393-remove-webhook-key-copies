@@ -1,0 +1,4 @@
+Significance: patch
+Type: update
+
+Remove duplicate account API keys from webhook settings

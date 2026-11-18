@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Show country-restricted payment methods such as iDEAL on Adaptive Pricing checkout once the shopper enters a billing country they are available in
