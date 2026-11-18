@@ -51,6 +51,9 @@ final class PaymentMethodGatewayForwardingExtension implements MethodsClassRefle
 		}
 
 		$method = $gateway->getNativeMethod( $method_name );
-		return $method->isPublic() ? $method : null;
+		// Static methods are excluded because there is no __callStatic(): a static call would
+		// fatal at runtime. Instance calls to them do work through __call(), so this is
+		// deliberately stricter than the runtime.
+		return $method->isPublic() && ! $method->isStatic() ? $method : null;
 	}
 }
