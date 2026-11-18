@@ -1864,7 +1864,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 					function ( $args ) use ( $checkout_session_id ) {
 						return 'checkout.session.completed' === ( $args['type'] ?? '' )
 							&& ( $args['data']['session_id'] ?? '' ) === $checkout_session_id
-							&& 1 === (int) ( $args['data']['retry_count'] ?? 0 );
+							&& 1 === (int) ( $args['data']['charge_retry_count'] ?? 0 )
+							&& 0 === (int) ( $args['data']['retry_count'] ?? 0 );
 					}
 				)
 			);
@@ -1999,16 +2000,18 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A deferred missing-charge retry must bump the stored count, and stop once the limit is reached.
+	 * A deferred missing-charge retry must bump only the charge retry count, stop once that limit is
+	 * reached, and neither consume nor be blocked by the order lookup retry count.
 	 *
 	 * @dataProvider provide_missing_charge_deferred_retry_counts
 	 *
-	 * @param int  $retry_count    Retry count carried by the deferred job.
-	 * @param bool $expect_requeue Whether another job should be scheduled.
+	 * @param int  $retry_count        Order lookup retry count carried by the deferred job.
+	 * @param int  $charge_retry_count Missing-charge retry count carried by the deferred job.
+	 * @param bool $expect_requeue     Whether another job should be scheduled.
 	 */
-	public function test_missing_charge_deferred_retry_bumps_count_until_limit( int $retry_count, bool $expect_requeue ): void {
-		$checkout_session_id = 'cs_test_missing_charge_retry_' . $retry_count;
-		$intent_id           = 'pi_test_missing_charge_retry_' . $retry_count;
+	public function test_missing_charge_deferred_retry_bumps_count_until_limit( int $retry_count, int $charge_retry_count, bool $expect_requeue ): void {
+		$checkout_session_id = 'cs_test_missing_charge_retry_' . $retry_count . '_' . $charge_retry_count;
+		$intent_id           = 'pi_test_missing_charge_retry_' . $retry_count . '_' . $charge_retry_count;
 
 		$order = WC_Helper_Order::create_order();
 		$order->set_status( OrderStatus::PENDING );
@@ -2048,10 +2051,11 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 					),
 					'wc_stripe_deferred_webhook',
 					$this->callback(
-						function ( $args ) use ( $checkout_session_id, $retry_count ) {
+						function ( $args ) use ( $checkout_session_id, $retry_count, $charge_retry_count ) {
 							return 'checkout.session.completed' === ( $args['type'] ?? '' )
 								&& ( $args['data']['session_id'] ?? '' ) === $checkout_session_id
-								&& ( $retry_count + 1 ) === (int) ( $args['data']['retry_count'] ?? 0 );
+								&& (int) ( $args['data']['retry_count'] ?? 0 ) === $retry_count
+								&& ( $charge_retry_count + 1 ) === (int) ( $args['data']['charge_retry_count'] ?? 0 );
 						}
 					)
 				);
@@ -2090,8 +2094,9 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			$handler->process_deferred_webhook(
 				'checkout.session.completed',
 				[
-					'session_id'  => $checkout_session_id,
-					'retry_count' => $retry_count,
+					'session_id'         => $checkout_session_id,
+					'retry_count'        => $retry_count,
+					'charge_retry_count' => $charge_retry_count,
 				],
 				$notification
 			);
@@ -2109,13 +2114,16 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	/**
 	 * Data provider for test_missing_charge_deferred_retry_bumps_count_until_limit.
 	 *
-	 * @return array<string, array{0: int, 1: bool}>
+	 * @return array<string, array{0: int, 1: int, 2: bool}>
 	 */
 	public function provide_missing_charge_deferred_retry_counts(): array {
 		return [
-			'retry below the limit increments the count' => [ 1, true ],
-			'last permitted retry increments the count'  => [ 2, true ],
-			'retry limit schedules no further job'       => [ 3, false ],
+			'retry below the limit increments the count'        => [ 0, 1, true ],
+			'last permitted retry increments the count'         => [ 0, 2, true ],
+			'retry limit schedules no further job'              => [ 0, 3, false ],
+			'exhausted order lookup retries do not block'       => [ 3, 0, true ],
+			'order lookup retry count is carried, not consumed' => [ 2, 1, true ],
+			'charge limit applies regardless of order lookups'  => [ 1, 3, false ],
 		];
 	}
 
