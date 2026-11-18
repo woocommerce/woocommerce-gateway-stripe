@@ -124,7 +124,9 @@ export async function getProductIdBySlug( page, slug ) {
  *
  * The classic add-to-cart form reloads the page with a notice, while the
  * blockified Add to Cart with Options form adds in place and shows none, so
- * the Store API cart is the one signal both forms share.
+ * the Store API cart is the one signal both forms share. The quantity has to
+ * grow, since the product may already be in the cart (a persistent cart from
+ * an earlier run, or a second add in the same test) before the click.
  *
  * @param {Page}   page      Playwright page fixture.
  * @param {number} productId The product ID.
@@ -135,14 +137,18 @@ export async function addProductToCartFromProductPageById(
 	productId,
 	label = 'Add to cart'
 ) {
+	const quantityInCart = async () => {
+		const cart = await page.request.get( '/wp-json/wc/store/v1/cart' );
+		const item = ( await cart.json() ).items.find(
+			( { id } ) => id === productId
+		);
+		return item ? item.quantity : 0;
+	};
+
 	await page.goto( `/?p=${ productId }` );
+	const quantityBefore = await quantityInCart();
 	await clickAddToCartButton( page, label );
-	await expect
-		.poll( async () => {
-			const cart = await page.request.get( '/wp-json/wc/store/v1/cart' );
-			return ( await cart.json() ).items.map( ( item ) => item.id );
-		} )
-		.toContain( productId );
+	await expect.poll( quantityInCart ).toBeGreaterThan( quantityBefore );
 }
 
 /**
