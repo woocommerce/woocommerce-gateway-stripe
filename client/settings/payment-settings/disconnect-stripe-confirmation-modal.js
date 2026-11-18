@@ -99,10 +99,17 @@ const DisconnectStripeConfirmationModal = ( {
 							checked={ shouldDeauthorize }
 							disabled={ status === 'pending' }
 							onChange={ setShouldDeauthorize }
-							label={ __(
-								'Also revoke Connect API keys',
-								'woocommerce-gateway-stripe'
-							) }
+							label={
+								mode === 'test'
+									? __(
+											'Also revoke test Connect API keys',
+											'woocommerce-gateway-stripe'
+									  )
+									: __(
+											'Also revoke live Connect API keys',
+											'woocommerce-gateway-stripe'
+									  )
+							}
 							help={ __(
 								'Permanently revoke the API keys issued for this Stripe account through Stripe Connect. Any other stores, including staging or test copies of this store, and other tools using keys from your WooCommerce connection to this Stripe account will also stop working, including taking payments, until you re-authorize them.',
 								'woocommerce-gateway-stripe'

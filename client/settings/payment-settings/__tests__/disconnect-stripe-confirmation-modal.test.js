@@ -139,9 +139,7 @@ describe( 'DisconnectStripeConfirmationModal', () => {
 				/>
 			);
 
-			expect(
-				screen.queryByLabelText( 'Also revoke Connect API keys' )
-			).not.toBeInTheDocument();
+			expect( screen.queryByRole( 'checkbox' ) ).not.toBeInTheDocument();
 
 			await userEvent.click(
 				screen.getByRole( 'button', { name: 'Disconnect' } )
@@ -171,7 +169,7 @@ describe( 'DisconnectStripeConfirmationModal', () => {
 		);
 
 		expect(
-			screen.getByLabelText( 'Also revoke Connect API keys' )
+			screen.getByLabelText( 'Also revoke live Connect API keys' )
 		).not.toBeChecked();
 
 		await userEvent.click(
@@ -209,7 +207,11 @@ describe( 'DisconnectStripeConfirmationModal', () => {
 			);
 
 			await userEvent.click(
-				screen.getByLabelText( 'Also revoke Connect API keys' )
+				screen.getByLabelText(
+					testmode
+						? 'Also revoke test Connect API keys'
+						: 'Also revoke live Connect API keys'
+				)
 			);
 
 			await userEvent.click(
