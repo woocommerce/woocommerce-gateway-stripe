@@ -1,0 +1,4 @@
+Significance: patch
+Type: dev
+
+Update follow-redirects in the E2E test package to 1.16.3 to address a security advisory

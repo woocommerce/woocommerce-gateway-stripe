@@ -1130,7 +1130,7 @@ class WC_Stripe_Intent_Controller {
 	/**
 	 * A completed automatic refund must not be undone by a delayed browser callback.
 	 *
-	 * @since 11.2.0
+	 * @since 11.1.2
 	 * @param WC_Order $order The order being confirmed.
 	 * @throws WC_Stripe_Exception When payment processing has been closed.
 	 */
@@ -1897,9 +1897,9 @@ class WC_Stripe_Intent_Controller {
 			// Manually update the payment method for the subscription now that we have confirmed the payment method.
 			WC_Subscriptions_Change_Payment_Gateway::update_payment_method( $subscription, $token->get_gateway_id() );
 
-			// Set the new Stripe payment method ID and customer ID on the subscription.
-			$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
-			$gateway->set_customer_id_for_subscription( $subscription, $customer->get_id() );
+			// Match the customer the setup intent was created on via get_customer_id_for_order() (subscription first,
+			// then user), which owns the new card.
+			$gateway->set_customer_id_for_subscription( $subscription, (string) $gateway->get_stripe_customer_id( $subscription ) );
 			$gateway->set_payment_method_id_for_subscription( $subscription, $token->get_token() );
 
 			// Update the saved token details to capture the current details for display purposes.

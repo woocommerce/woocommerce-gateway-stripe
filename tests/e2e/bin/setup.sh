@@ -20,6 +20,9 @@ DEBUG=false
 ADMIN_USER=admin
 ADMIN_PASSWORD=admin
 
+# WordPress.org slug of the theme to install and activate.
+WP_THEME=${WP_THEME:-storefront}
+
 DEPS_DIR="$E2E_ROOT/deps"
 
 cd "$CWD"
@@ -205,8 +208,8 @@ redirect_output cli wp option set woocommerce_product_type "both"
 redirect_output cli wp option set woocommerce_allow_tracking "no"
 redirect_output cli wp option set woocommerce_coming_soon "no"
 
-echo " - Installing Storefront theme"
-redirect_output cli wp theme install storefront --activate
+echo " - Installing $WP_THEME theme"
+redirect_output cli wp theme install "$WP_THEME" --activate
 
 redirect_output cli wp --user=${ADMIN_USER} wc tool run install_pages
 
@@ -218,10 +221,10 @@ redirect_output cli wp option update --format=json woocommerce_flat_rate_1_setti
 
 echo " - Creating Cart and Checkout shortcode pages"
 if ! cli wp post list --post_type=page --field=post_name | grep -q 'cart-shortcode'; then
-	redirect_output cli wp post create --post_type=page --post_title='Cart Shortcode' --post_name='cart-shortcode' --post_status=publish --page_template='template-fullwidth.php' --post_content='<!-- wp:shortcode -->[woocommerce_cart]<!-- /wp:shortcode -->'
+	redirect_output cli wp post create --post_type=page --post_title='Cart Shortcode' --post_name='cart-shortcode' --post_status=publish --post_content='<!-- wp:shortcode -->[woocommerce_cart]<!-- /wp:shortcode -->'
 fi
 if ! cli wp post list --post_type=page --field=post_name | grep -q 'checkout-shortcode'; then
-	redirect_output cli wp post create --post_type=page --post_title='Checkout Shortcode' --post_name='checkout-shortcode' --post_status=publish --page_template='template-fullwidth.php' --post_content='<!-- wp:shortcode -->[woocommerce_checkout]<!-- /wp:shortcode -->'
+	redirect_output cli wp post create --post_type=page --post_title='Checkout Shortcode' --post_name='checkout-shortcode' --post_status=publish --post_content='<!-- wp:shortcode -->[woocommerce_checkout]<!-- /wp:shortcode -->'
 fi
 
 echo " - Importing sample products"
@@ -232,7 +235,15 @@ echo " - Activating plugin"
 redirect_output cli wp plugin activate woocommerce-gateway-stripe
 
 echo " - Updating WooCommerce Gateway Stripe settings"
-redirect_output cli wp option update woocommerce_stripe_settings --format=json "{\"enabled\":\"yes\",\"title\":\"Credit Card (Stripe)\",\"description\":\"Pay with your credit card via Stripe.\",\"api_credentials\":\"\",\"testmode\":\"yes\",\"test_publishable_key\":\"${STRIPE_PUB_KEY}\",\"test_secret_key\":\"${STRIPE_SECRET_KEY}\",\"publishable_key\":\"\",\"secret_key\":\"\",\"webhook\":\"\",\"test_webhook_secret\":\"\",\"webhook_secret\":\"\",\"inline_cc_form\":\"no\",\"statement_descriptor\":\"\",\"short_statement_descriptor\":\"\",\"capture\":\"yes\",\"payment_request\":\"yes\",\"payment_request_button_type\":\"buy\",\"payment_request_button_theme\":\"dark\",\"payment_request_button_locations\":[\"product\",\"cart\",\"checkout\"],\"payment_request_button_size\":\"default\",\"saved_cards\":\"yes\",\"logging\":\"no\",\"upe_checkout_experience_enabled\":\"yes\",\"test_connection_type\":\"connect\"}"
+# Writing these settings on a fresh site defaults the enabled methods to card
+# and Link, and the first plugin load then migrates that list into the Stripe
+# account's payment method configuration. The Link-off project needs its
+# account left as configured, so it marks the migration done up front.
+PMC_SETTINGS=""
+if [[ "$E2E_PROJECT" == "optimized-checkout-link-off" ]]; then
+	PMC_SETTINGS='"pmc_enabled":"yes",'
+fi
+redirect_output cli wp option update woocommerce_stripe_settings --format=json "{${PMC_SETTINGS}\"enabled\":\"yes\",\"title\":\"Credit Card (Stripe)\",\"description\":\"Pay with your credit card via Stripe.\",\"api_credentials\":\"\",\"testmode\":\"yes\",\"test_publishable_key\":\"${STRIPE_PUB_KEY}\",\"test_secret_key\":\"${STRIPE_SECRET_KEY}\",\"publishable_key\":\"\",\"secret_key\":\"\",\"webhook\":\"\",\"test_webhook_secret\":\"\",\"webhook_secret\":\"\",\"inline_cc_form\":\"no\",\"statement_descriptor\":\"\",\"short_statement_descriptor\":\"\",\"capture\":\"yes\",\"payment_request\":\"yes\",\"payment_request_button_type\":\"buy\",\"payment_request_button_theme\":\"dark\",\"payment_request_button_locations\":[\"product\",\"cart\",\"checkout\"],\"payment_request_button_size\":\"default\",\"saved_cards\":\"yes\",\"logging\":\"no\",\"upe_checkout_experience_enabled\":\"yes\",\"test_connection_type\":\"connect\"}"
 
 echo " - Enabling the ACH feature flag"
 redirect_output cli wp option update _wcstripe_feature_lpm_ach 'yes'

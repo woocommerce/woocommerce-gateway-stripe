@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Show express checkout buttons for variable products on the Add to Cart + Options block, where they never appeared

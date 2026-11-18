@@ -6,7 +6,7 @@
 		"test": "npx playwright test"
 	},
 	"dependencies": {
-		"@playwright/test": "^1.57.0",
+		"@playwright/test": "^1.65.0",
 		"@woocommerce/woocommerce-rest-api": "^1.0.2",
 		"allure-playwright": "^2.0.0-beta.20",
 		"config": "^3.3.8",
