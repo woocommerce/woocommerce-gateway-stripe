@@ -292,4 +292,76 @@ class WC_Stripe_Account {
 		$account = $this->get_cached_account_data();
 		return $account['country'] ?? 'US';
 	}
+
+	/**
+	 * Compatibility adapter for existing account-level webhook status callers.
+	 *
+	 * @deprecated 11.3.0 Use WC_Stripe_Webhook_Settings::is_webhook_enabled() instead.
+	 * @return bool
+	 */
+	public function is_webhook_enabled() {
+		_deprecated_function( __METHOD__, '11.3.0', 'WC_Stripe_Webhook_Settings::is_webhook_enabled()' );
+
+		return WC_Stripe::get_instance()->webhook_settings->is_webhook_enabled();
+	}
+
+	/**
+	 * Keeps legacy notice lookups available without requiring a service instance.
+	 *
+	 * @deprecated 11.3.0 Use WC_Stripe_Webhook_Settings::get_webhook_missing_notice_option() instead.
+	 */
+	public static function get_webhook_missing_notice_option( string $mode ): string {
+		_deprecated_function( __METHOD__, '11.3.0', 'WC_Stripe_Webhook_Settings::get_webhook_missing_notice_option()' );
+
+		return WC_Stripe_Webhook_Settings::get_webhook_missing_notice_option( $mode );
+	}
+
+	/**
+	 * Keeps legacy notice lookups available without requiring a service instance.
+	 *
+	 * @deprecated 11.3.0 Use WC_Stripe_Webhook_Settings::get_webhook_manual_secret_notice_option() instead.
+	 */
+	public static function get_webhook_manual_secret_notice_option( string $mode ): string {
+		_deprecated_function( __METHOD__, '11.3.0', 'WC_Stripe_Webhook_Settings::get_webhook_manual_secret_notice_option()' );
+
+		return WC_Stripe_Webhook_Settings::get_webhook_manual_secret_notice_option( $mode );
+	}
+
+	/**
+	 * Compatibility adapter for existing account-level webhook setup callers.
+	 *
+	 * @deprecated 11.3.0 Use WC_Stripe_Webhook_Settings::maybe_autoconfigure_webhooks() instead.
+	 * @param string $mode Either 'live' or 'test'.
+	 * @return stdClass
+	 */
+	public function configure_webhooks( $mode = 'live' ) {
+		_deprecated_function( __METHOD__, '11.3.0', 'WC_Stripe_Webhook_Settings::maybe_autoconfigure_webhooks()' );
+
+		return WC_Stripe::get_instance()->webhook_settings->maybe_autoconfigure_webhooks(
+			'live' === $mode ? 'live' : 'test',
+			true
+		);
+	}
+
+	/**
+	 * A failure in one mode must not prevent legacy callers from updating the other.
+	 *
+	 * @deprecated 11.3.0 Use WC_Stripe_Webhook_Settings::maybe_autoconfigure_webhooks() instead.
+	 * @param string $update_type Retained for compatibility with existing callers.
+	 * @return void
+	 */
+	public function maybe_reconfigure_webhooks_on_update( string $update_type = 'plugin' ) {
+		_deprecated_function( __METHOD__, '11.3.0', 'WC_Stripe_Webhook_Settings::maybe_autoconfigure_webhooks()' );
+
+		foreach ( [ 'live', 'test' ] as $mode ) {
+			try {
+				WC_Stripe::get_instance()->webhook_settings->maybe_autoconfigure_webhooks( $mode );
+			} catch ( Exception $e ) {
+				WC_Stripe_Logger::error(
+					"Failed to check/reconfigure webhooks for {$mode} mode",
+					[ 'error_message' => $e->getMessage() ]
+				);
+			}
+		}
+	}
 }

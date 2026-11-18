@@ -20,8 +20,12 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	 */
 	private $mock_connect;
 
+	/** @var WC_Stripe_Webhook_Settings */
+	private $original_webhook_settings;
+
 	public function set_up() {
 		parent::set_up();
+		$this->original_webhook_settings = WC_Stripe::get_instance()->webhook_settings;
 
 		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['enabled']              = 'yes';
@@ -45,6 +49,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	public function tear_down() {
+		WC_Stripe::get_instance()->webhook_settings = $this->original_webhook_settings;
 		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'test' );
 		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, 'live' );
 		$this->clear_webhook_status_cache();
@@ -362,6 +367,86 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		// Assert that the account data is as expected.
 		$this->assertSame( $account_data, $result );
 		$this->assertSame( $account_data, WC_Stripe_Database_Cache::get_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $mode ) );
+	}
+
+	/** @dataProvider provide_deprecated_webhook_status_results */
+	public function test_deprecated_webhook_status( $enabled ) {
+		$this->setExpectedDeprecated( 'WC_Stripe_Account::is_webhook_enabled' );
+		$webhook_settings                           = $this->createMock( WC_Stripe_Webhook_Settings::class );
+		WC_Stripe::get_instance()->webhook_settings = $webhook_settings;
+		$webhook_settings->expects( $this->once() )->method( 'is_webhook_enabled' )
+			->with( null )->willReturn( $enabled );
+
+		$this->assertSame( $enabled, $this->account->is_webhook_enabled() );
+	}
+
+	public function provide_deprecated_webhook_status_results() {
+		return [ [ true ], [ false ] ];
+	}
+
+	/** @dataProvider provide_deprecated_webhook_notice_options */
+	public function test_deprecated_webhook_notice_options( $method, $mode, $expected ) {
+		$this->setExpectedDeprecated( 'WC_Stripe_Account::' . $method );
+
+		$this->assertSame( $expected, WC_Stripe_Account::$method( $mode ) );
+	}
+
+	public function provide_deprecated_webhook_notice_options() {
+		return [
+			[ 'get_webhook_missing_notice_option', 'live', 'wc_stripe_show_webhook_missing_notice_live' ],
+			[ 'get_webhook_missing_notice_option', 'test', 'wc_stripe_show_webhook_missing_notice_test' ],
+			[ 'get_webhook_missing_notice_option', 'other', 'wc_stripe_show_webhook_missing_notice_test' ],
+			[ 'get_webhook_manual_secret_notice_option', 'live', 'wc_stripe_show_webhook_manual_secret_notice_live' ],
+			[ 'get_webhook_manual_secret_notice_option', 'test', 'wc_stripe_show_webhook_manual_secret_notice_test' ],
+			[ 'get_webhook_manual_secret_notice_option', 'other', 'wc_stripe_show_webhook_manual_secret_notice_test' ],
+		];
+	}
+
+	/** @dataProvider provide_deprecated_webhook_configuration_modes */
+	public function test_deprecated_webhook_configuration( $arguments, $expected_mode ) {
+		$this->setExpectedDeprecated( 'WC_Stripe_Account::configure_webhooks' );
+		$endpoint                                   = (object) [
+			'id'     => 'we_new',
+			'secret' => 'whsec_new',
+		];
+		$webhook_settings                           = $this->createMock( WC_Stripe_Webhook_Settings::class );
+		WC_Stripe::get_instance()->webhook_settings = $webhook_settings;
+		$webhook_settings->expects( $this->once() )->method( 'maybe_autoconfigure_webhooks' )
+			->with( $expected_mode, true )->willReturn( $endpoint );
+
+		$this->assertSame( $endpoint, $this->account->configure_webhooks( ...$arguments ) );
+	}
+
+	public function provide_deprecated_webhook_configuration_modes() {
+		return [
+			'default' => [ [], 'live' ],
+			'live'    => [ [ 'live' ], 'live' ],
+			'test'    => [ [ 'test' ], 'test' ],
+			'other'   => [ [ 'other' ], 'test' ],
+		];
+	}
+
+	/** @dataProvider provide_deprecated_webhook_update_failures */
+	public function test_deprecated_webhook_update( $live_fails ) {
+		$this->setExpectedDeprecated( 'WC_Stripe_Account::maybe_reconfigure_webhooks_on_update' );
+		$webhook_settings                           = $this->createMock( WC_Stripe_Webhook_Settings::class );
+		WC_Stripe::get_instance()->webhook_settings = $webhook_settings;
+		$webhook_settings->expects( $this->exactly( 2 ) )->method( 'maybe_autoconfigure_webhooks' )
+			->withConsecutive( [ 'live', false ], [ 'test', false ] )
+			->willReturnCallback(
+				static function ( $mode ) use ( $live_fails ) {
+					if ( $live_fails && 'live' === $mode ) {
+						throw new Exception( 'Live webhook configuration failed.' );
+					}
+					return null;
+				}
+			);
+
+		$this->assertNull( $this->account->maybe_reconfigure_webhooks_on_update( 'settings' ) );
+	}
+
+	public function provide_deprecated_webhook_update_failures() {
+		return [ [ false ], [ true ] ];
 	}
 
 	private function clear_webhook_status_cache() {
