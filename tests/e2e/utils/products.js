@@ -1,13 +1,21 @@
+import { randomUUID } from 'crypto';
 import config from 'config';
 
 /**
  * Get pre-order product data.
  *
+ * The name is unique per call because the Blocks and shortcode pre-order specs
+ * create their products in parallel, and same-named products created at the
+ * same moment can end up sharing a slug. `?p=<id>` then redirects to the other
+ * spec's product page, so the wrong product lands in the cart.
+ *
  * @returns {Object} Pre-order product data
  */
 export function preOrderData() {
+	const product = config.get( 'products.pre-order' );
 	return {
-		...config.get( 'products.pre-order' ),
+		...product,
+		name: `${ product.name } ${ randomUUID() }`,
 		regular_price: '19.99',
 		meta_data: [
 			{
