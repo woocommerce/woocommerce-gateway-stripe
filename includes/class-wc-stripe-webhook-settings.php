@@ -139,6 +139,7 @@ class WC_Stripe_Webhook_Settings {
 			$webhook_data  = is_array( $settings[ $prefix . 'webhook_data' ] ?? null ) ? $settings[ $prefix . 'webhook_data' ] : [];
 			$webhook_id    = $webhook_data['id'] ?? '';
 			$stored_secret = $settings[ $prefix . 'webhook_secret' ] ?? '';
+			$reason        = $force ? 'forced configuration' : 'missing endpoint';
 			if ( ! $force && $webhook_id ) {
 				$webhook = $this->stripe_api::request( [], 'webhook_endpoints/' . $webhook_id, 'GET' );
 				if ( isset( $webhook->error ) ) {
@@ -159,13 +160,17 @@ class WC_Stripe_Webhook_Settings {
 					$existing_events = $webhook->enabled_events;
 					sort( $desired_events );
 					sort( $existing_events );
-					if (
-						WC_Stripe_Helper::get_webhook_url() === $webhook->url
-						&& $desired_events === $existing_events
-						&& self::get_webhooks_api_version() === $webhook->api_version
-						&& 'enabled' === $webhook->status
-						&& ! empty( $settings[ $prefix . 'webhook_secret' ] )
-					) {
+					if ( WC_Stripe_Helper::get_webhook_url() !== $webhook->url ) {
+						$reason = 'URL mismatch';
+					} elseif ( $desired_events !== $existing_events ) {
+						$reason = 'event subscriptions differ';
+					} elseif ( self::get_webhooks_api_version() !== $webhook->api_version ) {
+						$reason = 'API version mismatch';
+					} elseif ( 'enabled' !== $webhook->status ) {
+						$reason = 'endpoint disabled';
+					} elseif ( empty( $settings[ $prefix . 'webhook_secret' ] ) ) {
+						$reason = 'missing signing secret';
+					} else {
 						WC_Stripe_Database_Cache::set_with_mode( self::WEBHOOK_STATUS_CACHE_KEY, 'enabled', 2 * HOUR_IN_SECONDS, $mode );
 						return null;
 					}
@@ -193,7 +198,17 @@ class WC_Stripe_Webhook_Settings {
 				}
 			}
 
-			return $this->configure_webhooks( $mode, $webhook_id );
+			$response = $this->configure_webhooks( $mode, $webhook_id );
+			WC_Stripe_Logger::info(
+				'Configured webhook endpoint.',
+				[
+					'mode'                => $mode,
+					'reason'              => $reason,
+					'previous_webhook_id' => $webhook_data['id'] ?? '',
+					'new_webhook_id'      => $response->id,
+				]
+			);
+			return $response;
 		} finally {
 			WC_Stripe_API::set_secret_key( $previous_secret );
 		}
