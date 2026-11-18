@@ -539,8 +539,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$upe_params['scriptDependencies'] = $dependencies;
 
 		// The wallet script can run before the checkout script, so it needs the same settings.
-		if ( wp_script_is( 'wc_stripe_express_checkout', 'enqueued' ) ) {
-			wp_localize_script( 'wc_stripe_express_checkout', 'wc_stripe_upe_params', $upe_params );
+		$express_checkout_script_handle = WC_Stripe_Express_Checkout_Element::get_express_checkout_script_handle();
+		if ( wp_script_is( $express_checkout_script_handle, 'enqueued' ) ) {
+			wp_localize_script( $express_checkout_script_handle, 'wc_stripe_upe_params', $upe_params );
 		}
 
 		wp_localize_script(
