@@ -437,6 +437,57 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		);
 	} );
 
+	// Complete red selection on the Add to Cart + Options block: no selects,
+	// the attribute value lives in a hidden input bound to the block's state.
+	const blockifiedProductForm = `
+		<div id="wc-stripe-express-checkout-element"></div>
+		<form class="wp-block-add-to-cart-with-options wc-block-add-to-cart-with-options">
+			<input type="hidden" name="attribute_color" value="red" />
+			<div class="quantity"><input type="number" class="qty" name="quantity" value="1" /></div>
+			<button type="submit" class="single_add_to_cart_button" value="1048">Add</button>
+			<div class="single_variation_wrap">
+				<input type="hidden" name="product_id" value="1048" />
+				<input type="hidden" name="variation_id" value="123" />
+			</div>
+		</form>`;
+
+	it.each( [
+		[ 'classic', null, 'blue' ],
+		[ 'blockified', blockifiedProductForm, 'red' ],
+	] )(
+		'sends the selected attributes to add-to-cart on the %s template',
+		async ( _label, markup, color ) => {
+			global.wc_stripe_express_checkout_params = productParams();
+			if ( markup ) {
+				document.body.innerHTML = markup;
+			}
+			mockAddToCart.mockResolvedValue( { items_count: 1 } );
+			mockEmptyCartLegacy.mockResolvedValue( {} );
+
+			const { handlers } = stubStripeButton();
+			loadEntrypoint();
+
+			const event = {
+				resolve: jest.fn(),
+				expressPaymentType: 'googlePay',
+			};
+			await handlers.click( event );
+
+			// Without the variation the Store API rejects the parent id with
+			// "Missing attributes for variable product".
+			expect( mockAddToCart ).toHaveBeenCalledWith(
+				expect.objectContaining( {
+					id: '1048',
+					qty: '1',
+					variation: [
+						{ attribute: 'attribute_color', value: color },
+					],
+				} )
+			);
+			expect( event.resolve ).toHaveBeenCalledTimes( 1 );
+		}
+	);
+
 	it.each( [
 		[ 'null', null ],
 		[ 'a primitive', 'oops' ],
