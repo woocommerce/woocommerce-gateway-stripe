@@ -437,7 +437,6 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		WC_Rate_Limiter::set_rate_limit( $rate_limit_key, 60 );
 
 		try {
-			WC_Stripe_API::set_secret_key( $secret_key );
 			$response = WC_Stripe::get_instance()->webhook_settings->maybe_autoconfigure_webhooks( $environment, true );
 		} catch ( Exception $e ) {
 			return new WP_REST_Response( [ 'message' => $e->getMessage() ], 400 );

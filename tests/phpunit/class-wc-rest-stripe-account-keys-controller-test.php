@@ -605,28 +605,39 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$settings['test_secret_key'] = 'sk_test_current';
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 		WC_Stripe_API::set_secret_key( '' );
-		$used_key                                   = null;
-		$account                                    = $this->createMock( WC_Stripe_Account::class );
-		$webhook_settings                           = $this->createMock( WC_Stripe_Webhook_Settings::class );
-		WC_Stripe::get_instance()->webhook_settings = $webhook_settings;
-		$webhook_settings->expects( $this->once() )->method( 'maybe_autoconfigure_webhooks' )->with( $mode, true )
-			->willReturnCallback(
-				function () use ( &$used_key ) {
-					$used_key = WC_Stripe_API::get_secret_key();
-					return (object) [
-						'url'    => 'https://example.com',
-						'secret' => 'whsec_new',
-					];
-				}
-			);
+		WC_Stripe::get_instance()->webhook_settings = new WC_Stripe_Webhook_Settings( WC_Stripe_API::class );
+		$requests                                   = [];
+		$filter                                     = function ( $preempt, $args, $url ) use ( &$requests ) {
+			if ( 'https://api.stripe.com/v1/webhook_endpoints' !== $url ) {
+				return $preempt;
+			}
+			$requests[] = [ $args['method'], $args['headers']['Authorization'] ];
+			$body       = 'POST' === $args['method']
+				? [
+					'id'     => 'we_new',
+					'url'    => WC_Stripe_Helper::get_webhook_url(),
+					'secret' => 'whsec_new',
+				]
+				: [ 'data' => [] ];
+			return [
+				'response' => [ 'code' => 200 ],
+				'body'     => wp_json_encode( $body ),
+			];
+		};
+
 		$request = new WP_REST_Request( 'POST', self::ROUTE . '/webhook' );
 		$request->set_param( 'live_mode', 'live' === $mode );
-		$controller = new WC_REST_Stripe_Account_Keys_Controller( $account );
-		$response   = $controller->configure_webhooks( $request );
-		$this->assertSame( 200, $response->get_status() );
-		$this->assertSame( 'sk_' . $mode . '_current', $used_key );
-		$this->assertSame( 'live' === $mode ? 'sk_test_current' : 'sk_live_current', WC_Stripe_API::get_secret_key() );
-		WC_Stripe_API::set_secret_key( '' );
+		add_filter( 'pre_http_request', $filter, 10, 3 );
+		try {
+			$response = $this->controller->configure_webhooks( $request );
+			$this->assertSame( 200, $response->get_status() );
+			$authorization = 'Basic ' . base64_encode( 'sk_' . $mode . '_current:' );
+			$this->assertSame( [ [ 'POST', $authorization ], [ 'GET', $authorization ] ], $requests );
+			$this->assertSame( 'live' === $mode ? 'sk_test_current' : 'sk_live_current', WC_Stripe_API::get_secret_key() );
+		} finally {
+			remove_filter( 'pre_http_request', $filter );
+			WC_Stripe_API::set_secret_key( '' );
+		}
 	}
 
 	public function provide_webhook_setup_modes() {

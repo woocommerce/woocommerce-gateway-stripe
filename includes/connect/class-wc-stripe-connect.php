@@ -423,7 +423,6 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			update_option( 'wc_stripe_test_oauth_failed_attempts', 0 );
 			update_option( 'wc_stripe_test_oauth_last_failed_at', '' );
 
-			WC_Stripe_API::set_secret_key( $test_secret_key );
 			try {
 				WC_Stripe::get_instance()->webhook_settings->maybe_autoconfigure_webhooks( 'test', true );
 			} catch ( Exception $e ) {
