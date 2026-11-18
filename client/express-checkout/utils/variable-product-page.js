@@ -35,6 +35,17 @@ export const hasVariationSelectionUi = () =>
 		document.querySelector( '.single_variation_wrap, .variations_form' )
 	);
 
+const BLOCKIFIED_VARIATION_SELECTOR =
+	'.wc-block-add-to-cart-with-options [class*="variation-selector"]';
+
+/**
+ * Whether the page renders the blockified template's variation selector.
+ *
+ * @return {boolean} True on a variable product using the Add to Cart + Options block.
+ */
+export const hasBlockifiedVariationSelector = () =>
+	Boolean( document.querySelector( BLOCKIFIED_VARIATION_SELECTOR ) );
+
 /**
  * Reads the currently selected variation attributes.
  *
@@ -117,7 +128,7 @@ export const observeBlockifiedVariationSelection = ( onChange ) => {
 	// buttons, which fires neither click nor change.
 	const gestureEvents = [ 'click', 'change', 'keyup' ];
 	const selectors = document.querySelectorAll(
-		'.wc-block-add-to-cart-with-options [class*="variation-selector"]'
+		BLOCKIFIED_VARIATION_SELECTOR
 	);
 	if ( ! selectors.length ) {
 		return null;

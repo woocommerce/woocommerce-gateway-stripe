@@ -1,6 +1,7 @@
 import {
 	getSelectedVariationAttributes,
 	getSelectedVariationId,
+	hasBlockifiedVariationSelector,
 	hasVariationSelectionUi,
 	observeBlockifiedVariationSelection,
 } from 'wcstripe/express-checkout/utils/variable-product-page';
@@ -163,6 +164,22 @@ describe( 'ECE product page DOM readers', () => {
 				</div>
 			</form>
 		`;
+
+		it.each( [
+			[ 'a blockified variable product', selectorMarkup, true ],
+			[ 'a classic variable product', classicMarkup( {} ), false ],
+			[
+				'a blockified simple product',
+				'<form class="wc-block-add-to-cart-with-options"><div class="quantity"><input class="qty" /></div></form>',
+				false,
+			],
+		] )(
+			'reports whether the blockified selector is present on %s',
+			( _label, markup, expected ) => {
+				document.body.innerHTML = markup;
+				expect( hasBlockifiedVariationSelector() ).toBe( expected );
+			}
+		);
 
 		it( 'returns null when the page has no variation selector', () => {
 			document.body.innerHTML = classicMarkup( {} );
