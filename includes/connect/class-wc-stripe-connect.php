@@ -13,7 +13,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		/**
 		 * Stripe connect api.
 		 *
-		 * @var object $api
+		 * @var WC_Stripe_Connect_API $api
 		 */
 		private $api;
 
@@ -92,7 +92,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * @param string $type  Optional. The type of the connection. 'connect' or 'app'. Default is 'connect'.
 		 * @param string $mode  Optional. The mode to connect to. 'live' or 'test'. Default is 'live'.
 		 *
-		 * @return string|WP_Error
+		 * @return stdClass|WP_Error
 		 */
 		public function connect_oauth( $state, $code, $type = 'connect', $mode = 'live' ) {
 			// The state parameter is used to protect against CSRF.
@@ -138,7 +138,13 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return $response;
 			}
 
-			return $this->save_stripe_keys( $response, $type, $mode );
+			$response = $this->save_stripe_keys( $response, $type, $mode );
+			// Token refresh also saves keys, so only an explicit reconnection dismisses this warning.
+			if ( ! is_wp_error( $response ) ) {
+				delete_option( 'wc_stripe_oauth_deauthorization_failed_modes' );
+			}
+
+			return $response;
 		}
 
 		/**
@@ -245,11 +251,11 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		/**
 		 * Saves Stripe keys after OAuth response
 		 *
-		 * @param stdObject $result OAuth's response result.
-		 * @param string    $type   Optional. The type of the connection. 'connect' or 'app'. Default is 'connect'.
-		 * @param string    $mode   Optional. The mode to connect to. 'live' or 'test'. Default is 'live'.
+		 * @param stdClass $result OAuth's response result.
+		 * @param string   $type   Optional. The type of the connection. 'connect' or 'app'. Default is 'connect'.
+		 * @param string   $mode   Optional. The mode to connect to. 'live' or 'test'. Default is 'live'.
 		 *
-		 * @return stdObject|WP_Error OAuth's response result or WP_Error.
+		 * @return stdClass|WP_Error OAuth's response result or WP_Error.
 		 */
 		private function save_stripe_keys( $result, $type = 'connect', $mode = 'live' ) {
 			$is_verbose_debug_mode_enabled = WC_Stripe_Helper::is_verbose_debug_mode_enabled();
@@ -540,6 +546,47 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$key     = 'test' === $mode ? 'test_connection_type' : 'connection_type';
 
 			return isset( $options[ $key ] ) ? $options[ $key ] : '';
+		}
+
+		/**
+		 * Deauthorizes the current mode's Connect OAuth connection via the WooCommerce
+		 * Connect Server, revoking the platform-issued API keys on Stripe's side.
+		 *
+		 * Only 'connect' type connections are revocable.
+		 *
+		 * Local disconnection can proceed on failure, but the caller must surface any
+		 * unconfirmed revocations before the credentials needed to retry are cleared.
+		 *
+		 * @since x.x.x
+		 *
+		 * @return array<string, bool> Whether revocation was confirmed for the current Connect mode.
+		 */
+		public function deauthorize_oauth_connections() {
+			$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
+			if ( 'connect' !== $this->get_connection_type( $mode ) ) {
+				return [];
+			}
+
+			$settings   = WC_Stripe_Helper::get_stripe_settings();
+			$prefix     = 'test' === $mode ? 'test_' : '';
+			$secret_key = $settings[ $prefix . 'secret_key' ] ?? '';
+			$account    = WC_Stripe::get_instance()->account->get_cached_account_data( $mode );
+			$account_id = $account['id'] ?? '';
+
+			if ( ! $secret_key || ! $account_id ) {
+				WC_Stripe_Logger::error( "OAuth: Unable to deauthorize the {$mode} connection; the " . ( $secret_key ? 'account ID' : 'secret key' ) . ' is unavailable.' );
+				return [ $mode => false ];
+			}
+
+			$response = $this->api->deauthorize_account( $account_id, $secret_key );
+
+			if ( is_wp_error( $response ) ) {
+				WC_Stripe_Logger::error( "OAuth: Failed to deauthorize the {$mode} connection for {$account_id}: " . $response->get_error_message() );
+			} else {
+				WC_Stripe_Logger::info( "OAuth: Deauthorized the {$mode} connection for {$account_id}." );
+			}
+
+			return [ $mode => ! is_wp_error( $response ) ];
 		}
 
 		/**

@@ -14,6 +14,13 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	private $connect;
 
 	/**
+	 * The account instance registered on the plugin before this test replaced it.
+	 *
+	 * @var WC_Stripe_Account
+	 */
+	private $previous_account;
+
+	/**
 	 * REQUEST_URI as the test bootstrap left it, restored in tear_down().
 	 *
 	 * @var string|null
@@ -25,6 +32,8 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function set_up() {
 		parent::set_up();
+
+		$this->previous_account = WC_Stripe::get_instance()->account;
 
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Snapshot restored verbatim in tear_down(); unslashing or sanitizing here would restore a different value than the bootstrap set.
 		$this->original_request_uri = $_SERVER['REQUEST_URI'] ?? null;
@@ -45,6 +54,8 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @inheritDoc
 	 */
 	public function tear_down() {
+		WC_Stripe::get_instance()->account = $this->previous_account;
+
 		// PHPUnit runs with backupGlobals disabled, so a REQUEST_URI left pointing at
 		// wp-admin leaks into every later test in the process: wp_validate_redirect()
 		// resolves schemeless relative redirects against dirname( REQUEST_URI ).
@@ -901,6 +912,244 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expect_clear_cache' => 0,
 			],
 		];
+	}
+
+	/**
+	 * A failed reconnect must not dismiss an earlier revocation warning, even when keys were saved.
+	 *
+	 * @param string $type    OAuth connection type.
+	 * @param string $mode    Connection mode.
+	 * @param string $outcome Key exchange or setup outcome.
+	 * @dataProvider provide_reconnection_revocation_warning_outcomes
+	 */
+	public function test_reconnection_clears_revocation_warning_only_on_success( $type, $mode, $outcome ) {
+		$account = $this->mock_stripe_account();
+		if ( 'webhook_error' === $outcome ) {
+			$account->method( 'configure_webhooks' )->willThrowException( new Exception( 'Webhook setup failed' ) );
+		}
+
+		$keys = [
+			'publishableKey' => 'pk_' . $mode . '_reconnected',
+			'secretKey'      => 'sk_' . $mode . '_reconnected',
+			'refreshToken'   => 'rt_' . $mode . '_reconnected',
+		];
+		if ( 'invalid_credentials' === $outcome ) {
+			unset( $keys['secretKey'] );
+		}
+		$exchange_result = 'exchange_error' === $outcome ? new WP_Error( 'oauth_failed', 'Exchange failed' ) : (object) $keys;
+		$api_mock        = $this->getMockBuilder( WC_Stripe_Connect_API::class )->disableOriginalConstructor()->getMock();
+		$api_mock->expects( $this->once() )->method( 'get_stripe_oauth_keys' )->with( 'code_123', $type, $mode )->willReturn( $exchange_result );
+		$connect = new WC_Stripe_Connect( $api_mock );
+
+		WC_Stripe_Database_Cache::set_with_mode( 'oauth_connect_state', 'state_123', HOUR_IN_SECONDS, $mode );
+		update_option( 'wc_stripe_oauth_deauthorization_failed_modes', [ 'live', 'test' ] );
+		try {
+			$result = $connect->connect_oauth( 'state_123', 'code_123', $type, $mode );
+
+			$this->assertSame( 'success' !== $outcome, is_wp_error( $result ) );
+			$this->assertSame( 'success' === $outcome ? false : [ 'live', 'test' ], get_option( 'wc_stripe_oauth_deauthorization_failed_modes' ) );
+		} finally {
+			delete_option( 'wc_stripe_oauth_deauthorization_failed_modes' );
+		}
+	}
+
+	public function provide_reconnection_revocation_warning_outcomes() {
+		return [
+			'live Connect success'  => [ 'connect', 'live', 'success' ],
+			'test Connect success'  => [ 'connect', 'test', 'success' ],
+			'live App success'      => [ 'app', 'live', 'success' ],
+			'test App success'      => [ 'app', 'test', 'success' ],
+			'exchange failure'      => [ 'connect', 'test', 'exchange_error' ],
+			'invalid credentials'   => [ 'connect', 'test', 'invalid_credentials' ],
+			'webhook setup failure' => [ 'app', 'test', 'webhook_error' ],
+		];
+	}
+
+	/**
+	 * Automatic token refresh must not act as the merchant dismissing a revocation warning.
+	 */
+	public function test_automatic_refresh_preserves_revocation_warning() {
+		$this->mock_stripe_account();
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'testmode'             => 'yes',
+				'test_publishable_key' => 'pk_test_previous',
+				'test_secret_key'      => 'sk_test_previous',
+				'test_connection_type' => 'app',
+				'test_refresh_token'   => 'rt_test_previous',
+			]
+		);
+		$api_mock = $this->getMockBuilder( WC_Stripe_Connect_API::class )->disableOriginalConstructor()->getMock();
+		$api_mock->expects( $this->once() )->method( 'refresh_stripe_app_oauth_keys' )->with( 'rt_test_previous', 'test' )->willReturn(
+			(object) [
+				'publishableKey' => 'pk_test_refreshed',
+				'secretKey'      => 'sk_test_refreshed',
+				'refreshToken'   => 'rt_test_refreshed',
+			]
+		);
+		$connect = new WC_Stripe_Connect( $api_mock );
+		update_option( 'wc_stripe_oauth_deauthorization_failed_modes', [ 'live', 'test' ] );
+		try {
+			$connect->refresh_connection();
+
+			$this->assertSame( 'sk_test_refreshed', WC_Stripe_Helper::get_stripe_settings()['test_secret_key'] );
+			$this->assertSame( [ 'live', 'test' ], get_option( 'wc_stripe_oauth_deauthorization_failed_modes' ) );
+		} finally {
+			delete_option( 'wc_stripe_oauth_deauthorization_failed_modes' );
+		}
+	}
+
+	/**
+	 * Asserts that deauthorize_oauth_connections() revokes only the Connect
+	 * connection.
+	 *
+	 * @param array $settings         Stripe settings to store before the call.
+	 * @param array $account_data     Cached account data returned for both modes.
+	 * @param array $expected_calls   Expected [ account_id, secret_key ] tuples, in order.
+	 * @param array $expected_results Revocation results by mode.
+	 *
+	 * @dataProvider provide_deauthorize_oauth_connections
+	 */
+	public function test_deauthorize_oauth_connections( $settings, $account_data, $expected_calls, $expected_results ) {
+		$this->set_stripe_account_data( $account_data );
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$api_mock = $this->getMockBuilder( WC_Stripe_Connect_API::class )->disableOriginalConstructor()->getMock();
+		$connect  = new WC_Stripe_Connect( $api_mock );
+
+		$calls = [];
+		$api_mock->expects( $this->exactly( count( $expected_calls ) ) )
+			->method( 'deauthorize_account' )
+			->willReturnCallback(
+				function ( $account_id, $secret_key ) use ( &$calls ) {
+					$calls[] = [ $account_id, $secret_key ];
+					return [ 'accountId' => $account_id ];
+				}
+			);
+
+		$results = $connect->deauthorize_oauth_connections();
+
+		$this->assertSame( $expected_calls, $calls );
+		$this->assertSame( $expected_results, $results );
+	}
+
+	/**
+	 * Provider for test_deauthorize_oauth_connections.
+	 */
+	public function provide_deauthorize_oauth_connections() {
+		$both_modes = [
+			'connection_type'      => 'connect',
+			'secret_key'           => 'sk_live_abc',
+			'test_connection_type' => 'connect',
+			'test_secret_key'      => 'sk_test_abc',
+		];
+
+		return [
+			'both keys in live mode revoke only live'            => [
+				array_merge( $both_modes, [ 'testmode' => 'no' ] ),
+				[ 'id' => 'acct_123' ],
+				[ [ 'acct_123', 'sk_live_abc' ] ],
+				[ 'live' => true ],
+			],
+			'both keys in test mode revoke only test'            => [
+				array_merge( $both_modes, [ 'testmode' => 'yes' ] ),
+				[ 'id' => 'acct_123' ],
+				[ [ 'acct_123', 'sk_test_abc' ] ],
+				[ 'test' => true ],
+			],
+			'live keys only in live mode'                        => [
+				[
+					'connection_type' => 'connect',
+					'secret_key'      => 'sk_live_abc',
+					'testmode'        => 'no',
+				],
+				[ 'id' => 'acct_123' ],
+				[ [ 'acct_123', 'sk_live_abc' ] ],
+				[ 'live' => true ],
+			],
+			'test keys only in test mode'                        => [
+				[
+					'test_connection_type' => 'connect',
+					'test_secret_key'      => 'sk_test_abc',
+					'testmode'             => 'yes',
+				],
+				[ 'id' => 'acct_123' ],
+				[ [ 'acct_123', 'sk_test_abc' ] ],
+				[ 'test' => true ],
+			],
+			'app connections are not revocable'                  => [
+				array_merge(
+					$both_modes,
+					[
+						'connection_type'      => 'app',
+						'test_connection_type' => 'app',
+					]
+				),
+				[ 'id' => 'acct_123' ],
+				[],
+				[],
+			],
+			'manual keys have no connection'                     => [
+				[
+					'secret_key'      => 'sk_live_abc',
+					'test_secret_key' => 'sk_test_abc',
+				],
+				[ 'id' => 'acct_123' ],
+				[],
+				[],
+			],
+			'missing live key does not fall back to test'        => [
+				array_merge(
+					$both_modes,
+					[
+						'secret_key' => '',
+						'testmode'   => 'no',
+					]
+				),
+				[ 'id' => 'acct_123' ],
+				[],
+				[ 'live' => false ],
+			],
+			'missing test key does not fall back to live'        => [
+				array_merge(
+					$both_modes,
+					[
+						'test_secret_key' => '',
+						'testmode'        => 'yes',
+					]
+				),
+				[ 'id' => 'acct_123' ],
+				[],
+				[ 'test' => false ],
+			],
+			'missing live account id does not fall back to test' => [
+				$both_modes,
+				[],
+				[],
+				[ 'live' => false ],
+			],
+		];
+	}
+
+	public function test_deauthorize_oauth_connections_does_not_fall_back_to_test_after_live_failure() {
+		$this->set_stripe_account_data( [ 'id' => 'acct_123' ] );
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'connection_type'      => 'connect',
+				'secret_key'           => 'sk_live_abc',
+				'test_connection_type' => 'connect',
+				'test_secret_key'      => 'sk_test_abc',
+			]
+		);
+
+		$api_mock = $this->getMockBuilder( WC_Stripe_Connect_API::class )->disableOriginalConstructor()->getMock();
+		$api_mock->expects( $this->once() )
+			->method( 'deauthorize_account' )
+			->with( 'acct_123', 'sk_live_abc' )
+			->willReturn( new WP_Error( 'wcc_server_error', 'Failed to deauthorize account.' ) );
+
+		$connect = new WC_Stripe_Connect( $api_mock );
+		$this->assertSame( [ 'live' => false ], $connect->deauthorize_oauth_connections() );
 	}
 
 	/**
