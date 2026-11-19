@@ -36,7 +36,6 @@ Stripe is available for store owners and merchants in [46 countries worldwide](h
 The following items note specific versions that include important changes, features, or deprecations.
 
 * 11.2.0
-   - Pending Stripe orders can be recovered automatically or manually from the order screen or Orders list
    - Express checkout buttons now use the same size across payment methods and locations
 * 11.1.0
    - Sofort is no longer offered at checkout, since Stripe discontinued it on March 31, 2025; existing Sofort orders can still be refunded and Sofort-initiated subscriptions keep renewing
@@ -166,19 +165,5 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 11.3.0 - xxxx-xx-xx =
-* Update - Start wallet availability checks earlier on Cart and Checkout blocks
-* Update - Improve express checkout wallet startup, availability checks, reuse, and recovery
-* Fix - Avoid expensive variation lookup in express checkout setup on product pages
-* Dev - Add WC_Stripe_Tracks class to support more consistent events
-* Dev - Load React's JSX runtime from WordPress core instead of bundling it, and declare "Tested up to" only in readme.txt
-* Fix - Stop rewriting a saved payment method's name, email, and phone in Stripe when it is used at checkout; only the billing address is refreshed
-* Dev - Run every E2E test project under both a classic theme (Storefront) and a block theme (Twenty Twenty-Five) in CI, and make the shared E2E helpers theme-agnostic
-* Fix - Show country-restricted payment methods such as iDEAL on Adaptive Pricing checkout once the shopper enters a billing country they are available in
-
-* Fix - Keep a subscription's Stripe customer when its card is changed with 3D Secure, so renewals don't fail
-* Dev - Upgrade Playwright to stay compatible with GitHub CI environment
-* Add - Recover pending Stripe orders automatically and add manual payment status checks
-* Dev - Behind a feature flag, find Stripe events whose webhook delivery failed and process them in the background
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

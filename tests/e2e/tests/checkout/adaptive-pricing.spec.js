@@ -12,7 +12,7 @@ const {
 	setupOptimizedCheckout,
 	fillOCDetails,
 	clickPlaceOrder,
-	clickAddToCartButton,
+	addProductToCartFromProductPageById,
 	emptyCart,
 	getCartTotal,
 	waitForOrderReceivedPage,
@@ -156,11 +156,7 @@ test.describe( 'Adaptive Pricing checkout', () => {
 			] );
 
 			await emptyCart( page );
-			await page.goto( `?p=${ productId }` );
-			await clickAddToCartButton( page );
-			await expect(
-				page.getByText( 'has been added to your cart' )
-			).toBeVisible();
+			await addProductToCartFromProductPageById( page, productId );
 
 			await setupOptimizedCheckout( page, 'shortcode', {
 				timeout: 10000,
