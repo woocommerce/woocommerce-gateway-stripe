@@ -110,6 +110,17 @@ jobs:
           # Only need to retain for a day since the Jetpack Beta Builder slurps it up to distribute.
           retention-days: 1
 
+      # The Playground link in the PR comment downloads its artifact on every click, so this copy is kept
+      # for longer. The run ID in the name pins the link to the build of one run: the artifact proxy looks
+      # runs up by branch name, and a bare name would let it serve another PR's build from a same-named branch.
+      - name: "Upload the zip file as an artifact for the Playground preview"
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: plugins-${{ github.run_id }}
+          path: release
+          if-no-files-found: error
+          retention-days: 14
+
       - name: "Get plugin data for Jetpack Beta Builder"
         id: get-plugin-data
         env:
@@ -138,19 +149,81 @@ jobs:
             --form-string "plugins=$PLUGIN_DATA" \
             --form-string "secret=$SECRET"
 
+      # WordPress Playground runs in the visitor's browser and can only fetch public URLs.
+      # Its artifact proxy serves this workflow's artifacts for the PR, looked up by workflow
+      # name - hence GITHUB_WORKFLOW rather than a literal that a rename would silently break.
+      # The build artifact wraps the plugin zip, so the Blueprint unzips it before installing.
+      #
+      # The Blueprint must never carry Stripe API keys or prompt for them: the link is public,
+      # and whatever code the PR contains runs in the preview and could read them.
+      - name: "Build the WordPress Playground preview link"
+        id: playground
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          ARTIFACT_URL=$( jq -rn \
+            --arg org "$GITHUB_REPOSITORY_OWNER" \
+            --arg repo "${GITHUB_REPOSITORY#*/}" \
+            --arg workflow "$GITHUB_WORKFLOW" \
+            --arg pr "$PR_NUMBER" \
+            --arg artifact "plugins-$GITHUB_RUN_ID" \
+            '"https://playground.wordpress.net/plugin-proxy.php?org=\($org|@uri)&repo=\($repo|@uri)&workflow=\($workflow|@uri)&pr=\($pr|@uri)&artifact=\($artifact|@uri)"' )
+
+          # The preview is for people without a development environment, so it must need no setup by hand:
+          # WooCommerce would otherwise redirect a new store to its setup wizard, and a store without a
+          # product has no shop, cart or checkout to look at.
+          BLUEPRINT=$( jq -cn --arg artifact_url "$ARTIFACT_URL" '
+            ( [
+                "<?php require \"/wordpress/wp-load.php\";",
+                "delete_transient( \"_wc_activation_redirect\" );",
+                "update_option( \"woocommerce_onboarding_profile\", array( \"skipped\" => true ) );",
+                "$product = new WC_Product_Simple();",
+                "$product->set_name( \"Sample product\" );",
+                "$product->set_regular_price( \"10\" );",
+                "$product->set_status( \"publish\" );",
+                "$product->save();"
+              ] | join( " " ) ) as $store_setup
+            | {
+              "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+              landingPage: "/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe",
+              preferredVersions: { php: "8.3", wp: "latest" },
+              features: { networking: true },
+              steps: [
+                { step: "login", username: "admin" },
+                { step: "installPlugin", pluginData: { resource: "wordpress.org/plugins", slug: "woocommerce" }, options: { activate: true } },
+                { step: "runPHP", code: $store_setup },
+                { step: "unzip", zipFile: { resource: "url", url: $artifact_url, caption: "Downloading the Stripe gateway build for this PR" }, extractToPath: "/tmp/pr" },
+                { step: "installPlugin", pluginData: { resource: "vfs", path: "/tmp/pr/woocommerce-gateway-stripe-dev.zip" }, options: { activate: true } }
+              ]
+            }' )
+
+          echo "url=https://playground.wordpress.net/#$( jq -rn --argjson blueprint "$BLUEPRINT" '$blueprint|tojson|@uri' )" >> "$GITHUB_OUTPUT"
+
       - name: "Add/update the information as a comment in the PR"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PLAYGROUND_URL: ${{ steps.playground.outputs.url }}
           PR_NUMBER: ${{ github.event.number }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PR_HEAD_REF: ${{ github.head_ref }}
         run: |
           BODY="### Test the build
 
+          #### Option 1. Jetpack Beta
+
+          - Install and activate [Jetpack Beta](https://jetpack.com/beta/#download-and-install) on your own test site.
+          - Use this build by searching for PR number \`${PR_NUMBER}\` or branch name \`${PR_HEAD_REF}\` in your-test.site/wp-admin/admin.php?page=jetpack-beta&plugin=woocommerce-gateway-stripe
+
+          :information_source: Limits: you need a WordPress site of your own with WooCommerce on it. Payments need a Stripe test account connected on that site, and webhooks only arrive if Stripe can reach it, so a local site needs a tunnel or the Stripe CLI.
+
+          #### Option 2. Jurassic Ninja
+
           **If you are a logged-in Automattic staff member:**
 
+          :warning: Log in at [jurassic.ninja](https://jurassic.ninja/) first. Without a login, the link below takes you to the Jurassic Ninja homepage and no site is created.
+
           :rocket: [Launch a Jurassic Ninja site with this branch and sample products](https://jurassic.ninja/create/?jetpack-beta&shortlived&nojetpack&woocommerce&woocommerce-import-sample-data&woocommerce-gateway-stripe-dev-tools&branches.woocommerce-gateway-stripe=${PR_HEAD_REF}) :rocket:
-          
+
           **Otherwise, use the following manual flow:**
 
           :turtle: Navigate to [jurassic.ninja](https://jurassic.ninja/) :turtle:
@@ -161,6 +234,14 @@ jobs:
           * Check \"Import sample product data\" (it should be immediately below the WooCommerce option)
           * Enter your email address
           * Click on \"Launch single site\"
+
+          :information_source: Limits: the launch link needs a jurassic.ninja login; without one, use the manual flow. The site is temporary, so keep nothing on it. Payments need a Stripe test account connected on the site.
+
+          #### Option 3. WordPress Playground - runs in your browser
+
+          :electric_plug: [Open a store with this build](${PLAYGROUND_URL}): WordPress, WooCommerce with a sample product, and this PR's build. It opens on the Stripe settings screen, logged in as an administrator, with nothing to set up and no Stripe account connected.
+
+          :information_source: Limits: the preview cannot connect to a Stripe account, so it cannot show payment methods at checkout, take a payment or receive webhooks. Use it to check that the build installs and activates, and to see what a store shows before it is connected. Never put Stripe API keys into a preview: it runs this PR's code, and requests to Stripe do not work from a browser Playground anyway. The link stops working 14 days after the last build.
 
           ---
 
