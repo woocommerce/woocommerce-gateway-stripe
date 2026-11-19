@@ -127,8 +127,12 @@ export const observeBlockifiedVariationSelection = ( onChange ) => {
 	// keyup included: the chips variant selects via a keydown handler on
 	// buttons, which fires neither click nor change.
 	const gestureEvents = [ 'click', 'change', 'keyup' ];
-	const selectors = document.querySelectorAll(
-		BLOCKIFIED_VARIATION_SELECTOR
+	// Outermost matches only: nested rows match too, and gestures bubble.
+	const selectors = [
+		...document.querySelectorAll( BLOCKIFIED_VARIATION_SELECTOR ),
+	].filter(
+		( element ) =>
+			! element.parentElement.closest( BLOCKIFIED_VARIATION_SELECTOR )
 	);
 	if ( ! selectors.length ) {
 		return null;

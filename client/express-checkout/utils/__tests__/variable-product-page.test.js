@@ -211,5 +211,33 @@ describe( 'ECE product page DOM readers', () => {
 				expect( onChange ).toHaveBeenCalledTimes( 1 );
 			}
 		);
+
+		it( 'notifies once for a gesture inside nested selector elements', () => {
+			// The block's rows and labels match the selector too.
+			document.body.innerHTML = `
+				<form class="wc-block-add-to-cart-with-options">
+					<div class="wp-block-woocommerce-add-to-cart-with-options-variation-selector">
+						<div class="wp-block-woocommerce-add-to-cart-with-options-variation-selector-attribute">
+							<span class="wp-block-woocommerce-add-to-cart-with-options-variation-selector-attribute-name">
+								<button type="button">Blue</button>
+							</span>
+						</div>
+					</div>
+				</form>
+			`;
+			const onChange = jest.fn();
+			const handle = observeBlockifiedVariationSelection( onChange );
+
+			document
+				.querySelector( 'button' )
+				.dispatchEvent( new Event( 'click', { bubbles: true } ) );
+			expect( onChange ).toHaveBeenCalledTimes( 1 );
+
+			handle.disconnect();
+			document
+				.querySelector( 'button' )
+				.dispatchEvent( new Event( 'click', { bubbles: true } ) );
+			expect( onChange ).toHaveBeenCalledTimes( 1 );
+		} );
 	} );
 } );
