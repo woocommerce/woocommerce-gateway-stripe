@@ -300,4 +300,72 @@ test.describe( 'express checkout and variable products', () => {
 		const linkButton = await getLinkButton( page );
 		await expect( linkButton ).toBeVisible();
 	} );
+
+	test( 'becomes visible when a variation is selected after the buttons have loaded', async ( {
+		page,
+	} ) => {
+		await page.goto( '/product/hoodie' );
+
+		// Once Stripe has rendered the button in its still-hidden frame, a selection
+		// is only seen through the form's change signals.
+		const linkFrame = page.locator(
+			'#wc-stripe-express-checkout-element-link iframe[name^="__privateStripeFrame"]'
+		);
+		await expect(
+			linkFrame.contentFrame().getByRole( 'button', {
+				name: /Pay (securely )?with Link/,
+				includeHidden: true,
+			} )
+		).toBeAttached();
+		await expect( linkFrame ).toBeHidden();
+
+		await selectProductVariation( page, 'color', 'Blue' );
+		await selectProductVariation( page, 'Logo', 'Yes' );
+		await expect( await getLinkButton( page ) ).toBeVisible();
+	} );
+
+	test( 'refreshes for a new quantity, not when the quantity field is left unchanged', async ( {
+		page,
+	} ) => {
+		const isRefresh = ( request ) =>
+			request.url().includes( 'wc_stripe_get_selected_product_data' );
+		const refreshedQuantities = [];
+		page.on( 'request', ( request ) => {
+			if ( isRefresh( request ) ) {
+				refreshedQuantities.push(
+					new URLSearchParams( request.postData() ).get( 'qty' )
+				);
+			}
+		} );
+
+		await page.goto( '/product/hoodie' );
+		await selectProductVariation( page, 'color', 'Blue' );
+		const selectionRefresh = page.waitForResponse( ( response ) =>
+			isRefresh( response.request() )
+		);
+		await selectProductVariation( page, 'Logo', 'Yes' );
+		await selectionRefresh;
+		await expect( await getLinkButton( page ) ).toBeVisible();
+		const selectionRefreshes = [ ...refreshedQuantities ];
+		expect( selectionRefreshes ).toContain( '1' );
+
+		// The blockified form reports a quantity change on every blur.
+		const quantityInput = page.getByRole( 'spinbutton', {
+			name: 'Product quantity',
+		} );
+		await quantityInput.focus();
+		await quantityInput.blur();
+		// No request is expected, so wait out the 250ms refresh debounce.
+		await page.waitForTimeout( 1000 );
+		expect( refreshedQuantities ).toEqual( selectionRefreshes );
+
+		// Proves the check above can't pass on a field that never refreshes.
+		const quantityRefresh = page.waitForResponse( ( response ) =>
+			isRefresh( response.request() )
+		);
+		await quantityInput.fill( '2' );
+		await quantityInput.blur();
+		await quantityRefresh;
+		expect( refreshedQuantities ).toEqual( [ ...selectionRefreshes, '2' ] );
+	} );
 } );
