@@ -624,6 +624,52 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		$this->assertSame( 'rule', $notifications[0]->data->object->reason );
 	}
 
+	public function test_unlocking_after_settlement_does_not_save_the_stale_pending_order_on_hpos(): void {
+		$previous_hpos_setting = get_option( 'woocommerce_custom_orders_table_enabled', 'no' );
+		add_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+		update_option( 'woocommerce_custom_orders_table_enabled', 'yes' );
+		// WooCommerce skips the save when the order was already modified within the same second, which is
+		// always true in a fast test but not after the Stripe requests of a real check. Forcing it during
+		// a save would recurse, because the save changes meta too.
+		$saves_running  = 0;
+		$saved_statuses = [];
+		$before_save    = static function () use ( &$saves_running ) {
+			++$saves_running;
+		};
+		$save_listener  = static function ( $saved_order ) use ( &$saves_running, &$saved_statuses ) {
+			--$saves_running;
+			$saved_statuses[] = $saved_order->get_status();
+		};
+		$force_save     = static function ( $should_save ) use ( &$saves_running ) {
+			return 0 === $saves_running ? true : $should_save;
+		};
+
+		try {
+			$this->assertTrue( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() );
+			WC_Stripe_Order_Helper::set_instance( null );
+			$order = $this->create_pending_stripe_order( false );
+			$this->use_real_settlement();
+			$objects = $this->successful_stripe_objects( $order );
+			unset( $objects['/checkout/sessions/cs_recovery'] );
+			$this->mock_stripe_objects( $objects );
+
+			add_action( 'woocommerce_before_order_object_save', $before_save );
+			add_action( 'woocommerce_after_order_object_save', $save_listener );
+			add_filter( 'woocommerce_orders_table_datastore_should_save_after_meta_change', $force_save );
+			$this->reconciliation->reconcile_order_payment( $order->get_id() );
+		} finally {
+			remove_action( 'woocommerce_after_order_object_save', $save_listener );
+			remove_action( 'woocommerce_before_order_object_save', $before_save );
+			remove_filter( 'woocommerce_orders_table_datastore_should_save_after_meta_change', $force_save );
+			update_option( 'woocommerce_custom_orders_table_enabled', $previous_hpos_setting );
+			remove_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+		}
+
+		$this->assertNotEmpty( $saved_statuses );
+		$this->assertSame( 'processing', end( $saved_statuses ) );
+		$this->assertSame( '', wc_get_order( $order->get_id() )->get_meta( '_stripe_lock_payment', true ) );
+	}
+
 	public static function provide_settlement_paths(): array {
 		return [
 			'PaymentIntent'    => [ false ],

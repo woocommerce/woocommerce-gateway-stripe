@@ -556,7 +556,9 @@ class WC_Stripe_Order_Reconciliation {
 			);
 			return $this->outcome( self::RESULT_RETRY );
 		} finally {
-			$order_helper->unlock_order_payment( $order );
+			// Unlocking can save the order (HPOS saves after a meta change), so it must not use the copy loaded
+			// before settlement: save callbacks would see it pending, and HPOS sync would copy it to the posts table.
+			$order_helper->unlock_order_payment( $this->resolve_order( $order_id ) ?? $order );
 		}
 	}
 
