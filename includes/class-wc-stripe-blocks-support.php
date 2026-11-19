@@ -47,6 +47,13 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	private $blocks_asset = null;
 
 	/**
+	 * Local cache for whether Express Checkout is enabled for the current context.
+	 *
+	 * @var bool|null
+	 */
+	private $is_express_checkout_active = null;
+
+	/**
 	 * Constructor
 	 *
 	 * @param mixed                                   $payment_request_configuration The Stripe Payment Request configuration used for Payment Request buttons (removed).
@@ -87,8 +94,10 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		// Hooks to manually enqueue the block CSS, as WooCommerce doesn't have an API for styles.
 		add_filter( 'render_block_woocommerce/checkout', [ $this, 'maybe_enqueue_blocks_style' ] );
 		add_filter( 'render_block_woocommerce/cart', [ $this, 'maybe_enqueue_blocks_style' ] );
-		// Note that this is hooked at priority 20 so we run after WooCommerce has registered and enqueued the Cart and Checkout editor scripts.
+		// Note that these actions are hooked at priority 20 so we run after WooCommerce has registered and enqueued the Cart and Checkout editor scripts.
+		// We need both to ensure that we enqueue the blocks style when the editor content is in an iframe.
 		add_action( 'enqueue_block_editor_assets', [ $this, 'maybe_enqueue_blocks_style_for_editor' ], 20 );
+		add_action( 'enqueue_block_assets', [ $this, 'maybe_enqueue_blocks_style_for_editor' ], 20 );
 	}
 
 	/**
@@ -215,10 +224,8 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		$asset = $this->get_upe_blocks_asset();
 
 		$express_checkout_dependencies = [];
-		if ( $this->express_checkout_configuration->express_checkout_helper->should_show_express_checkout_button() ) {
-			$express_checkout_dependencies = [
-				WC_Stripe_Express_Checkout_Element::get_express_checkout_script_handle(),
-			];
+		if ( $this->is_express_checkout_active() ) {
+			$express_checkout_dependencies[] = WC_Stripe_Express_Checkout_Element::get_express_checkout_script_handle();
 		}
 
 		wp_register_script(
@@ -232,6 +239,22 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			self::BLOCKS_SCRIPT_HANDLE,
 			'woocommerce-gateway-stripe'
 		);
+	}
+
+	/**
+	 * Helper method to work out whether Express Checkout is active in the current context.
+	 *
+	 * @since x.x.x
+	 *
+	 * @return bool True if Express Checkout is active in the current context, false otherwise.
+	 */
+	private function is_express_checkout_active(): bool {
+		if ( null === $this->is_express_checkout_active ) {
+			$this->is_express_checkout_active = $this->express_checkout_configuration->express_checkout_helper->is_page_supported()
+				&& $this->express_checkout_configuration->express_checkout_helper->should_show_express_checkout_button();
+		}
+
+		return $this->is_express_checkout_active;
 	}
 
 	/**
@@ -309,14 +332,25 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 
 	/**
 	 * Block editor counterpart to {@see maybe_enqueue_blocks_style()},
-	 * which enqueues our block stylesheet when the block script has been enqueued.
+	 * which enqueues our block stylesheet when the following are true:
+	 *  - We are in the admin
+	 *  - The payment method is active
+	 *  - The current page has a cart or checkout
 	 *
 	 * @since 10.9.0
 	 *
 	 * @return void
 	 */
 	public function maybe_enqueue_blocks_style_for_editor(): void {
-		$this->enqueue_blocks_style_if_script_enqueued();
+		if (
+			! is_admin()
+			|| ! $this->is_active()
+			|| ! WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
+		) {
+			return;
+		}
+
+		$this->enqueue_blocks_style();
 	}
 
 	/**
@@ -332,40 +366,28 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			return;
 		}
 
-		$this->register_upe_payment_method_style_handle();
-
-		wp_enqueue_style( self::BLOCKS_STYLE_HANDLE );
+		$this->enqueue_blocks_style();
 	}
 
 	/**
-	 * Registers the classic JS scripts.
+	 * Enqueues the blocks stylesheet and Express Checkout scripts when Express Checkout is active.
+	 *
+	 * @since x.x.x
 	 *
 	 * @return void
 	 */
-	private function register_legacy_payment_method_script_handles() {
-		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/index.asset.php';
-		$version      = WC_STRIPE_VERSION;
-		$dependencies = [];
-		if ( file_exists( $asset_path ) ) {
-			$asset        = require $asset_path;
-			$version      = is_array( $asset ) && isset( $asset['version'] )
-				? $asset['version']
-				: $version;
-			$dependencies = is_array( $asset ) && isset( $asset['dependencies'] ) && is_array( $asset['dependencies'] )
-				? $asset['dependencies']
-				: $dependencies;
+	private function enqueue_blocks_style(): void {
+		if ( wp_style_is( self::BLOCKS_STYLE_HANDLE, 'enqueued' ) ) {
+			return;
 		}
-		wp_register_script(
-			'wc-stripe-blocks-integration',
-			WC_STRIPE_PLUGIN_URL . '/build/index.js',
-			array_merge( [ 'stripe' ], $dependencies ),
-			$version,
-			true
-		);
-		wp_set_script_translations(
-			'wc-stripe-blocks-integration',
-			'woocommerce-gateway-stripe'
-		);
+
+		$this->register_upe_payment_method_style_handle();
+
+		wp_enqueue_style( self::BLOCKS_STYLE_HANDLE );
+
+		if ( $this->is_express_checkout_active() ) {
+			$this->express_checkout_configuration->scripts();
+		}
 	}
 
 	/**
@@ -387,7 +409,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 				'showSavedCards'                  => $this->get_show_saved_cards(),
 				'showSaveOption'                  => $this->get_show_save_option(),
 				'isAdmin'                         => is_admin(),
-				'shouldShowExpressCheckoutButton' => $this->should_show_express_checkout_button(),
+				'shouldShowExpressCheckoutButton' => $this->is_express_checkout_active(),
 				'button'                          => [
 					'customLabel' => '',
 				],
@@ -408,15 +430,6 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			'height',
 			'borderRadius',
 		];
-	}
-
-	/**
-	 * Returns true if the ECE should be shown on the current page, false otherwise.
-	 *
-	 * @return boolean True if ECEs should be displayed, false otherwise.
-	 */
-	private function should_show_express_checkout_button() {
-		return $this->express_checkout_configuration->express_checkout_helper->should_show_express_checkout_button();
 	}
 
 	/**

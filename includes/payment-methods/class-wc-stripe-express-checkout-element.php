@@ -536,6 +536,11 @@ class WC_Stripe_Express_Checkout_Element {
 			return $urls;
 		}
 
+		// Skip preconnect resources in the admin.
+		if ( is_admin() ) {
+			return $urls;
+		}
+
 		if ( ! $this->express_checkout_helper->is_page_supported() ) {
 			return $urls;
 		}
@@ -579,6 +584,11 @@ class WC_Stripe_Express_Checkout_Element {
 	 * @return array
 	 */
 	public function add_preload_resources( $preload_resources ) {
+		// Skip preload resources in the admin.
+		if ( is_admin() ) {
+			return $preload_resources;
+		}
+
 		if ( ! $this->express_checkout_helper->is_page_supported() ) {
 			return $preload_resources;
 		}
