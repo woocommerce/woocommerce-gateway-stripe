@@ -14,15 +14,21 @@
  * are read through the same form fields.
  */
 
+const CLASSIC_FORM_SELECTOR = '.variations_form';
+const BLOCKIFIED_FORM_SELECTOR = '.wc-block-add-to-cart-with-options';
+const BLOCKIFIED_VARIATION_SELECTOR = `${ BLOCKIFIED_FORM_SELECTOR } [class*="variation-selector"]`;
+
 /**
- * The product form the express checkout button acts on: the classic
- * `.variations_form` or the blockified Add to Cart + Options block.
- *
- * @return {HTMLFormElement|null} The product form, or null when the page has none.
+ * Wrapper of the blockified template's quantity input (simple and variable products).
+ */
+export const BLOCKIFIED_QUANTITY_SELECTOR = `${ BLOCKIFIED_FORM_SELECTOR } .quantity`;
+
+/**
+ * @return {HTMLFormElement|null} The product form the express checkout button acts on.
  */
 const getProductForm = () =>
 	document.querySelector(
-		'form.variations_form, form.wc-block-add-to-cart-with-options'
+		`form${ CLASSIC_FORM_SELECTOR }, form${ BLOCKIFIED_FORM_SELECTOR }`
 	);
 
 /**
@@ -32,11 +38,10 @@ const getProductForm = () =>
  */
 export const hasVariationSelectionUi = () =>
 	Boolean(
-		document.querySelector( '.single_variation_wrap, .variations_form' )
+		document.querySelector(
+			`.single_variation_wrap, ${ CLASSIC_FORM_SELECTOR }`
+		)
 	);
-
-const BLOCKIFIED_VARIATION_SELECTOR =
-	'.wc-block-add-to-cart-with-options [class*="variation-selector"]';
 
 /**
  * Whether the page renders the blockified template's variation selector.

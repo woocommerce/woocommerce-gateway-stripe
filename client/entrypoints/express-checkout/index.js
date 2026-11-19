@@ -19,6 +19,7 @@ import {
 	getSelectedVariationId,
 	hasBlockifiedVariationSelector,
 	hasVariationSelectionUi,
+	BLOCKIFIED_QUANTITY_SELECTOR,
 	isManualPaymentMethodCreation,
 	observeBlockifiedVariationSelection,
 	normalizeLineItems,
@@ -1468,14 +1469,11 @@ const initializeExpressCheckout = ( $ ) => {
 
 			$( '.quantity' )
 				.off( 'input', '.qty' )
-				.on( 'input', '.qty', debouncedQuantityRefresh );
+				.on( 'input', '.qty', () => debouncedQuantityRefresh() );
 
-			// The blockified steppers fire no input event; the block
-			// dispatches a synthetic `change` on the input for extensions
-			// instead (also after clamping the quantity to a variation's
-			// limits), so listen for that too. Simple products render the
-			// same block, so this needs no variable-product check.
-			$( '.wc-block-add-to-cart-with-options .quantity' )
+			// The blockified steppers fire no `input`; the block dispatches
+			// `change` instead, and on every blur too, changed or not.
+			$( BLOCKIFIED_QUANTITY_SELECTOR )
 				.off( 'change', '.qty' )
 				.on( 'change', '.qty', debouncedQuantityRefresh );
 		},
