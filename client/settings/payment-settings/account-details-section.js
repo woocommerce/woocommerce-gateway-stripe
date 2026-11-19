@@ -7,7 +7,14 @@ import CardFooter from '../card-footer';
 import Pill from '../../components/pill';
 import AccountStatus from '../account-details';
 import DisconnectStripeConfirmationModal from './disconnect-stripe-confirmation-modal';
-import { Button, Card, CardHeader, DropdownMenu } from '@wordpress/components';
+import {
+	Button,
+	Card,
+	CardHeader,
+	DropdownMenu,
+	MenuGroup,
+	MenuItem,
+} from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import { useDispatch } from '@wordpress/data';
 import './style.scss';
@@ -74,28 +81,53 @@ const AccountSettingsDropdownMenu = ( {
 					'Edit details or disconnect account',
 					'woocommerce-gateway-stripe'
 				) }
-				controls={ [
-					{
-						title: __(
-							'Configure connection',
-							'woocommerce-gateway-stripe'
-						),
-						onClick: () =>
-							setModalType( isTestModeEnabled ? 'test' : 'live' ),
-					},
-					{
-						title: __(
-							'Refresh account details',
-							'woocommerce-gateway-stripe'
-						),
-						onClick: handleRefreshAccount,
-					},
-					{
-						title: __( 'Disconnect', 'woocommerce-gateway-stripe' ),
-						onClick: () => setIsConfirmationModalVisible( true ),
-					},
-				] }
-			/>
+				menuProps={ { className: 'wc-stripe-account-settings-menu' } }
+			>
+				{ ( { onClose } ) => (
+					<>
+						<MenuGroup>
+							<MenuItem
+								onClick={ () => {
+									onClose();
+									setModalType(
+										isTestModeEnabled ? 'test' : 'live'
+									);
+								} }
+							>
+								{ __(
+									'Configure connection',
+									'woocommerce-gateway-stripe'
+								) }
+							</MenuItem>
+							<MenuItem
+								onClick={ () => {
+									onClose();
+									handleRefreshAccount();
+								} }
+							>
+								{ __(
+									'Refresh account details',
+									'woocommerce-gateway-stripe'
+								) }
+							</MenuItem>
+						</MenuGroup>
+						<MenuGroup>
+							<MenuItem
+								isDestructive
+								onClick={ () => {
+									onClose();
+									setIsConfirmationModalVisible( true );
+								} }
+							>
+								{ __(
+									'Disconnect',
+									'woocommerce-gateway-stripe'
+								) }
+							</MenuItem>
+						</MenuGroup>
+					</>
+				) }
+			</DropdownMenu>
 			{ isConfirmationModalVisible && (
 				<DisconnectStripeConfirmationModal
 					onClose={ () => setIsConfirmationModalVisible( false ) }
