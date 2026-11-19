@@ -290,8 +290,8 @@ test.describe( 'customer can use Link express checkout', () => {
 		}
 
 		// Reloading would reset availability and hide a stale-cache failure.
-		const popup = await openLinkPopup( page, true, { maxRetries: 0 } );
-		await popup.close();
+		const { close } = await openLinkPopup( page, true, { maxRetries: 0 } );
+		await close();
 	} );
 
 	test( 'inside the checkout page (block)', async ( { page } ) => {
