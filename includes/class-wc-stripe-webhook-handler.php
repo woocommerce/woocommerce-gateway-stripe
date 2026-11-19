@@ -2589,6 +2589,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		try {
+			// Reconciliation or the order-received redirect can settle the order between the status check
+			// above and taking the lock. Settling that stale pending copy again would repeat notes and actions.
+			$order = $this->get_uncached_order( $order );
+			if ( ! $order->has_status( $allowed_payment_processing_statuses ) || $session_id !== $order_helper->get_stripe_checkout_session_id( $order ) ) {
+				return false;
+			}
+
 			$this->process_checkout_session_payment(
 				$order,
 				$checkout_session,
@@ -2629,6 +2636,22 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Reads the order again from the database, bypassing the request caches, or returns the given copy if that fails.
+	 *
+	 * @param WC_Order $order The order to read again.
+	 * @return WC_Order
+	 */
+	private function get_uncached_order( WC_Order $order ): WC_Order {
+		clean_post_cache( $order->get_id() );
+		if ( class_exists( \Automattic\WooCommerce\Caches\OrderCache::class ) ) {
+			wc_get_container()->get( \Automattic\WooCommerce\Caches\OrderCache::class )->remove( $order->get_id() );
+		}
+		$fresh_order = wc_get_order( $order->get_id() );
+
+		return $fresh_order instanceof WC_Order ? $fresh_order : $order;
 	}
 
 	/**

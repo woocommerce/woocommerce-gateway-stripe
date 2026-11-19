@@ -1725,6 +1725,53 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 *
 	 * @return void
 	 */
+	public function test_handle_checkout_session_success_skips_an_order_settled_before_the_lock(): void {
+		$checkout_session_id = 'cs_test_settled_before_lock';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		// Another settler (for example reconciliation) pays the order right before the webhook gets the lock.
+		$order_helper = $this->createPartialMock(
+			WC_Stripe_Order_Helper::class,
+			[ 'lock_order_payment', 'unlock_order_payment' ]
+		);
+		$order_helper->method( 'lock_order_payment' )->willReturnCallback(
+			static function ( WC_Order $locked_order ) {
+				wc_get_order( $locked_order->get_id() )->payment_complete( 'ch_settled_before_lock' );
+				return false;
+			}
+		);
+		$order_helper->expects( $this->once() )->method( 'unlock_order_payment' );
+		WC_Stripe_Order_Helper::set_instance( $order_helper );
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->onlyMethods( [ 'process_checkout_session_payment' ] )
+			->getMock();
+		$handler->expects( $this->never() )->method( 'process_checkout_session_payment' );
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_settled_before_lock',
+					'amount_total'   => WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $order->get_currency() ),
+					'currency'       => strtolower( $order->get_currency() ),
+				],
+			],
+		];
+
+		$this->assertFalse( $handler->process_checkout_session_success( $notification ) );
+		$this->assertTrue( wc_get_order( $order->get_id() )->is_paid() );
+	}
+
 	public function test_handle_checkout_session_success_requeues_when_order_payment_locked(): void {
 		$checkout_session_id = 'cs_test_locked_requeue';
 
