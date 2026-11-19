@@ -1,17 +1,11 @@
 /**
- * DOM readers for variable product pages, covering both product templates:
- * the classic `.variations_form` markup and the blockified Add to Cart +
- * Options block.
+ * DOM readers for product pages on both templates: the classic
+ * `.variations_form` and the blockified Add to Cart + Options block.
  *
- * The block exposes no JavaScript API (its Interactivity API store is
- * private). What WooCommerce provides for extensions instead is a set of
- * hidden form inputs it keeps in sync with its state, explicitly "to be used
- * by extensions or Express Payment methods": the `.single_variation_wrap`
- * compat markup with the bound `variation_id` input
- * (`AddToCartWithOptions::render()`) and one hidden `attribute_*` input per
- * attribute (`VariationSelectorAttribute::render_attribute_row()`). The
- * classic template renders the equivalent fields natively, so both templates
- * are read through the same form fields.
+ * The block's Interactivity API store is private. For extensions it renders
+ * hidden form inputs kept in sync with its state (`variation_id`, one
+ * `attribute_*` per attribute), so both templates are read through the same
+ * form fields.
  */
 
 const CLASSIC_FORM_SELECTOR = '.variations_form';
@@ -32,9 +26,7 @@ const getProductForm = () =>
 	);
 
 /**
- * Whether the page renders a variable product's variation UI (either template).
- *
- * @return {boolean} True when variation markup is present.
+ * @return {boolean} Whether the page renders variation markup (either template).
  */
 export const hasVariationSelectionUi = () =>
 	Boolean(
@@ -44,24 +36,16 @@ export const hasVariationSelectionUi = () =>
 	);
 
 /**
- * Whether the page renders the blockified template's variation selector.
- *
- * @return {boolean} True on a variable product using the Add to Cart + Options block.
+ * @return {boolean} Whether the page renders the blockified variation selector.
  */
 export const hasBlockifiedVariationSelector = () =>
 	Boolean( document.querySelector( BLOCKIFIED_VARIATION_SELECTOR ) );
 
 /**
- * Reads the currently selected variation attributes.
- *
- * Reads what the product form would submit: both templates keep their
- * `attribute_*` fields in sync with the selection for exactly this purpose
- * (the classic selects directly, the block through hidden inputs bound to
- * its state), so no template-specific DOM walking is needed.
+ * Reads the selected attributes from what the product form would submit.
  *
  * @return {{count: number, chosenCount: number, data: Object<string, string>}}
- *         The number of attribute fields, how many of them have a selected
- *         value, and a map of attribute field name to selected value.
+ *         Number of attribute fields, how many have a value, and name-to-value map.
  */
 export const getSelectedVariationAttributes = () => {
 	const form = getProductForm();
@@ -86,14 +70,8 @@ export const getSelectedVariationAttributes = () => {
 };
 
 /**
- * The variation resolved from the current attribute selection, if any.
- *
- * Both templates maintain the hidden `variation_id` input: the classic
- * script writes it on `found_variation`, the blockified block binds it to
- * its Interactivity API state.
- *
  * @return {string|null} The selected variation ID, or null when the
- *                       selection is incomplete or doesn't match a variation.
+ *                       selection is incomplete or matches no variation.
  */
 export const getSelectedVariationId = () => {
 	const variationId = document.querySelector(
@@ -103,34 +81,24 @@ export const getSelectedVariationId = () => {
 		return null;
 	}
 
-	// The block only rewrites the input when a new selection resolves; it
-	// keeps the previous id after an attribute is deselected (the classic
-	// script clears it). An id alongside an incomplete selection is stale.
+	// The block keeps the previous id after a deselection (the classic
+	// script clears it), so an id with an incomplete selection is stale.
 	const { count, chosenCount } = getSelectedVariationAttributes();
 	return chosenCount === count ? variationId : null;
 };
 
 /**
- * Watches the blockified template for variation selection changes.
+ * Watches the blockified variation selector for the shopper's gestures.
  *
- * The block fires no variation event and core declined to add one (its
- * Interactivity API state is the intended signal, but that store is private),
- * so the shopper's gestures on the selector are the only supported signal.
- * The block re-renders the compat `variation_id` input after the gesture, so
- * callers must read the selection after a short delay; core's auto-selection
- * of the remaining attribute runs inside the same gesture and needs no extra
- * signal.
- *
- * The classic template is not covered here: its script fires the jQuery
- * `woocommerce_variation_has_changed` event, which callers listen to directly.
+ * The block fires no variation event, so gestures are the only signal. It
+ * updates `variation_id` after the gesture: read the selection after a short
+ * delay.
  *
  * @param {Function} onChange Called whenever the selection may have changed.
- * @return {{disconnect: Function}|null} Disconnectable handle, or null when
- *                                       the page has no blockified selector.
+ * @return {{disconnect: Function}|null} Handle, or null without a blockified selector.
  */
 export const observeBlockifiedVariationSelection = ( onChange ) => {
-	// keyup included: the chips variant selects via a keydown handler on
-	// buttons, which fires neither click nor change.
+	// keyup: the chips select on keydown, which fires neither click nor change.
 	const gestureEvents = [ 'click', 'change', 'keyup' ];
 	// Outermost matches only: nested rows match too, and gestures bubble.
 	const selectors = [

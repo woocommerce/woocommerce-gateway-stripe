@@ -399,8 +399,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		jest.useFakeTimers();
 		global.wc_stripe_express_checkout_params = productParams();
 
-		// The blockified steppers write the value property and dispatch a
-		// synthetic `change` (no `input` event), so that is the signal to catch.
+		// The blockified steppers dispatch `change`, not `input`.
 		document.body.innerHTML = `
 			<div id="wc-stripe-express-checkout-element"></div>
 			<form class="wp-block-add-to-cart-with-options wc-block-add-to-cart-with-options">
@@ -437,8 +436,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		);
 	} );
 
-	// Complete red selection on the Add to Cart + Options block: no selects,
-	// the attribute value lives in a hidden input bound to the block's state.
+	// Red selected on the Add to Cart + Options block (hidden attribute input).
 	const blockifiedProductForm = `
 		<div id="wc-stripe-express-checkout-element"></div>
 		<form class="wp-block-add-to-cart-with-options wc-block-add-to-cart-with-options">
@@ -480,8 +478,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 			};
 			await handlers.click( event );
 
-			// Without the variation the Store API rejects the parent id with
-			// "Missing attributes for variable product".
+			// Without the variation the Store API rejects the parent id.
 			expect( mockAddToCart ).toHaveBeenCalledWith(
 				expect.objectContaining( {
 					id: '1048',
@@ -564,8 +561,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 			} );
 			expect( elementsList ).toHaveLength( elementsCount );
 
-			// Closing the sheet fetches again for the form's current state,
-			// and the response is applied (a cancel re-initializes).
+			// Closing the sheet refetches and applies the response.
 			handlers.cancel();
 			await jest.advanceTimersByTimeAsync( 50 );
 			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 2 );
@@ -697,8 +693,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 				);
 				await flushPromises();
 
-				// Invalid response: nothing applied, and the stale preview is
-				// hidden, as on develop.
+				// Nothing applied, and the stale preview is hidden.
 				elementsList.forEach( ( elements ) => {
 					expect( elements.update ).not.toHaveBeenCalled();
 				} );
@@ -779,8 +774,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		jest.useFakeTimers();
 		global.wc_stripe_express_checkout_params = productParams();
 
-		// The block only rewrites the compat `variation_id` input when a new
-		// selection resolves, so after a deselection it still holds the old id.
+		// After a deselection the block's `variation_id` input keeps the old id.
 		document.body.innerHTML = `
 			<div id="wc-stripe-express-checkout-element"></div>
 			<form class="wp-block-add-to-cart-with-options wc-block-add-to-cart-with-options">
@@ -819,9 +813,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		jest.useFakeTimers();
 		global.wc_stripe_express_checkout_params = productParams();
 
-		// A second product embedded further down the page (e.g. a Single
-		// Product block in the description) can add a classic form next to
-		// the template's blockified one.
+		// E.g. a Single Product block in the description adds a classic form.
 		document.body.innerHTML = `
 			<div id="wc-stripe-express-checkout-element"></div>
 			<form class="wp-block-add-to-cart-with-options wc-block-add-to-cart-with-options">

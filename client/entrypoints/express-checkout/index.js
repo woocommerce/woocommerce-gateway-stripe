@@ -107,10 +107,9 @@ const initializeExpressCheckout = ( $ ) => {
 	const hasBlockifiedVariationForm = hasBlockifiedVariationSelector();
 	const hasBookingForm = $( '.wc-bookings-booking-form' ).length > 0;
 
-	// Variable products (on either template) and booking products keep the
-	// legacy display-item format: their product-page preview comes from
-	// `get_selected_product_data`, which has no Store API equivalent.
-	// Add-to-cart routing is handled separately in `addToCart()`.
+	// Variable and booking products keep the legacy display-item format: their
+	// product-page preview comes from `get_selected_product_data`, which has no
+	// Store API equivalent. Add-to-cart routing is handled separately in `addToCart()`.
 	const useLegacyDisplayItems = hasVariationUi || hasBookingForm;
 
 	const resolveClickEvent = ( event, options ) => {
@@ -181,10 +180,8 @@ const initializeExpressCheckout = ( $ ) => {
 		return hasVariationUi && ! getSelectedVariationId();
 	};
 
-	// One instance for both quantity listeners, so a typed quantity on the
-	// blockified template (`input`, then the block's `change` on blur) can
-	// collapse into one refresh. Created once because the listeners are
-	// re-bound on every init.
+	// Shared by both quantity listeners, so a typed quantity on the blockified
+	// template (`input`, then `change` on blur) sends one refresh.
 	const debouncedQuantityRefresh = debounce(
 		( options ) => wcStripeECE.onQuantityChanged( options ),
 		250
@@ -276,9 +273,8 @@ const initializeExpressCheckout = ( $ ) => {
 		// True while the wallet sheet is open; refreshes are deferred meanwhile.
 		paymentInFlight: false,
 		pendingRefresh: false,
-		// Product page only. Replayed as a fresh fetch rather than through
-		// `pendingRefresh`, because init() renders the product page from the
-		// cached product data and would drop the quantity change.
+		// Replayed as a fresh fetch: init() re-renders from cached product
+		// data and would drop the quantity change.
 		pendingQuantityRefresh: false,
 		// Request data of the preview the buttons show, and of the refresh in
 		// flight. Blockified signals also fire when nothing changed; these
@@ -1398,10 +1394,8 @@ const initializeExpressCheckout = ( $ ) => {
 
 			$.when( wcStripeECE.getSelectedProductData( requestData ) )
 				.then( ( response ) => {
-					// A null or primitive response can't be applied. Unlike a
-					// quantity change, the preview on screen is priced for a
-					// variation the shopper has left, so hide it rather than
-					// keep it, and record the error for the next click.
+					// Unusable response: the preview is for a variation the
+					// shopper has left, so hide it and alert on the next click.
 					if ( ! response || typeof response !== 'object' ) {
 						wcStripeECEError = defaultErrorMessage;
 						wcStripeECE.hide();
@@ -1488,16 +1482,13 @@ const initializeExpressCheckout = ( $ ) => {
 					}
 				} );
 
-			// The jQuery event handled above only exists on the classic
-			// template (its script fires it). On the blockified template,
-			// listen for the shopper's gestures on the selector instead.
+			// The blockified template fires no jQuery variation event; listen
+			// for gestures on its selector instead.
 			if ( hasBlockifiedVariationForm ) {
-				// `attachProductPageEventListeners` runs again on re-init;
-				// drop the previous listeners so changes aren't handled twice.
+				// Re-init runs this again: drop the previous listeners.
 				wcStripeECE.variationSelectionListener?.disconnect();
-				// Debounced: the block re-renders the compat `variation_id`
-				// input after the gesture, and one selection fires several
-				// gesture events.
+				// Debounced: the block updates `variation_id` after the
+				// gesture. Gestures also fire when the selection didn't change.
 				wcStripeECE.variationSelectionListener =
 					observeBlockifiedVariationSelection(
 						debounce(
@@ -1552,17 +1543,14 @@ const initializeExpressCheckout = ( $ ) => {
 			$.when( wcStripeECE.getSelectedProductData( requestData ) )
 				.then(
 					( response ) => {
-						// The sheet can open while this request is in flight:
-						// a wallet click blurs the blockified quantity input,
-						// and the block dispatches `change` on every blur.
+						// The sheet can open while this request is in flight.
 						if ( wcStripeECE.paymentInFlight ) {
 							wcStripeECE.pendingQuantityRefresh = true;
 							return;
 						}
 
-						// A null or primitive response can't be applied:
-						// record the error (surfaced on the next click) and
-						// keep the current preview.
+						// Unusable response: keep the preview and alert on
+						// the next click.
 						if ( ! response || typeof response !== 'object' ) {
 							wcStripeECEError = defaultErrorMessage;
 							return;

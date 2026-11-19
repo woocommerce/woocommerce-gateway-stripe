@@ -6,8 +6,7 @@ import {
 	observeBlockifiedVariationSelection,
 } from 'wcstripe/express-checkout/utils/variable-product-page';
 
-// Classic template: `.variations_form` with attribute selects, plus the
-// `.single_variation_wrap` hidden inputs written by wc-add-to-cart-variation.js.
+// Classic template: attribute selects plus the `.single_variation_wrap` hidden inputs.
 const classicMarkup = ( { variationId = '', color = '', logo = '' } ) => `
 	<form class="variations_form cart">
 		<table class="variations">
@@ -40,9 +39,7 @@ const classicMarkup = ( { variationId = '', color = '', logo = '' } ) => `
 	</form>
 `;
 
-// Blockified Add to Cart + Options template: no selects and no
-// `.variations_form`; attribute values live in Interactivity-API-bound
-// hidden inputs, next to the same `.single_variation_wrap` compat markup.
+// Blockified template: no selects; attribute values live in hidden inputs.
 const blockifiedMarkup = ( { variationId = '', color = '', logo = '' } ) => `
 	<form class="wp-block-add-to-cart-with-options wc-block-add-to-cart-with-options">
 		<input type="hidden" name="attribute_pa_color" value="${ color }" />
