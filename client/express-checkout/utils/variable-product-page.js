@@ -138,17 +138,17 @@ export const observeBlockifiedVariationSelection = ( onChange ) => {
 		return null;
 	}
 
-	selectors.forEach( ( el ) =>
+	selectors.forEach( ( element ) =>
 		gestureEvents.forEach( ( eventName ) =>
-			el.addEventListener( eventName, onChange )
+			element.addEventListener( eventName, onChange )
 		)
 	);
 
 	return {
 		disconnect: () => {
-			selectors.forEach( ( el ) =>
+			selectors.forEach( ( element ) =>
 				gestureEvents.forEach( ( eventName ) =>
-					el.removeEventListener( eventName, onChange )
+					element.removeEventListener( eventName, onChange )
 				)
 			);
 		},
