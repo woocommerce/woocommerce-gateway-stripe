@@ -1507,12 +1507,6 @@ parameters:
 			path: includes/class-wc-stripe-blocks-support.php
 
 		-
-			message: '#^Method WC_Stripe_Blocks_Support\:\:register_legacy_payment_method_script_handles\(\) is unused\.$#'
-			identifier: method.unused
-			count: 1
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
 			message: '#^Offset ''payment_intent_id'' does not exist on string\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
