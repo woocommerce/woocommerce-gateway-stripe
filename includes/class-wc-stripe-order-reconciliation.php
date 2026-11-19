@@ -837,7 +837,7 @@ class WC_Stripe_Order_Reconciliation {
 	}
 
 	/**
-	 * Hooks, Action Scheduler and the order list pass orders as objects or as IDs of any scalar type.
+	 * Hooks, Action Scheduler and the order list pass orders as objects, or as IDs in integers or strings.
 	 *
 	 * Order objects are read again from the database too: hooks can pass a copy loaded before the payment
 	 * ran, while the gateway saved the session or intent ID and the new status on another copy. The Store
@@ -855,8 +855,14 @@ class WC_Stripe_Order_Reconciliation {
 			$order = $order->get_id();
 		}
 
-		$order_id = is_scalar( $order ) ? absint( $order ) : 0;
-		if ( ! $order_id ) {
+		// Not absint(): it turns true into 1 and -42 into 42, which would point at an unrelated order.
+		$order_id = 0;
+		if ( is_int( $order ) ) {
+			$order_id = $order;
+		} elseif ( is_string( $order ) && ctype_digit( $order ) ) {
+			$order_id = (int) $order;
+		}
+		if ( $order_id <= 0 ) {
 			return null;
 		}
 

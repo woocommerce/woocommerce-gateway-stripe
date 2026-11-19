@@ -111,6 +111,25 @@ class WC_Stripe_Order_Reconciliation_Scheduler_Test extends WP_UnitTestCase {
 			'zero'         => [ 0 ],
 			'empty string' => [ '' ],
 			'array'        => [ [ 'order_id' => 1 ] ],
+			'true'         => [ true ],
+		];
+	}
+
+	/** @dataProvider provide_negative_order_references */
+	public function test_negative_order_references_do_not_point_at_the_positive_order( bool $as_string ) {
+		$order     = $this->create_order( 'stripe', 'pi_negative', 0 );
+		$reference = $as_string ? '-' . $order->get_id() : -$order->get_id();
+
+		$this->reconciliation->schedule_order_check( $reference );
+
+		$this->assertFalse( $this->reconciliation->enqueue_order( $reference ) );
+		$this->assertSame( [], $this->queued_order_ids() );
+	}
+
+	public static function provide_negative_order_references(): array {
+		return [
+			'integer' => [ false ],
+			'string'  => [ true ],
 		];
 	}
 
