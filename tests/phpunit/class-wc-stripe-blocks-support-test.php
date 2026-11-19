@@ -539,21 +539,21 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * On the front end the Express Checkout scripts are loaded alongside the block stylesheet.
+	 * On the front end the Express Checkout scripts are already loaded via WC_Stripe_Express_Checkout_Element. The
+	 * blocks logic must not rebuild and re-localize their params.
 	 *
 	 * @dataProvider provider_express_checkout_guards
 	 *
 	 * @param bool $page_supported  Return value for is_page_supported().
 	 * @param bool $should_show_ece Return value for should_show_express_checkout_button().
-	 * @param bool $expected        Whether Express Checkout is expected to be active.
 	 *
 	 * @return void
 	 */
-	public function test_maybe_enqueue_blocks_style_loads_express_checkout_scripts_when_active( bool $page_supported, bool $should_show_ece, bool $expected ): void {
+	public function test_maybe_enqueue_blocks_style_does_not_load_express_checkout_scripts_on_front_end( bool $page_supported, bool $should_show_ece ): void {
 		$element = $this->create_express_checkout_element(
 			$this->create_express_checkout_helper( $page_supported, $should_show_ece )
 		);
-		$element->expects( $expected ? $this->once() : $this->never() )
+		$element->expects( $this->never() )
 			->method( 'scripts' );
 
 		$blocks_support = new WC_Stripe_Blocks_Support( null, $element );

@@ -378,7 +378,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	}
 
 	/**
-	 * Enqueues the blocks stylesheet and Express Checkout scripts when Express Checkout is active.
+	 * Enqueues the blocks stylesheet, plus the Express Checkout scripts in wp-admin when Express Checkout is active.
 	 *
 	 * @since x.x.x
 	 *
@@ -393,7 +393,9 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 
 		wp_enqueue_style( self::BLOCKS_STYLE_HANDLE );
 
-		if ( $this->is_express_checkout_active() ) {
+		// Ensure that when we're in wp-admin we enqueue the Express Checkout scripts, as the main logic in
+		// WC_Stripe_Express_Checkout_Element only runs in front-end contexts.
+		if ( is_admin() && $this->is_express_checkout_active() ) {
 			$this->express_checkout_configuration->scripts();
 		}
 	}
