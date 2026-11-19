@@ -1754,7 +1754,16 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				return false;
 			}
 		);
-		$order_helper->expects( $this->once() )->method( 'unlock_order_payment' );
+		// Unlocking can save the order, so it must get the paid copy, never the pending one read before the lock.
+		$order_helper->expects( 'deleted' === $change ? $this->never() : $this->once() )
+			->method( 'unlock_order_payment' )
+			->with(
+				$this->callback(
+					static function ( WC_Order $unlocked_order ) {
+						return $unlocked_order->is_paid();
+					}
+				)
+			);
 		WC_Stripe_Order_Helper::set_instance( $order_helper );
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )

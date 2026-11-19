@@ -2591,11 +2591,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		try {
 			// Reconciliation or the order-received redirect can settle the order between the status check
 			// above and taking the lock. Settling that stale pending copy again would repeat notes and actions.
-			$fresh_order = $this->get_uncached_order( $order );
-			if ( ! $fresh_order || ! $fresh_order->has_status( $allowed_payment_processing_statuses ) || $session_id !== $order_helper->get_stripe_checkout_session_id( $fresh_order ) ) {
+			$order = $this->get_uncached_order( $order );
+			if ( ! $order || ! $order->has_status( $allowed_payment_processing_statuses ) || $session_id !== $order_helper->get_stripe_checkout_session_id( $order ) ) {
 				return false;
 			}
-			$order = $fresh_order;
 
 			$this->process_checkout_session_payment(
 				$order,
@@ -2632,8 +2631,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			$this->send_failed_order_email( $order->get_id(), $status_update );
 		} finally {
-			// Unlock the order
-			$order_helper->unlock_order_payment( $order );
+			// Unlocking can save the order on HPOS, so it uses the copy read under the lock: saving the earlier
+			// copy would write its pending status back. A deleted order has no lock left to release.
+			if ( $order ) {
+				$order_helper->unlock_order_payment( $order );
+			}
 		}
 
 		return false;
