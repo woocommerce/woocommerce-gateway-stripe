@@ -577,6 +577,53 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		$this->assertSame( [], $this->scheduled_checks( $order->get_id() ) );
 	}
 
+	/** @dataProvider provide_settlement_paths */
+	public function test_radar_manual_review_respects_the_review_status_opt_out( bool $has_session ): void {
+		$order = $this->create_pending_stripe_order( $has_session );
+		$this->use_real_settlement();
+		$objects = $this->successful_stripe_objects( $order );
+		if ( ! $has_session ) {
+			unset( $objects['/checkout/sessions/cs_recovery'] );
+		}
+		$objects['/charges/ch_recovery']->outcome = (object) [ 'type' => 'manual_review' ];
+		$objects['/charges/ch_recovery']->review  = 'prv_recovery';
+		$objects['/reviews/prv_recovery']         = (object) [
+			'id'             => 'prv_recovery',
+			'object'         => 'review',
+			'charge'         => 'ch_recovery',
+			'payment_intent' => 'pi_recovery',
+			'reason'         => 'rule',
+			'open'           => true,
+		];
+		$this->mock_stripe_objects( $objects );
+
+		$notifications = [];
+		$opt_out       = static function ( $change_status, $order, $notification ) use ( &$notifications ) {
+			$notifications[] = $notification;
+			return false;
+		};
+		add_filter( 'wc_stripe_webhook_review_change_order_status', $opt_out, 10, 3 );
+		try {
+			$this->reconciliation->reconcile_order_payment( $order->get_id() );
+		} finally {
+			remove_filter( 'wc_stripe_webhook_review_change_order_status', $opt_out, 10 );
+		}
+
+		$pending   = wc_get_order( $order->get_id() );
+		$note_text = $this->note_text( $pending );
+		$this->assertSame( 'pending', $pending->get_status() );
+		$this->assertSame( 'ch_recovery', $pending->get_transaction_id() );
+		$this->assertStringContainsString( 'custom code asked to skip status changes for reviews', $note_text );
+		$this->assertStringNotContainsString( 'the order was placed on hold', $note_text );
+		$this->assertSame( [], $this->scheduled_checks( $order->get_id() ) );
+
+		// Callbacks get the same event shape as from the review.opened webhook.
+		$this->assertCount( 1, $notifications );
+		$this->assertSame( 'review.opened', $notifications[0]->type );
+		$this->assertSame( 'prv_recovery', $notifications[0]->data->object->id );
+		$this->assertSame( 'rule', $notifications[0]->data->object->reason );
+	}
+
 	public static function provide_settlement_paths(): array {
 		return [
 			'PaymentIntent'    => [ false ],

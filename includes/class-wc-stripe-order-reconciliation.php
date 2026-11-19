@@ -631,7 +631,8 @@ class WC_Stripe_Order_Reconciliation {
 	 *
 	 * Charges that Stripe Radar holds for manual review are the exception: settlement records the charge
 	 * but leaves the order pending, expecting the review.opened webhook to put it on hold. That webhook
-	 * is missing too, so the check puts the order on hold itself.
+	 * is missing too, so the check puts the order on hold itself, unless custom code opted out of review
+	 * status changes the same way it would for the webhook.
 	 *
 	 * @param int    $order_id  Order that was settled. Read again, because callbacks during settlement can save
 	 *                          their own copy of the order, leaving the one settlement received out of date.
@@ -639,9 +640,26 @@ class WC_Stripe_Order_Reconciliation {
 	 * @param object $charge    The PaymentIntent's verified latest charge.
 	 */
 	private function report_settlement( int $order_id, string $intent_id, object $charge ): void {
-		$charge_id = (string) ( $charge->id ?? '' );
-		$order     = $this->resolve_order( $order_id );
-		if ( $order && $order->has_status( OrderStatus::PENDING ) && $charge_id === $order->get_transaction_id() && 'manual_review' === ( $charge->outcome->type ?? '' ) ) {
+		$charge_id       = (string) ( $charge->id ?? '' );
+		$order           = $this->resolve_order( $order_id );
+		$is_radar_review = $order && $order->has_status( OrderStatus::PENDING ) && $charge_id === $order->get_transaction_id() && 'manual_review' === ( $charge->outcome->type ?? '' );
+		if ( $is_radar_review ) {
+			$notification = $this->get_review_notification( $charge, $intent_id );
+
+			/** This filter is documented in includes/class-wc-stripe-webhook-handler.php. */
+			if ( ! apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) ) {
+				$order->add_order_note( __( 'Stripe Radar is reviewing this payment. The order was left pending, because custom code asked to skip status changes for reviews.', 'woocommerce-gateway-stripe' ) );
+				WC_Stripe_Logger::info(
+					'Reconciliation left a Radar-reviewed order pending, because wc_stripe_webhook_review_change_order_status returned false.',
+					[
+						'order_id'  => $order_id,
+						'intent_id' => $intent_id,
+						'charge_id' => $charge_id,
+					]
+				);
+				return;
+			}
+
 			// Settlement already stored the status to restore after the review, so review.closed (or the
 			// merchant) can complete the order; putting it on hold here must not replace that status.
 			$order->update_status(
@@ -1025,6 +1043,40 @@ class WC_Stripe_Order_Reconciliation {
 		// can't be reached; both mean "try again later", not a Stripe object.
 		$response = WC_Stripe_API::retrieve( $endpoint );
 		return is_object( $response ) && ! is_wp_error( $response ) ? $response : null;
+	}
+
+	/**
+	 * Build the review.opened event that the missing Radar webhook would have carried.
+	 *
+	 * Callbacks of wc_stripe_webhook_review_change_order_status read the review from that event. When Stripe
+	 * can't return the review, a minimal one built from the charge keeps those reads from failing.
+	 *
+	 * @param object $charge    Charge under review.
+	 * @param string $intent_id PaymentIntent of the charge.
+	 * @return object A Stripe event with the review as its data object.
+	 */
+	private function get_review_notification( object $charge, string $intent_id ): object {
+		$review_id = is_string( $charge->review ?? null ) ? $charge->review : '';
+		$review    = null;
+		if ( '' !== $review_id ) {
+			$review = $this->request_stripe_object( 'reviews/' . rawurlencode( $review_id ) );
+		}
+
+		if ( null === $review || isset( $review->error ) ) {
+			$review = (object) [
+				'id'             => $review_id,
+				'object'         => 'review',
+				'charge'         => (string) ( $charge->id ?? '' ),
+				'payment_intent' => $intent_id,
+				'reason'         => '',
+				'open'           => true,
+			];
+		}
+
+		return (object) [
+			'type' => 'review.opened',
+			'data' => (object) [ 'object' => $review ],
+		];
 	}
 
 	/**
