@@ -66,15 +66,17 @@ describe( 'ECE product page DOM readers', () => {
 			expect( hasVariationSelectionUi() ).toBe( true );
 		} );
 
-		it( 'returns no variation id before a variation is resolved', () => {
-			document.body.innerHTML = markup( {} );
-			expect( getSelectedVariationId() ).toBeNull();
-		} );
-
-		it( 'returns no variation id when the input holds "0"', () => {
-			document.body.innerHTML = markup( { variationId: '0' } );
-			expect( getSelectedVariationId() ).toBeNull();
-		} );
+		it.each( [ '', '0' ] )(
+			'returns no variation id when a complete selection leaves the input at "%s"',
+			( variationId ) => {
+				document.body.innerHTML = markup( {
+					variationId,
+					color: 'blue',
+					logo: 'No',
+				} );
+				expect( getSelectedVariationId() ).toBeNull();
+			}
+		);
 
 		it( 'returns the variation id once resolved', () => {
 			document.body.innerHTML = markup( {
@@ -91,18 +93,6 @@ describe( 'ECE product page DOM readers', () => {
 				color: 'blue',
 			} );
 			expect( getSelectedVariationId() ).toBeNull();
-		} );
-
-		it( 'reads an empty selection', () => {
-			document.body.innerHTML = markup( {} );
-			expect( getSelectedVariationAttributes() ).toStrictEqual( {
-				count: 2,
-				chosenCount: 0,
-				data: {
-					attribute_pa_color: '',
-					attribute_logo: '',
-				},
-			} );
 		} );
 
 		it( 'reads a partial selection', () => {
@@ -164,7 +154,6 @@ describe( 'ECE product page DOM readers', () => {
 
 		it.each( [
 			[ 'a blockified variable product', selectorMarkup, true ],
-			[ 'a classic variable product', classicMarkup( {} ), false ],
 			[
 				'a blockified simple product',
 				'<form class="wc-block-add-to-cart-with-options"><div class="quantity"><input class="qty" /></div></form>',

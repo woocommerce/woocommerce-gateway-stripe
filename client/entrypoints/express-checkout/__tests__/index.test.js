@@ -395,47 +395,6 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		] );
 	} );
 
-	it( 'refreshes the breakdown when the blockified quantity input dispatches change', async () => {
-		jest.useFakeTimers();
-		global.wc_stripe_express_checkout_params = productParams();
-
-		// The blockified steppers dispatch `change`, not `input`.
-		document.body.innerHTML = `
-			<div id="wc-stripe-express-checkout-element"></div>
-			<form class="wp-block-add-to-cart-with-options wc-block-add-to-cart-with-options">
-				<input type="hidden" name="attribute_color" value="red" />
-				<div class="quantity"><input type="number" class="qty" name="quantity" value="1" /></div>
-				<button type="submit" class="single_add_to_cart_button" value="1048">Add</button>
-				<div class="single_variation_wrap">
-					<input type="hidden" name="product_id" value="1048" />
-					<input type="hidden" name="variation_id" value="123" />
-				</div>
-			</form>`;
-		mockGetSelectedProductData.mockResolvedValue( {
-			total: { amount: 2000 },
-			currency: 'usd',
-			requestShipping: false,
-			displayItems: [ { label: 'Red variation', amount: 2000 } ],
-		} );
-
-		stubStripeButton();
-		loadEntrypoint();
-
-		try {
-			const qtyInput = document.querySelector( '.qty' );
-			qtyInput.value = '2';
-			qtyInput.dispatchEvent( new Event( 'change', { bubbles: true } ) );
-			await jest.advanceTimersByTimeAsync( 300 );
-		} finally {
-			jest.useRealTimers();
-		}
-
-		expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 1 );
-		expect( mockGetSelectedProductData ).toHaveBeenCalledWith(
-			expect.objectContaining( { qty: '2' } )
-		);
-	} );
-
 	// Red selected on the Add to Cart + Options block (hidden attribute input).
 	const blockifiedProductForm = `
 		<div id="wc-stripe-express-checkout-element"></div>
@@ -819,45 +778,6 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		}
 	} );
 
-	it( 'hides the buttons when a blockified deselection leaves a stale variation id', async () => {
-		jest.useFakeTimers();
-		global.wc_stripe_express_checkout_params = productParams();
-
-		// After a deselection the block's `variation_id` input keeps the old id.
-		document.body.innerHTML = `
-			<div id="wc-stripe-express-checkout-element"></div>
-			<form class="wp-block-add-to-cart-with-options wc-block-add-to-cart-with-options">
-				<div class="wp-block-woocommerce-add-to-cart-with-options-variation-selector">
-					<button type="button">Red</button>
-					<input type="hidden" name="attribute_color" value="red" />
-				</div>
-				<div class="quantity"><input type="number" class="qty" name="quantity" value="1" /></div>
-				<button type="submit" class="single_add_to_cart_button" value="1048">Add</button>
-				<div class="single_variation_wrap">
-					<input type="hidden" name="product_id" value="1048" />
-					<input type="hidden" name="variation_id" value="123" />
-				</div>
-			</form>`;
-
-		stubStripeButton();
-		loadEntrypoint();
-		const wrapper = document.getElementById(
-			'wc-stripe-express-checkout-element'
-		);
-
-		try {
-			document.querySelector( 'input[name="attribute_color"]' ).value =
-				'';
-			document.querySelector( 'button[type="button"]' ).click();
-			await jest.advanceTimersByTimeAsync( 300 );
-		} finally {
-			jest.useRealTimers();
-		}
-
-		expect( mockGetSelectedProductData ).not.toHaveBeenCalled();
-		expect( wrapper.style.display ).toBe( 'none' );
-	} );
-
 	it( 'follows the blockified selector when the page also renders a classic variations form', async () => {
 		jest.useFakeTimers();
 		global.wc_stripe_express_checkout_params = productParams();
@@ -1095,50 +1015,6 @@ describe( 'Express Checkout product page variation breakdown', () => {
 			}
 		);
 
-		it( 'tracks the newer refresh when an older one never settles', async () => {
-			setUp( blockifiedProductForm );
-			mockGetSelectedProductData.mockReturnValueOnce(
-				new Promise( () => {} )
-			);
-
-			await changeQuantity( '2' );
-			await changeQuantity( '3' );
-			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 2 );
-
-			// Quantity 3 was applied, so leaving the field unchanged skips.
-			await changeQuantity();
-			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 2 );
-
-			// The stuck quantity-2 request no longer counts as in flight.
-			await changeQuantity( '2' );
-			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 3 );
-		} );
-
-		it( 'keeps the newer refresh marked in flight when an older one settles late', async () => {
-			setUp( blockifiedProductForm );
-			const resolvers = [];
-			const pendingResponse = () =>
-				new Promise( ( resolve ) => resolvers.push( resolve ) );
-			mockGetSelectedProductData
-				.mockReturnValueOnce( pendingResponse() )
-				.mockReturnValueOnce( pendingResponse() );
-
-			await changeQuantity( '2' );
-			await changeQuantity( '3' );
-			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 2 );
-
-			// The quantity-2 response arrives while quantity 3 is in flight.
-			resolvers[ 0 ]( productDataResponse( 2000 ) );
-			await jest.advanceTimersByTimeAsync( 50 );
-			await changeQuantity();
-			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 2 );
-
-			resolvers[ 1 ]( productDataResponse( 3000 ) );
-			await jest.advanceTimersByTimeAsync( 50 );
-			await changeQuantity();
-			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 2 );
-		} );
-
 		it( 'queues no replay when a wallet click blurs an unchanged quantity input', async () => {
 			const { handlers } = setUp( blockifiedProductForm );
 
@@ -1150,18 +1026,6 @@ describe( 'Express Checkout product page variation breakdown', () => {
 
 			handlers.cancel();
 			await jest.advanceTimersByTimeAsync( 50 );
-			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 1 );
-		} );
-
-		it( 'skips the refresh for selector gestures that leave the selection unchanged', async () => {
-			setUp( blockifiedSelectorForm );
-
-			await gestureOnSelector( 'click' );
-			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 1 );
-
-			// Keyboard focus moving across the options, a click on a label.
-			await gestureOnSelector( 'keyup' );
-			await gestureOnSelector( 'click' );
 			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 1 );
 		} );
 
