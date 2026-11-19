@@ -312,6 +312,9 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					foreach ( [ 'upe_checkout_experience_accepted_payments', 'express_checkout_button_locations', 'express_checkout_button_type', 'express_checkout_button_theme', 'express_checkout_button_size', 'optimized_checkout_element', 'adaptive_pricing' ] as $key ) {
 						if ( array_key_exists( $key, $preferences ) ) {
 							$this->assertSame( $preferences[ $key ], $saved[ $key ], $stage . ': ' . $key );
+						} elseif ( 'connect' === $type && 'upe_checkout_experience_accepted_payments' === $key && ( 'GET' === $stage || array_key_exists( $key, $saved ) ) ) {
+							// The active PMC may be read during reconnect; the settings GET always reads and persists it.
+							$this->assertSame( [ 'card' ], $saved[ $key ], $stage . ': ' . $key );
 						} else {
 							$this->assertArrayNotHasKey( $key, $saved, $stage . ': ' . $key );
 						}
