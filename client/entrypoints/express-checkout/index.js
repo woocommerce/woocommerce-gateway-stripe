@@ -1495,16 +1495,20 @@ const initializeExpressCheckout = ( $ ) => {
 				wcStripeECE.variationSelectionListener?.disconnect();
 				// Debounced: the block updates `variation_id` after the
 				// gesture. Gestures also fire when the selection didn't change.
+				const debouncedVariationRefresh = debounce( () => {
+					wcStripeECE.onVariationChanged( { skipIfUnchanged: true } );
+					// No request went out: lift the gesture's overlay.
+					if ( wcStripeECE.pendingPreviewRequestKey === null ) {
+						wcStripeECE.unblockExpressCheckoutButton();
+					}
+				}, 250 );
 				wcStripeECE.variationSelectionListener =
-					observeBlockifiedVariationSelection(
-						debounce(
-							() =>
-								wcStripeECE.onVariationChanged( {
-									skipIfUnchanged: true,
-								} ),
-							250
-						)
-					);
+					observeBlockifiedVariationSelection( () => {
+						// As the classic handler does at its event, so the
+						// debounce leaves no gap to click a stale preview.
+						wcStripeECE.blockExpressCheckoutButton();
+						debouncedVariationRefresh();
+					} );
 			}
 
 			$( '.quantity' )

@@ -1211,6 +1211,37 @@ describe( 'Express Checkout product page variation breakdown', () => {
 			expect( wrapper.style.display ).not.toBe( 'none' );
 		} );
 
+		it( 'blocks the buttons at the gesture, before the debounced refresh starts', async () => {
+			setUp( blockifiedSelectorForm );
+			// eslint-disable-next-line global-require
+			const jq = require( 'jquery' );
+			jq.fn.block = jest.fn().mockReturnThis();
+			jq.fn.unblock = jest.fn().mockReturnThis();
+
+			document
+				.querySelector( 'button[type="button"]' )
+				.dispatchEvent( new Event( 'click', { bubbles: true } ) );
+			expect( jq.fn.block ).toHaveBeenCalledTimes( 1 );
+			expect( mockGetSelectedProductData ).not.toHaveBeenCalled();
+
+			// Lifted once the refresh has been applied.
+			await jest.advanceTimersByTimeAsync( 300 );
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 1 );
+			expect( jq.fn.unblock ).toHaveBeenCalled();
+		} );
+
+		it( 'lifts the overlay when the gesture needs no refresh', async () => {
+			setUp( blockifiedSelectorForm );
+			await selectColor( 'red' );
+			// eslint-disable-next-line global-require
+			const jq = require( 'jquery' );
+			jq.fn.unblock = jest.fn().mockReturnThis();
+
+			await gestureOnSelector( 'keyup' );
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 1 );
+			expect( jq.fn.unblock ).toHaveBeenCalledTimes( 1 );
+		} );
+
 		it( 'refreshes again when the previous variation refresh was refused', async () => {
 			setUp( blockifiedSelectorForm );
 			mockGetSelectedProductData.mockResolvedValueOnce( {
