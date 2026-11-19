@@ -1394,6 +1394,12 @@ const initializeExpressCheckout = ( $ ) => {
 
 			$.when( wcStripeECE.getSelectedProductData( requestData ) )
 				.then( ( response ) => {
+					// Deselected while this was in flight: stay hidden.
+					if ( isVariationSelectionNeeded() ) {
+						wcStripeECE.hide();
+						return;
+					}
+
 					// Unusable response: the preview is for a variation the
 					// shopper has left, so hide it and alert on the next click.
 					if ( ! response || typeof response !== 'object' ) {

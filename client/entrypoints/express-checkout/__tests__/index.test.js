@@ -896,7 +896,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		} );
 	} );
 
-	describe( 'redundant blockified refreshes', () => {
+	describe( 'blockified refreshes', () => {
 		// Red selected through the block's variation selector.
 		const blockifiedSelectorForm = `
 			<div id="wc-stripe-express-checkout-element"></div>
@@ -1131,6 +1131,35 @@ describe( 'Express Checkout product page variation breakdown', () => {
 			await selectColor( 'red' );
 			expect( wrapper.style.display ).not.toBe( 'none' );
 			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 1 );
+		} );
+
+		it( 'stays hidden when the selection is cleared while its refresh is in flight', async () => {
+			const { elementsList } = setUp( blockifiedSelectorForm );
+			let resolveInFlightRequest;
+			mockGetSelectedProductData.mockReturnValueOnce(
+				new Promise( ( resolve ) => {
+					resolveInFlightRequest = resolve;
+				} )
+			);
+			const wrapper = document.getElementById(
+				'wc-stripe-express-checkout-element'
+			);
+
+			await selectColor( 'red' );
+			await selectColor( '' );
+			expect( wrapper.style.display ).toBe( 'none' );
+
+			resolveInFlightRequest( productDataResponse( 2000 ) );
+			await jest.advanceTimersByTimeAsync( 50 );
+			expect( wrapper.style.display ).toBe( 'none' );
+			elementsList.forEach( ( elements ) => {
+				expect( elements.update ).not.toHaveBeenCalled();
+			} );
+
+			// Nothing was applied, so reselecting refreshes.
+			await selectColor( 'red' );
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 2 );
+			expect( wrapper.style.display ).not.toBe( 'none' );
 		} );
 
 		it( 'refreshes again when the previous variation refresh was refused', async () => {
