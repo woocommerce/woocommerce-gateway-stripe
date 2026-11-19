@@ -7,6 +7,7 @@ import {
 	fillLinkCardDetails,
 	fillLinkPaymentDetails,
 	fillLinkShippingAddress,
+	getLinkPayButton,
 	loginToLink,
 	openLinkPopup,
 	signUpForLink,
@@ -67,7 +68,10 @@ test.describe( 'express checkout free trial purchases with Link', () => {
 			await addSubscriptionToCart( page, virtualProductId );
 			await page.goto( '/checkout' );
 
-			const popup = await openLinkPopup( page, true );
+			const { content: popup, waitForClose } = await openLinkPopup(
+				page,
+				true
+			);
 			await signUpForLink(
 				popup,
 				linkEmail,
@@ -80,8 +84,8 @@ test.describe( 'express checkout free trial purchases with Link', () => {
 			);
 
 			await Promise.all( [
-				popup.waitForEvent( 'close', { timeout: 90 * 1000 } ),
-				popup.getByTestId( 'pay-button' ).click(),
+				waitForClose(),
+				getLinkPayButton( popup ).click(),
 			] );
 
 			await waitForOrderReceivedPage( page );
@@ -94,8 +98,12 @@ test.describe( 'express checkout free trial purchases with Link', () => {
 			await addSubscriptionToCart( page, virtualProductId );
 			await page.goto( '/checkout' );
 
-			const popup = await openLinkPopup( page, true );
-			await loginToLink( popup, linkEmail );
+			const { content: popup } = await openLinkPopup( page, true );
+			await loginToLink(
+				popup,
+				linkEmail,
+				config.get( 'cards.basic.cvc' )
+			);
 
 			// The saved-payment-method sheet of a signed-in Link account with
 			// a 0-amount trial cart: the sheet must remain actionable, not
@@ -103,7 +111,7 @@ test.describe( 'express checkout free trial purchases with Link', () => {
 			await expect( popup.getByText( /4242/ ).first() ).toBeVisible( {
 				timeout: 60 * 1000,
 			} );
-			await expect( popup.getByTestId( 'pay-button' ) ).toBeEnabled();
+			await expect( getLinkPayButton( popup ) ).toBeEnabled();
 		} );
 	} );
 
@@ -122,7 +130,10 @@ test.describe( 'express checkout free trial purchases with Link', () => {
 			await addProductToCartFromProductPageBySlug( page, 'beanie' );
 			await page.goto( '/checkout' );
 
-			const popup = await openLinkPopup( page, true );
+			const { content: popup, waitForClose } = await openLinkPopup(
+				page,
+				true
+			);
 			await signUpForLink(
 				popup,
 				linkEmail,
@@ -135,8 +146,8 @@ test.describe( 'express checkout free trial purchases with Link', () => {
 			await fillLinkCardDetails( popup, config.get( 'cards.basic' ) );
 
 			await Promise.all( [
-				popup.waitForEvent( 'close', { timeout: 90 * 1000 } ),
-				popup.getByTestId( 'pay-button' ).click(),
+				waitForClose(),
+				getLinkPayButton( popup ).click(),
 			] );
 
 			await waitForOrderReceivedPage( page );
@@ -149,7 +160,7 @@ test.describe( 'express checkout free trial purchases with Link', () => {
 			await addSubscriptionToCart( page, physicalProductId );
 			await page.goto( '/checkout' );
 
-			const popup = await openLinkPopup( page, true );
+			const { content: popup } = await openLinkPopup( page, true );
 
 			// Logging in makes Link evaluate the saved address, which triggers
 			// the express checkout shipping-address handler's Store API round
@@ -160,7 +171,11 @@ test.describe( 'express checkout free trial purchases with Link', () => {
 				( response ) => response.url().includes( UPDATE_CUSTOMER ),
 				{ timeout: 60 * 1000 }
 			);
-			await loginToLink( popup, linkEmail );
+			await loginToLink(
+				popup,
+				linkEmail,
+				config.get( 'cards.basic.cvc' )
+			);
 			await addressEvaluated;
 
 			// The deferred free-trial shipping resolves to the "Pending"
@@ -172,7 +187,7 @@ test.describe( 'express checkout free trial purchases with Link', () => {
 			await expect(
 				popup.getByText( 'Unavailable for this purchase' )
 			).toBeHidden();
-			await expect( popup.getByTestId( 'pay-button' ) ).toBeEnabled();
+			await expect( getLinkPayButton( popup ) ).toBeEnabled();
 		} );
 	} );
 } );
