@@ -903,6 +903,302 @@ describe( 'Express Checkout product page variation breakdown', () => {
 			expect( elements.update ).toHaveBeenCalledWith( { amount: 2000 } );
 		} );
 	} );
+
+	describe( 'redundant blockified refreshes', () => {
+		// Red selected through the block's variation selector.
+		const blockifiedSelectorForm = `
+			<div id="wc-stripe-express-checkout-element"></div>
+			<form class="wp-block-add-to-cart-with-options wc-block-add-to-cart-with-options">
+				<div class="wp-block-woocommerce-add-to-cart-with-options-variation-selector">
+					<button type="button">Red</button>
+					<input type="hidden" name="attribute_color" value="red" />
+				</div>
+				<div class="quantity"><input type="number" class="qty" name="quantity" value="1" /></div>
+				<button type="submit" class="single_add_to_cart_button" value="1048">Add</button>
+				<div class="single_variation_wrap">
+					<input type="hidden" name="product_id" value="1048" />
+					<input type="hidden" name="variation_id" value="123" />
+				</div>
+			</form>`;
+
+		const setUp = ( markup ) => {
+			jest.useFakeTimers();
+			global.wc_stripe_express_checkout_params = productParams();
+			document.body.innerHTML = markup;
+			mockGetSelectedProductData.mockResolvedValue(
+				productDataResponse( 2000 )
+			);
+			mockAddToCart.mockResolvedValue( { items_count: 1 } );
+			mockEmptyCartLegacy.mockResolvedValue( {} );
+			const stripeButton = stubStripeButton();
+			loadEntrypoint();
+			return stripeButton;
+		};
+
+		// Each helper waits out the 250ms debounce and the response.
+		const changeQuantity = async ( value ) => {
+			const quantityInput = document.querySelector( '.qty' );
+			if ( value !== undefined ) {
+				quantityInput.value = value;
+			}
+			quantityInput.dispatchEvent(
+				new Event( 'change', { bubbles: true } )
+			);
+			await jest.advanceTimersByTimeAsync( 300 );
+		};
+
+		const gestureOnSelector = async ( eventName ) => {
+			document
+				.querySelector( 'button[type="button"]' )
+				.dispatchEvent( new Event( eventName, { bubbles: true } ) );
+			await jest.advanceTimersByTimeAsync( 300 );
+		};
+
+		const selectColor = async ( color ) => {
+			document.querySelector( 'input[name="attribute_color"]' ).value =
+				color;
+			await gestureOnSelector( 'click' );
+		};
+
+		const openWalletSheet = async ( handlers ) => {
+			const event = {
+				resolve: jest.fn(),
+				expressPaymentType: 'googlePay',
+			};
+			await handlers.click( event );
+			expect( event.resolve ).toHaveBeenCalledTimes( 1 );
+		};
+
+		afterEach( () => {
+			jest.useRealTimers();
+		} );
+
+		it( 'skips the refresh when the quantity input dispatches change without a new value', async () => {
+			setUp( blockifiedProductForm );
+
+			await changeQuantity( '2' );
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 1 );
+
+			// The block dispatches `change` on every blur.
+			await changeQuantity();
+			await changeQuantity();
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 1 );
+
+			await changeQuantity( '3' );
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 2 );
+			expect( mockGetSelectedProductData ).toHaveBeenLastCalledWith(
+				expect.objectContaining( { qty: '3' } )
+			);
+		} );
+
+		it( 'skips a blur that follows a typed quantity whose refresh is still in flight', async () => {
+			setUp( blockifiedProductForm );
+			let resolveInFlightRequest;
+			mockGetSelectedProductData.mockReturnValueOnce(
+				new Promise( ( resolve ) => {
+					resolveInFlightRequest = resolve;
+				} )
+			);
+
+			const quantityInput = document.querySelector( '.qty' );
+			quantityInput.value = '2';
+			quantityInput.dispatchEvent(
+				new Event( 'input', { bubbles: true } )
+			);
+			await jest.advanceTimersByTimeAsync( 300 );
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 1 );
+
+			await changeQuantity();
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 1 );
+
+			resolveInFlightRequest( productDataResponse( 2000 ) );
+			await jest.advanceTimersByTimeAsync( 50 );
+			await changeQuantity();
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 1 );
+		} );
+
+		it.each( [
+			[
+				'fails',
+				() =>
+					mockGetSelectedProductData.mockRejectedValueOnce( {
+						responseJSON: { error: 'qty failed' },
+					} ),
+			],
+			[
+				'is refused by the server',
+				() =>
+					mockGetSelectedProductData.mockResolvedValueOnce( {
+						error: 'Not enough stock.',
+					} ),
+			],
+			[
+				'resolves an unusable response',
+				() => mockGetSelectedProductData.mockResolvedValueOnce( null ),
+			],
+		] )(
+			'retries on the next unchanged change when the quantity refresh %s',
+			async ( _label, mockFirstResponse ) => {
+				setUp( blockifiedProductForm );
+				mockFirstResponse();
+
+				await changeQuantity( '2' );
+				expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 1 );
+
+				await changeQuantity();
+				expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 2 );
+
+				// The retry was applied, so the next blur has nothing to do.
+				await changeQuantity();
+				expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 2 );
+			}
+		);
+
+		it( 'tracks the newer refresh when an older one never settles', async () => {
+			setUp( blockifiedProductForm );
+			mockGetSelectedProductData.mockReturnValueOnce(
+				new Promise( () => {} )
+			);
+
+			await changeQuantity( '2' );
+			await changeQuantity( '3' );
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 2 );
+
+			// Quantity 3 was applied, so leaving the field unchanged skips.
+			await changeQuantity();
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 2 );
+
+			// The stuck quantity-2 request no longer counts as in flight.
+			await changeQuantity( '2' );
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 3 );
+		} );
+
+		it( 'keeps the newer refresh marked in flight when an older one settles late', async () => {
+			setUp( blockifiedProductForm );
+			const resolvers = [];
+			const pendingResponse = () =>
+				new Promise( ( resolve ) => resolvers.push( resolve ) );
+			mockGetSelectedProductData
+				.mockReturnValueOnce( pendingResponse() )
+				.mockReturnValueOnce( pendingResponse() );
+
+			await changeQuantity( '2' );
+			await changeQuantity( '3' );
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 2 );
+
+			// The quantity-2 response arrives while quantity 3 is in flight.
+			resolvers[ 0 ]( productDataResponse( 2000 ) );
+			await jest.advanceTimersByTimeAsync( 50 );
+			await changeQuantity();
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 2 );
+
+			resolvers[ 1 ]( productDataResponse( 3000 ) );
+			await jest.advanceTimersByTimeAsync( 50 );
+			await changeQuantity();
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 2 );
+		} );
+
+		it( 'queues no replay when a wallet click blurs an unchanged quantity input', async () => {
+			const { handlers } = setUp( blockifiedProductForm );
+
+			await changeQuantity( '2' );
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 1 );
+
+			await openWalletSheet( handlers );
+			await changeQuantity();
+
+			handlers.cancel();
+			await jest.advanceTimersByTimeAsync( 50 );
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 1 );
+		} );
+
+		it( 'skips the refresh for selector gestures that leave the selection unchanged', async () => {
+			setUp( blockifiedSelectorForm );
+
+			await gestureOnSelector( 'click' );
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 1 );
+
+			// Keyboard focus moving across the options, a click on a label.
+			await gestureOnSelector( 'keyup' );
+			await gestureOnSelector( 'click' );
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 1 );
+		} );
+
+		it( 'shows the buttons without a refresh when the same variation is reselected', async () => {
+			setUp( blockifiedSelectorForm );
+			const wrapper = document.getElementById(
+				'wc-stripe-express-checkout-element'
+			);
+
+			await selectColor( 'red' );
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 1 );
+
+			await selectColor( '' );
+			expect( wrapper.style.display ).toBe( 'none' );
+
+			await selectColor( 'red' );
+			expect( wrapper.style.display ).not.toBe( 'none' );
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 1 );
+		} );
+
+		it( 'refreshes again when the previous variation refresh was refused', async () => {
+			setUp( blockifiedSelectorForm );
+			mockGetSelectedProductData.mockResolvedValueOnce( {
+				error: 'This product is out of stock.',
+			} );
+			const wrapper = document.getElementById(
+				'wc-stripe-express-checkout-element'
+			);
+
+			await gestureOnSelector( 'click' );
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 1 );
+			expect( wrapper.style.display ).toBe( 'none' );
+
+			await gestureOnSelector( 'keyup' );
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 2 );
+			expect( wrapper.style.display ).not.toBe( 'none' );
+		} );
+
+		it( 'refreshes on an unchanged selector gesture after the shopper dismissed the wallet sheet', async () => {
+			const { handlers, elementsList } = setUp( blockifiedSelectorForm );
+
+			await gestureOnSelector( 'click' );
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 1 );
+
+			await openWalletSheet( handlers );
+			handlers.cancel();
+			await jest.advanceTimersByTimeAsync( 50 );
+
+			// An aborted payment needs the element re-created on the next refresh.
+			const elementsCount = elementsList.length;
+			await gestureOnSelector( 'keyup' );
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 2 );
+			expect( elementsList.length ).toBeGreaterThan( elementsCount );
+
+			await gestureOnSelector( 'keyup' );
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 2 );
+		} );
+
+		it( 'always refreshes on the classic variation event, which extensions trigger to force one', async () => {
+			// The default fixture is the classic template.
+			jest.useFakeTimers();
+			global.wc_stripe_express_checkout_params = productParams();
+			mockGetSelectedProductData.mockResolvedValue(
+				productDataResponse( 2000 )
+			);
+			stubStripeButton();
+			loadEntrypoint();
+
+			// eslint-disable-next-line global-require
+			const jq = require( 'jquery' );
+			jq( document.body ).trigger( 'woocommerce_variation_has_changed' );
+			await jest.advanceTimersByTimeAsync( 50 );
+			jq( document.body ).trigger( 'woocommerce_variation_has_changed' );
+			await jest.advanceTimersByTimeAsync( 50 );
+
+			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 2 );
+		} );
+	} );
 } );
 
 describe( 'Express Checkout per-method location gating', () => {

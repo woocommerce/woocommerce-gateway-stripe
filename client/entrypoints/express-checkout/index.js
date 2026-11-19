@@ -186,7 +186,7 @@ const initializeExpressCheckout = ( $ ) => {
 	// collapse into one refresh. Created once because the listeners are
 	// re-bound on every init.
 	const debouncedQuantityRefresh = debounce(
-		() => wcStripeECE.onQuantityChanged(),
+		( options ) => wcStripeECE.onQuantityChanged( options ),
 		250
 	);
 
@@ -280,6 +280,11 @@ const initializeExpressCheckout = ( $ ) => {
 		// `pendingRefresh`, because init() renders the product page from the
 		// cached product data and would drop the quantity change.
 		pendingQuantityRefresh: false,
+		// Request data of the preview the buttons show, and of the refresh in
+		// flight. Blockified signals also fire when nothing changed; these
+		// let them skip the redundant refresh.
+		appliedPreviewRequestKey: null,
+		pendingPreviewRequestKey: null,
 
 		// Reuse must apply visibility, mode and styling changes alongside fresh totals.
 		getStructuralSignature: ( options ) => {
@@ -1163,7 +1168,7 @@ const initializeExpressCheckout = ( $ ) => {
 
 		getAttributes: () => getSelectedVariationAttributes(),
 
-		getSelectedProductData: () => {
+		getSelectedProductRequestData: () => {
 			let productId = $( '.single_add_to_cart_button' ).val();
 
 			// Check if product is a variable product.
@@ -1198,7 +1203,7 @@ const initializeExpressCheckout = ( $ ) => {
 				).val();
 			}
 
-			const data = {
+			return {
 				product_id: productId,
 				qty: $( quantityInputSelector ).val(),
 				attributes: hasVariationUi
@@ -1207,9 +1212,18 @@ const initializeExpressCheckout = ( $ ) => {
 				addon_value: addonValue,
 				...depositObject,
 			};
-
-			return api.expressCheckoutGetSelectedProductData( data );
 		},
+
+		getSelectedProductData: ( requestData ) =>
+			api.expressCheckoutGetSelectedProductData(
+				requestData ?? wcStripeECE.getSelectedProductRequestData()
+			),
+
+		// Never after an aborted payment: the next refresh must re-create
+		// the element.
+		isPreviewApplied: ( requestKey ) =>
+			! wcStripeECE.paymentAborted &&
+			requestKey === wcStripeECE.appliedPreviewRequestKey,
 
 		/**
 		 * Adds the item to the cart and return cart details.
@@ -1355,20 +1369,34 @@ const initializeExpressCheckout = ( $ ) => {
 			wcStripeECE.onQuantityChanged();
 		},
 
-		// Refresh the express checkout amount/items for the selected variation.
-		// Wired to both templates' change signals: the classic
-		// `woocommerce_variation_has_changed` jQuery event and the blockified
-		// selector's gesture listeners.
-		onVariationChanged: () => {
+		// Refreshes the preview for the selected variation, on both templates.
+		onVariationChanged: ( { skipIfUnchanged = false } = {} ) => {
 			if ( isVariationSelectionNeeded() ) {
 				wcStripeECE.hide();
 				return;
 			}
 
+			const requestData = wcStripeECE.getSelectedProductRequestData();
+			const requestKey = JSON.stringify( requestData );
+			if ( skipIfUnchanged ) {
+				if ( requestKey === wcStripeECE.pendingPreviewRequestKey ) {
+					return;
+				}
+				if ( wcStripeECE.isPreviewApplied( requestKey ) ) {
+					// Reselected after a deselection: the hidden preview
+					// is still current.
+					wcStripeECE.show();
+					return;
+				}
+			}
+
 			wcStripeECE.blockExpressCheckoutButton();
 			wcStripeECEError = '';
+			wcStripeECE.pendingPreviewRequestKey = requestKey;
+			// A failed response must leave nothing to skip against.
+			wcStripeECE.appliedPreviewRequestKey = null;
 
-			$.when( wcStripeECE.getSelectedProductData() )
+			$.when( wcStripeECE.getSelectedProductData( requestData ) )
 				.then( ( response ) => {
 					// A null or primitive response can't be applied. Unlike a
 					// quantity change, the preview on screen is priced for a
@@ -1409,6 +1437,7 @@ const initializeExpressCheckout = ( $ ) => {
 							);
 						}
 
+						wcStripeECE.appliedPreviewRequestKey = requestKey;
 						wcStripeECE.show();
 					}
 				} )
@@ -1416,8 +1445,17 @@ const initializeExpressCheckout = ( $ ) => {
 					wcStripeECE.hide();
 				} )
 				.always( () => {
+					wcStripeECE.settlePreviewRequest( requestKey );
 					wcStripeECE.unblockExpressCheckoutButton();
 				} );
+		},
+
+		// A newer request overwrites the marker; a stale one settling late
+		// must not clear it.
+		settlePreviewRequest: ( requestKey ) => {
+			if ( wcStripeECE.pendingPreviewRequestKey === requestKey ) {
+				wcStripeECE.pendingPreviewRequestKey = null;
+			}
 		},
 
 		attachProductPageEventListeners: () => {
@@ -1438,9 +1476,8 @@ const initializeExpressCheckout = ( $ ) => {
 
 			$( document.body )
 				.off( 'woocommerce_variation_has_changed' )
-				.on(
-					'woocommerce_variation_has_changed',
-					wcStripeECE.onVariationChanged
+				.on( 'woocommerce_variation_has_changed', () =>
+					wcStripeECE.onVariationChanged()
 				);
 
 			$( document.body )
@@ -1463,7 +1500,13 @@ const initializeExpressCheckout = ( $ ) => {
 				// gesture events.
 				wcStripeECE.variationSelectionListener =
 					observeBlockifiedVariationSelection(
-						debounce( wcStripeECE.onVariationChanged, 250 )
+						debounce(
+							() =>
+								wcStripeECE.onVariationChanged( {
+									skipIfUnchanged: true,
+								} ),
+							250
+						)
 					);
 			}
 
@@ -1475,15 +1518,27 @@ const initializeExpressCheckout = ( $ ) => {
 			// `change` instead, and on every blur too, changed or not.
 			$( BLOCKIFIED_QUANTITY_SELECTOR )
 				.off( 'change', '.qty' )
-				.on( 'change', '.qty', debouncedQuantityRefresh );
+				.on( 'change', '.qty', () =>
+					debouncedQuantityRefresh( { skipIfUnchanged: true } )
+				);
 		},
 
-		// Refresh the express checkout amount/items for the current quantity.
-		// Wired to the quantity input's `input` event and, on the blockified
-		// template, its `change` event.
-		onQuantityChanged: () => {
-			// Applying a refresh under an open wallet sheet would update, or
-			// re-create, the element the shopper is paying with.
+		// Refreshes the preview for the current quantity.
+		onQuantityChanged: ( { skipIfUnchanged = false } = {} ) => {
+			const requestData = wcStripeECE.getSelectedProductRequestData();
+			const requestKey = JSON.stringify( requestData );
+			// Before the open-sheet check: a wallet click blurs the quantity
+			// input, and that blur must not queue a replay.
+			if (
+				skipIfUnchanged &&
+				( requestKey === wcStripeECE.pendingPreviewRequestKey ||
+					wcStripeECE.isPreviewApplied( requestKey ) )
+			) {
+				return;
+			}
+
+			// A refresh under an open wallet sheet would alter the element
+			// the shopper is paying with.
 			if ( wcStripeECE.paymentInFlight ) {
 				wcStripeECE.pendingQuantityRefresh = true;
 				return;
@@ -1491,8 +1546,10 @@ const initializeExpressCheckout = ( $ ) => {
 
 			wcStripeECE.blockExpressCheckoutButton();
 			wcStripeECEError = '';
+			wcStripeECE.pendingPreviewRequestKey = requestKey;
+			wcStripeECE.appliedPreviewRequestKey = null;
 
-			$.when( wcStripeECE.getSelectedProductData() )
+			$.when( wcStripeECE.getSelectedProductData( requestData ) )
 				.then(
 					( response ) => {
 						// The sheet can open while this request is in flight:
@@ -1526,6 +1583,12 @@ const initializeExpressCheckout = ( $ ) => {
 								response
 							);
 						}
+
+						// A refusal (e.g. out of stock) is a 200 carrying
+						// `error`: nothing to skip against.
+						if ( ! response.error ) {
+							wcStripeECE.appliedPreviewRequestKey = requestKey;
+						}
 					},
 					( response ) => {
 						if ( response.responseJSON ) {
@@ -1536,6 +1599,7 @@ const initializeExpressCheckout = ( $ ) => {
 					}
 				)
 				.always( function () {
+					wcStripeECE.settlePreviewRequest( requestKey );
 					wcStripeECE.unblockExpressCheckoutButton();
 				} );
 		},
