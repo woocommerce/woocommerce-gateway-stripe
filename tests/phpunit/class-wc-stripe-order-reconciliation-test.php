@@ -99,7 +99,7 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 	}
 
 	/** @dataProvider provide_invalid_sessions */
-	public function test_does_not_fall_back_to_stored_intent_when_session_is_invalid( $session ): void {
+	public function test_unpaid_session_is_not_settled_through_an_unusable_later_intent( $session ): void {
 		$order = $this->create_pending_stripe_order( true );
 		$order->update_meta_data( '_stripe_intent_id', 'pi_stale' );
 		$order->save();
@@ -110,7 +110,9 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 
 		$this->reconciliation->reconcile_order_payment( $order->get_id() );
 
-		$this->assertSame( [ '/checkout/sessions/cs_recovery' ], $endpoints );
+		// A session that isn't paid yet checks the later payment attempt, which can't settle the order here.
+		$this->assertSame( [ '/checkout/sessions/cs_recovery', '/payment_intents/pi_stale' ], $endpoints );
+		$this->assertSame( 'pending', wc_get_order( $order->get_id() )->get_status() );
 	}
 
 	public static function provide_invalid_sessions(): array {
@@ -1629,6 +1631,10 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 					'cookies'  => [],
 					'filename' => null,
 				];
+			}
+			// Unexpected requests are traced too, so a test can't miss a lookup that only failed here.
+			if ( null !== $endpoints ) {
+				$endpoints[] = (string) preg_replace( '#^/v1#', '', (string) wp_parse_url( $url, PHP_URL_PATH ) );
 			}
 			return new WP_Error( 'unexpected_stripe_request', 'Unexpected Stripe API request in reconciliation test.' );
 		};
