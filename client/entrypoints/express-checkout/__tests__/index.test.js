@@ -1242,6 +1242,77 @@ describe( 'Express Checkout product page variation breakdown', () => {
 			expect( jq.fn.unblock ).toHaveBeenCalledTimes( 1 );
 		} );
 
+		it.each( [
+			[
+				'variation',
+				blockifiedSelectorForm,
+				async ( value ) => selectColor( value ),
+				[ 'red', 'blue' ],
+			],
+			[
+				'quantity',
+				blockifiedProductForm,
+				async ( value ) => changeQuantity( value ),
+				[ '2', '3' ],
+			],
+		] )(
+			'ignores a %s response that arrives after a newer request was answered',
+			async ( _label, markup, change, [ earlier, later ] ) => {
+				const { elementsList } = setUp( markup );
+				// eslint-disable-next-line global-require
+				const jq = require( 'jquery' );
+				jq.fn.unblock = jest.fn().mockReturnThis();
+				let resolveEarlier;
+				mockGetSelectedProductData
+					.mockReturnValueOnce(
+						new Promise( ( resolve ) => {
+							resolveEarlier = resolve;
+						} )
+					)
+					.mockResolvedValueOnce( productDataResponse( 3000 ) );
+
+				await change( earlier );
+				await change( later );
+				expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 2 );
+				const { product } = global.wc_stripe_express_checkout_params;
+				expect( product.total.amount ).toBe( 3000 );
+				const unblockCalls = jq.fn.unblock.mock.calls.length;
+
+				resolveEarlier( productDataResponse( 1111 ) );
+				await jest.advanceTimersByTimeAsync( 50 );
+				expect( product.total.amount ).toBe( 3000 );
+				elementsList.forEach( ( elements ) => {
+					expect( elements.update ).not.toHaveBeenCalledWith( {
+						amount: 1111,
+					} );
+				} );
+				expect( jq.fn.unblock ).toHaveBeenCalledTimes( unblockCalls );
+			}
+		);
+
+		it( 'keeps the overlay up when an older response arrives while the newer request is in flight', async () => {
+			setUp( blockifiedSelectorForm );
+			// eslint-disable-next-line global-require
+			const jq = require( 'jquery' );
+			jq.fn.unblock = jest.fn().mockReturnThis();
+			const resolvers = [];
+			const held = () =>
+				new Promise( ( resolve ) => resolvers.push( resolve ) );
+			mockGetSelectedProductData
+				.mockReturnValueOnce( held() )
+				.mockReturnValueOnce( held() );
+
+			await selectColor( 'red' );
+			await selectColor( 'blue' );
+			resolvers[ 0 ]( productDataResponse( 1111 ) );
+			await jest.advanceTimersByTimeAsync( 50 );
+			expect( jq.fn.unblock ).not.toHaveBeenCalled();
+
+			resolvers[ 1 ]( productDataResponse( 3000 ) );
+			await jest.advanceTimersByTimeAsync( 50 );
+			expect( jq.fn.unblock ).toHaveBeenCalledTimes( 1 );
+		} );
+
 		it( 'refreshes again when the previous variation refresh was refused', async () => {
 			setUp( blockifiedSelectorForm );
 			mockGetSelectedProductData.mockResolvedValueOnce( {

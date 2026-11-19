@@ -1394,6 +1394,11 @@ const initializeExpressCheckout = ( $ ) => {
 
 			$.when( wcStripeECE.getSelectedProductData( requestData ) )
 				.then( ( response ) => {
+					// Superseded: the newer request's response owns the preview.
+					if ( wcStripeECE.pendingPreviewRequestKey !== requestKey ) {
+						return;
+					}
+
 					// Deselected while this was in flight: stay hidden.
 					if ( isVariationSelectionNeeded() ) {
 						wcStripeECE.hide();
@@ -1446,15 +1451,15 @@ const initializeExpressCheckout = ( $ ) => {
 				} )
 				.always( () => {
 					wcStripeECE.settlePreviewRequest( requestKey );
-					wcStripeECE.unblockExpressCheckoutButton();
 				} );
 		},
 
 		// A newer request overwrites the marker; a stale one settling late
-		// must not clear it.
+		// must not clear it, nor lift the overlay the newer one still needs.
 		settlePreviewRequest: ( requestKey ) => {
 			if ( wcStripeECE.pendingPreviewRequestKey === requestKey ) {
 				wcStripeECE.pendingPreviewRequestKey = null;
+				wcStripeECE.unblockExpressCheckoutButton();
 			}
 		},
 
@@ -1553,6 +1558,13 @@ const initializeExpressCheckout = ( $ ) => {
 			$.when( wcStripeECE.getSelectedProductData( requestData ) )
 				.then(
 					( response ) => {
+						// Superseded: the newer request's response owns the preview.
+						if (
+							wcStripeECE.pendingPreviewRequestKey !== requestKey
+						) {
+							return;
+						}
+
 						// The sheet can open while this request is in flight.
 						if ( wcStripeECE.paymentInFlight ) {
 							wcStripeECE.pendingQuantityRefresh = true;
@@ -1601,7 +1613,6 @@ const initializeExpressCheckout = ( $ ) => {
 				)
 				.always( function () {
 					wcStripeECE.settlePreviewRequest( requestKey );
-					wcStripeECE.unblockExpressCheckoutButton();
 				} );
 		},
 
