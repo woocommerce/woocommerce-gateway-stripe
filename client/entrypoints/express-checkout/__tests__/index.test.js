@@ -1171,7 +1171,7 @@ describe( 'Express Checkout product page variation breakdown', () => {
 			expect( mockGetSelectedProductData ).toHaveBeenCalledTimes( 2 );
 		} );
 
-		it( 'always refreshes on the classic variation event, which extensions trigger to force one', async () => {
+		it( 'always refreshes on the classic variation event, even when nothing changed', async () => {
 			// The default fixture is the classic template.
 			jest.useFakeTimers();
 			global.wc_stripe_express_checkout_params = productParams();
