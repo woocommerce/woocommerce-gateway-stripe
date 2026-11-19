@@ -179,7 +179,7 @@ class WC_Stripe_Order_Reconciliation {
 			$this->schedule_checks( $renewal_order, $charge_at, $charge_at + self::FIRST_CHECK_DELAY );
 		} catch ( Throwable $exception ) {
 			WC_Stripe_Logger::error(
-				'Could not schedule a Stripe payment status check for a delayed renewal: ' . $exception->getMessage(),
+				'Could not schedule a Stripe payment status check for a delayed renewal: ' . $this->get_loggable_message( $exception ),
 				[ 'order_id' => $renewal_order instanceof WC_Order ? $renewal_order->get_id() : 0 ]
 			);
 		}
@@ -262,7 +262,7 @@ class WC_Stripe_Order_Reconciliation {
 			$this->schedule_order_check( $order );
 		} catch ( Throwable $exception ) {
 			WC_Stripe_Logger::error(
-				'Could not schedule a Stripe payment status check: ' . $exception->getMessage(),
+				'Could not schedule a Stripe payment status check: ' . $this->get_loggable_message( $exception ),
 				[ 'order_id' => $order instanceof WC_Order ? $order->get_id() : ( is_scalar( $order ) ? absint( $order ) : 0 ) ]
 			);
 		}
@@ -548,7 +548,7 @@ class WC_Stripe_Order_Reconciliation {
 		} catch ( Throwable $exception ) {
 			// Not just Exception: an Error escaping to Action Scheduler would fail the action and end the order's checks.
 			WC_Stripe_Logger::error(
-				'Reconciliation failed for order ' . $order_id . ': ' . $exception->getMessage(),
+				'Reconciliation failed for order ' . $order_id . ': ' . $this->get_loggable_message( $exception ),
 				[
 					'order_id'  => $order_id,
 					'exception' => get_class( $exception ),
@@ -722,7 +722,7 @@ class WC_Stripe_Order_Reconciliation {
 	private function report_settlement_failure( int $order_id, string $intent_id, Throwable $exception ): void {
 		$order = $this->resolve_order( $order_id );
 		WC_Stripe_Logger::error(
-			'Reconciliation found a Stripe payment but could not settle the order: ' . $exception->getMessage(),
+			'Reconciliation found a Stripe payment but could not settle the order: ' . $this->get_loggable_message( $exception ),
 			[
 				'order_id'  => $order_id,
 				'intent_id' => $intent_id,
@@ -741,6 +741,22 @@ class WC_Stripe_Order_Reconciliation {
 				)
 			);
 		}
+	}
+
+	/**
+	 * An exception's message that is safe to log.
+	 *
+	 * @param Throwable $exception The exception to log.
+	 * @return string
+	 */
+	private function get_loggable_message( Throwable $exception ): string {
+		// The plugin's own exceptions often carry a print_r() of the Stripe object as their message,
+		// which includes the customer's billing details. Their localized message is the readable reason.
+		if ( $exception instanceof WC_Stripe_Exception ) {
+			return $exception->getLocalizedMessage();
+		}
+
+		return $exception->getMessage();
 	}
 
 	/**

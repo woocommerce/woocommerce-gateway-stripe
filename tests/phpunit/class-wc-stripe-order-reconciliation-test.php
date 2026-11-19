@@ -1214,6 +1214,37 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		];
 	}
 
+	/** @dataProvider provide_stripe_exception_sources */
+	public function test_logs_leave_out_the_stripe_object_of_a_stripe_exception( bool $during_settlement ): void {
+		$order     = $this->create_pending_stripe_order( false );
+		$exception = new WC_Stripe_Exception( 'stdClass Object ( [billing_details] => jane@example.com )', 'The payment could not be recorded.' );
+		if ( $during_settlement ) {
+			$this->mock_settlement_error( $order, false, false, $exception );
+		} else {
+			$this->mock_stripe_objects( [ '/payment_intents/pi_recovery' => $this->successful_intent( 'ch_recovery' ) ] );
+			$this->gateway->method( 'get_latest_charge_from_intent' )->willThrowException( $exception );
+		}
+
+		$log = implode(
+			"\n",
+			$this->capture_logs(
+				function () use ( $order ) {
+					$this->reconciliation->reconcile_order_payment( $order->get_id() );
+				}
+			)
+		);
+
+		$this->assertStringContainsString( 'The payment could not be recorded.', $log );
+		$this->assertStringNotContainsString( 'jane@example.com', $log );
+	}
+
+	public static function provide_stripe_exception_sources(): array {
+		return [
+			'during settlement' => [ true ],
+			'during the check'  => [ false ],
+		];
+	}
+
 	public function test_manual_check_reports_a_settlement_error_once(): void {
 		$order = $this->create_pending_stripe_order( false );
 		$this->mock_settlement_error( $order, false, false );
@@ -1397,7 +1428,8 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 	 * @param bool     $has_session       Whether the order has a Checkout Session.
 	 * @param bool     $paid_before_error Whether settlement pays the order before it throws.
 	 */
-	private function mock_settlement_error( WC_Order $order, bool $has_session, bool $paid_before_error ): void {
+	private function mock_settlement_error( WC_Order $order, bool $has_session, bool $paid_before_error, ?Throwable $error = null ): void {
+		$error   = $error ?? new Error( 'Settlement failed.' );
 		$intent  = $this->successful_intent( self::fixture_charge() );
 		$objects = [ '/payment_intents/pi_recovery' => $intent ];
 		if ( $has_session ) {
@@ -1412,11 +1444,11 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		$webhook_handler->expects( $this->once() )
 			->method( $has_session ? 'process_checkout_session_payment' : 'process_reconciled_payment' )
 			->willReturnCallback(
-				static function () use ( $order, $paid_before_error ) {
+				static function () use ( $order, $paid_before_error, $error ) {
 					if ( $paid_before_error ) {
 						wc_get_order( $order->get_id() )->payment_complete( 'ch_recovery' );
 					}
-					throw new Error( 'Settlement failed.' );
+					throw $error;
 				}
 			);
 		$this->reconciliation = new WC_Stripe_Order_Reconciliation( $this->gateway, $webhook_handler );
