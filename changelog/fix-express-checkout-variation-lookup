@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Avoid expensive variation lookup in express checkout setup on product pages
