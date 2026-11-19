@@ -1562,6 +1562,13 @@ const initializeExpressCheckout = ( $ ) => {
 							return;
 						}
 
+						// A refusal (e.g. out of stock) is a 200 carrying
+						// `error` and no totals: same, with its message.
+						if ( response.error ) {
+							wcStripeECEError = response.error;
+							return;
+						}
+
 						if (
 							! wcStripeECE.paymentAborted &&
 							getExpressCheckoutData( 'product' )
@@ -1578,11 +1585,7 @@ const initializeExpressCheckout = ( $ ) => {
 							);
 						}
 
-						// A refusal (e.g. out of stock) is a 200 carrying
-						// `error`: nothing to skip against.
-						if ( ! response.error ) {
-							wcStripeECE.appliedPreviewRequestKey = requestKey;
-						}
+						wcStripeECE.appliedPreviewRequestKey = requestKey;
 					},
 					( response ) => {
 						if ( response.responseJSON ) {

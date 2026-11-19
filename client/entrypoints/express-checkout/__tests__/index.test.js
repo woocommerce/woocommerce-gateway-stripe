@@ -669,6 +669,55 @@ describe( 'Express Checkout product page variation breakdown', () => {
 		}
 	);
 
+	it( 'keeps the cached preview and alerts the server message when the quantity refresh is refused', async () => {
+		jest.useFakeTimers();
+		global.wc_stripe_express_checkout_params = productParams();
+		const { product } = global.wc_stripe_express_checkout_params;
+		const initialPreview = JSON.parse( JSON.stringify( product ) );
+
+		// The server answers 200 with only `error`, e.g. above stock.
+		mockGetSelectedProductData.mockResolvedValue( {
+			error: 'Not enough stock.',
+		} );
+		mockAddToCart.mockResolvedValue( { items_count: 1 } );
+		mockEmptyCartLegacy.mockResolvedValue( {} );
+		const alertSpy = jest
+			.spyOn( window, 'alert' )
+			.mockImplementation( () => {} );
+
+		const { handlers, elementsList } = stubStripeButton();
+		loadEntrypoint();
+		const elementsCount = elementsList.length;
+
+		try {
+			// eslint-disable-next-line global-require
+			const jq = require( 'jquery' );
+			const quantityInput = document.querySelector( '.qty' );
+			quantityInput.value = '99';
+			jq( quantityInput ).trigger( 'input' );
+			await jest.advanceTimersByTimeAsync( 300 );
+
+			expect( product ).toEqual( initialPreview );
+			expect( elementsList ).toHaveLength( elementsCount );
+			elementsList.forEach( ( elements ) => {
+				expect( elements.update ).not.toHaveBeenCalled();
+			} );
+
+			const event = {
+				resolve: jest.fn(),
+				expressPaymentType: 'googlePay',
+			};
+			await handlers.click( event );
+			expect( alertSpy ).toHaveBeenCalledWith( 'Not enough stock.' );
+			expect( event.resolve ).not.toHaveBeenCalled();
+			expect( mockEmptyCartLegacy ).not.toHaveBeenCalled();
+			expect( mockAddToCart ).not.toHaveBeenCalled();
+		} finally {
+			jest.useRealTimers();
+			alertSpy.mockRestore();
+		}
+	} );
+
 	it.each( [
 		[ 'null', null ],
 		[ 'a primitive', 'oops' ],
