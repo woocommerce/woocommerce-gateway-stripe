@@ -1725,7 +1725,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 *
 	 * @return void
 	 */
-	public function test_handle_checkout_session_success_skips_an_order_settled_before_the_lock(): void {
+	/** @dataProvider provide_order_changes_before_the_lock */
+	public function test_handle_checkout_session_success_skips_an_order_changed_before_the_lock( string $change ): void {
 		$checkout_session_id = 'cs_test_settled_before_lock';
 
 		$order = WC_Helper_Order::create_order();
@@ -1737,14 +1738,19 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
 		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
 
-		// Another settler (for example reconciliation) pays the order right before the webhook gets the lock.
+		// Another request pays (for example reconciliation) or deletes the order right before the webhook gets the lock.
 		$order_helper = $this->createPartialMock(
 			WC_Stripe_Order_Helper::class,
 			[ 'lock_order_payment', 'unlock_order_payment' ]
 		);
 		$order_helper->method( 'lock_order_payment' )->willReturnCallback(
-			static function ( WC_Order $locked_order ) {
-				wc_get_order( $locked_order->get_id() )->payment_complete( 'ch_settled_before_lock' );
+			static function ( WC_Order $locked_order ) use ( $change ) {
+				$current_order = wc_get_order( $locked_order->get_id() );
+				if ( 'deleted' === $change ) {
+					$current_order->delete( true );
+				} else {
+					$current_order->payment_complete( 'ch_settled_before_lock' );
+				}
 				return false;
 			}
 		);
@@ -1769,7 +1775,18 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		];
 
 		$this->assertFalse( $handler->process_checkout_session_success( $notification ) );
-		$this->assertTrue( wc_get_order( $order->get_id() )->is_paid() );
+		if ( 'deleted' === $change ) {
+			$this->assertFalse( wc_get_order( $order->get_id() ) );
+		} else {
+			$this->assertTrue( wc_get_order( $order->get_id() )->is_paid() );
+		}
+	}
+
+	public static function provide_order_changes_before_the_lock(): array {
+		return [
+			'paid'    => [ 'paid' ],
+			'deleted' => [ 'deleted' ],
+		];
 	}
 
 	public function test_handle_checkout_session_success_requeues_when_order_payment_locked(): void {
