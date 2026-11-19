@@ -691,6 +691,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			$current_value = $this->gateway->get_option( $attribute );
 
 			$this->gateway->update_validated_option( $attribute, $value );
+			// Saving OC/AP can synchronously replace webhook credentials; reload them before the next gateway save.
+			$this->gateway->init_settings();
 
 			if ( isset( $tracks_event_prefixes[ $request_key ] ) && $value !== $current_value && function_exists( 'wc_admin_record_tracks_event' ) ) {
 				wc_admin_record_tracks_event(
