@@ -335,7 +335,8 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * which enqueues our block stylesheet when the following are true:
 	 *  - We are in the admin
 	 *  - The payment method is active
-	 *  - The current page has a cart or checkout
+	 *  - We have a valid WP_Screen
+	 *  - We are in the site editor OR we're in the block editor and the current page/post contains a cart or checkout block
 	 *
 	 * @since 10.9.0
 	 *
@@ -345,12 +346,19 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		if (
 			! is_admin()
 			|| ! $this->is_active()
-			|| ! WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
 		) {
 			return;
 		}
 
-		$this->enqueue_blocks_style();
+		$current_screen = get_current_screen();
+		if ( ! $current_screen instanceof WP_Screen ) {
+			return;
+		}
+
+		// Enqueue our styles for the site editor or when we're in the block editor and have a cart or checkout on the page.
+		if ( 'site-editor' === $current_screen->id || ( $current_screen->is_block_editor() && WC_Stripe_Helper::has_cart_or_checkout_on_current_page() ) ) {
+			$this->enqueue_blocks_style();
+		}
 	}
 
 	/**

@@ -204,16 +204,37 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 	 * Sets up the conditions maybe_enqueue_blocks_style_for_editor() checks for.
 	 *
 	 * @param WC_Stripe_Blocks_Support $blocks_support The instance under test.
-	 * @param bool                     $is_admin       Whether to simulate an admin screen.
+	 * @param string                   $screen         One of 'front-end', 'classic-editor', 'block-editor' or 'site-editor'.
 	 * @param bool                     $is_enabled     Whether Stripe is enabled.
 	 * @param bool                     $has_checkout   Whether the current post contains the Checkout block.
 	 *
 	 * @return void
 	 */
-	private function set_up_editor_context( WC_Stripe_Blocks_Support $blocks_support, bool $is_admin, bool $is_enabled, bool $has_checkout ): void {
+	private function set_up_editor_context( WC_Stripe_Blocks_Support $blocks_support, string $screen, bool $is_enabled, bool $has_checkout ): void {
 		$this->replaced_current_screen = true;
 		$this->original_current_screen = $GLOBALS['current_screen'] ?? null;
-		$GLOBALS['current_screen']     = $is_admin ? WP_Screen::get( 'page' ) : null;
+
+		switch ( $screen ) {
+			case 'front-end':
+				// is_admin() falls back to WP_ADMIN, which is undefined under PHPUnit, when there's no screen.
+				$current_screen = null;
+				break;
+			case 'classic-editor':
+				$current_screen = WP_Screen::get( 'page' );
+				$current_screen->is_block_editor( false );
+				break;
+			case 'block-editor':
+				$current_screen = WP_Screen::get( 'page' );
+				$current_screen->is_block_editor( true );
+				break;
+			case 'site-editor':
+				$current_screen = WP_Screen::get( 'site-editor' );
+				$current_screen->is_block_editor( true );
+				break;
+			default:
+				$this->fail( "Unknown editor screen: {$screen}" );
+		}
+		$GLOBALS['current_screen'] = $current_screen;
 
 		$settings = new ReflectionProperty( WC_Stripe_Blocks_Support::class, 'settings' );
 		$settings->setAccessible( true );
@@ -429,23 +450,24 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 
 	/**
 	 * The editor callback runs on every admin screen (and on enqueue_block_assets, which also fires
-	 * on the front end), so it must only enqueue for an active gateway on a Cart/Checkout page in the admin.
+	 * on the front end), so it must only enqueue for an active gateway in the site editor, or in the
+	 * block editor with a Cart/Checkout block in the page.
 	 *
 	 * @dataProvider provider_editor_contexts
 	 *
-	 * @param bool $is_admin          Whether we're on an admin screen.
-	 * @param bool $is_enabled        Whether Stripe is enabled.
-	 * @param bool $has_checkout      Whether the edited post contains the Checkout block.
-	 * @param bool $expected_enqueued Whether the block stylesheet should end up enqueued.
+	 * @param string $screen            The screen to simulate; see set_up_editor_context().
+	 * @param bool   $is_enabled        Whether Stripe is enabled.
+	 * @param bool   $has_checkout      Whether the edited post contains the Checkout block.
+	 * @param bool   $expected_enqueued Whether the block stylesheet should end up enqueued.
 	 *
 	 * @return void
 	 */
-	public function test_maybe_enqueue_blocks_style_for_editor_requires_admin_active_gateway_and_checkout( bool $is_admin, bool $is_enabled, bool $has_checkout, bool $expected_enqueued ): void {
+	public function test_maybe_enqueue_blocks_style_for_editor_requires_editor_screen_and_active_gateway( string $screen, bool $is_enabled, bool $has_checkout, bool $expected_enqueued ): void {
 		$element        = $this->create_express_checkout_element(
 			$this->create_express_checkout_helper( false, false )
 		);
 		$blocks_support = new WC_Stripe_Blocks_Support( null, $element );
-		$this->set_up_editor_context( $blocks_support, $is_admin, $is_enabled, $has_checkout );
+		$this->set_up_editor_context( $blocks_support, $screen, $is_enabled, $has_checkout );
 
 		$blocks_support->maybe_enqueue_blocks_style_for_editor();
 
@@ -453,14 +475,19 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Data provider for {@see test_maybe_enqueue_blocks_style_for_editor_requires_editor_screen_and_active_gateway()}.
+	 *
 	 * @return array[]
 	 */
 	public function provider_editor_contexts(): array {
 		return [
-			'admin, enabled, checkout page' => [ true, true, true, true ],
-			'front end'                     => [ false, true, true, false ],
-			'gateway disabled'              => [ true, false, true, false ],
-			'page without cart or checkout' => [ true, true, false, false ],
+			'block editor, checkout page'                 => [ 'block-editor', true, true, true ],
+			'block editor, page without cart or checkout' => [ 'block-editor', true, false, false ],
+			'block editor, gateway disabled'              => [ 'block-editor', false, true, false ],
+			'classic editor, checkout page'               => [ 'classic-editor', true, true, false ],
+			'site editor'                                 => [ 'site-editor', true, false, true ],
+			'site editor, gateway disabled'               => [ 'site-editor', false, false, false ],
+			'front end, checkout page'                    => [ 'front-end', true, true, false ],
 		];
 	}
 
@@ -475,7 +502,7 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 			$this->create_express_checkout_helper( false, false )
 		);
 		$blocks_support = new WC_Stripe_Blocks_Support( null, $element );
-		$this->set_up_editor_context( $blocks_support, true, true, true );
+		$this->set_up_editor_context( $blocks_support, 'block-editor', true, true );
 
 		$this->assertFalse( wp_script_is( $this->get_block_script_handle(), 'enqueued' ) );
 
@@ -503,7 +530,7 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 		$element->expects( $expected ? $this->once() : $this->never() )->method( 'scripts' );
 
 		$blocks_support = new WC_Stripe_Blocks_Support( null, $element );
-		$this->set_up_editor_context( $blocks_support, true, true, true );
+		$this->set_up_editor_context( $blocks_support, 'block-editor', true, true );
 
 		$blocks_support->maybe_enqueue_blocks_style_for_editor();
 		$blocks_support->maybe_enqueue_blocks_style_for_editor();
