@@ -46,14 +46,6 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	public function setUp(): void {
 		parent::setUp();
 
-		if ( ! interface_exists( 'Automattic\WooCommerce\Internal\ProductFeed\Integrations\IntegrationInterface' ) ) {
-			$this->markTestSkipped( 'WooCommerce IntegrationInterface not available (requires WooCommerce 10.5.0+)' );
-		}
-
-		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Integration' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Integration class not loaded' );
-		}
-
 		$this->last_upload_option = WC_Stripe_Test_Helper::get_class_const_value( \WC_Stripe_Agentic_Commerce_Integration::class, 'LAST_UPLOAD_OPTION', 'string' );
 
 		$this->immediate_sync_action = WC_Stripe_Test_Helper::get_class_const_value(
@@ -247,10 +239,6 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_sync_feed_does_not_count_excluded_product_as_validation_skip() {
-		if ( ! function_exists( 'as_enqueue_async_action' ) || ! class_exists( 'WC_Product_Simple' ) ) {
-			$this->markTestSkipped( 'WooCommerce product/Action Scheduler not available.' );
-		}
-
 		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
 		update_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
 		update_option( \WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION, 'whsec_test' );
@@ -347,10 +335,6 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_sync_feed_binds_mode_and_key_to_sync_start() {
-		if ( ! function_exists( 'as_enqueue_async_action' ) || ! class_exists( 'WC_Product_Simple' ) ) {
-			$this->markTestSkipped( 'WooCommerce product/Action Scheduler not available.' );
-		}
-
 		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
 		update_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
 		update_option( \WC_Stripe_Agentic_Commerce_Integration::WEBHOOK_SECRET_OPTION, 'whsec_test' );
@@ -507,10 +491,6 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 * The resync action enqueues once, then no-ops while that job is still pending.
 	 */
 	public function test_schedule_full_resync_now_enqueues_once_when_idle() {
-		if ( ! function_exists( 'as_enqueue_async_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		as_unschedule_all_actions( $this->immediate_sync_action, [], 'wc-stripe' );
 
 		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
@@ -556,10 +536,6 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 * already pending (the normal enabled state), rather than being deduped away.
 	 */
 	public function test_schedule_full_resync_now_enqueues_when_recurring_already_scheduled() {
-		if ( ! function_exists( 'as_enqueue_async_action' ) || ! function_exists( 'as_schedule_recurring_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
 		as_unschedule_all_actions( $this->immediate_sync_action, [], 'wc-stripe' );
 
@@ -596,10 +572,6 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 * IMMEDIATE_SYNC_ACTION, leaving no orphaned actions.
 	 */
 	public function test_deactivate_clears_both_scheduled_actions() {
-		if ( ! function_exists( 'as_enqueue_async_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
 		as_unschedule_all_actions( $this->immediate_sync_action, [], 'wc-stripe' );
 
@@ -643,10 +615,6 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 * leaves the recurring SCHEDULED_ACTION untouched.
 	 */
 	public function test_cancel_pending_full_resync_clears_only_the_immediate_action() {
-		if ( ! function_exists( 'as_enqueue_async_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
 		as_unschedule_all_actions( $this->immediate_sync_action, [], 'wc-stripe' );
 
@@ -806,10 +774,6 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_push_final_checkout_disabled_feed_bails_when_merchant_re_enabled() {
-		if ( ! function_exists( 'as_enqueue_async_action' ) || ! class_exists( 'WC_Product_Simple' ) ) {
-			$this->markTestSkipped( 'WooCommerce product/Action Scheduler not available.' );
-		}
-
 		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
 		// The merchant turned it back on after the job was queued.
 		update_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
@@ -872,10 +836,6 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_push_final_checkout_disabled_feed_bypasses_merchant_gate_and_forces_disable() {
-		if ( ! function_exists( 'as_enqueue_async_action' ) || ! class_exists( 'WC_Product_Simple' ) ) {
-			$this->markTestSkipped( 'WooCommerce product/Action Scheduler not available.' );
-		}
-
 		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
 		// Toggle off (push must still run) and checkout mode default, so a true on
 		// the filter can only come from the push forcing it.
@@ -988,10 +948,6 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_schedule_final_checkout_disabled_feed_enqueues_once() {
-		if ( ! function_exists( 'as_enqueue_async_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' );
 
 		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
@@ -1034,10 +990,6 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_cancel_pending_final_checkout_disabled_feed_clears_the_push() {
-		if ( ! function_exists( 'as_enqueue_async_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		$integration = new \WC_Stripe_Agentic_Commerce_Integration();
 		$integration->schedule_final_checkout_disabled_feed();
 		$this->assertNotFalse(
@@ -1400,10 +1352,6 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_mode_switch_clears_dedup_and_schedules_resync() {
-		if ( ! function_exists( 'as_enqueue_async_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		as_unschedule_all_actions( $this->immediate_sync_action, [], 'wc-stripe' );
 		update_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
 		update_option( $this->last_upload_option, [ 'hash' => 'abc' ], false );
@@ -1437,10 +1385,6 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_mode_switch_noops( array $old_value, array $new_value, string $enabled ) {
-		if ( ! function_exists( 'as_enqueue_async_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		as_unschedule_all_actions( $this->immediate_sync_action, [], 'wc-stripe' );
 		update_option( \WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, $enabled );
 		update_option( $this->last_upload_option, [ 'hash' => 'abc' ], false );
@@ -1788,10 +1732,6 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_schedule_recurring_feed_sync_sets_option_and_returns_true(): void {
-		if ( ! function_exists( 'as_has_scheduled_action' ) || ! function_exists( 'as_schedule_recurring_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
 		delete_option( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_OPTION );
 
@@ -1813,10 +1753,6 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_schedule_recurring_feed_sync_uses_provided_start_time(): void {
-		if ( ! function_exists( 'as_has_scheduled_action' ) || ! function_exists( 'as_schedule_recurring_action' ) || ! function_exists( 'as_next_scheduled_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
 		delete_option( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_OPTION );
 
@@ -1842,10 +1778,6 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_schedule_recurring_feed_sync_does_not_duplicate_when_already_scheduled(): void {
-		if ( ! function_exists( 'as_has_scheduled_action' ) || ! function_exists( 'as_schedule_recurring_action' ) || ! function_exists( 'as_next_scheduled_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
 		delete_option( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_OPTION );
 
@@ -1875,10 +1807,6 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	}
 
 	public function test_schedule_recurring_feed_sync_returns_false_when_failed_to_schedule(): void {
-		if ( ! function_exists( 'as_has_scheduled_action' ) || ! function_exists( 'as_schedule_recurring_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
 		delete_option( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_OPTION );
 
@@ -1910,10 +1838,6 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_reschedule_next_feed_sync_clears_and_reschedules(): void {
-		if ( ! function_exists( 'as_has_scheduled_action' ) || ! function_exists( 'as_schedule_recurring_action' ) || ! function_exists( 'as_unschedule_all_actions' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
 		delete_option( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_OPTION );
 
@@ -1947,10 +1871,6 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 * recurring-schedule existence check, and must survive the reschedule.
 	 */
 	public function test_reschedule_next_feed_sync_schedules_recurring_action_when_async_resync_is_pending(): void {
-		if ( ! function_exists( 'as_has_scheduled_action' ) || ! function_exists( 'as_schedule_recurring_action' ) || ! function_exists( 'as_unschedule_all_actions' ) || ! function_exists( 'as_enqueue_async_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
 		as_unschedule_all_actions( $this->immediate_sync_action, [], 'wc-stripe' );
 		delete_option( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_OPTION );
@@ -1993,10 +1913,6 @@ class WC_Stripe_Agentic_Commerce_Integration_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_reschedule_next_feed_sync_next_run_is_one_interval_ahead(): void {
-		if ( ! function_exists( 'as_has_scheduled_action' ) || ! function_exists( 'as_schedule_recurring_action' ) || ! function_exists( 'as_next_scheduled_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		as_unschedule_all_actions( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_ACTION, [], 'wc-stripe' );
 		delete_option( \WC_Stripe_Agentic_Commerce_Integration::SCHEDULED_OPTION );
 
