@@ -261,13 +261,14 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Tests for the 'install' method when it updates the main Stripe settings.
 	 *
-	 * @param array $stripe_settings   The initial Stripe settings.
-	 * @param array $expected_settings The expected Stripe settings after installation.
+	 * @param array $stripe_settings    The initial Stripe settings.
+	 * @param array $expected_settings  The expected Stripe settings after installation.
+	 * @param bool  $live_webhook_fails Whether live-mode webhook configuration throws.
 	 * @return void
 	 *
 	 * @dataProvider provide_test_install_settings
 	 */
-	public function test_install_settings_update( array $stripe_settings = [], array $expected_settings = [] ): void {
+	public function test_install_settings_update( array $stripe_settings = [], array $expected_settings = [], bool $live_webhook_fails = false ): void {
 		// Activate the Stripe plugin.
 		update_option( 'active_plugins', [ plugin_basename( WC_STRIPE_MAIN_FILE ) ] );
 
@@ -285,6 +286,17 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			)
 			->getMock();
 
+		$wc_stripe->webhook_settings = $this->createMock( WC_Stripe_Webhook_Settings::class );
+		$wc_stripe->webhook_settings->expects( $this->exactly( 2 ) )
+			->method( 'maybe_autoconfigure_webhooks' )->withConsecutive( [ 'live' ], [ 'test' ] )
+			->willReturnCallback(
+				static function ( $mode ) use ( $live_webhook_fails ) {
+					if ( $live_webhook_fails && 'live' === $mode ) {
+						throw new Exception( 'Live webhook configuration failed.' );
+					}
+					return null;
+				}
+			);
 		$wc_stripe->install();
 
 		$actual_settings = WC_Stripe::get_instance()->get_settings();
@@ -305,6 +317,11 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_install_settings(): array {
 		return [
+			'live webhook failure does not skip test mode'             => [
+				'stripe settings'    => [],
+				'expected settings'  => [],
+				'live webhook fails' => true,
+			],
 			'will not enable OCS by default due to PMC being disabled' => [
 				'stripe settings'   => [
 					'pmc_enabled' => 'no',
@@ -352,6 +369,9 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			)
 			->getMock();
 
+		$wc_stripe->webhook_settings = $this->createMock( WC_Stripe_Webhook_Settings::class );
+		$wc_stripe->webhook_settings->expects( $this->exactly( 2 ) )
+			->method( 'maybe_autoconfigure_webhooks' )->withConsecutive( [ 'live' ], [ 'test' ] );
 		$wc_stripe->install();
 
 		$this->assertEquals( 'yes', get_option( 'wc_stripe_optimized_checkout_default_on' ) );
@@ -769,27 +789,27 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 *
 	 * @param array|false $old_value   Previous option value.
 	 * @param array       $new_value   New option value.
-	 * @param bool        $expect_call Whether maybe_reconfigure_webhooks_on_update is expected to be called on the account.
+	 * @param bool        $expect_call Whether both webhook modes should be checked.
 	 * @dataProvider provide_test_maybe_reconfigure_webhooks_after_adaptive_pricing_enabled
 	 */
 	public function test_maybe_reconfigure_webhooks_after_adaptive_pricing_enabled( $old_value, $new_value, $expect_call ) {
-		$stripe           = WC_Stripe::get_instance();
-		$original_account = $stripe->account;
+		$stripe                    = WC_Stripe::get_instance();
+		$original_webhook_settings = $stripe->webhook_settings;
 
-		$mock_account = $this->getMockBuilder( \WC_Stripe_Account::class )
+		$mock_webhook_settings = $this->getMockBuilder( \WC_Stripe_Webhook_Settings::class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'maybe_reconfigure_webhooks_on_update' ] )
+			->onlyMethods( [ 'maybe_autoconfigure_webhooks' ] )
 			->getMock();
-		$mock_account->expects( $expect_call ? $this->once() : $this->never() )
-			->method( 'maybe_reconfigure_webhooks_on_update' )
-			->with( 'settings' );
+		$mock_webhook_settings->expects( $this->exactly( $expect_call ? 2 : 0 ) )
+			->method( 'maybe_autoconfigure_webhooks' )
+			->withConsecutive( [ 'live' ], [ 'test' ] );
 
-		$stripe->account = $mock_account;
+		$stripe->webhook_settings = $mock_webhook_settings;
 
 		try {
 			do_action( 'update_option_woocommerce_stripe_settings', $old_value, $new_value, 'woocommerce_stripe_settings' );
 		} finally {
-			$stripe->account = $original_account;
+			$stripe->webhook_settings = $original_webhook_settings;
 		}
 	}
 
