@@ -1165,6 +1165,115 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A failed `latest_charge` lookup throws, and the capture must not crash or be recorded.
+	 *
+	 * @param string $status        Status of the intent returned for the order.
+	 * @param array  $expected_urls Stripe URLs expected to be requested.
+	 *
+	 * @dataProvider provide_intent_statuses_for_failed_charge_lookup
+	 */
+	public function test_capture_payment_does_not_record_capture_when_charge_lookup_fails( string $status, array $expected_urls ) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( 'stripe' );
+		$order->set_transaction_id( 'ch_123' );
+		$order->update_meta_data( '_stripe_charge_captured', 'no' );
+		$order->save();
+
+		$intent = [
+			'id'     => 'pi_123',
+			'object' => 'payment_intent',
+			'status' => $status,
+		];
+
+		if ( WC_Stripe_Intent_Status::SUCCEEDED === $status ) {
+			$intent['latest_charge'] = 'ch_123';
+		}
+
+		$this->order_handler
+			->expects( $this->any() )
+			->method( 'get_intent_from_order' )
+			->willReturn( json_decode( wp_json_encode( $intent ) ) );
+
+		$requested_urls = [];
+		$http_callback  = function ( $preempt, $request_args, $url ) use ( &$requested_urls ) {
+			$requested_urls[] = $url;
+
+			if ( 'https://api.stripe.com/v1/payment_intents/pi_123/capture' === $url ) {
+				return $this->make_stripe_response(
+					200,
+					[
+						'id'            => 'pi_123',
+						'object'        => 'payment_intent',
+						'status'        => WC_Stripe_Intent_Status::SUCCEEDED,
+						'latest_charge' => 'ch_123',
+					]
+				);
+			}
+
+			if ( 'https://api.stripe.com/v1/charges/ch_123' === $url ) {
+				return $this->make_stripe_response(
+					404,
+					[
+						'error' => [
+							'type'    => 'invalid_request_error',
+							'message' => 'No such charge: ch_123',
+						],
+					]
+				);
+			}
+
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $http_callback, 10, 3 );
+
+		$hook_fired      = false;
+		$captured_result = 'not-set';
+		$capture_action  = function ( $hooked_order, $result ) use ( &$hook_fired, &$captured_result ) {
+			$hook_fired      = true;
+			$captured_result = $result;
+		};
+		add_action( 'woocommerce_stripe_process_manual_capture', $capture_action, 10, 2 );
+
+		try {
+			$result = $this->order_handler->capture_payment( $order->get_id() );
+		} finally {
+			remove_action( 'woocommerce_stripe_process_manual_capture', $capture_action, 10 );
+			remove_filter( 'pre_http_request', $http_callback );
+		}
+
+		$this->assertSame( $expected_urls, $requested_urls );
+
+		$this->assertNull( $result, 'A failed charge lookup should not return a charge.' );
+		$this->assertTrue( $hook_fired, 'The manual capture hook should still fire.' );
+		$this->assertInstanceOf( stdClass::class, $captured_result );
+		$this->assertEquals( '{}', wp_json_encode( $captured_result ), 'The manual capture hook should receive an empty charge result.' );
+
+		$order = wc_get_order( $order->get_id() );
+		$notes = implode( "\n", wp_list_pluck( wc_get_order_notes( [ 'order_id' => $order->get_id() ] ), 'content' ) );
+
+		$this->assertSame( 'ch_123', $order->get_transaction_id(), 'The transaction ID must survive the capture attempt.' );
+		$this->assertSame( 'no', $order->get_meta( '_stripe_charge_captured' ), 'An unverified capture must not be recorded.' );
+		$this->assertStringContainsString( 'Unable to verify whether charge has been captured.', $notes );
+		$this->assertStringNotContainsString( 'Stripe charge complete', $notes );
+		$this->assertSame( '', $order->get_meta( '_stripe_fee' ) );
+	}
+
+	/**
+	 * Data provider for {@see test_capture_payment_does_not_record_capture_when_charge_lookup_fails()}.
+	 *
+	 * @return array[]
+	 */
+	public function provide_intent_statuses_for_failed_charge_lookup(): array {
+		$charge_url  = 'https://api.stripe.com/v1/charges/ch_123';
+		$capture_url = 'https://api.stripe.com/v1/payment_intents/pi_123/capture';
+
+		return [
+			'succeeded intent' => [ WC_Stripe_Intent_Status::SUCCEEDED, [ $charge_url ] ],
+			'capture response' => [ WC_Stripe_Intent_Status::REQUIRES_CAPTURE, [ $capture_url, $charge_url ] ],
+		];
+	}
+
+	/**
 	 * A Checkout Session order has no intent stored until checkout.session.completed is processed,
 	 * so a late webhook must not let the hold-stock cron cancel an order whose session can still be,
 	 * or already was, paid.
