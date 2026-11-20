@@ -3,14 +3,10 @@ import { expect, test } from '@playwright/test';
 import { admin, api, payments } from '../../utils';
 import { assertLinkModalLoads } from './utils';
 
-const { clickAddToCartButton, emptyCart } = payments;
+const { addProductToCartFromProductPageById, emptyCart } = payments;
 
 const addProductToCartById = async ( page, productId ) => {
-	await page.goto( `?p=${ productId }` );
-	await clickAddToCartButton( page );
-	await expect(
-		page.getByText( 'has been added to your cart' )
-	).toBeVisible();
+	await addProductToCartFromProductPageById( page, productId );
 };
 
 let lowAmountProductId;
