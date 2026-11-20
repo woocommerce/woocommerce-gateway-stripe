@@ -95,6 +95,13 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	protected $can_refund = true;
 
 	/**
+	 * Seconds to wait before the next subscription renewal retry; increases with each retry.
+	 *
+	 * @var int
+	 */
+	protected $retry_interval = 1;
+
+	/**
 	 * Wether this UPE method is enabled
 	 *
 	 * @var bool
