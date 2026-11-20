@@ -414,7 +414,7 @@ class WC_Stripe {
 	 *
 	 * @since x.x.x
 	 */
-	public function register_product_price_placeholder() {
+	public function register_product_price_placeholder(): void {
 		if ( ! is_product() ) {
 			return;
 		}
