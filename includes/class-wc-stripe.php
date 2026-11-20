@@ -380,6 +380,7 @@ class WC_Stripe {
 
 			// Initialize the class for handling the status page.
 			add_action( 'init', [ $this, 'initialize_status_page' ], 15 );
+			add_action( 'wp', [ $this, 'register_product_price_placeholder' ] );
 
 			add_action( 'init', [ $this, 'initialize_apple_pay_registration' ] );
 
@@ -406,6 +407,43 @@ class WC_Stripe {
 			// Register Stripe abilities with the WordPress Abilities API.
 			WC_Stripe_Abilities_Registrar::init();
 		}
+	}
+
+	/**
+	 * Classic templates and block templates render the main product price through different hooks.
+	 *
+	 * @since x.x.x
+	 */
+	public function register_product_price_placeholder() {
+		if ( ! is_product() ) {
+			return;
+		}
+
+		$product_id  = get_queried_object_id();
+		$placeholder = '<div class="wc-stripe-bnpl-messaging"></div>';
+
+		add_action(
+			'woocommerce_after_template_part',
+			static function ( $template_name ) use ( $product_id, $placeholder ) {
+				global $product;
+				if ( 'single-product/price.php' === $template_name && $product instanceof WC_Product && $product_id === $product->get_id() ) {
+					echo $placeholder; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static markup.
+				}
+			}
+		);
+
+		add_filter(
+			'render_block_woocommerce/product-price',
+			static function ( $content, $parsed_block, $block ) use ( $product_id, $placeholder ) {
+				if ( '' === $content || (int) ( $block->context['postId'] ?? 0 ) !== $product_id || isset( $block->context['queryId'] ) ) {
+					return $content;
+				}
+
+				return $content . $placeholder;
+			},
+			10,
+			3
+		);
 	}
 
 	/**

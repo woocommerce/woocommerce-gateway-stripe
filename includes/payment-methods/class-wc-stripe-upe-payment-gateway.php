@@ -488,6 +488,39 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		WC_Stripe_Helper::register_stripe_js();
 		wp_enqueue_script( 'stripe' );
 
+		if ( is_product() ) {
+			global $product;
+
+			$asset = require WC_STRIPE_PLUGIN_PATH . '/build/payment-method-messaging.asset.php';
+
+			wp_enqueue_script(
+				'wc-stripe-payment-method-messaging',
+				WC_STRIPE_PLUGIN_URL . '/build/payment-method-messaging.js',
+				array_merge( [ 'stripe' ], $asset['dependencies'] ),
+				$asset['version'],
+				true
+			);
+
+			$currency = get_woocommerce_currency();
+
+			wp_localize_script(
+				'wc-stripe-payment-method-messaging',
+				'wc_stripe_payment_method_messaging',
+				[
+					'locale'             => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
+					'amount'             => WC_Stripe_Helper::get_stripe_amount( wc_get_price_to_display( $product ), $currency ),
+					'currency'           => $currency,
+					'countryCode'        => WC()->customer instanceof WC_Customer ? WC()->customer->get_billing_country() : '',
+					'paymentMethodTypes' => array_values(
+						array_intersect(
+							$this->get_upe_enabled_payment_method_ids(),
+							WC_Stripe_Payment_Methods::BNPL_PAYMENT_METHODS
+						)
+					),
+				]
+			);
+		}
+
 		if ( $this->should_skip_full_payment_scripts() ) {
 			return;
 		}
