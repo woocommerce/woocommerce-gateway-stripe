@@ -75,7 +75,7 @@ class WC_Stripe_Payment_Method_Configurations {
 				return $cached_primary_configuration;
 			}
 
-			if ( $is_in_cooldown && self::has_failed_fetch_in_cooldown( $fetch_cooldown ) ) {
+			if ( $is_in_cooldown && self::has_failed_fetch_in_cooldown() ) {
 				return null;
 			}
 
@@ -95,14 +95,9 @@ class WC_Stripe_Payment_Method_Configurations {
 	/**
 	 * Checks whether a failed or malformed fetch occurred during the active cooldown window for the current mode.
 	 *
-	 * @param int $fetch_cooldown The active fetch cooldown timestamp.
 	 * @return bool
 	 */
-	private static function has_failed_fetch_in_cooldown( int $fetch_cooldown ): bool {
-		if ( $fetch_cooldown <= time() ) {
-			return false;
-		}
-
+	private static function has_failed_fetch_in_cooldown(): bool {
 		$failure_cooldowns = get_option( self::FETCH_FAILURE_COOLDOWN_OPTION_KEY, [] );
 		if ( ! is_array( $failure_cooldowns ) ) {
 			return false;
@@ -112,7 +107,7 @@ class WC_Stripe_Payment_Method_Configurations {
 		$raw_until     = $failure_cooldowns[ $mode ] ?? 0;
 		$failure_until = is_numeric( $raw_until ) ? (int) $raw_until : 0;
 
-		return $failure_until > time() && $failure_until === $fetch_cooldown;
+		return $failure_until > time();
 	}
 
 	/**
@@ -178,6 +173,15 @@ class WC_Stripe_Payment_Method_Configurations {
 
 		self::$primary_configuration = $cached_primary_configuration;
 		return self::$primary_configuration;
+	}
+
+	/**
+	 * Checks whether a payment method configuration is currently available in cache.
+	 *
+	 * @return bool
+	 */
+	public static function has_cached_configuration(): bool {
+		return null !== self::get_payment_method_configuration_from_cache();
 	}
 
 	/**
@@ -619,15 +623,29 @@ class WC_Stripe_Payment_Method_Configurations {
 	/**
 	 * Get the UPE enabled payment method IDs stored in local plugin settings.
 	 *
+	 * @param bool $include_express_checkout Whether to include Apple Pay and Google Pay when express checkout is enabled locally.
 	 * @return array
 	 */
-	private static function get_saved_upe_enabled_payment_method_ids(): array {
+	private static function get_saved_upe_enabled_payment_method_ids( bool $include_express_checkout = false ): array {
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		if ( ! empty( $stripe_settings['upe_checkout_experience_accepted_payments'] ) && is_array( $stripe_settings['upe_checkout_experience_accepted_payments'] ) ) {
-			return $stripe_settings['upe_checkout_experience_accepted_payments'];
+			$enabled_methods = $stripe_settings['upe_checkout_experience_accepted_payments'];
+		} else {
+			$enabled_methods = [ WC_Stripe_Payment_Methods::CARD ];
 		}
 
-		return [ WC_Stripe_Payment_Methods::CARD ];
+		if ( $include_express_checkout && 'yes' === ( $stripe_settings['express_checkout'] ?? '' ) ) {
+			$enabled_methods = array_values(
+				array_unique(
+					array_merge(
+						$enabled_methods,
+						[ WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ]
+					)
+				)
+			);
+		}
+
+		return $enabled_methods;
 	}
 
 	/**
@@ -647,7 +665,7 @@ class WC_Stripe_Payment_Method_Configurations {
 
 		$merchant_payment_method_configuration = self::get_primary_configuration( $force_refresh );
 		if ( ! $merchant_payment_method_configuration ) {
-			return self::get_saved_upe_enabled_payment_method_ids();
+			return self::get_saved_upe_enabled_payment_method_ids( self::is_enabled() );
 		}
 
 		$enabled_payment_method_ids = [];

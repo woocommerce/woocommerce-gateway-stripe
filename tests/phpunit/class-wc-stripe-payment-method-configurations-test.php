@@ -956,6 +956,173 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	}
 
 	/**
+	 * A failure cooldown recorded in test mode stays active across a live-mode fetch that overwrites the shared cooldown timestamp.
+	 */
+	public function test_get_upe_enabled_payment_method_ids_preserves_test_failure_cooldown_across_live_fetch(): void {
+		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		try {
+			$settings = array_merge(
+				$this->build_connected_test_mode_settings( 'yes' ),
+				[
+					'publishable_key'                           => 'pk_live_1234567890',
+					'secret_key'                                => 'sk_live_1234567890',
+					'connection_type'                           => 'connect',
+					'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::KLARNA ],
+					'express_checkout'                          => 'no',
+				]
+			);
+			WC_Stripe_Helper::update_main_stripe_settings( $settings );
+			$this->reset_payment_method_configuration_state();
+
+			$live_pmc         = (object) self::MOCK_CHILD_LIVE_PMC;
+			$live_pmc->card   = (object) [ 'display_preference' => (object) [ 'value' => 'on' ] ];
+			$live_pmc->klarna = (object) [ 'display_preference' => (object) [ 'value' => 'on' ] ];
+
+			$api = $this->createMock( WC_Stripe_API::class );
+			$api->expects( $this->exactly( 2 ) )
+				->method( 'get_payment_method_configurations' )
+				->willReturnOnConsecutiveCalls(
+					new WP_Error( 'stripe_api_outage', 'Test mode failure' ),
+					(object) [ 'data' => [ $live_pmc ] ]
+				);
+			WC_Stripe_API::set_instance( $api );
+
+			$this->assertSame( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::KLARNA ], WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids() );
+
+			// Advance past the initial second so live mode writes a newer shared cooldown timestamp.
+			$failed_at = time();
+			while ( time() <= $failed_at ) {
+				usleep( 50000 );
+			}
+
+			$settings['testmode'] = 'no';
+			WC_Stripe_Helper::update_main_stripe_settings( $settings );
+			WC_Stripe_Payment_Method_Configurations::clear_in_memory_payment_method_configuration_cache();
+
+			$this->assertSame( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::KLARNA ], WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids() );
+
+			$settings['testmode'] = 'yes';
+			WC_Stripe_Helper::update_main_stripe_settings( $settings );
+			WC_Stripe_Payment_Method_Configurations::clear_in_memory_payment_method_configuration_cache();
+
+			$this->assertSame( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::KLARNA ], WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids() );
+			$this->assertSame( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::KLARNA ], WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids( true ) );
+		} finally {
+			WC_Stripe_API::set_instance( null );
+			$cleanup_settings             = WC_Stripe_Helper::get_stripe_settings();
+			$cleanup_settings['testmode'] = 'no';
+			WC_Stripe_Helper::update_main_stripe_settings( $cleanup_settings );
+			WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+			$cleanup_settings['testmode'] = 'yes';
+			WC_Stripe_Helper::update_main_stripe_settings( $cleanup_settings );
+			$this->reset_payment_method_configuration_state();
+			WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+		}
+	}
+
+	/**
+	 * Express checkout wallet availability falls back to stored settings on PMC failure and obeys valid PMCs when present.
+	 *
+	 * @dataProvider provide_express_checkout_fallback_cases
+	 *
+	 * @param string|null $express_checkout   Stored `express_checkout` value, or null to test the unset default.
+	 * @param string      $response_kind      Scenario selector for the Stripe PMC response.
+	 * @param bool        $expected_ece       Expected result of `is_express_checkout_enabled()`.
+	 * @param array       $expected_methods   Expected result of `get_upe_enabled_payment_method_ids()`.
+	 * @param string      $expected_pmc_state Expected `pmc_enabled` setting after the read.
+	 */
+	public function test_express_checkout_availability_on_pmc_failure_and_valid_pmc( ?string $express_checkout, string $response_kind, bool $expected_ece, array $expected_methods, string $expected_pmc_state ): void {
+		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+
+		$this->run_with_connected_test_pmc_state(
+			[ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::KLARNA ],
+			'pmc_synthetic',
+			function () use ( $gateway, $express_checkout, $response_kind, $expected_ece, $expected_methods, $expected_pmc_state ): void {
+				$settings = WC_Stripe_Helper::get_stripe_settings();
+				if ( null === $express_checkout ) {
+					unset( $settings['express_checkout'] );
+				} else {
+					$settings['express_checkout'] = $express_checkout;
+				}
+				WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+				if ( 'failure' === $response_kind ) {
+					$api_response = new WP_Error( 'stripe_api_outage', 'Synthetic failure' );
+				} elseif ( 'empty' === $response_kind ) {
+					$api_response = (object) [ 'data' => [] ];
+				} else {
+					$pmc_without_wallets             = (object) self::MOCK_CHILD_TEST_PMC;
+					$pmc_without_wallets->klarna     = (object) [ 'display_preference' => (object) [ 'value' => 'on' ] ];
+					$pmc_without_wallets->apple_pay  = (object) [ 'display_preference' => (object) [ 'value' => 'off' ] ];
+					$pmc_without_wallets->google_pay = (object) [ 'display_preference' => (object) [ 'value' => 'off' ] ];
+					$api_response                    = (object) [ 'data' => [ $pmc_without_wallets ] ];
+				}
+
+				$api = $this->createMock( WC_Stripe_API::class );
+				$api->expects( $this->once() )
+					->method( 'get_payment_method_configurations' )
+					->willReturn( $api_response );
+				WC_Stripe_API::set_instance( $api );
+
+				$this->assertSame( $expected_ece, $gateway->is_express_checkout_enabled() );
+				$this->assertSame( $expected_methods, WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids() );
+				$this->assertSame( $expected_pmc_state, WC_Stripe_Helper::get_stripe_settings()['pmc_enabled'] ?? null );
+			}
+		);
+	}
+
+	/**
+	 * Data provider for {@see test_express_checkout_availability_on_pmc_failure_and_valid_pmc()}.
+	 *
+	 * @return array
+	 */
+	public function provide_express_checkout_fallback_cases(): array {
+		return [
+			'pmc failure with express_checkout yes'                 => [
+				'yes',
+				'failure',
+				true,
+				[
+					WC_Stripe_Payment_Methods::CARD,
+					WC_Stripe_Payment_Methods::KLARNA,
+					WC_Stripe_Payment_Methods::APPLE_PAY,
+					WC_Stripe_Payment_Methods::GOOGLE_PAY,
+				],
+				'yes',
+			],
+			'pmc failure with express_checkout no'                  => [
+				'no',
+				'failure',
+				false,
+				[ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::KLARNA ],
+				'yes',
+			],
+			'pmc failure with express_checkout unset'               => [
+				null,
+				'failure',
+				true,
+				[ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::KLARNA ],
+				'yes',
+			],
+			'valid pmc with wallets off overrides express_checkout' => [
+				'yes',
+				'wallets_off',
+				false,
+				[ WC_Stripe_Payment_Methods::KLARNA ],
+				'yes',
+			],
+			'valid empty pmc disables sync and preserves wallets'   => [
+				'yes',
+				'empty',
+				true,
+				[ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::KLARNA ],
+				'no',
+			],
+		];
+	}
+
+	/**
 	 * Provide test cases for {@see test_get_configuration_id()}.
 	 *
 	 * @return array
