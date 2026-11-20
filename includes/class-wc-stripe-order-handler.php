@@ -377,6 +377,10 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $payment_method ) ) {
 			$charge             = $order->get_transaction_id();
 			$is_stripe_captured = false;
+			// The intent's status, not the follow-up charge lookup, is what proves the capture:
+			// the lookup is a separate request that can fail after the money has moved.
+			$is_intent_captured  = false;
+			$is_capture_unproven = false;
 
 			if ( $charge && $order_helper->is_stripe_charge_authorized_only( $order ) ) {
 				$order_total = $order->get_total();
@@ -407,6 +411,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 							/* translators: error message */
 							$order->update_status( OrderStatus::FAILED, sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $result->error->message ) );
 						} else {
+							$is_intent_captured  = WC_Stripe_Intent_Status::SUCCEEDED === ( $result->status ?? null );
+							$is_capture_unproven = ! $is_intent_captured;
+
 							try {
 								$result = $this->get_latest_charge_from_intent( $result );
 							} catch ( WC_Stripe_Exception $e ) {
@@ -415,9 +422,11 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 							}
 
 							// Check that we have a valid charge object.
-							$is_stripe_captured = $this->handle_capture_charge_response( $result, $order );
+							$is_stripe_captured = $this->handle_capture_charge_response( $result, $order, $is_intent_captured );
 						}
 					} elseif ( WC_Stripe_Intent_Status::SUCCEEDED === $intent->status ) {
+						$is_intent_captured = true;
+
 						try {
 							$result = $this->get_latest_charge_from_intent( $intent );
 						} catch ( WC_Stripe_Exception $e ) {
@@ -426,7 +435,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 						}
 
 						// Check that we have a valid charge object.
-						$is_stripe_captured = $this->handle_capture_charge_response( $result, $order );
+						$is_stripe_captured = $this->handle_capture_charge_response( $result, $order, $is_intent_captured );
 					}
 				} else {
 					// The order doesn't have a Payment Intent, fall back to capturing the Charge directly
@@ -475,6 +484,17 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					if ( ! empty( $balance_transaction_id ) ) {
 						$this->update_fees( $order, $balance_transaction_id, true );
 					}
+				} elseif ( $is_intent_captured ) {
+					// Leaving 'no' here would make refunds void-only and silently skip the refund.
+					// Capturing an authorization keeps its charge ID, so the stored transaction ID
+					// stays valid; only the fees are missing.
+					$order_helper->set_stripe_charge_captured( $order, true );
+					$order->save();
+				} elseif ( $is_capture_unproven ) {
+					// Stripe accepted the capture but didn't report it as complete. An unknown state
+					// makes refunds ask Stripe and keeps the cancel flow from voiding the charge.
+					$order_helper->delete_stripe_charge_captured( $order );
+					$order->save();
 				}
 
 				// Ensure we pass in an empty object if the capture response was not an object.
@@ -1019,12 +1039,21 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since x.x.x
 	 *
-	 * @param object|string|null $charge_response The charge response from the capture request.
-	 * @param WC_Order           $order           The order.
+	 * @param object|string|null $charge_response    The charge response from the capture request.
+	 * @param WC_Order           $order              The order.
+	 * @param bool               $is_intent_captured Whether the intent shows the payment as captured.
 	 * @return bool True if the charge has been captured, false otherwise.
 	 */
-	private function handle_capture_charge_response( $charge_response, WC_Order $order ): bool {
-		$default_note = __( 'Unable to verify whether charge has been captured.', 'woocommerce-gateway-stripe' );
+	private function handle_capture_charge_response( $charge_response, WC_Order $order, bool $is_intent_captured = false ): bool {
+		if ( $is_intent_captured ) {
+			$default_note = __( 'Stripe payment captured, but the charge details could not be retrieved.', 'woocommerce-gateway-stripe' );
+			/* translators: %s is an error message from Stripe */
+			$error_note = __( 'Stripe payment captured, but the charge details could not be retrieved: %s', 'woocommerce-gateway-stripe' );
+		} else {
+			$default_note = __( 'Unable to verify whether charge has been captured.', 'woocommerce-gateway-stripe' );
+			/* translators: %s is an error message from Stripe */
+			$error_note = __( 'Unable to verify whether charge has been captured: %s', 'woocommerce-gateway-stripe' );
+		}
 
 		if ( empty( $charge_response ) || ! is_object( $charge_response ) ) {
 			$order->add_order_note( $default_note );
@@ -1033,13 +1062,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 		if ( ! empty( $charge_response->error ) ) {
 			if ( is_string( $charge_response->error->message ?? null ) ) {
-				$order->add_order_note(
-					sprintf(
-						/* translators: %s is an error message from Stripe */
-						__( 'Unable to verify whether charge has been captured: %s', 'woocommerce-gateway-stripe' ),
-						$charge_response->error->message
-					)
-				);
+				$order->add_order_note( sprintf( $error_note, $charge_response->error->message ) );
 			} else {
 				$order->add_order_note( $default_note );
 			}
