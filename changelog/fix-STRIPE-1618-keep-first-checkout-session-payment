@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Prevent a second charge when an Adaptive Pricing order is paid again while an earlier payment for it may still succeed

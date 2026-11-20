@@ -4,6 +4,7 @@ import { __ } from '@wordpress/i18n';
 import { dispatch, select } from '@wordpress/data';
 import { isSavePaymentMethodCheckboxChecked } from 'wcstripe/blocks/utils';
 import { normalizeReturnUrl } from 'wcstripe/stripe-utils/normalize-return-url';
+import { getAlreadyPaidOrderUrl } from 'wcstripe/stripe-utils/get-already-paid-order-url';
 import { getStaleCheckoutTotalMessage } from 'wcstripe/stripe-utils/utils';
 import { CHECKOUT_SESSION_INPUT_ID } from 'wcstripe/stripe-utils/constants';
 import { waitForPaymentElementCompletion } from 'wcstripe/blocks/wait-for-payment-element-completion';
@@ -282,6 +283,18 @@ export const useCheckoutSuccessHandler = (
 
 					const confirmResult = await checkout.confirm( confirmArgs );
 					if ( confirmResult?.type === 'error' ) {
+						const alreadyPaidOrderUrl =
+							await getAlreadyPaidOrderUrl(
+								redirect,
+								billingAddress?.email
+							);
+						if ( alreadyPaidOrderUrl ) {
+							return {
+								type: 'success',
+								redirectUrl: alreadyPaidOrderUrl,
+							};
+						}
+
 						return {
 							type: 'error',
 							message:
