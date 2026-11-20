@@ -106,6 +106,10 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 	public function javascript_params(): array {
 		$stripe_params = parent::javascript_params();
 
+		if ( [] === $stripe_params ) {
+			return [];
+		}
+
 		$should_show_optimized_checkout                 = $this->should_render_optimized_checkout();
 		$stripe_params['isOCEnabled']                   = $should_show_optimized_checkout;
 		$stripe_params['shouldShowOptimizedCheckout']   = $should_show_optimized_checkout;

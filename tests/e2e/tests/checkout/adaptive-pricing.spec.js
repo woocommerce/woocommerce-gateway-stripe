@@ -12,11 +12,13 @@ const {
 	setupOptimizedCheckout,
 	fillOCDetails,
 	clickPlaceOrder,
-	clickAddToCartButton,
+	addProductToCartFromProductPageById,
 	emptyCart,
 	getCartTotal,
 	waitForOrderReceivedPage,
 	getOrderIdFromOrderReceivedUrl,
+	getOrderReceivedTotal,
+	getInfoNotices,
 } = payments;
 
 const SETTINGS_URL =
@@ -48,9 +50,9 @@ const payWithAdaptivePricing = async ( page, checkoutType ) => {
 	// AP orders are only marked paid by webhooks, which can't reach the
 	// tunnel-less CI site — assert the received page, not the "Paid" row.
 	await waitForOrderReceivedPage( page );
-	await expect(
-		page.locator( '.woocommerce-order-overview__total' )
-	).toContainText( expectedTotal );
+	await expect( getOrderReceivedTotal( page ) ).toContainText(
+		expectedTotal
+	);
 };
 
 /**
@@ -104,9 +106,7 @@ const payWithConvertedCurrency = async (
 	// checkout-session fetch when the page renders, so they work
 	// without the settlement webhook CI can't receive.
 	await expect(
-		page.locator( '.woocommerce-info', {
-			hasText: 'Currency Conversion:',
-		} )
+		getInfoNotices( page ).filter( { hasText: 'Currency Conversion:' } )
 	).toContainText( 'EUR' );
 
 	const orderId = getOrderIdFromOrderReceivedUrl( page.url() );
@@ -156,11 +156,7 @@ test.describe( 'Adaptive Pricing checkout', () => {
 			] );
 
 			await emptyCart( page );
-			await page.goto( `?p=${ productId }` );
-			await clickAddToCartButton( page );
-			await expect(
-				page.getByText( 'has been added to your cart' )
-			).toBeVisible();
+			await addProductToCartFromProductPageById( page, productId );
 
 			await setupOptimizedCheckout( page, 'shortcode', {
 				timeout: 10000,

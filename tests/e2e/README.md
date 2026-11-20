@@ -78,6 +78,8 @@ The SSH and admin credentials are mandatory (view the parameters `--with_woo_set
 
 **Test execution**
 
+Run only one test runner at a time against a shared store, including the local Docker stack. Projects change store-wide settings and install or remove fixtures. Concurrent runners need separate stores; parallel CI jobs each use their own Docker stack.
+
 `npm run test:e2e -- --base_url=SOME_URL_HERE`
 
 The default command to run the tests. It'll run the tests in the URL indicated by the `--base_url` parameter.
@@ -145,13 +147,14 @@ You can also run the e2e tests using QIT (the Quality Insights Toolkit).
 - Test keys for a Stripe account
 - For Becs Direct Debit tests, you also need test keys for a Stripe account based in Australia (AU)
 - For BLIK tests, you also need test keys for a Stripe account based in Poland (PL)
+- For the Optimized Checkout save-and-reuse tests, you also need test keys for a Stripe account with Link turned off in its payment method configuration
 
 ### Environment Setup for QIT
 
 - Copy the file `/tests/e2e/qit/qit.env.example` to `/tests/e2e/qit/qit.env`.
 - Edit the variables in the `qit.env` file and replace the values with your Stripe test keys.
 
-If you want to run the Becs Direct Debit or BLIK e2e tests, you need to have Stripe test keys for an Australian account (for Becs) or a Polish account (for BLIK). In these cases, you need to copy `/tests/e2e/qit/qit.au.env.example` to `/tests/e2e/qit/qit.au.env` for Becs or `/tests/e2e/qit/qit.pl.env.example` to `/tests/e2e/qit/qit.pl.env` for BLIK, and then replace the key values with your test keys.
+If you want to run the Becs Direct Debit or BLIK e2e tests, you need to have Stripe test keys for an Australian account (for Becs) or a Polish account (for BLIK). In these cases, you need to copy `/tests/e2e/qit/qit.au.env.example` to `/tests/e2e/qit/qit.au.env` for Becs or `/tests/e2e/qit/qit.pl.env.example` to `/tests/e2e/qit/qit.pl.env` for BLIK, and then replace the key values with your test keys. The Optimized Checkout save-and-reuse tests follow the same pattern with `/tests/e2e/qit/qit.link-off.env.example`, for an account with Link turned off; `npm run test:e2e:qit` does not run them yet.
 
 ### Running QIT tests
 
@@ -161,4 +164,4 @@ You can also run the tests directly via this more verbose command:
 
 `qit run:e2e --config=qit.json --profile=main --test-package=./tests/e2e --env_file=./tests/e2e/qit/qit.env`
 
-At this time, the main e2e test suites are run, but the Becs and BLIK tests are **not run**.
+At this time, the main e2e test suites are run, but the Becs, BLIK, and Optimized Checkout Link-off tests are **not run**.

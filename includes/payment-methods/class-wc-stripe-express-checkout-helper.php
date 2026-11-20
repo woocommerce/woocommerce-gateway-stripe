@@ -368,16 +368,23 @@ class WC_Stripe_Express_Checkout_Helper {
 		$items     = [];
 		$price     = $this->get_product_price( $product );
 		$currency  = get_woocommerce_currency();
-		$total_tax = 0;
+		$taxes     = $this->get_taxes_like_cart( $product, $price );
+		$total_tax = array_sum( $taxes );
+
+		// The total is the largest amount below, so one check covers every line item. A price
+		// Stripe cannot charge must not take the product page down; the button simply does not render.
+		try {
+			$total_amount = WC_Stripe_Helper::get_stripe_amount( $price + $total_tax, $currency );
+		} catch ( WC_Stripe_Exception $e ) {
+			return false;
+		}
 
 		$items[] = [
 			'label'  => $product->get_name(),
 			'amount' => WC_Stripe_Helper::get_stripe_amount( $price ),
 		];
 
-		foreach ( $this->get_taxes_like_cart( $product, $price ) as $tax ) {
-			$total_tax += $tax;
-
+		foreach ( $taxes as $tax ) {
 			$items[] = [
 				'label'   => __( 'Tax', 'woocommerce-gateway-stripe' ),
 				'amount'  => WC_Stripe_Helper::get_stripe_amount( $tax, $currency ),
@@ -403,7 +410,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			 * @param string $label Total label.
 			 */
 			'label'   => apply_filters( 'wc_stripe_payment_request_total_label', $this->total_label ),
-			'amount'  => WC_Stripe_Helper::get_stripe_amount( $price + $total_tax, $currency ),
+			'amount'  => $total_amount,
 			'pending' => true,
 		];
 
@@ -441,7 +448,13 @@ class WC_Stripe_Express_Checkout_Helper {
 			return null;
 		}
 
-		$display_items = $this->build_display_items();
+		try {
+			$display_items = $this->build_display_items();
+		} catch ( WC_Stripe_Exception $e ) {
+			// Oversized totals must not break the page; the client falls back to the Store API cart.
+			return null;
+		}
+
 		// Round before casting: the total passes through the `wc_stripe_calculated_total`
 		// filter, which can hand back a non-integer minor-unit value. A bare (int) cast
 		// would truncate it and drop a minor unit from the first-paint total.
@@ -650,7 +663,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		$is_invalid = true;
 
 		if ( $product->get_type() === 'variable-subscription' ) {
-			$products = $product->get_available_variations( 'object' );
+			$products = $product->get_available_variations( 'objects' );
 		} else {
 			$products = [ $product ];
 		}
@@ -989,10 +1002,13 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
-		if ( $is_product && $product && in_array( $product->get_type(), [ ProductType::VARIABLE, 'variable-subscription' ], true ) ) {
-			$stock_availability = array_column( $product->get_available_variations(), 'is_in_stock' );
+		// get_available_variations() is defined on WC_Product_Variable and WC_Product_Variable_Subscription, so should be available on both class types.
+		if ( $is_product && $product && in_array( $product->get_type(), [ ProductType::VARIABLE, 'variable-subscription' ], true ) && method_exists( $product, 'get_available_variations' ) ) {
+			// Request the variations as objects to avoid unnecessary render work.
+			$all_variations = $product->get_available_variations( 'objects' );
+
 			// Don't show if all product variations are out-of-stock.
-			if ( ! in_array( true, $stock_availability, true ) ) {
+			if ( ! $this->some_variation_has_stock( $all_variations ) ) {
 				if ( WC_Stripe_Helper::is_verbose_debug_mode_enabled() ) {
 					WC_Stripe_Logger::debug( 'Stripe Express Checkout is hidden due to product variations being out of stock. Product ID: ' . $product->get_id() );
 				}
@@ -1031,6 +1047,34 @@ class WC_Stripe_Express_Checkout_Helper {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Returns true if one of the variations has stock, false otherwise.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param array $variations The variations to check.
+	 * @return bool True if one of the variations has stock, false otherwise.
+	 */
+	private function some_variation_has_stock( $variations ): bool {
+		if ( ! is_array( $variations ) ) {
+			return false;
+		}
+
+		foreach ( $variations as $variation ) {
+			// We expect get_available_variations() to return WC_Product_Variation objects, but we may
+			// get an array on older WooCommerce versions or from other variation implementations.
+			if ( is_object( $variation ) && method_exists( $variation, 'is_in_stock' ) && $variation->is_in_stock() ) {
+				return true;
+			}
+
+			if ( is_array( $variation ) && array_key_exists( 'is_in_stock', $variation ) && $variation['is_in_stock'] ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**

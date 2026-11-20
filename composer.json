@@ -1,7 +1,7 @@
 {
     "name": "woocommerce/woocommerce-gateway-stripe",
     "description": "Take credit card payments on your store using Stripe.",
-    "homepage": "https://woocommerce.com/products/woocommerce-gateway-stripe/",
+    "homepage": "https://woocommerce.com/products/stripe/",
     "license": "GPL-3.0-only",
     "config": {
       "platform": {
@@ -24,7 +24,8 @@
         "yoast/phpunit-polyfills": "^2.0",
         "brianium/paratest": "^6.0",
         "nikic/php-parser": "^5.7",
-        "woocommerce/qit-cli": "^1.1"
+        "woocommerce/qit-cli": "^1.1",
+        "automattic/jetpack-changelogger": "^7.0"
     },
     "autoload": {
       "classmap": [
@@ -44,10 +45,16 @@
         "includes/class-wc-stripe-checkout-session-manager.php",
         "includes/class-wc-stripe-co-branded-cc-compatibility.php",
         "includes/class-wc-stripe-duplicate-payment-prevention.php",
+        "includes/class-wc-stripe-event-post-store.php",
+        "includes/class-wc-stripe-event-reconciler.php",
+        "includes/class-wc-stripe-event-record.php",
         "includes/class-wc-stripe-exception.php",
         "includes/class-wc-stripe-hook-manager.php",
         "includes/class-wc-stripe-option-lock.php",
+        "includes/interface-wc-stripe-event-store.php",
         "includes/class-wc-stripe-payment-cancelled-exception.php",
+        "includes/class-wc-stripe-tracks.php",
+        "includes/class-wc-stripe-rest-gateway-settings-protection.php",
         "includes/class-wc-stripe-upe-compatibility.php",
         "includes/class-wc-stripe-update-manager.php",
         "includes/compat/class-wc-stripe-email-failed-authentication.php",
@@ -64,6 +71,7 @@
         "includes/migrations/class-wc-stripe-migrate-link-button-locations.php",
         "includes/migrations/class-wc-stripe-ocs-ap-default-on-update.php",
         "includes/migrations/class-wc-stripe-restore-adaptive-pricing-after-amount-mismatch-update.php",
+        "includes/migrations/class-wc-stripe-remove-duplicate-webhook-keys.php",
         "includes/notes/class-wc-stripe-whats-new-note.php",
         "includes/payment-methods/class-wc-stripe-express-checkout-custom-fields.php",
         "includes/payment-methods/class-wc-stripe-ocs-payment-gateway.php",
@@ -101,6 +109,21 @@
     },
     "extra": {
       "installer-disable": true,
+      "changelogger": {
+        "changelog": "changelog.txt",
+        "changes-dir": "changelog",
+        "types": {
+          "add": "Add",
+          "update": "Update",
+          "fix": "Fix",
+          "remove": "Remove",
+          "tweak": "Tweak",
+          "dev": "Dev"
+        },
+        "formatter": {
+          "filename": "bin/class-wc-stripe-changelog-formatter.php"
+        }
+      },
       "scripts-description": {
         "phpstan": "Run PHPStan static analysis on the Stripe extension",
         "phpstan:baseline": "Generate a PHPStan baseline file to ignore existing errors"

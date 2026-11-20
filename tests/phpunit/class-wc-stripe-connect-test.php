@@ -13,6 +13,16 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	private $connect;
 
+	/** @var WC_Stripe_Webhook_Settings&\PHPUnit\Framework\MockObject\MockObject */
+	private $webhook_settings;
+
+	/**
+	 * The account instance registered on the plugin before this test replaced it.
+	 *
+	 * @var WC_Stripe_Account
+	 */
+	private $previous_account;
+
 	/**
 	 * REQUEST_URI as the test bootstrap left it, restored in tear_down().
 	 *
@@ -26,6 +36,8 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	public function set_up() {
 		parent::set_up();
 
+		$this->previous_account = WC_Stripe::get_instance()->account;
+
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Snapshot restored verbatim in tear_down(); unslashing or sanitizing here would restore a different value than the bootstrap set.
 		$this->original_request_uri = $_SERVER['REQUEST_URI'] ?? null;
 
@@ -34,8 +46,13 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		// the Connect consumer's explicit writes.
 		remove_filter( 'pre_update_option_woocommerce_stripe_settings', [ WC_Stripe::get_instance(), 'gateway_settings_update' ] );
 
-		$api_mock      = $this->getMockBuilder( WC_Stripe_Connect_API::class )->disableOriginalConstructor()->getMock();
-		$this->connect = new WC_Stripe_Connect( $api_mock );
+		$api_mock               = $this->getMockBuilder( WC_Stripe_Connect_API::class )->disableOriginalConstructor()->getMock();
+		$this->connect          = new WC_Stripe_Connect( $api_mock );
+		$this->webhook_settings = $this->getMockBuilder( WC_Stripe_Webhook_Settings::class )
+			->setConstructorArgs( [ WC_Stripe_API::class ] )
+			->onlyMethods( [ 'maybe_autoconfigure_webhooks', 'is_webhook_enabled' ] )->getMock();
+		$this->webhook_settings->method( 'is_webhook_enabled' )->willReturn( true );
+		WC_Stripe::get_instance()->webhook_settings = $this->webhook_settings;
 
 		delete_option( 'wc_stripe_optimized_checkout_default_on' );
 		WC_Stripe_Helper::update_main_stripe_settings( [] );
@@ -45,6 +62,8 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @inheritDoc
 	 */
 	public function tear_down() {
+		WC_Stripe::get_instance()->account = $this->previous_account;
+
 		// PHPUnit runs with backupGlobals disabled, so a REQUEST_URI left pointing at
 		// wp-admin leaks into every later test in the process: wp_validate_redirect()
 		// resolves schemeless relative redirects against dirname( REQUEST_URI ).
@@ -66,39 +85,36 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Asserts that the OCS install marker is consumed during Connect OAuth: when the
-	 * marker is present and the connection type is 'connect', Optimized Checkout is
-	 * defaulted to 'yes' and Adaptive Pricing is defaulted to 'yes' unless the connected
-	 * account is India-based, where Adaptive Pricing is not supported. The marker is
-	 * always cleaned up.
+	 * Installation persists settings before OAuth. First-connection defaults must
+	 * still apply without overwriting saved preferences or bypassing AP eligibility.
 	 *
-	 * @param bool   $marker_set       Whether the OCS install marker is set before save.
-	 * @param string $type             Connection type ('connect' or 'app').
-	 * @param string $account_country  Country of the connected Stripe account.
-	 * @param string $expected_oc      Expected value of optimized_checkout_element after save.
-	 * @param string $expected_ap      Expected value of adaptive_pricing after save.
-	 * @param string|null $expected_event   Prefixed AP default Tracks event name, or null when none is expected.
-	 * @param string|null $expected_reason  Expected `reason` property of the event, or null when none is expected.
+	 * @param bool        $marker_set      Whether the OCS install marker is set before save.
+	 * @param string      $type            Connection type ('connect' or 'app').
+	 * @param string      $account_country Country of the connected Stripe account.
+	 * @param string      $expected_oc     Expected value of optimized_checkout_element after save.
+	 * @param string      $expected_ap     Expected value of adaptive_pricing after save.
+	 * @param string|null $expected_event  Prefixed AP default Tracks event name, or null when none is expected.
+	 * @param string|null $expected_reason Expected `reason` property of the event, or null when none is expected.
+	 * @param array       $preferences     Preferences saved before the first connection.
+	 * @param bool        $webhook_enabled Whether the configured webhook is enabled.
 	 *
 	 * @dataProvider provide_save_stripe_keys_defaults_ocs_for_new_installs
 	 */
-	public function test_save_stripe_keys_defaults_ocs_and_adaptive_pricing_for_new_installs( bool $marker_set, string $type, string $account_country, string $expected_oc, string $expected_ap, ?string $expected_event, ?string $expected_reason ): void {
+	public function test_save_stripe_keys_defaults_ocs_and_adaptive_pricing_for_new_installs( bool $marker_set, string $type, string $account_country, string $expected_oc, string $expected_ap, ?string $expected_event, ?string $expected_reason, array $preferences = [], bool $webhook_enabled = true ): void {
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
-
-		if ( $marker_set ) {
-			update_option( 'wc_stripe_optimized_checkout_default_on', 'yes' );
-		} else {
-			delete_option( 'wc_stripe_optimized_checkout_default_on' );
-		}
 
 		$account = $this->getMockBuilder( WC_Stripe_Account::class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'get_cached_account_data', 'maybe_decommission_webhook', 'configure_webhooks', 'clear_cache', 'is_webhook_enabled' ] )
+			->onlyMethods( [ 'get_cached_account_data', 'clear_cache' ] )
 			->getMock();
 		$account->method( 'get_cached_account_data' )->willReturn( [ 'country' => $account_country ] );
-		$account->method( 'maybe_decommission_webhook' )->willReturn( false );
-		$account->method( 'is_webhook_enabled' )->willReturn( true );
 		WC_Stripe::get_instance()->account = $account;
+
+		$this->webhook_settings = $this->getMockBuilder( WC_Stripe_Webhook_Settings::class )
+			->setConstructorArgs( [ WC_Stripe_API::class ] )
+			->onlyMethods( [ 'maybe_autoconfigure_webhooks', 'is_webhook_enabled' ] )->getMock();
+		$this->webhook_settings->method( 'is_webhook_enabled' )->willReturn( $webhook_enabled );
+		WC_Stripe::get_instance()->webhook_settings = $this->webhook_settings;
 
 		$result                 = new stdClass();
 		$result->publishableKey = 'pk_test_123'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
@@ -109,9 +125,26 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$method = new ReflectionMethod( WC_Stripe_Connect::class, 'save_stripe_keys' );
 		$method->setAccessible( true );
-		$this->start_capturing_tracks_events();
-		$method->invoke( $this->connect, $result, $type, 'test' );
-		$this->stop_capturing_tracks_events();
+		$stripe = WC_Stripe::get_instance();
+		add_filter( 'pre_update_option_woocommerce_stripe_settings', [ $stripe, 'gateway_settings_update' ], 10, 2 );
+		try {
+			delete_option( WC_Stripe::SETTINGS_OPTION_NAME );
+			delete_option( 'wc_stripe_version' );
+			update_option( 'active_plugins', [ plugin_basename( WC_STRIPE_MAIN_FILE ) ] );
+			$stripe->install();
+			$installed_settings = $stripe->get_settings();
+			$this->assertSame( 'yes', $installed_settings['upe_checkout_experience_enabled'] );
+			$this->assertSame( 'yes', get_option( 'wc_stripe_optimized_checkout_default_on' ) );
+			$stripe->update_settings( array_merge( $installed_settings, $preferences ) );
+			if ( ! $marker_set ) {
+				delete_option( 'wc_stripe_optimized_checkout_default_on' );
+			}
+			$this->start_capturing_tracks_events();
+			$method->invoke( $this->connect, $result, $type, 'test' );
+		} finally {
+			$this->stop_capturing_tracks_events();
+			remove_filter( 'pre_update_option_woocommerce_stripe_settings', [ $stripe, 'gateway_settings_update' ] );
+		}
 
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 
@@ -131,6 +164,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$this->assertSame( $expected_oc, $settings['optimized_checkout_element'] ?? '' );
 		$this->assertSame( $expected_ap, $settings['adaptive_pricing'] ?? '' );
+		$this->assertSame( [ 'card', 'link' ], $settings['upe_checkout_experience_accepted_payments'] );
 
 		// Marker is always consumed, even when not applied.
 		$this->assertEquals( false, get_option( 'wc_stripe_optimized_checkout_default_on' ) );
@@ -177,7 +211,173 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected_event'  => null,
 				'expected_reason' => null,
 			],
+			'explicit AP off preserves OCS onboarding default'                 => [
+				true,
+				'connect',
+				'US',
+				'yes',
+				'no',
+				null,
+				null,
+				[ 'adaptive_pricing' => 'no' ],
+			],
+			'explicit OCS off and AP on are preserved'                         => [
+				true,
+				'connect',
+				'US',
+				'no',
+				'yes',
+				null,
+				null,
+				[
+					'optimized_checkout_element' => 'no',
+					'adaptive_pricing'           => 'yes',
+				],
+			],
+			'explicit OCS and AP off are preserved'                            => [
+				true,
+				'connect',
+				'US',
+				'no',
+				'no',
+				null,
+				null,
+				[
+					'optimized_checkout_element' => 'no',
+					'adaptive_pricing'           => 'no',
+				],
+			],
+			'disabled webhook prevents AP default'                             => [
+				true,
+				'connect',
+				'US',
+				'yes',
+				'',
+				'wcadmin_wcstripe_ap_default_skipped',
+				'webhooks-disabled',
+				[],
+				false,
+			],
+			'manual capture prevents AP default'                               => [
+				true,
+				'connect',
+				'US',
+				'yes',
+				'',
+				'wcadmin_wcstripe_ap_default_skipped',
+				'manual-capture',
+				[ 'capture' => 'no' ],
+			],
 		];
+	}
+
+	/**
+	 * @dataProvider provide_reconnect_preferences
+	 * @param array  $preferences   Existing saved preferences.
+	 * @param string $previous_mode Mode with previously configured credentials.
+	 * @param array  $account_data  Account data, empty when credentials have expired.
+	 * @param string $type          Connection type ('connect' or 'app').
+	 * @since x.x.x
+	 */
+	public function test_reconnect_preserves_existing_preferences( array $preferences, string $previous_mode = 'test', array $account_data = [ 'country' => 'US' ], string $type = 'connect' ): void {
+		if ( ! empty( $account_data ) ) {
+			$account_data['capabilities'] = [ 'card_payments' => 'active' ];
+		}
+		$this->mock_stripe_account( $account_data );
+		$this->mock_payment_method_configurations( $preferences['upe_checkout_experience_accepted_payments'] ?? [ 'card' ] );
+		$prefix   = 'test' === $previous_mode ? 'test_' : '';
+		$settings = array_merge(
+			[
+				$prefix . 'publishable_key' => 'pk_' . $previous_mode . '_previous',
+				$prefix . 'secret_key'      => 'sk_' . $previous_mode . '_previous',
+				'pmc_enabled'               => 'connect' === $type ? 'yes' : 'no',
+			],
+			$preferences
+		);
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		update_option( 'wc_stripe_optimized_checkout_default_on', 'yes' );
+		add_filter( 'pre_update_option_woocommerce_stripe_settings', [ WC_Stripe::get_instance(), 'gateway_settings_update' ], 10, 2 );
+
+		try {
+			for ( $attempt = 0; $attempt < 2; $attempt++ ) {
+				$this->invoke_save_stripe_keys( 'pk_test_previous', 'sk_test_previous', 'test', $type );
+				$snapshots = [ 'OAuth' => WC_Stripe_Helper::get_stripe_settings() ];
+				// A settings-page reload constructs the gateway from persisted options.
+				$controller = new WC_REST_Stripe_Settings_Controller( new WC_Stripe_UPE_Payment_Gateway() );
+				$response   = $controller->get_settings();
+				$this->assertSame( 200, $response->get_status() );
+				$this->assertSame( 'connect' === $type, $response->get_data()['is_pmc_enabled'] );
+				$snapshots['GET'] = WC_Stripe_Helper::get_stripe_settings();
+				foreach ( $snapshots as $stage => $saved ) {
+					foreach ( [ 'upe_checkout_experience_accepted_payments', 'express_checkout_button_locations', 'express_checkout_button_type', 'express_checkout_button_theme', 'express_checkout_button_size', 'optimized_checkout_element', 'adaptive_pricing' ] as $key ) {
+						if ( array_key_exists( $key, $preferences ) ) {
+							$this->assertSame( $preferences[ $key ], $saved[ $key ], $stage . ': ' . $key );
+						} elseif ( 'connect' === $type && 'upe_checkout_experience_accepted_payments' === $key && ( 'GET' === $stage || array_key_exists( $key, $saved ) ) ) {
+							// The active PMC may be read during reconnect; the settings GET always reads and persists it.
+							$this->assertSame( [ 'card' ], $saved[ $key ], $stage . ': ' . $key );
+						} else {
+							$this->assertArrayNotHasKey( $key, $saved, $stage . ': ' . $key );
+						}
+					}
+				}
+				foreach ( [ 'express_checkout_button_locations', 'express_checkout_button_type', 'express_checkout_button_theme', 'express_checkout_button_size' ] as $key ) {
+					if ( array_key_exists( $key, $preferences ) ) {
+						$this->assertSame( $preferences[ $key ], $response->get_data()[ $key ], $key );
+					}
+				}
+				if ( array_key_exists( 'upe_checkout_experience_accepted_payments', $preferences ) ) {
+					$this->assertEqualsCanonicalizing(
+						$preferences['upe_checkout_experience_accepted_payments'],
+						$response->get_data()['enabled_payment_method_ids']
+					);
+				}
+				$this->assertSame( 'yes' === ( $preferences['optimized_checkout_element'] ?? '' ), $response->get_data()['is_oc_enabled'] );
+				$this->assertSame( 'yes' === ( $preferences['adaptive_pricing'] ?? '' ), $response->get_data()['is_ap_enabled'] );
+				$this->assertFalse( get_option( 'wc_stripe_optimized_checkout_default_on' ) );
+			}
+		} finally {
+			remove_filter( 'pre_update_option_woocommerce_stripe_settings', [ WC_Stripe::get_instance(), 'gateway_settings_update' ] );
+		}
+	}
+
+	public function provide_reconnect_preferences(): array {
+		$cases = [
+			'missing settings stay missing'            => [ [ 'upe_checkout_experience_enabled' => 'yes' ] ],
+			'previous live connection'                 => [ [ 'upe_checkout_experience_enabled' => 'yes' ], 'live' ],
+			'expired credentials without account data' => [
+				[
+					'upe_checkout_experience_enabled' => 'yes',
+					'test_secret_key'                 => 'sk_test_expired',
+					'test_connection_type'            => 'app',
+					'test_refresh_token'              => 'rt_test_expired',
+				],
+				'test',
+				[],
+			],
+			'explicit empty and off'                   => [
+				[
+					'upe_checkout_experience_accepted_payments' => [],
+					'express_checkout_button_locations'         => [],
+					'optimized_checkout_element'                => 'no',
+					'adaptive_pricing'                          => 'no',
+				],
+			],
+			'custom selections'                        => [
+				[
+					'upe_checkout_experience_accepted_payments' => [ 'card', 'klarna' ],
+					'express_checkout_button_locations'         => [ 'checkout' ],
+					'express_checkout_button_type'              => 'donate',
+					'express_checkout_button_theme'             => 'light-outline',
+					'express_checkout_button_size'              => 'large',
+					'optimized_checkout_element'                => 'no',
+					'adaptive_pricing'                          => 'no',
+				],
+			],
+		];
+		foreach ( [ 'missing settings stay missing', 'custom selections' ] as $name ) {
+			$cases[ 'app: ' . $name ] = [ $cases[ $name ][0], 'test', [ 'country' => 'US' ], 'app' ];
+		}
+		return $cases;
 	}
 
 	/**
@@ -310,12 +510,12 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * for the mode are saved, so the OAuth return can be observed taking the store from
 	 * disconnected to connected.
 	 *
-	 * @param bool $webhook_setup_fails Whether configure_webhooks() should throw.
+	 * @param bool $webhook_setup_fails Whether maybe_autoconfigure_webhooks() should throw.
 	 */
 	private function mock_account_resolving_by_saved_keys( bool $webhook_setup_fails ): void {
 		$account = $this->getMockBuilder( WC_Stripe_Account::class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'get_cached_account_data', 'maybe_decommission_webhook', 'configure_webhooks', 'clear_cache' ] )
+			->onlyMethods( [ 'get_cached_account_data', 'clear_cache' ] )
 			->getMock();
 		$account->method( 'get_cached_account_data' )->willReturnCallback(
 			function ( $mode = null ) {
@@ -325,9 +525,8 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				] : [];
 			}
 		);
-		$account->method( 'maybe_decommission_webhook' )->willReturn( false );
 		if ( $webhook_setup_fails ) {
-			$account->method( 'configure_webhooks' )->willThrowException( new Exception( 'Webhook setup failed' ) );
+			$this->webhook_settings->method( 'maybe_autoconfigure_webhooks' )->willThrowException( new Exception( 'Webhook setup failed' ) );
 		}
 
 		WC_Stripe::get_instance()->account = $account;
@@ -413,16 +612,15 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$expected_webhook_data           = $previous_webhook_data;
 		$expected_webhook_data['secret'] = $expected_secret;
-		$account                         = $this->mock_stripe_account();
-		$account->expects( $this->once() )
-			->method( 'maybe_decommission_webhook' )
-			->with( $expected_webhook_data, 'sk_test_123' )
-			->willReturn( ! $fails );
+		$this->mock_stripe_account();
+		$requests = $this->capture_webhook_cleanup( $fails );
+
 		if ( $fails ) {
-			$account->method( 'configure_webhooks' )->willThrowException( new Exception( 'Network error' ) );
+			$this->webhook_settings->method( 'maybe_autoconfigure_webhooks' )->willThrowException( new Exception( 'Network error' ) );
 		}
 
 		$this->invoke_save_stripe_keys( 'pk_test_123', 'sk_test_123' );
+		$this->assertSame( [ [ 'wh_old', $expected_secret, 'sk_test_old_account' ] ], $requests->calls );
 
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( $fails ? $expected_webhook_data : [], $settings['test_webhook_data'] );
@@ -442,37 +640,145 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * A failed cleanup retains the old key for retry, but verbose OAuth logs must mask it.
+	 * New OAuth credentials must not inherit a manual signing secret or an expired
+	 * webhook API key, even when the old endpoint still exists in the same account.
+	 *
+	 * @dataProvider provide_oauth_webhook_replacement_cases
+	 */
+	public function test_oauth_replaces_webhooks_for_new_credentials( string $path, bool $expired_key ): void {
+		$mode     = 'live' === $path ? 'live' : 'test';
+		$prefix   = 'test' === $mode ? 'test_' : '';
+		$old_key  = 'sk_' . $mode . '_old';
+		$new_key  = 'sk_' . $mode . '_new';
+		$old_auth = 'Basic ' . base64_encode( $old_key . ':' );
+		$new_auth = 'Basic ' . base64_encode( $new_key . ':' );
+		$endpoint = [
+			'id'             => 'we_old',
+			'url'            => WC_Stripe_Helper::get_webhook_url(),
+			'enabled_events' => WC_Stripe_Webhook_Settings::WEBHOOK_EVENTS,
+			'api_version'    => WC_Stripe_API::STRIPE_API_VERSION,
+			'status'         => 'enabled',
+		];
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'testmode'                 => 'test' === $path ? 'yes' : 'no',
+				'pmc_enabled'              => 'yes',
+				$prefix . 'secret_key'     => $old_key,
+				$prefix . 'webhook_secret' => 'whsec_old',
+				$prefix . 'webhook_data'   => $expired_key ? [
+					'id'             => 'we_old',
+					'url'            => $endpoint['url'],
+					'secret'         => $old_key,
+					'signing_secret' => 'whsec_old',
+				] : [],
+			]
+		);
+		$this->mock_stripe_account();
+		$webhook_settings                           = new WC_Stripe_Webhook_Settings( WC_Stripe_API::class );
+		WC_Stripe::get_instance()->webhook_settings = $webhook_settings;
+		$requests                                   = [];
+		$filter                                     = static function ( $preempt, $args, $url ) use ( &$requests, $old_auth, $endpoint ) {
+			if ( false === strpos( $url, WC_Stripe_API::ENDPOINT . 'webhook_endpoints' ) ) {
+				return $preempt;
+			}
+			$requests[] = [ $args['method'], $url, $args['headers']['Authorization'] ];
+			if ( $old_auth === $args['headers']['Authorization'] ) {
+				$body = [ 'error' => [ 'code' => 'api_key_expired' ] ];
+			} elseif ( 'POST' === $args['method'] || 'we_new' === basename( $url ) ) {
+				$body = array_merge(
+					$endpoint,
+					[
+						'id'     => 'we_new',
+						'secret' => 'whsec_new',
+					]
+				);
+			} elseif ( 'webhook_endpoints' === basename( $url ) ) {
+				$body = [ 'data' => [] ];
+			} else {
+				$body = $endpoint;
+			}
+			return [
+				'response' => [ 'code' => isset( $body['error'] ) ? 401 : 200 ],
+				'body'     => wp_json_encode( $body ),
+			];
+		};
+		add_filter( 'pre_http_request', $filter, 10, 3 );
+		try {
+			if ( 'dual-fetch' === $path ) {
+				$method = new ReflectionMethod( WC_Stripe_Connect::class, 'save_oauth_test_keys_alongside_live' );
+				$method->setAccessible( true );
+				$method->invoke(
+					$this->connect,
+					(object) [
+						'testPublishableKey' => 'pk_test_new',
+						'testSecretKey'      => $new_key,
+					]
+				);
+			} else {
+				$this->invoke_save_stripe_keys( 'pk_' . $mode . '_new', $new_key, $mode );
+			}
+
+			$settings = WC_Stripe_Helper::get_stripe_settings();
+			$this->assertSame( 'we_new', $settings[ $prefix . 'webhook_data' ]['id'] ?? null );
+			$this->assertSame( 'whsec_new', $settings[ $prefix . 'webhook_secret' ] );
+			$this->assertArrayNotHasKey( 'secret', $settings[ $prefix . 'webhook_data' ] );
+			$this->assertContains( [ 'POST', WC_Stripe_API::ENDPOINT . 'webhook_endpoints', $new_auth ], $requests );
+			if ( $expired_key ) {
+				$this->assertSame( [ 'GET', WC_Stripe_API::ENDPOINT . 'webhook_endpoints/we_old', $old_auth ], $requests[0] );
+				$this->assertNotContains( 'DELETE', array_column( $requests, 0 ) );
+			}
+
+			WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Webhook_Settings::WEBHOOK_STATUS_CACHE_KEY, $mode );
+			$this->assertTrue( $webhook_settings->is_webhook_enabled( $mode ) );
+			$this->assertSame( [ 'GET', WC_Stripe_API::ENDPOINT . 'webhook_endpoints/we_new', $new_auth ], end( $requests ) );
+		} finally {
+			remove_filter( 'pre_http_request', $filter, 10 );
+			WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Webhook_Settings::WEBHOOK_STATUS_CACHE_KEY, $mode );
+			WC_Stripe_API::set_secret_key( '' );
+		}
+	}
+
+	public function provide_oauth_webhook_replacement_cases(): array {
+		return [
+			'live manual setup' => [ 'live', false ],
+			'test manual setup' => [ 'test', false ],
+			'dual manual setup' => [ 'dual-fetch', false ],
+			'live expired key'  => [ 'live', true ],
+			'test expired key'  => [ 'test', true ],
+			'dual expired key'  => [ 'dual-fetch', true ],
+		];
+	}
+
+	/**
+	 * A failed cleanup retains credentials for retry, but verbose OAuth logs must mask them.
 	 *
 	 * @dataProvider provide_webhook_log_modes
 	 */
 	public function test_failed_webhook_cleanup_redacts_retained_key_in_verbose_log( $mode ) {
-		$prefix  = 'test' === $mode ? 'test_' : '';
-		$old_key = 'sk_' . $mode . '_old_account';
-		$new_key = 'sk_' . $mode . '_new_account';
+		$prefix         = 'test' === $mode ? 'test_' : '';
+		$old_key        = 'sk_' . $mode . '_old_account';
+		$new_key        = 'sk_' . $mode . '_new_account';
+		$signing_secret = 'whsec_retained_webhook_signing_secret';
+		$other_prefix   = 'test' === $mode ? '' : 'test_';
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[
-				'testmode'               => 'test' === $mode ? 'yes' : 'no',
-				$prefix . 'secret_key'   => $old_key,
-				$prefix . 'webhook_data' => [
-					'id'     => 'we_old',
-					'secret' => '',
+				'testmode'                     => 'test' === $mode ? 'yes' : 'no',
+				$prefix . 'secret_key'         => $old_key,
+				$prefix . 'webhook_data'       => [
+					'id'             => 'we_old',
+					'secret'         => '',
+					'signing_secret' => $signing_secret,
 				],
-				'pmc_enabled'            => 'yes',
+				$other_prefix . 'webhook_data' => [ 'signing_secret' => 'whsec_other_mode_signing_secret' ],
+				'refresh_token'                => 'rt_live_example_refresh_token',
+				'test_refresh_token'           => 'rt_test_example_refresh_token',
+				'pmc_enabled'                  => 'yes',
 			]
 		);
 
-		$account = $this->mock_stripe_account();
-		$account->expects( $this->once() )->method( 'maybe_decommission_webhook' )
-			->with(
-				[
-					'id'     => 'we_old',
-					'secret' => $old_key,
-				],
-				$new_key
-			)
-			->willReturn( false );
-		$account->method( 'configure_webhooks' )->willThrowException( new Exception( 'Network error' ) );
+		$this->mock_stripe_account();
+		$requests = $this->capture_webhook_cleanup( true, $mode );
+		$this->webhook_settings->method( 'maybe_autoconfigure_webhooks' )->willThrowException( new Exception( 'Network error' ) );
 
 		$logged_options = [];
 		$logger         = $this->createMock( WC_Logger::class );
@@ -496,10 +802,18 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		}
 
 		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame( [ [ 'we_old', $old_key, $old_key ] ], $requests->calls );
 		$this->assertSame( $old_key, $settings[ $prefix . 'webhook_data' ]['secret'] );
 		$this->assertCount( 1, $logged_options );
 		$this->assertSame( WC_Stripe_Connect::redact_string( $old_key ), $logged_options[0][ $prefix . 'webhook_data' ]['secret'] );
 		$this->assertStringNotContainsString( $old_key, wp_json_encode( $logged_options[0] ) );
+		$this->assertSame( $signing_secret, $settings[ $prefix . 'webhook_data' ]['signing_secret'] );
+		$this->assertSame( WC_Stripe_Connect::redact_string( $signing_secret ), $logged_options[0][ $prefix . 'webhook_data' ]['signing_secret'] );
+		$this->assertSame( WC_Stripe_Connect::redact_string( 'whsec_other_mode_signing_secret' ), $logged_options[0][ $other_prefix . 'webhook_data' ]['signing_secret'] );
+		foreach ( [ 'refresh_token', 'test_refresh_token' ] as $key ) {
+			$this->assertSame( WC_Stripe_Connect::redact_string( $settings[ $key ] ), $logged_options[0][ $key ] );
+			$this->assertStringNotContainsString( $settings[ $key ], wp_json_encode( $logged_options[0] ) );
+		}
 	}
 
 	public function provide_webhook_log_modes() {
@@ -526,18 +840,11 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'test_webhook_data' => $webhook_data,
 			]
 		);
-		$account = $this->mock_stripe_account();
-		$account->expects( $this->once() )->method( 'maybe_decommission_webhook' )
-			->with(
-				[
-					'id'     => 'we_old_test',
-					'secret' => 'sk_test_old',
-				],
-				'sk_test_new'
-			)
-			->willReturn( ! $fails );
+		$this->mock_stripe_account();
+		$requests = $this->capture_webhook_cleanup( $fails );
+
 		if ( $fails ) {
-			$account->method( 'configure_webhooks' )->willThrowException( new Exception( 'Network error' ) );
+			$this->webhook_settings->method( 'maybe_autoconfigure_webhooks' )->willThrowException( new Exception( 'Network error' ) );
 		}
 		$result = (object) [
 			'testPublishableKey' => 'pk_test_new',
@@ -546,6 +853,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$method = new ReflectionMethod( WC_Stripe_Connect::class, 'save_oauth_test_keys_alongside_live' );
 		$method->setAccessible( true );
 		$method->invoke( $this->connect, $result );
+		$this->assertSame( [ [ 'we_old_test', 'sk_test_old', 'sk_test_old' ] ], $requests->calls );
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( 'sk_test_new', $settings['test_secret_key'] );
 		$this->assertSame(
@@ -584,18 +892,14 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$account = $this->getMockBuilder( WC_Stripe_Account::class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'get_cached_account_data', 'maybe_decommission_webhook', 'configure_webhooks', 'clear_cache' ] )
+			->onlyMethods( [ 'get_cached_account_data', 'clear_cache' ] )
 			->getMock();
 		$account->method( 'get_cached_account_data' )->willReturn( [ 'country' => 'US' ] );
-		$account->method( 'maybe_decommission_webhook' )->willReturn( false );
-		// Capture the API secret key active at the moment each webhook is configured.
-		// configure_webhooks() authenticates with whatever key is set on WC_Stripe_API,
-		// so the test webhook must be created with the test key — not the live key that
-		// get_secret_key() would otherwise resolve from testmode ('no').
-		$account->method( 'configure_webhooks' )->willReturnCallback(
+		$this->webhook_settings->method( 'maybe_autoconfigure_webhooks' )->willReturnCallback(
 			function ( $mode ) use ( &$configured_modes, &$keys_at_configure ) {
 				$configured_modes[]         = $mode;
-				$keys_at_configure[ $mode ] = WC_Stripe_API::get_secret_key();
+				$settings                   = WC_Stripe_Helper::get_stripe_settings();
+				$keys_at_configure[ $mode ] = $settings[ 'test' === $mode ? 'test_secret_key' : 'secret_key' ];
 			}
 		);
 		WC_Stripe::get_instance()->account = $account;
@@ -716,19 +1020,256 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * A failed reconnect must not dismiss an earlier revocation warning, even when keys were saved.
+	 *
+	 * @param string $type    OAuth connection type.
+	 * @param string $mode    Connection mode.
+	 * @param string $outcome Key exchange or setup outcome.
+	 * @dataProvider provide_reconnection_revocation_warning_outcomes
+	 */
+	public function test_reconnection_clears_revocation_warning_only_on_success( $type, $mode, $outcome ) {
+		$this->mock_stripe_account();
+		if ( 'webhook_error' === $outcome ) {
+			$this->webhook_settings->method( 'maybe_autoconfigure_webhooks' )->willThrowException( new Exception( 'Webhook setup failed' ) );
+		}
+
+		$keys = [
+			'publishableKey' => 'pk_' . $mode . '_reconnected',
+			'secretKey'      => 'sk_' . $mode . '_reconnected',
+			'refreshToken'   => 'rt_' . $mode . '_reconnected',
+		];
+		if ( 'invalid_credentials' === $outcome ) {
+			unset( $keys['secretKey'] );
+		}
+		$exchange_result = 'exchange_error' === $outcome ? new WP_Error( 'oauth_failed', 'Exchange failed' ) : (object) $keys;
+		$api_mock        = $this->getMockBuilder( WC_Stripe_Connect_API::class )->disableOriginalConstructor()->getMock();
+		$api_mock->expects( $this->once() )->method( 'get_stripe_oauth_keys' )->with( 'code_123', $type, $mode )->willReturn( $exchange_result );
+		$connect = new WC_Stripe_Connect( $api_mock );
+
+		WC_Stripe_Database_Cache::set_with_mode( 'oauth_connect_state', 'state_123', HOUR_IN_SECONDS, $mode );
+		update_option( 'wc_stripe_oauth_deauthorization_failed_modes', [ 'live', 'test' ] );
+		try {
+			$result = $connect->connect_oauth( 'state_123', 'code_123', $type, $mode );
+
+			$this->assertSame( 'success' !== $outcome, is_wp_error( $result ) );
+			$this->assertSame( 'success' === $outcome ? false : [ 'live', 'test' ], get_option( 'wc_stripe_oauth_deauthorization_failed_modes' ) );
+		} finally {
+			delete_option( 'wc_stripe_oauth_deauthorization_failed_modes' );
+		}
+	}
+
+	public function provide_reconnection_revocation_warning_outcomes() {
+		return [
+			'live Connect success'  => [ 'connect', 'live', 'success' ],
+			'test Connect success'  => [ 'connect', 'test', 'success' ],
+			'live App success'      => [ 'app', 'live', 'success' ],
+			'test App success'      => [ 'app', 'test', 'success' ],
+			'exchange failure'      => [ 'connect', 'test', 'exchange_error' ],
+			'invalid credentials'   => [ 'connect', 'test', 'invalid_credentials' ],
+			'webhook setup failure' => [ 'app', 'test', 'webhook_error' ],
+		];
+	}
+
+	/**
+	 * Automatic token refresh must not act as the merchant dismissing a revocation warning.
+	 */
+	public function test_automatic_refresh_preserves_revocation_warning() {
+		$this->mock_stripe_account();
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'testmode'             => 'yes',
+				'test_publishable_key' => 'pk_test_previous',
+				'test_secret_key'      => 'sk_test_previous',
+				'test_connection_type' => 'app',
+				'test_refresh_token'   => 'rt_test_previous',
+			]
+		);
+		$api_mock = $this->getMockBuilder( WC_Stripe_Connect_API::class )->disableOriginalConstructor()->getMock();
+		$api_mock->expects( $this->once() )->method( 'refresh_stripe_app_oauth_keys' )->with( 'rt_test_previous', 'test' )->willReturn(
+			(object) [
+				'publishableKey' => 'pk_test_refreshed',
+				'secretKey'      => 'sk_test_refreshed',
+				'refreshToken'   => 'rt_test_refreshed',
+			]
+		);
+		$connect = new WC_Stripe_Connect( $api_mock );
+		update_option( 'wc_stripe_oauth_deauthorization_failed_modes', [ 'live', 'test' ] );
+		try {
+			$connect->refresh_connection();
+
+			$this->assertSame( 'sk_test_refreshed', WC_Stripe_Helper::get_stripe_settings()['test_secret_key'] );
+			$this->assertSame( [ 'live', 'test' ], get_option( 'wc_stripe_oauth_deauthorization_failed_modes' ) );
+		} finally {
+			delete_option( 'wc_stripe_oauth_deauthorization_failed_modes' );
+		}
+	}
+
+	/**
+	 * Asserts that deauthorize_oauth_connections() revokes only the Connect
+	 * connection.
+	 *
+	 * @param array $settings         Stripe settings to store before the call.
+	 * @param array $account_data     Cached account data returned for both modes.
+	 * @param array $expected_calls   Expected [ account_id, secret_key ] tuples, in order.
+	 * @param array $expected_results Revocation results by mode.
+	 *
+	 * @dataProvider provide_deauthorize_oauth_connections
+	 */
+	public function test_deauthorize_oauth_connections( $settings, $account_data, $expected_calls, $expected_results ) {
+		$this->set_stripe_account_data( $account_data );
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$api_mock = $this->getMockBuilder( WC_Stripe_Connect_API::class )->disableOriginalConstructor()->getMock();
+		$connect  = new WC_Stripe_Connect( $api_mock );
+
+		$calls = [];
+		$api_mock->expects( $this->exactly( count( $expected_calls ) ) )
+			->method( 'deauthorize_account' )
+			->willReturnCallback(
+				function ( $account_id, $secret_key ) use ( &$calls ) {
+					$calls[] = [ $account_id, $secret_key ];
+					return [ 'accountId' => $account_id ];
+				}
+			);
+
+		$results = $connect->deauthorize_oauth_connections();
+
+		$this->assertSame( $expected_calls, $calls );
+		$this->assertSame( $expected_results, $results );
+	}
+
+	/**
+	 * Provider for test_deauthorize_oauth_connections.
+	 */
+	public function provide_deauthorize_oauth_connections() {
+		$both_modes = [
+			'connection_type'      => 'connect',
+			'secret_key'           => 'sk_live_abc',
+			'test_connection_type' => 'connect',
+			'test_secret_key'      => 'sk_test_abc',
+		];
+
+		return [
+			'both keys in live mode revoke only live'            => [
+				array_merge( $both_modes, [ 'testmode' => 'no' ] ),
+				[ 'id' => 'acct_123' ],
+				[ [ 'acct_123', 'sk_live_abc' ] ],
+				[ 'live' => true ],
+			],
+			'both keys in test mode revoke only test'            => [
+				array_merge( $both_modes, [ 'testmode' => 'yes' ] ),
+				[ 'id' => 'acct_123' ],
+				[ [ 'acct_123', 'sk_test_abc' ] ],
+				[ 'test' => true ],
+			],
+			'live keys only in live mode'                        => [
+				[
+					'connection_type' => 'connect',
+					'secret_key'      => 'sk_live_abc',
+					'testmode'        => 'no',
+				],
+				[ 'id' => 'acct_123' ],
+				[ [ 'acct_123', 'sk_live_abc' ] ],
+				[ 'live' => true ],
+			],
+			'test keys only in test mode'                        => [
+				[
+					'test_connection_type' => 'connect',
+					'test_secret_key'      => 'sk_test_abc',
+					'testmode'             => 'yes',
+				],
+				[ 'id' => 'acct_123' ],
+				[ [ 'acct_123', 'sk_test_abc' ] ],
+				[ 'test' => true ],
+			],
+			'app connections are not revocable'                  => [
+				array_merge(
+					$both_modes,
+					[
+						'connection_type'      => 'app',
+						'test_connection_type' => 'app',
+					]
+				),
+				[ 'id' => 'acct_123' ],
+				[],
+				[],
+			],
+			'manual keys have no connection'                     => [
+				[
+					'secret_key'      => 'sk_live_abc',
+					'test_secret_key' => 'sk_test_abc',
+				],
+				[ 'id' => 'acct_123' ],
+				[],
+				[],
+			],
+			'missing live key does not fall back to test'        => [
+				array_merge(
+					$both_modes,
+					[
+						'secret_key' => '',
+						'testmode'   => 'no',
+					]
+				),
+				[ 'id' => 'acct_123' ],
+				[],
+				[ 'live' => false ],
+			],
+			'missing test key does not fall back to live'        => [
+				array_merge(
+					$both_modes,
+					[
+						'test_secret_key' => '',
+						'testmode'        => 'yes',
+					]
+				),
+				[ 'id' => 'acct_123' ],
+				[],
+				[ 'test' => false ],
+			],
+			'missing live account id does not fall back to test' => [
+				$both_modes,
+				[],
+				[],
+				[ 'live' => false ],
+			],
+		];
+	}
+
+	public function test_deauthorize_oauth_connections_does_not_fall_back_to_test_after_live_failure() {
+		$this->set_stripe_account_data( [ 'id' => 'acct_123' ] );
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'connection_type'      => 'connect',
+				'secret_key'           => 'sk_live_abc',
+				'test_connection_type' => 'connect',
+				'test_secret_key'      => 'sk_test_abc',
+			]
+		);
+
+		$api_mock = $this->getMockBuilder( WC_Stripe_Connect_API::class )->disableOriginalConstructor()->getMock();
+		$api_mock->expects( $this->once() )
+			->method( 'deauthorize_account' )
+			->with( 'acct_123', 'sk_live_abc' )
+			->willReturn( new WP_Error( 'wcc_server_error', 'Failed to deauthorize account.' ) );
+
+		$connect = new WC_Stripe_Connect( $api_mock );
+		$this->assertSame( [ 'live' => false ], $connect->deauthorize_oauth_connections() );
+	}
+
+	/**
 	 * Test-key persistence must not be coupled to live-webhook success. When
-	 * configure_webhooks('live') throws (e.g. Stripe rejects webhook creation on the
+	 * maybe_autoconfigure_webhooks('live') throws (e.g. Stripe rejects webhook creation on the
 	 * connected account), save_stripe_keys() still surfaces the webhook WP_Error, but
 	 * the dual-fetched test keys must already be persisted.
 	 */
 	public function test_save_stripe_keys_persists_test_keys_even_when_live_webhook_fails(): void {
 		$account = $this->getMockBuilder( WC_Stripe_Account::class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'get_cached_account_data', 'maybe_decommission_webhook', 'configure_webhooks', 'clear_cache' ] )
+			->onlyMethods( [ 'get_cached_account_data', 'clear_cache' ] )
 			->getMock();
 		$account->method( 'get_cached_account_data' )->willReturn( [ 'country' => 'US' ] );
-		$account->method( 'maybe_decommission_webhook' )->willReturn( false );
-		$account->method( 'configure_webhooks' )->willReturnCallback(
+		$this->webhook_settings->method( 'maybe_autoconfigure_webhooks' )->willReturnCallback(
 			function ( $mode ) {
 				if ( 'live' === $mode ) {
 					throw new Exception( 'not permitted to configure webhook endpoints on a connected account' );
@@ -759,7 +1300,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 	/**
 	 * The test webhook setup during dual-fetch is best-effort: when
-	 * configure_webhooks('test') throws, the failure is swallowed so it cannot abort the
+	 * maybe_autoconfigure_webhooks('test') throws, the failure is swallowed so it cannot abort the
 	 * live onboarding. The live keys, the live webhook, and the dual-fetched test keys
 	 * must all still be persisted, and save_stripe_keys() must not surface a WP_Error.
 	 */
@@ -768,12 +1309,11 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$account = $this->getMockBuilder( WC_Stripe_Account::class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'get_cached_account_data', 'maybe_decommission_webhook', 'configure_webhooks', 'clear_cache' ] )
+			->onlyMethods( [ 'get_cached_account_data', 'clear_cache' ] )
 			->getMock();
 		$account->method( 'get_cached_account_data' )->willReturn( [ 'country' => 'US' ] );
-		$account->method( 'maybe_decommission_webhook' )->willReturn( false );
 		// Only the test webhook fails; the live webhook must still be configured.
-		$account->method( 'configure_webhooks' )->willReturnCallback(
+		$this->webhook_settings->method( 'maybe_autoconfigure_webhooks' )->willReturnCallback(
 			function ( $mode ) use ( &$configured_modes ) {
 				$configured_modes[] = $mode;
 				if ( 'test' === $mode ) {
@@ -811,6 +1351,36 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertSame( 'connect', $settings['test_connection_type'] );
 	}
 
+
+	private function capture_webhook_cleanup( bool $fails, string $mode = 'test' ): object {
+		$requests = (object) [ 'calls' => [] ];
+		add_filter(
+			'pre_http_request',
+			function ( $preempt, $args, $url ) use ( $requests, $fails, $mode ) {
+				if ( false === strpos( $url, '/webhook_endpoints/' ) ) {
+					return $preempt;
+				}
+				if ( 'GET' === $args['method'] ) {
+					return [
+						'response' => [ 'code' => 200 ],
+						'body'     => wp_json_encode( [ 'url' => WC_Stripe_Helper::get_webhook_url() ] ),
+					];
+				}
+				$requests->calls[] = [ basename( $url ), WC_Stripe_API::get_secret_key(), WC_Stripe_Helper::get_stripe_settings()[ 'test' === $mode ? 'test_secret_key' : 'secret_key' ] ];
+				if ( $fails ) {
+					throw new Exception( 'Network error' );
+				}
+				return [
+					'response' => [ 'code' => 200 ],
+					'body'     => wp_json_encode( [ 'deleted' => true ] ),
+				];
+			},
+			10,
+			3
+		);
+		return $requests;
+	}
+
 	/**
 	 * Ensure that partial key returns are validated correctly.
 	 *
@@ -824,7 +1394,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$initial_account = $wc_stripe->account;
 
 		$account = $this->mock_stripe_account();
-		$account->expects( $this->never() )->method( 'configure_webhooks' );
+		$this->webhook_settings->expects( $this->never() )->method( 'maybe_autoconfigure_webhooks' );
 
 		$method = new ReflectionMethod( WC_Stripe_Connect::class, 'save_stripe_keys' );
 		$method->setAccessible( true );
@@ -872,8 +1442,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$initial_account = $wc_stripe->account;
 
 		$account = $this->mock_stripe_account();
-		$account->method( 'maybe_decommission_webhook' )->willReturn( false );
-		$account->method( 'configure_webhooks' )->willThrowException( new Exception( 'webhook endpoint unreachable' ) );
+		$this->webhook_settings->method( 'maybe_autoconfigure_webhooks' )->willThrowException( new Exception( 'webhook endpoint unreachable' ) );
 
 		$logged_errors = [];
 		$mock_logger   = $this->createMock( WC_Logger::class );
@@ -938,14 +1507,15 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * Builds a WC_Stripe_Account mock with the methods save_stripe_keys() relies on, and
 	 * registers it on the plugin instance.
 	 *
+	 * @param array $account_data Cached account data.
 	 * @return WC_Stripe_Account&\PHPUnit\Framework\MockObject\MockObject
 	 */
-	private function mock_stripe_account() {
+	private function mock_stripe_account( array $account_data = [ 'country' => 'US' ] ) {
 		$account = $this->getMockBuilder( WC_Stripe_Account::class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'get_cached_account_data', 'maybe_decommission_webhook', 'configure_webhooks', 'clear_cache' ] )
+			->onlyMethods( [ 'get_cached_account_data', 'clear_cache' ] )
 			->getMock();
-		$account->method( 'get_cached_account_data' )->willReturn( [ 'country' => 'US' ] );
+		$account->method( 'get_cached_account_data' )->willReturn( $account_data );
 
 		WC_Stripe::get_instance()->account = $account;
 
@@ -958,14 +1528,18 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @param string $publishable_key The publishable key to save.
 	 * @param string $secret_key      The secret key to save.
 	 * @param string $mode            The mode to connect to.
+	 * @param string $type            Connection type ('connect' or 'app').
 	 */
-	private function invoke_save_stripe_keys( $publishable_key, $secret_key, $mode = 'test' ) {
+	private function invoke_save_stripe_keys( $publishable_key, $secret_key, $mode = 'test', $type = 'connect' ) {
 		$result                 = new stdClass();
 		$result->publishableKey = $publishable_key; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 		$result->secretKey      = $secret_key; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		if ( 'app' === $type ) {
+			$result->refreshToken = 'rt_test_refreshed'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+		}
 
 		$method = new ReflectionMethod( WC_Stripe_Connect::class, 'save_stripe_keys' );
 		$method->setAccessible( true );
-		$method->invoke( $this->connect, $result, 'connect', $mode );
+		$method->invoke( $this->connect, $result, $type, $mode );
 	}
 }

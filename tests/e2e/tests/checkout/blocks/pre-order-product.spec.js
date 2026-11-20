@@ -7,7 +7,8 @@ import { isPluginInstalled } from '../../../utils/plugin-utils';
 const {
 	setupBlocksCheckout,
 	fillCreditCardDetails,
-	clickAddToCartButton,
+	addProductToCartFromProductPageById,
+	clickPlaceOrder,
 	waitForOrderReceivedPage,
 } = payments;
 
@@ -32,8 +33,11 @@ test.afterAll( async () => {
 test( 'customer can purchase a pre-order product @blocks @pre-orders', async ( {
 	page,
 } ) => {
-	await page.goto( `?p=${ productId }` );
-	await clickAddToCartButton( page, 'Pre-order now' );
+	await addProductToCartFromProductPageById(
+		page,
+		productId,
+		'Pre-order now'
+	);
 
 	const randomString = randomUUID();
 	// Subscriptions will create an account for this checkout, we need a random email.
@@ -48,7 +52,7 @@ test( 'customer can purchase a pre-order product @blocks @pre-orders', async ( {
 	await setupBlocksCheckout( page, customerData );
 	await fillCreditCardDetails( page, config.get( 'cards.no-3ds' ) );
 
-	await page.locator( 'text="Place pre-order now"' ).click();
+	await clickPlaceOrder( page, 'Place pre-order now' );
 
 	await waitForOrderReceivedPage( page );
 } );

@@ -340,14 +340,16 @@ class WC_Stripe_API {
 
 		$response_body = json_decode( $response_body_raw );
 
-		WC_Stripe_Logger::debug(
-			"Stripe API response: {$method} {$api}",
-			[
-				'stripe_api_key'    => $masked_secret_key,
-				'stripe_request_id' => self::get_stripe_request_id( $response ),
-				'response'          => $response_body,
-			]
-		);
+		if ( WC_Stripe_Logger::can_log( 'debug' ) ) {
+			WC_Stripe_Logger::debug(
+				"Stripe API response: {$method} {$api}",
+				[
+					'stripe_api_key'    => $masked_secret_key,
+					'stripe_request_id' => self::get_stripe_request_id( $response ),
+					'response'          => WC_Stripe_Connect::redact_sensitive_data( $response_body ),
+				]
+			);
+		}
 
 		if ( $with_headers ) {
 			return [
@@ -466,14 +468,16 @@ class WC_Stripe_API {
 
 		$response_body = json_decode( $response_body_raw );
 
-		WC_Stripe_Logger::debug(
-			"Stripe API response: GET {$api}",
-			[
-				'stripe_api_key'    => $masked_secret_key,
-				'stripe_request_id' => self::get_stripe_request_id( $response ),
-				'response'          => $response_body,
-			]
-		);
+		if ( WC_Stripe_Logger::can_log( 'debug' ) ) {
+			WC_Stripe_Logger::debug(
+				"Stripe API response: GET {$api}",
+				[
+					'stripe_api_key'    => $masked_secret_key,
+					'stripe_request_id' => self::get_stripe_request_id( $response ),
+					'response'          => WC_Stripe_Connect::redact_sensitive_data( $response_body ),
+				]
+			);
+		}
 
 		return $response_body;
 	}

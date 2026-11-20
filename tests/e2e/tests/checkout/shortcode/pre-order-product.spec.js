@@ -7,7 +7,7 @@ import { isPluginInstalled } from '../../../utils/plugin-utils';
 const {
 	setupShortcodeCheckout,
 	fillCreditCardDetailsShortcode,
-	clickAddToCartButton,
+	addProductToCartFromProductPageById,
 	waitForOrderReceivedPage,
 } = payments;
 
@@ -32,8 +32,11 @@ test.afterAll( async () => {
 test( 'customer can purchase a pre-order product @pre-orders', async ( {
 	page,
 } ) => {
-	await page.goto( `?p=${ productId }` );
-	await clickAddToCartButton( page, 'Pre-order now' );
+	await addProductToCartFromProductPageById(
+		page,
+		productId,
+		'Pre-order now'
+	);
 
 	const randomString = randomUUID();
 	// Subscriptions will create an account for this checkout, we need a random email.
