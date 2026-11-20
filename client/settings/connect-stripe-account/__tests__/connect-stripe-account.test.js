@@ -2,9 +2,9 @@ import React, { act } from 'react';
 import { screen, render, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ConnectStripeAccount from '..';
-import { setWindowLocation } from '../../../../tests/js/utils/window-location';
-import { navigateTo } from 'wcstripe/utils/navigation';
 import { recordEvent } from 'wcstripe/tracking';
+import { navigateTo } from 'wcstripe/utils/navigation';
+import { setWindowLocation } from 'wcstripe/test-utils/window-location';
 
 const mockGetQuery = jest.fn();
 

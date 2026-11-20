@@ -2,10 +2,10 @@ import React from 'react';
 import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DisconnectStripeConfirmationModal from '../disconnect-stripe-confirmation-modal';
-import { reloadPage } from 'wcstripe/utils/navigation';
 import { useDispatch } from '@wordpress/data';
 import { useAccountKeys } from 'wcstripe/data/account-keys/hooks';
 import { useAccount } from 'wcstripe/data/account';
+import { reloadPage } from 'wcstripe/utils/navigation';
 
 jest.mock( 'wcstripe/utils/navigation' );
 

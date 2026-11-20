@@ -1,7 +1,7 @@
 import * as paymentProcessing from '../payment-processing';
-import { setWindowLocation } from '../../../../tests/js/utils/window-location';
-import { navigateTo } from 'wcstripe/utils/navigation';
 import * as stripeUtils from 'wcstripe/stripe-utils';
+import { navigateTo } from 'wcstripe/utils/navigation';
+import { setWindowLocation } from 'wcstripe/test-utils/window-location';
 
 const { hasEmptyRequiredFields } = paymentProcessing;
 

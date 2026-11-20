@@ -19,9 +19,9 @@ jest.mock( '@wordpress/i18n', () => ( {
 	__: ( text ) => text,
 } ) );
 
-import { navigateTo } from 'wcstripe/utils/navigation';
 import { dispatch } from '@wordpress/data';
 import { registerStripeCommands } from 'wcstripe/entrypoints/command-palette';
+import { navigateTo } from 'wcstripe/utils/navigation';
 
 describe( 'command palette registration', () => {
 	const { registerCommand } = dispatch();

@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import nock from 'nock';
-import { resetWindowLocation } from './utils/window-location';
+import { resetWindowLocation } from 'wcstripe/test-utils/window-location';
 
 beforeAll( () => {
 	// ensures that the tests don't use any real endpoints

@@ -1,6 +1,5 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import jQuery from 'jquery';
-import { setWindowLocation } from '../../../../tests/js/utils/window-location';
 import {
 	usePaymentSetupHandler,
 	useCheckoutSuccessHandler,
@@ -10,6 +9,7 @@ import {
 import { useEffect } from '@wordpress/element';
 import { dispatch, select } from '@wordpress/data';
 import { waitForPaymentElementCompletion } from 'wcstripe/blocks/wait-for-payment-element-completion';
+import { setWindowLocation } from 'wcstripe/test-utils/window-location';
 
 jest.mock( '@wordpress/element', () => ( {
 	...jest.requireActual( '@wordpress/element' ),

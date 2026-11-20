@@ -2,8 +2,8 @@ import { act } from 'react';
 import { render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BNPLPromotionBanner } from '../bnpl-promotion-banner';
-import { reloadPage } from 'wcstripe/utils/navigation';
 import apiFetch from '@wordpress/api-fetch';
+import { reloadPage } from 'wcstripe/utils/navigation';
 
 jest.mock( '@wordpress/api-fetch' );
 jest.mock( 'wcstripe/utils/navigation' );

@@ -1,10 +1,10 @@
 import React from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { reloadPage } from 'wcstripe/utils/navigation';
 import { dispatch } from '@wordpress/data';
 import OptimizedCheckoutFirstMethodNotice from 'wcstripe/settings/advanced-settings-section/optimized-checkout-first-method-notice';
 import { dismissNotice, moveStripeToTop } from 'wcstripe/utils';
+import { reloadPage } from 'wcstripe/utils/navigation';
 
 const mockCreateSuccessNotice = jest.fn();
 const mockCreateErrorNotice = jest.fn();
