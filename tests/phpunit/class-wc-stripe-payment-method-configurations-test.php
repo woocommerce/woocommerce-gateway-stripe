@@ -686,6 +686,85 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	}
 
 	/**
+	 * Provider for {@see test_get_payment_method_configuration_from_stripe_preserves_sync_and_fallback_on_failure()}.
+	 */
+	public function provide_get_payment_method_configuration_from_stripe_failure_responses(): array {
+		return [
+			'wp_error_response' => [ new WP_Error( 'stripe_api_outage', 'Synthetic failure' ) ],
+			'null_response'     => [ null ],
+			'stripe_error_body' => [ (object) [ 'error' => (object) [ 'type' => 'api_error' ] ] ],
+			'missing_data'      => [ (object) [] ],
+			'non_array_data'    => [ (object) [ 'data' => 'not an array' ] ],
+		];
+	}
+
+	/**
+	 * Invokes get_payment_method_configuration_from_stripe() with seeded sync/fallback state and a mocked response.
+	 *
+	 * @param mixed $api_response Response returned by get_payment_method_configurations().
+	 * @return array
+	 */
+	private function run_get_payment_method_configuration_from_stripe_with_state( $api_response ): array {
+		$initial_settings  = WC_Stripe_Helper::get_stripe_settings();
+		$fallback_pmc_key  = 'woocommerce_stripe_pmc_fallback_id_test';
+		$instance_property = null;
+
+		try {
+			WC_Stripe_Helper::update_main_stripe_settings( $this->build_connected_test_mode_settings( 'yes' ) );
+			update_option( $fallback_pmc_key, 'pmc_synthetic' );
+			WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+
+			$instance_property = $this->mock_get_payment_method_configurations_response( $api_response );
+
+			$reflection = new ReflectionClass( WC_Stripe_Payment_Method_Configurations::class );
+			$method     = $reflection->getMethod( 'get_payment_method_configuration_from_stripe' );
+			$method->setAccessible( true );
+
+			$primary_pmc      = $method->invoke( null );
+			$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+
+			return [
+				'primary_pmc' => $primary_pmc,
+				'pmc_enabled' => $updated_settings['pmc_enabled'] ?? null,
+				'fallback_id' => get_option( $fallback_pmc_key ),
+			];
+		} finally {
+			if ( null !== $instance_property ) {
+				$instance_property->setValue( null, null );
+			}
+			delete_option( $fallback_pmc_key );
+			WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+			WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+		}
+	}
+
+	/**
+	 * Failed or malformed list responses must preserve pmc_enabled and the stored fallback ID.
+	 *
+	 * @dataProvider provide_get_payment_method_configuration_from_stripe_failure_responses
+	 *
+	 * @param mixed $api_response Response returned by get_payment_method_configurations().
+	 */
+	public function test_get_payment_method_configuration_from_stripe_preserves_sync_and_fallback_on_failure( $api_response ): void {
+		$result = $this->run_get_payment_method_configuration_from_stripe_with_state( $api_response );
+
+		$this->assertNull( $result['primary_pmc'] );
+		$this->assertSame( 'yes', $result['pmc_enabled'] );
+		$this->assertSame( 'pmc_synthetic', $result['fallback_id'] );
+	}
+
+	/**
+	 * A valid empty list response still disables sync and clears the fallback ID.
+	 */
+	public function test_get_payment_method_configuration_from_stripe_disables_sync_and_clears_fallback_on_empty_list(): void {
+		$result = $this->run_get_payment_method_configuration_from_stripe_with_state( (object) [ 'data' => [] ] );
+
+		$this->assertNull( $result['primary_pmc'] );
+		$this->assertSame( 'no', $result['pmc_enabled'] );
+		$this->assertFalse( $result['fallback_id'] );
+	}
+
+	/**
 	 * Provide test cases for {@see test_get_configuration_id()}.
 	 *
 	 * @return array

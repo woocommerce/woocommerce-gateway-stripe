@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Preserve payment method configuration sync and fallback ID when Stripe list fetch fails or returns malformed data

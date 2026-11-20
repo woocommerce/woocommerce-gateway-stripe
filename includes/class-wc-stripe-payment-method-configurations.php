@@ -193,7 +193,22 @@ class WC_Stripe_Payment_Method_Configurations {
 			// If the preselected Payment Method Configuration is not found, we continue with the default logic below.
 		}
 
-		$result         = WC_Stripe_API::get_instance()->get_payment_method_configurations();
+		$result = WC_Stripe_API::get_instance()->get_payment_method_configurations();
+
+		// `WC_Stripe_API::get_payment_method_configurations()` returns null on invalid keys,
+		// WP_Error on transport failures, and an object with `->error` set on Stripe API errors.
+		// Bail without mutating pmc_enabled or the stored fallback ID when the response is failed or malformed.
+		if ( ! is_object( $result ) || is_wp_error( $result ) || ! empty( $result->error ) || ! is_array( $result->data ?? null ) ) {
+			WC_Stripe_Logger::error(
+				'Error retrieving Payment Method Configurations',
+				[
+					'response'    => $result,
+					'stripe_mode' => $is_test_mode ? 'test' : 'live',
+				]
+			);
+			return null;
+		}
+
 		$configurations = $result->data ?? [];
 
 		[
