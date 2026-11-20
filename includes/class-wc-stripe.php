@@ -513,6 +513,47 @@ class WC_Stripe {
 			$this->update_settings( $stripe_settings );
 			WC_Stripe_Logger::error( 'Settings synchronization eligibility will be re-checked after upgrade' );
 		}
+
+		if ( ! $is_new_install ) {
+			$this->record_plugin_updated_tracks_event( $previous_version );
+		}
+	}
+
+	/**
+	 * Records a Tracks event for a change of the installed plugin version, including downgrades.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param mixed $previous_version The previously stored `wc_stripe_version` option value.
+	 * @return void
+	 */
+	private function record_plugin_updated_tracks_event( $previous_version ): void {
+		// NB: we already check if tracking is enabled in record_direct_event(),
+		// but this early check helps the account_id lookup when not necessary.
+		if ( ! WC_Stripe_Tracks::is_tracking_enabled() ) {
+			return;
+		}
+
+		$event_props = [
+			'previous_version' => is_string( $previous_version ) ? $previous_version : '',
+		];
+
+		// The account service is not set up when install() runs on an instance built without
+		// the constructor, so guard it rather than assume it.
+		if ( $this->account instanceof WC_Stripe_Account ) {
+			$account_data = $this->account->get_cached_account_data();
+			if ( is_string( $account_data['id'] ?? null ) ) {
+				$event_props['account_id'] = $account_data['id'];
+			}
+		}
+
+		// install() runs on admin_init, which also fires for logged-out admin-ajax.php requests, so the
+		// first request after an update can be a shopper's. In this case, we don't want to record
+		// any details associated with the shopper.
+		WC_Stripe_Tracks::record_direct_event_without_shopper_details(
+			'wcstripe_plugin_updated',
+			WC_Stripe_Tracks::add_default_event_properties( $event_props )
+		);
 	}
 
 	/**

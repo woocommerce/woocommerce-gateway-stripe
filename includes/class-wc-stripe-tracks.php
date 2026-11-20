@@ -11,6 +11,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class WC_Stripe_Tracks {
 	/**
+	 * Event properties WooCommerce reads from the current request in WC_Tracks::get_server_details().
+	 *
+	 * @var string[]
+	 */
+	private const REQUEST_DETAIL_PROPERTIES = [ '_via_ua', '_via_ip', '_lg', '_dr', '_dl' ];
+
+	/**
 	 * Whether site tracking is available and enabled.
 	 *
 	 * @since x.x.x
@@ -61,6 +68,43 @@ final class WC_Stripe_Tracks {
 		}
 
 		WC_Tracks::record_event( $event_name, $event_properties );
+	}
+
+	/**
+	 * Record a Tracks event, leaving out the request details when the current user is a shopper or
+	 * logged-out visitor rather than someone who can manage WooCommerce.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param string $event_name       The name of the event to record.
+	 * @param array  $event_properties The event properties to record.
+	 * @return void
+	 */
+	public static function record_direct_event_without_shopper_details( string $event_name, array $event_properties = [] ): void {
+		if ( current_user_can( 'manage_woocommerce' ) ) {
+			self::record_direct_event( $event_name, $event_properties );
+			return;
+		}
+
+		if ( ! self::is_tracking_enabled() ) {
+			return;
+		}
+
+		if ( ! class_exists( 'WC_Tracks' ) || ! method_exists( WC_Tracks::class, 'get_properties' ) || ! class_exists( 'WC_Tracks_Event' ) ) { // @phpstan-ignore function.alreadyNarrowedType (Defensive check to make sure the function is available in WooCommerce.)
+			return;
+		}
+
+		$properties = WC_Tracks::get_properties( WC_Tracks::PREFIX . $event_name, $event_properties );
+		foreach ( self::REQUEST_DETAIL_PROPERTIES as $property ) {
+			unset( $properties[ $property ] );
+		}
+
+		$event = new WC_Tracks_Event( $properties );
+		if ( is_wp_error( $event->error ) ) {
+			return;
+		}
+
+		$event->record();
 	}
 
 	/**

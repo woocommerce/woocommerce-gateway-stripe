@@ -164,4 +164,132 @@ class WC_Stripe_Tracks_Test extends WP_UnitTestCase {
 			remove_filter( 'woocommerce_apply_user_tracking', '__return_false' );
 		}
 	}
+
+	/**
+	 * @dataProvider provide_record_direct_event_without_shopper_details_scenarios
+	 *
+	 * @param string|null $role                    Role of the current user; null for a logged-out visitor.
+	 * @param bool        $expect_request_details  Whether the request details should be sent.
+	 */
+	public function test_record_direct_event_without_shopper_details( ?string $role, bool $expect_request_details ): void {
+		wp_set_current_user( null === $role ? 0 : $this->factory->user->create( [ 'role' => $role ] ) );
+		$this->start_capturing_tracks_events();
+
+		$events = $this->record_and_capture_sent_events(
+			function () {
+				WC_Stripe_Tracks::record_direct_event_without_shopper_details( 'wcstripe_test_event', [ 'foo' => 'bar' ] );
+			}
+		);
+
+		$this->assertCount( 1, $events );
+		$this->assertSame( 'wcadmin_wcstripe_test_event', $events[0]['_en'] );
+		$this->assertSame( 'bar', $events[0]['foo'] );
+
+		$request_details = [
+			'_via_ua' => 'Shopper Browser/1.0',
+			'_via_ip' => '203.0.113.7',
+			'_lg'     => 'en-GB',
+			'_dr'     => 'https://shop.example/checkout/',
+			'_dl'     => 'https://shop.example/wp-admin/admin-ajax.php',
+		];
+		foreach ( $request_details as $property => $value ) {
+			if ( $expect_request_details ) {
+				$this->assertSame( $value, $events[0][ $property ] ?? null, $property );
+			} else {
+				$this->assertArrayNotHasKey( $property, $events[0] );
+			}
+		}
+	}
+
+	/**
+	 * Data provider for {@see test_record_direct_event_without_shopper_details()}.
+	 *
+	 * @return array
+	 */
+	public function provide_record_direct_event_without_shopper_details_scenarios(): array {
+		return [
+			'logged out'    => [ null, false ],
+			'customer'      => [ 'customer', false ],
+			'shop manager'  => [ 'shop_manager', true ],
+			'administrator' => [ 'administrator', true ],
+		];
+	}
+
+	public function test_record_direct_event_without_shopper_details_does_not_record_when_tracking_is_disabled(): void {
+		wp_set_current_user( 0 );
+		$this->start_capturing_tracks_events();
+		add_filter( 'woocommerce_apply_user_tracking', '__return_false' );
+
+		try {
+			$events = $this->record_and_capture_sent_events(
+				function () {
+					WC_Stripe_Tracks::record_direct_event_without_shopper_details( 'wcstripe_test_event', [ 'foo' => 'bar' ] );
+				}
+			);
+
+			$this->assertSame( [], $events );
+		} finally {
+			remove_filter( 'woocommerce_apply_user_tracking', '__return_false' );
+		}
+	}
+
+	/**
+	 * Runs the callback as a shopper's admin-ajax.php request and returns the query arguments of every
+	 * Tracks pixel it sends. The request details are only visible in the pixel, because WooCommerce
+	 * adds them after the event property filters run.
+	 *
+	 * @param callable $record Records the events.
+	 * @return array[] One array of pixel query arguments per sent event.
+	 */
+	private function record_and_capture_sent_events( callable $record ): array {
+		$original_server = $_SERVER;
+		$_SERVER         = array_merge(
+			$_SERVER,
+			[
+				'HTTP_USER_AGENT'      => 'Shopper Browser/1.0',
+				'REMOTE_ADDR'          => '203.0.113.7',
+				'HTTP_ACCEPT_LANGUAGE' => 'en-GB',
+				'HTTP_REFERER'         => 'https://shop.example/checkout/',
+				'REQUEST_SCHEME'       => 'https',
+				'HTTP_HOST'            => 'shop.example',
+				'REQUEST_URI'          => '/wp-admin/admin-ajax.php',
+			]
+		);
+
+		$events      = [];
+		$capture_pix = function ( $preempt, $args, $url ) use ( &$events ) {
+			if ( 0 !== strpos( $url, WC_Tracks_Client::PIXEL ) ) {
+				return $preempt;
+			}
+
+			parse_str( (string) wp_parse_url( $url, PHP_URL_QUERY ), $query );
+			$events[] = $query;
+
+			return [
+				'headers'  => [],
+				'body'     => '',
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+			];
+		};
+
+		// Ajax requests send the pixel from the server straight away instead of queueing it for the page footer.
+		add_filter( 'wp_doing_ajax', '__return_true' );
+		add_filter( 'wc_tracks_use_batch_requests', '__return_false' );
+		add_filter( 'pre_http_request', $capture_pix, 10, 3 );
+
+		try {
+			$record();
+		} finally {
+			remove_filter( 'pre_http_request', $capture_pix, 10 );
+			remove_filter( 'wc_tracks_use_batch_requests', '__return_false' );
+			remove_filter( 'wp_doing_ajax', '__return_true' );
+			$_SERVER = $original_server;
+		}
+
+		return $events;
+	}
 }
