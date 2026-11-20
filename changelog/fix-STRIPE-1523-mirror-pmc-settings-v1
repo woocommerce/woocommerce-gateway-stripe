@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Keep locally saved payment method selections in sync with Stripe
