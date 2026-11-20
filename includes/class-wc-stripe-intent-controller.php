@@ -1051,7 +1051,7 @@ class WC_Stripe_Intent_Controller {
 								$order = $this->get_fresh_order( $order );
 								if (
 									$order_helper->is_order_payment_settled( $order )
-									|| $this->payment_was_captured_at_stripe( $gateway, $order, $intent_id_received )
+									|| $gateway->is_payment_taken_at_stripe( $order, $intent_id_received )
 								) {
 									WC_Stripe_Logger::error(
 										"Order $order_id was paid, but processing after the payment failed.",
@@ -1155,40 +1155,6 @@ class WC_Stripe_Intent_Controller {
 		$fresh_order = wc_get_order( $order->get_id() );
 
 		return $fresh_order instanceof WC_Order ? $fresh_order : $order;
-	}
-
-	/**
-	 * Reports whether Stripe has already taken the money for this order's payment intent.
-	 *
-	 * The handler update_order_status_ajax() can catch a failure from a step that runs after the
-	 * charge (saving the payment method, a pre-order mark) but before the order is marked paid. In that
-	 * window the order still looks unpaid, so failing it here would ask the shopper to pay again
-	 * even though Stripe captured or authorized the charge. A succeeded or requires_capture payment
-	 * intent means the money is already taken.
-	 *
-	 * Only payment intents are checked. A setup intent moves no money, so a failure on that path
-	 * cannot double-charge.
-	 *
-	 * @param WC_Stripe_UPE_Payment_Gateway $gateway   The gateway handling the order.
-	 * @param WC_Order                      $order     The order being processed.
-	 * @param string                        $intent_id The confirmed payment intent id from the request.
-	 * @return bool
-	 */
-	private function payment_was_captured_at_stripe( $gateway, WC_Order $order, $intent_id ): bool {
-		if ( empty( $intent_id ) || ! $gateway->is_payment_needed( $order->get_id() ) ) {
-			return false;
-		}
-
-		$intent = WC_Stripe_API::retrieve( "payment_intents/$intent_id" );
-		if ( ! is_object( $intent ) || is_wp_error( $intent ) || ! empty( $intent->error ) || ! isset( $intent->status ) ) {
-			return false;
-		}
-
-		return in_array(
-			$intent->status,
-			[ WC_Stripe_Intent_Status::SUCCEEDED, WC_Stripe_Intent_Status::REQUIRES_CAPTURE ],
-			true
-		);
 	}
 
 	/**

@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Keep orders paid on the redirect payment return when a step after the charge fails, instead of marking them failed and asking the shopper to pay again
