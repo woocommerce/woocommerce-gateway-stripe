@@ -5,11 +5,16 @@ import { api, payments } from '../../utils';
 import {
 	fillLinkCardDetails,
 	fillLinkShippingAddress,
+	getLinkPayButton,
 	openLinkPopup,
 	signUpForLink,
 } from './utils';
 
-const { clickAddToCartButton, emptyCart, waitForOrderReceivedPage } = payments;
+const {
+	addProductToCartFromProductPageBySlug,
+	emptyCart,
+	waitForOrderReceivedPage,
+} = payments;
 
 // Set by wc-stripe-e2e-checkout-fields.php: requests carrying the cookie get
 // a required classic-API billing field ("E2E custom field").
@@ -32,15 +37,14 @@ test.describe( 'express checkout with a required classic custom checkout field',
 	} );
 
 	const addProductToCart = async ( page ) => {
-		await page.goto( '/product/beanie' );
-		await clickAddToCartButton( page );
-		await expect(
-			page.getByText( 'has been added to your cart' )
-		).toBeVisible();
+		await addProductToCartFromProductPageBySlug( page, 'beanie' );
 	};
 
 	const payWithNewLinkAccount = async ( page, isBlockPage ) => {
-		const popup = await openLinkPopup( page, isBlockPage );
+		const { content: popup, waitForClose } = await openLinkPopup(
+			page,
+			isBlockPage
+		);
 		// A unique address per run: Link sandbox keeps accounts around, and an
 		// already-enrolled email would flip the signup flow into a login flow.
 		await signUpForLink(
@@ -55,8 +59,8 @@ test.describe( 'express checkout with a required classic custom checkout field',
 		await fillLinkCardDetails( popup, config.get( 'cards.basic' ) );
 
 		await Promise.all( [
-			popup.waitForEvent( 'close', { timeout: 90 * 1000 } ),
-			popup.getByTestId( 'pay-button' ).click(),
+			waitForClose(),
+			getLinkPayButton( popup ).click(),
 		] );
 	};
 
