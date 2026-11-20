@@ -587,6 +587,26 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that an existing MPN is mapped without internal-meta warnings.
+	 *
+	 * @since x.x.x
+	 * @return void
+	 */
+	public function test_mpn_field_mapping() {
+		$product = WC_Helper_Product::create_simple_product();
+		update_post_meta( $product->get_id(), '_mpn', 'PART-123' );
+
+		// Reload metadata saved before WooCommerce introduced the MPN property.
+		$product = new WC_Product_Simple( $product->get_id() );
+		$mapper  = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result  = $mapper->map_product( $product );
+
+		$this->assertSame( 'PART-123', $result['mpn'] );
+
+		$product->delete( true );
+	}
+
+	/**
 	 * Test GTIN field mapping.
 	 *
 	 * @return void
