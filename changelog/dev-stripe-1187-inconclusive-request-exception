@@ -1,0 +1,4 @@
+Significance: patch
+Type: dev
+
+Throw WC_Stripe_Inconclusive_Request_Exception when a Stripe request ends with no known result (a timeout, a 5xx or an empty response), and let callers resend a POST that Stripe never answered once, with the same idempotency key
