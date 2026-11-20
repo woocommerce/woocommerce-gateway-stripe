@@ -2,14 +2,17 @@ import { act } from 'react';
 import { render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BNPLPromotionBanner } from '../bnpl-promotion-banner';
+import { reloadPage } from 'wcstripe/utils/navigation';
 import apiFetch from '@wordpress/api-fetch';
 
 jest.mock( '@wordpress/api-fetch' );
+jest.mock( 'wcstripe/utils/navigation' );
 
 describe( 'BNPL promotional banner', () => {
 	const setShowPromotionalBanner = jest.fn();
 
 	beforeEach( () => {
+		reloadPage.mockClear();
 		apiFetch.mockImplementation(
 			jest.fn( () => Promise.resolve( { data: {} } ) )
 		);
@@ -42,12 +45,6 @@ describe( 'BNPL promotional banner', () => {
 	} );
 
 	it( 'should make an API call to dismiss the banner on button click', async () => {
-		// Keep the original function.
-		const reload = window.location.reload;
-		Object.defineProperty( window, 'location', {
-			value: { reload: jest.fn() },
-		} );
-
 		const dismissNoticeMock = jest.fn( () =>
 			Promise.resolve( { data: {} } )
 		);
@@ -64,11 +61,7 @@ describe( 'BNPL promotional banner', () => {
 			await userEvent.click( dismissButton );
 		} );
 		expect( dismissNoticeMock ).toHaveBeenCalled();
-
-		// Set the original function back to keep further tests working as expected.
-		Object.defineProperty( window, 'location', {
-			value: { reload },
-		} );
+		expect( reloadPage ).toHaveBeenCalled();
 	} );
 
 	it( 'link should contain the correct attributes', async () => {

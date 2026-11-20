@@ -2,9 +2,13 @@ import React, { act } from 'react';
 import { screen, render, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ConnectStripeAccount from '..';
+import { setWindowLocation } from '../../../../tests/js/utils/window-location';
+import { navigateTo } from 'wcstripe/utils/navigation';
 import { recordEvent } from 'wcstripe/tracking';
 
 const mockGetQuery = jest.fn();
+
+jest.mock( 'wcstripe/utils/navigation' );
 
 jest.mock( 'wcstripe/data/account', () => ( {
 	useAccount: jest.fn(),
@@ -70,11 +74,7 @@ describe( 'ConnectStripeAccount', () => {
 
 	it( 'should render both the "Create or connect an account" and "Create or connect a test account" buttons', () => {
 		// Mock SSL for this test
-		const protocol = window.location.protocol;
-		Object.defineProperty( window, 'location', {
-			value: { ...window.location, protocol: 'https:' },
-			writable: true,
-		} );
+		setWindowLocation( 'https://localhost/' );
 
 		render( <ConnectStripeAccount /> );
 
@@ -87,24 +87,10 @@ describe( 'ConnectStripeAccount', () => {
 		expect(
 			screen.getByText( 'Create or connect a test account' )
 		).toBeInTheDocument();
-
-		// Restore original protocol
-		Object.defineProperty( window, 'location', {
-			value: { ...window.location, protocol },
-			writable: true,
-		} );
 	} );
 
 	it( 'should fetch OAuth URL and redirect when clicking on the "Create or connect an account" button', async () => {
-		// Keep the original function at hand.
-		const assign = window.location.assign;
-		const protocol = window.location.protocol;
-
-		Object.defineProperty( window, 'location', {
-			value: { assign: jest.fn(), protocol: 'https:' },
-			writable: true,
-		} );
-
+		setWindowLocation( 'https://localhost/' );
 		const oauthUrl =
 			'https://connect.stripe.com/oauth/v2/authorize?response_type=code&client_id=ca_1234&scope=read_write&state=1234';
 
@@ -129,7 +115,7 @@ describe( 'ConnectStripeAccount', () => {
 		);
 
 		await waitFor( () => {
-			expect( window.location.assign ).toHaveBeenCalledWith( oauthUrl );
+			expect( navigateTo ).toHaveBeenCalledWith( oauthUrl );
 		} );
 
 		expect( global.jQuery.ajax ).toHaveBeenCalledWith(
@@ -141,22 +127,9 @@ describe( 'ConnectStripeAccount', () => {
 				} ),
 			} )
 		);
-
-		// Set the original function back to keep further tests working as expected.
-		Object.defineProperty( window, 'location', {
-			value: { assign, protocol },
-			writable: true,
-		} );
 	} );
 
 	it( 'should fetch OAuth URL and redirect when clicking on the "Create or connect a test account" button', async () => {
-		// Keep the original function at hand.
-		const assign = window.location.assign;
-
-		Object.defineProperty( window, 'location', {
-			value: { assign: jest.fn() },
-		} );
-
 		const testOauthUrl =
 			'https://connect.stripe.com/oauth/v2/authorize?response_type=code&client_id=ca_5678&scope=read_write&state=5678';
 
@@ -181,9 +154,7 @@ describe( 'ConnectStripeAccount', () => {
 		);
 
 		await waitFor( () => {
-			expect( window.location.assign ).toHaveBeenCalledWith(
-				testOauthUrl
-			);
+			expect( navigateTo ).toHaveBeenCalledWith( testOauthUrl );
 		} );
 
 		expect( global.jQuery.ajax ).toHaveBeenCalledWith(
@@ -194,11 +165,6 @@ describe( 'ConnectStripeAccount', () => {
 				} ),
 			} )
 		);
-
-		// Set the original function back to keep further tests working as expected.
-		Object.defineProperty( window, 'location', {
-			value: { assign },
-		} );
 	} );
 
 	it( 'should display the server error when the OAuth URL request fails', async () => {
@@ -229,11 +195,7 @@ describe( 'ConnectStripeAccount', () => {
 
 	it( 'should disable the live button and show tooltip when SSL is not enabled', async () => {
 		// Mock non-SSL protocol
-		const protocol = window.location.protocol;
-		Object.defineProperty( window, 'location', {
-			value: { ...window.location, protocol: 'http:' },
-			writable: true,
-		} );
+		setWindowLocation( 'http://localhost/' );
 
 		const { container } = render( <ConnectStripeAccount /> );
 
@@ -275,11 +237,5 @@ describe( 'ConnectStripeAccount', () => {
 			'wcstripe_create_or_connect_account_click',
 			{}
 		);
-
-		// Restore original protocol
-		Object.defineProperty( window, 'location', {
-			value: { ...window.location, protocol },
-			writable: true,
-		} );
 	} );
 } );

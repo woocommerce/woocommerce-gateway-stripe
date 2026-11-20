@@ -1,6 +1,7 @@
 import { act } from 'react';
 import { render, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { navigateTo } from 'wcstripe/utils/navigation';
 import { useDispatch } from '@wordpress/data';
 import { ReConnectAccountBanner } from 'wcstripe/settings/payment-settings/promotional-banner/re-connect-account-banner';
 import { recordEvent } from 'wcstripe/tracking';
@@ -11,6 +12,8 @@ const noticesDispatch = {
 };
 
 jest.mock( '@wordpress/data' );
+
+jest.mock( 'wcstripe/utils/navigation' );
 
 jest.mock( 'wcstripe/data', () => ( {
 	useTestMode: jest.fn(),
@@ -28,6 +31,7 @@ global.ajaxurl = '/wp-admin/admin-ajax.php';
 
 describe( 'Reconnect banner', () => {
 	beforeEach( () => {
+		navigateTo.mockClear();
 		useDispatch.mockImplementation( ( storeName ) => {
 			if ( storeName === 'core/notices' ) {
 				return noticesDispatch;
@@ -56,13 +60,6 @@ describe( 'Reconnect banner', () => {
 	} );
 
 	it( 'should fetch OAuth URL and redirect on button click in test mode', async () => {
-		// Keep the original function at hand.
-		const assign = window.location.assign;
-
-		Object.defineProperty( window, 'location', {
-			value: { assign: jest.fn() },
-		} );
-
 		const oauthUrl = 'http://example.com/test-oauth';
 
 		// Mock jQuery.ajax
@@ -94,7 +91,7 @@ describe( 'Reconnect banner', () => {
 		);
 
 		await waitFor( () => {
-			expect( window.location.assign ).toHaveBeenCalledWith( oauthUrl );
+			expect( navigateTo ).toHaveBeenCalledWith( oauthUrl );
 		} );
 
 		expect( global.jQuery.ajax ).toHaveBeenCalledWith(
@@ -106,22 +103,10 @@ describe( 'Reconnect banner', () => {
 				} ),
 			} )
 		);
-
-		// Set the original function back to keep further tests working as expected.
-		Object.defineProperty( window, 'location', {
-			value: { assign },
-		} );
 	} );
 
 	it( 'should fetch OAuth URL and redirect on button click in live mode', async () => {
 		useTestMode.mockReturnValue( [ false, jest.fn() ] );
-
-		// Keep the original function at hand.
-		const assign = window.location.assign;
-
-		Object.defineProperty( window, 'location', {
-			value: { assign: jest.fn() },
-		} );
 
 		const oauthUrl = 'http://example.com/live-oauth';
 
@@ -154,7 +139,7 @@ describe( 'Reconnect banner', () => {
 		);
 
 		await waitFor( () => {
-			expect( window.location.assign ).toHaveBeenCalledWith( oauthUrl );
+			expect( navigateTo ).toHaveBeenCalledWith( oauthUrl );
 		} );
 
 		expect( global.jQuery.ajax ).toHaveBeenCalledWith(
@@ -165,11 +150,6 @@ describe( 'Reconnect banner', () => {
 				} ),
 			} )
 		);
-
-		// Set the original function back to keep further tests working as expected.
-		Object.defineProperty( window, 'location', {
-			value: { assign },
-		} );
 	} );
 
 	it( 'should create error notice when AJAX request fails', async () => {

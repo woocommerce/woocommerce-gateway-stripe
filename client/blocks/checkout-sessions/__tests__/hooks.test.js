@@ -1,5 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import jQuery from 'jquery';
+import { setWindowLocation } from '../../../../tests/js/utils/window-location';
 import {
 	usePaymentSetupHandler,
 	useCheckoutSuccessHandler,
@@ -317,13 +318,9 @@ describe( 'CheckoutSessions hook tests', () => {
 			},
 		};
 
-		let originalLocation;
-
 		beforeEach( () => {
 			document.body.innerHTML = '';
-			originalLocation = window.location;
-			delete window.location;
-			window.location = { origin: 'https://example.com' };
+			setWindowLocation( 'https://example.com/' );
 			onCheckoutSuccess.mockImplementation( ( fn ) => {
 				const onCheckoutProcessingData = {
 					processingResponse: {
@@ -334,10 +331,6 @@ describe( 'CheckoutSessions hook tests', () => {
 				};
 				onCheckoutSuccessResultPromise = fn( onCheckoutProcessingData );
 			} );
-		} );
-
-		afterEach( () => {
-			window.location = originalLocation;
 		} );
 
 		it( 'checkoutState.type is not success', async () => {

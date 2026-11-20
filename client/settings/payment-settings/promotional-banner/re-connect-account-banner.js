@@ -1,5 +1,6 @@
 /* global wc_stripe_settings_params, ajaxurl */
 import { React, useState } from 'react';
+import { navigateTo } from 'wcstripe/utils/navigation';
 import { __ } from '@wordpress/i18n';
 import { useDispatch } from '@wordpress/data';
 import CardBody from 'wcstripe/settings/card-body';
@@ -59,7 +60,7 @@ export const ReConnectAccountBanner = () => {
 			} );
 
 			if ( response?.success && response.data?.oauth_url ) {
-				window.location.assign( response.data.oauth_url );
+				navigateTo( response.data.oauth_url );
 			} else {
 				handleError( response?.data?.message );
 			}
