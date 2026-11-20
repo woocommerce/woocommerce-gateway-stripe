@@ -2677,6 +2677,113 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * A step after the charge can throw before the order is marked paid. When Stripe already took
+	 * the money, the redirect handler must keep the shopper on the order-received page and leave the
+	 * order unfailed, even when an earlier attempt on the same order had failed it. Otherwise it fails
+	 * the order and sends the shopper back to pay again.
+	 *
+	 * @dataProvider provider_process_upe_redirect_payment_post_charge_failure
+	 *
+	 * @param string $intent_status    The payment intent status Stripe reports.
+	 * @param bool   $is_pay_for_order Whether the redirect comes from the pay-for-order page.
+	 * @param bool   $payment_taken    Whether the order should be treated as paid.
+	 * @param string $initial_status   The order status before the redirect is processed.
+	 */
+	public function test_process_upe_redirect_payment_post_charge_failure( string $intent_status, bool $is_pay_for_order, bool $payment_taken, string $initial_status = OrderStatus::PENDING ) {
+		$intent_id = 'pi_post_charge_failure';
+		$order     = WC_Helper_Order::create_order();
+		$order->set_status( $initial_status );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'process_order_for_confirmed_intent' ] )
+			->getMock();
+		$gateway->expects( $this->once() )
+			->method( 'process_order_for_confirmed_intent' )
+			->willThrowException( new WC_Stripe_Exception( 'save_pm_failed', 'Could not save the payment method.' ) );
+
+		$stripe_response = function ( $preempt, $parsed_args, $url ) use ( $intent_id, $intent_status ) {
+			if ( false === strpos( $url, 'payment_intents/' . $intent_id ) ) {
+				return $preempt;
+			}
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					[
+						'id'     => $intent_id,
+						'object' => 'payment_intent',
+						'status' => $intent_status,
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $stripe_response, 10, 3 );
+
+		// Intercept wp_safe_redirect so that exit() is never reached.
+		$redirect_url = null;
+		add_filter(
+			'wp_redirect',
+			function ( $location ) use ( &$redirect_url ) {
+				$redirect_url = $location;
+				throw new \RuntimeException( 'redirect_intercepted' );
+			}
+		);
+
+		try {
+			$gateway->process_upe_redirect_payment( $order_id, $intent_id, false, $is_pay_for_order );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirect_intercepted', $e->getMessage() );
+		} finally {
+			remove_filter( 'pre_http_request', $stripe_response, 10 );
+			remove_all_filters( 'wp_redirect' );
+		}
+
+		$final_order = wc_get_order( $order_id );
+		$notes       = wc_get_order_notes( [ 'order_id' => $order_id ] );
+		$paid_notes  = array_filter(
+			$notes,
+			function ( $note ) {
+				return false !== strpos( $note->content, 'a step after the charge failed' );
+			}
+		);
+
+		if ( $payment_taken ) {
+			$this->assertNull( $redirect_url );
+			$this->assertSame( OrderStatus::PENDING, $final_order->get_status() );
+			$this->assertNotEmpty( $paid_notes );
+
+			// The error message goes to the log only, never into an order note.
+			foreach ( $notes as $note ) {
+				$this->assertStringNotContainsString( 'Could not save the payment method', $note->content );
+			}
+		} else {
+			$expected_url = $is_pay_for_order ? $final_order->get_checkout_payment_url() : wc_get_checkout_url();
+			$this->assertSame( $expected_url, $redirect_url );
+			$this->assertSame( OrderStatus::FAILED, $final_order->get_status() );
+			$this->assertEmpty( $paid_notes );
+		}
+
+		$this->assertEmpty( WC_Stripe_Order_Helper::get_instance()->get_order_existing_payment_lock( $final_order ) );
+	}
+
+	public function provider_process_upe_redirect_payment_post_charge_failure() {
+		return [
+			'succeeded'                               => [ WC_Stripe_Intent_Status::SUCCEEDED, false, true ],
+			'requires_capture'                        => [ WC_Stripe_Intent_Status::REQUIRES_CAPTURE, false, true ],
+			'succeeded, pay for order'                => [ WC_Stripe_Intent_Status::SUCCEEDED, true, true ],
+			'processing'                              => [ WC_Stripe_Intent_Status::PROCESSING, false, false ],
+			'requires_payment_method'                 => [ WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD, false, false ],
+			'requires_payment_method, pay for order'  => [ WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD, true, false ],
+			'succeeded, order failed earlier'         => [ WC_Stripe_Intent_Status::SUCCEEDED, false, true, OrderStatus::FAILED ],
+			'requires_payment_method, failed earlier' => [ WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD, false, false, OrderStatus::FAILED ],
+		];
+	}
+
+	/**
 	 * Helper: build an order linked to a Checkout Session and return the order plus the
 	 * `checkout/sessions/{id}?expand[]=payment_intent` Stripe URL we expect the handler
 	 * to fetch.

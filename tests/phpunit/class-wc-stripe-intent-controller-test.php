@@ -2141,16 +2141,20 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	/**
 	 * A step after the charge can fail before the order is marked paid, while Stripe has already
 	 * taken the money. The handler must detect the captured payment, send the shopper to the
-	 * order-received page, leave the order unfailed, add a note for the merchant, and release the
-	 * lock on this exception path too.
+	 * order-received page, leave the order unfailed (even when an earlier attempt on the same order
+	 * had failed it), add a note for the merchant, and release the lock on this exception path too.
+	 *
+	 * @dataProvider provider_unpaid_order_statuses
+	 *
+	 * @param string $initial_status The order status before the payment is confirmed.
 	 */
-	public function test_update_order_status_ajax_treats_captured_intent_as_paid_when_order_unpaid() {
+	public function test_update_order_status_ajax_treats_captured_intent_as_paid_when_order_unpaid( string $initial_status ) {
 		Ajax_Test_Helper::init_hooks();
 
 		$order     = WC_Helper_Order::create_order();
 		$intent_id = 'pi_captured_order_unpaid';
 		$order->update_meta_data( '_stripe_intent_id', $intent_id );
-		$order->set_status( 'pending' );
+		$order->set_status( $initial_status );
 		$order->save();
 		$order_id = $order->get_id();
 
@@ -2235,6 +2239,13 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		}
 	}
 
+
+	public function provider_unpaid_order_statuses() {
+		return [
+			'pending'                   => [ 'pending' ],
+			'failed by earlier attempt' => [ 'failed' ],
+		];
+	}
 	/**
 	 * Test that confirm_change_payment rejects requests from users who do not own the subscription.
 	 */

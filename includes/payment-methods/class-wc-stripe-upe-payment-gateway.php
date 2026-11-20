@@ -2714,6 +2714,21 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		} catch ( Exception $e ) {
 			$order_helper->unlock_order_payment( $order );
 
+			// A step after the charge (saving the payment method, a pre-order mark) can throw
+			// before the order is marked paid. Failing the order then would send the shopper
+			// back to checkout to pay again, so keep them on the order-received page instead
+			// and leave it to the webhook to finalize the order.
+			$payment_taken = $order instanceof WC_Order
+				&& ( $order_helper->is_order_payment_settled( $order ) || $this->is_payment_taken_at_stripe( $order, $intent_id ) );
+			if ( $payment_taken ) {
+				WC_Stripe_Logger::error(
+					"Order $order_id was paid, but processing the UPE redirect after the payment failed.",
+					[ 'error_message' => $e->getMessage() ]
+				);
+				$order_helper->record_failure_after_charge( $order );
+				return;
+			}
+
 			WC_Stripe_Logger::error( 'Error processing UPE redirect payment for order: ' . $order_id, [ 'error_message' => $e->getMessage() ] );
 			/* translators: localized exception message */
 			$order->update_status( OrderStatus::FAILED, sprintf( __( 'UPE payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
@@ -2731,6 +2746,57 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			exit;
 		} finally {
 			$order_helper->unlock_order_payment( $order );
+		}
+	}
+
+	/**
+	 * Reports whether Stripe has already taken the money for this order's payment intent.
+	 *
+	 * A step that runs after the charge can fail while the order still looks unpaid, so the order
+	 * status alone can't tell whether failing it would make the shopper pay twice. A succeeded or
+	 * requires_capture payment intent means the money is already taken. Setup intents move no
+	 * money, so orders that need no payment are never reported as taken.
+	 *
+	 * @since x.x.x
+	 * @param WC_Order $order     The order being processed.
+	 * @param string   $intent_id The confirmed payment intent ID.
+	 * @return bool
+	 */
+	public function is_payment_taken_at_stripe( WC_Order $order, $intent_id ): bool {
+		if ( empty( $intent_id ) || ! $this->is_payment_needed( $order->get_id() ) ) {
+			return false;
+		}
+
+		$intent = WC_Stripe_API::retrieve( "payment_intents/$intent_id" );
+		if ( ! is_object( $intent ) || is_wp_error( $intent ) || ! empty( $intent->error ) || ! isset( $intent->status ) ) {
+			return false;
+		}
+
+		$is_taken = in_array(
+			$intent->status,
+			[ WC_Stripe_Intent_Status::SUCCEEDED, WC_Stripe_Intent_Status::REQUIRES_CAPTURE ],
+			true
+		);
+
+		// A refund or a lost dispute leaves the intent succeeded, but the money went back.
+		return $is_taken && ! $this->is_latest_charge_reversed( $intent );
+	}
+
+	/**
+	 * Whether the intent's latest charge was refunded or disputed.
+	 *
+	 * Callers run inside an exception handler, so a failed lookup must not throw. It counts as not
+	 * reversed: Stripe did take the money, and failing the order would invite a second payment.
+	 *
+	 * @param object $intent The payment intent.
+	 * @return bool
+	 */
+	private function is_latest_charge_reversed( $intent ): bool {
+		try {
+			return $this->is_charge_refunded_or_disputed( $this->get_latest_charge_from_intent( $intent ) );
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::error( 'Could not check whether the charge was reversed.', [ 'error_message' => $e->getMessage() ] );
+			return false;
 		}
 	}
 
