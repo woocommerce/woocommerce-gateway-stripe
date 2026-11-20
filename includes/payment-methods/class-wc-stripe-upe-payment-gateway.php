@@ -1050,7 +1050,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return false;
 		}
 
-		return ! in_array( $selected_payment_type, WC_Stripe_Payment_Methods::DELAYED_CONFIRMATION_PAYMENT_METHODS, true );
+		if ( in_array( $selected_payment_type, WC_Stripe_Payment_Methods::DELAYED_CONFIRMATION_PAYMENT_METHODS, true ) ) {
+			return false;
+		}
+
+		// Require a resolved PMC ID so automatic_payment_methods cannot omit payment_method_configuration
+		// and fall back to Stripe's account-default configuration.
+		return null !== WC_Stripe_Payment_Method_Configurations::get_configuration_id();
 	}
 
 	/**
@@ -5009,12 +5015,25 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$enabled_payment_method_ids = $this->get_upe_enabled_payment_method_ids();
 
+		// If sync was just disabled (e.g., valid empty PMC list), fall back to the DB option.
+		if ( ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
+			return 'yes' === $this->get_option( 'express_checkout' );
+		}
+
 		// Apple Pay and Google Pay settings are currently unified in wp-admin.
 		// However, they are managed separately within the Stripe dashboard.
 		// Until we move to separate settings in wp-admin, both payment methods will be
 		// considered enabled if either is enabled in Stripe.
-		return in_array( WC_Stripe_Payment_Methods::APPLE_PAY, $enabled_payment_method_ids, true ) ||
-			in_array( WC_Stripe_Payment_Methods::GOOGLE_PAY, $enabled_payment_method_ids, true );
+		if (
+			in_array( WC_Stripe_Payment_Methods::APPLE_PAY, $enabled_payment_method_ids, true ) ||
+			in_array( WC_Stripe_Payment_Methods::GOOGLE_PAY, $enabled_payment_method_ids, true )
+		) {
+			return true;
+		}
+
+		// When PMC retrieval fails before `express_checkout` has been persisted in settings,
+		// fall back to the gateway option so its default ('yes') stays effective.
+		return ! WC_Stripe_Payment_Method_Configurations::has_cached_configuration() && 'yes' === $this->get_option( 'express_checkout' );
 	}
 
 	/**
