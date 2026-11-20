@@ -288,6 +288,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$prefix   = 'test' === $previous_mode ? 'test_' : '';
 		$settings = array_merge(
 			[
+				'testmode'                  => 'test' === $previous_mode ? 'yes' : 'no',
 				$prefix . 'publishable_key' => 'pk_' . $previous_mode . '_previous',
 				$prefix . 'secret_key'      => 'sk_' . $previous_mode . '_previous',
 				'pmc_enabled'               => 'connect' === $type ? 'yes' : 'no',
@@ -298,6 +299,12 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		update_option( 'wc_stripe_optimized_checkout_default_on', 'yes' );
 		add_filter( 'pre_update_option_woocommerce_stripe_settings', [ WC_Stripe::get_instance(), 'gateway_settings_update' ], 10, 2 );
 
+		// Synchronization survives a reconnect only when the credentials it was verified against
+		// are unchanged: same connection type, same mode, same publishable key. The live-previous
+		// case connects a test key for the first time, so those selections await review and the
+		// PMC is never read, which is also why nothing mirrors it into the settings below.
+		$sync_preserved = 'connect' === $type && 'test' === $previous_mode;
+
 		try {
 			for ( $attempt = 0; $attempt < 2; $attempt++ ) {
 				$this->invoke_save_stripe_keys( 'pk_test_previous', 'sk_test_previous', 'test', $type );
@@ -306,13 +313,13 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				$controller = new WC_REST_Stripe_Settings_Controller( new WC_Stripe_UPE_Payment_Gateway() );
 				$response   = $controller->get_settings();
 				$this->assertSame( 200, $response->get_status() );
-				$this->assertSame( 'connect' === $type, $response->get_data()['is_pmc_enabled'] );
+				$this->assertSame( $sync_preserved, $response->get_data()['is_pmc_enabled'] );
 				$snapshots['GET'] = WC_Stripe_Helper::get_stripe_settings();
 				foreach ( $snapshots as $stage => $saved ) {
 					foreach ( [ 'upe_checkout_experience_accepted_payments', 'express_checkout_button_locations', 'express_checkout_button_type', 'express_checkout_button_theme', 'express_checkout_button_size', 'optimized_checkout_element', 'adaptive_pricing' ] as $key ) {
 						if ( array_key_exists( $key, $preferences ) ) {
 							$this->assertSame( $preferences[ $key ], $saved[ $key ], $stage . ': ' . $key );
-						} elseif ( 'connect' === $type && 'upe_checkout_experience_accepted_payments' === $key && ( 'GET' === $stage || array_key_exists( $key, $saved ) ) ) {
+						} elseif ( $sync_preserved && 'upe_checkout_experience_accepted_payments' === $key && ( 'GET' === $stage || array_key_exists( $key, $saved ) ) ) {
 							// The active PMC may be read during reconnect; the settings GET always reads and persists it.
 							$this->assertSame( [ 'card' ], $saved[ $key ], $stage . ': ' . $key );
 						} else {
