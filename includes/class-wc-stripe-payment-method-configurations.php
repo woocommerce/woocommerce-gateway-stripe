@@ -290,7 +290,11 @@ class WC_Stripe_Payment_Method_Configurations {
 		// `WC_Stripe_API::get_payment_method_configurations()` returns null on invalid keys,
 		// WP_Error on transport failures, and an object with `->error` set on Stripe API errors.
 		// Bail without mutating pmc_enabled or the stored fallback ID when the response is failed or malformed.
-		if ( ! is_object( $result ) || is_wp_error( $result ) || ! empty( $result->error ) || ! is_array( $result->data ?? null ) ) {
+		$configurations = is_object( $result ) && ! is_wp_error( $result ) && empty( $result->error )
+			? ( $result->data ?? null )
+			: null;
+
+		if ( ! is_array( $configurations ) || ! self::are_all_configuration_objects( $configurations ) ) {
 			WC_Stripe_Logger::error(
 				'Error retrieving Payment Method Configurations',
 				[
@@ -301,8 +305,6 @@ class WC_Stripe_Payment_Method_Configurations {
 			self::record_failed_fetch_cooldown();
 			return null;
 		}
-
-		$configurations = $result->data ?? [];
 
 		[
 			'pmc'    => $pmc,
@@ -324,6 +326,22 @@ class WC_Stripe_Payment_Method_Configurations {
 
 		self::set_payment_method_configuration_cache( $pmc );
 		return $pmc;
+	}
+
+	/**
+	 * Checks whether every member of a Stripe configuration list response is an object.
+	 *
+	 * @param array $configurations List entries returned by Stripe.
+	 * @return bool
+	 */
+	private static function are_all_configuration_objects( array $configurations ): bool {
+		foreach ( $configurations as $configuration ) {
+			if ( ! is_object( $configuration ) ) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/**

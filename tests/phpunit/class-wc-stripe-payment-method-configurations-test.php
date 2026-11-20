@@ -690,11 +690,14 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	 */
 	public function provide_get_payment_method_configuration_from_stripe_failure_responses(): array {
 		return [
-			'wp_error_response' => [ new WP_Error( 'stripe_api_outage', 'Synthetic failure' ) ],
-			'null_response'     => [ null ],
-			'stripe_error_body' => [ (object) [ 'error' => (object) [ 'type' => 'api_error' ] ] ],
-			'missing_data'      => [ (object) [] ],
-			'non_array_data'    => [ (object) [ 'data' => 'not an array' ] ],
+			'wp_error_response'            => [ new WP_Error( 'stripe_api_outage', 'Synthetic failure' ) ],
+			'null_response'                => [ null ],
+			'stripe_error_body'            => [ (object) [ 'error' => (object) [ 'type' => 'api_error' ] ] ],
+			'missing_data'                 => [ (object) [] ],
+			'non_array_data'               => [ (object) [ 'data' => 'not an array' ] ],
+			'non_object_null_member'       => [ (object) [ 'data' => [ null ] ] ],
+			'non_object_array_member'      => [ (object) [ 'data' => [ [] ] ] ],
+			'mixed_object_and_null_member' => [ (object) [ 'data' => [ (object) self::MOCK_CHILD_TEST_PMC, null ] ] ],
 		];
 	}
 
