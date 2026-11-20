@@ -52,10 +52,6 @@ class WC_Stripe_Agentic_Commerce_Customization_Hook_Test extends WP_UnitTestCase
 	public function setUp(): void {
 		parent::setUp();
 
-		if ( ! class_exists( 'WC_Stripe_Webhook_Handler' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_Webhook_Handler class not loaded' );
-		}
-
 		$this->handler = new WC_Stripe_Webhook_Handler();
 		$this->method  = new ReflectionMethod( WC_Stripe_Webhook_Handler::class, 'process_agentic_customization_hook' );
 		$this->method->setAccessible( true );

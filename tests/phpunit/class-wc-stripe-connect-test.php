@@ -952,10 +952,6 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @dataProvider provide_refresh_connection_terminal_handling
 	 */
 	public function test_refresh_connection_stops_retrying_on_terminal_error( $error_data, bool $expect_rescheduled, int $expect_clear_cache ): void {
-		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		// App OAuth live connection so refresh_connection() proceeds past its guard.
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[

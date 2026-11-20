@@ -11,17 +11,6 @@
 class WC_Stripe_Agentic_Commerce_Product_Exclusion_Test extends WP_UnitTestCase {
 
 	/**
-	 * Skip if the class isn't autoloaded.
-	 */
-	public function setUp(): void {
-		parent::setUp();
-
-		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Product_Exclusion' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Product_Exclusion class not loaded' );
-		}
-	}
-
-	/**
 	 * is_excluded() returns true only for a literal 'yes'; everything else is included.
 	 */
 	public function test_is_excluded_reads_meta_value(): void {
