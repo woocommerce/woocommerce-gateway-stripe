@@ -1,0 +1,4 @@
+Significance: patch
+Type: update
+
+Pass the shopper's login state to the wc_stripe_checkout_session_payment_intent_data filter, so a store can customize Checkout Sessions for guests only

@@ -501,6 +501,94 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The filter context tells a callback whether the shopper is logged in. Only a logged-in
+	 * shopper's session carries Stripe's own save option, so a callback can ask for off-session
+	 * saving for guests alone. What the callback adds must reach the Checkout Session request.
+	 *
+	 * @dataProvider provide_payment_intent_data_filter_context_data
+	 *
+	 * @param bool $logged_in Whether the shopper is logged in when the session is created.
+	 */
+	public function test_create_session_passes_login_context_to_payment_intent_data_filter( bool $logged_in ): void {
+		$product = WC_Helper_Product::create_simple_product( true, [ 'regular_price' => 12.34 ] );
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		WC()->cart->calculate_totals();
+
+		$original_customer = WC()->customer;
+		if ( $logged_in ) {
+			$user_id = self::factory()->user->create();
+			wp_set_current_user( $user_id );
+			WC()->customer = new WC_Customer( $user_id );
+		}
+
+		$captured_context = null;
+		$captured_request = null;
+		$save_for_guests  = static function ( $payment_intent_data, $context ) use ( &$captured_context ) {
+			$captured_context = $context;
+			if ( ! $context['is_shopper_logged_in'] ) {
+				$payment_intent_data['setup_future_usage'] = 'off_session';
+			}
+			return $payment_intent_data;
+		};
+		$capture_body     = static function ( $request, $api ) use ( &$captured_request ) {
+			if ( 'checkout/sessions' === $api ) {
+				$captured_request = $request;
+			}
+			return $request;
+		};
+		$mock_response    = static function ( $return_value, $parsed_args, $url ) {
+			if ( false !== strpos( $url, '/v1/customers' ) ) {
+				$body = [ 'id' => 'cus_test_filter_context' ];
+			} elseif ( 'https://api.stripe.com/v1/checkout/sessions' === $url ) {
+				$body = [
+					'id'            => 'cs_test_filter_context',
+					'client_secret' => 'cs_test_filter_context_secret',
+				];
+			} else {
+				return $return_value;
+			}
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode( (object) $body ),
+			];
+		};
+		add_filter( 'wc_stripe_checkout_session_payment_intent_data', $save_for_guests, 10, 2 );
+		add_filter( 'wc_stripe_request_body', $capture_body, 10, 2 );
+		add_filter( 'pre_http_request', $mock_response, 10, 3 );
+
+		try {
+			( new WC_Stripe_Checkout_Session_Manager() )->create_session();
+		} finally {
+			remove_filter( 'wc_stripe_checkout_session_payment_intent_data', $save_for_guests, 10 );
+			remove_filter( 'wc_stripe_request_body', $capture_body, 10 );
+			remove_filter( 'pre_http_request', $mock_response, 10 );
+			wp_set_current_user( 0 );
+			WC()->customer = $original_customer;
+			$product->delete( true );
+			WC()->cart->empty_cart();
+		}
+
+		$this->assertSame( [ 'is_shopper_logged_in' => $logged_in ], $captured_context );
+		$this->assertIsArray( $captured_request );
+		$this->assertSame( $logged_in, isset( $captured_request['saved_payment_method_options'] ) );
+		$this->assertSame( $logged_in ? null : 'off_session', $captured_request['payment_intent_data']['setup_future_usage'] ?? null );
+	}
+
+	/**
+	 * Data provider for {@see test_create_session_passes_login_context_to_payment_intent_data_filter()}.
+	 *
+	 * @return array
+	 */
+	public function provide_payment_intent_data_filter_context_data(): array {
+		return [
+			'guest'     => [ false ],
+			'logged in' => [ true ],
+		];
+	}
+
+	/**
 	 * Test that build_payment_intent_data() handles bad outputs from the filters that it supports.
 	 *
 	 * @dataProvider provide_build_payment_intent_data
