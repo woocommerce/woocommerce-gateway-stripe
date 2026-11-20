@@ -1879,7 +1879,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	private function get_payment_already_in_progress_response(): array {
 		return $this->get_checkout_failure_response(
-			__( 'Good news: a payment for this order is already on its way, so we did not charge you again. You will get a confirmation email once it is confirmed. If you do not, please contact the store.', 'woocommerce-gateway-stripe' ),
+			__( 'A payment for this order is already being processed, so we did not charge you again. You will get a confirmation email once it completes. If you do not, please contact the store.', 'woocommerce-gateway-stripe' ),
 			'notice'
 		);
 	}
@@ -1943,7 +1943,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param string   $checkout_session_id The completed Checkout Session.
 	 * @param WC_Order $order               The order being paid.
 	 * @return bool False only when the payment has definitely failed.
-	 * @throws WC_Stripe_Exception When the session cannot be retrieved.
+	 * @throws WC_Stripe_Exception When the session or its PaymentIntent cannot be retrieved.
 	 */
 	private function may_checkout_session_payment_succeed( string $checkout_session_id, WC_Order $order ): bool {
 		$unavailable_message = WC_Stripe_Checkout_Session_Context::get_unavailable_message();
@@ -1952,24 +1952,25 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		} catch ( Exception $e ) {
 			throw new WC_Stripe_Exception( $e->getMessage(), $unavailable_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
-		if ( ! is_object( $checkout_session ) ) {
+		// Stripe errors come back as objects too (for example WP_Error), so check the shape before trusting it.
+		if (
+			! is_object( $checkout_session )
+			|| ! isset( $checkout_session->id )
+			|| $checkout_session_id !== $checkout_session->id
+		) {
 			throw new WC_Stripe_Exception( 'Unable to retrieve the Checkout Session.', $unavailable_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
-		$intent_id     = isset( $checkout_session->payment_intent ) && is_string( $checkout_session->payment_intent )
+		$payment_status = isset( $checkout_session->payment_status ) && is_string( $checkout_session->payment_status )
+			? $checkout_session->payment_status
+			: '';
+		$intent_id      = isset( $checkout_session->payment_intent ) && is_string( $checkout_session->payment_intent )
 			? $checkout_session->payment_intent
 			: '';
-		$intent_status = '';
+		$intent_status  = '';
 
-		if ( '' !== $intent_id && 'paid' !== ( $checkout_session->payment_status ?? '' ) ) {
-			try {
-				$intent        = $this->stripe_request( 'payment_intents/' . $intent_id );
-				$intent_status = is_object( $intent ) && isset( $intent->status ) && is_string( $intent->status )
-					? $intent->status
-					: '';
-			} catch ( Exception $e ) {
-				$intent_status = '';
-			}
+		if ( 'paid' !== $payment_status ) {
+			$intent_status = $this->get_checkout_session_intent_status( $intent_id );
 		}
 
 		$failed_intent_statuses = [ WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD, WC_Stripe_Intent_Status::CANCELED ];
@@ -1983,13 +1984,39 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			[
 				'order_id'            => $order->get_id(),
 				'checkout_session_id' => (string) ( $checkout_session->id ?? '' ),
-				'payment_status'      => (string) ( $checkout_session->payment_status ?? '' ),
+				'payment_status'      => $payment_status,
 				'payment_intent_id'   => $intent_id,
 				'intent_status'       => $intent_status,
 			]
 		);
 
 		return true;
+	}
+
+	/**
+	 * Returns the status of a completed Checkout Session's PaymentIntent.
+	 *
+	 * @param string $intent_id The PaymentIntent ID from the session.
+	 * @return string The PaymentIntent status.
+	 * @throws WC_Stripe_Exception When the PaymentIntent cannot be retrieved.
+	 */
+	private function get_checkout_session_intent_status( string $intent_id ): string {
+		$unavailable_message = WC_Stripe_Checkout_Session_Context::get_unavailable_message();
+		if ( '' === $intent_id ) {
+			throw new WC_Stripe_Exception( 'The completed Checkout Session has no PaymentIntent.', $unavailable_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+
+		try {
+			$intent = $this->stripe_request( 'payment_intents/' . $intent_id );
+		} catch ( Exception $e ) {
+			throw new WC_Stripe_Exception( $e->getMessage(), $unavailable_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+
+		if ( ! is_object( $intent ) || ! isset( $intent->status ) || ! is_string( $intent->status ) ) {
+			throw new WC_Stripe_Exception( 'Unable to retrieve the Checkout Session\'s PaymentIntent.', $unavailable_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+
+		return $intent->status;
 	}
 
 	/**

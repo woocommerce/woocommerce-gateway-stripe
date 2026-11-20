@@ -3749,7 +3749,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertSame( 'failure', $result['result'] );
 		$this->assertEmpty( $errors );
 		$this->assertCount( 1, $notices );
-		$this->assertStringStartsWith( 'Good news: a payment for this order is already on its way', $notices[0]['notice'] );
+		$this->assertStringStartsWith( 'A payment for this order is already being processed', $notices[0]['notice'] );
 
 		$processed_order = wc_get_order( $order->get_id() );
 		$this->assertSame( OrderStatus::PENDING, $processed_order->get_status() );
@@ -3761,12 +3761,152 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function provide_blocked_retries_after_completed_checkout_session(): array {
 		return [
-			'new card, earlier payment processing'         => [ 'new_card', 'unpaid', 'processing' ],
-			'saved card, earlier payment processing'       => [ 'saved_card', 'unpaid', 'processing' ],
-			'new session, earlier payment processing'      => [ 'checkout_session', 'unpaid', 'processing' ],
-			'new session, earlier session paid'            => [ 'checkout_session', 'paid', 'succeeded' ],
-			'new card, earlier intent cannot be retrieved' => [ 'new_card', 'unpaid', null ],
+			'new card, earlier payment processing'    => [ 'new_card', 'unpaid', 'processing' ],
+			'saved card, earlier payment processing'  => [ 'saved_card', 'unpaid', 'processing' ],
+			'new session, earlier payment processing' => [ 'checkout_session', 'unpaid', 'processing' ],
+			'new session, earlier session paid'       => [ 'checkout_session', 'paid', 'succeeded' ],
 		];
+	}
+
+	/**
+	 * When Stripe can't tell whether the earlier payment failed, the new attempt is blocked with an error
+	 * rather than the "already being processed" notice, which could mislead the shopper.
+	 *
+	 * @dataProvider provide_unknown_earlier_checkout_session_payments
+	 *
+	 * @param string $attempt        The kind of new payment attempt.
+	 * @param mixed  $intent_response What Stripe returns for the earlier PaymentIntent, or 'throw'.
+	 * @param string $intent_id      The PaymentIntent ID on the earlier session.
+	 */
+	public function test_new_payment_fails_closed_when_earlier_checkout_session_payment_is_unknown( string $attempt, $intent_response, string $intent_id ) {
+		$old_session_id = 'cs_test_earlier';
+		$new_session_id = 'cs_test_retry';
+		$order          = $this->create_order_with_earlier_checkout_session( $attempt, $old_session_id, $new_session_id );
+
+		$this->mock_gateway->method( 'stripe_request' )->willReturnCallback(
+			function ( $path ) use ( $old_session_id, $intent_response, $intent_id ) {
+				if ( 'checkout/sessions/' . $old_session_id === $path ) {
+					return (object) [
+						'id'             => $old_session_id,
+						'status'         => 'complete',
+						'payment_status' => 'unpaid',
+						'payment_intent' => $intent_id,
+					];
+				}
+
+				if ( 'payment_intents/pi_earlier' === $path && 'throw' === $intent_response ) {
+					throw new WC_Stripe_Exception( 'retrieve failed' );
+				}
+
+				return 'payment_intents/pi_earlier' === $path ? $intent_response : null;
+			}
+		);
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->never() )
+			->method( 'create_and_confirm_payment_intent' );
+
+		try {
+			$result = $this->mock_gateway->process_payment( $order->get_id() );
+		} finally {
+			WC_Stripe_Checkout_Session_Context::delete_context( $old_session_id );
+			WC_Stripe_Checkout_Session_Context::delete_context( $new_session_id );
+			$_POST = [];
+		}
+
+		$notices = wc_get_notices( 'notice' );
+		$errors  = wc_get_notices( 'error' );
+		wc_clear_notices();
+
+		$this->assertSame( 'failure', $result['result'] );
+		$this->assertEmpty( $notices );
+		$this->assertCount( 1, $errors );
+		$this->assertStringContainsString( WC_Stripe_Checkout_Session_Context::get_unavailable_message(), $errors[0]['notice'] );
+
+		$processed_order = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::PENDING, $processed_order->get_status() );
+		$this->assertSame( $old_session_id, WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( $processed_order ) );
+	}
+
+	/**
+	 * @return array<string,array{string,mixed,string}>
+	 */
+	public function provide_unknown_earlier_checkout_session_payments(): array {
+		$stripe_error = (object) [ 'error' => (object) [ 'message' => 'No such payment_intent' ] ];
+
+		return [
+			'new card, intent request throws'      => [ 'new_card', 'throw', 'pi_earlier' ],
+			'new card, intent request fails'       => [ 'new_card', new WP_Error( 'http_request_failed', 'timeout' ), 'pi_earlier' ],
+			'saved card, Stripe returns an error'  => [ 'saved_card', $stripe_error, 'pi_earlier' ],
+			'new session, Stripe returns an error' => [ 'checkout_session', $stripe_error, 'pi_earlier' ],
+			'new session, session has no intent'   => [ 'checkout_session', null, '' ],
+		];
+	}
+
+	/**
+	 * A card retry may go ahead once the earlier session's payment has failed, and it unlinks that session first.
+	 *
+	 * @dataProvider provide_card_retry_attempts
+	 *
+	 * @param string $attempt The kind of card retry.
+	 */
+	public function test_card_retry_replaces_earlier_checkout_session_whose_payment_failed( string $attempt ) {
+		$old_session_id = 'cs_test_earlier';
+		$order          = $this->create_order_with_earlier_checkout_session( $attempt, $old_session_id, '' );
+		$this->mock_earlier_checkout_session( $old_session_id, 'complete', 'unpaid', WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD );
+
+		try {
+			$this->mock_gateway->process_payment( $order->get_id() );
+		} catch ( Exception $e ) {
+			// The rest of the card flow is not mocked here; only the retirement decision matters.
+			unset( $e );
+		} finally {
+			$_POST = [];
+		}
+
+		$notices = wc_get_notices( 'notice' );
+		wc_clear_notices();
+
+		$this->assertEmpty( $notices, 'A retry after a failed payment must not be turned away.' );
+		$this->assertSame( '', (string) WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( wc_get_order( $order->get_id() ) ) );
+		$this->assertNull( WC_Stripe_Checkout_Session_Context::get_context( $old_session_id ) );
+	}
+
+	/**
+	 * @return array<string,array{string}>
+	 */
+	public function provide_card_retry_attempts(): array {
+		return [
+			'new card'   => [ 'new_card' ],
+			'saved card' => [ 'saved_card' ],
+		];
+	}
+
+	/**
+	 * Resubmitting the session that is already stored on the order must not look it up, expire or unlink it.
+	 */
+	public function test_resubmitting_the_stored_checkout_session_skips_retirement() {
+		$session_id = 'cs_test_same';
+		$order      = $this->create_order_with_earlier_checkout_session( 'checkout_session', $session_id, $session_id );
+
+		$requested_paths = [];
+		$this->mock_gateway->method( 'stripe_request' )->willReturnCallback(
+			function ( $path ) use ( &$requested_paths ) {
+				$requested_paths[] = $path;
+				return null;
+			}
+		);
+
+		try {
+			$this->mock_gateway->process_payment( $order->get_id() );
+		} finally {
+			WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
+			wc_clear_notices();
+			$_POST = [];
+		}
+
+		$this->assertNotContains( 'checkout/sessions/' . $session_id, $requested_paths );
+		$this->assertSame( $session_id, WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( wc_get_order( $order->get_id() ) ) );
 	}
 
 	/**
