@@ -225,6 +225,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 
 		$express_checkout_dependencies = [];
 		if ( $this->is_express_checkout_active() ) {
+			$this->express_checkout_configuration->register_express_checkout_script();
 			$express_checkout_dependencies[] = WC_Stripe_Express_Checkout_Element::get_express_checkout_script_handle();
 		}
 
