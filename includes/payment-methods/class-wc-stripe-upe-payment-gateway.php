@@ -2725,11 +2725,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 					"Order $order_id was paid, but processing the UPE redirect after the payment failed.",
 					[ 'error_message' => $e->getMessage() ]
 				);
-				// The error message stays in the log only: it can hold Stripe data, and
-				// order notes are kept forever while logs expire.
-				$order->add_order_note(
-					__( 'Stripe took the payment, but a step after the charge failed. The payment was not charged again. Please review this order, and see the Stripe logs (WooCommerce > Status > Logs) for details.', 'woocommerce-gateway-stripe' )
-				);
+				$order_helper->record_failure_after_charge( $order );
 				return;
 			}
 
@@ -2776,11 +2772,32 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return false;
 		}
 
-		return in_array(
+		$is_taken = in_array(
 			$intent->status,
 			[ WC_Stripe_Intent_Status::SUCCEEDED, WC_Stripe_Intent_Status::REQUIRES_CAPTURE ],
 			true
 		);
+
+		// A refund or a lost dispute leaves the intent succeeded, but the money went back.
+		return $is_taken && ! $this->is_latest_charge_reversed( $intent );
+	}
+
+	/**
+	 * Whether the intent's latest charge was refunded or disputed.
+	 *
+	 * Callers run inside an exception handler, so a failed lookup must not throw. It counts as not
+	 * reversed: Stripe did take the money, and failing the order would invite a second payment.
+	 *
+	 * @param object $intent The payment intent.
+	 * @return bool
+	 */
+	private function is_latest_charge_reversed( $intent ): bool {
+		try {
+			return $this->is_charge_refunded_or_disputed( $this->get_latest_charge_from_intent( $intent ) );
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::error( 'Could not check whether the charge was reversed.', [ 'error_message' => $e->getMessage() ] );
+			return false;
+		}
 	}
 
 	/**

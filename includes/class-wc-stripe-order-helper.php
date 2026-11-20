@@ -1193,6 +1193,28 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Records that Stripe took the payment but a step after the charge failed.
+	 *
+	 * A shopper who retries after a failed attempt pays on the same order, and WooCommerce keeps
+	 * it failed until the payment is recorded. Left failed, the order-received page reports a
+	 * decline and offers to pay again, and nothing that completes pending orders picks it up.
+	 *
+	 * @since x.x.x
+	 * @param WC_Order $order The order Stripe took the payment for.
+	 */
+	public function record_failure_after_charge( WC_Order $order ): void {
+		// The error stays in the log only: it can hold Stripe data, and order notes are kept forever while logs expire.
+		$note = __( 'Stripe took the payment, but a step after the charge failed. The payment was not charged again. Please review this order, and see the Stripe logs (WooCommerce > Status > Logs) for details.', 'woocommerce-gateway-stripe' );
+
+		if ( $order->has_status( OrderStatus::FAILED ) ) {
+			$order->update_status( OrderStatus::PENDING, $note );
+			return;
+		}
+
+		$order->add_order_note( $note );
+	}
+
+	/**
 	 * Updates the Stripe UPE redirect processed for order.
 	 *
 	 * @since 10.0.0
