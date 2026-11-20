@@ -74,7 +74,7 @@ describe( 'ConnectStripeAccount', () => {
 
 	it( 'should render both the "Create or connect an account" and "Create or connect a test account" buttons', () => {
 		// Mock SSL for this test
-		setWindowLocation( 'https://localhost/' );
+		setWindowLocation( 'https://localhost' );
 
 		render( <ConnectStripeAccount /> );
 
@@ -90,7 +90,7 @@ describe( 'ConnectStripeAccount', () => {
 	} );
 
 	it( 'should fetch OAuth URL and redirect when clicking on the "Create or connect an account" button', async () => {
-		setWindowLocation( 'https://localhost/' );
+		setWindowLocation( 'https://localhost' );
 		const oauthUrl =
 			'https://connect.stripe.com/oauth/v2/authorize?response_type=code&client_id=ca_1234&scope=read_write&state=1234';
 
@@ -195,7 +195,7 @@ describe( 'ConnectStripeAccount', () => {
 
 	it( 'should disable the live button and show tooltip when SSL is not enabled', async () => {
 		// Mock non-SSL protocol
-		setWindowLocation( 'http://localhost/' );
+		setWindowLocation( 'http://localhost' );
 
 		const { container } = render( <ConnectStripeAccount /> );
 

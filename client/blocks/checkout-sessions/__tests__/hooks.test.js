@@ -320,7 +320,7 @@ describe( 'CheckoutSessions hook tests', () => {
 
 		beforeEach( () => {
 			document.body.innerHTML = '';
-			setWindowLocation( 'https://example.com/' );
+			setWindowLocation( 'https://example.com' );
 			onCheckoutSuccess.mockImplementation( ( fn ) => {
 				const onCheckoutProcessingData = {
 					processingResponse: {

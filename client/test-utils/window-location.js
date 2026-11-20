@@ -1,4 +1,4 @@
-const DEFAULT_URL = 'http://localhost/';
+const DEFAULT_URL = 'http://localhost';
 
 /**
  * Sets the page URL without navigating, so code under test reads the given

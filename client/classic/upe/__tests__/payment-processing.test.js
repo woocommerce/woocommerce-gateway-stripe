@@ -911,7 +911,7 @@ describe( 'payment-processing', () => {
 
 		describe( 'processPayment', () => {
 			beforeEach( () => {
-				setWindowLocation( 'https://shop.com/' );
+				setWindowLocation( 'https://shop.com' );
 				navigateTo.mockClear();
 			} );
 
