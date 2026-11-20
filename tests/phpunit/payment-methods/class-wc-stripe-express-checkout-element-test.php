@@ -383,12 +383,13 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 			$this->assertStringContainsString( '"theme":"white"', wp_scripts()->get_data( 'wc-stripe-checkout-settings', 'data' ) );
 			$this->assertStringEndsWith( '/build/express-checkout.js', wp_scripts()->registered['wc_stripe_express_checkout']->src );
 
-			$bundle     = $expected_classic ? 'express-checkout' : 'upe-blocks';
-			$asset_path = WC_STRIPE_PLUGIN_PATH . '/build/' . $bundle . '.asset.php';
-			$asset      = file_exists( $asset_path ) ? require $asset_path : [ 'version' => WC_STRIPE_VERSION ];
-			$hints      = $element->add_preload_resources( [] );
-			$this->assertCount( 1, $hints );
-			$this->assertSame( WC_STRIPE_PLUGIN_URL . '/build/' . $bundle . '.js?ver=' . $asset['version'], $hints[0]['href'] );
+			$hints = $element->add_preload_resources( [] );
+			$this->assertCount( $expected_classic ? 1 : 0, $hints );
+			if ( $expected_classic ) {
+				$asset_path = WC_STRIPE_PLUGIN_PATH . '/build/express-checkout.asset.php';
+				$asset      = file_exists( $asset_path ) ? require $asset_path : [ 'version' => WC_STRIPE_VERSION ];
+				$this->assertSame( WC_STRIPE_PLUGIN_URL . '/build/express-checkout.js?ver=' . $asset['version'], $hints[0]['href'] );
+			}
 		} finally {
 			if ( $is_cart ) {
 				update_option( 'woocommerce_cart_page_id', $original_cart_page );
@@ -452,8 +453,7 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 			$element = $this->build_element_with_guards( true, true );
 			$element->scripts();
 			$this->assertFalse( wp_script_is( 'wc_stripe_express_checkout', 'enqueued' ) );
-			$hints = $element->add_preload_resources( [] );
-			$this->assertStringContainsString( '/build/upe-blocks.js', $hints[0]['href'] );
+			$this->assertSame( [], $element->add_preload_resources( [] ) );
 
 			ob_start();
 			$element->display_express_checkout_button_html();

@@ -431,11 +431,10 @@ class WC_Stripe_Express_Checkout_Element {
 	/**
 	 * Get asset file data (version and dependencies).
 	 *
-	 * @param string $bundle Bundle name.
 	 * @return array Array containing 'version' and 'dependencies' keys.
 	 */
-	private function get_asset_data( $bundle = 'express-checkout' ) {
-		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/' . $bundle . '.asset.php';
+	private function get_asset_data() {
+		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/express-checkout.asset.php';
 		$version      = WC_STRIPE_VERSION;
 		$dependencies = [];
 
@@ -558,19 +557,21 @@ class WC_Stripe_Express_Checkout_Element {
 			return $preload_resources;
 		}
 
-		if ( ! $this->express_checkout_helper->should_show_express_checkout_button() ) {
+		if (
+			! $this->express_checkout_helper->should_show_express_checkout_button()
+			|| ! $this->should_load_classic_express_checkout_script()
+		) {
 			return $preload_resources;
 		}
 
-		$bundle     = $this->should_load_classic_express_checkout_script() ? 'express-checkout' : 'upe-blocks';
-		$asset_data = $this->get_asset_data( $bundle );
+		$asset_data = $this->get_asset_data();
 
 		if ( is_array( $asset_data ) && isset( $asset_data['version'] ) ) {
 			$preload_resources[] = [
 				'href' => add_query_arg(
 					'ver',
 					$asset_data['version'],
-					WC_STRIPE_PLUGIN_URL . '/build/' . $bundle . '.js'
+					WC_STRIPE_PLUGIN_URL . '/build/express-checkout.js'
 				),
 				'as'   => 'script',
 			];
