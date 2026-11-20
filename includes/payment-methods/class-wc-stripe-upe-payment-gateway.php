@@ -1050,7 +1050,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return false;
 		}
 
-		return ! in_array( $selected_payment_type, WC_Stripe_Payment_Methods::DELAYED_CONFIRMATION_PAYMENT_METHODS, true );
+		if ( in_array( $selected_payment_type, WC_Stripe_Payment_Methods::DELAYED_CONFIRMATION_PAYMENT_METHODS, true ) ) {
+			return false;
+		}
+
+		// Require a resolved PMC ID so automatic_payment_methods cannot omit payment_method_configuration
+		// and fall back to Stripe's account-default configuration.
+		return null !== WC_Stripe_Payment_Method_Configurations::get_configuration_id();
 	}
 
 	/**

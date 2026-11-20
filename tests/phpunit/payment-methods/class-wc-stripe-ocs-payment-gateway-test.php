@@ -228,9 +228,15 @@ class WC_Stripe_OCS_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			]
 		);
 
+		PMC_Test_Helper::cache_mocked_configuration();
+
 		$get_config = new ReflectionMethod( WC_Stripe_OCS_Payment_Gateway::class, 'get_enabled_payment_method_config' );
 		$get_config->setAccessible( true );
-		$config = $get_config->invoke( $gateway );
+		try {
+			$config = $get_config->invoke( $gateway );
+		} finally {
+			WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+		}
 
 		$this->assertIsArray( $config[ WC_Stripe_Payment_Methods::CARD ]['showSaveOptionByMethod'] ?? null );
 		$by_method = $config[ WC_Stripe_Payment_Methods::CARD ]['showSaveOptionByMethod'];
@@ -292,9 +298,15 @@ class WC_Stripe_OCS_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		// only after the stub above is configured, or it reads null and fatals.
 		( new ReflectionClass( WC_Stripe_OCS_Payment_Gateway::class ) )->getConstructor()->invoke( $gateway );
 
+		PMC_Test_Helper::cache_mocked_configuration();
+
 		$get_config = new ReflectionMethod( WC_Stripe_OCS_Payment_Gateway::class, 'get_enabled_payment_method_config' );
 		$get_config->setAccessible( true );
-		$config = $get_config->invoke( $gateway );
+		try {
+			$config = $get_config->invoke( $gateway );
+		} finally {
+			WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+		}
 
 		$by_method = $config[ WC_Stripe_Payment_Methods::CARD ]['showSaveOptionByMethod'] ?? [];
 
@@ -328,9 +340,15 @@ class WC_Stripe_OCS_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			]
 		);
 
+		PMC_Test_Helper::cache_mocked_configuration();
+
 		$get_config = new ReflectionMethod( WC_Stripe_OCS_Payment_Gateway::class, 'get_enabled_payment_method_config' );
 		$get_config->setAccessible( true );
-		$config = $get_config->invoke( $gateway );
+		try {
+			$config = $get_config->invoke( $gateway );
+		} finally {
+			WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+		}
 
 		// The OC container is present, and BLIK keeps its own entry rather than
 		// being folded into it.
@@ -650,9 +668,12 @@ class WC_Stripe_OCS_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$GLOBALS['current_screen'] = WP_Screen::get( 'post.php' );
 		}
 
+		PMC_Test_Helper::cache_mocked_configuration();
+
 		try {
 			$this->assertSame( $expected, $gateway->should_render_optimized_checkout() );
 		} finally {
+			WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
 			$_GET = $initial_get;
 			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 			$GLOBALS['current_screen'] = $initial_current_screen;
@@ -910,9 +931,11 @@ class WC_Stripe_OCS_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$original_total = WC()->cart->get_total( '' );
 		WC()->cart->set_total( $total );
+		PMC_Test_Helper::cache_mocked_configuration();
 		try {
 			$params = $gateway->javascript_params();
 		} finally {
+			WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
 			WC()->cart->set_total( $original_total );
 		}
 

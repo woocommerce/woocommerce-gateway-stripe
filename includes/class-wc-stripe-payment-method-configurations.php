@@ -178,6 +178,9 @@ class WC_Stripe_Payment_Method_Configurations {
 	/**
 	 * Checks whether a payment method configuration is currently available in cache.
 	 *
+	 * @since x.x.x
+	 * @version x.x.x
+	 *
 	 * @return bool
 	 */
 	public static function has_cached_configuration(): bool {
