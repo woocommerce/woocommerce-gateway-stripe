@@ -356,6 +356,39 @@ describe( 'CheckoutSessions hook tests', () => {
 			} );
 		} );
 
+		it( 'does not confirm the session when the order was already paid', async () => {
+			onCheckoutSuccess.mockImplementation( ( fn ) => {
+				onCheckoutSuccessResultPromise = fn( {
+					processingResponse: {
+						paymentDetails: {
+							redirect: 'https://example.com/return-here',
+							wc_stripe_checkout_session_already_paid: 'yes',
+						},
+					},
+				} );
+			} );
+			const mockConfirm = jest.fn();
+			const checkoutState = {
+				type: 'success',
+				checkout: {
+					email: 'test@example.com',
+					confirm: mockConfirm,
+				},
+			};
+			useCheckoutSuccessHandler(
+				checkoutState,
+				onCheckoutSuccess,
+				billing,
+				true,
+				false,
+				shippingData
+			);
+			expect( await onCheckoutSuccessResultPromise ).toEqual( {
+				type: 'success',
+			} );
+			expect( mockConfirm ).not.toHaveBeenCalled();
+		} );
+
 		it( 'error confirming the session', async () => {
 			const mockConfirm = jest.fn().mockResolvedValue( {
 				type: 'error',
