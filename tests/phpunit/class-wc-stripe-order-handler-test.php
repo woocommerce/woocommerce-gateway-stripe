@@ -460,6 +460,151 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Voiding a pre-auth must use the payment method stored on the order while disregarding
+	 * filters that can be applied to the displayed method.
+	 *
+	 * @param string      $stored_method   Payment method persisted on the order.
+	 * @param string|null $filtered_method Payment method the view-context filter reports. Null means no filter is applied.
+	 * @param bool        $expects_void    Whether the pre-auth should be voided at Stripe.
+	 *
+	 * @dataProvider provide_filtered_payment_methods
+	 */
+	public function test_cancel_payment_uses_stored_payment_method( string $stored_method, ?string $filtered_method, bool $expects_void ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( $stored_method );
+		$order->set_transaction_id( 'ch_123' );
+		$order->update_meta_data( '_stripe_charge_captured', 'no' );
+		$order->save();
+
+		$this->order_handler
+			->method( 'get_intent_from_order' )
+			->willReturn(
+				(object) [
+					'id'     => 'pi_123',
+					'object' => 'payment_intent',
+					'status' => WC_Stripe_Intent_Status::REQUIRES_CAPTURE,
+				]
+			);
+
+		$payment_method_filter = null;
+		if ( null !== $filtered_method ) {
+			$payment_method_filter = function () use ( $filtered_method ) {
+				return $filtered_method;
+			};
+			add_filter( 'woocommerce_order_get_payment_method', $payment_method_filter );
+		}
+
+		$cancel_requested = false;
+		$http_callback    = function ( $preempt, $request_args, $url ) use ( &$cancel_requested ) {
+			if ( 'https://api.stripe.com/v1/payment_intents/pi_123/cancel' !== $url ) {
+				return $preempt;
+			}
+
+			$cancel_requested = true;
+
+			return $this->make_stripe_response(
+				200,
+				[
+					'id'            => 'pi_123',
+					'object'        => 'payment_intent',
+					'status'        => 'canceled',
+					'latest_charge' => 'ch_123',
+				]
+			);
+		};
+		add_filter( 'pre_http_request', $http_callback, 10, 3 );
+
+		$manual_cancel_count = did_action( 'woocommerce_stripe_process_manual_cancel' );
+
+		try {
+			$this->order_handler->cancel_payment( $order->get_id() );
+		} finally {
+			remove_filter( 'pre_http_request', $http_callback );
+			if ( null !== $payment_method_filter ) {
+				remove_filter( 'woocommerce_order_get_payment_method', $payment_method_filter );
+			}
+		}
+
+		$this->assertSame( $expects_void, $cancel_requested );
+		$expected_manual_cancel_count = $manual_cancel_count + ( $expects_void ? 1 : 0 );
+		$this->assertSame( $expected_manual_cancel_count, did_action( 'woocommerce_stripe_process_manual_cancel' ) );
+	}
+
+	/**
+	 * The uncaptured-order warning must use the payment method stored on the order while
+	 * disregarding filters that can be applied to the displayed method.
+	 *
+	 * @param string      $stored_method   Payment method persisted on the order.
+	 * @param string|null $filtered_method Payment method the view-context filter reports. Null means no filter is applied.
+	 * @param bool        $expects_warning Whether the warning should be shown.
+	 *
+	 * @dataProvider provide_filtered_payment_methods
+	 */
+	public function test_show_warning_for_uncaptured_orders_uses_stored_payment_method( string $stored_method, ?string $filtered_method, bool $expects_warning ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( $stored_method );
+		$order->set_transaction_id( 'ch_123' );
+		$order->update_meta_data( '_stripe_charge_captured', 'no' );
+		$order->save();
+
+		$this->order_handler
+			->method( 'get_intent_from_order' )
+			->willReturn(
+				(object) [
+					'id'     => 'pi_123',
+					'object' => 'payment_intent',
+					'status' => WC_Stripe_Intent_Status::REQUIRES_CAPTURE,
+				]
+			);
+
+		$gateway                      = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$original_settings            = $gateway->settings;
+		$gateway->settings['capture'] = 'no';
+
+		$payment_method_filter = null;
+		if ( null !== $filtered_method ) {
+			$payment_method_filter = function () use ( $filtered_method ) {
+				return $filtered_method;
+			};
+			add_filter( 'woocommerce_order_get_payment_method', $payment_method_filter );
+		}
+
+		$output = null;
+		try {
+			ob_start();
+			$this->order_handler->show_warning_for_uncaptured_orders( $order->get_id() );
+			$output = ob_get_clean();
+		} finally {
+			if ( null !== $payment_method_filter ) {
+				remove_filter( 'woocommerce_order_get_payment_method', $payment_method_filter );
+			}
+			$gateway->settings = $original_settings;
+		}
+
+		$this->assertNotNull( $output, 'Successfully captured output from show_warning_for_uncaptured_orders.' );
+		if ( $expects_warning ) {
+			$this->assertStringContainsString( 'Attempting to capture more than the authorized amount will fail with an error.', $output );
+		} else {
+			$this->assertSame( '', $output );
+		}
+	}
+
+	/**
+	 * Provider for tests checking that filters on the order's payment method are ignored.
+	 *
+	 * @return array[]
+	 */
+	public function provide_filtered_payment_methods(): array {
+		return [
+			'stripe order masked as another gateway' => [ 'stripe', 'cheque', true ],
+			'other gateway masked as stripe'         => [ 'cheque', 'stripe', false ],
+			'other gateway no filter'                => [ 'cheque', null, false ],
+			'filter returns stripe'                  => [ 'stripe', 'stripe', true ],
+			'value is stripe and not filtered'       => [ 'stripe', null, true ],
+		];
+	}
+
+	/**
 	 * An order whose PaymentIntent Stripe reports as paid must be settled, not cancelled as unpaid.
 	 *
 	 * @param string $intent_status PaymentIntent status reported by Stripe.
