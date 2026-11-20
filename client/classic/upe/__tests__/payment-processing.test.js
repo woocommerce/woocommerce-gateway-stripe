@@ -1,5 +1,6 @@
 import * as paymentProcessing from '../payment-processing';
 import * as stripeUtils from 'wcstripe/stripe-utils';
+import { getAlreadyPaidOrderUrl } from 'wcstripe/stripe-utils/get-already-paid-order-url';
 
 const { hasEmptyRequiredFields } = paymentProcessing;
 
@@ -57,6 +58,10 @@ jest.mock( 'wcstripe/stripe-utils/upe-appearance', () => ( {
 
 jest.mock( 'wcstripe/styles/upe', () => ( {
 	getFontRulesFromPage: jest.fn().mockReturnValue( [] ),
+} ) );
+
+jest.mock( 'wcstripe/stripe-utils/get-already-paid-order-url', () => ( {
+	getAlreadyPaidOrderUrl: jest.fn().mockResolvedValue( null ),
 } ) );
 
 jest.mock(
@@ -269,6 +274,7 @@ const createMockForm = ( {
 	f.append = jest.fn();
 	f.find = jest.fn( () => ( {
 		is: jest.fn( () => savePaymentMethodChecked ),
+		val: jest.fn( () => 'shopper@example.com' ),
 	} ) );
 	return f;
 };
@@ -1292,6 +1298,43 @@ describe( 'payment-processing', () => {
 				expect( stripeUtils.showErrorCheckout ).toHaveBeenCalledWith(
 					'Card declined'
 				);
+			} );
+
+			it( 'redirects to the order instead of showing the error when another tab already paid it', async () => {
+				const alreadyPaidUrl =
+					'https://shop.com/order-received/1/?key=abc&wc_stripe_duplicate_prevented=1';
+				getAlreadyPaidOrderUrl.mockResolvedValueOnce( alreadyPaidUrl );
+				const mockActions = {
+					getSession: jest.fn().mockResolvedValue( {} ),
+					confirm: jest.fn().mockResolvedValue( {
+						type: 'error',
+						error: { message: 'A processing error occurred.' },
+					} ),
+				};
+				const checkoutElements = createMockElements();
+				const api = createMockApi( checkoutElements );
+
+				mockJQueryAjax.mockResolvedValue( {
+					result: 'success',
+					order_id: 1,
+					redirect: 'https://shop.com/order-received/1/?key=abc',
+				} );
+
+				await mountAndConfigureForProcess( api, checkoutElements, {
+					type: 'success',
+					actions: mockActions,
+				} );
+
+				const form = createMockForm();
+				paymentProcessing.processPayment( api, form, 'card' );
+				await flushPromises();
+
+				expect( getAlreadyPaidOrderUrl ).toHaveBeenCalledWith(
+					'https://shop.com/order-received/1/?key=abc',
+					'shopper@example.com'
+				);
+				expect( window.location.href ).toBe( alreadyPaidUrl );
+				expect( stripeUtils.showErrorCheckout ).not.toHaveBeenCalled();
 			} );
 
 			it( 'does not call validateElements or appendPaymentMethodIdToForm', async () => {

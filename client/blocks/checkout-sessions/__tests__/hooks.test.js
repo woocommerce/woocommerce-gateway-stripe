@@ -27,6 +27,10 @@ jest.mock( '@wordpress/data', () => {
 const STALE_TOTAL_MESSAGE =
 	"We couldn't update your order total. Please refresh the page and try again.";
 
+jest.mock( 'wcstripe/stripe-utils/get-already-paid-order-url', () => ( {
+	getAlreadyPaidOrderUrl: jest.fn().mockResolvedValue( null ),
+} ) );
+
 jest.mock( 'wcstripe/blocks/wait-for-payment-element-completion', () => ( {
 	waitForPaymentElementCompletion: jest.fn(),
 } ) );
@@ -439,6 +443,55 @@ describe( 'CheckoutSessions hook tests', () => {
 				redirect: 'if_required',
 				savePaymentMethod: false,
 			} );
+		} );
+
+		it( 'redirects to the order instead of failing when another tab already paid it', async () => {
+			const { getAlreadyPaidOrderUrl } = jest.requireMock(
+				'wcstripe/stripe-utils/get-already-paid-order-url'
+			);
+			const alreadyPaidUrl =
+				'https://example.com/return-here?wc_stripe_duplicate_prevented=1';
+			getAlreadyPaidOrderUrl.mockResolvedValueOnce( alreadyPaidUrl );
+			onCheckoutSuccess.mockImplementation( ( fn ) => {
+				onCheckoutSuccessResultPromise = fn( {
+					processingResponse: {
+						paymentDetails: {
+							redirect: 'https://example.com/return-here',
+						},
+					},
+				} );
+			} );
+			const checkoutState = {
+				type: 'success',
+				checkout: {
+					email: 'test@example.com',
+					confirm: jest.fn().mockResolvedValue( {
+						type: 'error',
+						error: { message: 'A processing error occurred.' },
+					} ),
+				},
+			};
+			useCheckoutSuccessHandler(
+				checkoutState,
+				onCheckoutSuccess,
+				{
+					billingAddress: {
+						...billing.billingAddress,
+						email: 'john@example.com',
+					},
+				},
+				true,
+				false,
+				shippingData
+			);
+			expect( await onCheckoutSuccessResultPromise ).toEqual( {
+				type: 'success',
+				redirectUrl: alreadyPaidUrl,
+			} );
+			expect( getAlreadyPaidOrderUrl ).toHaveBeenCalledWith(
+				'https://example.com/return-here',
+				'john@example.com'
+			);
 		} );
 
 		it( 'confirms with an absolute returnUrl when the server returns a relative redirect', async () => {
