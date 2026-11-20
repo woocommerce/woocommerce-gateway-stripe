@@ -547,7 +547,10 @@ class WC_Stripe {
 			}
 		}
 
-		WC_Stripe_Tracks::record_direct_event(
+		// install() runs on admin_init, which also fires for logged-out admin-ajax.php requests, so the
+		// first request after an update can be a shopper's. In this case, we don't want to record
+		// any details associated with the shopper.
+		WC_Stripe_Tracks::record_direct_event_without_shopper_details(
 			'wcstripe_plugin_updated',
 			WC_Stripe_Tracks::add_default_event_properties( $event_props )
 		);
