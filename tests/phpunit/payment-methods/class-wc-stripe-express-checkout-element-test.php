@@ -500,6 +500,57 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Verify that resource hints are only used in the front-end and not in wp-admin.
+	 *
+	 * @return void
+	 */
+	public function test_resource_hints_and_preloads_are_skipped_in_admin(): void {
+		$element = $this->build_element_with_guards( true, true );
+
+		$initial_screen            = $GLOBALS['current_screen'] ?? null;
+		$GLOBALS['current_screen'] = WP_Screen::get( 'page' );
+
+		try {
+			$urls     = [ 'https://example.com' ];
+			$preloads = [
+				[
+					'href' => 'https://example.com/other.js',
+					'as'   => 'script',
+				],
+			];
+
+			$this->assertSame( $urls, $element->add_resource_hints( $urls, 'preconnect' ) );
+			$this->assertSame( $preloads, $element->add_preload_resources( $preloads ) );
+		} finally {
+			$GLOBALS['current_screen'] = $initial_screen;
+		}
+	}
+
+	/**
+	 * Registration is now called unconditionally from several paths, so a repeat call must be a
+	 * no-op rather than re-reading asset data and re-registering Stripe.js.
+	 *
+	 * @return void
+	 */
+	public function test_register_express_checkout_script_is_noop_when_already_registered() {
+		$handle = WC_Stripe_Express_Checkout_Element::get_express_checkout_script_handle();
+		wp_dequeue_script( $handle );
+		wp_deregister_script( $handle );
+		wp_deregister_script( 'stripe' );
+		wp_register_script( $handle, 'https://example.org/custom-ece.js', [], '1.0.0', true );
+
+		try {
+			$this->element->register_express_checkout_script();
+
+			$this->assertSame( 'https://example.org/custom-ece.js', wp_scripts()->registered[ $handle ]->src );
+			$this->assertFalse( wp_script_is( 'stripe', 'registered' ) );
+		} finally {
+			wp_dequeue_script( $handle );
+			wp_deregister_script( $handle );
+		}
+	}
+
+	/**
 	 * Test for `add_order_meta`.
 	 *
 	 * @param string $checkout_type The checkout type.
