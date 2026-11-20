@@ -1058,9 +1058,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$order->save();
 			}
 
-			$refund_id  = $order_helper->get_stripe_refund_id( $order );
-			$currency   = $order->get_currency();
-			$raw_amount = $refund_object->amount;
+			$latest_refund_id = $order_helper->get_stripe_refund_id( $order );
+			$stripe_refund_id = $refund_object->id;
+			$currency         = $order->get_currency();
+			$raw_amount       = $refund_object->amount;
 
 			if ( ! in_array( strtoupper( $currency ), WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES, true ) ) {
 				$raw_amount /= 100;
@@ -1081,16 +1082,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
-			if ( $order_helper->lock_order_refund( $order ) ) {
-				return;
-			}
-
-			// If the refund ID matches, don't continue to prevent double refunding.
-			if ( $refund_object->id === $refund_id ) {
+			// Stripe delivers events at least once, and the parent meta only tracks the latest refund.
+			// Checked before locking so a skipped duplicate never blocks the next refund event.
+			if ( $stripe_refund_id === $latest_refund_id || $order_helper->get_refund_by_stripe_refund_id( $order, $stripe_refund_id ) ) {
 				return;
 			}
 
 			if ( $charge ) {
+				if ( $order_helper->lock_order_refund( $order ) ) {
+					return;
+				}
+
 				$reason = __( 'Refunded via Stripe Dashboard', 'woocommerce-gateway-stripe' );
 
 				$this->set_stripe_order_status_before_refund( $order, $order->get_status() );
@@ -1103,8 +1105,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 						'reason'   => $reason,
 					]
 				);
-
-				$stripe_refund_id = $refund_object->id;
 
 				if ( is_wp_error( $refund ) ) {
 					WC_Stripe_Logger::error( 'Error creating refund for order: ' . $order_id, [ 'error_message' => $refund->get_error_message() ] );
@@ -1150,7 +1150,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		if ( $order_helper->is_stripe_gateway_order( $order ) ) {
 			$charge     = $order->get_transaction_id();
-			$refund_id  = $order_helper->get_stripe_refund_id( $order );
 			$currency   = $order->get_currency();
 			$raw_amount = $refund_object->amount;
 
@@ -1160,32 +1159,25 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			$amount = wc_price( $raw_amount, [ 'currency' => $currency ] );
 
-			// If the refund IDs do not match stop.
-			if ( $refund_object->id !== $refund_id ) {
-				return;
-			}
-
 			if ( $charge ) {
-				$refunds = wc_get_orders(
-					[
-						'limit'  => 1,
-						'parent' => $order_id,
-					]
-				);
-
-				if ( empty( $refunds ) ) {
-					// No existing refunds nothing to update.
-					return;
-				}
-
-				$refund = $refunds[0];
-
 				if ( in_array( $refund_object->status, [ 'failed', 'canceled' ], true ) ) {
+					$stripe_refund_id = $refund_object->id;
+					$refund           = $order_helper->get_refund_by_stripe_refund_id( $order, $stripe_refund_id );
+
+					// Only the record carrying this refund's ID is ever removed. Without one, the failure
+					// was either handled already or belongs to a record created before 10.9.0, which
+					// carries no ID, and the two cannot be told apart.
+					if ( ! $refund ) {
+						WC_Stripe_Logger::debug( "No refund record to update for failed refund {$stripe_refund_id} on order {$order_id}" );
+						return;
+					}
+
 					if ( isset( $refund_object->failure_balance_transaction ) ) {
 						$this->update_fees( $order, $refund_object->failure_balance_transaction );
 					}
+
 					$refund->delete( true );
-					do_action( 'woocommerce_refund_deleted', $refund_id, $order_id );
+					do_action( 'woocommerce_refund_deleted', $stripe_refund_id, $order_id );
 
 					$order_helper->update_stripe_refund_status( $order, $refund_object->status );
 
@@ -1204,6 +1196,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					} else {
 						$order_helper->delete_stripe_refund_failure_reason( $order );
 					}
+
+					// A note alone does not save the order, so the refund status and failure reason would
+					// be lost whenever the order status stays the same.
+					$order->save_meta_data();
 
 					// Revert to previous status
 					$status_before_refund            = $this->get_stripe_order_status_before_refund( $order );

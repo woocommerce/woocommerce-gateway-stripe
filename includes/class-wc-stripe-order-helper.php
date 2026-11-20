@@ -530,6 +530,32 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Returns the order's refund record that carries the given Stripe refund ID.
+	 *
+	 * Records created before 10.9.0, or whose amount differed from the Stripe refund,
+	 * carry no ID and are never matched.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Order $order
+	 * @param string   $refund_id
+	 * @return WC_Order_Refund|null
+	 */
+	public function get_refund_by_stripe_refund_id( WC_Order $order, string $refund_id ): ?WC_Order_Refund {
+		if ( '' === $refund_id ) {
+			return null;
+		}
+
+		foreach ( $order->get_refunds() as $refund ) {
+			if ( $this->get_stripe_refund_id_for_refund( $refund ) === $refund_id ) {
+				return $refund;
+			}
+		}
+
+		return null;
+	}
+
+	/**
 	 * Deletes the Stripe refund ID from each of the order's refund records.
 	 *
 	 * Unlike the single-record methods, this persists each deletion — as a bulk

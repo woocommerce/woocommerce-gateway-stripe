@@ -2325,7 +2325,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 10
+			count: 9
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -2366,12 +2366,6 @@ parameters:
 
 		-
 			message: '#^Cannot access offset ''headers'' on array\|stdClass\.$#'
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Cannot access offset 0 on non\-empty\-array\<WC_Order\>\|stdClass\.$#'
 			identifier: offsetAccess.nonOffsetAccessible
 			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
