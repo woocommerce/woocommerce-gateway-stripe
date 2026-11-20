@@ -1046,7 +1046,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			return false;
 		}
 
-		if ( 'charge' !== ( $charge_response->object ?? '' ) ) {
+		if ( 'charge' !== ( $charge_response->object ?? '' ) || empty( $charge_response->id ) ) {
 			$order->add_order_note( $default_note );
 			return false;
 		}

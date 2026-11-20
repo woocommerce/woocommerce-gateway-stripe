@@ -1165,6 +1165,116 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A resolved charge that isn't a usable charge object must not be recorded as captured,
+	 * since recording it would overwrite the transaction ID with a missing or wrong value.
+	 *
+	 * @param string $status        Status of the intent returned for the order.
+	 * @param array  $charge        The malformed charge embedded in the intent's `charges` collection.
+	 * @param array  $expected_urls Stripe URLs expected to be requested.
+	 *
+	 * @dataProvider provide_malformed_charges
+	 */
+	public function test_capture_payment_does_not_record_capture_when_charge_is_malformed( string $status, array $charge, array $expected_urls ) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( 'stripe' );
+		$order->set_transaction_id( 'ch_123' );
+		$order->update_meta_data( '_stripe_charge_captured', 'no' );
+		$order->save();
+
+		$charges = [ 'charges' => [ 'data' => [ $charge ] ] ];
+
+		$intent = [
+			'id'     => 'pi_123',
+			'object' => 'payment_intent',
+			'status' => $status,
+		];
+
+		if ( WC_Stripe_Intent_Status::SUCCEEDED === $status ) {
+			$intent = array_merge( $intent, $charges );
+		}
+
+		$this->order_handler
+			->method( 'get_intent_from_order' )
+			->willReturn( json_decode( wp_json_encode( $intent ) ) );
+
+		$requested_urls = [];
+		$http_callback  = function ( $preempt, $request_args, $url ) use ( &$requested_urls, $charges ) {
+			$requested_urls[] = $url;
+
+			if ( 'https://api.stripe.com/v1/payment_intents/pi_123/capture' !== $url ) {
+				return $preempt;
+			}
+
+			return $this->make_stripe_response(
+				200,
+				array_merge(
+					[
+						'id'     => 'pi_123',
+						'object' => 'payment_intent',
+						'status' => WC_Stripe_Intent_Status::SUCCEEDED,
+					],
+					$charges
+				)
+			);
+		};
+		add_filter( 'pre_http_request', $http_callback, 10, 3 );
+
+		$hook_fired     = false;
+		$capture_action = function () use ( &$hook_fired ) {
+			$hook_fired = true;
+		};
+		add_action( 'woocommerce_stripe_process_manual_capture', $capture_action );
+
+		try {
+			$this->order_handler->capture_payment( $order->get_id() );
+		} finally {
+			remove_action( 'woocommerce_stripe_process_manual_capture', $capture_action );
+			remove_filter( 'pre_http_request', $http_callback );
+		}
+
+		$this->assertSame( $expected_urls, $requested_urls );
+		$this->assertTrue( $hook_fired, 'The manual capture hook should still fire.' );
+
+		$order = wc_get_order( $order->get_id() );
+		$notes = wp_list_pluck( wc_get_order_notes( [ 'order_id' => $order->get_id() ] ), 'content' );
+
+		$this->assertSame( 'ch_123', $order->get_transaction_id(), 'The transaction ID must survive the capture attempt.' );
+		$this->assertSame( 'no', $order->get_meta( '_stripe_charge_captured' ), 'A malformed charge must not be recorded as captured.' );
+		$this->assertContains( 'Unable to verify whether charge has been captured.', $notes );
+		$this->assertStringNotContainsString( 'Stripe charge complete', implode( "\n", $notes ) );
+		$this->assertSame( '', $order->get_meta( '_stripe_fee' ) );
+	}
+
+	/**
+	 * Data provider for {@see test_capture_payment_does_not_record_capture_when_charge_is_malformed()}.
+	 *
+	 * @return array[]
+	 */
+	public function provide_malformed_charges(): array {
+		$capture_url = [ 'https://api.stripe.com/v1/payment_intents/pi_123/capture' ];
+		$charges     = [
+			'charge without id'     => [ 'object' => 'charge' ],
+			'charge with empty id'  => [
+				'id'     => '',
+				'object' => 'charge',
+			],
+			'non-charge object'     => [
+				'id'     => 'pi_456',
+				'object' => 'payment_intent',
+			],
+			'charge without object' => [ 'id' => 'ch_456' ],
+		];
+
+		$cases = [];
+		foreach ( $charges as $label => $charge ) {
+			$cases[ "succeeded intent, {$label}" ] = [ WC_Stripe_Intent_Status::SUCCEEDED, $charge, [] ];
+			$cases[ "capture response, {$label}" ] = [ WC_Stripe_Intent_Status::REQUIRES_CAPTURE, $charge, $capture_url ];
+		}
+
+		return $cases;
+	}
+
+	/**
 	 * A failed `latest_charge` lookup throws, and the capture must not crash or be recorded.
 	 *
 	 * @param string $status        Status of the intent returned for the order.
