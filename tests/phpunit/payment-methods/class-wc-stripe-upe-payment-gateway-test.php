@@ -2679,18 +2679,20 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	/**
 	 * A step after the charge can throw before the order is marked paid. When Stripe already took
 	 * the money, the redirect handler must keep the shopper on the order-received page and leave the
-	 * order unfailed. Otherwise it fails the order and sends the shopper back to pay again.
+	 * order unfailed, even when an earlier attempt on the same order had failed it. Otherwise it fails
+	 * the order and sends the shopper back to pay again.
 	 *
 	 * @dataProvider provider_process_upe_redirect_payment_post_charge_failure
 	 *
 	 * @param string $intent_status    The payment intent status Stripe reports.
 	 * @param bool   $is_pay_for_order Whether the redirect comes from the pay-for-order page.
 	 * @param bool   $payment_taken    Whether the order should be treated as paid.
+	 * @param string $initial_status   The order status before the redirect is processed.
 	 */
-	public function test_process_upe_redirect_payment_post_charge_failure( string $intent_status, bool $is_pay_for_order, bool $payment_taken ) {
+	public function test_process_upe_redirect_payment_post_charge_failure( string $intent_status, bool $is_pay_for_order, bool $payment_taken, string $initial_status = OrderStatus::PENDING ) {
 		$intent_id = 'pi_post_charge_failure';
 		$order     = WC_Helper_Order::create_order();
-		$order->set_status( OrderStatus::PENDING );
+		$order->set_status( $initial_status );
 		$order->save();
 		$order_id = $order->get_id();
 
@@ -2770,12 +2772,14 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 	public function provider_process_upe_redirect_payment_post_charge_failure() {
 		return [
-			'succeeded'                              => [ WC_Stripe_Intent_Status::SUCCEEDED, false, true ],
-			'requires_capture'                       => [ WC_Stripe_Intent_Status::REQUIRES_CAPTURE, false, true ],
-			'succeeded, pay for order'               => [ WC_Stripe_Intent_Status::SUCCEEDED, true, true ],
-			'processing'                             => [ WC_Stripe_Intent_Status::PROCESSING, false, false ],
-			'requires_payment_method'                => [ WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD, false, false ],
-			'requires_payment_method, pay for order' => [ WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD, true, false ],
+			'succeeded'                               => [ WC_Stripe_Intent_Status::SUCCEEDED, false, true ],
+			'requires_capture'                        => [ WC_Stripe_Intent_Status::REQUIRES_CAPTURE, false, true ],
+			'succeeded, pay for order'                => [ WC_Stripe_Intent_Status::SUCCEEDED, true, true ],
+			'processing'                              => [ WC_Stripe_Intent_Status::PROCESSING, false, false ],
+			'requires_payment_method'                 => [ WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD, false, false ],
+			'requires_payment_method, pay for order'  => [ WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD, true, false ],
+			'succeeded, order failed earlier'         => [ WC_Stripe_Intent_Status::SUCCEEDED, false, true, OrderStatus::FAILED ],
+			'requires_payment_method, failed earlier' => [ WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD, false, false, OrderStatus::FAILED ],
 		];
 	}
 
