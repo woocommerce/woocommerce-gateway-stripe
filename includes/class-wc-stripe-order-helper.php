@@ -102,6 +102,13 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_PRESENTMENT_AMOUNT = '_stripe_presentment_amount';
 
 	/**
+	 * Meta key flagging the amounts for which an Adaptive Pricing order note was added.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_ADAPTIVE_PRICING_NOTE_AMOUNTS = '_stripe_adaptive_pricing_note_amounts';
+
+	/**
 	 * Meta key for Stripe customer ID.
 	 *
 	 * @var string
@@ -734,6 +741,67 @@ class WC_Stripe_Order_Helper {
 	 */
 	public function update_stripe_presentment_amount( ?WC_Order $order = null, int $presentment_amount = 0 ) {
 		return $this->update_order_meta( $order, self::META_STRIPE_PRESENTMENT_AMOUNT, $presentment_amount );
+	}
+
+	/**
+	 * Indicates whether an Adaptive Pricing order note was already added to the order for the specified presentment currency and amount.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Order|null $order    The order to check.
+	 * @param string        $currency The presentment currency.
+	 * @param string        $amount   The presentment amount as a string.
+	 * @return bool
+	 */
+	public function was_stripe_adaptive_pricing_note_added( ?WC_Order $order, string $currency = '', string $amount = '' ): bool {
+		$expected_note = $this->normalize_adaptive_pricing_note_amount( $currency, $amount );
+		if ( null === $expected_note ) {
+			return false;
+		}
+
+		$notes = $this->get_order_meta_multi( $order, self::META_STRIPE_ADAPTIVE_PRICING_NOTE_AMOUNTS );
+
+		return in_array( $expected_note, $notes, true );
+	}
+
+	/**
+	 * Adds a record for an Adaptive Pricing order note for the specified presentment currency and amount.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Order|null $order    The order to add the record to.
+	 * @param string        $currency The presentment currency.
+	 * @param string        $amount   The presentment amount as a string.
+	 * @return void
+	 */
+	public function add_stripe_adaptive_pricing_note_record( ?WC_Order $order = null, string $currency = '', string $amount = '' ): void {
+		$expected_note = $this->normalize_adaptive_pricing_note_amount( $currency, $amount );
+		if ( null === $expected_note ) {
+			return;
+		}
+
+		if ( $this->was_stripe_adaptive_pricing_note_added( $order, $currency, $amount ) ) {
+			return;
+		}
+
+		$this->add_order_meta_multi( $order, self::META_STRIPE_ADAPTIVE_PRICING_NOTE_AMOUNTS, $expected_note );
+	}
+
+	/**
+	 * Helper function to normalize an Adaptive Pricing note amount.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param string $currency The presentment currency.
+	 * @param string $amount   The presentment amount as a string.
+	 * @return ?string The normalized amount. The value will be `null` when the currency or amount is invalid.
+	*/
+	protected function normalize_adaptive_pricing_note_amount( string $currency, string $amount ): ?string {
+		if ( '' === $currency || '' === $amount ) {
+			return null;
+		}
+
+		return strtoupper( $currency ) . '::' . $amount;
 	}
 
 	/**
@@ -1726,5 +1794,66 @@ class WC_Stripe_Order_Helper {
 		}
 
 		$order->delete_meta_data( $key );
+	}
+
+	/**
+	 * Helper function to get an array of order meta data that is intended to accumulate over time. The goal of the function is
+	 * to reduce boilerplate in the helper due to `null` checks everywhere.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Order|null $order The order to get meta for.
+	 * @param string        $key   The meta key to get.
+	 * @return array An array of values. The array will be empty when the meta key is not set, or the value was filtered to be a non-array.
+	 */
+	protected function get_order_meta_multi( ?WC_Order $order, string $key ): array {
+		if ( null === $order ) {
+			return [];
+		}
+
+		$items = $order->get_meta( $key, false );
+		if ( ! is_array( $items ) || [] === $items ) {
+			return [];
+		}
+
+		// phpcs:ignore Generic.Commenting.DocComment.MissingShort
+		/** @var WC_Meta_Data[] $item_meta_values */
+		$item_meta_values = array_filter(
+			$items,
+			function ( $item ) {
+				return $item instanceof WC_Meta_Data;
+			}
+		);
+
+		// phpcs:ignore Generic.Commenting.DocComment.MissingShort
+		/** @var mixed[] $item_values */
+		$item_values = array_map(
+			function ( $item_meta_value ) {
+				// @phpstan-ignore property.notFound (Order meta items have a value property)
+				return $item_meta_value->value;
+			},
+			$item_meta_values
+		);
+
+		return array_values( $item_values );
+	}
+
+	/**
+	 * Helper function to add an item to an array of order meta data that is intended to accumulate over time. The goal of the function is
+	 * to reduce boilerplate in the helper due to `null` checks everywhere.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Order|null $order The order to add meta for.
+	 * @param string        $key   The meta key to add a value to.
+	 * @param mixed         $value The meta value to add.
+	 * @return void
+	 */
+	protected function add_order_meta_multi( ?WC_Order $order, string $key, $value ): void {
+		if ( null === $order ) {
+			return;
+		}
+
+		$order->add_meta_data( $key, $value, false );
 	}
 }

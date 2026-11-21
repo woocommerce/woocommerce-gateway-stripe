@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Prevent a fatal when a Checkout Session webhook settles before the PaymentIntent charge is available
