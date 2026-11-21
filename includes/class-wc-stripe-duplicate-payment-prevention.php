@@ -324,8 +324,12 @@ final class WC_Stripe_Duplicate_Payment_Prevention {
 		// The order ID in the URL is guessable, so require the order key that the shopper's own
 		// order-received URL always carries; otherwise anyone could clear another shopper's record.
 		$order_key = isset( $_GET['key'] ) ? wc_clean( wp_unslash( $_GET['key'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$order     = wc_get_order( $order_id );
-		if ( $order instanceof WC_Order && is_string( $order_key ) && '' !== $order_key && $order->key_is_valid( $order_key ) ) {
+		if ( ! is_string( $order_key ) || '' === $order_key ) {
+			return;
+		}
+
+		$order = wc_get_order( $order_id );
+		if ( $order instanceof WC_Order && $order->key_is_valid( $order_key ) ) {
 			self::clear_paid_record( $order );
 		}
 	}
@@ -333,12 +337,16 @@ final class WC_Stripe_Duplicate_Payment_Prevention {
 	/**
 	 * Clears the paid-cart record for this order's cart.
 	 *
+	 * Two guests with the same email and cart share a cart key, so only the order the record
+	 * points to may clear it; another guest's order-received page must not.
+	 *
 	 * @param WC_Order $order The order whose cart record should be cleared.
 	 * @return void
 	 */
 	private static function clear_paid_record( WC_Order $order ): void {
 		$cart_key = self::get_cart_key( $order );
-		if ( '' === $cart_key ) {
+		$record   = self::get_record( $cart_key );
+		if ( null === $record || (int) $record['order_id'] !== $order->get_id() ) {
 			return;
 		}
 
