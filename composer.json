@@ -56,6 +56,7 @@
         "includes/class-wc-stripe-order-reconciliation.php",
         "includes/interface-wc-stripe-event-store.php",
         "includes/class-wc-stripe-payment-cancelled-exception.php",
+        "includes/class-wc-stripe-transaction-locked-exception.php",
         "includes/class-wc-stripe-tracks.php",
         "includes/class-wc-stripe-rest-gateway-settings-protection.php",
         "includes/class-wc-stripe-upe-compatibility.php",

@@ -625,7 +625,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( ! empty( $transaction_id ) && null === $lock_owner ) {
 			WC_Stripe_Logger::error( 'Aborting, transaction is being processed by another request.' );
 			$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
-			throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			throw new WC_Stripe_Transaction_Locked_Exception( print_r( $response, true ), $localized_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		// Earlier charges have no lock row, so the persisted mapping remains authoritative.

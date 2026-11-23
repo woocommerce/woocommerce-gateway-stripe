@@ -4824,6 +4824,80 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * When another request (the customer's return, reconciliation) is recording the same charge, settling throws
+	 * a transaction lock error. The webhook must retry later instead of failing an order that request is about to
+	 * mark paid. Any other settlement error still fails the order.
+	 *
+	 * The settlement double throws the error the losing request gets from the charge's transaction lock;
+	 * a real race between two requests can't run in one test process.
+	 *
+	 * @dataProvider provide_settlement_errors
+	 *
+	 * @param Exception $error           What settling throws.
+	 * @param string    $expected_status Order status after the event.
+	 * @param bool      $expect_retry    Whether the event is queued again.
+	 */
+	public function test_handle_checkout_session_success_retries_while_another_request_settles( Exception $error, string $expected_status, bool $expect_retry ): void {
+		$checkout_session_id = 'cs_test_settled_elsewhere';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+		as_unschedule_all_actions( 'wc_stripe_deferred_webhook' );
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_settled_elsewhere',
+				],
+			],
+		];
+
+		$settlement = $this->getMockBuilder( WC_Stripe_Checkout_Session_Settlement::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'process_payment' ] )
+			->getMock();
+		$settlement->method( 'process_payment' )->willThrowException( $error );
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->onlyMethods( [ 'get_checkout_session_settlement', 'send_failed_order_email' ] )
+			->getMock();
+		$handler->method( 'get_checkout_session_settlement' )->willReturn( $settlement );
+		$handler->expects( $expect_retry ? $this->never() : $this->once() )->method( 'send_failed_order_email' );
+
+		try {
+			$handler->process_webhook( wp_json_encode( $notification ) );
+			$is_retry_queued = false !== as_next_scheduled_action( 'wc_stripe_deferred_webhook' );
+		} finally {
+			as_unschedule_all_actions( 'wc_stripe_deferred_webhook' );
+		}
+
+		clean_post_cache( $order->get_id() );
+		$final = wc_get_order( $order->get_id() );
+		$this->assertSame( $expected_status, $final->get_status() );
+		$this->assertSame( $expect_retry, $is_retry_queued );
+	}
+
+	/**
+	 * Data provider for test_handle_checkout_session_success_retries_while_another_request_settles.
+	 *
+	 * @return array
+	 */
+	public function provide_settlement_errors(): array {
+		return [
+			'another request holds the charge' => [ new WC_Stripe_Transaction_Locked_Exception( 'locked' ), OrderStatus::PENDING, true ],
+			'settlement failed on its own'     => [ new WC_Stripe_Exception( 'failed' ), OrderStatus::FAILED, false ],
+		];
+	}
+
+	/**
 	 * Test that `checkout.session.async_payment_succeeded` processes on-hold orders.
 	 *
 	 * @return void

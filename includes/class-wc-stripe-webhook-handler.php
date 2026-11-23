@@ -2653,6 +2653,20 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			} elseif ( WC_Stripe_Checkout_Session_Settlement::RESULT_NO_CHARGE === $result ) {
 				return $this->defer_checkout_session_until_charge( $notification, (string) $session_id, $order, $retry_count, $charge_retry_count );
 			}
+		} catch ( WC_Stripe_Transaction_Locked_Exception $e ) {
+			// The customer's return or reconciliation is recording the same charge right now and completes the
+			// payment, so failing the order here would undo a paid one. The retry finds it settled, or settles it
+			// when that request didn't finish.
+			WC_Stripe_Logger::info(
+				'Another request is settling the checkout session, retrying the event later.',
+				[
+					'order_id'            => $order->get_id(),
+					'checkout_session_id' => $session_id,
+				]
+			);
+			$this->resolved_order = null;
+			$this->defer_webhook_processing( $notification, [ 'session_id' => $session_id ], $this->locked_order_retry_delay );
+			return true;
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::error(
 				'Error processing checkout session for order: ' . $order->get_id(),
