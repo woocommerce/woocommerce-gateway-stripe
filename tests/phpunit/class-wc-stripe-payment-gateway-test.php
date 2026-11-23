@@ -2333,7 +2333,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				$exception = $e;
 			}
 
-			$this->assertInstanceOf( WC_Stripe_Exception::class, $exception );
+			$this->assertInstanceOf( WC_Stripe_Transaction_Locked_Exception::class, $exception );
 
 			$second_order = wc_get_order( $second_order->get_id() );
 			$this->assertEmpty( $second_order->get_transaction_id() );
@@ -2442,6 +2442,8 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		}
 
 		$this->assertInstanceOf( WC_Stripe_Exception::class, $exception );
+		// A charge recorded on another order is a real failure, so callers must not keep retrying it.
+		$this->assertNotInstanceOf( WC_Stripe_Transaction_Locked_Exception::class, $exception );
 
 		$second_order = wc_get_order( $second_order->get_id() );
 		$this->assertEmpty( $second_order->get_transaction_id() );
