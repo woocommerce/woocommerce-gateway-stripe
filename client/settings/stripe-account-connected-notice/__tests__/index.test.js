@@ -33,7 +33,6 @@ const flushPromises = () =>
 	new Promise( ( resolve ) => setImmediate( resolve ) );
 
 describe( 'StripeAccountConnectedNotice', () => {
-	const originalLocation = window.location;
 	const originalLocalStorage = window.localStorage;
 	const mockRemoveItem = jest.fn();
 
@@ -52,17 +51,12 @@ describe( 'StripeAccountConnectedNotice', () => {
 		mockGetQuery.mockReturnValue( {} );
 		mockGetStorageWithExpiration.mockReturnValue( null );
 
-		// Ensure we have a predictable window.location for query parsing.
-		delete window.location;
-		window.location = { search: '' };
-
 		global.wc_stripe_settings_params = {
 			is_payments_onboarding_task_completed: '0',
 		};
 	} );
 
 	afterAll( () => {
-		window.location = originalLocation;
 		window.localStorage = originalLocalStorage;
 	} );
 

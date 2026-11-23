@@ -41,6 +41,7 @@ For repository-wide rules, always read the root `AGENTS.md` first.
 - Keep feature flags and payment-method gating logic centralized and explicit.
 - Preserve existing naming patterns and folder placement used by nearby files.
 - Keep dependencies minimal; avoid adding libraries for simple logic.
+- **MUST:** Navigate or reload the page through `navigateTo()` / `reloadPage()` from `client/utils/navigation.js`, never by writing to `window.location` directly. The test environment cannot replace or spy on `window.location`, so tests mock that module (`jest.mock( 'wcstripe/utils/navigation' )`) and set the page URL with `setWindowLocation()` from `wcstripe/test-utils/window-location`.
 
 ## Styling Conventions
 
