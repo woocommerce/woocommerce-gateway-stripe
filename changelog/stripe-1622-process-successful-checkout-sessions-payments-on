@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Mark paid Adaptive Pricing orders as paid as soon as the customer returns from checkout, instead of waiting for the Stripe webhook
