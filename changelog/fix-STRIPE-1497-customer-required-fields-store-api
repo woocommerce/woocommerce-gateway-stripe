@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Fix Apple Pay, Google Pay and block checkout payments failing with a missing required customer field when the field is only required by the classic checkout or by another country's address format
