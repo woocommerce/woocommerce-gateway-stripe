@@ -2,8 +2,10 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PluginsPageApp from '../plugins-page-app';
+import { navigateTo } from 'wcstripe/utils/navigation';
 
 jest.mock( '@wordpress/api-fetch', () => jest.fn( () => Promise.resolve() ) );
+jest.mock( 'wcstripe/utils/navigation' );
 
 const mockParams = {
 	exit_survey_last_shown: null,
@@ -20,8 +22,8 @@ describe( 'PluginsPageApp', () => {
 	beforeEach( () => {
 		deactivateLink = document.createElement( 'a' );
 		deactivateLink.id = 'deactivate-woocommerce-gateway-stripe';
-		deactivateLink.href =
-			'http://example.com/wp-admin/plugins.php?action=deactivate&plugin=woocommerce-gateway-stripe';
+		// jsdom cannot load another page, so a link the app lets through must stay on this one.
+		deactivateLink.href = '#deactivate-woocommerce-gateway-stripe';
 		deactivateLink.textContent = 'Deactivate';
 		document.body.appendChild( deactivateLink );
 
@@ -56,7 +58,7 @@ describe( 'PluginsPageApp', () => {
 		expect( screen.queryByTitle( 'Exit Survey' ) ).not.toBeInTheDocument();
 	} );
 
-	it( 'dismisses the survey when close is clicked', async () => {
+	it( 'dismisses the survey and proceeds with deactivation when close is clicked', async () => {
 		render( <PluginsPageApp /> );
 
 		await userEvent.click( deactivateLink );
@@ -69,6 +71,9 @@ describe( 'PluginsPageApp', () => {
 				screen.queryByTitle( 'Exit Survey' )
 			).not.toBeInTheDocument();
 		} );
+		expect( navigateTo ).toHaveBeenCalledWith(
+			deactivateLink.getAttribute( 'href' )
+		);
 	} );
 
 	it( 'renders nothing when deactivate link is not in the DOM', () => {
