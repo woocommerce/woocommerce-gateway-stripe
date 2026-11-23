@@ -1,4 +1,4 @@
 Significance: patch
 Type: fix
 
-Fix express checkout showing the wrong amount on product pages for variations with non-ASCII attribute terms
+Fix express checkout showing the wrong amount on product pages for variations that use global attributes with non-ASCII term names
