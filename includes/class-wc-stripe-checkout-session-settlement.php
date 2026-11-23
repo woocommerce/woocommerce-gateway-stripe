@@ -198,8 +198,9 @@ class WC_Stripe_Checkout_Session_Settlement {
 		}
 
 		// Add presentment details if available.
+		// An earlier attempt that lost the charge to another request may have recorded them already.
 		$presentment_details = $checkout_session->presentment_details ?? null;
-		if ( $presentment_details && isset( $presentment_details->presentment_currency, $presentment_details->presentment_amount ) ) {
+		if ( $presentment_details && isset( $presentment_details->presentment_currency, $presentment_details->presentment_amount ) && ! $order_helper->get_stripe_presentment_currency( $order ) ) {
 			$order_helper->update_stripe_presentment_currency( $order, $presentment_details->presentment_currency );
 			$order_helper->update_stripe_presentment_amount( $order, $presentment_details->presentment_amount );
 		}

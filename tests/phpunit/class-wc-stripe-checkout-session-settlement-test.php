@@ -414,11 +414,16 @@ class WC_Stripe_Checkout_Session_Settlement_Test extends WP_UnitTestCase {
 
 		$settlement = new WC_Stripe_Checkout_Session_Settlement( $this->build_gateway(), $this->createMock( WC_Stripe_Action_Scheduler_Service::class ) );
 		$settlement->process_payment( $order, $session );
+		// A retry after losing the charge to another request (the webhook requeues) must not repeat the note.
+		$settlement->process_payment( wc_get_order( $order->get_id() ), $session );
 
 		$settled = wc_get_order( $order->get_id() );
 		$this->assertSame( strtolower( get_woocommerce_currency() ), strtolower( $settled->get_currency() ) );
 		$this->assertSame( 'eur', WC_Stripe_Order_Helper::get_instance()->get_stripe_presentment_currency( $settled ) );
 		$this->assertSame( 1500, (int) WC_Stripe_Order_Helper::get_instance()->get_stripe_presentment_amount( $settled ) );
+
+		$notes = wp_list_pluck( wc_get_order_notes( [ 'order_id' => $order->get_id() ] ), 'content' );
+		$this->assertCount( 1, preg_grep( '/^Local currency purchase via Adaptive Pricing/', $notes ) );
 	}
 
 	/**
