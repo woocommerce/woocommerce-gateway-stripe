@@ -10,6 +10,7 @@ import {
 } from 'wcstripe/settings/payment-settings/constants';
 
 jest.mock( '@wordpress/data' );
+jest.mock( 'wcstripe/utils/navigation' );
 
 jest.mock( '@wordpress/api-fetch' );
 
@@ -37,22 +38,13 @@ useDispatch.mockImplementation( ( storeName ) => {
 const setShowPromotionalBanner = jest.fn();
 
 describe( 'PromotionalBanner', () => {
-	// Keep the original function.
-	const reload = window.location.reload;
 	beforeEach( () => {
-		Object.defineProperty( window, 'location', {
-			value: { reload: jest.fn() },
-		} );
 		apiFetch.mockImplementation(
 			jest.fn( () => Promise.resolve( { data: {} } ) )
 		);
 	} );
 
 	afterEach( () => {
-		// Set the original function back to keep further tests working as expected.
-		Object.defineProperty( window, 'location', {
-			value: { reload },
-		} );
 		jest.restoreAllMocks();
 	} );
 

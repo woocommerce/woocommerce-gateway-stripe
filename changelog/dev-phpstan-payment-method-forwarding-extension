@@ -1,0 +1,4 @@
+Significance: patch
+Type: dev
+
+Let PHPStan see the gateway methods that payment method classes forward to the main Stripe gateway

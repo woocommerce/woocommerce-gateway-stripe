@@ -1,5 +1,6 @@
 import { React } from 'react';
 import styled from '@emotion/styled';
+import { reloadPage } from 'wcstripe/utils/navigation';
 import { __ } from '@wordpress/i18n';
 import { ExternalLink } from '@wordpress/components';
 import CardBody from 'wcstripe/settings/card-body';
@@ -27,7 +28,7 @@ export const BNPLPromotionBanner = ( { setShowPromotionalBanner } ) => {
 		dismissNotice( 'wc_stripe_show_bnpl_promotion_banner', () => {
 			setShowPromotionalBanner( false );
 		} );
-		window.location.reload();
+		reloadPage();
 	};
 
 	return (

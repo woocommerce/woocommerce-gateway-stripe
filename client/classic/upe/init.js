@@ -7,6 +7,7 @@ import {
 } from '../../stripe-utils';
 import { initializeAlwaysExpandedOptimizedCheckout } from './always-expanded-optimized-checkout';
 import { legacyHashchangeHandler } from './legacy-support';
+import { navigateTo } from 'wcstripe/utils/navigation';
 import './deferred-intent.js';
 import 'wcstripe/stripe-utils/copy-test-number';
 import {
@@ -272,7 +273,7 @@ jQuery( function ( $ ) {
 
 		request
 			.then( ( redirectUrl ) => {
-				window.location = redirectUrl;
+				navigateTo( redirectUrl );
 			} )
 			.catch( ( error ) => {
 				$( 'form.checkout' ).removeClass( 'processing' ).unblock();

@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Avoid internal metadata warnings when generating Agentic Commerce product feeds with WooCommerce 11.4 or newer
