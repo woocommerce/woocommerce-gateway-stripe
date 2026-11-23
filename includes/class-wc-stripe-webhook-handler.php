@@ -2635,7 +2635,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			// Reconciliation or the order-received redirect can settle the order between the status check
 			// above and taking the lock. Settling that stale pending copy again would repeat notes and actions.
 			$order = $settlement->get_uncached_order( $order );
-			if ( ! $order || ! $order->has_status( $allowed_payment_processing_statuses ) || $session_id !== $order_helper->get_stripe_checkout_session_id( $order ) ) {
+			if ( ! $order || ! $settlement->can_settle( $order, (string) $session_id ) ) {
 				return false;
 			}
 

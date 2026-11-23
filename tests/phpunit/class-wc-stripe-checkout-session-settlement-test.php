@@ -751,4 +751,32 @@ class WC_Stripe_Checkout_Session_Settlement_Test extends WP_UnitTestCase {
 			'bancontact without mandate'        => [ WC_Stripe_Payment_Methods::BANCONTACT, null, false ],
 		];
 	}
+
+	/**
+	 * Settle only an order that is still waiting for payment and still points at this session. Anything
+	 * else was settled by another process, or a newer payment attempt replaced the session.
+	 *
+	 * @dataProvider provide_can_settle_cases
+	 *
+	 * @param string $status     Order status read under the lock.
+	 * @param string $session_id Session the order points at.
+	 * @param bool   $expected   Whether the order can be settled from `cs_can_settle`.
+	 */
+	public function test_can_settle( string $status, string $session_id, bool $expected ): void {
+		$order = $this->create_session_order( $session_id );
+		$order->set_status( $status );
+		$order->save();
+
+		$settlement = new WC_Stripe_Checkout_Session_Settlement( $this->build_gateway() );
+
+		$this->assertSame( $expected, $settlement->can_settle( $order, 'cs_can_settle' ) );
+	}
+
+	public function provide_can_settle_cases(): array {
+		return [
+			'pending, same session'     => [ OrderStatus::PENDING, 'cs_can_settle', true ],
+			'already settled'           => [ OrderStatus::PROCESSING, 'cs_can_settle', false ],
+			'session replaced on order' => [ OrderStatus::PENDING, 'cs_newer_attempt', false ],
+		];
+	}
 }

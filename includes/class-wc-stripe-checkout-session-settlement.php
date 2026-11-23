@@ -70,6 +70,31 @@ class WC_Stripe_Checkout_Session_Settlement {
 	}
 
 	/**
+	 * Whether the order, read under the payment lock, can still be settled from this session.
+	 *
+	 * Another process can settle the order, or a newer payment attempt can replace its session,
+	 * between the caller's first check and taking the lock.
+	 *
+	 * @param WC_Order $order      Order read again under the lock.
+	 * @param string   $session_id ID of the completed Checkout Session.
+	 * @return bool
+	 */
+	public function can_settle( WC_Order $order, string $session_id ): bool {
+		/** This filter is documented in includes/class-wc-stripe-webhook-handler.php */
+		$allowed_statuses = apply_filters(
+			'wc_stripe_allowed_payment_processing_statuses',
+			[ OrderStatus::PENDING, OrderStatus::FAILED, OrderStatus::ON_HOLD ],
+			$order
+		);
+
+		if ( ! is_array( $allowed_statuses ) || ! $order->has_status( $allowed_statuses ) ) {
+			return false;
+		}
+
+		return '' !== $session_id && WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( $order ) === $session_id;
+	}
+
+	/**
 	 * Settle an order from its completed Checkout Session.
 	 *
 	 * The caller must hold the order payment lock while this method settles the session.
