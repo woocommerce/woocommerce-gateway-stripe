@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Move orders with an expired, uncaptured authorization to Failed instead of leaving them On hold

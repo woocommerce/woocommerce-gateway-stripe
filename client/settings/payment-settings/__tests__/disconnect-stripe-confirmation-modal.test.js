@@ -5,6 +5,9 @@ import DisconnectStripeConfirmationModal from '../disconnect-stripe-confirmation
 import { useDispatch } from '@wordpress/data';
 import { useAccountKeys } from 'wcstripe/data/account-keys/hooks';
 import { useAccount } from 'wcstripe/data/account';
+import { reloadPage } from 'wcstripe/utils/navigation';
+
+jest.mock( 'wcstripe/utils/navigation' );
 
 jest.mock( '@wordpress/data', () => ( {
 	useSelect: jest.fn(),
@@ -22,7 +25,6 @@ jest.mock( 'wcstripe/data/account', () => ( {
 } ) );
 
 describe( 'DisconnectStripeConfirmationModal', () => {
-	const windowLocation = window.location;
 	let handleCloseMock, saveAccountKeysMock, setKeepModalContentMock;
 
 	beforeEach( () => {
@@ -39,14 +41,10 @@ describe( 'DisconnectStripeConfirmationModal', () => {
 		useAccount.mockImplementation( () => ( { data: {} } ) );
 		useDispatch.mockReturnValue( {} );
 
-		delete window.location;
-		window.location = {
-			reload: jest.fn(),
-		};
+		reloadPage.mockClear();
 	} );
 
 	afterEach( () => {
-		window.location = windowLocation;
 		jest.restoreAllMocks();
 	} );
 
@@ -109,7 +107,7 @@ describe( 'DisconnectStripeConfirmationModal', () => {
 		await expect( saveAccountKeysMock ).toHaveBeenCalled();
 
 		expect( handleCloseMock ).not.toHaveBeenCalled();
-		expect( window.location.reload ).toHaveBeenCalled();
+		expect( reloadPage ).toHaveBeenCalled();
 		expect( setKeepModalContentMock ).toHaveBeenCalled();
 	} );
 
