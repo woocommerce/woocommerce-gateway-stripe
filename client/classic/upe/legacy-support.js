@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import { navigateTo } from 'wcstripe/utils/navigation';
 import { getStripeServerData } from 'wcstripe/stripe-utils';
 import {
 	PAYMENT_INTENT_STATUS_REQUIRES_CAPTURE,
@@ -50,7 +51,7 @@ export const legacyHashchangeHandler = ( api, showError ) => {
 				return;
 			}
 
-			window.location = redirectURL;
+			navigateTo( redirectURL );
 		} )
 		.catch( function ( error ) {
 			$( 'form.checkout' ).removeClass( 'processing' ).unblock();

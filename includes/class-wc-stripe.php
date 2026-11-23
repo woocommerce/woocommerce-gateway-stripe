@@ -43,7 +43,12 @@ class WC_Stripe {
 	 * @return bool Whether the option was actually written (matches `update_option`).
 	 */
 	public function update_settings( array $settings ): bool {
-		return update_option( self::SETTINGS_OPTION_NAME, $settings );
+		$updated = update_option( self::SETTINGS_OPTION_NAME, $settings );
+		// A later gateway save must not put the pre-sync settings back into the option.
+		if ( $this->stripe_gateway ) {
+			$this->stripe_gateway->init_settings();
+		}
+		return $updated;
 	}
 
 	/**
@@ -101,6 +106,15 @@ class WC_Stripe {
 	 * @var WC_Stripe_Account
 	 */
 	public $account;
+
+	/**
+	 * Webhook settings.
+	 *
+	 * @since x.x.x
+	 *
+	 * @var WC_Stripe_Webhook_Settings
+	 */
+	public $webhook_settings;
 
 	/**
 	 * The main Stripe gateway instance. Use get_main_stripe_gateway() to access it.
@@ -245,10 +259,12 @@ class WC_Stripe {
 		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-account.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-settings.php';
 
-		$this->api     = new WC_Stripe_Connect_API();
-		$this->connect = new WC_Stripe_Connect( $this->api );
-		$this->account = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
+		$this->api              = new WC_Stripe_Connect_API();
+		$this->connect          = new WC_Stripe_Connect( $this->api );
+		$this->account          = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
+		$this->webhook_settings = new WC_Stripe_Webhook_Settings( 'WC_Stripe_API' );
 
 		// Guarded unlike the assignment above: the property must exist on every
 		// instance, but only the first may register the connection hooks.
@@ -462,9 +478,7 @@ class WC_Stripe {
 		add_woocommerce_inbox_variant();
 		$this->update_plugin_version();
 
-		// Add webhook reconfiguration
-		$account = self::get_instance()->account;
-		$account->maybe_reconfigure_webhooks_on_update();
+		$this->maybe_autoconfigure_webhooks();
 
 		// TODO: Remove this when we're reasonably sure most merchants have had their
 		// settings updated like this. ~80% of merchants is a good threshold.
@@ -567,10 +581,8 @@ class WC_Stripe {
 	 */
 	public function update_prb_location_settings() {
 		$stripe_settings = $this->get_settings();
-		$prb_locations   = isset( $stripe_settings['express_checkout_button_locations'] )
-			? $stripe_settings['express_checkout_button_locations']
-			: [];
-		if ( ! empty( $stripe_settings ) && empty( $prb_locations ) ) {
+		// An explicitly empty selection hides the buttons and must survive upgrades.
+		if ( ! empty( $stripe_settings ) && ! array_key_exists( 'express_checkout_button_locations', $stripe_settings ) ) {
 			// Use existing payment_request_button_locations if it exists.
 			if ( array_key_exists( 'payment_request_button_locations', $stripe_settings ) ) {
 				$stripe_settings['express_checkout_button_locations'] = $stripe_settings['payment_request_button_locations'];
@@ -924,7 +936,17 @@ class WC_Stripe {
 			return;
 		}
 
-		$this->account->maybe_reconfigure_webhooks_on_update( 'settings' );
+		$this->maybe_autoconfigure_webhooks();
+	}
+
+	private function maybe_autoconfigure_webhooks(): void {
+		foreach ( [ 'live', 'test' ] as $mode ) {
+			try {
+				$this->webhook_settings->maybe_autoconfigure_webhooks( $mode );
+			} catch ( Exception $e ) {
+				WC_Stripe_Logger::error( "Failed to check/reconfigure webhooks for {$mode} mode", [ 'error_message' => $e->getMessage() ] );
+			}
+		}
 	}
 
 	/**
@@ -962,7 +984,8 @@ class WC_Stripe {
 	/**
 	 * Enable or disable UPE.
 	 *
-	 * When enabling UPE: For each currently enabled Stripe LPM, the corresponding UPE method is enabled.
+	 * When enabling UPE: the saved payment method selection is kept, including an empty list.
+	 * Card and Link are used only when the setting key is absent.
 	 *
 	 * When disabling UPE: For each currently enabled UPE method, the corresponding LPM is enabled.
 	 *
@@ -986,13 +1009,9 @@ class WC_Stripe {
 	}
 
 	protected function enable_upe( $settings ) {
-		$settings['upe_checkout_experience_accepted_payments'] = [];
-
-		if ( empty( $settings['upe_checkout_experience_accepted_payments'] ) ) {
+		// Switching checkout engines must preserve saved selections, including an empty list.
+		if ( ! array_key_exists( 'upe_checkout_experience_accepted_payments', $settings ) ) {
 			$settings['upe_checkout_experience_accepted_payments'] = [ 'card', 'link' ];
-		} else {
-			// The 'stripe' gateway must be enabled for UPE if any LPMs were enabled.
-			$settings['enabled'] = 'yes';
 		}
 
 		return $settings;

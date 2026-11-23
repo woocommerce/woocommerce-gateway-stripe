@@ -18,20 +18,25 @@ export const getLinkButton = async ( page, isBlockPage = false ) => {
 	} );
 };
 
+export const getLinkPayButton = ( popup ) =>
+	popup
+		.getByTestId( 'pay-button' )
+		.or( popup.getByRole( 'button', { name: /^(Pay|Subscribe)$/ } ) );
+
 export const openLinkPopup = async (
 	page,
 	isBlockPage = false,
 	{ maxRetries = 1 } = {}
 ) => {
-	const context = page.context();
+	const modal = page.locator( 'iframe[src*="universal-link-modal-inner"]' );
 	let isFirstAttempt = true;
 
 	// Both known failure modes (the Stripe iframe never finishes loading; a
-	// click shows Link's loading state but no popup window opens) have only
-	// been seen to recover after a reload, so the retry reloads the page.
+	// click shows Link's loading state but no popup window or modal opens) have
+	// only been seen to recover after a reload, so the retry reloads the page.
 	// The waits are sized so both attempts fit inside the 120s test timeout
 	// most callers run under, with room for the steps around this helper.
-	const popup = await retryWithBackoff(
+	const link = await retryWithBackoff(
 		async () => {
 			if ( ! isFirstAttempt ) {
 				await page.reload();
@@ -42,64 +47,73 @@ export const openLinkPopup = async (
 			await expect( linkButton ).toBeVisible( { timeout: 15 * 1000 } );
 			await expect( linkButton ).toBeEnabled( { timeout: 5 * 1000 } );
 
-			// A single waiter spans both clicks below, so a popup that opens
-			// late — between or after the clicks — is never missed.
-			let popupError;
-			const popupPromise = context
-				.waitForEvent( 'page', { timeout: 24 * 1000 } )
-				.catch( ( error ) => {
-					popupError = error;
-					return null;
-				} );
-
-			// The first click is silently ignored when Playwright's
-			// scroll-into-view outpaces Stripe's iframe position re-sync, so
-			// click a second time if the popup hasn't appeared shortly after
-			// the first.
-			let lastClickError;
+			let popup;
+			const onPopup = ( openedPage ) => {
+				popup = openedPage;
+			};
+			const isOpen = async () =>
+				( popup && ! popup.isClosed() ) || ( await modal.isVisible() );
+			page.on( 'popup', onPopup );
 			try {
 				await linkButton.click( { timeout: 5 * 1000 } );
-			} catch ( error ) {
-				lastClickError = error;
-			}
-
-			let secondClickTimer;
-			const secondClickDelay = new Promise( ( resolve ) => {
-				secondClickTimer = setTimeout( resolve, 10 * 1000 );
-			} );
-			const earlyPopup = await Promise.race( [
-				popupPromise,
-				secondClickDelay,
-			] );
-			clearTimeout( secondClickTimer );
-
-			if ( ! earlyPopup ) {
 				try {
-					await linkButton.click( { timeout: 5 * 1000 } );
-				} catch ( error ) {
-					lastClickError = error;
+					await expect
+						.poll( isOpen, { timeout: 10 * 1000 } )
+						.toBeTruthy();
+				} catch {
+					// Stripe can miss a click during iframe repositioning. Never
+					// click again over an already-open modal or reload its form.
+					if ( ! ( await isOpen() ) ) {
+						await linkButton.click( { timeout: 5 * 1000 } );
+					}
+					await expect
+						.poll( isOpen, { timeout: 14 * 1000 } )
+						.toBeTruthy();
 				}
-			}
 
-			const newPage = await popupPromise;
-			if ( ! newPage ) {
-				throw new Error(
-					'The Link button was clicked but its popup did not open.',
-					{ cause: lastClickError ?? popupError }
-				);
+				const popupPage = popup && ! popup.isClosed() ? popup : null;
+				const content = popupPage || modal.contentFrame();
+				const waitForClose = () =>
+					popupPage
+						? popupPage.waitForEvent( 'close', {
+								timeout: 90 * 1000,
+						  } )
+						: modal.waitFor( {
+								state: 'hidden',
+								timeout: 90 * 1000,
+						  } );
+				return {
+					content,
+					waitForClose,
+					close: async () => {
+						if ( popupPage ) {
+							await popupPage.close();
+						} else {
+							await content
+								.getByRole( 'button', {
+									name: 'Close',
+									exact: true,
+								} )
+								.click();
+							await waitForClose();
+						}
+					},
+				};
+			} finally {
+				page.off( 'popup', onPopup );
 			}
-			return newPage;
 		},
 		{ maxRetries }
 	);
 
-	await popup.waitForLoadState();
-
-	await expect( popup.getByTestId( 'pay-button' ) ).toBeVisible( {
-		timeout: 60 * 1000,
-	} );
-
-	return popup;
+	// The email-first modal has no payment button until authentication finishes.
+	await expect(
+		link.content
+			.locator( 'input[name="email"]:visible' )
+			.or( getLinkPayButton( link.content ) )
+			.first()
+	).toBeVisible( { timeout: 60 * 1000 } );
+	return link;
 };
 
 export const assertLinkModalLoads = async ( page, isBlockPage = false ) => {
@@ -110,9 +124,9 @@ export const assertLinkModalLoads = async ( page, isBlockPage = false ) => {
  * Create a new Link account from inside the Link popup.
  *
  * Only usable against Stripe sandbox/test mode, where any email can enroll
- * and no SMS verification is required at signup.
+ * and 000000 completes verification when requested.
  *
- * @param {Page}   popup The Link popup page.
+ * @param {Page|FrameLocator} popup The Link popup page or modal frame locator.
  * @param {string} email Email to enroll. Use a unique address per run — an
  *                       already-enrolled email triggers the login flow instead.
  * @param {string} phone US-format phone number.
@@ -124,6 +138,12 @@ export const signUpForLink = async ( popup, email, phone ) => {
 		'Link sign-up email field did not appear'
 	).toBeVisible( { timeout: 30 * 1000 } );
 	await emailInput.fill( email );
+	const continueButton = popup
+		.getByTestId( 'sign-up-form-submit-button' )
+		.filter( { hasText: /^Continue$/ } );
+	if ( await continueButton.isVisible() ) {
+		await continueButton.click();
+	}
 
 	const phoneInput = popup.locator( 'input[type="tel"]' ).first();
 	await expect(
@@ -136,12 +156,28 @@ export const signUpForLink = async ( popup, email, phone ) => {
 	await phoneInput.fill( phone );
 
 	await popup.getByTestId( 'sign-up-form-submit-button' ).click();
+
+	// Link can verify a new account before showing its address/payment form.
+	// Older popup flows skip this step, so wait for either outcome.
+	await expect(
+		popup
+			.locator(
+				'input[autocomplete="one-time-code"]:visible, input[name="name"]:visible, input[name="cardNumber"]:visible'
+			)
+			.first()
+	).toBeVisible( { timeout: 30 * 1000 } );
+	const otpInput = popup
+		.locator( 'input[autocomplete="one-time-code"]' )
+		.first();
+	if ( await otpInput.isVisible() ) {
+		await otpInput.fill( '000000' );
+	}
 };
 
 /**
  * Fill the new-payment-method form shown after signing up for Link.
  *
- * @param {Page}   popup   The Link popup page.
+ * @param {Page|FrameLocator} popup   The Link popup page or modal frame locator.
  * @param {Object} card    Card fixture (config `cards.*`).
  * @param {Object} address Billing address fixture (config `addresses.*.billing`).
  */
@@ -151,6 +187,14 @@ export const fillLinkPaymentDetails = async ( popup, card, address ) => {
 		cardInput,
 		'Link payment form (card number field) did not appear'
 	).toBeVisible( { timeout: 30 * 1000 } );
+
+	if ( await popup.getByTestId( 'select-button' ).isVisible() ) {
+		await fillLinkCardDetails( popup, card );
+		// The modal collects billing separately, using the same address form
+		// as shipping rather than the popup's billingAddress-prefixed fields.
+		await fillLinkShippingAddress( popup, address );
+		return;
+	}
 
 	// Select the country first: it defaults to the runner's locale and
 	// decides which address fields render.
@@ -189,7 +233,7 @@ export const fillLinkPaymentDetails = async ( popup, card, address ) => {
  * Fill the shipping address form shown after signing up for Link with a
  * shipping-required cart, and continue to the payment step.
  *
- * @param {Page}   popup   The Link popup page.
+ * @param {Page|FrameLocator} popup   The Link popup page or modal frame locator.
  * @param {Object} address Shipping address fixture (config `addresses.*.shipping`).
  */
 export const fillLinkShippingAddress = async ( popup, address ) => {
@@ -199,10 +243,7 @@ export const fillLinkShippingAddress = async ( popup, address ) => {
 		'Link shipping address form did not appear'
 	).toBeVisible( { timeout: 30 * 1000 } );
 
-	// Country decides the field layout, so set it first. Fill the street last so
-	// focus stays on it: typing into it opens an async Google suggestion overlay
-	// that can cover "Continue to payment", and it only closes with Escape while
-	// the street field is focused.
+	// Country decides the field layout, so set it before the address fields.
 	await popup
 		.locator( 'select[name="country"]' )
 		.selectOption( address.country_iso );
@@ -216,15 +257,13 @@ export const fillLinkShippingAddress = async ( popup, address ) => {
 		.locator( 'input[name="addressLine1"]' )
 		.fill( address.address_1 );
 
-	// Retry Escape + click so a late-appearing suggestion overlay can't
-	// intercept the click: if it does, the click throws, Escape clears it, and
-	// the next attempt lands. This avoids depending on Stripe's internal overlay
-	// markup — it only targets the button's accessible name.
+	// Blur the street field to dismiss autocomplete suggestions. Escape can
+	// close the entire embedded Link modal when no suggestion list is open.
 	const continueButton = popup.getByRole( 'button', {
-		name: 'Continue to payment',
+		name: /^(Continue to payment|Continue)$/,
 	} );
 	await expect( async () => {
-		await popup.keyboard.press( 'Escape' );
+		await popup.locator( 'input[name="addressLine1"]' ).press( 'Tab' );
 		await continueButton.click( { timeout: 2 * 1000 } );
 	} ).toPass( { timeout: 20 * 1000 } );
 };
@@ -233,7 +272,7 @@ export const fillLinkShippingAddress = async ( popup, address ) => {
  * Fill the card-only payment form Link shows when the billing address is
  * taken from the shipping address entered in the previous step.
  *
- * @param {Page}   popup The Link popup page.
+ * @param {Page|FrameLocator} popup The Link popup page or modal frame locator.
  * @param {Object} card  Card fixture (config `cards.*`).
  */
 export const fillLinkCardDetails = async ( popup, card ) => {
@@ -247,6 +286,11 @@ export const fillLinkCardDetails = async ( popup, card ) => {
 		.locator( 'input[name="cardExpiry"]' )
 		.fill( `${ card.expires.month } / ${ card.expires.year }` );
 	await popup.locator( 'input[name="cardCvc"]' ).fill( card.cvc );
+
+	const continueButton = popup.getByTestId( 'select-button' );
+	if ( await continueButton.isVisible() ) {
+		await continueButton.click();
+	}
 };
 
 /**
@@ -255,16 +299,23 @@ export const fillLinkCardDetails = async ( popup, card ) => {
  * Only usable against Stripe sandbox/test mode, where 000000 is accepted as
  * the SMS verification code.
  *
- * @param {Page}   popup The Link popup page.
+ * @param {Page|FrameLocator} popup The Link popup page or modal frame locator.
  * @param {string} email Email of an already-enrolled Link account.
+ * @param {string} cvc Security code for the saved test card.
  */
-export const loginToLink = async ( popup, email ) => {
+export const loginToLink = async ( popup, email, cvc ) => {
 	const emailInput = popup.locator( 'input[name="email"]' );
 	await expect(
 		emailInput,
 		'Link login email field did not appear'
 	).toBeVisible( { timeout: 30 * 1000 } );
 	await emailInput.fill( email );
+	const continueButton = popup
+		.getByTestId( 'sign-up-form-submit-button' )
+		.filter( { hasText: /^Continue$/ } );
+	if ( await continueButton.isVisible() ) {
+		await continueButton.click();
+	}
 
 	const otpInput = popup
 		.locator( 'input[autocomplete="one-time-code"]' )
@@ -277,4 +328,14 @@ export const loginToLink = async ( popup, email ) => {
 	// codes, so 000000 authenticates. See the sandbox OTP table at
 	// https://docs.stripe.com/payments/link/payment-element-link#test-the-integration
 	await otpInput.fill( '000000' );
+
+	// The modal may require the saved card's CVC before showing confirmation.
+	const cvcInput = popup.locator( 'input[name="cardCvc"]:visible' );
+	await expect(
+		cvcInput.or( getLinkPayButton( popup ) ).first()
+	).toBeVisible();
+	if ( await cvcInput.isVisible() ) {
+		await cvcInput.fill( cvc );
+		await popup.getByTestId( 'select-button' ).click();
+	}
 };

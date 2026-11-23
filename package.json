@@ -48,7 +48,7 @@
     "@wordpress/notices": "2.13.3",
     "@wordpress/prettier-config": "^3.15.0",
     "@wordpress/primitives": "^3.0.0",
-    "@wordpress/scripts": "^30.24.0",
+    "@wordpress/scripts": "^34.2.0",
     "@wordpress/url": "^3.2.1",
     "allure-playwright": "3.7.1",
     "archiver": "^5.0.0",
@@ -127,7 +127,7 @@
     "build:i18n": "npm run i18n:makepot && npm run i18n:merge",
     "build:release": "node tasks/release.js && mv release/woocommerce-gateway-stripe.zip .",
     "build:webpack": "wp-scripts build",
-    "i18n:makepot": "./vendor/bin/wp i18n make-pot . languages/woocommerce-gateway-stripe.pot --exclude=assets,bin,build,docker,docs,node_modules,phpunit-html,phpstan-stubs,phpstan-tmp,release,tests,vendor",
+    "i18n:makepot": "./vendor/bin/wp i18n make-pot . languages/woocommerce-gateway-stripe.pot --exclude=assets,bin,build,docker,docs,node_modules,phpunit-html,phpstan-extensions,phpstan-stubs,phpstan-tmp,release,tests,vendor",
     "i18n:merge": "php bin/update-pot-file-references.php languages/woocommerce-gateway-stripe.pot",
     "start": "npm run start:webpack",
     "start:webpack": "rimraf build/* && wp-scripts start",
@@ -188,10 +188,11 @@
     "test:e2e-adaptive-pricing-debug": "npm run test:e2e-adaptive-pricing -- --debug",
     "test:e2e:qit": "qit run:e2e --config=qit.json --profile=main --test-package=./tests/e2e --env_file=./tests/e2e/qit/qit.env",
     "changelog": "node bin/changelog.js",
+    "changelog:build-files": "node bin/changelog-build-files.js",
     "doc:hooks": "cd tasks/hooks && composer install --quiet && composer run-script generate"
   },
   "engines": {
-    "node": ">=20.18.1",
+    "node": ">=20.19.0",
     "npm": ">=10.2.3"
   },
   "config": {
@@ -229,6 +230,8 @@
     "serialize-javascript": "^7.0.5",
     "adm-zip": "^0.6.1",
     "webpack-dev-server": "^5.2.1",
-    "linkify-it": "^5.0.2"
+    "linkify-it": "^5.0.2",
+    "markdown-it": "^14.3.3",
+    "basic-ftp": "^6.2.4"
   }
 }

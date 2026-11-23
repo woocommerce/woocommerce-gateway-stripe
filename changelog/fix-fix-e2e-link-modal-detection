@@ -1,0 +1,4 @@
+Significance: patch
+Type: dev
+
+Support Link popups and embedded modals in express checkout E2E tests
