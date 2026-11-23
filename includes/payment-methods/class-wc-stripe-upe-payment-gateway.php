@@ -2991,6 +2991,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Returns the service that settles an order from its Checkout Session.
 	 *
+	 * @internal Not part of the public API; it can change without notice.
+	 *
 	 * @return WC_Stripe_Checkout_Session_Settlement
 	 */
 	protected function get_checkout_session_settlement(): WC_Stripe_Checkout_Session_Settlement {
