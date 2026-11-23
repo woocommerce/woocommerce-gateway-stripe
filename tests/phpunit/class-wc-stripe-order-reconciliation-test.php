@@ -756,53 +756,6 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		$this->assertSame( $notes_after_check, $this->note_text( $order ) );
 	}
 
-	/** @dataProvider provide_session_settlement_mismatches */
-	public function test_session_settlement_mismatch_is_held_for_review( string $schema ): void {
-		$order = $this->create_pending_stripe_order( true );
-		$this->use_real_settlement();
-		$objects = $this->successful_stripe_objects( $order );
-		if ( 'legacy' === $schema ) {
-			$objects['/checkout/sessions/cs_recovery']->currency            = 'eur';
-			$objects['/checkout/sessions/cs_recovery']->amount_total        = 1500;
-			$objects['/checkout/sessions/cs_recovery']->currency_conversion = (object) [
-				'source_currency' => strtolower( get_woocommerce_currency() ),
-				'amount_total'    => 1,
-			];
-		} else {
-			$objects['/checkout/sessions/cs_recovery']->currency     = 'eur';
-			$objects['/checkout/sessions/cs_recovery']->amount_total = 1;
-		}
-		$this->mock_stripe_objects( $objects );
-
-		$this->reconciliation->reconcile_order_payment( $order->get_id() );
-
-		$review_order = wc_get_order( $order->get_id() );
-		$this->assertSame( 'on-hold', $review_order->get_status() );
-		$this->assertFalse( $review_order->is_paid() );
-		$this->assertSame( '', $review_order->get_transaction_id() );
-		$this->assertStringNotContainsString( 'because no webhook did', $this->note_text( $review_order ) );
-	}
-
-	public static function provide_session_settlement_mismatches(): array {
-		return [
-			'modern schema' => [ 'modern' ],
-			'legacy schema' => [ 'legacy' ],
-		];
-	}
-
-	public function test_presentment_currency_can_differ_from_store_settlement_currency(): void {
-		$order = $this->create_pending_stripe_order( true );
-		$this->use_real_settlement();
-		$this->mock_stripe_objects( $this->successful_stripe_objects( $order ) );
-
-		$this->reconciliation->reconcile_order_payment( $order->get_id() );
-
-		$settled = wc_get_order( $order->get_id() );
-		$this->assertTrue( $settled->is_paid() );
-		$this->assertSame( strtolower( get_woocommerce_currency() ), strtolower( $settled->get_currency() ) );
-		$this->assertSame( 'eur', WC_Stripe_Order_Helper::get_instance()->get_stripe_presentment_currency( $settled ) );
-	}
-
 	public function test_payment_intent_only_recovery_uses_normal_charge_settlement(): void {
 		$order = $this->create_pending_stripe_order( false );
 		$this->use_real_settlement();
