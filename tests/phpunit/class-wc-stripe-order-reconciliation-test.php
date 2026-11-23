@@ -1178,6 +1178,21 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		];
 	}
 
+	/**
+	 * The customer's return or a webhook holding the charge will record it, so reconciliation checks the
+	 * order again later instead of reporting a failure and giving up on it.
+	 */
+	public function test_a_charge_recorded_by_another_request_schedules_a_retry(): void {
+		$order = $this->create_pending_stripe_order( true );
+		$this->mock_settlement_error( $order, true, false, new WC_Stripe_Transaction_Locked_Exception( 'locked', 'Payment processing failed. Please retry.' ) );
+
+		$this->reconciliation->reconcile_order_payment( $order->get_id() );
+
+		$this->assertCount( 1, $this->scheduled_checks( $order->get_id() ) );
+		$this->assertSame( 'pending', wc_get_order( $order->get_id() )->get_status() );
+		$this->assertStringNotContainsString( 'could not be updated with it', $this->note_text( $order ) );
+	}
+
 	/** @dataProvider provide_stripe_exception_sources */
 	public function test_logs_leave_out_the_stripe_object_of_a_stripe_exception( bool $during_settlement ): void {
 		$order     = $this->create_pending_stripe_order( false );

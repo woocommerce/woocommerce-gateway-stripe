@@ -544,6 +544,10 @@ class WC_Stripe_Order_Reconciliation {
 				} else {
 					$this->webhook_handler->process_reconciled_payment( $fresh_order, $charge );
 				}
+			} catch ( WC_Stripe_Transaction_Locked_Exception $exception ) {
+				// The customer's return or a webhook is recording this charge right now. The next check finds
+				// the order settled, or settles it when that request didn't finish.
+				return $this->outcome( self::RESULT_RETRY );
 			} catch ( Throwable $exception ) {
 				// Stripe already verified the payment, so retrying would most likely fail the same way (for
 				// example a charge recorded on another order) and repeat the notes added before the failure.
