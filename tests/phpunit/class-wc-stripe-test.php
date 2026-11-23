@@ -8,6 +8,22 @@
  * @package WooCommerce/Stripe/WC_Stripe
  */
 class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
+	/** @dataProvider provide_initial_pmc_settings */
+	public function test_pmc_defaults_only_for_new_settings( $existing, array $saved, $expected ): void {
+		$stripe = WC_Stripe::get_instance();
+		$result = $stripe->gateway_settings_update( $saved, $existing );
+		$this->assertSame( $expected, $result['pmc_enabled'] ?? null );
+	}
+
+	public function provide_initial_pmc_settings(): array {
+		return [
+			'fresh'            => [ false, [], 'yes' ],
+			'explicitly off'   => [ false, [ 'pmc_enabled' => 'no' ], 'no' ],
+			'existing pre-PMC' => [ [], [], null ],
+			'disconnected'     => [ [ 'pmc_enabled' => 'no' ], [ 'pmc_enabled' => 'no' ], 'no' ],
+		];
+	}
+
 	/**
 	 * get_settings() returns the stored option as an array.
 	 *

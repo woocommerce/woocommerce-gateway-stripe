@@ -333,7 +333,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 			|| $current_account_keys['secret_key'] !== $settings['secret_key']
 			|| $current_account_keys['test_publishable_key'] !== $settings['test_publishable_key']
 			|| $current_account_keys['test_secret_key'] !== $settings['test_secret_key'];
-		if ( $keys_changed ) {
+		if ( $keys_changed && ( WC_Stripe_Helper::is_connected( 'live' ) || WC_Stripe_Helper::is_connected( 'test' ) ) ) {
 			// Option-update hooks can read the PMC immediately, so disable sync before replacing credentials.
 			$settings['pmc_enabled'] = 'no';
 		}

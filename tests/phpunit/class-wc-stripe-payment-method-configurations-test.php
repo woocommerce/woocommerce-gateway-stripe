@@ -1162,6 +1162,8 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	 * write the flag: an absent value already reads as "not confirmed".
 	 */
 	public function test_refresh_pmc_availability_preserves_uninitialized_flag() {
+		// Model a retained pre-PMC settings row, rather than a new installation.
+		add_option( WC_Stripe::SETTINGS_OPTION_NAME, [] );
 		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
 		WC_Stripe_Helper::update_main_stripe_settings( $this->build_connected_test_mode_settings( null ) );
 
@@ -1229,6 +1231,8 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	 * `get_payment_method_configurations()` call without activating an unverified configuration.
 	 */
 	public function test_refresh_pmc_availability_honors_preselect_filter() {
+		// Model a retained pre-PMC settings row, rather than a new installation.
+		add_option( WC_Stripe::SETTINGS_OPTION_NAME, [] );
 		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
 		WC_Stripe_Helper::update_main_stripe_settings( $this->build_connected_test_mode_settings( null ) );
 

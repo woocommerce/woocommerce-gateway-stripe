@@ -783,7 +783,8 @@ class WC_Stripe {
 			$gateway      = new WC_Stripe_UPE_Payment_Gateway();
 			$fields       = $gateway->get_form_fields();
 			$old_settings = array_merge( array_fill_keys( array_keys( $fields ), '' ), wp_list_pluck( $fields, 'default' ) );
-			$settings     = array_merge( $old_settings, $settings );
+			// New stores use Stripe's selections; retained settings keep their existing sync preference.
+			$settings = array_merge( $old_settings, [ 'pmc_enabled' => 'yes' ], $settings );
 		}
 
 		// Clients only ever see the masked secrets, so a mask that comes back means "unchanged".

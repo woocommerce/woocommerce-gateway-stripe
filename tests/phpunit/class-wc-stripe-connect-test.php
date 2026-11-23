@@ -116,6 +116,9 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->webhook_settings->method( 'is_webhook_enabled' )->willReturn( $webhook_enabled );
 		WC_Stripe::get_instance()->webhook_settings = $this->webhook_settings;
 
+		$this->mock_payment_method_configurations( [ 'klarna' ], [ 'card', 'link', 'apple_pay', 'google_pay' ] );
+		$this->stripe_api->expects( $this->never() )->method( 'update_payment_method_configurations' );
+
 		$result                 = new stdClass();
 		$result->publishableKey = 'pk_test_123'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 		$result->secretKey      = 'sk_test_123'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
@@ -164,7 +167,9 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$this->assertSame( $expected_oc, $settings['optimized_checkout_element'] ?? '' );
 		$this->assertSame( $expected_ap, $settings['adaptive_pricing'] ?? '' );
-		$this->assertSame( [ 'card', 'link' ], $settings['upe_checkout_experience_accepted_payments'] );
+		$this->assertSame( 'yes', $settings['pmc_enabled'] );
+		$this->assertSame( [ 'klarna' ], WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids() );
+		$this->assertSame( 'no', WC_Stripe_Helper::get_stripe_settings()['express_checkout'] );
 
 		// Marker is always consumed, even when not applied.
 		$this->assertEquals( false, get_option( 'wc_stripe_optimized_checkout_default_on' ) );
@@ -345,6 +350,21 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		} finally {
 			remove_filter( 'pre_update_option_woocommerce_stripe_settings', [ WC_Stripe::get_instance(), 'gateway_settings_update' ] );
 		}
+	}
+
+	public function test_disconnected_store_keeps_local_selections_on_reconnect(): void {
+		$this->mock_stripe_account( [ 'country' => 'US' ] );
+		$this->mock_payment_method_configurations( [ 'card', 'link' ], [ 'klarna' ] );
+		$this->stripe_api->expects( $this->never() )->method( 'update_payment_method_configurations' );
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'pmc_enabled'                               => 'no',
+				'upe_checkout_experience_accepted_payments' => [ 'klarna' ],
+			]
+		);
+		$this->invoke_save_stripe_keys( 'pk_test_previous', 'sk_test_previous' );
+		$this->assertSame( 'no', WC_Stripe_Helper::get_stripe_settings()['pmc_enabled'] );
+		$this->assertSame( [ 'klarna' ], WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids() );
 	}
 
 	public function provide_reconnect_preferences(): array {
