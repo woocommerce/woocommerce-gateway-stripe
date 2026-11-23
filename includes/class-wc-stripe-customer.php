@@ -357,7 +357,8 @@ class WC_Stripe_Customer {
 
 		if ( $order instanceof WC_Order ) {
 			// The request's country can come from the customer's saved address, which WooCommerce did not validate this order against.
-			$locale_required_fields  = $this->get_locale_required_billing_fields( $order->get_billing_country() );
+			$billing_country         = $order->get_billing_country();
+			$locale_required_fields  = $this->get_locale_required_billing_fields( is_string( $billing_country ) ? $billing_country : '' );
 			$required_billing_fields = array_filter(
 				$required_billing_fields,
 				function ( $field_key ) use ( $locale_required_fields ) {
