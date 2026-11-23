@@ -279,22 +279,23 @@ class WC_Stripe_Customer {
 	/**
 	 * Validate that we have valid data before we try to create a customer.
 	 *
-	 * @param array       $create_customer_request The base data to build the customer request.
-	 * @param null|string $current_context         Flag to indicate whether we are in a context where limited details are permitted.
+	 * @param array         $create_customer_request The base data to build the customer request.
+	 * @param null|string   $current_context         Flag to indicate whether we are in a context where limited details are permitted.
+	 * @param WC_Order|null $order                   The order the customer is being created for, if any.
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
-	private function validate_create_customer_request( $create_customer_request, ?string $current_context = null ) {
+	private function validate_create_customer_request( $create_customer_request, ?string $current_context = null, $order = null ) {
 		/**
 		 * Filters the required customer fields when creating a customer in Stripe.
 		 *
 		 * @since 9.7.0
 		 * @since 10.2.0 Added the $create_customer_request parameter.
 		 *
-		 * @param array $required_fields         The required customer fields as derived from the required billing fields in checkout. In some contexts, like adding a payment method, we allow minimal details to be provided.
+		 * @param array $required_fields         The required customer fields as derived from the required billing fields in checkout, limited to the fields the billing country's address locale requires when paying for an order. In some contexts, like adding a payment method, we allow minimal details to be provided.
 		 * @param array $create_customer_request The initial data to build the customer request. This can be used to provide country-specific conditions.
 		 */
-		$required_fields = apply_filters( 'wc_stripe_create_customer_required_fields', $this->get_create_customer_required_fields( $current_context ), $create_customer_request );
+		$required_fields = apply_filters( 'wc_stripe_create_customer_required_fields', $this->get_create_customer_required_fields( $current_context, $create_customer_request, $order ), $create_customer_request );
 
 		foreach ( $required_fields as $field => $field_requirements ) {
 			if ( true === $field_requirements ) {
@@ -331,11 +332,16 @@ class WC_Stripe_Customer {
 	/**
 	 * Get the list of required fields for the create customer request.
 	 *
-	 * @param string|null $current_context The context we are creating the customer in.
+	 * For orders, only fields required by both the classic checkout fields and the billing country's locale
+	 * are required, since the Store API (block and express checkout) validates against the locale alone.
+	 *
+	 * @param string|null   $current_context         The context we are creating the customer in.
+	 * @param array         $create_customer_request The data the customer request will be built from.
+	 * @param WC_Order|null $order                   The order the customer is being created for, if any.
 	 *
 	 * @return array
 	 */
-	private function get_create_customer_required_fields( ?string $current_context = null ) {
+	private function get_create_customer_required_fields( ?string $current_context = null, $create_customer_request = [], $order = null ) {
 		if ( in_array( $current_context, self::MINIMAL_BILLING_DETAILS_CONTEXTS, true ) ) {
 			return [
 				'email' => true,
@@ -349,6 +355,19 @@ class WC_Stripe_Customer {
 				return $field_data['required'] ?? false;
 			}
 		);
+
+		if ( $order instanceof WC_Order ) {
+			$country                 = $create_customer_request['address']['country'] ?? '';
+			$locale_required_fields  = $this->get_locale_required_billing_fields( is_string( $country ) ? $country : '' );
+			$required_billing_fields = array_filter(
+				$required_billing_fields,
+				function ( $field_key ) use ( $locale_required_fields ) {
+					// Email is not an address field, so the address locale has no say over it.
+					return 'billing_email' === $field_key || isset( $locale_required_fields[ $field_key ] );
+				},
+				ARRAY_FILTER_USE_KEY
+			);
+		}
 
 		$required_fields = [];
 
@@ -378,6 +397,42 @@ class WC_Stripe_Customer {
 
 		if ( [] !== $required_address_fields ) {
 			$required_fields['address'] = $required_address_fields;
+		}
+
+		return $required_fields;
+	}
+
+	/**
+	 * Get the billing fields required by a country's address locale, as the Store API validates them.
+	 *
+	 * @param string $country The billing country code.
+	 *
+	 * @return array<string, true> Required fields keyed like checkout fields, e.g. `[ 'billing_city' => true ]`.
+	 */
+	private function get_locale_required_billing_fields( string $country ): array {
+		$countries      = WC()->countries;
+		$all_locales    = $countries->get_country_locale();
+		$country_locale = $all_locales[ $country ] ?? [];
+		$default_locale = $all_locales['default'] ?? null;
+
+		// A locale filter callback can drop or replace the default entry, so fall back to the unfiltered default fields.
+		if ( ! is_array( $default_locale ) ) {
+			$default_locale = $countries->get_default_address_fields();
+		}
+
+		$required_fields = [];
+		foreach ( $default_locale as $field_key => $default_field ) {
+			$field = ! empty( $country_locale[ $field_key ] ) && is_array( $country_locale[ $field_key ] ) && is_array( $default_field )
+				? wp_parse_args( $country_locale[ $field_key ], $default_field )
+				: $default_field;
+
+			if (
+				is_array( $field ) &&
+				wc_string_to_bool( $field['required'] ?? false ) &&
+				! wc_string_to_bool( $field['hidden'] ?? false )
+			) {
+				$required_fields[ 'billing_' . $field_key ] = true;
+			}
 		}
 
 		return $required_fields;
@@ -530,7 +585,7 @@ class WC_Stripe_Customer {
 		 */
 		$create_customer_args = apply_filters( 'wc_stripe_create_customer_args', $args );
 
-		$this->validate_create_customer_request( $create_customer_args, $current_context );
+		$this->validate_create_customer_request( $create_customer_args, $current_context, $order );
 
 		$response = WC_Stripe_API::request( $create_customer_args, 'customers' );
 
