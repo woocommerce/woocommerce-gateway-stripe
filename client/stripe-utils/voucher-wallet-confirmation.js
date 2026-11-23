@@ -7,6 +7,7 @@ import {
 	PAYMENT_METHOD_WECHAT_PAY,
 } from './constants';
 import { blockUI } from './checkout-form';
+import { navigateTo } from 'wcstripe/utils/navigation';
 import { __ } from '@wordpress/i18n';
 import {
 	getStripeServerData,
@@ -146,7 +147,7 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
 		return;
 	}
 
-	window.location.href = postPaymentUrl;
+	navigateTo( postPaymentUrl );
 };
 
 /**
@@ -269,7 +270,7 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 		// Otherwise redirect to the order received page.
 		if ( intentObject.status !== PAYMENT_INTENT_STATUS_REQUIRES_ACTION ) {
 			if ( ! isChangingPayment ) {
-				window.location.href = returnURL;
+				navigateTo( returnURL );
 			}
 
 			// If we're changing a subscription's payment method, there's an extra step needed.
@@ -285,7 +286,7 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 			);
 
 			if ( response.success ) {
-				window.location.href = response.data.return_url;
+				navigateTo( response.data.return_url );
 			} else {
 				throw new Error( response.data.error.message );
 			}

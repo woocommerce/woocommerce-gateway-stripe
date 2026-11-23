@@ -1,11 +1,15 @@
 import jQuery from 'jquery';
 import { initializeVoucherAndWalletConfirmation } from '../voucher-wallet-confirmation';
+import { navigateTo } from 'wcstripe/utils/navigation';
+import { setWindowLocation } from 'wcstripe/test-utils/window-location';
 import {
 	getStripeServerData,
 	showErrorCheckout,
 	unblockBlockCheckout,
 	resetBlockCheckoutPaymentState,
 } from 'wcstripe/stripe-utils';
+
+jest.mock( 'wcstripe/utils/navigation' );
 
 jest.mock( 'wcstripe/stripe-utils', () => ( {
 	getStripeServerData: jest.fn(),
@@ -25,7 +29,6 @@ const methods = [
 ];
 const returnUrl =
 	'http://localhost/checkout/order-received/123/?key=wc_order_test';
-const originalLocation = window.location;
 let stripe;
 let api;
 
@@ -37,25 +40,15 @@ const setHash = (
 ) => {
 	const intent = type === 'wallet' ? `${ intentType }:` : '';
 	const nonce = type === 'wallet' ? ':test_nonce' : '';
-	window.location.hash = `#wc-stripe-${ type }-${ orderId }:${ method }:${ intent }secret:${ encodeURIComponent(
+	const hash = `#wc-stripe-${ type }-${ orderId }:${ method }:${ intent }secret:${ encodeURIComponent(
 		returnUrl
 	) }${ nonce }`;
-	window.location.href = `http://localhost/checkout/${ window.location.hash }`;
+	setWindowLocation( `http://localhost/checkout/${ hash }` );
 };
 
 beforeEach( () => {
 	jest.clearAllMocks();
-	delete window.location;
-	window.location = {
-		href: 'http://localhost/checkout/',
-		hash: '',
-		origin: 'http://localhost',
-		pathname: '/checkout/',
-		search: '',
-	};
-	jest.spyOn( window.history, 'replaceState' ).mockImplementation( () => {
-		window.location.hash = '';
-	} );
+	setWindowLocation( 'http://localhost/checkout/' );
 	jQuery.fn.block = jest.fn().mockReturnThis();
 	jQuery.fn.unblock = jest.fn().mockReturnThis();
 	getStripeServerData.mockReturnValue( { isCheckout: true } );
@@ -84,7 +77,6 @@ beforeEach( () => {
 afterEach( () => {
 	jQuery( window ).off( '.wcStripeVoucherWallet' );
 	jQuery.removeData( window, 'wcStripeVoucherWalletConfirmation' );
-	window.location = originalLocation;
 	document.body.innerHTML = '';
 	delete jQuery.fn.block;
 	delete jQuery.fn.unblock;
@@ -100,7 +92,9 @@ it.each( methods )(
 			expect.any( Object )
 		);
 		expect( window.location.hash ).toBe( '' );
-		expect( window.location.href === returnUrl ).toBe( type === 'voucher' );
+		expect( navigateTo.mock.calls ).toEqual(
+			type === 'voucher' ? [ [ returnUrl ] ] : []
+		);
 		expect( unblockBlockCheckout ).toHaveBeenCalledTimes(
 			type === 'wallet' ? 1 : 0
 		);
@@ -132,7 +126,9 @@ it.each( [ {}, { isCheckout: false } ] )(
 );
 
 it( 'ignores unrelated fragments', async () => {
-	window.location.hash = '#wc-stripe-confirm-pi:secret';
+	setWindowLocation(
+		'http://localhost/checkout/#wc-stripe-confirm-pi:secret'
+	);
 	await initializeVoucherAndWalletConfirmation( api );
 	for ( const confirmMethod of Object.values( stripe ) ) {
 		expect( confirmMethod ).not.toHaveBeenCalled();
@@ -211,7 +207,7 @@ it( 'handles Cash App setup intents when changing a subscription payment method'
 		payment_method_id: 'pm_test',
 		_ajax_nonce: 'test_nonce',
 	} );
-	expect( window.location.href ).toBe( returnUrl );
+	expect( navigateTo ).toHaveBeenCalledWith( returnUrl );
 	expect( jQuery( '#order_review' ).hasClass( 'processing' ) ).toBe( false );
 } );
 

@@ -29,6 +29,7 @@ import {
 import { getFontRulesFromPage, sampleFontFamily } from '../../styles/upe';
 import { getPaymentMethodRadioStyles } from '../../styles/upe/utils';
 import { blockUI } from '../../stripe-utils/checkout-form';
+import { navigateTo } from 'wcstripe/utils/navigation';
 import { __, sprintf } from '@wordpress/i18n';
 import {
 	OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
@@ -1418,7 +1419,7 @@ export const processPayment = (
 
 				// No redirect occurred (non-redirect payment method).
 				// Navigate to the order-received page.
-				window.location.href = checkoutResponse.redirect;
+				navigateTo( checkoutResponse.redirect );
 				return;
 			}
 
