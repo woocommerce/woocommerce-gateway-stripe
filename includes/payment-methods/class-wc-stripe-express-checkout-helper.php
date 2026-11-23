@@ -343,18 +343,17 @@ class WC_Stripe_Express_Checkout_Helper {
 			foreach ( $variation_attributes as $attribute_name => $attribute_values ) {
 				$attribute_key = 'attribute_' . sanitize_title( $attribute_name );
 
+				// Global attribute terms are matched by slug, and a product URL carries the slug or the term name.
+				// sanitize_title() keeps the first and converts the second; wc_clean() would empty an encoded slug.
+				$is_global_attribute = taxonomy_exists( $attribute_name );
+
 				// Passed value via GET takes precedence, then POST, otherwise get the default value for given attribute
 				if ( isset( $_GET[ $attribute_key ] ) ) {
-					$attributes[ $attribute_key ] = wc_clean( wp_unslash( $_GET[ $attribute_key ] ) );
+					$attributes[ $attribute_key ] = $is_global_attribute ? map_deep( wp_unslash( $_GET[ $attribute_key ] ), 'sanitize_title' ) : wc_clean( wp_unslash( $_GET[ $attribute_key ] ) );
 				} elseif ( isset( $_POST[ $attribute_key ] ) ) {
-					$attributes[ $attribute_key ] = wc_clean( wp_unslash( $_POST[ $attribute_key ] ) );
+					$attributes[ $attribute_key ] = $is_global_attribute ? map_deep( wp_unslash( $_POST[ $attribute_key ] ), 'sanitize_title' ) : wc_clean( wp_unslash( $_POST[ $attribute_key ] ) );
 				} else {
 					$attributes[ $attribute_key ] = $product->get_variation_default_attribute( $attribute_name );
-				}
-
-				// A product URL can preselect a global attribute term by name, while variations store the term's slug.
-				if ( taxonomy_exists( $attribute_name ) && is_string( $attributes[ $attribute_key ] ) ) {
-					$attributes[ $attribute_key ] = sanitize_title( $attributes[ $attribute_key ] );
 				}
 			}
 
