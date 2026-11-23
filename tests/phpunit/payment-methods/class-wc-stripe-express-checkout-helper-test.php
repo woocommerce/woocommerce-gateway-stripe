@@ -2898,4 +2898,48 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			'integer wraparound' => [ '184467440737095520.00', null ],
 		];
 	}
+
+	/**
+	 * A product URL carries a non-ASCII global attribute term by name or by its encoded slug; variations store the slug.
+	 *
+	 * @dataProvider provide_url_values_for_global_attribute_term
+	 *
+	 * @param string $shade Value of the attribute in the query string, as PHP decodes it.
+	 */
+	public function test_get_product_data_matches_variation_preselected_in_url( string $shade ): void {
+		update_option( 'woocommerce_calc_taxes', 'no' );
+		$product = WC_Helper_Product::create_variation_product_with_non_ascii_attributes();
+
+		$mock_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$helper       = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $mock_gateway ] )
+			->onlyMethods( [ 'is_product', 'get_product' ] )
+			->getMock();
+		$helper->method( 'is_product' )->willReturn( true );
+		$helper->method( 'get_product' )->willReturn( $product );
+
+		$_GET['attribute_pa_shade'] = $shade;
+		$_GET['attribute_label']    = '大';
+		try {
+			$data = $helper->get_product_data();
+		} finally {
+			unset( $_GET['attribute_pa_shade'], $_GET['attribute_label'] );
+		}
+
+		$this->assertSame( 2000, $data['displayItems'][0]['amount'] );
+	}
+
+	/**
+	 * Data provider for {@see test_get_product_data_matches_variation_preselected_in_url()}.
+	 *
+	 * @return array<string, array{string}>
+	 */
+	public function provide_url_values_for_global_attribute_term(): array {
+		return [
+			'term name'                                => [ '綠' ],
+			'encoded slug, as in variation permalinks' => [ '%e7%b6%a0' ],
+		];
+	}
 }
