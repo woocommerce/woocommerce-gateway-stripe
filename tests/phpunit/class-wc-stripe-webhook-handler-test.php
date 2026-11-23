@@ -4824,6 +4824,48 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The customer's return usually settles the order before this webhook arrives. Callbacks of
+	 * `wc_stripe_webhook_received` still get the order, as they did when the webhook settled it.
+	 */
+	public function test_handle_checkout_session_success_passes_an_already_settled_order_to_callbacks(): void {
+		$checkout_session_id = 'cs_test_settled_on_return';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+		$order->payment_complete( 'ch_settled_on_return' );
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_settled_on_return',
+				],
+			],
+		];
+
+		$received_order  = null;
+		$received_action = static function ( $webhook_type, $event, $received ) use ( &$received_order ) {
+			$received_order = $received;
+		};
+		add_action( 'wc_stripe_webhook_received', $received_action, 10, 3 );
+		try {
+			( new WC_Stripe_Webhook_Handler() )->process_webhook( wp_json_encode( $notification ) );
+		} finally {
+			remove_action( 'wc_stripe_webhook_received', $received_action, 10 );
+		}
+
+		$this->assertInstanceOf( WC_Order::class, $received_order );
+		$this->assertSame( $order->get_id(), $received_order->get_id() );
+	}
+
+	/**
 	 * When another request (the customer's return, reconciliation) is recording the same charge, settling throws
 	 * a transaction lock error. The webhook must retry later instead of failing an order that request is about to
 	 * mark paid. Any other settlement error still fails the order.

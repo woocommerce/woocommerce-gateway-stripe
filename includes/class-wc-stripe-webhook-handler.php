@@ -2606,6 +2606,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		);
 
 		if ( ! $order->has_status( $allowed_payment_processing_statuses ) ) {
+			$this->maybe_resolve_settled_order( $order );
 			return false;
 		}
 
@@ -2638,6 +2639,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			// above and taking the lock. Settling that stale pending copy again would repeat notes and actions.
 			$order = $settlement->get_uncached_order( $order );
 			if ( ! $order || ! $settlement->can_settle( $order, (string) $session_id ) ) {
+				if ( $order && (string) $session_id === $order_helper->get_stripe_checkout_session_id( $order ) ) {
+					$this->maybe_resolve_settled_order( $order );
+				}
 				return false;
 			}
 
@@ -2705,6 +2709,20 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Names an order this session already settled, so `wc_stripe_webhook_received` still gets it.
+	 *
+	 * The customer's return or reconciliation usually settles the order before this webhook arrives.
+	 * Callbacks that used to get the order from this event would otherwise get null.
+	 *
+	 * @param WC_Order $order Order linked to the session.
+	 */
+	private function maybe_resolve_settled_order( WC_Order $order ): void {
+		if ( $order->is_paid() ) {
+			$this->resolved_order = $order;
+		}
 	}
 
 	/**
