@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Accept webhooks whose Stripe-Signature header has extra entries, repeated signatures or a different entry order, instead of rejecting them as invalid
