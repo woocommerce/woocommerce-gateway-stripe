@@ -156,6 +156,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		WC_Stripe_Helper::update_main_stripe_settings( $this->build_connected_test_mode_settings( 'yes' ) );
 
 		WC_Stripe_Database_Cache::set( WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, (object) [ 'id' => 'pmc_first' ] );
+		WC_Stripe_Database_Cache::set( WC_Stripe_Payment_Method_Configurations::FETCH_FAILURE_COOLDOWN_CACHE_KEY, true, MINUTE_IN_SECONDS );
 		$this->assertSame( 'pmc_first', WC_Stripe_Payment_Method_Configurations::get_configuration_id() );
 
 		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
@@ -164,6 +165,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		$primary_configuration->setAccessible( true );
 		$this->assertNull( $primary_configuration->getValue() );
 		$this->assertNull( WC_Stripe_Database_Cache::get( WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY ) );
+		$this->assertNull( WC_Stripe_Database_Cache::get( WC_Stripe_Payment_Method_Configurations::FETCH_FAILURE_COOLDOWN_CACHE_KEY ) );
 	}
 
 	/**
@@ -698,6 +700,9 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 			'non_object_null_member'       => [ (object) [ 'data' => [ null ] ] ],
 			'non_object_array_member'      => [ (object) [ 'data' => [ [] ] ] ],
 			'mixed_object_and_null_member' => [ (object) [ 'data' => [ (object) self::MOCK_CHILD_TEST_PMC, null ] ] ],
+			'object_missing_id'            => [ (object) [ 'data' => [ (object) [] ] ] ],
+			'object_empty_id'              => [ (object) [ 'data' => [ (object) [ 'id' => '' ] ] ] ],
+			'object_non_string_id'         => [ (object) [ 'data' => [ (object) [ 'id' => 123 ] ] ] ],
 		];
 	}
 
@@ -878,6 +883,29 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	}
 
 	/**
+	 * Expires a WC_Stripe_Database_Cache entry in both in-memory cache and wp_options to simulate TTL expiry.
+	 *
+	 * @param string $key Unprefixed cache key.
+	 * @param int    $ttl Cache TTL in seconds.
+	 */
+	private function expire_database_cache_entry( string $key, int $ttl ): void {
+		$prefixed_key = WC_Stripe_Database_Cache::CACHE_KEY_PREFIX . ( WC_Stripe_Mode::is_test() ? 'test_' : 'live_' ) . $key;
+		$reflection   = new ReflectionProperty( WC_Stripe_Database_Cache::class, 'in_memory_cache' );
+		$reflection->setAccessible( true );
+		$in_memory_cache = $reflection->getValue();
+		if ( isset( $in_memory_cache[ $prefixed_key ] ) && is_array( $in_memory_cache[ $prefixed_key ] ) ) {
+			$in_memory_cache[ $prefixed_key ]['updated'] -= $ttl + 1;
+			$reflection->setValue( null, $in_memory_cache );
+		}
+
+		$cache_contents = get_option( $prefixed_key );
+		if ( is_array( $cache_contents ) ) {
+			$cache_contents['updated'] -= $ttl + 1;
+			update_option( $prefixed_key, $cache_contents );
+		}
+	}
+
+	/**
 	 * First read after the failure cooldown expires retries the Stripe PMC fetch.
 	 */
 	public function test_get_upe_enabled_payment_method_ids_retries_after_failure_cooldown_expires(): void {
@@ -896,8 +924,10 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 
 				$this->assertSame( [ WC_Stripe_Payment_Methods::CARD ], WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids() );
 				$this->assertSame( [ WC_Stripe_Payment_Methods::CARD ], WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids() );
+				$this->assertTrue( WC_Stripe_Database_Cache::get( WC_Stripe_Payment_Method_Configurations::FETCH_FAILURE_COOLDOWN_CACHE_KEY ) );
 
-				update_option( WC_Stripe_Payment_Method_Configurations::FETCH_COOLDOWN_OPTION_KEY, time() - 1 );
+				$this->expire_database_cache_entry( WC_Stripe_Payment_Method_Configurations::FETCH_FAILURE_COOLDOWN_CACHE_KEY, MINUTE_IN_SECONDS );
+				$this->assertNull( WC_Stripe_Database_Cache::get( WC_Stripe_Payment_Method_Configurations::FETCH_FAILURE_COOLDOWN_CACHE_KEY ) );
 
 				$this->assertSame( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::KLARNA ], WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids() );
 				$this->assertSame( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::KLARNA ], WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids() );

@@ -50,11 +50,13 @@ class WC_Stripe_Payment_Method_Configurations {
 	public const FETCH_COOLDOWN_OPTION_KEY = 'wcstripe_payment_method_config_fetch_cooldown';
 
 	/**
-	 * Option key tracking per-mode cooldown timestamps after failed or malformed PMC fetches.
+	 * The cache key tracking whether the latest PMC fetch failed during the active cooldown window.
 	 *
+	 * @since x.x.x
+	 * @version x.x.x
 	 * @var string
 	 */
-	private const FETCH_FAILURE_COOLDOWN_OPTION_KEY = 'wcstripe_payment_method_config_fetch_failure_cooldown';
+	public const FETCH_FAILURE_COOLDOWN_CACHE_KEY = 'payment_method_config_fetch_failure_cooldown';
 
 	/**
 	 * Get the merchant payment method configuration in Stripe.
@@ -75,7 +77,7 @@ class WC_Stripe_Payment_Method_Configurations {
 				return $cached_primary_configuration;
 			}
 
-			if ( $is_in_cooldown && self::has_failed_fetch_in_cooldown() ) {
+			if ( null !== WC_Stripe_Database_Cache::get( self::FETCH_FAILURE_COOLDOWN_CACHE_KEY ) ) {
 				return null;
 			}
 
@@ -87,73 +89,9 @@ class WC_Stripe_Payment_Method_Configurations {
 		}
 
 		update_option( self::FETCH_COOLDOWN_OPTION_KEY, time() + MINUTE_IN_SECONDS );
-		self::clear_failed_fetch_cooldown();
+		WC_Stripe_Database_Cache::delete( self::FETCH_FAILURE_COOLDOWN_CACHE_KEY );
 
 		return self::get_payment_method_configuration_from_stripe();
-	}
-
-	/**
-	 * Checks whether a failed or malformed fetch occurred during the active cooldown window for the current mode.
-	 *
-	 * @return bool
-	 */
-	private static function has_failed_fetch_in_cooldown(): bool {
-		$failure_cooldowns = get_option( self::FETCH_FAILURE_COOLDOWN_OPTION_KEY, [] );
-		if ( ! is_array( $failure_cooldowns ) ) {
-			return false;
-		}
-
-		$mode          = WC_Stripe_Mode::is_test() ? 'test' : 'live';
-		$raw_until     = $failure_cooldowns[ $mode ] ?? 0;
-		$failure_until = is_numeric( $raw_until ) ? (int) $raw_until : 0;
-
-		return $failure_until > time();
-	}
-
-	/**
-	 * Records the active cooldown timestamp as a failed fetch for the current mode.
-	 *
-	 * @return void
-	 */
-	private static function record_failed_fetch_cooldown(): void {
-		$raw_cooldown   = get_option( self::FETCH_COOLDOWN_OPTION_KEY, 0 );
-		$fetch_cooldown = is_numeric( $raw_cooldown ) ? (int) $raw_cooldown : 0;
-		if ( $fetch_cooldown <= time() ) {
-			return;
-		}
-
-		$mode              = WC_Stripe_Mode::is_test() ? 'test' : 'live';
-		$failure_cooldowns = get_option( self::FETCH_FAILURE_COOLDOWN_OPTION_KEY, [] );
-		if ( ! is_array( $failure_cooldowns ) ) {
-			$failure_cooldowns = [];
-		}
-
-		$failure_cooldowns[ $mode ] = $fetch_cooldown;
-		update_option( self::FETCH_FAILURE_COOLDOWN_OPTION_KEY, $failure_cooldowns );
-	}
-
-	/**
-	 * Clears the failed-fetch cooldown marker for the current mode.
-	 *
-	 * @return void
-	 */
-	private static function clear_failed_fetch_cooldown(): void {
-		$failure_cooldowns = get_option( self::FETCH_FAILURE_COOLDOWN_OPTION_KEY, [] );
-		if ( ! is_array( $failure_cooldowns ) || [] === $failure_cooldowns ) {
-			return;
-		}
-
-		$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
-		if ( ! isset( $failure_cooldowns[ $mode ] ) ) {
-			return;
-		}
-
-		unset( $failure_cooldowns[ $mode ] );
-		if ( [] === $failure_cooldowns ) {
-			delete_option( self::FETCH_FAILURE_COOLDOWN_OPTION_KEY );
-		} else {
-			update_option( self::FETCH_FAILURE_COOLDOWN_OPTION_KEY, $failure_cooldowns );
-		}
 	}
 
 	/**
@@ -195,7 +133,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	public static function clear_payment_method_configuration_cache() {
 		self::clear_in_memory_payment_method_configuration_cache();
 		WC_Stripe_Database_Cache::delete( self::CONFIGURATION_CACHE_KEY );
-		self::clear_failed_fetch_cooldown();
+		WC_Stripe_Database_Cache::delete( self::FETCH_FAILURE_COOLDOWN_CACHE_KEY );
 	}
 
 	/**
@@ -218,7 +156,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	private static function set_payment_method_configuration_cache( $configuration ) {
 		self::$primary_configuration = $configuration;
 		WC_Stripe_Database_Cache::set( self::CONFIGURATION_CACHE_KEY, $configuration, self::CONFIGURATION_CACHE_EXPIRATION );
-		self::clear_failed_fetch_cooldown();
+		WC_Stripe_Database_Cache::delete( self::FETCH_FAILURE_COOLDOWN_CACHE_KEY );
 		self::sync_payment_methods_to_settings( $configuration );
 	}
 
@@ -302,7 +240,7 @@ class WC_Stripe_Payment_Method_Configurations {
 					'stripe_mode' => $is_test_mode ? 'test' : 'live',
 				]
 			);
-			self::record_failed_fetch_cooldown();
+			WC_Stripe_Database_Cache::set( self::FETCH_FAILURE_COOLDOWN_CACHE_KEY, true, MINUTE_IN_SECONDS );
 			return null;
 		}
 
@@ -329,14 +267,15 @@ class WC_Stripe_Payment_Method_Configurations {
 	}
 
 	/**
-	 * Checks whether every member of a Stripe configuration list response is an object.
+	 * Checks whether every member of a Stripe configuration list response is an object with a configuration ID.
 	 *
 	 * @param array $configurations List entries returned by Stripe.
 	 * @return bool
 	 */
 	private static function are_all_configuration_objects( array $configurations ): bool {
 		foreach ( $configurations as $configuration ) {
-			if ( ! is_object( $configuration ) ) {
+			$configuration_id = is_object( $configuration ) ? ( $configuration->id ?? null ) : null;
+			if ( ! is_string( $configuration_id ) || '' === trim( $configuration_id ) ) {
 				return false;
 			}
 		}
@@ -848,7 +787,7 @@ class WC_Stripe_Payment_Method_Configurations {
 		// we cache below and make a redundant Stripe call — one that, on a transient failure, could
 		// flip pmc_enabled to 'no' and undo the protection this method provides.
 		update_option( self::FETCH_COOLDOWN_OPTION_KEY, time() + MINUTE_IN_SECONDS );
-		self::clear_failed_fetch_cooldown();
+		WC_Stripe_Database_Cache::delete( self::FETCH_FAILURE_COOLDOWN_CACHE_KEY );
 
 		$usable_pmc   = null;
 		$is_test_mode = WC_Stripe_Mode::is_test();
@@ -865,7 +804,7 @@ class WC_Stripe_Payment_Method_Configurations {
 						'error'  => $preselected_pmc['error'],
 					]
 				);
-				self::record_failed_fetch_cooldown();
+				WC_Stripe_Database_Cache::set( self::FETCH_FAILURE_COOLDOWN_CACHE_KEY, true, MINUTE_IN_SECONDS );
 				return;
 			}
 			$usable_pmc = $preselected_pmc['configuration'];
@@ -883,7 +822,7 @@ class WC_Stripe_Payment_Method_Configurations {
 					'Skipping PMC availability refresh because the Stripe API call failed',
 					[ 'response' => $api_response ]
 				);
-				self::record_failed_fetch_cooldown();
+				WC_Stripe_Database_Cache::set( self::FETCH_FAILURE_COOLDOWN_CACHE_KEY, true, MINUTE_IN_SECONDS );
 				return;
 			}
 
@@ -1026,6 +965,6 @@ class WC_Stripe_Payment_Method_Configurations {
 		$stripe_settings                = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['pmc_enabled'] = 'no';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-		self::clear_failed_fetch_cooldown();
+		WC_Stripe_Database_Cache::delete( self::FETCH_FAILURE_COOLDOWN_CACHE_KEY );
 	}
 }
