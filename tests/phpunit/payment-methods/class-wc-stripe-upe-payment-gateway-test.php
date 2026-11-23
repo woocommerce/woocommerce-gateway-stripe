@@ -3642,11 +3642,17 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	/**
 	 * Stripe already took the payment, so a failure while settling on return must leave the order
 	 * pending for the webhook or reconciliation, never failed, and still send the shopper to the
-	 * order-received page.
+	 * order-received page. The log must not carry the Stripe object the plugin's exceptions put in
+	 * their message, since it holds the customer's billing details.
 	 *
-	 * Another plugin's payment callback throws an Error, which WooCommerce's own payment completion doesn't catch.
+	 * Another plugin's charge callback throws, outside WooCommerce's own payment completion, which would
+	 * catch an Exception.
+	 *
+	 * @dataProvider provide_settlement_errors_on_return
+	 *
+	 * @param Throwable $error What the callback throws.
 	 */
-	public function test_process_checkout_session_redirect_leaves_order_pending_when_settling_throws() {
+	public function test_process_checkout_session_redirect_leaves_order_pending_when_settling_throws( Throwable $error ) {
 		$session_id              = 'cs_test_settle_throws';
 		[ $order, $request_url ] = $this->create_order_with_checkout_session( $session_id );
 
@@ -3655,10 +3661,20 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			->with( $request_url )
 			->willReturn( $this->build_completed_checkout_session( $session_id, $order, 'paid' ) );
 
-		$throw_on_payment = function () {
-			throw new \Error( 'Broken payment callback' );
+		$throw_on_charge = function () use ( $error ) {
+			throw $error;
 		};
-		add_action( 'woocommerce_pre_payment_complete', $throw_on_payment );
+		add_action( 'wc_gateway_stripe_process_payment_charge', $throw_on_charge );
+
+		$log_messages = [];
+		$logger       = $this->getMockBuilder( WC_Logger::class )->getMock();
+		$logger->method( 'error' )->willReturnCallback(
+			static function ( $message, $context = [] ) use ( &$log_messages ) {
+				$log_messages[] = $message . ' ' . wp_json_encode( $context['error_message'] ?? '' );
+			}
+		);
+		WC_Stripe_Logger::$logger = $logger;
+		add_filter( 'wc_stripe_logger_can_log', '__return_true' );
 
 		$captured = null;
 		$this->intercept_wp_redirect( $captured );
@@ -3670,7 +3686,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$this->assertSame( 'redirect_intercepted', $e->getMessage() );
 		} finally {
 			remove_all_filters( 'wp_redirect' );
-			remove_action( 'woocommerce_pre_payment_complete', $throw_on_payment );
+			remove_action( 'wc_gateway_stripe_process_payment_charge', $throw_on_charge );
+			remove_filter( 'wc_stripe_logger_can_log', '__return_true' );
+			WC_Stripe_Logger::$logger = null;
 		}
 
 		$this->assertSame( self::MOCK_RETURN_URL_AFTER_REDIRECT, $captured );
@@ -3680,6 +3698,17 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertSame( OrderStatus::PENDING, $final->get_status() );
 		$this->assertSame( '', $final->get_transaction_id() );
 		$this->assertTrue( (bool) WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_redirect_processed( $final ) );
+
+		$log = implode( "\n", $log_messages );
+		$this->assertStringContainsString( 'Could not settle the paid Checkout Session', $log );
+		$this->assertStringNotContainsString( 'jane@example.com', $log );
+	}
+
+	public function provide_settlement_errors_on_return(): array {
+		return [
+			'another plugin fails with an Error' => [ new \Error( 'Broken payment callback' ) ],
+			'Stripe exception with the charge'   => [ new WC_Stripe_Exception( 'stdClass Object ( [billing_details] => jane@example.com )', 'The payment could not be recorded.' ) ],
+		];
 	}
 
 	/**

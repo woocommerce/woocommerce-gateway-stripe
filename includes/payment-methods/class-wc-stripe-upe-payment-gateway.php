@@ -2975,7 +2975,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				[
 					'order_id'            => $fresh_order->get_id(),
 					'checkout_session_id' => $session_id,
-					'error_message'       => $e->getMessage(),
+					// The plugin's own exceptions often carry a print_r() of the charge, with the customer's
+					// billing details, as their message. Their localized message is the readable reason.
+					'error_message'       => $e instanceof WC_Stripe_Exception ? $e->getLocalizedMessage() : $e->getMessage(),
 				]
 			);
 
