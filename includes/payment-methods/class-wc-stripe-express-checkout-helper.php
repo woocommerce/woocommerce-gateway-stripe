@@ -344,7 +344,7 @@ class WC_Stripe_Express_Checkout_Helper {
 				$attribute_key = 'attribute_' . sanitize_title( $attribute_name );
 
 				// Global attribute terms are matched by slug, and a product URL carries the slug or the term name.
-				// sanitize_title() keeps the first and converts the second; wc_clean() would empty an encoded slug.
+				// sanitize_title() keeps a slug and converts a term name to its slug; wc_clean() would empty an encoded slug.
 				$is_global_attribute = taxonomy_exists( $attribute_name );
 
 				// Passed value via GET takes precedence, then POST, otherwise get the default value for given attribute
