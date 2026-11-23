@@ -352,7 +352,7 @@ class WC_Stripe_Express_Checkout_Helper {
 					$attributes[ $attribute_key ] = $product->get_variation_default_attribute( $attribute_name );
 				}
 
-				// A product URL can preselect a global attribute term by name (`?attribute_pa_color=綠`); variations store its slug.
+				// A product URL can preselect a global attribute term by name, while variations store the term's slug.
 				if ( taxonomy_exists( $attribute_name ) && is_string( $attributes[ $attribute_key ] ) ) {
 					$attributes[ $attribute_key ] = sanitize_title( $attributes[ $attribute_key ] );
 				}
