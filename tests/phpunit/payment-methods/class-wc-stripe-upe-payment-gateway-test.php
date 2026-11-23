@@ -3765,6 +3765,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			'saved card, earlier payment processing'  => [ 'saved_card', 'unpaid', 'processing' ],
 			'new session, earlier payment processing' => [ 'checkout_session', 'unpaid', 'processing' ],
 			'new session, earlier session paid'       => [ 'checkout_session', 'paid', 'succeeded' ],
+			'new card, earlier payment needs action'  => [ 'new_card', 'unpaid', 'requires_action' ],
+			'saved card, earlier payment uncaptured'  => [ 'saved_card', 'unpaid', 'requires_capture' ],
 		];
 	}
 
@@ -3844,16 +3846,54 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * A card retry may go ahead once the earlier session's payment has failed, and it unlinks that session first.
+	 * A card retry may go ahead once the earlier session can no longer be paid, and it unlinks that session first.
+	 * An open session is expired, a completed one counts only when its payment failed, and one that Stripe no
+	 * longer knows (after switching modes or accounts) must not block the order for good.
 	 *
-	 * @dataProvider provide_card_retry_attempts
+	 * @dataProvider provide_card_retries_after_unpayable_checkout_session
 	 *
-	 * @param string $attempt The kind of card retry.
+	 * @param string $attempt        The kind of card retry.
+	 * @param string $session_state  One of 'open', 'failed' or 'missing'.
 	 */
-	public function test_card_retry_replaces_earlier_checkout_session_whose_payment_failed( string $attempt ) {
+	public function test_card_retry_replaces_earlier_checkout_session_that_cannot_be_paid( string $attempt, string $session_state ) {
 		$old_session_id = 'cs_test_earlier';
 		$order          = $this->create_order_with_earlier_checkout_session( $attempt, $old_session_id, '' );
-		$this->mock_earlier_checkout_session( $old_session_id, 'complete', 'unpaid', WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD );
+
+		if ( 'missing' === $session_state ) {
+			$this->mock_gateway->method( 'stripe_request' )->willReturnCallback(
+				function ( $path ) use ( $old_session_id ) {
+					return 'checkout/sessions/' . $old_session_id === $path
+						? (object) [ 'error' => (object) [ 'code' => 'resource_missing' ] ]
+						: null;
+				}
+			);
+		} elseif ( 'open' === $session_state ) {
+			$this->mock_earlier_checkout_session( $old_session_id, 'open', 'unpaid', null );
+		} else {
+			$this->mock_earlier_checkout_session( $old_session_id, 'complete', 'unpaid', WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD );
+		}
+
+		$expire_requested = false;
+		$pre_http_filter  = function ( $return_value, $parsed_args, $url ) use ( $old_session_id, &$expire_requested ) {
+			if ( WC_Stripe_API::ENDPOINT . 'checkout/sessions/' . $old_session_id . '/expire' !== $url ) {
+				return $return_value;
+			}
+
+			$expire_requested = true;
+			return [
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'body'     => wp_json_encode(
+					[
+						'id'     => $old_session_id,
+						'status' => 'expired',
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
 
 		try {
 			$this->mock_gateway->process_payment( $order->get_id() );
@@ -3861,24 +3901,34 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			// The rest of the card flow is not mocked here; only the retirement decision matters.
 			unset( $e );
 		} finally {
+			remove_filter( 'pre_http_request', $pre_http_filter );
 			$_POST = [];
 		}
 
 		$notices = wc_get_notices( 'notice' );
+		$errors  = wc_get_notices( 'error' );
 		wc_clear_notices();
 
-		$this->assertEmpty( $notices, 'A retry after a failed payment must not be turned away.' );
+		$this->assertEmpty( $notices, 'A retry after the earlier session can no longer be paid must not be turned away.' );
+		foreach ( $errors as $error ) {
+			$this->assertStringNotContainsString( WC_Stripe_Checkout_Session_Context::get_unavailable_message(), $error['notice'] );
+		}
+		$this->assertSame( 'open' === $session_state, $expire_requested );
 		$this->assertSame( '', (string) WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( wc_get_order( $order->get_id() ) ) );
 		$this->assertNull( WC_Stripe_Checkout_Session_Context::get_context( $old_session_id ) );
 	}
 
 	/**
-	 * @return array<string,array{string}>
+	 * @return array<string,array{string,string}>
 	 */
-	public function provide_card_retry_attempts(): array {
+	public function provide_card_retries_after_unpayable_checkout_session(): array {
 		return [
-			'new card'   => [ 'new_card' ],
-			'saved card' => [ 'saved_card' ],
+			'new card, earlier session open'      => [ 'new_card', 'open' ],
+			'saved card, earlier session open'    => [ 'saved_card', 'open' ],
+			'new card, earlier payment failed'    => [ 'new_card', 'failed' ],
+			'saved card, earlier payment failed'  => [ 'saved_card', 'failed' ],
+			'new card, earlier session missing'   => [ 'new_card', 'missing' ],
+			'saved card, earlier session missing' => [ 'saved_card', 'missing' ],
 		];
 	}
 

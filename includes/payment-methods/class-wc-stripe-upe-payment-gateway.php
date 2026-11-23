@@ -1856,12 +1856,22 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// Webhooks find an Adaptive Pricing payment only through the session ID stored on the order,
 		// since its intent is created before the order exists. Unlinking a session that can still be
 		// paid would orphan that payment, and the customer would be charged twice.
-		$checkout_session_status = $this->expire_checkout_session_if_open( $checkout_session_id );
+		try {
+			$checkout_session_status = $this->expire_checkout_session_if_open( $checkout_session_id );
+		} catch ( WC_Stripe_Exception $e ) {
+			// After switching modes or Stripe accounts, the stored session doesn't exist on the connected
+			// account, so it can't take a payment here. Keeping it would block every retry for good.
+			if ( ! $this->is_checkout_session_missing( $checkout_session_id ) ) {
+				throw $e;
+			}
+			$checkout_session_status = 'missing';
+		}
+
 		if ( 'complete' === $checkout_session_status && $this->may_checkout_session_payment_succeed( $checkout_session_id, $order ) ) {
 			return false;
 		}
 
-		if ( ! in_array( $checkout_session_status, [ 'expired', 'complete' ], true ) ) {
+		if ( ! in_array( $checkout_session_status, [ 'expired', 'complete', 'missing' ], true ) ) {
 			throw new WC_Stripe_Exception( 'Checkout Session is not expireable.', WC_Stripe_Checkout_Session_Context::get_unavailable_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
@@ -1870,6 +1880,22 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		WC_Stripe_Checkout_Session_Context::delete_context( $checkout_session_id );
 
 		return true;
+	}
+
+	/**
+	 * Checks whether Stripe reports the Checkout Session as missing on the connected account.
+	 *
+	 * @param string $checkout_session_id Stripe Checkout Session ID.
+	 * @return bool True only when Stripe answers with `resource_missing`.
+	 */
+	private function is_checkout_session_missing( string $checkout_session_id ): bool {
+		try {
+			$response = $this->stripe_request( 'checkout/sessions/' . $checkout_session_id );
+		} catch ( Exception $e ) {
+			return false;
+		}
+
+		return is_object( $response ) && 'resource_missing' === ( $response->error->code ?? '' );
 	}
 
 	/**
@@ -2192,7 +2218,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				return $this->get_payment_already_in_progress_response();
 			}
 		} catch ( WC_Stripe_Exception $e ) {
-			WC_Stripe_Logger::error( 'Could not retire the order\'s earlier Checkout Session before linking a new one.', [ 'error_message' => $e->getMessage() ] );
+			WC_Stripe_Logger::error(
+				'Could not retire the order\'s earlier Checkout Session before linking a new one.',
+				[
+					'order_id'      => $order->get_id(),
+					'error_message' => $e->getLocalizedMessage(),
+				]
+			);
 			return $this->get_checkout_failure_response( $e->getLocalizedMessage() );
 		}
 
