@@ -222,7 +222,76 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 				'expected_exception_string'  => null,
 				'current_context'            => false,
 			],
+			'address line2 required only via classic checkout fields, line2 is empty'             => [
+				'billing_fields'             => [ 'address_2' => '' ],
+				'woo_billing_fields'         => [ 'billing_address_2' => true ],
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => null,
+				'expected_exception_string'  => null,
+			],
+			'SG address without city or state, both required via classic checkout fields'         => [
+				'billing_fields'             => [
+					'country' => 'SG',
+					'city'    => '',
+					'state'   => '',
+				],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => null,
+				'expected_exception_string'  => null,
+			],
+			'GR address without state, required via classic checkout fields'                      => [
+				'billing_fields'             => [
+					'country' => 'GR',
+					'state'   => '',
+				],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => null,
+				'expected_exception_string'  => null,
+			],
+			'US address without state, required by both classic checkout fields and US locale'    => [
+				'billing_fields'             => [ 'state' => '' ],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => 'missing_required_customer_field: address->state',
+				'expected_exception_string'  => 'Missing required customer field: address->state',
+			],
 		];
+	}
+
+	/**
+	 * Without an order there is no WooCommerce-validated address, so the classic checkout field set applies unchanged.
+	 */
+	public function test_create_customer_without_order_requires_classic_checkout_fields() {
+		$require_address_2 = function ( $checkout_fields ) {
+			$checkout_fields['billing']['billing_address_2']['required'] = true;
+			return $checkout_fields;
+		};
+		add_filter( 'woocommerce_checkout_fields', $require_address_2 );
+
+		$_POST = [
+			'billing_email'      => 'test@example.com',
+			'billing_first_name' => 'John',
+			'billing_last_name'  => 'Doe',
+			'billing_address_1'  => '123 Main St',
+			'billing_address_2'  => '',
+			'billing_city'       => 'Anytown',
+			'billing_state'      => 'CA',
+			'billing_postcode'   => '12345',
+			'billing_country'    => 'US',
+		];
+
+		try {
+			( new \WC_Stripe_Customer() )->create_customer();
+			$this->fail( 'Expected exception not thrown' );
+		} catch ( \WC_Stripe_Exception $exception ) {
+			$this->assertSame( 'missing_required_customer_field: address->line2', $exception->getMessage() );
+		} finally {
+			remove_filter( 'woocommerce_checkout_fields', $require_address_2 );
+			$_POST                                    = [];
+			\WC_Checkout::instance()->checkout_fields = null;
+		}
 	}
 
 	/**
