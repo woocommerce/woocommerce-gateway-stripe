@@ -1889,6 +1889,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return bool True only when Stripe answers with `resource_missing`.
 	 */
 	private function is_checkout_session_missing( string $checkout_session_id ): bool {
+		// Test keys can't see live sessions, so a live one looks missing while the store is in test mode.
+		// Its payment is real money that settles once the store is back in live mode, so keep it linked.
+		if ( str_starts_with( $checkout_session_id, 'cs_live_' ) && WC_Stripe_Mode::is_test() ) {
+			return false;
+		}
+
 		try {
 			$response = $this->stripe_request( 'checkout/sessions/' . $checkout_session_id );
 		} catch ( Exception $e ) {

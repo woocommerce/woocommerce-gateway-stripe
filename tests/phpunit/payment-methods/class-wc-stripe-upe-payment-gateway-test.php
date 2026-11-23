@@ -3680,7 +3680,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * Mocks Stripe's answers for the earlier Checkout Session and its PaymentIntent.
 	 *
 	 * @param string      $session_id     The earlier Checkout Session ID.
-	 * @param string      $session_status The session status.
+	 * @param string      $session_status The session status, or 'missing' when Stripe doesn't know the session.
 	 * @param string      $payment_status The session payment status.
 	 * @param string|null $intent_status  The PaymentIntent status, or null when retrieving it fails.
 	 * @return void
@@ -3688,6 +3688,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	private function mock_earlier_checkout_session( string $session_id, string $session_status, string $payment_status, ?string $intent_status ): void {
 		$this->mock_gateway->method( 'stripe_request' )->willReturnCallback(
 			function ( $path ) use ( $session_id, $session_status, $payment_status, $intent_status ) {
+				if ( 'checkout/sessions/' . $session_id === $path && 'missing' === $session_status ) {
+					return (object) [ 'error' => (object) [ 'code' => 'resource_missing' ] ];
+				}
+
 				if ( 'checkout/sessions/' . $session_id === $path ) {
 					return (object) [
 						'id'             => $session_id,
@@ -3859,16 +3863,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$old_session_id = 'cs_test_earlier';
 		$order          = $this->create_order_with_earlier_checkout_session( $attempt, $old_session_id, '' );
 
-		if ( 'missing' === $session_state ) {
-			$this->mock_gateway->method( 'stripe_request' )->willReturnCallback(
-				function ( $path ) use ( $old_session_id ) {
-					return 'checkout/sessions/' . $old_session_id === $path
-						? (object) [ 'error' => (object) [ 'code' => 'resource_missing' ] ]
-						: null;
-				}
-			);
-		} elseif ( 'open' === $session_state ) {
-			$this->mock_earlier_checkout_session( $old_session_id, 'open', 'unpaid', null );
+		if ( 'failed' !== $session_state ) {
+			$this->mock_earlier_checkout_session( $old_session_id, $session_state, 'unpaid', null );
 		} else {
 			$this->mock_earlier_checkout_session( $old_session_id, 'complete', 'unpaid', WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD );
 		}
@@ -3929,6 +3925,66 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			'saved card, earlier payment failed'  => [ 'saved_card', 'failed' ],
 			'new card, earlier session missing'   => [ 'new_card', 'missing' ],
 			'saved card, earlier session missing' => [ 'saved_card', 'missing' ],
+		];
+	}
+
+	/**
+	 * Only proof that the stored session can't take a payment on this store unlinks it. Any other Stripe
+	 * error, or a live session looked up with test keys, keeps it linked and blocks the new attempt.
+	 *
+	 * @dataProvider provide_earlier_checkout_sessions_not_proven_missing
+	 *
+	 * @param string $attempt        The kind of new payment attempt.
+	 * @param string $old_session_id The Checkout Session stored on the order.
+	 * @param string $error_code     The error code Stripe returns for that session.
+	 * @param bool   $test_mode      Whether the store is in test mode.
+	 */
+	public function test_new_payment_keeps_earlier_checkout_session_not_proven_missing( string $attempt, string $old_session_id, string $error_code, bool $test_mode ) {
+		$new_session_id = 'cs_test_retry';
+		$order          = $this->create_order_with_earlier_checkout_session( $attempt, $old_session_id, $new_session_id );
+
+		$settings             = WC_Stripe_Helper::get_stripe_settings();
+		$settings['testmode'] = $test_mode ? 'yes' : 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		$this->mock_gateway->method( 'stripe_request' )->willReturnCallback(
+			function ( $path ) use ( $old_session_id, $error_code ) {
+				return 'checkout/sessions/' . $old_session_id === $path
+					? (object) [ 'error' => (object) [ 'code' => $error_code ] ]
+					: null;
+			}
+		);
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->never() )
+			->method( 'create_and_confirm_payment_intent' );
+
+		try {
+			$result = $this->mock_gateway->process_payment( $order->get_id() );
+		} finally {
+			WC_Stripe_Checkout_Session_Context::delete_context( $old_session_id );
+			WC_Stripe_Checkout_Session_Context::delete_context( $new_session_id );
+			$_POST = [];
+		}
+
+		$errors = wc_get_notices( 'error' );
+		wc_clear_notices();
+
+		$this->assertSame( 'failure', $result['result'] );
+		$this->assertCount( 1, $errors );
+		$this->assertStringContainsString( WC_Stripe_Checkout_Session_Context::get_unavailable_message(), $errors[0]['notice'] );
+		$this->assertSame( $old_session_id, WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( wc_get_order( $order->get_id() ) ) );
+	}
+
+	/**
+	 * @return array<string,array{string,string,string,bool}>
+	 */
+	public function provide_earlier_checkout_sessions_not_proven_missing(): array {
+		return [
+			'new card, other Stripe error'           => [ 'new_card', 'cs_test_earlier', 'rate_limit', false ],
+			'new session, other Stripe error'        => [ 'checkout_session', 'cs_test_earlier', 'rate_limit', false ],
+			'saved card, live session in test mode'  => [ 'saved_card', 'cs_live_earlier', 'resource_missing', true ],
+			'new session, live session in test mode' => [ 'checkout_session', 'cs_live_earlier', 'resource_missing', true ],
 		];
 	}
 
@@ -4020,6 +4076,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			'completed session with failed payment'  => [ 'complete', WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD, false ],
 			'completed session with canceled intent' => [ 'complete', WC_Stripe_Intent_Status::CANCELED, false ],
 			'expired session'                        => [ 'expired', null, false ],
+			'session missing on the account'         => [ 'missing', null, false ],
 		];
 	}
 
