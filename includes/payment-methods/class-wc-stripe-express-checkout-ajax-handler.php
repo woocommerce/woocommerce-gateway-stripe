@@ -221,7 +221,8 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			$attributes   = [];
 
 			if ( ( ProductType::VARIABLE === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
-				$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
+				// wc_clean() would strip percent-encoded octets, blanking the slugs of non-ASCII global attribute terms.
+				$attributes = (array) map_deep( wp_unslash( $_POST['attributes'] ), 'wp_strip_all_tags' );
 
 				$data_store   = WC_Data_Store::load( 'product' );
 				$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
@@ -447,7 +448,8 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			}
 
 			if ( in_array( $product->get_type(), [ ProductType::VARIABLE, 'variable-subscription' ], true ) && isset( $_POST['attributes'] ) ) {
-				$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
+				// wc_clean() would strip percent-encoded octets, blanking the slugs of non-ASCII global attribute terms.
+				$attributes = (array) map_deep( wp_unslash( $_POST['attributes'] ), 'wp_strip_all_tags' );
 
 				$data_store   = WC_Data_Store::load( 'product' );
 				$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
