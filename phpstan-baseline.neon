@@ -4225,6 +4225,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
+			message: '#^Access to an undefined property object\:\:\$customer\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
+
+		-
 			message: '#^Access to an undefined property object\:\:\$last4\.$#'
 			identifier: property.notFound
 			count: 1
@@ -4238,6 +4244,24 @@ parameters:
 
 		-
 			message: '#^Access to an undefined property object\:\:\$sepa_debit\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source_object\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
 			identifier: property.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
@@ -4273,36 +4297,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:check_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:create_and_confirm_intent_for_off_session\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:generate_payment_request\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:get_intent_from_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:get_latest_charge_from_intent\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:get_redirect_url\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -4315,91 +4309,13 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:handle_saving_payment_method\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:is_authentication_required_for_payment\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:is_no_linked_source_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:is_no_such_source_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:is_retryable_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:maybe_disallow_prepaid_card\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:need_update_idempotency_key\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:prepare_order_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:prepare_payment_information_from_request\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:prepare_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:process_response\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:process_setup_intent_for_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:save_source_to_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:set_customer_id_for_subscription\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:set_payment_method_id_for_subscription\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
@@ -4414,6 +4330,12 @@ parameters:
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACH\:\:validate_selected_payment_method_type\(\)\.$#'
 			identifier: method.notFound
 			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
+
+		-
+			message: '#^Cannot access property \$id on object\|string\.$#'
+			identifier: property.nonObject
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
@@ -4477,19 +4399,31 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
+
+		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
-			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_ACH\), ''change_idempotency…''\} given\.$#'
+			message: '#^Parameter \#1 \$user_id of method WC_Stripe_Payment_Gateway\:\:prepare_source\(\) expects string, int\<0, max\> given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
 
 		-
 			message: '#^Parameter \#2 \$payment_method_object of method WC_Stripe_UPE_Payment_Method_ACH\:\:handle_upe_add_payment_method_success\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
+
+		-
+			message: '#^Parameter \#2 \$source of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects stdClass, object given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php
@@ -4537,6 +4471,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
+			message: '#^Access to an undefined property object\:\:\$customer\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
+
+		-
 			message: '#^Access to an undefined property object\:\:\$last4\.$#'
 			identifier: property.notFound
 			count: 1
@@ -4550,6 +4490,24 @@ parameters:
 
 		-
 			message: '#^Access to an undefined property object\:\:\$sepa_debit\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source_object\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
 			identifier: property.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
@@ -4585,36 +4543,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:check_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:create_and_confirm_intent_for_off_session\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:generate_payment_request\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:get_intent_from_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:get_latest_charge_from_intent\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:get_redirect_url\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -4627,91 +4555,13 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:handle_saving_payment_method\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:is_authentication_required_for_payment\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:is_no_linked_source_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:is_no_such_source_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:is_retryable_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:maybe_disallow_prepaid_card\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:need_update_idempotency_key\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:prepare_order_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:prepare_payment_information_from_request\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:prepare_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:process_response\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:process_setup_intent_for_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:save_source_to_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:set_customer_id_for_subscription\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:set_payment_method_id_for_subscription\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
@@ -4726,6 +4576,12 @@ parameters:
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_ACSS\:\:validate_selected_payment_method_type\(\)\.$#'
 			identifier: method.notFound
 			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
+
+		-
+			message: '#^Cannot access property \$id on object\|string\.$#'
+			identifier: property.nonObject
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
@@ -4783,19 +4639,31 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
+
+		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
-			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_ACSS\), ''change_idempotency…''\} given\.$#'
+			message: '#^Parameter \#1 \$user_id of method WC_Stripe_Payment_Gateway\:\:prepare_source\(\) expects string, int\<0, max\> given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
 
 		-
 			message: '#^Parameter \#2 \$payment_method_object of method WC_Stripe_UPE_Payment_Method_ACSS\:\:handle_upe_add_payment_method_success\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
+
+		-
+			message: '#^Parameter \#2 \$source of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects stdClass, object given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php
@@ -4843,6 +4711,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
+			message: '#^Access to an undefined property object\:\:\$customer\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
+
+		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
 			count: 1
@@ -4862,6 +4736,24 @@ parameters:
 
 		-
 			message: '#^Access to an undefined property object\:\:\$sepa_debit\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source_object\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
 			identifier: property.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
@@ -4897,36 +4789,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:check_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:create_and_confirm_intent_for_off_session\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:generate_payment_request\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:get_intent_from_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:get_latest_charge_from_intent\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:get_redirect_url\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -4939,91 +4801,13 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:handle_saving_payment_method\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:is_authentication_required_for_payment\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:is_no_linked_source_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:is_no_such_source_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:is_retryable_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:maybe_disallow_prepaid_card\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:need_update_idempotency_key\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:prepare_order_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:prepare_payment_information_from_request\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:prepare_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:process_response\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:process_setup_intent_for_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:save_source_to_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:set_customer_id_for_subscription\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:set_payment_method_id_for_subscription\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
@@ -5038,6 +4822,12 @@ parameters:
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:validate_selected_payment_method_type\(\)\.$#'
 			identifier: method.notFound
 			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
+
+		-
+			message: '#^Cannot access property \$id on object\|string\.$#'
+			identifier: property.nonObject
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
@@ -5095,19 +4885,31 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
+
+		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
-			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Amazon_Pay\), ''change_idempotency…''\} given\.$#'
+			message: '#^Parameter \#1 \$user_id of method WC_Stripe_Payment_Gateway\:\:prepare_source\(\) expects string, int\<0, max\> given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
 
 		-
 			message: '#^Parameter \#2 \$payment_method_object of method WC_Stripe_UPE_Payment_Method_Amazon_Pay\:\:handle_upe_add_payment_method_success\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
+
+		-
+			message: '#^Parameter \#2 \$source of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects stdClass, object given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php
@@ -5161,6 +4963,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
+			message: '#^Access to an undefined property object\:\:\$customer\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
+
+		-
 			message: '#^Access to an undefined property object\:\:\$last4\.$#'
 			identifier: property.notFound
 			count: 1
@@ -5174,6 +4982,24 @@ parameters:
 
 		-
 			message: '#^Access to an undefined property object\:\:\$sepa_debit\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source_object\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
 			identifier: property.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
@@ -5209,36 +5035,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:check_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:create_and_confirm_intent_for_off_session\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:generate_payment_request\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:get_intent_from_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:get_latest_charge_from_intent\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:get_redirect_url\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -5251,91 +5047,13 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:handle_saving_payment_method\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:is_authentication_required_for_payment\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:is_no_linked_source_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:is_no_such_source_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:is_retryable_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:maybe_disallow_prepaid_card\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:need_update_idempotency_key\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:prepare_order_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:prepare_payment_information_from_request\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:prepare_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:process_response\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:process_setup_intent_for_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:save_source_to_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:set_customer_id_for_subscription\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:set_payment_method_id_for_subscription\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
@@ -5350,6 +5068,12 @@ parameters:
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:validate_selected_payment_method_type\(\)\.$#'
 			identifier: method.notFound
 			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
+
+		-
+			message: '#^Cannot access property \$id on object\|string\.$#'
+			identifier: property.nonObject
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
@@ -5413,19 +5137,31 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
+
+		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
-			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Bacs_Debit\), ''change_idempotency…''\} given\.$#'
+			message: '#^Parameter \#1 \$user_id of method WC_Stripe_Payment_Gateway\:\:prepare_source\(\) expects string, int\<0, max\> given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
 
 		-
 			message: '#^Parameter \#2 \$payment_method_object of method WC_Stripe_UPE_Payment_Method_Bacs_Debit\:\:handle_upe_add_payment_method_success\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
+
+		-
+			message: '#^Parameter \#2 \$source of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects stdClass, object given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php
@@ -5467,6 +5203,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
+			message: '#^Access to an undefined property object\:\:\$customer\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
+
+		-
 			message: '#^Access to an undefined property object\:\:\$last4\.$#'
 			identifier: property.notFound
 			count: 1
@@ -5480,6 +5222,24 @@ parameters:
 
 		-
 			message: '#^Access to an undefined property object\:\:\$sepa_debit\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source_object\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
 			identifier: property.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
@@ -5515,36 +5275,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:check_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:create_and_confirm_intent_for_off_session\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:generate_payment_request\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:get_intent_from_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:get_latest_charge_from_intent\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:get_redirect_url\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -5557,91 +5287,13 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:handle_saving_payment_method\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:is_authentication_required_for_payment\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:is_no_linked_source_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:is_no_such_source_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:is_retryable_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:maybe_disallow_prepaid_card\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:need_update_idempotency_key\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:prepare_order_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:prepare_payment_information_from_request\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:prepare_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:process_response\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:process_setup_intent_for_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:save_source_to_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:set_customer_id_for_subscription\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:set_payment_method_id_for_subscription\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
@@ -5656,6 +5308,12 @@ parameters:
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Bancontact\:\:validate_selected_payment_method_type\(\)\.$#'
 			identifier: method.notFound
 			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
+
+		-
+			message: '#^Cannot access property \$id on object\|string\.$#'
+			identifier: property.nonObject
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
@@ -5713,19 +5371,31 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
+
+		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
-			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Bancontact\), ''change_idempotency…''\} given\.$#'
+			message: '#^Parameter \#1 \$user_id of method WC_Stripe_Payment_Gateway\:\:prepare_source\(\) expects string, int\<0, max\> given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
 
 		-
 			message: '#^Parameter \#2 \$payment_method_object of method WC_Stripe_UPE_Payment_Method_Bancontact\:\:handle_upe_add_payment_method_success\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
+
+		-
+			message: '#^Parameter \#2 \$source of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects stdClass, object given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php
@@ -5767,6 +5437,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
+			message: '#^Access to an undefined property object\:\:\$customer\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
+
+		-
 			message: '#^Access to an undefined property object\:\:\$last4\.$#'
 			identifier: property.notFound
 			count: 1
@@ -5780,6 +5456,24 @@ parameters:
 
 		-
 			message: '#^Access to an undefined property object\:\:\$sepa_debit\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source_object\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
 			identifier: property.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
@@ -5815,36 +5509,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:check_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:create_and_confirm_intent_for_off_session\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:generate_payment_request\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:get_intent_from_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:get_latest_charge_from_intent\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:get_redirect_url\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -5857,91 +5521,13 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:handle_saving_payment_method\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:is_authentication_required_for_payment\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:is_no_linked_source_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:is_no_such_source_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:is_retryable_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:maybe_disallow_prepaid_card\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:need_update_idempotency_key\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:prepare_order_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:prepare_payment_information_from_request\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:prepare_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:process_response\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:process_setup_intent_for_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:save_source_to_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:set_customer_id_for_subscription\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:set_payment_method_id_for_subscription\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
@@ -5956,6 +5542,12 @@ parameters:
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:validate_selected_payment_method_type\(\)\.$#'
 			identifier: method.notFound
 			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
+
+		-
+			message: '#^Cannot access property \$id on object\|string\.$#'
+			identifier: property.nonObject
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
@@ -6019,19 +5611,31 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
+
+		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
-			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Becs_Debit\), ''change_idempotency…''\} given\.$#'
+			message: '#^Parameter \#1 \$user_id of method WC_Stripe_Payment_Gateway\:\:prepare_source\(\) expects string, int\<0, max\> given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
 
 		-
 			message: '#^Parameter \#2 \$payment_method_object of method WC_Stripe_UPE_Payment_Method_Becs_Debit\:\:handle_upe_add_payment_method_success\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
+
+		-
+			message: '#^Parameter \#2 \$source of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects stdClass, object given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php
@@ -6097,6 +5701,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
+			message: '#^Access to an undefined property object\:\:\$customer\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
+
+		-
 			message: '#^Access to an undefined property object\:\:\$last4\.$#'
 			identifier: property.notFound
 			count: 1
@@ -6110,6 +5720,24 @@ parameters:
 
 		-
 			message: '#^Access to an undefined property object\:\:\$sepa_debit\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source_object\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
 			identifier: property.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
@@ -6145,36 +5773,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:check_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:create_and_confirm_intent_for_off_session\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:generate_payment_request\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:get_intent_from_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:get_latest_charge_from_intent\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:get_redirect_url\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -6187,91 +5785,13 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:handle_saving_payment_method\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:is_authentication_required_for_payment\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:is_no_linked_source_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:is_no_such_source_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:is_retryable_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:maybe_disallow_prepaid_card\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:need_update_idempotency_key\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:prepare_order_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:prepare_payment_information_from_request\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:prepare_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:process_response\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:process_setup_intent_for_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:save_source_to_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:set_customer_id_for_subscription\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:set_payment_method_id_for_subscription\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
@@ -6286,6 +5806,12 @@ parameters:
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:validate_selected_payment_method_type\(\)\.$#'
 			identifier: method.notFound
 			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
+
+		-
+			message: '#^Cannot access property \$id on object\|string\.$#'
+			identifier: property.nonObject
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
@@ -6343,19 +5869,31 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
+
+		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
-			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Cash_App_Pay\), ''change_idempotency…''\} given\.$#'
+			message: '#^Parameter \#1 \$user_id of method WC_Stripe_Payment_Gateway\:\:prepare_source\(\) expects string, int\<0, max\> given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
 
 		-
 			message: '#^Parameter \#2 \$payment_method_object of method WC_Stripe_UPE_Payment_Method_Cash_App_Pay\:\:handle_upe_add_payment_method_success\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
+
+		-
+			message: '#^Parameter \#2 \$source of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects stdClass, object given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php
@@ -6397,6 +5935,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
+			message: '#^Access to an undefined property object\:\:\$customer\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
+
+		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
 			count: 1
@@ -6416,6 +5960,24 @@ parameters:
 
 		-
 			message: '#^Access to an undefined property object\:\:\$sepa_debit\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source_object\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
 			identifier: property.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
@@ -6451,36 +6013,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:check_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:create_and_confirm_intent_for_off_session\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:generate_payment_request\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:get_intent_from_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:get_latest_charge_from_intent\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:get_redirect_url\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -6493,91 +6025,13 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:handle_saving_payment_method\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:is_authentication_required_for_payment\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:is_no_linked_source_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:is_no_such_source_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:is_retryable_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:maybe_disallow_prepaid_card\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:need_update_idempotency_key\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:prepare_order_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:prepare_payment_information_from_request\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:prepare_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:process_response\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:process_setup_intent_for_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:save_source_to_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:set_customer_id_for_subscription\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:set_payment_method_id_for_subscription\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
@@ -6592,6 +6046,12 @@ parameters:
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_CC\:\:validate_selected_payment_method_type\(\)\.$#'
 			identifier: method.notFound
 			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
+
+		-
+			message: '#^Cannot access property \$id on object\|string\.$#'
+			identifier: property.nonObject
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
@@ -6649,6 +6109,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
+
+		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
 			identifier: argument.type
 			count: 1
@@ -6667,13 +6133,19 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
-			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_CC\), ''change_idempotency…''\} given\.$#'
+			message: '#^Parameter \#1 \$user_id of method WC_Stripe_Payment_Gateway\:\:prepare_source\(\) expects string, int\<0, max\> given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
 
 		-
 			message: '#^Parameter \#2 \$payment_method_object of method WC_Stripe_UPE_Payment_Method_CC\:\:handle_upe_add_payment_method_success\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
+
+		-
+			message: '#^Parameter \#2 \$source of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects stdClass, object given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php
@@ -6721,6 +6193,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
+			message: '#^Access to an undefined property object\:\:\$customer\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
+
+		-
 			message: '#^Access to an undefined property object\:\:\$last4\.$#'
 			identifier: property.notFound
 			count: 1
@@ -6734,6 +6212,24 @@ parameters:
 
 		-
 			message: '#^Access to an undefined property object\:\:\$sepa_debit\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source_object\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
 			identifier: property.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
@@ -6769,36 +6265,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:check_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:create_and_confirm_intent_for_off_session\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:generate_payment_request\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:get_intent_from_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:get_latest_charge_from_intent\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:get_redirect_url\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -6811,91 +6277,13 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:handle_saving_payment_method\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:is_authentication_required_for_payment\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:is_no_linked_source_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:is_no_such_source_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:is_retryable_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:maybe_disallow_prepaid_card\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:need_update_idempotency_key\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:prepare_order_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:prepare_payment_information_from_request\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:prepare_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:process_response\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:process_setup_intent_for_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:save_source_to_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:set_customer_id_for_subscription\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:set_payment_method_id_for_subscription\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
@@ -6910,6 +6298,12 @@ parameters:
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Ideal\:\:validate_selected_payment_method_type\(\)\.$#'
 			identifier: method.notFound
 			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
+
+		-
+			message: '#^Cannot access property \$id on object\|string\.$#'
+			identifier: property.nonObject
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
@@ -6967,19 +6361,31 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
+
+		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
-			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Ideal\), ''change_idempotency…''\} given\.$#'
+			message: '#^Parameter \#1 \$user_id of method WC_Stripe_Payment_Gateway\:\:prepare_source\(\) expects string, int\<0, max\> given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
 
 		-
 			message: '#^Parameter \#2 \$payment_method_object of method WC_Stripe_UPE_Payment_Method_Ideal\:\:handle_upe_add_payment_method_success\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
+
+		-
+			message: '#^Parameter \#2 \$source of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects stdClass, object given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php
@@ -7021,6 +6427,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
+			message: '#^Access to an undefined property object\:\:\$customer\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
+
+		-
 			message: '#^Access to an undefined property object\:\:\$last4\.$#'
 			identifier: property.notFound
 			count: 1
@@ -7034,6 +6446,24 @@ parameters:
 
 		-
 			message: '#^Access to an undefined property object\:\:\$sepa_debit\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source_object\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
 			identifier: property.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
@@ -7069,36 +6499,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:check_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:create_and_confirm_intent_for_off_session\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:generate_payment_request\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:get_intent_from_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:get_latest_charge_from_intent\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:get_redirect_url\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -7111,91 +6511,13 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:handle_saving_payment_method\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:is_authentication_required_for_payment\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:is_no_linked_source_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:is_no_such_source_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:is_retryable_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:maybe_disallow_prepaid_card\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:need_update_idempotency_key\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:prepare_order_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:prepare_payment_information_from_request\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:prepare_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:process_response\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:process_setup_intent_for_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:save_source_to_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:set_customer_id_for_subscription\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:set_payment_method_id_for_subscription\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
@@ -7210,6 +6532,12 @@ parameters:
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Klarna\:\:validate_selected_payment_method_type\(\)\.$#'
 			identifier: method.notFound
 			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
+
+		-
+			message: '#^Cannot access property \$id on object\|string\.$#'
+			identifier: property.nonObject
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
@@ -7267,19 +6595,31 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
+
+		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
-			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Klarna\), ''change_idempotency…''\} given\.$#'
+			message: '#^Parameter \#1 \$user_id of method WC_Stripe_Payment_Gateway\:\:prepare_source\(\) expects string, int\<0, max\> given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
 
 		-
 			message: '#^Parameter \#2 \$payment_method_object of method WC_Stripe_UPE_Payment_Method_Klarna\:\:handle_upe_add_payment_method_success\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
+
+		-
+			message: '#^Parameter \#2 \$source of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects stdClass, object given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php
@@ -7369,6 +6709,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
+			message: '#^Access to an undefined property object\:\:\$customer\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
+
+		-
 			message: '#^Access to an undefined property object\:\:\$last4\.$#'
 			identifier: property.notFound
 			count: 1
@@ -7382,6 +6728,24 @@ parameters:
 
 		-
 			message: '#^Access to an undefined property object\:\:\$sepa_debit\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source_object\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
 			identifier: property.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
@@ -7423,36 +6787,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:check_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:create_and_confirm_intent_for_off_session\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:generate_payment_request\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:get_intent_from_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:get_latest_charge_from_intent\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:get_redirect_url\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -7465,91 +6799,13 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:handle_saving_payment_method\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:is_authentication_required_for_payment\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:is_no_linked_source_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:is_no_such_source_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:is_retryable_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:maybe_disallow_prepaid_card\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:need_update_idempotency_key\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:prepare_order_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:prepare_payment_information_from_request\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:prepare_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:process_response\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:process_setup_intent_for_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:save_source_to_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:set_customer_id_for_subscription\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:set_payment_method_id_for_subscription\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
@@ -7564,6 +6820,12 @@ parameters:
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_OC\:\:validate_selected_payment_method_type\(\)\.$#'
 			identifier: method.notFound
 			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
+
+		-
+			message: '#^Cannot access property \$id on object\|string\.$#'
+			identifier: property.nonObject
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
@@ -7633,19 +6895,31 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
+
+		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
-			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_OC\), ''change_idempotency…''\} given\.$#'
+			message: '#^Parameter \#1 \$user_id of method WC_Stripe_Payment_Gateway\:\:prepare_source\(\) expects string, int\<0, max\> given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
 
 		-
 			message: '#^Parameter \#2 \$payment_method_object of method WC_Stripe_UPE_Payment_Method_OC\:\:handle_upe_add_payment_method_success\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
+
+		-
+			message: '#^Parameter \#2 \$source of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects stdClass, object given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-oc.php
@@ -7699,6 +6973,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
+			message: '#^Access to an undefined property object\:\:\$customer\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
+
+		-
 			message: '#^Access to an undefined property object\:\:\$last4\.$#'
 			identifier: property.notFound
 			count: 1
@@ -7712,6 +6992,24 @@ parameters:
 
 		-
 			message: '#^Access to an undefined property object\:\:\$sepa_debit\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source_object\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
 			identifier: property.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
@@ -7747,36 +7045,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:check_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:create_and_confirm_intent_for_off_session\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:generate_payment_request\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:get_intent_from_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:get_latest_charge_from_intent\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:get_redirect_url\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -7789,91 +7057,13 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:handle_saving_payment_method\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:is_authentication_required_for_payment\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:is_no_linked_source_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:is_no_such_source_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:is_retryable_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:maybe_disallow_prepaid_card\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:need_update_idempotency_key\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:prepare_order_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:prepare_payment_information_from_request\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:prepare_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:process_response\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:process_setup_intent_for_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:save_source_to_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:set_customer_id_for_subscription\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:set_payment_method_id_for_subscription\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
@@ -7888,6 +7078,12 @@ parameters:
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sepa\:\:validate_selected_payment_method_type\(\)\.$#'
 			identifier: method.notFound
 			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
+
+		-
+			message: '#^Cannot access property \$id on object\|string\.$#'
+			identifier: property.nonObject
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
@@ -7951,19 +7147,31 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
+
+		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
-			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Sepa\), ''change_idempotency…''\} given\.$#'
+			message: '#^Parameter \#1 \$user_id of method WC_Stripe_Payment_Gateway\:\:prepare_source\(\) expects string, int\<0, max\> given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
 
 		-
 			message: '#^Parameter \#2 \$payment_method_object of method WC_Stripe_UPE_Payment_Method_Sepa\:\:handle_upe_add_payment_method_success\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
+
+		-
+			message: '#^Parameter \#2 \$source of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects stdClass, object given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php
@@ -8005,6 +7213,12 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
+			message: '#^Access to an undefined property object\:\:\$customer\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
+
+		-
 			message: '#^Access to an undefined property object\:\:\$last4\.$#'
 			identifier: property.notFound
 			count: 1
@@ -8018,6 +7232,24 @@ parameters:
 
 		-
 			message: '#^Access to an undefined property object\:\:\$sepa_debit\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$source_object\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status\.$#'
 			identifier: property.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
@@ -8053,36 +7285,6 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:check_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:create_and_confirm_intent_for_off_session\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:generate_payment_request\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:get_intent_from_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:get_latest_charge_from_intent\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:get_redirect_url\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -8095,91 +7297,13 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:handle_saving_payment_method\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:is_authentication_required_for_payment\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:is_no_linked_source_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:is_no_such_source_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:is_retryable_error\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:maybe_disallow_prepaid_card\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:need_update_idempotency_key\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:prepare_order_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:prepare_payment_information_from_request\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:prepare_source\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:process_response\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:process_setup_intent_for_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:save_source_to_order\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:set_customer_id_for_subscription\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:set_payment_method_id_for_subscription\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
@@ -8194,6 +7318,12 @@ parameters:
 			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method_Sofort\:\:validate_selected_payment_method_type\(\)\.$#'
 			identifier: method.notFound
 			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
+
+		-
+			message: '#^Cannot access property \$id on object\|string\.$#'
+			identifier: property.nonObject
+			count: 2
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
@@ -8251,13 +7381,19 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
+			message: '#^Parameter \#1 \$order of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects WC_Order, bool\|WC_Order\|WC_Order_Refund given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
+
+		-
 			message: '#^Parameter \#1 \$total of static method WC_Stripe_Helper\:\:get_stripe_amount\(\) expects float, string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
-			message: '#^Parameter \#2 \$callback of function add_filter expects callable\(\)\: mixed, array\{\$this\(WC_Stripe_UPE_Payment_Method_Sofort\), ''change_idempotency…''\} given\.$#'
+			message: '#^Parameter \#1 \$user_id of method WC_Stripe_Payment_Gateway\:\:prepare_source\(\) expects string, int\<0, max\> given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
@@ -8269,10 +7405,22 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
 
 		-
+			message: '#^Parameter \#2 \$source of method WC_Stripe_Payment_Gateway\:\:save_source_to_order\(\) expects stdClass, object given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
+
+		-
 			message: '#^Parameter \#2 \$source_id of method WC_Stripe_Order_Helper\:\:update_stripe_source_id\(\) expects string, string\|false\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$error\.$#'
+			identifier: property.notFound
+			count: 2
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
 
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
@@ -8281,20 +7429,14 @@ parameters:
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
 
 		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method\:\:get_latest_charge_from_intent\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
-
-		-
-			message: '#^Call to an undefined method WC_Stripe_UPE_Payment_Method\:\:is_automatic_capture_enabled\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
-
-		-
 			message: '#^Cannot access offset string on object\.$#'
 			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
+
+		-
+			message: '#^Cannot access property \$id on object\|string\.$#'
+			identifier: property.nonObject
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
 
@@ -8379,12 +7521,6 @@ parameters:
 		-
 			message: '#^Property WC_Stripe_UPE_Payment_Method\:\:\$can_refund \(array\) does not accept default value of type true\.$#'
 			identifier: property.defaultValue
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
-
-		-
-			message: '#^Variable \$order might not be defined\.$#'
-			identifier: variable.undefined
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-upe-payment-method.php
 

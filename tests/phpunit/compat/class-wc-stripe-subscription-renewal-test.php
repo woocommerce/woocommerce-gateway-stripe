@@ -598,6 +598,96 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertSame( OrderStatus::PROCESSING, $renewal_order->get_status() );
 	}
 
+	/**
+	 * Non-card renewals run the retry loop on the UPE payment method instance, not the gateway,
+	 * so the retry backoff state has to exist on the payment method too.
+	 */
+	public function test_renewal_retry_on_upe_payment_method_succeeds_after_retryable_error() {
+		$renewal_order                 = WC_Helper_Order::create_order();
+		$payments_intents_api_endpoint = 'https://api.stripe.com/v1/payment_intents';
+		$request_count                 = 0;
+
+		$renewal_order->set_payment_method( WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID );
+		$renewal_order->save();
+
+		$this->wc_gateway_stripe
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => 'cus_123abc',
+					'source'         => 'pm_123abc',
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::SEPA_DEBIT,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		// The payment method forwards gateway calls (prepare_order_source, intent creation) to the main gateway.
+		$gateway_property = new ReflectionProperty( WC_Stripe::class, 'stripe_gateway' );
+		$gateway_property->setAccessible( true );
+		$original_gateway = $gateway_property->getValue( WC_Stripe::get_instance() );
+		$gateway_property->setValue( WC_Stripe::get_instance(), $this->wc_gateway_stripe );
+
+		// Skip the constructor: it registers hooks and reads settings that this test does not need.
+		$payment_method     = ( new ReflectionClass( WC_Stripe_UPE_Payment_Method_Sepa::class ) )->newInstanceWithoutConstructor();
+		$payment_method->id = WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $payments_intents_api_endpoint, &$request_count ) {
+			if ( $payments_intents_api_endpoint !== $url ) {
+				return $preempt;
+			}
+
+			++$request_count;
+
+			if ( 1 === $request_count ) {
+				return [
+					'headers'  => [],
+					'body'     => wp_json_encode(
+						[
+							'error' => [
+								'type'    => 'api_error',
+								'message' => 'Temporary Stripe API error.',
+							],
+						]
+					),
+					'response' => [
+						'code'    => 400,
+						'message' => 'Bad Request',
+					],
+					'cookies'  => [],
+					'filename' => null,
+				];
+			}
+
+			return [
+				'headers'  => [],
+				'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_success.json' ),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		try {
+			$payment_method->process_subscription_payment( 20, $renewal_order, true, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			$gateway_property->setValue( WC_Stripe::get_instance(), $original_gateway );
+		}
+
+		$renewal_order = wc_get_order( $renewal_order->get_id() );
+
+		$this->assertSame( 2, $request_count );
+		$this->assertSame( OrderStatus::PROCESSING, $renewal_order->get_status() );
+	}
+
 	public function test_renewal_holds_payment_lock_until_response_is_processed() {
 		$renewal_order = WC_Helper_Order::create_order();
 		$customer      = 'cus_123abc';

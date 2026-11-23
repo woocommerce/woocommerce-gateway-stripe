@@ -1,4 +1,5 @@
 import { useStripe, useElements } from '@stripe/react-stripe-js';
+import { navigateTo } from 'wcstripe/utils/navigation';
 import { useCallback, useMemo } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import {
@@ -53,7 +54,7 @@ export const useExpressCheckout = ( {
 
 	const completePayment = useCallback( ( redirectUrl ) => {
 		onCompletePaymentHandler( redirectUrl );
-		window.location = redirectUrl;
+		navigateTo( redirectUrl );
 	}, [] );
 
 	const abortPayment = useCallback(
