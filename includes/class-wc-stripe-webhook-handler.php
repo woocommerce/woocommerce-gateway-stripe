@@ -79,9 +79,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * How long to wait before retrying a webhook that lost the order-payment lock race.
 	 *
-	 * The order-received redirect handler holds the lock only across a single Stripe API
-	 * call (~1s), so a short backoff settles the order quickly instead of leaving it pending
-	 * for the full deferred delay. Kept well above the typical hold to avoid a busy re-queue loop.
+	 * The order-received redirect handler holds the lock across one Stripe API call and, for a
+	 * paid session, settling the order (a few seconds at most), so a short backoff settles the order
+	 * quickly instead of leaving it pending for the full deferred delay. Kept well above the typical
+	 * hold to avoid a busy re-queue loop.
 	 *
 	 * @var int
 	 */
@@ -2610,9 +2611,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
-		// Lock the order. The order-received redirect handler briefly holds this same lock across a
-		// Stripe API call without settling; dropping the event here would leave a paid order stuck
-		// pending. Re-queue instead so settlement runs once the lock is released — the lock's 5-minute
+		// Lock the order. The order-received redirect handler briefly holds this same lock while it fetches
+		// the session and settles it when paid, but it leaves the order pending when settling fails or the
+		// session is unpaid; dropping the event here would leave a paid order stuck pending. Re-queue
+		// instead, so the retry settles the order or finds it already settled — the lock's 5-minute
 		// TTL guarantees a wedged holder clears, so the retry terminates. Return the deferred signal so
 		// the caller skips firing `wc_stripe_webhook_received` now: settlement hasn't happened yet, and
 		// the retry fires the action itself once it does.

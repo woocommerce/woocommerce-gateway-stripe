@@ -2786,9 +2786,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * Symmetric to {@see process_upe_redirect_payment()} for the PaymentIntent flow:
 	 * fetches the Stripe Checkout Session for the order and decides whether the customer
 	 * should land on the order-received page (success) or be bounced back to /checkout
-	 * with a notice (cancel/failure). The order is never marked paid here — the
-	 * `checkout.session.completed` / `checkout.session.async_payment_*` webhooks are the
-	 * durable source of truth for payment completion.
+	 * with a notice (cancel/failure). A paid session settles the order right away, so it
+	 * doesn't wait for webhooks that may be late or never arrive. Async methods whose
+	 * session completes unpaid still wait for the `checkout.session.async_payment_*` webhooks.
 	 *
 	 * Cancel/failure branches mirror the PaymentIntent path: customer-initiated
 	 * cancellations leave the order pending and add a 'notice'-type notice so the
@@ -2855,6 +2855,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			// doesn't fall through into the cancel path while the webhook is still in flight,
 			// then strip the disambiguation query args from the address bar.
 			if ( 'complete' === $status ) {
+				// Reassigned so the flag, the save and the unlocks below use the copy read under the lock:
+				// saving the copy read before it would write a stale pending status over a settled order.
+				$order = $this->maybe_settle_paid_checkout_session( $order, $checkout_session );
 				$order_helper->update_stripe_upe_redirect_processed( $order, true );
 				$order->save();
 				$order_helper->unlock_order_payment( $order );
@@ -2927,6 +2930,69 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		} finally {
 			$order_helper->unlock_order_payment( $order );
 		}
+	}
+
+	/**
+	 * Settle the order from its Checkout Session when the shopper returns and the session is paid.
+	 *
+	 * The caller must hold the order payment lock. Returns the order read under that lock, which the
+	 * caller must use from then on.
+	 *
+	 * @param WC_Order $order            Order the shopper returned for.
+	 * @param object   $checkout_session Checkout Session fetched from Stripe, with its PaymentIntent expanded.
+	 * @return WC_Order
+	 */
+	private function maybe_settle_paid_checkout_session( WC_Order $order, object $checkout_session ): WC_Order {
+		// Unpaid complete sessions (Boleto, SEPA and other async methods) settle through their webhooks.
+		if ( 'paid' !== ( $checkout_session->payment_status ?? '' ) ) {
+			return $order;
+		}
+
+		$settlement = $this->get_checkout_session_settlement();
+
+		// The webhook or reconciliation can settle the order between the status check before the lock and
+		// taking it. Settling the copy read before the lock would repeat the payment completion.
+		$fresh_order = $settlement->get_uncached_order( $order );
+		if ( null === $fresh_order ) {
+			return $order;
+		}
+
+		$session_id = (string) ( $checkout_session->id ?? '' );
+		$intent     = is_object( $checkout_session->payment_intent ?? null ) ? $checkout_session->payment_intent : null;
+		if ( null === $intent || ! $settlement->can_settle( $fresh_order, $session_id ) ) {
+			return $fresh_order;
+		}
+
+		$charge = is_object( $intent->latest_charge ?? null ) ? $intent->latest_charge : null;
+
+		try {
+			$settlement->process_payment( $fresh_order, $checkout_session, '', $intent, $charge );
+		} catch ( Throwable $e ) {
+			// Stripe already took the payment, so the order must not fail here. The webhook or reconciliation retries.
+			// Not just Exception: settlement runs other plugins' callbacks, for example on payment completion.
+			WC_Stripe_Logger::error(
+				'Could not settle the paid Checkout Session when the customer returned. The webhook or reconciliation will retry.',
+				[
+					'order_id'            => $fresh_order->get_id(),
+					'checkout_session_id' => $session_id,
+					'error_message'       => $e->getMessage(),
+				]
+			);
+
+			// The copy in memory may carry half-applied changes; the caller saves the order it gets back.
+			return $settlement->get_uncached_order( $fresh_order ) ?? $fresh_order;
+		}
+
+		return $fresh_order;
+	}
+
+	/**
+	 * Returns the service that settles an order from its Checkout Session.
+	 *
+	 * @return WC_Stripe_Checkout_Session_Settlement
+	 */
+	protected function get_checkout_session_settlement(): WC_Stripe_Checkout_Session_Settlement {
+		return new WC_Stripe_Checkout_Session_Settlement( $this );
 	}
 
 	/**
@@ -5737,8 +5803,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *                                        the freshness of `status` / `payment_status` /
 	 *                                        `last_payment_error` matters (e.g. handling a
 	 *                                        customer return from a redirect-based payment method).
-	 * @param bool     $expand_payment_intent When true, requests the session with `expand[]=payment_intent`
-	 *                                        so `last_payment_error` is available on the returned object.
+	 * @param bool     $expand_payment_intent When true, requests the session with its PaymentIntent, payment method
+	 *                                        and latest charge expanded, for `last_payment_error` and settlement.
 	 *                                        Only used by the redirect-return handler; other call sites
 	 *                                        (e.g. presentment metadata population) don't need the
 	 *                                        extra payload.
@@ -5756,7 +5822,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		if ( ! $checkout_session ) {
 			$request_url = 'checkout/sessions/' . $checkout_session_id;
 			if ( $expand_payment_intent ) {
-				$request_url .= '?expand[]=payment_intent';
+				// Settling a paid session on return needs the payment method and charge too,
+				// so it doesn't need two more round trips while the shopper waits.
+				$request_url = add_query_arg(
+					[
+						'expand' => [
+							'payment_intent.payment_method',
+							'payment_intent.latest_charge',
+						],
+					],
+					$request_url
+				);
 			}
 
 			try {

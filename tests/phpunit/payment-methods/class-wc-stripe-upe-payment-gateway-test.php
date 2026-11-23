@@ -2678,7 +2678,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 	/**
 	 * Helper: build an order linked to a Checkout Session and return the order plus the
-	 * `checkout/sessions/{id}?expand[]=payment_intent` Stripe URL we expect the handler
+	 * `checkout/sessions/{id}` Stripe URL, with its expansions, that we expect the handler
 	 * to fetch.
 	 *
 	 * @param string $session_id The Stripe Checkout Session id to attach.
@@ -2698,7 +2698,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		// Make sure no stale cache leaks across tests in this class.
 		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $session_id );
 
-		return [ $order, 'checkout/sessions/' . $session_id . '?expand[]=payment_intent' ];
+		return [ $order, 'checkout/sessions/' . $session_id . '?expand%5B0%5D=payment_intent.payment_method&expand%5B1%5D=payment_intent.latest_charge' ];
 	}
 
 	/**
@@ -3494,34 +3494,78 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * Test the success path: a `complete` Stripe Checkout Session must mark the
-	 * replay flag, leave the order pending (the webhook will finalise it), and
-	 * redirect to the clean order-received URL — stripping the disambiguation
-	 * query args from the address bar.
+	 * Build a completed Checkout Session for the order, the way the return handler fetches it:
+	 * PaymentIntent, payment method and latest charge expanded.
 	 *
-	 * @dataProvider provider_checkout_session_complete_states
-	 *
-	 * @param string $payment_status `paid` (sync) or `unpaid` (async — Boleto/voucher).
+	 * @param string   $session_id     Stripe Checkout Session id.
+	 * @param WC_Order $order          Order the session pays for.
+	 * @param string   $payment_status `paid` or `unpaid`.
+	 * @return object
 	 */
-	public function test_process_checkout_session_redirect_success_redirects_to_clean_url( string $payment_status ) {
-		[ $order, $request_url ] = $this->create_order_with_checkout_session( 'cs_test_success_' . $payment_status );
+	private function build_completed_checkout_session( string $session_id, WC_Order $order, string $payment_status ): object {
+		$currency = strtolower( $order->get_currency() );
+		$amount   = WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $currency );
+		$is_paid  = 'paid' === $payment_status;
 
-		$session_mock = $this->array_to_object(
+		return $this->array_to_object(
 			[
-				'id'             => 'cs_test_success_' . $payment_status,
+				'id'             => $session_id,
+				'object'         => 'checkout.session',
 				'status'         => 'complete',
 				'payment_status' => $payment_status,
+				'amount_total'   => $amount,
+				'currency'       => $currency,
+				'livemode'       => false,
 				'payment_intent' => [
-					'id'                 => 'pi_mock_success',
+					'id'                 => 'pi_return_' . $session_id,
+					'object'             => 'payment_intent',
+					'status'             => $is_paid ? 'succeeded' : 'processing',
 					'last_payment_error' => null,
+					'payment_method'     => [
+						'id'   => 'pm_return_card',
+						'type' => 'card',
+						'card' => [
+							'brand' => 'visa',
+							'last4' => '4242',
+						],
+					],
+					'latest_charge'      => [
+						'id'                     => 'ch_return_' . $session_id,
+						'object'                 => 'charge',
+						'status'                 => $is_paid ? 'succeeded' : 'pending',
+						'captured'               => $is_paid,
+						'paid'                   => $is_paid,
+						'amount'                 => $amount,
+						'currency'               => $currency,
+						'payment_intent'         => 'pi_return_' . $session_id,
+						'payment_method'         => 'pm_return_card',
+						'payment_method_details' => [ 'type' => 'card' ],
+					],
 				],
 			]
 		);
+	}
+
+	/**
+	 * Test the success path: a `complete` Checkout Session marks the replay flag and redirects
+	 * to the clean order-received URL. A paid session settles the order right away, so a missing
+	 * or late webhook can't leave a paid order pending. An unpaid one (async methods) stays
+	 * pending for its webhook.
+	 *
+	 * @dataProvider provider_checkout_session_complete_states
+	 *
+	 * @param string $payment_status          `paid` (sync) or `unpaid` (async — Boleto/voucher).
+	 * @param string $expected_status         Order status after the return.
+	 * @param string $expected_transaction_id Transaction ID after the return.
+	 */
+	public function test_process_checkout_session_redirect_success_redirects_to_clean_url( string $payment_status, string $expected_status, string $expected_transaction_id ) {
+		$session_id              = 'cs_test_success_' . $payment_status;
+		[ $order, $request_url ] = $this->create_order_with_checkout_session( $session_id );
 
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'stripe_request' )
 			->with( $request_url )
-			->willReturn( $session_mock );
+			->willReturn( $this->build_completed_checkout_session( $session_id, $order, $payment_status ) );
 
 		$captured = null;
 		$this->intercept_wp_redirect( $captured );
@@ -3538,7 +3582,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertSame( self::MOCK_RETURN_URL_AFTER_REDIRECT, $captured );
 
 		$final = wc_get_order( $order->get_id() );
-		$this->assertEquals( OrderStatus::PENDING, $final->get_status() );
+		$this->assertSame( $expected_status, $final->get_status() );
+		$this->assertSame( $expected_transaction_id, $final->get_transaction_id() );
 		$this->assertTrue( (bool) WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_redirect_processed( $final ) );
 		$this->assertEmpty( wc_get_notices( 'error' ) );
 		$this->assertEmpty( wc_get_notices( 'notice' ) );
@@ -3546,9 +3591,95 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 	public function provider_checkout_session_complete_states(): array {
 		return [
-			'paid (sync)'             => [ 'paid' ],
-			'unpaid (async / Boleto)' => [ 'unpaid' ],
+			'paid (sync)'             => [ 'paid', OrderStatus::PROCESSING, 'ch_return_cs_test_success_paid' ],
+			'unpaid (async / Boleto)' => [ 'unpaid', OrderStatus::PENDING, '' ],
 		];
+	}
+
+	/**
+	 * Regression for settling a stale copy: when another process settles the order before the
+	 * return takes the lock, the return must not settle it again or save its pending copy over it.
+	 *
+	 * The Stripe request stub stands in for that other process; it is the only point inside the
+	 * handler where the order can be changed from outside.
+	 */
+	public function test_process_checkout_session_redirect_keeps_order_settled_by_another_process() {
+		$session_id              = 'cs_test_settled_elsewhere';
+		[ $order, $request_url ] = $this->create_order_with_checkout_session( $session_id );
+		$session                 = $this->build_completed_checkout_session( $session_id, $order, 'paid' );
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'stripe_request' )
+			->with( $request_url )
+			->willReturnCallback(
+				function () use ( $order, $session, $session_id ) {
+					// The order emails sent on payment read the session for currency details; the real fetch caches it.
+					WC_Stripe_Database_Cache::set( 'checkout_session_' . $session_id, $session, HOUR_IN_SECONDS );
+					$other_copy = wc_get_order( $order->get_id() );
+					$other_copy->payment_complete( 'ch_settled_elsewhere' );
+					return $session;
+				}
+			);
+
+		$captured = null;
+		$this->intercept_wp_redirect( $captured );
+
+		try {
+			$this->mock_gateway->process_checkout_session_redirect( $order->get_id() );
+			$this->fail( 'Expected redirect to be triggered' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirect_intercepted', $e->getMessage() );
+		} finally {
+			remove_all_filters( 'wp_redirect' );
+		}
+
+		clean_post_cache( $order->get_id() );
+		$final = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::PROCESSING, $final->get_status() );
+		$this->assertSame( 'ch_settled_elsewhere', $final->get_transaction_id() );
+	}
+
+	/**
+	 * Stripe already took the payment, so a failure while settling on return must leave the order
+	 * pending for the webhook or reconciliation, never failed, and still send the shopper to the
+	 * order-received page.
+	 *
+	 * Another plugin's payment callback throws an Error, which WooCommerce's own payment completion doesn't catch.
+	 */
+	public function test_process_checkout_session_redirect_leaves_order_pending_when_settling_throws() {
+		$session_id              = 'cs_test_settle_throws';
+		[ $order, $request_url ] = $this->create_order_with_checkout_session( $session_id );
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'stripe_request' )
+			->with( $request_url )
+			->willReturn( $this->build_completed_checkout_session( $session_id, $order, 'paid' ) );
+
+		$throw_on_payment = function () {
+			throw new \Error( 'Broken payment callback' );
+		};
+		add_action( 'woocommerce_pre_payment_complete', $throw_on_payment );
+
+		$captured = null;
+		$this->intercept_wp_redirect( $captured );
+
+		try {
+			$this->mock_gateway->process_checkout_session_redirect( $order->get_id() );
+			$this->fail( 'Expected redirect to be triggered' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirect_intercepted', $e->getMessage() );
+		} finally {
+			remove_all_filters( 'wp_redirect' );
+			remove_action( 'woocommerce_pre_payment_complete', $throw_on_payment );
+		}
+
+		$this->assertSame( self::MOCK_RETURN_URL_AFTER_REDIRECT, $captured );
+
+		clean_post_cache( $order->get_id() );
+		$final = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::PENDING, $final->get_status() );
+		$this->assertSame( '', $final->get_transaction_id() );
+		$this->assertTrue( (bool) WC_Stripe_Order_Helper::get_instance()->get_stripe_upe_redirect_processed( $final ) );
 	}
 
 	/**
@@ -3854,18 +3985,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		// Second return: customer retried with a new Checkout Session on the same
 		// order and paid successfully.
 		$success_session_id   = 'cs_test_retry_success';
-		$success_request_url  = 'checkout/sessions/' . $success_session_id . '?expand[]=payment_intent';
-		$success_session_mock = $this->array_to_object(
-			[
-				'id'             => $success_session_id,
-				'status'         => 'complete',
-				'payment_status' => 'paid',
-				'payment_intent' => [
-					'id'                 => 'pi_mock_retry_success',
-					'last_payment_error' => null,
-				],
-			]
-		);
+		$success_request_url  = 'checkout/sessions/' . $success_session_id . '?expand%5B0%5D=payment_intent.payment_method&expand%5B1%5D=payment_intent.latest_charge';
+		$success_session_mock = $this->build_completed_checkout_session( $success_session_id, $order, 'paid' );
 
 		$this->mock_gateway->expects( $this->exactly( 2 ) )
 			->method( 'stripe_request' )

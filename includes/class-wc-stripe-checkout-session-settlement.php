@@ -100,7 +100,7 @@ class WC_Stripe_Checkout_Session_Settlement {
 	 * The caller must hold the order payment lock while this method settles the session.
 	 *
 	 * @param WC_Order    $order            Order linked to the session.
-	 * @param object      $checkout_session Checkout Session from Stripe.
+	 * @param object      $checkout_session Checkout Session from Stripe. Its PaymentIntent can be an ID or expanded.
 	 * @param string      $api_version      API version of the webhook event, if any.
 	 * @param object|null $intent           The session's PaymentIntent, when the caller already fetched it.
 	 * @param object|null $charge           The intent's latest charge, when the caller already fetched it.
@@ -109,6 +109,16 @@ class WC_Stripe_Checkout_Session_Settlement {
 	public function process_payment( WC_Order $order, object $checkout_session, string $api_version = '', ?object $intent = null, ?object $charge = null ): string {
 		$session_id   = $checkout_session->id;
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		// The PaymentIntent is an ID in webhook events, and expanded when a caller fetched the session with it,
+		// which saves the extra requests while the shopper waits.
+		$session_intent = $checkout_session->payment_intent ?? null;
+		if ( is_object( $session_intent ) ) {
+			$intent    = $intent ?? $session_intent;
+			$intent_id = isset( $session_intent->id ) ? (string) $session_intent->id : '';
+		} else {
+			$intent_id = (string) $session_intent;
+		}
 
 		$order_currency = strtolower( $order->get_currency() );
 		$order_amount   = WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $order_currency );
@@ -151,14 +161,13 @@ class WC_Stripe_Checkout_Session_Settlement {
 
 			// The identifiers are the only handle on the payment this order gets: settlement stops here,
 			// so neither the intent nor the charge is ever recorded on the order for the admin to follow.
-			$session_intent_id = isset( $checkout_session->payment_intent ) ? (string) $checkout_session->payment_intent : '';
-			$intent_reference  = '';
-			if ( '' !== $session_intent_id ) {
+			$intent_reference = '';
+			if ( '' !== $intent_id ) {
 				$intent_reference = ' ' . sprintf(
 					/* translators: 1) opening anchor tag linking to the Stripe dashboard, 2) Stripe PaymentIntent ID, 3) closing anchor tag */
 					__( 'PaymentIntent: %1$s%2$s%3$s.', 'woocommerce-gateway-stripe' ),
-					'<a href="' . esc_url( WC_Stripe_Helper::get_transaction_url_for_id( $session_intent_id, empty( $checkout_session->livemode ) ) ) . '" target="_blank" rel="noopener noreferrer">',
-					esc_html( $session_intent_id ),
+					'<a href="' . esc_url( WC_Stripe_Helper::get_transaction_url_for_id( $intent_id, empty( $checkout_session->livemode ) ) ) . '" target="_blank" rel="noopener noreferrer">',
+					esc_html( $intent_id ),
 					'</a>'
 				);
 			}
@@ -182,8 +191,6 @@ class WC_Stripe_Checkout_Session_Settlement {
 
 			return self::RESULT_ON_HOLD;
 		}
-
-		$intent_id = isset( $checkout_session->payment_intent ) ? $checkout_session->payment_intent : null;
 
 		// Store the payment intent ID on the order.
 		if ( ! empty( $intent_id ) ) {
