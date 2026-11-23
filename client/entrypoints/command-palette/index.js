@@ -1,3 +1,4 @@
+import { navigateTo } from 'wcstripe/utils/navigation';
 import { store as commandsStore } from '@wordpress/commands';
 import { dispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
@@ -51,7 +52,7 @@ export const registerStripeCommands = () => {
 			label,
 			category: 'view',
 			callback: ( { close } ) => {
-				window.location.href = url;
+				navigateTo( url );
 				close();
 			},
 		} );
