@@ -295,7 +295,7 @@ class WC_Stripe_Customer {
 		 * @param array $required_fields         The required customer fields as derived from the required billing fields in checkout, limited to the fields the billing country's address locale requires when paying for an order. In some contexts, like adding a payment method, we allow minimal details to be provided.
 		 * @param array $create_customer_request The initial data to build the customer request. This can be used to provide country-specific conditions.
 		 */
-		$required_fields = apply_filters( 'wc_stripe_create_customer_required_fields', $this->get_create_customer_required_fields( $current_context, $create_customer_request, $order ), $create_customer_request );
+		$required_fields = apply_filters( 'wc_stripe_create_customer_required_fields', $this->get_create_customer_required_fields( $current_context, $order ), $create_customer_request );
 
 		foreach ( $required_fields as $field => $field_requirements ) {
 			if ( true === $field_requirements ) {
@@ -335,13 +335,12 @@ class WC_Stripe_Customer {
 	 * For orders, only fields required by both the classic checkout fields and the billing country's locale
 	 * are required, since the Store API (block and express checkout) validates against the locale alone.
 	 *
-	 * @param string|null   $current_context         The context we are creating the customer in.
-	 * @param array         $create_customer_request The data the customer request will be built from.
-	 * @param WC_Order|null $order                   The order the customer is being created for, if any.
+	 * @param string|null   $current_context The context we are creating the customer in.
+	 * @param WC_Order|null $order           The order the customer is being created for, if any.
 	 *
 	 * @return array
 	 */
-	private function get_create_customer_required_fields( ?string $current_context = null, $create_customer_request = [], $order = null ) {
+	private function get_create_customer_required_fields( ?string $current_context = null, $order = null ) {
 		if ( in_array( $current_context, self::MINIMAL_BILLING_DETAILS_CONTEXTS, true ) ) {
 			return [
 				'email' => true,
@@ -357,8 +356,8 @@ class WC_Stripe_Customer {
 		);
 
 		if ( $order instanceof WC_Order ) {
-			$country                 = $create_customer_request['address']['country'] ?? '';
-			$locale_required_fields  = $this->get_locale_required_billing_fields( is_string( $country ) ? $country : '' );
+			// The request's country can come from the customer's saved address, which WooCommerce did not validate this order against.
+			$locale_required_fields  = $this->get_locale_required_billing_fields( $order->get_billing_country() );
 			$required_billing_fields = array_filter(
 				$required_billing_fields,
 				function ( $field_key ) use ( $locale_required_fields ) {

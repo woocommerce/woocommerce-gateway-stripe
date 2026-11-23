@@ -257,6 +257,19 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 				'expected_exception_message' => 'missing_required_customer_field: address->state',
 				'expected_exception_string'  => 'Missing required customer field: address->state',
 			],
+			'SG order without city or state, customer has a saved US billing country'             => [
+				'billing_fields'             => [
+					'country' => 'SG',
+					'city'    => '',
+					'state'   => '',
+				],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => null,
+				'expected_exception_string'  => null,
+				'current_context'            => null,
+				'saved_billing_fields'       => [ 'billing_country' => 'US' ],
+			],
 		];
 	}
 
@@ -303,7 +316,8 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 		?array $stripe_billing_fields = null,
 		?string $expected_exception_message = null,
 		?string $expected_exception_string = null,
-		$current_context = null
+		$current_context = null,
+		array $saved_billing_fields = []
 	) {
 		if ( true === $current_context || in_array( $current_context, \WC_Stripe_Customer::MINIMAL_BILLING_DETAILS_CONTEXTS, true ) ) {
 			$default_billing_data = [
@@ -383,8 +397,16 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 
 		$mock_order = $this->create_mock_order( $billing_data );
 
+		$user_id = 0;
+		if ( [] !== $saved_billing_fields ) {
+			$user_id = self::factory()->user->create();
+			foreach ( $saved_billing_fields as $meta_key => $meta_value ) {
+				update_user_meta( $user_id, $meta_key, $meta_value );
+			}
+		}
+
 		$args     = [];
-		$customer = new \WC_Stripe_Customer();
+		$customer = new \WC_Stripe_Customer( $user_id );
 
 		$was_exception_thrown = false;
 
