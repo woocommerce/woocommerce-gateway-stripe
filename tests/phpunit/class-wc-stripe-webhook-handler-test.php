@@ -1766,10 +1766,15 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			);
 		WC_Stripe_Order_Helper::set_instance( $order_helper );
 
-		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->onlyMethods( [ 'process_checkout_session_payment' ] )
+		$settlement = $this->getMockBuilder( WC_Stripe_Checkout_Session_Settlement::class )
+			->setConstructorArgs( [ new WC_Stripe_Webhook_Handler() ] )
+			->onlyMethods( [ 'process_payment' ] )
 			->getMock();
-		$handler->expects( $this->never() )->method( 'process_checkout_session_payment' );
+		$settlement->expects( $this->never() )->method( 'process_payment' );
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->onlyMethods( [ 'get_checkout_session_settlement' ] )
+			->getMock();
+		$handler->method( 'get_checkout_session_settlement' )->willReturn( $settlement );
 
 		$notification = (object) [
 			'type' => 'checkout.session.completed',
@@ -5316,15 +5321,15 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Invokes the private user attachment routine on a real handler instance.
+	 * Invokes the private user attachment routine on a real settlement instance.
 	 *
 	 * @param int    $user_id     The WP user.
 	 * @param string $customer_id The Stripe customer ID to attach.
 	 */
 	private function invoke_attach_customer_to_user( int $user_id, string $customer_id ): void {
-		$method = new ReflectionMethod( WC_Stripe_Webhook_Handler::class, 'attach_customer_to_user' );
+		$method = new ReflectionMethod( WC_Stripe_Checkout_Session_Settlement::class, 'attach_customer_to_user' );
 		$method->setAccessible( true );
-		$method->invoke( $this->mock_webhook_handler, $user_id, $customer_id );
+		$method->invoke( new WC_Stripe_Checkout_Session_Settlement( $this->mock_webhook_handler ), $user_id, $customer_id );
 	}
 
 	/**

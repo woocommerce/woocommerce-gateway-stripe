@@ -27,18 +27,27 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 	 */
 	private $webhook_handler;
 
+	/**
+	 * @var WC_Stripe_Checkout_Session_Settlement
+	 */
+	private $checkout_session_settlement;
+
 	public function set_up() {
 		parent::set_up();
 
-		$this->gateway         = $this->getMockBuilder( WC_Gateway_Stripe::class )
+		$this->gateway                     = $this->getMockBuilder( WC_Gateway_Stripe::class )
 			->disableOriginalConstructor()
 			->onlyMethods( [ 'get_latest_charge_from_intent', 'process_response' ] )
 			->getMock();
-		$this->webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+		$this->webhook_handler             = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'process_checkout_session_payment', 'process_reconciled_payment' ] )
+			->onlyMethods( [ 'process_reconciled_payment' ] )
 			->getMock();
-		$this->reconciliation  = new WC_Stripe_Order_Reconciliation( $this->gateway, $this->webhook_handler );
+		$this->checkout_session_settlement = $this->getMockBuilder( WC_Stripe_Checkout_Session_Settlement::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'process_payment' ] )
+			->getMock();
+		$this->reconciliation              = new WC_Stripe_Order_Reconciliation( $this->gateway, $this->webhook_handler, $this->checkout_session_settlement );
 
 		$order_helper = $this->getMockBuilder( WC_Stripe_Order_Helper::class )
 			->onlyMethods( [ 'lock_order_payment', 'unlock_order_payment' ] )
@@ -80,9 +89,9 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 			->method( 'get_latest_charge_from_intent' )
 			->with( $this->equalTo( $intent ) )
 			->willReturn( $charge );
-		// The session reaches the shared webhook code with the PaymentIntent ID, as webhooks deliver it.
-		$this->webhook_handler->expects( $this->once() )
-			->method( 'process_checkout_session_payment' )
+		// The session reaches the shared settlement code with the PaymentIntent ID, as webhooks deliver it.
+		$this->checkout_session_settlement->expects( $this->once() )
+			->method( 'process_payment' )
 			->with( $this->isInstanceOf( WC_Order::class ), $this->equalTo( $session ), '', $this->equalTo( $intent ), $this->equalTo( $charge ) );
 
 		$this->reconciliation->reconcile_order_payment( $order->get_id() );
@@ -106,7 +115,7 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		$endpoints = [];
 		$this->mock_stripe_objects( [ '/checkout/sessions/cs_recovery' => $session ], $endpoints );
 		$this->gateway->expects( $this->never() )->method( 'get_latest_charge_from_intent' );
-		$this->webhook_handler->expects( $this->never() )->method( 'process_checkout_session_payment' );
+		$this->checkout_session_settlement->expects( $this->never() )->method( 'process_payment' );
 
 		$this->reconciliation->reconcile_order_payment( $order->get_id() );
 
@@ -264,7 +273,7 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 			]
 		);
 		$this->gateway->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
-		$this->webhook_handler->expects( $this->never() )->method( 'process_checkout_session_payment' );
+		$this->checkout_session_settlement->expects( $this->never() )->method( 'process_payment' );
 		$this->gateway->expects( $this->never() )->method( 'process_response' );
 		$this->webhook_handler->expects( $this->never() )->method( 'process_reconciled_payment' );
 
@@ -309,7 +318,7 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		$order_helper->expects( $this->never() )->method( 'unlock_order_payment' );
 		WC_Stripe_Order_Helper::set_instance( $order_helper );
 		$this->gateway->expects( $this->never() )->method( 'get_latest_charge_from_intent' );
-		$this->webhook_handler->expects( $this->never() )->method( 'process_checkout_session_payment' );
+		$this->checkout_session_settlement->expects( $this->never() )->method( 'process_payment' );
 
 		$this->reconciliation->reconcile_order_payment( $order->get_id() );
 
@@ -684,7 +693,7 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		$intent          = $this->successful_intent( self::fixture_charge() );
 		$webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'process_checkout_session_payment', 'process_reconciled_payment' ] )
+			->onlyMethods( [ 'process_reconciled_payment' ] )
 			->getMock();
 		$webhook_handler->expects( $this->never() )->method( 'process_reconciled_payment' );
 		$this->reconciliation = new WC_Stripe_Order_Reconciliation( $this->gateway, $webhook_handler );
@@ -1008,7 +1017,7 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 		$this->gateway->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
 		$this->gateway->expects( $this->never() )->method( 'process_response' );
 		$this->webhook_handler->expects( $this->never() )->method( 'process_reconciled_payment' );
-		$this->webhook_handler->expects( $this->never() )->method( 'process_checkout_session_payment' );
+		$this->checkout_session_settlement->expects( $this->never() )->method( 'process_payment' );
 
 		$this->reconciliation->reconcile_order_payment( $order->get_id() );
 
@@ -1441,10 +1450,15 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 
 		$webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'process_checkout_session_payment', 'process_reconciled_payment' ] )
+			->onlyMethods( [ 'process_reconciled_payment' ] )
 			->getMock();
-		$webhook_handler->expects( $this->once() )
-			->method( $has_session ? 'process_checkout_session_payment' : 'process_reconciled_payment' )
+		$settlement      = $this->getMockBuilder( WC_Stripe_Checkout_Session_Settlement::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'process_payment' ] )
+			->getMock();
+		$failing_mock    = $has_session ? $settlement : $webhook_handler;
+		$failing_mock->expects( $this->once() )
+			->method( $has_session ? 'process_payment' : 'process_reconciled_payment' )
 			->willReturnCallback(
 				static function () use ( $order, $paid_before_error, $error ) {
 					if ( $paid_before_error ) {
@@ -1453,7 +1467,7 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 					throw $error;
 				}
 			);
-		$this->reconciliation = new WC_Stripe_Order_Reconciliation( $this->gateway, $webhook_handler );
+		$this->reconciliation = new WC_Stripe_Order_Reconciliation( $this->gateway, $webhook_handler, $settlement );
 	}
 
 	private function note_text( WC_Order $order ): string {

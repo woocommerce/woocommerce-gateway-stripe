@@ -1501,6 +1501,18 @@ parameters:
 			path: includes/class-wc-stripe-blocks-support.php
 
 		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/class-wc-stripe-checkout-session-settlement.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$payment_method\.$#'
+			identifier: property.notFound
+			count: 1
+			path: includes/class-wc-stripe-checkout-session-settlement.php
+
+		-
 			message: '#^Strict comparison using \!\=\= between ''beta'' and ''0\.0\.0'' will always evaluate to true\.$#'
 			identifier: notIdentical.alwaysTrue
 			count: 1
@@ -2325,13 +2337,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property object\:\:\$id\.$#'
 			identifier: property.notFound
-			count: 10
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Access to an undefined property object\:\:\$payment_method\.$#'
-			identifier: property.notFound
-			count: 1
+			count: 9
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-

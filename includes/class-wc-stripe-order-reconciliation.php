@@ -81,15 +81,23 @@ class WC_Stripe_Order_Reconciliation {
 	private $gateway;
 
 	/**
-	 * Existing webhook settlement routines.
+	 * Settles PaymentIntents found by reconciliation, the way webhooks do.
 	 *
 	 * @var WC_Stripe_Webhook_Handler
 	 */
 	private $webhook_handler;
 
-	public function __construct( WC_Stripe_Payment_Gateway $gateway, WC_Stripe_Webhook_Handler $webhook_handler ) {
-		$this->gateway         = $gateway;
-		$this->webhook_handler = $webhook_handler;
+	/**
+	 * Settles an order from its Checkout Session.
+	 *
+	 * @var WC_Stripe_Checkout_Session_Settlement
+	 */
+	private $checkout_session_settlement;
+
+	public function __construct( WC_Stripe_Payment_Gateway $gateway, WC_Stripe_Webhook_Handler $webhook_handler, ?WC_Stripe_Checkout_Session_Settlement $checkout_session_settlement = null ) {
+		$this->gateway                     = $gateway;
+		$this->webhook_handler             = $webhook_handler;
+		$this->checkout_session_settlement = $checkout_session_settlement ?? new WC_Stripe_Checkout_Session_Settlement( $webhook_handler );
 	}
 
 	/**
@@ -406,7 +414,7 @@ class WC_Stripe_Order_Reconciliation {
 					$session_intent = $session->payment_intent;
 
 					// The session request expanded the session to avoid round trips,
-					// but settlement uses the webhook handler and it expects an ID.
+					// but settlement expects an ID, the way webhooks deliver it.
 					$session->payment_intent = $session_intent->id ?? '';
 				}
 				$session_intent_id = $this->normalize_stripe_id( $session->payment_intent ?? null );
@@ -529,10 +537,10 @@ class WC_Stripe_Order_Reconciliation {
 				return $this->retry( 'The order got a new payment attempt during the check.', $order_id, $intent_id );
 			}
 
-			// Both settle through the webhook code, which also holds the order when the payment doesn't match it.
+			// Both settle through the code the webhooks run, which also holds the order when the payment doesn't match it.
 			try {
 				if ( $session ) {
-					$this->webhook_handler->process_checkout_session_payment( $fresh_order, $session, '', $intent, $charge );
+					$this->checkout_session_settlement->process_payment( $fresh_order, $session, '', $intent, $charge );
 				} else {
 					$this->webhook_handler->process_reconciled_payment( $fresh_order, $charge );
 				}
