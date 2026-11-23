@@ -270,6 +270,20 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 				'current_context'            => null,
 				'saved_billing_fields'       => [ 'billing_country' => 'US' ],
 			],
+			'SG order without city or state, order passed in the request args'                    => [
+				'billing_fields'             => [
+					'country' => 'SG',
+					'city'    => '',
+					'state'   => '',
+				],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => null,
+				'expected_exception_string'  => null,
+				'current_context'            => null,
+				'saved_billing_fields'       => [],
+				'order_in_args'              => true,
+			],
 		];
 	}
 
@@ -317,7 +331,8 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 		?string $expected_exception_message = null,
 		?string $expected_exception_string = null,
 		$current_context = null,
-		array $saved_billing_fields = []
+		array $saved_billing_fields = [],
+		bool $order_in_args = false
 	) {
 		if ( true === $current_context || in_array( $current_context, \WC_Stripe_Customer::MINIMAL_BILLING_DETAILS_CONTEXTS, true ) ) {
 			$default_billing_data = [
@@ -452,7 +467,11 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 		}
 
 		try {
-			$customer->create_customer( $args, $current_context, $mock_order );
+			if ( $order_in_args ) {
+				$customer->create_customer( [ 'order' => $mock_order ], $current_context );
+			} else {
+				$customer->create_customer( $args, $current_context, $mock_order );
+			}
 		} catch ( \WC_Stripe_Exception $stripe_exception ) {
 			$was_exception_thrown = true;
 

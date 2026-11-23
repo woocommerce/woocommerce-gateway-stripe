@@ -567,6 +567,11 @@ class WC_Stripe_Customer {
 	 * @throws WC_Stripe_Exception
 	 */
 	public function create_customer( $args = [], $current_context = null, $order = null ) {
+		// Callers from before 10.2.0 pass the order in `$args['order']`.
+		if ( null === $order && isset( $args['order'] ) && $args['order'] instanceof WC_Order ) {
+			$order = $args['order'];
+		}
+
 		$args = $this->generate_customer_request( $args, $order );
 
 		// $current_context was initially introduced as a boolean flag, so check for old callers.
