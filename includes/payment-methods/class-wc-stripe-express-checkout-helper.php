@@ -351,6 +351,11 @@ class WC_Stripe_Express_Checkout_Helper {
 				} else {
 					$attributes[ $attribute_key ] = $product->get_variation_default_attribute( $attribute_name );
 				}
+
+				// A product URL can preselect a global attribute term by name (`?attribute_pa_color=綠`); variations store its slug.
+				if ( taxonomy_exists( $attribute_name ) && is_string( $attributes[ $attribute_key ] ) ) {
+					$attributes[ $attribute_key ] = sanitize_title( $attributes[ $attribute_key ] );
+				}
 			}
 
 			$data_store   = WC_Data_Store::load( 'product' );
