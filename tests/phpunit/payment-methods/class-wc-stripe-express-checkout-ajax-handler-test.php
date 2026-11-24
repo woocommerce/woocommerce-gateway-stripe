@@ -413,6 +413,119 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test ajax_get_selected_product_data prices the variation the posted attributes select.
+	 *
+	 * @dataProvider provide_posted_variation_attributes
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 *
+	 * @param array<string, string> $attributes      Posted attributes, as the variation form sends them.
+	 * @param int                   $expected_amount Expected line amount in cents.
+	 */
+	public function test_ajax_get_selected_product_data_matches_posted_variation( array $attributes, int $expected_amount ) {
+		Ajax_Test_Helper::init_hooks();
+
+		$product = WC_Helper_Product::create_variation_product_with_non_ascii_attributes();
+
+		$this->express_checkout_helper->method( 'is_invalid_subscription_product' )->willReturn( false );
+		$this->express_checkout_helper->method( 'get_product_price' )->willReturnCallback(
+			static function ( $priced_product ) {
+				return (float) $priced_product->get_price();
+			}
+		);
+		$this->express_checkout_helper->method( 'get_taxes_like_cart' )->willReturn( [] );
+		$this->express_checkout_helper->method( 'get_total_label' )->willReturn( 'Total' );
+
+		try {
+			$security_nonce       = wp_create_nonce( 'wc-stripe-get-selected-product-data' );
+			$_REQUEST['security'] = $security_nonce;
+			$_POST['security']    = $security_nonce;
+			$_POST['product_id']  = $product->get_id();
+			$_POST['qty']         = 1;
+			$_POST['attributes']  = wp_slash( $attributes );
+
+			WC()->session->init();
+
+			ob_start();
+			$this->ajax_handler->ajax_get_selected_product_data();
+			$output = ob_get_clean();
+
+			$response = json_decode( $output, true );
+		} finally {
+			Ajax_Test_Helper::remove_hooks();
+			unset( $_POST['product_id'], $_POST['qty'], $_POST['attributes'], $_POST['security'], $_REQUEST['security'] );
+		}
+
+		$this->assertArrayHasKey( 'displayItems', $response, 'response: ' . wp_json_encode( $response ) );
+		$this->assertSame( $expected_amount, $response['displayItems'][0]['amount'] );
+	}
+
+	/**
+	 * Data provider for {@see test_ajax_get_selected_product_data_matches_posted_variation()}.
+	 *
+	 * @return array<string, array{array<string, string>, int}>
+	 */
+	public function provide_posted_variation_attributes() {
+		return [
+			'percent-encoded global term slug' => [
+				[
+					'attribute_pa_shade' => '%e7%b6%a0',
+					'attribute_label'    => '大',
+				],
+				2000,
+			],
+			'custom value with quotes'         => [
+				[
+					'attribute_pa_shade' => '%e7%b6%a0',
+					'attribute_label'    => '5" wide',
+				],
+				3000,
+			],
+		];
+	}
+
+	/**
+	 * Test ajax_add_to_cart adds the variation selected by a percent-encoded global term slug.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_ajax_add_to_cart_matches_percent_encoded_term_slug() {
+		Ajax_Test_Helper::init_hooks();
+
+		$product = WC_Helper_Product::create_variation_product_with_non_ascii_attributes();
+
+		$this->express_checkout_helper->method( 'build_display_items' )->willReturn( [] );
+
+		try {
+			$security_nonce       = wp_create_nonce( 'wc-stripe-add-to-cart' );
+			$_REQUEST['security'] = $security_nonce;
+			$_POST['security']    = $security_nonce;
+			$_POST['product_id']  = $product->get_id();
+			$_POST['qty']         = 1;
+			$_POST['attributes']  = [
+				'attribute_pa_shade' => '%e7%b6%a0',
+				'attribute_label'    => '大',
+			];
+
+			WC()->session->init();
+			WC()->cart->empty_cart();
+
+			ob_start();
+			$this->ajax_handler->ajax_add_to_cart();
+			ob_get_clean();
+
+			$cart_item = current( WC()->cart->get_cart() );
+		} finally {
+			Ajax_Test_Helper::remove_hooks();
+			unset( $_POST['product_id'], $_POST['qty'], $_POST['attributes'], $_POST['security'], $_REQUEST['security'] );
+		}
+
+		$this->assertIsArray( $cart_item );
+		$this->assertSame( '20', $cart_item['data']->get_price() );
+	}
+
+	/**
 	 * Test public products retain WooCommerce's exact remaining-stock feedback.
 	 *
 	 * @runInSeparateProcess

@@ -32,6 +32,7 @@ describe( 'ConnectStripeAccount', () => {
 	beforeEach( () => {
 		jest.clearAllMocks();
 		mockGetQuery.mockReturnValue( {} );
+		setWindowLocation( 'https://localhost' );
 	} );
 
 	it( 'should show the expired-nonce error notice when the redirect marker is present', () => {
@@ -73,9 +74,6 @@ describe( 'ConnectStripeAccount', () => {
 	} );
 
 	it( 'should render both the "Create or connect an account" and "Create or connect a test account" buttons', () => {
-		// Mock SSL for this test
-		setWindowLocation( 'https://localhost' );
-
 		render( <ConnectStripeAccount /> );
 
 		expect( screen.queryByText( 'Terms of service.' ) ).toBeInTheDocument();
@@ -90,7 +88,6 @@ describe( 'ConnectStripeAccount', () => {
 	} );
 
 	it( 'should fetch OAuth URL and redirect when clicking on the "Create or connect an account" button', async () => {
-		setWindowLocation( 'https://localhost' );
 		const oauthUrl =
 			'https://connect.stripe.com/oauth/v2/authorize?response_type=code&client_id=ca_1234&scope=read_write&state=1234';
 
@@ -237,5 +234,18 @@ describe( 'ConnectStripeAccount', () => {
 			'wcstripe_create_or_connect_account_click',
 			{}
 		);
+
+		// The tooltip nests the connect button in its own button, the only
+		// error expected here.
+		expect( console ).toHaveErrored();
+		// eslint-disable-next-line no-console
+		expect( console.error.mock.calls ).toEqual( [
+			[
+				expect.stringContaining( 'validateDOMNesting' ),
+				'<button>',
+				'button',
+				expect.any( String ),
+			],
+		] );
 	} );
 } );
