@@ -28,7 +28,10 @@ import {
 } from '../../stripe-utils/upe-appearance';
 import { getFontRulesFromPage, sampleFontFamily } from '../../styles/upe';
 import { getPaymentMethodRadioStyles } from '../../styles/upe/utils';
-import { blockUI } from '../../stripe-utils/checkout-form';
+import {
+	blockCheckoutForm,
+	unblockCheckoutForm,
+} from '../../stripe-utils/checkout-form';
 import { navigateTo } from 'wcstripe/utils/navigation';
 import { __, sprintf } from '@wordpress/i18n';
 import {
@@ -227,7 +230,7 @@ export async function maybeUpdateAdaptivePricingCheckoutSession() {
 					typeof loadResult.actions?.runServerUpdate === 'function'
 				) {
 					try {
-						blockUI( jQuery( 'form.checkout #payment' ) );
+						blockCheckoutForm( jQuery( 'form.checkout #payment' ) );
 						const updateResult =
 							await loadResult.actions.runServerUpdate(
 								async () => {}
@@ -255,7 +258,7 @@ export async function maybeUpdateAdaptivePricingCheckoutSession() {
 				// A superseded resync must not lift the block a newer, still
 				// in-flight resync is holding on the payment area.
 				if ( generation === adaptivePricingSyncGeneration ) {
-					unblockUI( jQuery( 'form.checkout #payment' ) );
+					unblockCheckoutForm( jQuery( 'form.checkout #payment' ) );
 				}
 			}
 		}
@@ -272,7 +275,7 @@ export async function maybeUpdateAdaptivePricingCheckoutSession() {
 
 	// Clear any overlay a superseded resync left up; as the current generation
 	// with none newer in flight, this can't lift a block still in use.
-	unblockUI( jQuery( 'form.checkout #payment' ) );
+	unblockCheckoutForm( jQuery( 'form.checkout #payment' ) );
 
 	adaptivePricingSyncFailed = resyncFailed;
 
@@ -340,15 +343,6 @@ function getNativeCheckoutSessionData() {
 		console.error( error );
 		return null;
 	}
-}
-
-/**
- * Unblock UI to remove the processing state from the element of the form.
- *
- * @param {Object} jQueryForm The jQuery object for the form.
- */
-function unblockUI( jQueryForm ) {
-	jQueryForm.removeClass( 'processing' ).unblock();
 }
 
 /**
@@ -1256,7 +1250,7 @@ export const processPayment = (
 		return false;
 	}
 
-	blockUI( jQueryForm );
+	blockCheckoutForm( jQueryForm );
 
 	const getErrorMessage = ( err ) => {
 		if ( ! err ) {
@@ -1367,7 +1361,7 @@ export const processPayment = (
 				if ( checkoutResponse.result !== 'success' ) {
 					// WC core unblocks in its checkout AJAX complete handler; this path
 					// uses a direct jQuery.ajax call, so we must unblock explicitly.
-					jQueryForm.removeClass( 'processing' ).unblock();
+					unblockCheckoutForm( jQueryForm );
 					const messages = checkoutResponse.messages;
 					if (
 						typeof messages === 'string' &&
@@ -1468,7 +1462,7 @@ export const processPayment = (
 			submitForm( jQueryForm );
 		} catch ( err ) {
 			hasCheckoutCompleted = false;
-			jQueryForm.removeClass( 'processing' ).unblock();
+			unblockCheckoutForm( jQueryForm );
 			showErrorCheckout( getErrorMessage( err ) );
 		}
 	} )();
@@ -1502,7 +1496,7 @@ export const createAndConfirmSetupIntent = (
 			switch ( confirmedSetupIntent ) {
 				case 'incomplete':
 					// When the set up wasn't completed, we need to unlock the form and stop the process.
-					jQueryForm.removeClass( 'processing' ).unblock();
+					unblockCheckoutForm( jQueryForm );
 				// eslint-disable-next-line no-fallthrough -- intentional we need to stop the form submission on incomplete.
 				case 'redirect_to_url':
 					setStopFormSubmission();

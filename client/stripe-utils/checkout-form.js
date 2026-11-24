@@ -3,7 +3,7 @@
  *
  * @param {Object} jQueryForm The jQuery object for the form.
  */
-export function blockUI( jQueryForm ) {
+export function blockCheckoutForm( jQueryForm ) {
 	jQueryForm.addClass( 'processing' ).block( {
 		message: null,
 		overlayCSS: {
@@ -11,4 +11,8 @@ export function blockUI( jQueryForm ) {
 			opacity: 0.6,
 		},
 	} );
+}
+
+export function unblockCheckoutForm( jQueryForm ) {
+	jQueryForm.removeClass( 'processing' ).unblock();
 }

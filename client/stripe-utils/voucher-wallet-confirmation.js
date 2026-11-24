@@ -6,7 +6,7 @@ import {
 	PAYMENT_METHOD_MULTIBANCO,
 	PAYMENT_METHOD_WECHAT_PAY,
 } from './constants';
-import { blockUI } from './checkout-form';
+import { blockCheckoutForm, unblockCheckoutForm } from './checkout-form';
 import { navigateTo } from 'wcstripe/utils/navigation';
 import { __ } from '@wordpress/i18n';
 import {
@@ -77,7 +77,7 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
 
 	// The Order Pay page does a hard refresh when the hash changes, so we need to block the UI again.
 	if ( isOrderPay ) {
-		blockUI( jQueryForm );
+		blockCheckoutForm( jQueryForm );
 	}
 
 	const partials = window.location.href.match(
@@ -85,7 +85,7 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
 	);
 
 	if ( ! partials ) {
-		jQueryForm.removeClass( 'processing' ).unblock();
+		unblockCheckoutForm( jQueryForm );
 		return;
 	}
 
@@ -104,7 +104,7 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
 		! clientSecret ||
 		( isOrderPay && orderId !== stripeServerData?.orderId )
 	) {
-		jQueryForm.removeClass( 'processing' ).unblock();
+		unblockCheckoutForm( jQueryForm );
 		return;
 	}
 
@@ -131,7 +131,7 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
 			throw confirmPayment.error;
 		}
 	} catch ( error ) {
-		jQueryForm.removeClass( 'processing' ).unblock();
+		unblockCheckoutForm( jQueryForm );
 		showErrorCheckout( error.message );
 		return;
 	}
@@ -169,7 +169,7 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 
 	// The Order Pay page does a hard refresh when the hash changes, so we need to block the UI again.
 	if ( isOrderPay ) {
-		blockUI( jQueryForm );
+		blockCheckoutForm( jQueryForm );
 	}
 
 	const partials = window.location.href.match(
@@ -177,7 +177,7 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 	);
 
 	if ( ! partials ) {
-		jQueryForm.removeClass( 'processing' ).unblock();
+		unblockCheckoutForm( jQueryForm );
 		return;
 	}
 
@@ -196,7 +196,7 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 		! clientSecret ||
 		( isOrderPay && orderId !== getStripeServerData()?.orderId )
 	) {
-		jQueryForm.removeClass( 'processing' ).unblock();
+		unblockCheckoutForm( jQueryForm );
 		return;
 	}
 
@@ -205,7 +205,7 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 	const returnURL = resolvePostPaymentUrl( partials[ 5 ], orderId );
 
 	if ( ! returnURL ) {
-		jQueryForm.removeClass( 'processing' ).unblock();
+		unblockCheckoutForm( jQueryForm );
 		showErrorCheckout(
 			__(
 				'There was a problem processing the payment. Please refresh the page to try again.',
@@ -294,7 +294,7 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 	} catch ( error ) {
 		showErrorCheckout( error.message );
 	} finally {
-		jQueryForm.removeClass( 'processing' ).unblock();
+		unblockCheckoutForm( jQueryForm );
 		unblockBlockCheckout();
 		resetBlockCheckoutPaymentState();
 	}
