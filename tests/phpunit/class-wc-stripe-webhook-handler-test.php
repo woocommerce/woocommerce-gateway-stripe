@@ -1594,6 +1594,153 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A dashboard capture must leave the order paid at its original total, with any released
+	 * authorization recorded once as a refund, even when Stripe delivers the event twice.
+	 *
+	 * @dataProvider provider_dashboard_capture
+	 *
+	 * @param string $order_total            Order total when the capture happens.
+	 * @param array  $charge_overrides       Capture-specific charge properties.
+	 * @param string $expected_refunded      Expected total refunded on the order.
+	 * @param string $expected_stripe_refund Expected Stripe refund ID stored on the order.
+	 */
+	public function test_process_webhook_capture_settles_dashboard_capture( string $order_total, array $charge_overrides, string $expected_refunded, string $expected_stripe_refund ) {
+		$order        = $this->create_authorized_order( 'ch_dashboard_capture', $order_total );
+		$notification = $this->build_capture_notification( 'charge.captured', 'ch_dashboard_capture', $charge_overrides );
+
+		$this->mock_webhook_handler->process_webhook_capture( $notification );
+		$this->mock_webhook_handler->process_webhook_capture( $notification );
+
+		$order = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::PROCESSING, $order->get_status() );
+		$this->assertSame( $order_total, $order->get_total() );
+		$this->assertSame( $expected_refunded, wc_format_decimal( $order->get_total_refunded(), 2 ) );
+		$this->assertCount( '0.00' === $expected_refunded ? 0 : 1, $order->get_refunds() );
+		$this->assertSame( $expected_stripe_refund, (string) WC_Stripe_Order_Helper::get_instance()->get_stripe_refund_id( $order ) );
+	}
+
+	/**
+	 * Capture shapes: partial on current API versions (no refund object), partial on API versions
+	 * before 2025-03-31 (the release is a refund), a capture of an order the merchant reduced
+	 * beforehand (nothing left to refund), and a full capture.
+	 */
+	public function provider_dashboard_capture(): array {
+		return [
+			'partial capture, current API' => [
+				'20.00',
+				[ 'amount_captured' => 500 ],
+				'15.00',
+				'',
+			],
+			'partial capture, older API'   => [
+				'20.00',
+				[
+					'amount_captured' => 500,
+					'amount_refunded' => 1500,
+					'refunds'         => (object) [
+						'data' => [
+							(object) [
+								'id'     => 're_released',
+								'amount' => 1500,
+							],
+						],
+					],
+				],
+				'15.00',
+				're_released',
+			],
+			'order reduced before capture' => [
+				'15.00',
+				[ 'amount_captured' => 1500 ],
+				'0.00',
+				'',
+			],
+			'full capture'                 => [
+				'20.00',
+				[ 'amount_captured' => 2000 ],
+				'0.00',
+				'',
+			],
+		];
+	}
+
+	/**
+	 * On older API versions, charge.refunded for the released authorization can arrive before
+	 * charge.captured and record the capture. The order must still end up paid, with one refund.
+	 */
+	public function test_process_webhook_capture_settles_order_after_release_refund_arrived_first() {
+		$order            = $this->create_authorized_order( 'ch_refund_first' );
+		$charge_overrides = [
+			'amount_captured' => 500,
+			'amount_refunded' => 1500,
+			'refunds'         => (object) [
+				'data' => [
+					(object) [
+						'id'     => 're_refund_first',
+						'amount' => 1500,
+					],
+				],
+			],
+		];
+
+		$this->mock_webhook_handler->process_webhook_refund( $this->build_capture_notification( 'charge.refunded', 'ch_refund_first', $charge_overrides ) );
+		$this->mock_webhook_handler->process_webhook_capture( $this->build_capture_notification( 'charge.captured', 'ch_refund_first', $charge_overrides ) );
+
+		$order = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::PROCESSING, $order->get_status() );
+		$this->assertSame( '20.00', $order->get_total() );
+		$this->assertSame( '15.00', wc_format_decimal( $order->get_total_refunded(), 2 ) );
+		$this->assertCount( 1, $order->get_refunds() );
+	}
+
+	/**
+	 * Creates a Stripe order whose $20 charge is authorized but not captured yet.
+	 *
+	 * @param string $charge_id   The authorized charge ID.
+	 * @param string $order_total The order total, lower than the authorization if the merchant edited the order.
+	 * @return WC_Order
+	 */
+	private function create_authorized_order( string $charge_id, string $order_total = '20.00' ): WC_Order {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( 'stripe' );
+		$order->set_currency( 'USD' );
+		$order->set_total( $order_total );
+		$order->set_transaction_id( $charge_id );
+		$order->set_status( OrderStatus::ON_HOLD );
+		WC_Stripe_Order_Helper::get_instance()->set_stripe_charge_captured( $order, false );
+		$order->save();
+
+		return $order;
+	}
+
+	/**
+	 * Builds a charge event for a captured $20 authorization.
+	 *
+	 * @param string $type             The event type ('charge.captured' or 'charge.refunded').
+	 * @param string $charge_id        The charge ID.
+	 * @param array  $charge_overrides Charge properties to override the defaults.
+	 * @return object
+	 */
+	private function build_capture_notification( string $type, string $charge_id, array $charge_overrides ): object {
+		$charge = (object) array_merge(
+			[
+				'id'              => $charge_id,
+				'object'          => 'charge',
+				'captured'        => true,
+				'amount'          => 2000,
+				'amount_refunded' => 0,
+				'currency'        => 'usd',
+			],
+			$charge_overrides
+		);
+
+		return (object) [
+			'type' => $type,
+			'data' => (object) [ 'object' => $charge ],
+		];
+	}
+
+	/**
 	 * Repeat unexpected-charge detections for the same PaymentIntent on the same order must be no-ops: only one
 	 * note is added and the action fires exactly once, even when multiple webhook paths detect it.
 	 */

@@ -783,7 +783,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$charge_id = $order->get_transaction_id();
 			$captured  = $order_helper->is_stripe_charge_captured( $order );
 
-			if ( $charge_id && ! $captured ) {
+			// On older API versions, the charge.refunded event for the released remainder of a partial
+			// capture can arrive first and record the charge as captured. An order that was never
+			// marked paid still needs settling then.
+			$awaits_payment = ! $order->get_date_paid() && $order->has_status( [ OrderStatus::ON_HOLD, OrderStatus::PENDING ] );
+
+			if ( $charge_id && ( ! $captured || $awaits_payment ) ) {
 				$order_helper->sync_stripe_charge_captured( $order, $charge );
 
 				// Store other data such as fees
@@ -793,17 +798,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					$this->update_fees( $order, $notification->data->object->balance_transaction, true );
 				}
 
-				// Check and see if capture is partial.
-				if ( $this->is_partial_capture( $notification ) ) {
-					$partial_amount = $this->get_partial_amount_to_charge( $notification );
-					$order->set_total( $partial_amount );
-					$refund_object = $this->get_refund_object( $notification );
-					$this->update_fees( $order, $refund_object->balance_transaction );
-					/* translators: partial captured amount */
-					$order->add_order_note( sprintf( __( 'This charge was partially captured via Stripe Dashboard in the amount of: %s', 'woocommerce-gateway-stripe' ), $partial_amount ) );
-				} else {
-					$order->payment_complete( $notification->data->object->id );
+				$order->payment_complete( $notification->data->object->id );
 
+				if ( $this->is_partially_captured( $charge ) ) {
+					$this->record_partial_capture_release( $order, $notification );
+				} else {
 					/* translators: transaction id */
 					$order->add_order_note( sprintf( __( 'Stripe charge complete (Charge ID: %s) (via webhook)', 'woocommerce-gateway-stripe' ), $notification->data->object->id ) );
 				}
@@ -813,6 +812,100 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Whether less than the authorized amount was captured.
+	 *
+	 * Uses `amount_captured` because API versions from 2025-03-31 no longer report the
+	 * released remainder as a refund.
+	 *
+	 * @param object $charge The captured charge.
+	 * @return bool
+	 */
+	private function is_partially_captured( $charge ): bool {
+		$captured_amount = (int) ( $charge->amount_captured ?? 0 );
+
+		return 0 < $captured_amount && $captured_amount < (int) ( $charge->amount ?? 0 );
+	}
+
+	/**
+	 * Records the authorization released by a partial capture as a refund.
+	 *
+	 * The order keeps its total, so recalculating it can't undo the capture, and the refund
+	 * line shows what the customer actually paid. No items are restocked: a capture only carries
+	 * an amount, not which items weren't fulfilled.
+	 *
+	 * @param WC_Order $order        The order that was paid by the captured charge.
+	 * @param object   $notification The charge.captured event.
+	 */
+	private function record_partial_capture_release( WC_Order $order, $notification ): void {
+		$charge          = $notification->data->object ?? null;
+		$currency        = $order->get_currency();
+		$captured_amount = (int) $charge->amount_captured;
+
+		// Measured against what's still unrefunded on the order, not the authorization, so a
+		// repeated event, a charge.refunded event that already recorded the release, or an order
+		// reduced before the capture doesn't refund more than was actually released.
+		$unrefunded_amount = WC_Stripe_Helper::get_stripe_amount( (float) $order->get_remaining_refund_amount(), $currency );
+		$released_amount   = $unrefunded_amount - $captured_amount;
+
+		$log_context = [
+			'order_id'          => $order->get_id(),
+			'charge_id'         => $charge->id,
+			'currency'          => $currency,
+			'authorized_amount' => (int) $charge->amount,
+			'captured_amount'   => $captured_amount,
+			'released_amount'   => $released_amount,
+		];
+
+		$note = sprintf(
+			/* translators: 1) captured amount 2) authorized amount 3) charge ID */
+			__( 'Stripe charge partially captured: %1$s of the %2$s authorized (Charge ID: %3$s) (via webhook). Stripe released the rest to the customer.', 'woocommerce-gateway-stripe' ),
+			wc_price( WC_Stripe_Helper::convert_from_stripe_amount( $captured_amount, $currency ), [ 'currency' => $currency ] ),
+			wc_price( WC_Stripe_Helper::convert_from_stripe_amount( (int) $charge->amount, $currency ), [ 'currency' => $currency ] ),
+			$charge->id
+		);
+		$order->add_order_note( $note );
+
+		if ( $released_amount <= 0 ) {
+			WC_Stripe_Logger::info( 'Partial capture: the released amount is already reflected on the order.', $log_context );
+			return;
+		}
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		if ( $order_helper->lock_order_refund( $order ) ) {
+			WC_Stripe_Logger::warning( 'Partial capture: skipped recording the released amount because another refund is in progress.', $log_context );
+			return;
+		}
+
+		$refund = wc_create_refund(
+			[
+				'order_id' => $order->get_id(),
+				'amount'   => WC_Stripe_Helper::convert_from_stripe_amount( $released_amount, $currency ),
+				'reason'   => __( 'Authorization released by a partial capture in Stripe', 'woocommerce-gateway-stripe' ),
+			]
+		);
+
+		if ( is_wp_error( $refund ) ) {
+			$order_helper->unlock_order_refund( $order );
+			WC_Stripe_Logger::error( 'Partial capture: could not record the released amount as a refund.', array_merge( $log_context, [ 'error_message' => $refund->get_error_message() ] ) );
+			return;
+		}
+
+		// Older API versions represent the release as a Stripe refund and also send charge.refunded
+		// for it. Storing its ID makes that handler recognize the refund instead of adding another.
+		if ( 0 < (int) ( $charge->amount_refunded ?? 0 ) ) {
+			$refund_object    = $this->get_refund_object( $notification );
+			$stripe_refund_id = (string) ( $refund_object->id ?? '' );
+			$order_helper->update_stripe_refund_id_for_refund( $refund, $stripe_refund_id );
+			$refund->save_meta_data();
+			$order_helper->update_stripe_refund_id( $order, $stripe_refund_id );
+		}
+
+		$order_helper->unlock_order_refund( $order );
+
+		WC_Stripe_Logger::info( 'Partial capture: recorded the released amount as a refund.', array_merge( $log_context, [ 'refund_id' => $refund->get_id() ] ) );
 	}
 
 	/**
