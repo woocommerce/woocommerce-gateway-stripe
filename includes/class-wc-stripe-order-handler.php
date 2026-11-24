@@ -1055,7 +1055,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param bool   $protected True if meta is protected.
 	 * @param string $meta_key  Meta key name.
 	 * @param string $meta_type Meta type.
-	 * @param boolean
+	 * @return bool
 	 */
 	public function hide_fraud_and_risk_meta( $protected, $meta_key, $meta_type ) {
 		if ( WC_Stripe_Order_Fraud_And_Risk_Helper::STRIPE_CHARGE_FRAUD_FLAGS_META_NAME === $meta_key ) {
