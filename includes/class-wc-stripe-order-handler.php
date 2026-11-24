@@ -985,7 +985,19 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		do_action( 'wc_stripe_paid_order_cancellation_prevented', $order );
 	}
 
-	public function add_fraud_and_risk_meta_box( $action, $order ): void {
+	/**
+	 * Adds a meta box for orders with flags indicating fraud or risk.
+	 *
+	 * @since x.x.x
+	 * @param string $post_type     Post type.
+	 * @param object $order         The order.
+	 * @return void
+	 */
+	public function add_fraud_and_risk_meta_box( $post_type, $order ): void {
+		if ( ! in_array( $post_type, [ 'shop_order', 'woocommerce_page_wc-orders' ], true ) ) {
+			return;
+		}
+
 		$fraud_flags = WC_Stripe_Order_Fraud_And_Risk_Helper::order_has_transaction_fraud_flags_risk( $order );
 
 		if ( ! $fraud_flags ) {
@@ -1011,8 +1023,15 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		);
 	}
 
-	public function display_fraud_and_risk_meta_box( $post_or_order ) {
-		$order = wc_get_order( $post_or_order );
+	/**
+	 * Displays a meta box for orders with flags indicating fraud or risk.
+	 *
+	 * @since x.x.x
+	 * @param object $order         The order.
+	 * @return void
+	 */
+	public function display_fraud_and_risk_meta_box( $order ): void {
+		$order = wc_get_order( $order );
 
 		if ( ! $order ) {
 			return;
@@ -1029,6 +1048,15 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			'</pre></p>';
 	}
 
+	/**
+	 * Hides orders fraud and risk meta.
+	 *
+	 * @since x.x.x
+	 * @param bool   $protected True if meta is protected.
+	 * @param string $meta_key  Meta key name.
+	 * @param string $meta_type Meta type.
+	 * @param bool
+	 */
 	public function hide_fraud_and_risk_meta( $protected, $meta_key, $meta_type ) {
 		if ( WC_Stripe_Order_Fraud_And_Risk_Helper::STRIPE_CHARGE_FRAUD_FLAGS_META_NAME === $meta_key ) {
 			return true;

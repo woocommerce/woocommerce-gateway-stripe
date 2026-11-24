@@ -110,7 +110,7 @@ abstract class WC_Stripe_Order_Fraud_And_Risk_Helper {
 
 		$check = $fraud_flags->fraud_details ?? null;
 
-		if ( ! is_null( $check ) ) {
+		if ( is_object( $check ) && 0 !== count( get_object_vars( $check ) ) ) {
 			return $fraud_flags;
 		}
 
