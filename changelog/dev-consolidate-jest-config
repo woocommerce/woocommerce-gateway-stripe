@@ -1,0 +1,4 @@
+Significance: patch
+Type: dev
+
+Use the Jest version and preset bundled with @wordpress/scripts, and fail JS tests on unexpected console errors and warnings

@@ -21,6 +21,7 @@ class WC_Stripe_Webhook_Settings {
 		'source.canceled',
 		'charge.succeeded',
 		'charge.failed',
+		'charge.expired',
 		'charge.captured',
 		'charge.dispute.created',
 		'charge.dispute.closed',

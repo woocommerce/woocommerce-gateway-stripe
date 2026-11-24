@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Prevent a PHP notice and an immediate, unthrottled retry when a subscription renewal fails on a non-card payment method

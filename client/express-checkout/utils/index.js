@@ -1,5 +1,6 @@
 /* global wc_stripe_express_checkout_params */
 import jQuery from 'jquery';
+import { navigateTo } from 'wcstripe/utils/navigation';
 import { __ } from '@wordpress/i18n';
 import { isAmazonPayEnabled } from 'wcstripe/stripe-utils/is-amazon-pay-enabled';
 import { isLinkEnabled } from 'wcstripe/stripe-utils/is-link-enabled';
@@ -131,7 +132,7 @@ export const displayLoginConfirmation = ( expressPaymentType ) => {
 	// eslint-disable-next-line no-alert
 	if ( window.confirm( message ) ) {
 		// Redirect to my account page.
-		window.location.href = loginConfirmation.redirect_url;
+		navigateTo( loginConfirmation.redirect_url );
 	}
 };
 

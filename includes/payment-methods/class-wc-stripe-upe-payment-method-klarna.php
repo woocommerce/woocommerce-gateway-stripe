@@ -114,7 +114,7 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 		];
 		$this->label                = __( 'Klarna', 'woocommerce-gateway-stripe' );
 		$this->description          = __(
-			'Allow customers to pay over time with Klarna.',
+			'Offer flexible ways to pay with Klarna: in full, later, or over time.',
 			'woocommerce-gateway-stripe'
 		);
 

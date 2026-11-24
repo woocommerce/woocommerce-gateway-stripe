@@ -1,6 +1,7 @@
 import { React } from 'react';
 import styled from '@emotion/styled';
 import interpolateComponents from '@automattic/interpolate-components';
+import { reloadPage } from 'wcstripe/utils/navigation';
 import { useDispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 import CardBody from 'wcstripe/settings/card-body';
@@ -46,7 +47,7 @@ export const OCPromotionBanner = ( {
 					)
 				);
 
-				window.location.reload();
+				reloadPage();
 			} catch ( err ) {
 				createErrorNotice(
 					__(
