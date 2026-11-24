@@ -235,9 +235,8 @@ describe( 'ConnectStripeAccount', () => {
 			{}
 		);
 
-		// The tooltip wraps the connect button in a button of its own, which
-		// React reports as invalid nesting. Asserting on console.error turns
-		// the unexpected-error check off for this test, so pin the whole list.
+		// The tooltip nests the connect button in its own button, the only
+		// error expected here.
 		expect( console ).toHaveErrored();
 		// eslint-disable-next-line no-console
 		expect( console.error.mock.calls ).toEqual( [
