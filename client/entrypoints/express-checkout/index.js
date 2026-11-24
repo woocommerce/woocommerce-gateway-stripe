@@ -30,6 +30,7 @@ import {
 	shippingAddressChangeHandler,
 	shippingRateChangeHandler,
 } from 'wcstripe/express-checkout/event-handler';
+import { setStoreApiNonceRefresher } from 'wcstripe/express-checkout/store-api';
 import { getAddToCartVariationParams } from 'wcstripe/utils';
 import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
 import 'wcstripe/express-checkout/compatibility/classic-checkout-custom-fields';
@@ -78,6 +79,7 @@ const initializeExpressCheckout = ( $ ) => {
 			} );
 		}
 	);
+	setStoreApiNonceRefresher( () => api.expressCheckoutRefreshNonces() );
 
 	let wcStripeECEError = '';
 	const defaultErrorMessage = __(

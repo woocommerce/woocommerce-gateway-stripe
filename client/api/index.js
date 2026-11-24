@@ -7,6 +7,10 @@ import {
 	getExpressCheckoutData,
 	getExpressCheckoutAjaxURL,
 } from 'wcstripe/express-checkout/utils';
+import {
+	rememberStoreApiNonces,
+	storeApiFetch,
+} from 'wcstripe/express-checkout/store-api';
 import { getStripeDevWidgetOptions } from 'wcstripe/stripe-utils/get-stripe-dev-widget-options';
 import { getStripeServerData } from 'wcstripe/stripe-utils/get-stripe-server-data';
 import { getSharedStripeInstance } from 'wcstripe/stripe-utils/shared-stripe-instance';
@@ -453,7 +457,9 @@ export default class WCStripeAPI {
 	}
 
 	/**
-	 * Fetches the express checkout wc-ajax nonce bundle, once per page.
+	 * Fetches the express checkout nonce bundle (the wc-ajax nonces and the
+	 * Store API ones) and memoizes it until `expressCheckoutRefreshNonces`
+	 * replaces it.
 	 *
 	 * Only success is memoized: a failed fetch clears the cached promise and
 	 * rejects, so the next lookup (e.g. the actual wallet interaction after a
@@ -468,13 +474,29 @@ export default class WCStripeAPI {
 				getExpressCheckoutAjaxURL( 'get_express_checkout_nonces' ),
 				{}
 			)
-				.then( ( response ) => response?.data ?? {} )
+				.then( ( response ) => {
+					const nonces = response?.data ?? {};
+					// The bundle also carries the Store API nonces, so requests
+					// sent after this point don't depend on the printed ones.
+					rememberStoreApiNonces( nonces );
+					return nonces;
+				} )
 				.catch( ( error ) => {
 					this.expressCheckoutNoncesPromise = null;
 					throw error;
 				} );
 		}
 		return this.expressCheckoutNoncesPromise;
+	}
+
+	/**
+	 * Fetches the nonce bundle again.
+	 *
+	 * @return {Promise<Object>} Promise resolving to the new nonce map.
+	 */
+	expressCheckoutRefreshNonces() {
+		this.expressCheckoutNoncesPromise = null;
+		return this.expressCheckoutFetchNonces();
 	}
 
 	/**
@@ -664,12 +686,8 @@ export default class WCStripeAPI {
 				...orderData,
 				customer_note: getCustomerNote(),
 			},
-			{
-				'X-WCSTRIPE-EXPRESS-CHECKOUT': true,
-				'X-WCSTRIPE-EXPRESS-CHECKOUT-NONCE':
-					getExpressCheckoutData( 'nonce' )
-						?.wc_store_api_express_checkout,
-			}
+			{},
+			{ expressCheckoutContext: true }
 		);
 	}
 
@@ -721,18 +739,41 @@ export default class WCStripeAPI {
 	 * @param {string} path    The path to post to.
 	 * @param {Object} data    The data to post.
 	 * @param {Object} headers The headers for the request.
+	 * @param {Object} context Request context, see `storeApiFetch`.
 	 * @return {Promise} The promise for the request to the server.
 	 */
-	postToStoreApi( path, data, headers = {} ) {
-		return apiFetch( {
-			method: 'POST',
-			path,
-			headers: {
-				Nonce: getExpressCheckoutData( 'nonce' )?.wc_store_api,
-				...headers,
-			},
-			data,
-		} );
+	async postToStoreApi( path, data, headers = {}, context = {} ) {
+		// Callers show `error.message` to the shopper, so an unparseable body
+		// (a proxy's HTML error page, a PHP notice ahead of the JSON) must not
+		// surface as the parser's own syntax error.
+		const parseJson = ( response ) =>
+			response.json().catch( () => {
+				throw {
+					code: 'invalid_json',
+					message: __(
+						'The response is not a valid JSON response.',
+						'woocommerce-gateway-stripe'
+					),
+				};
+			} );
+
+		let response;
+		try {
+			response = await storeApiFetch(
+				{ method: 'POST', path, headers, data },
+				context
+			);
+		} catch ( error ) {
+			// Anything without a body to parse (e.g. a network failure) was
+			// already normalized by `apiFetch`.
+			if ( typeof error?.json !== 'function' ) {
+				throw error;
+			}
+
+			throw await parseJson( error );
+		}
+
+		return response.status === 204 ? null : parseJson( response );
 	}
 
 	/**

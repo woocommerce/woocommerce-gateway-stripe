@@ -16,6 +16,7 @@ import {
 	expressCheckoutElementStripeLink,
 } from 'wcstripe/blocks/express-checkout';
 import WCStripeAPI from 'wcstripe/api';
+import { setStoreApiNonceRefresher } from 'wcstripe/express-checkout/store-api';
 import {
 	addOrderAttributionInputsIfNotExists,
 	getBlocksConfiguration,
@@ -34,6 +35,7 @@ const api = new WCStripeAPI(
 		} );
 	}
 );
+setStoreApiNonceRefresher( () => api.expressCheckoutRefreshNonces() );
 
 const paymentMethodsConfig =
 	getBlocksConfiguration()?.paymentMethodsConfig ?? {};

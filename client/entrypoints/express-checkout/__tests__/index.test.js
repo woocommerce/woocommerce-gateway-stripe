@@ -12,6 +12,7 @@ const mockGetSelectedProductData = jest.fn();
 const mockGetStripe = jest.fn();
 const mockAddToCart = jest.fn();
 const mockEmptyCartLegacy = jest.fn();
+const mockRefreshNonces = jest.fn();
 const mockTransformLabeledDisplayItems = jest.fn( () => [] );
 let mockDelayReady = false;
 const mockReadyCallbacks = [];
@@ -49,6 +50,7 @@ jest.mock( '../../../api', () =>
 		expressCheckoutGetSelectedProductData: mockGetSelectedProductData,
 		expressCheckoutAddToCart: mockAddToCart,
 		expressCheckoutEmptyCartLegacy: mockEmptyCartLegacy,
+		expressCheckoutRefreshNonces: mockRefreshNonces,
 	} ) )
 );
 
@@ -2272,5 +2274,60 @@ describe( 'Classic checkout early initialization', () => {
 		expect(
 			jq( '#wc-stripe-express-checkout-element' ).css( 'display' )
 		).toBe( 'none' );
+	} );
+} );
+
+describe( 'Express Checkout Store API nonce recovery', () => {
+	beforeEach( () => {
+		jest.resetModules();
+		mockRefreshNonces.mockReset();
+		mockGetCartDetails.mockReset();
+		mockGetCartDetails.mockResolvedValue( {
+			totals: { total_price: '1500', total_refund: '0' },
+			needs_shipping: false,
+		} );
+		document.body.innerHTML =
+			'<div id="wc-stripe-express-checkout-element"></div>';
+	} );
+
+	afterEach( () => {
+		jest.dontMock( '@wordpress/api-fetch' );
+		delete global.wc_stripe_express_checkout_params;
+	} );
+
+	// The Store API client can't reach the page's API object, so without this
+	// wiring a rejected nonce is retried with the stale express checkout nonce.
+	it( 'refetches the nonce bundle when the Store API rejects a nonce', async () => {
+		global.wc_stripe_express_checkout_params = {
+			...baseParams(),
+			nonce: {
+				wc_store_api: 'printed_store_api_nonce',
+				wc_store_api_express_checkout: 'printed_ece_nonce',
+			},
+		};
+		jest.doMock( '@wordpress/api-fetch' );
+		const apiFetch = require( '@wordpress/api-fetch' ).default;
+		const {
+			storeApiFetch,
+		} = require( 'wcstripe/express-checkout/store-api' );
+		const rejection = {
+			status: 403,
+			headers: { get: () => null },
+			json: () =>
+				Promise.resolve( { code: 'woocommerce_rest_invalid_nonce' } ),
+		};
+		rejection.clone = () => rejection;
+		apiFetch
+			.mockRejectedValueOnce( rejection )
+			.mockResolvedValueOnce( { headers: { get: () => null } } );
+		mockRefreshNonces.mockResolvedValue( {} );
+
+		loadEntrypoint();
+		await storeApiFetch( {
+			method: 'POST',
+			path: '/wc/store/v1/cart/add-item',
+		} );
+
+		expect( mockRefreshNonces ).toHaveBeenCalledTimes( 1 );
 	} );
 } );

@@ -159,6 +159,179 @@ describe( 'WCStripeAPI', () => {
 		} );
 	} );
 
+	describe( 'express checkout Store API requests', () => {
+		let apiFetch;
+		let api;
+		let request;
+		let storeApi;
+
+		const mockResponse = ( body = {}, headers = {}, status = 200 ) => {
+			const response = {
+				status,
+				headers: { get: ( name ) => headers[ name ] ?? null },
+				json: () => Promise.resolve( body ),
+			};
+			response.clone = () => response;
+			return response;
+		};
+
+		const sentHeaders = ( callIndex ) =>
+			apiFetch.mock.calls[ callIndex ][ 0 ].headers;
+
+		beforeEach( () => {
+			// Refreshed nonces live at module scope, so load fresh copies per test.
+			jest.resetModules();
+			jest.doMock( '@wordpress/api-fetch' );
+			apiFetch = require( '@wordpress/api-fetch' ).default;
+			storeApi = require( 'wcstripe/express-checkout/store-api' );
+			const IsolatedWCStripeAPI = require( '..' ).default;
+
+			global.wc_stripe_express_checkout_params = {
+				ajax_url: '/?wc-ajax=%%endpoint%%',
+				nonce: {
+					wc_store_api: 'printed_store_api_nonce',
+					wc_store_api_express_checkout: 'printed_ece_nonce',
+				},
+			};
+
+			request = jest.fn().mockResolvedValue( {
+				success: true,
+				data: {
+					clear_cart: 'fresh_clear',
+					wc_store_api: 'bundle_store_api_nonce',
+					wc_store_api_timestamp: 1700000000,
+					wc_store_api_express_checkout: 'bundle_ece_nonce',
+				},
+			} );
+			api = new IsolatedWCStripeAPI( {}, request );
+		} );
+
+		afterEach( () => {
+			jest.dontMock( '@wordpress/api-fetch' );
+			delete global.wc_stripe_express_checkout_params;
+		} );
+
+		it( 'resolves with the parsed response body', async () => {
+			apiFetch.mockResolvedValue( mockResponse( { items_count: 1 } ) );
+
+			await expect(
+				api.postToStoreApi( '/wc/store/v1/cart/add-item', { id: 1 } )
+			).resolves.toEqual( { items_count: 1 } );
+
+			expect( apiFetch ).toHaveBeenCalledWith(
+				expect.objectContaining( {
+					method: 'POST',
+					path: '/wc/store/v1/cart/add-item',
+					data: { id: 1 },
+				} )
+			);
+			expect( sentHeaders( 0 ) ).toEqual( {
+				Nonce: 'printed_store_api_nonce',
+			} );
+			// Sent with the nonce at hand: waiting for the on-demand bundle
+			// here would eat into the wallet's event deadlines.
+			expect( request ).not.toHaveBeenCalled();
+		} );
+
+		it( 'resolves with null for an empty response', async () => {
+			apiFetch.mockResolvedValue( mockResponse( undefined, {}, 204 ) );
+
+			await expect(
+				api.postToStoreApi( '/wc/store/v1/cart/remove-item', {} )
+			).resolves.toBeNull();
+		} );
+
+		// Callers surface `error.message` to the shopper, so a failure has to
+		// reject with the error body and not with the raw response.
+		it( 'rejects with the parsed error body', async () => {
+			apiFetch.mockRejectedValue(
+				mockResponse(
+					{
+						code: 'woocommerce_rest_cart_error',
+						message: 'Sold out',
+					},
+					{},
+					400
+				)
+			);
+
+			await expect(
+				api.postToStoreApi( '/wc/store/v1/cart/add-item', {} )
+			).rejects.toEqual( {
+				code: 'woocommerce_rest_cart_error',
+				message: 'Sold out',
+			} );
+		} );
+
+		// E.g. a proxy's HTML error page, or a PHP notice printed ahead of the
+		// JSON of an otherwise successful response.
+		it.each( [
+			[ 'an error', 502, 'mockRejectedValue' ],
+			[ 'a successful', 200, 'mockResolvedValue' ],
+		] )(
+			'rejects with a readable error when the body of %s response is not JSON',
+			async ( _label, status, settle ) => {
+				apiFetch[ settle ]( {
+					status,
+					headers: { get: () => null },
+					json: () => Promise.reject( new SyntaxError( 'bad json' ) ),
+				} );
+
+				await expect(
+					api.postToStoreApi( '/wc/store/v1/checkout', {} )
+				).rejects.toEqual( {
+					code: 'invalid_json',
+					message: 'The response is not a valid JSON response.',
+				} );
+			}
+		);
+
+		it( 'rejects with the original error when the request never got a response', async () => {
+			const offline = { code: 'fetch_error', message: 'Offline' };
+			apiFetch.mockRejectedValue( offline );
+
+			await expect(
+				api.postToStoreApi( '/wc/store/v1/checkout', {} )
+			).rejects.toBe( offline );
+		} );
+
+		// A tab left open past the nonce lifetime: the bundle memoized at the
+		// first interaction is as expired as the printed nonces.
+		it( 'recovers from a rejected nonce by refetching the bundle and retrying', async () => {
+			storeApi.setStoreApiNonceRefresher( () =>
+				api.expressCheckoutRefreshNonces()
+			);
+			request.mockResolvedValueOnce( {
+				success: true,
+				data: {
+					wc_store_api: 'expired_store_api_nonce',
+					wc_store_api_express_checkout: 'expired_ece_nonce',
+				},
+			} );
+			await api.expressCheckoutFetchNonces();
+			apiFetch
+				.mockRejectedValueOnce(
+					mockResponse(
+						{ code: 'woocommerce_rest_invalid_nonce' },
+						{ Nonce: 'rejection_nonce' },
+						403
+					)
+				)
+				.mockResolvedValueOnce( mockResponse( { order_id: 7 } ) );
+
+			await expect(
+				api.expressCheckoutECECreateOrder( { payment_method: 'x' } )
+			).resolves.toEqual( { order_id: 7 } );
+
+			expect( request ).toHaveBeenCalledTimes( 2 );
+			expect( sentHeaders( 1 ) ).toEqual( {
+				Nonce: 'bundle_store_api_nonce',
+				'X-WCSTRIPE-EXPRESS-CHECKOUT': 'true',
+				'X-WCSTRIPE-EXPRESS-CHECKOUT-NONCE': 'bundle_ece_nonce',
+			} );
+		} );
+	} );
+
 	describe( 'checkoutSessionsUpdateSession', () => {
 		const options = {
 			ajax_url: '/?wc-ajax=%%endpoint%%',

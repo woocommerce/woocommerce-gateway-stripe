@@ -1,6 +1,3 @@
-import ExpressCheckoutCartApi from '../cart-api';
-import apiFetch from '@wordpress/api-fetch';
-
 jest.mock( '@wordpress/api-fetch' );
 jest.mock( '@woocommerce/blocks-checkout', () => {}, { virtual: true } );
 
@@ -24,11 +21,15 @@ const mockResponse = ( body, headers = {} ) => ( {
 } );
 
 describe( 'ExpressCheckoutCartApi', () => {
+	let apiFetch;
 	let cartApi;
 
 	beforeEach( () => {
+		// Refreshed nonces live at module scope, so load a fresh copy per test.
+		jest.resetModules();
+		apiFetch = require( '@wordpress/api-fetch' ).default;
+		const ExpressCheckoutCartApi = require( '../cart-api' ).default;
 		cartApi = new ExpressCheckoutCartApi();
-		apiFetch.mockReset();
 	} );
 
 	describe( '_request', () => {
@@ -49,38 +50,6 @@ describe( 'ExpressCheckoutCartApi', () => {
 					} ),
 				} )
 			);
-		} );
-
-		it( 'refreshes nonce from response headers', async () => {
-			apiFetch.mockResolvedValue(
-				mockResponse( {}, { Nonce: 'new_nonce_123' } )
-			);
-
-			await cartApi.getCart();
-
-			apiFetch.mockResolvedValue(
-				mockResponse( {}, { Nonce: 'another_nonce' } )
-			);
-
-			await cartApi.getCart();
-
-			const secondCall = apiFetch.mock.calls[ 1 ][ 0 ];
-			expect( secondCall.headers.Nonce ).toBe( 'new_nonce_123' );
-		} );
-
-		it( 'does not overwrite nonce when response header is null', async () => {
-			apiFetch.mockResolvedValue(
-				mockResponse( {}, { Nonce: 'good_nonce' } )
-			);
-
-			await cartApi.getCart();
-
-			apiFetch.mockResolvedValue( mockResponse( {}, {} ) );
-
-			await cartApi.getCart();
-
-			const thirdCall = apiFetch.mock.calls[ 1 ][ 0 ];
-			expect( thirdCall.headers.Nonce ).toBe( 'good_nonce' );
 		} );
 	} );
 

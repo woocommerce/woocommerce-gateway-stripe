@@ -1,43 +1,16 @@
-/**
- * External dependencies
- */
-import { getExpressCheckoutData } from './utils';
-import apiFetch from '@wordpress/api-fetch';
+import { storeApiFetch } from './store-api';
 
 export default class ExpressCheckoutCartApi {
-	// Stores headers that are updated from response (e.g., refreshed nonce).
-	cartRequestHeaders = {};
-
 	/**
-	 * Makes a request to the Store API.
-	 *
-	 * Uses `parse: false` so we can access response headers for nonce refresh,
-	 * then manually parses the JSON body.
+	 * Makes a request to the Store API, flagged as an express checkout one.
 	 *
 	 * @param {Object} options Options to pass to `apiFetch`.
 	 * @return {Promise} Parsed JSON response.
 	 */
 	async _request( options ) {
-		const response = await apiFetch( {
-			...options,
-			parse: false,
-			headers: {
-				Nonce: getExpressCheckoutData( 'nonce' )?.wc_store_api,
-				'X-WCSTRIPE-EXPRESS-CHECKOUT': 'true',
-				'X-WCSTRIPE-EXPRESS-CHECKOUT-NONCE':
-					getExpressCheckoutData( 'nonce' )
-						?.wc_store_api_express_checkout,
-				...this.cartRequestHeaders,
-				...options.headers,
-			},
+		const response = await storeApiFetch( options, {
+			expressCheckoutContext: true,
 		} );
-
-		const newNonce = response.headers.get( 'Nonce' );
-		if ( newNonce ) {
-			this.cartRequestHeaders = {
-				Nonce: newNonce,
-			};
-		}
 
 		return response.json();
 	}
