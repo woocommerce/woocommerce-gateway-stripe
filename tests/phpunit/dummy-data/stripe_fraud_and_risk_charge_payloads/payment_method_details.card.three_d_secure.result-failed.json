@@ -1,0 +1,22 @@
+{
+	"id": "ch_test1",
+	"object": "charge",
+	"outcome":
+	{
+		"risk_level": "normal"
+	},
+	"payment_method_details":
+	{
+		"type": "card",
+		"card":
+		{
+			"checks": {
+				"cvc_check": "pass"
+			},
+			"three_d_secure":
+			{
+				"result": "failed"
+			}
+		}
+	}
+}

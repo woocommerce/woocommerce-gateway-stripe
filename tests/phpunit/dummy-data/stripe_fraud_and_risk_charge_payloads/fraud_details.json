@@ -1,0 +1,12 @@
+{
+	"id": "ch_test1",
+	"object": "charge",
+	"outcome":
+	{
+		"risk_level": "normal"
+	},
+	"fraud_details":
+	{
+		"stripe_report": "fraudulent"
+	}
+}

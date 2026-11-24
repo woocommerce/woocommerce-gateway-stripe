@@ -1,16 +1,16 @@
 <?php
-/**
- * Plugin Name: BNPL Box (Test)
- * Requires Plugins: woocommerce-gateway-stripe
- */
 
-abstract class WC_Stripe_Fraud_And_Risk_Helper {
-	public const STRIPE_CHARGE_FRAUD_FLAGS_META_NAME = 'stripe_charge_fraud_flags';
+abstract class WC_Stripe_Order_Fraud_And_Risk_Helper {
+	public const STRIPE_CHARGE_FRAUD_FLAGS_META_NAME = 'stripe_charge_fraud_and_risk_flags';
 
 	private const STRIPE_CHARGE_FRAUD_FLAGS_PROPERTIES = [
 		'outcome.risk_level',
+		'outcome.risk_score',
+		'outcome.type',
+		'outcome.reason',
 		'fraud_details',
 		'payment_method_details.card.checks',
+		'payment_method_details.card.three_d_secure',
 	];
 
 	private static function create_array_value_from_object( $src_object, &$dst_array, $path_components ) {
@@ -70,7 +70,7 @@ abstract class WC_Stripe_Fraud_And_Risk_Helper {
 
 	public static function get_order_transaction_fraud_flags( $order ) {
 		$fraud_flags    = null;
-		$transaction_id = $order->transaction_id;
+		$transaction_id = $order->get_transaction_id();
 
 		if ( ! $transaction_id ) {
 			return $fraud_flags;
@@ -102,10 +102,42 @@ abstract class WC_Stripe_Fraud_And_Risk_Helper {
 	public static function order_has_transaction_fraud_flags_risk( $order ) {
 		$fraud_flags = self::get_order_transaction_fraud_flags( $order );
 
-		if ( 'normal' === $fraud_flags->outcome->risk_level ) {
+		$check = $fraud_flags->outcome->risk_level ?? null;
+
+		if ( ! is_null( $check ) && 'normal' !== $check ) {
 			return $fraud_flags;
 		}
 
-		return null;
+		$check = $fraud_flags->fraud_details ?? null;
+
+		if ( ! is_null( $check ) ) {
+			return $fraud_flags;
+		}
+
+		$check = $fraud_flags->payment_method_details->card->checks->cvc_check ?? null;
+
+		if ( ! is_null( $check ) && 'pass' !== $check ) {
+			return $fraud_flags;
+		}
+
+		$check = $fraud_flags->payment_method_details->card->checks->address_line1_check ?? null;
+
+		if ( ! is_null( $check ) && 'fail' === $check ) {
+			return $fraud_flags;
+		}
+
+		$check = $fraud_flags->payment_method_details->card->checks->address_postal_code_check ?? null;
+
+		if ( ! is_null( $check ) && 'fail' === $check ) {
+			return $fraud_flags;
+		}
+
+		$check = $fraud_flags->payment_method_details->card->three_d_secure->result ?? null;
+
+		if ( ! is_null( $check ) && 'failed' === $check ) {
+			return $fraud_flags;
+		}
+
+		return false;
 	}
 }

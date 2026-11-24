@@ -1,0 +1,20 @@
+{
+	"id": "ch_test1",
+	"object": "charge",
+	"outcome":
+	{
+		"risk_level": "normal"
+	},
+	"payment_method_details":
+	{
+		"type": "card",
+		"card":
+		{
+			"checks": {
+				"cvc_check": "pass",
+				"address_line1_check": "pass",
+				"address_postal_code_check": "pass"
+			}
+		}
+	}
+}

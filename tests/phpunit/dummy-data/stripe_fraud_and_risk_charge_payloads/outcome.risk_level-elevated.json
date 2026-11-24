@@ -1,0 +1,8 @@
+{
+	"id": "ch_test1",
+	"object": "charge",
+	"outcome":
+	{
+		"risk_level": "elevated"
+	}
+}
