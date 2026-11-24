@@ -1,0 +1,4 @@
+Significance: patch
+Type: dev
+
+Upgrade @wordpress/scripts to 34.2.0 and Node to 20.20.2

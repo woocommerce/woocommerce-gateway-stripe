@@ -1,5 +1,6 @@
 /* global wcStripePluginsPageParams */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { navigateTo } from 'wcstripe/utils/navigation';
 import ExitSurveyModal, {
 	isCooldownActive,
 } from 'wcstripe/components/exit-survey-modal';
@@ -11,8 +12,7 @@ const PluginsPageApp = () => {
 
 	const proceedWithDeactivation = useCallback( () => {
 		if ( deactivateLink.current ) {
-			window.location.href =
-				deactivateLink.current.getAttribute( 'href' );
+			navigateTo( deactivateLink.current.getAttribute( 'href' ) );
 		}
 	}, [] );
 
