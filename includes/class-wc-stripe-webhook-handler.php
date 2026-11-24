@@ -957,7 +957,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * Measured against what's still unrefunded on the order, not the authorization, so a repeated
 	 * event, a charge.refunded event that already recorded the release, or an order reduced before
-	 * the capture doesn't refund more than was actually released.
+	 * the capture doesn't refund more than was actually released. The trade-off: a refund of
+	 * captured money recorded before this event (only if its webhook overtakes the capture's)
+	 * shrinks the release by that amount, so the order under-refunds rather than over-refunds.
 	 *
 	 * @param WC_Order $order           The order paid by the partially captured charge.
 	 * @param int      $captured_amount The captured amount, in the smallest currency unit.
