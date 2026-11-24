@@ -528,8 +528,8 @@ class WC_Stripe {
 	 * @return void
 	 */
 	private function record_plugin_updated_tracks_event( $previous_version ): void {
-		// NB: we already check if tracking is enabled in record_direct_event(),
-		// but this early check helps the account_id lookup when not necessary.
+		// NB: we already check if tracking is enabled in record_direct_event_without_shopper_details(),
+		// but this early check avoids the account_id lookup when not necessary.
 		if ( ! WC_Stripe_Tracks::is_tracking_enabled() ) {
 			return;
 		}
@@ -538,13 +538,9 @@ class WC_Stripe {
 			'previous_version' => is_string( $previous_version ) ? $previous_version : '',
 		];
 
-		// The account service is not set up when install() runs on an instance built without
-		// the constructor, so guard it rather than assume it.
-		if ( $this->account instanceof WC_Stripe_Account ) {
-			$account_data = $this->account->get_cached_account_data();
-			if ( is_string( $account_data['id'] ?? null ) ) {
-				$event_props['account_id'] = $account_data['id'];
-			}
+		$account_data = $this->account->get_cached_account_data();
+		if ( is_string( $account_data['id'] ?? null ) ) {
+			$event_props['account_id'] = $account_data['id'];
 		}
 
 		// install() runs on admin_init, which also fires for logged-out admin-ajax.php requests, so the
