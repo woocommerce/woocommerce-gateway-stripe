@@ -2371,12 +2371,16 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test that dispute creation does not send the failed order email by default.
+	 * Test that dispute creation does not send the failed order email by default, but can be overridden by a filter.
 	 *
+	 * @dataProvider provide_dispute_creation_email_test_cases
+	 *
+	 * @param bool|null $filter_result Whether the filter should return true or false, or null to not specify a filter.
+	 * @param bool      $expect_email  Whether the email should be sent.
 	 * @return void
 	 */
-	public function test_dispute_creation_does_not_send_failed_order_email(): void {
-		$charge_id = 'ch_test_dispute_no_failed_email';
+	public function test_dispute_creation_email_handling( ?bool $filter_result, bool $expect_email ): void {
+		$charge_id = 'ch_test_dispute';
 
 		$order = WC_Helper_Order::create_order();
 		$order->set_status( OrderStatus::PROCESSING );
@@ -2394,62 +2398,47 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		];
 
 		$webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'send_failed_order_email' ] )
+			->onlyMethods( [ 'send_failed_order_email' ] )
 			->getMock();
-		$webhook_handler->expects( $this->never() )->method( 'send_failed_order_email' );
+		$webhook_handler->expects( $expect_email ? $this->once() : $this->never() )->method( 'send_failed_order_email' );
 
-		$webhook_handler->process_webhook_dispute( $notification );
+		$send_email_filter = null;
+		$passed_order_id   = null;
+		if ( null !== $filter_result ) {
+			$send_email_filter = function ( $should_send, $order_id ) use ( $filter_result, &$passed_order_id ) {
+				$passed_order_id = $order_id;
+				return $filter_result;
+			};
+			add_filter( 'wc_stripe_send_failed_order_email_for_dispute', $send_email_filter, 10, 2 );
+		}
+
+		try {
+			$webhook_handler->process_webhook_dispute( $notification );
+		} finally {
+			if ( null !== $send_email_filter ) {
+				remove_filter( 'wc_stripe_send_failed_order_email_for_dispute', $send_email_filter, 10 );
+			}
+		}
+
+		// If we specified a filter, ensure that the filter was called with the expected order ID.
+		if ( null !== $send_email_filter ) {
+			$this->assertSame( $order->get_id(), $passed_order_id );
+		}
 
 		$this->assertSame( OrderStatus::ON_HOLD, wc_get_order( $order->get_id() )->get_status() );
 	}
 
 	/**
-	 * Test that dispute creation sends the failed order email when opted in via the filter.
+	 * Data provider for {@see test_dispute_creation_email_handling()}.
 	 *
-	 * @since x.x.x
-	 *
-	 * @return void
+	 * @return array
 	 */
-	public function test_dispute_creation_sends_failed_order_email_when_opted_in_via_filter(): void {
-		$charge_id = 'ch_test_dispute_opt_in_email';
-
-		$order = WC_Helper_Order::create_order();
-		$order->set_status( OrderStatus::PROCESSING );
-		$order->set_transaction_id( $charge_id );
-		$order->save();
-
-		$notification = (object) [
-			'type' => 'charge.dispute.created',
-			'data' => (object) [
-				'object' => (object) [
-					'charge' => $charge_id,
-					'status' => 'needs_response',
-				],
-			],
+	public static function provide_dispute_creation_email_test_cases(): array {
+		return [
+			'no filter does not send email'    => [ null, false ],
+			'filter true sends email'          => [ true, true ],
+			'filter false does not send email' => [ false, false ],
 		];
-
-		$passed_order_id = null;
-		$filter_callback = function ( $should_send, $order_id ) use ( &$passed_order_id ) {
-			$passed_order_id = $order_id;
-			return true;
-		};
-		add_filter( 'wc_stripe_send_failed_order_email_for_dispute', $filter_callback, 10, 2 );
-
-		try {
-			$webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-				->setMethods( [ 'send_failed_order_email' ] )
-				->getMock();
-			$webhook_handler->expects( $this->once() )
-				->method( 'send_failed_order_email' )
-				->with( $order->get_id() );
-
-			$webhook_handler->process_webhook_dispute( $notification );
-			$this->assertSame( $order->get_id(), $passed_order_id );
-		} finally {
-			remove_filter( 'wc_stripe_send_failed_order_email_for_dispute', $filter_callback, 10 );
-		}
-
-		$this->assertSame( OrderStatus::ON_HOLD, wc_get_order( $order->get_id() )->get_status() );
 	}
 
 	/**
@@ -2504,7 +2493,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Provider for `test_process_webhook_dispute_closed`.
+	 * Provider for {@see test_process_webhook_dispute_closed()}.
 	 *
 	 * @return array
 	 */
