@@ -11,13 +11,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class WC_Stripe_Tracks {
 	/**
-	 * Event properties WooCommerce reads from the current request in WC_Tracks::get_server_details().
-	 *
-	 * @var string[]
-	 */
-	private const REQUEST_DETAIL_PROPERTIES = [ '_via_ua', '_via_ip', '_lg', '_dr', '_dl' ];
-
-	/**
 	 * Whether site tracking is available and enabled.
 	 *
 	 * @since x.x.x
@@ -71,8 +64,8 @@ final class WC_Stripe_Tracks {
 	}
 
 	/**
-	 * Record a Tracks event, leaving out the request details when the current user is a shopper or
-	 * logged-out visitor rather than someone who can manage WooCommerce.
+	 * Record a Tracks event, leaving out the request details unless the current user can manage
+	 * WooCommerce. Use it for events that can be triggered by a shopper's or logged-out visitor's request.
 	 *
 	 * @since x.x.x
 	 *
@@ -90,21 +83,24 @@ final class WC_Stripe_Tracks {
 			return;
 		}
 
-		if ( ! class_exists( 'WC_Tracks' ) || ! method_exists( WC_Tracks::class, 'get_properties' ) || ! class_exists( 'WC_Tracks_Event' ) ) { // @phpstan-ignore function.alreadyNarrowedType (Defensive check to make sure the function is available in WooCommerce.)
+		if (
+			! class_exists( 'WC_Tracks' )
+			|| ! method_exists( WC_Tracks::class, 'get_properties' ) // @phpstan-ignore function.alreadyNarrowedType (Defensive check to make sure the function is available in WooCommerce.)
+			|| ! method_exists( WC_Tracks::class, 'get_server_details' )
+			|| ! class_exists( 'WC_Tracks_Client' )
+			|| ! method_exists( WC_Tracks_Client::class, 'record_event' ) // @phpstan-ignore function.alreadyNarrowedType (Defensive check to make sure the function is available in WooCommerce.)
+		) {
 			return;
 		}
 
-		$properties = WC_Tracks::get_properties( WC_Tracks::PREFIX . $event_name, $event_properties );
-		foreach ( self::REQUEST_DETAIL_PROPERTIES as $property ) {
-			unset( $properties[ $property ] );
-		}
+		$properties = array_diff_key(
+			WC_Tracks::get_properties( WC_Tracks::PREFIX . $event_name, $event_properties ),
+			WC_Tracks::get_server_details()
+		);
 
-		$event = new WC_Tracks_Event( $properties );
-		if ( is_wp_error( $event->error ) ) {
-			return;
-		}
-
-		$event->record();
+		// Send from the server rather than through WC_Tracks_Event::record(): on a rendered admin page
+		// that queues a footer image, and the browser requesting it would send its own IP and user agent.
+		WC_Tracks_Client::record_event( $properties );
 	}
 
 	/**
