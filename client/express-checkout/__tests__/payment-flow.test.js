@@ -45,6 +45,12 @@ describe( 'handleChangePaymentMethodFlow', () => {
 		// Set up jQuery mock that works with the real DOM.
 		const jQuery = require( 'jquery' );
 		global.jQuery = jQuery;
+
+		// jQuery follows the submit event with a native form submission, which
+		// jsdom cannot perform and reports as an error.
+		jest.spyOn( HTMLFormElement.prototype, 'submit' ).mockImplementation(
+			() => {}
+		);
 	} );
 
 	afterEach( () => {
