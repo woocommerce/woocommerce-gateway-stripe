@@ -1,5 +1,5 @@
 module.exports = {
-	testEnvironment: 'jsdom',
+	testEnvironment: '<rootDir>/tests/js/jest-environment.js',
 	testEnvironmentOptions: {
 		browsers: [ 'chrome', 'firefox', 'safari' ],
 	},
@@ -35,20 +35,10 @@ module.exports = {
 		'^wcstripe(.*)$': '<rootDir>/client$1',
 	},
 	globalSetup: '<rootDir>/tests/js/jest-global-setup.js',
-	setupFiles: [
-		require.resolve(
-			'@wordpress/jest-preset-default/scripts/setup-globals.js'
-		),
-	],
 	globals: {
 		wc_stripe_express_checkout_params: {},
 	},
-	setupFilesAfterEnv: [
-		require.resolve(
-			'@wordpress/jest-preset-default/scripts/setup-test-framework.js'
-		),
-		'<rootDir>/tests/js/jest-setup.js',
-	],
+	setupFilesAfterEnv: [ '<rootDir>/tests/js/jest-setup.js' ],
 	testPathIgnorePatterns: [
 		'/node_modules/',
 		'/vendor/',
