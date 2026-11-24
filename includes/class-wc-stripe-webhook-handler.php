@@ -2915,7 +2915,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		);
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
-		if ( $order_helper->was_stripe_adaptive_pricing_note_added( $order, $currency, $amount ) ) {
+		if ( $order_helper->is_stripe_adaptive_pricing_note_recorded( $order, $currency, $amount ) ) {
 			return;
 		}
 

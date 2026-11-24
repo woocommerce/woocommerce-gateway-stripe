@@ -753,7 +753,7 @@ class WC_Stripe_Order_Helper {
 	 * @param string        $amount   The presentment amount as a string.
 	 * @return bool
 	 */
-	public function was_stripe_adaptive_pricing_note_added( ?WC_Order $order, string $currency = '', string $amount = '' ): bool {
+	public function is_stripe_adaptive_pricing_note_recorded( ?WC_Order $order, string $currency = '', string $amount = '' ): bool {
 		$expected_note = $this->normalize_adaptive_pricing_note_amount( $currency, $amount );
 		if ( null === $expected_note ) {
 			return false;
@@ -780,7 +780,7 @@ class WC_Stripe_Order_Helper {
 			return;
 		}
 
-		if ( $this->was_stripe_adaptive_pricing_note_added( $order, $currency, $amount ) ) {
+		if ( $this->is_stripe_adaptive_pricing_note_recorded( $order, $currency, $amount ) ) {
 			return;
 		}
 
