@@ -81,6 +81,9 @@ module.exports = {
 		react: {
 			version: 'detect',
 		},
+		// Tests run on the Jest bundled with @wordpress/scripts, which this
+		// plugin cannot find from the project root to detect the version.
+		jest: { version: 30 },
 		'import/resolver': { webpack: {} },
 		jsdoc: { mode: 'typescript' },
 		// List of modules that are externals in our webpack config.
