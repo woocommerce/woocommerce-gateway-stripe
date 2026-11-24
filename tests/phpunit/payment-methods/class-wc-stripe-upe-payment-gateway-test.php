@@ -3683,11 +3683,16 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @param string      $session_status The session status, or 'missing' when Stripe doesn't know the session.
 	 * @param string      $payment_status The session payment status.
 	 * @param string|null $intent_status  The PaymentIntent status, or null when retrieving it fails.
-	 * @return void
+	 * @return ArrayObject One entry per request for the earlier session.
 	 */
-	private function mock_earlier_checkout_session( string $session_id, string $session_status, string $payment_status, ?string $intent_status ): void {
+	private function mock_earlier_checkout_session( string $session_id, string $session_status, string $payment_status, ?string $intent_status ): ArrayObject {
+		$session_requests = new ArrayObject();
 		$this->mock_gateway->method( 'stripe_request' )->willReturnCallback(
-			function ( $path ) use ( $session_id, $session_status, $payment_status, $intent_status ) {
+			function ( $path ) use ( $session_id, $session_status, $payment_status, $intent_status, $session_requests ) {
+				if ( 'checkout/sessions/' . $session_id === $path ) {
+					$session_requests[] = $path;
+				}
+
 				if ( 'checkout/sessions/' . $session_id === $path && 'missing' === $session_status ) {
 					return (object) [ 'error' => (object) [ 'code' => 'resource_missing' ] ];
 				}
@@ -3715,6 +3720,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				return null;
 			}
 		);
+
+		return $session_requests;
 	}
 
 	/**
@@ -3729,10 +3736,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @param string|null $intent_status  The earlier PaymentIntent status, or null when retrieving it fails.
 	 */
 	public function test_new_payment_is_blocked_while_earlier_checkout_session_may_be_paid( string $attempt, string $payment_status, ?string $intent_status ) {
-		$old_session_id = 'cs_test_earlier';
-		$new_session_id = 'cs_test_retry';
-		$order          = $this->create_order_with_earlier_checkout_session( $attempt, $old_session_id, $new_session_id );
-		$this->mock_earlier_checkout_session( $old_session_id, 'complete', $payment_status, $intent_status );
+		$old_session_id   = 'cs_test_earlier';
+		$new_session_id   = 'cs_test_retry';
+		$order            = $this->create_order_with_earlier_checkout_session( $attempt, $old_session_id, $new_session_id );
+		$session_requests = $this->mock_earlier_checkout_session( $old_session_id, 'complete', $payment_status, $intent_status );
 
 		$this->mock_gateway->intent_controller
 			->expects( $this->never() )
@@ -3765,6 +3772,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			'Stripe: a new payment attempt was blocked because the payment for Checkout Session cs_test_earlier is still processing or already paid. The customer was not charged again.',
 			$notes[0]->content
 		);
+		$this->assertCount( 1, $session_requests, 'The earlier session must be retrieved from Stripe only once.' );
 	}
 
 	/**
@@ -3871,9 +3879,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order          = $this->create_order_with_earlier_checkout_session( $attempt, $old_session_id, '' );
 
 		if ( 'failed' !== $session_state ) {
-			$this->mock_earlier_checkout_session( $old_session_id, $session_state, 'unpaid', null );
+			$session_requests = $this->mock_earlier_checkout_session( $old_session_id, $session_state, 'unpaid', null );
 		} else {
-			$this->mock_earlier_checkout_session( $old_session_id, 'complete', 'unpaid', WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD );
+			$session_requests = $this->mock_earlier_checkout_session( $old_session_id, 'complete', 'unpaid', WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD );
 		}
 
 		$expire_requested = false;
@@ -3917,6 +3925,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$this->assertStringNotContainsString( WC_Stripe_Checkout_Session_Context::get_unavailable_message(), $error['notice'] );
 		}
 		$this->assertSame( 'open' === $session_state, $expire_requested );
+		$this->assertCount( 1, $session_requests, 'The earlier session must be retrieved from Stripe only once.' );
 		$this->assertSame( '', (string) WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( wc_get_order( $order->get_id() ) ) );
 		$this->assertNull( WC_Stripe_Checkout_Session_Context::get_context( $old_session_id ) );
 	}

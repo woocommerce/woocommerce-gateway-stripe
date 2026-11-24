@@ -1856,18 +1856,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// Webhooks find an Adaptive Pricing payment only through the session ID stored on the order,
 		// since its intent is created before the order exists. Unlinking a session that can still be
 		// paid would orphan that payment, and the customer would be charged twice.
-		try {
-			$checkout_session_status = $this->expire_checkout_session_if_open( $checkout_session_id );
-		} catch ( WC_Stripe_Exception $e ) {
+		$checkout_session = $this->retrieve_checkout_session( $checkout_session_id );
+		if ( $this->is_checkout_session_missing( $checkout_session_id, $checkout_session ) ) {
 			// After switching modes or Stripe accounts, the stored session doesn't exist on the connected
 			// account, so it can't take a payment here. Keeping it would block every retry for good.
-			if ( ! $this->is_checkout_session_missing( $checkout_session_id ) ) {
-				throw $e;
-			}
 			$checkout_session_status = 'missing';
+		} else {
+			$checkout_session_status = $this->expire_checkout_session_if_open( $checkout_session_id, $checkout_session );
 		}
 
-		if ( 'complete' === $checkout_session_status && $this->may_checkout_session_payment_succeed( $checkout_session_id, $order ) ) {
+		if ( 'complete' === $checkout_session_status && $this->may_checkout_session_payment_succeed( $checkout_session, $order ) ) {
 			// One note per blocked attempt, so a merchant asked about repeated payment attempts can see each of them.
 			$order->add_order_note(
 				sprintf(
@@ -1891,21 +1889,31 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Retrieves a Checkout Session from Stripe, returning the raw response, which may be an error.
+	 *
+	 * @param string $checkout_session_id Stripe Checkout Session ID.
+	 * @return mixed The Stripe response.
+	 * @throws WC_Stripe_Exception When the request fails.
+	 */
+	private function retrieve_checkout_session( string $checkout_session_id ) {
+		try {
+			return $this->stripe_request( 'checkout/sessions/' . $checkout_session_id );
+		} catch ( Exception $e ) {
+			throw new WC_Stripe_Exception( $e->getMessage(), WC_Stripe_Checkout_Session_Context::get_unavailable_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+	}
+
+	/**
 	 * Checks whether Stripe reports the Checkout Session as missing on the connected account.
 	 *
 	 * @param string $checkout_session_id Stripe Checkout Session ID.
+	 * @param mixed  $response            Stripe's response for the session.
 	 * @return bool True only when Stripe answers with `resource_missing`.
 	 */
-	private function is_checkout_session_missing( string $checkout_session_id ): bool {
+	private function is_checkout_session_missing( string $checkout_session_id, $response ): bool {
 		// Test keys can't see live sessions, so a live one looks missing while the store is in test mode.
 		// Its payment is real money that settles once the store is back in live mode, so keep it linked.
 		if ( str_starts_with( $checkout_session_id, 'cs_live_' ) && WC_Stripe_Mode::is_test() ) {
-			return false;
-		}
-
-		try {
-			$response = $this->stripe_request( 'checkout/sessions/' . $checkout_session_id );
-		} catch ( Exception $e ) {
 			return false;
 		}
 
@@ -1930,15 +1938,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @since x.x.x
 	 *
 	 * @param string $checkout_session_id Stripe Checkout Session ID.
+	 * @param mixed  $checkout_session    The session as already retrieved from Stripe, or null to retrieve it here.
 	 * @return string The Session's status afterwards: `expired`, or the status that made it impossible to expire (for example `complete`).
 	 * @throws WC_Stripe_Exception When the Session cannot be retrieved or an open Session cannot be confirmed as expired.
 	 */
-	private function expire_checkout_session_if_open( string $checkout_session_id ): string {
+	private function expire_checkout_session_if_open( string $checkout_session_id, $checkout_session = null ): string {
 		$unavailable_message = WC_Stripe_Checkout_Session_Context::get_unavailable_message();
-		try {
-			$checkout_session = $this->stripe_request( 'checkout/sessions/' . $checkout_session_id );
-		} catch ( Exception $e ) {
-			throw new WC_Stripe_Exception( $e->getMessage(), $unavailable_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		if ( null === $checkout_session ) {
+			$checkout_session = $this->retrieve_checkout_session( $checkout_session_id );
 		}
 		if (
 			! is_object( $checkout_session )
@@ -1980,27 +1987,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * processing, and a failed one leaves it completed as well. Only the PaymentIntent tells the two
 	 * apart, so anything other than a confirmed failure counts as "may still succeed".
 	 *
-	 * @param string   $checkout_session_id The completed Checkout Session.
-	 * @param WC_Order $order               The order being paid.
+	 * @param object   $checkout_session The completed Checkout Session, already validated by `expire_checkout_session_if_open()`.
+	 * @param WC_Order $order            The order being paid.
 	 * @return bool False only when the payment has definitely failed.
-	 * @throws WC_Stripe_Exception When the session or its PaymentIntent cannot be retrieved.
+	 * @throws WC_Stripe_Exception When the PaymentIntent cannot be retrieved.
 	 */
-	private function may_checkout_session_payment_succeed( string $checkout_session_id, WC_Order $order ): bool {
-		$unavailable_message = WC_Stripe_Checkout_Session_Context::get_unavailable_message();
-		try {
-			$checkout_session = $this->stripe_request( 'checkout/sessions/' . $checkout_session_id );
-		} catch ( Exception $e ) {
-			throw new WC_Stripe_Exception( $e->getMessage(), $unavailable_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-		}
-		// Stripe errors come back as objects too (for example WP_Error), so check the shape before trusting it.
-		if (
-			! is_object( $checkout_session )
-			|| ! isset( $checkout_session->id )
-			|| $checkout_session_id !== $checkout_session->id
-		) {
-			throw new WC_Stripe_Exception( 'Unable to retrieve the Checkout Session.', $unavailable_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-		}
-
+	private function may_checkout_session_payment_succeed( object $checkout_session, WC_Order $order ): bool {
 		$payment_status = isset( $checkout_session->payment_status ) && is_string( $checkout_session->payment_status )
 			? $checkout_session->payment_status
 			: '';
