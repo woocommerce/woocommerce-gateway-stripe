@@ -1868,6 +1868,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		if ( 'complete' === $checkout_session_status && $this->may_checkout_session_payment_succeed( $checkout_session_id, $order ) ) {
+			// One note per blocked attempt, so a merchant asked about repeated payment attempts can see each of them.
+			$order->add_order_note(
+				sprintf(
+					/* translators: %s: Stripe Checkout Session ID. */
+					__( 'Stripe: a new payment attempt was blocked because the payment for Checkout Session %s is still processing or already paid. The customer was not charged again.', 'woocommerce-gateway-stripe' ),
+					$checkout_session_id
+				)
+			);
 			return false;
 		}
 

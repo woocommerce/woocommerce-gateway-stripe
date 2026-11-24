@@ -3758,6 +3758,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$processed_order = wc_get_order( $order->get_id() );
 		$this->assertSame( OrderStatus::PENDING, $processed_order->get_status() );
 		$this->assertSame( $old_session_id, WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( $processed_order ) );
+
+		// Debug logs are often off, so the order note is how the merchant learns why the attempt didn't charge.
+		$notes = wc_get_order_notes( [ 'order_id' => $order->get_id() ] );
+		$this->assertSame(
+			'Stripe: a new payment attempt was blocked because the payment for Checkout Session cs_test_earlier is still processing or already paid. The customer was not charged again.',
+			$notes[0]->content
+		);
 	}
 
 	/**
