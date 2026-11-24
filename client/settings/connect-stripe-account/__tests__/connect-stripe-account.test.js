@@ -196,10 +196,6 @@ describe( 'ConnectStripeAccount', () => {
 
 		const { container } = render( <ConnectStripeAccount /> );
 
-		// The tooltip wraps the connect button in a button of its own, which
-		// React reports as invalid nesting.
-		expect( console ).toHaveErrored();
-
 		// The button should be rendered but disabled
 		const connectAccountButton = screen.getByText(
 			'Create or connect an account'
@@ -238,5 +234,19 @@ describe( 'ConnectStripeAccount', () => {
 			'wcstripe_create_or_connect_account_click',
 			{}
 		);
+
+		// The tooltip wraps the connect button in a button of its own, which
+		// React reports as invalid nesting. Asserting on console.error turns
+		// the unexpected-error check off for this test, so pin the whole list.
+		expect( console ).toHaveErrored();
+		// eslint-disable-next-line no-console
+		expect( console.error.mock.calls ).toEqual( [
+			[
+				expect.stringContaining( 'validateDOMNesting' ),
+				'<button>',
+				'button',
+				expect.any( String ),
+			],
+		] );
 	} );
 } );
