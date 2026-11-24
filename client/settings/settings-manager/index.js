@@ -4,16 +4,17 @@ import { getQuery, updateQueryString } from '@woocommerce/navigation';
 import styled from '@emotion/styled';
 import { isEmpty, isEqual } from 'lodash';
 import SettingsLayout from '../settings-layout';
-import PMCSyncNotice from '../pmc-sync-notice';
+import PmcReviewTable, { usePmcReview } from '../pmc-review';
 import PaymentSettingsPanel from '../payment-settings';
 import PaymentMethodsPanel from '../payment-methods';
 import AgenticCommerceSection from '../agentic-commerce';
 import SaveSettingsSection from '../save-settings-section';
 import { useEnabledPaymentMethodIds, useSettings } from '../../data';
-import { TabPanel } from '@wordpress/components';
+import { Button, TabPanel } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import { useEffect } from '@wordpress/element';
 import { useAccount } from 'wcstripe/data/account';
+import InlineNotice from 'wcstripe/components/inline-notice';
 import OCToggleContext from 'wcstripe/settings/oc-toggle/context';
 import { getPromotionalBannerType } from 'wcstripe/settings/payment-settings/promotional-banner/get-promotional-banner-type';
 import ExitSurveyModal, {
@@ -77,6 +78,14 @@ const SettingsManager = () => {
 	}, [ isLoading, settings, initialSettings ] );
 
 	const [ showExitSurvey, setShowExitSurvey ] = useState( false );
+	const hasUnsavedChanges = ! isEqual( settings, initialSettings );
+	const pmcReview = usePmcReview( {
+		onResolved: setInitialSettings,
+		hasUnsavedChanges,
+	} );
+	const isPmcReviewPending = Boolean( pmcReview.review?.differs );
+	// The review table shows its own errors; without it, the error would otherwise go unseen.
+	const showPmcError = Boolean( pmcReview.error ) && ! isPmcReviewPending;
 
 	const onSettingsSave = () => {
 		// Show exit survey if Stripe was just disabled.
@@ -120,10 +129,21 @@ const SettingsManager = () => {
 
 	return (
 		<SettingsLayout>
-			<PMCSyncNotice
-				onResolved={ setInitialSettings }
-				hasUnsavedChanges={ ! isEqual( settings, initialSettings ) }
-			/>
+			{ showPmcError && (
+				<InlineNotice
+					status="warning"
+					isDismissible={ false }
+					spokenMessage={ pmcReview.error }
+				>
+					<p>{ pmcReview.error }</p>
+					<Button variant="secondary" onClick={ pmcReview.refresh }>
+						{ __(
+							'Refresh comparison',
+							'woocommerce-gateway-stripe'
+						) }
+					</Button>
+				</InlineNotice>
+			) }
 			{ showExitSurvey && (
 				<ExitSurveyModal
 					trigger="settings_disable"
@@ -153,7 +173,13 @@ const SettingsManager = () => {
 								setIsOCEnabled={ setIsOCEnabled }
 							/>
 						) }
-						{ tab.name === 'methods' && (
+						{ tab.name === 'methods' && isPmcReviewPending && (
+							<PmcReviewTable
+								{ ...pmcReview }
+								hasUnsavedChanges={ hasUnsavedChanges }
+							/>
+						) }
+						{ tab.name === 'methods' && ! isPmcReviewPending && (
 							<PaymentMethodsPanel
 								onSaveChanges={ onSaveChanges }
 								showPromotionalBanner={ showPromotionalBanner }
@@ -168,11 +194,14 @@ const SettingsManager = () => {
 						{ tab.name === 'agentic-commerce' && (
 							<AgenticCommerceSection />
 						) }
-						{ tab.name !== 'agentic-commerce' && (
-							<SaveSettingsSection
-								onSettingsSave={ onSettingsSave }
-							/>
-						) }
+						{ tab.name !== 'agentic-commerce' &&
+							! (
+								tab.name === 'methods' && isPmcReviewPending
+							) && (
+								<SaveSettingsSection
+									onSettingsSave={ onSettingsSave }
+								/>
+							) }
 					</div>
 				) }
 			</StyledTabPanel>

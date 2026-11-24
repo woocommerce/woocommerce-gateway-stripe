@@ -101,6 +101,7 @@ class WC_Stripe_Admin_Notices {
 		// can suppress notices that would be misleading during an outage.
 		$this->check_api_outage();
 		$this->check_oauth_deauthorization();
+		$this->check_pmc_sync_review();
 
 		// Main Stripe payment method.
 		$this->stripe_check_environment();
@@ -156,6 +157,10 @@ class WC_Stripe_Admin_Notices {
 					],
 					'strong' => [],
 					'br'     => [],
+					'span'   => [
+						'class'       => [],
+						'aria-hidden' => [],
+					],
 					'img'    => [
 						'src'   => [],
 						'alt'   => [],
@@ -211,6 +216,32 @@ class WC_Stripe_Admin_Notices {
 			true,
 			[ WC_Stripe_Helper::get_external_link( 'https://woocommerce.com/my-account/contact-support/?select=18627', __( 'Get support', 'woocommerce-gateway-stripe' ), 'button' ) ]
 		);
+	}
+
+	/**
+	 * Shows an admin-wide notice while local and Stripe payment method selections disagree.
+	 *
+	 * @since x.x.x
+	 */
+	private function check_pmc_sync_review(): void {
+		// The Stripe settings page shows the review itself, so the notice would only repeat it there.
+		$is_stripe_settings_page = isset( $_GET['page'], $_GET['section'] ) && 'wc-settings' === $_GET['page'] && 0 === strpos( sanitize_text_field( wp_unslash( $_GET['section'] ) ), 'stripe' ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( $is_stripe_settings_page || ! WC_Stripe_Payment_Method_Configurations::has_pending_sync_review() ) {
+			return;
+		}
+
+		$message  = '<span class="dashicons dashicons-warning" aria-hidden="true"></span> ';
+		$message .= '<strong>' . esc_html__( 'Your Stripe payment methods need attention', 'woocommerce-gateway-stripe' ) . '</strong><br>';
+		$message .= esc_html__( 'The payment methods enabled in WooCommerce no longer match the ones in your Stripe account. Checkout keeps using your WooCommerce selection until you review the differences.', 'woocommerce-gateway-stripe' );
+
+		$review_action = sprintf(
+			'<a href="%s" class="button button-primary" style="margin:0 0 0.5em 0;">%s</a>',
+			esc_url( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=methods' ) ),
+			esc_html__( 'Review payment methods', 'woocommerce-gateway-stripe' )
+		);
+
+		// Not dismissible: sync stays paused until the merchant reviews, so hiding this would let it stay off unnoticed.
+		$this->add_admin_notice( 'pmc_sync_review', 'notice notice-error', $message, false, [ $review_action ] );
 	}
 
 	/**

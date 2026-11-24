@@ -290,6 +290,7 @@ class WC_Stripe_Settings_Controller {
 				? WC_Stripe_Agentic_Commerce_Product_List_Table::get_excluded_products_url()
 				: '',
 			'show_stripe_first_method_notice'        => WC_Stripe_Helper::should_show_stripe_first_method_notice(),
+			'pmc_method_review'                      => $this->get_preloaded_pmc_method_review(),
 		];
 		$params = array_merge( $params, WC_Stripe_Helper::get_exit_survey_params( $this->account ) );
 		wp_localize_script(
@@ -304,6 +305,25 @@ class WC_Stripe_Settings_Controller {
 
 		wp_enqueue_script( 'woocommerce_stripe_admin' );
 		wp_enqueue_style( 'woocommerce_stripe_admin' );
+	}
+
+	/**
+	 * Returns the payment method review for the first render, or null when there is nothing to review.
+	 *
+	 * Fetching it here instead of after the page loads stops the regular payment methods list from
+	 * flashing before the review replaces it. The Stripe call only happens while sync is off.
+	 *
+	 * @since x.x.x
+	 * @return array|null
+	 */
+	private function get_preloaded_pmc_method_review(): ?array {
+		if ( WC_Stripe_Payment_Method_Configurations::is_enabled() || ! WC_Stripe_Helper::is_connected() ) {
+			return null;
+		}
+
+		// On errors the client fetches again and shows the error with a retry action.
+		$review = WC_Stripe_Payment_Method_Configurations::get_sync_method_review();
+		return is_array( $review ) ? $review : null;
 	}
 
 	/**

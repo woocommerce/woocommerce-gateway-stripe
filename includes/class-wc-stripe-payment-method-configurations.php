@@ -50,6 +50,16 @@ class WC_Stripe_Payment_Method_Configurations {
 	public const FETCH_COOLDOWN_OPTION_KEY = 'wcstripe_payment_method_config_fetch_cooldown';
 
 	/**
+	 * Last payment method selections both sides agreed on, per mode. Only used to preselect review answers.
+	 */
+	private const SYNC_BASELINE_OPTION_KEY = 'wc_stripe_pmc_sync_baseline';
+
+	/**
+	 * Option key remembering whether the last fresh comparison found a difference.
+	 */
+	private const SYNC_REVIEW_PENDING_OPTION_KEY = 'wc_stripe_pmc_sync_review_pending';
+
+	/**
 	 * Get the merchant payment method configuration in Stripe.
 	 *
 	 * @param bool $force_refresh Whether to force a refresh of the payment method configuration from Stripe.
@@ -128,6 +138,12 @@ class WC_Stripe_Payment_Method_Configurations {
 		self::$primary_configuration = $configuration;
 		WC_Stripe_Database_Cache::set( self::CONFIGURATION_CACHE_KEY, $configuration, self::CONFIGURATION_CACHE_EXPIRATION );
 		self::sync_payment_methods_to_settings( $configuration );
+
+		// Only fresh configurations from Stripe land here, never cached reads, so storefront
+		// requests don't touch the baseline. While sync is on, both sides agree by definition.
+		if ( self::is_enabled() && self::is_valid_configuration( $configuration ) ) {
+			self::update_sync_baseline( $configuration );
+		}
 	}
 
 	/**
@@ -863,6 +879,33 @@ class WC_Stripe_Payment_Method_Configurations {
 	}
 
 	/**
+	 * Whether the last known Stripe configuration differs from the local selection while sync is off.
+	 *
+	 * @since x.x.x
+	 * @return bool
+	 */
+	public static function has_pending_sync_review(): bool {
+		if ( ! WC_Stripe_Helper::is_connected() || self::is_enabled() ) {
+			return false;
+		}
+
+		// The configuration cache expires after minutes, so the result of the last fresh
+		// comparison is what keeps the notice up until the merchant resolves it.
+		if ( 'yes' === get_option( self::SYNC_REVIEW_PENDING_OPTION_KEY ) ) {
+			return true;
+		}
+
+		// This runs on every admin page load, so it never calls Stripe.
+		$configuration = self::get_payment_method_configuration_from_cache();
+		if ( ! self::is_valid_configuration( $configuration ) ) {
+			return false;
+		}
+
+		$local_selections = self::local_selections( WC_Stripe_Helper::get_stripe_settings() );
+		return self::configuration_selections( $configuration ) !== $local_selections;
+	}
+
+	/**
 	 * Builds the comparison and keeps the configuration it was derived from, so a caller that
 	 * goes on to write to Stripe does not have to fetch the same configuration a second time.
 	 *
@@ -884,10 +927,26 @@ class WC_Stripe_Payment_Method_Configurations {
 		if ( self::connection_context() !== $context || self::is_enabled() ) {
 			return new WP_Error( 'pmc_changed', __( 'Payment settings changed. Refresh the comparison and try again.', 'woocommerce-gateway-stripe' ), [ 'status' => 409 ] );
 		}
+		$review = self::review_data( $configuration, $settings );
+		self::remember_sync_review_result( $review['differs'] );
 		return [
-			'review'        => self::review_data( $configuration, $settings ),
+			'review'        => $review,
 			'configuration' => $configuration,
 		];
+	}
+
+	/**
+	 * Stores the outcome of a fresh comparison for the admin-wide notice.
+	 *
+	 * @since x.x.x
+	 * @param bool $differs Whether the local and Stripe selections differ.
+	 */
+	private static function remember_sync_review_result( bool $differs ): void {
+		if ( $differs ) {
+			update_option( self::SYNC_REVIEW_PENDING_OPTION_KEY, 'yes', false );
+			return;
+		}
+		delete_option( self::SYNC_REVIEW_PENDING_OPTION_KEY );
 	}
 
 	/**
@@ -944,9 +1003,304 @@ class WC_Stripe_Payment_Method_Configurations {
 			return new WP_Error( 'pmc_changed', __( 'Payment settings changed. Refresh the comparison and try again.', 'woocommerce-gateway-stripe' ), [ 'status' => 409 ] );
 		}
 		WC_Stripe::get_instance()->update_settings( array_merge( $settings, $expected, [ 'pmc_enabled' => 'yes' ] ) );
+		self::remember_sync_review_result( false );
 		self::set_payment_method_configuration_cache( $configuration );
 		update_option( self::FETCH_COOLDOWN_OPTION_KEY, time() + MINUTE_IN_SECONDS );
 		return true;
+	}
+
+	/**
+	 * Compare local and Stripe choices method by method, preselecting a side for each.
+	 *
+	 * @since x.x.x
+	 * @return array|WP_Error
+	 */
+	public static function get_sync_method_review() {
+		$result = self::build_sync_review();
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		if ( null === $result['configuration'] ) {
+			return $result['review'];
+		}
+		return self::method_review_data( $result['configuration'], $result['review'] );
+	}
+
+	/**
+	 * Apply per-method picks to Stripe, then activate synchronization after verification.
+	 *
+	 * @since x.x.x
+	 * @param string[] $enabled  Method IDs the merchant wants on, wallets included.
+	 * @param string   $revision Revision returned by get_sync_method_review().
+	 * @return true|WP_Error
+	 */
+	public static function resolve_sync_method_review( array $enabled, string $revision ) {
+		$result = self::build_sync_review();
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		$configuration = $result['configuration'];
+		if ( null === $configuration ) {
+			return new WP_Error( 'pmc_changed', __( 'Payment settings changed. Refresh the comparison and try again.', 'woocommerce-gateway-stripe' ), [ 'status' => 409 ] );
+		}
+		$review = self::method_review_data( $configuration, $result['review'] );
+		if ( ! hash_equals( $review['revision'], $revision ) ) {
+			return new WP_Error( 'pmc_changed', __( 'Payment settings changed. Refresh the comparison and try again.', 'woocommerce-gateway-stripe' ), [ 'status' => 409 ] );
+		}
+
+		$context = self::connection_context();
+		$wanted  = [];
+		$payload = [];
+		foreach ( self::reviewable_method_ids() as $id ) {
+			$wanted[ $id ] = in_array( $id, $enabled, true );
+			$display       = $configuration->$id->display_preference ?? null;
+			$is_on         = 'on' === ( $display->value ?? null );
+			if ( $is_on === $wanted[ $id ] ) {
+				continue;
+			}
+			if ( null === $display || false === ( $display->overridable ?? true ) ) {
+				/* translators: %s: payment method name. */
+				return new WP_Error( 'pmc_method_unavailable', sprintf( __( 'Stripe cannot change %s from this store. Change that selection or use Stripe’s settings.', 'woocommerce-gateway-stripe' ), self::method_label( $id ) ), [ 'status' => 409 ] );
+			}
+			$payload[ $id ] = [ 'display_preference' => [ 'preference' => $wanted[ $id ] ? 'on' : 'off' ] ];
+		}
+
+		if ( $payload ) {
+			$configuration = WC_Stripe_API::get_instance()->update_payment_method_configurations( $configuration->id, $payload );
+		}
+
+		// Stripe can accept the request yet keep a method in its previous state, so check every
+		// method rather than only the ones sent.
+		$rejected = [];
+		foreach ( $wanted as $id => $is_wanted ) {
+			if ( ( 'on' === ( $configuration->$id->display_preference->value ?? null ) ) !== $is_wanted ) {
+				$rejected[] = self::method_label( $id );
+			}
+		}
+		if ( $rejected || ! self::is_valid_configuration( $configuration ) || $review['configuration_id'] !== $configuration->id ) {
+			return new WP_Error( 'pmc_verification_failed', __( 'Stripe could not apply all selected payment methods. Synchronization remains off. Refresh the comparison or use Stripe’s settings.', 'woocommerce-gateway-stripe' ) . ( $rejected ? ' ' . implode( ', ', $rejected ) : '' ), [ 'status' => 502 ] );
+		}
+
+		$settings = WC_Stripe::get_instance()->get_settings();
+		if ( self::connection_context() !== $context || self::local_selections( $settings ) !== $result['review']['local'] || self::is_enabled() ) {
+			return new WP_Error( 'pmc_changed', __( 'Payment settings changed. Refresh the comparison and try again.', 'woocommerce-gateway-stripe' ), [ 'status' => 409 ] );
+		}
+
+		$upe_methods = array_values( array_intersect( array_keys( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS ), array_keys( array_filter( $wanted ) ) ) );
+		sort( $upe_methods );
+		$wants_wallets = $wanted[ WC_Stripe_Payment_Methods::APPLE_PAY ] || $wanted[ WC_Stripe_Payment_Methods::GOOGLE_PAY ];
+
+		$settings['upe_checkout_experience_accepted_payments'] = $upe_methods;
+		$settings['express_checkout']                          = $wants_wallets ? 'yes' : 'no';
+		$settings['pmc_enabled']                               = 'yes';
+		WC_Stripe::get_instance()->update_settings( $settings );
+		self::remember_sync_review_result( false );
+		self::set_payment_method_configuration_cache( $configuration );
+		update_option( self::FETCH_COOLDOWN_OPTION_KEY, time() + MINUTE_IN_SECONDS );
+		return true;
+	}
+
+	/**
+	 * Adds per-method rows and their preselection to a review built by build_sync_review().
+	 */
+	private static function method_review_data( object $configuration, array $review ): array {
+		$mode          = WC_Stripe_Mode::is_test() ? 'test' : 'live';
+		$baseline      = self::get_sync_baseline();
+		$mode_baseline = $baseline[ $mode ] ?? null;
+		$source_mode   = $baseline['local_source_mode'] ?? null;
+		$switched_from = ( null !== $source_mode && $source_mode !== $mode ) ? $source_mode : null;
+		$other_mode    = null !== $switched_from ? ( $baseline[ $switched_from ] ?? null ) : null;
+		$local_methods = $review['local']['upe_checkout_experience_accepted_payments'];
+		$local_wallets = 'yes' === $review['local']['express_checkout'];
+
+		$stripe_wallets = [
+			WC_Stripe_Payment_Methods::APPLE_PAY  => 'on' === ( $configuration->apple_pay->display_preference->value ?? null ),
+			WC_Stripe_Payment_Methods::GOOGLE_PAY => 'on' === ( $configuration->google_pay->display_preference->value ?? null ),
+		];
+
+		$other_mode_wallets = null !== $other_mode && ( $other_mode[ WC_Stripe_Payment_Methods::APPLE_PAY ] || $other_mode[ WC_Stripe_Payment_Methods::GOOGLE_PAY ] );
+
+		$rows = [];
+		foreach ( self::reviewable_method_ids() as $id ) {
+			$display   = $configuration->$id->display_preference ?? null;
+			$is_wallet = isset( $stripe_wallets[ $id ] );
+			$stripe    = 'on' === ( $display->value ?? null );
+			$local     = $is_wallet ? self::local_wallet_value( $id, $local_wallets, $stripe_wallets ) : in_array( $id, $local_methods, true );
+			if ( ! $local && ! $stripe && null === $display ) {
+				continue;
+			}
+
+			$baseline_value   = null === $mode_baseline ? null : self::baseline_value( $mode_baseline, $id );
+			$other_mode_value = null === $other_mode ? null : self::baseline_value( $other_mode, $id );
+
+			// The local list was copied from the other mode, so a value that still matches it was
+			// not chosen for this mode. One that no longer matches was edited after the switch.
+			$edited_after_switch = null;
+			if ( null !== $other_mode ) {
+				$edited_after_switch = $is_wallet ? $other_mode_wallets !== $local_wallets : $other_mode_value !== $local;
+			}
+
+			$stripe_inherited         = 'none' === ( $display->preference ?? null );
+			[ $preselected, $reason ] = self::preselect( $local, $stripe, $baseline_value, $edited_after_switch, $stripe_inherited );
+
+			$rows[] = [
+				'id'                => $id,
+				'local'             => $local,
+				'stripe'            => $stripe,
+				'baseline'          => $baseline_value,
+				'other_mode_stripe' => $other_mode_value,
+				'preselected'       => $preselected,
+				'reason'            => $reason,
+				'overridable'       => null !== $display && false !== ( $display->overridable ?? true ),
+			];
+		}
+
+		return [
+			'differs'              => $review['differs'],
+			// The base revision folds wallets into one express checkout flag, so a single wallet
+			// flipping in Stripe would otherwise go unnoticed between review and save.
+			'revision'             => hash( 'sha256', (string) wp_json_encode( [ $review['revision'], $review['wallets'] ] ) ),
+			'configuration_id'     => $review['configuration_id'],
+			'mode'                 => $mode,
+			'mode_switched_from'   => $switched_from,
+			'has_baseline'         => null !== $mode_baseline,
+			'baseline_synced_at'   => $mode_baseline['synced_at'] ?? null,
+			'other_mode_synced_at' => $other_mode['synced_at'] ?? null,
+			'methods'              => $rows,
+		];
+	}
+
+	/**
+	 * The store keeps one toggle for both wallets, so it can't say which wallet it means.
+	 *
+	 * When that toggle agrees with Stripe overall, each wallet is treated as matching Stripe;
+	 * otherwise a single wallet enabled in Stripe would look like a local change to the other one.
+	 */
+	private static function local_wallet_value( string $id, bool $local_wallets_on, array $stripe_wallets ): bool {
+		$stripe_wallets_on = in_array( true, $stripe_wallets, true );
+		if ( $stripe_wallets_on === $local_wallets_on ) {
+			return $stripe_wallets[ $id ];
+		}
+		return $local_wallets_on;
+	}
+
+	/**
+	 * A method's value in a stored baseline entry.
+	 */
+	private static function baseline_value( array $entry, string $id ): bool {
+		if ( isset( $entry[ $id ] ) && is_bool( $entry[ $id ] ) ) {
+			return $entry[ $id ];
+		}
+		return in_array( $id, $entry['methods'], true );
+	}
+
+	/**
+	 * Picks the value a merchant most likely wants for one method, and why.
+	 *
+	 * The baseline is the last state both sides agreed on, so whichever side moved away from it
+	 * holds the newer intent. A Stripe value inherited from the platform was never chosen by
+	 * anyone, so it does not count as a change made in Stripe.
+	 *
+	 * @param bool      $local               Value saved in WooCommerce.
+	 * @param bool      $stripe              Value in the Stripe configuration.
+	 * @param bool|null $baseline            Last agreed value for this mode, if known.
+	 * @param bool|null $edited_after_switch Null without a mode switch, otherwise whether the local
+	 *                                       value changed after it was copied from the other mode.
+	 * @param bool      $stripe_inherited    Whether Stripe's value is an inherited default.
+	 * @return array{0: bool, 1: string} Preselected value and reason.
+	 */
+	private static function preselect( bool $local, bool $stripe, ?bool $baseline, ?bool $edited_after_switch, bool $stripe_inherited ): array {
+		if ( $local === $stripe ) {
+			return [ $local, 'match' ];
+		}
+		if ( true === $edited_after_switch ) {
+			return [ $local, 'changed_locally' ];
+		}
+		if ( false === $edited_after_switch ) {
+			return [ $stripe, 'mode_switched' ];
+		}
+		if ( null === $baseline ) {
+			return [ $local, 'no_baseline' ];
+		}
+		if ( $local !== $baseline ) {
+			return [ $local, 'changed_locally' ];
+		}
+		if ( $stripe_inherited ) {
+			return [ $local, 'inherited' ];
+		}
+		return [ $stripe, 'changed_in_stripe' ];
+	}
+
+	/**
+	 * UPE methods plus wallets, which Stripe tracks separately but the store groups.
+	 *
+	 * @return string[]
+	 */
+	private static function reviewable_method_ids(): array {
+		return array_merge( array_keys( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS ), [ WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ] );
+	}
+
+	private static function method_label( string $id ): string {
+		$wallet_labels = [
+			WC_Stripe_Payment_Methods::APPLE_PAY  => 'Apple Pay',
+			WC_Stripe_Payment_Methods::GOOGLE_PAY => 'Google Pay',
+		];
+		if ( isset( $wallet_labels[ $id ] ) ) {
+			return $wallet_labels[ $id ];
+		}
+		$method = WC_Stripe::get_instance()->get_main_stripe_gateway()->payment_methods[ $id ] ?? null;
+		return $method instanceof WC_Stripe_UPE_Payment_Method ? $method->get_label() : $id;
+	}
+
+	/**
+	 * The stored baseline, with malformed mode entries dropped.
+	 */
+	private static function get_sync_baseline(): array {
+		$baseline = get_option( self::SYNC_BASELINE_OPTION_KEY, [] );
+		if ( ! is_array( $baseline ) ) {
+			return [];
+		}
+		foreach ( [ 'test', 'live' ] as $mode ) {
+			if ( ! is_array( $baseline[ $mode ]['methods'] ?? null ) || ! isset( $baseline[ $mode ][ WC_Stripe_Payment_Methods::APPLE_PAY ], $baseline[ $mode ][ WC_Stripe_Payment_Methods::GOOGLE_PAY ] ) ) {
+				unset( $baseline[ $mode ] );
+			}
+		}
+		if ( ! in_array( $baseline['local_source_mode'] ?? null, [ 'test', 'live' ], true ) ) {
+			unset( $baseline['local_source_mode'] );
+		}
+		return $baseline;
+	}
+
+	/**
+	 * Records a configuration both sides agree on, skipping the write when nothing changed.
+	 *
+	 * @param object $configuration A valid configuration for the current Stripe mode.
+	 */
+	private static function update_sync_baseline( object $configuration ): void {
+		$mode    = ( $configuration->livemode ?? false ) ? 'live' : 'test';
+		$methods = [];
+		foreach ( array_keys( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS ) as $id ) {
+			if ( 'on' === ( $configuration->$id->display_preference->value ?? null ) ) {
+				$methods[] = $id;
+			}
+		}
+		sort( $methods );
+		$entry = [
+			'methods'                             => $methods,
+			WC_Stripe_Payment_Methods::APPLE_PAY  => 'on' === ( $configuration->apple_pay->display_preference->value ?? null ),
+			WC_Stripe_Payment_Methods::GOOGLE_PAY => 'on' === ( $configuration->google_pay->display_preference->value ?? null ),
+		];
+
+		$baseline = self::get_sync_baseline();
+		$stored   = $baseline[ $mode ] ?? [];
+		unset( $stored['synced_at'] );
+		if ( $stored === $entry && ( $baseline['local_source_mode'] ?? null ) === $mode ) {
+			return;
+		}
+
+		$baseline[ $mode ]             = array_merge( $entry, [ 'synced_at' => time() ] );
+		$baseline['local_source_mode'] = $mode;
+		update_option( self::SYNC_BASELINE_OPTION_KEY, $baseline, false );
 	}
 
 	/**
