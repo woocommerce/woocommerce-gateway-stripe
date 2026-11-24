@@ -738,6 +738,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * Check if the payment method configurations API can be used to store enabled payment methods.
 	 * This requires the Stripe account to be connected to Stripe.
 	 *
+	 * @phpstan-impure Reads Stripe settings that may be mutated during PMC synchronization.
 	 * @return bool
 	 */
 	public static function is_enabled() {

@@ -786,7 +786,10 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		try {
 			$settings = array_merge(
 				$this->build_connected_test_mode_settings( 'yes' ),
-				[ 'upe_checkout_experience_accepted_payments' => $saved_methods ]
+				[
+					'upe_checkout_experience_accepted_payments' => $saved_methods,
+					'express_checkout'                          => 'no',
+				]
 			);
 			WC_Stripe_Helper::update_main_stripe_settings( $settings );
 			update_option( $fallback_pmc_key, $fallback_pmc_id );
