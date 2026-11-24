@@ -76,7 +76,56 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_cancel_unpaid_order', [ $this, 'prevent_cancelling_orders_awaiting_action' ], 10, 2 );
 		add_filter( 'woocommerce_cancel_unpaid_order', [ $this, 'expire_open_checkout_session_before_cancelling' ], PHP_INT_MAX, 2 );
 
+		add_action( 'add_meta_boxes', [ $this, 'add_fraud_and_risk_meta_box' ] );
+		add_filter( 'is_protected_meta', [ $this, 'hide_fraud_and_risk_meta' ], 10, 3 );
+
 		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'show_warning_for_uncaptured_orders' ] );
+	}
+
+	public function add_fraud_and_risk_meta_box(): void {
+		$screen_id = wc_get_page_screen_id( 'shop-order' );
+
+		add_meta_box(
+			'fraud-and-risk',
+			'Stripe risk Werde',
+			[ $this, 'display_fraud_and_risk_meta_box' ],
+			$screen_id,
+			'normal',
+			'high'
+		);
+
+		add_filter(
+			'postbox_classes_' . $screen_id . '_fraud-and-risk',
+			function ( $classes ) {
+				return array_diff( $classes, [ 'closed' ] );
+			}
+		);
+	}
+
+	public function display_fraud_and_risk_meta_box( $post_or_order ) {
+		$order = wc_get_order( $post_or_order );
+
+		if ( ! $order ) {
+			return;
+		}
+
+		$fraud_flags = WC_Stripe_Fraud_And_Risk_Helper::order_has_transaction_fraud_flags_risk( $order );
+
+		if ( ! $fraud_flags ) {
+			return;
+		}
+
+		echo '<p><pre>Risk level: ' .
+			esc_html( print_r( $fraud_flags, true ) ) .
+			'</pre></p>';
+	}
+
+	public function hide_fraud_and_risk_meta( $protected, $meta_key, $meta_type ) {
+		if ( WC_Stripe_Fraud_And_Risk_Helper::STRIPE_CHARGE_FRAUD_FLAGS_META_NAME === $meta_key ) {
+			return true;
+		}
+
+		return $protected;
 	}
 
 	/**
