@@ -1,0 +1,170 @@
+@use '../../styles/abstracts/styles';
+
+.wc-stripe-pmc-review {
+	// A narrower, centered card keeps the text readable on wide screens and makes both steps
+	// look like one flow.
+	&.components-card {
+		margin: 0 auto;
+		max-width: 880px;
+	}
+
+	&__intro {
+		h2 {
+			margin-top: 0;
+		}
+
+		p {
+			font-size: 14px;
+			line-height: 1.6;
+			margin: 0 0 styles.$grid-unit-15;
+		}
+	}
+
+	&__table {
+		margin: styles.$grid-unit-30 0 styles.$grid-unit-20;
+
+		th,
+		td {
+			padding: styles.$grid-unit-20;
+			vertical-align: middle;
+		}
+	}
+
+	&__header-note {
+		color: styles.$gray-700;
+		display: block;
+		font-size: 12px;
+		font-weight: 400;
+	}
+
+	&__unknown {
+		color: styles.$gray-700;
+	}
+
+	&__method {
+		align-items: center;
+		display: flex;
+		gap: styles.$grid-unit-15;
+	}
+
+	&__method-icon {
+		display: inline-flex;
+		flex-shrink: 0;
+	}
+
+	&__method--medium &__method-icon {
+		min-width: 65px;
+	}
+
+	&__method--small &__method-icon {
+		min-width: 37px;
+	}
+
+	&__method-text {
+		align-items: flex-start;
+		display: flex;
+		flex-direction: column;
+		gap: styles.$grid-unit-05;
+	}
+
+	&__method-name {
+		font-weight: 600;
+	}
+
+	&__reason,
+	&__status {
+		border-radius: 10px;
+		display: inline-block;
+		font-size: 12px;
+		line-height: 20px;
+		padding: 0 styles.$grid-unit-10;
+		white-space: nowrap;
+	}
+
+	&__reason--woocommerce {
+		background: styles.$studio-purple-0;
+		color: styles.$studio-purple-70;
+	}
+
+	&__reason--stripe {
+		background: styles.$wp-blue-0;
+		color: styles.$wp-blue-70;
+	}
+
+	&__reason--neutral {
+		background: styles.$gray-100;
+		color: styles.$gray-700;
+	}
+
+	&__reason--warning {
+		background: styles.$wp-yellow-0;
+		color: styles.$wp-yellow-70;
+	}
+
+	&__status {
+		font-weight: 600;
+	}
+
+	&__status--on {
+		background: styles.$wp-green-0;
+		color: styles.$wp-green-70;
+	}
+
+	&__status--off {
+		background: styles.$gray-100;
+		color: styles.$gray-700;
+	}
+
+	&__footer {
+		gap: styles.$grid-unit-10;
+		justify-content: flex-end;
+	}
+
+	&__columns {
+		display: grid;
+		gap: styles.$grid-unit-20;
+		grid-template-columns: 1fr;
+		margin: styles.$grid-unit-20 0;
+
+		@include styles.break-medium {
+			grid-template-columns: 1fr 1fr;
+		}
+	}
+
+	// Bordered sections inside the one card, so both sides read as parts of the same review.
+	&__changes {
+		border: 1px solid styles.$gray-200;
+		border-radius: 2px;
+		padding: styles.$grid-unit-20;
+	}
+
+	&__changes-title {
+		border-bottom: 1px solid styles.$gray-100;
+		font-size: 14px;
+		margin: 0 0 styles.$grid-unit-20;
+		padding-bottom: styles.$grid-unit-15;
+	}
+
+	&__group + &__group {
+		margin-top: styles.$grid-unit-30;
+	}
+
+	&__group-title {
+		color: styles.$gray-700;
+		font-size: 12px;
+		margin: 0 0 styles.$grid-unit-15;
+		text-transform: uppercase;
+	}
+
+	&__group-list {
+		display: flex;
+		flex-direction: column;
+		gap: styles.$grid-unit-15;
+		margin: 0;
+	}
+
+	&__empty {
+		color: styles.$gray-700;
+		margin: 0;
+	}
+}
