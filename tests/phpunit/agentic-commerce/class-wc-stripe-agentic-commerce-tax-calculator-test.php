@@ -40,10 +40,6 @@ class WC_Stripe_Agentic_Commerce_Tax_Calculator_Test extends WP_UnitTestCase {
 	public function setUp(): void {
 		parent::setUp();
 
-		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Tax_Calculator' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Tax_Calculator class not loaded' );
-		}
-
 		$this->calculator = new WC_Stripe_Agentic_Commerce_Tax_Calculator();
 
 		$this->product = WC_Helper_Product::create_simple_product(

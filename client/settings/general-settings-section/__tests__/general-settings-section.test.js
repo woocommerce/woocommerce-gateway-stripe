@@ -149,19 +149,6 @@ describe( 'GeneralSettingsSection', () => {
 		expect( refreshAccountMock ).toHaveBeenCalled();
 	} );
 
-	it( 'should not render the opt-in banner if UPE is enabled', () => {
-		render( <GeneralSettingsSection /> );
-
-		expect(
-			screen.queryByTestId( 'opt-in-banner' )
-		).not.toBeInTheDocument();
-		expect(
-			screen.queryByRole( 'button', {
-				name: 'Payment methods menu',
-			} )
-		).toBeInTheDocument();
-	} );
-
 	it( 'should allow to enable a payment method', async () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			PAYMENT_METHOD_CARD,
@@ -349,14 +336,6 @@ describe( 'GeneralSettingsSection', () => {
 
 		expect(
 			screen.queryByTestId( 'unavailable-payment-methods-list' )
-		).not.toBeInTheDocument();
-	} );
-
-	it( 'should not render "early access" pill if UPE is disabled', () => {
-		render( <GeneralSettingsSection /> );
-
-		expect(
-			screen.queryByTestId( 'upe-early-access-pill' )
 		).not.toBeInTheDocument();
 	} );
 

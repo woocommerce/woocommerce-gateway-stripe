@@ -29,11 +29,6 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->stripe_api = $this->createMock( WC_Stripe_API::class );
 		WC_Stripe_API::set_instance( $this->stripe_api );
 
-		if ( version_compare( WC_VERSION, '4.4.0', '<' ) ) {
-			$this->markTestSkipped( 'The used WC components are not backward compatible' );
-			return;
-		}
-
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[
 				'enabled'                         => 'yes',
