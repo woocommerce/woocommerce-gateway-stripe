@@ -617,7 +617,7 @@ trait WC_Stripe_Subscriptions_Trait {
 					$lock_expired = $this->is_order_payment_lock_expired( $lock_expiry );
 
 					if ( $retry && ! $lock_expired ) {
-						if ( 5 <= $this->retry_interval ) { // @phpstan-ignore-line (retry_interval is defined in classes using this class)
+						if ( 5 <= $this->retry_interval ) {
 							$this->process_subscription_payment_attempt( $amount, $renewal_order, false, $response->error, $lock_expiry );
 							return;
 						}

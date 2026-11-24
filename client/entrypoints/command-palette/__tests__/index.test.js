@@ -13,25 +13,24 @@ jest.mock( '@wordpress/data', () => {
 	};
 } );
 
+jest.mock( 'wcstripe/utils/navigation' );
+
 jest.mock( '@wordpress/i18n', () => ( {
 	__: ( text ) => text,
 } ) );
 
 import { dispatch } from '@wordpress/data';
 import { registerStripeCommands } from 'wcstripe/entrypoints/command-palette';
+import { navigateTo } from 'wcstripe/utils/navigation';
 
 describe( 'command palette registration', () => {
-	const originalLocation = window.location;
 	const { registerCommand } = dispatch();
 
 	beforeEach( () => {
 		registerCommand.mockClear();
+		navigateTo.mockClear();
 		dispatch.mockClear();
 		dispatch.mockImplementation( () => ( { registerCommand } ) );
-	} );
-
-	afterEach( () => {
-		window.location = originalLocation;
 	} );
 
 	it( 'registers every Stripe destination command', () => {
@@ -58,11 +57,9 @@ describe( 'command palette registration', () => {
 			);
 			expect( command.category ).toBe( 'view' );
 
-			delete window.location;
-			window.location = { href: '' };
 			command.callback( { close: jest.fn() } );
 
-			expect( window.location.href ).toEqual(
+			expect( navigateTo ).toHaveBeenLastCalledWith(
 				expect.stringContaining(
 					'admin.php?page=wc-settings&tab=checkout&section=stripe'
 				)
@@ -81,12 +78,9 @@ describe( 'command palette registration', () => {
 			);
 		const close = jest.fn();
 
-		delete window.location;
-		window.location = { href: '' };
-
 		settingsCommand.callback( { close } );
 
-		expect( window.location.href ).toBe(
+		expect( navigateTo ).toHaveBeenCalledWith(
 			'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings'
 		);
 		expect( close ).toHaveBeenCalledTimes( 1 );

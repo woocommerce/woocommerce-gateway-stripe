@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { dispatch } from '@wordpress/data';
 import OptimizedCheckoutFirstMethodNotice from 'wcstripe/settings/advanced-settings-section/optimized-checkout-first-method-notice';
 import { dismissNotice, moveStripeToTop } from 'wcstripe/utils';
+import { reloadPage } from 'wcstripe/utils/navigation';
 
 const mockCreateSuccessNotice = jest.fn();
 const mockCreateErrorNotice = jest.fn();
@@ -41,6 +42,8 @@ jest.mock( '@wordpress/components', () => ( {
 		</div>
 	),
 } ) );
+
+jest.mock( 'wcstripe/utils/navigation' );
 
 jest.mock( 'wcstripe/utils', () => ( {
 	dismissNotice: jest.fn(),
@@ -143,18 +146,7 @@ describe( 'OptimizedCheckoutFirstMethodNotice', () => {
 	} );
 
 	it( 'does not dispatch success notice when refreshPage is true', async () => {
-		const reloadMock = jest.fn();
-		const locationDescriptor = Object.getOwnPropertyDescriptor(
-			window,
-			'location'
-		);
-		Object.defineProperty( window, 'location', {
-			configurable: true,
-			value: {
-				...window.location,
-				reload: reloadMock,
-			},
-		} );
+		reloadPage.mockClear();
 
 		let resolveMove;
 		moveStripeToTop.mockImplementation(
@@ -164,30 +156,24 @@ describe( 'OptimizedCheckoutFirstMethodNotice', () => {
 				} )
 		);
 
-		try {
-			render(
-				<OptimizedCheckoutFirstMethodNotice
-					isOCEnabled={ true }
-					refreshPage={ true }
-				/>
-			);
+		render(
+			<OptimizedCheckoutFirstMethodNotice
+				isOCEnabled={ true }
+				refreshPage={ true }
+			/>
+		);
 
-			await userEvent.click(
-				screen.getByRole( 'button', { name: 'Move to top' } )
-			);
+		await userEvent.click(
+			screen.getByRole( 'button', { name: 'Move to top' } )
+		);
 
-			await act( async () => {
-				resolveMove();
-				await Promise.resolve();
-			} );
+		await act( async () => {
+			resolveMove();
+			await Promise.resolve();
+		} );
 
-			expect( reloadMock ).toHaveBeenCalled();
-			expect( mockCreateSuccessNotice ).not.toHaveBeenCalled();
-		} finally {
-			if ( locationDescriptor ) {
-				Object.defineProperty( window, 'location', locationDescriptor );
-			}
-		}
+		expect( reloadPage ).toHaveBeenCalled();
+		expect( mockCreateSuccessNotice ).not.toHaveBeenCalled();
 	} );
 
 	it( 'dispatches an error notice when moveStripeToTop rejects', async () => {

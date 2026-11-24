@@ -177,7 +177,7 @@ describe( 'SettingsManager', () => {
 		render( <SettingsManager /> );
 
 		expect(
-			screen.getByText( 'Agentic Commerce Content' )
+			await screen.findByText( 'Agentic Commerce Content' )
 		).toBeInTheDocument();
 		expect( screen.queryByText( 'Shared Save' ) ).not.toBeInTheDocument();
 	} );
@@ -191,6 +191,6 @@ describe( 'SettingsManager', () => {
 
 		render( <SettingsManager /> );
 
-		expect( screen.getByText( 'Shared Save' ) ).toBeInTheDocument();
+		expect( await screen.findByText( 'Shared Save' ) ).toBeInTheDocument();
 	} );
 } );

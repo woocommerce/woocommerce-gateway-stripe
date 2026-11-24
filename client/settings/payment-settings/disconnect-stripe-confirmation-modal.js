@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { reloadPage } from 'wcstripe/utils/navigation';
 import { __ } from '@wordpress/i18n';
 import { Button, CheckboxControl } from '@wordpress/components';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
@@ -38,7 +39,7 @@ const DisconnectStripeConfirmationModal = ( {
 		}
 		await saveAccountKeys( accountKeys );
 
-		window.location.reload();
+		reloadPage();
 	};
 
 	return (

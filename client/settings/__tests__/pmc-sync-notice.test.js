@@ -117,9 +117,8 @@ it.each( [
 		const onResolved = jest.fn();
 		apiFetch.mockResolvedValueOnce( review ).mockResolvedValueOnce( saved );
 		render( <PMCSyncNotice onResolved={ onResolved } /> );
-		await userEvent.click(
-			await screen.findByRole( 'button', { name: label } )
-		);
+		const button = await screen.findByRole( 'button', { name: label } );
+		await act( async () => userEvent.click( button ) );
 		await waitFor( () =>
 			expect( updateSettings ).toHaveBeenCalledWith( saved )
 		);
@@ -167,9 +166,10 @@ it( 'requires a new comparison after a rejected confirmation', async () => {
 		.mockResolvedValueOnce( review )
 		.mockRejectedValueOnce( { message: 'Payment settings changed.' } );
 	render( <PMCSyncNotice onResolved={ jest.fn() } /> );
-	await userEvent.click(
-		await screen.findByRole( 'button', { name: 'Use WooCommerce' } )
-	);
+	const button = await screen.findByRole( 'button', {
+		name: 'Use WooCommerce',
+	} );
+	await act( async () => userEvent.click( button ) );
 	expect(
 		await screen.findByText( 'Payment settings changed.', {
 			selector: 'p',

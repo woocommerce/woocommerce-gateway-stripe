@@ -8,6 +8,8 @@
  * @package WooCommerce/Stripe/WC_Stripe
  */
 class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
+	use WC_Stripe_Tracks_Capture_Trait;
+
 	/** @dataProvider provide_initial_pmc_settings */
 	public function test_pmc_defaults_only_for_new_settings( $existing, array $saved, $expected ): void {
 		$stripe = WC_Stripe::get_instance();
@@ -392,6 +394,124 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$this->assertEquals( 'yes', get_option( 'wc_stripe_optimized_checkout_default_on' ) );
 		$this->assertEquals( 'yes', get_option( 'wc_stripe_amazon_pay_default_on' ) );
+	}
+
+	/**
+	 * A version change must record one plugin update event carrying the previous version and,
+	 * when the store is connected, the account ID. A fresh install must record none.
+	 *
+	 * @param string|false $previous_version    The stored version before install() runs; false for a fresh install.
+	 * @param array        $account_data        What the account service returns.
+	 * @param bool         $expect_event        Whether the event must be recorded.
+	 * @param string|null  $expected_account_id Expected account_id property, or null when it must be absent.
+	 *
+	 * @dataProvider provide_plugin_updated_tracks_event_scenarios
+	 */
+	public function test_install_records_plugin_updated_tracks_event( $previous_version, array $account_data, bool $expect_event, ?string $expected_account_id ): void {
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+
+		if ( false === $previous_version ) {
+			delete_option( 'wc_stripe_version' );
+		} else {
+			update_option( 'wc_stripe_version', $previous_version );
+		}
+
+		$wc_stripe = $this->get_install_test_instance();
+		$wc_stripe->account->method( 'get_cached_account_data' )->willReturn( $account_data );
+
+		$this->start_capturing_tracks_events();
+		$wc_stripe->install();
+		$this->stop_capturing_tracks_events();
+
+		$events = $this->get_captured_tracks_event_properties( 'wcadmin_wcstripe_plugin_updated' );
+
+		if ( ! $expect_event ) {
+			$this->assertSame( [], $events );
+			return;
+		}
+
+		$this->assertCount( 1, $events );
+		$this->assertSame( $previous_version, $events[0]['previous_version'] );
+		$this->assertSame( WC_STRIPE_VERSION, $events[0]['stripe_version'] );
+		$this->assertSame( $expected_account_id, $events[0]['account_id'] ?? null );
+	}
+
+	/**
+	 * Data provider for {@see test_install_records_plugin_updated_tracks_event()}.
+	 *
+	 * @return array
+	 */
+	public function provide_plugin_updated_tracks_event_scenarios(): array {
+		return [
+			'update with a connected account'    => [
+				'previous version'    => '10.0.0',
+				'account data'        => [ 'id' => 'acct_123' ],
+				'expect event'        => true,
+				'expected account id' => 'acct_123',
+			],
+			'update without a connected account' => [
+				'previous version'    => '10.0.0',
+				'account data'        => [],
+				'expect event'        => true,
+				'expected account id' => null,
+			],
+			'downgrade'                          => [
+				'previous version'    => '999.0.0',
+				'account data'        => [ 'id' => 'acct_123' ],
+				'expect event'        => true,
+				'expected account id' => 'acct_123',
+			],
+			'fresh install'                      => [
+				'previous version'    => false,
+				'account data'        => [ 'id' => 'acct_123' ],
+				'expect event'        => false,
+				'expected account id' => null,
+			],
+		];
+	}
+
+	/**
+	 * With tracking off, an update must neither record the event nor look the account up,
+	 * since the lookup can call the Stripe API.
+	 */
+	public function test_install_skips_plugin_updated_tracks_event_when_tracking_is_disabled(): void {
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+		update_option( 'wc_stripe_version', '10.0.0' );
+		delete_option( 'woocommerce_allow_tracking' );
+
+		$wc_stripe = $this->get_install_test_instance();
+		$wc_stripe->account->expects( $this->never() )->method( 'get_cached_account_data' );
+
+		$wc_stripe->install();
+	}
+
+	/**
+	 * Builds a WC_Stripe whose install() runs for real, with the side effects that need
+	 * Stripe or unrelated settings stubbed out and a mocked account service.
+	 *
+	 * @return WC_Stripe&\PHPUnit\Framework\MockObject\MockObject
+	 */
+	private function get_install_test_instance() {
+		update_option( 'active_plugins', [ plugin_basename( WC_STRIPE_MAIN_FILE ) ] );
+
+		$wc_stripe = $this->getMockBuilder( WC_Stripe::class )
+			->disableOriginalConstructor()
+			->onlyMethods(
+				[
+					'update_plugin_version',
+					'update_prb_location_settings',
+					'migrate_to_new_checkout_experience',
+				]
+			)
+			->getMock();
+
+		$wc_stripe->webhook_settings = $this->createMock( WC_Stripe_Webhook_Settings::class );
+		$wc_stripe->account          = $this->getMockBuilder( WC_Stripe_Account::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_cached_account_data' ] )
+			->getMock();
+
+		return $wc_stripe;
 	}
 
 	/**
