@@ -1595,7 +1595,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 	/**
 	 * A dashboard capture must leave the order paid at its original total, with any released
-	 * authorization recorded once as a refund, even when Stripe delivers the event twice.
+	 * authorization recorded once as a refund, even when Stripe delivers the event twice. The
+	 * refund must exist before the order is marked paid, since that sends the customer emails.
 	 *
 	 * @dataProvider provider_dashboard_capture
 	 *
@@ -1608,8 +1609,18 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$order        = $this->create_authorized_order( 'ch_dashboard_capture', $order_total );
 		$notification = $this->build_capture_notification( 'charge.captured', 'ch_dashboard_capture', $charge_overrides );
 
+		$refunded_when_paid = [];
+		$record_refunded    = static function ( $order_id ) use ( &$refunded_when_paid ) {
+			$refunded_when_paid[] = wc_format_decimal( wc_get_order( $order_id )->get_total_refunded(), 2 );
+		};
+		add_action( 'woocommerce_payment_complete', $record_refunded );
+
 		$this->mock_webhook_handler->process_webhook_capture( $notification );
 		$this->mock_webhook_handler->process_webhook_capture( $notification );
+
+		remove_action( 'woocommerce_payment_complete', $record_refunded );
+
+		$this->assertSame( [ $expected_refunded ], $refunded_when_paid );
 
 		$order = wc_get_order( $order->get_id() );
 		$this->assertSame( OrderStatus::PROCESSING, $order->get_status() );
@@ -1622,7 +1633,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	/**
 	 * Capture shapes: partial on current API versions (no refund object), partial on API versions
 	 * before 2025-03-31 (the release is a refund), a capture of an order the merchant reduced
-	 * beforehand (nothing left to refund), and a full capture.
+	 * beforehand (nothing left to refund), a charge in another currency than the order (amounts
+	 * can't be compared, so nothing is refunded), and a full capture.
 	 */
 	public function provider_dashboard_capture(): array {
 		return [
@@ -1652,6 +1664,15 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'order reduced before capture' => [
 				'15.00',
 				[ 'amount_captured' => 1500 ],
+				'0.00',
+				'',
+			],
+			'charge in another currency'   => [
+				'20.00',
+				[
+					'amount_captured' => 500,
+					'currency'        => 'eur',
+				],
 				'0.00',
 				'',
 			],
