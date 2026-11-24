@@ -168,22 +168,27 @@ class WC_Stripe_Tracks_Test extends WP_UnitTestCase {
 	/**
 	 * @dataProvider provide_record_direct_event_without_shopper_details_scenarios
 	 *
-	 * @param string|null $role                    Role of the current user; null for a logged-out visitor.
-	 * @param bool        $expect_request_details  Whether the request details should be sent.
+	 * @param string|null $role                   Role of the current user; null for a logged-out visitor.
+	 * @param bool        $doing_ajax             Whether the request is an Ajax request rather than a rendered admin page.
+	 * @param bool        $expect_request_details Whether the request details should be sent.
 	 */
-	public function test_record_direct_event_without_shopper_details( ?string $role, bool $expect_request_details ): void {
+	public function test_record_direct_event_without_shopper_details( ?string $role, bool $doing_ajax, bool $expect_request_details ): void {
 		wp_set_current_user( null === $role ? 0 : $this->factory->user->create( [ 'role' => $role ] ) );
 		$this->start_capturing_tracks_events();
+		$footer_pixel_count = count( WC_Tracks_Footer_Pixel::get_events() );
 
 		$events = $this->record_and_capture_sent_events(
 			function () {
 				WC_Stripe_Tracks::record_direct_event_without_shopper_details( 'wcstripe_test_event', [ 'foo' => 'bar' ] );
-			}
+			},
+			$doing_ajax
 		);
 
 		$this->assertCount( 1, $events );
 		$this->assertSame( 'wcadmin_wcstripe_test_event', $events[0]['_en'] );
 		$this->assertSame( 'bar', $events[0]['foo'] );
+		// A footer pixel is requested by the browser, which sends its own IP and user agent.
+		$this->assertCount( $footer_pixel_count, WC_Tracks_Footer_Pixel::get_events() );
 
 		$request_details = [
 			'_via_ua' => 'Shopper Browser/1.0',
@@ -208,10 +213,12 @@ class WC_Stripe_Tracks_Test extends WP_UnitTestCase {
 	 */
 	public function provide_record_direct_event_without_shopper_details_scenarios(): array {
 		return [
-			'logged out'    => [ null, false ],
-			'customer'      => [ 'customer', false ],
-			'shop manager'  => [ 'shop_manager', true ],
-			'administrator' => [ 'administrator', true ],
+			'logged out, ajax'      => [ null, true, false ],
+			'customer, ajax'        => [ 'customer', true, false ],
+			'editor, ajax'          => [ 'editor', true, false ],
+			'editor, rendered page' => [ 'editor', false, false ],
+			'shop manager, ajax'    => [ 'shop_manager', true, true ],
+			'administrator, ajax'   => [ 'administrator', true, true ],
 		];
 	}
 
@@ -234,14 +241,15 @@ class WC_Stripe_Tracks_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Runs the callback as a shopper's admin-ajax.php request and returns the query arguments of every
-	 * Tracks pixel it sends. The request details are only visible in the pixel, because WooCommerce
-	 * adds them after the event property filters run.
+	 * Runs the callback as a request with a shopper's request details and returns the query arguments
+	 * of every Tracks pixel the server sends. The request details are only visible in the pixel,
+	 * because WooCommerce adds them after the event property filters run.
 	 *
-	 * @param callable $record Records the events.
+	 * @param callable $record     Records the events.
+	 * @param bool     $doing_ajax Whether to run as an Ajax request rather than a rendered admin page.
 	 * @return array[] One array of pixel query arguments per sent event.
 	 */
-	private function record_and_capture_sent_events( callable $record ): array {
+	private function record_and_capture_sent_events( callable $record, bool $doing_ajax = true ): array {
 		$original_server = $_SERVER;
 		$_SERVER         = array_merge(
 			$_SERVER,
@@ -276,17 +284,17 @@ class WC_Stripe_Tracks_Test extends WP_UnitTestCase {
 			];
 		};
 
-		// Ajax requests send the pixel from the server straight away instead of queueing it for the page footer.
-		add_filter( 'wp_doing_ajax', '__return_true' );
-		add_filter( 'wc_tracks_use_batch_requests', '__return_false' );
+		// WC_Tracks_Event::record() only sends from the server for Ajax requests; on a rendered admin
+		// page it queues the pixel for the footer instead.
+		$doing_ajax_filter = $doing_ajax ? '__return_true' : '__return_false';
+		add_filter( 'wp_doing_ajax', $doing_ajax_filter );
 		add_filter( 'pre_http_request', $capture_pix, 10, 3 );
 
 		try {
 			$record();
 		} finally {
 			remove_filter( 'pre_http_request', $capture_pix, 10 );
-			remove_filter( 'wc_tracks_use_batch_requests', '__return_false' );
-			remove_filter( 'wp_doing_ajax', '__return_true' );
+			remove_filter( 'wp_doing_ajax', $doing_ajax_filter );
 			$_SERVER = $original_server;
 		}
 
