@@ -1600,12 +1600,11 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 *
 	 * @dataProvider provider_dashboard_capture
 	 *
-	 * @param string $order_total            Order total when the capture happens.
-	 * @param array  $charge_overrides       Capture-specific charge properties.
-	 * @param string $expected_refunded      Expected total refunded on the order.
-	 * @param string $expected_stripe_refund Expected Stripe refund ID stored on the order.
+	 * @param string $order_total       Order total when the capture happens.
+	 * @param array  $charge_overrides  Capture-specific charge properties.
+	 * @param string $expected_refunded Expected total refunded on the order.
 	 */
-	public function test_process_webhook_capture_settles_dashboard_capture( string $order_total, array $charge_overrides, string $expected_refunded, string $expected_stripe_refund ) {
+	public function test_process_webhook_capture_settles_dashboard_capture( string $order_total, array $charge_overrides, string $expected_refunded ) {
 		$order        = $this->create_authorized_order( 'ch_dashboard_capture', $order_total );
 		$notification = $this->build_capture_notification( 'charge.captured', 'ch_dashboard_capture', $charge_overrides );
 
@@ -1627,14 +1626,13 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->assertSame( $order_total, $order->get_total() );
 		$this->assertSame( $expected_refunded, wc_format_decimal( $order->get_total_refunded(), 2 ) );
 		$this->assertCount( '0.00' === $expected_refunded ? 0 : 1, $order->get_refunds() );
-		$this->assertSame( $expected_stripe_refund, (string) WC_Stripe_Order_Helper::get_instance()->get_stripe_refund_id( $order ) );
 	}
 
 	/**
 	 * Capture shapes: partial on current API versions (no refund object), partial on API versions
-	 * before 2025-03-31 (the release is a refund), a capture of an order the merchant reduced
-	 * beforehand (nothing left to refund), a charge in another currency than the order (amounts
-	 * can't be compared, so nothing is refunded), and a full capture.
+	 * before 2025-03-31 (the release is a Stripe refund, left to charge.refunded), a capture of an
+	 * order the merchant reduced beforehand (nothing left to refund), a charge in another currency
+	 * than the order (amounts can't be compared, so nothing is refunded), and a full capture.
 	 */
 	public function provider_dashboard_capture(): array {
 		return [
@@ -1642,30 +1640,19 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'20.00',
 				[ 'amount_captured' => 500 ],
 				'15.00',
-				'',
 			],
 			'partial capture, older API'   => [
 				'20.00',
 				[
 					'amount_captured' => 500,
 					'amount_refunded' => 1500,
-					'refunds'         => (object) [
-						'data' => [
-							(object) [
-								'id'     => 're_released',
-								'amount' => 1500,
-							],
-						],
-					],
 				],
-				'15.00',
-				're_released',
+				'0.00',
 			],
 			'order reduced before capture' => [
 				'15.00',
 				[ 'amount_captured' => 1500 ],
 				'0.00',
-				'',
 			],
 			'charge in another currency'   => [
 				'20.00',
@@ -1674,15 +1661,31 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 					'currency'        => 'eur',
 				],
 				'0.00',
-				'',
 			],
 			'full capture'                 => [
 				'20.00',
 				[ 'amount_captured' => 2000 ],
 				'0.00',
-				'',
 			],
 		];
+	}
+
+	/**
+	 * When the release can't be recorded because a refund is in progress, nothing else will record
+	 * it on current API versions, so the order must still be paid and the merchant told to add it.
+	 */
+	public function test_process_webhook_capture_asks_merchant_to_record_release_when_refund_locked() {
+		$order = $this->create_authorized_order( 'ch_locked' );
+		WC_Stripe_Order_Helper::get_instance()->lock_order_refund( $order );
+
+		$this->mock_webhook_handler->process_webhook_capture( $this->build_capture_notification( 'charge.captured', 'ch_locked', [ 'amount_captured' => 500 ] ) );
+
+		$order = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::PROCESSING, $order->get_status() );
+		$this->assertCount( 0, $order->get_refunds() );
+
+		$notes = wp_list_pluck( wc_get_order_notes( [ 'order_id' => $order->get_id() ] ), 'content' );
+		$this->assertCount( 1, preg_grep( '/could not be recorded as a refund/', $notes ) );
 	}
 
 	/**
