@@ -1107,6 +1107,11 @@ class WC_Stripe_Payment_Method_Configurations {
 		$mode          = WC_Stripe_Mode::is_test() ? 'test' : 'live';
 		$baseline      = self::get_sync_baseline();
 		$mode_baseline = $baseline[ $mode ] ?? null;
+		// The account cache can be empty, but a configuration ID never moves between accounts,
+		// so it still catches a reconnect to another account for the current mode.
+		if ( null !== $mode_baseline && ( $mode_baseline['configuration_id'] ?? null ) !== ( $configuration->id ?? null ) ) {
+			$mode_baseline = null;
+		}
 		$source_mode   = $baseline['local_source_mode'] ?? null;
 		$switched_from = ( null !== $source_mode && $source_mode !== $mode ) ? $source_mode : null;
 		$other_mode    = null !== $switched_from ? ( $baseline[ $switched_from ] ?? null ) : null;
@@ -1268,7 +1273,26 @@ class WC_Stripe_Payment_Method_Configurations {
 		if ( ! in_array( $baseline['local_source_mode'] ?? null, [ 'test', 'live' ], true ) ) {
 			unset( $baseline['local_source_mode'] );
 		}
+
+		// A baseline recorded for another Stripe account says nothing about this one.
+		$stored_account  = $baseline['account_id'] ?? null;
+		$current_account = self::get_current_account_id();
+		if ( null !== $stored_account && null !== $current_account && $stored_account !== $current_account ) {
+			return [];
+		}
 		return $baseline;
+	}
+
+	/**
+	 * The connected account's ID, read from the account cache only.
+	 *
+	 * The baseline is written while fetching the configuration, which can happen on storefront
+	 * requests, so this must never trigger an extra account request.
+	 */
+	private static function get_current_account_id(): ?string {
+		$account = WC_Stripe_Database_Cache::get_with_mode( WC_Stripe_Account::ACCOUNT_CACHE_KEY );
+		$id      = is_array( $account ) ? ( $account['id'] ?? null ) : null;
+		return is_string( $id ) && '' !== $id ? $id : null;
 	}
 
 	/**
@@ -1286,20 +1310,26 @@ class WC_Stripe_Payment_Method_Configurations {
 		}
 		sort( $methods );
 		$entry = [
+			'configuration_id'                    => $configuration->id ?? null,
 			'methods'                             => $methods,
 			WC_Stripe_Payment_Methods::APPLE_PAY  => 'on' === ( $configuration->apple_pay->display_preference->value ?? null ),
 			WC_Stripe_Payment_Methods::GOOGLE_PAY => 'on' === ( $configuration->google_pay->display_preference->value ?? null ),
 		];
 
-		$baseline = self::get_sync_baseline();
-		$stored   = $baseline[ $mode ] ?? [];
+		$baseline   = self::get_sync_baseline();
+		$account_id = self::get_current_account_id() ?? ( $baseline['account_id'] ?? null );
+		$stored     = $baseline[ $mode ] ?? [];
 		unset( $stored['synced_at'] );
-		if ( $stored === $entry && ( $baseline['local_source_mode'] ?? null ) === $mode ) {
+		$same_entry   = $stored === $entry;
+		$same_mode    = ( $baseline['local_source_mode'] ?? null ) === $mode;
+		$same_account = ( $baseline['account_id'] ?? null ) === $account_id;
+		if ( $same_entry && $same_mode && $same_account ) {
 			return;
 		}
 
 		$baseline[ $mode ]             = array_merge( $entry, [ 'synced_at' => time() ] );
 		$baseline['local_source_mode'] = $mode;
+		$baseline['account_id']        = $account_id;
 		update_option( self::SYNC_BASELINE_OPTION_KEY, $baseline, false );
 	}
 
