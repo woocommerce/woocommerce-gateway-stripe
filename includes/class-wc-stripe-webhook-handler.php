@@ -454,9 +454,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Extracts the timestamp and the `v1` signatures from a `Stripe-Signature` header.
 	 *
-	 * Stripe can add entries (such as debug metadata), repeat `v1` while a signing secret is being rolled,
-	 * and change the order of the entries. Only `t` and `v1` take part in verification, so every other
-	 * entry is ignored rather than treated as a malformed header.
+	 * Only `t` and `v1` take part in verification, and `v1` can repeat. Every other entry is ignored,
+	 * because the header's entries, their count and their order are not fixed.
 	 *
 	 * @see https://docs.stripe.com/webhooks?verify=verify-manually#verify-manually
 	 *
