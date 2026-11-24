@@ -422,7 +422,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	private function get_partial_mock_for_gateway( array $methods = [] ) {
 		return $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
-			->setMethods( $methods )
+			->onlyMethods( $methods )
 			->getMock();
 	}
 

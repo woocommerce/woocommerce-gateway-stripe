@@ -119,7 +119,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$methods = array_diff( $methods, $exclude_methods );
 
 		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( $methods )
+			->onlyMethods( $methods )
 			->getMock();
 
 		// Set process_response mock to use the real method.
@@ -672,7 +672,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		];
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'defer_webhook_processing' ] )
+			->onlyMethods( [ 'defer_webhook_processing' ] )
 			->getMock();
 		$handler->expects( $this->once() )
 			->method( 'defer_webhook_processing' )
@@ -811,7 +811,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		WC_Stripe_Order_Helper::set_instance( $order_helper );
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'handle_deferred_payment_intent_succeeded', 'defer_webhook_processing' ] )
+			->onlyMethods( [ 'handle_deferred_payment_intent_succeeded', 'defer_webhook_processing' ] )
 			->getMock();
 
 		// Settlement must not run while the order is locked.
@@ -855,7 +855,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		WC_Stripe_Order_Helper::set_instance( $order_helper );
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'handle_deferred_payment_intent_succeeded', 'defer_webhook_processing' ] )
+			->onlyMethods( [ 'handle_deferred_payment_intent_succeeded', 'defer_webhook_processing' ] )
 			->getMock();
 
 		$handler->expects( $this->once() )
@@ -914,7 +914,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		WC_Stripe_Order_Helper::set_instance( $order_helper );
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'defer_webhook_processing' ] )
+			->onlyMethods( [ 'defer_webhook_processing' ] )
 			->getMock();
 
 		$handler->expects( $this->once() )
@@ -968,7 +968,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		WC_Stripe_Order_Helper::set_instance( $order_helper );
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'defer_webhook_processing' ] )
+			->onlyMethods( [ 'defer_webhook_processing' ] )
 			->getMock();
 		$handler->expects( $locked ? $this->once() : $this->never() )->method( 'defer_webhook_processing' );
 
@@ -1028,7 +1028,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		];
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'process_payment_intent' ] )
+			->onlyMethods( [ 'process_payment_intent' ] )
 			->getMock();
 		$handler->method( 'process_payment_intent' )->willReturn( $requeued );
 
@@ -1083,7 +1083,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		];
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'process_payment_intent' ] )
+			->onlyMethods( [ 'process_payment_intent' ] )
 			->getMock();
 
 		$handler->expects( $this->once() )
@@ -1120,7 +1120,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		];
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods(
+			->onlyMethods(
 				[
 					'get_intent_from_order',
 					'get_latest_charge_from_intent',
@@ -1181,7 +1181,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		);
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods(
+			->onlyMethods(
 				[
 					'get_intent_from_order',
 					'get_latest_charge_from_intent',
@@ -1247,7 +1247,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$charge           = (object) array_merge( self::MOCK_PAYMENT_INTENT['charges']['data'][0], $charge_properties );
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'is_unreleased_charged_upfront_pre_order' ] )
+			->onlyMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'is_unreleased_charged_upfront_pre_order' ] )
 			->getMock();
 		$handler->method( 'get_intent_from_order' )->willReturn( $intent );
 		$handler->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
@@ -1875,7 +1875,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		];
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'handle_checkout_session_success' ] )
+			->onlyMethods( [ 'handle_checkout_session_success' ] )
 			->getMock();
 
 		$handler->expects( $this->once() )
@@ -2026,7 +2026,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		];
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'handle_checkout_session_failure' ] )
+			->onlyMethods( [ 'handle_checkout_session_failure' ] )
 			->getMock();
 
 		$handler->expects( $this->once() )
@@ -2502,7 +2502,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$order->save();
 
 		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'lock_order_payment' ] )
+			->onlyMethods( [ 'lock_order_payment' ] )
 			->getMock();
 
 		$this->mock_webhook_handler->method( 'lock_order_payment' )->willReturn( false );
@@ -2659,7 +2659,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$intent        = $this->build_succeeded_intent_notification( $order, $intent_amount )->data->object;
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'maybe_mark_order_as_pre_ordered', 'process_response' ] )
+			->onlyMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'maybe_mark_order_as_pre_ordered', 'process_response' ] )
 			->getMock();
 		$handler->method( 'get_intent_from_order' )->willReturn( $intent );
 		$handler->method( 'get_latest_charge_from_intent' )
@@ -2698,7 +2698,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$notification  = $this->build_succeeded_intent_notification( $order, $intent_amount );
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'get_latest_charge_from_intent', 'maybe_mark_order_as_pre_ordered' ] )
+			->onlyMethods( [ 'get_latest_charge_from_intent', 'maybe_mark_order_as_pre_ordered' ] )
 			->getMock();
 		$handler->method( 'get_latest_charge_from_intent' )
 			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
@@ -3625,7 +3625,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		WC_Stripe_Order_Helper::set_instance( $order_helper );
 
 		$webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'send_failed_order_email' ] )
+			->onlyMethods( [ 'send_failed_order_email' ] )
 			->getMock();
 
 		$webhook_handler->expects( $this->never() )->method( 'send_failed_order_email' );
@@ -3708,7 +3708,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		);
 
 		$webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'send_failed_order_email' ] )
+			->onlyMethods( [ 'send_failed_order_email' ] )
 			->getMock();
 		$webhook_handler->expects( $this->never() )->method( 'send_failed_order_email' );
 
@@ -3762,7 +3762,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$order = $this->create_checkout_session_order( 'cs_test_expired_no_email' );
 
 		$webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'send_failed_order_email' ] )
+			->onlyMethods( [ 'send_failed_order_email' ] )
 			->getMock();
 		$webhook_handler->expects( $this->never() )->method( 'send_failed_order_email' );
 
@@ -3780,7 +3780,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$order = $this->create_checkout_session_order( 'cs_test_async_email' );
 
 		$webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'send_failed_order_email' ] )
+			->onlyMethods( [ 'send_failed_order_email' ] )
 			->getMock();
 		$webhook_handler->expects( $this->once() )
 			->method( 'send_failed_order_email' )
@@ -4210,7 +4210,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		// Rebuild mock webhook handler with necessary methods mocked.
 		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->onlyMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
 			->getMock();
 
 		// Include 'payment_method' to avoid undefined-property notice (phpunit converts notices/warnings to exceptions).
@@ -4535,7 +4535,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		];
 
 		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->onlyMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
 			->getMock();
 		$this->mock_webhook_handler->method( 'get_intent_from_order' )
 			->willReturn( (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'payment_method' => null ] ) );
@@ -4622,7 +4622,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		];
 
 		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->onlyMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
 			->getMock();
 		$this->mock_webhook_handler->method( 'get_intent_from_order' )
 			->willReturn( (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'payment_method' => null ] ) );
@@ -4762,7 +4762,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		// Rebuild mock webhook handler where process_response throws an exception.
 		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->onlyMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
 			->getMock();
 
 		// Include 'payment_method' to avoid undefined-property notice (phpunit converts notices/warnings to exceptions).
@@ -4831,7 +4831,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$mock_scheduler->expects( $this->once() )->method( 'schedule_job' );
 
 		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->onlyMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
 			->getMock();
 
 		$this->mock_webhook_handler->method( 'get_intent_from_order' )
@@ -4959,7 +4959,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$mock_scheduler->expects( $this->once() )->method( 'schedule_job' );
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->onlyMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
 			->getMock();
 
 		$handler->method( 'get_intent_from_order' )
@@ -5081,7 +5081,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		);
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'get_connected_account_id' ] )
+			->onlyMethods( [ 'get_connected_account_id' ] )
 			->getMock();
 		$handler->method( 'get_connected_account_id' )->willReturn( $connected_account );
 
@@ -5229,11 +5229,15 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$this->assertSame( $event_account, $event->context, 'Fixture is expected to carry the account in `context`.' );
 
-		$matching = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )->setMethods( [ 'get_connected_account_id' ] )->getMock();
+		$matching = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->onlyMethods( [ 'get_connected_account_id' ] )
+			->getMock();
 		$matching->method( 'get_connected_account_id' )->willReturn( $event_account );
 		$this->assertTrue( $reflection->invoke( $matching, $event ) );
 
-		$mismatched = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )->setMethods( [ 'get_connected_account_id' ] )->getMock();
+		$mismatched = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->onlyMethods( [ 'get_connected_account_id' ] )
+			->getMock();
 		$mismatched->method( 'get_connected_account_id' )->willReturn( 'acct_someone_else' );
 		$this->assertFalse( $reflection->invoke( $mismatched, $event ) );
 	}

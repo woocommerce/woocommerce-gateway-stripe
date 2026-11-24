@@ -31,7 +31,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
 				->disableOriginalConstructor()
-				->setMethods(
+				->onlyMethods(
 					[
 						'get_cached_account_data',
 					]
@@ -1116,7 +1116,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		// We need to re-create the mock object to override the mocked 'get_cached_account_data' function.
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
 			->disableOriginalConstructor()
-			->setMethods(
+			->onlyMethods(
 				[
 					'get_cached_account_data',
 				]
@@ -1950,7 +1950,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	public function test_couldnt_connect_notice_is_suppressed_during_outage() {
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'get_cached_account_data' ] )
+			->onlyMethods( [ 'get_cached_account_data' ] )
 			->getMock();
 		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn( null );
 
@@ -1999,7 +1999,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		WC_Stripe_API_Outage_Status::record_outage();
 
 		$notices = $this->getMockBuilder( WC_Stripe_Admin_Notices::class )
-			->setMethods( [ 'get_environment_type' ] )
+			->onlyMethods( [ 'get_environment_type' ] )
 			->getMock();
 		$notices->method( 'get_environment_type' )->willReturn( $environment_type );
 
@@ -2096,7 +2096,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
-			->setMethods( [ 'is_oc_enabled', 'get_option' ] )
+			->onlyMethods( [ 'is_oc_enabled', 'get_option' ] )
 			->getMock();
 		$gateway->method( 'is_oc_enabled' )->willReturn( $is_oc_enabled );
 		$gateway->method( 'get_option' )->willReturnCallback(
@@ -2202,7 +2202,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
-			->setMethods( [ 'is_oc_enabled', 'get_option' ] )
+			->onlyMethods( [ 'is_oc_enabled', 'get_option' ] )
 			->getMock();
 		$gateway->method( 'is_oc_enabled' )->willReturn( true );
 		$gateway->method( 'get_option' )->willReturn( 'yes' );
