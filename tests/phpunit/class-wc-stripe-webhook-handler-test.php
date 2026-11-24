@@ -1686,31 +1686,84 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * On older API versions, charge.refunded for the released authorization can arrive before
-	 * charge.captured and record the capture. The order must still end up paid, with one refund.
+	 * On older API versions, the release also arrives as charge.refunded, before or after
+	 * charge.captured. Either way the order must end up paid, with the release refunded once.
+	 *
+	 * @dataProvider provider_release_refund_event_order
+	 *
+	 * @param string[] $event_order The charge events, in delivery order.
 	 */
-	public function test_process_webhook_capture_settles_order_after_release_refund_arrived_first() {
-		$order            = $this->create_authorized_order( 'ch_refund_first' );
+	public function test_process_webhook_capture_and_refund_record_release_once( array $event_order ) {
+		// $15 of $20 captured: a duplicate $5 refund would still pass WooCommerce's over-refund
+		// check, so only the stored Stripe refund ID prevents it.
+		$order            = $this->create_authorized_order( 'ch_release_order' );
 		$charge_overrides = [
-			'amount_captured' => 500,
-			'amount_refunded' => 1500,
+			'amount_captured' => 1500,
+			'amount_refunded' => 500,
 			'refunds'         => (object) [
 				'data' => [
 					(object) [
-						'id'     => 're_refund_first',
-						'amount' => 1500,
+						'id'     => 're_release_order',
+						'amount' => 500,
 					],
 				],
 			],
 		];
 
-		$this->mock_webhook_handler->process_webhook_refund( $this->build_capture_notification( 'charge.refunded', 'ch_refund_first', $charge_overrides ) );
-		$this->mock_webhook_handler->process_webhook_capture( $this->build_capture_notification( 'charge.captured', 'ch_refund_first', $charge_overrides ) );
+		foreach ( $event_order as $event_type ) {
+			$notification = $this->build_capture_notification( $event_type, 'ch_release_order', $charge_overrides );
+			if ( 'charge.refunded' === $event_type ) {
+				$this->mock_webhook_handler->process_webhook_refund( $notification );
+			} else {
+				$this->mock_webhook_handler->process_webhook_capture( $notification );
+			}
+		}
 
 		$order = wc_get_order( $order->get_id() );
 		$this->assertSame( OrderStatus::PROCESSING, $order->get_status() );
 		$this->assertSame( '20.00', $order->get_total() );
-		$this->assertSame( '15.00', wc_format_decimal( $order->get_total_refunded(), 2 ) );
+		$this->assertSame( '5.00', wc_format_decimal( $order->get_total_refunded(), 2 ) );
+		$this->assertCount( 1, $order->get_refunds() );
+	}
+
+	/**
+	 * Both delivery orders of the capture and refund events.
+	 */
+	public function provider_release_refund_event_order(): array {
+		return [
+			'refund event first'  => [ [ 'charge.refunded', 'charge.captured' ] ],
+			'capture event first' => [ [ 'charge.captured', 'charge.refunded' ] ],
+		];
+	}
+
+	/**
+	 * When a concurrent delivery records the release while this one is in flight, it must not be
+	 * recorded again. The concurrent request is simulated from the order-note hook, which fires
+	 * after the release is first measured and before the refund lock is taken.
+	 */
+	public function test_process_webhook_capture_does_not_record_release_recorded_concurrently() {
+		// $15 of $20 captured: a second $5 refund would still pass WooCommerce's over-refund check.
+		$order        = $this->create_authorized_order( 'ch_concurrent' );
+		$notification = $this->build_capture_notification( 'charge.captured', 'ch_concurrent', [ 'amount_captured' => 1500 ] );
+
+		$record_concurrently = static function ( $note_id, $noted_order ) use ( &$record_concurrently ) {
+			remove_action( 'woocommerce_order_note_added', $record_concurrently );
+			wc_create_refund(
+				[
+					'order_id' => $noted_order->get_id(),
+					'amount'   => '5.00',
+				]
+			);
+		};
+		add_action( 'woocommerce_order_note_added', $record_concurrently, 10, 2 );
+
+		$this->mock_webhook_handler->process_webhook_capture( $notification );
+
+		remove_action( 'woocommerce_order_note_added', $record_concurrently );
+
+		$order = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::PROCESSING, $order->get_status() );
+		$this->assertSame( '5.00', wc_format_decimal( $order->get_total_refunded(), 2 ) );
 		$this->assertCount( 1, $order->get_refunds() );
 	}
 

@@ -851,11 +851,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$charge_currency = strtoupper( (string) ( $charge->currency ?? '' ) );
 		$captured_amount = (int) $charge->amount_captured;
 
-		// Measured against what's still unrefunded on the order, not the authorization, so a
-		// repeated event, a charge.refunded event that already recorded the release, or an order
-		// reduced before the capture doesn't refund more than was actually released.
-		$unrefunded_amount = WC_Stripe_Helper::get_stripe_amount( (float) $order->get_remaining_refund_amount(), $currency );
-		$released_amount   = $unrefunded_amount - $captured_amount;
+		$released_amount = $this->get_unrecorded_release_amount( $order, $captured_amount );
 
 		$log_context = [
 			'order_id'          => $order->get_id(),
@@ -908,6 +904,21 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		// Checked again under the lock, on a fresh copy of the order: a concurrent delivery of this
+		// event, or charge.refunded, may have recorded the release since the order was loaded.
+		$fresh_order = wc_get_order( $order->get_id() );
+		if ( $fresh_order instanceof WC_Order ) {
+			$released_amount                   = $this->get_unrecorded_release_amount( $fresh_order, $captured_amount );
+			$log_context['released_amount']    = $released_amount;
+			$is_stripe_refund_already_recorded = '' !== $stripe_refund_id && $stripe_refund_id === (string) $order_helper->get_stripe_refund_id( $fresh_order );
+
+			if ( $released_amount <= 0 || $is_stripe_refund_already_recorded ) {
+				$order_helper->unlock_order_refund( $order );
+				WC_Stripe_Logger::info( 'Partial capture: the released amount was recorded by a concurrent event.', $log_context );
+				return;
+			}
+		}
+
 		$refund = wc_create_refund(
 			[
 				'order_id' => $order->get_id(),
@@ -931,6 +942,23 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$order_helper->unlock_order_refund( $order );
 
 		WC_Stripe_Logger::info( 'Partial capture: recorded the released amount as a refund.', array_merge( $log_context, [ 'refund_id' => $refund->get_id() ] ) );
+	}
+
+	/**
+	 * The released authorization not yet reflected on the order, in the smallest currency unit.
+	 *
+	 * Measured against what's still unrefunded on the order, not the authorization, so a repeated
+	 * event, a charge.refunded event that already recorded the release, or an order reduced before
+	 * the capture doesn't refund more than was actually released.
+	 *
+	 * @param WC_Order $order           The order paid by the partially captured charge.
+	 * @param int      $captured_amount The captured amount, in the smallest currency unit.
+	 * @return int Zero or less when there's nothing left to record.
+	 */
+	private function get_unrecorded_release_amount( WC_Order $order, int $captured_amount ): int {
+		$unrefunded_amount = WC_Stripe_Helper::get_stripe_amount( (float) $order->get_remaining_refund_amount(), $order->get_currency() );
+
+		return $unrefunded_amount - $captured_amount;
 	}
 
 	/**
