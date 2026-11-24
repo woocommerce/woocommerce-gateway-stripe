@@ -227,8 +227,10 @@ class WC_Stripe_Express_Checkout_Element {
 				'is_apple_pay_enabled'        => $this->express_checkout_helper->is_apple_google_pay_enabled(),
 				'is_google_pay_enabled'       => $this->express_checkout_helper->is_apple_google_pay_enabled(),
 			],
-			// The wc-ajax nonces are fetched on demand (see
-			// ajax_get_express_checkout_nonces) so page caches can't serve expired copies.
+			// Every nonce is fetched on demand (see ajax_get_express_checkout_nonces) so
+			// page caches can't serve expired copies. These two are printed as well, as a
+			// fallback: on cart and checkout a Store API request can go out before that
+			// fetch settles, and WooCommerce keeps those pages out of page caches.
 			'nonce'                      => [
 				'wc_store_api'                  => wp_create_nonce( 'wc_store_api' ),
 				'wc_store_api_express_checkout' => wp_create_nonce( 'wc_store_api_express_checkout' ),
