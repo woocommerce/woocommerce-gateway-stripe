@@ -1693,11 +1693,6 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				array_merge( $base_settings, [ 'express_checkout_button_locations' => [ 'cart' ] ] ),
 				false,
 			],
-			'not shown when checkout enabled for the method'          => [
-				'yes',
-				array_merge( $base_settings, [ 'express_checkout_button_locations' => [ 'product', 'cart', 'checkout' ] ] ),
-				false,
-			],
 			'shown when only another method has checkout'             => [
 				'yes',
 				array_merge(

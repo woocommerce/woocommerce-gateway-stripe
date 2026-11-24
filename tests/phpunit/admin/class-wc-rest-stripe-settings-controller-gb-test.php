@@ -56,10 +56,6 @@ class WC_REST_Stripe_Settings_Controller_GB_Test extends WC_Mock_Stripe_API_Unit
 	public function set_up(): void {
 		parent::set_up();
 
-		if ( version_compare( WC_VERSION, '3.4.0', '<' ) ) {
-			$this->markTestSkipped( 'The controller is not compatible with older WC versions, due to the missing `update_option` method on the gateway.' );
-		}
-
 		// Set the user so that we can pass the authentication.
 		wp_set_current_user( 1 );
 
