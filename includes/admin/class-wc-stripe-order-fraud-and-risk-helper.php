@@ -130,7 +130,7 @@ abstract class WC_Stripe_Order_Fraud_And_Risk_Helper {
 		 *
 		 * @var StdClass $charge
 		 */
-		$charge = WC_Stripe_API::retrieve( 'charges/as' . $charge_id );
+		$charge = WC_Stripe_API::retrieve( 'charges/' . $charge_id );
 
 		if ( ! is_object( $charge ) || ! empty( $charge->error ) || is_wp_error( $charge ) ) {
 			return null;
