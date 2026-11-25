@@ -31,7 +31,7 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 
 		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
 			->setConstructorArgs( [ $gateway ] )
-			->setMethods( [ 'is_page_supported', 'should_show_express_checkout_button' ] )
+			->onlyMethods( [ 'is_page_supported', 'should_show_express_checkout_button' ] )
 			->getMock();
 
 		$this->element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
@@ -97,7 +97,7 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 
 		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
 			->setConstructorArgs( [ $gateway ] )
-			->setMethods( [ 'is_apple_google_pay_enabled', 'is_amazon_pay_enabled', 'is_link_enabled', 'is_express_checkout_enabled' ] )
+			->onlyMethods( [ 'is_apple_google_pay_enabled', 'is_amazon_pay_enabled', 'is_link_enabled', 'is_express_checkout_enabled' ] )
 			->getMock();
 		$helper->method( 'is_apple_google_pay_enabled' )->willReturn( $apple_google_enabled );
 		// Amazon Pay alone keeps the aggregate true regardless of Apple/Google Pay.
@@ -255,7 +255,7 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 
 		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
 			->setConstructorArgs( [ $gateway ] )
-			->setMethods( [ 'is_page_supported', 'should_show_express_checkout_button' ] )
+			->onlyMethods( [ 'is_page_supported', 'should_show_express_checkout_button' ] )
 			->getMock();
 
 		$helper->method( 'is_page_supported' )
@@ -315,7 +315,7 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 
 		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
 			->setConstructorArgs( [ $gateway ] )
-			->setMethods( [ 'is_page_supported', 'should_show_express_checkout_button' ] )
+			->onlyMethods( [ 'is_page_supported', 'should_show_express_checkout_button' ] )
 			->getMock();
 
 		$helper->method( 'is_page_supported' )
@@ -836,7 +836,7 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 
 		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
 			->disableOriginalConstructor()
-			->setMethods( [ 'is_page_supported', 'should_show_express_checkout_button' ] )
+			->onlyMethods( [ 'is_page_supported', 'should_show_express_checkout_button' ] )
 			->getMock();
 
 		$helper->method( 'is_page_supported' )
@@ -930,7 +930,7 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 
 		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
 			->disableOriginalConstructor()
-			->setMethods( [ 'get_button_locations' ] )
+			->onlyMethods( [ 'get_button_locations' ] )
 			->getMock();
 
 		$helper->method( 'get_button_locations' )

@@ -11,29 +11,6 @@
  * Tests the product mapper for Agentic Commerce feeds.
  */
 class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
-	/**
-	 * Setup test environment before each test.
-	 *
-	 * @return void
-	 */
-	public function setUp(): void {
-		parent::setUp();
-
-		// Skip tests if WooCommerce ProductMapperInterface is not available.
-		if ( ! interface_exists( 'Automattic\\WooCommerce\\Internal\\ProductFeed\\Feed\\ProductMapperInterface' ) ) {
-			$this->markTestSkipped( 'WooCommerce ProductMapperInterface not available (requires WooCommerce 10.5.0+)' );
-		}
-
-		// Skip tests if Mapper class is not loaded.
-		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Product_Mapper' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Product_Mapper class not loaded' );
-		}
-
-		// Skip tests if Schema class is not loaded.
-		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Feed_Schema' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Feed_Schema class not loaded' );
-		}
-	}
 
 	/**
 	 * Test simple product mapping with all required fields.
