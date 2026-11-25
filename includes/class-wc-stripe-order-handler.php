@@ -76,6 +76,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_cancel_unpaid_order', [ $this, 'prevent_cancelling_orders_awaiting_action' ], 10, 2 );
 		add_filter( 'woocommerce_cancel_unpaid_order', [ $this, 'expire_open_checkout_session_before_cancelling' ], PHP_INT_MAX, 2 );
 
+		add_action( 'add_meta_boxes', [ $this, 'add_fraud_and_risk_meta_box' ], 10, 2 );
+		add_filter( 'is_protected_meta', [ $this, 'hide_fraud_and_risk_meta' ], 10, 3 );
+
 		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'show_warning_for_uncaptured_orders' ] );
 	}
 
@@ -980,5 +983,121 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		 * @param WC_Order $order The paid order whose cancellation was prevented.
 		 */
 		do_action( 'wc_stripe_paid_order_cancellation_prevented', $order );
+	}
+
+	/**
+	 * Adds a meta box for orders with flags indicating fraud or risk.
+	 *
+	 * @since x.x.x
+	 * @param string   $post_type     Post type.
+	 * @param WC_Order $order         The order.
+	 * @return void
+	 */
+	public function add_fraud_and_risk_meta_box( $post_type, $order ): void {
+		if ( ! in_array( $post_type, [ 'shop_order', 'woocommerce_page_wc-orders' ], true ) ) {
+			return;
+		}
+
+		$fraud_flags = WC_Stripe_Order_Fraud_And_Risk_Helper::order_has_transaction_fraud_flags_risk( $order );
+
+		if ( ! $fraud_flags ) {
+			return;
+		}
+
+		$screen_id = wc_get_page_screen_id( 'shop-order' );
+
+		add_meta_box(
+			'fraud-and-risk',
+			'Stripe fraud and risk',
+			[ $this, 'display_fraud_and_risk_meta_box' ],
+			$screen_id,
+			'normal',
+			'high'
+		);
+
+		add_filter(
+			'postbox_classes_' . $screen_id . '_fraud-and-risk',
+			function ( $classes ) {
+				return array_diff( $classes, [ 'closed' ] );
+			}
+		);
+	}
+
+	/**
+	 * Displays a meta box for orders with flags indicating fraud or risk.
+	 *
+	 * @since x.x.x
+	 * @param WC_Order $order The order.
+	 * @return void
+	 */
+	public function display_fraud_and_risk_meta_box( $order ): void {
+		$order = wc_get_order( $order );
+
+		if ( ! $order ) {
+			return;
+		}
+
+		/**
+		 * The order.
+		 *
+		 * @var WC_Order $order
+		 */
+		$fraud_flags = WC_Stripe_Order_Fraud_And_Risk_Helper::order_has_transaction_fraud_flags_risk( $order );
+
+		if ( ! $fraud_flags ) {
+			return;
+		}
+
+		$check = $fraud_flags->outcome->risk_level ?? null;
+		if ( ! is_null( $check ) ) {
+			echo wp_kses_post( '<div>Outcome risk level: ' . $check . '</div>' );
+		}
+
+		$check = $fraud_flags->fraud_details->stripe_report ?? null;
+		if ( ! is_null( $check ) ) {
+			echo wp_kses_post( '<div>Fraud flags Stripe report: ' . $check . '</div>' );
+		}
+
+		$check = $fraud_flags->fraud_details->user_report ?? null;
+		if ( ! is_null( $check ) ) {
+			echo wp_kses_post( '<div>Fraud flags user report: ' . $check . '</div>' );
+		}
+
+		$check = $fraud_flags->payment_method_details->card->checks->cvc_check ?? null;
+		if ( ! is_null( $check ) ) {
+			echo wp_kses_post( '<div>Payment method details card CVC check: ' . $check . '</div>' );
+		}
+
+		$check = $fraud_flags->payment_method_details->card->checks->address_line1_check ?? null;
+		if ( ! is_null( $check ) ) {
+			echo wp_kses_post( '<div>Payment method details card address line1 check: ' . $check . '</div>' );
+		}
+
+		$check = $fraud_flags->payment_method_details->card->checks->address_postal_code_check ?? null;
+		if ( ! is_null( $check ) ) {
+			echo wp_kses_post( '<div>Payment method details card address postal code check: ' . $check . '</div>' );
+		}
+
+		$check = $fraud_flags->payment_method_details->card->three_d_secure->result ?? null;
+		if ( ! is_null( $check ) ) {
+			echo wp_kses_post( '<div>Payment method details card 3D secure  check: ' . $check . '</div>' );
+		}
+	}
+
+	/**
+	 * Hides orders fraud and risk meta.
+	 *
+	 * @since x.x.x
+	 * @param bool   $protected True if meta is protected.
+	 * @param string $meta_key  Meta key name.
+	 * @param string $meta_type Meta type.
+	 * @return bool
+	 */
+	public function hide_fraud_and_risk_meta( $protected, $meta_key, $meta_type ) {
+		if ( WC_Stripe_Order_Fraud_And_Risk_Helper::STRIPE_CHARGE_FRAUD_FLAGS_META_NAME === $meta_key ) {
+			return true;
+		}
+
+		return $protected;
 	}
 }

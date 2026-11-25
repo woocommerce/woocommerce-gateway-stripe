@@ -27,8 +27,15 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 		$this->order_handler = $this->createPartialMock( WC_Stripe_Order_Handler::class, [ 'get_intent_from_order' ] );
 	}
 
+	public function test_fraud_and_risk_meta_box_handlers() {
+		$handler = WC_Stripe_Order_Handler::get_instance();
+		$this->assertSame( 10, has_action( 'add_meta_boxes', [ $handler, 'add_fraud_and_risk_meta_box' ] ) );
+		$this->assertSame( 10, has_action( 'is_protected_meta', [ $handler, 'hide_fraud_and_risk_meta' ] ) );
+	}
+
 	public function test_prevent_cancelling_orders_awaiting_action() {
 		$order = WC_Helper_Order::create_order();
+
 		WC_Stripe_Order_Helper::get_instance()->set_payment_awaiting_action( $order );
 
 		// Read in a fresh order object with meta like `date_modified` set.
