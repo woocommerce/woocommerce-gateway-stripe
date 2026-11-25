@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Don't send failed order emails for new disputes, can be enabled via wc_stripe_send_failed_order_email_for_dispute filter

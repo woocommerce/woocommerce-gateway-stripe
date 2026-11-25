@@ -37,10 +37,6 @@ class WC_Stripe_Agentic_Commerce_Manual_Approval_Test extends WP_UnitTestCase {
 	public function setUp(): void {
 		parent::setUp();
 
-		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Manual_Approval' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Manual_Approval class not loaded' );
-		}
-
 		$this->approval = new WC_Stripe_Agentic_Commerce_Manual_Approval();
 	}
 

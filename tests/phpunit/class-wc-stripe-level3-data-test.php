@@ -12,7 +12,7 @@ class WC_Stripe_Level3_Data_Test extends WP_UnitTestCase {
 		// Setup the item.
 		$mock_item = $this->getMockBuilder( WC_Order_Item_Product::class )
 			->disableOriginalConstructor()
-			->setMethods( [ 'get_name', 'get_quantity', 'get_subtotal', 'get_total_tax', 'get_total', 'get_variation_id', 'get_product_id' ] )
+			->onlyMethods( [ 'get_name', 'get_quantity', 'get_subtotal', 'get_total_tax', 'get_total', 'get_variation_id', 'get_product_id' ] )
 			->getMock();
 
 		$mock_item
@@ -49,7 +49,7 @@ class WC_Stripe_Level3_Data_Test extends WP_UnitTestCase {
 			// Setup the fee.
 			$mock_fee = $this->getMockBuilder( WC_Order_Item_Fee::class )
 				->disableOriginalConstructor()
-				->setMethods( [ 'get_name', 'get_quantity', 'get_total_tax', 'get_total' ] )
+				->onlyMethods( [ 'get_name', 'get_quantity', 'get_total_tax', 'get_total' ] )
 				->getMock();
 
 			$mock_fee
@@ -74,7 +74,7 @@ class WC_Stripe_Level3_Data_Test extends WP_UnitTestCase {
 		// Setup the order.
 		$mock_order = $this->getMockBuilder( WC_Order::class )
 			->disableOriginalConstructor()
-			->setMethods( [ 'get_id', 'get_items', 'get_currency', 'get_shipping_total', 'get_shipping_tax', 'get_shipping_postcode' ] )
+			->onlyMethods( [ 'get_id', 'get_items', 'get_currency', 'get_shipping_total', 'get_shipping_tax', 'get_shipping_postcode' ] )
 			->getMock();
 
 		$mock_order
@@ -246,7 +246,7 @@ class WC_Stripe_Level3_Data_Test extends WP_UnitTestCase {
 		// Setup the item - replicating customer order with product at $60.95
 		$mock_item = $this->getMockBuilder( WC_Order_Item_Product::class )
 			->disableOriginalConstructor()
-			->setMethods( [ 'get_name', 'get_quantity', 'get_subtotal', 'get_total_tax', 'get_total', 'get_variation_id', 'get_product_id' ] )
+			->onlyMethods( [ 'get_name', 'get_quantity', 'get_subtotal', 'get_total_tax', 'get_total', 'get_variation_id', 'get_product_id' ] )
 			->getMock();
 
 		$mock_item->method( 'get_name' )->willReturn( 'Test Product' );
@@ -260,7 +260,7 @@ class WC_Stripe_Level3_Data_Test extends WP_UnitTestCase {
 		// Setup the order with 3-decimal shipping total (20.685)
 		$mock_order = $this->getMockBuilder( WC_Order::class )
 			->disableOriginalConstructor()
-			->setMethods( [ 'get_id', 'get_items', 'get_currency', 'get_shipping_total', 'get_shipping_tax', 'get_shipping_postcode' ] )
+			->onlyMethods( [ 'get_id', 'get_items', 'get_currency', 'get_shipping_total', 'get_shipping_tax', 'get_shipping_postcode' ] )
 			->getMock();
 
 		$mock_order->method( 'get_id' )->willReturn( 114439 );
@@ -304,7 +304,7 @@ class WC_Stripe_Level3_Data_Test extends WP_UnitTestCase {
 	public function test_level3_data_with_negative_fee() {
 		$mock_item = $this->getMockBuilder( WC_Order_Item_Product::class )
 			->disableOriginalConstructor()
-			->setMethods( [ 'get_name', 'get_quantity', 'get_subtotal', 'get_total_tax', 'get_total', 'get_variation_id', 'get_product_id' ] )
+			->onlyMethods( [ 'get_name', 'get_quantity', 'get_subtotal', 'get_total_tax', 'get_total', 'get_variation_id', 'get_product_id' ] )
 			->getMock();
 
 		$mock_item->method( 'get_name' )->willReturn( 'Beanie with Logo' );
@@ -317,7 +317,7 @@ class WC_Stripe_Level3_Data_Test extends WP_UnitTestCase {
 
 		$mock_fee = $this->getMockBuilder( WC_Order_Item_Fee::class )
 			->disableOriginalConstructor()
-			->setMethods( [ 'get_name', 'get_quantity', 'get_total_tax', 'get_total' ] )
+			->onlyMethods( [ 'get_name', 'get_quantity', 'get_total_tax', 'get_total' ] )
 			->getMock();
 
 		$mock_fee->method( 'get_name' )->willReturn( 'Discount' );
@@ -327,7 +327,7 @@ class WC_Stripe_Level3_Data_Test extends WP_UnitTestCase {
 
 		$mock_order = $this->getMockBuilder( WC_Order::class )
 			->disableOriginalConstructor()
-			->setMethods( [ 'get_id', 'get_items', 'get_currency', 'get_shipping_total', 'get_shipping_tax', 'get_shipping_postcode' ] )
+			->onlyMethods( [ 'get_id', 'get_items', 'get_currency', 'get_shipping_total', 'get_shipping_tax', 'get_shipping_postcode' ] )
 			->getMock();
 
 		$mock_order->method( 'get_id' )->willReturn( 210 );

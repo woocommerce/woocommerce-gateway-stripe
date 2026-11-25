@@ -1,0 +1,4 @@
+Significance: patch
+Type: dev
+
+Update PHP unit tests to use onlyMethods() instead of setMethods()
