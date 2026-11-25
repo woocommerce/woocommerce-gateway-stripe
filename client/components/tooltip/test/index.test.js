@@ -126,6 +126,18 @@ describe( 'Tooltip', () => {
 		expect( handleHide2Mock ).not.toHaveBeenCalled();
 	} );
 
+	it( 'does not wrap interactive children in a button', () => {
+		render(
+			<Tooltip hasInteractiveChildren content="Tooltip content">
+				<button>Trigger element</button>
+			</Tooltip>
+		);
+
+		expect( screen.getAllByRole( 'button' ) ).toEqual( [
+			screen.getByText( 'Trigger element' ),
+		] );
+	} );
+
 	it( 'does not toggle tooltip when a link inside the content is clicked', async () => {
 		render(
 			<Tooltip
