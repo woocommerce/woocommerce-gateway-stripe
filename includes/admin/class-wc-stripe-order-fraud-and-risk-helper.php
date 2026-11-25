@@ -140,11 +140,11 @@ abstract class WC_Stripe_Order_Fraud_And_Risk_Helper {
 	}
 
 	/**
-	 * Return an order fraud and risk flags if different than normal, or false if no fraud or risk.
+	 * Return an order fraud and risk flags if any.
 	 *
 	 * @since x.x.x
 	 * @param WC_Order $order The order.
-	 * @return StdClass|bool
+	 * @return StdClass|null
 	 */
 	public static function order_has_transaction_fraud_flags_risk( $order ) {
 		$fraud_flags = self::get_order_transaction_fraud_flags( $order );
@@ -185,6 +185,6 @@ abstract class WC_Stripe_Order_Fraud_And_Risk_Helper {
 			return $fraud_flags;
 		}
 
-		return false;
+		return null;
 	}
 }
