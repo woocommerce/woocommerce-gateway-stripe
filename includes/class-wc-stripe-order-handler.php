@@ -1008,7 +1008,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 		add_meta_box(
 			'fraud-and-risk',
-			'Stripe risk Werde',
+			'Stripe fraud and risk',
 			[ $this, 'display_fraud_and_risk_meta_box' ],
 			$screen_id,
 			'normal',
@@ -1050,37 +1050,37 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 		$check = $fraud_flags->outcome->risk_level ?? null;
 		if ( ! is_null( $check ) ) {
-			echo esc_html( '<div>Outcome risk level: ' . $check . '</div>' );
+			echo wp_kses_post( '<div>Outcome risk level: ' . $check . '</div>' );
 		}
 
 		$check = $fraud_flags->fraud_details->stripe_report ?? null;
 		if ( ! is_null( $check ) ) {
-			echo esc_html( '<div>Fraud flags Stripe report: ' . $check . '</div>' );
+			echo wp_kses_post( '<div>Fraud flags Stripe report: ' . $check . '</div>' );
 		}
 
 		$check = $fraud_flags->fraud_details->user_report ?? null;
 		if ( ! is_null( $check ) ) {
-			echo esc_html( '<div>Fraud flags user report: ' . $check . '</div>' );
+			echo wp_kses_post( '<div>Fraud flags user report: ' . $check . '</div>' );
 		}
 
 		$check = $fraud_flags->payment_method_details->card->checks->cvc_check ?? null;
 		if ( ! is_null( $check ) ) {
-			echo esc_html( '<div>Payment method details card CVC check: ' . $check . '</div>' );
+			echo wp_kses_post( '<div>Payment method details card CVC check: ' . $check . '</div>' );
 		}
 
 		$check = $fraud_flags->payment_method_details->card->checks->address_line1_check ?? null;
 		if ( ! is_null( $check ) ) {
-			echo esc_html( '<div>Payment method details card address line1 check: ' . $check . '</div>' );
+			echo wp_kses_post( '<div>Payment method details card address line1 check: ' . $check . '</div>' );
 		}
 
 		$check = $fraud_flags->payment_method_details->card->checks->address_postal_code_check ?? null;
 		if ( ! is_null( $check ) ) {
-			echo esc_html( '<div>Payment method details card address postal code check: ' . $check . '</div>' );
+			echo wp_kses_post( '<div>Payment method details card address postal code check: ' . $check . '</div>' );
 		}
 
 		$check = $fraud_flags->payment_method_details->card->three_d_secure->result ?? null;
 		if ( ! is_null( $check ) ) {
-			echo esc_html( '<div>Payment method details card 3D secure  check: ' . $check . '</div>' );
+			echo wp_kses_post( '<div>Payment method details card 3D secure  check: ' . $check . '</div>' );
 		}
 	}
 
