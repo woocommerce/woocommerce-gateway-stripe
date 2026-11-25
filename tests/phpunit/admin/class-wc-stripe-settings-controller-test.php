@@ -116,7 +116,7 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 			$connect = $this->getMockBuilder( WC_Stripe_Connect::class )
 				->disableOriginalConstructor()
-				->setMethods( [ 'get_oauth_url' ] )
+				->onlyMethods( [ 'get_oauth_url' ] )
 				->getMock();
 			$connect->expects( $this->once() )
 				->method( 'get_oauth_url' )
@@ -166,7 +166,7 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		];
 
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
-			->setMethods( [ 'get_intent_from_order' ] )
+			->onlyMethods( [ 'get_intent_from_order' ] )
 			->getMock();
 
 		$gateway->expects( $this->once() )
@@ -227,7 +227,7 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 			$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 				->disableOriginalConstructor()
-				->setMethods(
+				->onlyMethods(
 					[
 						'get_upe_enabled_payment_method_ids',
 						'is_oc_enabled',
