@@ -125,6 +125,11 @@ abstract class WC_Stripe_Order_Fraud_And_Risk_Helper {
 	 * @return StdClass|null
 	 */
 	public static function get_order_transaction_by_id( $charge_id ) {
+		/**
+		 * The charge returned by the API call.
+		 *
+		 * @var StdClass $charge
+		 */
 		$charge = WC_Stripe_API::retrieve( 'charges/as' . $charge_id );
 
 		if ( ! is_object( $charge ) || ! empty( $charge->error ) || is_wp_error( $charge ) ) {
