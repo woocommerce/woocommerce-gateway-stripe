@@ -62,6 +62,50 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A paid order moved back from failed gets a payment status check, since checkout scheduled none
+	 * for it. A pending order keeps the check it got at checkout, so its first check isn't pushed back.
+	 *
+	 * @param string $status       Order status before the failure is recorded.
+	 * @param bool   $expect_check Whether a payment status check should be scheduled.
+	 * @dataProvider provide_failure_after_charge_cases
+	 */
+	public function test_record_failure_after_charge_schedules_check_for_failed_orders( string $status, bool $expect_check ): void {
+		// The check needs the reconciliation service the plugin's init() creates.
+		$this->assertNotNull( WC_Stripe::get_instance()->get_order_reconciliation() );
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( 'stripe' );
+		$order->set_status( $status );
+		$order->update_meta_data( '_stripe_intent_id', 'pi_failure_after_charge' );
+		$order->save();
+		$check_args = [ 'order_id' => $order->get_id() ];
+
+		try {
+			$this->helper->record_failure_after_charge( $order );
+
+			$this->assertSame( 'pending', wc_get_order( $order->get_id() )->get_status() );
+			$this->assertSame(
+				$expect_check,
+				as_has_scheduled_action( WC_Stripe_Order_Reconciliation::ORDER_HOOK, $check_args, WC_Stripe_Order_Reconciliation::GROUP )
+			);
+		} finally {
+			as_unschedule_all_actions( WC_Stripe_Order_Reconciliation::ORDER_HOOK, $check_args, WC_Stripe_Order_Reconciliation::GROUP );
+		}
+	}
+
+	/**
+	 * Data provider for `test_record_failure_after_charge_schedules_check_for_failed_orders`.
+	 *
+	 * @return array
+	 */
+	public function provide_failure_after_charge_cases(): array {
+		return [
+			'failed by an earlier attempt' => [ 'failed', true ],
+			'pending'                      => [ 'pending', false ],
+		];
+	}
+
+	/**
 	 * Tests for getters and setters.
 	 *
 	 * @return void

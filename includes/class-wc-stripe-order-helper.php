@@ -1208,10 +1208,39 @@ class WC_Stripe_Order_Helper {
 
 		if ( $order->has_status( OrderStatus::FAILED ) ) {
 			$order->update_status( OrderStatus::PENDING, $note );
+			$this->schedule_payment_status_check( $order );
 			return;
 		}
 
 		$order->add_order_note( $note );
+	}
+
+	/**
+	 * Asks the order reconciliation to complete the order from Stripe later.
+	 *
+	 * Pending orders get this check when the payment is submitted, but an order that was failed then
+	 * doesn't, and the webhook can hit the charge lock left by the failed attempt and give up.
+	 * Callers run inside an exception handler, so a scheduling failure is only logged.
+	 *
+	 * @param WC_Order $order The order moved back to pending.
+	 */
+	private function schedule_payment_status_check( WC_Order $order ): void {
+		$order_reconciliation = WC_Stripe::get_instance()->get_order_reconciliation();
+		if ( null === $order_reconciliation ) {
+			return;
+		}
+
+		try {
+			$order_reconciliation->schedule_order_check( $order );
+		} catch ( Throwable $e ) {
+			WC_Stripe_Logger::error(
+				'Could not schedule a Stripe payment status check.',
+				[
+					'order_id'      => $order->get_id(),
+					'error_message' => $e->getMessage(),
+				]
+			);
+		}
 	}
 
 	/**
