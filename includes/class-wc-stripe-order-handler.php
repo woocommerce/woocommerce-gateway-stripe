@@ -1037,6 +1037,11 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		/**
+		 * The order.
+		 *
+		 * @var WC_Order $order
+		 */
 		$fraud_flags = WC_Stripe_Order_Fraud_And_Risk_Helper::order_has_transaction_fraud_flags_risk( $order );
 
 		if ( ! $fraud_flags ) {
