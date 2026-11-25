@@ -1988,6 +1988,33 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				WC()->cart->empty_cart();
 			}
 
+			$paid_method_type = '';
+
+			// Core reset the payment method title to the gateway's own when it resumed the order for
+			// this submission. Settling writes the payment note and sends the order emails from the
+			// title the order carries at that moment, so the title of the method that paid goes on
+			// first. Only the title: settling skips an order whose payment method is not this
+			// gateway, which is what the ID of a non-card method would make it.
+			if ( null !== $paid_intent ) {
+				try {
+					list( $paid_method_type ) = $this->get_payment_method_data_from_intent( $paid_intent );
+					if ( isset( $this->payment_methods[ $paid_method_type ] ) ) {
+						$order->set_payment_method_title( $this->payment_methods[ $paid_method_type ]->get_title() );
+						$order->save();
+					}
+				} catch ( Exception $e ) {
+					$paid_method_type = '';
+					WC_Stripe_Logger::error(
+						'Could not restore the payment method title on an order paid by an earlier PaymentIntent.',
+						[
+							'order_id'      => $order->get_id(),
+							// A WC_Stripe_Exception's raw message can be a dump of the whole Stripe response.
+							'error_message' => $e instanceof WC_Stripe_Exception ? $e->getLocalizedMessage() : $e->getMessage(),
+						]
+					);
+				}
+			}
+
 			// Complete the order the way the shopper's return would have. A `processing` intent has
 			// no outcome yet, so its webhook settles the order instead.
 			if ( null !== $paid_intent && WC_Stripe_Intent_Status::PROCESSING !== $paid_intent->status ) {
@@ -2007,20 +2034,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				}
 			}
 
-			// Core reset the payment method title to the gateway's own when it resumed the order for
-			// this submission, and settling does not set it again. Settling works on its own copy of
-			// the order, so the title is written to a fresh one.
-			$paid_order = null !== $paid_intent ? wc_get_order( $order->get_id() ) : null;
+			// The rest of what the shopper's return records for the method that paid (its gateway ID,
+			// and the payment method of any subscriptions) waits for the order to be settled, and is
+			// written to a fresh copy because settling works on its own.
+			$paid_order = '' !== $paid_method_type ? wc_get_order( $order->get_id() ) : null;
 			if ( $paid_order instanceof WC_Order ) {
 				try {
-					list( $payment_method_type ) = $this->get_payment_method_data_from_intent( $paid_intent );
-					$this->set_payment_method_title_for_order( $paid_order, (string) $payment_method_type );
+					$this->set_payment_method_title_for_order( $paid_order, $paid_method_type );
 				} catch ( Exception $e ) {
 					WC_Stripe_Logger::error(
-						'Could not restore the payment method title on an order paid by an earlier PaymentIntent.',
+						'Could not record the payment method on an order paid by an earlier PaymentIntent.',
 						[
 							'order_id'      => $order->get_id(),
-							// A WC_Stripe_Exception's raw message can be a dump of the whole Stripe response.
 							'error_message' => $e instanceof WC_Stripe_Exception ? $e->getLocalizedMessage() : $e->getMessage(),
 						]
 					);

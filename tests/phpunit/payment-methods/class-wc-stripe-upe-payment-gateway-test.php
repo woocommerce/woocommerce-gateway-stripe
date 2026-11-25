@@ -3153,9 +3153,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @param bool        $expect_linked       Whether the Session ends up linked to the order.
 	 * @param string      $expected_status     Order status afterwards.
 	 * @param array       $charge_flags        Extra fields on the earlier intent's charge, e.g. `refunded`.
-	 * @param bool        $charge_lookup_fails_once_settled Whether reading the charge throws once the order is settled.
+	 * @param bool        $title_lookup_fails  Whether reading the charge for the payment method title throws.
 	 */
-	public function test_process_payment_with_checkout_session_for_order_with_earlier_intent( ?string $intent_status, bool $owns_session, bool $expire_succeeds, string $expected_result, bool $expect_already_paid, bool $expect_linked, string $expected_status, array $charge_flags = [], bool $charge_lookup_fails_once_settled = false ) {
+	public function test_process_payment_with_checkout_session_for_order_with_earlier_intent( ?string $intent_status, bool $owns_session, bool $expire_succeeds, string $expected_result, bool $expect_already_paid, bool $expect_linked, string $expected_status, array $charge_flags = [], bool $title_lookup_fails = false ) {
 		$this->enable_checkout_sessions();
 		wc_clear_notices();
 
@@ -3212,12 +3212,16 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			)
 		);
 
+		$charge_lookups = 0;
 		$this->mock_gateway
 			->method( 'get_latest_charge_from_intent' )
 			->willReturnCallback(
-				function () use ( $charge, $order, $charge_lookup_fails_once_settled ) {
-					// The only read after settling is the one that restores the payment method title.
-					if ( $charge_lookup_fails_once_settled && wc_get_order( $order->get_id() )->has_status( OrderStatus::PROCESSING ) ) {
+				function () use ( $charge, $title_lookup_fails, &$charge_lookups ) {
+					++$charge_lookups;
+
+					// The charge is read to rule out a reversed payment, then for the payment method
+					// title, then to settle the order.
+					if ( $title_lookup_fails && 2 === $charge_lookups ) {
 						throw new WC_Stripe_Exception( 'charge lookup failed', 'Charge lookup failed.' );
 					}
 
@@ -3265,6 +3269,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		}
 
 		$processed_order = wc_get_order( $order->get_id() );
+		$paid_method     = $this->mock_gateway->payment_methods[ $charge->payment_method_details->type ];
 
 		$this->assertSame( $expected_result, $result['result'] );
 		$this->assertSame( $expect_already_paid ? 'yes' : null, $result['wc_stripe_checkout_session_already_paid'] ?? null );
@@ -3285,10 +3290,22 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			// The order must carry the title of the method that paid, as the normal return does,
 			// unless the title could not be read, which must not fail the paid checkout.
 			$this->assertSame(
-				$charge_lookup_fails_once_settled
-					? 'Stripe'
-					: $this->mock_gateway->payment_methods[ WC_Stripe_Payment_Methods::CARD ]->get_title(),
+				$title_lookup_fails ? 'Stripe' : $paid_method->get_title(),
 				$processed_order->get_payment_method_title()
+			);
+		}
+
+		$notes = wp_list_pluck( wc_get_order_notes( [ 'order_id' => $order->get_id() ] ), 'content' );
+
+		if ( OrderStatus::PROCESSING === $expected_status && ! $title_lookup_fails ) {
+			// Core writes this note, and sends the order emails, while the order is being settled,
+			// so the title has to be in place by then.
+			$this->assertContains( sprintf( 'Payment via %s (ch_earlier_attempt).', $paid_method->get_title() ), $notes );
+
+			// A method other than cards is recorded under its own gateway ID, as the normal return does.
+			$this->assertSame(
+				$paid_method instanceof WC_Stripe_UPE_Payment_Method_CC ? WC_Stripe_UPE_Payment_Gateway::ID : $paid_method->id,
+				$processed_order->get_payment_method()
 			);
 		}
 	}
@@ -3307,6 +3324,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			'refunded charge does not block the retry' => [ WC_Stripe_Intent_Status::SUCCEEDED, true, true, 'success', false, true, OrderStatus::PENDING, [ 'refunded' => true ] ],
 			'disputed charge does not block the retry' => [ WC_Stripe_Intent_Status::SUCCEEDED, true, true, 'success', false, true, OrderStatus::PENDING, [ 'disputed' => true ] ],
 			'settled, but the title cannot be read'    => [ WC_Stripe_Intent_Status::SUCCEEDED, true, true, 'success', true, false, OrderStatus::PROCESSING, [], true ],
+			// Settling only acts on an order whose payment method is the gateway's own, so the
+			// method's own ID must not be on the order before it is settled.
+			'non-card method also settles the order'   => [ WC_Stripe_Intent_Status::SUCCEEDED, true, true, 'success', true, false, OrderStatus::PROCESSING, [ 'payment_method_details' => [ 'type' => WC_Stripe_Payment_Methods::CASHAPP_PAY ] ] ],
 		];
 	}
 
