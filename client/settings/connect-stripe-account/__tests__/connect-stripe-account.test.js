@@ -209,7 +209,7 @@ describe( 'ConnectStripeAccount', () => {
 			)
 		).not.toBeInTheDocument();
 
-		// Find the tooltip wrapper button (Tooltip wraps content in a button with this class)
+		// Find the tooltip wrapper (Tooltip wraps content in an element with this class)
 		const tooltipWrapper = container.querySelector(
 			'.wcstripe-tooltip__content-wrapper'
 		);
@@ -234,18 +234,5 @@ describe( 'ConnectStripeAccount', () => {
 			'wcstripe_create_or_connect_account_click',
 			{}
 		);
-
-		// The tooltip nests the connect button in its own button, the only
-		// error expected here.
-		expect( console ).toHaveErrored();
-		// eslint-disable-next-line no-console
-		expect( console.error.mock.calls ).toEqual( [
-			[
-				expect.stringContaining( 'validateDOMNesting' ),
-				'<button>',
-				'button',
-				expect.any( String ),
-			],
-		] );
 	} );
 } );

@@ -99,6 +99,7 @@ const ConnectButton = ( {
 	if ( isLiveModeWithoutSSL ) {
 		return (
 			<Tooltip
+				hasInteractiveChildren
 				content={ __(
 					'Live mode requires a valid SSL certificate. Please enable SSL on your site to connect a live Stripe account.',
 					'woocommerce-gateway-stripe'
