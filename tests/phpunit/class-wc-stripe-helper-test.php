@@ -1207,39 +1207,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		];
 	}
 
-	public function provide_is_wallet_payment_method(): array {
-		return [
-			'Apple Pay'  => [
-				'apple_pay',
-				false,
-			],
-			'Google Pay' => [
-				'google_pay',
-				false,
-			],
-			'Alipay'     => [
-				WC_Stripe_Payment_Methods::ALIPAY,
-				false,
-			],
-			'Klarna'     => [
-				WC_Stripe_Payment_Methods::KLARNA,
-				false,
-			],
-			'EPS'        => [
-				WC_Stripe_Payment_Methods::EPS,
-				false,
-			],
-			'WeChat'     => [
-				WC_Stripe_Payment_Methods::WECHAT_PAY,
-				true,
-			],
-			'Cash App'   => [
-				WC_Stripe_Payment_Methods::CASHAPP_PAY,
-				true,
-			],
-		];
-	}
-
 	/**
 	 * Test for `update_main_stripe_settings`, `get_stripe_settings` and `delete_main_stripe_settings`.
 	 *
@@ -2225,7 +2192,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		}
 		WC_Stripe_Helper::update_main_stripe_settings( $new_stripe_settings );
 
-		$webhook_status_cache_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_STATUS_CACHE_KEY', 'string' );
+		$webhook_status_cache_key = WC_Stripe_Webhook_Settings::WEBHOOK_STATUS_CACHE_KEY;
 
 		// is_webhook_enabled() short-circuits on a cached status, so we don't hit the Stripe API here.
 		if ( $webhook_enabled ) {
@@ -2305,7 +2272,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		remove_filter( 'woocommerce_is_checkout', $is_checkout_filter );
 		WC_Stripe_Helper::update_main_stripe_settings( $original_stripe_settings );
-		$webhook_status_cache_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_STATUS_CACHE_KEY', 'string' );
+		$webhook_status_cache_key = WC_Stripe_Webhook_Settings::WEBHOOK_STATUS_CACHE_KEY;
 		WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'live' );
 		WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'test' );
 		if ( WC()->session ) {
@@ -2354,7 +2321,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		WC_Stripe_Helper::update_main_stripe_settings( $new_stripe_settings );
 
 		// is_webhook_enabled() short-circuits on a cached status, so we don't hit the Stripe API here.
-		$webhook_status_cache_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_STATUS_CACHE_KEY', 'string' );
+		$webhook_status_cache_key = WC_Stripe_Webhook_Settings::WEBHOOK_STATUS_CACHE_KEY;
 		WC_Stripe_Database_Cache::set_with_mode( $webhook_status_cache_key, 'enabled', HOUR_IN_SECONDS, 'live' );
 
 		add_filter( 'woocommerce_is_checkout', '__return_true' );
@@ -2593,7 +2560,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		}
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
-		$webhook_status_cache_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_STATUS_CACHE_KEY', 'string' );
+		$webhook_status_cache_key = WC_Stripe_Webhook_Settings::WEBHOOK_STATUS_CACHE_KEY;
 
 		// is_webhook_enabled() short-circuits on a cached status, so we don't hit the Stripe API here.
 		if ( $webhook_enabled ) {
@@ -2622,7 +2589,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		delete_option( 'wc_stripe_adaptive_pricing_session_amount_mismatch_detected' );
 		WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
 
-		$webhook_status_cache_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_STATUS_CACHE_KEY', 'string' );
+		$webhook_status_cache_key = WC_Stripe_Webhook_Settings::WEBHOOK_STATUS_CACHE_KEY;
 		WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'live' );
 		WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'test' );
 

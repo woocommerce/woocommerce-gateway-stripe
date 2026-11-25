@@ -39,10 +39,6 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	public function set_up(): void {
 		parent::set_up();
 
-		if ( ! class_exists( 'WC_REST_Stripe_Agentic_Commerce_Controller' ) ) {
-			$this->markTestSkipped( 'WC_REST_Stripe_Agentic_Commerce_Controller class not loaded' );
-		}
-
 		// Enable the Agentic Commerce feature flag so the controller registers
 		// its routes (register_routes() is gated on the flag).
 		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
@@ -1037,10 +1033,6 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 * POST /sync succeeds and returns { success: true } when the integration is available.
 	 */
 	public function test_trigger_sync_returns_success_when_available(): void {
-		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Integration' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Integration class not loaded' );
-		}
-
 		// Enable the Agentic Commerce feature flag so sync_feed() does not bail early.
 		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
 
@@ -1102,10 +1094,6 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 * `check_setup()` — and therefore `sync_feed()` — return false.
 	 */
 	public function test_trigger_sync_returns_500_when_sync_fails(): void {
-		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Integration' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Integration class not loaded' );
-		}
-
 		$original_settings           = WC_Stripe_Helper::get_stripe_settings();
 		$settings                    = $original_settings;
 		$settings['testmode']        = 'yes';
@@ -1179,10 +1167,6 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 * GET /preview returns 200 with the summary counts and validation error list.
 	 */
 	public function test_get_preview_returns_summary_shape(): void {
-		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Feed_Preview' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Feed_Preview class not loaded' );
-		}
-
 		$request  = new WP_REST_Request( 'GET', self::PREVIEW_ROUTE );
 		$response = rest_do_request( $request );
 
@@ -1202,10 +1186,6 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 * as invalid and listed with its name and an edit link.
 	 */
 	public function test_get_preview_surfaces_invalid_product(): void {
-		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Feed_Preview' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Feed_Preview class not loaded' );
-		}
-
 		// A priced-less published product fails the feed's "price required" rule.
 		$product = new WC_Product_Simple();
 		$product->set_name( 'Preview Invalid Product' );
@@ -1448,10 +1428,6 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 * Disabling (yes -> no) must queue the final-feed teardown push.
 	 */
 	public function test_update_settings_disable_schedules_final_feed_push(): void {
-		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		// setUp() leaves the merchant toggle on, so this is a yes -> no transition.
 		as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' );
 		// Without this, an action left over from another test would satisfy the
@@ -1479,10 +1455,6 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 * Re-enabling (no -> yes) must cancel a final-feed push queued by a prior disable.
 	 */
 	public function test_update_settings_enable_cancels_pending_final_feed_push(): void {
-		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'no' );
 		( new WC_Stripe_Agentic_Commerce_Integration() )->schedule_final_checkout_disabled_feed();
 		$this->assertNotFalse(
@@ -1505,10 +1477,6 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 * A no-op save (yes -> yes) must not queue a teardown push.
 	 */
 	public function test_update_settings_noop_enable_does_not_schedule_final_feed_push(): void {
-		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		// setUp() already enabled the merchant toggle.
 		as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Integration::FINAL_FEED_ACTION, [], 'wc-stripe-agentic-final-feed' );
 		$this->assertFalse(
@@ -1552,10 +1520,6 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_archive_flush_on_settings_update_cases
 	 */
 	public function test_update_settings_schedules_pending_archive_flush( string $webhook_secret, bool $expect_schedule ): void {
-		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION );
 		update_option(
 			WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_ARCHIVES_OPTION,
@@ -1807,14 +1771,6 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 * After a successful POST /sync, GET /status returns a non-null next_sync within the expected window.
 	 */
 	public function test_trigger_sync_reschedules_next_sync(): void {
-		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Integration' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Integration class not loaded' );
-		}
-
-		if ( ! function_exists( 'as_schedule_recurring_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available' );
-		}
-
 		// Enable the Agentic Commerce feature flag.
 		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
 
@@ -1891,14 +1847,6 @@ class WC_REST_Stripe_Agentic_Commerce_Controller_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_trigger_sync_cancels_pending_async_resync(): void {
-		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Integration' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Integration class not loaded' );
-		}
-
-		if ( ! function_exists( 'as_enqueue_async_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available' );
-		}
-
 		update_option( WC_Stripe_Feature_Flags::AGENTIC_COMMERCE_FEATURE_FLAG_NAME, 'yes' );
 
 		$settings                    = WC_Stripe_Helper::get_stripe_settings();

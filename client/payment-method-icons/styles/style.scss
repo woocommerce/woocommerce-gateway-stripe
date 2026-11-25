@@ -73,6 +73,13 @@
 		background: styles.$payment-method-cashapp;
 	}
 
+	// Klarna's badge already includes padding around its wordmark, so the shell's padding is dropped
+	// and the brand color fills the gap left by the badge's 3:2 aspect ratio.
+	&.wc-stripe-payment-method-icon--shell.wc-stripe-payment-method-icon--klarna {
+		background: styles.$payment-method-klarna;
+		padding: 0;
+	}
+
 	&.wc-stripe-payment-method-icon--sepa {
 		background: styles.$payment-method-sepa;
 	}

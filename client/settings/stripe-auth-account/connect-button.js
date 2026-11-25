@@ -1,6 +1,7 @@
 /* global wc_stripe_settings_params, ajaxurl */
 
 import { React, useState } from 'react';
+import { navigateTo } from 'wcstripe/utils/navigation';
 import { __ } from '@wordpress/i18n';
 import { Button } from '@wordpress/components';
 import { recordEvent } from 'wcstripe/tracking';
@@ -69,7 +70,7 @@ const ConnectButton = ( {
 			} );
 
 			if ( response?.success && response.data?.oauth_url ) {
-				window.location.assign( response.data.oauth_url );
+				navigateTo( response.data.oauth_url );
 			} else {
 				handleError( response?.data?.message );
 			}
@@ -87,9 +88,12 @@ const ConnectButton = ( {
 	const button = (
 		<Button
 			variant={ buttonVariant }
-			onClick={ handleClick }
+			onClick={ isLiveModeWithoutSSL ? undefined : handleClick }
 			text={ buttonText }
-			disabled={ isLoading || disabled || isLiveModeWithoutSSL }
+			disabled={ isLoading || disabled }
+			// A disabled button cannot take focus, so keyboard users could
+			// not open the tooltip that explains why it is unavailable.
+			aria-disabled={ isLiveModeWithoutSSL || undefined }
 			isBusy={ isLoading }
 		/>
 	);
@@ -98,6 +102,7 @@ const ConnectButton = ( {
 	if ( isLiveModeWithoutSSL ) {
 		return (
 			<Tooltip
+				hasInteractiveChildren
 				content={ __(
 					'Live mode requires a valid SSL certificate. Please enable SSL on your site to connect a live Stripe account.',
 					'woocommerce-gateway-stripe'

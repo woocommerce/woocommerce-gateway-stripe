@@ -39,10 +39,6 @@ class WC_Stripe_Agentic_Shipping_Calculator_Test extends WP_UnitTestCase {
 	public function setUp(): void {
 		parent::setUp();
 
-		if ( ! class_exists( 'WC_Stripe_Agentic_Shipping_Calculator' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_Agentic_Shipping_Calculator class not loaded' );
-		}
-
 		$this->calculator = new WC_Stripe_Agentic_Shipping_Calculator();
 
 		$this->save_wc_options( 'woocommerce_ship_to_countries', 'woocommerce_calc_taxes' );

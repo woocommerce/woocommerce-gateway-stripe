@@ -93,6 +93,9 @@
       ]
     },
     "autoload-dev": {
+      "psr-4": {
+        "WooCommerce\\Stripe\\PHPStan\\": "phpstan-extensions/"
+      },
       "classmap": [
 				"tests/phpunit/"
 			],

@@ -8,6 +8,8 @@
  * @package WooCommerce/Stripe/WC_Stripe
  */
 class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
+	use WC_Stripe_Tracks_Capture_Trait;
+
 	/**
 	 * get_settings() returns the stored option as an array.
 	 *
@@ -261,13 +263,14 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Tests for the 'install' method when it updates the main Stripe settings.
 	 *
-	 * @param array $stripe_settings   The initial Stripe settings.
-	 * @param array $expected_settings The expected Stripe settings after installation.
+	 * @param array $stripe_settings    The initial Stripe settings.
+	 * @param array $expected_settings  The expected Stripe settings after installation.
+	 * @param bool  $live_webhook_fails Whether live-mode webhook configuration throws.
 	 * @return void
 	 *
 	 * @dataProvider provide_test_install_settings
 	 */
-	public function test_install_settings_update( array $stripe_settings = [], array $expected_settings = [] ): void {
+	public function test_install_settings_update( array $stripe_settings = [], array $expected_settings = [], bool $live_webhook_fails = false ): void {
 		// Activate the Stripe plugin.
 		update_option( 'active_plugins', [ plugin_basename( WC_STRIPE_MAIN_FILE ) ] );
 
@@ -285,6 +288,17 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			)
 			->getMock();
 
+		$wc_stripe->webhook_settings = $this->createMock( WC_Stripe_Webhook_Settings::class );
+		$wc_stripe->webhook_settings->expects( $this->exactly( 2 ) )
+			->method( 'maybe_autoconfigure_webhooks' )->withConsecutive( [ 'live' ], [ 'test' ] )
+			->willReturnCallback(
+				static function ( $mode ) use ( $live_webhook_fails ) {
+					if ( $live_webhook_fails && 'live' === $mode ) {
+						throw new Exception( 'Live webhook configuration failed.' );
+					}
+					return null;
+				}
+			);
 		$wc_stripe->install();
 
 		$actual_settings = WC_Stripe::get_instance()->get_settings();
@@ -305,6 +319,11 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_test_install_settings(): array {
 		return [
+			'live webhook failure does not skip test mode'             => [
+				'stripe settings'    => [],
+				'expected settings'  => [],
+				'live webhook fails' => true,
+			],
 			'will not enable OCS by default due to PMC being disabled' => [
 				'stripe settings'   => [
 					'pmc_enabled' => 'no',
@@ -352,10 +371,131 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			)
 			->getMock();
 
+		$wc_stripe->webhook_settings = $this->createMock( WC_Stripe_Webhook_Settings::class );
+		$wc_stripe->webhook_settings->expects( $this->exactly( 2 ) )
+			->method( 'maybe_autoconfigure_webhooks' )->withConsecutive( [ 'live' ], [ 'test' ] );
 		$wc_stripe->install();
 
 		$this->assertEquals( 'yes', get_option( 'wc_stripe_optimized_checkout_default_on' ) );
 		$this->assertEquals( 'yes', get_option( 'wc_stripe_amazon_pay_default_on' ) );
+	}
+
+	/**
+	 * A version change must record one plugin update event carrying the previous version and,
+	 * when the store is connected, the account ID. A fresh install must record none.
+	 *
+	 * @param string|false $previous_version    The stored version before install() runs; false for a fresh install.
+	 * @param array        $account_data        What the account service returns.
+	 * @param bool         $expect_event        Whether the event must be recorded.
+	 * @param string|null  $expected_account_id Expected account_id property, or null when it must be absent.
+	 *
+	 * @dataProvider provide_plugin_updated_tracks_event_scenarios
+	 */
+	public function test_install_records_plugin_updated_tracks_event( $previous_version, array $account_data, bool $expect_event, ?string $expected_account_id ): void {
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+
+		if ( false === $previous_version ) {
+			delete_option( 'wc_stripe_version' );
+		} else {
+			update_option( 'wc_stripe_version', $previous_version );
+		}
+
+		$wc_stripe = $this->get_install_test_instance();
+		$wc_stripe->account->method( 'get_cached_account_data' )->willReturn( $account_data );
+
+		$this->start_capturing_tracks_events();
+		$wc_stripe->install();
+		$this->stop_capturing_tracks_events();
+
+		$events = $this->get_captured_tracks_event_properties( 'wcadmin_wcstripe_plugin_updated' );
+
+		if ( ! $expect_event ) {
+			$this->assertSame( [], $events );
+			return;
+		}
+
+		$this->assertCount( 1, $events );
+		$this->assertSame( $previous_version, $events[0]['previous_version'] );
+		$this->assertSame( WC_STRIPE_VERSION, $events[0]['stripe_version'] );
+		$this->assertSame( $expected_account_id, $events[0]['account_id'] ?? null );
+	}
+
+	/**
+	 * Data provider for {@see test_install_records_plugin_updated_tracks_event()}.
+	 *
+	 * @return array
+	 */
+	public function provide_plugin_updated_tracks_event_scenarios(): array {
+		return [
+			'update with a connected account'    => [
+				'previous version'    => '10.0.0',
+				'account data'        => [ 'id' => 'acct_123' ],
+				'expect event'        => true,
+				'expected account id' => 'acct_123',
+			],
+			'update without a connected account' => [
+				'previous version'    => '10.0.0',
+				'account data'        => [],
+				'expect event'        => true,
+				'expected account id' => null,
+			],
+			'downgrade'                          => [
+				'previous version'    => '999.0.0',
+				'account data'        => [ 'id' => 'acct_123' ],
+				'expect event'        => true,
+				'expected account id' => 'acct_123',
+			],
+			'fresh install'                      => [
+				'previous version'    => false,
+				'account data'        => [ 'id' => 'acct_123' ],
+				'expect event'        => false,
+				'expected account id' => null,
+			],
+		];
+	}
+
+	/**
+	 * With tracking off, an update must neither record the event nor look the account up,
+	 * since the lookup can call the Stripe API.
+	 */
+	public function test_install_skips_plugin_updated_tracks_event_when_tracking_is_disabled(): void {
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+		update_option( 'wc_stripe_version', '10.0.0' );
+		delete_option( 'woocommerce_allow_tracking' );
+
+		$wc_stripe = $this->get_install_test_instance();
+		$wc_stripe->account->expects( $this->never() )->method( 'get_cached_account_data' );
+
+		$wc_stripe->install();
+	}
+
+	/**
+	 * Builds a WC_Stripe whose install() runs for real, with the side effects that need
+	 * Stripe or unrelated settings stubbed out and a mocked account service.
+	 *
+	 * @return WC_Stripe&\PHPUnit\Framework\MockObject\MockObject
+	 */
+	private function get_install_test_instance() {
+		update_option( 'active_plugins', [ plugin_basename( WC_STRIPE_MAIN_FILE ) ] );
+
+		$wc_stripe = $this->getMockBuilder( WC_Stripe::class )
+			->disableOriginalConstructor()
+			->onlyMethods(
+				[
+					'update_plugin_version',
+					'update_prb_location_settings',
+					'migrate_to_new_checkout_experience',
+				]
+			)
+			->getMock();
+
+		$wc_stripe->webhook_settings = $this->createMock( WC_Stripe_Webhook_Settings::class );
+		$wc_stripe->account          = $this->getMockBuilder( WC_Stripe_Account::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'get_cached_account_data' ] )
+			->getMock();
+
+		return $wc_stripe;
 	}
 
 	/**
@@ -769,27 +909,27 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 *
 	 * @param array|false $old_value   Previous option value.
 	 * @param array       $new_value   New option value.
-	 * @param bool        $expect_call Whether maybe_reconfigure_webhooks_on_update is expected to be called on the account.
+	 * @param bool        $expect_call Whether both webhook modes should be checked.
 	 * @dataProvider provide_test_maybe_reconfigure_webhooks_after_adaptive_pricing_enabled
 	 */
 	public function test_maybe_reconfigure_webhooks_after_adaptive_pricing_enabled( $old_value, $new_value, $expect_call ) {
-		$stripe           = WC_Stripe::get_instance();
-		$original_account = $stripe->account;
+		$stripe                    = WC_Stripe::get_instance();
+		$original_webhook_settings = $stripe->webhook_settings;
 
-		$mock_account = $this->getMockBuilder( \WC_Stripe_Account::class )
+		$mock_webhook_settings = $this->getMockBuilder( \WC_Stripe_Webhook_Settings::class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'maybe_reconfigure_webhooks_on_update' ] )
+			->onlyMethods( [ 'maybe_autoconfigure_webhooks' ] )
 			->getMock();
-		$mock_account->expects( $expect_call ? $this->once() : $this->never() )
-			->method( 'maybe_reconfigure_webhooks_on_update' )
-			->with( 'settings' );
+		$mock_webhook_settings->expects( $this->exactly( $expect_call ? 2 : 0 ) )
+			->method( 'maybe_autoconfigure_webhooks' )
+			->withConsecutive( [ 'live' ], [ 'test' ] );
 
-		$stripe->account = $mock_account;
+		$stripe->webhook_settings = $mock_webhook_settings;
 
 		try {
 			do_action( 'update_option_woocommerce_stripe_settings', $old_value, $new_value, 'woocommerce_stripe_settings' );
 		} finally {
-			$stripe->account = $original_account;
+			$stripe->webhook_settings = $original_webhook_settings;
 		}
 	}
 

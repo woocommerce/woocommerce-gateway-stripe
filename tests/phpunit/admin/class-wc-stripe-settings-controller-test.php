@@ -116,7 +116,7 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 			$connect = $this->getMockBuilder( WC_Stripe_Connect::class )
 				->disableOriginalConstructor()
-				->setMethods( [ 'get_oauth_url' ] )
+				->onlyMethods( [ 'get_oauth_url' ] )
 				->getMock();
 			$connect->expects( $this->once() )
 				->method( 'get_oauth_url' )
@@ -166,7 +166,7 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		];
 
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
-			->setMethods( [ 'get_intent_from_order' ] )
+			->onlyMethods( [ 'get_intent_from_order' ] )
 			->getMock();
 
 		$gateway->expects( $this->once() )
@@ -217,14 +217,17 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 			$account->method( 'get_account_country' )->willReturn( $account_country );
 			// Adaptive Pricing availability now also depends on webhooks; enable them so this test
 			// isolates the country-restriction logic it covers.
-			$account->method( 'is_webhook_enabled' )->willReturn( true );
+			$original_webhook_settings = WC_Stripe::get_instance()->webhook_settings;
+			$webhook_settings          = $this->createMock( WC_Stripe_Webhook_Settings::class );
+			$webhook_settings->method( 'is_webhook_enabled' )->willReturn( true );
+			WC_Stripe::get_instance()->webhook_settings = $webhook_settings;
 
 			$stripe_singleton_account_backup   = WC_Stripe::get_instance()->account;
 			WC_Stripe::get_instance()->account = $account;
 
 			$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 				->disableOriginalConstructor()
-				->setMethods(
+				->onlyMethods(
 					[
 						'get_upe_enabled_payment_method_ids',
 						'is_oc_enabled',
@@ -266,6 +269,9 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 			);
 			$this->assertSame( 'accordion', $params['oc_layout'] );
 		} finally {
+			if ( isset( $original_webhook_settings ) ) {
+				WC_Stripe::get_instance()->webhook_settings = $original_webhook_settings;
+			}
 			if ( isset( $stripe_singleton_account_backup ) ) {
 				WC_Stripe::get_instance()->account = $stripe_singleton_account_backup;
 			}

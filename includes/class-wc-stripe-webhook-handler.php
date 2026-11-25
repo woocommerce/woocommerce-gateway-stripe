@@ -42,6 +42,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	protected const META_REFUNDED_AFTER_CANCELLATION = '_stripe_refunded_after_cancellation';
 
 	/**
+	 * How many times to retry Checkout Session processing while waiting for the PaymentIntent to get a charge.
+	 *
+	 * @var int
+	 */
+	protected const CHECKOUT_SESSION_CHARGE_FETCH_MAX_RETRIES = 3;
+
+	/**
 	 * Is test mode active?
 	 *
 	 * @var bool
@@ -98,6 +105,16 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @var int
 	 */
 	private $adaptive_pricing_order_lookup_retry_count = 0;
+
+	/**
+	 * Missing-charge retry count for the deferred Checkout Session settlement currently being handled.
+	 *
+	 * Carried on the instance for the same subclass-signature reason as
+	 * $adaptive_pricing_order_lookup_retry_count.
+	 *
+	 * @var int
+	 */
+	private $checkout_session_charge_retry_count = 0;
 
 	/**
 	 * The Action Scheduler hook to use when retrying a webhook.
@@ -678,7 +695,19 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification, null );
 
 		$order_id = $order->get_id();
-		$this->send_failed_order_email( $order_id );
+
+		/**
+		 * Decide whether to send a failed order email when a dispute is received.
+		 *
+		 * @since x.x.x
+		 *
+		 * @param bool $should_send_email Whether we should send the failed order email. Default is false.
+		 * @param int  $order_id          The order ID.
+		 */
+		$should_send_failed_order_email = apply_filters( 'wc_stripe_send_failed_order_email_for_dispute', false, $order_id );
+		if ( $should_send_failed_order_email ) {
+			$this->send_failed_order_email( $order_id );
+		}
 	}
 
 	/**
@@ -1905,15 +1934,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				case 'checkout.session.async_payment_succeeded':
 					// If the order is still locked or not created yet, this re-queues itself again;
 					// don't fire the action now — the retry that settles the payment fires it.
-					// The retry count rides on the instance so handle_checkout_session_success()
-					// keeps its one-parameter protected signature (subclasses may override it).
+					// The retry counts are instance properties so handle_checkout_session_success()
+					// can keep its one-parameter protected signature (subclasses may override it).
 					$this->adaptive_pricing_order_lookup_retry_count = (int) ( $additional_data['retry_count'] ?? 0 );
+					$this->checkout_session_charge_retry_count       = (int) ( $additional_data['charge_retry_count'] ?? 0 );
 					try {
 						if ( $this->handle_checkout_session_success( $notification ) ) {
 							return;
 						}
 					} finally {
 						$this->adaptive_pricing_order_lookup_retry_count = 0;
+						$this->checkout_session_charge_retry_count       = 0;
 					}
 					break;
 				case 'checkout.session.expired':
@@ -2481,15 +2512,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Handles a deferred checkout session success event.
 	 *
-	 * The deferred retry count is read from $this->adaptive_pricing_order_lookup_retry_count
-	 * rather than a parameter, to keep this protected signature stable for subclasses.
+	 * The deferred retry counts are read from $this->adaptive_pricing_order_lookup_retry_count and
+	 * $this->checkout_session_charge_retry_count rather than parameters, to keep this protected
+	 * signature stable for subclasses.
 	 *
 	 * @param object $notification The Stripe notification containing the checkout session data.
-	 * @return bool True if the event was re-queued for async processing, false if handled inline.
+	 * @return bool True if the event was re-queued for async processing, false if handled inline or settlement was skipped.
 	 */
 	protected function handle_checkout_session_success( object $notification ): bool {
-		$retry_count      = $this->adaptive_pricing_order_lookup_retry_count;
-		$checkout_session = $notification->data->object;
+		$retry_count        = $this->adaptive_pricing_order_lookup_retry_count;
+		$charge_retry_count = $this->checkout_session_charge_retry_count;
+		$checkout_session   = $notification->data->object;
 
 		$session_id = $checkout_session->id;
 
@@ -2949,6 +2982,47 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		if ( $user_id > 0 ) {
 			$this->attach_customer_to_user( $user_id, $customer_id );
 		}
+	}
+
+	/**
+	 * Adds the Adaptive Pricing local-currency order note, once per order.
+	 *
+	 * Checkout Session settlement can run more than once for the same order (for example while
+	 * waiting for the PaymentIntent charge), so a meta flag keeps the note from repeating. The
+	 * flag is saved immediately so it stays in step with the note on every early return.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Order $order               The order the session settled.
+	 * @param mixed    $presentment_details The Checkout Session's presentment_details, if any.
+	 */
+	private function maybe_add_order_note_for_adaptive_pricing( WC_Order $order, $presentment_details ): void {
+		if ( ! is_object( $presentment_details ) || ! isset( $presentment_details->presentment_currency, $presentment_details->presentment_amount ) ) {
+			return;
+		}
+
+		$currency = strtoupper( $presentment_details->presentment_currency );
+		$amount   = WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount(
+			$presentment_details->presentment_amount,
+			$presentment_details->presentment_currency
+		);
+
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		if ( $order_helper->is_stripe_adaptive_pricing_note_recorded( $order, $currency, $amount ) ) {
+			return;
+		}
+
+		$order->add_order_note(
+			sprintf(
+				/* translators: 1) presentment currency 2) presentment amount */
+				__( 'Local currency purchase via Adaptive Pricing. Amount paid was: %1$s %2$s', 'woocommerce-gateway-stripe' ),
+				$currency,
+				$amount
+			)
+		);
+
+		$order_helper->add_stripe_adaptive_pricing_note_record( $order, $currency, $amount );
+		$order->save_meta_data();
 	}
 
 	/**

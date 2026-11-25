@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { OCPromotionBanner } from '../oc-promotion-banner';
 import apiFetch from '@wordpress/api-fetch';
 import { useDispatch } from '@wordpress/data';
+import { reloadPage } from 'wcstripe/utils/navigation';
 
 const noticesDispatch = {
 	createErrorNotice: jest.fn(),
@@ -12,12 +13,14 @@ const noticesDispatch = {
 jest.mock( '@wordpress/data' );
 
 jest.mock( '@wordpress/api-fetch' );
+jest.mock( 'wcstripe/utils/navigation' );
 
 describe( 'OC promotional banner', () => {
 	const setShowPromotionalBanner = jest.fn();
 	const setIsOCEnabled = jest.fn( () => Promise.resolve() );
 
 	beforeEach( () => {
+		reloadPage.mockClear();
 		useDispatch.mockImplementation( ( storeName ) => {
 			if ( storeName === 'core/notices' ) {
 				return noticesDispatch;
@@ -86,5 +89,6 @@ describe( 'OC promotional banner', () => {
 			await userEvent.click( activateButton );
 		} );
 		expect( setIsOCEnabled ).toHaveBeenCalled();
+		expect( reloadPage ).toHaveBeenCalled();
 	} );
 } );

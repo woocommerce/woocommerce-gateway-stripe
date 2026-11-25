@@ -96,10 +96,6 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_connection_change_scenarios
 	 */
 	public function test_connection_change_enqueues_sync( $old_value, $new_value, bool $expects_sync ): void {
-		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		WC_Stripe_Remote_Config_Scheduler::maybe_sync_on_connection_change( $old_value, $new_value );
 
 		$this->assertSame( $expects_sync, as_has_scheduled_action( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION ) );
@@ -175,10 +171,6 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 	}
 
 	public function test_on_plugin_upgrade_enqueues_async_sync(): void {
-		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		WC_Stripe_Remote_Config_Scheduler::on_plugin_upgrade();
 
 		$this->assertTrue( as_has_scheduled_action( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION ) );
@@ -194,10 +186,6 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_maybe_schedule_daily_sync_applies_offset_across_the_full_day( int $offset ): void {
-		if ( ! function_exists( 'as_next_scheduled_action' ) || ! function_exists( 'as_unschedule_all_actions' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		// Satisfy the action_scheduler_init guard in maybe_schedule_daily_sync().
 		do_action( 'action_scheduler_init' );
 		as_unschedule_all_actions( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [], WC_Stripe_Remote_Config_Scheduler::SCHEDULER_GROUP );
@@ -322,10 +310,6 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 	 * must return before scheduling anything (and before the database lookup).
 	 */
 	public function test_maybe_schedule_daily_sync_does_nothing_when_disabled(): void {
-		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		// Satisfy the action_scheduler_init guard so only the feature flag can
 		// stop the scheduling.
 		do_action( 'action_scheduler_init' );
@@ -341,10 +325,6 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 	 * keep running a scheduled action after it is turned off.
 	 */
 	public function test_unschedule_daily_sync_cancels_the_scheduled_action(): void {
-		if ( ! function_exists( 'as_schedule_recurring_action' ) || ! function_exists( 'as_has_scheduled_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		do_action( 'action_scheduler_init' );
 		as_schedule_recurring_action( time() + HOUR_IN_SECONDS, DAY_IN_SECONDS, WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [], WC_Stripe_Remote_Config_Scheduler::SCHEDULER_GROUP );
 		$this->assertTrue( as_has_scheduled_action( WC_Stripe_Remote_Config_Scheduler::SYNC_ACTION, [], WC_Stripe_Remote_Config_Scheduler::SCHEDULER_GROUP ) );
@@ -377,10 +357,6 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_retry_attempts
 	 */
 	public function test_failed_fetch_schedules_backoff_retry( int $attempt, int $expected_delay ): void {
-		if ( ! function_exists( 'as_next_scheduled_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		$this->configure_modes( true, false );
 
 		$before = time();
@@ -410,10 +386,6 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 	 * must still count the failure.
 	 */
 	public function test_last_retry_failure_schedules_no_further_attempt(): void {
-		if ( ! function_exists( 'as_next_scheduled_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		$this->configure_modes( true, false );
 
 		$this->get_failing_scheduler()->run( 2 );
@@ -426,10 +398,6 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 	 * The deliberate disabled-channel error must not spawn a retry chain.
 	 */
 	public function test_disabled_error_is_not_retried(): void {
-		if ( ! function_exists( 'as_next_scheduled_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		$this->configure_modes( true, false );
 
 		$this->get_failing_scheduler( 'wc_stripe_remote_config_disabled' )->run();
@@ -442,10 +410,6 @@ class WC_Stripe_Remote_Config_Scheduler_Test extends WP_UnitTestCase {
 	 * pending, so a recovery does not trigger a redundant fetch later.
 	 */
 	public function test_successful_run_cancels_pending_retry(): void {
-		if ( ! function_exists( 'as_schedule_single_action' ) || ! function_exists( 'as_next_scheduled_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		$this->configure_modes( true, false );
 
 		// A prior failure left a retry pending for attempt 1.

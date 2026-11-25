@@ -49,7 +49,7 @@ const paymentMethodsMap = {
 		id: PAYMENT_METHOD_KLARNA,
 		label: __( 'Klarna', 'woocommerce-gateway-stripe' ),
 		description: __(
-			'Allow customers to pay over time with Klarna.',
+			'Offer flexible ways to pay with Klarna: in full, later, or over time.',
 			'woocommerce-gateway-stripe'
 		),
 		Icon: icons.klarna,

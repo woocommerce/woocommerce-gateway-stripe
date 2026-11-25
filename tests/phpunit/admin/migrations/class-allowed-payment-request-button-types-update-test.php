@@ -24,17 +24,12 @@ class Allowed_Payment_Request_Button_Types_Update_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
-		if ( version_compare( WC_VERSION, '3.4.0', '<' ) ) {
-			$this->markTestSkipped( 'The class is not compatible with older WC versions, due to the missing `update_option` method on the gateway.' );
-			return;
-		}
-
 		$this->gateway_mock = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 									->disableOriginalConstructor()
 									->getMock();
 		$this->migration    = $this->getMockBuilder( Allowed_Payment_Request_Button_Types_Update::class )
 									->disableOriginalConstructor()
-									->setMethods( [ 'get_gateway' ] )
+									->onlyMethods( [ 'get_gateway' ] )
 									->getMock();
 	}
 

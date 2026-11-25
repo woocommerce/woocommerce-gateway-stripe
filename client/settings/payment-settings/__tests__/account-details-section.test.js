@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { act } from 'react';
 import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AccountDetailsSection from '../account-details-section';
@@ -267,7 +267,10 @@ describe( 'AccountDetailsSection', () => {
 			const menuButton = screen.getByLabelText(
 				'Edit details or disconnect account'
 			);
-			await userEvent.click( menuButton );
+			// The menu finishes positioning itself after the click resolves.
+			await act( async () => {
+				await userEvent.click( menuButton );
+			} );
 
 			// Check if refresh option exists
 			const refreshButton = screen.getByRole( 'menuitem', {

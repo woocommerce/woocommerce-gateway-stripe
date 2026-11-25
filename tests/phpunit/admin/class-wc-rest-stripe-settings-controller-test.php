@@ -71,10 +71,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 
 		parent::set_up();
 
-		if ( version_compare( WC_VERSION, '3.4.0', '<' ) ) {
-			$this->markTestSkipped( 'The controller is not compatible with older WC versions, due to the missing `update_option` method on the gateway.' );
-		}
-
 		$this->upe_helper = new UPE_Test_Helper();
 
 		// Ensure API keys are present so WC_Stripe_Payment_Method_Configurations::is_enabled()
@@ -473,7 +469,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	public function test_enum_fields( $rest_key, $option_name, $original_valid_value, $new_valid_value, $new_invalid_value, $is_upe_enabled = true ) {
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
 			->disableOriginalConstructor()
-			->setMethods(
+			->onlyMethods(
 				[
 					'get_cached_account_data',
 				]
@@ -573,7 +569,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	public function test_get_settings_returns_ordered_payment_method_ids() {
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
 													->disableOriginalConstructor()
-													->setMethods(
+													->onlyMethods(
 														[
 															'get_cached_account_data',
 															'get_account_country',
@@ -912,6 +908,65 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		return [
 			[ true, [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::GOOGLE_PAY ], [] ],
 			[ false, [], [ WC_Stripe_Payment_Methods::GOOGLE_PAY, WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::AMAZON_PAY ] ],
+		];
+	}
+
+	/**
+	 * Webhook credentials written by the settings hook must survive subsequent gateway saves.
+	 *
+	 * @dataProvider provide_webhook_reconfiguration_toggles
+	 */
+	public function test_oc_settings_preserve_reconfigured_webhooks( $oc_enabled, $ap_enabled ) {
+		$settings                               = WC_Stripe_Helper::get_stripe_settings();
+		$settings['optimized_checkout_element'] = $oc_enabled;
+		$settings['adaptive_pricing']           = $ap_enabled;
+		foreach ( [ 'live', 'test' ] as $mode ) {
+			$prefix                                 = 'test' === $mode ? 'test_' : '';
+			$settings[ $prefix . 'webhook_data' ]   = [ 'id' => 'we_' . $mode . '_old' ];
+			$settings[ $prefix . 'webhook_secret' ] = 'whsec_' . $mode . '_old';
+		}
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		$this->get_gateway()->init_settings();
+
+		$webhook_settings = $this->createMock( WC_Stripe_Webhook_Settings::class );
+		$webhook_settings->expects( $this->exactly( 2 ) )
+			->method( 'maybe_autoconfigure_webhooks' )->withConsecutive( [ 'live' ], [ 'test' ] )
+			->willReturnCallback(
+				static function ( $mode ) {
+					$prefix                                 = 'test' === $mode ? 'test_' : '';
+					$settings                               = WC_Stripe_Helper::get_stripe_settings();
+					$settings[ $prefix . 'webhook_data' ]   = [ 'id' => 'we_' . $mode . '_new' ];
+					$settings[ $prefix . 'webhook_secret' ] = 'whsec_' . $mode . '_new';
+					WC_Stripe_Helper::update_main_stripe_settings( $settings );
+					return null;
+				}
+			);
+		WC_Stripe::get_instance()->webhook_settings = $webhook_settings;
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_body_params(
+			[
+				'is_oc_enabled' => true,
+				'is_ap_enabled' => true,
+				'oc_layout'     => 'tabs',
+			]
+		);
+		$response = rest_do_request( $request );
+
+		$this->assertSame( 200, $response->get_status() );
+		$stored = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame( 'tabs', $stored['optimized_checkout_layout'] );
+		foreach ( [ 'live', 'test' ] as $mode ) {
+			$prefix = 'test' === $mode ? 'test_' : '';
+			$this->assertSame( 'we_' . $mode . '_new', $stored[ $prefix . 'webhook_data' ]['id'] );
+			$this->assertSame( 'whsec_' . $mode . '_new', $stored[ $prefix . 'webhook_secret' ] );
+		}
+	}
+
+	public function provide_webhook_reconfiguration_toggles() {
+		return [
+			'enable AP with OC enabled' => [ 'yes', 'no' ],
+			'enable OC with AP enabled' => [ 'no', 'yes' ],
 		];
 	}
 
