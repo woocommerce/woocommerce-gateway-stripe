@@ -783,6 +783,61 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * A stale Stripe customer ID is recreated with the order, so a Store API order keeps its locale-based required fields.
+	 */
+	public function test_update_customer_recreates_stale_customer_with_order_required_fields() {
+		$require_city = function ( $checkout_fields ) {
+			$checkout_fields['billing']['billing_city']['required'] = true;
+			return $checkout_fields;
+		};
+		add_filter( 'woocommerce_checkout_fields', $require_city );
+
+		$mock_order = $this->create_mock_order(
+			[
+				'country' => 'SG',
+				'city'    => '',
+				'state'   => '',
+			],
+			'store-api'
+		);
+
+		$mock_api_calls = function ( $return_value, $parsed_args, $url ) {
+			$responses = [
+				'https://api.stripe.com/v1/customers/cus_stale' => [
+					'error' => [
+						'type'    => 'invalid_request_error',
+						'message' => "No such customer: 'cus_stale'",
+					],
+				],
+				'https://api.stripe.com/v1/customers'           => [ 'id' => 'cus_new' ],
+				'https://api.stripe.com/v1/customers/cus_new'   => [ 'id' => 'cus_new' ],
+			];
+
+			if ( ! isset( $responses[ $url ] ) ) {
+				return $return_value;
+			}
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode( $responses[ $url ] ),
+			];
+		};
+		add_filter( 'pre_http_request', $mock_api_calls, 10, 3 );
+
+		$customer = new \WC_Stripe_Customer();
+		$customer->set_id( 'cus_stale' );
+
+		try {
+			$this->assertSame( 'cus_new', $customer->update_customer( [], false, $mock_order ) );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_api_calls, 10 );
+			remove_filter( 'woocommerce_checkout_fields', $require_city );
+			\WC_Checkout::instance()->checkout_fields = null;
+		}
+	}
+
+	/**
 	 * Test that order data is excluded from Stripe API requests when passed via $args['order'].
 	 *
 	 * This test verifies the fix for backwards compatibility: when order is passed via $args['order'],

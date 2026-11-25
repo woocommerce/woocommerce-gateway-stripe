@@ -644,8 +644,8 @@ class WC_Stripe_Customer {
 			if ( $this->is_no_such_customer_error( $response->error ) && ! $is_retry ) {
 				// This can happen when switching the main Stripe account or importing users from another site.
 				// If not already retrying, recreate the customer and then try updating it again.
-				$this->recreate_customer();
-				return $this->update_customer( $args, true );
+				$this->recreate_customer( [], null, $order );
+				return $this->update_customer( $args, true, $order );
 			}
 
 			throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
