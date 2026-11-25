@@ -906,6 +906,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		// Charged in another currency than the order (e.g. Adaptive Pricing), the captured amount
 		// can't be compared with the order total, so the merchant records the refund by hand.
 		if ( strtoupper( $currency ) !== $charge_currency ) {
+			$order->add_order_note(
+				sprintf(
+					/* translators: 1) charge currency 2) order currency */
+					__( 'The charge is in %1$s and the order in %2$s, so the amount Stripe released could not be recorded as a refund. If the order doesn\'t show it, record it with "Refund manually" so the order matches the captured amount.', 'woocommerce-gateway-stripe' ),
+					$charge_currency,
+					strtoupper( $currency )
+				)
+			);
 			WC_Stripe_Logger::warning( 'Partial capture: skipped recording the released amount because the charge and order currencies differ.', $log_context );
 			return;
 		}

@@ -1676,6 +1676,28 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A release in another currency than the order can't be recorded, and nothing else records it,
+	 * so the merchant must be told to add it.
+	 */
+	public function test_process_webhook_capture_asks_merchant_to_record_release_in_other_currency() {
+		$order = $this->create_authorized_order( 'ch_other_currency' );
+
+		$this->mock_webhook_handler->process_webhook_capture(
+			$this->build_capture_notification(
+				'charge.captured',
+				'ch_other_currency',
+				[
+					'amount_captured' => 500,
+					'currency'        => 'eur',
+				]
+			)
+		);
+
+		$notes = wp_list_pluck( wc_get_order_notes( [ 'order_id' => $order->get_id() ] ), 'content' );
+		$this->assertCount( 1, preg_grep( '/charge is in EUR and the order in USD/', $notes ) );
+	}
+
+	/**
 	 * A concurrent delivery of the same event may record the release in another process after this one
 	 * measured it. Without a persistent object cache, this process's cached refund total doesn't see
 	 * that refund, so the recheck under the refund lock must read the database, or the release is
