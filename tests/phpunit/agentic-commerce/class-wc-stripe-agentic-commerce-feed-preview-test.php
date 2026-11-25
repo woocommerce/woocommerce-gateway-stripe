@@ -45,14 +45,6 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 	public function setUp(): void {
 		parent::setUp();
 
-		if ( ! interface_exists( 'Automattic\\WooCommerce\\Internal\\ProductFeed\\Feed\\ProductMapperInterface' ) ) {
-			$this->markTestSkipped( 'WooCommerce ProductFeed interfaces not available (requires WooCommerce 10.5.0+)' );
-		}
-
-		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Feed_Preview' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Feed_Preview class not loaded' );
-		}
-
 		// get_edit_post_link() returns an empty string unless the current user can
 		// edit the product, so run these tests as an administrator.
 		$admin = self::factory()->user->create( [ 'role' => 'administrator' ] );
@@ -297,10 +289,6 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_excluded_breakdown_counts_subscriptions(): void {
-		if ( ! class_exists( 'WC_Helper_Product' ) || ! method_exists( 'WC_Helper_Product', 'create_variation_product' ) ) {
-			$this->markTestSkipped( 'WC_Helper_Product::create_variation_product not available' );
-		}
-
 		$variable      = WC_Helper_Product::create_variation_product();
 		$variation_ids = $variable->get_children();
 		$this->assertNotEmpty( $variation_ids );
@@ -462,10 +450,6 @@ class WC_Stripe_Agentic_Commerce_Feed_Preview_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_variation_error_links_to_parent_product(): void {
-		if ( ! class_exists( 'WC_Helper_Product' ) || ! method_exists( 'WC_Helper_Product', 'create_variation_product' ) ) {
-			$this->markTestSkipped( 'WC_Helper_Product::create_variation_product not available' );
-		}
-
 		$variable      = WC_Helper_Product::create_variation_product();
 		$variation_ids = $variable->get_children();
 		$this->assertNotEmpty( $variation_ids );

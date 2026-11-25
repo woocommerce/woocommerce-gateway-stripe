@@ -64,6 +64,46 @@ final class WC_Stripe_Tracks {
 	}
 
 	/**
+	 * Record a Tracks event, leaving out the request details unless the current user can manage
+	 * WooCommerce. Use it for events that can be triggered by a shopper's or logged-out visitor's request.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param string $event_name       The name of the event to record.
+	 * @param array  $event_properties The event properties to record.
+	 * @return void
+	 */
+	public static function record_direct_event_without_shopper_details( string $event_name, array $event_properties = [] ): void {
+		if ( current_user_can( 'manage_woocommerce' ) ) {
+			self::record_direct_event( $event_name, $event_properties );
+			return;
+		}
+
+		if ( ! self::is_tracking_enabled() ) {
+			return;
+		}
+
+		if (
+			! class_exists( 'WC_Tracks' )
+			|| ! method_exists( WC_Tracks::class, 'get_properties' ) // @phpstan-ignore function.alreadyNarrowedType (Defensive check to make sure the function is available in WooCommerce.)
+			|| ! method_exists( WC_Tracks::class, 'get_server_details' )
+			|| ! class_exists( 'WC_Tracks_Client' )
+			|| ! method_exists( WC_Tracks_Client::class, 'record_event' ) // @phpstan-ignore function.alreadyNarrowedType (Defensive check to make sure the function is available in WooCommerce.)
+		) {
+			return;
+		}
+
+		$properties = array_diff_key(
+			WC_Tracks::get_properties( WC_Tracks::PREFIX . $event_name, $event_properties ),
+			WC_Tracks::get_server_details()
+		);
+
+		// Send from the server rather than through WC_Tracks_Event::record(): on a rendered admin page
+		// that queues a footer image, and the browser requesting it would send its own IP and user agent.
+		WC_Tracks_Client::record_event( $properties );
+	}
+
+	/**
 	 * Get the default event properties. Callers should generally call {@see add_default_event_properties()}.
 	 *
 	 * This method should only be called within loops to avoid unnecessary overhead.

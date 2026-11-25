@@ -158,7 +158,7 @@ abstract class WC_Mock_Stripe_API_Unit_Test_Case extends WP_UnitTestCase {
 	protected function set_stripe_account_data( $account_data ) {
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
 												->disableOriginalConstructor()
-												->setMethods( [ 'get_cached_account_data' ] )
+												->onlyMethods( [ 'get_cached_account_data' ] )
 												->getMock();
 		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn( $account_data );
 	}
