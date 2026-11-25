@@ -1,7 +1,11 @@
 import * as paymentProcessing from '../payment-processing';
 import * as stripeUtils from 'wcstripe/stripe-utils';
+import { navigateTo } from 'wcstripe/utils/navigation';
+import { setWindowLocation } from 'wcstripe/test-utils/window-location';
 
 const { hasEmptyRequiredFields } = paymentProcessing;
+
+jest.mock( 'wcstripe/utils/navigation' );
 
 jest.mock( 'wcstripe/stripe-utils', () => ( {
 	appendCheckoutSessionIdToForm: jest.fn(),
@@ -906,20 +910,9 @@ describe( 'payment-processing', () => {
 		} );
 
 		describe( 'processPayment', () => {
-			let originalLocation;
-
 			beforeEach( () => {
-				originalLocation = window.location;
-				delete window.location;
-				window.location = {
-					href: '',
-					origin: 'https://shop.com',
-					assign: jest.fn(),
-				};
-			} );
-
-			afterEach( () => {
-				window.location = originalLocation;
+				setWindowLocation( 'https://shop.com' );
+				navigateTo.mockClear();
 			} );
 
 			/**
@@ -989,7 +982,7 @@ describe( 'payment-processing', () => {
 					redirect: 'if_required',
 				} );
 				// After confirm resolves, navigates to the order-received page.
-				expect( window.location.href ).toBe( orderReceivedUrl );
+				expect( navigateTo ).toHaveBeenCalledWith( orderReceivedUrl );
 			} );
 
 			it( 'redirects without confirming when the order was already paid', async () => {
@@ -1745,9 +1738,7 @@ describe( 'payment-processing', () => {
 			} );
 
 			it( 'blocks payment while the session is stale, then allows it after a clean resync', async () => {
-				const originalLocation = window.location;
-				delete window.location;
-				window.location = { href: '', assign: jest.fn() };
+				navigateTo.mockClear();
 
 				const mockActions = {
 					getSession: jest.fn().mockResolvedValue( {} ),
@@ -1813,8 +1804,6 @@ describe( 'payment-processing', () => {
 					expect.anything(),
 					MOCK_AP_CHECKOUT_SESSION_ID
 				);
-
-				window.location = originalLocation;
 			} );
 		} );
 	} );
@@ -2508,34 +2497,25 @@ describe( 'ensureUPEElementMounted', () => {
 	} );
 
 	describe( 'confirmVoucherPayment', () => {
-		let originalLocation;
-
 		beforeEach( () => {
-			originalLocation = window.location;
-			delete window.location;
-			window.location = {
-				href: '',
-				origin: 'https://shop.com',
-				pathname: '/checkout',
-				search: '',
-				assign: jest.fn(),
-			};
+			setWindowLocation( 'https://shop.com/checkout' );
+			navigateTo.mockClear();
 			jest.spyOn( window.history, 'replaceState' ).mockImplementation(
 				() => {}
 			);
 		} );
 
 		afterEach( () => {
-			window.location = originalLocation;
 			jest.clearAllMocks();
 		} );
 
 		// Hash format written by process_payment_with_deferred_intent():
 		// #wc-stripe-voucher-<order_id>:<type>:<client_secret>:<encoded_redirect_url>
 		const setVoucherHash = ( encodedRedirectUrl, orderId = '123' ) => {
-			window.location.href =
+			setWindowLocation(
 				`https://shop.com/checkout#wc-stripe-voucher-${ orderId }:boleto:cs_secret:` +
-				encodedRedirectUrl;
+					encodedRedirectUrl
+			);
 		};
 
 		const buildVoucherApi = () => ( {
@@ -2561,7 +2541,7 @@ describe( 'ensureUPEElementMounted', () => {
 					createMockForm()
 				);
 
-				expect( window.location.href ).toBe( returnUrl );
+				expect( navigateTo ).toHaveBeenCalledWith( returnUrl );
 			}
 		);
 
@@ -2597,7 +2577,7 @@ describe( 'ensureUPEElementMounted', () => {
 					createMockForm()
 				);
 
-				expect( window.location.href ).toBe( expectedUrl );
+				expect( navigateTo ).toHaveBeenCalledWith( expectedUrl );
 			}
 		);
 
@@ -2614,28 +2594,19 @@ describe( 'ensureUPEElementMounted', () => {
 				createMockForm()
 			);
 
-			expect( window.location.href ).toBe(
+			expect( navigateTo ).toHaveBeenCalledWith(
 				'https://shop.com/checkout/order-received/123/'
 			);
 		} );
 	} );
 
 	describe( 'confirmWalletPayment', () => {
-		let originalLocation;
-
 		const ORDER_RECEIVED_URL = 'https://shop.com/checkout/order-received';
 		const FALLBACK_URL = 'https://shop.com/checkout/order-received/123/';
 
 		beforeEach( () => {
-			originalLocation = window.location;
-			delete window.location;
-			window.location = {
-				href: '',
-				origin: 'https://shop.com',
-				pathname: '/checkout',
-				search: '',
-				assign: jest.fn(),
-			};
+			setWindowLocation( 'https://shop.com/checkout' );
+			navigateTo.mockClear();
 			jest.spyOn( window.history, 'replaceState' ).mockImplementation(
 				() => {}
 			);
@@ -2645,16 +2616,16 @@ describe( 'ensureUPEElementMounted', () => {
 		} );
 
 		afterEach( () => {
-			window.location = originalLocation;
 			jest.clearAllMocks();
 		} );
 
 		// Hash format written by process_payment_with_deferred_intent():
 		// #wc-stripe-wallet-<order_id>:<type>:<intent_type>:<client_secret>:<encoded_return_url>:<nonce>
 		const setWalletHash = ( paymentMethodType, encodedReturnUrl ) => {
-			window.location.href =
+			setWindowLocation(
 				`https://shop.com/checkout#wc-stripe-wallet-123:${ paymentMethodType }:payment_intent:cs_secret:` +
-				`${ encodedReturnUrl }:nonce_value`;
+					`${ encodedReturnUrl }:nonce_value`
+			);
 		};
 
 		// The trailing confirm_change_payment request is rejected here (its nonce comes from the
@@ -2736,7 +2707,7 @@ describe( 'ensureUPEElementMounted', () => {
 					'cs_secret',
 					{ return_url: expectedUrl }
 				);
-				expect( window.location.href ).toBe( expectedUrl );
+				expect( navigateTo ).toHaveBeenCalledWith( expectedUrl );
 			}
 		);
 
@@ -2771,7 +2742,7 @@ describe( 'ensureUPEElementMounted', () => {
 					createMockForm()
 				);
 
-				expect( window.location.href ).toBe( expectedUrl );
+				expect( navigateTo ).toHaveBeenCalledWith( expectedUrl );
 			}
 		);
 
@@ -2779,10 +2750,11 @@ describe( 'ensureUPEElementMounted', () => {
 			const confirmCashappSetup = jest
 				.fn()
 				.mockResolvedValue( { setupIntent: { status: 'succeeded' } } );
-			window.location.href =
+			setWindowLocation(
 				'https://shop.com/checkout#wc-stripe-wallet-123:cashapp:setup_intent:cs_secret:' +
-				encodeURIComponent( 'https://evil.example/steal' ) +
-				':nonce_value';
+					encodeURIComponent( 'https://evil.example/steal' ) +
+					':nonce_value'
+			);
 
 			await paymentProcessing.confirmWalletPayment(
 				buildWalletApi( { confirmCashappSetup } ),
@@ -2792,7 +2764,7 @@ describe( 'ensureUPEElementMounted', () => {
 			expect( confirmCashappSetup ).toHaveBeenCalledWith( 'cs_secret', {
 				return_url: FALLBACK_URL,
 			} );
-			expect( window.location.href ).toBe( FALLBACK_URL );
+			expect( navigateTo ).toHaveBeenCalledWith( FALLBACK_URL );
 		} );
 
 		it( 'does not contact Stripe or navigate when no destination can be resolved', async () => {
@@ -2814,9 +2786,7 @@ describe( 'ensureUPEElementMounted', () => {
 			);
 
 			expect( confirmCashappPayment ).not.toHaveBeenCalled();
-			expect( window.location.href ).toBe(
-				'https://shop.com/checkout#wc-stripe-wallet-123:cashapp:payment_intent:cs_secret:https%3A%2F%2Fevil.example%2Fsteal:nonce_value'
-			);
+			expect( navigateTo ).not.toHaveBeenCalled();
 			expect( stripeUtils.showErrorCheckout ).toHaveBeenCalled();
 			expect( form.removeClass ).toHaveBeenCalledWith( 'processing' );
 			expect( form.unblock ).toHaveBeenCalledTimes( 1 );
@@ -2842,7 +2812,7 @@ describe( 'ensureUPEElementMounted', () => {
 				createMockForm()
 			);
 
-			expect( window.location.href ).toContain( '#wc-stripe-wallet-123' );
+			expect( navigateTo ).not.toHaveBeenCalled();
 		} );
 	} );
 } );

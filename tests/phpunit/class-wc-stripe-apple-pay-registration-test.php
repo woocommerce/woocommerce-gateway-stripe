@@ -31,7 +31,7 @@ class WC_Stripe_Apple_Pay_Registration_Test extends WC_Mock_Stripe_API_Unit_Test
 
 		$this->mock_wc_apple_pay_registration = $this->getMockBuilder( 'WC_Stripe_Apple_Pay_Registration' )
 		->disableOriginalConstructor()
-		->setMethods(
+		->onlyMethods(
 			[
 				'register_domain',
 			]
@@ -85,7 +85,7 @@ class WC_Stripe_Apple_Pay_Registration_Test extends WC_Mock_Stripe_API_Unit_Test
 
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
 			->disableOriginalConstructor()
-			->setMethods(
+			->onlyMethods(
 				[
 					'get_cached_account_data',
 				]
@@ -179,7 +179,7 @@ class WC_Stripe_Apple_Pay_Registration_Test extends WC_Mock_Stripe_API_Unit_Test
 		try {
 			$mock = $this->getMockBuilder( 'WC_Stripe_Apple_Pay_Registration' )
 				->disableOriginalConstructor()
-				->setMethods( [ 'register_domain_if_configured', 'get_option' ] )
+				->onlyMethods( [ 'register_domain_if_configured', 'get_option' ] )
 				->getMock();
 
 			// Force a domain mismatch so the capability gate is the only deciding factor.

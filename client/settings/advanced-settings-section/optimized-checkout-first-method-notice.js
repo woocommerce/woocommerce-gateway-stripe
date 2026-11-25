@@ -2,6 +2,7 @@
 import { getAdminLink } from '@woocommerce/settings';
 import React, { useState } from 'react';
 import GridiconNoticeOutline from 'gridicons/dist/notice-outline';
+import { reloadPage } from 'wcstripe/utils/navigation';
 import { Notice } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import { dismissNotice, moveStripeToTop } from 'wcstripe/utils';
@@ -94,7 +95,7 @@ const OptimizedCheckoutFirstMethodNotice = ( {
 
 				// Refresh the page on the WooCommerce > Settings > Payments page.
 				if ( refreshPage ) {
-					window.location.reload();
+					reloadPage();
 				} else {
 					showSuccessNotice();
 				}

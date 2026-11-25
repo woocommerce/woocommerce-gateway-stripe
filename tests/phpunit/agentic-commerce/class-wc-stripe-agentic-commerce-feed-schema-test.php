@@ -11,24 +11,6 @@
  * Tests the schema definition for Agentic Commerce product feeds.
  */
 class WC_Stripe_Agentic_Commerce_Feed_Schema_Test extends WP_UnitTestCase {
-	/**
-	 * Setup test environment before each test.
-	 *
-	 * @return void
-	 */
-	public function setUp(): void {
-		parent::setUp();
-
-		// Skip tests if WooCommerce FeedInterface is not available.
-		if ( ! interface_exists( 'Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedInterface' ) ) {
-			$this->markTestSkipped( 'WooCommerce FeedInterface not available (requires WooCommerce 10.5.0+)' );
-		}
-
-		// Skip tests if Schema class is not loaded.
-		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Feed_Schema' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Feed_Schema class not loaded' );
-		}
-	}
 
 	/**
 	 * Test schema contains all required Stripe fields.

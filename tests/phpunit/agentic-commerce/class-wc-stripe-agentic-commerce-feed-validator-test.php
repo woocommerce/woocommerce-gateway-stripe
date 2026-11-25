@@ -11,24 +11,6 @@
  * Tests the feed validator for Agentic Commerce.
  */
 class WC_Stripe_Agentic_Commerce_Feed_Validator_Test extends WP_UnitTestCase {
-	/**
-	 * Setup test environment before each test.
-	 *
-	 * @return void
-	 */
-	public function setUp(): void {
-		parent::setUp();
-
-		// Skip tests if WooCommerce FeedValidatorInterface is not available.
-		if ( ! interface_exists( 'Automattic\\WooCommerce\\Internal\\ProductFeed\\Feed\\FeedValidatorInterface' ) ) {
-			$this->markTestSkipped( 'WooCommerce FeedValidatorInterface not available (requires WooCommerce 10.5.0+)' );
-		}
-
-		// Skip tests if Validator class is not loaded.
-		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Feed_Validator' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Feed_Validator class not loaded' );
-		}
-	}
 
 	/**
 	 * Test valid entry passes validation.

@@ -41,6 +41,8 @@ For repository-wide rules, always read the root `AGENTS.md` first.
 - Keep feature flags and payment-method gating logic centralized and explicit.
 - Preserve existing naming patterns and folder placement used by nearby files.
 - Keep dependencies minimal; avoid adding libraries for simple logic.
+- **MUST:** Navigate or reload the page through `navigateTo()` / `reloadPage()` from `client/utils/navigation.js`, never by writing to `window.location` directly. The test environment cannot replace or spy on `window.location`, so tests mock that module (`jest.mock( 'wcstripe/utils/navigation' )`) and set the page URL with `setWindowLocation()` from `wcstripe/test-utils/window-location`.
+- **MUST:** Keep Jest tests free of unexpected `console.error` and `console.warn` output; `@wordpress/jest-console` fails a test that logs either without asserting it. Assert an intended message with `expect( console ).toHaveErroredWith( message )` / `toHaveWarnedWith( message )` instead of `jest.spyOn( console, ... )`. In cases where React warnings are logged, like missing `act()` wrappers, address the root cause of the testing issue. When verifying that no unexpected messages are logged, check `console.[method].mock.calls` against the full expected list. Output logged after a test ends fails the next test, so look at the preceding test first.
 
 ## Styling Conventions
 

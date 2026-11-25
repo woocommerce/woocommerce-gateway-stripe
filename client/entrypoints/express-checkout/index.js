@@ -4,6 +4,7 @@
 import { debounce } from 'lodash';
 import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
+import { navigateTo } from 'wcstripe/utils/navigation';
 import { rebuildWalletContainer } from 'wcstripe/express-checkout/utils/rebuild-wallet-container';
 import { getStripeServerData } from 'wcstripe/stripe-utils/get-stripe-server-data';
 import { __ } from '@wordpress/i18n';
@@ -1325,7 +1326,7 @@ const initializeExpressCheckout = ( $ ) => {
 		completePayment: ( url ) => {
 			wcStripeECE.paymentInFlight = false;
 			onCompletePaymentHandler( url );
-			window.location = url;
+			navigateTo( url );
 		},
 
 		/**

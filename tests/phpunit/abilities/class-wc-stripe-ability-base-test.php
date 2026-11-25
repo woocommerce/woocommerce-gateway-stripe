@@ -64,10 +64,6 @@ class WC_Stripe_Ability_Base_Test extends WP_UnitTestCase {
 		// on null to render the connect-keys state). The ability layer must
 		// surface that as a typed WP_Error rather than leaking the null
 		// upstream.
-		if ( ! class_exists( 'WC_Stripe_API' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_API not loaded in this environment.' );
-		}
-
 		$mock_unauthorized_filter = function () {
 			return [
 				'response' => [
@@ -96,10 +92,6 @@ class WC_Stripe_Ability_Base_Test extends WP_UnitTestCase {
 	}
 
 	public function test_retrieve_surfaces_stripe_api_error_payload() {
-		if ( ! class_exists( 'WC_Stripe_API' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_API not loaded in this environment.' );
-		}
-
 		$mock_payment_required_filter = function () {
 			return [
 				'response' => [
@@ -126,10 +118,6 @@ class WC_Stripe_Ability_Base_Test extends WP_UnitTestCase {
 	}
 
 	public function test_retrieve_returns_array_on_success() {
-		if ( ! class_exists( 'WC_Stripe_API' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_API not loaded in this environment.' );
-		}
-
 		$mock_successful_response_filter = function () {
 			return [
 				'response' => [

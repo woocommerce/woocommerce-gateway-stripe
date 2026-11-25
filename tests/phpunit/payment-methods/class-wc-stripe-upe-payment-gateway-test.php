@@ -6290,10 +6290,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @throws Exception If test fails.
 	 */
 	public function test_process_payment_deferred_intent_with_co_branded_cc_and_preferred_brand() {
-		if ( ! WC_Stripe_Co_Branded_CC_Compatibility::is_wc_supported() ) {
-			$this->markTestSkipped( 'Test requires WooCommerce ' . WC_Stripe_Co_Branded_CC_Compatibility::MIN_WC_VERSION . ' or newer.' );
-		}
-
 		$token = $this->set_postvars_for_saved_payment_method();
 
 		$_POST['payment_method']           = 'stripe';

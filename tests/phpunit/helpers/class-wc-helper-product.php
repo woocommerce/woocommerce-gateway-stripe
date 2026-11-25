@@ -208,6 +208,48 @@ class WC_Helper_Product {
 	}
 
 	/**
+	 * Creates a variable product whose attribute values do not survive wc_clean() unchanged: a global
+	 * attribute with non-ASCII terms (percent-encoded slugs) and a custom attribute with a quoted value.
+	 *
+	 * Variations: 紅 / 大 costs 10, 綠 / 大 costs 20 and 綠 / 5" wide costs 30.
+	 *
+	 * @return WC_Product_Variable
+	 */
+	public static function create_variation_product_with_non_ascii_attributes() {
+		$label_attribute = new WC_Product_Attribute();
+		$label_attribute->set_name( 'Label' );
+		$label_attribute->set_options( [ '大', '5" wide' ] );
+		$label_attribute->set_variation( true );
+
+		$product = new WC_Product_Variable();
+		$product->set_name( 'Variable product with non-ASCII attributes' );
+		$product->set_attributes( [ self::create_product_attribute_object( 'shade', [ '紅', '綠' ] ), $label_attribute ] );
+		$product->save();
+
+		$variations = [
+			[ '紅', '大', 10 ],
+			[ '綠', '大', 20 ],
+			[ '綠', '5" wide', 30 ],
+		];
+		foreach ( $variations as [ $shade, $label, $price ] ) {
+			self::create_product_variation_object(
+				$product->get_id(),
+				'',
+				$price,
+				[
+					'pa_shade' => sanitize_title( $shade ),
+					'label'    => $label,
+				]
+			);
+		}
+
+		// The parent is not purchasable until it carries its variations' prices.
+		WC_Product_Variable::sync( $product->get_id() );
+
+		return wc_get_product( $product->get_id() );
+	}
+
+	/**
 	 * Creates an instance of WC_Product_Variation with the supplied parameters, optionally persisting it to the database.
 	 *
 	 * @param string $parent_id Parent product id.
