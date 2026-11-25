@@ -81,7 +81,7 @@ abstract class WC_Stripe_Order_Fraud_And_Risk_Helper {
 			self::create_array_value_from_object( $charge, $fraud_flags_meta, $path_components );
 		}
 
-		$order->update_meta_data( self::STRIPE_CHARGE_FRAUD_FLAGS_META_NAME, wp_json_encode( $fraud_flags_meta ) );
+		$order->update_meta_data( self::STRIPE_CHARGE_FRAUD_FLAGS_META_NAME, (string) wp_json_encode( $fraud_flags_meta ) );
 		$order->save();
 	}
 
