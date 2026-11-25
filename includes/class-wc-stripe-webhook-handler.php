@@ -931,7 +931,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		// Checked again under the lock, on a fresh copy of the order: a concurrent delivery of this
 		// event may have recorded the release since the order was loaded.
-		$fresh_order = wc_get_order( $order->get_id() );
+		$fresh_order = $this->get_uncached_order( $order );
 		if ( $fresh_order instanceof WC_Order ) {
 			$released_amount                = $this->get_unrecorded_release_amount( $fresh_order, $captured_amount );
 			$log_context['released_amount'] = $released_amount;
@@ -1008,7 +1008,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @return int Zero or less when there's nothing left to record.
 	 */
 	private function get_unrecorded_release_amount( WC_Order $order, int $captured_amount ): int {
-		$unrefunded_amount = WC_Stripe_Helper::get_stripe_amount( (float) $order->get_remaining_refund_amount(), $order->get_currency() );
+		// Read from the database: WC_Order::get_total_refunded() is cached per request, and without a
+		// persistent object cache it misses a refund recorded by a concurrent delivery of this event.
+		$total_refunded    = (float) $order->get_data_store()->get_total_refunded( $order ); // @phpstan-ignore-line method.notFound (PHPStan can't follow the generic get_data_store() return type to the order data store, whose interface declares get_total_refunded().)
+		$unrefunded_amount = WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total() - $total_refunded, $order->get_currency() );
 
 		return $unrefunded_amount - $captured_amount;
 	}

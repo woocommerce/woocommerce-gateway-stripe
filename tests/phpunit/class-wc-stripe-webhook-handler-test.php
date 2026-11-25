@@ -1676,6 +1676,41 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A concurrent delivery of the same event may record the release in another process after this one
+	 * measured it. Without a persistent object cache, this process's cached refund total doesn't see
+	 * that refund, so the recheck under the refund lock must read the database, or the release is
+	 * recorded twice.
+	 */
+	public function test_process_webhook_capture_rechecks_release_against_database() {
+		$order    = $this->create_authorized_order( 'ch_concurrent_release' );
+		$order_id = $order->get_id();
+
+		// The partial capture note is added after the release is first measured and before the lock,
+		// so it stands in for the other process recording the release in between.
+		$record_concurrently = static function () use ( $order_id, &$record_concurrently ) {
+			remove_action( 'wp_insert_comment', $record_concurrently );
+
+			wc_create_refund(
+				[
+					'order_id' => $order_id,
+					'amount'   => '15.00',
+				]
+			);
+
+			// Leaves the total this process had cached, as if the refund came from another process.
+			// The key is WooCommerce's own, from WC_Order::get_total_refunded().
+			wp_cache_set( WC_Cache_Helper::get_cache_prefix( 'orders' ) . 'total_refunded' . $order_id, 0, 'orders' );
+		};
+		add_action( 'wp_insert_comment', $record_concurrently );
+
+		$this->mock_webhook_handler->process_webhook_capture( $this->build_capture_notification( 'charge.captured', 'ch_concurrent_release', [ 'amount_captured' => 500 ] ) );
+
+		remove_action( 'wp_insert_comment', $record_concurrently );
+
+		$this->assertCount( 1, wc_get_order( $order_id )->get_refunds() );
+	}
+
+	/**
 	 * The customer was never charged the released amount, so its refund must not send the "partially
 	 * refunded" email. A refund the merchant makes later on the same order must still send it.
 	 */
