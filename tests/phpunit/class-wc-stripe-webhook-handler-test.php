@@ -5492,6 +5492,53 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'non-numeric timestamp'                             => [ 't=now,v1={signature}', WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_INVALID ],
 			'asterisk as the signature'                         => [ 't={timestamp},v1=*', WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_MISMATCH ],
 			'asterisk in the signature scheme'                  => [ 't={timestamp},v*={signature}', WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_INVALID ],
+			'numeric entry whose name ends in t'                => [ 'secret=1,t={timestamp},v1={signature}', WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'timestamp followed by other characters'            => [ 't={timestamp}abc,v1={signature}', WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_INVALID ],
+		];
+	}
+
+	/**
+	 * The timestamp is read from the `t` entry wherever it is in the header, and has to be within
+	 * five minutes of now in either direction.
+	 *
+	 * Every signature here is valid for the header's own timestamp, so a request passes only when
+	 * that exact timestamp was read, and fails on the timestamp alone.
+	 *
+	 * @param string $header_template  Header value with `{timestamp}`, `{signature}` and `{other_signature}` placeholders.
+	 * @param int    $timestamp_offset Seconds between now and the header's timestamp; negative is in the past.
+	 * @param string $expected_result  Expected validation result constant.
+	 * @dataProvider provide_signature_header_timestamps
+	 */
+	public function test_validate_request_checks_timestamp_read_from_header( string $header_template, int $timestamp_offset, string $expected_result ): void {
+		$body = $this->build_webhook_event_body();
+
+		$this->assertSame(
+			$expected_result,
+			( new WC_Stripe_Webhook_Handler() )->validate_request(
+				[ 'STRIPE-SIGNATURE' => $this->build_signature_header( $header_template, $body, $timestamp_offset ) ],
+				$body,
+				self::WEBHOOK_SECRET
+			)
+		);
+	}
+
+	/**
+	 * Data provider for {@see test_validate_request_checks_timestamp_read_from_header()}.
+	 *
+	 * @return array
+	 */
+	public function provide_signature_header_timestamps(): array {
+		$debug_entries = self::SIGNATURE_DEBUG_ENTRIES;
+
+		return [
+			'four minutes old'                      => [ 't={timestamp},v1={signature}', -240, WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'four minutes ahead'                    => [ 't={timestamp},v1={signature}', 240, WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'ten minutes old'                       => [ 't={timestamp},v1={signature}', -600, WC_Stripe_Webhook_State::VALIDATION_FAILED_TIMESTAMP_MISMATCH ],
+			'ten minutes ahead'                     => [ 't={timestamp},v1={signature}', 600, WC_Stripe_Webhook_State::VALIDATION_FAILED_TIMESTAMP_MISMATCH ],
+			'four minutes old, with debug entries'  => [ 't={timestamp},v1={signature},v0={other_signature},' . $debug_entries, -240, WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'ten minutes old, with debug entries'   => [ 't={timestamp},v1={signature},v0={other_signature},' . $debug_entries, -600, WC_Stripe_Webhook_State::VALIDATION_FAILED_TIMESTAMP_MISMATCH ],
+			'four minutes old, after other entries' => [ $debug_entries . ',v1={signature},t={timestamp}', -240, WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'ten minutes old, after other entries'  => [ $debug_entries . ',v1={signature},t={timestamp}', -600, WC_Stripe_Webhook_State::VALIDATION_FAILED_TIMESTAMP_MISMATCH ],
 		];
 	}
 
@@ -5524,14 +5571,15 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Fills in a signature header template for a request sent now.
+	 * Fills in a signature header template, with signatures computed for the header's timestamp.
 	 *
-	 * @param string $header_template Header value with `{timestamp}`, `{signature}` and `{other_signature}` placeholders.
-	 * @param string $body            Raw request body the signatures are computed over.
+	 * @param string $header_template  Header value with `{timestamp}`, `{signature}` and `{other_signature}` placeholders.
+	 * @param string $body             Raw request body the signatures are computed over.
+	 * @param int    $timestamp_offset Seconds to move the header's timestamp away from now; negative is in the past.
 	 * @return string
 	 */
-	private function build_signature_header( string $header_template, string $body ): string {
-		$timestamp = time();
+	private function build_signature_header( string $header_template, string $body, int $timestamp_offset = 0 ): string {
+		$timestamp = time() + $timestamp_offset;
 
 		return strtr(
 			$header_template,
