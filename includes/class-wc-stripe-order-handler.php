@@ -1027,7 +1027,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * Displays a meta box for orders with flags indicating fraud or risk.
 	 *
 	 * @since x.x.x
-	 * @param object $order         The order.
+	 * @param WC_Order $order The order.
 	 * @return void
 	 */
 	public function display_fraud_and_risk_meta_box( $order ): void {
