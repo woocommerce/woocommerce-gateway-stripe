@@ -1989,6 +1989,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 
 			$paid_method_type = '';
+			$settle_failed    = false;
 
 			// Core reset the payment method title to the gateway's own when it resumed the order for
 			// this submission. Settling writes the payment note and sends the order emails from the
@@ -2020,24 +2021,34 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			if ( null !== $paid_intent && WC_Stripe_Intent_Status::PROCESSING !== $paid_intent->status ) {
 				try {
 					$this->verify_intent_after_checkout( $order );
-				} catch ( WC_Stripe_Exception $e ) {
-					// The raw message can be a dump of the whole charge, billing details included,
-					// so only the shopper-facing message is logged.
+				} catch ( Throwable $e ) {
+					// Stripe has taken this payment and the submitted Session is expired, so an error
+					// would only invite the shopper to pay again on a new order. They are sent to the
+					// order-received page as on a successful return, and the note leaves the order
+					// with the merchant.
+					$settle_failed = true;
+
 					WC_Stripe_Logger::error(
 						'The order was paid by an earlier PaymentIntent but could not be settled.',
 						[
 							'order_id'      => $order->get_id(),
-							'error_message' => $e->getLocalizedMessage(),
+							// A WC_Stripe_Exception's raw message can be a dump of the whole charge, billing details included.
+							'error_message' => $e instanceof WC_Stripe_Exception ? $e->getLocalizedMessage() : $e->getMessage(),
 						]
 					);
-					return $this->get_checkout_failure_response( $e->getLocalizedMessage() );
+
+					// The error stays in the log only: it can hold Stripe data, and order notes are
+					// kept forever while logs expire.
+					$order->add_order_note(
+						__( 'Stripe took the payment, but a step after the charge failed. The payment was not charged again. Please review this order, and see the Stripe logs (WooCommerce > Status > Logs) for details.', 'woocommerce-gateway-stripe' )
+					);
 				}
 			}
 
 			// The rest of what the shopper's return records for the method that paid (its gateway ID,
 			// and the payment method of any subscriptions) waits for the order to be settled, and is
 			// written to a fresh copy because settling works on its own.
-			$paid_order = '' !== $paid_method_type ? wc_get_order( $order->get_id() ) : null;
+			$paid_order = ( '' !== $paid_method_type && ! $settle_failed ) ? wc_get_order( $order->get_id() ) : null;
 			if ( $paid_order instanceof WC_Order ) {
 				try {
 					$this->set_payment_method_title_for_order( $paid_order, $paid_method_type );

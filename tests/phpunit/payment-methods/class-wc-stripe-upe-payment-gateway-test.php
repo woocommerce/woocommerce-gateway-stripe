@@ -3154,8 +3154,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @param string      $expected_status     Order status afterwards.
 	 * @param array       $charge_flags        Extra fields on the earlier intent's charge, e.g. `refunded`.
 	 * @param bool        $title_lookup_fails  Whether reading the charge for the payment method title throws.
+	 * @param bool        $expect_settle_failure_note Whether the merchant is told the paid order could not be settled.
 	 */
-	public function test_process_payment_with_checkout_session_for_order_with_earlier_intent( ?string $intent_status, bool $owns_session, bool $expire_succeeds, string $expected_result, bool $expect_already_paid, bool $expect_linked, string $expected_status, array $charge_flags = [], bool $title_lookup_fails = false ) {
+	public function test_process_payment_with_checkout_session_for_order_with_earlier_intent( ?string $intent_status, bool $owns_session, bool $expire_succeeds, string $expected_result, bool $expect_already_paid, bool $expect_linked, string $expected_status, array $charge_flags = [], bool $title_lookup_fails = false, bool $expect_settle_failure_note = false ) {
 		$this->enable_checkout_sessions();
 		wc_clear_notices();
 
@@ -3308,10 +3309,18 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				$processed_order->get_payment_method()
 			);
 		}
+
+		$settle_failure_notes = array_filter(
+			$notes,
+			function ( $note ) {
+				return false !== strpos( $note, 'Stripe took the payment, but a step after the charge failed.' );
+			}
+		);
+		$this->assertCount( $expect_settle_failure_note ? 1 : 0, $settle_failure_notes );
 	}
 
 	/**
-	 * @return array<string,array{0:string|null,1:bool,2:bool,3:string,4:bool,5:bool,6:string,7?:array,8?:bool}>
+	 * @return array<string,array{0:string|null,1:bool,2:bool,3:string,4:bool,5:bool,6:string,7?:array,8?:bool,9?:bool}>
 	 */
 	public function provide_checkout_session_retries_for_order_with_earlier_intent(): array {
 		return [
@@ -3327,6 +3336,22 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			// Settling only acts on an order whose payment method is the gateway's own, so the
 			// method's own ID must not be on the order before it is settled.
 			'non-card method also settles the order'   => [ WC_Stripe_Intent_Status::SUCCEEDED, true, true, 'success', true, false, OrderStatus::PROCESSING, [ 'payment_method_details' => [ 'type' => WC_Stripe_Payment_Methods::CASHAPP_PAY ] ] ],
+			// Stripe already took the payment, so an error here would invite the shopper to pay again.
+			'paid, but the order cannot be settled'    => [
+				WC_Stripe_Intent_Status::SUCCEEDED,
+				true,
+				true,
+				'success',
+				true,
+				false,
+				OrderStatus::PENDING,
+				[
+					'captured' => false,
+					'status'   => 'failed',
+				],
+				false,
+				true,
+			],
 		];
 	}
 
