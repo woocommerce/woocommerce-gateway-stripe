@@ -400,6 +400,8 @@ class WC_Stripe_Customer {
 	/**
 	 * Get the billing fields required by a country's address locale, as the Store API validates them.
 	 *
+	 * @since x.x.x
+	 *
 	 * @param string $country The billing country code.
 	 *
 	 * @return array<string, true> Required fields keyed like checkout fields, e.g. `[ 'billing_city' => true ]`.
