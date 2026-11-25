@@ -1671,6 +1671,45 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The customer was never charged the released amount, so its refund must not send the "partially
+	 * refunded" email. A refund the merchant makes later on the same order must still send it.
+	 */
+	public function test_process_webhook_capture_skips_refund_email_for_release_only() {
+		$order = $this->create_authorized_order( 'ch_release_email' );
+
+		reset_phpmailer_instance();
+		$this->mock_webhook_handler->process_webhook_capture( $this->build_capture_notification( 'charge.captured', 'ch_release_email', [ 'amount_captured' => 500 ] ) );
+		$release_emails = $this->get_sent_partial_refund_emails();
+		$this->assertCount( 1, wc_get_order( $order->get_id() )->get_refunds(), 'The release must be recorded as a refund.' );
+
+		reset_phpmailer_instance();
+		wc_create_refund(
+			[
+				'order_id' => $order->get_id(),
+				'amount'   => '2.00',
+			]
+		);
+		$merchant_refund_emails = $this->get_sent_partial_refund_emails();
+
+		$this->assertCount( 0, $release_emails );
+		$this->assertCount( 1, $merchant_refund_emails );
+	}
+
+	/**
+	 * Returns the "partially refunded" emails sent since the mailer was last reset.
+	 *
+	 * @return array
+	 */
+	private function get_sent_partial_refund_emails(): array {
+		return array_filter(
+			tests_retrieve_phpmailer_instance()->mock_sent,
+			static function ( $mail ) {
+				return false !== stripos( $mail['subject'], 'partially refunded' );
+			}
+		);
+	}
+
+	/**
 	 * When the release can't be recorded because a refund is in progress, nothing else will record
 	 * it on current API versions, so the order must still be paid and the merchant told to add it.
 	 */

@@ -911,6 +911,15 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 		}
 
+		// Flagged before the refund is saved, since the refund email can be sent from a background
+		// request that only sees what's in the database.
+		$flag_release_refund = static function ( $refund ) use ( $order_helper ) {
+			if ( $refund instanceof WC_Order_Refund ) {
+				$order_helper->mark_refund_as_released_authorization( $refund );
+			}
+		};
+		add_action( 'woocommerce_create_refund', $flag_release_refund );
+
 		$refund = wc_create_refund(
 			[
 				'order_id' => $order->get_id(),
@@ -919,6 +928,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			]
 		);
 
+		remove_action( 'woocommerce_create_refund', $flag_release_refund );
 		$order_helper->unlock_order_refund( $order );
 
 		if ( is_wp_error( $refund ) ) {
