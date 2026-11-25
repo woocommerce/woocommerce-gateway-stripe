@@ -90,7 +90,7 @@ abstract class WC_Stripe_Order_Fraud_And_Risk_Helper {
 	 *
 	 * @since x.x.x
 	 * @param WC_Order $order  The order.
-	 * @return object|null
+	 * @return StdClass|null
 	 */
 	public static function get_order_transaction_fraud_flags( $order ) {
 		$fraud_flags    = null;
