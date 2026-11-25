@@ -117,6 +117,13 @@ abstract class WC_Stripe_Order_Fraud_And_Risk_Helper {
 		return $fraud_flags;
 	}
 
+	/**
+	 * Return an order charge.
+	 *
+	 * @since x.x.x
+	 * @param string $charge_id  The transaction id.
+	 * @return object|null
+	 */
 	public static function get_order_transaction_by_id( $charge_id ) {
 		$charge = WC_Stripe_API::retrieve( 'charges/as' . $charge_id );
 
