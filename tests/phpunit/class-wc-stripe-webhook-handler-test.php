@@ -1725,6 +1725,79 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 *
 	 * @return void
 	 */
+	/** @dataProvider provide_order_changes_before_the_lock */
+	public function test_handle_checkout_session_success_skips_an_order_changed_before_the_lock( string $change ): void {
+		$checkout_session_id = 'cs_test_settled_before_lock';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		// Another request pays (for example reconciliation) or deletes the order right before the webhook gets the lock.
+		$order_helper = $this->createPartialMock(
+			WC_Stripe_Order_Helper::class,
+			[ 'lock_order_payment', 'unlock_order_payment' ]
+		);
+		$order_helper->method( 'lock_order_payment' )->willReturnCallback(
+			static function ( WC_Order $locked_order ) use ( $change ) {
+				$current_order = wc_get_order( $locked_order->get_id() );
+				if ( 'deleted' === $change ) {
+					$current_order->delete( true );
+				} else {
+					$current_order->payment_complete( 'ch_settled_before_lock' );
+				}
+				return false;
+			}
+		);
+		// Unlocking can save the order, so it must get the paid copy, never the pending one read before the lock.
+		$order_helper->expects( 'deleted' === $change ? $this->never() : $this->once() )
+			->method( 'unlock_order_payment' )
+			->with(
+				$this->callback(
+					static function ( WC_Order $unlocked_order ) {
+						return $unlocked_order->is_paid();
+					}
+				)
+			);
+		WC_Stripe_Order_Helper::set_instance( $order_helper );
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->onlyMethods( [ 'process_checkout_session_payment' ] )
+			->getMock();
+		$handler->expects( $this->never() )->method( 'process_checkout_session_payment' );
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_settled_before_lock',
+					'amount_total'   => WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $order->get_currency() ),
+					'currency'       => strtolower( $order->get_currency() ),
+				],
+			],
+		];
+
+		$this->assertFalse( $handler->process_checkout_session_success( $notification ) );
+		if ( 'deleted' === $change ) {
+			$this->assertFalse( wc_get_order( $order->get_id() ) );
+		} else {
+			$this->assertTrue( wc_get_order( $order->get_id() )->is_paid() );
+		}
+	}
+
+	public static function provide_order_changes_before_the_lock(): array {
+		return [
+			'paid'    => [ 'paid' ],
+			'deleted' => [ 'deleted' ],
+		];
+	}
+
 	public function test_handle_checkout_session_success_requeues_when_order_payment_locked(): void {
 		$checkout_session_id = 'cs_test_locked_requeue';
 
@@ -2229,6 +2302,40 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			[ 'session_id' => $checkout_session_id ],
 			$notification
 		);
+	}
+
+	/**
+	 * The handler instance is shared by every job in an Action Scheduler batch, including order
+	 * reconciliation checks, so a deferred event must not report an order an earlier job resolved.
+	 */
+	public function test_process_deferred_webhook_does_not_report_an_order_resolved_by_an_earlier_job(): void {
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'handle_checkout_session_success' ] )
+			->getMock();
+		$handler->method( 'handle_checkout_session_success' )->willReturn( false );
+		$resolved_order = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'resolved_order' );
+		$resolved_order->setAccessible( true );
+		$resolved_order->setValue( $handler, WC_Helper_Order::create_order() );
+
+		$received_orders = [];
+		$received_action = static function ( $webhook_type, $event, $order ) use ( &$received_orders ) {
+			$received_orders[] = $order;
+		};
+		add_action( 'wc_stripe_webhook_received', $received_action, 10, 3 );
+		try {
+			$handler->process_deferred_webhook(
+				'checkout.session.completed',
+				[ 'session_id' => 'cs_test_deferred_without_order' ],
+				(object) [
+					'type' => 'checkout.session.completed',
+					'data' => (object) [ 'object' => (object) [ 'id' => 'cs_test_deferred_without_order' ] ],
+				]
+			);
+		} finally {
+			remove_action( 'wc_stripe_webhook_received', $received_action, 10 );
+		}
+
+		$this->assertSame( [ null ], $received_orders );
 	}
 
 	/**
@@ -4825,7 +4932,25 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$prop->setAccessible( true );
 		$prop->setValue( $this->mock_webhook_handler, $mock_scheduler );
 
-		$this->mock_webhook_handler->process_checkout_session_success( $notification );
+		$received_order  = null;
+		$received_count  = 0;
+		$received_action = static function ( $webhook_type, $event, $order ) use ( &$received_order, &$received_count ) {
+			++$received_count;
+			$received_order = $order;
+		};
+		add_action( 'wc_stripe_webhook_received', $received_action, 10, 3 );
+		try {
+			$this->mock_webhook_handler->process_webhook( wp_json_encode( $notification ) );
+		} finally {
+			remove_action( 'wc_stripe_webhook_received', $received_action, 10 );
+		}
+
+		$this->assertSame( 1, $received_count, 'The received action should fire once for the processed event.' );
+		$this->assertSame(
+			$expect_settled ? $order->get_id() : null,
+			$received_order instanceof WC_Order ? $received_order->get_id() : null,
+			'A mismatched session must not expose a settled order to webhook callbacks.'
+		);
 
 		$notes          = wc_get_order_notes( [ 'order_id' => $order->get_id() ] );
 		$mismatch_notes = array_filter(
@@ -5710,7 +5835,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 * on a mismatch. Uses the committed sample event so reviewers can replay the same body.
 	 */
 	public function test_event_belongs_to_connected_account_reads_context_from_real_agentic_event() {
-		$event         = json_decode( file_get_contents( __DIR__ . '/dummy-data/agentic_customize_checkout_event.json' ) );
+		$event         = json_decode( file_get_contents( __DIR__ . '/dummy-data/agentic_customize_checkout_event.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- This fixture is read from the local test tree, not a remote URL.
 		$event_account = 'acct_sample_connected'; // The `context` value in the fixture.
 		$reflection    = new ReflectionMethod( WC_Stripe_Webhook_Handler::class, 'event_belongs_to_connected_account' );
 		$reflection->setAccessible( true );
