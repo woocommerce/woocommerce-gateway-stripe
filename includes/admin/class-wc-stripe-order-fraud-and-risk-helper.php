@@ -67,7 +67,7 @@ abstract class WC_Stripe_Order_Fraud_And_Risk_Helper {
 	 * Sets an order fraud and risk meta from a charge object.
 	 *
 	 * @since x.x.x
-	 * @param object $order  The order.
+	 * @param WC_Order $order  The order.
 	 * @param StdClass $charge The charge.
 	 * @return void
 	 */
@@ -89,7 +89,7 @@ abstract class WC_Stripe_Order_Fraud_And_Risk_Helper {
 	 * Return an order fraud and risk flags.
 	 *
 	 * @since x.x.x
-	 * @param object $order  The order.
+	 * @param WC_Order $order  The order.
 	 * @return object|null
 	 */
 	public static function get_order_transaction_fraud_flags( $order ) {
