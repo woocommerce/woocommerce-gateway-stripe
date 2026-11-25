@@ -13,7 +13,16 @@ abstract class WC_Stripe_Order_Fraud_And_Risk_Helper {
 		'payment_method_details.card.three_d_secure',
 	];
 
-	private static function create_array_value_from_object( $src_object, &$dst_array, $path_components ) {
+	/**
+	 * Copies a nested object property to a destination array using the provided path.
+	 *
+	 * @since x.x.x
+	 * @param object $src_object      The source object.
+	 * @param array  $dst_array       The destination array.
+	 * @param array  $path_components The path.
+	 * @return void
+	 */
+	private static function create_array_value_from_object( $src_object, &$dst_array, $path_components ): void {
 		$path_valid          = [];
 		$path_valid_value    = null;
 		$num_path_components = count( $path_components );
@@ -54,7 +63,15 @@ abstract class WC_Stripe_Order_Fraud_And_Risk_Helper {
 		}
 	}
 
-	public static function set_order_transaction_fraud_flags( $order, $charge ) {
+	/**
+	 * Sets an order fraud and risk meta from a charge object.
+	 *
+	 * @since x.x.x
+	 * @param object $order  The order.
+	 * @param object $charge The charge.
+	 * @return void
+	 */
+	public static function set_order_transaction_fraud_flags( $order, $charge ): void {
 		$fraud_flags_meta = [
 			'charge_id' => $charge->id,
 		];
@@ -68,6 +85,13 @@ abstract class WC_Stripe_Order_Fraud_And_Risk_Helper {
 		$order->save();
 	}
 
+	/**
+	 * Return an order fraud and risk flags.
+	 *
+	 * @since x.x.x
+	 * @param object $order  The order.
+	 * @return object|null
+	 */
 	public static function get_order_transaction_fraud_flags( $order ) {
 		$fraud_flags    = null;
 		$transaction_id = $order->get_transaction_id();
@@ -94,7 +118,11 @@ abstract class WC_Stripe_Order_Fraud_And_Risk_Helper {
 	}
 
 	public static function get_order_transaction_by_id( $charge_id ) {
-		$charge = WC_Stripe_API::retrieve( 'charges/' . $charge_id );
+		$charge = WC_Stripe_API::retrieve( 'charges/as' . $charge_id );
+
+		if ( ! is_object( $charge ) || ! empty( $charge->error ) || is_wp_error( $charge ) ) {
+			return null;
+		}
 
 		return $charge;
 	}
