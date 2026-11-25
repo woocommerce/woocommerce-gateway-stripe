@@ -1011,7 +1011,7 @@ describe( 'payment-processing', () => {
 				await flushPromises();
 
 				expect( mockActions.confirm ).not.toHaveBeenCalled();
-				expect( window.location.href ).toBe( orderReceivedUrl );
+				expect( navigateTo ).toHaveBeenCalledWith( orderReceivedUrl );
 			} );
 
 			it( 'confirms with an absolute returnUrl when the server returns a relative redirect', async () => {

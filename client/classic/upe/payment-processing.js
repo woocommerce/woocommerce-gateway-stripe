@@ -1407,7 +1407,7 @@ export const processPayment = (
 					checkoutResponse.wc_stripe_checkout_session_already_paid ===
 					'yes'
 				) {
-					window.location.href = checkoutResponse.redirect;
+					navigateTo( checkoutResponse.redirect );
 					return;
 				}
 
