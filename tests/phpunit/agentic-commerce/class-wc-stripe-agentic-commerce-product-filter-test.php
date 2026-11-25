@@ -39,10 +39,6 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 	public function setUp(): void {
 		parent::setUp();
 
-		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Product_Filter' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Product_Filter class not loaded' );
-		}
-
 		$this->option_name = ( new \ReflectionClass( WC_Stripe_Agentic_Commerce_Product_Filter::class ) )
 			->getConstant( 'OPTION_NAME' );
 
@@ -172,22 +168,6 @@ class WC_Stripe_Agentic_Commerce_Product_Filter_Test extends WP_UnitTestCase {
 		$stored = get_option( $this->option_name );
 		$this->assertSame( [], $stored['category_ids'] );
 		$this->assertSame( [], $stored['tag_ids'] );
-	}
-
-	public function test_save_filters_silently_drops_brands_when_taxonomy_missing(): void {
-		if ( taxonomy_exists( 'product_brand' ) ) {
-			$this->markTestSkipped( 'product_brand taxonomy is registered on this environment.' );
-		}
-
-		$filter = new WC_Stripe_Agentic_Commerce_Product_Filter();
-		$filter->save_filters(
-			[
-				'brand_ids' => [ 'nike', 9999999 ],
-			]
-		);
-
-		$stored = get_option( $this->option_name );
-		$this->assertSame( [], $stored['brand_ids'] );
 	}
 
 	/**

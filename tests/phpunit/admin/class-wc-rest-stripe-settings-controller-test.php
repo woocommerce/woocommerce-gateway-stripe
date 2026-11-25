@@ -71,10 +71,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 
 		parent::set_up();
 
-		if ( version_compare( WC_VERSION, '3.4.0', '<' ) ) {
-			$this->markTestSkipped( 'The controller is not compatible with older WC versions, due to the missing `update_option` method on the gateway.' );
-		}
-
 		$this->upe_helper = new UPE_Test_Helper();
 
 		// Ensure API keys are present so WC_Stripe_Payment_Method_Configurations::is_enabled()
