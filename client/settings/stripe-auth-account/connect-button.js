@@ -88,9 +88,12 @@ const ConnectButton = ( {
 	const button = (
 		<Button
 			variant={ buttonVariant }
-			onClick={ handleClick }
+			onClick={ isLiveModeWithoutSSL ? undefined : handleClick }
 			text={ buttonText }
-			disabled={ isLoading || disabled || isLiveModeWithoutSSL }
+			disabled={ isLoading || disabled }
+			// A disabled button cannot take focus, so keyboard users could
+			// not open the tooltip that explains why it is unavailable.
+			aria-disabled={ isLiveModeWithoutSSL || undefined }
 			isBusy={ isLoading }
 		/>
 	);

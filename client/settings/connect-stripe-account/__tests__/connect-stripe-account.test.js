@@ -194,13 +194,16 @@ describe( 'ConnectStripeAccount', () => {
 		// Mock non-SSL protocol
 		setWindowLocation( 'http://localhost' );
 
-		const { container } = render( <ConnectStripeAccount /> );
+		render( <ConnectStripeAccount /> );
 
-		// The button should be rendered but disabled
+		// The button should be rendered as unavailable
 		const connectAccountButton = screen.getByText(
 			'Create or connect an account'
 		);
-		expect( connectAccountButton ).toBeDisabled();
+		expect( connectAccountButton ).toHaveAttribute(
+			'aria-disabled',
+			'true'
+		);
 
 		// Tooltip content should not be visible initially
 		expect(
@@ -209,16 +212,9 @@ describe( 'ConnectStripeAccount', () => {
 			)
 		).not.toBeInTheDocument();
 
-		// Find the tooltip wrapper (Tooltip wraps content in an element with this class)
-		const tooltipWrapper = container.querySelector(
-			'.wcstripe-tooltip__content-wrapper'
-		);
-		expect( tooltipWrapper ).toBeInTheDocument();
-
-		// Click on the tooltip wrapper to trigger tooltip
-		await act( async () => {
-			await userEvent.click( tooltipWrapper );
-		} );
+		// Keyboard focus on the button triggers the tooltip
+		act( () => connectAccountButton.focus() );
+		expect( connectAccountButton ).toHaveFocus();
 
 		// Tooltip content should now be visible
 		await waitFor( () => {
@@ -229,7 +225,10 @@ describe( 'ConnectStripeAccount', () => {
 			).toBeInTheDocument();
 		} );
 
-		// Verify the click did not trigger OAuth flow
+		// Verify a click does not trigger OAuth flow
+		await act( async () => {
+			await userEvent.click( connectAccountButton );
+		} );
 		expect( recordEvent ).not.toHaveBeenCalledWith(
 			'wcstripe_create_or_connect_account_click',
 			{}
