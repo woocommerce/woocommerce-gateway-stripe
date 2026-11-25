@@ -329,6 +329,52 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 				'saved_billing_fields'       => [],
 				'order_in_args'              => true,
 			],
+			'Store API order without city, locale field is required but hidden'                   => [
+				'billing_fields'             => [
+					'country' => 'SG',
+					'city'    => '',
+					'state'   => '',
+				],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => null,
+				'expected_exception_string'  => null,
+				'current_context'            => null,
+				'created_via'                => 'store-api',
+				'saved_billing_fields'       => [],
+				'order_in_args'              => false,
+				'country_locale'             => [
+					'SG' => [
+						'city' => [
+							'required' => true,
+							'hidden'   => true,
+						],
+					],
+				],
+			],
+			'Store API order without city, locale field is required and visible'                  => [
+				'billing_fields'             => [
+					'country' => 'SG',
+					'city'    => '',
+					'state'   => '',
+				],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => 'missing_required_customer_field: address->city',
+				'expected_exception_string'  => 'Missing required customer field: address->city',
+				'current_context'            => null,
+				'created_via'                => 'store-api',
+				'saved_billing_fields'       => [],
+				'order_in_args'              => false,
+				'country_locale'             => [
+					'SG' => [
+						'city' => [
+							'required' => true,
+							'hidden'   => false,
+						],
+					],
+				],
+			],
 		];
 	}
 
@@ -378,7 +424,8 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 		$current_context = null,
 		string $created_via = 'checkout',
 		array $saved_billing_fields = [],
-		bool $order_in_args = false
+		bool $order_in_args = false,
+		array $country_locale = []
 	) {
 		if ( true === $current_context || in_array( $current_context, \WC_Stripe_Customer::MINIMAL_BILLING_DETAILS_CONTEXTS, true ) ) {
 			$default_billing_data = [
@@ -454,6 +501,16 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 				return $required_fields;
 			};
 			add_filter( 'wc_stripe_create_customer_required_fields', $stripe_billing_fields_filter, 10, 1 );
+		}
+
+		$country_locale_filter = null;
+		if ( [] !== $country_locale ) {
+			$country_locale_filter = function ( $locale ) use ( $country_locale ) {
+				return array_replace_recursive( $locale, $country_locale );
+			};
+			add_filter( 'woocommerce_get_country_locale', $country_locale_filter );
+			// WC_Countries memoizes the locale, so clear it for the filter to apply.
+			WC()->countries->locale = [];
 		}
 
 		$mock_order = $this->create_mock_order( $billing_data, $created_via );
@@ -540,6 +597,11 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 
 			if ( null !== $stripe_billing_fields_filter ) {
 				remove_filter( 'wc_stripe_create_customer_required_fields', $stripe_billing_fields_filter, 10 );
+			}
+
+			if ( null !== $country_locale_filter ) {
+				remove_filter( 'woocommerce_get_country_locale', $country_locale_filter );
+				WC()->countries->locale = [];
 			}
 
 			// Reset checkout fields, otherwise they persist across test cases.
