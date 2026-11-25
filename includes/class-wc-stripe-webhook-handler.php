@@ -832,6 +832,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				// Recorded before payment_complete() so the emails sent on the status change
 				// already show the refund, not the full authorized total.
 				if ( $is_partial_capture ) {
+					// The refund lock reloads the order's meta from the database, which would drop the
+					// captured flag set above when the fee lookup didn't save the order.
+					$order->save();
 					$this->record_partial_capture_release( $order, $charge );
 				}
 

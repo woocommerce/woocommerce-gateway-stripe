@@ -1615,6 +1615,11 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		add_action( 'woocommerce_payment_complete', $record_refunded );
 
 		$this->mock_webhook_handler->process_webhook_capture( $notification );
+
+		// The notifications carry no balance transaction, so nothing saves the order before the
+		// release is recorded. A stale "not captured" flag would turn a later refund into a void.
+		$this->assertTrue( WC_Stripe_Order_Helper::get_instance()->is_stripe_charge_captured( wc_get_order( $order->get_id() ) ) );
+
 		$this->mock_webhook_handler->process_webhook_capture( $notification );
 
 		remove_action( 'woocommerce_payment_complete', $record_refunded );
