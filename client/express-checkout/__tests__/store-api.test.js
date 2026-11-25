@@ -137,6 +137,44 @@ describe( 'express checkout Store API client', () => {
 			expect( apiFetch ).toHaveBeenCalledTimes( 1 );
 		} );
 
+		// The retry of a regular request renews the Store API nonce, so the
+		// stale express checkout nonce would no longer be rejected.
+		it( 'holds back express checkout requests until a refresh succeeds', async () => {
+			const refresher = jest
+				.fn()
+				.mockRejectedValue( new Error( 'network' ) );
+			storeApi.setStoreApiNonceRefresher( refresher );
+			const rejection = invalidNonceResponse( { Nonce: 'fresh_nonce' } );
+			apiFetch
+				.mockRejectedValueOnce( rejection )
+				.mockResolvedValue( mockResponse() );
+			const sendExpressCheckoutRequest = () =>
+				storeApi.storeApiFetch(
+					{ method: 'POST', path: '/wc/store/v1/checkout' },
+					{ expressCheckoutContext: true }
+				);
+
+			await storeApi.storeApiFetch( {
+				method: 'POST',
+				path: '/wc/store/v1/cart/add-item',
+			} );
+			await expect( sendExpressCheckoutRequest() ).rejects.toBe(
+				rejection
+			);
+			expect( apiFetch ).toHaveBeenCalledTimes( 2 );
+
+			refresher.mockImplementation( async () =>
+				storeApi.rememberStoreApiNonces( {
+					wc_store_api_express_checkout: 'bundle_ece_nonce',
+				} )
+			);
+			await sendExpressCheckoutRequest();
+
+			expect(
+				sentHeaders( 2 )[ 'X-WCSTRIPE-EXPRESS-CHECKOUT-NONCE' ]
+			).toBe( 'bundle_ece_nonce' );
+		} );
+
 		it( 'gives up after one retry', async () => {
 			const secondRejection = invalidNonceResponse();
 			apiFetch

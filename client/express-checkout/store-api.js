@@ -11,6 +11,14 @@ const refreshedNonces = {};
 let refreshNonces = null;
 
 /**
+ * The rejection that showed the printed nonces expired, kept for as long as
+ * the express checkout nonce printed alongside them is the only one known.
+ * Unlike the Store API nonce, which every response renews, that one can only
+ * come from a fresh bundle.
+ */
+let staleNonceRejection = null;
+
+/**
  * Remembers the Store API nonces found in a nonce map, ignoring the keys it
  * doesn't carry.
  *
@@ -26,6 +34,7 @@ export const rememberStoreApiNonces = ( nonces ) => {
 	if ( nonces?.wc_store_api_express_checkout ) {
 		refreshedNonces.wc_store_api_express_checkout =
 			nonces.wc_store_api_express_checkout;
+		staleNonceRejection = null;
 	}
 };
 
@@ -133,6 +142,16 @@ export const storeApiFetch = async (
 	options,
 	{ expressCheckoutContext = false } = {}
 ) => {
+	// An earlier refresh failed. The Store API nonce was renewed since, so the
+	// request would be accepted and nothing would prompt another refresh.
+	if ( expressCheckoutContext && staleNonceRejection ) {
+		await refreshNonces?.().catch( () => {} );
+
+		if ( staleNonceRejection ) {
+			throw staleNonceRejection.clone();
+		}
+	}
+
 	try {
 		return await sendRequest( options, expressCheckoutContext );
 	} catch ( error ) {
@@ -142,16 +161,14 @@ export const storeApiFetch = async (
 
 		// The rejection only carried a fresh Store API nonce, so the express
 		// checkout one has to be fetched.
-		const refreshed = await refreshNonces?.().then(
-			() => true,
-			() => false
-		);
+		staleNonceRejection = error.clone();
+		await refreshNonces?.().catch( () => {} );
 
 		// Without a fresh express checkout nonce the retry would pass the Store
 		// API's own check and then be handled as a regular request, with no
 		// wallet address handling and no custom checkout field validation. A
 		// failed request is the safer outcome.
-		if ( expressCheckoutContext && ! refreshed ) {
+		if ( expressCheckoutContext && staleNonceRejection ) {
 			throw error;
 		}
 
