@@ -1698,6 +1698,29 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Two deliveries of the same event can run at once, and the refund lock is not atomic, so both
+	 * could record the release. The one that loses the release lock must leave it to the other,
+	 * without telling the merchant to record it by hand.
+	 */
+	public function test_process_webhook_capture_leaves_release_to_concurrent_delivery() {
+		$order     = $this->create_authorized_order( 'ch_release_locked' );
+		$lock_name = 'wc_stripe_capture_release_lock_ch_release_locked';
+		$owner     = WC_Stripe_Option_Lock::acquire( $lock_name, MINUTE_IN_SECONDS );
+
+		try {
+			$this->mock_webhook_handler->process_webhook_capture( $this->build_capture_notification( 'charge.captured', 'ch_release_locked', [ 'amount_captured' => 500 ] ) );
+		} finally {
+			WC_Stripe_Option_Lock::release( $lock_name, $owner );
+		}
+
+		$order = wc_get_order( $order->get_id() );
+		$this->assertCount( 0, $order->get_refunds() );
+
+		$notes = wp_list_pluck( wc_get_order_notes( [ 'order_id' => $order->get_id() ] ), 'content' );
+		$this->assertCount( 0, preg_grep( '/could not be recorded as a refund/', $notes ) );
+	}
+
+	/**
 	 * A concurrent delivery of the same event may record the release in another process after this one
 	 * measured it. Without a persistent object cache, this process's cached refund total doesn't see
 	 * that refund, so the recheck under the refund lock must read the database, or the release is

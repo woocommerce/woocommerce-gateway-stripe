@@ -42,6 +42,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	protected const META_REFUNDED_AFTER_CANCELLATION = '_stripe_refunded_after_cancellation';
 
 	/**
+	 * Prefix of the per-charge lock that lets only one delivery of a partial capture record its release.
+	 *
+	 * @var string
+	 */
+	protected const PARTIAL_CAPTURE_RELEASE_LOCK_PREFIX = 'wc_stripe_capture_release_lock_';
+
+	/**
 	 * How many times to retry Checkout Session processing while waiting for the PaymentIntent to get a charge.
 	 *
 	 * @var int
@@ -929,6 +936,34 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			WC_Stripe_Logger::info( 'Partial capture: the released amount is left to the charge.refunded event.', $log_context );
 			return;
 		}
+
+		// Two deliveries of this event can run at once when event reconciliation is off, and the refund
+		// lock below is not atomic, so this lock lets only one of them record the release.
+		$release_lock_name  = self::PARTIAL_CAPTURE_RELEASE_LOCK_PREFIX . $charge->id;
+		$release_lock_owner = WC_Stripe_Option_Lock::acquire( $release_lock_name, MINUTE_IN_SECONDS );
+		if ( null === $release_lock_owner ) {
+			WC_Stripe_Logger::info( 'Partial capture: another delivery of this event is recording the released amount.', $log_context );
+			return;
+		}
+
+		try {
+			$this->create_partial_capture_release_refund( $order, $captured_amount, $released_amount, $log_context );
+		} finally {
+			WC_Stripe_Option_Lock::release( $release_lock_name, $release_lock_owner );
+		}
+	}
+
+	/**
+	 * Records the released authorization as a refund, unless a merchant refund is in progress or the
+	 * release was recorded since it was measured.
+	 *
+	 * @param WC_Order $order           The partially captured order.
+	 * @param int      $captured_amount The captured amount, in the smallest currency unit.
+	 * @param int      $released_amount The release measured before locking, in the smallest currency unit.
+	 * @param array    $log_context     IDs and amounts for the log.
+	 */
+	private function create_partial_capture_release_refund( WC_Order $order, int $captured_amount, int $released_amount, array $log_context ): void {
+		$currency = $order->get_currency();
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 		if ( $order_helper->lock_order_refund( $order ) ) {
