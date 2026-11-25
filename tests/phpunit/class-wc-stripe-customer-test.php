@@ -12,10 +12,11 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 	/**
 	 * Helper method to create a mock WC_Order with billing data.
 	 *
-	 * @param array $billing_data Billing data array with keys: email, first_name, last_name, address_1, address_2, city, state, postcode, country.
+	 * @param array  $billing_data Billing data array with keys: email, first_name, last_name, address_1, address_2, city, state, postcode, country.
+	 * @param string $created_via  How the order was created, e.g. 'checkout' (classic checkout) or 'store-api' (block and express checkout).
 	 * @return \PHPUnit\Framework\MockObject\MockObject Mock WC_Order instance.
 	 */
-	private function create_mock_order( array $billing_data = [] ) {
+	private function create_mock_order( array $billing_data = [], string $created_via = 'checkout' ) {
 		$default_billing_data = [
 			'email'      => 'test@example.com',
 			'first_name' => 'Test',
@@ -45,9 +46,12 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 					'get_billing_phone',
 					'get_billing_postcode',
 					'get_billing_state',
+					'get_created_via',
 				]
 			)
 			->getMock();
+
+		$mock_order->method( 'get_created_via' )->willReturn( $created_via );
 
 		$mock_order->method( 'get_billing_email' )->willReturn( $billing_data['email'] );
 		$mock_order->method( 'get_billing_first_name' )->willReturn( $billing_data['first_name'] );
@@ -222,14 +226,25 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 				'expected_exception_string'  => null,
 				'current_context'            => false,
 			],
-			'address line2 required only via classic checkout fields, line2 is empty'             => [
+			'Store API order, line2 required only via classic checkout fields and empty'          => [
 				'billing_fields'             => [ 'address_2' => '' ],
 				'woo_billing_fields'         => [ 'billing_address_2' => true ],
 				'stripe_billing_fields'      => null,
 				'expected_exception_message' => null,
 				'expected_exception_string'  => null,
+				'current_context'            => null,
+				'created_via'                => 'store-api',
 			],
-			'SG address without city or state, both required via classic checkout fields'         => [
+			'classic checkout order, line2 required via classic checkout fields and empty'        => [
+				'billing_fields'             => [ 'address_2' => '' ],
+				'woo_billing_fields'         => [ 'billing_address_2' => true ],
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => 'missing_required_customer_field: address->line2',
+				'expected_exception_string'  => 'Missing required customer field: address->line2',
+				'current_context'            => null,
+				'created_via'                => 'checkout',
+			],
+			'Store API SG order without city or state, both required via classic checkout fields' => [
 				'billing_fields'             => [
 					'country' => 'SG',
 					'city'    => '',
@@ -239,8 +254,23 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 				'stripe_billing_fields'      => null,
 				'expected_exception_message' => null,
 				'expected_exception_string'  => null,
+				'current_context'            => null,
+				'created_via'                => 'store-api',
 			],
-			'GR address without state, required via classic checkout fields'                      => [
+			'classic checkout SG order without city, required via classic checkout fields'        => [
+				'billing_fields'             => [
+					'country' => 'SG',
+					'city'    => '',
+					'state'   => '',
+				],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => 'missing_required_customer_field: address->city',
+				'expected_exception_string'  => 'Missing required customer field: address->city',
+				'current_context'            => null,
+				'created_via'                => 'checkout',
+			],
+			'Store API GR order without state, required via classic checkout fields'              => [
 				'billing_fields'             => [
 					'country' => 'GR',
 					'state'   => '',
@@ -249,15 +279,28 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 				'stripe_billing_fields'      => null,
 				'expected_exception_message' => null,
 				'expected_exception_string'  => null,
+				'current_context'            => null,
+				'created_via'                => 'store-api',
 			],
-			'US address without state, required by both classic checkout fields and US locale'    => [
+			'Store API US order without state, required by the US locale'                         => [
 				'billing_fields'             => [ 'state' => '' ],
 				'woo_billing_fields'         => null,
 				'stripe_billing_fields'      => null,
 				'expected_exception_message' => 'missing_required_customer_field: address->state',
 				'expected_exception_string'  => 'Missing required customer field: address->state',
+				'current_context'            => null,
+				'created_via'                => 'store-api',
 			],
-			'SG order without city or state, customer has a saved US billing country'             => [
+			'Store API order without state, not required via classic checkout fields'             => [
+				'billing_fields'             => [ 'state' => '' ],
+				'woo_billing_fields'         => [ 'billing_state' => false ],
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => 'missing_required_customer_field: address->state',
+				'expected_exception_string'  => 'Missing required customer field: address->state',
+				'current_context'            => null,
+				'created_via'                => 'store-api',
+			],
+			'Store API SG order without city or state, customer has a saved US billing country'   => [
 				'billing_fields'             => [
 					'country' => 'SG',
 					'city'    => '',
@@ -268,9 +311,10 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 				'expected_exception_message' => null,
 				'expected_exception_string'  => null,
 				'current_context'            => null,
+				'created_via'                => 'store-api',
 				'saved_billing_fields'       => [ 'billing_country' => 'US' ],
 			],
-			'SG order without city or state, order passed in the request args'                    => [
+			'Store API SG order without city or state, order passed in the request args'          => [
 				'billing_fields'             => [
 					'country' => 'SG',
 					'city'    => '',
@@ -281,6 +325,7 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 				'expected_exception_message' => null,
 				'expected_exception_string'  => null,
 				'current_context'            => null,
+				'created_via'                => 'store-api',
 				'saved_billing_fields'       => [],
 				'order_in_args'              => true,
 			],
@@ -331,6 +376,7 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 		?string $expected_exception_message = null,
 		?string $expected_exception_string = null,
 		$current_context = null,
+		string $created_via = 'checkout',
 		array $saved_billing_fields = [],
 		bool $order_in_args = false
 	) {
@@ -410,7 +456,7 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 			add_filter( 'wc_stripe_create_customer_required_fields', $stripe_billing_fields_filter, 10, 1 );
 		}
 
-		$mock_order = $this->create_mock_order( $billing_data );
+		$mock_order = $this->create_mock_order( $billing_data, $created_via );
 
 		$user_id = 0;
 		if ( [] !== $saved_billing_fields ) {

@@ -292,7 +292,7 @@ class WC_Stripe_Customer {
 		 * @since 9.7.0
 		 * @since 10.2.0 Added the $create_customer_request parameter.
 		 *
-		 * @param array $required_fields         The required customer fields as derived from the required billing fields in checkout, limited to the fields the billing country's address locale requires when paying for an order. In some contexts, like adding a payment method, we allow minimal details to be provided.
+		 * @param array $required_fields         The required customer fields as derived from the required billing fields in checkout. For orders created through the Store API (block and express checkout), they are derived from the billing country's address locale instead. In some contexts, like adding a payment method, we allow minimal details to be provided.
 		 * @param array $create_customer_request The initial data to build the customer request. This can be used to provide country-specific conditions.
 		 */
 		$required_fields = apply_filters( 'wc_stripe_create_customer_required_fields', $this->get_create_customer_required_fields( $current_context, $order ), $create_customer_request );
@@ -332,8 +332,8 @@ class WC_Stripe_Customer {
 	/**
 	 * Get the list of required fields for the create customer request.
 	 *
-	 * For orders, only fields required by both the classic checkout fields and the billing country's locale
-	 * are required, since the Store API (block and express checkout) validates against the locale alone.
+	 * Orders created through the Store API (block and express checkout) use the billing country's address locale,
+	 * as that is what the Store API validated them against. Everything else uses the classic checkout fields.
 	 *
 	 * @param string|null   $current_context The context we are creating the customer in.
 	 * @param WC_Order|null $order           The order the customer is being created for, if any.
@@ -347,25 +347,20 @@ class WC_Stripe_Customer {
 			];
 		}
 
-		$checkout_billing_fields = WC_Checkout::instance()->get_checkout_fields( 'billing' );
-		$required_billing_fields = array_filter(
-			$checkout_billing_fields,
-			function ( $field_data ) {
-				return $field_data['required'] ?? false;
-			}
-		);
-
-		if ( $order instanceof WC_Order ) {
+		if ( $order instanceof WC_Order && 'store-api' === $order->get_created_via() ) {
 			// The request's country can come from the customer's saved address, which WooCommerce did not validate this order against.
 			$billing_country         = $order->get_billing_country();
-			$locale_required_fields  = $this->get_locale_required_billing_fields( is_string( $billing_country ) ? $billing_country : '' );
+			$required_billing_fields = $this->get_locale_required_billing_fields( is_string( $billing_country ) ? $billing_country : '' );
+
+			// Email is not an address field, so the address locale does not list it, but the Store API always requires it.
+			$required_billing_fields['billing_email'] = true;
+		} else {
+			$checkout_billing_fields = WC_Checkout::instance()->get_checkout_fields( 'billing' );
 			$required_billing_fields = array_filter(
-				$required_billing_fields,
-				function ( $field_key ) use ( $locale_required_fields ) {
-					// Email is not an address field, so the address locale has no say over it.
-					return 'billing_email' === $field_key || isset( $locale_required_fields[ $field_key ] );
-				},
-				ARRAY_FILTER_USE_KEY
+				$checkout_billing_fields,
+				function ( $field_data ) {
+					return $field_data['required'] ?? false;
+				}
 			);
 		}
 
