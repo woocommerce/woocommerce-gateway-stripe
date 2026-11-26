@@ -88,7 +88,8 @@ reviews:
         `includes/agentic-commerce/`); flag changes to those implementations that could break compatibility with the
         supported WooCommerce range.
         Request PHPUnit coverage when behavior changes.
-        `@since x.x.x` and `@version x.x.x` are required for new code; they will be replaced during the release process.
+        `@since x.x.x` is required for new code; it will be replaced during the release process.
+        `@version x.x.x` is allowed but not required; do not ask for it.
         Flag a new `@since`/`@version` with a concrete not-yet-released version as invalid - ask for
         `x.x.x`).
         Flag `x.x.x` in `@deprecated` tags or deprecation function arguments as an error.
