@@ -124,6 +124,13 @@ class WC_Stripe {
 	protected $stripe_gateway = null;
 
 	/**
+	 * The order reconciliation service, set by init() on the main instance.
+	 *
+	 * @var WC_Stripe_Order_Reconciliation|null
+	 */
+	private $order_reconciliation = null;
+
+	/**
 	 * Private clone method to prevent cloning of the instance of the
 	 * *Singleton* instance.
 	 *
@@ -249,6 +256,7 @@ class WC_Stripe {
 
 			$order_reconciliation = new WC_Stripe_Order_Reconciliation( $order_handler, $webhook_handler );
 			$order_reconciliation->register_hooks();
+			$this->order_reconciliation = $order_reconciliation;
 
 			if ( is_admin() && WC_Stripe_Feature_Flags::is_order_reconciliation_enabled() ) {
 				( new WC_Stripe_Order_Reconciliation_Admin( $order_reconciliation ) )->register_hooks();
@@ -1155,6 +1163,16 @@ class WC_Stripe {
 			$agentic_commerce_controller = new WC_REST_Stripe_Agentic_Commerce_Controller();
 			$agentic_commerce_controller->register_routes();
 		}
+	}
+
+	/**
+	 * Returns the order reconciliation service, or null before init() created it.
+	 *
+	 * @since x.x.x
+	 * @return WC_Stripe_Order_Reconciliation|null
+	 */
+	public function get_order_reconciliation(): ?WC_Stripe_Order_Reconciliation {
+		return $this->order_reconciliation;
 	}
 
 	/**

@@ -1193,6 +1193,57 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Records that Stripe took the payment but a step after the charge failed.
+	 *
+	 * A shopper who retries after a failed attempt pays on the same order, and WooCommerce keeps
+	 * it failed until the payment is recorded. Left failed, the order-received page reports a
+	 * decline and offers to pay again, and nothing that completes pending orders picks it up.
+	 *
+	 * @since x.x.x
+	 * @param WC_Order $order The order Stripe took the payment for.
+	 */
+	public function record_failure_after_charge( WC_Order $order ): void {
+		// The error stays in the log only: it can hold Stripe data, and order notes are kept forever while logs expire.
+		$note = __( 'Stripe took the payment, but a step after the charge failed. The payment was not charged again. Please review this order, and see the Stripe logs (WooCommerce > Status > Logs) for details.', 'woocommerce-gateway-stripe' );
+
+		if ( $order->has_status( OrderStatus::FAILED ) ) {
+			$order->update_status( OrderStatus::PENDING, $note );
+			$this->schedule_payment_status_check( $order );
+			return;
+		}
+
+		$order->add_order_note( $note );
+	}
+
+	/**
+	 * Asks the order reconciliation to complete the order from Stripe later.
+	 *
+	 * Pending orders get this check when the payment is submitted, but an order that was failed then
+	 * doesn't, and the webhook can hit the charge lock left by the failed attempt and give up.
+	 * Callers run inside an exception handler, so a scheduling failure is only logged.
+	 *
+	 * @param WC_Order $order The order moved back to pending.
+	 */
+	private function schedule_payment_status_check( WC_Order $order ): void {
+		$order_reconciliation = WC_Stripe::get_instance()->get_order_reconciliation();
+		if ( null === $order_reconciliation ) {
+			return;
+		}
+
+		try {
+			$order_reconciliation->schedule_order_check( $order );
+		} catch ( Throwable $e ) {
+			WC_Stripe_Logger::error(
+				'Could not schedule a Stripe payment status check.',
+				[
+					'order_id'      => $order->get_id(),
+					'error_message' => $e->getMessage(),
+				]
+			);
+		}
+	}
+
+	/**
 	 * Updates the Stripe UPE redirect processed for order.
 	 *
 	 * @since 10.0.0
