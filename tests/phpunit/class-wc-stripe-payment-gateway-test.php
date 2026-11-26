@@ -2350,7 +2350,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Data provider for `test_process_response_denies_an_order_racing_for_a_locked_charge`.
+	 * Runs a test against HPOS and legacy post storage.
 	 *
 	 * @return array
 	 */
@@ -2362,20 +2362,210 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * After one request has linked the charge, a later request for the same order can safely repeat it.
+	 * Runs a test against legacy post storage, HPOS, and HPOS with its data caching on.
 	 *
+	 * @return array
+	 */
+	public function provide_order_storage_with_data_caching(): array {
+		return [
+			'HPOS'                   => [ true, false ],
+			'HPOS with data caching' => [ true, true ],
+			'legacy storage'         => [ false, false ],
+		];
+	}
+
+	/**
+	 * Recording the same charge again must not repeat the payment or add its fees twice.
+	 *
+	 * @dataProvider provide_repeated_charge_recordings
+	 * @param string $second_charge_id The charge recorded second.
+	 * @param int    $expected_notes   Expected "Stripe charge complete" notes.
+	 * @param float  $expected_fee     Expected Stripe fee on the order.
+	 * @param float  $expected_net     Expected Stripe net on the order.
 	 * @return void
 	 */
-	public function test_process_response_is_idempotent_for_the_owning_order() {
-		$order  = WC_Helper_Order::create_order();
-		$charge = $this->build_succeeded_charge( 'ch_idempotent' );
+	public function test_process_response_is_idempotent_for_the_owning_order( string $second_charge_id, int $expected_notes, float $expected_fee, float $expected_net ) {
+		$order = WC_Helper_Order::create_order();
 
-		$this->gateway->process_response( $charge, $order );
-		$this->gateway->process_response( $charge, $order );
+		// Each recording fetches the charge's balance transaction to add its fee and net.
+		$balance_transaction = function ( $preempt, $args, $url ) {
+			return false !== strpos( $url, 'balance/history/' )
+				? $this->build_response(
+					[
+						'fee'      => 150,
+						'net'      => 4850,
+						'currency' => 'usd',
+					]
+				)
+				: $preempt;
+		};
+
+		$payment_complete_calls = 0;
+		$count_payment_complete = static function () use ( &$payment_complete_calls ) {
+			++$payment_complete_calls;
+		};
+
+		add_filter( 'pre_http_request', $balance_transaction, 10, 3 );
+		add_action( 'woocommerce_payment_complete', $count_payment_complete );
+
+		try {
+			$this->gateway->process_response( $this->build_charge_with_fees( 'ch_idempotent' ), $order );
+			$this->gateway->process_response( $this->build_charge_with_fees( $second_charge_id ), wc_get_order( $order->get_id() ) );
+		} finally {
+			remove_filter( 'pre_http_request', $balance_transaction, 10 );
+			remove_action( 'woocommerce_payment_complete', $count_payment_complete );
+		}
+
+		$order        = wc_get_order( $order->get_id() );
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$notes        = wc_get_order_notes( [ 'order_id' => $order->get_id() ] );
+		$charge_notes = array_filter(
+			$notes,
+			static function ( $note ) {
+				return false !== strpos( $note->content, 'Stripe charge complete' );
+			}
+		);
+
+		$this->assertSame( 'ch_idempotent', $order->get_transaction_id() );
+		$this->assertTrue( $order->is_paid() );
+		$this->assertSame( 1, $payment_complete_calls );
+		$this->assertCount( $expected_notes, $charge_notes );
+		$this->assertSame( $expected_fee, (float) $order_helper->get_stripe_fee( $order ) );
+		$this->assertSame( $expected_net, (float) $order_helper->get_stripe_net( $order ) );
+	}
+
+	/**
+	 * @return array
+	 */
+	public function provide_repeated_charge_recordings(): array {
+		return [
+			'the same charge is recorded once'                     => [ 'ch_idempotent', 1, 1.5, 48.5 ],
+			'a different charge on a paid order is still recorded' => [ 'ch_second', 2, 3.0, 97.0 ],
+		];
+	}
+
+	/**
+	 * A charge another request already settled is skipped, even though this request cached the order as Pending.
+	 *
+	 * The database is written directly so this request's post and order caches keep the Pending copy,
+	 * like the deferred webhook job that loads the order before the shopper's return settles it.
+	 *
+	 * @dataProvider provide_order_storage_with_data_caching
+	 * @param bool $use_hpos         Whether to run against HPOS or legacy post storage.
+	 * @param bool $use_data_caching Whether WooCommerce's HPOS data caching is on.
+	 * @return void
+	 */
+	public function test_process_response_skips_a_charge_another_request_settled( bool $use_hpos, bool $use_data_caching ) {
+		global $wpdb;
+
+		$previous_hpos_setting  = get_option( 'woocommerce_custom_orders_table_enabled', 'no' );
+		$previous_data_caching  = get_option( 'woocommerce_hpos_datastore_caching_enabled', 'no' );
+		$new_hpos_setting       = $use_hpos ? 'yes' : 'no';
+		$payment_complete_calls = 0;
+		$count_payment_complete = static function () use ( &$payment_complete_calls ) {
+			++$payment_complete_calls;
+		};
+
+		try {
+			// Allow HPOS to be toggled regardless of database state.
+			add_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+			add_action( 'woocommerce_payment_complete', $count_payment_complete );
+
+			if ( $new_hpos_setting !== $previous_hpos_setting ) {
+				update_option( 'woocommerce_custom_orders_table_enabled', $new_hpos_setting );
+			}
+			update_option( 'woocommerce_hpos_datastore_caching_enabled', $use_data_caching ? 'yes' : 'no' );
+
+			$order     = WC_Helper_Order::create_order();
+			$order_id  = $order->get_id();
+			$charge_id = 'ch_settled_elsewhere';
+			$order     = wc_get_order( $order_id );
+
+			if ( $use_hpos ) {
+				$wpdb->update(
+					$wpdb->prefix . 'wc_orders',
+					[
+						'status'         => 'wc-processing',
+						'transaction_id' => $charge_id,
+					],
+					[ 'id' => $order_id ]
+				);
+			} else {
+				$wpdb->update( $wpdb->posts, [ 'post_status' => 'wc-processing' ], [ 'ID' => $order_id ] );
+				// Clears only the meta cache; the cached post keeps the Pending status.
+				update_post_meta( $order_id, '_transaction_id', $charge_id );
+			}
+
+			$this->gateway->process_response( $this->build_succeeded_charge( $charge_id ), $order );
+
+			$this->assertSame( 0, $payment_complete_calls );
+			$this->assertSame( [], wc_get_order_notes( [ 'order_id' => $order_id ] ) );
+		} finally {
+			remove_action( 'woocommerce_payment_complete', $count_payment_complete );
+			update_option( 'woocommerce_hpos_datastore_caching_enabled', $previous_data_caching );
+			if ( $new_hpos_setting !== $previous_hpos_setting ) {
+				update_option( 'woocommerce_custom_orders_table_enabled', $previous_hpos_setting );
+			}
+			remove_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+		}
+	}
+
+	/**
+	 * An order linked to a charge but not paid yet must still settle when the charge succeeds.
+	 *
+	 * Authorized, pending and manual-review charges link the order first and settle on a later delivery.
+	 *
+	 * @dataProvider provide_unsettled_first_recordings
+	 * @param array $first_charge Charge properties for the first delivery.
+	 * @return void
+	 */
+	public function test_process_response_settles_a_linked_order_that_is_not_paid_yet( array $first_charge ) {
+		$order                  = WC_Helper_Order::create_order();
+		$payment_complete_calls = 0;
+		$count_payment_complete = static function () use ( &$payment_complete_calls ) {
+			++$payment_complete_calls;
+		};
+
+		add_action( 'woocommerce_payment_complete', $count_payment_complete );
+
+		try {
+			$this->gateway->process_response( (object) array_merge( (array) $this->build_succeeded_charge( 'ch_settles_later' ), $first_charge ), $order );
+			$linked_order = wc_get_order( $order->get_id() );
+			$this->assertSame( 'ch_settles_later', $linked_order->get_transaction_id() );
+			$this->assertFalse( $linked_order->is_paid() );
+
+			$this->gateway->process_response( $this->build_succeeded_charge( 'ch_settles_later' ), wc_get_order( $order->get_id() ) );
+		} finally {
+			remove_action( 'woocommerce_payment_complete', $count_payment_complete );
+		}
 
 		$order = wc_get_order( $order->get_id() );
-		$this->assertSame( $charge->id, $order->get_transaction_id() );
 		$this->assertTrue( $order->is_paid() );
+		$this->assertSame( 'ch_settles_later', $order->get_transaction_id() );
+		$this->assertSame( 1, $payment_complete_calls );
+	}
+
+	/**
+	 * @return array
+	 */
+	public function provide_unsettled_first_recordings(): array {
+		return [
+			'authorized, not captured' => [ [ 'captured' => false ] ],
+			'pending async charge'     => [ [ 'status' => 'pending' ] ],
+			'held for manual review'   => [ [ 'outcome' => (object) [ 'type' => 'manual_review' ] ] ],
+		];
+	}
+
+	/**
+	 * Builds a succeeded charge whose balance transaction carries a fee.
+	 *
+	 * @param string $charge_id The charge ID.
+	 * @return object
+	 */
+	private function build_charge_with_fees( string $charge_id ) {
+		$charge                      = $this->build_succeeded_charge( $charge_id );
+		$charge->balance_transaction = 'txn_' . $charge_id;
+		return $charge;
 	}
 
 	/**

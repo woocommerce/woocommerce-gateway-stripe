@@ -3265,7 +3265,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				}
 			}
 		} finally {
-			WC_Stripe_Duplicate_Payment_Prevention::record_paid_order( $order );
+			// When another request already settled the order, process_response() skips and leaves this
+			// copy unpaid; its skip also refreshes the cached order that wc_get_order() returns here.
+			$maybe_paid_order = $order->is_paid() ? $order : wc_get_order( $order->get_id() );
+			WC_Stripe_Duplicate_Payment_Prevention::record_paid_order( $maybe_paid_order instanceof WC_Order ? $maybe_paid_order : $order );
 		}
 
 		$this->save_intent_to_order( $order, $intent );

@@ -679,6 +679,22 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
+		// The webhook, the shopper's return and reconciliation can all deliver the same charge, and
+		// the caller's order may have been read before another of them settled it. Recording again
+		// would add the fees twice and could repeat the paid transition, so a charge already settled
+		// on this order is done. Only a read that skips this request's caches sees the other request.
+		$stored_order = $linked_order ? WC_Stripe_Order_Helper::get_instance()->get_uncached_order( $linked_order ) : null;
+		if ( $stored_order && $stored_order->is_paid() ) {
+			WC_Stripe_Logger::info(
+				'Skipping charge processing, the charge is already recorded on the paid order.',
+				[
+					'order_id'  => $linked_order->get_id(),
+					'charge_id' => $stored_order->get_transaction_id(),
+				]
+			);
+			return $response;
+		}
+
 		/**
 		 * Allow third-party code to add custom logic before processing the charge data from Stripe.
 		 *

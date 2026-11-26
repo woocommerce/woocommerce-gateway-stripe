@@ -1646,6 +1646,36 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Reads the order from storage, past the copies this request has cached.
+	 *
+	 * @since x.x.x
+	 * @internal Not part of the public API; it can change without notice.
+	 *
+	 * @param WC_Order $order The order to read again.
+	 * @return WC_Order|null The stored order, or null when it no longer exists.
+	 */
+	public function get_uncached_order( WC_Order $order ): ?WC_Order {
+		clean_post_cache( $order->get_id() );
+		// This runs while settling payments, so a change in WooCommerce's internals must not stop the order from being read.
+		try {
+			if ( class_exists( \Automattic\WooCommerce\Caches\OrderCache::class ) ) {
+				wc_get_container()->get( \Automattic\WooCommerce\Caches\OrderCache::class )->remove( $order->get_id() );
+			}
+			// With HPOS data caching on, the raw order row has its own cache. The method is internal to WooCommerce, so it's only called when present.
+			$data_store_class = 'Automattic\\WooCommerce\\Internal\\DataStores\\Orders\\OrdersTableDataStore';
+			$data_store       = class_exists( $data_store_class ) ? wc_get_container()->get( $data_store_class ) : null;
+			if ( is_object( $data_store ) && is_callable( [ $data_store, 'clear_cached_data' ] ) ) {
+				$data_store->clear_cached_data( [ $order->get_id() ] );
+			}
+		} catch ( Throwable $e ) {
+			WC_Stripe_Logger::warning( 'Unable to clear the order caches before reading the order again.', [ 'order_id' => $order->get_id() ] );
+		}
+		$stored_order = wc_get_order( $order->get_id() );
+
+		return $stored_order instanceof WC_Order ? $stored_order : null;
+	}
+
+	/**
 	 * Retrieves the existing lock for an order.
 	 *
 	 * @since 10.0.0
