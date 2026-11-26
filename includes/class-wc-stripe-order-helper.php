@@ -1646,6 +1646,25 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Reads the order from storage, past the copies this request has cached.
+	 *
+	 * @since x.x.x
+	 * @internal Not part of the public API; it can change without notice.
+	 *
+	 * @param WC_Order $order The order to read again.
+	 * @return WC_Order|null The stored order, or null when it no longer exists.
+	 */
+	public function get_uncached_order( WC_Order $order ): ?WC_Order {
+		clean_post_cache( $order->get_id() );
+		if ( class_exists( \Automattic\WooCommerce\Caches\OrderCache::class ) ) {
+			wc_get_container()->get( \Automattic\WooCommerce\Caches\OrderCache::class )->remove( $order->get_id() );
+		}
+		$stored_order = wc_get_order( $order->get_id() );
+
+		return $stored_order instanceof WC_Order ? $stored_order : null;
+	}
+
+	/**
 	 * Retrieves the existing lock for an order.
 	 *
 	 * @since 10.0.0
