@@ -2100,7 +2100,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 	/**
 	 * A deferred missing-charge retry must bump only the charge retry count, stop once that limit is
-	 * reached, and neither consume nor be blocked by the order lookup retry count.
+	 * reached, and neither consume nor be blocked by the order lookup retry count. The webhook action
+	 * waits while the event is re-queued, and fires once the retries give up.
 	 *
 	 * @dataProvider provide_missing_charge_deferred_retry_counts
 	 *
@@ -2205,6 +2206,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		if ( $expect_requeue ) {
 			$this->assertSame( 0, $received );
+		} else {
+			$this->assertSame( 1, $received );
 		}
 
 		$this->assertTrue( wc_get_order( $order->get_id() )->has_status( OrderStatus::PENDING ) );
