@@ -2844,7 +2844,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$intent = $intent ?? $this->get_intent_from_order( $order );
 
-		// Stripe error responses (a rate limit, for example) come back as false and can clear up, so let the caller retry.
+		// Stripe error responses come back as false; some, like a rate limit, clear up, so let the caller retry
+		// within its limit. Outages and timeouts throw instead and are handled by the caller's catch.
 		if ( ! $intent ) {
 			WC_Stripe_Logger::error( 'Could not find intent for order: ' . $order->get_id() );
 			$order->save();
