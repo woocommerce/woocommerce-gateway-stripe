@@ -211,6 +211,9 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( $order ) );
 
 		// Unlocking must also free the atomic lock, or the order stays blocked until it expires.
+		// Callers such as reconciliation unlock through a freshly loaded copy of the order.
+		$this->assertFalse( $this->helper->lock_order_payment( $order ) );
+		$this->helper->unlock_order_payment( wc_get_order( $order->get_id() ) );
 		$this->assertFalse( $this->helper->lock_order_payment( $order ) );
 		$this->helper->unlock_order_payment( $order );
 	}
