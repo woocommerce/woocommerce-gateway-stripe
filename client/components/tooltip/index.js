@@ -2,7 +2,12 @@ import React, { useState } from 'react';
 import { noop } from 'lodash';
 import TooltipBase from './tooltip-base';
 
-const Tooltip = ( { isVisible, onHide = noop, ...props } ) => {
+const Tooltip = ( {
+	isVisible,
+	onHide = noop,
+	hasInteractiveChildren = false,
+	...props
+} ) => {
 	const [ isHovered, setIsHovered ] = useState( false );
 	const [ isClicked, setIsClicked ] = useState( false );
 
@@ -29,8 +34,11 @@ const Tooltip = ( { isVisible, onHide = noop, ...props } ) => {
 		onHide();
 	};
 
+	// A button cannot contain another button or link.
+	const Wrapper = hasInteractiveChildren ? 'span' : 'button';
+
 	return (
-		<button
+		<Wrapper
 			className="wcstripe-tooltip__content-wrapper"
 			// on touch devices there's no mouse enter/leave, so we need to use a separate event (click/focus)
 			// this creates 2 different (desirable) states on non-touch devices: if you hover and then click, the tooltip will persist
@@ -45,7 +53,7 @@ const Tooltip = ( { isVisible, onHide = noop, ...props } ) => {
 				onHide={ handleHide }
 				isVisible={ isVisible || isHovered || isClicked }
 			/>
-		</button>
+		</Wrapper>
 	);
 };
 

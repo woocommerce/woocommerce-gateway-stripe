@@ -234,14 +234,13 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 				'is_subscription_item_in_cart',
 				'get_current_order_amount',
 				'is_inside_currency_limits',
-				'is_oc_enabled',
 			];
 
 			// Remove any methods that should not be mocked.
 			$mocked_methods = array_diff( $mocked_methods, $exclude_methods );
 
 			$mocked_payment_method = $this->getMockBuilder( $payment_method_class )
-				->setMethods( $mocked_methods )
+				->onlyMethods( $mocked_methods )
 				->getMock();
 
 			$this->mock_payment_methods[ $mocked_payment_method->get_id() ] = $mocked_payment_method;
@@ -704,7 +703,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		WC_Stripe_Helper::update_main_stripe_settings( [ 'testmode' => 'yes' ] );
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
 				->disableOriginalConstructor()
-				->setMethods(
+				->onlyMethods(
 					[
 						'get_cached_account_data',
 					]
@@ -734,6 +733,8 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	public function test_bnpl_is_unavailable_when_not_within_currency_limits() {
 		$store_currency = WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR;
 
+		// We're testing the is_inside_currency_limits() function so don't want to mock it.
+		$this->reset_payment_method_mocks( [ 'is_inside_currency_limits' ] );
 		$this->set_mock_payment_method_return_value( 'get_current_order_amount', 0.3 );
 
 		foreach ( WC_Stripe_Payment_Methods::BNPL_PAYMENT_METHODS as $payment_method_id ) {
@@ -1582,7 +1583,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		WC_Stripe_Helper::update_main_stripe_settings( [ 'testmode' => 'yes' ] );
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'get_cached_account_data' ] )
+			->onlyMethods( [ 'get_cached_account_data' ] )
 			->getMock();
 		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn(
 			[

@@ -43,10 +43,6 @@ class WC_Stripe_Agentic_Commerce_Order_Mapper_Test extends WP_UnitTestCase {
 	public function setUp(): void {
 		parent::setUp();
 
-		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Order_Mapper' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Order_Mapper class not loaded' );
-		}
-
 		$this->mapper          = new WC_Stripe_Agentic_Commerce_Order_Mapper();
 		$this->default_product = WC_Helper_Product::create_simple_product(
 			true,

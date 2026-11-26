@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Fix invalid HTML on the Stripe settings connect screen, where the live connect button was nested inside another button on sites without SSL

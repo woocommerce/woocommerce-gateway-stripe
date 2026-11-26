@@ -24,10 +24,6 @@ class WC_Stripe_Agentic_Commerce_Product_Visibility_Test extends WP_UnitTestCase
 	public function setUp(): void {
 		parent::setUp();
 
-		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Product_Visibility' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Product_Visibility class not loaded' );
-		}
-
 		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
 
 		$this->resync_count = 0;

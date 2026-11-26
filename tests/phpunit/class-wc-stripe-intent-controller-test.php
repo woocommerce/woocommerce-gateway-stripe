@@ -48,11 +48,11 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		$this->gateway         = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
 			->setConstructorArgs( [ $mock_account ] )
-			->setMethods( [ 'maybe_process_upe_redirect', 'has_subscription', 'get_upe_enabled_at_checkout_payment_method_ids' ] )
+			->onlyMethods( [ 'maybe_process_upe_redirect', 'has_subscription', 'get_upe_enabled_at_checkout_payment_method_ids' ] )
 			->getMock();
 		$this->mock_controller = $this->getMockBuilder( 'WC_Stripe_Intent_Controller' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'get_gateway' ] )
+			->onlyMethods( [ 'get_gateway' ] )
 			->getMock();
 		$this->mock_controller->expects( $this->any() )
 			->method( 'get_gateway' )
@@ -515,7 +515,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'get_cached_account_data' ] )
+			->onlyMethods( [ 'get_cached_account_data' ] )
 			->getMock();
 		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn( $account_data );
 
@@ -1609,7 +1609,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'process_order_for_confirmed_intent' ] )
+			->onlyMethods( [ 'process_order_for_confirmed_intent' ] )
 			->getMock();
 
 		$gateway->expects( $this->once() )
@@ -1618,7 +1618,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		$controller = $this->getMockBuilder( 'WC_Stripe_Intent_Controller' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'get_gateway' ] )
+			->onlyMethods( [ 'get_gateway' ] )
 			->getMock();
 
 		$controller->expects( $this->any() )
@@ -1662,7 +1662,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'process_order_for_confirmed_intent' ] )
+			->onlyMethods( [ 'process_order_for_confirmed_intent' ] )
 			->getMock();
 
 		// A mismatch is rejected before processing starts, so the gateway is never asked to process.
@@ -1671,7 +1671,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		$controller = $this->getMockBuilder( 'WC_Stripe_Intent_Controller' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'get_gateway' ] )
+			->onlyMethods( [ 'get_gateway' ] )
 			->getMock();
 
 		$controller->expects( $this->any() )
@@ -1715,7 +1715,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'process_order_for_confirmed_intent' ] )
+			->onlyMethods( [ 'process_order_for_confirmed_intent' ] )
 			->getMock();
 
 		$gateway->expects( $this->once() )
@@ -1724,7 +1724,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		$controller = $this->getMockBuilder( 'WC_Stripe_Intent_Controller' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'get_gateway' ] )
+			->onlyMethods( [ 'get_gateway' ] )
 			->getMock();
 
 		$controller->expects( $this->any() )
@@ -1771,7 +1771,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'process_order_for_confirmed_intent' ] )
+			->onlyMethods( [ 'process_order_for_confirmed_intent' ] )
 			->getMock();
 
 		$gateway->expects( $this->once() )
@@ -1830,7 +1830,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	private function build_controller_with_gateway( $gateway ) {
 		$controller = $this->getMockBuilder( 'WC_Stripe_Intent_Controller' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'get_gateway' ] )
+			->onlyMethods( [ 'get_gateway' ] )
 			->getMock();
 
 		$controller->expects( $this->any() )
@@ -1859,7 +1859,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'process_order_for_confirmed_intent' ] )
+			->onlyMethods( [ 'process_order_for_confirmed_intent' ] )
 			->getMock();
 
 		// Already settled by another request; this one must not process it again.
@@ -1917,7 +1917,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'process_order_for_confirmed_intent' ] )
+			->onlyMethods( [ 'process_order_for_confirmed_intent' ] )
 			->getMock();
 
 		$gateway->expects( $this->never() )
@@ -1962,7 +1962,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'process_order_for_confirmed_intent' ] )
+			->onlyMethods( [ 'process_order_for_confirmed_intent' ] )
 			->getMock();
 
 		$gateway->expects( $this->never() )
@@ -2022,7 +2022,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'process_order_for_confirmed_intent' ] )
+			->onlyMethods( [ 'process_order_for_confirmed_intent' ] )
 			->getMock();
 
 		// The fresh post-lock read must see the settlement and skip re-processing.
@@ -2069,7 +2069,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'process_order_for_confirmed_intent' ] )
+			->onlyMethods( [ 'process_order_for_confirmed_intent' ] )
 			->getMock();
 
 		$gateway->expects( $this->once() )
@@ -2111,7 +2111,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'process_order_for_confirmed_intent' ] )
+			->onlyMethods( [ 'process_order_for_confirmed_intent' ] )
 			->getMock();
 
 		$gateway->expects( $this->once() )
@@ -2156,7 +2156,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'process_order_for_confirmed_intent' ] )
+			->onlyMethods( [ 'process_order_for_confirmed_intent' ] )
 			->getMock();
 
 		// The charge succeeded at Stripe, but a post-charge step (e.g. saving the payment method)
@@ -2167,7 +2167,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		$controller = $this->getMockBuilder( 'WC_Stripe_Intent_Controller' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'get_gateway' ] )
+			->onlyMethods( [ 'get_gateway' ] )
 			->getMock();
 		$controller->method( 'get_gateway' )->willReturn( $gateway );
 
@@ -2312,7 +2312,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'create_token_from_setup_intent' ] )
+			->onlyMethods( [ 'create_token_from_setup_intent' ] )
 			->getMock();
 		$gateway->expects( $this->once() )
 			->method( 'create_token_from_setup_intent' )
@@ -2320,7 +2320,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		$controller = $this->getMockBuilder( 'WC_Stripe_Intent_Controller' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'get_upe_gateway' ] )
+			->onlyMethods( [ 'get_upe_gateway' ] )
 			->getMock();
 		$controller->expects( $this->any() )
 			->method( 'get_upe_gateway' )
@@ -2371,13 +2371,13 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'create_token_from_setup_intent' ] )
+			->onlyMethods( [ 'create_token_from_setup_intent' ] )
 			->getMock();
 		$gateway->method( 'create_token_from_setup_intent' )->willReturn( $token );
 
 		$controller = $this->getMockBuilder( 'WC_Stripe_Intent_Controller' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'get_upe_gateway' ] )
+			->onlyMethods( [ 'get_upe_gateway' ] )
 			->getMock();
 		$controller->method( 'get_upe_gateway' )->willReturn( $gateway );
 

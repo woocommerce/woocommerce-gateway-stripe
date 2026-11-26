@@ -1253,39 +1253,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		];
 	}
 
-	public function provide_is_wallet_payment_method(): array {
-		return [
-			'Apple Pay'  => [
-				'apple_pay',
-				false,
-			],
-			'Google Pay' => [
-				'google_pay',
-				false,
-			],
-			'Alipay'     => [
-				WC_Stripe_Payment_Methods::ALIPAY,
-				false,
-			],
-			'Klarna'     => [
-				WC_Stripe_Payment_Methods::KLARNA,
-				false,
-			],
-			'EPS'        => [
-				WC_Stripe_Payment_Methods::EPS,
-				false,
-			],
-			'WeChat'     => [
-				WC_Stripe_Payment_Methods::WECHAT_PAY,
-				true,
-			],
-			'Cash App'   => [
-				WC_Stripe_Payment_Methods::CASHAPP_PAY,
-				true,
-			],
-		];
-	}
-
 	/**
 	 * Test for `update_main_stripe_settings`, `get_stripe_settings` and `delete_main_stripe_settings`.
 	 *
