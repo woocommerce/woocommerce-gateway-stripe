@@ -220,6 +220,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 */
 	private function register_upe_payment_method_script_handles(): void {
 		$this->register_upe_payment_method_style_handle();
+		WC_Stripe_Helper::register_checkout_settings_script();
 
 		$asset = $this->get_upe_blocks_asset();
 
@@ -232,7 +233,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		wp_register_script(
 			self::BLOCKS_SCRIPT_HANDLE,
 			WC_STRIPE_PLUGIN_URL . '/build/upe-blocks.js',
-			array_merge( [ 'stripe' ], $asset['dependencies'], $express_checkout_dependencies ),
+			array_merge( [ 'stripe', 'jquery-blockui', 'wc-stripe-checkout-settings' ], $asset['dependencies'], $express_checkout_dependencies ),
 			$asset['version'],
 			true
 		);

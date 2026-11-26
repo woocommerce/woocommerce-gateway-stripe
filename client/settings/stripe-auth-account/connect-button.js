@@ -88,9 +88,12 @@ const ConnectButton = ( {
 	const button = (
 		<Button
 			variant={ buttonVariant }
-			onClick={ handleClick }
+			onClick={ isLiveModeWithoutSSL ? undefined : handleClick }
 			text={ buttonText }
-			disabled={ isLoading || disabled || isLiveModeWithoutSSL }
+			disabled={ isLoading || disabled }
+			// A disabled button cannot take focus, so keyboard users could
+			// not open the tooltip that explains why it is unavailable.
+			aria-disabled={ isLiveModeWithoutSSL || undefined }
 			isBusy={ isLoading }
 		/>
 	);
@@ -99,6 +102,7 @@ const ConnectButton = ( {
 	if ( isLiveModeWithoutSSL ) {
 		return (
 			<Tooltip
+				hasInteractiveChildren
 				content={ __(
 					'Live mode requires a valid SSL certificate. Please enable SSL on your site to connect a live Stripe account.',
 					'woocommerce-gateway-stripe'

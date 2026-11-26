@@ -489,11 +489,12 @@ class WC_Stripe_Express_Checkout_Element {
 		$asset_data = $this->get_asset_data();
 
 		WC_Stripe_Helper::register_stripe_js();
+		WC_Stripe_Helper::register_checkout_settings_script();
 
 		wp_register_script(
 			self::EXPRESS_CHECKOUT_SCRIPT_HANDLE,
 			WC_STRIPE_PLUGIN_URL . '/build/express-checkout.js',
-			array_merge( [ 'jquery', 'stripe' ], $asset_data['dependencies'] ),
+			array_merge( [ 'jquery', 'stripe', 'jquery-blockui', 'wc-stripe-checkout-settings' ], $asset_data['dependencies'] ),
 			$asset_data['version'],
 			true
 		);
@@ -593,7 +594,10 @@ class WC_Stripe_Express_Checkout_Element {
 			return $preload_resources;
 		}
 
-		if ( ! $this->express_checkout_helper->should_show_express_checkout_button() ) {
+		if (
+			! $this->express_checkout_helper->should_show_express_checkout_button()
+			|| ! $this->should_load_classic_express_checkout_script()
+		) {
 			return $preload_resources;
 		}
 
@@ -640,8 +644,9 @@ class WC_Stripe_Express_Checkout_Element {
 			$asset_data['version']
 		);
 
+		WC_Stripe_Helper::register_checkout_settings_script();
 		wp_localize_script(
-			self::EXPRESS_CHECKOUT_SCRIPT_HANDLE,
+			'wc-stripe-checkout-settings',
 			'wc_stripe_express_checkout_params',
 			/** This filter is documented in includes/class-wc-stripe-blocks-support.php. */
 			apply_filters(
@@ -650,7 +655,21 @@ class WC_Stripe_Express_Checkout_Element {
 			)
 		);
 
-		wp_enqueue_script( self::EXPRESS_CHECKOUT_SCRIPT_HANDLE );
+		wp_enqueue_script( 'wc-stripe-checkout-settings' );
+		if ( $this->should_load_classic_express_checkout_script() ) {
+			wp_enqueue_script( self::EXPRESS_CHECKOUT_SCRIPT_HANDLE );
+		}
+	}
+
+	/**
+	 * Blocks render their own express buttons, but classic forms can share the same page.
+	 *
+	 * @since x.x.x
+	 * @return bool
+	 */
+	private function should_load_classic_express_checkout_script(): bool {
+		return WC_Stripe_Helper::should_load_classic_checkout_scripts() ||
+			( ! has_block( 'woocommerce/cart' ) && ! has_block( 'woocommerce/checkout' ) );
 	}
 
 	/**
@@ -919,6 +938,8 @@ class WC_Stripe_Express_Checkout_Element {
 		if ( ! $this->express_checkout_helper->should_show_express_checkout_button() ) {
 			return;
 		}
+
+		wp_enqueue_script( 'wc_stripe_express_checkout' );
 
 		?>
 		<div id="wc-stripe-express-checkout-element" style="margin-top: 1em;clear:both;display:none;">

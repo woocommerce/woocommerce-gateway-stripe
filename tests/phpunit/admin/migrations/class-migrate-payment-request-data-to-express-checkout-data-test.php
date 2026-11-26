@@ -29,7 +29,7 @@ class Migrate_Payment_Request_Data_To_Express_Checkout_Data_Test extends WP_Unit
 					->getMock();
 		$this->migration    = $this->getMockBuilder( Migrate_Payment_Request_Data_To_Express_Checkout_Data::class )
 					->disableOriginalConstructor()
-					->setMethods( [ 'get_gateway' ] )
+					->onlyMethods( [ 'get_gateway' ] )
 					->getMock();
 	}
 

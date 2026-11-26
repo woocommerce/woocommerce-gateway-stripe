@@ -2385,7 +2385,7 @@ parameters:
 		-
 			message: '#^Cannot access property \$is_webhook_response on object\|string\.$#'
 			identifier: property.nonObject
-			count: 3
+			count: 2
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -2565,7 +2565,7 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$response of method WC_Stripe_Payment_Gateway\:\:process_response\(\) expects object, object\|string given\.$#'
 			identifier: argument.type
-			count: 3
+			count: 2
 			path: includes/class-wc-stripe-webhook-handler.php
 
 		-
@@ -2576,12 +2576,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#2 \$str of function explode expects string, array\|string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-wc-stripe-webhook-handler.php
-
-		-
-			message: '#^Parameter \#3 \$stripe_payment_method of method WC_Stripe_UPE_Payment_Gateway\:\:set_payment_method_title_for_order\(\) expects bool\|stdClass, object\|false given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/class-wc-stripe-webhook-handler.php
@@ -3056,12 +3050,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$stock_quantity of function wc_format_stock_quantity_for_display expects int, int\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php
-
-		-
-			message: '#^Parameter \#4 \$variation of method WC_Cart\:\:add_to_cart\(\) expects array, array\|string given\.$#'
 			identifier: argument.type
 			count: 1
 			path: includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php

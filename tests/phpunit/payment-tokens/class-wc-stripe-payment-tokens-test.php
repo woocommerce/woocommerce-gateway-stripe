@@ -1452,6 +1452,52 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * When OCS is enabled, only tokens the main gateway accepts at checkout may be listed under it.
+	 * Relabelling any other token sends its card to Stripe, where the payment is rejected.
+	 *
+	 * @param string $gateway_id  Gateway ID the token was saved under.
+	 * @param string $token_class Token class the gateway saved.
+	 * @return void
+	 * @dataProvider provide_test_get_account_saved_payment_methods_list_item_keeps_other_gateways_when_ocs_enabled
+	 */
+	public function test_get_account_saved_payment_methods_list_item_keeps_other_gateways_when_ocs_enabled( string $gateway_id, string $token_class ): void {
+		$this->set_main_gateway( $this->get_mock_gateway( true ) );
+
+		$token = new $token_class();
+		$token->set_gateway_id( $gateway_id );
+		$token->set_token( 'other_gateway_reference' );
+		$token->set_user_id( 1 );
+		$token->set_last4( '1111' );
+		if ( $token instanceof WC_Payment_Token_CC ) {
+			$token->set_card_type( 'visa' );
+			$token->set_expiry_month( '12' );
+			$token->set_expiry_year( '2099' );
+		}
+		$token->save();
+
+		// Load the token the way the saved methods list does, so the token class filter applies.
+		$loaded_token = WC_Payment_Tokens::get( $token->get_id() );
+		$this->assertInstanceOf( WC_Stripe_Payment_Method_Comparison_Interface::class, $loaded_token, 'The token must get past the non-Stripe token guard for this test to cover the remap.' );
+
+		$result = $this->stripe_payment_tokens->get_account_saved_payment_methods_list_item( [ 'method' => [ 'gateway' => $gateway_id ] ], $loaded_token );
+
+		$this->assertSame( $gateway_id, $result['method']['gateway'] );
+	}
+
+	/**
+	 * Data provider for {@see test_get_account_saved_payment_methods_list_item_keeps_other_gateways_when_ocs_enabled()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_account_saved_payment_methods_list_item_keeps_other_gateways_when_ocs_enabled(): array {
+		return [
+			'card saved by another gateway'                   => [ 'other_card_gateway', WC_Payment_Token_CC::class ],
+			'card saved by a gateway with a stripe ID prefix' => [ 'stripe_from_another_plugin', WC_Payment_Token_CC::class ],
+			'legacy Stripe SEPA token'                        => [ WC_Stripe_Payment_Methods::LEGACY_SEPA, WC_Payment_Token_SEPA::class ],
+		];
+	}
+
+	/**
 	 * Only card tokens carry a real expiry date, so the "Expires" cell must be blanked for
 	 * every other Stripe token rather than left with WooCommerce core's "N/A" default.
 	 * Card tokens — including Apple Pay and Google Pay, which are stored as cards — keep

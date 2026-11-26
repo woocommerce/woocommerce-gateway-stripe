@@ -71,10 +71,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 
 		parent::set_up();
 
-		if ( version_compare( WC_VERSION, '3.4.0', '<' ) ) {
-			$this->markTestSkipped( 'The controller is not compatible with older WC versions, due to the missing `update_option` method on the gateway.' );
-		}
-
 		$this->upe_helper = new UPE_Test_Helper();
 
 		// Ensure API keys are present so WC_Stripe_Payment_Method_Configurations::is_enabled()
@@ -473,7 +469,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	public function test_enum_fields( $rest_key, $option_name, $original_valid_value, $new_valid_value, $new_invalid_value, $is_upe_enabled = true ) {
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
 			->disableOriginalConstructor()
-			->setMethods(
+			->onlyMethods(
 				[
 					'get_cached_account_data',
 				]
@@ -573,7 +569,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	public function test_get_settings_returns_ordered_payment_method_ids() {
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
 													->disableOriginalConstructor()
-													->setMethods(
+													->onlyMethods(
 														[
 															'get_cached_account_data',
 															'get_account_country',

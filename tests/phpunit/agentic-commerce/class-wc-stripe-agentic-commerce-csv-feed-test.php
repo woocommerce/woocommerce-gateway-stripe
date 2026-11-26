@@ -19,16 +19,6 @@ class WC_Stripe_Agentic_Commerce_Csv_Feed_Test extends WP_UnitTestCase {
 	public function setUp(): void {
 		parent::setUp();
 
-		// Skip tests if WooCommerce FeedInterface is not available.
-		if ( ! interface_exists( 'Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedInterface' ) ) {
-			$this->markTestSkipped( 'WooCommerce FeedInterface not available (requires WooCommerce 10.5.0+)' );
-		}
-
-		// Skip tests if CSV Feed class is not loaded.
-		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Csv_Feed' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Csv_Feed class not loaded' );
-		}
-
 		// Clean up any existing test files.
 		$this->cleanup_test_files();
 	}

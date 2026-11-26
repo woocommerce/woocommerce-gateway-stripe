@@ -16,14 +16,10 @@
 class WC_Stripe_Agentic_Commerce_Product_List_Table_Test extends WP_UnitTestCase {
 
 	/**
-	 * Skip if the class isn't autoloaded; default the feature on (gate tests flip it off).
+	 * Default the feature on (gate tests flip it off).
 	 */
 	public function setUp(): void {
 		parent::setUp();
-
-		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Product_List_Table' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Product_List_Table class not loaded' );
-		}
 
 		update_option( WC_Stripe_Agentic_Commerce_Integration::ENABLED_OPTION, 'yes' );
 	}
@@ -199,10 +195,6 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table_Test extends WP_UnitTestCase
 	 * batch schedules none.
 	 */
 	public function test_handle_bulk_actions_schedules_single_resync_only_on_change(): void {
-		if ( ! function_exists( 'as_has_scheduled_action' ) || ! function_exists( 'as_enqueue_async_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		$this->login_as_shop_admin();
 		$immediate = $this->immediate_action();
 		as_unschedule_all_actions( $immediate, [], 'wc-stripe' );
@@ -288,10 +280,6 @@ class WC_Stripe_Agentic_Commerce_Product_List_Table_Test extends WP_UnitTestCase
 	 * A real quick-edit change enqueues an immediate resync; a no-op save does not.
 	 */
 	public function test_save_quick_edit_schedules_resync_only_on_real_change(): void {
-		if ( ! function_exists( 'as_has_scheduled_action' ) || ! function_exists( 'as_enqueue_async_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		$immediate = $this->immediate_action();
 		as_unschedule_all_actions( $immediate, [], 'wc-stripe' );
 

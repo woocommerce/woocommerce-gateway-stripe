@@ -66,7 +66,7 @@ class WC_Stripe_Webhook_Handler_Event_Reconciliation_Test extends WP_UnitTestCas
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
 			->setConstructorArgs( [ new WC_Stripe_Event_Reconciler( $this->store ) ] )
-			->setMethods( [ 'process_webhook' ] )
+			->onlyMethods( [ 'process_webhook' ] )
 			->getMock();
 		$handler->expects( $this->exactly( $expected_process ) )->method( 'process_webhook' );
 
@@ -105,7 +105,7 @@ class WC_Stripe_Webhook_Handler_Event_Reconciliation_Test extends WP_UnitTestCas
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
 			->setConstructorArgs( [ new WC_Stripe_Event_Reconciler( $this->store ) ] )
-			->setMethods( [ 'process_webhook' ] )
+			->onlyMethods( [ 'process_webhook' ] )
 			->getMock();
 		$handler->expects( $this->once() )->method( 'process_webhook' );
 

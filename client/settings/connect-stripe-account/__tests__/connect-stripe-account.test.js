@@ -32,6 +32,7 @@ describe( 'ConnectStripeAccount', () => {
 	beforeEach( () => {
 		jest.clearAllMocks();
 		mockGetQuery.mockReturnValue( {} );
+		setWindowLocation( 'https://localhost' );
 	} );
 
 	it( 'should show the expired-nonce error notice when the redirect marker is present', () => {
@@ -73,9 +74,6 @@ describe( 'ConnectStripeAccount', () => {
 	} );
 
 	it( 'should render both the "Create or connect an account" and "Create or connect a test account" buttons', () => {
-		// Mock SSL for this test
-		setWindowLocation( 'https://localhost' );
-
 		render( <ConnectStripeAccount /> );
 
 		expect( screen.queryByText( 'Terms of service.' ) ).toBeInTheDocument();
@@ -90,7 +88,6 @@ describe( 'ConnectStripeAccount', () => {
 	} );
 
 	it( 'should fetch OAuth URL and redirect when clicking on the "Create or connect an account" button', async () => {
-		setWindowLocation( 'https://localhost' );
 		const oauthUrl =
 			'https://connect.stripe.com/oauth/v2/authorize?response_type=code&client_id=ca_1234&scope=read_write&state=1234';
 
@@ -197,13 +194,16 @@ describe( 'ConnectStripeAccount', () => {
 		// Mock non-SSL protocol
 		setWindowLocation( 'http://localhost' );
 
-		const { container } = render( <ConnectStripeAccount /> );
+		render( <ConnectStripeAccount /> );
 
-		// The button should be rendered but disabled
+		// The button should be rendered as unavailable
 		const connectAccountButton = screen.getByText(
 			'Create or connect an account'
 		);
-		expect( connectAccountButton ).toBeDisabled();
+		expect( connectAccountButton ).toHaveAttribute(
+			'aria-disabled',
+			'true'
+		);
 
 		// Tooltip content should not be visible initially
 		expect(
@@ -212,16 +212,9 @@ describe( 'ConnectStripeAccount', () => {
 			)
 		).not.toBeInTheDocument();
 
-		// Find the tooltip wrapper button (Tooltip wraps content in a button with this class)
-		const tooltipWrapper = container.querySelector(
-			'.wcstripe-tooltip__content-wrapper'
-		);
-		expect( tooltipWrapper ).toBeInTheDocument();
-
-		// Click on the tooltip wrapper to trigger tooltip
-		await act( async () => {
-			await userEvent.click( tooltipWrapper );
-		} );
+		// Keyboard focus on the button triggers the tooltip
+		act( () => connectAccountButton.focus() );
+		expect( connectAccountButton ).toHaveFocus();
 
 		// Tooltip content should now be visible
 		await waitFor( () => {
@@ -232,7 +225,10 @@ describe( 'ConnectStripeAccount', () => {
 			).toBeInTheDocument();
 		} );
 
-		// Verify the click did not trigger OAuth flow
+		// Verify a click does not trigger OAuth flow
+		await act( async () => {
+			await userEvent.click( connectAccountButton );
+		} );
 		expect( recordEvent ).not.toHaveBeenCalledWith(
 			'wcstripe_create_or_connect_account_click',
 			{}

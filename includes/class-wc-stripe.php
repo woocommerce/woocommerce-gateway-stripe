@@ -198,8 +198,10 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-state.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-handler.php';
 
+		$webhook_handler = null;
 		if ( self::$instance === $this ) {
-			( new WC_Stripe_Webhook_Handler() )->register_hooks();
+			$webhook_handler = new WC_Stripe_Webhook_Handler();
+			$webhook_handler->register_hooks();
 			WC_Stripe_Event_Post_Store::get_instance()->init();
 			( new WC_Stripe_Event_Reconciler() )->init();
 		}
@@ -241,8 +243,16 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/connect/class-wc-stripe-connect-api.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-order-handler.php';
 
-		if ( self::$instance === $this ) {
-			( new WC_Stripe_Order_Handler() )->register_hooks();
+		if ( self::$instance === $this && $webhook_handler instanceof WC_Stripe_Webhook_Handler ) {
+			$order_handler = new WC_Stripe_Order_Handler();
+			$order_handler->register_hooks();
+
+			$order_reconciliation = new WC_Stripe_Order_Reconciliation( $order_handler, $webhook_handler );
+			$order_reconciliation->register_hooks();
+
+			if ( is_admin() && WC_Stripe_Feature_Flags::is_order_reconciliation_enabled() ) {
+				( new WC_Stripe_Order_Reconciliation_Admin( $order_reconciliation ) )->register_hooks();
+			}
 		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-payment-tokens.php';
@@ -513,6 +523,43 @@ class WC_Stripe {
 			$this->update_settings( $stripe_settings );
 			WC_Stripe_Logger::error( 'Settings synchronization eligibility will be re-checked after upgrade' );
 		}
+
+		if ( ! $is_new_install ) {
+			$this->record_plugin_updated_tracks_event( $previous_version );
+		}
+	}
+
+	/**
+	 * Records a Tracks event for a change of the installed plugin version, including downgrades.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param mixed $previous_version The previously stored `wc_stripe_version` option value.
+	 * @return void
+	 */
+	private function record_plugin_updated_tracks_event( $previous_version ): void {
+		// NB: we already check if tracking is enabled in record_direct_event_without_shopper_details(),
+		// but this early check avoids the account_id lookup when not necessary.
+		if ( ! WC_Stripe_Tracks::is_tracking_enabled() ) {
+			return;
+		}
+
+		$event_props = [
+			'previous_version' => is_string( $previous_version ) ? $previous_version : '',
+		];
+
+		$account_data = $this->account->get_cached_account_data();
+		if ( is_string( $account_data['id'] ?? null ) ) {
+			$event_props['account_id'] = $account_data['id'];
+		}
+
+		// install() runs on admin_init, which also fires for logged-out admin-ajax.php requests, so the
+		// first request after an update can be a shopper's. In this case, we don't want to record
+		// any details associated with the shopper.
+		WC_Stripe_Tracks::record_direct_event_without_shopper_details(
+			'wcstripe_plugin_updated',
+			WC_Stripe_Tracks::add_default_event_properties( $event_props )
+		);
 	}
 
 	/**
