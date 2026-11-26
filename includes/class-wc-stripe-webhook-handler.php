@@ -2744,7 +2744,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param string      $api_version      API version of the webhook event, if any.
 	 * @param object|null $intent           The session's PaymentIntent, when the caller already fetched it.
 	 * @param object|null $charge           The intent's latest charge, when the caller already fetched it.
-	 * @return bool False when the PaymentIntent has no charge yet, so the caller can retry later; true otherwise.
+	 * @return bool False when the PaymentIntent can't be fetched or has no charge yet, so the caller can retry later; true otherwise.
 	 */
 	public function process_checkout_session_payment( WC_Order $order, object $checkout_session, string $api_version = '', ?object $intent = null, ?object $charge = null ): bool {
 		$session_id   = $checkout_session->id;
@@ -2844,9 +2844,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$intent = $intent ?? $this->get_intent_from_order( $order );
 
+		// A failed lookup is usually transient (for example a rate limit), so let the caller retry it.
 		if ( ! $intent ) {
 			WC_Stripe_Logger::error( 'Could not find intent for order: ' . $order->get_id() );
-			return true;
+			$order->save();
+			return false;
 		}
 
 		$payment_method    = $intent->payment_method;
@@ -2933,13 +2935,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Re-queues a Checkout Session event until its PaymentIntent has a charge, up to a limit.
+	 * Re-queues a Checkout Session event until its PaymentIntent can be fetched and has a charge, up to a limit.
 	 *
 	 * @param object   $notification       The Checkout Session event.
 	 * @param string   $session_id         ID of the Checkout Session.
 	 * @param WC_Order $order              Order linked to the session.
 	 * @param int      $retry_count        Order lookup retries used so far, carried over to the retry.
-	 * @param int      $charge_retry_count Missing-charge retries used so far.
+	 * @param int      $charge_retry_count Missing intent or charge retries used so far.
 	 * @return bool True when the event was re-queued, false when the retries ran out.
 	 */
 	private function defer_checkout_session_until_charge( object $notification, string $session_id, WC_Order $order, int $retry_count, int $charge_retry_count ): bool {
@@ -2950,10 +2952,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			'charge_retry_count' => $charge_retry_count,
 		];
 
-		WC_Stripe_Logger::info( 'Checkout session settlement deferred: no charge on PaymentIntent yet.', $log_context );
+		WC_Stripe_Logger::info( 'Checkout session settlement deferred: PaymentIntent could not be fetched or has no charge yet.', $log_context );
 
 		if ( $charge_retry_count >= self::CHECKOUT_SESSION_CHARGE_FETCH_MAX_RETRIES ) {
-			WC_Stripe_Logger::error( 'Checkout session settlement skipped: PaymentIntent still has no charge after retries.', $log_context );
+			WC_Stripe_Logger::error( 'Checkout session settlement skipped: PaymentIntent still could not be fetched or has no charge after retries.', $log_context );
 			return false;
 		}
 

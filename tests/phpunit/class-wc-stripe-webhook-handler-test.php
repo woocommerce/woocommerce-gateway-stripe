@@ -1874,17 +1874,18 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * When a completed Checkout Session's PaymentIntent has no charge yet, settlement must defer
-	 * instead of fataling on `$charge->is_webhook_response = true`, and must leave the
-	 * save-payment-method flag in place so the retry can save the SEPA mandate from the charge.
+	 * When a completed Checkout Session's PaymentIntent can't be fetched or has no charge yet, settlement
+	 * must defer instead of fataling on `$charge->is_webhook_response = true` or giving up, and must leave
+	 * the save-payment-method flag in place so the retry can save the SEPA mandate from the charge.
 	 *
 	 * @dataProvider provide_missing_charge_values
 	 *
 	 * @param mixed $missing_charge What get_latest_charge_from_intent() returns when there is no charge.
+	 * @param bool  $intent_found   Whether get_intent_from_order() finds the PaymentIntent.
 	 * @return void
 	 */
-	public function test_handle_checkout_session_success_defers_when_charge_missing( $missing_charge ): void {
-		$checkout_session_id = 'cs_test_missing_charge_' . gettype( $missing_charge );
+	public function test_handle_checkout_session_success_defers_when_charge_missing( $missing_charge, bool $intent_found = true ): void {
+		$checkout_session_id = 'cs_test_missing_charge_' . gettype( $missing_charge ) . ( $intent_found ? '' : '_no_intent' );
 		$intent_id           = 'pi_test_missing_charge';
 		$order_helper        = WC_Stripe_Order_Helper::get_instance();
 
@@ -1952,19 +1953,18 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			->onlyMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
 			->getMock();
 
-		$handler->method( 'get_intent_from_order' )
-			->willReturn(
-				(object) array_merge(
-					self::MOCK_PAYMENT_INTENT,
-					[
-						'id'             => $intent_id,
-						'payment_method' => (object) [
-							'id'   => 'pm_test_ideal',
-							'type' => WC_Stripe_Payment_Methods::IDEAL,
-						],
-					]
-				)
-			);
+		$intent = (object) array_merge(
+			self::MOCK_PAYMENT_INTENT,
+			[
+				'id'             => $intent_id,
+				'payment_method' => (object) [
+					'id'   => 'pm_test_ideal',
+					'type' => WC_Stripe_Payment_Methods::IDEAL,
+				],
+			]
+		);
+		// get_intent_from_order() returns false when Stripe answers the lookup with an error.
+		$handler->method( 'get_intent_from_order' )->willReturn( $intent_found ? $intent : false );
 		$handler->method( 'get_latest_charge_from_intent' )->willReturn( $missing_charge );
 		$handler->expects( $this->never() )->method( 'process_response' );
 
@@ -1991,12 +1991,13 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 * `get_latest_charge_from_intent()` returns null when the intent has no charge, and an empty
 	 * string when `get_charge_object()` is given an empty charge ID.
 	 *
-	 * @return array<string, array{0: mixed}>
+	 * @return array<string, array{0: mixed, 1?: bool}>
 	 */
 	public function provide_missing_charge_values(): array {
 		return [
-			'null charge'         => [ null ],
-			'empty string charge' => [ '' ],
+			'null charge'          => [ null ],
+			'empty string charge'  => [ '' ],
+			'intent lookup failed' => [ null, false ],
 		];
 	}
 
