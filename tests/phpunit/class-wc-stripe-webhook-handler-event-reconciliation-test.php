@@ -202,9 +202,10 @@ class WC_Stripe_Webhook_Handler_Event_Reconciliation_Test extends WP_UnitTestCas
 
 		return [
 			'order deleted'                        => [ null, 'unreachable', Exception::class, $abandoned, false ],
-			'Stripe unreachable'                   => [ OrderStatus::PENDING, 'unreachable', WC_Stripe_Exception::class, $processing, true ],
+			// An unreachable Stripe leaves the outcome unknown, which the API reports with this subclass.
+			'Stripe unreachable'                   => [ OrderStatus::PENDING, 'unreachable', WC_Stripe_Inconclusive_Request_Exception::class, $processing, true ],
 			'Stripe rate limited'                  => [ OrderStatus::PENDING, 'rate_limited', WC_Stripe_Exception::class, $processing, true ],
-			'cancelled order, Stripe unreachable'  => [ OrderStatus::CANCELLED, 'unreachable', WC_Stripe_Exception::class, $processing, true ],
+			'cancelled order, Stripe unreachable'  => [ OrderStatus::CANCELLED, 'unreachable', WC_Stripe_Inconclusive_Request_Exception::class, $processing, true ],
 			'cancelled order, Stripe rate limited' => [ OrderStatus::CANCELLED, 'rate_limited', WC_Stripe_Exception::class, $processing, true ],
 		];
 	}

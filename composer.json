@@ -50,6 +50,7 @@
         "includes/class-wc-stripe-event-reconciler.php",
         "includes/class-wc-stripe-event-record.php",
         "includes/class-wc-stripe-exception.php",
+        "includes/class-wc-stripe-inconclusive-request-exception.php",
         "includes/class-wc-stripe-hook-manager.php",
         "includes/class-wc-stripe-option-lock.php",
         "includes/class-wc-stripe-order-reconciliation.php",

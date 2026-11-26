@@ -25,6 +25,68 @@ class WC_Stripe_API {
 	public const INVALID_API_KEY_ERROR_COUNT_CACHE_KEY = 'invalid_api_key_error_count';
 
 	/**
+	 * Seconds a request to Stripe may take before it is abandoned.
+	 *
+	 * @since x.x.x
+	 * @var int
+	 */
+	public const REQUEST_TIMEOUT = 70;
+
+	/**
+	 * Whether a POST request whose outcome is unknown is sent once more, set by with_inconclusive_request_resend().
+	 *
+	 * @var bool
+	 */
+	private static $resend_inconclusive_requests = false;
+
+	/**
+	 * Unix timestamp a resend must be able to finish by, set by with_inconclusive_request_resend(). 0 means no limit.
+	 *
+	 * @var int
+	 */
+	private static $resend_deadline = 0;
+
+	/**
+	 * Runs the callback with inconclusive POST requests sent once more, with the same idempotency key.
+	 *
+	 * A request that times out, gets an empty body, or gets a 5xx that Stripe's API did not write may
+	 * still have been carried out by Stripe. Sending the identical request with the same idempotency
+	 * key makes Stripe return the stored outcome, or run it for the first time, so it is never carried
+	 * out twice. A 5xx carrying a Stripe error body is not resent: Stripe stores that answer under the
+	 * key and would only return it again. A resend can take up to another REQUEST_TIMEOUT, so with a
+	 * deadline it is sent only when it can finish by then; otherwise the request stays inconclusive.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param callable $callback Code whose Stripe requests may be resent.
+	 * @param int      $deadline Unix timestamp every resend must be able to finish by. 0 means no limit.
+	 * @return mixed The callback's return value.
+	 */
+	public static function with_inconclusive_request_resend( callable $callback, int $deadline = 0 ) {
+		$previous_resend                    = self::$resend_inconclusive_requests;
+		$previous_deadline                  = self::$resend_deadline;
+		self::$resend_inconclusive_requests = true;
+		self::$resend_deadline              = $deadline;
+
+		try {
+			return $callback();
+		} finally {
+			self::$resend_inconclusive_requests = $previous_resend;
+			self::$resend_deadline              = $previous_deadline;
+		}
+	}
+
+	/**
+	 * Whether a resend started now could finish by the deadline set by with_inconclusive_request_resend().
+	 *
+	 * @return bool
+	 * @phpstan-impure Checks the current time.
+	 */
+	private static function has_time_for_resend(): bool {
+		return 0 === self::$resend_deadline || time() + self::REQUEST_TIMEOUT <= self::$resend_deadline;
+	}
+
+	/**
 	 * The invalid API key error count cache timeout.
 	 * This is the delay in seconds enforced for Stripe API calls after the consecutive error count threshold is reached.
 	 *
@@ -205,6 +267,35 @@ class WC_Stripe_API {
 	}
 
 	/**
+	 * Whether resending an inconclusive response with the same idempotency key can learn its outcome.
+	 *
+	 * Stripe stores the answer to a keyed request, 5xx included, and replays it for the same key.
+	 * A 5xx with a Stripe error body is such a stored answer, so only a transport failure, an empty
+	 * body or a 5xx from in front of the API (with no Stripe error body) is worth resending.
+	 *
+	 * @param array|WP_Error $response The raw response.
+	 * @return bool
+	 */
+	private static function is_resendable_response( $response ): bool {
+		if ( is_wp_error( $response ) ) {
+			return true;
+		}
+
+		$body = wp_remote_retrieve_body( $response );
+		if ( empty( $body ) ) {
+			return true;
+		}
+
+		if ( ! WC_Stripe_API_Outage_Status::is_outage_response( $response ) ) {
+			return false;
+		}
+
+		$decoded = json_decode( $body );
+
+		return ! ( is_object( $decoded ) && isset( $decoded->error ) );
+	}
+
+	/**
 	 * Generates the idempotency key for the request.
 	 *
 	 * @param string $api The API endpoint.
@@ -296,15 +387,29 @@ class WC_Stripe_API {
 		// Use wp_remote_post() instead of wp_safe_remote_post() as we have a hard-coded URL
 		// and the safe version fails when there are DNS resolution issues.
 		// See https://github.com/woocommerce/woocommerce-gateway-stripe/issues/4801
-		$response = wp_remote_post(
-			self::ENDPOINT . $api,
-			[
-				'method'  => $method,
-				'headers' => $headers,
-				'body'    => $request,
-				'timeout' => 70,
-			]
-		);
+		$request_args = [
+			'method'  => $method,
+			'headers' => $headers,
+			'body'    => $request,
+			'timeout' => self::REQUEST_TIMEOUT,
+		];
+		$response     = wp_remote_post( self::ENDPOINT . $api, $request_args );
+
+		// The identical body and idempotency key make Stripe return the first request's outcome if it ran.
+		if ( self::$resend_inconclusive_requests && 'POST' === $method && $idempotency_key && self::is_resendable_response( $response ) && self::has_time_for_resend() ) {
+			WC_Stripe_Logger::info( "Stripe API request {$method} {$api} ended without a known outcome; sending it once more with the same idempotency key." );
+			$response = wp_remote_post( self::ENDPOINT . $api, $request_args );
+
+			// Stripe is still working on the first request, so its outcome is still unknown. Returning
+			// this as an ordinary error would let the caller retry with a new key and do the work twice.
+			$resent_error = json_decode( (string) wp_remote_retrieve_body( $response ) );
+			if ( 409 === (int) wp_remote_retrieve_response_code( $response ) && 'idempotency_key_in_use' === ( $resent_error->error->code ?? '' ) ) {
+				throw new WC_Stripe_Inconclusive_Request_Exception(
+					print_r( $response, true ), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+					__( 'The Stripe API is still processing this request. Please try again in a few minutes.', 'woocommerce-gateway-stripe' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+				);
+			}
+		}
 
 		$response_headers = wp_remote_retrieve_headers( $response );
 
@@ -318,7 +423,7 @@ class WC_Stripe_API {
 			];
 			self::log_error_response( $response, $api, $method, $error_data );
 
-			throw new WC_Stripe_Exception(
+			throw new WC_Stripe_Inconclusive_Request_Exception(
 				print_r( $response, true ), // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 				__( 'The Stripe API is temporarily unavailable. Please try again in a few minutes.', 'woocommerce-gateway-stripe' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			);
@@ -335,7 +440,7 @@ class WC_Stripe_API {
 			];
 			self::log_error_response( $response, $api, $method, $error_data );
 
-			throw new WC_Stripe_Exception( print_r( $response, true ), __( 'There was a problem sending a request to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			throw new WC_Stripe_Inconclusive_Request_Exception( print_r( $response, true ), __( 'There was a problem sending a request to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		$response_body = json_decode( $response_body_raw );
@@ -401,7 +506,7 @@ class WC_Stripe_API {
 			[
 				'method'  => 'GET',
 				'headers' => self::get_headers(),
-				'timeout' => 70,
+				'timeout' => self::REQUEST_TIMEOUT,
 			]
 		);
 
