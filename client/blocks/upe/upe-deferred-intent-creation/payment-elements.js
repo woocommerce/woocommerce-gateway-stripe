@@ -220,6 +220,7 @@ const PaymentElements = ( {
 	// Non-deferred methods (BLIK, ACSS) can't render in the Checkout Session
 	// element, so their own entry keeps the standard flow, as in classic checkout.
 	const isAdaptivePricingSupported =
+		! stripeServerData?.isAdmin &&
 		stripeServerData?.isAdaptivePricingEnabled &&
 		supportsDeferredIntent &&
 		stripeSupportsInitCheckout;
