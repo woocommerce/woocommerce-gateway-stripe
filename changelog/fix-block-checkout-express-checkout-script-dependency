@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Improve express checkout performance for block cart and checkout, and fix editor styles for block cart and checkout

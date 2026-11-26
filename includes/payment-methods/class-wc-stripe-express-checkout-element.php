@@ -18,6 +18,13 @@ use Automattic\WooCommerce\Blocks\Domain\Services\CheckoutFields;
  */
 class WC_Stripe_Express_Checkout_Element {
 	/**
+	 * The handle for the express checkout script.
+	 *
+	 * @var string
+	 */
+	protected const EXPRESS_CHECKOUT_SCRIPT_HANDLE = 'wc_stripe_express_checkout';
+
+	/**
 	 * Stripe settings.
 	 *
 	 * @var array
@@ -140,6 +147,17 @@ class WC_Stripe_Express_Checkout_Element {
 	 */
 	public static function instance() {
 		return self::$_this;
+	}
+
+	/**
+	 * Get the handle for the express checkout script.
+	 *
+	 * @since x.x.x
+	 *
+	 * @return string
+	 */
+	public static function get_express_checkout_script_handle(): string {
+		return self::EXPRESS_CHECKOUT_SCRIPT_HANDLE;
 	}
 
 	/**
@@ -296,9 +314,7 @@ class WC_Stripe_Express_Checkout_Element {
 	 */
 	public function localize_pay_for_order_page_scripts( $order ) {
 		// Ensure the script is registered before localizing
-		if ( ! wp_script_is( 'wc_stripe_express_checkout', 'registered' ) ) {
-			$this->register_express_checkout_script();
-		}
+		$this->register_express_checkout_script();
 
 		try {
 			$data = $this->get_pay_for_order_params( $order );
@@ -308,7 +324,11 @@ class WC_Stripe_Express_Checkout_Element {
 			return;
 		}
 
-		wp_localize_script( 'wc_stripe_express_checkout', 'wcStripeExpressCheckoutPayForOrderParams', $data );
+		wp_localize_script(
+			self::EXPRESS_CHECKOUT_SCRIPT_HANDLE,
+			'wcStripeExpressCheckoutPayForOrderParams',
+			$data
+		);
 	}
 
 	/**
@@ -457,15 +477,22 @@ class WC_Stripe_Express_Checkout_Element {
 	/**
 	 * Register the express checkout script without enqueuing it.
 	 *
+	 * @since x.x.x
+	 *
 	 * @return void
 	 */
-	private function register_express_checkout_script() {
+	public function register_express_checkout_script(): void {
+		if ( wp_script_is( self::EXPRESS_CHECKOUT_SCRIPT_HANDLE, 'registered' ) ) {
+			return;
+		}
+
 		$asset_data = $this->get_asset_data();
 
 		WC_Stripe_Helper::register_stripe_js();
 		WC_Stripe_Helper::register_checkout_settings_script();
+
 		wp_register_script(
-			'wc_stripe_express_checkout',
+			self::EXPRESS_CHECKOUT_SCRIPT_HANDLE,
 			WC_STRIPE_PLUGIN_URL . '/build/express-checkout.js',
 			array_merge( [ 'jquery', 'stripe', 'jquery-blockui', 'wc-stripe-checkout-settings' ], $asset_data['dependencies'] ),
 			$asset_data['version'],
@@ -507,6 +534,11 @@ class WC_Stripe_Express_Checkout_Element {
 	 */
 	public function add_resource_hints( $urls, $relation_type ) {
 		if ( 'preconnect' !== $relation_type ) {
+			return $urls;
+		}
+
+		// Skip preconnect resources in the admin.
+		if ( is_admin() ) {
 			return $urls;
 		}
 
@@ -553,6 +585,11 @@ class WC_Stripe_Express_Checkout_Element {
 	 * @return array
 	 */
 	public function add_preload_resources( $preload_resources ) {
+		// Skip preload resources in the admin.
+		if ( is_admin() ) {
+			return $preload_resources;
+		}
+
 		if ( ! $this->express_checkout_helper->is_page_supported() ) {
 			return $preload_resources;
 		}
@@ -596,9 +633,7 @@ class WC_Stripe_Express_Checkout_Element {
 		}
 
 		// Register the script if not already registered
-		if ( ! wp_script_is( 'wc_stripe_express_checkout', 'registered' ) ) {
-			$this->register_express_checkout_script();
-		}
+		$this->register_express_checkout_script();
 
 		$asset_data = $this->get_asset_data();
 
@@ -622,7 +657,7 @@ class WC_Stripe_Express_Checkout_Element {
 
 		wp_enqueue_script( 'wc-stripe-checkout-settings' );
 		if ( $this->should_load_classic_express_checkout_script() ) {
-			wp_enqueue_script( 'wc_stripe_express_checkout' );
+			wp_enqueue_script( self::EXPRESS_CHECKOUT_SCRIPT_HANDLE );
 		}
 	}
 

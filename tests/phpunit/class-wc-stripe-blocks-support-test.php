@@ -27,6 +27,34 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 	private $initialized_blocks_support = [];
 
 	/**
+	 * Whether a test replaced the current screen.
+	 *
+	 * @var bool
+	 */
+	private $replaced_current_screen = false;
+
+	/**
+	 * The current screen before a test switched into an admin context.
+	 *
+	 * @var WP_Screen|null
+	 */
+	private $original_current_screen = null;
+
+	/**
+	 * Whether a test replaced the global post.
+	 *
+	 * @var bool
+	 */
+	private $replaced_global_post = false;
+
+	/**
+	 * The global post before a test replaced it.
+	 *
+	 * @var WP_Post|null
+	 */
+	private $original_global_post = null;
+
+	/**
 	 * Replaces the gateway returned by WC_Stripe::get_main_stripe_gateway() with the given instance.
 	 *
 	 * The property is protected and memoized, so we inject through reflection and restore it in
@@ -60,12 +88,30 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 
 		remove_filter( 'woocommerce_available_payment_gateways', '__return_empty_array', 100 );
 
+		if ( $this->replaced_current_screen ) {
+			$GLOBALS['current_screen']     = $this->original_current_screen;
+			$this->original_current_screen = null;
+			$this->replaced_current_screen = false;
+		}
+
+		if ( $this->replaced_global_post ) {
+			$GLOBALS['post']            = $this->original_global_post;
+			$this->original_global_post = null;
+			$this->replaced_global_post = false;
+		}
+
 		// WP_Scripts and WP_Styles are globals shared across the suite.
 		// Ensure that we clean up after each test.
 		wp_dequeue_style( $this->get_block_style_handle() );
 		wp_deregister_style( $this->get_block_style_handle() );
 
-		foreach ( array_merge( [ $this->get_block_script_handle(), 'stripe', 'wc-stripe-checkout-settings' ], $this->registered_test_scripts ) as $handle ) {
+		$script_handles = [
+			$this->get_block_script_handle(),
+			'stripe',
+			'wc-stripe-checkout-settings',
+			WC_Stripe_Express_Checkout_Element::get_express_checkout_script_handle(),
+		];
+		foreach ( array_merge( $script_handles, $this->registered_test_scripts ) as $handle ) {
 			wp_dequeue_script( $handle );
 			wp_deregister_script( $handle );
 		}
@@ -80,6 +126,7 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 			remove_filter( 'render_block_woocommerce/checkout', [ $blocks_support, 'maybe_enqueue_blocks_style' ] );
 			remove_filter( 'render_block_woocommerce/cart', [ $blocks_support, 'maybe_enqueue_blocks_style' ] );
 			remove_action( 'enqueue_block_editor_assets', [ $blocks_support, 'maybe_enqueue_blocks_style_for_editor' ], 20 );
+			remove_action( 'enqueue_block_assets', [ $blocks_support, 'maybe_enqueue_blocks_style_for_editor' ], 20 );
 		}
 		$this->initialized_blocks_support = [];
 
@@ -111,6 +158,105 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 		$this->initialized_blocks_support[] = $blocks_support;
 
 		return $blocks_support;
+	}
+
+	/**
+	 * Builds an Express Checkout helper whose page/visibility guards return fixed values.
+	 *
+	 * @param bool $page_supported                      Return value for is_page_supported().
+	 * @param bool $should_show_express_checkout_button Return value for should_show_express_checkout_button().
+	 *
+	 * @return WC_Stripe_Express_Checkout_Helper
+	 */
+	private function create_express_checkout_helper( bool $page_supported, bool $should_show_express_checkout_button ): WC_Stripe_Express_Checkout_Helper {
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'is_page_supported', 'should_show_express_checkout_button' ] )
+			->getMock();
+
+		$helper->method( 'is_page_supported' )
+			->willReturn( $page_supported );
+		$helper->method( 'should_show_express_checkout_button' )
+			->willReturn( $should_show_express_checkout_button );
+
+		return $helper;
+	}
+
+	/**
+	 * Builds an Express Checkout element around the given helper. scripts() and javascript_params()
+	 * are stubbed so tests can observe the enqueue without building the full ECE config.
+	 *
+	 * @param WC_Stripe_Express_Checkout_Helper $helper The helper to attach.
+	 *
+	 * @return WC_Stripe_Express_Checkout_Element&\PHPUnit\Framework\MockObject\MockObject
+	 */
+	private function create_express_checkout_element( WC_Stripe_Express_Checkout_Helper $helper ) {
+		$element = $this->getMockBuilder( WC_Stripe_Express_Checkout_Element::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'scripts', 'javascript_params' ] )
+			->getMock();
+		$element->method( 'javascript_params' )->willReturn( [] );
+		$element->express_checkout_helper = $helper;
+
+		return $element;
+	}
+
+	/**
+	 * Sets up the conditions maybe_enqueue_blocks_style_for_editor() checks for.
+	 *
+	 * @param WC_Stripe_Blocks_Support $blocks_support The instance under test.
+	 * @param string                   $screen         One of 'front-end', 'classic-editor', 'block-editor' or 'site-editor'.
+	 * @param bool                     $is_enabled     Whether Stripe is enabled.
+	 * @param bool                     $has_checkout   Whether the current post contains the Checkout block.
+	 *
+	 * @return void
+	 */
+	private function set_up_editor_context( WC_Stripe_Blocks_Support $blocks_support, string $screen, bool $is_enabled, bool $has_checkout ): void {
+		$this->replaced_current_screen = true;
+		$this->original_current_screen = $GLOBALS['current_screen'] ?? null;
+
+		switch ( $screen ) {
+			case 'front-end':
+				// is_admin() falls back to WP_ADMIN, which is undefined under PHPUnit, when there's no screen.
+				$current_screen = null;
+				break;
+			case 'classic-editor':
+				$current_screen = WP_Screen::get( 'page' );
+				$current_screen->is_block_editor( false );
+				break;
+			case 'block-editor':
+				$current_screen = WP_Screen::get( 'page' );
+				$current_screen->is_block_editor( true );
+				break;
+			case 'site-editor':
+				$current_screen = WP_Screen::get( 'site-editor' );
+				$current_screen->is_block_editor( true );
+				break;
+			default:
+				$this->fail( "Unknown editor screen: {$screen}" );
+		}
+		$GLOBALS['current_screen'] = $current_screen;
+
+		$settings = new ReflectionProperty( WC_Stripe_Blocks_Support::class, 'settings' );
+		$settings->setAccessible( true );
+		$settings->setValue( $blocks_support, [ 'enabled' => $is_enabled ? 'yes' : 'no' ] );
+
+		// OC short-circuits is_active() to true, so the per-method availability checks don't need stubbing.
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'should_render_optimized_checkout' ] )
+			->getMock();
+		$gateway->method( 'should_render_optimized_checkout' )->willReturn( true );
+		$this->set_main_stripe_gateway( $gateway );
+
+		$this->replaced_global_post = true;
+		$this->original_global_post = $GLOBALS['post'] ?? null;
+		$GLOBALS['post']            = self::factory()->post->create_and_get(
+			[
+				'post_type'    => 'page',
+				'post_content' => $has_checkout ? '<!-- wp:woocommerce/checkout /-->' : '<!-- wp:paragraph --><p>Hello</p><!-- /wp:paragraph -->',
+			]
+		);
 	}
 
 	/**
@@ -306,16 +452,209 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 		$this->assertFalse( wp_style_is( $this->get_block_style_handle(), 'enqueued' ) );
 	}
 
-	public function test_maybe_enqueue_blocks_style_for_editor_enqueues_when_editor_script_is_enqueued(): void {
-		$blocks_support = new WC_Stripe_Blocks_Support();
-		$blocks_support->get_payment_method_script_handles();
+	/**
+	 * The editor callback runs on every admin screen (and on enqueue_block_assets, which also fires
+	 * on the front end), so it must only enqueue for an active gateway in the site editor, or in the
+	 * block editor with a Cart/Checkout block in the page.
+	 *
+	 * @dataProvider provider_editor_contexts
+	 *
+	 * @param string $screen            The screen to simulate; see set_up_editor_context().
+	 * @param bool   $is_enabled        Whether Stripe is enabled.
+	 * @param bool   $has_checkout      Whether the edited post contains the Checkout block.
+	 * @param bool   $expected_enqueued Whether the block stylesheet should end up enqueued.
+	 *
+	 * @return void
+	 */
+	public function test_maybe_enqueue_blocks_style_for_editor_requires_editor_screen_and_active_gateway( string $screen, bool $is_enabled, bool $has_checkout, bool $expected_enqueued ): void {
+		$element        = $this->create_express_checkout_element(
+			$this->create_express_checkout_helper( false, false )
+		);
+		$blocks_support = new WC_Stripe_Blocks_Support( null, $element );
+		$this->set_up_editor_context( $blocks_support, $screen, $is_enabled, $has_checkout );
 
-		$this->register_test_script( 'wc-checkout-block', [ $this->get_block_script_handle() ] );
-		wp_enqueue_script( 'wc-checkout-block' );
+		$blocks_support->maybe_enqueue_blocks_style_for_editor();
+
+		$this->assertSame( $expected_enqueued, wp_style_is( $this->get_block_style_handle(), 'enqueued' ) );
+	}
+
+	/**
+	 * Data provider for {@see test_maybe_enqueue_blocks_style_for_editor_requires_editor_screen_and_active_gateway()}.
+	 *
+	 * @return array[]
+	 */
+	public function provider_editor_contexts(): array {
+		return [
+			'block editor, checkout page'                 => [ 'block-editor', true, true, true ],
+			'block editor, page without cart or checkout' => [ 'block-editor', true, false, false ],
+			'block editor, gateway disabled'              => [ 'block-editor', false, true, false ],
+			'classic editor, checkout page'               => [ 'classic-editor', true, true, false ],
+			'site editor'                                 => [ 'site-editor', true, false, true ],
+			'site editor, gateway disabled'               => [ 'site-editor', false, false, false ],
+			'front end, checkout page'                    => [ 'front-end', true, true, false ],
+		];
+	}
+
+	/**
+	 * The editor no longer depends on the blocks script being enqueued first: in the iframed editor
+	 * the style must be enqueued from enqueue_block_assets, before WooCommerce wires up its scripts.
+	 *
+	 * @return void
+	 */
+	public function test_maybe_enqueue_blocks_style_for_editor_does_not_require_enqueued_script(): void {
+		$element        = $this->create_express_checkout_element(
+			$this->create_express_checkout_helper( false, false )
+		);
+		$blocks_support = new WC_Stripe_Blocks_Support( null, $element );
+		$this->set_up_editor_context( $blocks_support, 'block-editor', true, true );
+
+		$this->assertFalse( wp_script_is( $this->get_block_script_handle(), 'enqueued' ) );
 
 		$blocks_support->maybe_enqueue_blocks_style_for_editor();
 
 		$this->assertTrue( wp_style_is( $this->get_block_style_handle(), 'enqueued' ) );
+	}
+
+	/**
+	 * The editor callback is hooked to both enqueue_block_editor_assets and enqueue_block_assets,
+	 * so the Express Checkout scripts must be loaded once - and only when ECE will render.
+	 *
+	 * @dataProvider provider_express_checkout_guards
+	 *
+	 * @param bool $page_supported Return value for is_page_supported().
+	 * @param bool $should_show    Return value for should_show_express_checkout_button().
+	 * @param bool $expected       Whether Express Checkout is expected to be active.
+	 *
+	 * @return void
+	 */
+	public function test_maybe_enqueue_blocks_style_for_editor_loads_express_checkout_scripts_once_when_active( bool $page_supported, bool $should_show, bool $expected ): void {
+		$element = $this->create_express_checkout_element(
+			$this->create_express_checkout_helper( $page_supported, $should_show )
+		);
+		$element->expects( $expected ? $this->once() : $this->never() )->method( 'scripts' );
+
+		$blocks_support = new WC_Stripe_Blocks_Support( null, $element );
+		$this->set_up_editor_context( $blocks_support, 'block-editor', true, true );
+
+		$blocks_support->maybe_enqueue_blocks_style_for_editor();
+		$blocks_support->maybe_enqueue_blocks_style_for_editor();
+
+		$this->assertTrue( wp_style_is( $this->get_block_style_handle(), 'enqueued' ) );
+	}
+
+	/**
+	 * On the front end the Express Checkout scripts are already loaded via WC_Stripe_Express_Checkout_Element. The
+	 * blocks logic must not rebuild and re-localize their params.
+	 *
+	 * @dataProvider provider_express_checkout_guards
+	 *
+	 * @param bool $page_supported  Return value for is_page_supported().
+	 * @param bool $should_show_ece Return value for should_show_express_checkout_button().
+	 *
+	 * @return void
+	 */
+	public function test_maybe_enqueue_blocks_style_does_not_load_express_checkout_scripts_on_front_end( bool $page_supported, bool $should_show_ece ): void {
+		$element = $this->create_express_checkout_element(
+			$this->create_express_checkout_helper( $page_supported, $should_show_ece )
+		);
+		$element->expects( $this->never() )
+			->method( 'scripts' );
+
+		$blocks_support = new WC_Stripe_Blocks_Support( null, $element );
+		$blocks_support->get_payment_method_script_handles();
+		wp_enqueue_script( $this->get_block_script_handle() );
+
+		$blocks_support->maybe_enqueue_blocks_style( '' );
+		$blocks_support->maybe_enqueue_blocks_style( '' );
+
+		$this->assertTrue( wp_style_is( $this->get_block_style_handle(), 'enqueued' ) );
+	}
+
+	/**
+	 * The blocks script must depend on the Express Checkout script whenever ECE will render, so
+	 * the shared settings it localizes are available before the blocks integration runs.
+	 *
+	 * @dataProvider provider_express_checkout_guards
+	 *
+	 * @param bool $page_supported Return value for is_page_supported().
+	 * @param bool $should_show    Return value for should_show_express_checkout_button().
+	 * @param bool $expected       Whether the Express Checkout dependency is expected.
+	 *
+	 * @return void
+	 */
+	public function test_blocks_script_depends_on_express_checkout_script_when_active( bool $page_supported, bool $should_show, bool $expected ): void {
+		$element        = $this->create_express_checkout_element(
+			$this->create_express_checkout_helper( $page_supported, $should_show )
+		);
+		$blocks_support = new WC_Stripe_Blocks_Support( null, $element );
+
+		$blocks_support->get_payment_method_script_handles();
+
+		$deps = wp_scripts()->registered[ $this->get_block_script_handle() ]->deps;
+		$this->assertContains( 'stripe', $deps );
+		if ( $expected ) {
+			$this->assertContains( WC_Stripe_Express_Checkout_Element::get_express_checkout_script_handle(), $deps );
+		} else {
+			$this->assertNotContains( WC_Stripe_Express_Checkout_Element::get_express_checkout_script_handle(), $deps );
+		}
+	}
+
+	/**
+	 * The blocks config must use the same notion of "active" as the script dependency, so the
+	 * frontend never tries to render ECE on a page where its script was not loaded.
+	 *
+	 * @dataProvider provider_express_checkout_guards
+	 *
+	 * @param bool $page_supported  Return value for is_page_supported().
+	 * @param bool $should_show_ece Return value for should_show_express_checkout_button().
+	 * @param bool $expected        Expected shouldShowExpressCheckoutButton value.
+	 *
+	 * @return void
+	 */
+	public function test_get_payment_method_data_reports_express_checkout_active_state( bool $page_supported, bool $should_show_ece, bool $expected ): void {
+		$element        = $this->create_express_checkout_element(
+			$this->create_express_checkout_helper( $page_supported, $should_show_ece )
+		);
+		$blocks_support = new WC_Stripe_Blocks_Support( null, $element );
+
+		$data = $blocks_support->get_payment_method_data();
+
+		$this->assertSame( $expected, $data['shouldShowExpressCheckoutButton'] );
+	}
+
+	/**
+	 * Data provider for multiple tests.
+	 *
+	 * @return array[]
+	 */
+	public function provider_express_checkout_guards(): array {
+		return [
+			'page supported and button shown' => [ true, true, true ],
+			'page not supported'              => [ false, true, false ],
+			'button hidden'                   => [ true, false, false ],
+			'neither'                         => [ false, false, false ],
+		];
+	}
+
+	/**
+	 * The active state is read from several hooks per request, so the helper checks must run once.
+	 *
+	 * @return void
+	 */
+	public function test_express_checkout_active_state_is_memoized(): void {
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'is_page_supported', 'should_show_express_checkout_button' ] )
+			->getMock();
+		$helper->expects( $this->once() )->method( 'is_page_supported' )->willReturn( true );
+		$helper->expects( $this->once() )->method( 'should_show_express_checkout_button' )->willReturn( true );
+
+		$blocks_support = new WC_Stripe_Blocks_Support( null, $this->create_express_checkout_element( $helper ) );
+
+		$blocks_support->get_payment_method_script_handles();
+		$data = $blocks_support->get_payment_method_data();
+
+		$this->assertTrue( $data['shouldShowExpressCheckoutButton'] );
 	}
 
 	/**
@@ -342,6 +681,7 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 			'checkout block render'   => [ 'render_block_woocommerce/checkout', 'maybe_enqueue_blocks_style', 10 ],
 			'cart block render'       => [ 'render_block_woocommerce/cart', 'maybe_enqueue_blocks_style', 10 ],
 			'block editor assets'     => [ 'enqueue_block_editor_assets', 'maybe_enqueue_blocks_style_for_editor', 20 ],
+			'block assets'            => [ 'enqueue_block_assets', 'maybe_enqueue_blocks_style_for_editor', 20 ],
 		];
 	}
 
