@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Prevent the same Stripe charge from being recorded twice on an order, which doubled its Stripe fee and could repeat the payment complete actions
