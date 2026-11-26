@@ -514,16 +514,6 @@ class WC_Stripe {
 		// Remove lock rows left behind by requests that died while holding a lock.
 		WC_Stripe_Option_Lock::maybe_schedule_daily_cleanup();
 
-		// If we have previously disabled settings synchronization, remove the flag after the upgrade,
-		// just to make sure we are still ineligible for settings synchronization.
-		$stripe_settings = $this->get_settings();
-		if ( isset( $stripe_settings['pmc_enabled'] ) && 'no' === $stripe_settings['pmc_enabled'] ) {
-			unset( $stripe_settings['pmc_enabled'] );
-			$stripe_settings['skip_pmc_express_checkout_defaults'] = 'yes';
-			$this->update_settings( $stripe_settings );
-			WC_Stripe_Logger::error( 'Settings synchronization eligibility will be re-checked after upgrade' );
-		}
-
 		if ( ! $is_new_install ) {
 			$this->record_plugin_updated_tracks_event( $previous_version );
 		}
@@ -840,7 +830,8 @@ class WC_Stripe {
 			$gateway      = new WC_Stripe_UPE_Payment_Gateway();
 			$fields       = $gateway->get_form_fields();
 			$old_settings = array_merge( array_fill_keys( array_keys( $fields ), '' ), wp_list_pluck( $fields, 'default' ) );
-			$settings     = array_merge( $old_settings, $settings );
+			// New stores use Stripe's selections; retained settings keep their existing sync preference.
+			$settings = array_merge( $old_settings, [ 'pmc_enabled' => 'yes' ], $settings );
 		}
 
 		// Clients only ever see the masked secrets, so a mask that comes back means "unchanged".

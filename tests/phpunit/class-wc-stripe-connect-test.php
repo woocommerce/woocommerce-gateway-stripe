@@ -116,6 +116,9 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->webhook_settings->method( 'is_webhook_enabled' )->willReturn( $webhook_enabled );
 		WC_Stripe::get_instance()->webhook_settings = $this->webhook_settings;
 
+		$this->mock_payment_method_configurations( [ 'klarna' ], [ 'card', 'link', 'apple_pay', 'google_pay' ] );
+		$this->stripe_api->expects( $this->never() )->method( 'update_payment_method_configurations' );
+
 		$result                 = new stdClass();
 		$result->publishableKey = 'pk_test_123'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 		$result->secretKey      = 'sk_test_123'; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
@@ -164,7 +167,9 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$this->assertSame( $expected_oc, $settings['optimized_checkout_element'] ?? '' );
 		$this->assertSame( $expected_ap, $settings['adaptive_pricing'] ?? '' );
-		$this->assertSame( [ 'card', 'link' ], $settings['upe_checkout_experience_accepted_payments'] );
+		$this->assertSame( 'yes', $settings['pmc_enabled'] );
+		$this->assertSame( [ 'klarna' ], WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids() );
+		$this->assertSame( 'no', WC_Stripe_Helper::get_stripe_settings()['express_checkout'] );
 
 		// Marker is always consumed, even when not applied.
 		$this->assertEquals( false, get_option( 'wc_stripe_optimized_checkout_default_on' ) );
@@ -288,6 +293,7 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$prefix   = 'test' === $previous_mode ? 'test_' : '';
 		$settings = array_merge(
 			[
+				'testmode'                  => 'test' === $previous_mode ? 'yes' : 'no',
 				$prefix . 'publishable_key' => 'pk_' . $previous_mode . '_previous',
 				$prefix . 'secret_key'      => 'sk_' . $previous_mode . '_previous',
 				'pmc_enabled'               => 'connect' === $type ? 'yes' : 'no',
@@ -298,6 +304,12 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		update_option( 'wc_stripe_optimized_checkout_default_on', 'yes' );
 		add_filter( 'pre_update_option_woocommerce_stripe_settings', [ WC_Stripe::get_instance(), 'gateway_settings_update' ], 10, 2 );
 
+		// Synchronization survives a reconnect only when the credentials it was verified against
+		// are unchanged: same connection type, same mode, same publishable key. The live-previous
+		// case connects a test key for the first time, so those selections await review and the
+		// PMC is never read, which is also why nothing mirrors it into the settings below.
+		$sync_preserved = 'connect' === $type && 'test' === $previous_mode;
+
 		try {
 			for ( $attempt = 0; $attempt < 2; $attempt++ ) {
 				$this->invoke_save_stripe_keys( 'pk_test_previous', 'sk_test_previous', 'test', $type );
@@ -306,13 +318,13 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				$controller = new WC_REST_Stripe_Settings_Controller( new WC_Stripe_UPE_Payment_Gateway() );
 				$response   = $controller->get_settings();
 				$this->assertSame( 200, $response->get_status() );
-				$this->assertSame( 'connect' === $type, $response->get_data()['is_pmc_enabled'] );
+				$this->assertSame( $sync_preserved, $response->get_data()['is_pmc_enabled'] );
 				$snapshots['GET'] = WC_Stripe_Helper::get_stripe_settings();
 				foreach ( $snapshots as $stage => $saved ) {
 					foreach ( [ 'upe_checkout_experience_accepted_payments', 'express_checkout_button_locations', 'express_checkout_button_type', 'express_checkout_button_theme', 'express_checkout_button_size', 'optimized_checkout_element', 'adaptive_pricing' ] as $key ) {
 						if ( array_key_exists( $key, $preferences ) ) {
 							$this->assertSame( $preferences[ $key ], $saved[ $key ], $stage . ': ' . $key );
-						} elseif ( 'connect' === $type && 'upe_checkout_experience_accepted_payments' === $key && ( 'GET' === $stage || array_key_exists( $key, $saved ) ) ) {
+						} elseif ( $sync_preserved && 'upe_checkout_experience_accepted_payments' === $key && ( 'GET' === $stage || array_key_exists( $key, $saved ) ) ) {
 							// The active PMC may be read during reconnect; the settings GET always reads and persists it.
 							$this->assertSame( [ 'card' ], $saved[ $key ], $stage . ': ' . $key );
 						} else {
@@ -338,6 +350,21 @@ class WC_Stripe_Connect_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		} finally {
 			remove_filter( 'pre_update_option_woocommerce_stripe_settings', [ WC_Stripe::get_instance(), 'gateway_settings_update' ] );
 		}
+	}
+
+	public function test_disconnected_store_keeps_local_selections_on_reconnect(): void {
+		$this->mock_stripe_account( [ 'country' => 'US' ] );
+		$this->mock_payment_method_configurations( [ 'card', 'link' ], [ 'klarna' ] );
+		$this->stripe_api->expects( $this->never() )->method( 'update_payment_method_configurations' );
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'pmc_enabled'                               => 'no',
+				'upe_checkout_experience_accepted_payments' => [ 'klarna' ],
+			]
+		);
+		$this->invoke_save_stripe_keys( 'pk_test_previous', 'sk_test_previous' );
+		$this->assertSame( 'no', WC_Stripe_Helper::get_stripe_settings()['pmc_enabled'] );
+		$this->assertSame( [ 'klarna' ], WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids() );
 	}
 
 	public function provide_reconnect_preferences(): array {

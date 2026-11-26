@@ -235,10 +235,8 @@ echo " - Activating plugin"
 redirect_output cli wp plugin activate woocommerce-gateway-stripe
 
 echo " - Updating WooCommerce Gateway Stripe settings"
-# Writing these settings on a fresh site defaults the enabled methods to card
-# and Link, and the first plugin load then migrates that list into the Stripe
-# account's payment method configuration. The Link-off project needs its
-# account left as configured, so it marks the migration done up front.
+# Fresh sites adopt the account's PMC after credentials are saved. The Link-off
+# fixture also declares synchronization for environments that reuse an installed site.
 PMC_SETTINGS=""
 if [[ "$E2E_PROJECT" == "optimized-checkout-link-off" ]]; then
 	PMC_SETTINGS='"pmc_enabled":"yes",'

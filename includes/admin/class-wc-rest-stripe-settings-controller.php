@@ -294,7 +294,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'is_oc_enabled'                         => 'yes' === $this->gateway->get_option( 'optimized_checkout_element' ),
 				'is_ap_enabled'                         => 'yes' === $this->gateway->get_option( 'adaptive_pricing' ),
 				'oc_layout'                             => $this->gateway->get_validated_option( 'optimized_checkout_layout' ),
-				'is_pmc_enabled'                        => 'yes' === $this->gateway->get_option( 'pmc_enabled' ),
+				'is_pmc_enabled'                        => WC_Stripe_Payment_Method_Configurations::is_enabled(),
 			]
 		);
 	}
@@ -307,6 +307,9 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return WP_REST_Response
 	 */
 	public function update_settings( WP_REST_Request $request ) {
+		// Each update_* call below persists the whole option, so start from what is in the
+		// database rather than the copy this instance loaded before any earlier write.
+		$this->gateway->init_settings();
 		/* Settings > General */
 		$this->update_is_stripe_enabled( $request );
 

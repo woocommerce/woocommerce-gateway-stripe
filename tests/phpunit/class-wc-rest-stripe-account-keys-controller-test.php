@@ -52,6 +52,29 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		);
 	}
 
+	/** @dataProvider provide_first_key_pmc_states */
+	public function test_first_keys_preserve_pmc_preference( string $pmc ): void {
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		foreach ( [ 'publishable_key', 'secret_key', 'test_publishable_key', 'test_secret_key' ] as $key ) {
+			$settings[ $key ] = '';
+		}
+		$settings['pmc_enabled'] = $pmc;
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		$request = new WP_REST_Request( 'POST', self::ROUTE );
+		$request->set_param( 'test_publishable_key', 'pk_test_new' );
+		$request->set_param( 'test_secret_key', 'sk_test_new' );
+		$this->stripe_api->expects( $this->never() )->method( 'update_payment_method_configurations' );
+		$this->controller->set_account_keys( $request );
+		$this->assertSame( $pmc, WC_Stripe_Helper::get_stripe_settings()['pmc_enabled'] );
+	}
+
+	public function provide_first_key_pmc_states(): array {
+		return [
+			'fresh'        => [ 'yes' ],
+			'disconnected' => [ 'no' ],
+		];
+	}
+
 	public function test_get_account_keys_returns_status_code_200() {
 		$request = new WP_REST_Request( 'GET', self::ROUTE );
 
@@ -200,10 +223,11 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 	}
 
 	/**
-	 * Test for `set_account_keys` checking if payment methods are reset
+	 * Changing keys preserves the last mirrored selections until the new account is reviewed.
 	 * @return void
 	 */
-	public function test_changing_keys_resets_payment_methods() {
+	public function test_changing_keys_preserves_payment_methods_until_review() {
+		$this->mock_payment_method_configurations( [ 'card', 'sepa_debit' ], [] );
 		// Default options
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[
@@ -212,6 +236,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 				'testmode'                                                   => 'no',
 				'connection_type'                                            => 'connect',
 				'pmc_enabled'                                                => 'yes',
+				'upe_checkout_experience_accepted_payments'                  => [ 'card', 'sepa_debit' ],
 				WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'yes',
 			]
 		);
@@ -223,9 +248,12 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		// Set initial payment methods
 		$this->set_stripe_account_data( [ 'country' => 'US' ] );
 		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::SEPA, WC_Stripe_Payment_Methods::IDEAL ], [] );
-		$this->expect_payment_method_configurations_update( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ] );
+		$this->stripe_api->expects( $this->never() )->method( 'update_payment_method_configurations' );
 
 		$this->controller->set_account_keys( $request );
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame( [ 'card', 'sepa_debit' ], $settings['upe_checkout_experience_accepted_payments'] );
+		$this->assertSame( 'no', $settings['pmc_enabled'] );
 	}
 
 	/**

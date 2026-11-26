@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Ask which payment method selections to keep instead of silently overwriting the saved ones when Stripe synchronization resumes or API keys change

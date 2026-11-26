@@ -74,12 +74,9 @@ fi
 
 # Stripe base settings (webhook secret is set later by the Playwright global-setup.js on the host)
 echo " - Configuring Stripe plugin settings"
-# Writing these settings on a fresh site defaults the enabled methods to card
-# and Link, and the first plugin load then migrates that list into the Stripe
-# account's payment method configuration. The Link-off package needs its
-# account left as configured, so its env file asks to mark the migration done
-# up front. This script runs once for the whole package and cannot see which
-# project will run, hence the flag instead of a project check.
+# Fresh sites adopt the account's PMC after credentials are saved. The Link-off
+# fixture also declares synchronization for reused sites. This script runs once
+# for the whole package, hence the flag instead of a project check.
 PMC_SETTINGS=''
 if [[ "$E2E_STRIPE_LINK_OFF_ACCOUNT" == "yes" ]]; then
 	echo " - Link-off account: leaving its payment method configuration as configured"
