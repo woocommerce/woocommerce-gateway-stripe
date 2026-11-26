@@ -2520,7 +2520,9 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		try {
 			$this->gateway->process_response( (object) array_merge( (array) $this->build_succeeded_charge( 'ch_settles_later' ), $first_charge ), $order );
-			$this->assertFalse( wc_get_order( $order->get_id() )->is_paid() );
+			$linked_order = wc_get_order( $order->get_id() );
+			$this->assertSame( 'ch_settles_later', $linked_order->get_transaction_id() );
+			$this->assertFalse( $linked_order->is_paid() );
 
 			$this->gateway->process_response( $this->build_succeeded_charge( 'ch_settles_later' ), wc_get_order( $order->get_id() ) );
 		} finally {
