@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Fix payments failing on the block checkout when a shopper pays with a card saved by another payment gateway while Optimized Checkout is enabled
