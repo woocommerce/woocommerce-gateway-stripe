@@ -563,7 +563,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return void
 	 */
 	public function maybe_update_stripe_checkout_type( PaymentContext $context ): void {
-		if ( ! $this->is_stripe_payment_method( (string) $context->payment_method ) ) {
+		if ( ! $this->is_stripe_payment_method( (string) $context->payment_method ) ) { // @phpstan-ignore property.protected (The payment_method property is exposed via __get().)
 			return;
 		}
 
@@ -580,12 +580,12 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return void
 	 */
 	public function add_express_checkout_order_meta( PaymentContext $context, PaymentResult &$result ) {
-		$data = $context->payment_data;
-		if ( ! empty( $data['express_checkout_type'] ) && 'stripe' === $context->payment_method ) {
-			$this->add_order_meta( $context->order, $data['express_checkout_type'] );
+		$data = $context->payment_data; // @phpstan-ignore property.protected (The payment_data property is exposed via __get().)
+		if ( ! empty( $data['express_checkout_type'] ) && 'stripe' === $context->payment_method ) { // @phpstan-ignore property.protected (The payment_method property is exposed via __get().)
+			$this->add_order_meta( $context->order, $data['express_checkout_type'] ); // @phpstan-ignore property.protected (The order property is exposed via __get().)
 		}
 
-		if ( ! $this->is_stripe_payment_method( (string) $context->payment_method ) ) {
+		if ( ! $this->is_stripe_payment_method( (string) $context->payment_method ) ) { // @phpstan-ignore property.protected (The payment_method property is exposed via __get().)
 			return;
 		}
 
@@ -599,7 +599,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		// Check if a payment token is being used by looking for the wc-{gateway_id}-payment-token field.
 		if ( ! $is_using_saved_token && ! empty( $data['token'] ) ) {
 			// Payment data keys use underscores, not hyphens (e.g., wc-stripe_us_bank_account-payment-token).
-			$token_key = 'wc-' . $context->payment_method . '-payment-token';
+			$token_key = 'wc-' . $context->payment_method . '-payment-token'; // @phpstan-ignore property.protected (The payment_method property is exposed via __get().)
 			if ( isset( $data[ $token_key ] ) && ! empty( $data[ $token_key ] ) ) {
 				$is_using_saved_token = true;
 			}
@@ -610,7 +610,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		add_action(
 			'wc_gateway_stripe_process_payment_error',
 			function ( $error ) use ( &$result ) {
-				$payment_details                 = $result->payment_details;
+				$payment_details                 = $result->payment_details; // @phpstan-ignore property.protected (The payment_details property is exposed via __get().)
 				$payment_details['errorMessage'] = wp_strip_all_tags( $error->getLocalizedMessage() );
 				$result->set_payment_details( $payment_details );
 			}
@@ -630,19 +630,19 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return void
 	 */
 	public function add_stripe_intents( PaymentContext $context, PaymentResult &$result ) {
-		if ( 'stripe' === $context->payment_method
+		if ( 'stripe' === $context->payment_method // @phpstan-ignore property.protected (The payment_method property is exposed via __get().)
 			&& (
 				! empty( $result->payment_details['payment_intent_secret'] )
 				|| ! empty( $result->payment_details['setup_intent_secret'] )
 			)
 		) {
-			$payment_details       = $result->payment_details;
+			$payment_details       = $result->payment_details; // @phpstan-ignore property.protected (The payment_details property is exposed via __get().)
 			$verification_endpoint = add_query_arg(
 				[
-					'order'       => $context->order->get_id(),
+					'order'       => $context->order->get_id(), // @phpstan-ignore property.protected (The order property is exposed via __get().)
 					'nonce'       => wp_create_nonce( 'wc_stripe_confirm_pi' ),
 					'intent_id'   => $payment_details['payment_intent_id'],
-					'redirect_to' => rawurlencode( $result->redirect_url ),
+					'redirect_to' => rawurlencode( $result->redirect_url ), // @phpstan-ignore property.protected (The redirect_url property is exposed via __get().)
 				],
 				home_url() . \WC_AJAX::get_endpoint( 'wc_stripe_verify_intent' )
 			);
@@ -706,17 +706,17 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return void
 	 */
 	public function fail_unprocessed_payment( PaymentContext $context, PaymentResult &$result ) {
-		if ( '' !== (string) $result->status ) {
+		if ( '' !== (string) $result->status ) { // @phpstan-ignore property.protected (The status property is exposed via __get().)
 			return;
 		}
 
-		$payment_method = (string) $context->payment_method;
+		$payment_method = (string) $context->payment_method; // @phpstan-ignore property.protected (The payment_method property is exposed via __get().)
 		if ( ! $this->is_stripe_payment_method( $payment_method ) ) {
 			return;
 		}
 
 		// The context is hook-derived, so don't let the log line itself be what fatals.
-		$order_id = $context->order instanceof WC_Order ? $context->order->get_id() : 0;
+		$order_id = $context->order instanceof WC_Order ? $context->order->get_id() : 0; // @phpstan-ignore property.protected, property.protected (The order property is exposed via __get().)
 
 		WC_Stripe_Logger::error(
 			'Payment was never processed for order: ' . $order_id,

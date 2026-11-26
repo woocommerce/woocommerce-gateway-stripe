@@ -1429,42 +1429,6 @@ parameters:
 			path: includes/class-wc-stripe-blocks-support.php
 
 		-
-			message: '#^Access to protected property Automattic\\WooCommerce\\StoreApi\\Payments\\PaymentContext\:\:\$order\.$#'
-			identifier: property.protected
-			count: 4
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
-			message: '#^Access to protected property Automattic\\WooCommerce\\StoreApi\\Payments\\PaymentContext\:\:\$payment_data\.$#'
-			identifier: property.protected
-			count: 1
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
-			message: '#^Access to protected property Automattic\\WooCommerce\\StoreApi\\Payments\\PaymentContext\:\:\$payment_method\.$#'
-			identifier: property.protected
-			count: 5
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
-			message: '#^Access to protected property Automattic\\WooCommerce\\StoreApi\\Payments\\PaymentResult\:\:\$payment_details\.$#'
-			identifier: property.protected
-			count: 2
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
-			message: '#^Access to protected property Automattic\\WooCommerce\\StoreApi\\Payments\\PaymentResult\:\:\$redirect_url\.$#'
-			identifier: property.protected
-			count: 1
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
-			message: '#^Access to protected property Automattic\\WooCommerce\\StoreApi\\Payments\\PaymentResult\:\:\$status\.$#'
-			identifier: property.protected
-			count: 1
-			path: includes/class-wc-stripe-blocks-support.php
-
-		-
 			message: '#^Cannot assign offset ''errorMessage'' to string\.$#'
 			identifier: offsetAssign.dimType
 			count: 1
