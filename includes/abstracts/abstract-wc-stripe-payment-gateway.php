@@ -689,7 +689,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				'Skipping charge processing, the charge is already recorded on the paid order.',
 				[
 					'order_id'  => $linked_order->get_id(),
-					'charge_id' => $linked_order->get_transaction_id(),
+					'charge_id' => $stored_order->get_transaction_id(),
 				]
 			);
 			return $response;
