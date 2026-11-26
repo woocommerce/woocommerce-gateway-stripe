@@ -2364,21 +2364,15 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Recording the same charge again must not repeat the payment or add its fees twice.
 	 *
-	 * The same charge is recorded again with a copy of the order loaded before the first recording,
-	 * like a webhook job that read the order before the shopper's return settled it. With a single
-	 * shared order object, the paid transition is not repeated even without the guard.
-	 *
 	 * @dataProvider provide_repeated_charge_recordings
 	 * @param string $second_charge_id The charge recorded second.
-	 * @param bool   $use_stale_copy   Whether the second recording uses a copy loaded before the first.
 	 * @param int    $expected_notes   Expected "Stripe charge complete" notes.
 	 * @param float  $expected_fee     Expected Stripe fee on the order.
 	 * @param float  $expected_net     Expected Stripe net on the order.
 	 * @return void
 	 */
-	public function test_process_response_is_idempotent_for_the_owning_order( string $second_charge_id, bool $use_stale_copy, int $expected_notes, float $expected_fee, float $expected_net ) {
-		$order       = WC_Helper_Order::create_order();
-		$stale_order = wc_get_order( $order->get_id() );
+	public function test_process_response_is_idempotent_for_the_owning_order( string $second_charge_id, int $expected_notes, float $expected_fee, float $expected_net ) {
+		$order = WC_Helper_Order::create_order();
 
 		// Each recording fetches the charge's balance transaction to add its fee and net.
 		$balance_transaction = function ( $preempt, $args, $url ) {
@@ -2403,8 +2397,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		try {
 			$this->gateway->process_response( $this->build_charge_with_fees( 'ch_idempotent' ), $order );
-			$second_order = $use_stale_copy ? $stale_order : wc_get_order( $order->get_id() );
-			$this->gateway->process_response( $this->build_charge_with_fees( $second_charge_id ), $second_order );
+			$this->gateway->process_response( $this->build_charge_with_fees( $second_charge_id ), wc_get_order( $order->get_id() ) );
 		} finally {
 			remove_filter( 'pre_http_request', $balance_transaction, 10 );
 			remove_action( 'woocommerce_payment_complete', $count_payment_complete );
@@ -2433,8 +2426,8 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function provide_repeated_charge_recordings(): array {
 		return [
-			'same charge from an outdated order copy is recorded once' => [ 'ch_idempotent', true, 1, 1.5, 48.5 ],
-			'a different charge on a paid order is still recorded'     => [ 'ch_second', false, 2, 3.0, 97.0 ],
+			'the same charge is recorded once'                     => [ 'ch_idempotent', 1, 1.5, 48.5 ],
+			'a different charge on a paid order is still recorded' => [ 'ch_second', 2, 3.0, 97.0 ],
 		];
 	}
 

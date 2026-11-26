@@ -2592,16 +2592,16 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->mock_gateway->method( 'stripe_request' )->willReturn( $this->array_to_object( $payment_intent_mock ) );
 		$this->mock_gateway->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
 
-		// Settles the order like a webhook would; that path records no paid cart.
-		$this->mock_gateway->process_response( $charge, wc_get_order( $order->get_id() ) );
-		$this->mock_gateway->process_order_for_confirmed_intent( $returning_order, 'pi_mock', false );
-
-		$resubmit = WC_Helper_Order::create_order( $order->get_customer_id() );
-		$resubmit->set_cart_hash( 'confirmed-intent-settled-elsewhere' );
-		$resubmit->set_billing_email( $order->get_billing_email() );
-		$resubmit->save();
-
 		try {
+			// Settles the order like a webhook would; that path records no paid cart.
+			$this->mock_gateway->process_response( $charge, wc_get_order( $order->get_id() ) );
+			$this->mock_gateway->process_order_for_confirmed_intent( $returning_order, 'pi_mock', false );
+
+			$resubmit = WC_Helper_Order::create_order( $order->get_customer_id() );
+			$resubmit->set_cart_hash( 'confirmed-intent-settled-elsewhere' );
+			$resubmit->set_billing_email( $order->get_billing_email() );
+			$resubmit->save();
+
 			$paid_order = WC_Stripe_Duplicate_Payment_Prevention::get_recent_paid_order( $resubmit );
 			$this->assertInstanceOf( WC_Order::class, $paid_order );
 			$this->assertSame( $order->get_id(), $paid_order->get_id() );
