@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Retry the Adaptive Pricing Checkout Session webhook when Stripe answers the PaymentIntent lookup with an error, such as a rate limit, instead of leaving the order pending until reconciliation

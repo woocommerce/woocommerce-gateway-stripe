@@ -1874,17 +1874,18 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * When a completed Checkout Session's PaymentIntent has no charge yet, settlement must defer
-	 * instead of fataling on `$charge->is_webhook_response = true`, and must leave the
-	 * save-payment-method flag in place so the retry can save the SEPA mandate from the charge.
+	 * When a completed Checkout Session's PaymentIntent can't be fetched or has no charge yet, settlement
+	 * must defer instead of fataling on `$charge->is_webhook_response = true` or giving up, and must leave
+	 * the save-payment-method flag in place so the retry can save the SEPA mandate from the charge.
 	 *
 	 * @dataProvider provide_missing_charge_values
 	 *
 	 * @param mixed $missing_charge What get_latest_charge_from_intent() returns when there is no charge.
+	 * @param bool  $intent_found   Whether get_intent_from_order() finds the PaymentIntent.
 	 * @return void
 	 */
-	public function test_handle_checkout_session_success_defers_when_charge_missing( $missing_charge ): void {
-		$checkout_session_id = 'cs_test_missing_charge_' . gettype( $missing_charge );
+	public function test_handle_checkout_session_success_defers_when_charge_missing( $missing_charge, bool $intent_found = true ): void {
+		$checkout_session_id = 'cs_test_missing_charge_' . gettype( $missing_charge ) . ( $intent_found ? '' : '_no_intent' );
 		$intent_id           = 'pi_test_missing_charge';
 		$order_helper        = WC_Stripe_Order_Helper::get_instance();
 
@@ -1952,19 +1953,18 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			->onlyMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
 			->getMock();
 
-		$handler->method( 'get_intent_from_order' )
-			->willReturn(
-				(object) array_merge(
-					self::MOCK_PAYMENT_INTENT,
-					[
-						'id'             => $intent_id,
-						'payment_method' => (object) [
-							'id'   => 'pm_test_ideal',
-							'type' => WC_Stripe_Payment_Methods::IDEAL,
-						],
-					]
-				)
-			);
+		$intent = (object) array_merge(
+			self::MOCK_PAYMENT_INTENT,
+			[
+				'id'             => $intent_id,
+				'payment_method' => (object) [
+					'id'   => 'pm_test_ideal',
+					'type' => WC_Stripe_Payment_Methods::IDEAL,
+				],
+			]
+		);
+		// get_intent_from_order() returns false when Stripe answers the lookup with an error.
+		$handler->method( 'get_intent_from_order' )->willReturn( $intent_found ? $intent : false );
 		$handler->method( 'get_latest_charge_from_intent' )->willReturn( $missing_charge );
 		$handler->expects( $this->never() )->method( 'process_response' );
 
@@ -1991,23 +1991,27 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 * `get_latest_charge_from_intent()` returns null when the intent has no charge, and an empty
 	 * string when `get_charge_object()` is given an empty charge ID.
 	 *
-	 * @return array<string, array{0: mixed}>
+	 * @return array<string, array{0: mixed, 1?: bool}>
 	 */
 	public function provide_missing_charge_values(): array {
 		return [
-			'null charge'         => [ null ],
-			'empty string charge' => [ '' ],
+			'null charge'          => [ null ],
+			'empty string charge'  => [ '' ],
+			'intent lookup failed' => [ null, false ],
 		];
 	}
 
 	/**
 	 * The Adaptive Pricing order note is recorded on the first pass, even when settlement defers
-	 * for a missing charge, and is not repeated when the retry settles the order.
+	 * for a failed intent lookup or a missing charge, and is not repeated when the retry settles the order.
 	 *
+	 * @dataProvider provide_first_pass_intent_lookup_fails
+	 *
+	 * @param bool $first_intent_lookup_fails Whether the first pass defers on the intent lookup rather than the charge.
 	 * @return void
 	 */
-	public function test_adaptive_pricing_note_added_once_across_missing_charge_retry(): void {
-		$checkout_session_id = 'cs_test_ap_note_once';
+	public function test_adaptive_pricing_note_added_once_across_missing_charge_retry( bool $first_intent_lookup_fails ): void {
+		$checkout_session_id = 'cs_test_ap_note_once' . ( $first_intent_lookup_fails ? '_no_intent' : '' );
 		$order_helper        = WC_Stripe_Order_Helper::get_instance();
 
 		$order = WC_Helper_Order::create_order();
@@ -2039,21 +2043,26 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			->onlyMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
 			->getMock();
 
-		$handler->method( 'get_intent_from_order' )
-			->willReturn(
-				(object) array_merge(
-					self::MOCK_PAYMENT_INTENT,
-					[
-						'payment_method' => null,
-					]
-				)
-			);
-		$handler->method( 'get_latest_charge_from_intent' )
-			->willReturnOnConsecutiveCalls( null, (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+		$intent = (object) array_merge(
+			self::MOCK_PAYMENT_INTENT,
+			[
+				'payment_method' => null,
+			]
+		);
+		$charge = (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0];
+		if ( $first_intent_lookup_fails ) {
+			$handler->method( 'get_intent_from_order' )->willReturnOnConsecutiveCalls( false, $intent );
+			$handler->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
+		} else {
+			$handler->method( 'get_intent_from_order' )->willReturn( $intent );
+			$handler->method( 'get_latest_charge_from_intent' )->willReturnOnConsecutiveCalls( null, $charge );
+		}
 		$handler->expects( $this->once() )->method( 'process_response' );
 
+		// One job re-queues the deferred event, the other backfills the intent metadata once the retry settles.
 		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
-		$prop           = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$mock_scheduler->expects( $this->exactly( 2 ) )->method( 'schedule_job' );
+		$prop = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
 		$prop->setAccessible( true );
 		$prop->setValue( $handler, $mock_scheduler );
 
@@ -2078,8 +2087,21 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Data provider for test_adaptive_pricing_note_added_once_across_missing_charge_retry.
+	 *
+	 * @return array<string, array{0: bool}>
+	 */
+	public function provide_first_pass_intent_lookup_fails(): array {
+		return [
+			'charge missing on first pass'      => [ false ],
+			'intent lookup fails on first pass' => [ true ],
+		];
+	}
+
+	/**
 	 * A deferred missing-charge retry must bump only the charge retry count, stop once that limit is
-	 * reached, and neither consume nor be blocked by the order lookup retry count.
+	 * reached, and neither consume nor be blocked by the order lookup retry count. The webhook action
+	 * waits while the event is re-queued, and fires once the retries give up.
 	 *
 	 * @dataProvider provide_missing_charge_deferred_retry_counts
 	 *
@@ -2184,6 +2206,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		if ( $expect_requeue ) {
 			$this->assertSame( 0, $received );
+		} else {
+			$this->assertSame( 1, $received );
 		}
 
 		$this->assertTrue( wc_get_order( $order->get_id() )->has_status( OrderStatus::PENDING ) );
