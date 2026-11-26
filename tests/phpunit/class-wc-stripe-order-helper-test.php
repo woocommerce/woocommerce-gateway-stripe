@@ -209,6 +209,34 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		$this->assertTrue( $this->helper->get_order_existing_payment_lock( $order ) > 0 );
 		$this->helper->unlock_order_payment( $order );
 		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( $order ) );
+
+		// Unlocking must also free the atomic lock, or the order stays blocked until it expires.
+		$this->assertFalse( $this->helper->lock_order_payment( $order ) );
+		$this->helper->unlock_order_payment( $order );
+	}
+
+	/**
+	 * A request that passed the meta check while another request already took the atomic lock must not get it.
+	 *
+	 * @return void
+	 */
+	public function test_lock_order_payment_is_refused_while_another_request_holds_the_lock(): void {
+		$order     = WC_Helper_Order::create_order();
+		$lock_name = 'wc_stripe_order_payment_lock_' . $order->get_id();
+
+		// The other request has inserted the lock row but not saved its order meta yet.
+		$other_owner = WC_Stripe_Option_Lock::acquire( $lock_name, 300 );
+
+		$this->assertTrue( $this->helper->lock_order_payment( $order ) );
+		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( $order ) );
+
+		// A request that never got the lock must not free it for a third one.
+		$this->helper->unlock_order_payment( $order );
+		$this->assertTrue( $this->helper->lock_order_payment( $order ) );
+
+		WC_Stripe_Option_Lock::release( $lock_name, $other_owner );
+		$this->assertFalse( $this->helper->lock_order_payment( $order ) );
+		$this->helper->unlock_order_payment( $order );
 	}
 
 	/**

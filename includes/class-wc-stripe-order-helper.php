@@ -221,6 +221,20 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_LOCK_REFUND = '_stripe_lock_refund';
 
 	/**
+	 * Option name prefix of the atomic order payment lock; the order ID completes it.
+	 *
+	 * @var string
+	 */
+	private const PAYMENT_LOCK_OPTION_PREFIX = 'wc_stripe_order_payment_lock_';
+
+	/**
+	 * Seconds after which an order payment lock is treated as abandoned.
+	 *
+	 * @var int
+	 */
+	private const PAYMENT_LOCK_TTL = 5 * MINUTE_IN_SECONDS;
+
+	/**
 	 * Meta key for the In-Person Payments channel.
 	 *
 	 * Stores the ipp_channel value from Stripe PaymentIntent metadata.
@@ -236,6 +250,13 @@ class WC_Stripe_Order_Helper {
 	 * @var null|WC_Stripe_Order_Helper
 	 */
 	private static ?WC_Stripe_Order_Helper $instance = null;
+
+	/**
+	 * Owner tokens of the order payment locks this request holds, keyed by order ID.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $payment_lock_owners = [];
 
 	/**
 	 * Gets the singleton instance of the class.
@@ -1625,7 +1646,17 @@ class WC_Stripe_Order_Helper {
 			return true;
 		}
 
-		$new_lock = ( time() + 5 * MINUTE_IN_SECONDS );
+		// The meta check above is a read followed by a write, so two requests can both pass it.
+		// Only one of them can insert the option row.
+		$owner = WC_Stripe_Option_Lock::acquire( self::PAYMENT_LOCK_OPTION_PREFIX . $order->get_id(), self::PAYMENT_LOCK_TTL );
+		if ( null === $owner ) {
+			return true;
+		}
+
+		$this->payment_lock_owners[ $order->get_id() ] = $owner;
+
+		// The meta stays as the readable lock state for existing readers, and for requests still running older code.
+		$new_lock = ( time() + self::PAYMENT_LOCK_TTL );
 
 		$order->update_meta_data( self::META_STRIPE_LOCK_PAYMENT, $new_lock );
 		$order->save_meta_data();
@@ -1643,6 +1674,14 @@ class WC_Stripe_Order_Helper {
 	public function unlock_order_payment( WC_Order $order ): void {
 		$order->delete_meta_data( self::META_STRIPE_LOCK_PAYMENT );
 		$order->save_meta_data();
+
+		// Without an owner token from this request there is nothing to release, so a request that
+		// never got the lock can't free it for a third one. An abandoned lock expires after its TTL.
+		$order_id = $order->get_id();
+		if ( isset( $this->payment_lock_owners[ $order_id ] ) ) {
+			WC_Stripe_Option_Lock::release( self::PAYMENT_LOCK_OPTION_PREFIX . $order_id, $this->payment_lock_owners[ $order_id ] );
+			unset( $this->payment_lock_owners[ $order_id ] );
+		}
 	}
 
 	/**
