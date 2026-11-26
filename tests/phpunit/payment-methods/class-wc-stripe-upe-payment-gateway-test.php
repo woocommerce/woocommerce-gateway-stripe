@@ -2563,6 +2563,54 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
+	 * The shopper's return still records the paid cart when a webhook settled the order first,
+	 * or a guest's resubmit of the same cart would not be sent to the paid order.
+	 *
+	 * @return void
+	 */
+	public function test_process_order_for_confirmed_intent_records_paid_cart_settled_by_another_request(): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_cart_hash( 'confirmed-intent-settled-elsewhere' );
+		$order->save();
+		$returning_order = wc_get_order( $order->get_id() );
+
+		list( $amount ) = $this->get_order_details( $order );
+
+		$payment_intent_mock             = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$payment_intent_mock['amount']   = $amount;
+		$payment_intent_mock['currency'] = strtolower( $order->get_currency() );
+
+		$charge = $this->array_to_object(
+			[
+				'id'                     => 'ch_confirmed_intent_settled_elsewhere',
+				'captured'               => true,
+				'status'                 => 'succeeded',
+				'payment_method_details' => [ 'type' => WC_Stripe_Payment_Methods::CARD ],
+			]
+		);
+
+		$this->mock_gateway->method( 'stripe_request' )->willReturn( $this->array_to_object( $payment_intent_mock ) );
+		$this->mock_gateway->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
+
+		// Settles the order like a webhook would; that path records no paid cart.
+		$this->mock_gateway->process_response( $charge, wc_get_order( $order->get_id() ) );
+		$this->mock_gateway->process_order_for_confirmed_intent( $returning_order, 'pi_mock', false );
+
+		$resubmit = WC_Helper_Order::create_order( $order->get_customer_id() );
+		$resubmit->set_cart_hash( 'confirmed-intent-settled-elsewhere' );
+		$resubmit->set_billing_email( $order->get_billing_email() );
+		$resubmit->save();
+
+		try {
+			$paid_order = WC_Stripe_Duplicate_Payment_Prevention::get_recent_paid_order( $resubmit );
+			$this->assertInstanceOf( WC_Order::class, $paid_order );
+			$this->assertSame( $order->get_id(), $paid_order->get_id() );
+		} finally {
+			WC_Stripe_Database_Cache::delete( 'paid_cart_' . WC_Stripe_Duplicate_Payment_Prevention::get_cart_key( $order ) );
+		}
+	}
+
+	/**
 	 * @since x.x.x
 	 * @dataProvider provide_unconfirmed_intent_statuses
 	 * @param string $status The intent state after a failed charge attempt.
