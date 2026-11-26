@@ -2350,7 +2350,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Data provider for `test_process_response_denies_an_order_racing_for_a_locked_charge`.
+	 * Runs a test against HPOS and legacy post storage.
 	 *
 	 * @return array
 	 */
@@ -2444,64 +2444,103 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * The database is written directly so this request's post and order caches keep the Pending copy,
 	 * like the deferred webhook job that loads the order before the shopper's return settles it.
 	 *
-	 * @dataProvider provide_order_storage_modes
-	 * @param string $hpos_enabled Value of the HPOS option.
+	 * @dataProvider provide_order_storage
+	 * @param bool $use_hpos Whether to run against HPOS or legacy post storage.
 	 * @return void
 	 */
-	public function test_process_response_skips_a_charge_another_request_settled( string $hpos_enabled ) {
+	public function test_process_response_skips_a_charge_another_request_settled( bool $use_hpos ) {
 		global $wpdb;
 
-		$original_hpos = get_option( 'woocommerce_custom_orders_table_enabled', 'no' );
-		add_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
-		update_option( 'woocommerce_custom_orders_table_enabled', $hpos_enabled );
-		$this->assertSame( 'yes' === $hpos_enabled, WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() );
-
-		$order     = WC_Helper_Order::create_order();
-		$order_id  = $order->get_id();
-		$charge_id = 'ch_settled_elsewhere';
-		$order     = wc_get_order( $order_id );
-
-		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-			$wpdb->update(
-				$wpdb->prefix . 'wc_orders',
-				[
-					'status'         => 'wc-processing',
-					'transaction_id' => $charge_id,
-				],
-				[ 'id' => $order_id ]
-			);
-		} else {
-			$wpdb->update( $wpdb->posts, [ 'post_status' => 'wc-processing' ], [ 'ID' => $order_id ] );
-			// Clears only the meta cache; the cached post keeps the Pending status.
-			update_post_meta( $order_id, '_transaction_id', $charge_id );
-		}
-
+		$previous_hpos_setting  = get_option( 'woocommerce_custom_orders_table_enabled', 'no' );
+		$new_hpos_setting       = $use_hpos ? 'yes' : 'no';
 		$payment_complete_calls = 0;
 		$count_payment_complete = static function () use ( &$payment_complete_calls ) {
 			++$payment_complete_calls;
 		};
+
+		try {
+			// Allow HPOS to be toggled regardless of database state.
+			add_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+			add_action( 'woocommerce_payment_complete', $count_payment_complete );
+
+			if ( $new_hpos_setting !== $previous_hpos_setting ) {
+				update_option( 'woocommerce_custom_orders_table_enabled', $new_hpos_setting );
+			}
+
+			$order     = WC_Helper_Order::create_order();
+			$order_id  = $order->get_id();
+			$charge_id = 'ch_settled_elsewhere';
+			$order     = wc_get_order( $order_id );
+
+			if ( $use_hpos ) {
+				$wpdb->update(
+					$wpdb->prefix . 'wc_orders',
+					[
+						'status'         => 'wc-processing',
+						'transaction_id' => $charge_id,
+					],
+					[ 'id' => $order_id ]
+				);
+			} else {
+				$wpdb->update( $wpdb->posts, [ 'post_status' => 'wc-processing' ], [ 'ID' => $order_id ] );
+				// Clears only the meta cache; the cached post keeps the Pending status.
+				update_post_meta( $order_id, '_transaction_id', $charge_id );
+			}
+
+			$this->gateway->process_response( $this->build_succeeded_charge( $charge_id ), $order );
+
+			$this->assertSame( 0, $payment_complete_calls );
+			$this->assertSame( [], wc_get_order_notes( [ 'order_id' => $order_id ] ) );
+		} finally {
+			remove_action( 'woocommerce_payment_complete', $count_payment_complete );
+			if ( $new_hpos_setting !== $previous_hpos_setting ) {
+				update_option( 'woocommerce_custom_orders_table_enabled', $previous_hpos_setting );
+			}
+			remove_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+		}
+	}
+
+	/**
+	 * An order linked to a charge but not paid yet must still settle when the charge succeeds.
+	 *
+	 * Authorized, pending and manual-review charges link the order first and settle on a later delivery.
+	 *
+	 * @dataProvider provide_unsettled_first_recordings
+	 * @param array $first_charge Charge properties for the first delivery.
+	 * @return void
+	 */
+	public function test_process_response_settles_a_linked_order_that_is_not_paid_yet( array $first_charge ) {
+		$order                  = WC_Helper_Order::create_order();
+		$payment_complete_calls = 0;
+		$count_payment_complete = static function () use ( &$payment_complete_calls ) {
+			++$payment_complete_calls;
+		};
+
 		add_action( 'woocommerce_payment_complete', $count_payment_complete );
 
 		try {
-			$this->gateway->process_response( $this->build_succeeded_charge( $charge_id ), $order );
-			$notes = wc_get_order_notes( [ 'order_id' => $order_id ] );
+			$this->gateway->process_response( (object) array_merge( (array) $this->build_succeeded_charge( 'ch_settles_later' ), $first_charge ), $order );
+			$this->assertFalse( wc_get_order( $order->get_id() )->is_paid() );
+
+			$this->gateway->process_response( $this->build_succeeded_charge( 'ch_settles_later' ), wc_get_order( $order->get_id() ) );
 		} finally {
 			remove_action( 'woocommerce_payment_complete', $count_payment_complete );
-			update_option( 'woocommerce_custom_orders_table_enabled', $original_hpos );
-			remove_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
 		}
 
-		$this->assertSame( 0, $payment_complete_calls );
-		$this->assertSame( [], $notes );
+		$order = wc_get_order( $order->get_id() );
+		$this->assertTrue( $order->is_paid() );
+		$this->assertSame( 'ch_settles_later', $order->get_transaction_id() );
+		$this->assertSame( 1, $payment_complete_calls );
 	}
 
 	/**
 	 * @return array
 	 */
-	public function provide_order_storage_modes(): array {
+	public function provide_unsettled_first_recordings(): array {
 		return [
-			'legacy CPT' => [ 'no' ],
-			'HPOS'       => [ 'yes' ],
+			'authorized, not captured' => [ [ 'captured' => false ] ],
+			'pending async charge'     => [ [ 'status' => 'pending' ] ],
+			'held for manual review'   => [ [ 'outcome' => (object) [ 'type' => 'manual_review' ] ] ],
 		];
 	}
 
