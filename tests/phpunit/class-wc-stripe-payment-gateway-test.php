@@ -2439,6 +2439,73 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * A charge another request already settled is skipped, even though this request cached the order as Pending.
+	 *
+	 * The database is written directly so this request's post and order caches keep the Pending copy,
+	 * like the deferred webhook job that loads the order before the shopper's return settles it.
+	 *
+	 * @dataProvider provide_order_storage_modes
+	 * @param string $hpos_enabled Value of the HPOS option.
+	 * @return void
+	 */
+	public function test_process_response_skips_a_charge_another_request_settled( string $hpos_enabled ) {
+		global $wpdb;
+
+		$original_hpos = get_option( 'woocommerce_custom_orders_table_enabled', 'no' );
+		add_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+		update_option( 'woocommerce_custom_orders_table_enabled', $hpos_enabled );
+		$this->assertSame( 'yes' === $hpos_enabled, WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() );
+
+		$order     = WC_Helper_Order::create_order();
+		$order_id  = $order->get_id();
+		$charge_id = 'ch_settled_elsewhere';
+		$order     = wc_get_order( $order_id );
+
+		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
+			$wpdb->update(
+				$wpdb->prefix . 'wc_orders',
+				[
+					'status'         => 'wc-processing',
+					'transaction_id' => $charge_id,
+				],
+				[ 'id' => $order_id ]
+			);
+		} else {
+			$wpdb->update( $wpdb->posts, [ 'post_status' => 'wc-processing' ], [ 'ID' => $order_id ] );
+			// Clears only the meta cache; the cached post keeps the Pending status.
+			update_post_meta( $order_id, '_transaction_id', $charge_id );
+		}
+
+		$payment_complete_calls = 0;
+		$count_payment_complete = static function () use ( &$payment_complete_calls ) {
+			++$payment_complete_calls;
+		};
+		add_action( 'woocommerce_payment_complete', $count_payment_complete );
+
+		try {
+			$this->gateway->process_response( $this->build_succeeded_charge( $charge_id ), $order );
+			$notes = wc_get_order_notes( [ 'order_id' => $order_id ] );
+		} finally {
+			remove_action( 'woocommerce_payment_complete', $count_payment_complete );
+			update_option( 'woocommerce_custom_orders_table_enabled', $original_hpos );
+			remove_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+		}
+
+		$this->assertSame( 0, $payment_complete_calls );
+		$this->assertSame( [], $notes );
+	}
+
+	/**
+	 * @return array
+	 */
+	public function provide_order_storage_modes(): array {
+		return [
+			'legacy CPT' => [ 'no' ],
+			'HPOS'       => [ 'yes' ],
+		];
+	}
+
+	/**
 	 * Builds a succeeded charge whose balance transaction carries a fee.
 	 *
 	 * @param string $charge_id The charge ID.

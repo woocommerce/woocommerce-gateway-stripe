@@ -654,6 +654,22 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Checks whether the stored order is paid, bypassing the copies this request has cached.
+	 *
+	 * @param WC_Order $order The order to check.
+	 * @return bool
+	 */
+	private function is_paid_in_storage( WC_Order $order ): bool {
+		clean_post_cache( $order->get_id() );
+		if ( class_exists( \Automattic\WooCommerce\Caches\OrderCache::class ) ) {
+			wc_get_container()->get( \Automattic\WooCommerce\Caches\OrderCache::class )->remove( $order->get_id() );
+		}
+		$stored_order = wc_get_order( $order->get_id() );
+
+		return $stored_order instanceof WC_Order && $stored_order->is_paid();
+	}
+
+	/**
 	 * Stores the charge data on the order while the Stripe transaction lock is held.
 	 *
 	 * @param object $response The Charge response from Stripe.
@@ -680,10 +696,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		// The webhook, the shopper's return and reconciliation can all deliver the same charge, and
-		// the caller's order may have been read before another of them settled it. Only the linked
-		// order, read under the charge lock, is current. Recording again would add the fees twice
-		// and could repeat the paid transition, so a charge already settled on this order is done.
-		if ( $linked_order && $linked_order->is_paid() ) {
+		// the caller's order may have been read before another of them settled it. Recording again
+		// would add the fees twice and could repeat the paid transition, so a charge already settled
+		// on this order is done. Only a read that skips this request's caches sees the other request.
+		if ( $linked_order && $this->is_paid_in_storage( $linked_order ) ) {
 			WC_Stripe_Logger::info(
 				'Skipping charge processing, the charge is already recorded on the paid order.',
 				[
