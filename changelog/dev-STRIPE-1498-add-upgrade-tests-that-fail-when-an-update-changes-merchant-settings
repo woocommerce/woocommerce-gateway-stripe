@@ -1,0 +1,4 @@
+Significance: patch
+Type: dev
+
+Add upgrade regression tests for merchant settings and Stripe configuration writes
