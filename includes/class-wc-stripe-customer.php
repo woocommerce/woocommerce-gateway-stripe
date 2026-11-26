@@ -347,7 +347,7 @@ class WC_Stripe_Customer {
 			];
 		}
 
-		if ( $order instanceof WC_Order && 'store-api' === $order->get_created_via() ) {
+		if ( $order instanceof WC_Order && WC_Stripe_Checkout_State::get_instance()->is_store_api_checkout() ) {
 			// The request's country can come from the customer's saved address, which WooCommerce did not validate this order against.
 			$billing_country         = $order->get_billing_country();
 			$required_billing_fields = $this->get_locale_required_billing_fields( is_string( $billing_country ) ? $billing_country : '' );
