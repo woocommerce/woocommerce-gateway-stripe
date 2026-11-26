@@ -254,9 +254,11 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Owner tokens of the order payment locks this request holds, keyed by order ID.
 	 *
+	 * Static, so a lock taken through one helper instance can be released through another.
+	 *
 	 * @var array<int, string>
 	 */
-	private array $payment_lock_owners = [];
+	private static array $payment_lock_owners = [];
 
 	/**
 	 * Gets the singleton instance of the class.
@@ -1653,7 +1655,7 @@ class WC_Stripe_Order_Helper {
 			return true;
 		}
 
-		$this->payment_lock_owners[ $order->get_id() ] = $owner;
+		self::$payment_lock_owners[ $order->get_id() ] = $owner;
 
 		// The meta stays as the readable lock state for existing readers, and for requests still running older code.
 		$new_lock = ( time() + self::PAYMENT_LOCK_TTL );
@@ -1680,9 +1682,9 @@ class WC_Stripe_Order_Helper {
 		// call, so a nested caller in the holding request would still release it. An abandoned lock
 		// expires after its TTL.
 		$order_id = $order->get_id();
-		if ( isset( $this->payment_lock_owners[ $order_id ] ) ) {
-			WC_Stripe_Option_Lock::release( self::PAYMENT_LOCK_OPTION_PREFIX . $order_id, $this->payment_lock_owners[ $order_id ] );
-			unset( $this->payment_lock_owners[ $order_id ] );
+		if ( isset( self::$payment_lock_owners[ $order_id ] ) ) {
+			WC_Stripe_Option_Lock::release( self::PAYMENT_LOCK_OPTION_PREFIX . $order_id, self::$payment_lock_owners[ $order_id ] );
+			unset( self::$payment_lock_owners[ $order_id ] );
 		}
 	}
 
