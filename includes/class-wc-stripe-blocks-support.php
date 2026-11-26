@@ -62,6 +62,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			);
 		}
 
+		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'maybe_update_stripe_checkout_type' ], 1, 1 );
 		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'add_express_checkout_order_meta' ], 8, 2 );
 		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'add_stripe_intents' ], 9999, 2 );
 		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'fail_unprocessed_payment' ], 10000, 2 );
@@ -550,6 +551,23 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	public function add_payment_request_order_meta( PaymentContext $context, PaymentResult &$result ) {
 		wc_deprecated_function( __METHOD__, '10.6.0', 'WC_Stripe_Blocks_Support::add_express_checkout_order_meta' );
 		$this->add_express_checkout_order_meta( $context, $result );
+	}
+
+	/**
+	 * Maybe update the Stripe checkout state tracking to know that we're processing a store API checkout.
+	 * The state is only updated when we have a Stripe payment method.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param PaymentContext $context Holds context for the payment.
+	 * @return void
+	 */
+	public function maybe_update_stripe_checkout_type( PaymentContext $context ): void {
+		if ( ! $this->is_stripe_payment_method( (string) $context->payment_method ) ) {
+			return;
+		}
+
+		WC_Stripe_Checkout_State::get_instance()->set_store_api_checkout();
 	}
 
 	/**

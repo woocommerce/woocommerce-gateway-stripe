@@ -44,6 +44,7 @@
         "includes/class-wc-stripe-api-outage-status.php",
         "includes/class-wc-stripe-checkout-session-lifecycle.php",
         "includes/class-wc-stripe-checkout-session-manager.php",
+        "includes/class-wc-stripe-checkout-state.php",
         "includes/class-wc-stripe-co-branded-cc-compatibility.php",
         "includes/class-wc-stripe-duplicate-payment-prevention.php",
         "includes/class-wc-stripe-event-post-store.php",
