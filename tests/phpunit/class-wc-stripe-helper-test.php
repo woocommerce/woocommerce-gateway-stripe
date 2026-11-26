@@ -22,6 +22,52 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Rendering can differ from post content, and Stripe may become available only after an address update.
+	 *
+	 * @since x.x.x
+	 * @dataProvider provide_classic_checkout_script_contexts
+	 * @param string $content Page content.
+	 * @param bool   $form_rendered Whether the classic form has been rendered.
+	 * @param bool   $expected Whether classic checkout scripts are required.
+	 * @return void
+	 */
+	public function test_should_load_classic_checkout_scripts( string $content, bool $form_rendered, bool $expected ): void {
+		$page = self::factory()->post->create(
+			[
+				'post_type'    => 'page',
+				'post_content' => $content,
+			]
+		);
+		$this->go_to( get_permalink( $page ) );
+		$original_render_count                                     = $GLOBALS['wp_actions']['woocommerce_before_checkout_form'] ?? 0;
+		$GLOBALS['wp_actions']['woocommerce_before_checkout_form'] = (int) $form_rendered; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Isolate the render signal between page fixtures.
+		add_filter( 'woocommerce_available_payment_gateways', '__return_empty_array' );
+
+		try {
+			$this->assertSame( $expected, WC_Stripe_Helper::should_load_classic_checkout_scripts() );
+		} finally {
+			$GLOBALS['wp_actions']['woocommerce_before_checkout_form'] = $original_render_count; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Isolate the render signal between page fixtures.
+			remove_filter( 'woocommerce_available_payment_gateways', '__return_empty_array' );
+		}
+	}
+
+	/**
+	 * @since x.x.x
+	 * @return array
+	 */
+	public function provide_classic_checkout_script_contexts(): array {
+		return [
+			'plain page without a form'       => [ '', false, false ],
+			'classic cart'                    => [ '[woocommerce_cart]', false, false ],
+			'Blocks checkout'                 => [ '<!-- wp:woocommerce/checkout /-->', false, false ],
+			'unrendered checkout shortcode'   => [ '[woocommerce_checkout]', false, false ],
+			'rendered checkout shortcode'     => [ '[woocommerce_checkout]', true, true ],
+			'custom rendered checkout form'   => [ '', true, true ],
+			'rendered form with a stale post' => [ '<!-- wp:woocommerce/checkout /-->', true, true ],
+		];
+	}
+
+	/**
 	 * The available store currencies always contain the normalized base currency
 	 * and only valid strings added through the public filter.
 	 *

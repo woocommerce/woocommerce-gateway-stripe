@@ -1,0 +1,4 @@
+Significance: patch
+Type: update
+
+Avoid loading unnecessary Stripe checkout scripts on product, cart, and Blocks checkout pages
