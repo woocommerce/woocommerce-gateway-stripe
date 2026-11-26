@@ -189,6 +189,68 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests for `get_refund_by_stripe_refund_id`.
+	 *
+	 * @param string      $lookup_id       Stripe refund ID to look up.
+	 * @param string|null $expected_record Which fixture record must be returned, or null for no match.
+	 *
+	 * @dataProvider provide_test_get_refund_by_stripe_refund_id
+	 */
+	public function test_get_refund_by_stripe_refund_id( string $lookup_id, ?string $expected_record ): void {
+		$order = WC_Helper_Order::create_order();
+
+		$records = [
+			'tagged'   => wc_create_refund(
+				[
+					'order_id' => $order->get_id(),
+					'amount'   => 5.00,
+				]
+			),
+			'untagged' => wc_create_refund(
+				[
+					'order_id' => $order->get_id(),
+					'amount'   => 7.00,
+				]
+			),
+		];
+		$this->helper->update_stripe_refund_id_for_refund( $records['tagged'], 're_1' );
+		$records['tagged']->save_meta_data();
+
+		$found = $this->helper->get_refund_by_stripe_refund_id( wc_get_order( $order->get_id() ), $lookup_id );
+
+		if ( null === $expected_record ) {
+			$this->assertNull( $found );
+			return;
+		}
+
+		$this->assertInstanceOf( WC_Order_Refund::class, $found );
+		$this->assertSame( $records[ $expected_record ]->get_id(), $found->get_id() );
+	}
+
+	/**
+	 * Data provider for `test_get_refund_by_stripe_refund_id`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_refund_by_stripe_refund_id(): array {
+		return [
+			'matching ID' => [
+				'lookup id'       => 're_1',
+				'expected record' => 'tagged',
+			],
+			'unknown ID'  => [
+				'lookup id'       => 're_2',
+				'expected record' => null,
+			],
+			// Untagged records read as an empty ID, which must not match an empty lookup.
+			'empty ID'    => [
+				'lookup id'       => '',
+				'expected record' => null,
+			],
+		];
+	}
+
+	/**
 	 * Tests for `lock_order_refund`, `get_order_existing_refund_lock`, `unlock_order_refund`,
 	 * `lock_order_payment`, `get_order_existing_payment_lock`, and `unlock_order_payment`.
 	 *

@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Stop redelivered Stripe refund webhooks from creating duplicate refunds or deleting the wrong refund on orders with several refunds
