@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Keep the duplicate-charge guard protecting a guest when another guest order with the same cart and email reaches its order-received page
