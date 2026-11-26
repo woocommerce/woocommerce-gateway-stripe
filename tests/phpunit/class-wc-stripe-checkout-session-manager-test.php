@@ -80,6 +80,9 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 				'pmc_enabled'                => 'yes',
 				'capture'                    => 'yes',
 				'testmode'                   => 'yes',
+				'test_publishable_key'       => 'pk_test_1234567890',
+				'test_secret_key'            => 'sk_test_1234567890',
+				'test_connection_type'       => 'connect',
 				'webhook_data'               => [
 					'id'     => 'we_live',
 					'secret' => 'whsec_live',
@@ -90,6 +93,10 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 				],
 			]
 		);
+
+		// should_render_optimized_checkout() requires a connected store and resolved PMC ID.
+		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+		PMC_Test_Helper::cache_mocked_configuration();
 
 		$reflection = new ReflectionProperty( WC_Stripe::class, 'stripe_gateway' );
 		$reflection->setAccessible( true );
@@ -114,6 +121,7 @@ class WC_Stripe_Checkout_Session_Manager_Test extends WP_UnitTestCase {
 		WC_Deposits_Product_Manager::set_deposits_enabled( false );
 
 		return function () use ( $original_settings, $original_account, $reflection, $webhook_status_cache_key ): void {
+			WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
 			WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
 			WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'live' );
 			WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'test' );

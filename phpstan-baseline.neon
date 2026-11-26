@@ -2257,12 +2257,6 @@ parameters:
 			path: includes/class-wc-stripe-payment-method-configurations.php
 
 		-
-			message: '#^Cannot access property \$data on array\.$#'
-			identifier: property.nonObject
-			count: 1
-			path: includes/class-wc-stripe-payment-method-configurations.php
-
-		-
 			message: '#^Method WC_Stripe_Payment_Method_Configurations\:\:disable_payment_method_configuration_sync\(\) has no return type specified\.$#'
 			identifier: missingType.return
 			count: 1

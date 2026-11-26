@@ -81,6 +81,8 @@ abstract class WC_Mock_Stripe_API_Unit_Test_Case extends WP_UnitTestCase {
 		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
 		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 'test' );
 		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, 'live' );
+		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Payment_Method_Configurations::FETCH_FAILURE_COOLDOWN_CACHE_KEY, 'test' );
+		WC_Stripe_Database_Cache::delete_with_mode( WC_Stripe_Payment_Method_Configurations::FETCH_FAILURE_COOLDOWN_CACHE_KEY, 'live' );
 		delete_option( WC_Stripe_Payment_Method_Configurations::FETCH_COOLDOWN_OPTION_KEY );
 	}
 

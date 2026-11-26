@@ -58,8 +58,16 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 	 * @return bool
 	 */
 	public function should_render_optimized_checkout(): bool {
-		return $this->is_valid_optimized_checkout_page()
+		$is_oc_context = $this->is_valid_optimized_checkout_page()
 			|| ( is_admin() && WC_Stripe::get_instance()->is_editing_cart_or_checkout_block() );
+
+		if ( ! $is_oc_context ) {
+			return false;
+		}
+
+		// Without a resolved PMC ID, Stripe.js and Checkout Sessions would fall back to the
+		// account-default configuration instead of the merchant's saved method selections.
+		return null !== WC_Stripe_Payment_Method_Configurations::get_configuration_id();
 	}
 
 	/**
@@ -475,6 +483,19 @@ class WC_Stripe_OCS_Payment_Gateway extends WC_Stripe_UPE_Payment_Gateway {
 			// Express paths won't have a payment method created yet; fall back to the express type.
 			if ( '' === $selected_payment_type && null !== $express_payment_type ) {
 				$selected_payment_type = $express_payment_type;
+			}
+
+			// When PMC lookup failed and checkout fell back to classic per-method elements,
+			// resolve explicit payment_method_types (including Card + Link) from the parent logic.
+			if ( null === WC_Stripe_Payment_Method_Configurations::get_configuration_id() ) {
+				return parent::resolve_intent_payment_method_types(
+					$selected_payment_type,
+					$payment_method_id,
+					$payment_method_details,
+					$order,
+					$express_payment_type,
+					$save_payment_method_to_store
+				);
 			}
 		} else {
 			$selected_payment_type = $payment_method_details->type;

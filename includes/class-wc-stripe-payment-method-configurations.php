@@ -50,6 +50,15 @@ class WC_Stripe_Payment_Method_Configurations {
 	public const FETCH_COOLDOWN_OPTION_KEY = 'wcstripe_payment_method_config_fetch_cooldown';
 
 	/**
+	 * The cache key tracking whether the latest PMC fetch failed during the active cooldown window.
+	 *
+	 * @since x.x.x
+	 * @version x.x.x
+	 * @var string
+	 */
+	public const FETCH_FAILURE_COOLDOWN_CACHE_KEY = 'payment_method_config_fetch_failure_cooldown';
+
+	/**
 	 * Get the merchant payment method configuration in Stripe.
 	 *
 	 * @param bool $force_refresh Whether to force a refresh of the payment method configuration from Stripe.
@@ -58,7 +67,8 @@ class WC_Stripe_Payment_Method_Configurations {
 	private static function get_primary_configuration( $force_refresh = false ) {
 		// Only allow fetching payment configuration once per minute.
 		// Even when $force_refresh is true, we will not fetch the configuration from Stripe more than once per minute.
-		$fetch_cooldown = get_option( self::FETCH_COOLDOWN_OPTION_KEY, 0 );
+		$raw_cooldown   = get_option( self::FETCH_COOLDOWN_OPTION_KEY, 0 );
+		$fetch_cooldown = is_numeric( $raw_cooldown ) ? (int) $raw_cooldown : 0;
 		$is_in_cooldown = $fetch_cooldown > time();
 		if ( ! $force_refresh || $is_in_cooldown ) {
 			$cached_primary_configuration = self::get_payment_method_configuration_from_cache();
@@ -67,13 +77,19 @@ class WC_Stripe_Payment_Method_Configurations {
 				return $cached_primary_configuration;
 			}
 
+			if ( null !== WC_Stripe_Database_Cache::get( self::FETCH_FAILURE_COOLDOWN_CACHE_KEY ) ) {
+				return null;
+			}
+
 			// Intentionally fall through to fetching the data from Stripe if we don't have it locally,
-			// even when $force_refresh == false and/or $is_in_cooldown is true.
+			// even when $force_refresh == false and/or $is_in_cooldown is true, unless a prior fetch
+			// in this cooldown window failed.
 			// We _need_ the payment method configuration for things to work as expected,
 			// so we will fetch it if we don't have anything locally.
 		}
 
 		update_option( self::FETCH_COOLDOWN_OPTION_KEY, time() + MINUTE_IN_SECONDS );
+		WC_Stripe_Database_Cache::delete( self::FETCH_FAILURE_COOLDOWN_CACHE_KEY );
 
 		return self::get_payment_method_configuration_from_stripe();
 	}
@@ -98,6 +114,18 @@ class WC_Stripe_Payment_Method_Configurations {
 	}
 
 	/**
+	 * Checks whether a payment method configuration is currently available in cache.
+	 *
+	 * @since x.x.x
+	 * @version x.x.x
+	 *
+	 * @return bool
+	 */
+	public static function has_cached_configuration(): bool {
+		return null !== self::get_payment_method_configuration_from_cache();
+	}
+
+	/**
 	 * Clear the payment method configuration from cache.
 	 *
 	 * @return void
@@ -105,6 +133,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	public static function clear_payment_method_configuration_cache() {
 		self::clear_in_memory_payment_method_configuration_cache();
 		WC_Stripe_Database_Cache::delete( self::CONFIGURATION_CACHE_KEY );
+		WC_Stripe_Database_Cache::delete( self::FETCH_FAILURE_COOLDOWN_CACHE_KEY );
 	}
 
 	/**
@@ -127,6 +156,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	private static function set_payment_method_configuration_cache( $configuration ) {
 		self::$primary_configuration = $configuration;
 		WC_Stripe_Database_Cache::set( self::CONFIGURATION_CACHE_KEY, $configuration, self::CONFIGURATION_CACHE_EXPIRATION );
+		WC_Stripe_Database_Cache::delete( self::FETCH_FAILURE_COOLDOWN_CACHE_KEY );
 		self::sync_payment_methods_to_settings( $configuration );
 	}
 
@@ -193,8 +223,26 @@ class WC_Stripe_Payment_Method_Configurations {
 			// If the preselected Payment Method Configuration is not found, we continue with the default logic below.
 		}
 
-		$result         = WC_Stripe_API::get_instance()->get_payment_method_configurations();
-		$configurations = $result->data ?? [];
+		$result = WC_Stripe_API::get_instance()->get_payment_method_configurations();
+
+		// `WC_Stripe_API::get_payment_method_configurations()` returns null on invalid keys,
+		// WP_Error on transport failures, and an object with `->error` set on Stripe API errors.
+		// Bail without mutating pmc_enabled or the stored fallback ID when the response is failed or malformed.
+		$configurations = is_object( $result ) && ! is_wp_error( $result ) && empty( $result->error )
+			? ( $result->data ?? null )
+			: null;
+
+		if ( ! is_array( $configurations ) || ! self::are_all_configuration_objects( $configurations ) ) {
+			WC_Stripe_Logger::error(
+				'Error retrieving Payment Method Configurations',
+				[
+					'response'    => $result,
+					'stripe_mode' => $is_test_mode ? 'test' : 'live',
+				]
+			);
+			WC_Stripe_Database_Cache::set( self::FETCH_FAILURE_COOLDOWN_CACHE_KEY, true, MINUTE_IN_SECONDS );
+			return null;
+		}
 
 		[
 			'pmc'    => $pmc,
@@ -216,6 +264,23 @@ class WC_Stripe_Payment_Method_Configurations {
 
 		self::set_payment_method_configuration_cache( $pmc );
 		return $pmc;
+	}
+
+	/**
+	 * Checks whether every member of a Stripe configuration list response is an object with a configuration ID.
+	 *
+	 * @param array $configurations List entries returned by Stripe.
+	 * @return bool
+	 */
+	private static function are_all_configuration_objects( array $configurations ): bool {
+		foreach ( $configurations as $configuration ) {
+			$configuration_id = is_object( $configuration ) ? ( $configuration->id ?? null ) : null;
+			if ( ! is_string( $configuration_id ) || '' === trim( $configuration_id ) ) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/**
@@ -516,6 +581,34 @@ class WC_Stripe_Payment_Method_Configurations {
 	}
 
 	/**
+	 * Get the UPE enabled payment method IDs stored in local plugin settings.
+	 *
+	 * @param bool $include_express_checkout Whether to include Apple Pay and Google Pay when express checkout is enabled locally.
+	 * @return array
+	 */
+	private static function get_saved_upe_enabled_payment_method_ids( bool $include_express_checkout = false ): array {
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		if ( ! empty( $stripe_settings['upe_checkout_experience_accepted_payments'] ) && is_array( $stripe_settings['upe_checkout_experience_accepted_payments'] ) ) {
+			$enabled_methods = $stripe_settings['upe_checkout_experience_accepted_payments'];
+		} else {
+			$enabled_methods = [ WC_Stripe_Payment_Methods::CARD ];
+		}
+
+		if ( $include_express_checkout && 'yes' === ( $stripe_settings['express_checkout'] ?? '' ) ) {
+			$enabled_methods = array_values(
+				array_unique(
+					array_merge(
+						$enabled_methods,
+						[ WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ]
+					)
+				)
+			);
+		}
+
+		return $enabled_methods;
+	}
+
+	/**
 	 * Get the UPE enabled payment method IDs.
 	 *
 	 * @param bool $force_refresh Whether to force a refresh of the payment method configuration from Stripe.
@@ -524,23 +617,21 @@ class WC_Stripe_Payment_Method_Configurations {
 	public static function get_upe_enabled_payment_method_ids( $force_refresh = false ) {
 		// If the payment method configurations API is not enabled, we fallback to the enabled payment methods stored in the DB.
 		if ( ! self::is_enabled() ) {
-			$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-			return isset( $stripe_settings['upe_checkout_experience_accepted_payments'] ) && ! empty( $stripe_settings['upe_checkout_experience_accepted_payments'] )
-				? $stripe_settings['upe_checkout_experience_accepted_payments']
-				: [ WC_Stripe_Payment_Methods::CARD ];
+			return self::get_saved_upe_enabled_payment_method_ids();
 		}
 
 		// Migrate payment methods from DB to Stripe PMC if needed
 		self::maybe_migrate_payment_methods_from_db_to_pmc();
 
-		$enabled_payment_method_ids            = [];
 		$merchant_payment_method_configuration = self::get_primary_configuration( $force_refresh );
+		if ( ! $merchant_payment_method_configuration ) {
+			return self::get_saved_upe_enabled_payment_method_ids( self::is_enabled() );
+		}
 
-		if ( $merchant_payment_method_configuration ) {
-			foreach ( $merchant_payment_method_configuration as $payment_method_id => $payment_method ) {
-				if ( isset( $payment_method->display_preference->value ) && 'on' === $payment_method->display_preference->value ) {
-					$enabled_payment_method_ids[] = $payment_method_id;
-				}
+		$enabled_payment_method_ids = [];
+		foreach ( $merchant_payment_method_configuration as $payment_method_id => $payment_method ) {
+			if ( isset( $payment_method->display_preference->value ) && 'on' === $payment_method->display_preference->value ) {
+				$enabled_payment_method_ids[] = $payment_method_id;
 			}
 		}
 
@@ -647,6 +738,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * Check if the payment method configurations API can be used to store enabled payment methods.
 	 * This requires the Stripe account to be connected to Stripe.
 	 *
+	 * @phpstan-impure Reads Stripe settings that may be mutated during PMC synchronization.
 	 * @return bool
 	 */
 	public static function is_enabled() {
@@ -696,6 +788,7 @@ class WC_Stripe_Payment_Method_Configurations {
 		// we cache below and make a redundant Stripe call — one that, on a transient failure, could
 		// flip pmc_enabled to 'no' and undo the protection this method provides.
 		update_option( self::FETCH_COOLDOWN_OPTION_KEY, time() + MINUTE_IN_SECONDS );
+		WC_Stripe_Database_Cache::delete( self::FETCH_FAILURE_COOLDOWN_CACHE_KEY );
 
 		$usable_pmc   = null;
 		$is_test_mode = WC_Stripe_Mode::is_test();
@@ -712,6 +805,7 @@ class WC_Stripe_Payment_Method_Configurations {
 						'error'  => $preselected_pmc['error'],
 					]
 				);
+				WC_Stripe_Database_Cache::set( self::FETCH_FAILURE_COOLDOWN_CACHE_KEY, true, MINUTE_IN_SECONDS );
 				return;
 			}
 			$usable_pmc = $preselected_pmc['configuration'];
@@ -729,6 +823,7 @@ class WC_Stripe_Payment_Method_Configurations {
 					'Skipping PMC availability refresh because the Stripe API call failed',
 					[ 'response' => $api_response ]
 				);
+				WC_Stripe_Database_Cache::set( self::FETCH_FAILURE_COOLDOWN_CACHE_KEY, true, MINUTE_IN_SECONDS );
 				return;
 			}
 
@@ -871,5 +966,6 @@ class WC_Stripe_Payment_Method_Configurations {
 		$stripe_settings                = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['pmc_enabled'] = 'no';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Database_Cache::delete( self::FETCH_FAILURE_COOLDOWN_CACHE_KEY );
 	}
 }
