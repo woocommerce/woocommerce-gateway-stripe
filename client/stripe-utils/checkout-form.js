@@ -13,6 +13,11 @@ export function blockCheckoutForm( jQueryForm ) {
 	} );
 }
 
+/**
+ * Unblock UI to indicate that processing is complete.
+ *
+ * @param {Object} jQueryForm The jQuery object for the form.
+ */
 export function unblockCheckoutForm( jQueryForm ) {
 	jQueryForm.removeClass( 'processing' ).unblock();
 }
