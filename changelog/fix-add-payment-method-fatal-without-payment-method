@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Prevent a fatal error on the My Account "Add payment method" page when the submitted setup intent has no usable payment method
