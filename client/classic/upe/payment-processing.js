@@ -44,6 +44,7 @@ import {
 } from 'wcstripe/stripe-utils/constants';
 import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/handle-display-of-payment-instructions';
 import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handle-display-of-saving-checkbox';
+import { getAlreadyPaidOrderUrl } from 'wcstripe/stripe-utils/get-already-paid-order-url';
 
 /**
  * @typedef {Object} UPEComponent
@@ -1434,6 +1435,15 @@ export const processPayment = (
 				const confirmResult = await actions.confirm( confirmArgs );
 
 				if ( confirmResult.type === 'error' ) {
+					const alreadyPaidOrderUrl = await getAlreadyPaidOrderUrl(
+						checkoutResponse.redirect,
+						jQueryForm.find( '#billing_email' ).val()
+					);
+					if ( alreadyPaidOrderUrl ) {
+						navigateTo( alreadyPaidOrderUrl );
+						return;
+					}
+
 					throw new Error(
 						confirmResult.error?.message ??
 							__(

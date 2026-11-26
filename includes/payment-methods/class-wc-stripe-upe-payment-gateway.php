@@ -1705,9 +1705,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				}
 			}
 
-			if ( $this->is_using_saved_payment_method() && $order instanceof WC_Order ) {
+			if ( $order instanceof WC_Order ) {
 				try {
-					$this->retire_checkout_session_for_saved_payment( $order );
+					if ( ! $this->retire_stored_checkout_session( $order ) ) {
+						return $this->get_payment_already_in_progress_response();
+					}
 				} catch ( WC_Stripe_Exception $e ) {
 					// Keep the order pending so the existing Session can still reconcile if retirement failed.
 					return $this->handle_process_payment_error( $e, $order, false );
@@ -1779,10 +1781,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * The Store API (Blocks) reads `errorMessage` and ignores notices; classic checkout reads the notice.
 	 *
-	 * @param string $message The message to show the shopper.
+	 * @param string $message     The message to show the shopper.
+	 * @param string $notice_type The classic checkout notice type.
 	 * @return array The failure response.
 	 */
-	private function get_checkout_failure_response( string $message ): array {
+	private function get_checkout_failure_response( string $message, string $notice_type = 'error' ): array {
 		$response = [
 			'result'   => 'failure',
 			'redirect' => '',
@@ -1791,7 +1794,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		if ( WC()->is_store_api_request() ) {
 			$response['errorMessage'] = $message;
 		} else {
-			wc_add_notice( $message, 'error' );
+			wc_add_notice( $message, $notice_type );
 			$response['message'] = $message;
 		}
 
@@ -1836,30 +1839,97 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Retires an order's remote Checkout Session before a saved payment method is charged.
+	 * Unlinks the order's stored Checkout Session before a new payment attempt, unless its payment may still succeed.
 	 *
-	 * An unsuccessful embedded Checkout Session remains open and can be completed later. Retiring
-	 * it before starting another payment prevents a late Session webhook or customer retry from
-	 * creating a second charge for the same order.
-	 *
-	 * @param WC_Order $order The order being retried.
-	 * @return void
-	 * @throws WC_Stripe_Exception When the Session cannot be confirmed as expired.
+	 * @param WC_Order $order                  The order being paid.
+	 * @param string   $replacement_session_id The Checkout Session about to be linked, if any.
+	 * @return bool False when the stored session's payment may still succeed, so the new attempt must not go ahead.
+	 * @throws WC_Stripe_Exception When the stored session cannot be checked or expired.
 	 */
-	private function retire_checkout_session_for_saved_payment( WC_Order $order ): void {
+	private function retire_stored_checkout_session( WC_Order $order, string $replacement_session_id = '' ): bool {
 		$order_helper        = WC_Stripe_Order_Helper::get_instance();
 		$checkout_session_id = $order_helper->get_stripe_checkout_session_id( $order );
-		if ( ! is_string( $checkout_session_id ) || '' === $checkout_session_id ) {
-			return;
+		if ( ! is_string( $checkout_session_id ) || '' === $checkout_session_id || $replacement_session_id === $checkout_session_id ) {
+			return true;
 		}
 
-		if ( 'expired' !== $this->expire_checkout_session_if_open( $checkout_session_id ) ) {
+		// Webhooks find an Adaptive Pricing payment only through the session ID stored on the order,
+		// since its intent is created before the order exists. Unlinking a session that can still be
+		// paid would orphan that payment, and the customer would be charged twice.
+		$checkout_session = $this->retrieve_checkout_session( $checkout_session_id );
+		if ( $this->is_checkout_session_missing( $checkout_session_id, $checkout_session ) ) {
+			// After switching modes or Stripe accounts, the stored session doesn't exist on the connected
+			// account, so it can't take a payment here. Keeping it would block every retry for good.
+			$checkout_session_status = 'missing';
+		} else {
+			$checkout_session_status = $this->expire_checkout_session_if_open( $checkout_session_id, $checkout_session );
+		}
+
+		if ( 'complete' === $checkout_session_status && $this->may_checkout_session_payment_succeed( $checkout_session, $order ) ) {
+			// One note per blocked attempt, so a merchant asked about repeated payment attempts can see each of them.
+			$order->add_order_note(
+				sprintf(
+					/* translators: %s: Stripe Checkout Session ID. */
+					__( 'Stripe: a new payment attempt was blocked because the payment for Checkout Session %s is still processing or already paid. The customer was not charged again.', 'woocommerce-gateway-stripe' ),
+					$checkout_session_id
+				)
+			);
+			return false;
+		}
+
+		if ( ! in_array( $checkout_session_status, [ 'expired', 'complete', 'missing' ], true ) ) {
 			throw new WC_Stripe_Exception( 'Checkout Session is not expireable.', WC_Stripe_Checkout_Session_Context::get_unavailable_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 		}
 
 		$order_helper->delete_stripe_checkout_session_id( $order );
 		$order->save();
 		WC_Stripe_Checkout_Session_Context::delete_context( $checkout_session_id );
+
+		return true;
+	}
+
+	/**
+	 * Retrieves a Checkout Session from Stripe, returning the raw response, which may be an error.
+	 *
+	 * @param string $checkout_session_id Stripe Checkout Session ID.
+	 * @return mixed The Stripe response.
+	 * @throws WC_Stripe_Exception When the request fails.
+	 */
+	private function retrieve_checkout_session( string $checkout_session_id ) {
+		try {
+			return $this->stripe_request( 'checkout/sessions/' . $checkout_session_id );
+		} catch ( Exception $e ) {
+			throw new WC_Stripe_Exception( $e->getMessage(), WC_Stripe_Checkout_Session_Context::get_unavailable_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+	}
+
+	/**
+	 * Checks whether Stripe reports the Checkout Session as missing on the connected account.
+	 *
+	 * @param string $checkout_session_id Stripe Checkout Session ID.
+	 * @param mixed  $response            Stripe's response for the session.
+	 * @return bool True only when Stripe answers with `resource_missing`.
+	 */
+	private function is_checkout_session_missing( string $checkout_session_id, $response ): bool {
+		// Test keys can't see live sessions, so a live one looks missing while the store is in test mode.
+		// Its payment is real money that settles once the store is back in live mode, so keep it linked.
+		if ( str_starts_with( $checkout_session_id, 'cs_live_' ) && WC_Stripe_Mode::is_test() ) {
+			return false;
+		}
+
+		return is_object( $response ) && 'resource_missing' === ( $response->error->code ?? '' );
+	}
+
+	/**
+	 * Builds the response for a new payment attempt turned away because an earlier one may still succeed.
+	 *
+	 * @return array The failure response.
+	 */
+	private function get_payment_already_in_progress_response(): array {
+		return $this->get_checkout_failure_response(
+			__( 'A payment for this order is already being processed, so we did not charge you again. You will get a confirmation email once it completes. If you do not, please contact the store.', 'woocommerce-gateway-stripe' ),
+			'notice'
+		);
 	}
 
 	/**
@@ -1868,15 +1938,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @since x.x.x
 	 *
 	 * @param string $checkout_session_id Stripe Checkout Session ID.
+	 * @param mixed  $checkout_session    The session as already retrieved from Stripe, or null to retrieve it here.
 	 * @return string The Session's status afterwards: `expired`, or the status that made it impossible to expire (for example `complete`).
 	 * @throws WC_Stripe_Exception When the Session cannot be retrieved or an open Session cannot be confirmed as expired.
 	 */
-	private function expire_checkout_session_if_open( string $checkout_session_id ): string {
+	private function expire_checkout_session_if_open( string $checkout_session_id, $checkout_session = null ): string {
 		$unavailable_message = WC_Stripe_Checkout_Session_Context::get_unavailable_message();
-		try {
-			$checkout_session = $this->stripe_request( 'checkout/sessions/' . $checkout_session_id );
-		} catch ( Exception $e ) {
-			throw new WC_Stripe_Exception( $e->getMessage(), $unavailable_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		if ( null === $checkout_session ) {
+			$checkout_session = $this->retrieve_checkout_session( $checkout_session_id );
 		}
 		if (
 			! is_object( $checkout_session )
@@ -1909,6 +1978,77 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		return 'expired';
+	}
+
+	/**
+	 * Checks whether a completed Checkout Session's payment may still succeed.
+	 *
+	 * An async method (for example a bank debit) completes the session while the payment is still
+	 * processing, and a failed one leaves it completed as well. Only the PaymentIntent tells the two
+	 * apart, so anything other than a confirmed failure counts as "may still succeed".
+	 *
+	 * @param object   $checkout_session The completed Checkout Session, already validated by `expire_checkout_session_if_open()`.
+	 * @param WC_Order $order            The order being paid.
+	 * @return bool False only when the payment has definitely failed.
+	 * @throws WC_Stripe_Exception When the PaymentIntent cannot be retrieved.
+	 */
+	private function may_checkout_session_payment_succeed( object $checkout_session, WC_Order $order ): bool {
+		$payment_status = isset( $checkout_session->payment_status ) && is_string( $checkout_session->payment_status )
+			? $checkout_session->payment_status
+			: '';
+		$intent_id      = isset( $checkout_session->payment_intent ) && is_string( $checkout_session->payment_intent )
+			? $checkout_session->payment_intent
+			: '';
+		$intent_status  = '';
+
+		if ( 'paid' !== $payment_status ) {
+			$intent_status = $this->get_checkout_session_intent_status( $intent_id );
+		}
+
+		$failed_intent_statuses = [ WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD, WC_Stripe_Intent_Status::CANCELED ];
+		if ( in_array( $intent_status, $failed_intent_statuses, true ) ) {
+			// The earlier payment failed and a completed session can't be paid again, so it's safe to replace.
+			return false;
+		}
+
+		WC_Stripe_Logger::info(
+			'Blocking a new payment attempt while the order\'s completed Checkout Session may still be paid.',
+			[
+				'order_id'            => $order->get_id(),
+				'checkout_session_id' => (string) ( $checkout_session->id ?? '' ),
+				'payment_status'      => $payment_status,
+				'payment_intent_id'   => $intent_id,
+				'intent_status'       => $intent_status,
+			]
+		);
+
+		return true;
+	}
+
+	/**
+	 * Returns the status of a completed Checkout Session's PaymentIntent.
+	 *
+	 * @param string $intent_id The PaymentIntent ID from the session.
+	 * @return string The PaymentIntent status.
+	 * @throws WC_Stripe_Exception When the PaymentIntent cannot be retrieved.
+	 */
+	private function get_checkout_session_intent_status( string $intent_id ): string {
+		$unavailable_message = WC_Stripe_Checkout_Session_Context::get_unavailable_message();
+		if ( '' === $intent_id ) {
+			throw new WC_Stripe_Exception( 'The completed Checkout Session has no PaymentIntent.', $unavailable_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+
+		try {
+			$intent = $this->stripe_request( 'payment_intents/' . $intent_id );
+		} catch ( Exception $e ) {
+			throw new WC_Stripe_Exception( $e->getMessage(), $unavailable_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+
+		if ( ! is_object( $intent ) || ! isset( $intent->status ) || ! is_string( $intent->status ) ) {
+			throw new WC_Stripe_Exception( 'Unable to retrieve the Checkout Session\'s PaymentIntent.', $unavailable_message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		}
+
+		return $intent->status;
 	}
 
 	/**
@@ -2078,6 +2218,21 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		try {
+			if ( ! $this->retire_stored_checkout_session( $order, $checkout_session_id ) ) {
+				return $this->get_payment_already_in_progress_response();
+			}
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::error(
+				'Could not retire the order\'s earlier Checkout Session before linking a new one.',
+				[
+					'order_id'      => $order->get_id(),
+					'error_message' => $e->getLocalizedMessage(),
+				]
+			);
+			return $this->get_checkout_failure_response( $e->getLocalizedMessage() );
+		}
 
 		try {
 			WC_Stripe_Checkout_Session_Context::with_mutation_lock(
