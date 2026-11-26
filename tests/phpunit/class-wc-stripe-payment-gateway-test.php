@@ -2362,6 +2362,19 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Runs a test against legacy post storage, HPOS, and HPOS with its data caching on.
+	 *
+	 * @return array
+	 */
+	public function provide_order_storage_with_data_caching(): array {
+		return [
+			'HPOS'                   => [ true, false ],
+			'HPOS with data caching' => [ true, true ],
+			'legacy storage'         => [ false, false ],
+		];
+	}
+
+	/**
 	 * Recording the same charge again must not repeat the payment or add its fees twice.
 	 *
 	 * @dataProvider provide_repeated_charge_recordings
@@ -2437,14 +2450,16 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * The database is written directly so this request's post and order caches keep the Pending copy,
 	 * like the deferred webhook job that loads the order before the shopper's return settles it.
 	 *
-	 * @dataProvider provide_order_storage
-	 * @param bool $use_hpos Whether to run against HPOS or legacy post storage.
+	 * @dataProvider provide_order_storage_with_data_caching
+	 * @param bool $use_hpos         Whether to run against HPOS or legacy post storage.
+	 * @param bool $use_data_caching Whether WooCommerce's HPOS data caching is on.
 	 * @return void
 	 */
-	public function test_process_response_skips_a_charge_another_request_settled( bool $use_hpos ) {
+	public function test_process_response_skips_a_charge_another_request_settled( bool $use_hpos, bool $use_data_caching ) {
 		global $wpdb;
 
 		$previous_hpos_setting  = get_option( 'woocommerce_custom_orders_table_enabled', 'no' );
+		$previous_data_caching  = get_option( 'woocommerce_hpos_datastore_caching_enabled', 'no' );
 		$new_hpos_setting       = $use_hpos ? 'yes' : 'no';
 		$payment_complete_calls = 0;
 		$count_payment_complete = static function () use ( &$payment_complete_calls ) {
@@ -2459,6 +2474,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			if ( $new_hpos_setting !== $previous_hpos_setting ) {
 				update_option( 'woocommerce_custom_orders_table_enabled', $new_hpos_setting );
 			}
+			update_option( 'woocommerce_hpos_datastore_caching_enabled', $use_data_caching ? 'yes' : 'no' );
 
 			$order     = WC_Helper_Order::create_order();
 			$order_id  = $order->get_id();
@@ -2486,6 +2502,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			$this->assertSame( [], wc_get_order_notes( [ 'order_id' => $order_id ] ) );
 		} finally {
 			remove_action( 'woocommerce_payment_complete', $count_payment_complete );
+			update_option( 'woocommerce_hpos_datastore_caching_enabled', $previous_data_caching );
 			if ( $new_hpos_setting !== $previous_hpos_setting ) {
 				update_option( 'woocommerce_custom_orders_table_enabled', $previous_hpos_setting );
 			}

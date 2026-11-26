@@ -1659,6 +1659,12 @@ class WC_Stripe_Order_Helper {
 		if ( class_exists( \Automattic\WooCommerce\Caches\OrderCache::class ) ) {
 			wc_get_container()->get( \Automattic\WooCommerce\Caches\OrderCache::class )->remove( $order->get_id() );
 		}
+		// With HPOS data caching on, the raw order row has its own cache. The method is internal to WooCommerce, so it's only called when present.
+		$data_store_class = 'Automattic\\WooCommerce\\Internal\\DataStores\\Orders\\OrdersTableDataStore';
+		$data_store       = class_exists( $data_store_class ) ? wc_get_container()->get( $data_store_class ) : null;
+		if ( is_object( $data_store ) && is_callable( [ $data_store, 'clear_cached_data' ] ) ) {
+			$data_store->clear_cached_data( [ $order->get_id() ] );
+		}
 		$stored_order = wc_get_order( $order->get_id() );
 
 		return $stored_order instanceof WC_Order ? $stored_order : null;
