@@ -12,10 +12,11 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 	/**
 	 * Helper method to create a mock WC_Order with billing data.
 	 *
-	 * @param array $billing_data Billing data array with keys: email, first_name, last_name, address_1, address_2, city, state, postcode, country.
+	 * @param array  $billing_data Billing data array with keys: email, first_name, last_name, address_1, address_2, city, state, postcode, country.
+	 * @param string $created_via  How the order was created, e.g. 'checkout' (classic checkout) or 'store-api' (block and express checkout).
 	 * @return \PHPUnit\Framework\MockObject\MockObject Mock WC_Order instance.
 	 */
-	private function create_mock_order( array $billing_data = [] ) {
+	private function create_mock_order( array $billing_data = [], string $created_via = 'checkout' ) {
 		$default_billing_data = [
 			'email'      => 'test@example.com',
 			'first_name' => 'Test',
@@ -45,9 +46,12 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 					'get_billing_phone',
 					'get_billing_postcode',
 					'get_billing_state',
+					'get_created_via',
 				]
 			)
 			->getMock();
+
+		$mock_order->method( 'get_created_via' )->willReturn( $created_via );
 
 		$mock_order->method( 'get_billing_email' )->willReturn( $billing_data['email'] );
 		$mock_order->method( 'get_billing_first_name' )->willReturn( $billing_data['first_name'] );
@@ -222,7 +226,190 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 				'expected_exception_string'  => null,
 				'current_context'            => false,
 			],
+			'Store API order, line2 required only via classic checkout fields and empty'          => [
+				'billing_fields'             => [ 'address_2' => '' ],
+				'woo_billing_fields'         => [ 'billing_address_2' => true ],
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => null,
+				'expected_exception_string'  => null,
+				'current_context'            => null,
+				'created_via'                => 'store-api',
+			],
+			'classic checkout order, line2 required via classic checkout fields and empty'        => [
+				'billing_fields'             => [ 'address_2' => '' ],
+				'woo_billing_fields'         => [ 'billing_address_2' => true ],
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => 'missing_required_customer_field: address->line2',
+				'expected_exception_string'  => 'Missing required customer field: address->line2',
+				'current_context'            => null,
+				'created_via'                => 'checkout',
+			],
+			'Store API SG order without city or state, both required via classic checkout fields' => [
+				'billing_fields'             => [
+					'country' => 'SG',
+					'city'    => '',
+					'state'   => '',
+				],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => null,
+				'expected_exception_string'  => null,
+				'current_context'            => null,
+				'created_via'                => 'store-api',
+			],
+			'classic checkout SG order without city, required via classic checkout fields'        => [
+				'billing_fields'             => [
+					'country' => 'SG',
+					'city'    => '',
+					'state'   => '',
+				],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => 'missing_required_customer_field: address->city',
+				'expected_exception_string'  => 'Missing required customer field: address->city',
+				'current_context'            => null,
+				'created_via'                => 'checkout',
+			],
+			'Store API GR order without state, required via classic checkout fields'              => [
+				'billing_fields'             => [
+					'country' => 'GR',
+					'state'   => '',
+				],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => null,
+				'expected_exception_string'  => null,
+				'current_context'            => null,
+				'created_via'                => 'store-api',
+			],
+			'Store API US order without state, required by the US locale'                         => [
+				'billing_fields'             => [ 'state' => '' ],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => 'missing_required_customer_field: address->state',
+				'expected_exception_string'  => 'Missing required customer field: address->state',
+				'current_context'            => null,
+				'created_via'                => 'store-api',
+			],
+			'Store API order without state, not required via classic checkout fields'             => [
+				'billing_fields'             => [ 'state' => '' ],
+				'woo_billing_fields'         => [ 'billing_state' => false ],
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => 'missing_required_customer_field: address->state',
+				'expected_exception_string'  => 'Missing required customer field: address->state',
+				'current_context'            => null,
+				'created_via'                => 'store-api',
+			],
+			'Store API SG order without city or state, customer has a saved US billing country'   => [
+				'billing_fields'             => [
+					'country' => 'SG',
+					'city'    => '',
+					'state'   => '',
+				],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => null,
+				'expected_exception_string'  => null,
+				'current_context'            => null,
+				'created_via'                => 'store-api',
+				'saved_billing_fields'       => [ 'billing_country' => 'US' ],
+			],
+			'Store API SG order without city or state, order passed in the request args'          => [
+				'billing_fields'             => [
+					'country' => 'SG',
+					'city'    => '',
+					'state'   => '',
+				],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => null,
+				'expected_exception_string'  => null,
+				'current_context'            => null,
+				'created_via'                => 'store-api',
+				'saved_billing_fields'       => [],
+				'order_in_args'              => true,
+			],
+			'Store API order without city, locale field is required but hidden'                   => [
+				'billing_fields'             => [
+					'country' => 'SG',
+					'city'    => '',
+					'state'   => '',
+				],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => null,
+				'expected_exception_string'  => null,
+				'current_context'            => null,
+				'created_via'                => 'store-api',
+				'saved_billing_fields'       => [],
+				'order_in_args'              => false,
+				'country_locale'             => [
+					'SG' => [
+						'city' => [
+							'required' => true,
+							'hidden'   => true,
+						],
+					],
+				],
+			],
+			'Store API order without city, locale field is required and visible'                  => [
+				'billing_fields'             => [
+					'country' => 'SG',
+					'city'    => '',
+					'state'   => '',
+				],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => 'missing_required_customer_field: address->city',
+				'expected_exception_string'  => 'Missing required customer field: address->city',
+				'current_context'            => null,
+				'created_via'                => 'store-api',
+				'saved_billing_fields'       => [],
+				'order_in_args'              => false,
+				'country_locale'             => [
+					'SG' => [
+						'city' => [
+							'required' => true,
+							'hidden'   => false,
+						],
+					],
+				],
+			],
 		];
+	}
+
+	/**
+	 * Without an order there is no WooCommerce-validated address, so the classic checkout field set applies unchanged.
+	 */
+	public function test_create_customer_without_order_requires_classic_checkout_fields() {
+		$require_address_2 = function ( $checkout_fields ) {
+			$checkout_fields['billing']['billing_address_2']['required'] = true;
+			return $checkout_fields;
+		};
+		add_filter( 'woocommerce_checkout_fields', $require_address_2 );
+
+		$_POST = [
+			'billing_email'      => 'test@example.com',
+			'billing_first_name' => 'John',
+			'billing_last_name'  => 'Doe',
+			'billing_address_1'  => '123 Main St',
+			'billing_address_2'  => '',
+			'billing_city'       => 'Anytown',
+			'billing_state'      => 'CA',
+			'billing_postcode'   => '12345',
+			'billing_country'    => 'US',
+		];
+
+		try {
+			( new \WC_Stripe_Customer() )->create_customer();
+			$this->fail( 'Expected exception not thrown' );
+		} catch ( \WC_Stripe_Exception $exception ) {
+			$this->assertSame( 'missing_required_customer_field: address->line2', $exception->getMessage() );
+		} finally {
+			remove_filter( 'woocommerce_checkout_fields', $require_address_2 );
+			$_POST                                    = [];
+			\WC_Checkout::instance()->checkout_fields = null;
+		}
 	}
 
 	/**
@@ -234,7 +421,11 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 		?array $stripe_billing_fields = null,
 		?string $expected_exception_message = null,
 		?string $expected_exception_string = null,
-		$current_context = null
+		$current_context = null,
+		string $created_via = 'checkout',
+		array $saved_billing_fields = [],
+		bool $order_in_args = false,
+		array $country_locale = []
 	) {
 		if ( true === $current_context || in_array( $current_context, \WC_Stripe_Customer::MINIMAL_BILLING_DETAILS_CONTEXTS, true ) ) {
 			$default_billing_data = [
@@ -312,10 +503,28 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 			add_filter( 'wc_stripe_create_customer_required_fields', $stripe_billing_fields_filter, 10, 1 );
 		}
 
-		$mock_order = $this->create_mock_order( $billing_data );
+		$country_locale_filter = null;
+		if ( [] !== $country_locale ) {
+			$country_locale_filter = function ( $locale ) use ( $country_locale ) {
+				return array_replace_recursive( $locale, $country_locale );
+			};
+			add_filter( 'woocommerce_get_country_locale', $country_locale_filter );
+			// WC_Countries memoizes the locale, so clear it for the filter to apply.
+			WC()->countries->locale = [];
+		}
+
+		$mock_order = $this->create_mock_order( $billing_data, $created_via );
+
+		$user_id = 0;
+		if ( [] !== $saved_billing_fields ) {
+			$user_id = self::factory()->user->create();
+			foreach ( $saved_billing_fields as $meta_key => $meta_value ) {
+				update_user_meta( $user_id, $meta_key, $meta_value );
+			}
+		}
 
 		$args     = [];
-		$customer = new \WC_Stripe_Customer();
+		$customer = new \WC_Stripe_Customer( $user_id );
 
 		$was_exception_thrown = false;
 
@@ -361,7 +570,11 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 		}
 
 		try {
-			$customer->create_customer( $args, $current_context, $mock_order );
+			if ( $order_in_args ) {
+				$customer->create_customer( [ 'order' => $mock_order ], $current_context );
+			} else {
+				$customer->create_customer( $args, $current_context, $mock_order );
+			}
 		} catch ( \WC_Stripe_Exception $stripe_exception ) {
 			$was_exception_thrown = true;
 
@@ -384,6 +597,11 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 
 			if ( null !== $stripe_billing_fields_filter ) {
 				remove_filter( 'wc_stripe_create_customer_required_fields', $stripe_billing_fields_filter, 10 );
+			}
+
+			if ( null !== $country_locale_filter ) {
+				remove_filter( 'woocommerce_get_country_locale', $country_locale_filter );
+				WC()->countries->locale = [];
 			}
 
 			// Reset checkout fields, otherwise they persist across test cases.
@@ -623,6 +841,61 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 			$this->assertArrayNotHasKey( 'phone', $data['shipping'], 'Shipping object should omit an empty phone' );
 		} finally {
 			$order->delete( true );
+		}
+	}
+
+	/**
+	 * A stale Stripe customer ID is recreated with the order, so a Store API order keeps its locale-based required fields.
+	 */
+	public function test_update_customer_recreates_stale_customer_with_order_required_fields() {
+		$require_city = function ( $checkout_fields ) {
+			$checkout_fields['billing']['billing_city']['required'] = true;
+			return $checkout_fields;
+		};
+		add_filter( 'woocommerce_checkout_fields', $require_city );
+
+		$mock_order = $this->create_mock_order(
+			[
+				'country' => 'SG',
+				'city'    => '',
+				'state'   => '',
+			],
+			'store-api'
+		);
+
+		$mock_api_calls = function ( $return_value, $parsed_args, $url ) {
+			$responses = [
+				'https://api.stripe.com/v1/customers/cus_stale' => [
+					'error' => [
+						'type'    => 'invalid_request_error',
+						'message' => "No such customer: 'cus_stale'",
+					],
+				],
+				'https://api.stripe.com/v1/customers'           => [ 'id' => 'cus_new' ],
+				'https://api.stripe.com/v1/customers/cus_new'   => [ 'id' => 'cus_new' ],
+			];
+
+			if ( ! isset( $responses[ $url ] ) ) {
+				return $return_value;
+			}
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode( $responses[ $url ] ),
+			];
+		};
+		add_filter( 'pre_http_request', $mock_api_calls, 10, 3 );
+
+		$customer = new \WC_Stripe_Customer();
+		$customer->set_id( 'cus_stale' );
+
+		try {
+			$this->assertSame( 'cus_new', $customer->update_customer( [], false, $mock_order ) );
+		} finally {
+			remove_filter( 'pre_http_request', $mock_api_calls, 10 );
+			remove_filter( 'woocommerce_checkout_fields', $require_city );
+			\WC_Checkout::instance()->checkout_fields = null;
 		}
 	}
 

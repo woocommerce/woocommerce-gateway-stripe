@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Fix express checkout and block checkout payments failing with a missing required customer field that the checkout did not ask the shopper for
