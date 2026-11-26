@@ -2143,8 +2143,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	protected function get_order_existing_lock( $order ) {
 		wc_deprecated_function( __METHOD__, '10.0.0', 'WC_Stripe_Order_Helper::get_order_payment_lock()' );
 
-		$order->read_meta_data( true );
-		return $order->get_meta( '_stripe_lock_payment', true );
+		// The deprecated lock_order_payment() takes the helper's lock, which no longer writes the meta.
+		return WC_Stripe_Order_Helper::get_instance()->get_order_existing_payment_lock( $order );
 	}
 
 	/**
@@ -2160,8 +2160,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$existing_lock = $this->get_order_existing_lock( $order );
 		if ( $existing_lock ) {
-			$parts      = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}"
-			$expiration = (int) $parts[0];
+			$expiration = (int) $existing_lock;
 
 			// If the lock is still active, return true.
 			if ( time() <= $expiration ) {

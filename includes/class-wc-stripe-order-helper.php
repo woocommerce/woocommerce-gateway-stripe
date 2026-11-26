@@ -1673,14 +1673,15 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order $order The order that is being unlocked.
 	 */
 	public function unlock_order_payment( WC_Order $order ): void {
-		// Clears a lock left by an older plugin version, which only wrote the meta.
+		// Clears a lock left by an older plugin version, which only wrote the meta. Any caller
+		// clears it, whether it held that lock or not.
 		$order->delete_meta_data( self::META_STRIPE_LOCK_PAYMENT );
 		$order->save_meta_data();
 
-		// Without an owner token from this request there is nothing to release, so a request that
-		// never got the lock can't free it for a third one. Owners are tracked per request, not per
-		// call, so a nested caller in the holding request would still release it. An abandoned lock
-		// expires after its TTL.
+		// Without an owner token from this request there is no row to release, so a request that
+		// never got the lock can't free the row for a third one. Owners are tracked per request,
+		// not per call, so a nested caller in the holding request would still release it. An
+		// abandoned lock expires after its TTL.
 		$order_id = $order->get_id();
 		if ( isset( self::$payment_lock_owners[ $order_id ] ) ) {
 			WC_Stripe_Option_Lock::release( self::PAYMENT_LOCK_OPTION_PREFIX . $order_id, self::$payment_lock_owners[ $order_id ]['owner'] );

@@ -1955,10 +1955,10 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		$order->save();
 		$order_id = $order->get_id();
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
-
 		// Simulate the concurrent request already holding the lock.
-		$this->assertFalse( $order_helper->lock_order_payment( $order ) );
+		$lock_name   = 'wc_stripe_order_payment_lock_' . $order_id;
+		$other_owner = WC_Stripe_Option_Lock::acquire( $lock_name, 300 );
+		$this->assertNotNull( $other_owner );
 
 		$gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
 			->disableOriginalConstructor()
@@ -1983,8 +1983,9 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'return_url', $response['data'] );
 
 		// The winner's lock must survive this losing request.
-		$this->assertNotEmpty( $order_helper->get_order_existing_payment_lock( wc_get_order( $order_id ) ) );
+		$this->assertNull( WC_Stripe_Option_Lock::acquire( $lock_name, 300 ) );
 
+		WC_Stripe_Option_Lock::release( $lock_name, $other_owner );
 		Ajax_Test_Helper::remove_hooks();
 	}
 
