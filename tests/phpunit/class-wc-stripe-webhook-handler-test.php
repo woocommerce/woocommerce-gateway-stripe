@@ -5529,18 +5529,24 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 */
 	public function provide_signature_header_timestamps(): array {
 		$debug_entries = self::SIGNATURE_DEBUG_ENTRIES;
+		$plain         = 't={timestamp},v1={signature}';
+		$with_debug    = 't={timestamp},v1={signature},v0={other_signature},' . $debug_entries;
+		$timestamp_end = $debug_entries . ',v1={signature},t={timestamp}';
 
-		// The offsets stay a minute clear of the five-minute tolerance, because the clock can move on
-		// between building the header and validating it.
+		// The tolerance is five minutes. The offsets stay 15 seconds clear of it, because the clock can
+		// move on between building the header and validating it.
+		$inside_tolerance  = 5 * MINUTE_IN_SECONDS - 15;
+		$outside_tolerance = 5 * MINUTE_IN_SECONDS + 15;
+
 		return [
-			'four minutes old'                      => [ 't={timestamp},v1={signature}', -240, WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
-			'four minutes ahead'                    => [ 't={timestamp},v1={signature}', 240, WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
-			'six minutes old'                       => [ 't={timestamp},v1={signature}', -360, WC_Stripe_Webhook_State::VALIDATION_FAILED_TIMESTAMP_MISMATCH ],
-			'six minutes ahead'                     => [ 't={timestamp},v1={signature}', 360, WC_Stripe_Webhook_State::VALIDATION_FAILED_TIMESTAMP_MISMATCH ],
-			'four minutes old, with debug entries'  => [ 't={timestamp},v1={signature},v0={other_signature},' . $debug_entries, -240, WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
-			'six minutes old, with debug entries'   => [ 't={timestamp},v1={signature},v0={other_signature},' . $debug_entries, -360, WC_Stripe_Webhook_State::VALIDATION_FAILED_TIMESTAMP_MISMATCH ],
-			'four minutes old, after other entries' => [ $debug_entries . ',v1={signature},t={timestamp}', -240, WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
-			'six minutes old, after other entries'  => [ $debug_entries . ',v1={signature},t={timestamp}', -360, WC_Stripe_Webhook_State::VALIDATION_FAILED_TIMESTAMP_MISMATCH ],
+			'15 seconds inside the tolerance, in the past'                    => [ $plain, -$inside_tolerance, WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'15 seconds inside the tolerance, in the future'                  => [ $plain, $inside_tolerance, WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'15 seconds outside the tolerance, in the past'                   => [ $plain, -$outside_tolerance, WC_Stripe_Webhook_State::VALIDATION_FAILED_TIMESTAMP_MISMATCH ],
+			'15 seconds outside the tolerance, in the future'                 => [ $plain, $outside_tolerance, WC_Stripe_Webhook_State::VALIDATION_FAILED_TIMESTAMP_MISMATCH ],
+			'15 seconds inside the tolerance, with debug entries'             => [ $with_debug, -$inside_tolerance, WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'15 seconds outside the tolerance, with debug entries'            => [ $with_debug, -$outside_tolerance, WC_Stripe_Webhook_State::VALIDATION_FAILED_TIMESTAMP_MISMATCH ],
+			'15 seconds inside the tolerance, timestamp after other entries'  => [ $timestamp_end, -$inside_tolerance, WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'15 seconds outside the tolerance, timestamp after other entries' => [ $timestamp_end, -$outside_tolerance, WC_Stripe_Webhook_State::VALIDATION_FAILED_TIMESTAMP_MISMATCH ],
 		];
 	}
 
