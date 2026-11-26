@@ -220,7 +220,7 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A request that passed the meta check while another request already took the atomic lock must not get it.
+	 * A request must not get the lock while another request holds the atomic lock.
 	 *
 	 * @return void
 	 */
@@ -228,7 +228,6 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		$order     = WC_Helper_Order::create_order();
 		$lock_name = 'wc_stripe_order_payment_lock_' . $order->get_id();
 
-		// The other request has inserted the lock row but not saved its order meta yet.
 		$other_owner = WC_Stripe_Option_Lock::acquire( $lock_name, 300 );
 
 		$this->assertTrue( $this->helper->lock_order_payment( $order ) );
