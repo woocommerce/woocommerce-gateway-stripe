@@ -1292,7 +1292,7 @@ class WC_Stripe_Agentic_Commerce_Integration implements IntegrationInterface {
 	 * @return string Either 'test' or 'live'.
 	 */
 	public static function get_current_mode(): string {
-		return WC_Stripe_Mode::is_test() ? 'test' : 'live';
+		return WC_Stripe_Mode::get_current_mode();
 	}
 
 	/**
