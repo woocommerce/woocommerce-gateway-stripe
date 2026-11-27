@@ -10,5 +10,7 @@ setup(
 		await initializeOptimizedCheckout( browser, true );
 		// The consent-hiding test needs Link on.
 		await expectPaymentMethodEnabled( browser, 'Link by Stripe', true );
+		// The SCA scenario needs a wallet in the PMC to exercise card/wallet routing.
+		await expectPaymentMethodEnabled( browser, 'Cash App Pay', true );
 	}
 );

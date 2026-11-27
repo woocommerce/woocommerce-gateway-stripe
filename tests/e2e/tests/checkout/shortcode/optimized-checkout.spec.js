@@ -11,7 +11,9 @@ const {
 	selectOCCardMethod,
 	fillOCDetails,
 	clickPlaceOrder,
+	handleCheckout3DSChallenge,
 	getCartTotal,
+	getOrderIdFromOrderReceivedUrl,
 	waitForOrderReceivedPageAndConfirmExpectedTotal,
 } = payments;
 
@@ -36,6 +38,43 @@ test.describe( 'Optimized Checkout payment tests @shortcode', () => {
 			browser,
 			page,
 			expectedTotal
+		);
+	} );
+
+	test( 'customer can pay with a SCA card in Optimized Checkout @smoke', async ( {
+		page,
+		browser,
+	} ) => {
+		await setupOptimizedCheckout( page, 'shortcode', {
+			billingDetails: {
+				...config.get( 'addresses.customer.billing' ),
+				email: `stripe-e2e-${ randomUUID() }@example.com`,
+			},
+		} );
+		await fillOCDetails( page, config.get( 'cards.3ds' ), 'shortcode' );
+
+		const expectedTotal = await getCartTotal( page );
+		const [ response ] = await Promise.all( [
+			page.waitForResponse( ( checkoutResponse ) =>
+				checkoutResponse.url().includes( 'wc-ajax=checkout' )
+			),
+			clickPlaceOrder( page ),
+		] );
+
+		// A card must use SDK authentication even when the PMC includes wallets.
+		expect( ( await response.json() ).redirect ).toMatch(
+			/^#wc-stripe-confirm-pi:/
+		);
+		await handleCheckout3DSChallenge( page );
+		await waitForOrderReceivedPageAndConfirmExpectedTotal(
+			browser,
+			page,
+			expectedTotal
+		);
+
+		const orderId = getOrderIdFromOrderReceivedUrl( page.url() );
+		expect( ( await api.get.order( orderId ) ).status ).toBe(
+			'processing'
 		);
 	} );
 
