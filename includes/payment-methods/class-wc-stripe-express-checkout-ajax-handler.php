@@ -127,10 +127,10 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 	}
 
 	/**
-	 * Serves the express checkout wc-ajax nonces on demand, so page caches
-	 * can't embed expired copies. Intentionally has no nonce check of its own:
-	 * nonces are per-session CSRF tokens, not secrets, and cross-origin
-	 * callers can't read the response.
+	 * Serves the express checkout nonces on demand, so page caches can't embed
+	 * expired copies. Intentionally has no nonce check of its own: nonces are
+	 * per-session CSRF tokens, not secrets, and cross-origin callers can't
+	 * read the response.
 	 *
 	 * @return void
 	 */
@@ -139,13 +139,19 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 		wp_send_json_success(
 			[
-				'shipping'                  => wp_create_nonce( 'wc-stripe-express-checkout-shipping' ),
-				'normalize_address'         => wp_create_nonce( 'wc-stripe-express-checkout-normalize-address' ),
-				'get_cart_details'          => wp_create_nonce( 'wc-stripe-get-cart-details' ),
-				'update_shipping'           => wp_create_nonce( 'wc-stripe-update-shipping-method' ),
-				'add_to_cart'               => wp_create_nonce( 'wc-stripe-add-to-cart' ),
-				'get_selected_product_data' => wp_create_nonce( 'wc-stripe-get-selected-product-data' ),
-				'clear_cart'                => wp_create_nonce( 'wc-stripe-clear-cart' ),
+				'shipping'                      => wp_create_nonce( 'wc-stripe-express-checkout-shipping' ),
+				'normalize_address'             => wp_create_nonce( 'wc-stripe-express-checkout-normalize-address' ),
+				'get_cart_details'              => wp_create_nonce( 'wc-stripe-get-cart-details' ),
+				'update_shipping'               => wp_create_nonce( 'wc-stripe-update-shipping-method' ),
+				'add_to_cart'                   => wp_create_nonce( 'wc-stripe-add-to-cart' ),
+				'get_selected_product_data'     => wp_create_nonce( 'wc-stripe-get-selected-product-data' ),
+				'clear_cart'                    => wp_create_nonce( 'wc-stripe-clear-cart' ),
+				'wc_store_api'                  => wp_create_nonce( 'wc_store_api' ),
+				'wc_store_api_express_checkout' => wp_create_nonce( 'wc_store_api_express_checkout' ),
+				// Same meaning as the Store API's `Nonce-Timestamp` response header: the
+				// WooCommerce Blocks nonce middleware keeps whichever nonce is newer, and
+				// without a server time it would fall back to the shopper's clock.
+				'wc_store_api_timestamp'        => time(),
 			]
 		);
 	}

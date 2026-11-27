@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Keep Apple Pay and Google Pay working for guests on product pages served from a full-page cache, instead of failing with an invalid shipping address

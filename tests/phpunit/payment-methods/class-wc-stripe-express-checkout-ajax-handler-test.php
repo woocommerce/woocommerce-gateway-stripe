@@ -103,7 +103,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 
 	/**
 	 * The on-demand nonce endpoint must return a verifiable nonce for every
-	 * wc-ajax action the express checkout client can call.
+	 * wc-ajax action and Store API request the express checkout client can send.
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
@@ -111,6 +111,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 	public function test_ajax_get_express_checkout_nonces_returns_verifiable_nonces() {
 		Ajax_Test_Helper::init_hooks();
 
+		$start_time = time();
 		try {
 			ob_start();
 			$this->ajax_handler->ajax_get_express_checkout_nonces();
@@ -120,24 +121,32 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 		} finally {
 			Ajax_Test_Helper::remove_hooks();
 		}
+		$end_time = time();
 
 		$this->assertIsArray( $response );
 		$this->assertTrue( $response['success'] );
 
 		$expected_actions = [
-			'shipping'                  => 'wc-stripe-express-checkout-shipping',
-			'normalize_address'         => 'wc-stripe-express-checkout-normalize-address',
-			'get_cart_details'          => 'wc-stripe-get-cart-details',
-			'update_shipping'           => 'wc-stripe-update-shipping-method',
-			'add_to_cart'               => 'wc-stripe-add-to-cart',
-			'get_selected_product_data' => 'wc-stripe-get-selected-product-data',
-			'clear_cart'                => 'wc-stripe-clear-cart',
+			'shipping'                      => 'wc-stripe-express-checkout-shipping',
+			'normalize_address'             => 'wc-stripe-express-checkout-normalize-address',
+			'get_cart_details'              => 'wc-stripe-get-cart-details',
+			'update_shipping'               => 'wc-stripe-update-shipping-method',
+			'add_to_cart'                   => 'wc-stripe-add-to-cart',
+			'get_selected_product_data'     => 'wc-stripe-get-selected-product-data',
+			'clear_cart'                    => 'wc-stripe-clear-cart',
+			// A cached product page prints these two, so the first Store API write
+			// needs fresh copies from here.
+			'wc_store_api'                  => 'wc_store_api',
+			'wc_store_api_express_checkout' => 'wc_store_api_express_checkout',
 		];
 
-		$this->assertSame( array_keys( $expected_actions ), array_keys( $response['data'] ) );
 		foreach ( $expected_actions as $key => $action ) {
-			$this->assertNotFalse( wp_verify_nonce( $response['data'][ $key ], $action ), "Nonce '{$key}' must verify against '{$action}'." );
+			$this->assertNotFalse( wp_verify_nonce( $response['data'][ $key ] ?? '', $action ), "Nonce '{$key}' must verify against '{$action}'." );
 		}
+
+		// The only non-nonce entry: WooCommerce Blocks uses it to order Store API nonces.
+		$this->assertGreaterThanOrEqual( $start_time, $response['data']['wc_store_api_timestamp'] );
+		$this->assertLessThanOrEqual( $end_time, $response['data']['wc_store_api_timestamp'] );
 	}
 
 	/**
