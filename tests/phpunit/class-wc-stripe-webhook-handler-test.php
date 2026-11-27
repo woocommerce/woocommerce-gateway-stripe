@@ -3074,6 +3074,53 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Another request can settle the order between the status check and taking the lock. A late
+	 * payment_failed for an earlier attempt must then leave the paid order alone.
+	 */
+	public function test_process_payment_intent_rechecks_the_order_status_once_locked() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+
+		// Stands in for the other request: it settles the order and releases the lock just before
+		// this one takes it.
+		$order_helper = $this->createPartialMock( WC_Stripe_Order_Helper::class, [ 'lock_order_payment' ] );
+		$order_helper->method( 'lock_order_payment' )->willReturnCallback(
+			function ( $locked_order ) {
+				$paid_order = wc_get_order( $locked_order->get_id() );
+				$paid_order->set_status( OrderStatus::PROCESSING );
+				$paid_order->save();
+				return false;
+			}
+		);
+		WC_Stripe_Order_Helper::set_instance( $order_helper );
+
+		$notification = json_decode(
+			wp_json_encode(
+				[
+					'type' => 'payment_intent.payment_failed',
+					'data' => [
+						'object' => [
+							'object'               => 'payment_intent',
+							'id'                   => 'pi_mock',
+							'payment_method_types' => [ 'card' ],
+							'metadata'             => [
+								'order_id'  => $order->get_id(),
+								'order_key' => $order->get_order_key(),
+							],
+							'last_payment_error'   => [ 'message' => 'Your card was declined.' ],
+						],
+					],
+				]
+			)
+		);
+
+		$this->mock_webhook_handler->process_payment_intent( $notification );
+
+		$this->assertSame( OrderStatus::PROCESSING, wc_get_order( $order->get_id() )->get_status() );
+	}
+
+	/**
 	 * Test that when a PaymentIntent is in the `processing` status,
 	 * the order is updated to on-hold and the transaction ID is set.
 	 */

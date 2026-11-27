@@ -1470,14 +1470,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return true;
 		}
 
-		if ( ! $order->has_status(
-			/** This filter is documented in includes/class-wc-stripe-webhook-handler.php. */
-			apply_filters(
-				'wc_stripe_allowed_payment_processing_statuses',
-				[ OrderStatus::PENDING, OrderStatus::FAILED ],
-				$order
-			)
-		) ) {
+		/** This filter is documented in includes/class-wc-stripe-webhook-handler.php. */
+		$allowed_statuses = apply_filters(
+			'wc_stripe_allowed_payment_processing_statuses',
+			[ OrderStatus::PENDING, OrderStatus::FAILED ],
+			$order
+		);
+		if ( ! $order->has_status( $allowed_statuses ) ) {
 			return false;
 		}
 
@@ -1504,6 +1503,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		// A throw (a refunded charge, a Stripe error) must still release the lock, or every later event
 		// for this order is deferred until the lock expires.
 		try {
+			// The status check above ran before the lock, so another request may have settled the
+			// order and released the lock in between. A late payment_failed must not fail a paid order.
+			$locked_order = $this->get_uncached_order( $order );
+			if ( ! $locked_order || ! $locked_order->has_status( $allowed_statuses ) ) {
+				return false;
+			}
+
 			$order_id           = $order->get_id();
 			$payment_type_meta  = $order_helper->get_stripe_upe_payment_type( $order );
 			$is_voucher_payment = in_array( $payment_type_meta, WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, true );

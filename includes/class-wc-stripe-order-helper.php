@@ -223,6 +223,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Option name prefix of the atomic order payment lock; the order ID completes it.
 	 *
+	 * @since x.x.x
 	 * @var string
 	 */
 	private const PAYMENT_LOCK_OPTION_PREFIX = 'wc_stripe_order_payment_lock_';
@@ -230,6 +231,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Seconds after which an order payment lock is treated as abandoned.
 	 *
+	 * @since x.x.x
 	 * @var int
 	 */
 	private const PAYMENT_LOCK_TTL = 5 * MINUTE_IN_SECONDS;
@@ -256,6 +258,7 @@ class WC_Stripe_Order_Helper {
 	 *
 	 * Static, so a lock taken through one helper instance can be released through another.
 	 *
+	 * @since x.x.x
 	 * @var array<int, array{owner: string, expiry: int}>
 	 */
 	private static array $payment_lock_owners = [];
@@ -1675,20 +1678,21 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order $order The order that is being unlocked.
 	 */
 	public function unlock_order_payment( WC_Order $order ): void {
-		// Clears a lock left by an older plugin version, which only wrote the meta. Any caller
-		// clears it, whether it held that lock or not.
-		$order->delete_meta_data( self::META_STRIPE_LOCK_PAYMENT );
-		$order->save_meta_data();
-
 		// Without an owner token from this request there is no row to release, so a request that
 		// never got the lock can't free the row for a third one. Owners are tracked per request,
 		// not per call, so a nested caller in the holding request would still release it. An
-		// abandoned lock expires after its TTL.
+		// abandoned lock expires after its TTL. Released before the meta save below, so a failing
+		// save can't keep the row.
 		$order_id = $order->get_id();
 		if ( isset( self::$payment_lock_owners[ $order_id ] ) ) {
 			WC_Stripe_Option_Lock::release( self::PAYMENT_LOCK_OPTION_PREFIX . $order_id, self::$payment_lock_owners[ $order_id ]['owner'] );
 			unset( self::$payment_lock_owners[ $order_id ] );
 		}
+
+		// Clears a lock left by an older plugin version, which only wrote the meta. Any caller
+		// clears it, whether it held that lock or not.
+		$order->delete_meta_data( self::META_STRIPE_LOCK_PAYMENT );
+		$order->save_meta_data();
 	}
 
 	/**
