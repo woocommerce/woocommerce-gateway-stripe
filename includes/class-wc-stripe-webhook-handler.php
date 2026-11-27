@@ -1503,10 +1503,18 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			// The status check above ran before the lock, so another request may have settled the
 			// order and released the lock in between. A late payment_failed must not fail a paid order.
 			$locked_order = $this->get_uncached_order( $order );
+			if ( ! $locked_order ) {
+				return false;
+			}
+
+			// Work on, and unlock with, the copy read under the lock: on HPOS unlocking can save the
+			// order, and saving the copy loaded before the lock would hand save callbacks a stale status.
+			$order                = $locked_order;
+			$this->resolved_order = $order;
 
 			// Cancelled in between: hand it to the deferred job, which refunds or voids the payment,
 			// the same as for an order that was already cancelled when the event arrived.
-			if ( $locked_order && $this->is_payment_for_cancelled_order( $locked_order, $notification->type ) ) {
+			if ( $this->is_payment_for_cancelled_order( $order, $notification->type ) ) {
 				$this->defer_webhook_processing(
 					$notification,
 					[
@@ -1517,7 +1525,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				return true;
 			}
 
-			if ( ! $locked_order || ! $locked_order->has_status( $allowed_statuses ) ) {
+			if ( ! $order->has_status( $allowed_statuses ) ) {
 				return false;
 			}
 

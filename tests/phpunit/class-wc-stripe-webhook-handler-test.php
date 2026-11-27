@@ -3135,6 +3135,91 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * On HPOS, unlocking saves the order when it removes a lock left by an older plugin version. That
+	 * save must use the copy read under the lock, so save callbacks don't see an order cancelled in
+	 * between as pending.
+	 */
+	public function test_process_payment_intent_unlocks_with_the_order_read_under_the_lock_on_hpos(): void {
+		$previous_hpos_setting = get_option( 'woocommerce_custom_orders_table_enabled', 'no' );
+		add_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+		update_option( 'woocommerce_custom_orders_table_enabled', 'yes' );
+
+		// WooCommerce skips the save after a meta change when the order was modified within the same
+		// second, which is always true in a fast test. Forcing it during a save would recurse.
+		$saves_running  = 0;
+		$saved_statuses = [];
+		$before_save    = static function () use ( &$saves_running ) {
+			++$saves_running;
+		};
+		$after_save     = static function ( $saved_order ) use ( &$saves_running, &$saved_statuses ) {
+			--$saves_running;
+			$saved_statuses[] = $saved_order->get_status();
+		};
+		$force_save     = static function ( $should_save ) use ( &$saves_running ) {
+			return 0 === $saves_running ? true : $should_save;
+		};
+
+		try {
+			$this->assertTrue( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() );
+
+			$order = WC_Helper_Order::create_order();
+			$order->set_status( OrderStatus::PENDING );
+			// An expired lock from an older plugin version, which only wrote the meta.
+			$order->update_meta_data( '_stripe_lock_payment', time() - 1 );
+			$order->save();
+
+			// Stands in for the other request: it cancels the order just before this one takes the lock.
+			$order_helper = $this->createPartialMock( WC_Stripe_Order_Helper::class, [ 'lock_order_payment' ] );
+			$order_helper->method( 'lock_order_payment' )->willReturnCallback(
+				function ( $locked_order ) {
+					$cancelled_order = wc_get_order( $locked_order->get_id() );
+					$cancelled_order->set_status( OrderStatus::CANCELLED );
+					$cancelled_order->save();
+					return false;
+				}
+			);
+			WC_Stripe_Order_Helper::set_instance( $order_helper );
+
+			$notification = json_decode(
+				wp_json_encode(
+					[
+						'type' => 'payment_intent.succeeded',
+						'data' => [
+							'object' => [
+								'object'   => 'payment_intent',
+								'id'       => 'pi_mock',
+								'status'   => WC_Stripe_Intent_Status::SUCCEEDED,
+								'metadata' => [
+									'order_id'  => $order->get_id(),
+									'order_key' => $order->get_order_key(),
+								],
+							],
+						],
+					]
+				)
+			);
+
+			$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+				->onlyMethods( [ 'defer_webhook_processing' ] )
+				->getMock();
+
+			add_action( 'woocommerce_before_order_object_save', $before_save );
+			add_action( 'woocommerce_after_order_object_save', $after_save );
+			add_filter( 'woocommerce_orders_table_datastore_should_save_after_meta_change', $force_save );
+			$handler->process_payment_intent( $notification );
+		} finally {
+			remove_action( 'woocommerce_after_order_object_save', $after_save );
+			remove_action( 'woocommerce_before_order_object_save', $before_save );
+			remove_filter( 'woocommerce_orders_table_datastore_should_save_after_meta_change', $force_save );
+			update_option( 'woocommerce_custom_orders_table_enabled', $previous_hpos_setting );
+			remove_filter( 'wc_allow_changing_orders_storage_while_sync_is_pending', '__return_true' );
+		}
+
+		// The cancelling save, then the unlock's save, which must not bring back the pending status.
+		$this->assertSame( [ OrderStatus::CANCELLED, OrderStatus::CANCELLED ], $saved_statuses );
+	}
+
+	/**
 	 * Data provider for test_process_payment_intent_rechecks_the_order_status_once_locked.
 	 *
 	 * @return array
