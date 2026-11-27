@@ -96,9 +96,8 @@
 // like Storefront give to the checkout payment area. Show the fieldset border so
 // the notice doesn't appear to float in empty space.
 //
-// Scoped to `form.woocommerce-checkout` so the override only applies to the
-// classic/shortcode checkout form — this stylesheet (upe-classic.css) is also
-// enqueued on the Blocks checkout page, and Blocks doesn't render this form.
+// Scope the override to the classic form so other payment notices on the same
+// page retain their own styling.
 body:has( > .wp-site-blocks ) form.woocommerce-checkout .wc-stripe-redirect-notice {
 	min-inline-size: min-content;
 	margin-inline: 2px;

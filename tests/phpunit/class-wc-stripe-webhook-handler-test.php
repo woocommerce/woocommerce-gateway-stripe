@@ -23,6 +23,11 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	private const WEBHOOK_SECRET = 'whsec_1234567890';
 
 	/**
+	 * Made-up debug entries in the format Stripe can append to the `Stripe-Signature` header.
+	 */
+	private const SIGNATURE_DEBUG_ENTRIES = 'secret=whsec_****abcd,destination=we_1234567890abcdefghijklmn,payload=0a1b2c3d';
+
+	/**
 	 * The webhook handler instance for testing.
 	 *
 	 * @var WC_Stripe_Webhook_Handler
@@ -6402,6 +6407,161 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'empty headers'                 => [ 'empty_headers' ],
 			'empty body'                    => [ 'empty_body' ],
 		];
+	}
+
+	/**
+	 * Only the `t` and `v1` entries of the signature header take part in validation, whatever else
+	 * the header carries and whatever order its entries are in.
+	 *
+	 * @param string $header_template Header value, with `{timestamp}`, `{signature}` (signed with the store's
+	 *                                secret) and `{other_signature}` (signed with another secret) placeholders.
+	 * @param string $expected_result Expected validation result constant.
+	 * @dataProvider provide_signature_header_formats
+	 */
+	public function test_validate_request_reads_timestamp_and_v1_signatures_from_header( string $header_template, string $expected_result ): void {
+		$body = $this->build_webhook_event_body();
+
+		$this->assertSame(
+			$expected_result,
+			( new WC_Stripe_Webhook_Handler() )->validate_request(
+				[ 'STRIPE-SIGNATURE' => $this->build_signature_header( $header_template, $body ) ],
+				$body,
+				self::WEBHOOK_SECRET
+			)
+		);
+	}
+
+	/**
+	 * Data provider for {@see test_validate_request_reads_timestamp_and_v1_signatures_from_header()}.
+	 *
+	 * @return array
+	 */
+	public function provide_signature_header_formats(): array {
+		$debug_entries = self::SIGNATURE_DEBUG_ENTRIES;
+
+		return [
+			'timestamp and signature'                           => [ 't={timestamp},v1={signature}', WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'test mode v0 entry'                                => [ 't={timestamp},v1={signature},v0={other_signature}', WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'debug entries after the signatures'                => [ 't={timestamp},v1={signature},v0={other_signature},' . $debug_entries, WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'debug entries without a v0 entry'                  => [ 't={timestamp},v1={signature},' . $debug_entries, WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'debug entries before the signatures'               => [ $debug_entries . ',t={timestamp},v1={signature}', WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'rolled secret, matching signature first'           => [ 't={timestamp},v1={signature},v1={other_signature},v0={other_signature}', WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'rolled secret, matching signature last'            => [ 't={timestamp},v1={other_signature},v1={signature},v0={other_signature}', WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'signature before the timestamp'                    => [ 'v1={signature},t={timestamp},v0={other_signature}', WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'entry without a value'                             => [ 't={timestamp},v1={signature},unknown', WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'debug entries with a signature for another secret' => [ 't={timestamp},v1={other_signature},' . $debug_entries, WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_MISMATCH ],
+			'matching signature only in a non-v1 entry'         => [ 't={timestamp},v1={other_signature},v0={signature},payload={signature}', WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_MISMATCH ],
+			'no v1 entry'                                       => [ 't={timestamp},v0={signature}', WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_INVALID ],
+			'empty v1 entry'                                    => [ 't={timestamp},v1=', WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_INVALID ],
+			'no timestamp entry'                                => [ 'v1={signature}', WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_INVALID ],
+			'non-numeric timestamp'                             => [ 't=now,v1={signature}', WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_INVALID ],
+			'asterisk as the signature'                         => [ 't={timestamp},v1=*', WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_MISMATCH ],
+			'asterisk in the signature scheme'                  => [ 't={timestamp},v*={signature}', WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_INVALID ],
+			'numeric entry whose name ends in t'                => [ 'secret=1,t={timestamp},v1={signature}', WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'timestamp followed by other characters'            => [ 't={timestamp}abc,v1={signature}', WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_INVALID ],
+		];
+	}
+
+	/**
+	 * The timestamp is read from the `t` entry wherever it is in the header, and has to be within
+	 * five minutes of now in either direction.
+	 *
+	 * Every signature here is valid for the header's own timestamp, so a request passes only when
+	 * that exact timestamp was read, and fails on the timestamp alone.
+	 *
+	 * @param string $header_template  Header value with `{timestamp}`, `{signature}` and `{other_signature}` placeholders.
+	 * @param int    $timestamp_offset Seconds between now and the header's timestamp; negative is in the past.
+	 * @param string $expected_result  Expected validation result constant.
+	 * @dataProvider provide_signature_header_timestamps
+	 */
+	public function test_validate_request_checks_timestamp_read_from_header( string $header_template, int $timestamp_offset, string $expected_result ): void {
+		$body = $this->build_webhook_event_body();
+
+		$this->assertSame(
+			$expected_result,
+			( new WC_Stripe_Webhook_Handler() )->validate_request(
+				[ 'STRIPE-SIGNATURE' => $this->build_signature_header( $header_template, $body, $timestamp_offset ) ],
+				$body,
+				self::WEBHOOK_SECRET
+			)
+		);
+	}
+
+	/**
+	 * Data provider for {@see test_validate_request_checks_timestamp_read_from_header()}.
+	 *
+	 * @return array
+	 */
+	public function provide_signature_header_timestamps(): array {
+		$debug_entries = self::SIGNATURE_DEBUG_ENTRIES;
+		$plain         = 't={timestamp},v1={signature}';
+		$with_debug    = 't={timestamp},v1={signature},v0={other_signature},' . $debug_entries;
+		$timestamp_end = $debug_entries . ',v1={signature},t={timestamp}';
+
+		// The tolerance is five minutes. The offsets stay 15 seconds clear of it, because the clock can
+		// move on between building the header and validating it.
+		$inside_tolerance  = 5 * MINUTE_IN_SECONDS - 15;
+		$outside_tolerance = 5 * MINUTE_IN_SECONDS + 15;
+
+		return [
+			'15 seconds inside the tolerance, in the past'                    => [ $plain, -$inside_tolerance, WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'15 seconds inside the tolerance, in the future'                  => [ $plain, $inside_tolerance, WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'15 seconds outside the tolerance, in the past'                   => [ $plain, -$outside_tolerance, WC_Stripe_Webhook_State::VALIDATION_FAILED_TIMESTAMP_MISMATCH ],
+			'15 seconds outside the tolerance, in the future'                 => [ $plain, $outside_tolerance, WC_Stripe_Webhook_State::VALIDATION_FAILED_TIMESTAMP_MISMATCH ],
+			'15 seconds inside the tolerance, with debug entries'             => [ $with_debug, -$inside_tolerance, WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'15 seconds outside the tolerance, with debug entries'            => [ $with_debug, -$outside_tolerance, WC_Stripe_Webhook_State::VALIDATION_FAILED_TIMESTAMP_MISMATCH ],
+			'15 seconds inside the tolerance, timestamp after other entries'  => [ $timestamp_end, -$inside_tolerance, WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'15 seconds outside the tolerance, timestamp after other entries' => [ $timestamp_end, -$outside_tolerance, WC_Stripe_Webhook_State::VALIDATION_FAILED_TIMESTAMP_MISMATCH ],
+		];
+	}
+
+	/**
+	 * A delivery whose signature header carries Stripe's debug entries is processed, not answered
+	 * with the 204 that makes Stripe consider the event delivered.
+	 */
+	public function test_check_for_webhook_processes_delivery_with_debug_entries_in_signature_header(): void {
+		$this->configure_webhook_secrets();
+		WC_Stripe_Webhook_State_Fixtures::delete_all_options();
+
+		$created = time() - 30;
+		$body    = $this->build_webhook_event_body( [ 'created' => $created ] );
+
+		$status = $this->dispatch_webhook(
+			$body,
+			[
+				'USER-AGENT'       => 'Stripe/1.0 (+https://docs.stripe.com/webhooks)',
+				'CONTENT-TYPE'     => 'application/json; charset=utf-8',
+				'STRIPE-SIGNATURE' => $this->build_signature_header(
+					't={timestamp},v1={signature},v0={other_signature},' . self::SIGNATURE_DEBUG_ENTRIES,
+					$body
+				),
+			]
+		);
+
+		$this->assertSame( 200, $status );
+		$this->assertSame( $created, WC_Stripe_Webhook_State::get_last_webhook_success_at() );
+		$this->assertSame( 0, WC_Stripe_Webhook_State::get_last_webhook_failure_at() );
+	}
+
+	/**
+	 * Fills in a signature header template, with signatures computed for the header's timestamp.
+	 *
+	 * @param string $header_template  Header value with `{timestamp}`, `{signature}` and `{other_signature}` placeholders.
+	 * @param string $body             Raw request body the signatures are computed over.
+	 * @param int    $timestamp_offset Seconds to move the header's timestamp away from now; negative is in the past.
+	 * @return string
+	 */
+	private function build_signature_header( string $header_template, string $body, int $timestamp_offset = 0 ): string {
+		$timestamp = time() + $timestamp_offset;
+
+		return strtr(
+			$header_template,
+			[
+				'{timestamp}'       => (string) $timestamp,
+				'{signature}'       => hash_hmac( 'sha256', $timestamp . '.' . $body, self::WEBHOOK_SECRET ),
+				'{other_signature}' => hash_hmac( 'sha256', $timestamp . '.' . $body, 'whsec_another_secret' ),
+			]
+		);
 	}
 
 	/**

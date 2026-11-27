@@ -104,6 +104,23 @@ describe( 'PaymentElements adaptive pricing selection', () => {
 		expect( PaymentProcessor ).not.toHaveBeenCalled();
 	} );
 
+	it( 'uses the standard elements preview in the editor even when Adaptive Pricing is enabled', () => {
+		getBlocksConfiguration.mockReturnValue( {
+			isAdaptivePricingEnabled: true,
+			stripeJsVersion: 'dahlia',
+			paymentMethodsConfig: { card: { isReusable: false } },
+			cartTotal: 1000,
+			currency: 'USD',
+			shouldShowOptimizedCheckout: true,
+			isAdmin: true,
+		} );
+
+		renderFields( buildApi( STRIPE ) );
+
+		expect( CheckoutContainer ).not.toHaveBeenCalled();
+		expect( PaymentProcessor ).toHaveBeenCalled();
+	} );
+
 	it( 'falls back to the standard elements flow when a legacy Stripe.js lacks initCheckoutElementsSdk', () => {
 		getBlocksConfiguration.mockReturnValue( {
 			isAdaptivePricingEnabled: true,

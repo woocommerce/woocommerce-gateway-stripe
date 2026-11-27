@@ -1,5 +1,6 @@
 <?php
 
+use Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils;
 use Automattic\WooCommerce\Enums\OrderStatus;
 
 /**
@@ -571,7 +572,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		// Determine the expected version without modifying any files: if the compiled asset file
 		// is present (i.e. a build has been run), mirror the same logic used in payment_scripts().
 		$expected_version      = WC_STRIPE_VERSION;
-		$expected_dependencies = [ 'stripe', 'wc-checkout' ];
+		$expected_dependencies = [ 'stripe', 'wc-checkout', 'jquery-blockui', 'wc-stripe-checkout-settings' ];
 		if ( file_exists( $asset_path ) ) {
 			$asset = require $asset_path;
 			if ( is_array( $asset ) ) {
@@ -600,7 +601,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		add_filter( 'woocommerce_is_checkout', '__return_true' );
 
 		$this->clean_up_scripts(
-			[ 'stripe', 'wc-stripe-upe-classic' ],
+			[ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ],
 			[ 'stripelink_styles', 'wc-stripe-upe-classic' ]
 		);
 
@@ -614,7 +615,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		remove_filter( 'woocommerce_is_checkout', '__return_true' );
 
 		$this->clean_up_scripts(
-			[ 'stripe', 'wc-stripe-upe-classic' ],
+			[ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ],
 			[ 'stripelink_styles', 'wc-stripe-upe-classic' ]
 		);
 
@@ -626,7 +627,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 	/**
 	 * The bootstrap derives its readiness gate from `scriptDependencies`, so the
-	 * localized list must match the script's registered build dependencies.
+	 * localized list must match the build dependencies and precede early wallets.
 	 */
 	public function test_payment_scripts_localizes_script_dependencies(): void {
 		$asset_path            = WC_STRIPE_PLUGIN_PATH . '/build/upe-classic.asset.php';
@@ -651,35 +652,72 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$gateway->method( 'get_return_url' )->willReturn( self::MOCK_RETURN_URL );
 		$gateway->enabled = 'yes';
 
+		$express_helper = $this->createMock( WC_Stripe_Express_Checkout_Helper::class );
+		$express_helper->method( 'is_page_supported' )->willReturn( true );
+		$express_helper->method( 'should_show_express_checkout_button' )->willReturn( true );
+		$express                          = $this->getMockBuilder( WC_Stripe_Express_Checkout_Element::class )
+			->disableOriginalConstructor()
+			->onlyMethods( [ 'javascript_params' ] )
+			->getMock();
+		$express->express_checkout_helper = $express_helper;
+		$express->method( 'javascript_params' )->willReturn( [ 'button' => [ 'theme' => 'white' ] ] );
+
+		$original_scripts = wp_scripts();
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Isolate script registration and printing state from other tests.
+		$GLOBALS['wp_scripts'] = clone $original_scripts;
+		// Registered dependencies are objects, so cloning only the registry would share their mutable state.
+		foreach ( wp_scripts()->registered as $handle => $dependency ) {
+			wp_scripts()->registered[ $handle ] = clone $dependency;
+		}
+		wp_scripts()->done = [];
 		add_filter( 'woocommerce_is_checkout', '__return_true' );
-		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
-		wp_register_script( 'wc_stripe_express_checkout', 'https://example.test/express.js', [], null, true );
-		wp_enqueue_script( 'wc_stripe_express_checkout' );
+		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
+		$this->clean_up_scripts( [ 'wc_stripe_express_checkout' ] );
 
 		$add_marker = static function ( $params ) {
 			$params['extensionMarker'] = 'extension-value';
 			return $params;
 		};
 		add_filter( 'wc_stripe_upe_params', $add_marker );
-		$gateway->payment_scripts();
-		$localized         = wp_scripts()->get_data( 'wc-stripe-upe-classic', 'data' );
-		$express_localized = wp_scripts()->get_data( 'wc_stripe_express_checkout', 'data' );
 
-		remove_filter( 'wc_stripe_upe_params', $add_marker );
-		remove_filter( 'woocommerce_is_checkout', '__return_true' );
-		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
-		$this->clean_up_scripts( [ 'wc_stripe_express_checkout' ] );
+		try {
+			WC_Frontend_Scripts::load_scripts();
+			$express->scripts();
+			$gateway->payment_scripts();
+			$localized = wp_scripts()->get_data( 'wc-stripe-checkout-settings', 'data' );
+			$this->assertContains( 'wc-stripe-checkout-settings', wp_scripts()->registered['wc_stripe_express_checkout']->deps );
+			$this->assertIsString( $localized, 'wc_stripe_upe_params was not localized' );
+			$this->assertStringContainsString( 'extension-value', $localized );
+			$this->assertMatchesRegularExpression( '/var wc_stripe_upe_params = (\{.*\});/s', $localized );
+			preg_match( '/var wc_stripe_upe_params = (\{.*\});/s', $localized, $matches );
+			$params = json_decode( $matches[1], true );
 
-		$this->assertSame( $localized, $express_localized, 'Early wallets must receive the same filtered gateway configuration before initialization.' );
-		$this->assertStringContainsString( 'extension-value', $localized );
-		$this->assertStringContainsString( 'extension-value', $express_localized );
-		$this->assertIsString( $localized, 'wc_stripe_upe_params was not localized' );
-		$this->assertMatchesRegularExpression( '/var wc_stripe_upe_params = (\{.*\});/s', $localized );
-		preg_match( '/var wc_stripe_upe_params = (\{.*\});/s', $localized, $matches );
-		$params = json_decode( $matches[1], true );
+			$this->assertArrayHasKey( 'scriptDependencies', $params );
+			$this->assertSame( $expected_dependencies, $params['scriptDependencies'] );
 
-		$this->assertArrayHasKey( 'scriptDependencies', $params );
-		$this->assertSame( $expected_dependencies, $params['scriptDependencies'] );
+			ob_start();
+			wp_scripts()->do_items( [ 'wc_stripe_express_checkout', 'wc-stripe-upe-classic' ], 1 );
+			$output = ob_get_clean();
+
+			$this->assertSame( 1, substr_count( $output, 'var wc_stripe_upe_params = ' ) );
+			$this->assertSame( 1, substr_count( $output, 'var wc_stripe_express_checkout_params = ' ) );
+			$this->assertStringContainsString( 'extension-value', $output );
+			$this->assertStringContainsString( 'var wc_stripe_express_checkout_params = {"button":{"theme":"white"}};', $output );
+			$settings_position         = strpos( $output, 'var wc_stripe_upe_params = ' );
+			$express_settings_position = strpos( $output, 'var wc_stripe_express_checkout_params = ' );
+			$express_position          = strpos( $output, 'id="wc_stripe_express_checkout-js"' );
+			$this->assertIsInt( $settings_position );
+			$this->assertIsInt( $express_settings_position );
+			$this->assertIsInt( $express_position );
+			$this->assertLessThan( $express_position, $settings_position, 'Early wallets must receive filtered settings before initialization.' );
+			$this->assertLessThan( $express_position, $express_settings_position, 'Express settings must be available before initialization.' );
+		} finally {
+			remove_filter( 'wc_stripe_upe_params', $add_marker );
+			remove_filter( 'woocommerce_is_checkout', '__return_true' );
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restore the script registry after printing the checkout bundles.
+			$GLOBALS['wp_scripts'] = $original_scripts;
+			$this->clean_up_scripts( [], [ 'stripelink_styles', 'wc-stripe-upe-classic', 'wc_stripe_express_checkout_style' ] );
+		}
 	}
 
 	/**
@@ -698,14 +736,14 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		add_filter( 'woocommerce_is_checkout', '__return_true' );
 		add_filter( 'wc_stripe_upe_params', '__return_null' );
-		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
+		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
 
 		$gateway->payment_scripts();
-		$localized = wp_scripts()->get_data( 'wc-stripe-upe-classic', 'data' );
+		$localized = wp_scripts()->get_data( 'wc-stripe-checkout-settings', 'data' );
 
 		remove_filter( 'wc_stripe_upe_params', '__return_null' );
 		remove_filter( 'woocommerce_is_checkout', '__return_true' );
-		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
+		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
 
 		$this->assertIsString( $localized, 'wc_stripe_upe_params was not localized' );
 		preg_match( '/var wc_stripe_upe_params = (\{.*\});/s', $localized, $matches );
@@ -714,6 +752,44 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		// wp_localize_script() casts scalar values to strings.
 		$this->assertSame( '1', $params['isCheckout'] );
 		$this->assertArrayHasKey( 'scriptDependencies', $params );
+	}
+
+	/**
+	 * Express and Blocks checkout must receive filtered settings without printing the classic runtime.
+	 *
+	 * @since x.x.x
+	 * @return void
+	 */
+	public function test_shared_settings_can_print_without_classic_checkout(): void {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->onlyMethods( [ 'javascript_params' ] )
+			->getMock();
+		$gateway->method( 'javascript_params' )->willReturn( [ 'key' => 'pk_test_example' ] );
+		$gateway->enabled = 'yes';
+		$filter           = static function ( $params ) {
+			$params['locale'] = 'fr';
+			return $params;
+		};
+
+		add_filter( 'woocommerce_is_checkout', '__return_true' );
+		add_filter( 'wc_stripe_upe_params', $filter );
+		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ] );
+
+		try {
+			$gateway->payment_scripts();
+			ob_start();
+			wp_scripts()->do_items( [ 'wc-stripe-checkout-settings' ] );
+			$output = ob_get_clean();
+
+			$this->assertStringContainsString( 'var wc_stripe_upe_params = ', $output );
+			$this->assertStringContainsString( '"locale":"fr"', $output );
+			$this->assertStringNotContainsString( 'src=', $output );
+			$this->assertFalse( wp_script_is( 'wc-stripe-upe-classic', 'done' ) );
+		} finally {
+			remove_filter( 'woocommerce_is_checkout', '__return_true' );
+			remove_filter( 'wc_stripe_upe_params', $filter );
+			$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
+		}
 	}
 
 	/**
@@ -3094,18 +3170,304 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order->set_status( OrderStatus::PROCESSING );
 		$order->save();
 
+		// The order's own Session, already completed by the payment that settled it.
+		$this->store_checkout_session_context_for_order( 'cs_test_already_paid', $order, [ 'order_id' => $order->get_id() ] );
+		$this->mock_checkout_session_retrieval( 'cs_test_already_paid', 'complete' );
+
 		try {
 			$result = $this->mock_gateway->process_payment( $order->get_id() );
 		} finally {
+			WC_Stripe_Checkout_Session_Context::delete_context( 'cs_test_already_paid' );
 			unset( $_POST['wc_stripe_checkout_session_id'], $_POST['payment_method'], $_POST['wc-stripe-payment-method'] );
 		}
 
 		$this->assertSame( 'success', $result['result'] );
+		$this->assertSame( 'yes', $result['wc_stripe_checkout_session_already_paid'] ?? null );
 		$query        = [];
 		$query_string = wp_parse_url( $result['redirect'], PHP_URL_QUERY );
 		parse_str( is_string( $query_string ) ? $query_string : '', $query );
 		$this->assertSame( '1', $query['wc_stripe_cs'] ?? null );
 		$this->assertSame( 1, wp_verify_nonce( $query['_wpnonce'] ?? '', 'wc_stripe_process_checkout_session_redirect_nonce' ) );
+	}
+
+	/**
+	 * Helper: answer the Checkout Session retrieval with the given status.
+	 *
+	 * @param string $session_id     The Checkout Session id.
+	 * @param string $session_status The status Stripe reports for it.
+	 * @return void
+	 */
+	private function mock_checkout_session_retrieval( string $session_id, string $session_status ): void {
+		$this->mock_gateway->method( 'stripe_request' )->willReturnCallback(
+			function ( $path ) use ( $session_id, $session_status ) {
+				if ( 'checkout/sessions/' . $session_id !== $path ) {
+					return null;
+				}
+
+				return (object) [
+					'id'     => $session_id,
+					'status' => $session_status,
+				];
+			}
+		);
+	}
+
+	/**
+	 * A pending order that an earlier attempt already paid must not be paid again through the
+	 * page's Checkout Session. The browser confirms the Session after a success response unless
+	 * told not to, and a page on stale scripts ignores that flag, so the Session is expired too.
+	 * The order is settled only after that: when the Session cannot be expired the request fails
+	 * with the order still pending and the cart intact, so the retry resumes the same order.
+	 *
+	 * @dataProvider provide_checkout_session_retries_for_order_with_earlier_intent
+	 *
+	 * @param string|null $intent_status       Status of the earlier PaymentIntent, or null when it cannot be retrieved.
+	 * @param bool        $owns_session        Whether the current shopper owns a stored context for the Session.
+	 * @param bool        $expire_succeeds     Whether Stripe confirms the Session as expired.
+	 * @param string      $expected_result     Expected `result` of the checkout response.
+	 * @param bool        $expect_already_paid Whether the response tells the browser not to confirm the Session.
+	 * @param bool        $expect_linked       Whether the Session ends up linked to the order.
+	 * @param string      $expected_status     Order status afterwards.
+	 * @param array       $charge_flags        Extra fields on the earlier intent's charge, e.g. `refunded`.
+	 * @param bool        $title_lookup_fails  Whether reading the charge for the payment method title throws.
+	 * @param bool        $expect_settle_failure_note Whether the merchant is told the paid order could not be settled.
+	 */
+	public function test_process_payment_with_checkout_session_for_order_with_earlier_intent( ?string $intent_status, bool $owns_session, bool $expire_succeeds, string $expected_result, bool $expect_already_paid, bool $expect_linked, string $expected_status, array $charge_flags = [], bool $title_lookup_fails = false, bool $expect_settle_failure_note = false ) {
+		$this->enable_checkout_sessions();
+		wc_clear_notices();
+
+		$session_id = 'cs_test_earlier_intent';
+
+		$_POST['wc_stripe_checkout_session_id'] = $session_id;
+		$_POST['payment_method']                = WC_Stripe_UPE_Payment_Gateway::ID;
+		$_POST['wc-stripe-payment-method']      = WC_Stripe_UPE_Payment_Gateway::ID;
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+
+		WC_Stripe_Order_Helper::get_instance()->add_payment_intent_to_order( 'pi_earlier_attempt', $order );
+
+		// Core resets the title to the gateway's own each time it resumes a pending order.
+		$order->set_payment_method_title( 'Stripe' );
+		$order->save();
+
+		if ( $owns_session ) {
+			$this->store_checkout_session_context_for_order( $session_id, $order );
+		}
+
+		list( $amount, , , $currency ) = $this->get_order_details( $order );
+
+		$this->mock_gateway
+			->method( 'get_intent_from_order' )
+			->willReturn(
+				null === $intent_status
+					? false
+					: $this->array_to_object(
+						array_merge(
+							self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE,
+							[
+								'id'       => 'pi_earlier_attempt',
+								'status'   => $intent_status,
+								'amount'   => $amount,
+								'currency' => $currency,
+							]
+						)
+					)
+			);
+
+		$charge = $this->array_to_object(
+			array_merge(
+				[
+					'id'                     => 'ch_earlier_attempt',
+					'captured'               => true,
+					'status'                 => 'succeeded',
+					'payment_method_details' => [ 'type' => WC_Stripe_Payment_Methods::CARD ],
+				],
+				$charge_flags
+			)
+		);
+
+		$charge_lookups = 0;
+		$this->mock_gateway
+			->method( 'get_latest_charge_from_intent' )
+			->willReturnCallback(
+				function () use ( $charge, $title_lookup_fails, &$charge_lookups ) {
+					++$charge_lookups;
+
+					// The charge is read to rule out a reversed payment, then for the payment method
+					// title, then to settle the order.
+					if ( $title_lookup_fails && 2 === $charge_lookups ) {
+						throw new WC_Stripe_Exception( 'charge lookup failed', 'Charge lookup failed.' );
+					}
+
+					return $charge;
+				}
+			);
+
+		$this->mock_checkout_session_retrieval( $session_id, 'open' );
+		WC()->cart->add_to_cart( WC_Helper_Product::create_simple_product()->get_id() );
+
+		$expire_requested = false;
+		$pre_http_filter  = function ( $return_value, $parsed_args, $url ) use ( $session_id, $expire_succeeds, &$expire_requested ) {
+			if ( WC_Stripe_API::ENDPOINT . 'checkout/sessions/' . $session_id . '/expire' !== $url ) {
+				return $return_value;
+			}
+
+			$expire_requested = true;
+
+			return [
+				'response' => [
+					'code'    => $expire_succeeds ? 200 : 400,
+					'message' => $expire_succeeds ? 'OK' : 'Bad Request',
+				],
+				'body'     => wp_json_encode(
+					$expire_succeeds
+						? [
+							'id'     => $session_id,
+							'status' => 'expired',
+						]
+						: [ 'error' => [ 'message' => 'expire failed' ] ]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $pre_http_filter, 10, 3 );
+
+		try {
+			$result        = $this->mock_gateway->process_payment( $order->get_id() );
+			$cart_is_empty = WC()->cart->is_empty();
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_filter );
+			WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
+			WC()->cart->empty_cart();
+			$_POST = [];
+			wc_clear_notices();
+		}
+
+		$processed_order = wc_get_order( $order->get_id() );
+		$paid_method     = $this->mock_gateway->payment_methods[ $charge->payment_method_details->type ];
+
+		$this->assertSame( $expected_result, $result['result'] );
+		$this->assertSame( $expect_already_paid ? 'yes' : null, $result['wc_stripe_checkout_session_already_paid'] ?? null );
+		$this->assertSame( $expect_already_paid, $cart_is_empty );
+		if ( $expect_already_paid ) {
+			// No Session was used, so the shopper must not be sent through the Session return handler.
+			$this->assertSame( self::MOCK_RETURN_URL, $result['redirect'] );
+		}
+		if ( $expect_already_paid ) {
+			$this->assertTrue( $expire_requested );
+		}
+		$this->assertSame(
+			$expect_linked ? $session_id : '',
+			(string) WC_Stripe_Order_Helper::get_instance()->get_stripe_checkout_session_id( $processed_order )
+		);
+		$this->assertSame( $expected_status, $processed_order->get_status() );
+		if ( $expect_already_paid ) {
+			// The order must carry the title of the method that paid, as the normal return does,
+			// unless the title could not be read, which must not fail the paid checkout.
+			$this->assertSame(
+				$title_lookup_fails ? 'Stripe' : $paid_method->get_title(),
+				$processed_order->get_payment_method_title()
+			);
+		}
+
+		$notes = wp_list_pluck( wc_get_order_notes( [ 'order_id' => $order->get_id() ] ), 'content' );
+
+		if ( OrderStatus::PROCESSING === $expected_status && ! $title_lookup_fails ) {
+			// Core writes this note, and sends the order emails, while the order is being settled,
+			// so the title has to be in place by then.
+			$this->assertContains( sprintf( 'Payment via %s (ch_earlier_attempt).', $paid_method->get_title() ), $notes );
+
+			// A method other than cards is recorded under its own gateway ID, as the normal return does.
+			$this->assertSame(
+				$paid_method instanceof WC_Stripe_UPE_Payment_Method_CC ? WC_Stripe_UPE_Payment_Gateway::ID : $paid_method->id,
+				$processed_order->get_payment_method()
+			);
+		}
+
+		$settle_failure_notes = array_filter(
+			$notes,
+			function ( $note ) {
+				return false !== strpos( $note, 'Stripe took the payment, but a step after the charge failed.' );
+			}
+		);
+		$this->assertCount( $expect_settle_failure_note ? 1 : 0, $settle_failure_notes );
+	}
+
+	/**
+	 * @return array<string,array{0:string|null,1:bool,2:bool,3:string,4:bool,5:bool,6:string,7?:array,8?:bool,9?:bool}>
+	 */
+	public function provide_checkout_session_retries_for_order_with_earlier_intent(): array {
+		return [
+			'succeeded intent settles the order'       => [ WC_Stripe_Intent_Status::SUCCEEDED, true, true, 'success', true, false, OrderStatus::PROCESSING ],
+			'processing intent is left to its webhook' => [ WC_Stripe_Intent_Status::PROCESSING, true, true, 'success', true, false, OrderStatus::PENDING ],
+			'declined intent does not block the retry' => [ WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD, true, true, 'success', false, true, OrderStatus::PENDING ],
+			'intent cannot be retrieved'               => [ null, true, true, 'failure', false, false, OrderStatus::PENDING ],
+			'paid, but Session is not the shopper\'s'  => [ WC_Stripe_Intent_Status::SUCCEEDED, false, true, 'failure', false, false, OrderStatus::PENDING ],
+			'paid, but Session cannot be expired'      => [ WC_Stripe_Intent_Status::SUCCEEDED, true, false, 'failure', false, false, OrderStatus::PENDING ],
+			'refunded charge does not block the retry' => [ WC_Stripe_Intent_Status::SUCCEEDED, true, true, 'success', false, true, OrderStatus::PENDING, [ 'refunded' => true ] ],
+			'disputed charge does not block the retry' => [ WC_Stripe_Intent_Status::SUCCEEDED, true, true, 'success', false, true, OrderStatus::PENDING, [ 'disputed' => true ] ],
+			'settled, but the title cannot be read'    => [ WC_Stripe_Intent_Status::SUCCEEDED, true, true, 'success', true, false, OrderStatus::PROCESSING, [], true ],
+			// Settling only acts on an order whose payment method is the gateway's own, so the
+			// method's own ID must not be on the order before it is settled.
+			'non-card method also settles the order'   => [ WC_Stripe_Intent_Status::SUCCEEDED, true, true, 'success', true, false, OrderStatus::PROCESSING, [ 'payment_method_details' => [ 'type' => WC_Stripe_Payment_Methods::CASHAPP_PAY ] ] ],
+			// Stripe already took the payment, so an error here would invite the shopper to pay again.
+			'paid, but the order cannot be settled'    => [
+				WC_Stripe_Intent_Status::SUCCEEDED,
+				true,
+				true,
+				'success',
+				true,
+				false,
+				OrderStatus::PENDING,
+				[
+					'captured' => false,
+					'status'   => 'failed',
+				],
+				false,
+				true,
+			],
+		];
+	}
+
+	/**
+	 * An order that is already settled is not resumed by the next submission, so when its submitted
+	 * Checkout Session cannot be expired the cart must go: left in place, it would create a new
+	 * order and pay through the Session that is still open.
+	 */
+	public function test_process_payment_with_checkout_session_empties_cart_when_settled_order_session_stays_open() {
+		$this->enable_checkout_sessions();
+		wc_clear_notices();
+
+		$session_id = 'cs_test_settled_order_open_session';
+
+		$_POST['wc_stripe_checkout_session_id'] = $session_id;
+		$_POST['payment_method']                = WC_Stripe_UPE_Payment_Gateway::ID;
+		$_POST['wc-stripe-payment-method']      = WC_Stripe_UPE_Payment_Gateway::ID;
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->set_status( OrderStatus::PROCESSING );
+		$order->save();
+
+		$this->store_checkout_session_context_for_order( $session_id, $order );
+		// An open Session with no expire response mocked: the expire request fails.
+		$this->mock_checkout_session_retrieval( $session_id, 'open' );
+		WC()->cart->add_to_cart( WC_Helper_Product::create_simple_product()->get_id() );
+
+		try {
+			$result        = $this->mock_gateway->process_payment( $order->get_id() );
+			$cart_is_empty = WC()->cart->is_empty();
+		} finally {
+			WC_Stripe_Checkout_Session_Context::delete_context( $session_id );
+			WC()->cart->empty_cart();
+			$_POST = [];
+			wc_clear_notices();
+		}
+
+		$this->assertSame( 'failure', $result['result'] );
+		$this->assertTrue( $cart_is_empty );
 	}
 
 	/**
@@ -7860,7 +8222,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
 				'amazon_pay_button_locations'               => [],
 				'expected_stripe'                           => true,
-				'expected_upe_classic'                      => true,
+				'expected_upe_classic'                      => false,
 			],
 			'Cart page with ECE off, Amazon Pay on at cart'       => [
 				'page_type'                                 => 'cart',
@@ -7869,7 +8231,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::AMAZON_PAY ],
 				'amazon_pay_button_locations'               => [ 'cart' ],
 				'expected_stripe'                           => true,
-				'expected_upe_classic'                      => true,
+				'expected_upe_classic'                      => false,
 			],
 			'Product page with ECE on at product'                 => [
 				'page_type'                                 => 'product',
@@ -7878,7 +8240,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
 				'amazon_pay_button_locations'               => [],
 				'expected_stripe'                           => true,
-				'expected_upe_classic'                      => true,
+				'expected_upe_classic'                      => false,
 			],
 			'Product page with ECE off, Amazon Pay on at product' => [
 				'page_type'                                 => 'product',
@@ -7887,7 +8249,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::AMAZON_PAY ],
 				'amazon_pay_button_locations'               => [ 'product' ],
 				'expected_stripe'                           => true,
-				'expected_upe_classic'                      => true,
+				'expected_upe_classic'                      => false,
 			],
 			'Checkout page with ECE off and Amazon Pay off'       => [
 				'page_type'                                 => 'checkout',
@@ -7934,6 +8296,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			add_filter( 'woocommerce_is_checkout', $is_checkout_filter );
 		}
 
+		$original_render_count                                     = $GLOBALS['wp_actions']['woocommerce_before_checkout_form'] ?? 0;
+		$GLOBALS['wp_actions']['woocommerce_before_checkout_form'] = (int) ( 'checkout' === $page_type ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Isolate the render signal between page fixtures.
+
 		$original_settings = WC_Stripe_Helper::get_stripe_settings();
 
 		$stripe_settings                                      = $original_settings;
@@ -7949,7 +8314,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$gateway->enabled = 'yes';
 
 			$this->clean_up_scripts(
-				[ 'stripe', 'wc-stripe-upe-classic' ],
+				[ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ],
 				[ 'stripelink_styles', 'wc-stripe-upe-classic' ]
 			);
 
@@ -7958,10 +8323,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			$this->assertSame( $expected_stripe, wp_script_is( 'stripe', 'enqueued' ), 'Unexpected enqueue state for stripe JS.' );
 			$this->assertSame( $expected_upe_classic, wp_script_is( 'wc-stripe-upe-classic', 'enqueued' ), 'Unexpected enqueue state for wc-stripe-upe-classic.' );
 		} finally {
+			$GLOBALS['wp_actions']['woocommerce_before_checkout_form'] = $original_render_count; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Isolate the render signal between page fixtures.
 			WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
 
 			$this->clean_up_scripts(
-				[ 'stripe', 'wc-stripe-upe-classic' ],
+				[ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ],
 				[ 'stripelink_styles', 'wc-stripe-upe-classic' ]
 			);
 
@@ -7977,6 +8343,133 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				remove_filter( 'woocommerce_is_cart', $is_cart_filter );
 			}
 		}
+	}
+
+	/**
+	 * Settings must survive layout gating, including filters used by extensions on Blocks pages.
+	 *
+	 * @since x.x.x
+	 * @dataProvider provide_checkout_script_layouts
+	 * @param string $content Page content.
+	 * @param bool   $is_checkout Whether WooCommerce identifies the page as checkout.
+	 * @param string $endpoint Special checkout endpoint, if any.
+	 * @param bool   $expected_classic Whether the classic runtime is required.
+	 * @param bool   $is_cart Whether this is the configured cart page.
+	 * @param bool   $form_rendered Whether the classic form has been rendered.
+	 * @return void
+	 */
+	public function test_payment_scripts_for_checkout_layouts( $content, $is_checkout, $endpoint, $expected_classic, $is_cart = false, $form_rendered = false ): void {
+		$original_render_count                                     = $GLOBALS['wp_actions']['woocommerce_before_checkout_form'] ?? 0;
+		$GLOBALS['wp_actions']['woocommerce_before_checkout_form'] = (int) $form_rendered; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Isolate the render signal between page fixtures.
+		$original_account_page                                     = get_option( 'woocommerce_myaccount_page_id' );
+		$original_cart_page                                        = get_option( 'woocommerce_cart_page_id' );
+		$page = self::factory()->post->create(
+			[
+				'post_type'    => 'page',
+				'post_content' => $content,
+			]
+		);
+		if ( 'add-payment-method' === $endpoint ) {
+			update_option( 'woocommerce_myaccount_page_id', $page );
+		}
+		if ( $is_cart ) {
+			update_option( 'woocommerce_cart_page_id', $page );
+		}
+		$this->go_to( get_permalink( $page ) );
+		$checkout_filter = static function () use ( $is_checkout ) {
+			return $is_checkout;
+		};
+		$params_filter   = static function ( $params ) {
+			$params['locale'] = 'fr';
+			return $params;
+		};
+		add_filter( 'woocommerce_is_checkout', $checkout_filter );
+		add_filter( 'wc_stripe_upe_params', $params_filter );
+		if ( 'change_payment_method' === $endpoint ) {
+			$_GET[ $endpoint ] = 123;
+		} elseif ( $endpoint ) {
+			$GLOBALS['wp']->query_vars[ $endpoint ] = 123;
+		}
+
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->onlyMethods( [ 'javascript_params', 'should_skip_full_payment_scripts' ] )
+			->getMock();
+		$gateway->expects( $this->once() )->method( 'javascript_params' )->willReturn( [ 'key' => 'pk_test_example' ] );
+		$gateway->expects( $this->once() )->method( 'should_skip_full_payment_scripts' )->willReturn( false );
+		$gateway->enabled = 'yes';
+		$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ] );
+
+		$cart_page_cache = null;
+		if ( $is_cart && property_exists( CartCheckoutUtils::class, 'is_cart_page' ) ) {
+			// WooCommerce's request cache survives navigation between fixtures in the same PHP process.
+			$cart_page_cache = new ReflectionProperty( CartCheckoutUtils::class, 'is_cart_page' );
+			$cart_page_cache->setAccessible( true );
+			$original_cart_page_cache = $cart_page_cache->getValue();
+			$cart_page_cache->setValue( null, null );
+		}
+
+		try {
+			if ( $is_cart ) {
+				$this->assertTrue( is_cart() );
+			}
+			$gateway->payment_scripts();
+			$this->assertSame( $expected_classic, wp_script_is( 'wc-stripe-upe-classic', 'enqueued' ) );
+			foreach ( [ 'wc-stripe-upe-classic', 'stripelink_styles' ] as $handle ) {
+				$this->assertTrue( wp_style_is( $handle, 'registered' ) );
+				$this->assertSame( $expected_classic, wp_style_is( $handle, 'enqueued' ), $handle );
+			}
+			$this->assertTrue( wp_script_is( 'wc-stripe-checkout-settings', 'enqueued' ) );
+			$this->assertStringContainsString( '"locale":"fr"', wp_scripts()->get_data( 'wc-stripe-checkout-settings', 'data' ) );
+
+			// Extensions can still explicitly request the real classic runtime on a custom page.
+			wp_enqueue_script( 'wc-stripe-upe-classic' );
+			$this->assertStringEndsWith( '/build/upe-classic.js', wp_scripts()->registered['wc-stripe-upe-classic']->src );
+			$this->assertContains( 'wc-stripe-checkout-settings', wp_scripts()->registered['wc-stripe-upe-classic']->deps );
+		} finally {
+			$GLOBALS['wp_actions']['woocommerce_before_checkout_form'] = $original_render_count; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Isolate the render signal between page fixtures.
+			update_option( 'woocommerce_myaccount_page_id', $original_account_page );
+			if ( $is_cart ) {
+				update_option( 'woocommerce_cart_page_id', $original_cart_page );
+			}
+			if ( $cart_page_cache ) {
+				$cart_page_cache->setValue( null, $original_cart_page_cache );
+			}
+			remove_filter( 'woocommerce_is_checkout', $checkout_filter );
+			remove_filter( 'wc_stripe_upe_params', $params_filter );
+			if ( 'change_payment_method' === $endpoint ) {
+				unset( $_GET[ $endpoint ] );
+			} elseif ( $endpoint ) {
+				unset( $GLOBALS['wp']->query_vars[ $endpoint ] );
+			}
+			$this->clean_up_scripts( [ 'stripe', 'wc-stripe-upe-classic', 'wc-stripe-checkout-settings' ], [ 'stripelink_styles', 'wc-stripe-upe-classic' ] );
+		}
+	}
+
+	/**
+	 * @since x.x.x
+	 * @return array
+	 */
+	public function provide_checkout_script_layouts(): array {
+		return [
+			'Blocks cart on a custom page'      => [ '<!-- wp:woocommerce/cart /-->', false, '', false ],
+			'Blocks checkout'                   => [ '<!-- wp:woocommerce/checkout /-->', true, '', false ],
+			'Blocks checkout on custom page'    => [ '<!-- wp:woocommerce/checkout /-->', false, '', false ],
+			'classic checkout'                  => [ '[woocommerce_checkout]', true, '', true, false, true ],
+			'classic shortcode block'           => [ '<!-- wp:woocommerce/classic-shortcode {"shortcode":"checkout"} /-->', true, '', true, false, true ],
+			'classic cart'                      => [ '[woocommerce_cart]', false, '', false, true ],
+			'classic cart block'                => [ '<!-- wp:woocommerce/classic-shortcode {"shortcode":"cart"} /-->', false, '', false, true ],
+			'default classic cart block'        => [ '<!-- wp:woocommerce/classic-shortcode /-->', false, '', false, true ],
+			'nested classic cart block'         => [ '<!-- wp:group --><!-- wp:woocommerce/classic-shortcode {"shortcode":"cart"} /--><!-- /wp:group -->', false, '', false, true ],
+			'checkout block on cart page'       => [ '<!-- wp:woocommerce/classic-shortcode {"shortcode":"cart"} /--><!-- wp:woocommerce/classic-shortcode {"shortcode":"checkout"} /-->', false, '', true, true, true ],
+			'nested checkout with Blocks'       => [ '<!-- wp:woocommerce/cart /--><!-- wp:group --><!-- wp:woocommerce/classic-shortcode {"shortcode":"checkout"} /--><!-- /wp:group -->', false, '', true, false, true ],
+			'Blocks with classic cart block'    => [ '<!-- wp:woocommerce/checkout /--><!-- wp:woocommerce/classic-shortcode {"shortcode":"cart"} /-->', true, '', false ],
+			'mixed classic and Blocks'          => [ '<!-- wp:woocommerce/cart /-->[woocommerce_checkout]', true, '', true, false, true ],
+			'unrendered checkout shortcode'     => [ '[woocommerce_checkout]', true, '', false ],
+			'rendered checkout with stale post' => [ '<!-- wp:woocommerce/checkout /-->', true, '', true, false, true ],
+			'pay for order on Blocks page'      => [ '<!-- wp:woocommerce/checkout /-->', true, 'order-pay', true ],
+			'add payment method'                => [ '[woocommerce_my_account]', false, 'add-payment-method', true ],
+			'subscription payment change'       => [ '<!-- wp:woocommerce/checkout /-->', true, 'change_payment_method', true ],
+		];
 	}
 
 	/**

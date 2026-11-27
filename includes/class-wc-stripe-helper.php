@@ -90,6 +90,16 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Keep shared checkout settings available without requiring a particular checkout UI bundle.
+	 *
+	 * @since x.x.x
+	 * @return void
+	 */
+	public static function register_checkout_settings_script() {
+		wp_register_script( 'wc-stripe-checkout-settings', false, [], WC_STRIPE_VERSION, true );
+	}
+
+	/**
 	 * Validates a value against the expected Stripe object ID shape: `{prefix}_{token}`,
 	 * word characters only, at most 255 characters (Stripe's documented ceiling).
 	 *
@@ -1354,6 +1364,20 @@ class WC_Stripe_Helper {
 	 */
 	public static function has_cart_or_checkout_on_current_page() {
 		return is_cart() || is_checkout() || has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' );
+	}
+
+	/**
+	 * Checkout forms can be rendered by templates independently of the current post's content.
+	 *
+	 * @since x.x.x
+	 * @return bool
+	 */
+	public static function should_load_classic_checkout_scripts(): bool {
+		return did_action( 'woocommerce_before_checkout_form' ) > 0
+			|| ( function_exists( 'is_wcopc_checkout' ) && is_wcopc_checkout() )
+			|| is_add_payment_method_page()
+			|| is_wc_endpoint_url( 'order-pay' )
+			|| isset( $_GET['change_payment_method'] ); // phpcs:ignore WordPress.Security.NonceVerification
 	}
 
 	/**

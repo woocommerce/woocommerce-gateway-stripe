@@ -642,8 +642,9 @@ class WC_Stripe_Payment_Tokens {
 		// When OCS is enabled, all saved payment methods are processed through the single consolidated OCS element
 		// (gateway ID 'stripe'). Remap sub-gateway tokens (e.g. stripe_sepa_debit) to the main stripe gateway ID
 		// so that PaymentUtils includes them in the blocks checkout saved methods list.
+		// Only for our own sub-gateways: other gateways' cards also pass the check above and must keep their gateway ID.
 		$main_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
-		if ( $main_gateway->is_optimized_checkout_active() && WC_Stripe_UPE_Payment_Gateway::ID !== $payment_token->get_gateway_id() ) {
+		if ( $main_gateway->is_optimized_checkout_active() && in_array( $payment_token->get_gateway_id(), $this->get_reusable_sub_gateway_ids(), true ) ) {
 			$item['method']['gateway'] = WC_Stripe_UPE_Payment_Gateway::ID;
 		}
 

@@ -450,13 +450,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Check for a valid signature.
-		$signature_format = '/^t=(?P<timestamp>\d+)(?P<signatures>(,v\d+=[a-z0-9]+){1,2})$/';
-		if ( empty( $request_headers['STRIPE-SIGNATURE'] ) || ! preg_match( $signature_format, $request_headers['STRIPE-SIGNATURE'], $matches ) ) {
+		$signature = $this->parse_signature_header( $request_headers['STRIPE-SIGNATURE'] ?? '' );
+		if ( null === $signature ) {
 			return WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_INVALID;
 		}
 
 		// Verify the timestamp.
-		$timestamp = intval( $matches['timestamp'] );
+		$timestamp = $signature['timestamp'];
 		if ( abs( $timestamp - time() ) > 5 * MINUTE_IN_SECONDS ) {
 			return WC_Stripe_Webhook_State::VALIDATION_FAILED_TIMESTAMP_MISMATCH;
 		}
@@ -466,11 +466,40 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$expected_signature = hash_hmac( 'sha256', $signed_payload, $secret );
 
 		// Check if the expected signature is present.
-		if ( ! preg_match( '/,v\d+=' . preg_quote( $expected_signature, '/' ) . '/', $matches['signatures'] ) ) {
-			return WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_MISMATCH;
+		foreach ( $signature['signatures'] as $candidate_signature ) {
+			if ( hash_equals( $expected_signature, $candidate_signature ) ) {
+				return WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED;
+			}
 		}
 
-		return WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED;
+		return WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_MISMATCH;
+	}
+
+	/**
+	 * Extracts the timestamp and the `v1` signatures from a `Stripe-Signature` header.
+	 *
+	 * Only `t` and `v1` take part in verification, and `v1` can repeat. Every other entry is ignored,
+	 * because the header's entries, their count and their order are not fixed.
+	 *
+	 * @see https://docs.stripe.com/webhooks?verify=verify-manually#verify-manually
+	 *
+	 * @since x.x.x
+	 * @param mixed $signature_header The raw header value.
+	 * @return array{timestamp: int, signatures: string[]}|null Null when the header has no usable timestamp or no `v1` signature.
+	 */
+	private function parse_signature_header( $signature_header ): ?array {
+		if (
+			! is_string( $signature_header )
+			|| ! preg_match( '/(?:^|,)t=(\d+)(?:,|$)/', $signature_header, $timestamp_match )
+			|| ! preg_match_all( '/(?:^|,)v1=([^,]+)/', $signature_header, $signature_matches )
+		) {
+			return null;
+		}
+
+		return [
+			'timestamp'  => (int) $timestamp_match[1],
+			'signatures' => $signature_matches[1],
+		];
 	}
 
 	/**
