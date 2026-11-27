@@ -1278,6 +1278,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @throws WC_Data_Exception When setting order payment method fails.
 	 */
 	public function test_process_payment_deferred_intent_with_required_action_for_wallet_returns_valid_response( $payment_method, $free_order = false, $saved_token = false ) {
+		// The real lock, so the test can check it is released.
+		WC_Stripe_Order_Helper::set_instance( null );
+
 		$customer_id = 'cus_mock';
 		$order       = WC_Helper_Order::create_order( 1, null, [ 'total' => $free_order ? 0 : 50 ] );
 		$order_id    = $order->get_id();
@@ -1364,6 +1367,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->assertEquals( 'success', $response['result'] );
 		$this->assertMatchesRegularExpression( $expected_redirect_url, $response['redirect'] );
+
+		// Every way out, including the saved Cash App Pay free order, must release the payment lock.
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$this->assertFalse( $order_helper->lock_order_payment( $order ) );
+		$order_helper->unlock_order_payment( $order );
 	}
 
 	/**

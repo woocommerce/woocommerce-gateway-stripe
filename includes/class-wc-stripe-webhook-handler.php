@@ -1501,160 +1501,164 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return true;
 		}
 
-		$order_id           = $order->get_id();
-		$payment_type_meta  = $order_helper->get_stripe_upe_payment_type( $order );
-		$is_voucher_payment = in_array( $payment_type_meta, WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, true );
-		$is_wallet_payment  = in_array( $payment_type_meta, WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, true );
-		$is_blik_payment    = WC_Stripe_Payment_Methods::BLIK === $payment_type_meta;
+		// A throw (a refunded charge, a Stripe error) must still release the lock, or every later event
+		// for this order is deferred until the lock expires.
+		try {
+			$order_id           = $order->get_id();
+			$payment_type_meta  = $order_helper->get_stripe_upe_payment_type( $order );
+			$is_voucher_payment = in_array( $payment_type_meta, WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, true );
+			$is_wallet_payment  = in_array( $payment_type_meta, WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, true );
+			$is_blik_payment    = WC_Stripe_Payment_Methods::BLIK === $payment_type_meta;
 
-		switch ( $notification->type ) {
-			// Asynchronous payment methods such as bank debits will only provide a charge ID at `payment_intent.processing`, once the required actions are taken by the customer.
-			// We need to update the order transaction ID, so that the `payment_intent.succeeded` webhook is able to process the order.
-			case 'payment_intent.processing':
-				if ( ! $order_helper->validate_successful_intent_or_hold_order( $order, $intent ) ) {
-					break;
-				}
-
-				$charge = $this->get_latest_charge_from_intent( $intent );
-				if ( $charge ) {
-					$order->set_transaction_id( $charge->id );
-
-					// Record the captured flag while the charge is in hand; for async-confirmed
-					// orders this webhook delivers the first charge that ever exists for them
-					// (see sync_stripe_charge_captured()'s docblock).
-					$order_helper->sync_stripe_charge_captured( $order, $charge );
-
-					/* translators: transaction id */
-					$order->update_status( OrderStatus::ON_HOLD, sprintf( __( 'Stripe charge awaiting payment: %s.', 'woocommerce-gateway-stripe' ), $charge->id ) );
-				}
-				break;
-			case 'payment_intent.requires_action':
-				/**
-				 * Fires when a PaymentIntent webhook reports that payment requires action.
-				 *
-				 * @param WC_Order $order  Order associated with the PaymentIntent.
-				 * @param object   $intent Stripe PaymentIntent object.
-				 */
-				do_action( 'wc_gateway_stripe_process_payment_intent_requires_action', $order, $notification->data->object );
-
-				if ( $is_voucher_payment ) {
-					$order->update_status( OrderStatus::ON_HOLD, __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
-					wc_reduce_stock_levels( $order_id );
-				}
-				break;
-			case 'payment_intent.succeeded':
-			case 'payment_intent.amount_capturable_updated':
-				WC_Stripe_Logger::debug( "Stripe PaymentIntent $intent->id succeeded for order $order_id" );
-
-				/**
-				 * Filters whether successful PaymentIntent webhook processing should be deferred.
-				 *
-				 * @param bool     $process_async Whether to process the webhook asynchronously.
-				 * @param WC_Order $order         Order associated with the PaymentIntent.
-				 * @param object   $intent        Stripe PaymentIntent object.
-				 * @param object   $notification  Stripe webhook notification.
-				 */
-				$process_webhook_async = apply_filters( 'wc_stripe_process_payment_intent_webhook_async', true, $order, $intent, $notification );
-				$is_awaiting_action    = $order_helper->get_stripe_upe_waiting_for_redirect( $order ) ?? false;
-
-				// Process the webhook now if it's for a voucher, wallet, or BLIK payment, or if filtered to process immediately and order is not awaiting action.
-				if ( $is_voucher_payment || $is_wallet_payment || $is_blik_payment || ( ! $process_webhook_async && ! $is_awaiting_action ) ) {
+			switch ( $notification->type ) {
+				// Asynchronous payment methods such as bank debits will only provide a charge ID at `payment_intent.processing`, once the required actions are taken by the customer.
+				// We need to update the order transaction ID, so that the `payment_intent.succeeded` webhook is able to process the order.
+				case 'payment_intent.processing':
 					if ( ! $order_helper->validate_successful_intent_or_hold_order( $order, $intent ) ) {
 						break;
 					}
 
 					$charge = $this->get_latest_charge_from_intent( $intent );
+					if ( $charge ) {
+						$order->set_transaction_id( $charge->id );
 
-					// Confirm the intent settled for the order's amount before recording payment.
-					// Checked ahead of the pre-order branch so a charged-upfront pre-order whose
-					// total drifted above the charge is held, not marked paid. The check holds the
-					// order on a mismatch.
-					if ( $this->maybe_hold_order_for_amount_mismatch( $order, $intent ) ) {
-						$this->run_webhook_received_action( (string) $notification->type, $notification );
-						break;
+						// Record the captured flag while the charge is in hand; for async-confirmed
+						// orders this webhook delivers the first charge that ever exists for them
+						// (see sync_stripe_charge_captured()'s docblock).
+						$order_helper->sync_stripe_charge_captured( $order, $charge );
+
+						/* translators: transaction id */
+						$order->update_status( OrderStatus::ON_HOLD, sprintf( __( 'Stripe charge awaiting payment: %s.', 'woocommerce-gateway-stripe' ), $charge->id ) );
 					}
-
-					if ( $this->maybe_mark_order_as_pre_ordered( $order, $charge ) ) {
-						$this->run_webhook_received_action( (string) $notification->type, $notification );
-						break;
-					}
-
-					// Legacy callbacks run before process_response() can reject reversed charges.
-					if ( ! $this->is_charge_refunded_or_disputed( $charge ) ) {
-						/**
-						 * Fires after a webhook charge is processed.
-						 * Deprecated in favor of wc_gateway_stripe_process_payment_charge.
-						 *
-						 * @deprecated 9.7.0
-						 * @param object   $charge The charge object.
-						 * @param WC_Order $order  The order object.
-						 */
-						do_action_deprecated(
-							'wc_gateway_stripe_process_payment',
-							[ $charge, $order ],
-							'9.7.0',
-							'wc_gateway_stripe_process_payment_charge',
-							'The wc_gateway_stripe_process_payment action is deprecated. Use wc_gateway_stripe_process_payment_charge instead.'
-						);
-					}
-
-					$charge->is_webhook_response = true;
-					$this->process_response( $charge, $order );
-
-					$this->run_webhook_received_action( (string) $notification->type, $notification );
-				} else {
-					WC_Stripe_Logger::debug( "Processing $notification->type ($intent->id) asynchronously for order $order_id." );
-
-					// Schedule a job to check on the status of this intent.
-					$this->defer_webhook_processing(
-						$notification,
-						[
-							'order_id'  => $order_id,
-							'intent_id' => $intent->id,
-						]
-					);
-
-					if ( $is_awaiting_action ) {
-						/**
-						 * Fires when PaymentIntent webhook processing is deferred while the order awaits action.
-						 *
-						 * @param WC_Order $order Order associated with the PaymentIntent.
-						 */
-						do_action( 'wc_gateway_stripe_process_payment_intent_incomplete', $order );
-					}
-				}
-				break;
-			default:
-				if ( $is_voucher_payment && 'payment_intent.payment_failed' === $notification->type ) {
-					$order->update_status( OrderStatus::FAILED, __( 'Payment not completed in time', 'woocommerce-gateway-stripe' ) );
-					wc_increase_stock_levels( $order_id );
 					break;
-				}
+				case 'payment_intent.requires_action':
+					/**
+					 * Fires when a PaymentIntent webhook reports that payment requires action.
+					 *
+					 * @param WC_Order $order  Order associated with the PaymentIntent.
+					 * @param object   $intent Stripe PaymentIntent object.
+					 */
+					do_action( 'wc_gateway_stripe_process_payment_intent_requires_action', $order, $notification->data->object );
 
-				$error_message = $intent->last_payment_error->message ?? '';
+					if ( $is_voucher_payment ) {
+						$order->update_status( OrderStatus::ON_HOLD, __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
+						wc_reduce_stock_levels( $order_id );
+					}
+					break;
+				case 'payment_intent.succeeded':
+				case 'payment_intent.amount_capturable_updated':
+					WC_Stripe_Logger::debug( "Stripe PaymentIntent $intent->id succeeded for order $order_id" );
 
-				/* translators: 1) The error message that was received from Stripe. */
-				$message = sprintf( __( 'Stripe SCA authentication failed. Reason: %s', 'woocommerce-gateway-stripe' ), $error_message );
+					/**
+					 * Filters whether successful PaymentIntent webhook processing should be deferred.
+					 *
+					 * @param bool     $process_async Whether to process the webhook asynchronously.
+					 * @param WC_Order $order         Order associated with the PaymentIntent.
+					 * @param object   $intent        Stripe PaymentIntent object.
+					 * @param object   $notification  Stripe webhook notification.
+					 */
+					$process_webhook_async = apply_filters( 'wc_stripe_process_payment_intent_webhook_async', true, $order, $intent, $notification );
+					$is_awaiting_action    = $order_helper->get_stripe_upe_waiting_for_redirect( $order ) ?? false;
 
-				$status_update = [];
-				if ( ! $order_helper->is_stripe_status_final( $order ) ) {
-					$status_update['from'] = $order->get_status();
-					$status_update['to']   = OrderStatus::FAILED;
-					$order->update_status( OrderStatus::FAILED, $message );
-				} else {
-					$order->add_order_note( $message );
-				}
+					// Process the webhook now if it's for a voucher, wallet, or BLIK payment, or if filtered to process immediately and order is not awaiting action.
+					if ( $is_voucher_payment || $is_wallet_payment || $is_blik_payment || ( ! $process_webhook_async && ! $is_awaiting_action ) ) {
+						if ( ! $order_helper->validate_successful_intent_or_hold_order( $order, $intent ) ) {
+							break;
+						}
 
-				/**
-				 * This action is documented in includes/class-wc-stripe-webhook-handler.php.
-				 */
-				do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification, null );
+						$charge = $this->get_latest_charge_from_intent( $intent );
 
-				$this->send_failed_order_email( $order_id, $status_update );
-				break;
+						// Confirm the intent settled for the order's amount before recording payment.
+						// Checked ahead of the pre-order branch so a charged-upfront pre-order whose
+						// total drifted above the charge is held, not marked paid. The check holds the
+						// order on a mismatch.
+						if ( $this->maybe_hold_order_for_amount_mismatch( $order, $intent ) ) {
+							$this->run_webhook_received_action( (string) $notification->type, $notification );
+							break;
+						}
+
+						if ( $this->maybe_mark_order_as_pre_ordered( $order, $charge ) ) {
+							$this->run_webhook_received_action( (string) $notification->type, $notification );
+							break;
+						}
+
+						// Legacy callbacks run before process_response() can reject reversed charges.
+						if ( ! $this->is_charge_refunded_or_disputed( $charge ) ) {
+							/**
+							 * Fires after a webhook charge is processed.
+							 * Deprecated in favor of wc_gateway_stripe_process_payment_charge.
+							 *
+							 * @deprecated 9.7.0
+							 * @param object   $charge The charge object.
+							 * @param WC_Order $order  The order object.
+							 */
+							do_action_deprecated(
+								'wc_gateway_stripe_process_payment',
+								[ $charge, $order ],
+								'9.7.0',
+								'wc_gateway_stripe_process_payment_charge',
+								'The wc_gateway_stripe_process_payment action is deprecated. Use wc_gateway_stripe_process_payment_charge instead.'
+							);
+						}
+
+						$charge->is_webhook_response = true;
+						$this->process_response( $charge, $order );
+
+						$this->run_webhook_received_action( (string) $notification->type, $notification );
+					} else {
+						WC_Stripe_Logger::debug( "Processing $notification->type ($intent->id) asynchronously for order $order_id." );
+
+						// Schedule a job to check on the status of this intent.
+						$this->defer_webhook_processing(
+							$notification,
+							[
+								'order_id'  => $order_id,
+								'intent_id' => $intent->id,
+							]
+						);
+
+						if ( $is_awaiting_action ) {
+							/**
+							 * Fires when PaymentIntent webhook processing is deferred while the order awaits action.
+							 *
+							 * @param WC_Order $order Order associated with the PaymentIntent.
+							 */
+							do_action( 'wc_gateway_stripe_process_payment_intent_incomplete', $order );
+						}
+					}
+					break;
+				default:
+					if ( $is_voucher_payment && 'payment_intent.payment_failed' === $notification->type ) {
+						$order->update_status( OrderStatus::FAILED, __( 'Payment not completed in time', 'woocommerce-gateway-stripe' ) );
+						wc_increase_stock_levels( $order_id );
+						break;
+					}
+
+					$error_message = $intent->last_payment_error->message ?? '';
+
+					/* translators: 1) The error message that was received from Stripe. */
+					$message = sprintf( __( 'Stripe SCA authentication failed. Reason: %s', 'woocommerce-gateway-stripe' ), $error_message );
+
+					$status_update = [];
+					if ( ! $order_helper->is_stripe_status_final( $order ) ) {
+						$status_update['from'] = $order->get_status();
+						$status_update['to']   = OrderStatus::FAILED;
+						$order->update_status( OrderStatus::FAILED, $message );
+					} else {
+						$order->add_order_note( $message );
+					}
+
+					/**
+					 * This action is documented in includes/class-wc-stripe-webhook-handler.php.
+					 */
+					do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification, null );
+
+					$this->send_failed_order_email( $order_id, $status_update );
+					break;
+			}
+		} finally {
+			$order_helper->unlock_order_payment( $order );
 		}
-
-		$order_helper->unlock_order_payment( $order );
 
 		return false;
 	}

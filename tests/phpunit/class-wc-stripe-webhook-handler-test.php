@@ -1238,6 +1238,9 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 * @param bool  $valid Whether the charge can settle the order.
 	 */
 	public function test_payment_intent_webhook_payment_hooks( bool $deferred, array $charge_properties, bool $pre_order, bool $valid ): void {
+		// The real lock, so the test can check it is released.
+		WC_Stripe_Order_Helper::set_instance( null );
+
 		$order            = WC_Helper_Order::create_order();
 		$intent           = (object) self::MOCK_PAYMENT_INTENT;
 		$intent->metadata = (object) [
@@ -1309,6 +1312,12 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			$this->assertNull( $order->get_date_paid() );
 			$this->assertEmpty( $order->get_transaction_id() );
 		}
+
+		// A rejected charge throws, and the lock must still be released, or later events for the
+		// order would be deferred until it expires.
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$this->assertFalse( $order_helper->lock_order_payment( $order ) );
+		$order_helper->unlock_order_payment( $order );
 	}
 
 	/**
