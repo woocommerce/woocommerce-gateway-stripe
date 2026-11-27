@@ -49,13 +49,13 @@ final class WC_Stripe_Option_Lock {
 	 * @var string[]
 	 */
 	private const SUPPORTED_LOCK_PREFIXES = [
+		'wc_stripe_checkout_charge_lock_',
 		'wc_stripe_checkout_session_lock_',
+		'wc_stripe_event_lock_',
+		'wc_stripe_intent_lock_',
+		'wc_stripe_payment_method_lock_',
 		'wc_stripe_transaction_lock_',
 		'wc_stripe_user_customer_lock_',
-		'wc_stripe_checkout_charge_lock_',
-		'wc_stripe_event_lock_',
-		'wc_stripe_payment_method_lock_',
-		'wc_stripe_intent_lock_',
 	];
 
 	/**
