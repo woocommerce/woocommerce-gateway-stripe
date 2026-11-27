@@ -228,8 +228,8 @@ describe( 'WCStripeAPI', () => {
 			expect( sentHeaders( 0 ) ).toEqual( {
 				Nonce: 'printed_store_api_nonce',
 			} );
-			// Sent with the nonce at hand: waiting for the on-demand bundle
-			// here would eat into the wallet's event deadlines.
+			// Check that we didn't fetch a new nonce, as the extra call uses up
+			// the 1 second time we have to render the express checkout modal.
 			expect( request ).not.toHaveBeenCalled();
 		} );
 

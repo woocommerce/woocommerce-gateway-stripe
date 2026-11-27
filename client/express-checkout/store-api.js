@@ -2,9 +2,10 @@ import apiFetch from '@wordpress/api-fetch';
 import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
 
 /**
- * Nonces learned after the page rendered. They win over the printed ones,
- * which a full-page cache can serve long after they expired, and which stop
- * matching once the Store API logs the shopper in mid-checkout.
+ * Nonces from HTTP responses from after the initial page render. These nonces
+ * are preferred over the render-time nonces in the page data, as the render-time
+ * nonces can be stale due to full-page caching or due to the Store API logging
+ * the shopper in during the checkout process.
  */
 const refreshedNonces = {};
 
@@ -17,6 +18,18 @@ let refreshNonces = null;
  * come from a fresh bundle.
  */
 let staleNonceRejection = null;
+
+/**
+ * Registers how to fetch a fresh nonce bundle after the Store API rejects a
+ * nonce. The fetch needs the page's `WCStripeAPI`, which this module can't
+ * reach on its own.
+ *
+ * @param {Function} refresher Returns a promise that settles once the fresh
+ *                             nonces went through `rememberStoreApiNonces`.
+ */
+export const setStoreApiNonceRefresher = ( refresher ) => {
+	refreshNonces = refresher;
+};
 
 /**
  * Remembers the Store API nonces found in a nonce map, ignoring the keys it
@@ -36,18 +49,6 @@ export const rememberStoreApiNonces = ( nonces ) => {
 			nonces.wc_store_api_express_checkout;
 		staleNonceRejection = null;
 	}
-};
-
-/**
- * Registers how to fetch a fresh nonce bundle after the Store API rejects a
- * nonce. The fetch needs the page's `WCStripeAPI`, which this module can't
- * reach on its own.
- *
- * @param {Function} refresher Returns a promise that settles once the fresh
- *                             nonces went through `rememberStoreApiNonces`.
- */
-export const setStoreApiNonceRefresher = ( refresher ) => {
-	refreshNonces = refresher;
 };
 
 const rememberNonceFromHeaders = ( headers ) => {
