@@ -2,6 +2,12 @@ includes:
 	- phpstan-baseline.neon
 	- vendor/szepeviktor/phpstan-wordpress/extension.neon
 
+services:
+	-
+		class: WooCommerce\Stripe\PHPStan\PaymentMethodGatewayForwardingExtension
+		tags:
+			- phpstan.broker.methodsClassReflectionExtension
+
 parameters:
 	tmpDir: phpstan-tmp
 	level: 8

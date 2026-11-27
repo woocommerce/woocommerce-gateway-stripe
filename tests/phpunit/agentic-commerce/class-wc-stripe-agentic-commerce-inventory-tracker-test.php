@@ -27,14 +27,6 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	public function setUp(): void {
 		parent::setUp();
 
-		if ( ! interface_exists( 'Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedInterface' ) ) {
-			$this->markTestSkipped( 'WooCommerce FeedInterface not available (requires WooCommerce 10.5.0+)' );
-		}
-
-		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Inventory_Tracker' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Inventory_Tracker class not loaded' );
-		}
-
 		delete_option( WC_Stripe_Agentic_Commerce_Inventory_Tracker::PENDING_UPDATES_OPTION );
 		$this->sut = new WC_Stripe_Agentic_Commerce_Inventory_Tracker();
 	}
@@ -166,10 +158,6 @@ class WC_Stripe_Agentic_Commerce_Inventory_Tracker_Test extends WP_UnitTestCase 
 	 * @dataProvider provide_pending_archive_flush_cases
 	 */
 	public function test_schedule_pending_archive_flush( bool $has_pending, bool $expect_schedule ): void {
-		if ( ! function_exists( 'as_has_scheduled_action' ) ) {
-			$this->markTestSkipped( 'Action Scheduler not available.' );
-		}
-
 		as_unschedule_all_actions( WC_Stripe_Agentic_Commerce_Inventory_Tracker::ARCHIVE_SCHEDULED_ACTION );
 
 		if ( $has_pending ) {

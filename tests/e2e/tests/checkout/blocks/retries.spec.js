@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { test, expect } from '@playwright/test';
 import config from 'config';
 import { payments } from '../../../utils';
@@ -34,10 +35,10 @@ test.beforeAll( 'enable Cash App Pay', async ( { browser } ) => {
 test.beforeEach( async ( { page } ) => {
 	await emptyCart( page );
 	await setupCart( page );
-	await setupBlocksCheckout(
-		page,
-		config.get( 'addresses.customer.billing' )
-	);
+	await setupBlocksCheckout( page, {
+		...config.get( 'addresses.customer.billing' ),
+		email: `stripe-e2e-${ randomUUID() }@example.com`,
+	} );
 } );
 /**
  * When retrying payments, we will reuse a compatible payment intent, if the order already has one.
@@ -119,6 +120,17 @@ test( 'customer can retry payment, using a different payment method @smoke', asy
 	await expect(
 		page.locator( '.wc-block-store-notice.is-error' )
 	).toBeVisible();
+
+	const loadedClassicBundle = await page.evaluate( () =>
+		performance
+			.getEntriesByType( 'resource' )
+			.some( ( resource ) =>
+				new URL( resource.name ).pathname.endsWith(
+					'/build/upe-classic.js'
+				)
+			)
+	);
+	expect( loadedClassicBundle ).toBe( false );
 
 	// Change to Cash App Pay
 	await handleCheckoutCashAppPay( page, '.wcstripe-payment-element' );

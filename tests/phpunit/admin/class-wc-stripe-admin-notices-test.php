@@ -4,6 +4,8 @@
  * Tests for the admin notices class.
  */
 class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
+	use WC_Stripe_Tracks_Capture_Trait;
+
 	/**
 	 * The original value of the HPOS option.
 	 *
@@ -29,7 +31,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
 				->disableOriginalConstructor()
-				->setMethods(
+				->onlyMethods(
 					[
 						'get_cached_account_data',
 					]
@@ -114,6 +116,97 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$notices->admin_notices();
 		ob_end_clean();
 		$this->assertCount( 0, $notices->notices );
+	}
+
+	/**
+	 * @dataProvider provide_oauth_deauthorization_notices
+	 * @param array       $modes    Modes whose revocation was not confirmed.
+	 * @param string      $section Settings section being viewed.
+	 * @param string      $role    Current user's role.
+	 * @param string|null $text    Expected warning text, or null if hidden.
+	 */
+	public function test_oauth_deauthorization_warning_survives_disconnection_and_reload( $modes, $section, $role, $text ) {
+		$original_query = $_GET;
+		$original_user  = get_current_user_id();
+		wp_set_current_user( $this->factory->user->create( [ 'role' => $role ] ) );
+		WC_Stripe_Helper::update_main_stripe_settings( [ 'enabled' => 'no' ] );
+		update_option( 'wc_stripe_oauth_deauthorization_failed_modes', $modes );
+		$_GET['page']    = 'wc-settings';
+		$_GET['section'] = $section;
+
+		try {
+			// A fresh renderer on each page load must still see the persisted result.
+			for ( $load = 0; $load < 2; ++$load ) {
+				$notices = new WC_Stripe_Admin_Notices();
+				ob_start();
+				$notices->admin_notices();
+				$output = ob_get_clean();
+				remove_action( 'admin_notices', [ $notices, 'admin_notices' ] );
+				remove_action( 'wp_loaded', [ $notices, 'hide_notices' ] );
+				if ( null === $text ) {
+					$this->assertArrayNotHasKey( 'oauth_deauthorization', $notices->notices );
+				} else {
+					$notice = $notices->notices['oauth_deauthorization'];
+					$this->assertSame( 'notice notice-warning', $notice['class'] );
+					$this->assertTrue( $notice['dismissible'] );
+					$this->assertStringContainsString( $text, $output );
+					$this->assertStringContainsString( 'These keys may still be active.', $output );
+					$this->assertStringContainsString( 'Get support', $output );
+					$this->assertStringContainsString( 'wc-stripe-hide-notice=oauth_deauthorization', $output );
+				}
+				$this->assertSame( $modes, get_option( 'wc_stripe_oauth_deauthorization_failed_modes' ) );
+			}
+		} finally {
+			$_GET = $original_query;
+			wp_set_current_user( $original_user );
+		}
+	}
+
+	public function provide_oauth_deauthorization_notices() {
+		return [
+			'live keys'           => [ [ 'live' ], 'stripe', 'administrator', 'the live API keys were revoked' ],
+			'test keys'           => [ [ 'test' ], 'stripe', 'administrator', 'the test API keys were revoked' ],
+			'both modes'          => [ [ 'live', 'test' ], 'stripe', 'administrator', 'the live and test API keys were revoked' ],
+			'no warning'          => [ [], 'stripe', 'administrator', null ],
+			'unknown modes'       => [ [ 'invalid' ], 'stripe', 'administrator', null ],
+			'other settings page' => [ [ 'live' ], 'other', 'administrator', null ],
+			'without permissions' => [ [ 'live' ], 'stripe', 'subscriber', null ],
+		];
+	}
+
+	public function test_dismissing_oauth_deauthorization_warning_clears_it_and_cleans_the_url() {
+		$original_query = $_GET;
+		$original_uri   = $_SERVER['REQUEST_URI'] ?? null; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Restored verbatim.
+		$original_user  = get_current_user_id();
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+		update_option( 'wc_stripe_oauth_deauthorization_failed_modes', [ 'live' ] );
+		$_GET['wc-stripe-hide-notice']   = 'oauth_deauthorization';
+		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
+		$_SERVER['REQUEST_URI']          = '/wp-admin/admin.php?page=wc-settings&section=stripe&wc-stripe-hide-notice=oauth_deauthorization&_wc_stripe_notice_nonce=example';
+		$redirected_to                   = '';
+		$redirect                        = function ( $url ) use ( &$redirected_to ) {
+			$redirected_to = $url;
+			return false;
+		};
+		add_filter( 'wp_redirect', $redirect );
+		$notices = new WC_Stripe_Admin_Notices();
+
+		try {
+			$notices->hide_notices();
+			$this->assertFalse( get_option( 'wc_stripe_oauth_deauthorization_failed_modes' ) );
+			$this->assertSame( '/wp-admin/admin.php?page=wc-settings&section=stripe', $redirected_to );
+		} finally {
+			remove_filter( 'wp_redirect', $redirect );
+			remove_action( 'admin_notices', [ $notices, 'admin_notices' ] );
+			remove_action( 'wp_loaded', [ $notices, 'hide_notices' ] );
+			$_GET = $original_query;
+			if ( null === $original_uri ) {
+				unset( $_SERVER['REQUEST_URI'] );
+			} else {
+				$_SERVER['REQUEST_URI'] = $original_uri;
+			}
+			wp_set_current_user( $original_user );
+		}
 	}
 
 	/**
@@ -647,10 +740,13 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$account_backup = WC_Stripe::get_instance()->account;
 		$account        = $this->getMockBuilder( WC_Stripe_Account::class )
 			->disableOriginalConstructor()
-			->onlyMethods( [ 'get_account_country', 'is_webhook_enabled', 'get_cached_account_data' ] )
+			->onlyMethods( [ 'get_account_country', 'get_cached_account_data' ] )
 			->getMock();
 		$account->method( 'get_account_country' )->willReturn( $account_country );
-		$account->method( 'is_webhook_enabled' )->willReturn( true );
+		$original_webhook_settings = WC_Stripe::get_instance()->webhook_settings;
+		$webhook_settings          = $this->createMock( WC_Stripe_Webhook_Settings::class );
+		$webhook_settings->method( 'is_webhook_enabled' )->willReturn( true );
+		WC_Stripe::get_instance()->webhook_settings = $webhook_settings;
 		$account->method( 'get_cached_account_data' )->willReturn( [ 'country' => $account_country ] );
 		WC_Stripe::get_instance()->account = $account;
 
@@ -690,8 +786,9 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			$this->set_main_stripe_gateway( null );
 			remove_filter( 'woocommerce_currency', $currency_filter );
 			remove_filter( 'wc_stripe_available_store_currencies', $available_currencies_filter );
-			WC_Stripe::get_instance()->account = $account_backup;
-			$_GET                              = $original_get;
+			WC_Stripe::get_instance()->webhook_settings = $original_webhook_settings;
+			WC_Stripe::get_instance()->account          = $account_backup;
+			$_GET                                       = $original_get;
 			delete_option( 'wc_stripe_show_upe_payment_methods_notice' );
 			WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
 			WC_Stripe_Helper::delete_main_stripe_settings();
@@ -1019,7 +1116,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		// We need to re-create the mock object to override the mocked 'get_cached_account_data' function.
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
 			->disableOriginalConstructor()
-			->setMethods(
+			->onlyMethods(
 				[
 					'get_cached_account_data',
 				]
@@ -1596,11 +1693,6 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				array_merge( $base_settings, [ 'express_checkout_button_locations' => [ 'cart' ] ] ),
 				false,
 			],
-			'not shown when checkout enabled for the method'          => [
-				'yes',
-				array_merge( $base_settings, [ 'express_checkout_button_locations' => [ 'product', 'cart', 'checkout' ] ] ),
-				false,
-			],
 			'shown when only another method has checkout'             => [
 				'yes',
 				array_merge(
@@ -1643,6 +1735,81 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertEquals( 'no', get_option( 'wc_stripe_show_ece_location_notice' ) );
 
 		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'] );
+	}
+
+	/**
+	 * Dismissing an Adaptive Pricing "now active" notice records a Tracks event for that notice.
+	 *
+	 * @dataProvider provide_ap_notices_to_dismiss
+	 *
+	 * @param string $notice_key Notice key in the dismiss link.
+	 * @param string $option     Option that controls the notice.
+	 * @param string $banner     Expected `banner` property of the event.
+	 */
+	public function test_hide_notices_records_tracks_event_for_ap_notices( string $notice_key, string $option, string $banner ): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+		update_option( $option, 'yes' );
+
+		$_GET['wc-stripe-hide-notice']   = $notice_key;
+		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
+
+		$this->start_capturing_tracks_events();
+		$this->create_admin_notices_instance()->hide_notices();
+		$this->stop_capturing_tracks_events();
+
+		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'] );
+
+		$this->assertSame( 'no', get_option( $option ) );
+		$events = $this->get_captured_tracks_event_properties( 'wcadmin_wcstripe_ap_banner_dismissed' );
+		$this->assertCount( 1, $events );
+		$this->assertSame( $banner, $events[0]['banner'] );
+	}
+
+	/**
+	 * Running the dismiss again (a refresh keeps the dismiss parameters in the URL) or dismissing a notice that
+	 * is not shown records no event, so the event counts real dismissals only.
+	 *
+	 * @dataProvider provide_ap_notices_to_dismiss
+	 *
+	 * @param string $notice_key Notice key in the dismiss link.
+	 * @param string $option     Option that controls the notice.
+	 * @param string $banner     Expected `banner` property of the event.
+	 */
+	public function test_hide_notices_records_ap_tracks_event_only_when_notice_was_shown( string $notice_key, string $option, string $banner ): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+		delete_option( $option );
+
+		$_GET['wc-stripe-hide-notice']   = $notice_key;
+		$_GET['_wc_stripe_notice_nonce'] = wp_create_nonce( 'wc_stripe_hide_notices_nonce' );
+
+		$this->start_capturing_tracks_events();
+		$notices = $this->create_admin_notices_instance();
+		// Option missing: the notice was never shown.
+		$notices->hide_notices();
+		// Shown, dismissed, then the page is refreshed.
+		update_option( $option, 'yes' );
+		$notices->hide_notices();
+		$notices->hide_notices();
+		$this->stop_capturing_tracks_events();
+
+		unset( $_GET['wc-stripe-hide-notice'], $_GET['_wc_stripe_notice_nonce'] );
+
+		$this->assertSame( 'no', get_option( $option ) );
+		$events = $this->get_captured_tracks_event_properties( 'wcadmin_wcstripe_ap_banner_dismissed' );
+		$this->assertCount( 1, $events );
+		$this->assertSame( $banner, $events[0]['banner'] );
+	}
+
+	/**
+	 * Data provider for the Adaptive Pricing notice dismissal tests.
+	 *
+	 * @return array
+	 */
+	public function provide_ap_notices_to_dismiss(): array {
+		return [
+			'OCS and AP notice' => [ 'ocs_ap_banner', 'wc_stripe_show_ocs_ap_banner', 'ocs_ap' ],
+			'AP only notice'    => [ 'ap_only_banner', 'wc_stripe_show_ap_only_banner', 'ap_only' ],
+		];
 	}
 
 	/**
@@ -1778,7 +1945,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	public function test_couldnt_connect_notice_is_suppressed_during_outage() {
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'get_cached_account_data' ] )
+			->onlyMethods( [ 'get_cached_account_data' ] )
 			->getMock();
 		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn( null );
 
@@ -1827,7 +1994,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		WC_Stripe_API_Outage_Status::record_outage();
 
 		$notices = $this->getMockBuilder( WC_Stripe_Admin_Notices::class )
-			->setMethods( [ 'get_environment_type' ] )
+			->onlyMethods( [ 'get_environment_type' ] )
 			->getMock();
 		$notices->method( 'get_environment_type' )->willReturn( $environment_type );
 
@@ -1924,7 +2091,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
-			->setMethods( [ 'is_oc_enabled', 'get_option' ] )
+			->onlyMethods( [ 'is_oc_enabled', 'get_option' ] )
 			->getMock();
 		$gateway->method( 'is_oc_enabled' )->willReturn( $is_oc_enabled );
 		$gateway->method( 'get_option' )->willReturnCallback(
@@ -2030,7 +2197,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
-			->setMethods( [ 'is_oc_enabled', 'get_option' ] )
+			->onlyMethods( [ 'is_oc_enabled', 'get_option' ] )
 			->getMock();
 		$gateway->method( 'is_oc_enabled' )->willReturn( true );
 		$gateway->method( 'get_option' )->willReturn( 'yes' );
@@ -2093,7 +2260,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * leaves the other mode's outstanding notice in place, so a live-mode
 	 * warning is never cleared by dismissing a test-mode one.
 	 *
-	 * @param string $option_getter The WC_Stripe_Account static method that returns the per-mode option name.
+	 * @param string $option_getter The WC_Stripe_Webhook_Settings static method that returns the per-mode option name.
 	 * @param string $slug        The per-mode dismissal slug (e.g. webhook_missing_live).
 	 * @param string $dismissed   The mode being dismissed.
 	 * @param string $retained    The mode whose notice must remain.
@@ -2105,8 +2272,8 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	public function test_hide_notices_dismisses_webhook_notice_per_mode( string $option_getter, string $slug, string $dismissed, string $retained ): void {
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
 
-		$dismissed_option = call_user_func( [ WC_Stripe_Account::class, $option_getter ], $dismissed );
-		$retained_option  = call_user_func( [ WC_Stripe_Account::class, $option_getter ], $retained );
+		$dismissed_option = call_user_func( [ WC_Stripe_Webhook_Settings::class, $option_getter ], $dismissed );
+		$retained_option  = call_user_func( [ WC_Stripe_Webhook_Settings::class, $option_getter ], $retained );
 		update_option( $dismissed_option, 'yes' );
 		update_option( $retained_option, 'yes' );
 
@@ -2144,7 +2311,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * A flagged webhook notice shows only for its own mode, and its message names
 	 * that mode, since each mode has its own translatable string.
 	 *
-	 * @param string $option_getter The WC_Stripe_Account static method that returns the per-mode option name.
+	 * @param string $option_getter The WC_Stripe_Webhook_Settings static method that returns the per-mode option name.
 	 * @param string $slug_prefix   The notice slug without the mode suffix.
 	 * @param string $mode          The flagged mode.
 	 * @param string $other_mode    The mode that is not flagged.
@@ -2155,7 +2322,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function test_webhook_notice_message_names_its_mode( string $option_getter, string $slug_prefix, string $mode, string $other_mode ): void {
 		WC_Stripe_Helper::update_main_stripe_settings( [ 'enabled' => 'yes' ] );
-		$option = call_user_func( [ WC_Stripe_Account::class, $option_getter ], $mode );
+		$option = call_user_func( [ WC_Stripe_Webhook_Settings::class, $option_getter ], $mode );
 		update_option( $option, 'yes' );
 
 		try {

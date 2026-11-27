@@ -38,14 +38,6 @@ class WC_Stripe_Agentic_Commerce_Files_Api_Delivery_Test extends WP_UnitTestCase
 	public function setUp(): void {
 		parent::setUp();
 
-		if ( ! interface_exists( 'Automattic\WooCommerce\Internal\ProductFeed\Feed\FeedInterface' ) ) {
-			$this->markTestSkipped( 'WooCommerce FeedInterface not available (requires WooCommerce 10.5.0+)' );
-		}
-
-		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Files_Api_Delivery' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Files_Api_Delivery class not loaded' );
-		}
-
 		$this->sut = new WC_Stripe_Agentic_Commerce_Files_Api_Delivery( 'sk_test_fake_key_123' );
 	}
 

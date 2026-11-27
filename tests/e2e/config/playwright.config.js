@@ -36,8 +36,11 @@ const config = {
 	workers: CI ? 5 : undefined,
 
 	// Reporter to use. See https://playwright.dev/docs/test-reporters
+	// list prints each test as it finishes, so a job killed by timeout-minutes
+	// still shows how far it got; github adds the inline annotations in CI.
 	reporter: [
-		[ CI ? 'github' : 'list' ],
+		[ 'list' ],
+		...( CI ? [ [ 'github' ] ] : [] ),
 		[
 			'html',
 			{
@@ -87,6 +90,7 @@ const config = {
 			testIgnore: [
 				'**/acss.spec.js',
 				'**/*optimized-checkout.spec.js',
+				'**/*optimized-checkout-link-off.spec.js',
 				'**/adaptive-pricing.spec.js',
 				'**/blik.spec.js',
 				'**/becs.spec.js',
@@ -147,6 +151,20 @@ const config = {
 			name: 'optimized-checkout',
 			testMatch: '**/*optimized-checkout.spec.js',
 			dependencies: [ 'oc-setup' ],
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			// The save-and-reuse specs need the store-level save checkbox, which
+			// Link hides, so they run against an account with Link off instead of
+			// toggling Link on the account every other job shares.
+			name: 'oc-link-off-setup',
+			testMatch: '/optimized-checkout-link-off.setup.js',
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'optimized-checkout-link-off',
+			testMatch: '**/*optimized-checkout-link-off.spec.js',
+			dependencies: [ 'oc-link-off-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
 		{

@@ -4,11 +4,13 @@ import config from 'config';
 import { payments, api, user } from '../../../../utils';
 
 const {
+	clickPlaceOrder,
 	emptyCart,
 	setupCart,
 	setupBlocksCheckout,
 	setupBECSCheckout,
 	fillBECSDetails,
+	tickSavePaymentMethodBlocks,
 	waitForOrderReceivedPage,
 } = payments;
 
@@ -39,7 +41,7 @@ test.describe( 'BECS payment tests @blocks @becs', () => {
 	test( 'customer can pay with BECS @smoke', async ( { page } ) => {
 		await setupBECSCheckout( page, 'blocks' );
 		await fillBECSDetails( page );
-		await page.locator( 'text=Place order' ).click();
+		await clickPlaceOrder( page );
 		await waitForOrderReceivedPage( page );
 	} );
 
@@ -55,8 +57,8 @@ test.describe( 'BECS payment tests @blocks @becs', () => {
 			);
 			await setupBECSCheckout( page, 'blocks' );
 			await fillBECSDetails( page );
-			await page.getByLabel( 'Save payment information' ).click();
-			await page.locator( 'text=Place order' ).click();
+			await tickSavePaymentMethodBlocks( page );
+			await clickPlaceOrder( page );
 			await waitForOrderReceivedPage( page );
 		} );
 
@@ -80,7 +82,7 @@ test.describe( 'BECS payment tests @blocks @becs', () => {
 				.locator( 'label' )
 				.filter( { hasText: 'BECS Direct Debit ending in' } )
 				.click();
-			await page.locator( 'text=Place order' ).click();
+			await clickPlaceOrder( page );
 			await waitForOrderReceivedPage( page );
 		} );
 	} );

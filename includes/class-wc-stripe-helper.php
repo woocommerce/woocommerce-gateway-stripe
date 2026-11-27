@@ -44,11 +44,31 @@ class WC_Stripe_Helper {
 	public const OFFICIAL_PLUGIN_ID_KLARNA = 'klarna_payments';
 
 	/**
+	 * The Stripe.js version this plugin ships and is tested against. The checkout
+	 * client only runs Checkout Sessions on this exact build, so bump it together
+	 * with the `@stripe/stripe-js` release train in package.json.
+	 *
+	 * @var string
+	 */
+	private const STRIPE_JS_VERSION = 'dahlia';
+
+	/**
 	 * The Stripe.js SDK URL, pinned to a named major release.
 	 *
 	 * @var string
 	 */
-	protected const STRIPE_JS_URL = 'https://js.stripe.com/dahlia/stripe.js';
+	protected const STRIPE_JS_URL = 'https://js.stripe.com/' . self::STRIPE_JS_VERSION . '/stripe.js';
+
+	/**
+	 * Returns the Stripe.js version this plugin ships, for example 'dahlia'.
+	 *
+	 * @since 11.2.0
+	 *
+	 * @return string
+	 */
+	public static function get_stripe_js_version(): string {
+		return self::STRIPE_JS_VERSION;
+	}
 
 	/**
 	 * List of legacy Stripe gateways.
@@ -67,6 +87,16 @@ class WC_Stripe_Helper {
 	 */
 	public static function register_stripe_js() {
 		wp_register_script( 'stripe', self::STRIPE_JS_URL, [], null, true );
+	}
+
+	/**
+	 * Keep shared checkout settings available without requiring a particular checkout UI bundle.
+	 *
+	 * @since x.x.x
+	 * @return void
+	 */
+	public static function register_checkout_settings_script() {
+		wp_register_script( 'wc-stripe-checkout-settings', false, [], WC_STRIPE_VERSION, true );
 	}
 
 	/**
@@ -158,6 +188,19 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Masks an API key or webhook secret so that it can be sent to the client.
+	 * Only the first ten and the last two characters stay visible.
+	 *
+	 * @since 11.1.2
+	 *
+	 * @param string $value The key or secret.
+	 * @return string
+	 */
+	public static function mask_key_value( $value ): string {
+		return substr( $value, 0, 10 ) . str_repeat( '*', 50 ) . substr( $value, -2 );
+	}
+
+	/**
 	 * Delete the main Stripe settings option.
 	 *
 	 * @return void
@@ -172,7 +215,8 @@ class WC_Stripe_Helper {
 	 * @param float  $total Amount due.
 	 * @param string $currency Accepted currency.
 	 *
-	 * @return float|int
+	 * @return int
+	 * @throws WC_Stripe_Exception If the amount exceeds Stripe's maximum or PHP's integer limit.
 	 */
 	public static function get_stripe_amount( $total, $currency = '' ) {
 		if ( ! $currency ) {
@@ -182,15 +226,38 @@ class WC_Stripe_Helper {
 		$currency = strtoupper( $currency );
 
 		if ( in_array( $currency, WC_Stripe_Currency_Code::NO_DECIMAL_CURRENCY_CODES, true ) ) {
-			return absint( $total );
+			return self::to_stripe_integer( $total );
 		} elseif ( in_array( $currency, WC_Stripe_Currency_Code::THREE_DECIMAL_CURRENCY_CODES, true ) ) {
 			$price_decimals = wc_get_price_decimals();
-			$amount         = absint( wc_format_decimal( ( (float) $total * 1000 ), $price_decimals ) ); // For tree decimal currencies.
+			$amount         = self::to_stripe_integer( wc_format_decimal( ( (float) $total * 1000 ), $price_decimals ) );
 			return $amount - ( $amount % 10 ); // Round the last digit down. See https://docs.stripe.com/currencies?presentment-currency=AE#three-decimal
 		} else {
 			// Round to nearest cent to handle values with 3+ decimal precision (e.g., shipping rates from carriers like UPS).
-			return absint( round( wc_format_decimal( ( (float) $total * 100 ), wc_get_price_decimals() ) ) );
+			return self::to_stripe_integer( round( wc_format_decimal( ( (float) $total * 100 ), wc_get_price_decimals() ) ) );
 		}
+	}
+
+	/**
+	 * Reject unsupported amounts before integer conversion can wrap to a smaller payment.
+	 *
+	 * @since 11.1.2
+	 * @param float|int|string $amount Amount in the currency's smallest unit.
+	 * @return int
+	 * @throws WC_Stripe_Exception If the amount exceeds Stripe's maximum or PHP's integer limit.
+	 */
+	private static function to_stripe_integer( $amount ): int {
+		$amount = abs( (float) $amount );
+
+		// Stripe supports at most 12 digits in minor units; 32-bit PHP has a smaller limit.
+		// https://docs.stripe.com/currencies#maximum-charge-amounts
+		if ( $amount > min( 999999999999, PHP_INT_MAX ) ) {
+			throw new WC_Stripe_Exception(
+				'Amount exceeds the supported payment range.',
+				__( 'The amount is too large to process with this payment method.', 'woocommerce-gateway-stripe' ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			);
+		}
+
+		return (int) $amount;
 	}
 
 	/**
@@ -1300,6 +1367,20 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Checkout forms can be rendered by templates independently of the current post's content.
+	 *
+	 * @since x.x.x
+	 * @return bool
+	 */
+	public static function should_load_classic_checkout_scripts(): bool {
+		return did_action( 'woocommerce_before_checkout_form' ) > 0
+			|| ( function_exists( 'is_wcopc_checkout' ) && is_wcopc_checkout() )
+			|| is_add_payment_method_page()
+			|| is_wc_endpoint_url( 'order-pay' )
+			|| isset( $_GET['change_payment_method'] ); // phpcs:ignore WordPress.Security.NonceVerification
+	}
+
+	/**
 	 * Whether the express checkout button styles are overridden by the "Apply uniform style"
 	 * option of the Cart & Checkout blocks' Express Checkout section (`showButtonStyles`).
 	 *
@@ -1344,6 +1425,39 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Records a Tracks event when the plugin decides by itself whether to turn Adaptive Pricing on,
+	 * without a merchant action. Merchant changes in the settings are tracked separately.
+	 *
+	 * @internal
+	 * @since 11.2.0
+	 *
+	 * @param string      $source         The flow that made the decision, e.g. 'connect' or 'ocs_ap_default_on'.
+	 * @param string|null $skipped_reason Why Adaptive Pricing was left off, or null when it was turned on.
+	 * @return void
+	 */
+	public static function record_adaptive_pricing_default_tracks_event( string $source, ?string $skipped_reason = null ): void {
+		if ( ! function_exists( 'wc_admin_record_tracks_event' ) ) {
+			return;
+		}
+
+		$properties = [
+			// Note that the default event property is `is_test_mode`, but `test_mode` is
+			// needed for backwards compatibility.
+			'test_mode' => WC_Stripe_Mode::is_test() ? 1 : 0,
+			'source'    => $source,
+		];
+
+		if ( null !== $skipped_reason ) {
+			$properties['reason'] = $skipped_reason;
+		}
+
+		wc_admin_record_tracks_event(
+			null === $skipped_reason ? 'wcstripe_ap_default_enabled' : 'wcstripe_ap_default_skipped',
+			WC_Stripe_Tracks::add_default_event_properties( $properties )
+		);
+	}
+
+	/**
 	 * Returns the reason why adaptive pricing is not available for the current Stripe account.
 	 * Adaptive Pricing is not supported for accounts based in India, as well as for other situations.
 	 *
@@ -1359,7 +1473,7 @@ class WC_Stripe_Helper {
 			return 'account-country';
 		}
 
-		if ( ! $stripe_account->is_webhook_enabled() ) {
+		if ( ! WC_Stripe::get_instance()->webhook_settings->is_webhook_enabled() ) {
 			return 'webhooks-disabled';
 		}
 

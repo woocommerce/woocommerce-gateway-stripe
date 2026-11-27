@@ -178,9 +178,12 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			],
 		];
 
-		$data['order_data'] += $this->express_checkout_helper->build_display_items();
-
-		wp_send_json( $data );
+		try {
+			$data['order_data'] += $this->express_checkout_helper->build_display_items();
+			wp_send_json( $data );
+		} catch ( WC_Stripe_Exception $e ) {
+			wp_send_json_error( [ 'message' => $e->getLocalizedMessage() ] );
+		}
 	}
 
 
@@ -218,7 +221,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			$attributes   = [];
 
 			if ( ( ProductType::VARIABLE === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
-				$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
+				$attributes = $this->get_posted_variation_attributes();
 
 				$data_store   = WC_Data_Store::load( 'product' );
 				$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
@@ -400,11 +403,13 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		$product_view_options      = filter_input_array( INPUT_POST, [ 'is_product_page' => FILTER_SANITIZE_SPECIAL_CHARS ] );
 		$should_show_itemized_view = ! isset( $product_view_options['is_product_page'] ) ? true : filter_var( $product_view_options['is_product_page'], FILTER_VALIDATE_BOOLEAN );
 
-		$data           = [];
-		$data          += $this->express_checkout_helper->build_display_items( $should_show_itemized_view );
-		$data['result'] = 'success';
-
-		wp_send_json( $data );
+		try {
+			$data           = $this->express_checkout_helper->build_display_items( $should_show_itemized_view );
+			$data['result'] = 'success';
+			wp_send_json( $data );
+		} catch ( WC_Stripe_Exception $e ) {
+			wp_send_json_error( [ 'message' => $e->getLocalizedMessage() ] );
+		}
 	}
 
 	/**
@@ -442,7 +447,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			}
 
 			if ( in_array( $product->get_type(), [ ProductType::VARIABLE, 'variable-subscription' ], true ) && isset( $_POST['attributes'] ) ) {
-				$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
+				$attributes = $this->get_posted_variation_attributes();
 
 				$data_store   = WC_Data_Store::load( 'product' );
 				$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
@@ -574,6 +579,21 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			&& ProductStatus::PUBLISH === $product->get_status()
 			&& ! post_password_required( $product_id )
 			&& $product->is_purchasable();
+	}
+
+	/**
+	 * Returns the posted variation attributes with tags stripped.
+	 *
+	 * Not wc_clean(): it strips percent-encoded octets, which blanks the slugs of non-ASCII global attribute terms.
+	 *
+	 * @return array<int|string, mixed>
+	 */
+	private function get_posted_variation_attributes(): array {
+		if ( ! isset( $_POST['attributes'] ) ) {
+			return [];
+		}
+
+		return (array) map_deep( wp_unslash( $_POST['attributes'] ), 'wp_strip_all_tags' );
 	}
 
 	/**

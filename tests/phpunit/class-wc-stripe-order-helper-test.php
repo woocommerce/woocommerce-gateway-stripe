@@ -363,4 +363,62 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 			'flag never recorded' => [ null, false ],
 		];
 	}
+
+	/**
+	 * Only a real amount drift returns false. The check is skipped (returns true) when there is no
+	 * comparable amount: setup intents and intents that omit the amount. A currency other than the
+	 * order's returns true only for an Adaptive Pricing checkout (validated on the Checkout Session
+	 * path); any other currency mismatch returns false so the caller holds the order.
+	 *
+	 * @param array $intent_overrides Intent fields merged over a matching payment intent.
+	 * @param bool  $expected         Expected result.
+	 * @dataProvider provide_intent_amount_matches_order_cases
+	 */
+	public function test_intent_amount_matches_order( array $intent_overrides, bool $expected ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		$order->set_total( '50.00' );
+		$order->save();
+
+		$matching_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
+		$intent          = (object) array_merge(
+			[
+				'object'   => 'payment_intent',
+				'amount'   => $matching_amount,
+				'currency' => 'usd',
+			],
+			$intent_overrides
+		);
+
+		$this->assertSame( $expected, $this->helper->intent_amount_matches_order( $order, $intent ) );
+	}
+
+	/**
+	 * Data provider for `test_intent_amount_matches_order`.
+	 *
+	 * @return array
+	 */
+	public function provide_intent_amount_matches_order_cases(): array {
+		return [
+			'amount matches'                      => [ [], true ],
+			'amount drifted above'                => [ [ 'amount' => 4500 ], false ],
+			'AP presentment currency is deferred' => [
+				[
+					'currency' => 'eur',
+					'amount'   => 4500,
+					'metadata' => (object) [ 'checkout_type' => WC_Stripe_Checkout_Sessions_Ajax_Handler::ADAPTIVE_PRICING_CHECKOUT_TYPE ],
+				],
+				true,
+			],
+			'non-AP currency mismatch is held'    => [
+				[
+					'currency' => 'eur',
+					'amount'   => 4500,
+				],
+				false,
+			],
+			'setup intent is skipped'             => [ [ 'object' => 'setup_intent' ], true ],
+			'missing amount is skipped'           => [ [ 'amount' => null ], true ],
+		];
+	}
 }

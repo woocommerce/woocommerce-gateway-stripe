@@ -22,6 +22,52 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * Rendering can differ from post content, and Stripe may become available only after an address update.
+	 *
+	 * @since x.x.x
+	 * @dataProvider provide_classic_checkout_script_contexts
+	 * @param string $content Page content.
+	 * @param bool   $form_rendered Whether the classic form has been rendered.
+	 * @param bool   $expected Whether classic checkout scripts are required.
+	 * @return void
+	 */
+	public function test_should_load_classic_checkout_scripts( string $content, bool $form_rendered, bool $expected ): void {
+		$page = self::factory()->post->create(
+			[
+				'post_type'    => 'page',
+				'post_content' => $content,
+			]
+		);
+		$this->go_to( get_permalink( $page ) );
+		$original_render_count                                     = $GLOBALS['wp_actions']['woocommerce_before_checkout_form'] ?? 0;
+		$GLOBALS['wp_actions']['woocommerce_before_checkout_form'] = (int) $form_rendered; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Isolate the render signal between page fixtures.
+		add_filter( 'woocommerce_available_payment_gateways', '__return_empty_array' );
+
+		try {
+			$this->assertSame( $expected, WC_Stripe_Helper::should_load_classic_checkout_scripts() );
+		} finally {
+			$GLOBALS['wp_actions']['woocommerce_before_checkout_form'] = $original_render_count; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Isolate the render signal between page fixtures.
+			remove_filter( 'woocommerce_available_payment_gateways', '__return_empty_array' );
+		}
+	}
+
+	/**
+	 * @since x.x.x
+	 * @return array
+	 */
+	public function provide_classic_checkout_script_contexts(): array {
+		return [
+			'plain page without a form'       => [ '', false, false ],
+			'classic cart'                    => [ '[woocommerce_cart]', false, false ],
+			'Blocks checkout'                 => [ '<!-- wp:woocommerce/checkout /-->', false, false ],
+			'unrendered checkout shortcode'   => [ '[woocommerce_checkout]', false, false ],
+			'rendered checkout shortcode'     => [ '[woocommerce_checkout]', true, true ],
+			'custom rendered checkout form'   => [ '', true, true ],
+			'rendered form with a stale post' => [ '<!-- wp:woocommerce/checkout /-->', true, true ],
+		];
+	}
+
+	/**
 	 * The available store currencies always contain the normalized base currency
 	 * and only valid strings added through the public filter.
 	 *
@@ -812,18 +858,18 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Test for `get_stripe_amount`
 	 *
-	 * @param int    $total    The total amount.
-	 * @param string $currency The currency.
-	 * @param int    $expected The expected amount.
+	 * @param float|int|string $total    The total amount.
+	 * @param string           $currency The currency.
+	 * @param int              $expected The expected amount.
 	 * @dataProvider provide_test_get_stripe_amount
 	 */
-	public function test_get_stripe_amount( int $total, string $currency, int $expected, int $price_decimals_setting = 2 ): void {
+	public function test_get_stripe_amount( $total, string $currency, int $expected, int $price_decimals_setting = 2 ): void {
 		if ( 2 !== $price_decimals_setting ) {
 			update_option( 'woocommerce_price_num_decimals', $price_decimals_setting );
 		}
 
 		$amount = WC_Stripe_Helper::get_stripe_amount( $total, $currency );
-		$this->assertEquals( $expected, $amount );
+		$this->assertSame( $expected, $amount );
 	}
 
 	/**
@@ -832,7 +878,21 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @return array
 	 */
 	public function provide_test_get_stripe_amount(): array {
+		$maximum = min( 999999999999, PHP_INT_MAX );
+
 		return [
+			'zero total'                                              => [ 0, 'USD', 0 ],
+			'fractional cents round up'                               => [ '19.995', 'USD', 2000 ],
+			'fractional cents round down'                             => [ 19.994, 'USD', 1999 ],
+			'binary floating point precision'                         => [ 0.58, 'USD', 58 ],
+			'negative amount'                                         => [ -12.34, 'USD', 1234 ],
+			'zero decimal truncation'                                 => [ '100.99', 'JPY', 100 ],
+			'three decimal truncation'                                => [ '12.345', 'BHD', 12340, 3 ],
+			'three decimal negative amount'                           => [ '-12.345', 'BHD', 12340, 3 ],
+			'largest portable integer amount'                         => [ 2147483646, 'JPY', 2147483646 ],
+			'zero decimal maximum'                                    => [ $maximum, 'JPY', $maximum ],
+			'two decimal maximum'                                     => [ $maximum / 100, 'USD', $maximum ],
+			'three decimal maximum'                                   => [ $maximum / 1000, 'BHD', $maximum - ( $maximum % 10 ) ],
 			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR             => [
 				'total'    => 100,
 				'currency' => WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
@@ -870,6 +930,39 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'expected' => 100,
 			],
 		];
+	}
+
+	/**
+	 * Amounts above Stripe's or PHP's limit must fail before integer conversion.
+	 *
+	 * @dataProvider provide_oversized_stripe_amounts
+	 */
+	public function test_get_stripe_amount_rejects_oversized_totals( $total, string $currency ): void {
+		$this->expectException( WC_Stripe_Exception::class );
+		$this->expectExceptionMessage( 'Amount exceeds the supported payment range.' );
+		WC_Stripe_Helper::get_stripe_amount( $total, $currency );
+	}
+
+	public function provide_oversized_stripe_amounts(): array {
+		$cases = [];
+		foreach ( [
+			'USD' => 100,
+			'JPY' => 1,
+			'BHD' => 1000,
+		] as $currency => $multiplier ) {
+			foreach ( [
+				'Stripe maximum'   => 1000000000000 / $multiplier,
+				'integer boundary' => ( PHP_INT_MAX + 1.0 ) / $multiplier,
+				'wraps to zero'    => ( 2 ** 64 ) / $multiplier,
+				'wraps to small'   => ( 2 ** 64 + 8192 ) / $multiplier,
+				'negative total'   => -( 2 ** 64 ) / $multiplier,
+			] as $name => $total ) {
+				$cases[ "$currency $name" ] = [ $total, $currency ];
+			}
+			$cases[ "$currency numeric string" ] = [ '18446744073709551616.00', $currency ];
+		}
+
+		return $cases;
 	}
 
 	/**
@@ -1156,39 +1249,6 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			'AmazonPay'         => [
 				'payment_method' => 'stripe_amazon_pay',
 				'expected'       => true,
-			],
-		];
-	}
-
-	public function provide_is_wallet_payment_method(): array {
-		return [
-			'Apple Pay'  => [
-				'apple_pay',
-				false,
-			],
-			'Google Pay' => [
-				'google_pay',
-				false,
-			],
-			'Alipay'     => [
-				WC_Stripe_Payment_Methods::ALIPAY,
-				false,
-			],
-			'Klarna'     => [
-				WC_Stripe_Payment_Methods::KLARNA,
-				false,
-			],
-			'EPS'        => [
-				WC_Stripe_Payment_Methods::EPS,
-				false,
-			],
-			'WeChat'     => [
-				WC_Stripe_Payment_Methods::WECHAT_PAY,
-				true,
-			],
-			'Cash App'   => [
-				WC_Stripe_Payment_Methods::CASHAPP_PAY,
-				true,
 			],
 		];
 	}
@@ -2178,7 +2238,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		}
 		WC_Stripe_Helper::update_main_stripe_settings( $new_stripe_settings );
 
-		$webhook_status_cache_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_STATUS_CACHE_KEY', 'string' );
+		$webhook_status_cache_key = WC_Stripe_Webhook_Settings::WEBHOOK_STATUS_CACHE_KEY;
 
 		// is_webhook_enabled() short-circuits on a cached status, so we don't hit the Stripe API here.
 		if ( $webhook_enabled ) {
@@ -2258,7 +2318,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		remove_filter( 'woocommerce_is_checkout', $is_checkout_filter );
 		WC_Stripe_Helper::update_main_stripe_settings( $original_stripe_settings );
-		$webhook_status_cache_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_STATUS_CACHE_KEY', 'string' );
+		$webhook_status_cache_key = WC_Stripe_Webhook_Settings::WEBHOOK_STATUS_CACHE_KEY;
 		WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'live' );
 		WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'test' );
 		if ( WC()->session ) {
@@ -2307,7 +2367,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		WC_Stripe_Helper::update_main_stripe_settings( $new_stripe_settings );
 
 		// is_webhook_enabled() short-circuits on a cached status, so we don't hit the Stripe API here.
-		$webhook_status_cache_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_STATUS_CACHE_KEY', 'string' );
+		$webhook_status_cache_key = WC_Stripe_Webhook_Settings::WEBHOOK_STATUS_CACHE_KEY;
 		WC_Stripe_Database_Cache::set_with_mode( $webhook_status_cache_key, 'enabled', HOUR_IN_SECONDS, 'live' );
 
 		add_filter( 'woocommerce_is_checkout', '__return_true' );
@@ -2546,7 +2606,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		}
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
-		$webhook_status_cache_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_STATUS_CACHE_KEY', 'string' );
+		$webhook_status_cache_key = WC_Stripe_Webhook_Settings::WEBHOOK_STATUS_CACHE_KEY;
 
 		// is_webhook_enabled() short-circuits on a cached status, so we don't hit the Stripe API here.
 		if ( $webhook_enabled ) {
@@ -2575,7 +2635,7 @@ class WC_Stripe_Helper_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		delete_option( 'wc_stripe_adaptive_pricing_session_amount_mismatch_detected' );
 		WC_Stripe_Helper::update_main_stripe_settings( $original_settings );
 
-		$webhook_status_cache_key = WC_Stripe_Test_Helper::get_class_const_value( WC_Stripe_Account::class, 'WEBHOOK_STATUS_CACHE_KEY', 'string' );
+		$webhook_status_cache_key = WC_Stripe_Webhook_Settings::WEBHOOK_STATUS_CACHE_KEY;
 		WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'live' );
 		WC_Stripe_Database_Cache::delete_with_mode( $webhook_status_cache_key, 'test' );
 

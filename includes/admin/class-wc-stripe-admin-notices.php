@@ -100,6 +100,7 @@ class WC_Stripe_Admin_Notices {
 		// Stripe API outage detection. Runs first so other environment checks
 		// can suppress notices that would be misleading during an outage.
 		$this->check_api_outage();
+		$this->check_oauth_deauthorization();
 
 		// Main Stripe payment method.
 		$this->stripe_check_environment();
@@ -183,6 +184,33 @@ class WC_Stripe_Admin_Notices {
 
 			echo '</div>';
 		}
+	}
+
+	private function check_oauth_deauthorization(): void {
+		if ( ! isset( $_GET['page'], $_GET['section'] ) || 'wc-settings' !== $_GET['page'] || 'stripe' !== $_GET['section'] ) {
+			return;
+		}
+
+		$failed_modes = array_values( array_intersect( [ 'live', 'test' ], (array) get_option( 'wc_stripe_oauth_deauthorization_failed_modes', [] ) ) );
+		if ( ! $failed_modes ) {
+			return;
+		}
+
+		$messages = [
+			'live' => __( 'Stripe has been disconnected from your store, however we could not confirm that the live API keys were revoked. These keys may still be active.', 'woocommerce-gateway-stripe' ),
+			'test' => __( 'Stripe has been disconnected from your store, however we could not confirm that the test API keys were revoked. These keys may still be active.', 'woocommerce-gateway-stripe' ),
+			'both' => __( 'Stripe has been disconnected from your store, however we could not confirm that the live and test API keys were revoked. These keys may still be active.', 'woocommerce-gateway-stripe' ),
+		];
+		$message  = '<strong>' . esc_html__( 'Stripe disconnected - API key revocation unconfirmed', 'woocommerce-gateway-stripe' ) . '</strong><br>';
+		$message .= esc_html( $messages[ count( $failed_modes ) > 1 ? 'both' : $failed_modes[0] ] );
+
+		$this->add_admin_notice(
+			'oauth_deauthorization',
+			'notice notice-warning',
+			$message,
+			true,
+			[ WC_Stripe_Helper::get_external_link( 'https://woocommerce.com/my-account/contact-support/?select=18627', __( 'Get support', 'woocommerce-gateway-stripe' ), 'button' ) ]
+		);
 	}
 
 	/**
@@ -294,7 +322,7 @@ class WC_Stripe_Admin_Notices {
 
 			// Show separate per-mode notices so merchants can take the appropriate action.
 			foreach ( [ 'live', 'test' ] as $mode ) {
-				if ( 'yes' !== get_option( WC_Stripe_Account::get_webhook_missing_notice_option( $mode ) ) ) {
+				if ( 'yes' !== get_option( WC_Stripe_Webhook_Settings::get_webhook_missing_notice_option( $mode ) ) ) {
 					continue;
 				}
 
@@ -302,7 +330,7 @@ class WC_Stripe_Admin_Notices {
 			}
 
 			foreach ( [ 'live', 'test' ] as $mode ) {
-				if ( 'yes' !== get_option( WC_Stripe_Account::get_webhook_manual_secret_notice_option( $mode ) ) ) {
+				if ( 'yes' !== get_option( WC_Stripe_Webhook_Settings::get_webhook_manual_secret_notice_option( $mode ) ) ) {
 					continue;
 				}
 
@@ -918,6 +946,15 @@ class WC_Stripe_Admin_Notices {
 			$notice = wc_clean( wp_unslash( $_GET['wc-stripe-hide-notice'] ) );
 
 			switch ( $notice ) {
+				case 'oauth_deauthorization':
+					delete_option( 'wc_stripe_oauth_deauthorization_failed_modes' );
+					// Leaving the dismissal in the URL would hide a new failure on the next reload.
+					if ( isset( $_SERVER['REQUEST_URI'] ) ) {
+						if ( wp_safe_redirect( remove_query_arg( [ 'wc-stripe-hide-notice', '_wc_stripe_notice_nonce' ], esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) ) ) ) {
+							exit;
+						}
+					}
+					break;
 				case 'style':
 					update_option( 'wc_stripe_show_style_notice', 'no' );
 					break;
@@ -950,16 +987,16 @@ class WC_Stripe_Admin_Notices {
 					update_option( 'wc_stripe_show_changed_keys_notice', 'no' );
 					break;
 				case 'webhook_missing_live':
-					delete_option( WC_Stripe_Account::get_webhook_missing_notice_option( 'live' ) );
+					delete_option( WC_Stripe_Webhook_Settings::get_webhook_missing_notice_option( 'live' ) );
 					break;
 				case 'webhook_missing_test':
-					delete_option( WC_Stripe_Account::get_webhook_missing_notice_option( 'test' ) );
+					delete_option( WC_Stripe_Webhook_Settings::get_webhook_missing_notice_option( 'test' ) );
 					break;
 				case 'webhook_manual_secret_live':
-					delete_option( WC_Stripe_Account::get_webhook_manual_secret_notice_option( 'live' ) );
+					delete_option( WC_Stripe_Webhook_Settings::get_webhook_manual_secret_notice_option( 'live' ) );
 					break;
 				case 'webhook_manual_secret_test':
-					delete_option( WC_Stripe_Account::get_webhook_manual_secret_notice_option( 'test' ) );
+					delete_option( WC_Stripe_Webhook_Settings::get_webhook_manual_secret_notice_option( 'test' ) );
 					break;
 				case 'legacy_deprecation':
 					update_option( 'wc_stripe_show_legacy_deprecation_notice', 'no' );
@@ -1012,16 +1049,44 @@ class WC_Stripe_Admin_Notices {
 					}
 					break;
 				case 'ocs_ap_banner':
+					// The dismiss parameters stay in the URL, so a page refresh runs this again.
+					$was_shown = 'yes' === get_option( self::SHOW_OCS_AP_BANNER_OPTION, 'no' );
 					update_option( self::SHOW_OCS_AP_BANNER_OPTION, 'no' );
+					if ( $was_shown ) {
+						$this->record_ap_banner_dismissed_tracks_event( 'ocs_ap' );
+					}
 					break;
 				case 'ap_only_banner':
+					$was_shown = 'yes' === get_option( self::SHOW_AP_ONLY_BANNER_OPTION, 'no' );
 					update_option( self::SHOW_AP_ONLY_BANNER_OPTION, 'no' );
+					if ( $was_shown ) {
+						$this->record_ap_banner_dismissed_tracks_event( 'ap_only' );
+					}
 					break;
 				case 'ocs_only_banner':
 					update_option( self::SHOW_OCS_ONLY_BANNER_OPTION, 'no' );
 					break;
 			}
 		}
+	}
+
+	/**
+	 * Records a Tracks event when the merchant dismisses an Adaptive Pricing "now active" notice.
+	 *
+	 * @since 11.2.0
+	 *
+	 * @param string $banner Which notice was dismissed: 'ocs_ap' or 'ap_only'.
+	 * @return void
+	 */
+	private function record_ap_banner_dismissed_tracks_event( string $banner ): void {
+		if ( ! function_exists( 'wc_admin_record_tracks_event' ) ) {
+			return;
+		}
+
+		wc_admin_record_tracks_event(
+			'wcstripe_ap_banner_dismissed',
+			WC_Stripe_Tracks::add_default_event_properties( [ 'banner' => $banner ] )
+		);
 	}
 
 	/**

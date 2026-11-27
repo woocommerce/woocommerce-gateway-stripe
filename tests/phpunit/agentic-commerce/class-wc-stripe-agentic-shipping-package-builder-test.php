@@ -18,14 +18,6 @@ use WC_Stripe_Agentic_Shipping_Package_Builder;
  */
 class WC_Stripe_Agentic_Shipping_Package_Builder_Test extends WP_UnitTestCase {
 
-	public function setUp(): void {
-		parent::setUp();
-
-		if ( ! class_exists( 'WC_Stripe_Agentic_Shipping_Package_Builder' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_Agentic_Shipping_Package_Builder class not loaded' );
-		}
-	}
-
 	public function tearDown(): void {
 		remove_all_filters( 'wc_stripe_agentic_shipping_packages' );
 		parent::tearDown();

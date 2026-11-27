@@ -192,22 +192,16 @@ describe( 'verifyStripeJsOrigin', () => {
 
 describe( 'assertStripeJsOrigin', () => {
 	it( 'passes silently for the official origin', () => {
-		const warnSpy = jest
-			.spyOn( console, 'warn' )
-			.mockImplementation( () => {} );
 		const doc = createDocumentWithScript( {
 			id: 'stripe-js',
 			src: 'https://js.stripe.com/dahlia/stripe.js',
 		} );
 
 		expect( () => assertStripeJsOrigin( doc ) ).not.toThrow();
-		expect( warnSpy ).not.toHaveBeenCalled();
+		expect( console ).not.toHaveWarned();
 	} );
 
 	it( 'warns with the detected src and throws a generic error for an unexpected origin', () => {
-		const warnSpy = jest
-			.spyOn( console, 'warn' )
-			.mockImplementation( () => {} );
 		const doc = createDocumentWithScript( {
 			id: 'stripe-js',
 			src: 'https://js.stripe.com.evil.example/dahlia/stripe.js',
@@ -219,27 +213,19 @@ describe( 'assertStripeJsOrigin', () => {
 			/provenance check failed/
 		);
 		expect( () => assertStripeJsOrigin( doc ) ).not.toThrow( /evil/ );
-		expect( warnSpy ).toHaveBeenCalledWith(
-			expect.stringContaining(
-				'https://js.stripe.com.evil.example/dahlia/stripe.js'
-			)
+		expect( console ).toHaveWarnedWith(
+			`WooCommerce Stripe Gateway: blocking checkout — Stripe.js was loaded from an unexpected source (https://js.stripe.com.evil.example/dahlia/stripe.js). Expected Stripe.js from ${ STRIPE_JS_ORIGIN }.`
 		);
 	} );
 
 	it( 'warns and throws when no Stripe.js tag is found', () => {
-		const warnSpy = jest
-			.spyOn( console, 'warn' )
-			.mockImplementation( () => {} );
 		const doc = createDocumentWithScript();
 
 		expect( () => assertStripeJsOrigin( doc ) ).toThrow(
 			/provenance check failed/
 		);
-		expect( warnSpy ).toHaveBeenCalledWith(
-			expect.stringContaining( 'no Stripe.js script tag was found' )
-		);
-		expect( warnSpy ).not.toHaveBeenCalledWith(
-			expect.stringContaining( 'null' )
+		expect( console ).toHaveWarnedWith(
+			`WooCommerce Stripe Gateway: blocking checkout — no Stripe.js script tag was found. Expected Stripe.js from ${ STRIPE_JS_ORIGIN }.`
 		);
 	} );
 } );

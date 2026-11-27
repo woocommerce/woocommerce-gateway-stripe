@@ -11,29 +11,6 @@
  * Tests the product mapper for Agentic Commerce feeds.
  */
 class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
-	/**
-	 * Setup test environment before each test.
-	 *
-	 * @return void
-	 */
-	public function setUp(): void {
-		parent::setUp();
-
-		// Skip tests if WooCommerce ProductMapperInterface is not available.
-		if ( ! interface_exists( 'Automattic\\WooCommerce\\Internal\\ProductFeed\\Feed\\ProductMapperInterface' ) ) {
-			$this->markTestSkipped( 'WooCommerce ProductMapperInterface not available (requires WooCommerce 10.5.0+)' );
-		}
-
-		// Skip tests if Mapper class is not loaded.
-		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Product_Mapper' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Product_Mapper class not loaded' );
-		}
-
-		// Skip tests if Schema class is not loaded.
-		if ( ! class_exists( 'WC_Stripe_Agentic_Commerce_Feed_Schema' ) ) {
-			$this->markTestSkipped( 'WC_Stripe_Agentic_Commerce_Feed_Schema class not loaded' );
-		}
-	}
 
 	/**
 	 * Test simple product mapping with all required fields.
@@ -582,6 +559,26 @@ class WC_Stripe_Agentic_Commerce_Product_Mapper_Test extends WP_UnitTestCase {
 
 		// WooCommerce uses 'lbs' but Stripe expects 'lb'.
 		$this->assertSame( '2.5 lb', $result['weight'] );
+
+		$product->delete( true );
+	}
+
+	/**
+	 * Test that an existing MPN is mapped without internal-meta warnings.
+	 *
+	 * @since x.x.x
+	 * @return void
+	 */
+	public function test_mpn_field_mapping() {
+		$product = WC_Helper_Product::create_simple_product();
+		update_post_meta( $product->get_id(), '_mpn', 'PART-123' );
+
+		// Reload metadata saved before WooCommerce introduced the MPN property.
+		$product = new WC_Product_Simple( $product->get_id() );
+		$mapper  = new \WC_Stripe_Agentic_Commerce_Product_Mapper();
+		$result  = $mapper->map_product( $product );
+
+		$this->assertSame( 'PART-123', $result['mpn'] );
 
 		$product->delete( true );
 	}

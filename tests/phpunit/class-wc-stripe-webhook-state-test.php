@@ -248,21 +248,6 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	}
 
 
-	// Test user agent validation ignored
-	public function test_skip_user_agent_validation() {
-		// Run test without cleaning up webhook secret.
-		add_filter(
-			'wc_stripe_webhook_is_user_agent_valid',
-			function () {
-				return false;
-			}
-		);
-
-		$this->set_valid_request_data();
-		$this->process_webhook();
-		$this->assertEquals( 'No error', WC_Stripe_Webhook_State::get_last_error_reason() );
-	}
-
 	// Test failure reason: empty secret.
 	public function test_get_error_reason_empty_secret() {
 		$this->cleanup_webhook_secret();

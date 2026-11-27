@@ -4,6 +4,7 @@
  * Unit tests for WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update.
  */
 class WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update_Test extends WP_UnitTestCase {
+	use WC_Stripe_Tracks_Capture_Trait;
 
 	private const AMOUNT_MISMATCH_OPTION = 'wc_stripe_adaptive_pricing_session_amount_mismatch_detected';
 
@@ -47,6 +48,7 @@ class WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update_Test exten
 	 * @param bool         $expect_log Whether the migration should log the restoration.
 	 */
 	public function test_migration_scenarios( $previous_version, ?string $mismatch_marker, ?string $migration_flag, string $adaptive_pricing, string $expected_adaptive_pricing, $expected_marker, $expected_migration_flag, bool $expect_log ): void {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
 		$migration_flag_option = $this->get_migration_flag_option_name();
 		add_option(
 			WC_Stripe::SETTINGS_OPTION_NAME,
@@ -83,8 +85,10 @@ class WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update_Test exten
 
 		WC_Stripe_Logger::$logger = $logger;
 
+		$this->start_capturing_tracks_events();
 		$migration = new WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update();
 		$migration->maybe_migrate( $previous_version );
+		$this->stop_capturing_tracks_events();
 
 		$stored_settings = WC_Stripe::get_instance()->get_settings();
 
@@ -92,6 +96,12 @@ class WC_Stripe_Restore_Adaptive_Pricing_After_Amount_Mismatch_Update_Test exten
 		$this->assertSame( 'yes', $stored_settings['pmc_enabled'], 'Unrelated settings must survive the migration.' );
 		$this->assertSame( $expected_marker, get_option( self::AMOUNT_MISMATCH_OPTION ) );
 		$this->assertSame( $expected_migration_flag, get_option( $migration_flag_option ) );
+
+		$events = $this->get_captured_tracks_event_properties( 'wcadmin_wcstripe_ap_default_enabled' );
+		$this->assertCount( $expect_log ? 1 : 0, $events );
+		if ( $expect_log ) {
+			$this->assertSame( 'amount_mismatch_restore', $events[0]['source'] );
+		}
 	}
 
 	/**

@@ -65,7 +65,7 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 		wp_dequeue_style( $this->get_block_style_handle() );
 		wp_deregister_style( $this->get_block_style_handle() );
 
-		foreach ( array_merge( [ $this->get_block_script_handle(), 'stripe' ], $this->registered_test_scripts ) as $handle ) {
+		foreach ( array_merge( [ $this->get_block_script_handle(), 'stripe', 'wc-stripe-checkout-settings' ], $this->registered_test_scripts ) as $handle ) {
 			wp_dequeue_script( $handle );
 			wp_deregister_script( $handle );
 		}
@@ -173,6 +173,25 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 		$this->assertSame( [], $this->invoke_get_gateway_javascript_params() );
 	}
 
+	public function test_get_gateway_javascript_params_preserves_empty_gateway_configuration(): void {
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [] )
+			->onlyMethods( [ 'javascript_params' ] )
+			->getMock();
+		$gateway->expects( $this->once() )->method( 'javascript_params' )->willReturn( [] );
+		$this->set_main_stripe_gateway( $gateway );
+		$available_gateways = static function () use ( $gateway ) {
+			return [ 'stripe' => $gateway ];
+		};
+		add_filter( 'woocommerce_available_payment_gateways', $available_gateways, 100 );
+
+		try {
+			$this->assertSame( [], $this->invoke_get_gateway_javascript_params() );
+		} finally {
+			remove_filter( 'woocommerce_available_payment_gateways', $available_gateways, 100 );
+		}
+	}
+
 	/**
 	 * WooCommerce resolves payment method script dependencies on every request, so enqueuing the
 	 * stylesheet from the script registration callback loaded it store-wide. It must only register.
@@ -185,6 +204,9 @@ class WC_Stripe_Blocks_Support_Test extends WP_UnitTestCase {
 		$handles = $blocks_support->get_payment_method_script_handles();
 
 		$this->assertSame( [ $this->get_block_script_handle() ], $handles );
+		$this->assertContains( 'wc-stripe-checkout-settings', wp_scripts()->registered[ $this->get_block_script_handle() ]->deps );
+		$this->assertContains( 'jquery-blockui', wp_scripts()->registered[ $this->get_block_script_handle() ]->deps );
+		$this->assertNotContains( 'wc-stripe-upe-classic', wp_scripts()->registered[ $this->get_block_script_handle() ]->deps );
 		$this->assertTrue( wp_style_is( $this->get_block_style_handle(), 'registered' ) );
 		$this->assertFalse( wp_style_is( $this->get_block_style_handle(), 'enqueued' ) );
 	}

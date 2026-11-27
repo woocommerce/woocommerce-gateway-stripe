@@ -31,13 +31,17 @@ abstract class WC_Mock_Stripe_API_Unit_Test_Case extends WP_UnitTestCase {
 	 */
 	private $original_account = null;
 
+	/** @var WC_Stripe_Webhook_Settings */
+	private $original_webhook_settings;
+
 	/**
 	 * Set up.
 	 */
 	public function set_up() {
 		parent::set_up();
-		$this->original_account = WC_Stripe::get_instance()->account;
-		$this->stripe_api       = $this->createMock( WC_Stripe_API::class );
+		$this->original_account          = WC_Stripe::get_instance()->account;
+		$this->original_webhook_settings = WC_Stripe::get_instance()->webhook_settings;
+		$this->stripe_api                = $this->createMock( WC_Stripe_API::class );
 		$this->stripe_api->method( 'get_payment_method_configurations' )->willReturnCallback(
 			function () {
 				return $this->payment_method_configurations_response;
@@ -59,6 +63,8 @@ abstract class WC_Mock_Stripe_API_Unit_Test_Case extends WP_UnitTestCase {
 			WC_Stripe::get_instance()->account = $this->original_account;
 			$this->original_account            = null;
 		}
+
+		WC_Stripe::get_instance()->webhook_settings = $this->original_webhook_settings;
 
 		parent::tear_down();
 		$this->reset_payment_method_configuration_state();
@@ -152,7 +158,7 @@ abstract class WC_Mock_Stripe_API_Unit_Test_Case extends WP_UnitTestCase {
 	protected function set_stripe_account_data( $account_data ) {
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
 												->disableOriginalConstructor()
-												->setMethods( [ 'get_cached_account_data' ] )
+												->onlyMethods( [ 'get_cached_account_data' ] )
 												->getMock();
 		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn( $account_data );
 	}

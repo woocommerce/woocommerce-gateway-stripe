@@ -8,6 +8,8 @@ use Automattic\WooCommerce\Blocks\Package;
  * WC_REST_Stripe_Settings_Controller_Test unit tests.
  */
 class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
+	use WC_Stripe_Tracks_Capture_Trait;
+
 	/**
 	 * Tested REST route.
 	 */
@@ -68,10 +70,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		$wp_rest_server = null;
 
 		parent::set_up();
-
-		if ( version_compare( WC_VERSION, '3.4.0', '<' ) ) {
-			$this->markTestSkipped( 'The controller is not compatible with older WC versions, due to the missing `update_option` method on the gateway.' );
-		}
 
 		$this->upe_helper = new UPE_Test_Helper();
 
@@ -471,7 +469,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	public function test_enum_fields( $rest_key, $option_name, $original_valid_value, $new_valid_value, $new_invalid_value, $is_upe_enabled = true ) {
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
 			->disableOriginalConstructor()
-			->setMethods(
+			->onlyMethods(
 				[
 					'get_cached_account_data',
 				]
@@ -571,7 +569,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	public function test_get_settings_returns_ordered_payment_method_ids() {
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
 													->disableOriginalConstructor()
-													->setMethods(
+													->onlyMethods(
 														[
 															'get_cached_account_data',
 															'get_account_country',
@@ -910,6 +908,126 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		return [
 			[ true, [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::GOOGLE_PAY ], [] ],
 			[ false, [], [ WC_Stripe_Payment_Methods::GOOGLE_PAY, WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::AMAZON_PAY ] ],
+		];
+	}
+
+	/**
+	 * Webhook credentials written by the settings hook must survive subsequent gateway saves.
+	 *
+	 * @dataProvider provide_webhook_reconfiguration_toggles
+	 */
+	public function test_oc_settings_preserve_reconfigured_webhooks( $oc_enabled, $ap_enabled ) {
+		$settings                               = WC_Stripe_Helper::get_stripe_settings();
+		$settings['optimized_checkout_element'] = $oc_enabled;
+		$settings['adaptive_pricing']           = $ap_enabled;
+		foreach ( [ 'live', 'test' ] as $mode ) {
+			$prefix                                 = 'test' === $mode ? 'test_' : '';
+			$settings[ $prefix . 'webhook_data' ]   = [ 'id' => 'we_' . $mode . '_old' ];
+			$settings[ $prefix . 'webhook_secret' ] = 'whsec_' . $mode . '_old';
+		}
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		$this->get_gateway()->init_settings();
+
+		$webhook_settings = $this->createMock( WC_Stripe_Webhook_Settings::class );
+		$webhook_settings->expects( $this->exactly( 2 ) )
+			->method( 'maybe_autoconfigure_webhooks' )->withConsecutive( [ 'live' ], [ 'test' ] )
+			->willReturnCallback(
+				static function ( $mode ) {
+					$prefix                                 = 'test' === $mode ? 'test_' : '';
+					$settings                               = WC_Stripe_Helper::get_stripe_settings();
+					$settings[ $prefix . 'webhook_data' ]   = [ 'id' => 'we_' . $mode . '_new' ];
+					$settings[ $prefix . 'webhook_secret' ] = 'whsec_' . $mode . '_new';
+					WC_Stripe_Helper::update_main_stripe_settings( $settings );
+					return null;
+				}
+			);
+		WC_Stripe::get_instance()->webhook_settings = $webhook_settings;
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_body_params(
+			[
+				'is_oc_enabled' => true,
+				'is_ap_enabled' => true,
+				'oc_layout'     => 'tabs',
+			]
+		);
+		$response = rest_do_request( $request );
+
+		$this->assertSame( 200, $response->get_status() );
+		$stored = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertSame( 'tabs', $stored['optimized_checkout_layout'] );
+		foreach ( [ 'live', 'test' ] as $mode ) {
+			$prefix = 'test' === $mode ? 'test_' : '';
+			$this->assertSame( 'we_' . $mode . '_new', $stored[ $prefix . 'webhook_data' ]['id'] );
+			$this->assertSame( 'whsec_' . $mode . '_new', $stored[ $prefix . 'webhook_secret' ] );
+		}
+	}
+
+	public function provide_webhook_reconfiguration_toggles() {
+		return [
+			'enable AP with OC enabled' => [ 'yes', 'no' ],
+			'enable OC with AP enabled' => [ 'no', 'yes' ],
+		];
+	}
+
+	/**
+	 * Turning Optimized Checkout or Adaptive Pricing on or off records the matching Tracks event,
+	 * and saving the same value again records nothing.
+	 *
+	 * @dataProvider provide_oc_ap_toggle_tracks_events
+	 *
+	 * @param string      $rest_key       REST API key.
+	 * @param string      $option_name    Gateway option name.
+	 * @param string      $initial_value  Option value before the request.
+	 * @param bool        $new_value      Value sent in the request.
+	 * @param string|null $expected_event Prefixed Tracks event name, or null when no event is expected.
+	 */
+	public function test_oc_ap_toggle_records_tracks_event( string $rest_key, string $option_name, string $initial_value, bool $new_value, ?string $expected_event ): void {
+		$this->get_gateway()->update_option( $option_name, $initial_value );
+
+		$this->start_capturing_tracks_events();
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( $rest_key, $new_value );
+		$response = rest_do_request( $request );
+		$this->stop_capturing_tracks_events();
+
+		$this->assertSame( 200, $response->get_status() );
+
+		$all_toggle_events = [];
+		foreach ( [ 'wcstripe_oc_enabled', 'wcstripe_oc_disabled', 'wcstripe_ap_enabled', 'wcstripe_ap_disabled' ] as $event_name ) {
+			$events = $this->get_captured_tracks_event_properties( 'wcadmin_' . $event_name );
+			if ( ! empty( $events ) ) {
+				$all_toggle_events[ 'wcadmin_' . $event_name ] = $events;
+			}
+		}
+
+		if ( null === $expected_event ) {
+			$this->assertSame( [], $all_toggle_events );
+			return;
+		}
+
+		$this->assertSame( [ $expected_event ], array_keys( $all_toggle_events ) );
+		$this->assertCount( 1, $all_toggle_events[ $expected_event ] );
+
+		$logged_event = reset( $all_toggle_events[ $expected_event ] );
+		$this->assertSame( 'settings_rest_api', $logged_event['source'] );
+		$this->assertSame( WC_STRIPE_VERSION, $logged_event['stripe_version'] );
+		$this->assertSame( 1, $logged_event['is_test_mode'] );
+	}
+
+	/**
+	 * Data provider for `test_oc_ap_toggle_records_tracks_event`.
+	 *
+	 * @return array
+	 */
+	public function provide_oc_ap_toggle_tracks_events(): array {
+		return [
+			'OC turned on'  => [ 'is_oc_enabled', 'optimized_checkout_element', 'no', true, 'wcadmin_wcstripe_oc_enabled' ],
+			'OC turned off' => [ 'is_oc_enabled', 'optimized_checkout_element', 'yes', false, 'wcadmin_wcstripe_oc_disabled' ],
+			'OC unchanged'  => [ 'is_oc_enabled', 'optimized_checkout_element', 'yes', true, null ],
+			'AP turned on'  => [ 'is_ap_enabled', 'adaptive_pricing', 'no', true, 'wcadmin_wcstripe_ap_enabled' ],
+			'AP turned off' => [ 'is_ap_enabled', 'adaptive_pricing', 'yes', false, 'wcadmin_wcstripe_ap_disabled' ],
+			'AP unchanged'  => [ 'is_ap_enabled', 'adaptive_pricing', 'no', false, null ],
 		];
 	}
 

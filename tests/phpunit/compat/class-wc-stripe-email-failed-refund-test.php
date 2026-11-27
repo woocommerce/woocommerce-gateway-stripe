@@ -68,45 +68,4 @@ class WC_Stripe_Email_Failed_Refund_Test extends WP_UnitTestCase {
 			],
 		];
 	}
-
-	/**
-	 * Create a mock class for WC_Stripe_Email_Failed_Refund.
-	 *
-	 * @return WC_Stripe_Email_Failed_Refund
-	 */
-	protected function get_mocked_class() {
-		return new class() extends WC_Stripe_Email_Failed_Refund {
-			public function __construct() {
-				parent::__construct();
-
-				$this->id          = 'failed_refund_custom';
-				$this->description = __( 'Refund request failure emails are sent to chosen recipient(s) when an attempt to process refund fails.', 'woocommerce-gateway-stripe' );
-
-				$this->template_html  = 'emails/failed-refund-admin.php';
-				$this->template_plain = 'emails/plain/failed-refund-admin.php';
-				$this->template_base  = plugin_dir_path( WC_STRIPE_MAIN_FILE ) . 'templates/';
-
-				WC_Email::__construct();
-
-				// Set after calling the parent constructor, so it is not override.
-				$this->recipient = $this->get_option( 'recipient', get_option( 'admin_email' ) );
-			}
-
-			/**
-			 * Returns the list of template parameters.
-			 *
-			 * @inheritDoc
-			 */
-			public function get_template_params() {
-				return [
-					'order'         => $this->object,
-					'reason'        => $this->get_reason( $this->object ),
-					'email_heading' => $this->get_heading(),
-					'sent_to_admin' => true,
-					'plain_text'    => false,
-					'email'         => $this,
-				];
-			}
-		};
-	}
 }

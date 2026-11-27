@@ -9,6 +9,7 @@ import {
 import { useEffect } from '@wordpress/element';
 import { dispatch, select } from '@wordpress/data';
 import { waitForPaymentElementCompletion } from 'wcstripe/blocks/wait-for-payment-element-completion';
+import { setWindowLocation } from 'wcstripe/test-utils/window-location';
 
 jest.mock( '@wordpress/element', () => ( {
 	...jest.requireActual( '@wordpress/element' ),
@@ -317,13 +318,9 @@ describe( 'CheckoutSessions hook tests', () => {
 			},
 		};
 
-		let originalLocation;
-
 		beforeEach( () => {
 			document.body.innerHTML = '';
-			originalLocation = window.location;
-			delete window.location;
-			window.location = { origin: 'https://example.com' };
+			setWindowLocation( 'https://example.com' );
 			onCheckoutSuccess.mockImplementation( ( fn ) => {
 				const onCheckoutProcessingData = {
 					processingResponse: {
@@ -334,10 +331,6 @@ describe( 'CheckoutSessions hook tests', () => {
 				};
 				onCheckoutSuccessResultPromise = fn( onCheckoutProcessingData );
 			} );
-		} );
-
-		afterEach( () => {
-			window.location = originalLocation;
 		} );
 
 		it( 'checkoutState.type is not success', async () => {
@@ -354,6 +347,39 @@ describe( 'CheckoutSessions hook tests', () => {
 				type: 'error',
 				message: 'Checkout is not ready for confirmation.',
 			} );
+		} );
+
+		it( 'does not confirm the session when the order was already paid', async () => {
+			onCheckoutSuccess.mockImplementation( ( fn ) => {
+				onCheckoutSuccessResultPromise = fn( {
+					processingResponse: {
+						paymentDetails: {
+							redirect: 'https://example.com/return-here',
+							wc_stripe_checkout_session_already_paid: 'yes',
+						},
+					},
+				} );
+			} );
+			const mockConfirm = jest.fn();
+			const checkoutState = {
+				type: 'success',
+				checkout: {
+					email: 'test@example.com',
+					confirm: mockConfirm,
+				},
+			};
+			useCheckoutSuccessHandler(
+				checkoutState,
+				onCheckoutSuccess,
+				billing,
+				true,
+				false,
+				shippingData
+			);
+			expect( await onCheckoutSuccessResultPromise ).toEqual( {
+				type: 'success',
+			} );
+			expect( mockConfirm ).not.toHaveBeenCalled();
 		} );
 
 		it( 'error confirming the session', async () => {

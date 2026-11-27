@@ -17,6 +17,11 @@ class WC_Stripe {
 	public const SETTINGS_OPTION_NAME = 'woocommerce_stripe_settings';
 
 	/**
+	 * The gateway form fields that hold credentials. Their values must only reach the client masked.
+	 */
+	private const SECRET_FORM_FIELDS = [ 'secret_key', 'test_secret_key', 'webhook_secret', 'test_webhook_secret' ];
+
+	/**
 	 * Get the Stripe settings option. Always returns an array.
 	 *
 	 * @since 10.9.0
@@ -38,7 +43,12 @@ class WC_Stripe {
 	 * @return bool Whether the option was actually written (matches `update_option`).
 	 */
 	public function update_settings( array $settings ): bool {
-		return update_option( self::SETTINGS_OPTION_NAME, $settings );
+		$updated = update_option( self::SETTINGS_OPTION_NAME, $settings );
+		// A later gateway save must not put the pre-sync settings back into the option.
+		if ( $this->stripe_gateway ) {
+			$this->stripe_gateway->init_settings();
+		}
+		return $updated;
 	}
 
 	/**
@@ -96,6 +106,15 @@ class WC_Stripe {
 	 * @var WC_Stripe_Account
 	 */
 	public $account;
+
+	/**
+	 * Webhook settings.
+	 *
+	 * @since x.x.x
+	 *
+	 * @var WC_Stripe_Webhook_Settings
+	 */
+	public $webhook_settings;
 
 	/**
 	 * The main Stripe gateway instance. Use get_main_stripe_gateway() to access it.
@@ -179,8 +198,12 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-state.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-handler.php';
 
+		$webhook_handler = null;
 		if ( self::$instance === $this ) {
-			( new WC_Stripe_Webhook_Handler() )->register_hooks();
+			$webhook_handler = new WC_Stripe_Webhook_Handler();
+			$webhook_handler->register_hooks();
+			WC_Stripe_Event_Post_Store::get_instance()->init();
+			( new WC_Stripe_Event_Reconciler() )->init();
 		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-apple-pay-registration.php';
@@ -220,13 +243,22 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/connect/class-wc-stripe-connect-api.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-order-handler.php';
 
-		if ( self::$instance === $this ) {
-			( new WC_Stripe_Order_Handler() )->register_hooks();
+		if ( self::$instance === $this && $webhook_handler instanceof WC_Stripe_Webhook_Handler ) {
+			$order_handler = new WC_Stripe_Order_Handler();
+			$order_handler->register_hooks();
+
+			$order_reconciliation = new WC_Stripe_Order_Reconciliation( $order_handler, $webhook_handler );
+			$order_reconciliation->register_hooks();
+
+			if ( is_admin() && WC_Stripe_Feature_Flags::is_order_reconciliation_enabled() ) {
+				( new WC_Stripe_Order_Reconciliation_Admin( $order_reconciliation ) )->register_hooks();
+			}
 		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/payment-tokens/class-wc-stripe-payment-tokens.php';
 		if ( self::$instance === $this ) {
 			( new WC_Stripe_Payment_Tokens() )->register_hooks();
+			( new WC_Stripe_REST_Gateway_Settings_Protection() )->register_hooks();
 		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-customer.php';
@@ -237,10 +269,12 @@ class WC_Stripe {
 		}
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-account.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-webhook-settings.php';
 
-		$this->api     = new WC_Stripe_Connect_API();
-		$this->connect = new WC_Stripe_Connect( $this->api );
-		$this->account = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
+		$this->api              = new WC_Stripe_Connect_API();
+		$this->connect          = new WC_Stripe_Connect( $this->api );
+		$this->account          = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
+		$this->webhook_settings = new WC_Stripe_Webhook_Settings( 'WC_Stripe_API' );
 
 		// Guarded unlike the assignment above: the property must exist on every
 		// instance, but only the first may register the connection hooks.
@@ -323,6 +357,8 @@ class WC_Stripe {
 		if ( self::$instance === $this ) {
 			add_filter( 'woocommerce_payment_gateways', [ $this, 'add_gateways' ] );
 			add_filter( 'pre_update_option_' . self::SETTINGS_OPTION_NAME, [ $this, 'gateway_settings_update' ], 10, 2 );
+			add_filter( 'woocommerce_rest_prepare_payment_gateway', [ $this, 'mask_secrets_in_payment_gateway_response' ], 10, 2 );
+			add_filter( 'rest_request_before_callbacks', [ $this, 'restrict_settings_option_rest_access' ], 10, 3 );
 			add_filter( 'plugin_action_links_' . plugin_basename( WC_STRIPE_MAIN_FILE ), [ $this, 'plugin_action_links' ] );
 			add_filter( 'plugin_row_meta', [ $this, 'plugin_row_meta' ], 10, 2 );
 			add_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
@@ -452,9 +488,7 @@ class WC_Stripe {
 		add_woocommerce_inbox_variant();
 		$this->update_plugin_version();
 
-		// Add webhook reconfiguration
-		$account = self::get_instance()->account;
-		$account->maybe_reconfigure_webhooks_on_update();
+		$this->maybe_autoconfigure_webhooks();
 
 		// TODO: Remove this when we're reasonably sure most merchants have had their
 		// settings updated like this. ~80% of merchants is a good threshold.
@@ -475,6 +509,8 @@ class WC_Stripe {
 		// Try to schedule the daily async cleanup of the Stripe database cache.
 		WC_Stripe_Database_Cache::maybe_schedule_daily_async_cleanup();
 
+		( new WC_Stripe_Event_Reconciler() )->maybe_schedule_reconciliation();
+
 		// Remove lock rows left behind by requests that died while holding a lock.
 		WC_Stripe_Option_Lock::maybe_schedule_daily_cleanup();
 
@@ -487,6 +523,43 @@ class WC_Stripe {
 			$this->update_settings( $stripe_settings );
 			WC_Stripe_Logger::error( 'Settings synchronization eligibility will be re-checked after upgrade' );
 		}
+
+		if ( ! $is_new_install ) {
+			$this->record_plugin_updated_tracks_event( $previous_version );
+		}
+	}
+
+	/**
+	 * Records a Tracks event for a change of the installed plugin version, including downgrades.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param mixed $previous_version The previously stored `wc_stripe_version` option value.
+	 * @return void
+	 */
+	private function record_plugin_updated_tracks_event( $previous_version ): void {
+		// NB: we already check if tracking is enabled in record_direct_event_without_shopper_details(),
+		// but this early check avoids the account_id lookup when not necessary.
+		if ( ! WC_Stripe_Tracks::is_tracking_enabled() ) {
+			return;
+		}
+
+		$event_props = [
+			'previous_version' => is_string( $previous_version ) ? $previous_version : '',
+		];
+
+		$account_data = $this->account->get_cached_account_data();
+		if ( is_string( $account_data['id'] ?? null ) ) {
+			$event_props['account_id'] = $account_data['id'];
+		}
+
+		// install() runs on admin_init, which also fires for logged-out admin-ajax.php requests, so the
+		// first request after an update can be a shopper's. In this case, we don't want to record
+		// any details associated with the shopper.
+		WC_Stripe_Tracks::record_direct_event_without_shopper_details(
+			'wcstripe_plugin_updated',
+			WC_Stripe_Tracks::add_default_event_properties( $event_props )
+		);
 	}
 
 	/**
@@ -536,9 +609,10 @@ class WC_Stripe {
 			$stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'yes';
 			$this->update_settings( $stripe_settings );
 
-			if ( class_exists( 'WC_Tracks' ) ) {
-				WC_Tracks::record_event( 'wcstripe_migrated_to_new_checkout_experience' );
-			}
+			WC_Stripe_Tracks::record_direct_event(
+				'wcstripe_migrated_to_new_checkout_experience',
+				WC_Stripe_Tracks::add_default_event_properties( [] )
+			);
 		}
 	}
 
@@ -554,10 +628,8 @@ class WC_Stripe {
 	 */
 	public function update_prb_location_settings() {
 		$stripe_settings = $this->get_settings();
-		$prb_locations   = isset( $stripe_settings['express_checkout_button_locations'] )
-			? $stripe_settings['express_checkout_button_locations']
-			: [];
-		if ( ! empty( $stripe_settings ) && empty( $prb_locations ) ) {
+		// An explicitly empty selection hides the buttons and must survive upgrades.
+		if ( ! empty( $stripe_settings ) && ! array_key_exists( 'express_checkout_button_locations', $stripe_settings ) ) {
 			// Use existing payment_request_button_locations if it exists.
 			if ( array_key_exists( 'payment_request_button_locations', $stripe_settings ) ) {
 				$stripe_settings['express_checkout_button_locations'] = $stripe_settings['payment_request_button_locations'];
@@ -771,10 +843,79 @@ class WC_Stripe {
 			$settings     = array_merge( $old_settings, $settings );
 		}
 
+		// Clients only ever see the masked secrets, so a mask that comes back means "unchanged".
+		foreach ( self::SECRET_FORM_FIELDS as $key ) {
+			$old_value = $old_settings[ $key ] ?? '';
+			if ( is_string( $old_value ) && '' !== $old_value && isset( $settings[ $key ] ) && WC_Stripe_Helper::mask_key_value( $old_value ) === $settings[ $key ] ) {
+				$settings[ $key ] = $old_value;
+			}
+		}
+
 		// Note that we need to run these checks before we call toggle_upe() below.
 		$this->maybe_reset_stripe_in_memory_key( $settings, $old_settings );
 
 		return $this->toggle_upe( $settings, $old_settings );
+	}
+
+	/**
+	 * Masks the secret keys and webhook secrets in WooCommerce's `payment_gateways` REST responses,
+	 * the same way the `wc_stripe/account_keys` route does.
+	 *
+	 * WooCommerce returns the stored value of every gateway form field, whatever its type.
+	 *
+	 * @param WP_REST_Response   $response The response object.
+	 * @param WC_Payment_Gateway $gateway  The payment gateway the response describes.
+	 * @return WP_REST_Response
+	 */
+	public function mask_secrets_in_payment_gateway_response( $response, $gateway ) {
+		// A filter value is not guaranteed: an earlier callback may return a non-response, and
+		// third-party code can pass an unexpected gateway. Only act on the shapes we rely on.
+		if ( ! $response instanceof WP_REST_Response || ! $gateway instanceof WC_Payment_Gateway || WC_Stripe_UPE_Payment_Gateway::ID !== $gateway->id ) {
+			return $response;
+		}
+
+		$data = $response->get_data();
+		foreach ( self::SECRET_FORM_FIELDS as $key ) {
+			$value = $data['settings'][ $key ]['value'] ?? '';
+			if ( ! empty( $value ) ) {
+				// A value that is not a string cannot be masked, so send nothing rather than send it as stored.
+				$data['settings'][ $key ]['value'] = is_string( $value ) ? WC_Stripe_Helper::mask_key_value( $value ) : '';
+			}
+		}
+		$response->set_data( $data );
+
+		return $response;
+	}
+
+	/**
+	 * Blocks reads and writes of the Stripe settings option through WooCommerce's deprecated `wc-admin/options` REST route.
+	 *
+	 * @param WP_REST_Response|WP_HTTP_Response|WP_Error|mixed $response The result to send to the client, if any.
+	 * @param array                                            $handler  The route handler used for the request.
+	 * @param WP_REST_Request                                  $request  The request.
+	 * @return WP_REST_Response|WP_HTTP_Response|WP_Error|mixed
+	 */
+	public function restrict_settings_option_rest_access( $response, $handler, $request ) {
+		// Check the handler instead of the route, which WordPress matches case-insensitively.
+		$controller = is_array( $handler['callback'] ?? null ) ? $handler['callback'][0] : null;
+		if ( ! $controller instanceof \Automattic\WooCommerce\Admin\API\Options ) {
+			return $response;
+		}
+
+		// Reads name the options in the `options` parameter; writes send them as the keys of the JSON body.
+		$options = is_string( $request['options'] ) ? explode( ',', $request['options'] ) : [];
+		$body    = $request->get_json_params();
+		if ( is_array( $body ) ) {
+			$options = array_merge( $options, array_map( 'strval', array_keys( $body ) ) );
+		}
+
+		// get_option() and update_option() trim the name, and the options table compares names case-insensitively.
+		$options = array_map( 'strtolower', array_map( 'trim', $options ) );
+		if ( in_array( self::SETTINGS_OPTION_NAME, $options, true ) ) {
+			return new WP_Error( 'woocommerce_rest_cannot_view', __( 'Sorry, you cannot view or change these options.', 'woocommerce-gateway-stripe' ), [ 'status' => rest_authorization_required_code() ] );
+		}
+
+		return $response;
 	}
 
 
@@ -842,7 +983,17 @@ class WC_Stripe {
 			return;
 		}
 
-		$this->account->maybe_reconfigure_webhooks_on_update( 'settings' );
+		$this->maybe_autoconfigure_webhooks();
+	}
+
+	private function maybe_autoconfigure_webhooks(): void {
+		foreach ( [ 'live', 'test' ] as $mode ) {
+			try {
+				$this->webhook_settings->maybe_autoconfigure_webhooks( $mode );
+			} catch ( Exception $e ) {
+				WC_Stripe_Logger::error( "Failed to check/reconfigure webhooks for {$mode} mode", [ 'error_message' => $e->getMessage() ] );
+			}
+		}
 	}
 
 	/**
@@ -880,7 +1031,8 @@ class WC_Stripe {
 	/**
 	 * Enable or disable UPE.
 	 *
-	 * When enabling UPE: For each currently enabled Stripe LPM, the corresponding UPE method is enabled.
+	 * When enabling UPE: the saved payment method selection is kept, including an empty list.
+	 * Card and Link are used only when the setting key is absent.
 	 *
 	 * When disabling UPE: For each currently enabled UPE method, the corresponding LPM is enabled.
 	 *
@@ -904,13 +1056,9 @@ class WC_Stripe {
 	}
 
 	protected function enable_upe( $settings ) {
-		$settings['upe_checkout_experience_accepted_payments'] = [];
-
-		if ( empty( $settings['upe_checkout_experience_accepted_payments'] ) ) {
+		// Switching checkout engines must preserve saved selections, including an empty list.
+		if ( ! array_key_exists( 'upe_checkout_experience_accepted_payments', $settings ) ) {
 			$settings['upe_checkout_experience_accepted_payments'] = [ 'card', 'link' ];
-		} else {
-			// The 'stripe' gateway must be enabled for UPE if any LPMs were enabled.
-			$settings['enabled'] = 'yes';
 		}
 
 		return $settings;

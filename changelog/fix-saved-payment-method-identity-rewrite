@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Stop rewriting a saved payment method's name, email, and phone in Stripe when it is used at checkout; only the billing address is refreshed

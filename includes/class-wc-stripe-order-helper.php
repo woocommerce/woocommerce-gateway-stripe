@@ -102,6 +102,13 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_PRESENTMENT_AMOUNT = '_stripe_presentment_amount';
 
 	/**
+	 * Meta key flagging the amounts for which an Adaptive Pricing order note was added.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_ADAPTIVE_PRICING_NOTE_AMOUNTS = '_stripe_adaptive_pricing_note_amounts';
+
+	/**
 	 * Meta key for Stripe customer ID.
 	 *
 	 * @var string
@@ -156,6 +163,13 @@ class WC_Stripe_Order_Helper {
 	 * @var string
 	 */
 	private const META_STRIPE_STATUS_FINAL = '_stripe_status_final';
+
+	/**
+	 * Meta key for a cancelled order's returned payment.
+	 *
+	 * @var string
+	 */
+	private const META_STRIPE_REFUNDED_AFTER_CANCELLATION = '_stripe_refunded_after_cancellation';
 
 	/**
 	 * Meta key for Stripe refund failure reason.
@@ -603,6 +617,18 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Deletes the Stripe setup intent for order.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Order|null $order
+	 * @return false|void
+	 */
+	public function delete_stripe_setup_intent_id( ?WC_Order $order = null ) {
+		return $this->delete_order_meta( $order, self::META_STRIPE_SETUP_INTENT );
+	}
+
+	/**
 	 * Gets the Stripe checkout session ID for order.
 	 *
 	 * @since 10.5.0
@@ -715,6 +741,67 @@ class WC_Stripe_Order_Helper {
 	 */
 	public function update_stripe_presentment_amount( ?WC_Order $order = null, int $presentment_amount = 0 ) {
 		return $this->update_order_meta( $order, self::META_STRIPE_PRESENTMENT_AMOUNT, $presentment_amount );
+	}
+
+	/**
+	 * Indicates whether an Adaptive Pricing order note was already added to the order for the specified presentment currency and amount.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Order|null $order    The order to check.
+	 * @param string        $currency The presentment currency.
+	 * @param string        $amount   The presentment amount as a string.
+	 * @return bool
+	 */
+	public function is_stripe_adaptive_pricing_note_recorded( ?WC_Order $order, string $currency = '', string $amount = '' ): bool {
+		$expected_note = $this->normalize_adaptive_pricing_note_amount( $currency, $amount );
+		if ( null === $expected_note ) {
+			return false;
+		}
+
+		$notes = $this->get_order_meta_multi( $order, self::META_STRIPE_ADAPTIVE_PRICING_NOTE_AMOUNTS );
+
+		return in_array( $expected_note, $notes, true );
+	}
+
+	/**
+	 * Adds a record for an Adaptive Pricing order note for the specified presentment currency and amount.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Order|null $order    The order to add the record to.
+	 * @param string        $currency The presentment currency.
+	 * @param string        $amount   The presentment amount as a string.
+	 * @return void
+	 */
+	public function add_stripe_adaptive_pricing_note_record( ?WC_Order $order = null, string $currency = '', string $amount = '' ): void {
+		$expected_note = $this->normalize_adaptive_pricing_note_amount( $currency, $amount );
+		if ( null === $expected_note ) {
+			return;
+		}
+
+		if ( $this->is_stripe_adaptive_pricing_note_recorded( $order, $currency, $amount ) ) {
+			return;
+		}
+
+		$this->add_order_meta_multi( $order, self::META_STRIPE_ADAPTIVE_PRICING_NOTE_AMOUNTS, $expected_note );
+	}
+
+	/**
+	 * Helper function to normalize an Adaptive Pricing note amount.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param string $currency The presentment currency.
+	 * @param string $amount   The presentment amount as a string.
+	 * @return ?string The normalized amount. The value will be `null` when the currency or amount is invalid.
+	*/
+	protected function normalize_adaptive_pricing_note_amount( string $currency, string $amount ): ?string {
+		if ( '' === $currency || '' === $amount ) {
+			return null;
+		}
+
+		return strtoupper( $currency ) . '::' . $amount;
 	}
 
 	/**
@@ -1002,6 +1089,19 @@ class WC_Stripe_Order_Helper {
 	 */
 	public function set_stripe_status_final( WC_Order $order, bool $is_final = true ): void {
 		$this->update_order_meta( $order, self::META_STRIPE_STATUS_FINAL, wc_bool_to_string( $is_final ) );
+	}
+
+	/**
+	 * A false refund marker must not block legitimate checkout callbacks.
+	 *
+	 * @since 11.1.2
+	 * @param WC_Order $order The order to check.
+	 * @return bool
+	 */
+	public function is_refunded_after_cancellation( WC_Order $order ): bool {
+		return wc_string_to_bool(
+			$this->get_order_meta( $order, self::META_STRIPE_REFUNDED_AFTER_CANCELLATION ) ?? ''
+		);
 	}
 
 	/**
@@ -1357,6 +1457,135 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Holds an order for reconciliation when Stripe has taken a payment that no longer matches it.
+	 *
+	 * @since 11.1.2
+	 *
+	 * @param WC_Order $order  The order being settled.
+	 * @param object   $intent The successful PaymentIntent from Stripe.
+	 * @return bool Whether settlement may proceed.
+	 */
+	public function validate_successful_intent_or_hold_order( WC_Order $order, object $intent ): bool {
+		try {
+			$this->validate_intent_for_order( $order, $intent, '' );
+			return true;
+		} catch ( Exception $e ) {
+			$intent_amount = isset( $intent->amount, $intent->currency )
+				? strtoupper( $intent->currency ) . ' ' . WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( $intent->amount, $intent->currency )
+				: __( 'unknown amount', 'woocommerce-gateway-stripe' );
+			$order->add_order_note(
+				sprintf(
+					/* translators: 1) PaymentIntent ID 2) payment amount and currency 3) order total and currency. */
+					__( 'Stripe PaymentIntent %1$s (%2$s) does not match this order (%3$s). The order is on hold for manual review.', 'woocommerce-gateway-stripe' ),
+					$intent->id ?? '',
+					$intent_amount,
+					$order->get_currency() . ' ' . $order->get_total()
+				)
+			);
+			// The payment needs manual reconciliation before the order can be fulfilled.
+			$order->update_status( OrderStatus::ON_HOLD );
+			return false;
+		}
+	}
+
+
+	/**
+	 * Whether the succeeded PaymentIntent settled for the order's amount.
+	 *
+	 * Returns true when there is no comparable amount to check: setup intents and intents that omit
+	 * the amount. A currency difference is only expected for an Adaptive Pricing checkout paid in a
+	 * presentment currency, which handle_checkout_session_success() validates against the order
+	 * instead; that case returns true, but any other currency mismatch is anomalous (a third-party
+	 * filter supplying the order id, or the order currency changing after the intent was created) and
+	 * returns false so the caller holds the order rather than settling it unchecked.
+	 *
+	 * @since 11.1.2
+	 *
+	 * @param WC_Order $order  The order being settled.
+	 * @param object   $intent The succeeded PaymentIntent.
+	 * @return bool
+	 */
+	public function intent_amount_matches_order( WC_Order $order, $intent ): bool {
+		// Only a PaymentIntent carries an amount to compare; other objects (setup intents) have none.
+		if ( 'payment_intent' !== ( $intent->object ?? '' ) || ! isset( $intent->amount ) ) {
+			return true;
+		}
+
+		$order_currency  = strtolower( $order->get_currency() );
+		$intent_currency = strtolower( (string) ( $intent->currency ?? '' ) );
+
+		if ( '' !== $intent_currency && $order_currency !== $intent_currency ) {
+			return $this->is_adaptive_pricing_intent( $intent );
+		}
+
+		return WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ) === (int) $intent->amount;
+	}
+
+	/**
+	 * Whether the intent is an Adaptive Pricing checkout, settled in the buyer's presentment currency.
+	 *
+	 * @since 11.1.2
+	 *
+	 * @param object $intent The PaymentIntent.
+	 * @return bool
+	 */
+	private function is_adaptive_pricing_intent( $intent ): bool {
+		$checkout_type = $intent->metadata->checkout_type ?? '';
+		return WC_Stripe_Checkout_Sessions_Ajax_Handler::ADAPTIVE_PRICING_CHECKOUT_TYPE === $checkout_type;
+	}
+
+	/**
+	 * Logs, notes, and holds an order whose PaymentIntent settled for a different amount than its total.
+	 *
+	 * @since 11.1.2
+	 *
+	 * @param WC_Order $order  The order to hold.
+	 * @param object   $intent The succeeded PaymentIntent whose amount did not match.
+	 * @return void
+	 */
+	public function hold_order_for_amount_mismatch( WC_Order $order, $intent ): void {
+		$settled_amount   = isset( $intent->amount ) ? (int) $intent->amount : null;
+		$settled_currency = isset( $intent->currency ) ? strtolower( (string) $intent->currency ) : '';
+		$intent_id        = isset( $intent->id ) ? (string) $intent->id : '';
+		$order_display    = strtoupper( $order->get_currency() ) . ' ' . $order->get_total();
+
+		if ( null === $settled_amount ) {
+			$settled_display = __( 'unknown', 'woocommerce-gateway-stripe' );
+		} elseif ( '' === $settled_currency ) {
+			/* translators: 1) Stripe numeric amount, e.g. '1500'. */
+			$settled_display = sprintf( __( 'unknown currency; Stripe amount: %1$d', 'woocommerce-gateway-stripe' ), $settled_amount );
+		} else {
+			$settled_display = strtoupper( $settled_currency ) . ' ' . WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( $settled_amount, $settled_currency );
+		}
+
+		WC_Stripe_Logger::error( sprintf( 'Order %1$d held for review: Stripe settled %2$s but the order total is %3$s. PaymentIntent: %4$s.', $order->get_id(), $settled_display, $order_display, $intent_id ) );
+
+		$reference = '';
+		if ( '' !== $intent_id ) {
+			$reference = ' ' . sprintf(
+				/* translators: 1) opening anchor tag linking to the Stripe dashboard, 2) Stripe PaymentIntent ID, 3) closing anchor tag */
+				__( 'PaymentIntent: %1$s%2$s%3$s.', 'woocommerce-gateway-stripe' ),
+				'<a href="' . esc_url( WC_Stripe_Helper::get_transaction_url_for_id( $intent_id, empty( $intent->livemode ) ) ) . '" target="_blank" rel="noopener noreferrer">',
+				esc_html( $intent_id ),
+				'</a>'
+			);
+		}
+
+		$order->add_order_note(
+			sprintf(
+				/* translators: 1) settled amount and currency 2) expected order total and currency */
+				__( 'Stripe payment was not marked complete: the settled amount (%1$s) does not match the order total (%2$s). The order was placed on hold for manual review.', 'woocommerce-gateway-stripe' ),
+				$settled_display,
+				$order_display
+			) . $reference
+		);
+
+		if ( ! $order->has_status( OrderStatus::ON_HOLD ) ) {
+			$order->update_status( OrderStatus::ON_HOLD );
+		}
+	}
+
+	/**
 	 * Checks if the order is using a Stripe payment method.
 	 *
 	 * @since 10.0.0
@@ -1565,5 +1794,66 @@ class WC_Stripe_Order_Helper {
 		}
 
 		$order->delete_meta_data( $key );
+	}
+
+	/**
+	 * Helper function to get an array of order meta data that is intended to accumulate over time. The goal of the function is
+	 * to reduce boilerplate in the helper due to `null` checks everywhere.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Order|null $order The order to get meta for.
+	 * @param string        $key   The meta key to get.
+	 * @return array An array of values. The array will be empty when the meta key is not set, or the value was filtered to be a non-array.
+	 */
+	protected function get_order_meta_multi( ?WC_Order $order, string $key ): array {
+		if ( null === $order ) {
+			return [];
+		}
+
+		$items = $order->get_meta( $key, false );
+		if ( ! is_array( $items ) || [] === $items ) {
+			return [];
+		}
+
+		// phpcs:ignore Generic.Commenting.DocComment.MissingShort
+		/** @var WC_Meta_Data[] $item_meta_values */
+		$item_meta_values = array_filter(
+			$items,
+			function ( $item ) {
+				return $item instanceof WC_Meta_Data;
+			}
+		);
+
+		// phpcs:ignore Generic.Commenting.DocComment.MissingShort
+		/** @var mixed[] $item_values */
+		$item_values = array_map(
+			function ( $item_meta_value ) {
+				// @phpstan-ignore property.notFound (Order meta items have a value property)
+				return $item_meta_value->value;
+			},
+			$item_meta_values
+		);
+
+		return array_values( $item_values );
+	}
+
+	/**
+	 * Helper function to add an item to an array of order meta data that is intended to accumulate over time. The goal of the function is
+	 * to reduce boilerplate in the helper due to `null` checks everywhere.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Order|null $order The order to add meta for.
+	 * @param string        $key   The meta key to add a value to.
+	 * @param mixed         $value The meta value to add.
+	 * @return void
+	 */
+	protected function add_order_meta_multi( ?WC_Order $order, string $key, $value ): void {
+		if ( null === $order ) {
+			return;
+		}
+
+		$order->add_meta_data( $key, $value, false );
 	}
 }

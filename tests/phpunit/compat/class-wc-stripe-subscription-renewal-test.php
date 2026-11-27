@@ -399,6 +399,94 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->verify_expected_order_notes( $order_id, 'already in progress', 1 );
 	}
 
+	/**
+	 * @since x.x.x
+	 * @dataProvider provide_asynchronous_renewal_responses
+	 * @param string $gateway_id     The renewal gateway.
+	 * @param bool   $has_charge     Whether Stripe has created a pending charge.
+	 * @param string $initial_status The order status before processing the response.
+	 */
+	public function test_renewal_requires_a_charge_to_put_order_on_hold( string $gateway_id, bool $has_charge, string $initial_status ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( $gateway_id );
+		$order->set_status( $initial_status );
+		$order->save();
+
+		$this->reset_gateway_mock( [ 'create_and_confirm_intent_for_off_session', 'generate_payment_request' ] );
+		$this->wc_gateway_stripe->id = $gateway_id;
+		$this->wc_gateway_stripe->method( 'prepare_order_source' )->willReturn(
+			(object) [
+				'customer'      => 'cus_renewal',
+				'source'        => 'src_renewal',
+				'source_object' => (object) [ 'type' => WC_Stripe_Payment_Methods::SEPA_DEBIT ],
+			]
+		);
+		$this->wc_gateway_stripe->method( 'generate_payment_request' )->willReturn(
+			[
+				'currency' => 'eur',
+				'metadata' => [ 'order_id' => $order->get_id() ],
+			]
+		);
+		$charge = (object) [
+			'id'       => 'ch_renewal_pending',
+			'object'   => 'charge',
+			'captured' => true,
+			'status'   => 'pending',
+		];
+		$this->wc_gateway_stripe->method( 'create_and_confirm_intent_for_off_session' )->willReturn(
+			(object) [
+				'id'      => 'pi_renewal_pending',
+				'object'  => 'payment_intent',
+				'status'  => 'processing',
+				'charges' => (object) [ 'data' => $has_charge ? [ $charge ] : [] ],
+			]
+		);
+		$api_response = function ( $preempt, $args, $url ) use ( $charge ) {
+			if ( 'https://api.stripe.com/v1/charges' !== $url ) {
+				return $preempt;
+			}
+			return [
+				'response' => [ 'code' => 200 ],
+				'headers'  => [],
+				'body'     => wp_json_encode( $charge ),
+			];
+		};
+		add_filter( 'pre_http_request', $api_response, 10, 3 );
+
+		$initial_notes      = wp_list_pluck( wc_get_order_notes( [ 'order_id' => $order->get_id() ] ), 'content' );
+		$error_action_count = did_action( 'wc_gateway_stripe_process_payment_error' );
+
+		try {
+			$this->wc_gateway_stripe->process_subscription_payment( 20, $order, false );
+		} finally {
+			remove_filter( 'pre_http_request', $api_response, 10 );
+		}
+
+		$order = wc_get_order( $order->get_id() );
+		$this->assertSame( $has_charge ? OrderStatus::ON_HOLD : $initial_status, $order->get_status() );
+		$this->assertSame( $has_charge ? $charge->id : '', $order->get_transaction_id() );
+		$this->assertSame( $has_charge ? 'yes' : '', $order->get_meta( '_stripe_charge_captured' ) );
+		$this->assertNull( $order->get_date_paid() );
+		$this->assertSame( $error_action_count, did_action( 'wc_gateway_stripe_process_payment_error' ) );
+		$notes = wp_list_pluck( wc_get_order_notes( [ 'order_id' => $order->get_id() ] ), 'content' );
+		$this->assertStringNotContainsString( 'Stripe charge authorized', implode( '\n', $notes ) );
+		if ( $has_charge ) {
+			$this->assertStringContainsString( 'Stripe charge awaiting payment', implode( '\n', $notes ) );
+		} else {
+			$this->assertSame( $initial_notes, $notes );
+		}
+	}
+
+	public function provide_asynchronous_renewal_responses(): array {
+		return [
+			'legacy SEPA charge'              => [ 'stripe_sepa', true, OrderStatus::PENDING ],
+			'payment intent with charge'      => [ 'stripe', true, OrderStatus::PENDING ],
+			'pending renewal awaiting charge' => [ 'stripe', false, OrderStatus::PENDING ],
+			'failed renewal awaiting charge'  => [ 'stripe', false, OrderStatus::FAILED ],
+			'held renewal awaiting charge'    => [ 'stripe', false, OrderStatus::ON_HOLD ],
+		];
+	}
+
 	public function provide_locked_subscription_renewal_payment_methods() {
 		return [
 			'payment intents renewal' => [
@@ -502,6 +590,96 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		} finally {
 			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
 			$instance_property->setValue( null, $original_order_helper );
+		}
+
+		$renewal_order = wc_get_order( $renewal_order->get_id() );
+
+		$this->assertSame( 2, $request_count );
+		$this->assertSame( OrderStatus::PROCESSING, $renewal_order->get_status() );
+	}
+
+	/**
+	 * Non-card renewals run the retry loop on the UPE payment method instance, not the gateway,
+	 * so the retry backoff state has to exist on the payment method too.
+	 */
+	public function test_renewal_retry_on_upe_payment_method_succeeds_after_retryable_error() {
+		$renewal_order                 = WC_Helper_Order::create_order();
+		$payments_intents_api_endpoint = 'https://api.stripe.com/v1/payment_intents';
+		$request_count                 = 0;
+
+		$renewal_order->set_payment_method( WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID );
+		$renewal_order->save();
+
+		$this->wc_gateway_stripe
+			->method( 'prepare_order_source' )
+			->willReturn(
+				(object) [
+					'token_id'       => false,
+					'customer'       => 'cus_123abc',
+					'source'         => 'pm_123abc',
+					'source_object'  => (object) [
+						'type' => WC_Stripe_Payment_Methods::SEPA_DEBIT,
+					],
+					'payment_method' => null,
+				]
+			);
+
+		// The payment method forwards gateway calls (prepare_order_source, intent creation) to the main gateway.
+		$gateway_property = new ReflectionProperty( WC_Stripe::class, 'stripe_gateway' );
+		$gateway_property->setAccessible( true );
+		$original_gateway = $gateway_property->getValue( WC_Stripe::get_instance() );
+		$gateway_property->setValue( WC_Stripe::get_instance(), $this->wc_gateway_stripe );
+
+		// Skip the constructor: it registers hooks and reads settings that this test does not need.
+		$payment_method     = ( new ReflectionClass( WC_Stripe_UPE_Payment_Method_Sepa::class ) )->newInstanceWithoutConstructor();
+		$payment_method->id = WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
+
+		$pre_http_request_response_callback = function ( $preempt, $request_args, $url ) use ( $payments_intents_api_endpoint, &$request_count ) {
+			if ( $payments_intents_api_endpoint !== $url ) {
+				return $preempt;
+			}
+
+			++$request_count;
+
+			if ( 1 === $request_count ) {
+				return [
+					'headers'  => [],
+					'body'     => wp_json_encode(
+						[
+							'error' => [
+								'type'    => 'api_error',
+								'message' => 'Temporary Stripe API error.',
+							],
+						]
+					),
+					'response' => [
+						'code'    => 400,
+						'message' => 'Bad Request',
+					],
+					'cookies'  => [],
+					'filename' => null,
+				];
+			}
+
+			return [
+				'headers'  => [],
+				'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_success.json' ),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
+				],
+				'cookies'  => [],
+				'filename' => null,
+			];
+		};
+
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		try {
+			$payment_method->process_subscription_payment( 20, $renewal_order, true, false );
+		} finally {
+			remove_filter( 'pre_http_request', $pre_http_request_response_callback, 10 );
+			$gateway_property->setValue( WC_Stripe::get_instance(), $original_gateway );
 		}
 
 		$renewal_order = wc_get_order( $renewal_order->get_id() );

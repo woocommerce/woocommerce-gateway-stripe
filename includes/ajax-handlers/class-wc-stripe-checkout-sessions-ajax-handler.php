@@ -37,6 +37,11 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				throw new Exception( __( "We're not able to process this request. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
 			}
 
+			// Without this, a session created on a manual-capture store would capture the charge at once.
+			if ( ! WC_Stripe_Helper::is_checkout_sessions_available() ) {
+				throw new Exception( WC_Stripe_Checkout_Session_Context::get_unavailable_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			}
+
 			if ( ! WC()->cart || WC()->cart->is_empty() ) {
 				throw new Exception( __( 'Your cart is currently empty.', 'woocommerce-gateway-stripe' ) );
 			}
@@ -47,7 +52,7 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 				'ui_mode'                       => 'elements',
 				'line_items'                    => $this->build_line_items( $cart_context ),
 				'excluded_payment_method_types' => WC_Stripe::get_instance()->get_main_stripe_gateway()->get_excluded_payment_method_types(),
-				'payment_intent_data'           => $this->build_payment_intent_data(),
+				'payment_intent_data'           => WC_Stripe_Checkout_Session_Manager::get_instance()->build_payment_intent_data(),
 				'mode'                          => 'payment',
 				'adaptive_pricing'              => [
 					'enabled' => 'true',
@@ -123,6 +128,10 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 			$is_nonce_valid = check_ajax_referer( 'wc_stripe_update_checkout_session_nonce', 'security', false );
 			if ( ! $is_nonce_valid ) {
 				throw new Exception( __( "We're not able to process this request. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
+			}
+
+			if ( ! WC_Stripe_Helper::is_checkout_sessions_available() ) {
+				throw new Exception( WC_Stripe_Checkout_Session_Context::get_unavailable_message() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			}
 
 			$session_id = isset( $_POST['checkout_session_id'] )
@@ -224,24 +233,5 @@ class WC_Stripe_Checkout_Sessions_Ajax_Handler {
 		];
 
 		return $line_items;
-	}
-
-	/**
-	 * Build the payment intent data array, including metadata information.
-	 *
-	 * @return array
-	 */
-	private function build_payment_intent_data(): array {
-		$data     = [];
-		$metadata = [
-			'site_url'      => esc_url_raw( get_site_url() ),
-			'payment_type'  => 'single',
-			'checkout_type' => self::ADAPTIVE_PRICING_CHECKOUT_TYPE,
-		];
-
-		/** Documented in includes/abstracts/abstract-wc-stripe-payment-gateway.php */
-		$data['metadata'] = apply_filters( 'wc_stripe_payment_metadata', $metadata, null, null );
-
-		return $data;
 	}
 }

@@ -1,3 +1,4 @@
+import { navigateTo } from 'wcstripe/utils/navigation';
 import { __ } from '@wordpress/i18n';
 import apiFetch from '@wordpress/api-fetch';
 import { applyFilters } from '@wordpress/hooks';
@@ -6,7 +7,7 @@ import {
 	getExpressCheckoutData,
 	getExpressCheckoutAjaxURL,
 } from 'wcstripe/express-checkout/utils';
-import { getStripeDevWidgetOptions } from 'wcstripe/stripe-utils';
+import { getStripeDevWidgetOptions } from 'wcstripe/stripe-utils/get-stripe-dev-widget-options';
 import { getStripeServerData } from 'wcstripe/stripe-utils/get-stripe-server-data';
 import { getSharedStripeInstance } from 'wcstripe/stripe-utils/shared-stripe-instance';
 import { normalizeReturnUrl } from 'wcstripe/stripe-utils/normalize-return-url';
@@ -216,8 +217,7 @@ export default class WCStripeAPI {
 					PAYMENT_INTENT_STATUS_REQUIRES_ACTION &&
 				response.data.next_action.type === 'redirect_to_url'
 			) {
-				window.location.href =
-					response.data.next_action.redirect_to_url.url;
+				navigateTo( response.data.next_action.redirect_to_url.url );
 
 				return response.data.next_action.type;
 			}
@@ -239,7 +239,7 @@ export default class WCStripeAPI {
 						}
 
 						if ( setupIntent.status === 'succeeded' ) {
-							window.location.href = returnURL;
+							navigateTo( returnURL );
 							return 'redirect_to_url';
 						}
 

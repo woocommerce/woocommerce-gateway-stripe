@@ -23,6 +23,11 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	private const WEBHOOK_SECRET = 'whsec_1234567890';
 
 	/**
+	 * Made-up debug entries in the format Stripe can append to the `Stripe-Signature` header.
+	 */
+	private const SIGNATURE_DEBUG_ENTRIES = 'secret=whsec_****abcd,destination=we_1234567890abcdefghijklmn,payload=0a1b2c3d';
+
+	/**
 	 * The webhook handler instance for testing.
 	 *
 	 * @var WC_Stripe_Webhook_Handler
@@ -47,10 +52,13 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 * Mock card payment intent template.
 	 */
 	const MOCK_PAYMENT_INTENT = [
-		'id'      => 'pi_mock',
-		'object'  => 'payment_intent',
-		'status'  => WC_Stripe_Intent_Status::SUCCEEDED,
-		'charges' => [
+		'amount'               => 5000,
+		'currency'             => 'usd',
+		'payment_method_types' => [ 'card' ],
+		'id'                   => 'pi_mock',
+		'object'               => 'payment_intent',
+		'status'               => WC_Stripe_Intent_Status::SUCCEEDED,
+		'charges'              => [
 			'total_count' => 1,
 			'data'        => [
 				[
@@ -116,7 +124,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$methods = array_diff( $methods, $exclude_methods );
 
 		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( $methods )
+			->onlyMethods( $methods )
 			->getMock();
 
 		// Set process_response mock to use the real method.
@@ -536,6 +544,31 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A cancelled order with no matching stored intent is noted, not refunded by the event id.
+	 */
+	public function test_cancelled_order_refund_notes_when_no_matching_intent() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::CANCELLED );
+		$order->save();
+
+		list( $data, $notification ) = $this->build_deferred_intent_succeeded_payload( $order );
+
+		$this->mock_webhook_handler( [ 'handle_deferred_payment_for_cancelled_order' ] );
+
+		// No stored intent on the order.
+		$this->mock_webhook_handler->method( 'get_intent_from_order' )->willReturn( null );
+		$this->mock_webhook_handler->expects( $this->never() )->method( 'process_refund' );
+
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+
+		$updated_order = wc_get_order( $order->get_id() );
+		$this->assertEmpty( $updated_order->get_meta( self::META_REFUNDED_AFTER_CANCELLATION ) );
+		$this->assertOrderHasNoteContaining( $updated_order, 'was paid or authorized after this order was cancelled' );
+		$this->assertOrderHasNoteContaining( $updated_order, 'could not be refunded or voided automatically' );
+		$this->assertOrderHasNoteContaining( $updated_order, self::MOCK_PAYMENT_INTENT['id'] );
+	}
+
+	/**
 	 * The cancelled-order notes link both the PaymentIntent and the charge to the Stripe dashboard,
 	 * in the mode the intent itself was created in rather than the gateway's configured mode.
 	 *
@@ -602,6 +635,83 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'missing livemode falls back to test' => [ WC_Stripe_Intent_Status::SUCCEEDED, null, true, null, $test ],
 			'voided authorisation note is linked' => [ WC_Stripe_Intent_Status::REQUIRES_CAPTURE, false, false, WC_Stripe_Intent_Status::CANCELED, $test ],
 			'failed refund note is linked'        => [ WC_Stripe_Intent_Status::SUCCEEDED, false, new WP_Error( 'stripe_error', 'boom' ), null, $test ],
+		];
+	}
+
+	/**
+	 * A late payment on a cancelled order is deferred, including the wallet and BLIK types the old
+	 * code marked paid inline.
+	 *
+	 * @param string $type           The payment_intent event type.
+	 * @param string $payment_type   The order's stored Stripe UPE payment type, or '' for none.
+	 * @param bool   $allow_cancelled Whether a site filter adds cancelled to the allowed-processing statuses.
+	 * @dataProvider provide_cancelled_order_late_payment_events
+	 */
+	public function test_process_payment_intent_defers_late_payment_on_cancelled_order( string $type, string $payment_type, bool $allow_cancelled = false ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::CANCELLED );
+		$order->update_meta_data( '_stripe_intent_id', self::MOCK_PAYMENT_INTENT['id'] );
+		if ( '' !== $payment_type ) {
+			WC_Stripe_Order_Helper::get_instance()->update_stripe_upe_payment_type( $order, $payment_type );
+		}
+		$order->save();
+
+		// With cancelled allowed, a wallet/BLIK event would be marked paid inline without the early return.
+		$allow_filter = static function ( $statuses ) {
+			$statuses[] = OrderStatus::CANCELLED;
+			return $statuses;
+		};
+		if ( $allow_cancelled ) {
+			add_filter( 'wc_stripe_allowed_payment_processing_statuses', $allow_filter );
+		}
+
+		$notification = (object) [
+			'type' => $type,
+			'data' => (object) [
+				'object' => (object) [
+					'id'     => self::MOCK_PAYMENT_INTENT['id'],
+					'object' => 'payment_intent',
+					'status' => WC_Stripe_Intent_Status::SUCCEEDED,
+				],
+			],
+		];
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->onlyMethods( [ 'defer_webhook_processing' ] )
+			->getMock();
+		$handler->expects( $this->once() )
+			->method( 'defer_webhook_processing' )
+			->with(
+				$notification,
+				[
+					'order_id'  => $order->get_id(),
+					'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
+				]
+			);
+
+		try {
+			$result = $handler->process_payment_intent( $notification );
+		} finally {
+			remove_filter( 'wc_stripe_allowed_payment_processing_statuses', $allow_filter );
+		}
+
+		$this->assertTrue( $result, 'A late payment on a cancelled order must report itself as deferred.' );
+		$this->assertTrue( wc_get_order( $order->get_id() )->has_status( OrderStatus::CANCELLED ) );
+	}
+
+	/**
+	 * Data provider for test_process_payment_intent_defers_late_payment_on_cancelled_order.
+	 *
+	 * @return array
+	 */
+	public function provide_cancelled_order_late_payment_events(): array {
+		return [
+			'succeeded, no stored type'     => [ 'payment_intent.succeeded', '' ],
+			'amount_capturable_updated'     => [ 'payment_intent.amount_capturable_updated', '' ],
+			'succeeded wallet payment'      => [ 'payment_intent.succeeded', WC_Stripe_Payment_Methods::CASHAPP_PAY ],
+			'succeeded BLIK payment'        => [ 'payment_intent.succeeded', WC_Stripe_Payment_Methods::BLIK ],
+			// Inline paid-branch is only reachable when a site allows the cancelled status.
+			'wallet with cancelled allowed' => [ 'payment_intent.succeeded', WC_Stripe_Payment_Methods::CASHAPP_PAY, true ],
 		];
 	}
 
@@ -706,7 +816,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		WC_Stripe_Order_Helper::set_instance( $order_helper );
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'handle_deferred_payment_intent_succeeded', 'defer_webhook_processing' ] )
+			->onlyMethods( [ 'handle_deferred_payment_intent_succeeded', 'defer_webhook_processing' ] )
 			->getMock();
 
 		// Settlement must not run while the order is locked.
@@ -750,7 +860,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		WC_Stripe_Order_Helper::set_instance( $order_helper );
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'handle_deferred_payment_intent_succeeded', 'defer_webhook_processing' ] )
+			->onlyMethods( [ 'handle_deferred_payment_intent_succeeded', 'defer_webhook_processing' ] )
 			->getMock();
 
 		$handler->expects( $this->once() )
@@ -786,9 +896,12 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'type' => 'payment_intent.processing',
 			'data' => (object) [
 				'object' => (object) [
-					'id'     => self::MOCK_PAYMENT_INTENT['id'],
-					'object' => 'payment_intent',
-					'status' => WC_Stripe_Intent_Status::PROCESSING,
+					'id'                   => self::MOCK_PAYMENT_INTENT['id'],
+					'object'               => 'payment_intent',
+					'status'               => WC_Stripe_Intent_Status::PROCESSING,
+					'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ),
+					'currency'             => strtolower( $order->get_currency() ),
+					'payment_method_types' => [ 'card' ],
 				],
 			],
 		];
@@ -806,7 +919,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		WC_Stripe_Order_Helper::set_instance( $order_helper );
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'defer_webhook_processing' ] )
+			->onlyMethods( [ 'defer_webhook_processing' ] )
 			->getMock();
 
 		$handler->expects( $this->once() )
@@ -860,7 +973,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		WC_Stripe_Order_Helper::set_instance( $order_helper );
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'defer_webhook_processing' ] )
+			->onlyMethods( [ 'defer_webhook_processing' ] )
 			->getMock();
 		$handler->expects( $locked ? $this->once() : $this->never() )->method( 'defer_webhook_processing' );
 
@@ -920,7 +1033,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		];
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'process_payment_intent' ] )
+			->onlyMethods( [ 'process_payment_intent' ] )
 			->getMock();
 		$handler->method( 'process_payment_intent' )->willReturn( $requeued );
 
@@ -975,7 +1088,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		];
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'process_payment_intent' ] )
+			->onlyMethods( [ 'process_payment_intent' ] )
 			->getMock();
 
 		$handler->expects( $this->once() )
@@ -1012,7 +1125,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		];
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods(
+			->onlyMethods(
 				[
 					'get_intent_from_order',
 					'get_latest_charge_from_intent',
@@ -1043,10 +1156,12 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 * A pre-order settled by the webhook must keep the charge on the order, including an
 	 * uncaptured one, so a later capture or refund can find it.
 	 *
-	 * @param bool $captured Whether the charge is already captured.
+	 * @param bool  $captured Whether the charge is already captured.
+	 * @param array $charge_properties Refund or dispute state of the charge.
+	 * @param bool  $valid Whether the charge can place a pre-order.
 	 * @dataProvider provide_pre_order_charge_states
 	 */
-	public function test_deferred_payment_intent_succeeded_records_charge_on_pre_order( bool $captured ): void {
+	public function test_deferred_payment_intent_succeeded_records_charge_on_pre_order( bool $captured, array $charge_properties, bool $valid ): void {
 		$order = WC_Helper_Order::create_order();
 		$order->set_status( OrderStatus::PENDING );
 		$order->save();
@@ -1061,17 +1176,20 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'object' => (object) self::MOCK_PAYMENT_INTENT,
 			],
 		];
-		$charge       = (object) [
-			'id'       => 'ch_pre_order',
-			'captured' => $captured,
-		];
+		$charge       = (object) array_merge(
+			[
+				'id'       => 'ch_pre_order',
+				'captured' => $captured,
+				'status'   => 'succeeded',
+			],
+			$charge_properties
+		);
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods(
+			->onlyMethods(
 				[
 					'get_intent_from_order',
 					'get_latest_charge_from_intent',
-					'process_response',
 					'is_unreleased_charged_upfront_pre_order',
 				]
 			)
@@ -1079,13 +1197,24 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$handler->method( 'get_intent_from_order' )->willReturn( (object) self::MOCK_PAYMENT_INTENT );
 		$handler->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
 		$handler->method( 'is_unreleased_charged_upfront_pre_order' )->willReturn( true );
-		$handler->expects( $this->never() )->method( 'process_response' );
-
-		$handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+		$exception = null;
+		try {
+			$handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+		} catch ( WC_Stripe_Exception $e ) {
+			$exception = $e;
+		}
 
 		$order = wc_get_order( $order->get_id() );
-		$this->assertSame( 'ch_pre_order', $order->get_transaction_id() );
-		$this->assertSame( wc_bool_to_string( $captured ), WC_Stripe_Order_Helper::get_instance()->get_stripe_charge_captured( $order ) );
+		if ( $valid ) {
+			$this->assertNull( $exception );
+			$this->assertSame( 'ch_pre_order', $order->get_transaction_id() );
+			$this->assertSame( wc_bool_to_string( $captured ), WC_Stripe_Order_Helper::get_instance()->get_stripe_charge_captured( $order ) );
+		} else {
+			$this->assertInstanceOf( WC_Stripe_Exception::class, $exception );
+			$this->assertSame( OrderStatus::PENDING, $order->get_status() );
+			$this->assertNull( $order->get_date_paid() );
+			$this->assertEmpty( $order->get_transaction_id() );
+		}
 	}
 
 	/**
@@ -1095,9 +1224,118 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 */
 	public function provide_pre_order_charge_states(): array {
 		return [
-			'captured'   => [ 'captured' => true ],
-			'uncaptured' => [ 'captured' => false ],
+			'captured'           => [ true, [], true ],
+			'uncaptured'         => [ false, [], true ],
+			'partially captured' => [ true, [ 'amount_refunded' => 100 ], true ],
+			'fully refunded'     => [ true, [ 'refunded' => true ], false ],
+			'disputed'           => [ true, [ 'disputed' => true ], false ],
 		];
+	}
+
+	/**
+	 * Reversed charges must not reach payment callbacks, including the deprecated hook
+	 * that runs before the common charge validation.
+	 *
+	 * @dataProvider provide_webhook_payment_hook_charge_states
+	 * @param bool  $deferred Whether the webhook is processed by the deferred job.
+	 * @param array $charge_properties Refund or dispute state of the charge.
+	 * @param bool  $pre_order Whether this is an unreleased charged-upfront pre-order.
+	 * @param bool  $valid Whether the charge can settle the order.
+	 */
+	public function test_payment_intent_webhook_payment_hooks( bool $deferred, array $charge_properties, bool $pre_order, bool $valid ): void {
+		$order            = WC_Helper_Order::create_order();
+		$intent           = (object) self::MOCK_PAYMENT_INTENT;
+		$intent->metadata = (object) [
+			'order_id'  => $order->get_id(),
+			'order_key' => $order->get_order_key(),
+		];
+		$charge           = (object) array_merge( self::MOCK_PAYMENT_INTENT['charges']['data'][0], $charge_properties );
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->onlyMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'is_unreleased_charged_upfront_pre_order' ] )
+			->getMock();
+		$handler->method( 'get_intent_from_order' )->willReturn( $intent );
+		$handler->method( 'get_latest_charge_from_intent' )->willReturn( $charge );
+		$handler->method( 'is_unreleased_charged_upfront_pre_order' )->willReturn( $pre_order );
+
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [ 'object' => $intent ],
+		];
+		$hooks        = [
+			'wc_gateway_stripe_process_payment',
+			'wc_gateway_stripe_process_payment_charge',
+			'woocommerce_payment_complete',
+		];
+		$fired        = [];
+		$listener     = static function () use ( &$fired ) {
+			$fired[] = current_filter();
+		};
+		foreach ( $hooks as $hook ) {
+			add_action( $hook, $listener );
+		}
+		if ( $valid ) {
+			$this->setExpectedDeprecated( 'wc_gateway_stripe_process_payment' );
+		}
+		add_filter( 'wc_stripe_process_payment_intent_webhook_async', '__return_false' );
+
+		$exception = null;
+		try {
+			if ( $deferred ) {
+				$handler->process_deferred_webhook(
+					$notification->type,
+					[
+						'order_id'  => $order->get_id(),
+						'intent_id' => $intent->id,
+					],
+					$notification
+				);
+			} else {
+				$handler->process_payment_intent( $notification );
+			}
+		} catch ( WC_Stripe_Exception $e ) {
+			$exception = $e;
+		} finally {
+			remove_filter( 'wc_stripe_process_payment_intent_webhook_async', '__return_false' );
+			foreach ( $hooks as $hook ) {
+				remove_action( $hook, $listener );
+			}
+		}
+
+		$this->assertSame( $valid ? $hooks : [], $fired );
+		$order = wc_get_order( $order->get_id() );
+		if ( $valid ) {
+			$this->assertNull( $exception );
+			$this->assertTrue( $order->is_paid() );
+			$this->assertSame( $charge->id, $order->get_transaction_id() );
+		} else {
+			$this->assertInstanceOf( WC_Stripe_Exception::class, $exception );
+			$this->assertSame( OrderStatus::PENDING, $order->get_status() );
+			$this->assertNull( $order->get_date_paid() );
+			$this->assertEmpty( $order->get_transaction_id() );
+		}
+	}
+
+	/**
+	 * Covers both webhook paths with usable charges and reversals on ordinary orders and pre-orders.
+	 *
+	 * @return array
+	 */
+	public function provide_webhook_payment_hook_charge_states(): array {
+		$cases = [];
+		$paths = [
+			'immediate' => false,
+			'deferred'  => true,
+		];
+		foreach ( $paths as $path => $deferred ) {
+			$cases[ "$path valid" ]              = [ $deferred, [], false, true ];
+			$cases[ "$path partially captured" ] = [ $deferred, [ 'amount_refunded' => 100 ], false, true ];
+			$cases[ "$path refunded" ]           = [ $deferred, [ 'refunded' => true ], false, false ];
+			$cases[ "$path disputed" ]           = [ $deferred, [ 'disputed' => true ], false, false ];
+			$cases[ "$path refunded pre-order" ] = [ $deferred, [ 'refunded' => true ], true, false ];
+			$cases[ "$path disputed pre-order" ] = [ $deferred, [ 'disputed' => true ], true, false ];
+		}
+		return $cases;
 	}
 
 	/**
@@ -1492,6 +1730,79 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 *
 	 * @return void
 	 */
+	/** @dataProvider provide_order_changes_before_the_lock */
+	public function test_handle_checkout_session_success_skips_an_order_changed_before_the_lock( string $change ): void {
+		$checkout_session_id = 'cs_test_settled_before_lock';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		// Another request pays (for example reconciliation) or deletes the order right before the webhook gets the lock.
+		$order_helper = $this->createPartialMock(
+			WC_Stripe_Order_Helper::class,
+			[ 'lock_order_payment', 'unlock_order_payment' ]
+		);
+		$order_helper->method( 'lock_order_payment' )->willReturnCallback(
+			static function ( WC_Order $locked_order ) use ( $change ) {
+				$current_order = wc_get_order( $locked_order->get_id() );
+				if ( 'deleted' === $change ) {
+					$current_order->delete( true );
+				} else {
+					$current_order->payment_complete( 'ch_settled_before_lock' );
+				}
+				return false;
+			}
+		);
+		// Unlocking can save the order, so it must get the paid copy, never the pending one read before the lock.
+		$order_helper->expects( 'deleted' === $change ? $this->never() : $this->once() )
+			->method( 'unlock_order_payment' )
+			->with(
+				$this->callback(
+					static function ( WC_Order $unlocked_order ) {
+						return $unlocked_order->is_paid();
+					}
+				)
+			);
+		WC_Stripe_Order_Helper::set_instance( $order_helper );
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->onlyMethods( [ 'process_checkout_session_payment' ] )
+			->getMock();
+		$handler->expects( $this->never() )->method( 'process_checkout_session_payment' );
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => 'pi_test_settled_before_lock',
+					'amount_total'   => WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $order->get_currency() ),
+					'currency'       => strtolower( $order->get_currency() ),
+				],
+			],
+		];
+
+		$this->assertFalse( $handler->process_checkout_session_success( $notification ) );
+		if ( 'deleted' === $change ) {
+			$this->assertFalse( wc_get_order( $order->get_id() ) );
+		} else {
+			$this->assertTrue( wc_get_order( $order->get_id() )->is_paid() );
+		}
+	}
+
+	public static function provide_order_changes_before_the_lock(): array {
+		return [
+			'paid'    => [ 'paid' ],
+			'deleted' => [ 'deleted' ],
+		];
+	}
+
 	public function test_handle_checkout_session_success_requeues_when_order_payment_locked(): void {
 		$checkout_session_id = 'cs_test_locked_requeue';
 
@@ -1560,6 +1871,338 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		// Settlement is deferred to the retry, so the order must still be unsettled.
 		$this->assertTrue( wc_get_order( $order->get_id() )->has_status( OrderStatus::PENDING ) );
+	}
+
+	/**
+	 * When a completed Checkout Session's PaymentIntent has no charge yet, settlement must defer
+	 * instead of fataling on `$charge->is_webhook_response = true`, and must leave the
+	 * save-payment-method flag in place so the retry can save the SEPA mandate from the charge.
+	 *
+	 * @dataProvider provide_missing_charge_values
+	 *
+	 * @param mixed $missing_charge What get_latest_charge_from_intent() returns when there is no charge.
+	 * @return void
+	 */
+	public function test_handle_checkout_session_success_defers_when_charge_missing( $missing_charge ): void {
+		$checkout_session_id = 'cs_test_missing_charge_' . gettype( $missing_charge );
+		$intent_id           = 'pi_test_missing_charge';
+		$order_helper        = WC_Stripe_Order_Helper::get_instance();
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		$order_helper->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order_helper->update_should_save_stripe_payment_method( $order, true );
+		$order->save_meta_data();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$order_currency = $order->get_currency();
+		if ( 'USD' === $order_currency ) {
+			$presentment_currency = 'eur';
+			$presentment_amount   = WC_Stripe_Helper::get_stripe_amount( round( 1.1 * (float) $order->get_total(), 2 ), $presentment_currency );
+		} else {
+			$presentment_currency = 'usd';
+			$presentment_amount   = WC_Stripe_Helper::get_stripe_amount( round( 0.9 * (float) $order->get_total(), 2 ), $presentment_currency );
+		}
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'                  => $checkout_session_id,
+					'payment_intent'      => $intent_id,
+					'amount_total'        => WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $order_currency ),
+					'currency'            => strtolower( $order_currency ),
+					'presentment_details' => (object) [
+						'presentment_amount'   => $presentment_amount,
+						'presentment_currency' => $presentment_currency,
+					],
+				],
+			],
+		];
+
+		$start          = time();
+		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+		$mock_scheduler->expects( $this->once() )
+			->method( 'schedule_job' )
+			->with(
+				$this->callback(
+					function ( $timestamp ) use ( $start ) {
+						$this->assertIsInt( $timestamp );
+						$this->assertGreaterThanOrEqual( $start + 10, $timestamp );
+						$this->assertLessThan( $start + MINUTE_IN_SECONDS, $timestamp );
+
+						return true;
+					}
+				),
+				'wc_stripe_deferred_webhook',
+				$this->callback(
+					function ( $args ) use ( $checkout_session_id ) {
+						return 'checkout.session.completed' === ( $args['type'] ?? '' )
+							&& ( $args['data']['session_id'] ?? '' ) === $checkout_session_id
+							&& 1 === (int) ( $args['data']['charge_retry_count'] ?? 0 )
+							&& 0 === (int) ( $args['data']['retry_count'] ?? 0 );
+					}
+				)
+			);
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->onlyMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->getMock();
+
+		$handler->method( 'get_intent_from_order' )
+			->willReturn(
+				(object) array_merge(
+					self::MOCK_PAYMENT_INTENT,
+					[
+						'id'             => $intent_id,
+						'payment_method' => (object) [
+							'id'   => 'pm_test_ideal',
+							'type' => WC_Stripe_Payment_Methods::IDEAL,
+						],
+					]
+				)
+			);
+		$handler->method( 'get_latest_charge_from_intent' )->willReturn( $missing_charge );
+		$handler->expects( $this->never() )->method( 'process_response' );
+
+		$prop = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $handler, $mock_scheduler );
+
+		$handler->process_checkout_session_success( $notification );
+
+		$updated_order = wc_get_order( $order->get_id() );
+		$this->assertTrue( $updated_order->has_status( OrderStatus::PENDING ) );
+		$this->assertTrue( $order_helper->get_should_save_stripe_payment_method( $updated_order ) );
+		$this->assertOrderHasNoteContaining(
+			$updated_order,
+			'Local currency purchase via Adaptive Pricing. Amount paid was: '
+				. strtoupper( $presentment_currency ) . ' '
+				. WC_Stripe_Helper::get_woocommerce_amount_from_stripe_amount( $presentment_amount, $presentment_currency )
+		);
+	}
+
+	/**
+	 * Data provider for test_handle_checkout_session_success_defers_when_charge_missing.
+	 *
+	 * `get_latest_charge_from_intent()` returns null when the intent has no charge, and an empty
+	 * string when `get_charge_object()` is given an empty charge ID.
+	 *
+	 * @return array<string, array{0: mixed}>
+	 */
+	public function provide_missing_charge_values(): array {
+		return [
+			'null charge'         => [ null ],
+			'empty string charge' => [ '' ],
+		];
+	}
+
+	/**
+	 * The Adaptive Pricing order note is recorded on the first pass, even when settlement defers
+	 * for a missing charge, and is not repeated when the retry settles the order.
+	 *
+	 * @return void
+	 */
+	public function test_adaptive_pricing_note_added_once_across_missing_charge_retry(): void {
+		$checkout_session_id = 'cs_test_ap_note_once';
+		$order_helper        = WC_Stripe_Order_Helper::get_instance();
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		$order_helper->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'                  => $checkout_session_id,
+					'payment_intent'      => 'pi_test_ap_note_once',
+					'amount_total'        => WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $order->get_currency() ),
+					'currency'            => strtolower( $order->get_currency() ),
+					'presentment_details' => (object) [
+						'presentment_amount'   => 7800,
+						'presentment_currency' => 'eur',
+					],
+				],
+			],
+		];
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->onlyMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->getMock();
+
+		$handler->method( 'get_intent_from_order' )
+			->willReturn(
+				(object) array_merge(
+					self::MOCK_PAYMENT_INTENT,
+					[
+						'payment_method' => null,
+					]
+				)
+			);
+		$handler->method( 'get_latest_charge_from_intent' )
+			->willReturnOnConsecutiveCalls( null, (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+		$handler->expects( $this->once() )->method( 'process_response' );
+
+		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+		$prop           = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $handler, $mock_scheduler );
+
+		$count_adaptive_pricing_notes = function () use ( $order ): int {
+			$notes = wc_get_order_notes( [ 'order_id' => $order->get_id() ] );
+			return count(
+				array_filter(
+					$notes,
+					static function ( $note ) {
+						return false !== strpos( $note->content, 'Local currency purchase via Adaptive Pricing' );
+					}
+				)
+			);
+		};
+
+		$handler->process_checkout_session_success( $notification );
+		$this->assertSame( 1, $count_adaptive_pricing_notes() );
+		$this->assertTrue( $order_helper->is_stripe_adaptive_pricing_note_recorded( wc_get_order( $order->get_id() ), 'EUR', '78.00' ) );
+
+		$handler->process_checkout_session_success( $notification );
+		$this->assertSame( 1, $count_adaptive_pricing_notes() );
+	}
+
+	/**
+	 * A deferred missing-charge retry must bump only the charge retry count, stop once that limit is
+	 * reached, and neither consume nor be blocked by the order lookup retry count.
+	 *
+	 * @dataProvider provide_missing_charge_deferred_retry_counts
+	 *
+	 * @param int  $retry_count        Order lookup retry count carried by the deferred job.
+	 * @param int  $charge_retry_count Missing-charge retry count carried by the deferred job.
+	 * @param bool $expect_requeue     Whether another job should be scheduled.
+	 */
+	public function test_missing_charge_deferred_retry_bumps_count_until_limit( int $retry_count, int $charge_retry_count, bool $expect_requeue ): void {
+		$checkout_session_id = 'cs_test_missing_charge_retry_' . $retry_count . '_' . $charge_retry_count;
+		$intent_id           = 'pi_test_missing_charge_retry_' . $retry_count . '_' . $charge_retry_count;
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+		$order->save();
+		WC_Stripe_Order_Helper::get_instance()->update_stripe_checkout_session_id( $order, $checkout_session_id );
+		$order->save_meta_data();
+
+		WC_Stripe_Database_Cache::delete( 'checkout_session_lock_' . $checkout_session_id );
+		WC_Stripe_Database_Cache::delete( 'checkout_session_' . $checkout_session_id );
+
+		$notification = (object) [
+			'type' => 'checkout.session.completed',
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $checkout_session_id,
+					'payment_intent' => $intent_id,
+					'amount_total'   => WC_Stripe_Helper::get_stripe_amount( (float) $order->get_total(), $order->get_currency() ),
+					'currency'       => strtolower( $order->get_currency() ),
+				],
+			],
+		];
+
+		$start          = time();
+		$mock_scheduler = $this->createMock( WC_Stripe_Action_Scheduler_Service::class );
+		if ( $expect_requeue ) {
+			$mock_scheduler->expects( $this->once() )
+				->method( 'schedule_job' )
+				->with(
+					$this->callback(
+						function ( $timestamp ) use ( $start ) {
+							$this->assertIsInt( $timestamp );
+							$this->assertGreaterThanOrEqual( $start + 10, $timestamp );
+							$this->assertLessThan( $start + MINUTE_IN_SECONDS, $timestamp );
+
+							return true;
+						}
+					),
+					'wc_stripe_deferred_webhook',
+					$this->callback(
+						function ( $args ) use ( $checkout_session_id, $retry_count, $charge_retry_count ) {
+							return 'checkout.session.completed' === ( $args['type'] ?? '' )
+								&& ( $args['data']['session_id'] ?? '' ) === $checkout_session_id
+								&& (int) ( $args['data']['retry_count'] ?? 0 ) === $retry_count
+								&& ( $charge_retry_count + 1 ) === (int) ( $args['data']['charge_retry_count'] ?? 0 );
+						}
+					)
+				);
+		} else {
+			$mock_scheduler->expects( $this->never() )->method( 'schedule_job' );
+		}
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->onlyMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->getMock();
+
+		$handler->method( 'get_intent_from_order' )
+			->willReturn(
+				(object) array_merge(
+					self::MOCK_PAYMENT_INTENT,
+					[
+						'id'             => $intent_id,
+						'payment_method' => null,
+					]
+				)
+			);
+		$handler->method( 'get_latest_charge_from_intent' )->willReturn( null );
+		$handler->expects( $this->never() )->method( 'process_response' );
+
+		$prop = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'action_scheduler_service' );
+		$prop->setAccessible( true );
+		$prop->setValue( $handler, $mock_scheduler );
+
+		$received = 0;
+		$listener = static function () use ( &$received ) {
+			++$received;
+		};
+		add_action( 'wc_stripe_webhook_received', $listener );
+
+		try {
+			$handler->process_deferred_webhook(
+				'checkout.session.completed',
+				[
+					'session_id'         => $checkout_session_id,
+					'retry_count'        => $retry_count,
+					'charge_retry_count' => $charge_retry_count,
+				],
+				$notification
+			);
+		} finally {
+			remove_action( 'wc_stripe_webhook_received', $listener );
+		}
+
+		if ( $expect_requeue ) {
+			$this->assertSame( 0, $received );
+		}
+
+		$this->assertTrue( wc_get_order( $order->get_id() )->has_status( OrderStatus::PENDING ) );
+	}
+
+	/**
+	 * Data provider for test_missing_charge_deferred_retry_bumps_count_until_limit.
+	 *
+	 * @return array<string, array{0: int, 1: int, 2: bool}>
+	 */
+	public function provide_missing_charge_deferred_retry_counts(): array {
+		return [
+			'retry below the limit increments the count'        => [ 0, 1, true ],
+			'last permitted retry increments the count'         => [ 0, 2, true ],
+			'retry limit schedules no further job'              => [ 0, 3, false ],
+			'exhausted order lookup retries do not block'       => [ 3, 0, true ],
+			'order lookup retry count is carried, not consumed' => [ 2, 1, true ],
+			'charge limit applies regardless of order lookups'  => [ 1, 3, false ],
+		];
 	}
 
 	/**
@@ -1642,7 +2285,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		];
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'handle_checkout_session_success' ] )
+			->onlyMethods( [ 'handle_checkout_session_success' ] )
 			->getMock();
 
 		$handler->expects( $this->once() )
@@ -1664,6 +2307,40 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			[ 'session_id' => $checkout_session_id ],
 			$notification
 		);
+	}
+
+	/**
+	 * The handler instance is shared by every job in an Action Scheduler batch, including order
+	 * reconciliation checks, so a deferred event must not report an order an earlier job resolved.
+	 */
+	public function test_process_deferred_webhook_does_not_report_an_order_resolved_by_an_earlier_job(): void {
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'handle_checkout_session_success' ] )
+			->getMock();
+		$handler->method( 'handle_checkout_session_success' )->willReturn( false );
+		$resolved_order = new ReflectionProperty( WC_Stripe_Webhook_Handler::class, 'resolved_order' );
+		$resolved_order->setAccessible( true );
+		$resolved_order->setValue( $handler, WC_Helper_Order::create_order() );
+
+		$received_orders = [];
+		$received_action = static function ( $webhook_type, $event, $order ) use ( &$received_orders ) {
+			$received_orders[] = $order;
+		};
+		add_action( 'wc_stripe_webhook_received', $received_action, 10, 3 );
+		try {
+			$handler->process_deferred_webhook(
+				'checkout.session.completed',
+				[ 'session_id' => 'cs_test_deferred_without_order' ],
+				(object) [
+					'type' => 'checkout.session.completed',
+					'data' => (object) [ 'object' => (object) [ 'id' => 'cs_test_deferred_without_order' ] ],
+				]
+			);
+		} finally {
+			remove_action( 'wc_stripe_webhook_received', $received_action, 10 );
+		}
+
+		$this->assertSame( [ null ], $received_orders );
 	}
 
 	/**
@@ -1793,7 +2470,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		];
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'handle_checkout_session_failure' ] )
+			->onlyMethods( [ 'handle_checkout_session_failure' ] )
 			->getMock();
 
 		$handler->expects( $this->once() )
@@ -2138,6 +2815,162 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that dispute creation does not send the failed order email by default, but can be overridden by a filter.
+	 *
+	 * @dataProvider provide_dispute_creation_email_test_cases
+	 *
+	 * @param bool|null $filter_result Whether the filter should return true or false, or null to not specify a filter.
+	 * @param bool      $expect_email  Whether the email should be sent.
+	 * @return void
+	 */
+	public function test_dispute_creation_email_handling( ?bool $filter_result, bool $expect_email ): void {
+		$charge_id = 'ch_test_dispute';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PROCESSING );
+		$order->set_transaction_id( $charge_id );
+		$order->save();
+
+		$notification = (object) [
+			'type' => 'charge.dispute.created',
+			'data' => (object) [
+				'object' => (object) [
+					'charge' => $charge_id,
+					'status' => 'needs_response',
+				],
+			],
+		];
+
+		$webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->onlyMethods( [ 'send_failed_order_email' ] )
+			->getMock();
+		$webhook_handler->expects( $expect_email ? $this->once() : $this->never() )->method( 'send_failed_order_email' );
+
+		$send_email_filter = null;
+		$passed_order_id   = null;
+		if ( null !== $filter_result ) {
+			$send_email_filter = function ( $should_send, $order_id ) use ( $filter_result, &$passed_order_id ) {
+				$passed_order_id = $order_id;
+				return $filter_result;
+			};
+			add_filter( 'wc_stripe_send_failed_order_email_for_dispute', $send_email_filter, 10, 2 );
+		}
+
+		try {
+			$webhook_handler->process_webhook_dispute( $notification );
+		} finally {
+			if ( null !== $send_email_filter ) {
+				remove_filter( 'wc_stripe_send_failed_order_email_for_dispute', $send_email_filter, 10 );
+			}
+		}
+
+		// If we specified a filter, ensure that the filter was called with the expected order ID.
+		if ( null !== $send_email_filter ) {
+			$this->assertSame( $order->get_id(), $passed_order_id );
+		}
+
+		$this->assertSame( OrderStatus::ON_HOLD, wc_get_order( $order->get_id() )->get_status() );
+	}
+
+	/**
+	 * Data provider for {@see test_dispute_creation_email_handling()}.
+	 *
+	 * @return array
+	 */
+	public static function provide_dispute_creation_email_test_cases(): array {
+		return [
+			'no filter does not send email'    => [ null, false ],
+			'filter true sends email'          => [ true, true ],
+			'filter false does not send email' => [ false, false ],
+		];
+	}
+
+	/**
+	 * Test for `process_webhook_dispute_closed`.
+	 *
+	 * @dataProvider provide_test_process_webhook_dispute_closed
+	 *
+	 * @since x.x.x
+	 *
+	 * @param string $initial_status  The order status before dispute.
+	 * @param string $dispute_status  The dispute closed status ('lost', 'won', 'warning_closed').
+	 * @param string $expected_status The expected final order status.
+	 * @param string $expected_note   The expected note pattern.
+	 * @return void
+	 */
+	public function test_process_webhook_dispute_closed( string $initial_status, string $dispute_status, string $expected_status, string $expected_note ): void {
+		$charge_id = 'ch_test_dispute_closed_' . $dispute_status;
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( $initial_status );
+		$order->set_transaction_id( $charge_id );
+		$order->save();
+
+		// Simulate dispute creation putting order on hold.
+		$notification_created = (object) [
+			'type' => 'charge.dispute.created',
+			'data' => (object) [
+				'object' => (object) [
+					'charge' => $charge_id,
+					'status' => 'needs_response',
+				],
+			],
+		];
+		$this->mock_webhook_handler->process_webhook_dispute( $notification_created );
+		$this->assertSame( OrderStatus::ON_HOLD, wc_get_order( $order->get_id() )->get_status() );
+
+		// Simulate dispute closed notification.
+		$notification_closed = (object) [
+			'type' => 'charge.dispute.closed',
+			'data' => (object) [
+				'object' => (object) [
+					'charge' => $charge_id,
+					'status' => $dispute_status,
+				],
+			],
+		];
+		$this->mock_webhook_handler->process_webhook_dispute_closed( $notification_closed );
+
+		$final_order = wc_get_order( $order->get_id() );
+		$this->assertSame( $expected_status, $final_order->get_status() );
+		$this->assert_order_has_note_matching( $expected_note, $final_order->get_id() );
+	}
+
+	/**
+	 * Provider for {@see test_process_webhook_dispute_closed()}.
+	 *
+	 * @return array
+	 */
+	public function provide_test_process_webhook_dispute_closed() {
+		return [
+			'dispute lost transitions to failed'                => [
+				'initial status'  => OrderStatus::PROCESSING,
+				'dispute status'  => 'lost',
+				'expected status' => OrderStatus::FAILED,
+				'expected note'   => '/The dispute was lost or accepted./',
+			],
+			'dispute won reverts to pre-hold processing status' => [
+				'initial status'  => OrderStatus::PROCESSING,
+				'dispute status'  => 'won',
+				'expected status' => OrderStatus::PROCESSING,
+				'expected note'   => '/The dispute was resolved in your favor./',
+			],
+			'dispute won reverts to pre-hold completed status'  => [
+				'initial status'  => OrderStatus::COMPLETED,
+				'dispute status'  => 'won',
+				'expected status' => OrderStatus::COMPLETED,
+				'expected note'   => '/The dispute was resolved in your favor./',
+			],
+			'warning closed reverts to pre-hold status'         => [
+				'initial status'  => OrderStatus::PROCESSING,
+				'dispute status'  => 'warning_closed',
+				'expected status' => OrderStatus::PROCESSING,
+				'expected note'   => '/The inquiry or retrieval was closed./',
+			],
+		];
+	}
+
+	/**
 	 * Test for `process_payment_intent`.
 	 *
 	 * @param string $event_type The event type.
@@ -2201,15 +3034,20 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'type' => $event_type,
 			'data' => [
 				'object' => [
-					'id'                 => 'pi_mock',
-					'charges'            => [
+					'object'               => 'payment_intent',
+					'amount'               => 5000,
+					'currency'             => 'usd',
+					'payment_method_types' => [ 'card' ],
+					'id'                   => 'pi_mock',
+					'charges'              => [
 						[
 							'metadata' => [
-								'order_id' => $order->get_id(),
+								'order_id'  => $order->get_id(),
+								'order_key' => $order->get_order_key(),
 							],
 						],
 					],
-					'last_payment_error' => [
+					'last_payment_error'   => [
 						'message' => 'Your card was declined. You can call your bank for details.',
 					],
 				],
@@ -2240,8 +3078,12 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'type' => 'payment_intent.processing',
 			'data' => (object) [
 				'object' => (object) [
-					'id'      => 'pi_mock',
-					'charges' => (object) [
+					'object'               => 'payment_intent',
+					'amount'               => 5000,
+					'currency'             => 'usd',
+					'payment_method_types' => [ 'card' ],
+					'id'                   => 'pi_mock',
+					'charges'              => (object) [
 						'data' => [
 							(object) [
 								'id'       => 'ch_mock',
@@ -2260,7 +3102,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$order->save();
 
 		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'lock_order_payment' ] )
+			->onlyMethods( [ 'lock_order_payment' ] )
 			->getMock();
 
 		$this->mock_webhook_handler->method( 'lock_order_payment' )->willReturn( false );
@@ -2277,6 +3119,409 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		// Verify the awaiting-payment note was added to the order.
 		$this->assert_order_has_note_containing( 'Stripe charge awaiting payment: ch_mock.', $updated_order->get_id() );
+	}
+
+	/**
+	 * Builds a succeeded webhook whose PaymentIntent is for `$intent_amount_cents`, targeting `$order`.
+	 *
+	 * @param WC_Order $order               The order the webhook targets.
+	 * @param int      $intent_amount_cents The amount authorized on the intent, in the smallest unit.
+	 * @return object The decoded webhook notification.
+	 */
+	private function build_succeeded_intent_notification( $order, int $intent_amount_cents ) {
+		return json_decode(
+			wp_json_encode(
+				[
+					'type' => 'payment_intent.succeeded',
+					'data' => [
+						'object' => [
+							'id'                   => 'pi_mock',
+							'object'               => 'payment_intent',
+							'status'               => 'succeeded',
+							'amount'               => $intent_amount_cents,
+							'currency'             => strtolower( $order->get_currency() ),
+							'payment_method_types' => [ WC_Stripe_Payment_Methods::BOLETO ],
+							'metadata'             => [ 'order_id' => $order->get_id() ],
+						],
+					],
+				]
+			)
+		);
+	}
+
+	/**
+	 * Prepares a pending Boleto (immediate-path) order with the intent stored on it.
+	 *
+	 * @return WC_Order
+	 */
+	private function prepare_pending_voucher_order() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( OrderStatus::PENDING );
+
+		WC_Stripe_Order_Helper::set_instance( null );
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$order_helper->update_stripe_upe_payment_type( $order, WC_Stripe_Payment_Methods::BOLETO );
+		$order_helper->update_stripe_intent_id( $order, 'pi_mock' );
+		$order->save_meta_data();
+		$order->save();
+
+		return $order;
+	}
+
+	/**
+	 * An immediate webhook whose intent amount is below the order total holds the order, not settles it.
+	 */
+	public function test_process_payment_intent_holds_order_when_intent_amount_below_total() {
+		$process_charge = new MockAction();
+		add_action( 'wc_gateway_stripe_process_payment_charge', [ &$process_charge, 'action' ] );
+
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+
+		$order = $this->prepare_pending_voucher_order();
+
+		// Intent authorized for less than the current order total, i.e. the drift.
+		$intent_amount = (int) WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ) - 500;
+		$notification  = $this->build_succeeded_intent_notification( $order, $intent_amount );
+
+		$this->mock_webhook_handler->process_payment_intent( $notification );
+
+		$final_order = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::ON_HOLD, $final_order->get_status() );
+		$this->assertSame( 0, $process_charge->get_call_count() );
+		$this->assert_order_has_note_matching( '/does not match this order.*on hold for manual review/i', $final_order->get_id() );
+	}
+
+	/**
+	 * A webhook whose intent amount matches the order total still settles the order.
+	 */
+	public function test_process_payment_intent_settles_when_intent_amount_matches() {
+		$process_charge = new MockAction();
+		add_action( 'wc_gateway_stripe_process_payment_charge', [ &$process_charge, 'action' ] );
+
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+
+		$order = $this->prepare_pending_voucher_order();
+
+		$intent_amount = (int) WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
+		$notification  = $this->build_succeeded_intent_notification( $order, $intent_amount );
+
+		$this->mock_webhook_handler->process_payment_intent( $notification );
+
+		$final_order = wc_get_order( $order->get_id() );
+		$this->assertNotSame( OrderStatus::ON_HOLD, $final_order->get_status() );
+		$this->assertSame( 1, $process_charge->get_call_count() );
+	}
+
+	/**
+	 * The deferred webhook path also holds an order whose total drifted above the intent amount.
+	 */
+	public function test_deferred_webhook_holds_order_when_intent_amount_below_total() {
+		$this->mock_webhook_handler( [ 'handle_deferred_payment_intent_succeeded' ] );
+
+		$order = $this->prepare_pending_voucher_order();
+
+		$intent_amount = (int) WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ) - 500;
+		$intent        = $this->build_succeeded_intent_notification( $order, $intent_amount )->data->object;
+
+		$this->mock_webhook_handler->method( 'get_intent_from_order' )->willReturn( $intent );
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+		$this->mock_webhook_handler->expects( $this->never() )->method( 'process_response' );
+
+		$data         = [
+			'order_id'  => $order->get_id(),
+			'intent_id' => 'pi_mock',
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [ 'object' => $intent ],
+		];
+
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+
+		$final_order = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::ON_HOLD, $final_order->get_status() );
+		$this->assert_order_has_note_matching( '/does not match this order.*on hold for manual review/i', $final_order->get_id() );
+	}
+
+	/**
+	 * A charged-upfront pre-order whose total drifted above the intent amount must be held on the
+	 * deferred path, not marked pre-ordered. The amount check has to run before the pre-order
+	 * branch, otherwise the order is moved into its paid pre-ordered state before the amount is
+	 * compared.
+	 */
+	public function test_deferred_webhook_holds_pre_order_before_marking_when_amount_drifts() {
+		$order = $this->prepare_pending_voucher_order();
+
+		$intent_amount = (int) WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ) - 500;
+		$intent        = $this->build_succeeded_intent_notification( $order, $intent_amount )->data->object;
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->onlyMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'maybe_mark_order_as_pre_ordered', 'process_response' ] )
+			->getMock();
+		$handler->method( 'get_intent_from_order' )->willReturn( $intent );
+		$handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+		// A mismatch must stop settlement before either the pre-order branch or process_response.
+		$handler->expects( $this->never() )->method( 'maybe_mark_order_as_pre_ordered' );
+		$handler->expects( $this->never() )->method( 'process_response' );
+
+		$data         = [
+			'order_id'  => $order->get_id(),
+			'intent_id' => 'pi_mock',
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [ 'object' => $intent ],
+		];
+
+		$handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
+
+		$final_order = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::ON_HOLD, $final_order->get_status() );
+		$this->assert_order_has_note_matching( '/does not match this order.*on hold for manual review/i', $final_order->get_id() );
+	}
+
+	/**
+	 * The same pre-order hold must apply on the immediate webhook path (voucher, wallet, BLIK):
+	 * a drifted amount holds the order before the pre-order branch marks it paid.
+	 */
+	public function test_process_payment_intent_holds_pre_order_before_marking_when_amount_drifts() {
+		$process_charge = new MockAction();
+		add_action( 'wc_gateway_stripe_process_payment_charge', [ &$process_charge, 'action' ] );
+
+		$order = $this->prepare_pending_voucher_order();
+
+		$intent_amount = (int) WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ) - 500;
+		$notification  = $this->build_succeeded_intent_notification( $order, $intent_amount );
+
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->onlyMethods( [ 'get_latest_charge_from_intent', 'maybe_mark_order_as_pre_ordered' ] )
+			->getMock();
+		$handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+		$handler->expects( $this->never() )->method( 'maybe_mark_order_as_pre_ordered' );
+
+		$handler->process_payment_intent( $notification );
+
+		$final_order = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::ON_HOLD, $final_order->get_status() );
+		$this->assertSame( 0, $process_charge->get_call_count() );
+	}
+
+	/**
+	 * @dataProvider provide_payment_intent_order_bindings
+	 */
+	public function test_payment_intent_metadata_requires_order_binding( string $location, string $stored_intent, array $metadata, array $payment_methods, bool $accepted ): void {
+		update_option( 'siteurl', 'https://example.org/store-a/wordpress' );
+		update_option( 'home', 'https://example.org/store-a' );
+
+		$order = WC_Helper_Order::create_order();
+		if ( '' !== $stored_intent ) {
+			WC_Stripe_Order_Helper::get_instance()->add_payment_intent_to_order( $stored_intent, $order );
+		}
+		$order->save();
+
+		$metadata['order_id'] = $order->get_id();
+		if ( 'local' === ( $metadata['order_key'] ?? null ) ) {
+			$metadata['order_key'] = $order->get_order_key();
+		}
+		if ( isset( $metadata['signature'] ) ) {
+			$metadata['signature'] = $order->get_id() . ':foreign_signature';
+		}
+		$intent = [
+			'id'                   => 'pi_local',
+			'payment_method_types' => $payment_methods,
+			'last_payment_error'   => [ 'message' => 'Declined' ],
+		];
+		if ( 'intent' === $location ) {
+			$intent['metadata'] = $metadata;
+		} else {
+			$intent['charges'] = [ [ 'metadata' => $metadata ] ];
+		}
+
+		$original_server = $_SERVER;
+		try {
+			$_SERVER['HTTPS'] = 'on';
+			$this->mock_webhook_handler->process_payment_intent(
+				json_decode(
+					wp_json_encode(
+						[
+							'type' => 'payment_intent.payment_failed',
+							'data' => [ 'object' => $intent ],
+						]
+					)
+				)
+			);
+		} finally {
+			$_SERVER = $original_server;
+		}
+
+		$updated_order = wc_get_order( $order->get_id() );
+		$this->assertSame( $accepted ? OrderStatus::FAILED : OrderStatus::PENDING, $updated_order->get_status() );
+		$this->assertSame( '', $updated_order->get_transaction_id() );
+		$this->assertNull( $updated_order->get_date_paid() );
+	}
+
+	public function provide_payment_intent_order_bindings(): array {
+		$terminal = [ WC_Stripe_Payment_Methods::CARD_PRESENT ];
+		$site_url = 'https://example.org/store-a/wordpress';
+		$cases    = [
+			'matching stored intent'              => [ 'pi_local', [], [], true ],
+			'conflicting stored intent'           => [ 'pi_other', [ 'order_key' => 'local' ], [], false ],
+			'matching order key without intent'   => [ '', [ 'order_key' => 'local' ], [], true ],
+			'foreign order key'                   => [ '', [ 'order_key' => 'wc_order_foreign' ], [], false ],
+			'absent order key'                    => [ '', [], [], false ],
+			'empty order key'                     => [ '', [ 'order_key' => '' ], [], false ],
+			'invalid order key type'              => [ '', [ 'order_key' => [ 'local' ] ], [], false ],
+			'foreign signature without intent'    => [ '', [ 'signature' => 'foreign' ], [], false ],
+			'foreign signature with local intent' => [ 'pi_other', [ 'signature' => 'foreign' ], [], false ],
+			'legacy Terminal site URL'            => [ '', [ 'site_url' => $site_url ], $terminal, true ],
+			'legacy Terminal trailing slash'      => [ '', [ 'site_url' => $site_url . '/' ], $terminal, true ],
+			'legacy Terminal home URL'            => [ '', [ 'site_url' => 'https://example.org/store-a/' ], $terminal, true ],
+			'Interac only'                        => [ '', [ 'site_url' => $site_url ], [ 'interac_present' ], false ],
+			'Terminal with Interac'               => [ '', [ 'site_url' => $site_url ], [ WC_Stripe_Payment_Methods::CARD_PRESENT, 'interac_present' ], false ],
+			'Terminal foreign host'               => [ '', [ 'site_url' => 'https://foreign.example/store-a/wordpress' ], $terminal, false ],
+			'Terminal foreign subdirectory'       => [ '', [ 'site_url' => 'https://example.org/store-b' ], $terminal, false ],
+			'Terminal URL prefix'                 => [ '', [ 'site_url' => $site_url . '-other' ], $terminal, false ],
+			'Terminal foreign port'               => [ '', [ 'site_url' => 'https://example.org:8443/store-a/wordpress' ], $terminal, false ],
+			'Terminal missing URL'                => [ '', [], $terminal, false ],
+			'Terminal invalid URL type'           => [ '', [ 'site_url' => [ $site_url ] ], $terminal, false ],
+			'Terminal conflicting intent'         => [ 'pi_other', [ 'site_url' => $site_url ], $terminal, false ],
+			'Terminal invalid key'                => [
+				'',
+				[
+					'site_url'  => $site_url,
+					'order_key' => 'wc_order_foreign',
+				],
+				$terminal,
+				false,
+			],
+			'Terminal empty key'                  => [
+				'',
+				[
+					'site_url'  => $site_url,
+					'order_key' => '',
+				],
+				$terminal,
+				false,
+			],
+			'Terminal invalid signature'          => [
+				'',
+				[
+					'site_url'  => $site_url,
+					'signature' => 'foreign',
+				],
+				$terminal,
+				false,
+			],
+			'online payment with local URL'       => [ '', [ 'site_url' => $site_url ], [ WC_Stripe_Payment_Methods::CARD ], false ],
+			'mixed online and Terminal types'     => [ '', [ 'site_url' => $site_url ], [ WC_Stripe_Payment_Methods::CARD_PRESENT, WC_Stripe_Payment_Methods::CARD ], false ],
+		];
+
+		$datasets = [];
+		foreach ( [ 'intent', 'charge' ] as $location ) {
+			foreach ( $cases as $name => $case ) {
+				$datasets[ $location . ': ' . $name ] = array_merge( [ $location ], $case );
+			}
+		}
+		return $datasets;
+	}
+
+	public function test_payment_intent_signature_recovers_order_without_stored_intent(): void {
+		$order    = WC_Helper_Order::create_order();
+		$metadata = $this->mock_webhook_handler->get_metadata_from_order( $order );
+		unset( $metadata['order_key'] );
+
+		$this->mock_webhook_handler->process_payment_intent(
+			json_decode(
+				wp_json_encode(
+					[
+						'type' => 'payment_intent.payment_failed',
+						'data' => [
+							'object' => [
+								'id'       => 'pi_local',
+								'metadata' => $metadata,
+							],
+						],
+					]
+				)
+			)
+		);
+
+		$this->assertSame( OrderStatus::FAILED, wc_get_order( $order->get_id() )->get_status() );
+	}
+
+	/**
+	 * @dataProvider provide_foreign_async_payment_orders
+	 */
+	public function test_signed_foreign_async_payment_cannot_complete_local_order( string $status, bool $has_intent, int $amount, string $currency ): void {
+		$this->configure_webhook_secrets();
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( $status );
+		$order->set_total( 500 );
+		$order->set_currency( 'USD' );
+		if ( $has_intent ) {
+			WC_Stripe_Order_Helper::get_instance()->add_payment_intent_to_order( 'pi_local', $order );
+		}
+		$order->save();
+
+		$charge = [
+			'id'                     => 'ch_foreign',
+			'payment_intent'         => 'pi_foreign',
+			'captured'               => true,
+			'status'                 => 'succeeded',
+			'amount'                 => $amount,
+			'currency'               => $currency,
+			'payment_method_details' => [ 'type' => WC_Stripe_Payment_Methods::SEPA ],
+		];
+		$intent = [
+			'id'                   => 'pi_foreign',
+			'amount'               => $amount,
+			'currency'             => $currency,
+			'payment_method_types' => [ WC_Stripe_Payment_Methods::SEPA ],
+			'charges'              => [ 'data' => [ $charge ] ],
+			'metadata'             => [
+				'order_id'  => $order->get_id(),
+				'order_key' => 'wc_order_foreign',
+				'signature' => $order->get_id() . ':foreign_signature',
+				'site_url'  => 'https://foreign.example',
+			],
+		];
+		$event  = [
+			'id'               => 'evt_foreign_processing',
+			'created'          => time(),
+			'pending_webhooks' => 1,
+			'type'             => 'payment_intent.processing',
+			'data'             => [ 'object' => $intent ],
+		];
+		$this->assertSame( 200, $this->dispatch_signed_webhook( wp_json_encode( $event ) ) );
+		$after_processing = wc_get_order( $order->get_id() );
+		$this->assertSame( $status, $after_processing->get_status() );
+		$this->assertSame( '', $after_processing->get_transaction_id() );
+
+		$event['id']             = 'evt_foreign_succeeded';
+		$event['type']           = 'charge.succeeded';
+		$event['data']['object'] = $charge;
+		$this->assertSame( 200, $this->dispatch_signed_webhook( wp_json_encode( $event ) ) );
+
+		$updated_order = wc_get_order( $order->get_id() );
+		$this->assertSame( $status, $updated_order->get_status() );
+		$this->assertSame( '', $updated_order->get_transaction_id() );
+		$this->assertNull( $updated_order->get_date_paid() );
+		$this->assertEquals( 500, $updated_order->get_total() );
+		$this->assertSame( 'USD', $updated_order->get_currency() );
+	}
+
+	public function provide_foreign_async_payment_orders(): array {
+		return [
+			'failed order with intent, different amount and currency' => [ OrderStatus::FAILED, true, 100, 'eur' ],
+			'pending order without intent, different amount'          => [ OrderStatus::PENDING, false, 100, 'usd' ],
+			'pending order with intent, different currency'           => [ OrderStatus::PENDING, true, 50000, 'eur' ],
+			'failed order without intent, matching amount/currency'   => [ OrderStatus::FAILED, false, 50000, 'usd' ],
+		];
 	}
 
 	/**
@@ -2980,7 +4225,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		WC_Stripe_Order_Helper::set_instance( $order_helper );
 
 		$webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'send_failed_order_email' ] )
+			->onlyMethods( [ 'send_failed_order_email' ] )
 			->getMock();
 
 		$webhook_handler->expects( $this->never() )->method( 'send_failed_order_email' );
@@ -3063,7 +4308,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		);
 
 		$webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'send_failed_order_email' ] )
+			->onlyMethods( [ 'send_failed_order_email' ] )
 			->getMock();
 		$webhook_handler->expects( $this->never() )->method( 'send_failed_order_email' );
 
@@ -3117,7 +4362,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$order = $this->create_checkout_session_order( 'cs_test_expired_no_email' );
 
 		$webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'send_failed_order_email' ] )
+			->onlyMethods( [ 'send_failed_order_email' ] )
 			->getMock();
 		$webhook_handler->expects( $this->never() )->method( 'send_failed_order_email' );
 
@@ -3135,7 +4380,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$order = $this->create_checkout_session_order( 'cs_test_async_email' );
 
 		$webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'send_failed_order_email' ] )
+			->onlyMethods( [ 'send_failed_order_email' ] )
 			->getMock();
 		$webhook_handler->expects( $this->once() )
 			->method( 'send_failed_order_email' )
@@ -3565,7 +4810,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		// Rebuild mock webhook handler with necessary methods mocked.
 		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->onlyMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
 			->getMock();
 
 		// Include 'payment_method' to avoid undefined-property notice (phpunit converts notices/warnings to exceptions).
@@ -3692,7 +4937,25 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$prop->setAccessible( true );
 		$prop->setValue( $this->mock_webhook_handler, $mock_scheduler );
 
-		$this->mock_webhook_handler->process_checkout_session_success( $notification );
+		$received_order  = null;
+		$received_count  = 0;
+		$received_action = static function ( $webhook_type, $event, $order ) use ( &$received_order, &$received_count ) {
+			++$received_count;
+			$received_order = $order;
+		};
+		add_action( 'wc_stripe_webhook_received', $received_action, 10, 3 );
+		try {
+			$this->mock_webhook_handler->process_webhook( wp_json_encode( $notification ) );
+		} finally {
+			remove_action( 'wc_stripe_webhook_received', $received_action, 10 );
+		}
+
+		$this->assertSame( 1, $received_count, 'The received action should fire once for the processed event.' );
+		$this->assertSame(
+			$expect_settled ? $order->get_id() : null,
+			$received_order instanceof WC_Order ? $received_order->get_id() : null,
+			'A mismatched session must not expose a settled order to webhook callbacks.'
+		);
 
 		$notes          = wc_get_order_notes( [ 'order_id' => $order->get_id() ] );
 		$mismatch_notes = array_filter(
@@ -3890,7 +5153,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		];
 
 		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->onlyMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
 			->getMock();
 		$this->mock_webhook_handler->method( 'get_intent_from_order' )
 			->willReturn( (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'payment_method' => null ] ) );
@@ -3977,7 +5240,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		];
 
 		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->onlyMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
 			->getMock();
 		$this->mock_webhook_handler->method( 'get_intent_from_order' )
 			->willReturn( (object) array_merge( self::MOCK_PAYMENT_INTENT, [ 'payment_method' => null ] ) );
@@ -4117,7 +5380,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		// Rebuild mock webhook handler where process_response throws an exception.
 		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->onlyMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
 			->getMock();
 
 		// Include 'payment_method' to avoid undefined-property notice (phpunit converts notices/warnings to exceptions).
@@ -4186,7 +5449,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$mock_scheduler->expects( $this->once() )->method( 'schedule_job' );
 
 		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->onlyMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
 			->getMock();
 
 		$this->mock_webhook_handler->method( 'get_intent_from_order' )
@@ -4314,7 +5577,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$mock_scheduler->expects( $this->once() )->method( 'schedule_job' );
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
+			->onlyMethods( [ 'get_intent_from_order', 'get_latest_charge_from_intent', 'process_response' ] )
 			->getMock();
 
 		$handler->method( 'get_intent_from_order' )
@@ -4436,7 +5699,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		);
 
 		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods( [ 'get_connected_account_id' ] )
+			->onlyMethods( [ 'get_connected_account_id' ] )
 			->getMock();
 		$handler->method( 'get_connected_account_id' )->willReturn( $connected_account );
 
@@ -4577,18 +5840,22 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 * on a mismatch. Uses the committed sample event so reviewers can replay the same body.
 	 */
 	public function test_event_belongs_to_connected_account_reads_context_from_real_agentic_event() {
-		$event         = json_decode( file_get_contents( __DIR__ . '/dummy-data/agentic_customize_checkout_event.json' ) );
+		$event         = json_decode( file_get_contents( __DIR__ . '/dummy-data/agentic_customize_checkout_event.json' ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- This fixture is read from the local test tree, not a remote URL.
 		$event_account = 'acct_sample_connected'; // The `context` value in the fixture.
 		$reflection    = new ReflectionMethod( WC_Stripe_Webhook_Handler::class, 'event_belongs_to_connected_account' );
 		$reflection->setAccessible( true );
 
 		$this->assertSame( $event_account, $event->context, 'Fixture is expected to carry the account in `context`.' );
 
-		$matching = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )->setMethods( [ 'get_connected_account_id' ] )->getMock();
+		$matching = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->onlyMethods( [ 'get_connected_account_id' ] )
+			->getMock();
 		$matching->method( 'get_connected_account_id' )->willReturn( $event_account );
 		$this->assertTrue( $reflection->invoke( $matching, $event ) );
 
-		$mismatched = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )->setMethods( [ 'get_connected_account_id' ] )->getMock();
+		$mismatched = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->onlyMethods( [ 'get_connected_account_id' ] )
+			->getMock();
 		$mismatched->method( 'get_connected_account_id' )->willReturn( 'acct_someone_else' );
 		$this->assertFalse( $reflection->invoke( $mismatched, $event ) );
 	}
@@ -4792,6 +6059,161 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'empty headers'                 => [ 'empty_headers' ],
 			'empty body'                    => [ 'empty_body' ],
 		];
+	}
+
+	/**
+	 * Only the `t` and `v1` entries of the signature header take part in validation, whatever else
+	 * the header carries and whatever order its entries are in.
+	 *
+	 * @param string $header_template Header value, with `{timestamp}`, `{signature}` (signed with the store's
+	 *                                secret) and `{other_signature}` (signed with another secret) placeholders.
+	 * @param string $expected_result Expected validation result constant.
+	 * @dataProvider provide_signature_header_formats
+	 */
+	public function test_validate_request_reads_timestamp_and_v1_signatures_from_header( string $header_template, string $expected_result ): void {
+		$body = $this->build_webhook_event_body();
+
+		$this->assertSame(
+			$expected_result,
+			( new WC_Stripe_Webhook_Handler() )->validate_request(
+				[ 'STRIPE-SIGNATURE' => $this->build_signature_header( $header_template, $body ) ],
+				$body,
+				self::WEBHOOK_SECRET
+			)
+		);
+	}
+
+	/**
+	 * Data provider for {@see test_validate_request_reads_timestamp_and_v1_signatures_from_header()}.
+	 *
+	 * @return array
+	 */
+	public function provide_signature_header_formats(): array {
+		$debug_entries = self::SIGNATURE_DEBUG_ENTRIES;
+
+		return [
+			'timestamp and signature'                           => [ 't={timestamp},v1={signature}', WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'test mode v0 entry'                                => [ 't={timestamp},v1={signature},v0={other_signature}', WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'debug entries after the signatures'                => [ 't={timestamp},v1={signature},v0={other_signature},' . $debug_entries, WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'debug entries without a v0 entry'                  => [ 't={timestamp},v1={signature},' . $debug_entries, WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'debug entries before the signatures'               => [ $debug_entries . ',t={timestamp},v1={signature}', WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'rolled secret, matching signature first'           => [ 't={timestamp},v1={signature},v1={other_signature},v0={other_signature}', WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'rolled secret, matching signature last'            => [ 't={timestamp},v1={other_signature},v1={signature},v0={other_signature}', WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'signature before the timestamp'                    => [ 'v1={signature},t={timestamp},v0={other_signature}', WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'entry without a value'                             => [ 't={timestamp},v1={signature},unknown', WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'debug entries with a signature for another secret' => [ 't={timestamp},v1={other_signature},' . $debug_entries, WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_MISMATCH ],
+			'matching signature only in a non-v1 entry'         => [ 't={timestamp},v1={other_signature},v0={signature},payload={signature}', WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_MISMATCH ],
+			'no v1 entry'                                       => [ 't={timestamp},v0={signature}', WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_INVALID ],
+			'empty v1 entry'                                    => [ 't={timestamp},v1=', WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_INVALID ],
+			'no timestamp entry'                                => [ 'v1={signature}', WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_INVALID ],
+			'non-numeric timestamp'                             => [ 't=now,v1={signature}', WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_INVALID ],
+			'asterisk as the signature'                         => [ 't={timestamp},v1=*', WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_MISMATCH ],
+			'asterisk in the signature scheme'                  => [ 't={timestamp},v*={signature}', WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_INVALID ],
+			'numeric entry whose name ends in t'                => [ 'secret=1,t={timestamp},v1={signature}', WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'timestamp followed by other characters'            => [ 't={timestamp}abc,v1={signature}', WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_INVALID ],
+		];
+	}
+
+	/**
+	 * The timestamp is read from the `t` entry wherever it is in the header, and has to be within
+	 * five minutes of now in either direction.
+	 *
+	 * Every signature here is valid for the header's own timestamp, so a request passes only when
+	 * that exact timestamp was read, and fails on the timestamp alone.
+	 *
+	 * @param string $header_template  Header value with `{timestamp}`, `{signature}` and `{other_signature}` placeholders.
+	 * @param int    $timestamp_offset Seconds between now and the header's timestamp; negative is in the past.
+	 * @param string $expected_result  Expected validation result constant.
+	 * @dataProvider provide_signature_header_timestamps
+	 */
+	public function test_validate_request_checks_timestamp_read_from_header( string $header_template, int $timestamp_offset, string $expected_result ): void {
+		$body = $this->build_webhook_event_body();
+
+		$this->assertSame(
+			$expected_result,
+			( new WC_Stripe_Webhook_Handler() )->validate_request(
+				[ 'STRIPE-SIGNATURE' => $this->build_signature_header( $header_template, $body, $timestamp_offset ) ],
+				$body,
+				self::WEBHOOK_SECRET
+			)
+		);
+	}
+
+	/**
+	 * Data provider for {@see test_validate_request_checks_timestamp_read_from_header()}.
+	 *
+	 * @return array
+	 */
+	public function provide_signature_header_timestamps(): array {
+		$debug_entries = self::SIGNATURE_DEBUG_ENTRIES;
+		$plain         = 't={timestamp},v1={signature}';
+		$with_debug    = 't={timestamp},v1={signature},v0={other_signature},' . $debug_entries;
+		$timestamp_end = $debug_entries . ',v1={signature},t={timestamp}';
+
+		// The tolerance is five minutes. The offsets stay 15 seconds clear of it, because the clock can
+		// move on between building the header and validating it.
+		$inside_tolerance  = 5 * MINUTE_IN_SECONDS - 15;
+		$outside_tolerance = 5 * MINUTE_IN_SECONDS + 15;
+
+		return [
+			'15 seconds inside the tolerance, in the past'                    => [ $plain, -$inside_tolerance, WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'15 seconds inside the tolerance, in the future'                  => [ $plain, $inside_tolerance, WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'15 seconds outside the tolerance, in the past'                   => [ $plain, -$outside_tolerance, WC_Stripe_Webhook_State::VALIDATION_FAILED_TIMESTAMP_MISMATCH ],
+			'15 seconds outside the tolerance, in the future'                 => [ $plain, $outside_tolerance, WC_Stripe_Webhook_State::VALIDATION_FAILED_TIMESTAMP_MISMATCH ],
+			'15 seconds inside the tolerance, with debug entries'             => [ $with_debug, -$inside_tolerance, WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'15 seconds outside the tolerance, with debug entries'            => [ $with_debug, -$outside_tolerance, WC_Stripe_Webhook_State::VALIDATION_FAILED_TIMESTAMP_MISMATCH ],
+			'15 seconds inside the tolerance, timestamp after other entries'  => [ $timestamp_end, -$inside_tolerance, WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED ],
+			'15 seconds outside the tolerance, timestamp after other entries' => [ $timestamp_end, -$outside_tolerance, WC_Stripe_Webhook_State::VALIDATION_FAILED_TIMESTAMP_MISMATCH ],
+		];
+	}
+
+	/**
+	 * A delivery whose signature header carries Stripe's debug entries is processed, not answered
+	 * with the 204 that makes Stripe consider the event delivered.
+	 */
+	public function test_check_for_webhook_processes_delivery_with_debug_entries_in_signature_header(): void {
+		$this->configure_webhook_secrets();
+		WC_Stripe_Webhook_State_Fixtures::delete_all_options();
+
+		$created = time() - 30;
+		$body    = $this->build_webhook_event_body( [ 'created' => $created ] );
+
+		$status = $this->dispatch_webhook(
+			$body,
+			[
+				'USER-AGENT'       => 'Stripe/1.0 (+https://docs.stripe.com/webhooks)',
+				'CONTENT-TYPE'     => 'application/json; charset=utf-8',
+				'STRIPE-SIGNATURE' => $this->build_signature_header(
+					't={timestamp},v1={signature},v0={other_signature},' . self::SIGNATURE_DEBUG_ENTRIES,
+					$body
+				),
+			]
+		);
+
+		$this->assertSame( 200, $status );
+		$this->assertSame( $created, WC_Stripe_Webhook_State::get_last_webhook_success_at() );
+		$this->assertSame( 0, WC_Stripe_Webhook_State::get_last_webhook_failure_at() );
+	}
+
+	/**
+	 * Fills in a signature header template, with signatures computed for the header's timestamp.
+	 *
+	 * @param string $header_template  Header value with `{timestamp}`, `{signature}` and `{other_signature}` placeholders.
+	 * @param string $body             Raw request body the signatures are computed over.
+	 * @param int    $timestamp_offset Seconds to move the header's timestamp away from now; negative is in the past.
+	 * @return string
+	 */
+	private function build_signature_header( string $header_template, string $body, int $timestamp_offset = 0 ): string {
+		$timestamp = time() + $timestamp_offset;
+
+		return strtr(
+			$header_template,
+			[
+				'{timestamp}'       => (string) $timestamp,
+				'{signature}'       => hash_hmac( 'sha256', $timestamp . '.' . $body, self::WEBHOOK_SECRET ),
+				'{other_signature}' => hash_hmac( 'sha256', $timestamp . '.' . $body, 'whsec_another_secret' ),
+			]
+		);
 	}
 
 	/**

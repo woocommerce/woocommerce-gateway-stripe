@@ -28,6 +28,15 @@ on:
           - '8.3'
           - '8.4'
           - '8.5'
+      theme:
+        description: Theme to install and activate for the run. storefront is a classic theme, purple is a block theme (WordPress 7.1+ and WooCommerce 11.1+), twentytwentyfive is a block theme for older WordPress or WooCommerce versions.
+        type: choice
+        default: 'storefront'
+        required: true
+        options:
+          - 'storefront'
+          - 'purple'
+          - 'twentytwentyfive'
 
 jobs:
   test:
@@ -38,4 +47,5 @@ jobs:
       wp-version: ${{ inputs.wordpress-version }}
       wc-version: ${{ inputs.woocommerce-version }}
       php-version: ${{ inputs.php-version }}
+      theme: ${{ inputs.theme }}
       branch: ${{ inputs.branch }}
