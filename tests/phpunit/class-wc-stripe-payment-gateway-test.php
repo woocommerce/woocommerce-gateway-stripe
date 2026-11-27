@@ -2590,14 +2590,16 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$order        = WC_Helper_Order::create_order();
 		$order_helper = WC_Stripe_Order_Helper::get_instance();
 
-		$this->assertFalse( $gateway->lock_order_payment( $order ) );
+		$this->assertFalse( $order_helper->lock_order_payment( $order ) );
 		$this->assertTrue( $gateway->check_payment_lock( $order ) );
+		$this->assertTrue( $gateway->lock_order_payment( $order ) );
+
+		$order_helper->unlock_order_payment( $order );
+		$this->assertFalse( $gateway->lock_order_payment( $order ) );
 		$this->assertTrue( $order_helper->lock_order_payment( $order ) );
 
 		$gateway->unlock_order_payment( $order );
 		$this->assertFalse( $gateway->check_payment_lock( $order ) );
-		$this->assertFalse( $order_helper->lock_order_payment( $order ) );
-		$order_helper->unlock_order_payment( $order );
 	}
 
 	/**

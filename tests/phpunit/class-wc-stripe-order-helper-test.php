@@ -229,6 +229,7 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		$lock_name = 'wc_stripe_order_payment_lock_' . $order->get_id();
 
 		$other_owner = WC_Stripe_Option_Lock::acquire( $lock_name, 300 );
+		$this->assertNotNull( $other_owner );
 
 		$this->assertTrue( $this->helper->lock_order_payment( $order ) );
 		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( $order ) );
@@ -240,6 +241,38 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		WC_Stripe_Option_Lock::release( $lock_name, $other_owner );
 		$this->assertFalse( $this->helper->lock_order_payment( $order ) );
 		$this->helper->unlock_order_payment( $order );
+	}
+
+	/**
+	 * The holder must treat its lock as expired before another request may reclaim the row, or
+	 * both could settle the order in the same second.
+	 *
+	 * @return void
+	 */
+	public function test_payment_lock_expires_before_the_row_can_be_reclaimed(): void {
+		$order = WC_Helper_Order::create_order();
+
+		$this->assertFalse( $this->helper->lock_order_payment( $order ) );
+
+		$locked_at = (int) strtok( (string) get_option( 'wc_stripe_order_payment_lock_' . $order->get_id() ), ':' );
+		$this->assertLessThan( $locked_at + 300, $this->helper->get_order_existing_payment_lock( $order ) );
+
+		$this->helper->unlock_order_payment( $order );
+	}
+
+	/**
+	 * Requests still on an older plugin version only write the meta, so a live meta lock must be
+	 * respected during a deploy.
+	 *
+	 * @return void
+	 */
+	public function test_lock_order_payment_is_refused_while_a_legacy_meta_lock_is_live(): void {
+		$order = WC_Helper_Order::create_order();
+		$order->update_meta_data( '_stripe_lock_payment', time() + 60 );
+		$order->save_meta_data();
+
+		$this->assertTrue( $this->helper->lock_order_payment( $order ) );
+		$this->assertFalse( get_option( 'wc_stripe_order_payment_lock_' . $order->get_id() ) );
 	}
 
 	/**

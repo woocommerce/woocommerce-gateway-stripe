@@ -1648,8 +1648,10 @@ class WC_Stripe_Order_Helper {
 			return true;
 		}
 
-		// Taken before acquiring, so it never ends later than the lock row.
-		$expiry = time() + self::PAYMENT_LOCK_TTL;
+		// Another request may reclaim the row from the second its TTL runs out, and the holder still
+		// counts the expiry second itself as locked. Ending one second early, measured before
+		// acquiring, keeps the two from overlapping.
+		$expiry = time() + self::PAYMENT_LOCK_TTL - 1;
 
 		// Two requests can both pass the check above. Only one of them can insert the option row.
 		$owner = WC_Stripe_Option_Lock::acquire( self::PAYMENT_LOCK_OPTION_PREFIX . $order->get_id(), self::PAYMENT_LOCK_TTL );
