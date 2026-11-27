@@ -5,15 +5,13 @@
  * writes from constructors and settings reads as well as explicit migrations.
  */
 class WC_Stripe_Upgrade_HTTP_Fake {
-	public array $requests   = [];
-	public array $unexpected = [];
-	private array $fixture;
+	public array $requests        = [];
+	public array $unexpected      = [];
 	private array $webhooks       = [];
 	private array $configurations = [];
 
 	public function __construct( array $fixture ) {
-		$this->fixture = $fixture;
-		$events        = json_decode( file_get_contents( __DIR__ . '/../fixtures/upgrades/webhook-events.json' ), true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local, immutable fixture.
+		$events = $fixture['webhook_events'];
 		foreach ( [ 'live', 'test' ] as $mode ) {
 			$this->webhooks[ $mode ] = [
 				'we_' . $mode . '_old' => [
@@ -74,7 +72,7 @@ class WC_Stripe_Upgrade_HTTP_Fake {
 					],
 				];
 			} elseif ( 'GET' === $method && '/v1/payment_method_configurations' === $path ) {
-				$response = [ 'data' => $this->fixture['pmc_available'] ? [ $this->configurations[ $mode ] ] : [] ];
+				$response = [ 'data' => [ $this->configurations[ $mode ] ] ];
 			} elseif ( 'POST' === $method && '/v1/payment_method_configurations/pmc_' . $mode . '_fixture' === $path ) {
 				foreach ( $body as $id => $preference ) {
 					$this->configurations[ $mode ][ $id ] = [ 'display_preference' => [ 'value' => $preference['display_preference']['preference'] ] ];
