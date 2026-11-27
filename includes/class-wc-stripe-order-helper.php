@@ -1034,6 +1034,23 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Clears the captured flag so the order's captured state reads as unknown ('').
+	 *
+	 * An unknown state is resolved from Stripe at refund time, whereas a stale 'no' would be
+	 * trusted and route a captured charge to the void path.
+	 *
+	 * Does not persist the order; callers decide when to save.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Order $order The order to clear the captured flag on.
+	 * @return void
+	 */
+	public function delete_stripe_charge_captured( WC_Order $order ): void {
+		$this->delete_order_meta( $order, self::META_STRIPE_CHARGE_CAPTURED );
+	}
+
+	/**
 	 * Records the captured state carried by a Stripe charge on the order.
 	 *
 	 * This is the single writer of the captured flag for every code path that receives a

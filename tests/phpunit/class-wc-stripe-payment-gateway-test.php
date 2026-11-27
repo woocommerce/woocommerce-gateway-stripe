@@ -2007,6 +2007,7 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$order->update_meta_data( '_stripe_intent_id', 'pi_authorized' );
 		$order->save();
 		$charge           = $this->build_succeeded_charge( 'ch_authorized' );
+		$charge->object   = 'charge';
 		$charge->captured = false;
 		$this->gateway->process_response( $charge, $order );
 		$this->assertSame( 'on-hold', $order->get_status() );
