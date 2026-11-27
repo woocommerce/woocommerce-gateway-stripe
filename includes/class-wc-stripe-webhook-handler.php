@@ -44,6 +44,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Prefix of the per-charge lock that lets only one delivery of a partial capture record its release.
 	 *
+	 * @since x.x.x
 	 * @var string
 	 */
 	protected const PARTIAL_CAPTURE_RELEASE_LOCK_PREFIX = 'wc_stripe_capture_release_lock_';
@@ -894,6 +895,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * Uses `amount_captured` because API versions from 2025-03-31 no longer report the
 	 * released remainder as a refund.
 	 *
+	 * @since x.x.x
 	 * @param object $charge The captured charge.
 	 * @return bool
 	 */
@@ -910,6 +912,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * line shows what the customer actually paid. No items are restocked: a capture only carries
 	 * an amount, not which items weren't fulfilled.
 	 *
+	 * @since x.x.x
 	 * @param WC_Order $order  The order that was paid by the captured charge.
 	 * @param stdClass $charge The captured charge.
 	 */
@@ -986,6 +989,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * Records the released authorization as a refund, unless a merchant refund is in progress or the
 	 * release was recorded since it was measured.
 	 *
+	 * @since x.x.x
 	 * @param WC_Order $order           The partially captured order.
 	 * @param int      $captured_amount The captured amount, in the smallest currency unit.
 	 * @param int      $released_amount The release measured before locking, in the smallest currency unit.
@@ -1046,6 +1050,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Tells the merchant a released authorization was not recorded, so they can add the refund by hand.
 	 *
+	 * @since x.x.x
 	 * @param WC_Order $order           The partially captured order.
 	 * @param int      $released_amount The released amount, in the smallest currency unit.
 	 * @param string   $reason          Why it was not recorded, for the log.
@@ -1075,6 +1080,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * captured money recorded before this event (only if its webhook overtakes the capture's)
 	 * shrinks the release by that amount, so the order under-refunds rather than over-refunds.
 	 *
+	 * @since x.x.x
 	 * @param WC_Order $order           The order paid by the partially captured charge.
 	 * @param int      $captured_amount The captured amount, in the smallest currency unit.
 	 * @return int Zero or less when there's nothing left to record.

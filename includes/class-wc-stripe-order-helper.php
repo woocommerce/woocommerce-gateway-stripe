@@ -83,6 +83,7 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Refund meta flag marking a refund that records the authorization a partial capture released.
 	 *
+	 * @since x.x.x
 	 * @var string
 	 */
 	private const META_STRIPE_RELEASED_AUTHORIZATION = '_stripe_released_authorization';
