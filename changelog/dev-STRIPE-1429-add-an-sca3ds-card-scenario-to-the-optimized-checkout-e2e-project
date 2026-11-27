@@ -1,0 +1,4 @@
+Significance: patch
+Type: dev
+
+Add E2E coverage for 3D Secure card payments in Optimized Checkout with a wallet payment method enabled
