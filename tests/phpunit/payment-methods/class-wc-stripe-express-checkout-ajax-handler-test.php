@@ -111,6 +111,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 	public function test_ajax_get_express_checkout_nonces_returns_verifiable_nonces() {
 		Ajax_Test_Helper::init_hooks();
 
+		$start_time = time();
 		try {
 			ob_start();
 			$this->ajax_handler->ajax_get_express_checkout_nonces();
@@ -120,6 +121,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 		} finally {
 			Ajax_Test_Helper::remove_hooks();
 		}
+		$end_time = time();
 
 		$this->assertIsArray( $response );
 		$this->assertTrue( $response['success'] );
@@ -143,7 +145,8 @@ class WC_Stripe_Express_Checkout_Ajax_Handler_Test extends WP_UnitTestCase {
 		}
 
 		// The only non-nonce entry: WooCommerce Blocks uses it to order Store API nonces.
-		$this->assertEqualsWithDelta( time(), $response['data']['wc_store_api_timestamp'], 5 );
+		$this->assertGreaterThanOrEqual( $start_time, $response['data']['wc_store_api_timestamp'] );
+		$this->assertLessThanOrEqual( $end_time, $response['data']['wc_store_api_timestamp'] );
 	}
 
 	/**
