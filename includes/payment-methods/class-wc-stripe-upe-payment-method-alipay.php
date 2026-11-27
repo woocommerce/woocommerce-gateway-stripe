@@ -11,6 +11,11 @@ class WC_Stripe_UPE_Payment_Method_Alipay extends WC_Stripe_UPE_Payment_Method {
 	public const STRIPE_ID = WC_Stripe_Payment_Methods::ALIPAY;
 
 	/**
+	 * Refund window is 90 days.
+	 */
+	protected const REFUND_WINDOW_DATE_EXPRESSION = '+90 days';
+
+	/**
 	 * Stripe account countries that may enable Alipay. Differs slightly from the global
 	 * list (includes Malaysia; excludes Poland and Mexico) per Stripe's docs.
 	 *
