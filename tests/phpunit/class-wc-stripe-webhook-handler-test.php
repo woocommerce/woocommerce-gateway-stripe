@@ -3074,22 +3074,28 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Another request can settle the order between the status check and taking the lock. A late
-	 * payment_failed for an earlier attempt must then leave the paid order alone.
+	 * Another request can settle or cancel the order between the status check and taking the lock.
+	 * A late payment_failed must then leave a paid order alone, and a payment for an order cancelled
+	 * in between must still reach the deferred job that refunds or voids it.
+	 *
+	 * @param string $type          The payment_intent event type.
+	 * @param string $status        The status the other request leaves the order in.
+	 * @param bool   $expect_deferred Whether the event must be deferred.
+	 * @dataProvider provide_order_changed_before_lock
 	 */
-	public function test_process_payment_intent_rechecks_the_order_status_once_locked() {
+	public function test_process_payment_intent_rechecks_the_order_status_once_locked( string $type, string $status, bool $expect_deferred ): void {
 		$order = WC_Helper_Order::create_order();
 		$order->set_status( OrderStatus::PENDING );
 		$order->save();
 
-		// Stands in for the other request: it settles the order and releases the lock just before
+		// Stands in for the other request: it changes the order and releases the lock just before
 		// this one takes it.
 		$order_helper = $this->createPartialMock( WC_Stripe_Order_Helper::class, [ 'lock_order_payment' ] );
 		$order_helper->method( 'lock_order_payment' )->willReturnCallback(
-			function ( $locked_order ) {
-				$paid_order = wc_get_order( $locked_order->get_id() );
-				$paid_order->set_status( OrderStatus::PROCESSING );
-				$paid_order->save();
+			function ( $locked_order ) use ( $status ) {
+				$changed_order = wc_get_order( $locked_order->get_id() );
+				$changed_order->set_status( $status );
+				$changed_order->save();
 				return false;
 			}
 		);
@@ -3098,11 +3104,12 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$notification = json_decode(
 			wp_json_encode(
 				[
-					'type' => 'payment_intent.payment_failed',
+					'type' => $type,
 					'data' => [
 						'object' => [
 							'object'               => 'payment_intent',
 							'id'                   => 'pi_mock',
+							'status'               => WC_Stripe_Intent_Status::SUCCEEDED,
 							'payment_method_types' => [ 'card' ],
 							'metadata'             => [
 								'order_id'  => $order->get_id(),
@@ -3115,9 +3122,28 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			)
 		);
 
-		$this->mock_webhook_handler->process_payment_intent( $notification );
+		$handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->onlyMethods( [ 'defer_webhook_processing' ] )
+			->getMock();
+		$handler->expects( $expect_deferred ? $this->once() : $this->never() )
+			->method( 'defer_webhook_processing' );
 
-		$this->assertSame( OrderStatus::PROCESSING, wc_get_order( $order->get_id() )->get_status() );
+		$result = $handler->process_payment_intent( $notification );
+
+		$this->assertSame( $expect_deferred, $result );
+		$this->assertSame( $status, wc_get_order( $order->get_id() )->get_status() );
+	}
+
+	/**
+	 * Data provider for test_process_payment_intent_rechecks_the_order_status_once_locked.
+	 *
+	 * @return array
+	 */
+	public function provide_order_changed_before_lock(): array {
+		return [
+			'payment_failed after the order was paid' => [ 'payment_intent.payment_failed', OrderStatus::PROCESSING, false ],
+			'succeeded after the order was cancelled' => [ 'payment_intent.succeeded', OrderStatus::CANCELLED, true ],
+		];
 	}
 
 	/**
