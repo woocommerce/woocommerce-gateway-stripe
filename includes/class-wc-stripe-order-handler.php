@@ -77,6 +77,28 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		add_filter( 'woocommerce_cancel_unpaid_order', [ $this, 'expire_open_checkout_session_before_cancelling' ], PHP_INT_MAX, 2 );
 
 		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'show_warning_for_uncaptured_orders' ] );
+
+		add_filter( 'woocommerce_email_enabled_customer_partially_refunded_order', [ $this, 'disable_refund_email_for_released_authorization' ], 10, 3 );
+	}
+
+	/**
+	 * Skips the "partially refunded" email for the refund that records a partial capture's released
+	 * authorization: the customer was never charged that amount, so there's nothing refunded to tell them about.
+	 *
+	 * @since x.x.x
+	 * @param mixed $enabled Whether the email is enabled.
+	 * @param mixed $order   The refunded order.
+	 * @param mixed $email   The email being sent.
+	 * @return mixed
+	 */
+	public function disable_refund_email_for_released_authorization( $enabled, $order = null, $email = null ) {
+		$refund = $email->refund ?? null;
+
+		if ( $refund instanceof WC_Order_Refund && WC_Stripe_Order_Helper::get_instance()->is_released_authorization_refund( $refund ) ) {
+			return false;
+		}
+
+		return $enabled;
 	}
 
 	/**

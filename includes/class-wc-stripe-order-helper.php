@@ -81,6 +81,14 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_CHECKOUT_SESSION_ID = '_stripe_checkout_session_id';
 
 	/**
+	 * Refund meta flag marking a refund that records the authorization a partial capture released.
+	 *
+	 * @since x.x.x
+	 * @var string
+	 */
+	private const META_STRIPE_RELEASED_AUTHORIZATION = '_stripe_released_authorization';
+
+	/**
 	 * Meta key for whether the payment method should be saved to the store after checkout session payment.
 	 *
 	 * @var string
@@ -517,6 +525,28 @@ class WC_Stripe_Order_Helper {
 		}
 
 		$refund->delete_meta_data( self::META_STRIPE_REFUND_ID );
+	}
+
+	/**
+	 * Flags a refund as the record of a partial capture's released authorization. Does not persist.
+	 *
+	 * @since x.x.x
+	 * @param WC_Order_Refund $refund The refund to flag.
+	 * @return void
+	 */
+	public function mark_refund_as_released_authorization( WC_Order_Refund $refund ): void {
+		$refund->update_meta_data( self::META_STRIPE_RELEASED_AUTHORIZATION, 'yes' );
+	}
+
+	/**
+	 * Whether a refund records a partial capture's released authorization rather than returned money.
+	 *
+	 * @since x.x.x
+	 * @param WC_Order_Refund $refund The refund to check.
+	 * @return bool
+	 */
+	public function is_released_authorization_refund( WC_Order_Refund $refund ): bool {
+		return 'yes' === $refund->get_meta( self::META_STRIPE_RELEASED_AUTHORIZATION );
 	}
 
 	/**

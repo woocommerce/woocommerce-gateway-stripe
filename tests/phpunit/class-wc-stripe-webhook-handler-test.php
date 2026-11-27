@@ -1599,6 +1599,354 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A dashboard capture must leave the order paid at its original total, with any released
+	 * authorization recorded once as a refund, even when Stripe delivers the event twice. The
+	 * refund must exist before the order is marked paid, since that sends the customer emails.
+	 *
+	 * @dataProvider provider_dashboard_capture
+	 *
+	 * @param string $order_total       Order total when the capture happens.
+	 * @param array  $charge_overrides  Capture-specific charge properties.
+	 * @param string $expected_refunded Expected total refunded on the order.
+	 */
+	public function test_process_webhook_capture_settles_dashboard_capture( string $order_total, array $charge_overrides, string $expected_refunded ) {
+		$order        = $this->create_authorized_order( 'ch_dashboard_capture', $order_total );
+		$notification = $this->build_capture_notification( 'charge.captured', 'ch_dashboard_capture', $charge_overrides );
+
+		$refunded_when_paid = [];
+		$record_refunded    = static function ( $order_id ) use ( &$refunded_when_paid ) {
+			$refunded_when_paid[] = wc_format_decimal( wc_get_order( $order_id )->get_total_refunded(), 2 );
+		};
+		add_action( 'woocommerce_payment_complete', $record_refunded );
+
+		$this->mock_webhook_handler->process_webhook_capture( $notification );
+
+		// The notifications carry no balance transaction, so nothing saves the order before the
+		// release is recorded. A stale "not captured" flag would turn a later refund into a void.
+		$this->assertTrue( WC_Stripe_Order_Helper::get_instance()->is_stripe_charge_captured( wc_get_order( $order->get_id() ) ) );
+
+		$this->mock_webhook_handler->process_webhook_capture( $notification );
+
+		remove_action( 'woocommerce_payment_complete', $record_refunded );
+
+		$this->assertSame( [ $expected_refunded ], $refunded_when_paid );
+
+		$order = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::PROCESSING, $order->get_status() );
+		$this->assertSame( $order_total, $order->get_total() );
+		$this->assertSame( $expected_refunded, wc_format_decimal( $order->get_total_refunded(), 2 ) );
+		$this->assertCount( '0.00' === $expected_refunded ? 0 : 1, $order->get_refunds() );
+	}
+
+	/**
+	 * Capture shapes: partial on current API versions (no refund object), partial on API versions
+	 * before 2025-03-31 (the release is a Stripe refund, left to charge.refunded), a capture of an
+	 * order the merchant reduced beforehand (nothing left to refund), a charge in another currency
+	 * than the order (amounts can't be compared, so nothing is refunded), and a full capture.
+	 */
+	public function provider_dashboard_capture(): array {
+		return [
+			'partial capture, current API' => [
+				'20.00',
+				[ 'amount_captured' => 500 ],
+				'15.00',
+			],
+			'partial capture, older API'   => [
+				'20.00',
+				[
+					'amount_captured' => 500,
+					'amount_refunded' => 1500,
+				],
+				'0.00',
+			],
+			'order reduced before capture' => [
+				'15.00',
+				[ 'amount_captured' => 1500 ],
+				'0.00',
+			],
+			'charge in another currency'   => [
+				'20.00',
+				[
+					'amount_captured' => 500,
+					'currency'        => 'eur',
+				],
+				'0.00',
+			],
+			'full capture'                 => [
+				'20.00',
+				[ 'amount_captured' => 2000 ],
+				'0.00',
+			],
+		];
+	}
+
+	/**
+	 * A release in another currency than the order can't be recorded, and nothing else records it,
+	 * so the merchant must be told to add it.
+	 */
+	public function test_process_webhook_capture_asks_merchant_to_record_release_in_other_currency() {
+		$order = $this->create_authorized_order( 'ch_other_currency' );
+
+		$this->mock_webhook_handler->process_webhook_capture(
+			$this->build_capture_notification(
+				'charge.captured',
+				'ch_other_currency',
+				[
+					'amount_captured' => 500,
+					'currency'        => 'eur',
+				]
+			)
+		);
+
+		$notes = wp_list_pluck( wc_get_order_notes( [ 'order_id' => $order->get_id() ] ), 'content' );
+		$this->assertCount( 1, preg_grep( '/charge is in EUR and the order in USD/', $notes ) );
+	}
+
+	/**
+	 * Two deliveries of the same event can run at once, and the refund lock is not atomic, so both
+	 * could record the release. The one that loses the release lock must leave it to the other,
+	 * without telling the merchant to record it by hand.
+	 */
+	public function test_process_webhook_capture_leaves_release_to_concurrent_delivery() {
+		$order     = $this->create_authorized_order( 'ch_release_locked' );
+		$lock_name = 'wc_stripe_capture_release_lock_ch_release_locked';
+		$owner     = WC_Stripe_Option_Lock::acquire( $lock_name, MINUTE_IN_SECONDS );
+
+		try {
+			$this->mock_webhook_handler->process_webhook_capture( $this->build_capture_notification( 'charge.captured', 'ch_release_locked', [ 'amount_captured' => 500 ] ) );
+		} finally {
+			WC_Stripe_Option_Lock::release( $lock_name, $owner );
+		}
+
+		$order = wc_get_order( $order->get_id() );
+		$this->assertCount( 0, $order->get_refunds() );
+
+		$notes = wp_list_pluck( wc_get_order_notes( [ 'order_id' => $order->get_id() ] ), 'content' );
+		$this->assertCount( 0, preg_grep( '/could not be recorded as a refund/', $notes ) );
+	}
+
+	/**
+	 * A concurrent delivery of the same event may record the release in another process after this one
+	 * measured it. Without a persistent object cache, this process's cached refund total doesn't see
+	 * that refund, so the recheck under the refund lock must read the database, or the release is
+	 * recorded twice.
+	 */
+	public function test_process_webhook_capture_rechecks_release_against_database() {
+		$order    = $this->create_authorized_order( 'ch_concurrent_release' );
+		$order_id = $order->get_id();
+
+		// The partial capture note is added after the release is first measured and before the lock,
+		// so it stands in for the other process recording the release in between.
+		$record_concurrently = static function () use ( $order_id, &$record_concurrently ) {
+			remove_action( 'wp_insert_comment', $record_concurrently );
+
+			wc_create_refund(
+				[
+					'order_id' => $order_id,
+					'amount'   => '15.00',
+				]
+			);
+
+			// Leaves the total this process had cached, as if the refund came from another process.
+			// The key is WooCommerce's own, from WC_Order::get_total_refunded().
+			wp_cache_set( WC_Cache_Helper::get_cache_prefix( 'orders' ) . 'total_refunded' . $order_id, 0, 'orders' );
+		};
+		add_action( 'wp_insert_comment', $record_concurrently );
+
+		$this->mock_webhook_handler->process_webhook_capture( $this->build_capture_notification( 'charge.captured', 'ch_concurrent_release', [ 'amount_captured' => 500 ] ) );
+
+		remove_action( 'wp_insert_comment', $record_concurrently );
+
+		$this->assertCount( 1, wc_get_order( $order_id )->get_refunds() );
+	}
+
+	/**
+	 * The customer was never charged the released amount, so its refund must not send the "partially
+	 * refunded" email. A refund the merchant makes later on the same order must still send it.
+	 */
+	public function test_process_webhook_capture_skips_refund_email_for_release_only() {
+		$order = $this->create_authorized_order( 'ch_release_email' );
+
+		reset_phpmailer_instance();
+		$this->mock_webhook_handler->process_webhook_capture( $this->build_capture_notification( 'charge.captured', 'ch_release_email', [ 'amount_captured' => 500 ] ) );
+		$release_emails = $this->get_sent_partial_refund_emails();
+		$this->assertCount( 1, wc_get_order( $order->get_id() )->get_refunds(), 'The release must be recorded as a refund.' );
+
+		reset_phpmailer_instance();
+		wc_create_refund(
+			[
+				'order_id' => $order->get_id(),
+				'amount'   => '2.00',
+			]
+		);
+		$merchant_refund_emails = $this->get_sent_partial_refund_emails();
+
+		$this->assertCount( 0, $release_emails );
+		$this->assertCount( 1, $merchant_refund_emails );
+	}
+
+	/**
+	 * Returns the "partially refunded" emails sent since the mailer was last reset.
+	 *
+	 * @return array
+	 */
+	private function get_sent_partial_refund_emails(): array {
+		return array_filter(
+			tests_retrieve_phpmailer_instance()->mock_sent,
+			static function ( $mail ) {
+				return false !== stripos( $mail['subject'], 'partially refunded' );
+			}
+		);
+	}
+
+	/**
+	 * When the release can't be recorded because a refund is in progress, nothing else will record
+	 * it on current API versions, so the order must still be paid and the merchant told to add it.
+	 */
+	public function test_process_webhook_capture_asks_merchant_to_record_release_when_refund_locked() {
+		$order = $this->create_authorized_order( 'ch_locked' );
+		WC_Stripe_Order_Helper::get_instance()->lock_order_refund( $order );
+
+		$this->mock_webhook_handler->process_webhook_capture( $this->build_capture_notification( 'charge.captured', 'ch_locked', [ 'amount_captured' => 500 ] ) );
+
+		$order = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::PROCESSING, $order->get_status() );
+		$this->assertCount( 0, $order->get_refunds() );
+
+		$notes = wp_list_pluck( wc_get_order_notes( [ 'order_id' => $order->get_id() ] ), 'content' );
+		$this->assertCount( 1, preg_grep( '/could not be recorded as a refund/', $notes ) );
+	}
+
+	/**
+	 * On older API versions, the release also arrives as charge.refunded, before or after
+	 * charge.captured. Either way the order must end up paid, with the release refunded once.
+	 *
+	 * @dataProvider provider_release_refund_event_order
+	 *
+	 * @param string[] $event_order The charge events, in delivery order.
+	 */
+	public function test_process_webhook_capture_and_refund_record_release_once( array $event_order ) {
+		// $15 of $20 captured: a duplicate $5 refund would still pass WooCommerce's over-refund
+		// check, so only the stored Stripe refund ID prevents it.
+		$order            = $this->create_authorized_order( 'ch_release_order' );
+		$charge_overrides = [
+			'amount_captured' => 1500,
+			'amount_refunded' => 500,
+			'refunds'         => (object) [
+				'data' => [
+					(object) [
+						'id'     => 're_release_order',
+						'amount' => 500,
+					],
+				],
+			],
+		];
+
+		foreach ( $event_order as $event_type ) {
+			$notification = $this->build_capture_notification( $event_type, 'ch_release_order', $charge_overrides );
+			if ( 'charge.refunded' === $event_type ) {
+				$this->mock_webhook_handler->process_webhook_refund( $notification );
+			} else {
+				$this->mock_webhook_handler->process_webhook_capture( $notification );
+			}
+		}
+
+		$order = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::PROCESSING, $order->get_status() );
+		$this->assertSame( '20.00', $order->get_total() );
+		$this->assertSame( '5.00', wc_format_decimal( $order->get_total_refunded(), 2 ) );
+		$this->assertCount( 1, $order->get_refunds() );
+	}
+
+	/**
+	 * Both delivery orders of the capture and refund events.
+	 */
+	public function provider_release_refund_event_order(): array {
+		return [
+			'refund event first'  => [ [ 'charge.refunded', 'charge.captured' ] ],
+			'capture event first' => [ [ 'charge.captured', 'charge.refunded' ] ],
+		];
+	}
+
+	/**
+	 * When a concurrent delivery records the release while this one is in flight, it must not be
+	 * recorded again. The concurrent request is simulated from the order-note hook, which fires
+	 * after the release is first measured and before the refund lock is taken.
+	 */
+	public function test_process_webhook_capture_does_not_record_release_recorded_concurrently() {
+		// $15 of $20 captured: a second $5 refund would still pass WooCommerce's over-refund check.
+		$order        = $this->create_authorized_order( 'ch_concurrent' );
+		$notification = $this->build_capture_notification( 'charge.captured', 'ch_concurrent', [ 'amount_captured' => 1500 ] );
+
+		$record_concurrently = static function ( $note_id, $noted_order ) use ( &$record_concurrently ) {
+			remove_action( 'woocommerce_order_note_added', $record_concurrently );
+			wc_create_refund(
+				[
+					'order_id' => $noted_order->get_id(),
+					'amount'   => '5.00',
+				]
+			);
+		};
+		add_action( 'woocommerce_order_note_added', $record_concurrently, 10, 2 );
+
+		$this->mock_webhook_handler->process_webhook_capture( $notification );
+
+		remove_action( 'woocommerce_order_note_added', $record_concurrently );
+
+		$order = wc_get_order( $order->get_id() );
+		$this->assertSame( OrderStatus::PROCESSING, $order->get_status() );
+		$this->assertSame( '5.00', wc_format_decimal( $order->get_total_refunded(), 2 ) );
+		$this->assertCount( 1, $order->get_refunds() );
+	}
+
+	/**
+	 * Creates a Stripe order whose $20 charge is authorized but not captured yet.
+	 *
+	 * @param string $charge_id   The authorized charge ID.
+	 * @param string $order_total The order total, lower than the authorization if the merchant edited the order.
+	 * @return WC_Order
+	 */
+	private function create_authorized_order( string $charge_id, string $order_total = '20.00' ): WC_Order {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( 'stripe' );
+		$order->set_currency( 'USD' );
+		$order->set_total( $order_total );
+		$order->set_transaction_id( $charge_id );
+		$order->set_status( OrderStatus::ON_HOLD );
+		WC_Stripe_Order_Helper::get_instance()->set_stripe_charge_captured( $order, false );
+		$order->save();
+
+		return $order;
+	}
+
+	/**
+	 * Builds a charge event for a captured $20 authorization.
+	 *
+	 * @param string $type             The event type ('charge.captured' or 'charge.refunded').
+	 * @param string $charge_id        The charge ID.
+	 * @param array  $charge_overrides Charge properties to override the defaults.
+	 * @return object
+	 */
+	private function build_capture_notification( string $type, string $charge_id, array $charge_overrides ): object {
+		$charge = (object) array_merge(
+			[
+				'id'              => $charge_id,
+				'object'          => 'charge',
+				'captured'        => true,
+				'amount'          => 2000,
+				'amount_refunded' => 0,
+				'currency'        => 'usd',
+			],
+			$charge_overrides
+		);
+
+		return (object) [
+			'type' => $type,
+			'data' => (object) [ 'object' => $charge ],
+		];
+	}
+
+	/**
 	 * Repeat unexpected-charge detections for the same PaymentIntent on the same order must be no-ops: only one
 	 * note is added and the action fires exactly once, even when multiple webhook paths detect it.
 	 */

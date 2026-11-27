@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Mark orders paid after a partial capture in the Stripe Dashboard, keeping the order total and recording the released amount as a refund
