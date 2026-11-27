@@ -1,0 +1,4 @@
+Significance: patch
+Type: fix
+
+Prevent two requests from settling the same order at the same time by making the order payment lock atomic

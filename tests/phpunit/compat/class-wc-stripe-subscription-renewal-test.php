@@ -284,11 +284,10 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_locked_subscription_renewal_payment_methods
 	 */
 	public function test_renewal_returns_without_charging_when_payment_lock_is_held( $gateway_id, $expected_api_endpoint ) {
-		$renewal_order         = WC_Helper_Order::create_order();
-		$customer              = 'cus_123abc';
-		$source                = 'src_123abc';
-		$api_requests          = [];
-		$processing_started_at = time();
+		$renewal_order = WC_Helper_Order::create_order();
+		$customer      = 'cus_123abc';
+		$source        = 'src_123abc';
+		$api_requests  = [];
 
 		$renewal_order->set_payment_method( $gateway_id );
 		$renewal_order->save();
@@ -311,8 +310,9 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 				]
 			);
 
-		$order_helper = WC_Stripe_Order_Helper::get_instance();
-		$lock_result  = $order_helper->lock_order_payment( $renewal_order );
+		// Another request holds the lock.
+		$lock_name   = 'wc_stripe_order_payment_lock_' . $renewal_order->get_id();
+		$other_owner = WC_Stripe_Option_Lock::acquire( $lock_name, 300 );
 
 		// Default logging settings: the skip must log at error level.
 		$previous_logger = WC_Stripe_Logger::$logger;
@@ -373,7 +373,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
 
 		try {
-			$this->assertFalse( $lock_result, 'Expect a new lock to be acquired before we run the main test.' );
+			$this->assertNotNull( $other_owner, 'Expect a new lock to be acquired before we run the main test.' );
 
 			$this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, false, false );
 		} finally {
@@ -381,16 +381,12 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			WC_Stripe_Logger::$logger = $previous_logger;
 		}
 
-		// The gateway stamps the lock while processing, so the ceiling is the clock after the call, not before it.
-		$processing_finished_at = time();
-
 		$renewal_order = wc_get_order( $renewal_order->get_id() );
 
-		$lock_expiry = (int) $order_helper->get_order_existing_payment_lock( $renewal_order );
-
 		$this->assertSame( [], $api_requests );
-		$this->assertGreaterThan( $processing_started_at, $lock_expiry );
-		$this->assertLessThanOrEqual( $processing_finished_at + 5 * MINUTE_IN_SECONDS, $lock_expiry );
+		// The skipped attempt must not free the other request's lock.
+		$this->assertNull( WC_Stripe_Option_Lock::acquire( $lock_name, 300 ) );
+		WC_Stripe_Option_Lock::release( $lock_name, $other_owner );
 		$this->assertSame( $initial_order_status, $renewal_order->get_status() );
 
 		$order_id = $renewal_order->get_id();

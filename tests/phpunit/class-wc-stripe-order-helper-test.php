@@ -209,6 +209,94 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		$this->assertTrue( $this->helper->get_order_existing_payment_lock( $order ) > 0 );
 		$this->helper->unlock_order_payment( $order );
 		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( $order ) );
+
+		// Unlocking must also free the atomic lock, or the order stays blocked until it expires.
+		// Callers such as reconciliation unlock through a freshly loaded copy of the order, and
+		// the helper can be replaced with set_instance(), so neither may keep the lock held.
+		$this->assertFalse( $this->helper->lock_order_payment( $order ) );
+		( new WC_Stripe_Order_Helper() )->unlock_order_payment( wc_get_order( $order->get_id() ) );
+		$this->assertFalse( $this->helper->lock_order_payment( $order ) );
+		$this->helper->unlock_order_payment( $order );
+	}
+
+	/**
+	 * A request must not get the lock while another request holds the atomic lock.
+	 *
+	 * @return void
+	 */
+	public function test_lock_order_payment_is_refused_while_another_request_holds_the_lock(): void {
+		$order     = WC_Helper_Order::create_order();
+		$lock_name = 'wc_stripe_order_payment_lock_' . $order->get_id();
+
+		$other_owner = WC_Stripe_Option_Lock::acquire( $lock_name, 300 );
+		$this->assertNotNull( $other_owner );
+
+		$this->assertTrue( $this->helper->lock_order_payment( $order ) );
+		$this->assertEmpty( $this->helper->get_order_existing_payment_lock( $order ) );
+
+		// A request that never got the lock must not free it for a third one.
+		$this->helper->unlock_order_payment( $order );
+		$this->assertTrue( $this->helper->lock_order_payment( $order ) );
+
+		WC_Stripe_Option_Lock::release( $lock_name, $other_owner );
+		$this->assertFalse( $this->helper->lock_order_payment( $order ) );
+		$this->helper->unlock_order_payment( $order );
+	}
+
+	/**
+	 * The holder must treat its lock as expired before another request may reclaim the row, or
+	 * both could settle the order in the same second.
+	 *
+	 * @return void
+	 */
+	public function test_payment_lock_expires_before_the_row_can_be_reclaimed(): void {
+		$order = WC_Helper_Order::create_order();
+
+		$this->assertFalse( $this->helper->lock_order_payment( $order ) );
+
+		$locked_at = (int) strtok( (string) get_option( 'wc_stripe_order_payment_lock_' . $order->get_id() ), ':' );
+		$this->assertLessThan( $locked_at + 300, $this->helper->get_order_existing_payment_lock( $order ) );
+
+		$this->helper->unlock_order_payment( $order );
+	}
+
+	/**
+	 * Requests still on an older plugin version only write the meta, so a live meta lock must be
+	 * respected during a deploy.
+	 *
+	 * @return void
+	 */
+	public function test_lock_order_payment_is_refused_while_a_legacy_meta_lock_is_live(): void {
+		$order = WC_Helper_Order::create_order();
+		$order->update_meta_data( '_stripe_lock_payment', time() + 60 );
+		$order->save_meta_data();
+
+		$this->assertTrue( $this->helper->lock_order_payment( $order ) );
+		$this->assertFalse( get_option( 'wc_stripe_order_payment_lock_' . $order->get_id() ) );
+	}
+
+	/**
+	 * A lock left behind by a request that died is reclaimed once it is older than 5 minutes, so settlement isn't blocked for longer.
+	 *
+	 * @return void
+	 */
+	public function test_lock_order_payment_reclaims_an_abandoned_lock_after_five_minutes(): void {
+		global $wpdb;
+
+		$order = WC_Helper_Order::create_order();
+		$wpdb->insert(
+			$wpdb->options,
+			[
+				'option_name'  => 'wc_stripe_order_payment_lock_' . $order->get_id(),
+				'option_value' => ( time() - 301 ) . ':abandoned',
+				'autoload'     => 'off',
+			]
+		);
+		$order->update_meta_data( '_stripe_lock_payment', time() - 1 );
+		$order->save_meta_data();
+
+		$this->assertFalse( $this->helper->lock_order_payment( $order ) );
+		$this->helper->unlock_order_payment( $order );
 	}
 
 	/**

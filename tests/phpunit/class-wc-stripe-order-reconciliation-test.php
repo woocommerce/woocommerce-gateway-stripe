@@ -669,7 +669,11 @@ class WC_Stripe_Order_Reconciliation_Test extends WP_UnitTestCase {
 
 		$this->assertNotEmpty( $saved_statuses );
 		$this->assertSame( 'processing', end( $saved_statuses ) );
-		$this->assertSame( '', wc_get_order( $order->get_id() )->get_meta( '_stripe_lock_payment', true ) );
+
+		// Reconciliation must release the payment lock, or the order stays locked until it expires.
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+		$this->assertFalse( $order_helper->lock_order_payment( wc_get_order( $order->get_id() ) ) );
+		$order_helper->unlock_order_payment( wc_get_order( $order->get_id() ) );
 	}
 
 	public static function provide_settlement_paths(): array {

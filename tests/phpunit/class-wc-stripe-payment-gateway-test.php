@@ -2570,6 +2570,39 @@ class WC_Stripe_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
+	 * The deprecated lock methods share the order helper's lock, so a subclass still on them and
+	 * the plugin's own settlement code see each other's locks.
+	 *
+	 * @return void
+	 */
+	public function test_deprecated_payment_lock_methods_share_the_order_helper_lock(): void {
+		$this->setExpectedDeprecated( 'WC_Stripe_Payment_Gateway::lock_order_payment' );
+		$this->setExpectedDeprecated( 'WC_Stripe_Payment_Gateway::unlock_order_payment' );
+		$this->setExpectedDeprecated( 'WC_Stripe_Payment_Gateway::is_order_payment_locked' );
+		$this->setExpectedDeprecated( 'WC_Stripe_Payment_Gateway::get_order_existing_lock' );
+
+		$gateway = new class() extends WC_Stripe_UPE_Payment_Gateway {
+			public function check_payment_lock( $order ) {
+				return $this->is_order_payment_locked( $order );
+			}
+		};
+
+		$order        = WC_Helper_Order::create_order();
+		$order_helper = WC_Stripe_Order_Helper::get_instance();
+
+		$this->assertFalse( $order_helper->lock_order_payment( $order ) );
+		$this->assertTrue( $gateway->check_payment_lock( $order ) );
+		$this->assertTrue( $gateway->lock_order_payment( $order ) );
+
+		$order_helper->unlock_order_payment( $order );
+		$this->assertFalse( $gateway->lock_order_payment( $order ) );
+		$this->assertTrue( $order_helper->lock_order_payment( $order ) );
+
+		$gateway->unlock_order_payment( $order );
+		$this->assertFalse( $gateway->check_payment_lock( $order ) );
+	}
+
+	/**
 	 * A PaymentMethod the caller already retrieved is trusted for the ownership check, so
 	 * checkout does not make a second API request.
 	 */

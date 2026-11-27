@@ -2313,6 +2313,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 						$this->get_upe_gateway_id_for_order( $upe_payment_method )
 					);
 					$order->payment_complete();
+					$order_helper->unlock_order_payment( $order );
 
 					return [
 						'result'   => 'success',

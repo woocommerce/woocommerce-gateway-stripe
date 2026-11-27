@@ -54,6 +54,7 @@ final class WC_Stripe_Option_Lock {
 		'wc_stripe_event_lock_',
 		'wc_stripe_payment_method_lock_',
 		'wc_stripe_intent_lock_',
+		'wc_stripe_order_payment_lock_',
 	];
 
 	/**

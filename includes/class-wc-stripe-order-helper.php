@@ -221,6 +221,22 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_LOCK_REFUND = '_stripe_lock_refund';
 
 	/**
+	 * Option name prefix of the atomic order payment lock; the order ID completes it.
+	 *
+	 * @since x.x.x
+	 * @var string
+	 */
+	private const PAYMENT_LOCK_OPTION_PREFIX = 'wc_stripe_order_payment_lock_';
+
+	/**
+	 * Seconds after which an order payment lock is treated as abandoned.
+	 *
+	 * @since x.x.x
+	 * @var int
+	 */
+	private const PAYMENT_LOCK_TTL = 5 * MINUTE_IN_SECONDS;
+
+	/**
 	 * Meta key for the In-Person Payments channel.
 	 *
 	 * Stores the ipp_channel value from Stripe PaymentIntent metadata.
@@ -236,6 +252,16 @@ class WC_Stripe_Order_Helper {
 	 * @var null|WC_Stripe_Order_Helper
 	 */
 	private static ?WC_Stripe_Order_Helper $instance = null;
+
+	/**
+	 * Owner tokens and expiry timestamps of the order payment locks this request holds, keyed by order ID.
+	 *
+	 * Static, so a lock taken through one helper instance can be released through another.
+	 *
+	 * @since x.x.x
+	 * @var array<int, array{owner: string, expiry: int}>
+	 */
+	private static array $payment_lock_owners = [];
 
 	/**
 	 * Gets the singleton instance of the class.
@@ -1625,10 +1651,21 @@ class WC_Stripe_Order_Helper {
 			return true;
 		}
 
-		$new_lock = ( time() + 5 * MINUTE_IN_SECONDS );
+		// Another request may reclaim the row from the second its TTL runs out, and the holder still
+		// counts the expiry second itself as locked. Ending one second early, measured before
+		// acquiring, keeps the two from overlapping.
+		$expiry = time() + self::PAYMENT_LOCK_TTL - 1;
 
-		$order->update_meta_data( self::META_STRIPE_LOCK_PAYMENT, $new_lock );
-		$order->save_meta_data();
+		// Two requests can both pass the check above. Only one of them can insert the option row.
+		$owner = WC_Stripe_Option_Lock::acquire( self::PAYMENT_LOCK_OPTION_PREFIX . $order->get_id(), self::PAYMENT_LOCK_TTL );
+		if ( null === $owner ) {
+			return true;
+		}
+
+		self::$payment_lock_owners[ $order->get_id() ] = [
+			'owner'  => $owner,
+			'expiry' => $expiry,
+		];
 
 		return false;
 	}
@@ -1641,6 +1678,19 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order $order The order that is being unlocked.
 	 */
 	public function unlock_order_payment( WC_Order $order ): void {
+		// Without an owner token from this request there is no row to release, so a request that
+		// never got the lock can't free the row for a third one. Owners are tracked per request,
+		// not per call, so a nested caller in the holding request would still release it. An
+		// abandoned lock expires after its TTL. Released before the meta save below, so a failing
+		// save can't keep the row.
+		$order_id = $order->get_id();
+		if ( isset( self::$payment_lock_owners[ $order_id ] ) ) {
+			WC_Stripe_Option_Lock::release( self::PAYMENT_LOCK_OPTION_PREFIX . $order_id, self::$payment_lock_owners[ $order_id ]['owner'] );
+			unset( self::$payment_lock_owners[ $order_id ] );
+		}
+
+		// Clears a lock left by an older plugin version, which only wrote the meta. Any caller
+		// clears it, whether it held that lock or not.
 		$order->delete_meta_data( self::META_STRIPE_LOCK_PAYMENT );
 		$order->save_meta_data();
 	}
@@ -1648,14 +1698,24 @@ class WC_Stripe_Order_Helper {
 	/**
 	 * Retrieves the existing lock for an order.
 	 *
+	 * Only sees locks held by this request, or written by an older plugin version. Locks held by
+	 * other requests are refused when acquiring.
+	 *
 	 * @since 10.0.0
 	 *
 	 * @param WC_Order $order The order to retrieve the lock for
-	 * @return mixed
+	 * @return int|string The lock expiry timestamp, or an empty string when there is no lock.
 	 */
 	public function get_order_existing_payment_lock( WC_Order $order ) {
+		// Requests still running an older plugin version during a deploy lock with the meta only.
 		$order->read_meta_data( true );
-		return $order->get_meta( self::META_STRIPE_LOCK_PAYMENT, true );
+		$legacy_expiry = (int) $order->get_meta( self::META_STRIPE_LOCK_PAYMENT, true );
+
+		$own_expiry = self::$payment_lock_owners[ $order->get_id() ]['expiry'] ?? 0;
+
+		$expiry = max( $legacy_expiry, $own_expiry );
+
+		return $expiry > 0 ? $expiry : '';
 	}
 
 	/**
@@ -1716,8 +1776,7 @@ class WC_Stripe_Order_Helper {
 	protected function is_order_payment_locked( WC_Order $order ): bool {
 		$existing_lock = $this->get_order_existing_payment_lock( $order );
 		if ( $existing_lock ) {
-			$parts      = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}"
-			$expiration = (int) $parts[0];
+			$expiration = (int) $existing_lock;
 
 			// If the lock is still active, return true.
 			if ( time() <= $expiration ) {
