@@ -72,22 +72,22 @@ class WC_Stripe_Upgrade_Preservation_Test extends WP_UnitTestCase {
 
 	public function provide_upgrade_profiles(): array {
 		$cases = [];
-		foreach ( require __DIR__ . '/fixtures/upgrades/profiles.php' as $name => $fixture ) {
-			$cases[ $name ] = [ $fixture ];
+		foreach ( require __DIR__ . '/fixtures/upgrades/cases.php' as $name => $scenario ) {
+			$cases[ $name ] = [ $scenario ];
 		}
 		return $cases;
 	}
 
 	/** @dataProvider provide_upgrade_profiles */
-	public function test_upgrade_preserves_merchant_choices( array $fixture ): void {
-		$this->exercise_upgrade( $fixture );
+	public function test_upgrade_preserves_merchant_choices( array $scenario ): void {
+		$this->exercise_upgrade( $scenario );
 	}
 
 	/** @dataProvider provide_detectable_regressions */
 	public function test_harness_detects_regressions( string $regression, string $diagnostic ): void {
-		$fixtures = require __DIR__ . '/fixtures/upgrades/profiles.php';
-		$runs     = 0;
-		$inject   = static function () use ( $regression, &$runs ) {
+		$cases  = require __DIR__ . '/fixtures/upgrades/cases.php';
+		$runs   = 0;
+		$inject = static function () use ( $regression, &$runs ) {
 			if ( 'pmc' === $regression && 1 === ++$runs ) {
 				return;
 			}
@@ -106,7 +106,7 @@ class WC_Stripe_Upgrade_Preservation_Test extends WP_UnitTestCase {
 		$this->expectException( PHPUnit\Framework\AssertionFailedError::class );
 		$this->expectExceptionMessage( $diagnostic );
 		try {
-			$this->exercise_upgrade( $fixtures['11.0.1 opt-outs'] );
+			$this->exercise_upgrade( $cases['11.0.1 opt-outs'] );
 		} finally {
 			remove_action( 'woocommerce_stripe_updated', $inject );
 		}
@@ -120,8 +120,24 @@ class WC_Stripe_Upgrade_Preservation_Test extends WP_UnitTestCase {
 		];
 	}
 
-	private function exercise_upgrade( array $fixture ): void {
-		$fixture = json_decode( str_replace( '{{webhook_url}}', WC_Stripe_Helper::get_webhook_url(), wp_json_encode( $fixture, JSON_UNESCAPED_SLASHES ) ), true );
+	private function load_store( array $scenario ): array {
+		$fixture            = require __DIR__ . '/fixtures/upgrades/stores/' . str_replace( '.', '-', $scenario['source'] ) . '.php';
+		$fixture['options'] = array_replace( $fixture['options'], $scenario['options'] ?? [] );
+		$fixture['options']['woocommerce_stripe_settings'] = array_replace( $fixture['options']['woocommerce_stripe_settings'], $scenario['settings'] ?? [] );
+		foreach ( $scenario['unset_settings'] ?? [] as $key ) {
+			unset( $fixture['options']['woocommerce_stripe_settings'][ $key ] );
+		}
+		// Shallow replacement keeps an explicitly empty selection empty.
+		$fixture['visible']         = array_replace( $fixture['visible'], $scenario['visible'] ?? [] );
+		$fixture['pmc_preferences'] = array_replace( $fixture['pmc_preferences'], $scenario['pmc_preferences'] ?? [] );
+		$fixture['pmc_available']   = $scenario['pmc_available'] ?? $fixture['pmc_available'];
+		return $fixture;
+	}
+
+	private function exercise_upgrade( array $scenario ): void {
+		$fixture  = $this->load_store( $scenario );
+		$fixture  = json_decode( str_replace( '{{webhook_url}}', WC_Stripe_Helper::get_webhook_url(), wp_json_encode( $fixture, JSON_UNESCAPED_SLASHES ) ), true );
+		$scenario = json_decode( str_replace( '{{webhook_url}}', WC_Stripe_Helper::get_webhook_url(), wp_json_encode( $scenario, JSON_UNESCAPED_SLASHES ) ), true );
 		$this->assertNotSame( WC_STRIPE_VERSION, $fixture['options']['wc_stripe_version'], 'Fixture must exercise an upgrade, not the current-version guard.' );
 		$this->http = new WC_Stripe_Upgrade_HTTP_Fake( $fixture );
 		add_filter( 'pre_http_request', [ $this->http, 'intercept' ], 1, 3 );
@@ -134,11 +150,11 @@ class WC_Stripe_Upgrade_Preservation_Test extends WP_UnitTestCase {
 		WC_Stripe::get_instance()->get_main_stripe_gateway();
 		WC_Stripe::get_instance()->install();
 		$this->assertSame( WC_STRIPE_VERSION, get_option( 'wc_stripe_version' ) );
-		$this->assert_stage( $fixture, 'upgrade', $expected, $visible );
+		$this->assert_stage( 'upgrade', $expected, $visible, $scenario['upgrade'] ?? [] );
 
 		$this->new_request();
 		$response = $this->read_settings();
-		$this->assert_stage( $fixture, 'settings GET', $expected, $visible );
+		$this->assert_stage( 'settings GET', $expected, $visible, $scenario['first_read'] ?? [] );
 		$this->assert_visible( $visible, $response, 'settings GET' );
 
 		foreach ( [ 'next request', 'forced rerun' ] as $stage ) {
@@ -152,45 +168,50 @@ class WC_Stripe_Upgrade_Preservation_Test extends WP_UnitTestCase {
 			$this->assertSame( WC_STRIPE_VERSION, get_option( 'wc_stripe_version' ), $stage );
 			$this->new_request();
 			$response = $this->read_settings();
-			$this->assert_stage( $fixture, $stage, $expected, $visible );
+			$this->assert_stage( $stage, $expected, $visible );
 			$this->assert_visible( $visible, $response, $stage );
 		}
 
-		if ( '10.7.0' === $fixture['options']['wc_stripe_version'] ) {
-			$settings                               = WC_Stripe_Helper::get_stripe_settings();
-			$settings['optimized_checkout_element'] = 'no';
-			$settings['adaptive_pricing']           = 'no';
+		if ( isset( $scenario['opt_out'] ) ) {
+			$settings = array_replace( WC_Stripe_Helper::get_stripe_settings(), $scenario['opt_out']['settings'] );
 			WC_Stripe_Helper::update_main_stripe_settings( $settings );
 			$expected['woocommerce_stripe_settings'] = $settings;
-			$visible['is_oc_enabled']                = false;
-			$visible['is_ap_enabled']                = false;
+			$visible                                 = array_replace( $visible, $scenario['opt_out']['visible'] );
 			$this->new_request();
-			update_option( 'wc_stripe_version', '10.7.0' );
+			update_option( 'wc_stripe_version', $fixture['options']['wc_stripe_version'] );
 			WC_Stripe::get_instance()->get_main_stripe_gateway();
 			WC_Stripe::get_instance()->install();
 			$this->assertSame( WC_STRIPE_VERSION, get_option( 'wc_stripe_version' ), 'opt-out rerun' );
 			$this->new_request();
 			$response = $this->read_settings();
-			$this->assert_stage( $fixture, 'opt-out rerun', $expected, $visible );
+			$this->assert_stage( 'opt-out rerun', $expected, $visible );
 			$this->assert_visible( $visible, $response, 'opt-out rerun' );
 		}
 	}
 
-	private function assert_stage( array $fixture, string $stage, array &$expected, array &$visible ): void {
-		$changes = require __DIR__ . '/fixtures/upgrades/allowed-changes.php';
-		foreach ( $changes['settings'] as $key => [ $from, $to ] ) {
-			$this->assertSame( null !== $from, array_key_exists( $key, $expected['woocommerce_stripe_settings'] ), "$stage: invalid exception key presence: $key" );
-			$this->assertSame( $from, $expected['woocommerce_stripe_settings'][ $key ] ?? null, "$stage: invalid exception prerequisite: $key" );
-			$this->assertNotSame( $from, $to, "$stage: unused exception: $key" );
-			if ( null === $to ) {
-				unset( $expected['woocommerce_stripe_settings'][ $key ] );
-			} else {
-				$expected['woocommerce_stripe_settings'][ $key ] = $to;
+	private function assert_stage( string $stage, array &$expected, array &$visible, array $changes = [] ): void {
+		$writes       = [];
+		$changed_keys = [];
+		foreach ( $changes as $name => $change ) {
+			foreach ( $change['settings'] ?? [] as $key => [ $from, $to ] ) {
+				// Only the final state is observable here. Two declarations for the same
+				// key could mask a missing intermediate change, so reject that ambiguity.
+				$this->assertArrayNotHasKey( $key, $changed_keys, "$stage: overlapping changes: $name: $key" );
+				$changed_keys[ $key ] = $name;
+				$this->assertSame( null !== $from, array_key_exists( $key, $expected['woocommerce_stripe_settings'] ), "$stage: $name: invalid exception key presence: $key" );
+				$this->assertSame( $from, $expected['woocommerce_stripe_settings'][ $key ] ?? null, "$stage: $name: invalid exception prerequisite: $key" );
+				$this->assertNotSame( $from, $to, "$stage: $name: unused exception: $key" );
+				if ( null === $to ) {
+					unset( $expected['woocommerce_stripe_settings'][ $key ] );
+				} else {
+					$expected['woocommerce_stripe_settings'][ $key ] = $to;
+				}
 			}
+			$visible = array_replace( $visible, $change['visible'] ?? [] );
+			$writes  = array_merge( $writes, $change['writes'] ?? [] );
 		}
-		$visible = array_merge( $visible, $changes['visible'] );
 		$this->assertSame( [], $this->http->unexpected, "$stage: unexpected HTTP request" );
-		$this->assert_values( $changes['writes'], $this->http->writes(), "$stage: unexpected Stripe writes (or unused HTTP exception)" );
+		$this->assert_values( $writes, $this->http->writes(), "$stage: unexpected Stripe writes (or unused HTTP exception)" );
 		$this->assert_values( $expected, $this->snapshot(), $stage );
 		$this->http->requests = [];
 	}
