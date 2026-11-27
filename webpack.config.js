@@ -148,5 +148,7 @@ module.exports = {
 		'link-settings': './client/entrypoints/link-settings/index.js',
 		'plugins-page': './client/entrypoints/plugins-page/index.js',
 		'command-palette': './client/entrypoints/command-palette/index.js',
+		'payment-method-messaging':
+			'./client/entrypoints/payment-method-messaging/index.js',
 	},
 };
